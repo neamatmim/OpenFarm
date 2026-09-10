@@ -4,6 +4,14 @@ import * as schema from "./schema";
 
 export const relations = defineRelations(schema, (r) => ({
   user: {
+    roles: r.many.roleAssignment({
+      from: r.user.id,
+      to: r.roleAssignment.userId,
+    }),
+    penAssignments: r.many.penAssignment({
+      from: r.user.id,
+      to: r.penAssignment.userId,
+    }),
     sessions: r.many.session({
       from: r.user.id,
       to: r.session.userId,

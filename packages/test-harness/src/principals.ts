@@ -2,15 +2,19 @@ import {
   session as sessionTable,
   user as userTable,
 } from "@OpenFarm/db/schema/auth";
+import { farm as farmTable, roleAssignment } from "@OpenFarm/db/schema/farm";
 
 import { DAY } from "./clock";
 import { scratchDb } from "./database";
 
-/** The four Roles the roles matrix names. Permissions arrive with a later ticket;
- *  here a Role selects a deterministic seeded person. */
+/** The four Roles the roles matrix names. */
 export type Role = "owner" | "manager" | "staff" | "vet";
+/** A Role, or a signed-in person who holds none ("newcomer"). */
+export type Principal = Role | "newcomer";
 
-const PEOPLE: Record<Role, { id: string; name: string; email: string }> = {
+export const TEST_FARM = { id: "test-farm", name: "পরীক্ষা খামার" } as const;
+
+const PEOPLE: Record<Principal, { id: string; name: string; email: string }> = {
   owner: { id: "test-owner", name: "মালিক", email: "owner@test.openfarm" },
   manager: {
     id: "test-manager",
@@ -19,24 +23,34 @@ const PEOPLE: Record<Role, { id: string; name: string; email: string }> = {
   },
   staff: { id: "test-staff", name: "রহিম", email: "staff@test.openfarm" },
   vet: { id: "test-vet", name: "ডা. করিম", email: "vet@test.openfarm" },
+  newcomer: {
+    id: "test-newcomer",
+    name: "নতুন",
+    email: "newcomer@test.openfarm",
+  },
 };
 
 const SESSION_LIFETIME = 7 * DAY;
 
 export interface TestPrincipal {
-  role: Role;
+  role: Principal;
   user: typeof userTable.$inferSelect;
   session: typeof sessionTable.$inferSelect;
 }
 
-/** Seeds the person for a Role (once per run) and a session for them dated from `now`,
- *  both as real rows in the scratch database, and returns the persisted rows. */
+/** Seeds the Farm (once), the person for a Principal (once), their Role on the Farm,
+ *  and a session dated from `now` — all as real rows — and returns the persisted rows. */
 export const createTestPrincipal = async (
-  role: Role,
+  role: Principal,
   now: Date
 ): Promise<TestPrincipal> => {
   const db = scratchDb();
   const person = PEOPLE[role];
+
+  await db
+    .insert(farmTable)
+    .values({ ...TEST_FARM, createdAt: now })
+    .onConflictDoNothing();
 
   const [inserted] = await db
     .insert(userTable)
@@ -47,6 +61,21 @@ export const createTestPrincipal = async (
     inserted ?? (await db.query.user.findFirst({ where: { id: person.id } }));
   if (!user) {
     throw new Error(`test harness: could not seed or find user ${person.id}`);
+  }
+
+  if (role !== "newcomer") {
+    await db
+      .insert(roleAssignment)
+      .values({
+        id: `role-${person.id}-${role}`,
+        farmId: TEST_FARM.id,
+        userId: person.id,
+        role,
+        grantedBy: person.id,
+        grantedByRole: role,
+        createdAt: now,
+      })
+      .onConflictDoNothing();
   }
 
   const sessionValues = {

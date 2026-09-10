@@ -1,4 +1,4 @@
-import type { Role } from "@OpenFarm/test-harness";
+import type { Principal } from "@OpenFarm/test-harness";
 import {
   FakeClock,
   createTestPrincipal,
@@ -16,7 +16,7 @@ import { buildContext } from "../context";
 
 interface Options {
   /** Which Role calls the API; `null` for an unauthenticated caller. */
-  as: Role | null;
+  as: Principal | null;
   clock?: FakeClock;
 }
 
@@ -28,7 +28,7 @@ export const createTestClient = async <T extends Router<Context>>(
 ): Promise<{ client: RouterClient<T>; clock: FakeClock }> => {
   const principal =
     as === null ? null : await createTestPrincipal(as, clock.now());
-  const context = buildContext({
+  const context = await buildContext({
     session:
       principal === null
         ? null

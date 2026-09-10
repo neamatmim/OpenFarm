@@ -13,7 +13,7 @@ const requireAuth = o.middleware(({ context, next }) => {
   const expired = session
     ? session.session.expiresAt <= context.clock.now()
     : true;
-  if (!session?.user || expired) {
+  if (!session?.user || expired || context.person?.disabledAt) {
     throw new ORPCError("UNAUTHORIZED");
   }
   return next({

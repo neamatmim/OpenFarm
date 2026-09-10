@@ -4,11 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-export const Route = createFileRoute("/_auth/dashboard")({
-  component: RouteComponent,
-});
-
-function RouteComponent() {
+const RouteComponent = () => {
   const { session } = Route.useRouteContext();
   const t = useT();
 
@@ -21,4 +17,8 @@ function RouteComponent() {
       <p>{t("dashboard.api", { message: privateData.data?.message ?? "" })}</p>
     </div>
   );
-}
+};
+
+export const Route = createFileRoute("/_auth/dashboard")({
+  component: RouteComponent,
+});

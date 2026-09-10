@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 // Generated files and allow-listed brand/technical tokens are exempt.
 const ROOTS = ["src/routes", "src/components"];
 const ALLOWED = new Set(["OpenFarm", "API"]);
-const JSX_TEXT = />\s*(?<text>[^<>{}]*[A-Za-z][^<>{}]*?)\s*</gu;
+const JSX_TEXT = /(?<!=)>\s*(?<text>[^<>{};]*[A-Za-z][^<>{};]*?)\s*</gu;
 
 const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((name) => {

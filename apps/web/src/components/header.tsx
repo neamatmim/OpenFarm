@@ -10,6 +10,7 @@ const Header = () => {
   const links = [
     { to: "/", label: t("nav.home") },
     { to: "/dashboard", label: t("nav.dashboard") },
+    { to: "/admin/people", label: t("nav.people") },
   ] as const;
 
   return (

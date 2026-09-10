@@ -17,6 +17,8 @@ export const user = pgTable("user", {
   language: text("language", { enum: ["bn", "en"] })
     .notNull()
     .default("bn"),
+  /** Set when the Owner removes a person's access; the person and their history remain. */
+  disabledAt: timestamp("disabled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
