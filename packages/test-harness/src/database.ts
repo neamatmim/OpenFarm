@@ -1,5 +1,5 @@
-import { createDb } from "@OpenFarm/db";
 import type { Database } from "@OpenFarm/db";
+import { createDb } from "@OpenFarm/db";
 
 let shared: Database | undefined;
 
@@ -11,6 +11,6 @@ export const scratchDb = (): Database => {
       "DATABASE_URL is not set: is the test-harness global setup configured?"
     );
   }
-  shared ??= createDb(url);
+  shared ??= createDb(url, { allowExitOnIdle: true });
   return shared;
 };
