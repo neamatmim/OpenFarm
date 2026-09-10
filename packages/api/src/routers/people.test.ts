@@ -1,6 +1,8 @@
-import { scratchDb } from "@OpenFarm/test-harness";
+import { user } from "@OpenFarm/db/schema/auth";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
+import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -48,7 +50,6 @@ describe("invitations", () => {
     expect(invited.status).toBe("pending");
 
     // the person signs up (simulated: their user row appears) before approval
-    const { user } = await import("@OpenFarm/db/schema/auth");
     const userId = `user-${Date.now()}`;
     await scratchDb()
       .insert(user)
@@ -95,7 +96,6 @@ describe("invitations", () => {
 describe("access", () => {
   it("the Owner can assign several Roles and the highest is the one used", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const { user } = await import("@OpenFarm/db/schema/auth");
     const userId = `multi-${Date.now()}`;
     await scratchDb()
       .insert(user)
@@ -141,5 +141,118 @@ describe("access", () => {
     });
     const current = await client.farm.current();
     expect(current?.name).toBe("পরীক্ষা খামার");
+  });
+});
+
+describe("review findings", () => {
+  it("the farm always keeps an Owner: the sole Owner cannot drop their own Role", async () => {
+    const { client } = await createTestClient(appRouter, { as: "owner" });
+
+    await expect(
+      client.people.assignRoles({ userId: "test-owner", roles: ["manager"] })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const me = await client.people.me();
+    expect(me.roles).toContain("owner");
+  });
+
+  it("a person invited before signing up gets their Roles the first time they appear", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const email = `early-${Date.now()}@test.openfarm`;
+    await owner.client.people.invite({
+      email,
+      name: "Early",
+      roles: ["staff"],
+    });
+    const listed = await owner.client.people.list();
+    expect(listed.awaitingSignup.some((i) => i.email === email)).toBe(true);
+
+    const userId = `early-${Date.now()}`;
+    await scratchDb()
+      .insert(user)
+      .values({ id: userId, name: "Early", email, emailVerified: true });
+    const row = await scratchDb().query.user.findFirst({
+      where: { id: userId },
+    });
+    const session = await scratchDb().query.session.findFirst({
+      where: { userId: "test-staff" },
+    });
+    if (!row || !session) {
+      throw new Error("seed failed");
+    }
+    const context = await buildContext({
+      session: { user: row, session: { ...session, userId } },
+      clock: new FakeClock(),
+      db: scratchDb(),
+    });
+
+    expect(context.roles).toEqual(["staff"]);
+    const after = await owner.client.people.list();
+    expect(after.awaitingSignup.some((i) => i.email === email)).toBe(false);
+  });
+
+  it("approving an invite is atomic: a second approval finds nothing and writes no audit row", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const { id } = await manager.client.people.invite({
+      email: `twice-${Date.now()}@test.openfarm`,
+      name: "T",
+      roles: ["staff"],
+    });
+
+    await owner.client.people.approveInvite({ id });
+    await expect(
+      owner.client.people.approveInvite({ id })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    const events = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "invite", entityId: id },
+    });
+    expect(events.map((e) => e.action)).toEqual(["create", "update"]);
+  });
+
+  it("re-assigning Roles leaves kept Roles and their attribution untouched", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const userId = `keep-${Date.now()}`;
+    await scratchDb()
+      .insert(user)
+      .values({
+        id: userId,
+        name: "K",
+        email: `${userId}@test.openfarm`,
+        emailVerified: true,
+      });
+    await owner.client.people.assignRoles({ userId, roles: ["staff"] });
+    const [before] = await scratchDb().query.roleAssignment.findMany({
+      where: { userId, role: "staff" },
+    });
+
+    await owner.client.people.assignRoles({ userId, roles: ["staff", "vet"] });
+
+    const rows = await scratchDb().query.roleAssignment.findMany({
+      where: { userId },
+      orderBy: { role: "asc" },
+    });
+    expect(rows.map((r) => [r.role, r.revokedAt === null])).toEqual([
+      ["staff", true],
+      ["vet", true],
+    ]);
+    expect(rows.find((r) => r.role === "staff")?.createdAt).toEqual(
+      before?.createdAt
+    );
+  });
+
+  it("disabling a person expires their sessions", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await createTestClient(appRouter, { as: "vet" });
+
+    await owner.client.people.disable({ userId: "test-vet" });
+
+    const session = await scratchDb().query.session.findFirst({
+      where: { userId: "test-vet" },
+    });
+    expect(
+      session && session.expiresAt.getTime() <= owner.clock.now().getTime()
+    ).toBe(true);
+    await owner.client.people.enable({ userId: "test-vet" });
   });
 });

@@ -1,3 +1,5 @@
+import type { RoleName } from "@OpenFarm/api/roles";
+import { ROLES } from "@OpenFarm/api/roles";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -8,9 +10,6 @@ import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
-
-const ROLES = ["owner", "manager", "staff", "vet"] as const;
-type RoleName = (typeof ROLES)[number];
 
 const roleKey = (role: RoleName) => `role.${role}` as const;
 
@@ -108,7 +107,7 @@ const PeoplePage = () => {
         <ul className="space-y-2">
           {list.data?.people.map((person) => (
             <PersonRow
-              key={person.id}
+              key={`${person.id}:${person.roles.join(",")}:${person.disabledAt ? "off" : "on"}`}
               person={person}
               isOwner={isOwner}
               isSelf={person.id === me.data?.id}
@@ -119,6 +118,20 @@ const PeoplePage = () => {
           ))}
         </ul>
       </section>
+
+      {list.data?.awaitingSignup.length ? (
+        <section className="space-y-2">
+          <h2 className="font-medium">{t("people.awaitingSignup")}</h2>
+          <ul className="space-y-1 text-sm">
+            {list.data.awaitingSignup.map((inv) => (
+              <li key={inv.id} className="text-muted-foreground">
+                {inv.name} · {inv.email} ·{" "}
+                {inv.roles.map((r) => t(roleKey(r))).join(", ")}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <InviteForm ownerCanPickRoles={isOwner} onSent={refresh} />
     </div>

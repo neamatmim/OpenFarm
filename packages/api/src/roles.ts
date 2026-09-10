@@ -1,9 +1,10 @@
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { ORPCError } from "@orpc/server";
+import { ORPCError, os } from "@orpc/server";
 
-import { o } from "./index";
+import type { Context, Session } from "./context";
 
 export type { RoleName } from "@OpenFarm/db/schema/farm";
+export { ROLES } from "@OpenFarm/db/schema/farm";
 
 /** Highest privilege first — the Role recorded when several held Roles would do. */
 const PRECEDENCE: readonly RoleName[] = ["owner", "manager", "vet", "staff"];
@@ -15,19 +16,15 @@ export const pickRoleUsed = (
   PRECEDENCE.find((role) => held.includes(role) && allowed.includes(role)) ??
   null;
 
-/** Requires a signed-in, enabled person holding any of `allowed`; puts `roleUsed` on the context. */
+/** Runs after requireAuth (the session is already known good). Requires any of `allowed`
+ *  and narrows the context: the Role used and the Farm are certain from here on. */
 export const requireRole = (...allowed: RoleName[]) =>
-  o.middleware(({ context, next }) => {
-    const { session } = context;
-    const expired = session
-      ? session.session.expiresAt <= context.clock.now()
-      : true;
-    if (!session?.user || expired || context.person?.disabledAt) {
-      throw new ORPCError("UNAUTHORIZED");
-    }
-    const roleUsed = pickRoleUsed(context.roles, allowed);
-    if (!roleUsed) {
-      throw new ORPCError("FORBIDDEN");
-    }
-    return next({ context: { session, roleUsed } });
-  });
+  os
+    .$context<Context & { session: Session }>()
+    .middleware(({ context, next }) => {
+      const roleUsed = pickRoleUsed(context.roles, allowed);
+      if (!roleUsed || !context.farm) {
+        throw new ORPCError("FORBIDDEN");
+      }
+      return next({ context: { roleUsed, farm: context.farm } });
+    });

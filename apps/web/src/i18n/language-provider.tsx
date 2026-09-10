@@ -15,6 +15,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
@@ -79,7 +80,11 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       setChosen(next);
       writeStored(next);
       if (session?.user) {
-        await orpc.language.set.call({ language: next });
+        try {
+          await orpc.language.set.call({ language: next });
+        } catch {
+          toast.error(translate(next, "common.error"));
+        }
       }
     },
     [session?.user]

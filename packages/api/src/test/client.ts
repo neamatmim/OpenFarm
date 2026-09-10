@@ -25,7 +25,7 @@ interface Options {
 export const createTestClient = async <T extends Router<Context>>(
   router: T,
   { as, clock = new FakeClock() }: Options
-): Promise<{ client: RouterClient<T>; clock: FakeClock }> => {
+): Promise<{ client: RouterClient<T>; clock: FakeClock; context: Context }> => {
   const principal =
     as === null ? null : await createTestPrincipal(as, clock.now());
   const context = await buildContext({
@@ -39,5 +39,5 @@ export const createTestClient = async <T extends Router<Context>>(
   // `T extends Router<Context>` guarantees the router's initial context is `Context`;
   // TypeScript cannot reduce the inferred type for an unresolved `T`, hence the cast.
   const options = { context: context as InferRouterInitialContext<T> };
-  return { client: createRouterClient(router, options), clock };
+  return { client: createRouterClient(router, options), clock, context };
 };

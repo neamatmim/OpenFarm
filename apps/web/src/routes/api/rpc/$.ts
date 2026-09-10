@@ -42,10 +42,11 @@ const apiHandler = new OpenAPIHandler(appRouter, {
   ],
 });
 
-async function handle({ request }: { request: Request }) {
+const handle = async ({ request }: { request: Request }) => {
+  const context = await createContext({ req: request });
   const rpcResult = await rpcHandler.handle(request, {
     prefix: "/api/rpc",
-    context: await createContext({ req: request }),
+    context,
   });
   if (rpcResult.response) {
     return rpcResult.response;
@@ -53,14 +54,14 @@ async function handle({ request }: { request: Request }) {
 
   const apiResult = await apiHandler.handle(request, {
     prefix: "/api/rpc/api-reference",
-    context: await createContext({ req: request }),
+    context,
   });
   if (apiResult.response) {
     return apiResult.response;
   }
 
   return new Response("Not found", { status: 404 });
-}
+};
 
 export const Route = createFileRoute("/api/rpc/$")({
   server: {

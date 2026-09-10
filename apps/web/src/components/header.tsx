@@ -1,16 +1,36 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { useT } from "@/i18n/language-provider";
+import { authClient } from "@/lib/auth-client";
+import { orpc } from "@/utils/orpc";
 
 import LanguageToggle from "./language-toggle";
 import UserMenu from "./user-menu";
 
 const Header = () => {
   const t = useT();
+  const { data: session } = authClient.useSession();
+  const me = useQuery({
+    ...orpc.people.me.queryOptions(),
+    enabled: Boolean(session),
+  });
+  const roles = me.data?.roles ?? [];
+  const runsTheFarm = roles.includes("owner") || roles.includes("manager");
   const links = [
     { to: "/", label: t("nav.home") },
     { to: "/dashboard", label: t("nav.dashboard") },
-    { to: "/admin/people", label: t("nav.people") },
+    ...(runsTheFarm
+      ? [
+          { to: "/admin/people", label: t("nav.people") },
+          { to: "/admin/audit", label: t("nav.audit") },
+        ]
+      : []),
+    ...(session
+      ? [{ to: "/admin/audit", label: t("nav.audit") }].filter(
+          () => !runsTheFarm
+        )
+      : []),
   ] as const;
 
   return (

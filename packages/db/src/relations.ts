@@ -3,6 +3,9 @@ import { defineRelations } from "drizzle-orm";
 import * as schema from "./schema";
 
 export const relations = defineRelations(schema, (r) => ({
+  auditEvent: {
+    actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
+  },
   user: {
     roles: r.many.roleAssignment({
       from: r.user.id,

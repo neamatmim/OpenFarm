@@ -34,6 +34,8 @@ export const roleAssignment = pgTable(
     /** The Role the granter acted under — audit attribution until Audit Events arrive. */
     grantedByRole: text("granted_by_role", { enum: ROLES }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    /** Roles are never deleted; a revoked one keeps its history. */
+    revokedAt: timestamp("revoked_at"),
   },
   (table) => [
     uniqueIndex("role_assignment_user_role_uidx").on(
@@ -44,6 +46,9 @@ export const roleAssignment = pgTable(
     index("role_assignment_user_idx").on(table.userId),
   ]
 );
+
+/** The one definition of "a Role that counts": not revoked. Use in relational `where`s. */
+export const ACTIVE_ROLE = { revokedAt: { isNull: true } } as const;
 
 export const INVITE_STATUSES = ["pending", "approved", "revoked"] as const;
 

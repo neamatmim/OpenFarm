@@ -1,3 +1,4 @@
+import { eq } from "@OpenFarm/db/operators";
 import {
   session as sessionTable,
   user as userTable,
@@ -88,13 +89,13 @@ export const createTestPrincipal = async (
     ipAddress: null,
     userAgent: null,
   };
+  // Parallel test files seed the same person at once; conflict on any unique index is
+  // fine (the row exists), then refresh the expiry from this test's clock.
+  await db.insert(sessionTable).values(sessionValues).onConflictDoNothing();
   const [session] = await db
-    .insert(sessionTable)
-    .values(sessionValues)
-    .onConflictDoUpdate({
-      target: sessionTable.id,
-      set: { expiresAt: sessionValues.expiresAt, updatedAt: now },
-    })
+    .update(sessionTable)
+    .set({ expiresAt: sessionValues.expiresAt, updatedAt: now })
+    .where(eq(sessionTable.id, sessionValues.id))
     .returning();
   if (!session) {
     throw new Error(`test harness: could not seed session for ${person.id}`);
