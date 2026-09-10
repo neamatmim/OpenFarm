@@ -14,6 +14,16 @@ export const createAuth = () => {
 
       schema,
     }),
+    user: {
+      additionalFields: {
+        language: {
+          type: ["bn", "en"],
+          required: false,
+          defaultValue: "bn",
+          input: true,
+        },
+      },
+    },
     trustedOrigins: [env.BETTER_AUTH_URL],
     emailAndPassword: {
       enabled: true,

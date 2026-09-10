@@ -3,14 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vp build",
+    "build": "pnpm --filter @OpenFarm/i18n check && vp build",
     "serve": "vp preview",
-    "dev": "vp dev"
+    "dev": "vp dev",
+    "test": "vitest run"
   },
   "dependencies": {
     "@OpenFarm/api": "workspace:*",
     "@OpenFarm/auth": "workspace:*",
     "@OpenFarm/env": "workspace:*",
+    "@OpenFarm/i18n": "workspace:*",
     "@OpenFarm/ui": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
@@ -47,6 +49,7 @@
     "jsdom": "^30.0.1",
     "typescript": "catalog:",
     "vite": "^8.1.5",
+    "vitest": "4.1.11",
     "web-vitals": "^6.2.1"
   }
 }

@@ -6,9 +6,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import z from "zod";
 
+import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
 import Loader from "./loader";
+
+const NAME_MIN = 2;
+const PASSWORD_MIN = 8;
 
 export default function SignUpForm({
   onSwitchToSignIn,
@@ -19,6 +23,7 @@ export default function SignUpForm({
     from: "/",
   });
   const { isPending } = authClient.useSession();
+  const t = useT();
 
   const form = useForm({
     defaultValues: {
@@ -38,7 +43,7 @@ export default function SignUpForm({
             navigate({
               to: "/dashboard",
             });
-            toast.success("Sign up successful");
+            toast.success(t("auth.signUpSuccess"));
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -48,9 +53,13 @@ export default function SignUpForm({
     },
     validators: {
       onSubmit: z.object({
-        name: z.string().min(2, "Name must be at least 2 characters"),
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        name: z
+          .string()
+          .min(NAME_MIN, t("auth.nameTooShort", { min: NAME_MIN })),
+        email: z.email(t("auth.invalidEmail")),
+        password: z
+          .string()
+          .min(PASSWORD_MIN, t("auth.passwordTooShort", { min: PASSWORD_MIN })),
       }),
     },
   });
@@ -61,7 +70,9 @@ export default function SignUpForm({
 
   return (
     <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+      <h1 className="mb-6 text-center text-3xl font-bold">
+        {t("auth.createAccount")}
+      </h1>
 
       <form
         onSubmit={(e) => {
@@ -75,7 +86,7 @@ export default function SignUpForm({
           <form.Field name="name">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Name</Label>
+                <Label htmlFor={field.name}>{t("auth.name")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -97,7 +108,7 @@ export default function SignUpForm({
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>{t("auth.email")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -120,7 +131,7 @@ export default function SignUpForm({
           <form.Field name="password">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
+                <Label htmlFor={field.name}>{t("auth.password")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -151,7 +162,7 @@ export default function SignUpForm({
               className="w-full"
               disabled={!canSubmit || isSubmitting}
             >
-              {isSubmitting ? "Submitting..." : "Sign Up"}
+              {isSubmitting ? t("auth.submitting") : t("auth.signUp")}
             </Button>
           )}
         </form.Subscribe>
@@ -163,7 +174,7 @@ export default function SignUpForm({
           onClick={onSwitchToSignIn}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          Already have an account? Sign In
+          {t("auth.haveAccount")}
         </Button>
       </div>
     </div>

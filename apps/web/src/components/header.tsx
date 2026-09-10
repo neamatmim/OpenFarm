@@ -1,11 +1,15 @@
 import { Link } from "@tanstack/react-router";
 
+import { useT } from "@/i18n/language-provider";
+
+import LanguageToggle from "./language-toggle";
 import UserMenu from "./user-menu";
 
-export default function Header() {
+const Header = () => {
+  const t = useT();
   const links = [
-    { to: "/", label: "Home" },
-    { to: "/dashboard", label: "Dashboard" },
+    { to: "/", label: t("nav.home") },
+    { to: "/dashboard", label: t("nav.dashboard") },
   ] as const;
 
   return (
@@ -19,10 +23,13 @@ export default function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <LanguageToggle />
           <UserMenu />
         </div>
       </div>
       <hr />
     </div>
   );
-}
+};
+
+export default Header;

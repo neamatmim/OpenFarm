@@ -1,0 +1,40 @@
+import type { MessageKey } from "./en";
+
+/** Bangla — what Staff read. Reviewed by the Manager before each release.
+ *  The type forces every English key to exist here; the check script also
+ *  refuses empty strings and stray keys at build time. */
+export const bn: Record<MessageKey, string> = {
+  "app.name": "OpenFarm",
+  "app.tagline": "খামারের হিসাব আর প্লেবুক, এক জায়গায়।",
+  "nav.home": "হোম",
+  "nav.dashboard": "ড্যাশবোর্ড",
+  "language.bn": "বাংলা",
+  "language.en": "English",
+  "language.switch": "ভাষা বদলান",
+  "home.apiStatus": "সার্ভারের অবস্থা",
+  "home.checking": "দেখা হচ্ছে…",
+  "home.connected": "সংযুক্ত",
+  "home.disconnected": "সংযোগ নেই",
+  "dashboard.title": "ড্যাশবোর্ড",
+  "dashboard.welcome": "স্বাগতম, {name}",
+  "dashboard.api": "সার্ভার: {message}",
+  "auth.signIn": "সাইন ইন",
+  "auth.signOut": "সাইন আউট",
+  "auth.myAccount": "আমার অ্যাকাউন্ট",
+  "auth.welcomeBack": "আবার স্বাগতম",
+  "auth.createAccount": "অ্যাকাউন্ট খুলুন",
+  "auth.name": "নাম",
+  "auth.email": "ইমেইল",
+  "auth.password": "পাসওয়ার্ড",
+  "auth.submitting": "পাঠানো হচ্ছে…",
+  "auth.signUp": "সাইন আপ",
+  "auth.needAccount": "অ্যাকাউন্ট নেই? সাইন আপ করুন",
+  "auth.haveAccount": "অ্যাকাউন্ট আছে? সাইন ইন করুন",
+  "auth.signInSuccess": "সাইন ইন হয়েছে",
+  "auth.signUpSuccess": "অ্যাকাউন্ট খোলা হয়েছে",
+  "auth.invalidEmail": "সঠিক ইমেইল ঠিকানা দিন",
+  "auth.passwordTooShort": "পাসওয়ার্ড কমপক্ষে {min} অক্ষরের হতে হবে",
+  "auth.nameTooShort": "নাম কমপক্ষে {min} অক্ষরের হতে হবে",
+  "common.loading": "লোড হচ্ছে…",
+  "common.notFound": "পাওয়া যায়নি",
+};

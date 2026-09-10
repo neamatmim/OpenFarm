@@ -17,6 +17,7 @@
     "@OpenFarm/auth": "workspace:*",
     "@OpenFarm/db": "workspace:*",
     "@OpenFarm/env": "workspace:*",
+    "@OpenFarm/i18n": "workspace:*",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/server": "catalog:",

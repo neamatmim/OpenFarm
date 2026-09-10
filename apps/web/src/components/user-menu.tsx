@@ -11,10 +11,12 @@ import {
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 
+import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
 export default function UserMenu() {
   const navigate = useNavigate();
+  const t = useT();
   const { data: session, isPending } = authClient.useSession();
 
   if (isPending) {
@@ -24,7 +26,7 @@ export default function UserMenu() {
   if (!session) {
     return (
       <Link to="/login">
-        <Button variant="outline">Sign In</Button>
+        <Button variant="outline">{t("auth.signIn")}</Button>
       </Link>
     );
   }
@@ -36,7 +38,7 @@ export default function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("auth.myAccount")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
           <DropdownMenuItem
@@ -53,7 +55,7 @@ export default function UserMenu() {
               });
             }}
           >
-            Sign Out
+            {t("auth.signOut")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

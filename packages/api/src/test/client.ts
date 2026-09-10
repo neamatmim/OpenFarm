@@ -1,5 +1,9 @@
 import type { Role } from "@OpenFarm/test-harness";
-import { FakeClock, createTestPrincipal } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  createTestPrincipal,
+  scratchDb,
+} from "@OpenFarm/test-harness";
 import type {
   InferRouterInitialContext,
   Router,
@@ -30,6 +34,7 @@ export const createTestClient = async <T extends Router<Context>>(
         ? null
         : { user: principal.user, session: principal.session },
     clock,
+    db: scratchDb(),
   });
   // `T extends Router<Context>` guarantees the router's initial context is `Context`;
   // TypeScript cannot reduce the inferred type for an unresolved `T`, hence the cast.

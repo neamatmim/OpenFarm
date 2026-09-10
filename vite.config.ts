@@ -10,6 +10,7 @@ export default defineConfig({
       "apps/web/.tanstack/**",
       "apps/web/src/routeTree.gen.ts",
       "packages/db/dist/**",
+      "packages/db/src/migrations/**",
     ],
     options: {
       typeAware: false,
@@ -25,6 +26,7 @@ export default defineConfig({
       "apps/web/.tanstack/**",
       "apps/web/src/routeTree.gen.ts",
       "packages/db/dist/**",
+      "packages/db/src/migrations/**",
     ],
     singleQuote: false,
     semi: true,
