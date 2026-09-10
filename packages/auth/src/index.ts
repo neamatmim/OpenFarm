@@ -12,7 +12,7 @@ export function createAuth() {
     database: drizzleAdapter(db, {
       provider: "pg",
 
-      schema: schema,
+      schema,
     }),
     trustedOrigins: [env.BETTER_AUTH_URL],
     emailAndPassword: {
