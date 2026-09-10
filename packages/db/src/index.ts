@@ -7,8 +7,7 @@ import { relations } from "./relations";
 
 export type Database = NodePgDatabase<typeof relations> & { $client: Pool };
 
-export function createDb(): Database {
-  return drizzle(env.DATABASE_URL, { relations });
-}
+export const createDb = (url: string = env.DATABASE_URL): Database =>
+  drizzle(url, { relations });
 
 export const db: Database = createDb();

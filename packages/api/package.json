@@ -9,7 +9,10 @@
       "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "test": "vitest run",
+    "check-types": "tsc --noEmit"
+  },
   "dependencies": {
     "@OpenFarm/auth": "workspace:*",
     "@OpenFarm/db": "workspace:*",
@@ -23,6 +26,8 @@
   },
   "devDependencies": {
     "@OpenFarm/config": "workspace:*",
-    "typescript": "catalog:"
+    "@OpenFarm/test-harness": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "4.1.11"
   }
 }

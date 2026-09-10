@@ -4,12 +4,14 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done (2026-09-10)
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 1.
 
-- [ ] `pnpm test` works from a clean checkout with Docker running; no manual database setup
-- [ ] A helper creates a router client for a given Role (Owner, Manager, Staff, Vet) and, for later tickets, a Shed Phone device session plus active user
-- [ ] A controllable clock is injected into the context so time-based rules can be tested deterministically
-- [ ] One passing test proves the seam: a procedure called as Owner returns the expected result and the scratch database was used
-- [ ] The harness is documented in a short README next to the tests; the two research and two prototype branches are left untouched
+- [x] `pnpm test` works from a clean checkout with Docker running; no manual database setup
+- [x] A helper creates a router client for a given Role (Owner, Manager, Staff, Vet) and, for later tickets, a Shed Phone device session plus active user
+- [x] A controllable clock is injected into the context so time-based rules can be tested deterministically
+- [x] One passing test proves the seam: a procedure called as Owner returns the expected result and the scratch database was used
+- [x] The harness is documented in a short README next to the tests; the two research and two prototype branches are left untouched
+
+**Done note:** implemented on `main` as `@OpenFarm/test-harness` + `packages/api/src/test/client.ts`. One deviation from the wording above: the scratch database is started through testcontainers on a random port using the same `postgres:18` image, not via the repo's docker-compose, because compose hard-pins 5432 (occupied on the dev machine). Extension points for tickets 03 (Roles → permissions) and 06 (Shed Phone device sessions) are named in the harness README.
