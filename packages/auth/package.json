@@ -1,0 +1,24 @@
+{
+  "name": "@OpenFarm/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@OpenFarm/db": "workspace:*",
+    "@OpenFarm/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@OpenFarm/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
