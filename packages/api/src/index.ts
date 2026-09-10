@@ -6,7 +6,7 @@ export const o = os.$context<Context>();
 
 export const publicProcedure = o;
 
-const requireAuth = o.middleware(async ({ context, next }) => {
+const requireAuth = o.middleware(({ context, next }) => {
   const { session } = context;
   // Better Auth already refuses expired sessions at the HTTP edge; checking here as well
   // keeps the rule true for every caller of the router, including tests on a fake clock.

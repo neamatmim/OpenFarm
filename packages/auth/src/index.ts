@@ -5,7 +5,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
-export function createAuth() {
+export const createAuth = () => {
   const db = createDb(env.DATABASE_URL);
 
   return betterAuth({
@@ -22,6 +22,6 @@ export function createAuth() {
     baseURL: env.BETTER_AUTH_URL,
     plugins: [tanstackStartCookies()],
   });
-}
+};
 
 export const auth = createAuth();
