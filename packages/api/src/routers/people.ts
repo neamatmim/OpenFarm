@@ -22,9 +22,7 @@ const requireFarm = (context: { farm: { id: string } | null }) => {
 
 /** Grants an approved invite's Roles to the person with that email, if they exist. */
 const applyApprovedInvites = async (
-  db: Parameters<
-    Parameters<typeof protectedProcedure.handler>[0]
-  >[0]["context"]["db"],
+  db: Database,
   farmId: string,
   email: string,
   granter: { id: string; role: RoleName },
