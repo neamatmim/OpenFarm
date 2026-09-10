@@ -31,14 +31,13 @@ export function createQueryClient() {
 const getORPCClient = createIsomorphicFn()
   .server(() =>
     createRouterClient(appRouter, {
-      context: async () => {
-        return createContext({ req: getRequest() });
-      },
-    }),
+      context: async () => createContext({ req: getRequest() }),
+    })
   )
   .client((): RouterClient<typeof appRouter> => {
     const link = new RPCLink({
-      url: `${window.location.origin}/api/rpc`,
+      url: "/api/rpc",
+      origin: window.location.origin,
       fetch(url, options) {
         return fetch(url, {
           ...options,

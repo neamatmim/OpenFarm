@@ -18,15 +18,15 @@
   },
   "dependencies": {
     "@OpenFarm/env": "workspace:*",
+    "@types/pg": "^8.23.1",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.2",
-    "pg": "^8.22.0",
+    "drizzle-orm": "1.0.0-rc.4",
+    "pg": "^8.23.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@OpenFarm/config": "workspace:*",
-    "@types/pg": "^8.20.0",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "1.0.0-rc.4",
     "typescript": "catalog:"
   }
 }

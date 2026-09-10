@@ -40,13 +40,15 @@
     "@types/node": "catalog:",
     "oxfmt": "latest",
     "oxlint": "latest",
-    "rolldown": "1.2.6",
+    "rolldown": "1.2.8",
     "typescript": "catalog:",
-    "ultracite": "7.10.7",
-    "vite-plus": "0.3.0"
+    "ultracite": "7.11.1",
+    "vite-plus": "0.3.1"
   },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
-  },
-  "packageManager": "pnpm@12.1.0"
+  "packageManager": "pnpm@12.3.4",
+  "intent": {
+    "skills": [
+      "*"
+    ]
+  }
 }
