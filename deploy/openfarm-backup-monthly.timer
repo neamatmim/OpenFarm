@@ -1,0 +1,13 @@
+# The monthly copy, kept for ever. Same service, different argument.
+#
+#   sudo cp deploy/openfarm-backup-monthly.* /etc/systemd/system/
+#   sudo systemctl enable --now openfarm-backup-monthly.timer
+[Unit]
+Description=Take a monthly copy of the farm, kept for ever
+
+[Timer]
+OnCalendar=*-*-01 02:15:00 Asia/Dhaka
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenFarm nightly copy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=openfarm
+WorkingDirectory=/srv/openfarm
+# Everything the copy needs, and nothing the app does not: DATABASE_URL, the age public key,
+# and the rclone remote. Root-owned, readable only by the service user.
+EnvironmentFile=/etc/openfarm/backup.env
+ExecStart=/srv/openfarm/scripts/backup.sh nightly
+# A failed copy is a thing to see, not a thing to retry into the morning milking.
+Restart=no

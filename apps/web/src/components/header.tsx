@@ -31,6 +31,7 @@ const Header = () => {
           { to: "/admin/devices", label: t("nav.devices") },
           { to: "/admin/people", label: t("nav.people") },
           { to: "/admin/audit", label: t("nav.audit") },
+          { to: "/admin/backups", label: t("nav.backups") },
         ]
       : []),
     ...(session

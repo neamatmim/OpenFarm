@@ -192,6 +192,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Audit
 
+**Restore Drill**: The quarterly rehearsal of losing the farm's database: a backup restored into a scratch environment and checked by the Manager in the app. Recorded whether or not it went well. _Avoid_: Test, DR test, failover
+
 **Audit Event**: The append-only record of one state change: who (and in which Role), from which device, when by both clocks, what changed. Written in the same transaction as the change. _Avoid_: Log entry, history row, activity
 
 **Correction**: A new record that supersedes a wrong one, pointing at it and carrying a reason. The original stays visible. The only way a fact ever changes. _Avoid_: Edit, update, amendment, delete

@@ -24,6 +24,8 @@
     "db:watch": "docker compose up postgres",
     "db:stop": "docker compose stop postgres",
     "db:down": "docker compose down postgres",
+    "backup": "scripts/backup.sh",
+    "restore": "scripts/restore.sh",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",

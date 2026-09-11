@@ -8,7 +8,8 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "verify:restore": "tsx src/verify-restore.ts"
   },
   "dependencies": {
     "@OpenFarm/db": "workspace:*",
@@ -21,6 +22,7 @@
     "@types/node": "catalog:",
     "@types/pg": "^8.23.1",
     "testcontainers": "^12.1.0",
+    "tsx": "^4.23.13",
     "typescript": "catalog:"
   }
 }

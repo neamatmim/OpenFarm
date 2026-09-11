@@ -1,0 +1,9 @@
+# For a host without systemd. Same two jobs, same times, Dhaka.
+#
+#   crontab -u openfarm deploy/crontab.example
+#
+# cron has almost no environment, so the job sources its own before it runs. A missing
+# variable stops the script before it starts rather than halfway through.
+CRON_TZ=Asia/Dhaka
+15 1 * * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh nightly
+15 2 1 * *  set -a; . /etc/openfarm/backup.env; set +a; cd /srv/openfarm && scripts/backup.sh monthly

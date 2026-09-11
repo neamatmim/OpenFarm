@@ -1,0 +1,19 @@
+# The nightly copy. Install with the service beside it:
+#
+#   sudo cp deploy/openfarm-backup.* /etc/systemd/system/
+#   sudo systemctl enable --now openfarm-backup.timer
+#   systemctl list-timers openfarm-backup.timer     # and check it is listed
+#
+# 01:15 Dhaka, which is the quiet hour after the evening milking is long recorded and well
+# before the morning one. Persistent, so a host that was off overnight takes the copy when
+# it comes back rather than skipping the night in silence.
+[Unit]
+Description=Take a nightly copy of the farm off this machine
+
+[Timer]
+OnCalendar=*-*-* 01:15:00 Asia/Dhaka
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
