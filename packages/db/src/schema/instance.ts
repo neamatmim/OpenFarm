@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -54,6 +55,16 @@ export const sopInstance = pgTable(
     /** The Role that signs it off, pinned from the Version like everything else about the
      *  work. Null for an SOP nobody checks: that work is finished when it is completed. */
     checkerRole: text("checker_role", { enum: ROLES }),
+    /** What raised this work, when it was not the clock: "move:<id>:+3", "state:<animal>:
+     *  dry:<instant>". The farm never reads it; it is what stops the same Move raising the
+     *  same check twice, however often the app is opened. Null for scheduled work, which is
+     *  kept unique by its due time instead. */
+    cause: text("cause"),
+    /** The animal this work is about, for work something happened to one animal raised. Null
+     *  for work that concerns the whole Pen. */
+    animalId: text("animal_id").references(() => animal.id, {
+      onDelete: "cascade",
+    }),
     assignedTo: text("assigned_to").references(() => user.id),
     assignedBy: text("assigned_by").references(() => user.id),
     claimedBy: text("claimed_by").references(() => user.id),
@@ -62,12 +73,17 @@ export const sopInstance = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
-    /** One Instance per SOP, Pen and due time, however often the scheduler runs. */
-    uniqueIndex("sop_instance_due_uidx").on(
-      table.definitionId,
-      table.penId,
-      table.dueAt
-    ),
+    /** One Instance per SOP, Pen and due time, however often the scheduler runs. Scheduled
+     *  work only: two animals moved out of the same Pen in the same minute are two pieces of
+     *  work, and their Instances are kept apart by their cause instead. */
+    uniqueIndex("sop_instance_due_uidx")
+      .on(table.definitionId, table.penId, table.dueAt)
+      .where(sql`${table.cause} is null`),
+    /** One Instance per SOP per cause: the same Move, seen again on the next app-open,
+     *  raises nothing. */
+    uniqueIndex("sop_instance_cause_uidx")
+      .on(table.definitionId, table.cause)
+      .where(sql`${table.cause} is not null`),
     index("sop_instance_open_idx").on(table.farmId, table.state, table.dueAt),
     index("sop_instance_pen_idx").on(table.farmId, table.penId, table.dueAt),
   ]

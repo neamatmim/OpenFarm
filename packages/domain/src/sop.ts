@@ -1,4 +1,5 @@
 import type { AnimalState, Side } from "./lifecycle";
+import { STATES } from "./lifecycle";
 import type { ROLES } from "./roles";
 
 /** SOP content is authored in Bangla; English is optional and used for reports and a
@@ -62,13 +63,27 @@ export interface Step {
 export const TRIGGER_KINDS = ["schedule", "event", "state"] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 
+/**
+ * Things that happen to an animal that the Playbook may hang work on. Only what the farm
+ * actually records belongs here: a Trigger naming an event nobody writes is work that never
+ * arrives, and the Owner would have no way of knowing. Calving, Service and Diagnosis join
+ * the list in the increments that record them.
+ */
+export const FARM_EVENTS = ["move", "arrival"] as const;
+export type FarmEvent = (typeof FARM_EVENTS)[number];
+
+/** How far ahead of the event or the State change work may be hung. */
+export const MAX_TRIGGER_OFFSET_DAYS = 365;
+
 export type Trigger =
   /** Fixed times of day, as "HH:MM" on the farm's clock. */
   | { kind: "schedule"; times: string[] }
-  /** Something happened — a Calving, a Diagnosis. */
-  | { kind: "event"; event: string; offsetDays?: number }
-  /** An animal reached a condition — under Withdrawal, near Expected Calving. */
-  | { kind: "state"; state: string; offsetDays?: number };
+  /** Something happened to an animal, optionally some days before the work is due. */
+  | { kind: "event"; event: FarmEvent; offsetDays?: number }
+  /** An animal reached a State — quarantine, dry, ready for sale — optionally some days
+   *  before the work is due. Counted from when she reached it, so a cow who comes back to
+   *  Milking next lactation is a new occasion and raises the work again. */
+  | { kind: "state"; state: AnimalState; offsetDays?: number };
 
 /** Which animals an SOP concerns. A schedule-triggered SOP raises one Instance per Pen
  *  holding at least one matching animal, and its per-animal Steps cover those animals.
@@ -158,6 +173,44 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   return problems;
 };
 
+/** What is wrong with one Trigger, in the Owner's terms rather than the parser's. */
+const triggerProblems = (trigger: Trigger, index: number): string[] => {
+  const problems: string[] = [];
+  const at = `triggers[${index}]`;
+  if (trigger.kind === "schedule") {
+    if (trigger.times.length === 0) {
+      problems.push(`${at}.times: a schedule needs at least one time`);
+    }
+    for (const time of trigger.times) {
+      if (!TIME_PATTERN.test(time)) {
+        problems.push(`${at}.times: "${time}" is not a time of day`);
+      }
+    }
+    return problems;
+  }
+  // An event or a State the farm does not record is work that would never arrive, and the
+  // Owner would have no way of finding that out.
+  if (trigger.kind === "event" && !FARM_EVENTS.includes(trigger.event)) {
+    problems.push(
+      `${at}.event: the farm does not record "${trigger.event}" happening`
+    );
+  }
+  if (trigger.kind === "state" && !STATES.includes(trigger.state)) {
+    problems.push(`${at}.state: "${trigger.state}" is not a State an animal has`);
+  }
+  const offset = trigger.offsetDays;
+  if (offset !== undefined) {
+    if (!Number.isInteger(offset) || offset < 0) {
+      problems.push(`${at}.offsetDays: count whole days, from none upwards`);
+    } else if (offset > MAX_TRIGGER_OFFSET_DAYS) {
+      problems.push(
+        `${at}.offsetDays: ${MAX_TRIGGER_OFFSET_DAYS} days is as far ahead as work may be hung`
+      );
+    }
+  }
+  return problems;
+};
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
@@ -169,20 +222,7 @@ export const findStructuralProblems = (content: SopContent): string[] => {
     problems.push("triggers: an SOP needs at least one trigger");
   }
   for (const [index, trigger] of content.triggers.entries()) {
-    if (trigger.kind === "schedule") {
-      if (trigger.times.length === 0) {
-        problems.push(
-          `triggers[${index}].times: a schedule needs at least one time`
-        );
-      }
-      for (const time of trigger.times) {
-        if (!TIME_PATTERN.test(time)) {
-          problems.push(
-            `triggers[${index}].times: "${time}" is not a time of day`
-          );
-        }
-      }
-    }
+    problems.push(...triggerProblems(trigger, index));
   }
   for (const [stepIndex, step] of content.steps.entries()) {
     if (step.evidence.length === 0) {

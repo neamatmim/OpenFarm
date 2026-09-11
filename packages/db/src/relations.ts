@@ -83,6 +83,8 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.sopInstance.id,
       to: r.stepCompletion.instanceId,
     }),
+    /** The animal this work is about, when something that happened to her raised it. */
+    animal: r.one.animal({ from: r.sopInstance.animalId, to: r.animal.id }),
   },
   stepCompletion: {
     instance: r.one.sopInstance({

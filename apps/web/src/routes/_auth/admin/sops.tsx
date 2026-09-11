@@ -1,5 +1,11 @@
 import type { EvidenceType, SopContent, Step } from "@OpenFarm/domain";
-import { EVIDENCE_TYPES, ROLES, findPublishBlockers } from "@OpenFarm/domain";
+import {
+  ANIMAL_STATES,
+  EVIDENCE_TYPES,
+  FARM_EVENTS,
+  ROLES,
+  findPublishBlockers,
+} from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -9,14 +15,18 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
+import type { Happening } from "@/lib/sop-draft";
 import {
+  emptyHappening,
   emptySop,
   emptyStep,
+  happeningTriggers,
   fromBilingualList,
   needsUnit,
   scheduleTimes,
   splitList,
   toBilingualList,
+  withHappeningTriggers,
   withScheduleTimes,
 } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
@@ -210,6 +220,129 @@ const SopsPage = () => {
   );
 };
 
+/** What raises this work besides the clock: a Move, an arrival, or a cow reaching a State.
+ *  Only what the farm actually records can be picked, because a Trigger nobody writes is
+ *  work that never arrives. */
+const TriggerFields = ({
+  content,
+  onChange,
+}: {
+  content: SopContent;
+  onChange: (next: SopContent) => void;
+}) => {
+  const t = useT();
+  const happenings = happeningTriggers(content);
+  const replace = (index: number, next: Happening | null) =>
+    onChange(
+      withHappeningTriggers(
+        content,
+        next === null
+          ? happenings.filter((_, at) => at !== index)
+          : happenings.map((current, at) => (at === index ? next : current))
+      )
+    );
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-muted-foreground text-sm">
+        {t("sop.triggers")}
+      </legend>
+      {happenings.map((happening, index) => (
+        <div
+          className="flex flex-wrap items-end gap-2"
+          key={`${happening.kind}-${index}`}
+        >
+          <select
+            aria-label={t("sop.triggers")}
+            className="bg-background h-9 rounded-md border px-2 text-sm"
+            onChange={(e) =>
+              replace(
+                index,
+                e.target.value === "event"
+                  ? { kind: "event", event: "move", offsetDays: happening.offsetDays }
+                  : {
+                      kind: "state",
+                      state: "dry",
+                      offsetDays: happening.offsetDays,
+                    }
+              )
+            }
+            value={happening.kind}
+          >
+            <option value="event">{t("sop.trigger.event")}</option>
+            <option value="state">{t("sop.trigger.state")}</option>
+          </select>
+          {happening.kind === "event" ? (
+            <select
+              aria-label={t("sop.trigger.event")}
+              className="bg-background h-9 rounded-md border px-2 text-sm"
+              onChange={(e) =>
+                replace(index, { ...happening, event: e.target.value as never })
+              }
+              value={happening.event}
+            >
+              {FARM_EVENTS.map((event) => (
+                <option key={event} value={event}>
+                  {t(`event.${event}`)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              aria-label={t("sop.trigger.state")}
+              className="bg-background h-9 rounded-md border px-2 text-sm"
+              onChange={(e) =>
+                replace(index, { ...happening, state: e.target.value as never })
+              }
+              value={happening.state}
+            >
+              {ANIMAL_STATES.map((state) => (
+                <option key={state} value={state}>
+                  {t(`state.${state}`)}
+                </option>
+              ))}
+            </select>
+          )}
+          <div className="space-y-1">
+            <Label htmlFor={`after-${index}`}>{t("sop.trigger.after")}</Label>
+            <Input
+              className="w-24"
+              id={`after-${index}`}
+              min={0}
+              onChange={(e) =>
+                replace(index, {
+                  ...happening,
+                  offsetDays: Number(e.target.value) || 0,
+                })
+              }
+              type="number"
+              value={happening.offsetDays ?? 0}
+            />
+          </div>
+          <Button
+            onClick={() => replace(index, null)}
+            type="button"
+            variant="ghost"
+          >
+            {t("sop.trigger.remove")}
+          </Button>
+        </div>
+      ))}
+      <Button
+        onClick={() =>
+          onChange(
+            withHappeningTriggers(content, [...happenings, emptyHappening()])
+          )
+        }
+        type="button"
+        variant="outline"
+      >
+        {t("sop.trigger.add")}
+      </Button>
+    </fieldset>
+  );
+};
+
 const SopEditor = ({
   content,
   blockers,
@@ -291,6 +424,7 @@ const SopEditor = ({
             }
           />
         </div>
+        <TriggerFields content={content} onChange={onChange} />
         <div className="space-y-1">
           <Label htmlFor="assigned">{t("sop.assignedRole")}</Label>
           <select

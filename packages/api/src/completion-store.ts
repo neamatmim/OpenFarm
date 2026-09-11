@@ -544,7 +544,8 @@ export const applyComplete = async (
     tx,
     context.farm.id,
     instance.penId,
-    content
+    content,
+    instance.animalId
   );
   const outstanding: string[] = [];
   for (const step of content.steps) {
