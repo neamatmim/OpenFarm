@@ -85,8 +85,10 @@ const fittedEvidence = (
       choices: pens.map((pen) => ({ value: pen.id, label: { bn: pen.name } })),
     };
   }
-  if (kind === "sighting") {
-    return { type: "choice", required: true, choices: current?.choices ?? [] };
+  if (kind === "observation") {
+    // Nothing to carry over: this is reached only when what is there is not a choice at all.
+    // What may be seen is the Owner's to write down.
+    return { type: "choice", required: true, choices: [] };
   }
   return { type: "number", required: true, unit: current?.unit };
 };
@@ -112,7 +114,7 @@ export const withEffect = (
     return rest;
   }
   const wants: EvidenceType =
-    kind === "move" || kind === "sighting" ? "choice" : "number";
+    kind === "move" || kind === "observation" ? "choice" : "number";
   const [first, ...rest] = step.evidence;
   if (first?.type === wants) {
     return {
@@ -142,17 +144,27 @@ export const toBilingualList = (value: string): Bilingual[] =>
 export const fromBilingualList = (values: Bilingual[]): string =>
   values.map((value) => value.bn).join(", ");
 
-/** What may be chosen, as the Owner types it: a comma-separated list in Bangla. The label is
- *  the value — a record keeps the words somebody actually chose, and renaming the choice
- *  later cannot rewrite what last month's round said. */
-export const toChoices = (value: string): Choice[] =>
-  splitList(value).map((bn) => ({ value: bn, label: { bn } }));
+/**
+ * What may be chosen, as the Owner types it: a comma-separated list in Bangla. A new choice
+ * takes its own label as its value, so the record keeps the word somebody actually chose.
+ *
+ * A choice already in the list keeps the value it had, whatever its label becomes. Records
+ * point at values: rewriting them because somebody reworded the list would orphan every
+ * Observation the farm has already made.
+ */
+export const toChoices = (value: string, existing: Choice[] = []): Choice[] =>
+  splitList(value).map((bn, index) => {
+    const before = existing[index];
+    return before
+      ? { ...before, label: { ...before.label, bn } }
+      : { value: bn, label: { bn } };
+  });
 
 export const fromChoices = (choices: Choice[] | undefined): string =>
   (choices ?? []).map((choice) => choice.label.bn).join(", ");
 
 export const needsChoices = (step: Step): boolean =>
-  step.effect?.kind === "sighting" ||
+  step.effect?.kind === "observation" ||
   (step.effect === undefined && step.evidence[0]?.type === "choice");
 
 export const needsUnit = (type: EvidenceType): boolean => type === "number";

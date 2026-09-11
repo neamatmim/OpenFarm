@@ -226,11 +226,11 @@ const AnimalPage = () => {
         </Button>
       </form>
 
-      {detail.sightings.length > 0 ? (
+      {detail.observations.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="font-medium">{t("animals.sightings")}</h2>
+          <h2 className="font-medium">{t("animals.observations")}</h2>
           <ul className="space-y-1 text-sm">
-            {detail.sightings.map((seen) => (
+            {detail.observations.map((seen) => (
               <li
                 className={
                   seen.withdrawn
@@ -240,8 +240,7 @@ const AnimalPage = () => {
                 key={seen.id}
               >
                 {formatDate(new Date(seen.seenAt), language, "dateTime")} ·{" "}
-                {seen.saw}
-                {seen.note ? ` · ${seen.note}` : ""}
+                {seen.sawLabel}
                 {seen.seenByName ? ` · ${seen.seenByName}` : ""}
                 {" · "}
                 <Link
@@ -251,7 +250,7 @@ const AnimalPage = () => {
                 >
                   {t("animals.moveFromWork")}
                 </Link>
-                {seen.withdrawn ? ` · ${t("animals.sightingWithdrawn")}` : ""}
+                {seen.withdrawn ? ` · ${t("animals.observationWithdrawn")}` : ""}
               </li>
             ))}
           </ul>

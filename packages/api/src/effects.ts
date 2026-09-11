@@ -1,9 +1,10 @@
-import type { MilkDestination, Step } from "@OpenFarm/domain";
+import type { Choice, MilkDestination, Step } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { animal, animalMove, sighting } from "@OpenFarm/db/schema/herd";
+import { animal, animalMove } from "@OpenFarm/db/schema/herd";
+import { observation } from "@OpenFarm/db/schema/observation";
 
 import type { Tx } from "./audit";
 import {
@@ -29,7 +30,7 @@ import {
 export type EffectResult =
   | { kind: "milk_record"; destination: MilkDestination; forced: boolean }
   | {
-      kind: "sighting";
+      kind: "observation";
       /** What was seen, as the Version's own choice value. */
       saw: string;
       /** True when this replaced one a Correction withdrew. */
@@ -73,17 +74,30 @@ const numberIn = (step: Step, evidence: unknown[]): number => {
   return typed;
 };
 
-/** The Pen a moving Step walked her to: the first `choice` slot the Version declares. A
- *  Step that moves an animal offers the Pens she may be walked to, and the person picks. */
-const choiceIn = (step: Step, evidence: unknown[]): string => {
+/**
+ * What the person chose, as the Version declares it — the value, and the Bangla they were
+ * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
+ * checked against the farm's: a value no Version ever offered is not something anybody saw.
+ */
+const choiceIn = (
+  step: Step,
+  evidence: unknown[],
+  nothingChosen: string
+): Choice => {
   const index = step.evidence.findIndex((item) => item.type === "choice");
   const value = index === -1 ? undefined : evidence[index];
   if (typeof value !== "string" || value === "") {
+    throw new ORPCError("BAD_REQUEST", { message: nothingChosen });
+  }
+  const declared = step.evidence[index]?.choices?.find(
+    (choice) => choice.value === value
+  );
+  if (!declared) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "This step moves an animal, and no pen was chosen",
+      message: "That is not one of the things this step offers",
     });
   }
-  return value;
+  return declared;
 };
 
 export interface EffectInput {
@@ -102,73 +116,73 @@ export interface EffectInput {
 
 
 
-/** Anything the person wrote alongside what they saw: the first `note` slot, if the Version
- *  declares one. A health walk that says "limping" is more use with "left hind" beside it. */
-const noteIn = (step: Step, evidence: unknown[]): string | null => {
-  const index = step.evidence.findIndex((item) => item.type === "note");
-  const value = index === -1 ? undefined : evidence[index];
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
-};
-
 /**
- * Records what somebody saw of one animal on the round.
+ * Records what somebody saw of one animal on the round — the farm's Observation, which
+ * starts the health chain and which Breeding reads as a Heat when that is what was seen.
  *
- * Unlike the litres and the Moves, a Correction here never rewrites the row and never
- * removes it. It withdraws it and writes the new one beside it, pointing back: what somebody
- * said they saw is a fact about the round, and it stays true that they said it even after
- * the farm decides they were looking at the wrong cow. Health and Breeding read these in
- * later increments, and they will need to know which ones still stand.
+ * Unlike the litres and the Moves, a Correction here never rewrites the row and never removes
+ * it. It withdraws it and writes the new one beside it, pointing back: what somebody said
+ * they saw is a fact about the round, and it stays true that they said it even after the farm
+ * decides they were looking at the wrong cow.
  */
-const applySightingEffect = async (
+const applyObservationEffect = async (
   tx: Tx,
   input: EffectInput
 ): Promise<EffectResult> => {
   if (!input.animalId) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "This step records what was seen of an animal, and it was not recorded against one",
+      message:
+        "This step records what was seen of an animal, and it was not recorded against one",
     });
   }
-  const standing = await tx.query.sighting.findFirst({
+  const standing = await tx.query.observation.findFirst({
     where: { completionId: input.completionId, withdrawnAt: { isNull: true } },
-    columns: { id: true, saw: true, note: true },
+    columns: { id: true, saw: true },
   });
 
   if (input.skipped) {
     if (standing) {
       await tx
-        .update(sighting)
+        .update(observation)
         .set({ withdrawnAt: input.now })
-        .where(eq(sighting.id, standing.id));
+        .where(eq(observation.id, standing.id));
     }
     return null;
   }
 
-  const saw = choiceIn(input.step, input.evidence);
-  const note = noteIn(input.step, input.evidence);
-  if (standing && standing.saw === saw && standing.note === note) {
+  const chosen = choiceIn(
+    input.step,
+    input.evidence,
+    "This step records what was seen, and nothing was chosen"
+  );
+  if (standing && standing.saw === chosen.value) {
     // The same entry again — a phone repeating itself, or a Correction that changed
     // something else about the Step. Nothing was seen twice.
-    return { kind: "sighting", saw, supersedes: false };
+    return { kind: "observation", saw: chosen.value, supersedes: false };
   }
   const id = uuidv7(input.now);
   if (standing) {
     await tx
-      .update(sighting)
+      .update(observation)
       .set({ withdrawnAt: input.now, supersededById: id })
-      .where(eq(sighting.id, standing.id));
+      .where(eq(observation.id, standing.id));
   }
-  await tx.insert(sighting).values({
+  await tx.insert(observation).values({
     id,
     farmId: input.instance.farmId,
     animalId: input.animalId,
     completionId: input.completionId,
-    saw,
-    note,
+    saw: chosen.value,
+    sawLabel: chosen.label.bn,
     seenBy: input.recordedBy,
     seenAt: input.recordedAt,
     recordedAt: input.now,
   });
-  return { kind: "sighting", saw, supersedes: Boolean(standing) };
+  return {
+    kind: "observation",
+    saw: chosen.value,
+    supersedes: Boolean(standing),
+  };
 };
 
 /**
@@ -249,7 +263,11 @@ const applyMoveEffect = async (
     return null;
   }
 
-  const toPenId = choiceIn(input.step, input.evidence);
+  const toPenId = choiceIn(
+    input.step,
+    input.evidence,
+    "This step moves an animal, and no pen was chosen"
+  ).value;
   // A Pen that is not this farm's is not somewhere she can be walked to.
   await requirePen(tx, input.instance.farmId, toPenId);
   const fromPenId = already?.fromPenId ?? live.penId;
@@ -319,8 +337,8 @@ export const runStepEffect = async (
   if (effect.kind === "move") {
     return await applyMoveEffect(tx, input);
   }
-  if (effect.kind === "sighting") {
-    return await applySightingEffect(tx, input);
+  if (effect.kind === "observation") {
+    return await applyObservationEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

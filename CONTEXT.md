@@ -84,7 +84,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Health
 
-**Observation**: A Staff or Manager note that an Animal looks unwell (sick, lame, off-feed). Starts the health chain; not a Diagnosis. _Avoid_: Symptom, complaint, report
+**Observation**: What somebody saw of one Animal on the round — off her feed, lame, bulling — recorded by the Step that saw it, from the words that Version offers. Starts the health chain; not a Diagnosis. An Observation of oestrus is what a Heat is recorded as. Corrections withdraw one and write another beside it; nothing is removed. _Avoid_: Symptom, complaint, report, sighting
 
 **Diagnosis**: The Vet's recorded conclusion about what an Animal has. Vet-only. _Avoid_: Finding, condition
 

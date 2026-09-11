@@ -30,7 +30,7 @@ const healthWalkSop = (): SopContent => ({
         },
       ],
       skipReasons: [{ bn: "পশু পাওয়া যায়নি" }],
-      effect: { kind: "sighting" },
+      effect: { kind: "observation" },
     },
   ],
 });
@@ -38,7 +38,7 @@ const healthWalkSop = (): SopContent => ({
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const shed = await owner.client.herd.createShed({
-    name: `sightings-${Date.now()}`,
+    name: `observations-${Date.now()}`,
   });
   const pen = await owner.client.herd.createPen({
     shedId: shed.id,
@@ -81,7 +81,7 @@ const walkThePen = async (clock: FakeClock) => {
 };
 
 describe("what somebody saw on the round", () => {
-  it("records the Sighting against the animal, naming the work and the person", async () => {
+  it("records the Observation against the animal, naming the work and the person", async () => {
     const clock = new FakeClock("2027-04-01T02:00:00.000Z");
     const cow = await aCow(clock);
     const { owner, instance } = await walkThePen(clock);
@@ -94,8 +94,8 @@ describe("what somebody saw on the round", () => {
     });
 
     const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
-    expect(her.sightings).toHaveLength(1);
-    expect(her.sightings[0]).toMatchObject({
+    expect(her.observations).toHaveLength(1);
+    expect(her.observations[0]).toMatchObject({
       saw: "lame",
       instanceId: instance.id,
       seenBy: "test-owner",
@@ -111,11 +111,11 @@ describe("what somebody saw on the round", () => {
       as: "owner",
       clock,
       onShedPhone: true,
-      phone: { id: "test-phone-sightings", name: "পরিদর্শন শেড ফোন" },
+      phone: { id: "test-phone-observations", name: "পরিদর্শন শেড ফোন" },
     });
 
     const batch = {
-      key: `sightings-replay-${cow.tagNumber}`,
+      key: `observations-replay-${cow.tagNumber}`,
       entries: [
         {
           id: `look-${cow.tagNumber}`,
@@ -133,7 +133,7 @@ describe("what somebody saw on the round", () => {
     expect(await phone.client.sync.batch(batch)).toEqual(sent);
 
     const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
-    expect(her.sightings.map((seen) => seen.saw)).toEqual(["bulling"]);
+    expect(her.observations.map((seen) => seen.saw)).toEqual(["bulling"]);
   });
 
   it("keeps what was said when a Correction says something else was seen", async () => {
@@ -161,13 +161,13 @@ describe("what somebody saw on the round", () => {
     const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
     // Both are there: the one that stands, and the one somebody said on the round.
     expect(
-      her.sightings.map((seen) => ({ saw: seen.saw, withdrawn: seen.withdrawn }))
+      her.observations.map((seen) => ({ saw: seen.saw, withdrawn: seen.withdrawn }))
     ).toEqual([
       { saw: "bulling", withdrawn: false },
       { saw: "lame", withdrawn: true },
     ]);
-    const withdrawn = her.sightings.find((seen) => seen.withdrawn);
-    const standing = her.sightings.find((seen) => !seen.withdrawn);
+    const withdrawn = her.observations.find((seen) => seen.withdrawn);
+    const standing = her.observations.find((seen) => !seen.withdrawn);
     expect(withdrawn?.supersededById).toBe(standing?.id);
   });
 
@@ -195,7 +195,58 @@ describe("what somebody saw on the round", () => {
     });
 
     const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
-    expect(her.sightings).toHaveLength(1);
-    expect(her.sightings[0]).toMatchObject({ saw: "lame", withdrawn: true });
+    expect(her.observations).toHaveLength(1);
+    expect(her.observations[0]).toMatchObject({ saw: "lame", withdrawn: true });
+  });
+
+  it("shows the round's findings across the herd, without opening any of the work", async () => {
+    const clock = new FakeClock("2027-04-05T02:00:00.000Z");
+    const bulling = await aCow(clock);
+    const lame = await aCow(clock);
+    const { owner, instance } = await walkThePen(clock);
+
+    for (const [cow, saw] of [
+      [bulling, "bulling"],
+      [lame, "lame"],
+    ] as const) {
+      await owner.client.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "look",
+        animalTag: cow.tagNumber,
+        evidence: [saw],
+      });
+    }
+
+    const inHeat = await owner.client.observations.recent({ saw: "bulling" });
+    const mine = inHeat.filter((seen) => seen.tagNumber === bulling.tagNumber);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({
+      saw: "bulling",
+      sawLabel: "গরম",
+      instanceId: instance.id,
+    });
+    // And the other cow's finding is not in this answer.
+    expect(
+      inHeat.filter((seen) => seen.tagNumber === lame.tagNumber)
+    ).toEqual([]);
+
+    // The words the rounds have actually used, for the filter to offer.
+    const kinds = await owner.client.observations.kinds();
+    expect(kinds).toContainEqual({ saw: "bulling", label: "গরম" });
+  });
+
+  it("refuses a word no Version ever offered", async () => {
+    const clock = new FakeClock("2027-04-06T02:00:00.000Z");
+    const cow = await aCow(clock);
+    const { owner, instance } = await walkThePen(clock);
+
+    await expect(
+      owner.client.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "look",
+        animalTag: cow.tagNumber,
+        evidence: ["exploded"],
+      })
+    ).rejects.toThrow(/not one of the things this step offers/u);
   });
 });

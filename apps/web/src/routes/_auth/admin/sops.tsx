@@ -673,8 +673,11 @@ const StepEditor = ({
                 onChange({
                   ...step,
                   evidence: [
-                    { ...evidence, type: "choice", choices: toChoices(e.target.value) },
-                    ...step.evidence.slice(1),
+                    {
+                      ...evidence,
+                      type: "choice",
+                      choices: toChoices(e.target.value, evidence.choices),
+                    },
                   ],
                 })
               }

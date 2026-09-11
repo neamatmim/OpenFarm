@@ -48,14 +48,14 @@ export type StepEffect =
   | { kind: "bulk_total" }
   /** The Pen she was walked to, recorded as a Move by the work that walked her. */
   | { kind: "move" }
-  /** What somebody saw of her on the round — bulling, limping, off her feed. */
-  | { kind: "sighting" };
+  /** What somebody saw of her on the round — off her feed, limping, bulling. */
+  | { kind: "observation" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
   "bulk_total",
   "move",
-  "sighting",
+  "observation",
 ] as const;
 
 export interface Step {
@@ -166,7 +166,7 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   }
   const path = `steps[${stepIndex}]`;
   const problems: string[] = [];
-  if (effect.kind === "move" || effect.kind === "sighting") {
+  if (effect.kind === "move" || effect.kind === "observation") {
     // Both are a choice the person makes about one animal: which Pen she was walked to, or
     // what was seen of her. A Step that offers nothing to choose would silently do nothing.
     if (!step.evidence.some((item) => item.type === "choice")) {
