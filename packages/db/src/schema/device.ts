@@ -35,22 +35,55 @@ export const shedPhone = pgTable(
   },
   (table) => [
     uniqueIndex("shed_phone_token_uidx").on(table.tokenHash),
+    uniqueIndex("shed_phone_code_uidx").on(table.enrolmentCode),
     index("shed_phone_farm_idx").on(table.farmId),
   ]
 );
 
 /** A Staff member's PIN, as a salt and a derived hash. Synced to enrolled phones so PIN
  *  Switch works offline; the PIN itself is never stored or sent. */
-export const staffPin = pgTable("staff_pin", {
-  userId: text("user_id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
-  farmId: text("farm_id")
-    .notNull()
-    .references(() => farm.id, { onDelete: "cascade" }),
-  salt: text("salt").notNull(),
-  hash: text("hash").notNull(),
-  setBy: text("set_by").references(() => user.id),
-  setByRole: text("set_by_role", { enum: ROLES }),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+export const staffPin = pgTable(
+  "staff_pin",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    salt: text("salt").notNull(),
+    hash: text("hash").notNull(),
+    setBy: text("set_by").references(() => user.id),
+    setByRole: text("set_by_role", { enum: ROLES }),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("staff_pin_user_farm_uidx").on(table.userId, table.farmId),
+  ]
+);
+
+/**
+ * Proof that someone entered their PIN on a phone. The phone sends this token instead of
+ * naming a person, so the active user cannot be asserted by whoever holds a device token.
+ * It expires after the farm's auto-lock window and is refreshed by use.
+ */
+export const deviceSwitch = pgTable(
+  "device_switch",
+  {
+    id: text("id").primaryKey(),
+    deviceId: text("device_id")
+      .notNull()
+      .references(() => shedPhone.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("device_switch_token_uidx").on(table.tokenHash),
+    index("device_switch_device_idx").on(table.deviceId, table.expiresAt),
+  ]
+);

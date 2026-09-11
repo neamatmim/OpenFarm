@@ -115,7 +115,12 @@ export const TEST_DEVICE = {
 export const createTestDevice = async (
   role: Principal,
   now: Date
-): Promise<{ id: string; name: string; activeUserId: string }> => {
+): Promise<{
+  id: string;
+  name: string;
+  farmId: string;
+  activeUserId: string;
+}> => {
   const db = scratchDb();
   const principal = await createTestPrincipal(role, now);
 
@@ -134,6 +139,7 @@ export const createTestDevice = async (
   await db
     .insert(staffPin)
     .values({
+      id: `pin-${principal.user.id}`,
       userId: principal.user.id,
       farmId: TEST_FARM.id,
       salt: "dGVzdC1zYWx0LTE2Ynl0ZXM=",
@@ -143,5 +149,9 @@ export const createTestDevice = async (
     })
     .onConflictDoNothing();
 
-  return { ...TEST_DEVICE, activeUserId: principal.user.id };
+  return {
+    ...TEST_DEVICE,
+    farmId: TEST_FARM.id,
+    activeUserId: principal.user.id,
+  };
 };

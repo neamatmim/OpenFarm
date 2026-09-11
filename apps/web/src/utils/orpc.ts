@@ -1,5 +1,5 @@
 import { createContext } from "@OpenFarm/api/context";
-import { ACTIVE_USER_HEADER, DEVICE_TOKEN_HEADER } from "@OpenFarm/api/device";
+import { DEVICE_TOKEN_HEADER, SWITCH_TOKEN_HEADER } from "@OpenFarm/api/device";
 import { appRouter } from "@OpenFarm/api/routers/index";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
@@ -11,7 +11,7 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { toast } from "sonner";
 
-import { getActiveUser, getDeviceToken } from "@/lib/device";
+import { getDeviceToken, getSwitchToken } from "@/lib/device";
 
 export const createQueryClient = () =>
   new QueryClient({
@@ -41,15 +41,15 @@ const getORPCClient = createIsomorphicFn()
       url: "/api/rpc",
       origin: window.location.origin,
       fetch(url, options) {
-        // A Shed Phone identifies itself by its device token and whoever is PIN-switched
-        // in; a personal session sends neither and is authenticated by its cookie.
+        // A Shed Phone identifies itself by its device token and the switch token it got
+        // by proving a PIN; a personal session sends neither and uses its cookie.
         const token = getDeviceToken();
-        const active = getActiveUser();
+        const switchToken = getSwitchToken();
         const headers = new Headers(options?.headers);
         if (token) {
           headers.set(DEVICE_TOKEN_HEADER, token);
-          if (active) {
-            headers.set(ACTIVE_USER_HEADER, active.userId);
+          if (switchToken) {
+            headers.set(SWITCH_TOKEN_HEADER, switchToken);
           }
         }
         return fetch(url, { ...options, headers, credentials: "include" });

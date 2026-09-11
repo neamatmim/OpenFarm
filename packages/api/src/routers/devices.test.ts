@@ -180,30 +180,23 @@ describe("a device session", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("refuses an active person who is not enrolled on the farm", async () => {
-    const { resolveDeviceSession } = await import("../device");
-    const phone = await scratchDb().query.shedPhone.findFirst({
-      where: { id: "test-shed-phone" },
-    });
-    if (!phone) {
-      throw new Error("expected the test phone");
-    }
-    // Give the phone a real token so resolution gets past the token check.
-    const { hashToken } = await import("../device");
-    const token = "0".repeat(64);
+  it("a switch token that names nobody leaves the phone locked", async () => {
+    const { resolveDeviceSession, hashToken } = await import("../device");
+    const token = "a".repeat(64);
     await scratchDb()
       .update(shedPhone)
       .set({ tokenHash: await hashToken(token) })
-      .where(eq(shedPhone.id, phone.id));
+      .where(eq(shedPhone.id, "test-shed-phone"));
 
-    await expect(
-      resolveDeviceSession(
-        scratchDb(),
-        token,
-        "test-owner-without-a-pin",
-        new Date()
-      )
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const resolved = await resolveDeviceSession(
+      scratchDb(),
+      token,
+      "not-a-switch-token",
+      new Date()
+    );
+
+    expect(resolved.status).toBe("locked");
+    expect(resolved.device?.activeUserId).toBeNull();
   });
 
   it("the roster gives the phone what it needs to check a PIN offline, and nobody else", async () => {
@@ -225,5 +218,81 @@ describe("a device session", () => {
       code: "FORBIDDEN",
     });
     void TEST_FARM;
+  });
+});
+
+describe("review findings", () => {
+  it("a locked phone can still read the roster, so PIN Switch can start at all", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await owner.client.people.setPin({ userId: "test-staff", pin: "4821" });
+    // A phone with nobody switched in: device present, no actor.
+    const locked = await createTestClient(appRouter, {
+      as: "staff",
+      onShedPhone: true,
+      locked: true,
+    });
+
+    const roster = await locked.client.people.roster();
+    const where = await locked.client.devices.current();
+
+    expect(roster.some((person) => person.userId === "test-staff")).toBe(true);
+    expect(where.status).toBe("locked");
+    expect(where.autoLockMinutes).toBe(5);
+  });
+
+  it("an unknown or revoked token does not break the phone: it can still enrol again", async () => {
+    const { resolveDeviceSession } = await import("../device");
+
+    const unknown = await resolveDeviceSession(
+      scratchDb(),
+      "f".repeat(64),
+      null,
+      new Date()
+    );
+
+    expect(unknown).toEqual({ device: null, status: "unknown" });
+  });
+
+  it("the PIN is proved by the server, and the person is named by the token", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await owner.client.people.setPin({ userId: "test-staff", pin: "4821" });
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      onShedPhone: true,
+      locked: true,
+    });
+
+    await expect(
+      phone.client.devices.switchUser({ userId: "test-staff", pin: "0000" })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    const switched = await phone.client.devices.switchUser({
+      userId: "test-staff",
+      pin: "4821",
+    });
+
+    expect(switched.name).toBe("রহিম");
+    expect(switched.token).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("a Manager may not give an Owner a PIN", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+
+    await expect(
+      manager.client.people.setPin({ userId: "test-owner", pin: "1234" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      manager.client.people.setPin({ userId: "nobody-here", pin: "1234" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("enrolment codes are long and unambiguous", async () => {
+    const { randomEnrolmentCode } = await import("../device");
+
+    const codes = Array.from({ length: 50 }, () => randomEnrolmentCode());
+
+    expect(codes.every((code) => /^[0-9A-HJKMNP-TV-Z]{10}$/u.test(code))).toBe(
+      true
+    );
+    expect(new Set(codes).size).toBe(codes.length);
   });
 });

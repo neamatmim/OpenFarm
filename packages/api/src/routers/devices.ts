@@ -5,12 +5,22 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { hashToken, randomEnrolmentCode, randomToken } from "../device";
+import {
+  checkPin,
+  closeSwitches,
+  extendSwitch,
+  hashToken,
+  openSwitch,
+  randomEnrolmentCode,
+  randomToken,
+  requireDevice,
+} from "../device";
 import { protectedProcedure, publicProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
 
 /** How long a Manager's enrolment code is good for. Long enough to walk to the shed. */
 const ENROLMENT_MINUTES = 30;
+const DEFAULT_AUTO_LOCK_MINUTES = 5;
 const MINUTE_MS = 60_000;
 
 export const devicesRouter = {
@@ -170,10 +180,83 @@ export const devicesRouter = {
       return { id: input.id, revoked: true };
     }),
 
-  /** Who this phone is, and how long before it locks. */
-  current: protectedProcedure.handler(({ context }) => ({
+  /** Who this phone is, whether its token is still good, and how long before it locks.
+   *  Reachable while locked — the phone asks this before anyone has PIN-switched in. */
+  current: publicProcedure.handler(({ context }) => ({
     device: context.device,
+    status: context.deviceStatus,
     actor: context.actor,
     autoLockMinutes: context.farm?.pinAutoLockMinutes ?? null,
   })),
+
+  /** PIN Switch: the phone sends who is claiming to work and their PIN; the server proves
+   *  it and returns a token naming that person. The person is never client-asserted. */
+  switchUser: publicProcedure
+    .input(z.object({ userId: z.string(), pin: z.string().trim() }))
+    .handler(async ({ context, input }) => {
+      const device = requireDevice(context.device);
+      const now = context.clock.now();
+      const correct = await checkPin(
+        context.db,
+        device.farmId,
+        input.userId,
+        input.pin
+      );
+      if (!correct) {
+        throw new ORPCError("UNAUTHORIZED", {
+          message: "That PIN is not right",
+        });
+      }
+      const person = await context.db.query.user.findFirst({
+        where: { id: input.userId },
+        columns: { id: true, name: true, disabledAt: true },
+      });
+      if (!person || person.disabledAt) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "That person cannot work here",
+        });
+      }
+      const token = randomToken();
+      const minutes =
+        context.farm?.pinAutoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES;
+      await audited(context, device.farmId).write(
+        {
+          entity: "shed_phone",
+          entityId: device.id,
+          action: "login",
+          after: { userId: person.id },
+        },
+        () =>
+          openSwitch(context.db, {
+            id: uuidv7(now),
+            deviceId: device.id,
+            userId: person.id,
+            token,
+            expiresAt: new Date(now.getTime() + minutes * MINUTE_MS),
+            now,
+          })
+      );
+      return { token, name: person.name, expiresInMinutes: minutes };
+    }),
+
+  /** Keeps the phone unlocked while it is being used, rather than locking mid-task. */
+  keepAwake: publicProcedure.handler(async ({ context }) => {
+    const device = requireDevice(context.device);
+    if (!context.actor) {
+      throw new ORPCError("UNAUTHORIZED");
+    }
+    const now = context.clock.now();
+    const minutes =
+      context.farm?.pinAutoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES;
+    const until = new Date(now.getTime() + minutes * MINUTE_MS);
+    await extendSwitch(context.db, device.id, context.actor.id, until);
+    return { until };
+  }),
+
+  /** Locks the phone: the switch token stops naming anyone. */
+  lock: publicProcedure.handler(async ({ context }) => {
+    const device = requireDevice(context.device);
+    await closeSwitches(context.db, device.id, context.clock.now());
+    return { locked: true };
+  }),
 };

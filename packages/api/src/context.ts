@@ -9,10 +9,10 @@ import { env } from "@OpenFarm/env/server";
 
 import type { Clock } from "./clock";
 import { systemClock } from "./clock";
-import type { DeviceSession } from "./device";
+import type { DeviceSession, DeviceStatus } from "./device";
 import {
-  ACTIVE_USER_HEADER,
   DEVICE_TOKEN_HEADER,
+  SWITCH_TOKEN_HEADER,
   resolveDeviceSession,
 } from "./device";
 
@@ -34,6 +34,7 @@ export interface Actor {
 export interface Device {
   id: string;
   name: string;
+  farmId: string;
 }
 
 export interface Context {
@@ -42,6 +43,8 @@ export interface Context {
   session: Session | null;
   /** The Shed Phone this request came from. Null for a personal session. */
   device: Device | null;
+  /** Why the phone's token did not resolve, so its own screen can say what to do. */
+  deviceStatus: DeviceStatus;
   /** Who this write is attributed to, whichever principal it arrived by. */
   actor: Actor | null;
   clock: Clock;
@@ -113,20 +116,49 @@ const grantPendingApprovals = async (
 
 /** The one place a Context is assembled — production and tests both go through it.
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
+/** The Farm this request acts on: the phone's own Farm, or the single Farm that exists. */
+const resolveFarm = (db: Database, device: DeviceSession | null) =>
+  device
+    ? db.query.farm.findFirst({ where: { id: device.farmId } })
+    : db.query.farm.findFirst();
+
+const resolvePerson = (db: Database, userId: string, farmId: string) =>
+  db.query.user.findFirst({
+    where: { id: userId },
+    columns: { id: true, name: true, email: true, disabledAt: true },
+    with: {
+      roles: { where: { farmId, ...ACTIVE_ROLE }, columns: { role: true } },
+      penAssignments: { where: { farmId }, columns: { penId: true } },
+    },
+  });
+
+/** The one place a Context is assembled — production and tests both go through it.
+ *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 export const buildContext = async ({
   session,
   device = null,
+  deviceStatus = device ? "ok" : "none",
   clock,
   db,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
+  deviceStatus?: DeviceStatus;
   clock: Clock;
   db: Database;
 }): Promise<Context> => {
-  const base = { auth: null, session, clock, db, roleUsed: null } as const;
+  const base = {
+    auth: null,
+    session,
+    clock,
+    db,
+    roleUsed: null,
+    deviceStatus,
+  } as const;
   const actingUserId = session?.user.id ?? device?.activeUserId ?? null;
-  const deviceInfo = device ? { id: device.id, name: device.name } : null;
+  const deviceInfo = device
+    ? { id: device.id, name: device.name, farmId: device.farmId }
+    : null;
   const empty = {
     ...base,
     device: deviceInfo,
@@ -136,32 +168,20 @@ export const buildContext = async ({
     roles: [],
     penIds: [],
   };
-  if (!actingUserId) {
-    return empty;
-  }
 
-  const farm = (await db.query.farm.findFirst()) ?? null;
-  if (!farm) {
+  // A phone with nobody PIN-switched in still needs its Farm, so it can fetch the roster
+  // it checks PINs against.
+  const farm = (await resolveFarm(db, device)) ?? null;
+  if (!(actingUserId && farm)) {
     return { ...empty, farm };
   }
 
-  const row = await db.query.user.findFirst({
-    where: { id: actingUserId },
-    columns: { id: true, name: true, email: true, disabledAt: true },
-    with: {
-      roles: {
-        where: { farmId: farm.id, ...ACTIVE_ROLE },
-        columns: { role: true },
-      },
-      penAssignments: { where: { farmId: farm.id }, columns: { penId: true } },
-    },
-  });
+  const row = await resolvePerson(db, actingUserId, farm.id);
   const person = row
     ? { id: row.id, name: row.name, disabledAt: row.disabledAt }
     : null;
-  const actor = row && !row.disabledAt ? { id: row.id, name: row.name } : null;
   if (!row || row.disabledAt) {
-    return { ...empty, farm, person, actor };
+    return { ...empty, farm, person };
   }
 
   let roles = row.roles.map((r) => r.role);
@@ -178,7 +198,7 @@ export const buildContext = async ({
   return {
     ...base,
     device: deviceInfo,
-    actor,
+    actor: { id: row.id, name: row.name },
     farm,
     person,
     roles,
@@ -200,7 +220,7 @@ export const createContext = async ({
     const resolved = await resolveDeviceSession(
       db,
       token,
-      req.headers.get(ACTIVE_USER_HEADER),
+      req.headers.get(SWITCH_TOKEN_HEADER),
       clock.now()
     );
     return buildContext({

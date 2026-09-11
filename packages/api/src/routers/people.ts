@@ -384,13 +384,29 @@ export const peopleRouter = {
           const person = await tx.query.user.findFirst({
             where: { id: input.userId },
             columns: { id: true },
+            with: {
+              roles: { where: { farmId: context.farm.id, ...ACTIVE_ROLE } },
+            },
           });
-          if (!person) {
-            throw new ORPCError("NOT_FOUND");
+          if (!person || person.roles.length === 0) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "That person is not on this farm",
+            });
+          }
+          // A Manager may only give a PIN to Staff: a PIN is how a person acts on a shared
+          // phone, so letting a Manager set an Owner's PIN would route around the rule that
+          // only the Owner grants Roles above Staff.
+          const targetRoles = person.roles.map((role) => role.role);
+          const staffOnly = targetRoles.every((role) => role === "staff");
+          if (context.roleUsed === "manager" && !staffOnly) {
+            throw new ORPCError("FORBIDDEN", {
+              message: "A Manager may only set a PIN for Barn Staff",
+            });
           }
           await tx
             .insert(staffPin)
             .values({
+              id: uuidv7(now),
               userId: input.userId,
               farmId: context.farm.id,
               salt,
@@ -400,7 +416,7 @@ export const peopleRouter = {
               updatedAt: now,
             })
             .onConflictDoUpdate({
-              target: staffPin.userId,
+              target: [staffPin.userId, staffPin.farmId],
               set: {
                 salt,
                 hash,

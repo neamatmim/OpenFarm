@@ -52,6 +52,13 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     proposer: r.one.user({ from: r.sopProposal.proposedBy, to: r.user.id }),
   },
+  deviceSwitch: {
+    device: r.one.shedPhone({
+      from: r.deviceSwitch.deviceId,
+      to: r.shedPhone.id,
+      optional: false,
+    }),
+  },
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
   },

@@ -21,25 +21,40 @@ interface Options {
   clock?: FakeClock;
   /** Call as this Role PIN-switched in on a Shed Phone, rather than from their own phone. */
   onShedPhone?: boolean;
+  /** An enrolled phone with nobody PIN-switched in yet. */
+  locked?: boolean;
 }
+
+const deviceStatusOf = (
+  device: unknown,
+  locked: boolean
+): "none" | "locked" | "ok" => {
+  if (!device) {
+    return "none";
+  }
+  return locked ? "locked" : "ok";
+};
 
 /** An in-process client for the router, calling as a given Role with a controllable clock —
  *  from their own phone, or PIN-switched in on a Shed Phone. This is the primary test seam:
  *  no HTTP, no UI, real scratch database. */
 export const createTestClient = async <T extends Router<Context>>(
   router: T,
-  { as, clock = new FakeClock(), onShedPhone = false }: Options
+  { as, clock = new FakeClock(), onShedPhone = false, locked = false }: Options
 ): Promise<{ client: RouterClient<T>; clock: FakeClock; context: Context }> => {
   const principal =
     as === null ? null : await createTestPrincipal(as, clock.now());
-  const device =
+  const enrolled =
     as !== null && onShedPhone ? await createTestDevice(as, clock.now()) : null;
+  const device =
+    enrolled && locked ? { ...enrolled, activeUserId: null } : enrolled;
   const context = await buildContext({
     session:
       principal === null || device
         ? null
         : { user: principal.user, session: principal.session },
     device,
+    deviceStatus: deviceStatusOf(device, locked),
     clock,
     db: scratchDb(),
   });

@@ -6,6 +6,7 @@
 const TOKEN_KEY = "openfarm.device.token";
 const ROSTER_KEY = "openfarm.device.roster";
 const ACTIVE_KEY = "openfarm.device.active";
+const SWITCH_KEY = "openfarm.device.switch";
 const CHANGED = "openfarm:device";
 
 export interface RosterEntry {
@@ -96,3 +97,9 @@ export const isLocked = (
   autoLockMinutes: number
 ): boolean =>
   active === null || Date.now() - active.lastSeenAt > autoLockMinutes * 60_000;
+
+/** Proof that someone entered their PIN, issued by the server. The phone sends this rather
+ *  than naming a person, so whoever holds a device token cannot act as anyone they like. */
+export const getSwitchToken = (): string | null => read(SWITCH_KEY);
+export const setSwitchToken = (token: string | null) =>
+  write(SWITCH_KEY, token);

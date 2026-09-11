@@ -17,7 +17,9 @@ import {
   setActiveUser,
   setDeviceToken,
   setRoster,
+  setSwitchToken,
   subscribeDevice,
+  touchActiveUser,
 } from "@/lib/device";
 import { orpc } from "@/utils/orpc";
 
@@ -76,22 +78,44 @@ const DevicePage = () => {
     })
   );
 
-  // Re-render on a timer so the phone locks itself while nobody is touching it.
+  // Re-render on a timer so the phone locks itself while nobody is touching it — and count
+  // a tap anywhere as activity, so it never locks under someone's hands mid-task.
   useEffect(() => {
     const timer = window.setInterval(
       () => forceTick((n) => n + 1),
       LOCK_TICK_MS
     );
-    return () => window.clearInterval(timer);
+    const onActivity = () => touchActiveUser();
+    window.addEventListener("pointerdown", onActivity);
+    window.addEventListener("keydown", onActivity);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("pointerdown", onActivity);
+      window.removeEventListener("keydown", onActivity);
+    };
   }, []);
+
+  const switchUser = useMutation(orpc.devices.switchUser.mutationOptions({}));
 
   const submitPin = useCallback(
     async (entry: RosterEntry, typed: string) => {
-      const correct = await verifyPin(typed, entry.salt, entry.hash);
       setPin("");
-      if (!correct) {
+      // Checked here first so a phone with no signal can still switch; the server proves it
+      // again and issues the token that actually authorises writes (ADR 0003).
+      const correctHere = await verifyPin(typed, entry.salt, entry.hash);
+      if (!correctHere) {
         toast.error(t("device.wrongPin"));
         return;
+      }
+      try {
+        const proved = await switchUser.mutateAsync({
+          userId: entry.userId,
+          pin: typed,
+        });
+        setSwitchToken(proved.token);
+      } catch {
+        // Offline: work is captured locally and syncs once there is signal.
+        setSwitchToken(null);
       }
       setActiveUser({
         userId: entry.userId,
@@ -100,7 +124,7 @@ const DevicePage = () => {
       });
       setChosen(null);
     },
-    [t]
+    [switchUser, t]
   );
 
   if (!token) {
@@ -146,7 +170,10 @@ const DevicePage = () => {
         <Button
           variant="outline"
           className="w-full"
-          onClick={() => setActiveUser(null)}
+          onClick={() => {
+            setActiveUser(null);
+            setSwitchToken(null);
+          }}
         >
           {t("device.lock")}
         </Button>
