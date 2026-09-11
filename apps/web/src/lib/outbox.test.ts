@@ -307,6 +307,59 @@ describe("what one send carries", () => {
   });
 });
 
+describe("a shift with no signal", () => {
+  it("holds the claim, the cows and the finish, and sends them in that order", async () => {
+    const outbox = outboxOn();
+    await outbox.add("instance_claim", { instanceId: "instance-1" }, "claim");
+    await outbox.add("step_completion", milk(12.5), "cow-1");
+    await outbox.add("step_completion", milk(9.5), "cow-2");
+    await outbox.add(
+      "instance_complete",
+      { instanceId: "instance-1" },
+      "finish"
+    );
+
+    await outbox.flush();
+
+    // One send, and the farm reads it the way the shed did it: taken, milked, finished.
+    expect(farm.sends).toHaveLength(1);
+    expect(farm.sends[0]?.entries.map((entry) => entry.kind)).toEqual([
+      "instance_claim",
+      "step_completion",
+      "step_completion",
+      "instance_complete",
+    ]);
+    const left = await outbox.state();
+    expect(left.pending).toBe(0);
+  });
+
+  it("shows what the farm took but put in front of somebody", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.says((batch) => ({
+      results: batch.entries.map((entry) => ({
+        id: String(entry.id),
+        seq: Number(entry.seq),
+        outcome: "kept" as const,
+        reason: "someone else is working on this",
+      })),
+    }));
+
+    await outbox.flush();
+
+    const state = await outbox.state();
+    expect(state).toMatchObject({ pending: 0, rejected: 0, reviewed: 1 });
+    const looked = await outbox.reviewed();
+    expect(looked[0]?.reason).toContain("someone else");
+    // The person's own figures are there, so they can see what became of them.
+    expect(looked[0]?.entry.body).toMatchObject({ evidence: [11] });
+
+    await outbox.discard("a");
+    const cleared = await outbox.state();
+    expect(cleared.reviewed).toBe(0);
+  });
+});
+
 describe("when the session has gone", () => {
   it("stops, says so, and loses nothing", async () => {
     const outbox = outboxOn();

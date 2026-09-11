@@ -18,6 +18,16 @@ const entryBase = {
 export const entryInput = z.discriminatedUnion("kind", [
   z.object({
     ...entryBase,
+    kind: z.literal("instance_claim"),
+    instanceId: z.string(),
+  }),
+  z.object({
+    ...entryBase,
+    kind: z.literal("instance_complete"),
+    instanceId: z.string(),
+  }),
+  z.object({
+    ...entryBase,
     kind: z.literal("step_completion"),
     instanceId: z.string(),
     stepId: z.string().trim().min(1),

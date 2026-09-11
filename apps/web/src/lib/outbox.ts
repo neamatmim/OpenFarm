@@ -12,7 +12,12 @@ export interface OutboxEntry {
   id: string;
   /** Where this sits in the phone's own count, so the farm can see what it never read. */
   seq: number;
-  kind: "step_completion" | "animal_move" | "observation";
+  kind:
+    | "instance_claim"
+    | "step_completion"
+    | "instance_complete"
+    | "animal_move"
+    | "observation";
   /** The entry as the batch procedure wants it, minus the fields above. */
   body: Record<string, unknown>;
   /** The phone's clock, at the moment the person recorded it. */
@@ -56,6 +61,8 @@ export interface OutboxState {
   pending: number;
   /** Entries the farm sent back. They keep their data so someone can re-enter them. */
   rejected: number;
+  /** Entries the farm took but put in front of a person. */
+  reviewed: number;
   /** When the farm last took something from this phone. */
   lastSyncAt: string | null;
   paused: OutboxPause;
@@ -69,6 +76,7 @@ const BATCH_MAX = 200;
 const BATCH_MAX_BYTES = 4_000_000;
 const ENTRY = "entry:";
 const REJECTED = "rejected:";
+const REVIEWED = "reviewed:";
 const PENDING_BATCH = "batch:pending";
 const NEXT_SEQ = "meta:seq";
 const LAST_SYNC = "meta:lastSync";
@@ -207,36 +215,48 @@ export class Outbox {
     return entries;
   }
 
-  /** What the farm sent back, with the data the person entered, so they can put it right. */
-  async rejected(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  private async under(
+    prefix: string
+  ): Promise<{ entry: OutboxEntry; reason: string }[]> {
     const keys = await this.options.storage.keys();
-    const held: { entry: OutboxEntry; reason: string }[] = [];
-    for (const key of keys
-      .filter((one) => one.startsWith(REJECTED))
-      .toSorted()) {
+    const rows: { entry: OutboxEntry; reason: string }[] = [];
+    for (const key of keys.filter((one) => one.startsWith(prefix)).toSorted()) {
       // oxlint-disable-next-line no-await-in-loop
       const row = await this.read<{ entry: OutboxEntry; reason: string }>(key);
       if (row) {
-        held.push(row);
+        rows.push(row);
       }
     }
-    return held;
+    return rows;
   }
 
-  /** The person has dealt with a refused entry: it leaves the phone. */
+  /** What the farm sent back, with the data the person entered, so they can put it right. */
+  rejected(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+    return this.under(REJECTED);
+  }
+
+  /** What the farm took but put in front of somebody. */
+  reviewed(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+    return this.under(REVIEWED);
+  }
+
+  /** The person has dealt with a refused or reviewed entry: it leaves the phone. */
   async discard(id: string): Promise<void> {
     await this.options.storage.delete(`${REJECTED}${id}`);
+    await this.options.storage.delete(`${REVIEWED}${id}`);
   }
 
   async state(): Promise<OutboxState> {
-    const [waiting, refused, lastSyncAt] = await Promise.all([
+    const [waiting, refused, looked, lastSyncAt] = await Promise.all([
       this.pending(),
       this.rejected(),
+      this.reviewed(),
       this.read<string>(LAST_SYNC),
     ]);
     return {
       pending: waiting.length,
       rejected: refused.length,
+      reviewed: looked.length,
       lastSyncAt,
       paused: this.paused,
     };
@@ -348,6 +368,15 @@ export class Outbox {
         await this.write(`${REJECTED}${entry.id}`, {
           entry,
           reason: verdict.reason ?? "refused",
+        });
+      }
+      if (verdict?.outcome === "kept") {
+        // The farm has it and somebody is looking at it. Not the phone's to fix, but the
+        // person who recorded it should hear that it did not simply go in.
+        // oxlint-disable-next-line no-await-in-loop
+        await this.write(`${REVIEWED}${entry.id}`, {
+          entry,
+          reason: verdict.reason ?? "waiting for someone to look",
         });
       }
     }

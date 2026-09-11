@@ -82,3 +82,36 @@ export const recordStep = async (
   );
   return id;
 };
+
+/**
+ * Takes the Instance, on the device first. A milker in a shed with no signal still has to be
+ * able to start: the claim travels ahead of the work it covers, and the farm settles who
+ * actually had it when the phone gets back in range.
+ */
+export const claimInstance = async (
+  queryClient: QueryClient,
+  instanceKey: readonly unknown[],
+  instanceId: string
+): Promise<void> => {
+  await phoneOutbox()?.add("instance_claim", { instanceId }, newId());
+  queryClient.setQueryData(
+    instanceKey,
+    (current: { state?: string } | undefined) =>
+      current ? { ...current, state: "in_progress" } : current
+  );
+};
+
+/** Finishes it, the same way. The farm checks the Pen again when the entry lands — a cow may
+ *  have joined it since the phone last saw it. */
+export const finishInstance = async (
+  queryClient: QueryClient,
+  instanceKey: readonly unknown[],
+  instanceId: string
+): Promise<void> => {
+  await phoneOutbox()?.add("instance_complete", { instanceId }, newId());
+  queryClient.setQueryData(
+    instanceKey,
+    (current: { state?: string } | undefined) =>
+      current ? { ...current, state: "completed" } : current
+  );
+};

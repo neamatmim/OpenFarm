@@ -308,6 +308,14 @@ export const en = {
   "outbox.signedOut": "Sign in again to send what is waiting",
   "outbox.rejected": "{count} the farm sent back",
   "outbox.offline": "No signal",
+  "outbox.title": "Waiting to send",
+  "outbox.heldTitle": "Sent back",
+  "outbox.heldNone": "Nothing sent back",
+  "outbox.reviewedTitle": "Waiting for someone to look",
+  "outbox.reviewedNone": "Nothing waiting",
+  "outbox.discard": "Done with this",
+  "outbox.entered": "What was entered",
+  "outbox.open": "See them",
   "common.notFound": "Not found",
 } as const;
 

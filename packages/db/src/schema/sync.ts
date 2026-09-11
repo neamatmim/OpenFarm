@@ -14,7 +14,9 @@ import { farm } from "./farm";
 /** What a phone's outbox can carry. Observations arrive with health, in a later increment;
  *  the kind exists so a client written against this contract does not have to change. */
 export const SYNC_KINDS = [
+  "instance_claim",
   "step_completion",
+  "instance_complete",
   "animal_move",
   "observation",
 ] as const;

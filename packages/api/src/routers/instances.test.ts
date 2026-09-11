@@ -200,10 +200,12 @@ describe("claiming", () => {
 
     await staff.client.instances.claim({ id: instance.id });
 
+    // Not a question of permission: somebody else is holding this work, which is the same
+    // answer a phone gets when it claimed with no signal and arrived second.
     await expect(
       manager.client.instances.claim({ id: instance.id })
     ).rejects.toMatchObject({
-      code: "FORBIDDEN",
+      code: "CONFLICT",
     });
   });
 
@@ -222,7 +224,7 @@ describe("claiming", () => {
     await expect(
       staff.client.instances.claim({ id: instance.id })
     ).rejects.toMatchObject({
-      code: "FORBIDDEN",
+      code: "CONFLICT",
     });
     const reloaded = await manager.client.instances.get({ id: instance.id });
     expect({
@@ -326,10 +328,12 @@ describe("working the pen board", () => {
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     await staff.client.instances.claim({ id: instance.id });
 
+    // A Pen with cows nobody has recorded is not a finished shift — and to a phone that
+    // finished on what it could see, it is the world having moved.
     await expect(
       staff.client.instances.complete({ id: instance.id })
     ).rejects.toMatchObject({
-      code: "BAD_REQUEST",
+      code: "CONFLICT",
     });
 
     await staff.client.instances.completeStep({
@@ -641,11 +645,12 @@ describe("review findings", () => {
     });
     await staff.client.instances.complete({ id: instance.id });
 
-    await expect(
-      staff.client.instances.complete({ id: instance.id })
-    ).rejects.toMatchObject({
-      code: "BAD_REQUEST",
-    });
+    // Finishing again changes nothing rather than refusing: a phone replaying its outbox
+    // sends what it sent, and the second telling is the same fact (ADR 0002).
+    await staff.client.instances.complete({ id: instance.id });
+    const after = await staff.client.instances.get({ id: instance.id });
+    expect(after.state).toBe("completed");
+
     await expect(
       manager.client.instances.assign({ id: instance.id, userId: "test-staff" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });

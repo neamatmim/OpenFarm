@@ -541,6 +541,115 @@ describe("review findings", () => {
 });
 
 describe("a phone that was out of signal all morning", () => {
+  it("claims, milks and finishes in one send, exactly as it happened in the shed", async () => {
+    // Raised, but nobody has touched it: this is a shed with no signal from the start.
+    const clock = new FakeClock("2027-01-22T05:30:00.000Z");
+    const scheduler = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    await scheduler.client.instances.ensureDue();
+    const today = await scheduler.client.instances.today({
+      penId: world.pen.id,
+    });
+    const instance = today.find(
+      (row) => row.definitionId === world.sop.definitionId
+    );
+    if (!instance) {
+      throw new Error("expected an instance");
+    }
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const drawnAt = new Date(clock.now().getTime() - 2 * HOUR);
+
+    const sent = await staff.client.sync.batch({
+      key: key(),
+      sentAt: clock.now(),
+      entries: [
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "instance_claim" as const,
+          instanceId: instance.id,
+          recordedAt: drawnAt,
+        },
+        milkEntry(instance.id, tagOf(0), 12.5, drawnAt),
+        milkEntry(instance.id, tagOf(1), 9.5, drawnAt),
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "instance_complete" as const,
+          instanceId: instance.id,
+          recordedAt: drawnAt,
+        },
+      ],
+    });
+
+    expect(sent.results.map((row) => row.outcome)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+      "applied",
+    ]);
+    // The farm is where the phone was: the shift is claimed by the milker, both cows are
+    // recorded, and the work is finished and waiting for sign-off.
+    const board = await staff.client.instances.get({ id: instance.id });
+    expect(board).toMatchObject({
+      state: "completed",
+      claimedBy: "test-staff",
+    });
+    const milked = await staff.client.milk.session({
+      instanceId: instance.id,
+    });
+    expect(milked.records).toHaveLength(2);
+  });
+
+  it("keeps a whole shift when somebody else took the work first", async () => {
+    const clock = new FakeClock("2027-01-23T05:30:00.000Z");
+    const scheduler = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    await scheduler.client.instances.ensureDue();
+    const today = await scheduler.client.instances.today({
+      penId: world.pen.id,
+    });
+    const instance = today.find(
+      (row) => row.definitionId === world.sop.definitionId
+    );
+    if (!instance) {
+      throw new Error("expected an instance");
+    }
+    // The Manager took it while the milker's phone was out of range.
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.instances.claim({ id: instance.id });
+
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const sent = await staff.client.sync.batch({
+      key: key(),
+      sentAt: clock.now(),
+      entries: [
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "instance_claim" as const,
+          instanceId: instance.id,
+          recordedAt: clock.now(),
+        },
+        milkEntry(instance.id, tagOf(0), 12.5, clock.now()),
+      ],
+    });
+
+    // Neither is refused: the milker did the work, and the world moved while they were in
+    // the shed. Both are held for somebody to decide.
+    expect(sent.results.map((row) => row.outcome)).toEqual(["kept", "kept"]);
+    const queue = await manager.client.review.open();
+    expect(
+      sent.results.every((row) =>
+        queue.some((held) => held.entityId === row.id)
+      )
+    ).toBe(true);
+  });
+
   it("is not a phone with a wrong clock", async () => {
     const { instance, clock, staff } = await session("2027-01-21");
     const now = clock.now();

@@ -16,8 +16,13 @@ import { toast } from "sonner";
 import { AnimalPhoto } from "@/components/animal-photo";
 import { useLanguage } from "@/i18n/language-provider";
 import { refusalMessage } from "@/lib/correction-refusal";
+import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import type { StepRecord } from "@/lib/record-offline";
-import { recordStep } from "@/lib/record-offline";
+import {
+  claimInstance,
+  finishInstance,
+  recordStep,
+} from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
 
 interface Animal {
@@ -72,14 +77,28 @@ const WorkPage = () => {
   const instance = useQuery(
     orpc.instances.get.queryOptions({ input: { id: instanceId } })
   );
+  // What this phone last knew of the herd. With no signal the board still has to say which
+  // cow may not go to the tank: a shed with no bars is exactly where that mistake is made.
+  const herd = useQuery({
+    queryKey: ["herd-cache"],
+    queryFn: () => cachedHerd(),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
     toast.error(refusalMessage(error, t) ?? error.message ?? t("common.error"));
 
-  const claim = useMutation(
-    orpc.instances.claim.mutationOptions({ onSuccess: refresh, onError })
-  );
+  const instanceKey = orpc.instances.get.queryKey({
+    input: { id: instanceId },
+  });
+  const claim = useMutation({
+    mutationFn: () => claimInstance(queryClient, instanceKey, instanceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["outbox"] });
+    },
+    onError,
+  });
   /**
    * Recording goes into the Outbox and onto the screen, in that order, and the farm hears
    * about it when there is signal. A milker in a shed cannot wait for a round trip that may
@@ -87,11 +106,7 @@ const WorkPage = () => {
    */
   const record = useMutation({
     mutationFn: (entry: StepRecord) =>
-      recordStep(
-        queryClient,
-        orpc.instances.get.queryKey({ input: { id: instanceId } }),
-        entry
-      ),
+      recordStep(queryClient, instanceKey, entry),
     onSuccess: () => {
       setOpenAnimal(null);
       setOpenStep(null);
@@ -115,26 +130,43 @@ const WorkPage = () => {
       onError,
     })
   );
-  const finish = useMutation(
-    orpc.instances.complete.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("work.finished"));
-        navigate({ to: "/today" });
-      },
-      onError,
-    })
-  );
+  const finish = useMutation({
+    mutationFn: () => finishInstance(queryClient, instanceKey, instanceId),
+    onSuccess: () => {
+      toast.success(t("work.finished"));
+      navigate({ to: "/today" });
+    },
+    onError,
+  });
 
   if (!instance.data) {
     return <p className="p-6">{t("common.loading")}</p>;
   }
 
-  const { content, animals, completions, state } = instance.data as unknown as {
+  const {
+    content,
+    animals: fromFarm,
+    completions,
+    state,
+  } = instance.data as unknown as {
     content: SopContent;
     animals: Animal[];
     completions: Completion[];
     state: string;
   };
+  // The Gate the tile renders comes from whichever the phone has: what the farm said this
+  // time, or what it last cached. The farm decides again when the entry lands.
+  const cached = herd.data?.animals ?? [];
+  const now = new Date();
+  const animals = fromFarm.map((beast) => ({
+    ...beast,
+    underMilkWithdrawal:
+      beast.underMilkWithdrawal ||
+      cachedWithdrawal(
+        cached.find((one) => one.id === beast.id),
+        now
+      ),
+  }));
   const perAnimalStep = content.steps.find((step) => step.repeatPerAnimal);
   // The closing Step is the last one *and* not per-animal: a Playbook whose last Step
   // repeats per cow has no closing Step, and a one-Step SOP finishes on that Step.
@@ -158,10 +190,7 @@ const WorkPage = () => {
     return (
       <div className="mx-auto mt-10 w-full max-w-sm space-y-4 p-6 text-center">
         <h1 className="text-2xl font-bold">{content.name.bn}</h1>
-        <Button
-          className="h-14 w-full text-lg"
-          onClick={() => claim.mutate({ id: instanceId })}
-        >
+        <Button className="h-14 w-full text-lg" onClick={() => claim.mutate()}>
           {t("work.claim")}
         </Button>
       </div>
@@ -310,7 +339,7 @@ const WorkPage = () => {
         done={Boolean(closingStep && doneFor(closingStep.id))}
         pending={finish.isPending}
         onOpen={(step) => setOpenStep(step)}
-        onFinish={() => finish.mutate({ id: instanceId })}
+        onFinish={() => finish.mutate()}
       />
     </div>
   );

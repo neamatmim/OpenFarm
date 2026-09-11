@@ -4,17 +4,17 @@
 
 **Blocked by:** 06, 12
 
-**Status:** in progress
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 1.
 
-- [ ] The app installs to the Android home screen and requests persistent storage; the outbox survives app restarts
-- [ ] With the network cut, a full milking Instance can be claimed and completed; on reconnect it syncs in order and the server state matches
-- [ ] One idempotency key per outbox transaction, reused on retry; retries back off with jitter; only one tab syncs
-- [ ] On 401 the outbox pauses with a visible prompt; after re-auth it resumes with nothing lost
-- [ ] Rejected entries are listed for re-entry with their original data; Needs Review outcomes are shown
-- [ ] The pending-count and sync-age banner is present on every Staff screen; gates render from cached state
-- [ ] Secondary-seam tests against a fake transport cover ordering, replay, pause-on-401, rejection retention; one end-to-end test runs a real batch against the scratch database
+- [x] The app installs to the Android home screen and requests persistent storage; the outbox survives app restarts
+- [x] With the network cut, a full milking Instance can be claimed and completed; on reconnect it syncs in order and the server state matches
+- [x] One idempotency key per outbox transaction, reused on retry; retries back off with jitter; only one tab syncs
+- [x] On 401 the outbox pauses with a visible prompt; after re-auth it resumes with nothing lost
+- [x] Rejected entries are listed for re-entry with their original data; Needs Review outcomes are shown
+- [x] The pending-count and sync-age banner is present on every Staff screen; gates render from cached state
+- [x] Secondary-seam tests against a fake transport cover ordering, replay, pause-on-401, rejection retention; one end-to-end test runs a real batch against the scratch database
 
 **Where this stands.** The outbox, the PWA shell and the banner are built and tested; two acceptance criteria are only partly met, and one decision departs from the ADR. Both are called out below rather than buried.
 
@@ -28,4 +28,9 @@
 
 **Departure from ADR 0002, for the Owner to accept or reject.** The ADR names *TanStack DB with `@tanstack/offline-transactions`*. The library is installed and used for the parts that are genuinely hard to get right — IndexedDB storage, backoff with jitter, Web Locks leader election, online detection — but its queue and its `createOfflineAction` are built on TanStack DB collections, which would mean a second data model beside TanStack Query and a rewrite of how every screen reads. The queue itself is therefore ours, over the library's storage adapter. The ADR's substance holds: an on-device outbox, oRPC the only write path, one idempotency key per transaction, both clocks stored. If the Owner wants the collection model adopted properly, that is a ticket of its own and this is the point to say so.
 
-**Not yet done** (the remaining criteria): the pen board records through the Outbox but the *claim* and *finish* steps still call the server directly, so a full Instance cannot yet be completed with the network cut; refused entries are kept and counted but have no screen to re-enter them from; and the assigned Pens' animals, States and Withdrawal status are not yet cached for offline gates.
+**The last three, finished.**
+
+- **A whole shift now fits in the Outbox.** Claiming and finishing are entries like any other, so a milker with no signal from the moment they walk into the shed can take the work, record every cow, and finish — and the farm reads it back in the order the shed did it. Claiming had to stop being a permission question to make that work: *somebody else is holding this* is the world having moved, which is exactly what happens to a phone out of range, so it is kept for a person rather than handed back. The same goes for finishing on a Pen that has gained a cow since the phone last saw it.
+- **Finishing twice changes nothing** rather than being refused, because a replayed outbox sends what it sent.
+- **What the phone is carrying has a screen.** Entries the farm sent back are listed with the figures the person typed, so they can be put in again; entries the farm took but put in front of somebody are listed too, because the person who recorded them should hear that they did not simply go in. Nothing leaves the phone until the person says it may.
+- **The Pens' animals are cached at every sync** — which cow, and whether her milk may go to the tank — and the pen board renders the Gate from whichever it has. A shed with no bars is exactly where that mistake gets made. The farm decides again when the entry lands; the cache is what the phone shows, not what the farm believes.

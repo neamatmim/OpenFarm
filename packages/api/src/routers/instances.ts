@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
 import type {
@@ -24,9 +24,10 @@ import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import {
+  applyClaim,
+  applyComplete,
   applyCompletion,
   assertEvidenceComplete,
-  assertMayWork,
   stepOf,
 } from "../completion-store";
 import type { Recorded } from "../completion-store";
@@ -338,39 +339,7 @@ export const instancesRouter = {
           action: "update",
           after: { claimedBy: context.actor.id },
         },
-        async (tx) => {
-          const instance = await tx.query.sopInstance.findFirst({
-            where: { id: input.id, farmId: context.farm.id },
-            columns: {
-              penId: true,
-              assignedTo: true,
-              claimedBy: true,
-              state: true,
-              assignedRole: true,
-            },
-          });
-          if (!instance) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          assertMayWork(context, instance);
-          // Only an unclaimed Instance can be claimed, so two phones cannot both take it.
-          const [row] = await tx
-            .update(sopInstance)
-            .set({
-              claimedBy: context.actor.id,
-              claimedAt: now,
-              state: "in_progress",
-            })
-            .where(
-              and(eq(sopInstance.id, input.id), isNull(sopInstance.claimedBy))
-            )
-            .returning({ id: sopInstance.id });
-          if (!row && instance.claimedBy !== context.actor.id) {
-            throw new ORPCError("CONFLICT", {
-              message: "Someone else took this first",
-            });
-          }
-        }
+        (tx) => applyClaim(tx, context, input.id, now)
       );
       return { id: input.id, claimed: true };
     }),
@@ -822,63 +791,7 @@ export const instancesRouter = {
           before: { state: "in_progress" },
           after: { state: "completed" },
         },
-        async (tx) => {
-          const instance = await tx.query.sopInstance.findFirst({
-            where: { id: input.id, farmId: context.farm.id },
-            with: {
-              version: { columns: { content: true } },
-              completions: true,
-            },
-          });
-          if (!instance) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          if (
-            instance.state !== "in_progress" &&
-            instance.state !== "sent_back"
-          ) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `This work is ${instance.state}, not in progress`,
-            });
-          }
-          assertMayWork(context, instance);
-          const content = contentOf(instance.version);
-          const animals = await animalsForInstance(
-            tx,
-            context.farm.id,
-            instance.penId,
-            content
-          );
-          const outstanding: string[] = [];
-          for (const step of content.steps) {
-            const done = instance.completions.filter(
-              (completion) => completion.stepId === step.id
-            );
-            if (step.repeatPerAnimal) {
-              const covered = new Set(
-                done.map((completion) => completion.animalId)
-              );
-              const missing = animals.filter((beast) => !covered.has(beast.id));
-              if (missing.length > 0) {
-                outstanding.push(
-                  `${step.id}: ${missing.map((beast) => beast.tagNumber).join(", ")}`
-                );
-              }
-            } else if (done.length === 0) {
-              outstanding.push(step.id);
-            }
-          }
-          if (outstanding.length > 0) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `Not finished yet — ${outstanding.join("; ")}`,
-              data: { outstanding },
-            });
-          }
-          await tx
-            .update(sopInstance)
-            .set({ state: "completed", completedAt: now })
-            .where(eq(sopInstance.id, input.id));
-        }
+        (tx) => applyComplete(tx, context, input.id, now)
       );
       return { id: input.id, state: "completed" } as const;
     }),

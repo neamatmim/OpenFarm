@@ -1,12 +1,15 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { CloudOff, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { rememberHerd } from "@/lib/herd-cache";
+import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 /** How often the phone tries what it is holding. Sending is cheap when there is nothing to
  *  send: the Outbox reads its own queue and stops. */
@@ -25,14 +28,14 @@ export const SyncBanner = () => {
     queryKey: ["outbox"],
     queryFn: async () => {
       const outbox = phoneOutbox();
-      return (
-        (await outbox?.state()) ?? {
-          pending: 0,
-          rejected: 0,
-          lastSyncAt: null,
-          paused: "none" as const,
-        }
-      );
+      const carried: OutboxState = (await outbox?.state()) ?? {
+        pending: 0,
+        rejected: 0,
+        reviewed: 0,
+        lastSyncAt: null,
+        paused: "none",
+      };
+      return carried;
     },
     refetchInterval: FLUSH_EVERY_MS,
   });
@@ -52,6 +55,24 @@ export const SyncBanner = () => {
             queryKey: orpc.instances.key(),
           });
         }
+        // The animals of the Pens this person works, kept for the shed where there are no
+        // bars: which cow, and whether her milk may go to the tank.
+        const herd = await client.animals.list({});
+        await rememberHerd(
+          herd.map((animal) => ({
+            id: animal.id,
+            tagNumber: animal.tagNumber,
+            state: animal.state,
+            penId: animal.penId,
+            photoUpdatedAt: animal.photoUpdatedAt
+              ? new Date(animal.photoUpdatedAt).toISOString()
+              : null,
+            milkWithdrawalUntil: animal.milkWithdrawalUntil
+              ? new Date(animal.milkWithdrawalUntil).toISOString()
+              : null,
+          })),
+          new Date()
+        );
       } catch {
         // No signal, or the farm is not answering. The queue is on the device; the next
         // tick tries again.
@@ -67,7 +88,10 @@ export const SyncBanner = () => {
   }, [queryClient]);
 
   const held = state.data;
-  if (!held || (held.pending === 0 && held.paused === "none")) {
+  const carrying = held
+    ? held.pending + held.rejected + held.reviewed > 0
+    : false;
+  if (!held || (!carrying && held.paused === "none")) {
     return null;
   }
   const waiting = held.paused === "signed_out";
@@ -84,6 +108,11 @@ export const SyncBanner = () => {
           ? t("outbox.signedOut")
           : t("outbox.pending", { count: held.pending })}
       </span>
+      {held.rejected + held.reviewed > 0 ? (
+        <Link className="underline" to="/outbox">
+          {t("outbox.rejected", { count: held.rejected + held.reviewed })}
+        </Link>
+      ) : null}
       <span className="text-muted-foreground text-xs">
         {held.lastSyncAt
           ? t("outbox.synced", {

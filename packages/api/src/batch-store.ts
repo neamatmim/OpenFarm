@@ -4,7 +4,13 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
-import { applyCompletion, applyMove, isLate } from "./completion-store";
+import {
+  applyClaim,
+  applyComplete,
+  applyCompletion,
+  applyMove,
+  isLate,
+} from "./completion-store";
 import { raiseNeedsReview } from "./review-store";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
@@ -31,6 +37,14 @@ const applyEntry = async (
   entry: Entry,
   receivedAt: Date
 ): Promise<{ entity: string; entityId: string }> => {
+  if (entry.kind === "instance_claim") {
+    await applyClaim(tx, context, entry.instanceId, receivedAt);
+    return { entity: "sop_instance", entityId: entry.instanceId };
+  }
+  if (entry.kind === "instance_complete") {
+    await applyComplete(tx, context, entry.instanceId, receivedAt);
+    return { entity: "sop_instance", entityId: entry.instanceId };
+  }
   if (entry.kind === "step_completion") {
     const recorded = await applyCompletion(
       tx,
@@ -68,7 +82,9 @@ const applyEntry = async (
  *  would make the trail unreadable to the people who most need to read it. */
 const entryAfter = (entry: Entry): Record<string, unknown> => {
   const { photo, ...rest } =
-    entry.kind === "step_completion" ? entry : { ...entry, photo: undefined };
+    entry.kind === "step_completion"
+      ? entry
+      : { ...entry, photo: undefined as undefined };
   return {
     ...rest,
     recordedAt: entry.recordedAt.toISOString(),
