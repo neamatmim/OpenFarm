@@ -151,6 +151,7 @@ const WorkPage = () => {
     state,
     feeding,
     fed,
+    changed,
   } = instance.data as unknown as {
     content: SopContent;
     animals: Animal[];
@@ -167,6 +168,8 @@ const WorkPage = () => {
     } | null;
     /** What the Pen was actually given, once somebody has recorded it. */
     fed: { shortfallPercent: number; flaggedAt: string | null } | null;
+    /** What changed in the Version this work runs on, until they have done it once. */
+    changed: Changed | null;
   };
   // The Gate the tile renders comes from whichever the phone has: what the farm said this
   // time, or what it last cached. The farm decides again when the entry lands.
@@ -290,6 +293,8 @@ const WorkPage = () => {
         </p>
       </header>
 
+      {changed ? <WhatChanged changed={changed} /> : null}
+
       {shortFed ? (
         <p className="rounded-xl bg-amber-900 p-3 text-sm text-amber-100">
           {t("work.shortFed", { percent: shortFed.shortfallPercent })}
@@ -367,6 +372,39 @@ const WorkPage = () => {
         onFinish={() => finish.mutate()}
       />
     </div>
+  );
+};
+
+/** One Version's worth of difference, as the board shows it. */
+interface Changed {
+  from: number;
+  to: number;
+  changes: { kind: string; step?: string; [key: string]: unknown }[];
+}
+
+/**
+ * What changed in this Version, the first time somebody opens work on it — in the words of
+ * the job rather than as a list of fields. It stays until they have done the work once,
+ * which is the farm's evidence they read it: there is no button, because a button between
+ * somebody and the job is a button that gets pressed without reading (notification
+ * channels, R1).
+ */
+const WhatChanged = ({ changed }: { changed: Changed }) => {
+  const { t } = useLanguage();
+  return (
+    <section className="space-y-1 rounded-xl bg-sky-900 p-3 text-sky-50">
+      <p className="font-medium">{t("changed.title")}</p>
+      <p className="text-sm text-sky-200">
+        {t("changed.versions", { from: changed.from, to: changed.to })}
+      </p>
+      <ul className="space-y-1 text-sm">
+        {changed.changes.map((change) => (
+          <li key={`${change.kind}-${change.step ?? ""}`}>
+            {t(`changed.${change.kind}` as never, change as never)}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 

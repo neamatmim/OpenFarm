@@ -338,3 +338,81 @@ export const isClosingStep = (content: SopContent, step: Step): boolean =>
   !step.repeatPerAnimal &&
   content.steps.at(-1)?.id === step.id &&
   content.steps.length > 1;
+
+/** One thing that is different between two Versions of an SOP, in the terms somebody who
+ *  does the work would put it. Rendered by the reader's app in their own language. */
+export type SopChange =
+  | { kind: "step_added"; step: string }
+  | { kind: "step_removed"; step: string }
+  | { kind: "step_reworded"; step: string; was: string }
+  | { kind: "step_evidence"; step: string }
+  | { kind: "times_changed"; times: string[] }
+  | { kind: "grace_changed"; minutes: number }
+  | { kind: "who_changed"; role: string }
+  | { kind: "checker_changed"; role: string | null };
+
+const evidenceShape = (step: Step): string =>
+  step.evidence
+    .map((item) => `${item.type}${item.required ? "!" : ""}`)
+    .join(",");
+
+const timesOf = (content: SopContent): string[] =>
+  content.triggers.flatMap((trigger) =>
+    trigger.kind === "schedule" ? trigger.times : []
+  );
+
+/**
+ * What is different between two Versions, for somebody about to do the work.
+ *
+ * Steps are matched by their id, so a reworded Step reads as a rewording rather than as one
+ * Step gone and another arrived. Everything here is what a person would notice on the job —
+ * a new Step, a Step that is gone, different words, something else to record, a different
+ * time, a longer grace. Nothing about who published it or when: that is on the Card.
+ */
+export const describeChanges = (
+  before: SopContent,
+  after: SopContent
+): SopChange[] => {
+  const changes: SopChange[] = [];
+  const was = new Map(before.steps.map((step) => [step.id, step]));
+  const now = new Map(after.steps.map((step) => [step.id, step]));
+
+  for (const step of after.steps) {
+    const previous = was.get(step.id);
+    if (!previous) {
+      changes.push({ kind: "step_added", step: step.text.bn });
+      continue;
+    }
+    if (previous.text.bn !== step.text.bn) {
+      changes.push({
+        kind: "step_reworded",
+        step: step.text.bn,
+        was: previous.text.bn,
+      });
+    }
+    if (evidenceShape(previous) !== evidenceShape(step)) {
+      changes.push({ kind: "step_evidence", step: step.text.bn });
+    }
+  }
+  for (const step of before.steps) {
+    if (!now.has(step.id)) {
+      changes.push({ kind: "step_removed", step: step.text.bn });
+    }
+  }
+
+  const wasTimes = timesOf(before);
+  const nowTimes = timesOf(after);
+  if (wasTimes.join(",") !== nowTimes.join(",")) {
+    changes.push({ kind: "times_changed", times: nowTimes });
+  }
+  if (before.graceMinutes !== after.graceMinutes) {
+    changes.push({ kind: "grace_changed", minutes: after.graceMinutes });
+  }
+  if (before.assignedRole !== after.assignedRole) {
+    changes.push({ kind: "who_changed", role: after.assignedRole });
+  }
+  if (before.checkerRole !== after.checkerRole) {
+    changes.push({ kind: "checker_changed", role: after.checkerRole });
+  }
+  return changes;
+};

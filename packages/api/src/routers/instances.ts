@@ -47,6 +47,7 @@ import {
   findLate,
   raiseDueInstances,
   recentHappenings,
+  whatChangedFor,
 } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { raiseNeedsReview } from "../review-store";
@@ -350,6 +351,15 @@ export const instancesRouter = {
         },
       });
       const now = context.clock.now();
+      // What changed in the Version this work runs on, for somebody who has not yet done it
+      // on that Version. No acknowledgement step: the marker is on the work until they have
+      // done it once, which is when they have read it (notification channels, R1).
+      const changed = await whatChangedFor(
+        context.db,
+        context.farm.id,
+        context.actor.id,
+        instance
+      );
       // What this Pen is owed this session, for a Playbook entry that feeds. Worked out on
       // the Ration in force when the work was raised, so a Ration changed this afternoon does
       // not rewrite what the morning's round was asked for.
@@ -379,6 +389,7 @@ export const instancesRouter = {
       return {
         ...instance,
         content,
+        changed,
         milkingSession: milkingSession ?? null,
         feeding,
         fed: fed ?? null,

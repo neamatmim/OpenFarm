@@ -5,10 +5,12 @@ import type {
   AnimalState,
   FarmEvent,
   Side,
+  SopChange,
   SopContent,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  describeChanges,
   MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
@@ -240,7 +242,11 @@ export const recentHappenings = async (
   // arrival is its own happening: a post-move check has no business firing on a cow who has
   // never been moved anywhere.
   const moves = await db.query.animalMove.findMany({
-    where: { farmId, movedAt: { gte: earliest }, fromPenId: { isNotNull: true } },
+    where: {
+      farmId,
+      movedAt: { gte: earliest },
+      fromPenId: { isNotNull: true },
+    },
     columns: { id: true, animalId: true, movedAt: true },
   });
 
@@ -634,4 +640,60 @@ export const raiseLateAlerts = async (
     );
   }
   return { overdue, escalated, raised };
+};
+
+/**
+ * What changed in the Version a piece of work runs on, for the person opening it — and
+ * nothing at all once they have done that work once on that Version.
+ *
+ * There is no acknowledgement step in Release 1: a button to press would be one more thing
+ * between somebody and the job. Having recorded something on the new Version is the farm's
+ * evidence that they saw what it says, and it is evidence that cannot be clicked away by
+ * accident.
+ */
+export const whatChangedFor = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  actorId: string,
+  instance: { versionId: string; definitionId: string }
+): Promise<{ from: number; to: number; changes: SopChange[] } | null> => {
+  const version = await db.query.sopVersion.findFirst({
+    where: { id: instance.versionId },
+    columns: { number: true, content: true },
+  });
+  if (!version || version.number < 2) {
+    // The first Version of an SOP changed nothing; it is the procedure.
+    return null;
+  }
+  const [previous] = await db.query.sopVersion.findMany({
+    where: {
+      definitionId: instance.definitionId,
+      number: { lt: version.number },
+    },
+    orderBy: { number: "desc" },
+    limit: 1,
+    columns: { number: true, content: true },
+  });
+  if (!previous) {
+    return null;
+  }
+  const doneOnIt = await db.query.stepCompletion.findFirst({
+    where: {
+      farmId,
+      recordedBy: actorId,
+      instance: { versionId: instance.versionId },
+    },
+    columns: { id: true },
+  });
+  if (doneOnIt) {
+    return null;
+  }
+  return {
+    from: previous.number,
+    to: version.number,
+    changes: describeChanges(
+      previous.content as SopContent,
+      version.content as SopContent
+    ),
+  };
 };
