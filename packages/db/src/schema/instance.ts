@@ -86,6 +86,10 @@ export const stepCompletion = pgTable(
     animalId: text("animal_id").references(() => animal.id, {
       onDelete: "cascade",
     }),
+    /** `animalId`, or "" for a Step that runs once. Postgres treats NULLs as distinct, so a
+     *  unique index over the nullable column would let a pen-level Step be recorded twice
+     *  instead of corrected; this column gives the index something to bite on. */
+    animalKey: text("animal_key").notNull().default(""),
     status: text("status", { enum: COMPLETION_STATUSES }).notNull(),
     /** Why an animal was skipped; one of the Version's skip reasons. */
     skipReason: text("skip_reason"),
@@ -103,11 +107,12 @@ export const stepCompletion = pgTable(
     receivedAt: timestamp("received_at").notNull(),
   },
   (table) => [
-    /** One Completion per Step per animal; recording again corrects it. */
+    /** One Completion per Step per animal — or one for the whole Pen. Recording again
+     *  corrects it rather than adding a row. */
     uniqueIndex("step_completion_uidx").on(
       table.instanceId,
       table.stepId,
-      table.animalId
+      table.animalKey
     ),
     index("step_completion_instance_idx").on(table.instanceId),
   ]

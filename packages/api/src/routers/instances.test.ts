@@ -429,3 +429,214 @@ describe("working the pen board", () => {
     void DAY;
   });
 });
+
+describe("review findings", () => {
+  it("correcting a pen-level Step replaces it rather than adding a second row", async () => {
+    const clock = new FakeClock("2026-09-24T05:30:00.000Z");
+    const { instance } = await instanceForPen(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    await staff.client.instances.claim({ id: instance.id });
+
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "bulk",
+      evidence: [21],
+    });
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "bulk",
+      evidence: [210],
+    });
+
+    const loaded = await staff.client.instances.get({ id: instance.id });
+    const bulk = loaded.completions.filter((c) => c.stepId === "bulk");
+    expect(bulk).toHaveLength(1);
+    expect(bulk[0]?.evidence).toEqual([210]);
+  });
+
+  it("an animal that has left the farm is off the pen board and does not block finishing", async () => {
+    const clock = new FakeClock("2026-09-25T05:30:00.000Z");
+    const { instance, owner } = await instanceForPen(clock);
+    const before = await owner.client.instances.get({ id: instance.id });
+    const doomed = before.animals[0]?.tagNumber ?? "";
+
+    await owner.client.animals.setState({
+      tagNumber: doomed,
+      state: "died",
+      reason: "test",
+    });
+
+    const after = await owner.client.instances.get({ id: instance.id });
+    expect(after.animals.some((a) => a.tagNumber === doomed)).toBe(false);
+    expect(after.animals.length).toBe(before.animals.length - 1);
+  });
+
+  it("required evidence is checked per slot, and a photo counts for its own slot", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const withPhoto = milkingSop();
+    const sop = await owner.client.sops.create({
+      content: {
+        ...withPhoto,
+        name: { bn: `ছবি এসওপি ${Date.now()}` },
+        triggers: [{ kind: "schedule", times: ["07:00"] }],
+        steps: [
+          {
+            id: "evidence",
+            text: { bn: "প্রমাণ" },
+            repeatPerAnimal: false,
+            evidence: [
+              { type: "note", required: false },
+              {
+                type: "number",
+                required: true,
+                unit: { bn: "লিটার" },
+                min: 0,
+                max: 40,
+              },
+              { type: "photo", required: true },
+            ],
+            skipReasons: [],
+          },
+        ],
+      },
+    });
+    const clock = new FakeClock("2026-09-26T07:30:00.000Z");
+    const worker = await createTestClient(appRouter, { as: "owner", clock });
+    await worker.client.instances.ensureDue();
+    const today = await worker.client.instances.today({
+      penId: world.milkingPen.id,
+    });
+    const mine = today.find((i) => i.definitionId === sop.definitionId);
+    if (!mine) {
+      throw new Error("expected an instance");
+    }
+    await worker.client.instances.claim({ id: mine.id });
+
+    // Filling only the optional note leaves the required number and photo missing.
+    await expect(
+      worker.client.instances.completeStep({
+        instanceId: mine.id,
+        stepId: "evidence",
+        evidence: ["just a note"],
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    // The number alone is still short of the required photo.
+    await expect(
+      worker.client.instances.completeStep({
+        instanceId: mine.id,
+        stepId: "evidence",
+        evidence: ["note", 12],
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    await worker.client.instances.completeStep({
+      instanceId: mine.id,
+      stepId: "evidence",
+      evidence: ["note", 12],
+      photo: { contentType: "image/jpeg", data: "AAAA" },
+    });
+    const loaded = await worker.client.instances.get({ id: mine.id });
+    expect(loaded.completions).toHaveLength(1);
+  });
+
+  it("work that is for the Vet cannot be done by Staff, nor from a shed phone", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const vetSop = await owner.client.sops.create({
+      content: {
+        ...milkingSop(),
+        name: { bn: `পশুচিকিৎসা ${Date.now()}` },
+        assignedRole: "vet",
+        triggers: [{ kind: "schedule", times: ["08:00"] }],
+        steps: [
+          {
+            id: "check",
+            text: { bn: "পরীক্ষা" },
+            repeatPerAnimal: false,
+            evidence: [{ type: "tick", required: true }],
+            skipReasons: [],
+          },
+        ],
+      },
+    });
+    const clock = new FakeClock("2026-09-27T08:30:00.000Z");
+    const scheduler = await createTestClient(appRouter, { as: "owner", clock });
+    await scheduler.client.instances.ensureDue();
+    const today = await scheduler.client.instances.today({
+      penId: world.milkingPen.id,
+    });
+    const mine = today.find((i) => i.definitionId === vetSop.definitionId);
+    if (!mine) {
+      throw new Error("expected a vet instance");
+    }
+
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const vetOnPhone = await createTestClient(appRouter, {
+      as: "vet",
+      clock,
+      onShedPhone: true,
+    });
+
+    await expect(
+      staff.client.instances.claim({ id: mine.id })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(
+      vetOnPhone.client.instances.claim({ id: mine.id })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("finished work cannot be reassigned or completed again", async () => {
+    const clock = new FakeClock("2026-09-28T05:30:00.000Z");
+    const { instance } = await instanceForPen(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await staff.client.instances.claim({ id: instance.id });
+    const loaded = await staff.client.instances.get({ id: instance.id });
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "prep",
+      evidence: [true],
+    });
+    await Promise.all(
+      loaded.animals.map((beast) =>
+        staff.client.instances.completeStep({
+          instanceId: instance.id,
+          stepId: "milk",
+          animalTag: beast.tagNumber,
+          evidence: [10],
+        })
+      )
+    );
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "bulk",
+      evidence: [20],
+    });
+    await staff.client.instances.complete({ id: instance.id });
+
+    await expect(
+      staff.client.instances.complete({ id: instance.id })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(
+      manager.client.instances.assign({ id: instance.id, userId: "test-staff" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("an explicit pen filter is honoured for Staff rather than widened to all their pens", async () => {
+    const clock = new FakeClock("2026-09-29T05:30:00.000Z");
+    await instanceForPen(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+
+    const asked = await staff.client.instances.today({
+      penId: world.fatteningPen.id,
+    });
+
+    expect(asked).toEqual([]);
+  });
+});

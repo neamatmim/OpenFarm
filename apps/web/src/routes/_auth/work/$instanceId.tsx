@@ -1,4 +1,5 @@
 import type { Evidence, SopContent, Step } from "@OpenFarm/domain";
+import { isClosingStep } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,9 +23,6 @@ interface Completion {
   status: string;
   skipReason: string | null;
 }
-
-const numberEvidence = (step: Step): Evidence | undefined =>
-  step.evidence.find((item) => item.type === "number");
 
 const outOfRangeOf = (
   evidence: Evidence | undefined,
@@ -94,11 +92,14 @@ const WorkPage = () => {
     state: string;
   };
   const perAnimalStep = content.steps.find((step) => step.repeatPerAnimal);
-  const chipSteps = content.steps.filter(
-    (step) => !step.repeatPerAnimal && step.id !== content.steps.at(-1)?.id
+  // The closing Step is the last one *and* not per-animal: a Playbook whose last Step
+  // repeats per cow has no closing Step, and a one-Step SOP finishes on that Step.
+  const closingStep = content.steps.find((step) =>
+    isClosingStep(content, step)
   );
-  const closingStep =
-    content.steps.length > 1 ? content.steps.at(-1) : undefined;
+  const chipSteps = content.steps.filter(
+    (step) => !step.repeatPerAnimal && step.id !== closingStep?.id
+  );
 
   const doneFor = (stepId: string, animalId: string | null = null) =>
     completions.find((c) => c.stepId === stepId && c.animalId === animalId);
@@ -223,7 +224,8 @@ const WorkPage = () => {
       ) : null}
 
       <ClosingAction
-        closingStep={readyToClose ? closingStep : undefined}
+        ready={readyToClose}
+        closingStep={closingStep}
         done={Boolean(closingStep && doneFor(closingStep.id))}
         pending={finish.isPending}
         onOpen={(step) => setOpenStep(step)}
@@ -235,12 +237,14 @@ const WorkPage = () => {
 
 /** The closing Step — the bulk total — appears only when every chip and tile is done. */
 const ClosingAction = ({
+  ready,
   closingStep,
   done,
   pending,
   onOpen,
   onFinish,
 }: {
+  ready: boolean;
   closingStep: Step | undefined;
   done: boolean;
   pending: boolean;
@@ -248,14 +252,16 @@ const ClosingAction = ({
   onFinish: () => void;
 }) => {
   const { t } = useLanguage();
-  if (!closingStep) {
+  if (!ready) {
     return (
       <p className="text-muted-foreground text-center text-sm">
         {t("work.notFinished")}
       </p>
     );
   }
-  if (done) {
+  // An SOP with no closing Step — one Step, or a last Step that repeats per animal —
+  // finishes as soon as everything else is done.
+  if (!(closingStep && !done)) {
     return (
       <Button
         className="h-14 w-full text-lg"
@@ -284,8 +290,12 @@ interface RecordPayload {
   photo?: { contentType: "image/jpeg" | "image/png"; data: string };
 }
 
-/** The full-screen sheet: a big keypad for a number, a tick for the rest, skip with a reason
- *  for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
+/** A camera JPEG is easily 3 MB, which is ~4 MB once base64-encoded — more than the server
+ *  accepts, and a lot of string for a cheap phone to build. */
+const PHOTO_MAX_BYTES = 1_500_000;
+
+/** The full-screen sheet: one control per piece of Evidence the Version asks for, skip with
+ *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
 const EvidenceSheet = ({
   step,
   animal,
@@ -298,25 +308,64 @@ const EvidenceSheet = ({
   onRecord: (payload: RecordPayload) => void;
 }) => {
   const { t, language } = useLanguage();
-  const [value, setValue] = useState("");
+  const [values, setValues] = useState<
+    Record<number, boolean | number | string>
+  >({});
   const [skipping, setSkipping] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
-  const number = numberEvidence(step);
-  const wantsPhoto = step.evidence.some((item) => item.type === "photo");
   const [photo, setPhoto] = useState<RecordPayload["photo"]>();
 
-  const submit = (force = false) => {
-    if (!number) {
-      onRecord({ evidence: [true], photo });
-      return;
+  const setValue = (index: number, value: boolean | number | string) => {
+    setValues((current) => ({ ...current, [index]: value }));
+    setWarning(null);
+  };
+
+  const assembled = step.evidence.map((item, index) => {
+    if (item.type === "tick") {
+      return true;
     }
-    const typed = Number(value);
-    const outside = outOfRangeOf(number, typed);
+    return values[index] ?? "";
+  });
+
+  const firstOutOfRange = (): string | null => {
+    for (const [index, item] of step.evidence.entries()) {
+      if (item.type !== "number") {
+        continue;
+      }
+      const typed = Number(values[index]);
+      if (!Number.isNaN(typed)) {
+        const outside = outOfRangeOf(item, typed);
+        if (outside) {
+          return outside;
+        }
+      }
+    }
+    return null;
+  };
+
+  const ready = step.evidence.every((item, index) => {
+    if (!item.required || item.type === "tick") {
+      return true;
+    }
+    if (item.type === "photo") {
+      return Boolean(photo);
+    }
+    return values[index] !== undefined && values[index] !== "";
+  });
+
+  const submit = (force: boolean) => {
+    const outside = firstOutOfRange();
     if (outside && !force) {
       setWarning(outside);
       return;
     }
-    onRecord({ evidence: [typed], outOfRange: outside ?? undefined, photo });
+    onRecord({
+      evidence: assembled.map((value, index) =>
+        step.evidence[index]?.type === "number" ? Number(value) : value
+      ),
+      outOfRange: outside ?? undefined,
+      photo,
+    });
   };
 
   if (skipping) {
@@ -364,55 +413,17 @@ const EvidenceSheet = ({
         </div>
       </header>
 
-      {number ? (
-        <>
-          <p className="text-center text-5xl font-bold tabular-nums">
-            {value === ""
-              ? "০"
-              : new Intl.NumberFormat(
-                  language === "bn" ? "bn-BD" : "en-GB"
-                ).format(Number(value))}{" "}
-            <span className="text-xl">{number.unit?.bn}</span>
-          </p>
-          <Input
-            inputMode="decimal"
-            value={value}
-            onChange={(event) => {
-              setValue(event.target.value.replaceAll(/[^\d.]/gu, ""));
-              setWarning(null);
-            }}
-            className="text-center text-2xl"
-            aria-label={step.text.bn}
-          />
-        </>
-      ) : null}
-
-      {wantsPhoto ? (
-        <label className="flex items-center gap-2 rounded-xl bg-neutral-800 p-3 text-base">
-          <Camera size={20} /> {t("work.photo")}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) {
-                return;
-              }
-              const bytes = new Uint8Array(await file.arrayBuffer());
-              const binary = Array.from(bytes, (byte) =>
-                String.fromCodePoint(byte)
-              ).join("");
-              setPhoto({
-                contentType:
-                  file.type === "image/png" ? "image/png" : "image/jpeg",
-                data: btoa(binary),
-              });
-            }}
-          />
-        </label>
-      ) : null}
+      {step.evidence.map((item, index) => (
+        <EvidenceControl
+          key={`${step.id}-${index}`}
+          evidence={item}
+          language={language}
+          value={values[index]}
+          hasPhoto={Boolean(photo)}
+          onValue={(value) => setValue(index, value)}
+          onPhoto={setPhoto}
+        />
+      ))}
 
       {warning ? (
         <div className="space-y-2 rounded-xl border-2 border-amber-500 p-3">
@@ -426,6 +437,9 @@ const EvidenceSheet = ({
       ) : null}
 
       <div className="grid grid-cols-3 gap-2">
+        <Button variant="ghost" className="h-14" onClick={onCancel}>
+          {t("work.back")}
+        </Button>
         {step.repeatPerAnimal ? (
           <Button
             variant="outline"
@@ -434,20 +448,123 @@ const EvidenceSheet = ({
           >
             {t("work.skip")}
           </Button>
-        ) : (
-          <Button variant="ghost" className="h-14" onClick={onCancel}>
-            {t("work.back")}
-          </Button>
-        )}
+        ) : null}
         <Button
-          className="col-span-2 h-14 text-lg"
-          disabled={Boolean(number) && value === ""}
+          className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
+          disabled={!ready}
           onClick={() => submit(false)}
         >
           {t("work.confirm")}
         </Button>
       </div>
     </div>
+  );
+};
+
+/** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
+ *  control — confirming the Step is the tick. */
+const EvidenceControl = ({
+  evidence,
+  language,
+  value,
+  hasPhoto,
+  onValue,
+  onPhoto,
+}: {
+  evidence: Evidence;
+  language: string;
+  value: boolean | number | string | undefined;
+  hasPhoto: boolean;
+  onValue: (value: string) => void;
+  onPhoto: (photo: RecordPayload["photo"]) => void;
+}) => {
+  const { t } = useLanguage();
+
+  if (evidence.type === "tick") {
+    return null;
+  }
+
+  if (evidence.type === "number") {
+    const typed = String(value ?? "");
+    return (
+      <div className="space-y-2">
+        <p className="text-center text-5xl font-bold tabular-nums">
+          {typed === ""
+            ? "০"
+            : new Intl.NumberFormat(
+                language === "bn" ? "bn-BD" : "en-GB"
+              ).format(Number(typed))}{" "}
+          <span className="text-xl">{evidence.unit?.bn}</span>
+        </p>
+        <Input
+          inputMode="decimal"
+          value={typed}
+          onChange={(event) =>
+            onValue(event.target.value.replaceAll(/[^\d.]/gu, ""))
+          }
+          className="text-center text-2xl"
+          aria-label={evidence.unit?.bn ?? t("work.confirm")}
+        />
+      </div>
+    );
+  }
+
+  if (evidence.type === "choice") {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {(evidence.choices ?? []).map((choice) => (
+          <Button
+            key={choice.value}
+            variant={value === choice.value ? "default" : "outline"}
+            className="h-12"
+            onClick={() => onValue(choice.value)}
+          >
+            {choice.label.bn}
+          </Button>
+        ))}
+      </div>
+    );
+  }
+
+  if (evidence.type === "note") {
+    return (
+      <Input
+        value={String(value ?? "")}
+        onChange={(event) => onValue(event.target.value)}
+        placeholder={t("work.note")}
+        aria-label={t("work.note")}
+      />
+    );
+  }
+
+  return (
+    <label className="flex items-center gap-2 rounded-xl bg-neutral-800 p-3 text-base">
+      <Camera size={20} /> {hasPhoto ? t("work.saved") : t("work.photo")}
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          if (!file) {
+            return;
+          }
+          if (file.size > PHOTO_MAX_BYTES) {
+            toast.error(t("common.error"));
+            return;
+          }
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const binary = Array.from(bytes, (byte) =>
+            String.fromCodePoint(byte)
+          ).join("");
+          onPhoto({
+            contentType: file.type === "image/png" ? "image/png" : "image/jpeg",
+            data: btoa(binary),
+          });
+        }}
+      />
+    </label>
   );
 };
 

@@ -2,13 +2,18 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
-import { appliesToAnimal } from "@OpenFarm/domain";
+import { EXIT_STATES, appliesToAnimal } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 
 /** The farm's clock. Asia/Dhaka has no daylight saving; a farm parameter later. */
 const FARM_UTC_OFFSET_MINUTES = 6 * 60;
 const MINUTE_MS = 60_000;
+
+/** An animal that has left the farm keeps its Pen, so every selection must exclude exits —
+ *  otherwise a sold or dead cow appears on the pen board and blocks the Instance. */
+const isOnTheFarm = (row: { state: string }): boolean =>
+  !(EXIT_STATES as readonly string[]).includes(row.state);
 
 /** The instant a "HH:MM" schedule time falls on, on the farm's day containing `now`. */
 export const dueAtFor = (now: Date, time: string): Date => {
@@ -61,11 +66,13 @@ export const dueSlotsFor = (
     }
     const pens = new Set(
       animals
-        .filter((row) =>
-          appliesToAnimal(sop.content.appliesTo, {
-            side: row.side as never,
-            state: row.state as never,
-          })
+        .filter(
+          (row) =>
+            isOnTheFarm(row) &&
+            appliesToAnimal(sop.content.appliesTo, {
+              side: row.side as never,
+              state: row.state as never,
+            })
         )
         .map((row) => row.penId)
     );
@@ -141,5 +148,7 @@ export const animalsForInstance = async (
     },
     orderBy: { tagNumber: "asc" },
   });
-  return rows.filter((row) => appliesToAnimal(content.appliesTo, row));
+  return rows.filter(
+    (row) => isOnTheFarm(row) && appliesToAnimal(content.appliesTo, row)
+  );
 };

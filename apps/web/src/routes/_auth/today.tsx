@@ -7,12 +7,32 @@ import { useEffect } from "react";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
+/** What the tap will actually do: start it, or say who has it. */
+const useStatusLabel = () => {
+  const { t } = useLanguage();
+  const me = useQuery(orpc.people.me.queryOptions());
+  return (instance: {
+    claimedBy: string | null;
+    assignedTo: string | null;
+  }) => {
+    const mine = me.data?.id;
+    if (instance.assignedTo && instance.assignedTo !== mine) {
+      return t("work.pinnedTo", { name: "" }).trim();
+    }
+    if (instance.claimedBy && instance.claimedBy !== mine) {
+      return t("work.takenBy");
+    }
+    return t("work.claim");
+  };
+};
+
 /** What is due now, for the Pens this person works. */
 const TodayPage = () => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
   const work = useQuery(orpc.instances.today.queryOptions({ input: {} }));
+  const statusOf = useStatusLabel();
 
   // Raise whatever the day needs when someone opens the app; idempotent, so it is safe to
   // run on every open, and harmless when the phone has no signal.
@@ -56,7 +76,7 @@ const TodayPage = () => {
                       })}
                     </p>
                   </div>
-                  <span className="text-sm">{t("work.claim")}</span>
+                  <span className="text-sm">{statusOf(instance)}</span>
                 </Link>
               </li>
             );

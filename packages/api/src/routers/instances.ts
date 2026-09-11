@@ -1,5 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import {
   completionPhoto,
   sopInstance,
@@ -80,32 +81,7 @@ const resolveStepAnimal = async (
   return beast.id;
 };
 
-/** A Step is either skipped with a reason — only where it repeats per animal — or done with
- *  everything the Version marks required. */
-const assertEvidenceComplete = (
-  step: Step,
-  evidence: unknown[],
-  skipping: boolean
-): void => {
-  if (skipping) {
-    if (!step.repeatPerAnimal) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Only a per-animal step can be skipped",
-      });
-    }
-    return;
-  }
-  const required = step.evidence.filter((item) => item.required);
-  const given = evidence.filter(
-    (value) => value !== undefined && value !== null && value !== ""
-  );
-  if (given.length < required.length) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step needs everything marked required",
-    });
-  }
-};
-
+/** The Step this Version declares, or nothing. */
 const stepOf = (content: SopContent, stepId: string): Step => {
   const step = content.steps.find((candidate) => candidate.id === stepId);
   if (!step) {
@@ -116,15 +92,37 @@ const stepOf = (content: SopContent, stepId: string): Step => {
   return step;
 };
 
-/** An Instance a Staff member may work: theirs by Pen, and pinned to nobody else. */
+/** An Instance a person may work: theirs by Pen, and pinned or claimed by nobody else. */
 const assertMayWork = (
-  context: { roleUsed: string | null; penIds: string[]; actor: { id: string } },
+  context: {
+    roleUsed: string | null;
+    penIds: string[];
+    actor: { id: string };
+    roles: string[];
+    device: unknown;
+  },
   instance: {
     penId: string;
     assignedTo: string | null;
     claimedBy: string | null;
+    assignedRole: string;
   }
 ) => {
+  // The Instance says who does this work; holding some other Role is not enough. The Owner
+  // and the Manager may always step in — someone has to be able to unstick a shift.
+  const runsTheFarm =
+    context.roles.includes("owner") || context.roles.includes("manager");
+  if (!(runsTheFarm || context.roles.includes(instance.assignedRole))) {
+    throw new ORPCError("FORBIDDEN", {
+      message: `This work is for ${instance.assignedRole}`,
+    });
+  }
+  // A Vet's clinical work is signed on their own phone, never a shared one (ADR 0003).
+  if (instance.assignedRole === "vet" && context.device) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "This can only be done from your own phone, not a shed phone",
+    });
+  }
   if (
     context.roleUsed === "staff" &&
     !context.penIds.includes(instance.penId)
@@ -141,6 +139,58 @@ const assertMayWork = (
       message: "Someone else is working on this",
     });
   }
+};
+
+/** A Step is either skipped with a reason — only where it repeats per animal — or done with
+ *  everything the Version marks required. Checked per slot, not by count: a Step with an
+ *  optional note and a required number is not satisfied by filling only the note. A photo
+ *  arrives in its own field rather than in the evidence array, so it counts for its slot. */
+const assertEvidenceComplete = (
+  step: Step,
+  evidence: unknown[],
+  skipping: boolean,
+  hasPhoto: boolean
+): void => {
+  if (skipping) {
+    if (!step.repeatPerAnimal) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Only a per-animal step can be skipped",
+      });
+    }
+    return;
+  }
+  const missing = step.evidence
+    .map((item, index) => ({ item, index }))
+    .filter(({ item, index }) => {
+      if (!item.required) {
+        return false;
+      }
+      if (item.type === "photo") {
+        return !hasPhoto;
+      }
+      const value = evidence[index];
+      return value === undefined || value === null || value === "";
+    });
+  if (missing.length > 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This step needs everything marked required",
+      data: { missing: missing.map(({ index }) => index) },
+    });
+  }
+};
+
+/** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
+const penFilter = (
+  assigned: string[] | null,
+  requested: string | undefined
+) => {
+  if (!assigned) {
+    return requested ? { penId: requested } : {};
+  }
+  const visible = requested
+    ? assigned.filter((id) => id === requested)
+    : assigned;
+  return { penId: { in: visible } };
 };
 
 export const instancesRouter = {
@@ -203,8 +253,9 @@ export const instancesRouter = {
           farmId: context.farm.id,
           state: { in: ["due", "in_progress", "sent_back"] },
           dueAt: { gte: from, lt: to },
-          ...(input.penId ? { penId: input.penId } : {}),
-          ...(scoped ? { penId: { in: context.penIds } } : {}),
+          // Both filters must hold: a Staff member asking for one Pen gets that Pen only
+          // if it is theirs, rather than silently getting all of theirs.
+          ...penFilter(scoped ? context.penIds : null, input.penId),
         },
         with: {
           version: { columns: { content: true, number: true } },
@@ -270,6 +321,7 @@ export const instancesRouter = {
               assignedTo: true,
               claimedBy: true,
               state: true,
+              assignedRole: true,
             },
           });
           if (!instance) {
@@ -311,7 +363,42 @@ export const instancesRouter = {
           after: { assignedTo: input.userId },
         },
         async (tx) => {
-          const [row] = await tx
+          const instance = await tx.query.sopInstance.findFirst({
+            where: { id: input.id, farmId: context.farm.id },
+            columns: { state: true, assignedRole: true },
+          });
+          if (!instance) {
+            throw new ORPCError("NOT_FOUND");
+          }
+          if (instance.state === "completed" || instance.state === "approved") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Finished work cannot be reassigned",
+            });
+          }
+          if (input.userId) {
+            // Pinning to someone who cannot work it would strand the Instance: nobody else
+            // may touch it, and they are not on this farm to pick it up.
+            const target = await tx.query.user.findFirst({
+              where: { id: input.userId },
+              columns: { id: true },
+              with: {
+                roles: { where: { farmId: context.farm.id, ...ACTIVE_ROLE } },
+              },
+            });
+            // Whoever it is pinned to must be able to work it — the Role the Instance is
+            // for, or the Owner or Manager stepping in, exactly as assertMayWork allows.
+            const held = target?.roles.map((role) => role.role) ?? [];
+            const canWorkIt =
+              held.includes(instance.assignedRole) ||
+              held.includes("owner") ||
+              held.includes("manager");
+            if (!canWorkIt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: `That person cannot do ${instance.assignedRole} work on this farm`,
+              });
+            }
+          }
+          await tx
             .update(sopInstance)
             .set({
               assignedTo: input.userId,
@@ -326,11 +413,7 @@ export const instancesRouter = {
                 eq(sopInstance.id, input.id),
                 eq(sopInstance.farmId, context.farm.id)
               )
-            )
-            .returning({ id: sopInstance.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
+            );
         }
       );
       return { id: input.id, assignedTo: input.userId };
@@ -374,13 +457,19 @@ export const instancesRouter = {
             input.animalTag
           );
           const skipping = Boolean(input.skipReason);
-          assertEvidenceComplete(step, input.evidence, skipping);
+          assertEvidenceComplete(
+            step,
+            input.evidence,
+            skipping,
+            Boolean(input.photo)
+          );
 
           const values = {
             farmId: context.farm.id,
             instanceId: input.instanceId,
             stepId: input.stepId,
             animalId,
+            animalKey: animalId ?? "",
             status: skipping ? ("skipped" as const) : ("done" as const),
             skipReason: input.skipReason ?? null,
             evidence: input.evidence,
@@ -397,7 +486,7 @@ export const instancesRouter = {
               target: [
                 stepCompletion.instanceId,
                 stepCompletion.stepId,
-                stepCompletion.animalId,
+                stepCompletion.animalKey,
               ],
               set: values,
             })
@@ -457,6 +546,14 @@ export const instancesRouter = {
           });
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
+          }
+          if (
+            instance.state !== "in_progress" &&
+            instance.state !== "sent_back"
+          ) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `This work is ${instance.state}, not in progress`,
+            });
           }
           assertMayWork(context, instance);
           const content = contentOf(instance.version);
