@@ -1,7 +1,10 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@OpenFarm/ui/components/button";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -16,17 +19,30 @@ import { orpc } from "@/utils/orpc";
 const OwnerHome = () => {
   const t = useT();
   const { language } = useLanguage();
+  const queryClient = useQueryClient();
   const home = useQuery(orpc.home.owner.queryOptions());
+  const approve = useMutation(
+    orpc.sops.approveProposal.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
+      onError: (error) => toast.error(error.message),
+    })
+  );
 
-  if (home.isError) {
-    return <p className="p-6">{t("common.error")}</p>;
-  }
+  // Cached first, error second. A phone with no signal has the farm as it last knew it,
+  // and a screen that throws that away to show the word "error" has taken away the only
+  // thing it had — the sync banner above already says how old it is.
   if (!home.data) {
-    return <p className="p-6">{t("common.loading")}</p>;
+    return (
+      <p className="p-6">
+        {home.isError ? t("common.error") : t("common.loading")}
+      </p>
+    );
   }
   const { needsYou, tiles } = home.data;
   const waiting =
     needsYou.overdue.length +
+    needsYou.approvals.length +
     needsYou.proposals.length +
     needsYou.needsReview.length +
     needsYou.endingWithdrawal.length;
@@ -55,9 +71,26 @@ const OwnerHome = () => {
               </Link>
               {row.escalated ? (
                 <span className="ml-2 text-amber-400">
-                  {t("alerts.instanceEscalated", { sop: "", pen: "" }).trim()}
+                  {t("owner.escalated")}
                 </span>
               ) : null}
+            </li>
+          ))}
+        </Exceptions>
+
+        <Exceptions
+          count={needsYou.approvals.length}
+          label={t("owner.approvals")}
+        >
+          {needsYou.approvals.map((row) => (
+            <li className="rounded-lg border p-2 text-sm" key={row.id}>
+              <Link
+                className="underline"
+                params={{ instanceId: row.id }}
+                to="/work/$instanceId"
+              >
+                {row.sopBn} · {row.pen}
+              </Link>
             </li>
           ))}
         </Exceptions>
@@ -67,10 +100,21 @@ const OwnerHome = () => {
           label={t("owner.proposals")}
         >
           {needsYou.proposals.map((row) => (
-            <li className="rounded-lg border p-2 text-sm" key={row.id}>
+            <li
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm"
+              key={row.id}
+            >
               <Link className="underline" to="/admin/sops">
-                {row.note ?? t("owner.proposals")}
+                {row.note || t("owner.noNote")}
               </Link>
+              <Button
+                disabled={approve.isPending}
+                onClick={() => approve.mutate({ id: row.id })}
+                size="sm"
+                variant="outline"
+              >
+                {t("sop.approve")}
+              </Button>
             </li>
           ))}
         </Exceptions>
@@ -81,9 +125,19 @@ const OwnerHome = () => {
         >
           {needsYou.needsReview.map((row) => (
             <li className="rounded-lg border p-2 text-sm" key={row.id}>
-              <Link className="underline" to="/admin/sign-off">
-                {row.reason}
-              </Link>
+              {row.instanceId ? (
+                <Link
+                  className="underline"
+                  params={{ instanceId: row.instanceId }}
+                  to="/work/$instanceId"
+                >
+                  {t(`review.${row.reason}` as MessageKey)}
+                </Link>
+              ) : (
+                <Link className="underline" to="/admin/sign-off">
+                  {t(`review.${row.reason}` as MessageKey)}
+                </Link>
+              )}
             </li>
           ))}
         </Exceptions>
@@ -118,8 +172,12 @@ const OwnerHome = () => {
                 litres: formatNumber(tiles.bulkToday, language),
               })}
             </p>
-            <Bars sessions={tiles.sessions} />
-            <p className="text-muted-foreground text-xs">{t("owner.week")}</p>
+            <Bars days={tiles.days} />
+            <p className="text-muted-foreground text-xs">
+              {t("owner.average", {
+                litres: formatNumber(tiles.averageBulk, language),
+              })}
+            </p>
           </div>
           <Link className="rounded-xl border p-3" search={{}} to="/today">
             <p className="text-muted-foreground text-sm">
@@ -132,6 +190,16 @@ const OwnerHome = () => {
               })}
             </p>
           </Link>
+          <div className="rounded-xl border p-3">
+            <p className="text-muted-foreground text-sm">
+              {t("owner.discardToday")}
+            </p>
+            <p className="text-lg font-medium">
+              {t("owner.litres", {
+                litres: formatNumber(tiles.discardToday, language),
+              })}
+            </p>
+          </div>
           <Link className="rounded-xl border p-3" to="/animals">
             <p className="text-muted-foreground text-sm">
               {t("home.cowsHeld")}
@@ -171,16 +239,20 @@ const Exceptions = ({
   );
 };
 
-/** The last seven milkings, oldest on the left: a day is read against the week around it. */
-const Bars = ({ sessions }: { sessions: number[] }) => {
-  const most = Math.max(...sessions, 1);
+/** The week behind today, oldest on the left: a day is read against the week around it.
+ *  Each bar is one day of the farm's milk — every Pen's Sessions added together, which is
+ *  what somebody means when they ask what yesterday came to. */
+const Bars = ({ days }: { days: { day: string; litres: number }[] }) => {
+  const { language } = useLanguage();
+  const most = Math.max(...days.map((one) => one.litres), 1);
   return (
     <div className="flex h-10 items-end gap-1">
-      {sessions.toReversed().map((litres, index) => (
+      {days.map((one) => (
         <span
+          aria-label={`${one.day}: ${formatNumber(one.litres, language)}`}
           className="w-full rounded-sm bg-sky-700"
-          key={`${index}-${litres}`}
-          style={{ height: `${Math.max((litres / most) * 100, 4)}%` }}
+          key={one.day}
+          style={{ height: `${Math.max((one.litres / most) * 100, 4)}%` }}
         />
       ))}
     </div>

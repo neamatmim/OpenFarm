@@ -2,6 +2,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import {
   AWAITING_SIGN_OFF,
   isEscalated,
+  litresTo,
   minutesOverdue,
   roundLitres,
   underMilkWithdrawal,
@@ -10,9 +11,14 @@ import {
 import { protectedProcedure } from "../index";
 import {
   alertParams,
+  daysWork,
+  farmDayOf,
   farmDayRange,
   findLate,
+  heldByWithdrawal,
+  isFinished,
   isOnTheFarm,
+  openReviews,
 } from "../instances-store";
 import { requireRole } from "../roles";
 
@@ -33,17 +39,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const contentOf = (version: { content: unknown }): SopContent =>
   version.content as SopContent;
 
-/** What one Milking Session sent to the tank, from the cows' own records rather than from a
- *  tank reading that may not have been taken yet. */
-const toTheTank = (session: {
-  records: { litres: string; destination: string }[];
-}): number =>
-  roundLitres(
-    session.records
-      .filter((record) => record.destination === "bulk")
-      .reduce((total, record) => total + Number(record.litres), 0)
-  );
-
 export const homeRouter = {
   /**
    * The one screen the Manager runs the day from: what needs them, and how the day is going
@@ -58,7 +53,6 @@ export const homeRouter = {
     .handler(async ({ context }) => {
       const now = context.clock.now();
       const farmId = context.farm.id;
-      const { from, to } = farmDayRange(now);
 
       const [late, awaitingSignOff, review, completions, animals, herd, today] =
         await Promise.all([
@@ -84,12 +78,7 @@ export const homeRouter = {
             orderBy: { completedAt: "asc" },
             limit: QUEUE_LIMIT,
           }),
-          context.db.query.needsReview.findMany({
-            where: { farmId, resolvedAt: { isNull: true } },
-            columns: { id: true, entity: true, entityId: true, reason: true },
-            orderBy: { raisedAt: "asc" },
-            limit: QUEUE_LIMIT,
-          }),
+          openReviews(context.db, farmId, QUEUE_LIMIT),
           // The work each of those entries belongs to, so the row reaches it rather than
           // dropping somebody on a list to search.
           context.db.query.stepCompletion.findMany({
@@ -98,32 +87,18 @@ export const homeRouter = {
             orderBy: { receivedAt: "desc" },
             limit: QUEUE_LIMIT * 4,
           }),
-          context.db.query.animal.findMany({
-            // Only the cows the question is about: a herd of five hundred read in full to
-            // find the three under Withdrawal is a page load nobody in a shed waits for.
-            where: { farmId, milkWithdrawalUntil: { gt: now } },
-            columns: {
-              id: true,
-              tagNumber: true,
-              state: true,
-              penId: true,
-              milkWithdrawalUntil: true,
-            },
-          }),
+          heldByWithdrawal(context.db, farmId, now),
           // The animals standing in each Pen, for the line that says how big the job is.
           context.db.query.animal.findMany({
             where: { farmId },
             columns: { penId: true, state: true },
           }),
-          // The day's work, from the same shape the Today screen reads: one way of asking,
-          // so the Manager's screen and the milker's cannot disagree about what was raised.
-          context.db.query.sopInstance.findMany({
-            where: { farmId, dueAt: { gte: from, lt: to } },
-            columns: { id: true, penId: true, state: true },
-          }),
+          // The day's work, asked the one way it is asked everywhere, so the Manager's
+          // screen and the milker's cannot disagree about what was raised.
+          daysWork(context.db, farmId, now),
         ]);
 
-      const underWithdrawal = animals.filter((beast) => isOnTheFarm(beast));
+      const underWithdrawal = animals;
       const pens = new Map<
         string,
         { raised: number; done: number; missed: number }
@@ -135,7 +110,7 @@ export const homeRouter = {
           missed: 0,
         };
         tally.raised += 1;
-        if (instance.state === "completed" || instance.state === "approved") {
+        if (isFinished(instance.state)) {
           tally.done += 1;
         }
         // Missed is settled, not outstanding: the Manager closed it with a reason. A Pen
@@ -154,9 +129,8 @@ export const homeRouter = {
         );
       }
 
-      const doneToday = today.filter(
-        (instance) =>
-          instance.state === "completed" || instance.state === "approved"
+      const doneToday = today.filter((instance) =>
+        isFinished(instance.state)
       ).length;
       return {
         /** The two figures a Manager judges a day by: how much of it is done, and how many
@@ -213,10 +187,7 @@ export const homeRouter = {
               endingSoon:
                 beast.milkWithdrawalUntil !== null &&
                 beast.milkWithdrawalUntil.getTime() - now.getTime() <= DAY_MS,
-            }))
-            .toSorted(
-              (a, b) => (a.until?.getTime() ?? 0) - (b.until?.getTime() ?? 0)
-            ),
+            })),
         },
         pens: [...pens].map(([penId, tally]) => ({
           penId,
@@ -239,68 +210,96 @@ export const homeRouter = {
     .handler(async ({ context }) => {
       const now = context.clock.now();
       const farmId = context.farm.id;
-      const { from, to } = farmDayRange(now);
+      const { from } = farmDayRange(now);
 
-      const [late, proposals, review, withdrawal, today, sessions] =
-        await Promise.all([
-          findLate(
-            context.db,
+      const [
+        late,
+        proposals,
+        review,
+        completions,
+        held,
+        today,
+        approvals,
+        week,
+      ] = await Promise.all([
+        findLate(
+          context.db,
+          farmId,
+          now,
+          new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
+        ),
+        context.db.query.sopProposal.findMany({
+          where: { farmId, status: "pending" },
+          columns: { id: true, definitionId: true, note: true },
+          orderBy: { createdAt: "asc" },
+          limit: QUEUE_LIMIT,
+        }),
+        openReviews(context.db, farmId, QUEUE_LIMIT),
+        context.db.query.stepCompletion.findMany({
+          where: { farmId },
+          columns: { id: true, instanceId: true },
+          orderBy: { receivedAt: "desc" },
+          limit: QUEUE_LIMIT * 4,
+        }),
+        heldByWithdrawal(context.db, farmId, now),
+        daysWork(context.db, farmId, now),
+        // Work waiting on the Owner's own word. Money Events join this row in increment 6;
+        // today the only thing anybody waits on an Owner to approve is work whose Version
+        // named the Owner as its checker.
+        context.db.query.sopInstance.findMany({
+          where: {
             farmId,
-            now,
-            new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
-          ),
-          context.db.query.sopProposal.findMany({
-            where: { farmId, status: "pending" },
-            columns: { id: true, definitionId: true, note: true },
-            orderBy: { createdAt: "asc" },
-            limit: QUEUE_LIMIT,
-          }),
-          context.db.query.needsReview.findMany({
-            where: { farmId, resolvedAt: { isNull: true } },
-            columns: { id: true, entity: true, entityId: true, reason: true },
-            orderBy: { raisedAt: "asc" },
-            limit: QUEUE_LIMIT,
-          }),
-          context.db.query.animal.findMany({
-            where: { farmId, milkWithdrawalUntil: { gt: now } },
-            columns: {
-              id: true,
-              tagNumber: true,
-              state: true,
-              milkWithdrawalUntil: true,
+            state: AWAITING_SIGN_OFF,
+            checkerRole: { in: context.roles },
+          },
+          with: {
+            version: { columns: { content: true } },
+            pen: {
+              columns: { name: true },
+              with: { shed: { columns: { name: true } } },
             },
-          }),
-          context.db.query.sopInstance.findMany({
-            where: { farmId, dueAt: { gte: from, lt: to } },
-            columns: { id: true, state: true },
-          }),
-          // The last week of milkings, newest first, and what actually went to the tank in
-          // each: the farm's own Milk Records, not a figure reconciled from a tank reading
-          // that may not have been taken yet.
-          context.db.query.milkingSession.findMany({
-            // The week behind today, not simply the last seven rows: a farm that has not
-            // milked since Tuesday should see the gap, and a tile that reaches back a month
-            // for its seventh bar is comparing today with a different season.
-            where: {
-              farmId,
-              dueAt: { gte: new Date(from.getTime() - WEEK_MS) },
-            },
-            columns: { id: true, dueAt: true },
-            orderBy: { dueAt: "desc" },
-            limit: SESSIONS_ON_THE_TILE,
-            with: {
-              records: { columns: { litres: true, destination: true } },
-            },
-          }),
-        ]);
+          },
+          orderBy: { completedAt: "asc" },
+          limit: QUEUE_LIMIT,
+        }),
+        // Every Milking Session of the week behind today — all of them, not the newest
+        // seven rows: a Session belongs to one Pen, so a farm with four pens milking twice
+        // raises eight a day, and seven rows would be this morning rather than the week.
+        context.db.query.milkingSession.findMany({
+          where: { farmId, dueAt: { gte: new Date(from.getTime() - WEEK_MS) } },
+          columns: { id: true, dueAt: true },
+          orderBy: { dueAt: "desc" },
+          with: {
+            records: { columns: { litres: true, destination: true } },
+          },
+        }),
+      ]);
 
-      const held = withdrawal.filter((beast) => isOnTheFarm(beast));
-      const bulkToday = roundLitres(
-        sessions
-          .filter((session) => session.dueAt >= from && session.dueAt < to)
-          .reduce((total, session) => total + toTheTank(session), 0)
-      );
-      const week = sessions.map((session) => toTheTank(session));
+      // A day of the farm's milk is every Pen's Sessions on that day added together, which
+      // is what somebody means by "yesterday's milk".
+      const byDay = new Map<string, { bulk: number; discard: number }>();
+      for (const session of week) {
+        const day = farmDayOf(session.dueAt);
+        const tally = byDay.get(day) ?? { bulk: 0, discard: 0 };
+        tally.bulk = roundLitres(
+          tally.bulk + litresTo("bulk", session.records)
+        );
+        tally.discard = roundLitres(
+          tally.discard + litresTo("discard", session.records)
+        );
+        byDay.set(day, tally);
+      }
+      const days = [...byDay]
+        .toSorted(([a], [b]) => a.localeCompare(b))
+        .slice(-SESSIONS_ON_THE_TILE);
+      const todaysMilk = byDay.get(farmDayOf(now)) ?? { bulk: 0, discard: 0 };
+      const average =
+        days.length === 0
+          ? 0
+          : roundLitres(
+              days.reduce((total, [, tally]) => total + tally.bulk, 0) /
+                days.length
+            );
 
       return {
         needsYou: {
@@ -317,30 +316,43 @@ export const homeRouter = {
             }))
             .toSorted((a, b) => b.minutesOverdue - a.minutesOverdue)
             .slice(0, QUEUE_LIMIT),
+          approvals: approvals.map((instance) => ({
+            id: instance.id,
+            sopBn: contentOf(instance.version).name.bn,
+            pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
+            completedAt: instance.completedAt,
+          })),
           proposals,
-          needsReview: review,
+          needsReview: review.map((row) => ({
+            ...row,
+            instanceId:
+              completions.find((one) => one.id === row.entityId)?.instanceId ??
+              null,
+          })),
           endingWithdrawal: held
             .filter(
               (beast) =>
-                (beast.milkWithdrawalUntil?.getTime() ?? 0) - now.getTime() <=
-                DAY_MS
+                beast.milkWithdrawalUntil !== null &&
+                beast.milkWithdrawalUntil.getTime() - now.getTime() <= DAY_MS
             )
             .map((beast) => ({
               id: beast.id,
               tagNumber: beast.tagNumber,
               until: beast.milkWithdrawalUntil,
             })),
-          /** Low stock waits for increment 6 and the DLS renewal for increment 7. A row
+          /** Money Events awaiting approval arrive with Finance in increment 6, low stock
+           *  with Feed stock in the same one, and the DLS renewal in increment 7. A row
            *  faked now would be a row the Owner learns to distrust. */
         },
         tiles: {
-          bulkToday,
-          /** The seven most recent sessions, newest first: the bars beside today's figure. */
-          sessions: week,
-          workDone: today.filter(
-            (instance) =>
-              instance.state === "completed" || instance.state === "approved"
-          ).length,
+          bulkToday: todaysMilk.bulk,
+          discardToday: todaysMilk.discard,
+          /** What the farm has been sending to the tank, a day at a time, oldest first —
+           *  and what that comes to on an average day, which is what today is read against. */
+          days: days.map(([day, tally]) => ({ day, litres: tally.bulk })),
+          averageBulk: average,
+          workDone: today.filter((instance) => isFinished(instance.state))
+            .length,
           workRaised: today.length,
           underWithdrawal: held.length,
         },
