@@ -1,5 +1,6 @@
 export type { AnimalState, ExitState, Side } from "./lifecycle";
 export {
+  STATES as ANIMAL_STATES,
   ENTRY_STATES,
   EXIT_STATES,
   LIVE_STATES,
@@ -23,6 +24,7 @@ export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
 export type { RoleName } from "./roles";
 export { ROLES } from "./roles";
 export type {
+  AppliesTo,
   Bilingual,
   Choice,
   Evidence,
@@ -35,6 +37,8 @@ export type {
 export {
   EVIDENCE_TYPES,
   TRIGGER_KINDS,
+  appliesToAnimal,
+  isClosingStep,
   findMissingBangla,
   findPublishBlockers,
   findStructuralProblems,

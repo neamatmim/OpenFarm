@@ -5,7 +5,9 @@ import { appRouter } from "./index";
 
 describe("language", () => {
   it("is Bangla for a person who has never chosen", async () => {
-    const { client } = await createTestClient(appRouter, { as: "staff" });
+    // A person no other test touches: the shared database means "never chosen" has to be
+    // true of this principal specifically.
+    const { client } = await createTestClient(appRouter, { as: "newcomer" });
 
     expect(await client.language.get()).toEqual({ language: "bn" });
   });

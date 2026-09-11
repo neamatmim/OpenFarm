@@ -20,6 +20,7 @@ const Header = () => {
   const links = [
     { to: "/", label: t("nav.home") },
     { to: "/dashboard", label: t("nav.dashboard") },
+    ...(session ? [{ to: "/today", label: t("nav.today") }] : []),
     ...(session ? [{ to: "/animals", label: t("nav.animals") }] : []),
     ...(runsTheFarm
       ? [

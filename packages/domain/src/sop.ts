@@ -1,3 +1,4 @@
+import type { AnimalState, Side } from "./lifecycle";
 import type { ROLES } from "./roles";
 
 /** SOP content is authored in Bangla; English is optional and used for reports and a
@@ -53,10 +54,19 @@ export type Trigger =
   /** An animal reached a condition — under Withdrawal, near Expected Calving. */
   | { kind: "state"; state: string; offsetDays?: number };
 
+/** Which animals an SOP concerns. A schedule-triggered SOP raises one Instance per Pen
+ *  holding at least one matching animal, and its per-animal Steps cover those animals.
+ *  Absent means the whole herd. */
+export interface AppliesTo {
+  side?: Side;
+  states?: AnimalState[];
+}
+
 export interface SopContent {
   name: Bilingual;
   purpose: Bilingual;
   triggers: Trigger[];
+  appliesTo?: AppliesTo;
   /** Who the Instance is assigned to, and who signs it off. */
   assignedRole: (typeof ROLES)[number];
   checkerRole: (typeof ROLES)[number] | null;
@@ -161,3 +171,27 @@ export const findPublishBlockers = (content: SopContent): string[] => [
   ...findStructuralProblems(content),
   ...findMissingBangla(content).map((path) => `${path}: Bangla is required`),
 ];
+
+/** Does this SOP concern that animal? */
+export const appliesToAnimal = (
+  appliesTo: AppliesTo | undefined,
+  animal: { side: Side; state: AnimalState }
+): boolean => {
+  if (!appliesTo) {
+    return true;
+  }
+  if (appliesTo.side && appliesTo.side !== animal.side) {
+    return false;
+  }
+  if (appliesTo.states && appliesTo.states.length > 0) {
+    return appliesTo.states.includes(animal.state);
+  }
+  return true;
+};
+
+/** The Steps that stand between the Instance and being finished, in the order a phone should
+ *  offer them: everything else first, then the closing Step — the bulk total — last. */
+export const isClosingStep = (content: SopContent, step: Step): boolean =>
+  !step.repeatPerAnimal &&
+  content.steps.at(-1)?.id === step.id &&
+  content.steps.length > 1;

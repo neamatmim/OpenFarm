@@ -59,6 +59,35 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  sopInstance: {
+    definition: r.one.sopDefinition({
+      from: r.sopInstance.definitionId,
+      to: r.sopDefinition.id,
+      optional: false,
+    }),
+    version: r.one.sopVersion({
+      from: r.sopInstance.versionId,
+      to: r.sopVersion.id,
+      optional: false,
+    }),
+    pen: r.one.pen({
+      from: r.sopInstance.penId,
+      to: r.pen.id,
+      optional: false,
+    }),
+    completions: r.many.stepCompletion({
+      from: r.sopInstance.id,
+      to: r.stepCompletion.instanceId,
+    }),
+  },
+  stepCompletion: {
+    instance: r.one.sopInstance({
+      from: r.stepCompletion.instanceId,
+      to: r.sopInstance.id,
+      optional: false,
+    }),
+    animal: r.one.animal({ from: r.stepCompletion.animalId, to: r.animal.id }),
+  },
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
   },

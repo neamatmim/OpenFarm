@@ -4,14 +4,20 @@
 
 **Blocked by:** 05, 06, 07
 
-**Status:** ready-for-agent
+**Status:** done (2026-09-11)
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 1.
 
-- [ ] The scheduler (clock-driven, tested with the controllable clock) creates the right Instances for the right Pens at each Session and never duplicates
-- [ ] Claiming is exclusive; the Manager can pin to a person or reassign
-- [ ] Per-animal Step Completions are one per animal with the shape from the prototype — done with evidence and destination, or skipped with a reason — and a Step cannot be finished while any animal is neither
-- [ ] Number Evidence outside the sane range shows a warning the user must acknowledge; the value is still allowed
-- [ ] Photo Evidence uses the browser camera capture and is stored against the Completion
-- [ ] The tiles UI: chips for prep/clean Steps, tiles dim with a tick when done, the Bulk-total Step appears only when all else is done; entirely in Bangla with icons
-- [ ] Tests through the primary seam cover scheduling, claiming, completion ordering rules, skip, and that completing all Steps yields a completed Instance with all Completions attributed to the active user
+- [x] The scheduler (clock-driven, tested with the controllable clock) creates the right Instances for the right Pens at each Session and never duplicates
+- [x] Claiming is exclusive; the Manager can pin to a person or reassign
+- [x] Per-animal Step Completions are one per animal with the shape from the prototype — done with evidence and destination, or skipped with a reason — and a Step cannot be finished while any animal is neither
+- [x] Number Evidence outside the sane range shows a warning the user must acknowledge; the value is still allowed
+- [x] Photo Evidence uses the browser camera capture and is stored against the Completion
+- [x] The tiles UI: chips for prep/clean Steps, tiles dim with a tick when done, the Bulk-total Step appears only when all else is done; entirely in Bangla with icons
+- [x] Tests through the primary seam cover scheduling, claiming, completion ordering rules, skip, and that completing all Steps yields a completed Instance with all Completions attributed to the active user
+
+**Done note:** The milking SOP runs end to end. `sop_instance` pins the Version it was raised from — publishing a change mid-day does not move work already in someone's hands (ADR 0001, demonstrated by a test) — and a unique index on (definition, pen, due time) makes `ensureDue` idempotent, so the phone and the office can both call it on open. Claiming is conditional on `claimed_by IS NULL`, so two phones cannot both take it; the Manager can pin or reassign, which takes it out of the previous person's hands. `step_completion` is one row per (instance, step, animal): done with evidence or skipped with a reason, recording again *corrects* rather than duplicating, out-of-range numbers are kept along with the fact that they were out of range, and each row carries the person **and** the phone. `complete` refuses while anything is outstanding, naming the tags that are left. The pen board is the prototype's shape: chips for once-only Steps, photo tiles in any order dimming with a tick, a full-screen sheet with a large Bangla keypad, skip-with-reason, camera photo, and the closing bulk-total Step appearing only when everything else is done.
+
+**Two design gaps the work exposed.** (1) An SOP had no way to say *which* animals it concerns, so the scheduler could not tell a milking pen from a fattening one; `appliesTo` was added to the content model — and the first test run caught that it was in the domain type but not the wire schema, so zod silently stripped it and every pen qualified. (2) `instances.today` returned every open Instance ever rather than today's; it is now scoped to the farm's day, because yesterday's unfinished work belongs on the Overdue list (ticket 10).
+
+Three tests also had to stop asserting "nothing else exists": vitest runs files in parallel against one shared database, so those assertions were racy. They are scoped to their own data now, as the harness README asks.

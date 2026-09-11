@@ -157,12 +157,15 @@ describe("audit events", () => {
       fromDay: "2026-09-13",
     });
     expect(filtered.every((e) => e.entity === "invite")).toBe(true);
-    // 2026-09-13 farm-local (UTC+6) ends at 2026-09-13T18:00Z: an event at 04:00Z is in, the next day is out
-    expect(
-      await owner.client.audit.list({
-        fromDay: "2026-09-14",
-        toDay: "2026-09-14",
-      })
-    ).toHaveLength(0);
+    // 2026-09-13 farm-local (UTC+6) ends at 2026-09-13T18:00Z, so this test's own events
+    // fall inside that day and none appear on the next. Other test files share the
+    // database and write their own events, so the window is scoped to this actor.
+    const nextDay = await owner.client.audit.list({
+      fromDay: "2026-09-14",
+      toDay: "2026-09-14",
+      actorId: "test-owner",
+      entity: "invite",
+    });
+    expect(nextDay).toEqual([]);
   });
 });

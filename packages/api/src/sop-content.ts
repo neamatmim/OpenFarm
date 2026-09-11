@@ -1,4 +1,4 @@
-import { EVIDENCE_TYPES, ROLES } from "@OpenFarm/domain";
+import { ANIMAL_STATES, EVIDENCE_TYPES, ROLES, SIDES } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { z } from "zod";
 
@@ -44,10 +44,17 @@ const trigger = z.discriminatedUnion("kind", [
   }),
 ]);
 
+/** Which animals the SOP concerns; absent means the whole herd. */
+const appliesTo = z.object({
+  side: z.enum(SIDES).optional(),
+  states: z.array(z.enum(ANIMAL_STATES)).optional(),
+});
+
 export const sopContentSchema = z.object({
   name: bilingual,
   purpose: bilingual,
   triggers: z.array(trigger),
+  appliesTo: appliesTo.optional(),
   assignedRole: z.enum(ROLES),
   checkerRole: z.enum(ROLES).nullable().default(null),
   graceMinutes: z
