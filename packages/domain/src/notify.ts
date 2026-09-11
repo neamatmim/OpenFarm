@@ -16,6 +16,7 @@ export const DELIVERY: Record<AlertKind, "immediate" | "digest"> = {
   instance_sent_back: "immediate",
   needs_review: "digest",
   sop_published: "digest",
+  sop_proposed: "digest",
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

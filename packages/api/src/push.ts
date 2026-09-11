@@ -124,4 +124,5 @@ export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
   instance_sent_back: "digest.sentBack",
   needs_review: "digest.needsReview",
   sop_published: "digest.sopPublished",
+  sop_proposed: "digest.sopProposed",
 };

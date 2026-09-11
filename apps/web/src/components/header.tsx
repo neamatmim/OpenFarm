@@ -26,6 +26,7 @@ const Header = () => {
     ...(runsTheFarm
       ? [
           { to: "/home", label: t("nav.theDay") },
+          { to: "/farm", label: t("nav.farm") },
           { to: "/observations", label: t("nav.observations") },
           { to: "/admin/sign-off", label: t("nav.signOff") },
           { to: "/admin/sops", label: t("nav.sops") },
