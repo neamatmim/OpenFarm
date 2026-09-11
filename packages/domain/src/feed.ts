@@ -17,9 +17,6 @@ const KG_SCALE = 10 ** KG_DECIMALS;
 export const roundKg = (value: number): number =>
   Math.round(value * KG_SCALE) / KG_SCALE;
 
-/** Nobody feeds more often than this; a Ration asking for more is a typo, not a routine. */
-export const MAX_SESSIONS_PER_DAY = 6;
-
 /** The most one animal can sensibly be given of one Item in a day. */
 export const MAX_KG_PER_ANIMAL_PER_DAY = 100;
 
@@ -31,32 +28,22 @@ export interface RationLine {
 /** One Feed Item's share of one session, for the animals actually standing in the Pen. */
 export const perSessionKg = (
   kgPerAnimalPerDay: number,
-  headcount: number,
+  animals: number,
   sessionsPerDay: number
 ): number => {
   if (sessionsPerDay < 1) {
     throw new Error("A ration is fed at least once a day");
   }
-  return roundKg((kgPerAnimalPerDay * headcount) / sessionsPerDay);
+  return roundKg((kgPerAnimalPerDay * animals) / sessionsPerDay);
 };
 
 /** What is wrong with a Ration, in the Manager's terms rather than the parser's. */
 export const findRationProblems = (ration: {
-  sessionsPerDay: number;
   items: RationLine[];
 }): string[] => {
   const problems: string[] = [];
   if (ration.items.length === 0) {
     problems.push("items: a ration needs something in it");
-  }
-  if (
-    !Number.isInteger(ration.sessionsPerDay) ||
-    ration.sessionsPerDay < 1 ||
-    ration.sessionsPerDay > MAX_SESSIONS_PER_DAY
-  ) {
-    problems.push(
-      `sessionsPerDay: a pen is fed between once and ${MAX_SESSIONS_PER_DAY} times a day`
-    );
   }
   const seen = new Set<string>();
   for (const [index, line] of ration.items.entries()) {
@@ -76,3 +63,45 @@ export const findRationProblems = (ration: {
   }
   return problems;
 };
+
+/** What a Step that feeds a Pen says went out, per Feed Item. */
+export interface FeedingEntryLine {
+  feedItemId: string;
+  givenKg: number;
+  leftoverKg?: number;
+}
+
+export interface FeedingLine {
+  feedItemId: string;
+  targetKg: number;
+  givenKg: number;
+  leftoverKg: number;
+}
+
+/**
+ * How far under its Feeding Target a session came: the Feed Item that fell shortest.
+ *
+ * Item by item rather than in total, because a Feed Item is measured in its own unit — straw
+ * in bales, molasses in litres — and a total that adds bales to litres is arithmetic that
+ * means nothing. It is also the answer the farm wants: a Pen that got its silage and none of
+ * its concentrate has a problem, and a total would average it away.
+ *
+ * Leftover counts against what was eaten, not against what was given: the trough is the
+ * measure of the meal.
+ */
+export const shortfallPercent = (lines: FeedingLine[]): number => {
+  let worst = 0;
+  for (const line of lines) {
+    if (line.targetKg <= 0) {
+      continue;
+    }
+    const eaten = Math.max(line.givenKg - line.leftoverKg, 0);
+    const short = Math.round(((line.targetKg - eaten) / line.targetKg) * 100);
+    worst = Math.max(worst, short);
+  }
+  return Math.max(worst, 0);
+};
+
+/** Was this session short enough to be worth saying out loud? */
+export const isShortFed = (lines: FeedingLine[], tolerancePercent: number) =>
+  shortfallPercent(lines) > tolerancePercent;

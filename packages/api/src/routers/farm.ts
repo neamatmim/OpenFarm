@@ -15,6 +15,7 @@ const parameters = z
     /** How far the tank reading may sit from what the cows account for before the Manager
      *  is asked to look. */
     milkTolerancePercent: z.number().int().min(0).max(100).optional(),
+    feedTolerancePercent: z.number().int().min(0).max(100).optional(),
     /** How long an Overdue Instance may stay open before the Owner is told as well. */
     escalationMinutes: z
       .number()
@@ -96,6 +97,9 @@ export const farmRouter = {
     .input(parameters)
     .handler(async ({ context, input }) => {
       const changes: Partial<typeof farm.$inferInsert> = {};
+      if (input.feedTolerancePercent !== undefined) {
+        changes.feedTolerancePercent = input.feedTolerancePercent;
+      }
       if (input.milkTolerancePercent !== undefined) {
         changes.milkTolerancePercent = input.milkTolerancePercent;
       }
@@ -118,6 +122,7 @@ export const farmRouter = {
               where: { id: context.farm.id },
               columns: {
                 milkTolerancePercent: true,
+                feedTolerancePercent: true,
                 escalationMinutes: true,
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,

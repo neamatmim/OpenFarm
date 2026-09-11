@@ -1,11 +1,36 @@
+import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, HOUR } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
+/** Something in the Playbook has to feed, or "how often" has no answer and neither does the
+ *  Feeding Target. Twice a day, like the farm's own round. */
+const feedingSop = (): SopContent => ({
+  name: { bn: "খাওয়ানো", en: "Feeding" },
+  purpose: { bn: "রেশন অনুযায়ী খাওয়ান" },
+  triggers: [{ kind: "schedule", times: ["06:00", "17:00"] }],
+  assignedRole: "staff",
+  checkerRole: null,
+  graceMinutes: 120,
+  steps: [
+    {
+      id: "feed",
+      text: { bn: "খাওয়ান" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+      effect: { kind: "feeding" },
+    },
+  ],
+});
+
 const setup = async () => {
   const manager = await createTestClient(appRouter, { as: "manager" });
+  // Publishing the Playbook is the Owner's.
+  const owner = await createTestClient(appRouter, { as: "owner" });
+  await owner.client.sops.create({ content: feedingSop() });
   const shed = await manager.client.herd.createShed({
     name: `feed-${Date.now()}`,
   });
@@ -51,7 +76,6 @@ describe("what a Pen is fed", () => {
 
     const saved = await manager.client.feed.saveRation({
       name: { bn: `দোহন রেশন ${Date.now()}` },
-      sessionsPerDay: 2,
       items: [
         { feedItemId: concentrate.id, kgPerAnimalPerDay: 2.5 },
         { feedItemId: straw.id, kgPerAnimalPerDay: 4 },
@@ -101,7 +125,6 @@ describe("what a Pen is fed", () => {
 
     const saved = await manager.client.feed.saveRation({
       name: { bn: `শুরুর রেশন ${Date.now()}` },
-      sessionsPerDay: 2,
       items: [{ feedItemId: silage.id, kgPerAnimalPerDay: 10 }],
     });
     await manager.client.feed.assignRation({
@@ -127,7 +150,6 @@ describe("what a Pen is fed", () => {
     await manager.client.feed.saveRation({
       rationId: saved.rationId,
       name: { bn: `শুরুর রেশন ${Date.now()}` },
-      sessionsPerDay: 2,
       items: [{ feedItemId: silage.id, kgPerAnimalPerDay: 12 }],
     });
     const after = await manager.client.feed.target({ penId: pen.id });
@@ -172,7 +194,6 @@ describe("what a Pen is fed", () => {
     await expect(
       manager.client.feed.saveRation({
         name: { bn: `ভুল রেশন ${Date.now()}` },
-        sessionsPerDay: 2,
         items: [{ feedItemId: "not-a-feed", kgPerAnimalPerDay: 1 }],
       })
     ).rejects.toThrow(/not one of this farm's feeds/u);
@@ -183,7 +204,6 @@ describe("what a Pen is fed", () => {
     await expect(
       staff.client.feed.saveRation({
         name: { bn: "স্টাফের রেশন" },
-        sessionsPerDay: 2,
         items: [{ feedItemId: "anything", kgPerAnimalPerDay: 1 }],
       })
     ).rejects.toThrow();
@@ -208,7 +228,6 @@ describe("what a Pen is fed", () => {
     });
     const shared = await manager.client.feed.saveRation({
       name: { bn: `দোহনের রেশন ${Date.now()}` },
-      sessionsPerDay: 2,
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 6 }],
     });
     for (const pen of [first, second]) {
@@ -224,7 +243,6 @@ describe("what a Pen is fed", () => {
     await manager.client.feed.saveRation({
       rationId: shared.rationId,
       name: { bn: `দোহনের রেশন ${Date.now()}` },
-      sessionsPerDay: 2,
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 8 }],
     });
 

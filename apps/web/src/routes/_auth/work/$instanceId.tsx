@@ -149,11 +149,24 @@ const WorkPage = () => {
     animals: fromFarm,
     completions,
     state,
+    feeding,
+    fed,
   } = instance.data as unknown as {
     content: SopContent;
     animals: Animal[];
     completions: Completion[];
     state: string;
+    /** What this Pen is owed this session, for a Playbook entry that feeds. */
+    feeding: {
+      items: {
+        feedItemId: string;
+        nameBn: string;
+        unit: string;
+        quantity: number;
+      }[];
+    } | null;
+    /** What the Pen was actually given, once somebody has recorded it. */
+    fed: { shortfallPercent: number; flaggedAt: string | null } | null;
   };
   // The Gate the tile renders comes from whichever the phone has: what the farm said this
   // time, or what it last cached. The farm decides again when the entry lands.
@@ -172,6 +185,10 @@ const WorkPage = () => {
   const closingStep = content.steps.find((step) =>
     isClosingStep(content, step)
   );
+  // A Pen that came well under what it was owed says so where the work is, rather than
+  // sitting in a record nobody reopens. The Manager's own queue is a later ticket.
+  const shortFed = fed?.flaggedAt ? fed : null;
+
   const chipSteps = content.steps.filter(
     (step) => !step.repeatPerAnimal && step.id !== closingStep?.id
   );
@@ -210,6 +227,7 @@ const WorkPage = () => {
       correct.mutate({
         completionId: existing.id,
         destination: payload.destination,
+        feeding: payload.feeding,
         evidence: payload.evidence,
         outOfRange: payload.outOfRange,
         reason: payload.reason,
@@ -250,6 +268,7 @@ const WorkPage = () => {
     return (
       <EvidenceSheet
         correcting={Boolean(existing)}
+        feeding={feeding}
         onCancel={() => setOpenStep(null)}
         onRecord={(payload) => send(openStep, existing, payload)}
         step={openStep}
@@ -270,6 +289,12 @@ const WorkPage = () => {
           })}
         </p>
       </header>
+
+      {shortFed ? (
+        <p className="rounded-xl bg-amber-900 p-3 text-sm text-amber-100">
+          {t("work.shortFed", { percent: shortFed.shortfallPercent })}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {chipSteps.map((step) => {
@@ -417,11 +442,230 @@ const ClosingAction = ({
   );
 };
 
+/** What this Pen is owed, and what actually went out. Prefilled from the Ration, because a
+ *  normal day is confirming figures and a sick pen is the one where somebody changes them. */
+const FeedingFields = ({
+  rows,
+  cannotFeed,
+  given,
+  leftover,
+  onGiven,
+  onLeftover,
+}: {
+  rows: {
+    feedItemId: string;
+    nameBn: string;
+    unit: string;
+    quantity: number;
+  }[];
+  /** The phone has never seen this Pen's Ration, so it cannot say what was owed. */
+  cannotFeed: boolean;
+  given: Record<string, string>;
+  leftover: Record<string, string>;
+  onGiven: (
+    next: (current: Record<string, string>) => Record<string, string>
+  ) => void;
+  onLeftover: (
+    next: (current: Record<string, string>) => Record<string, string>
+  ) => void;
+}) => {
+  const { t } = useLanguage();
+  if (cannotFeed) {
+    return (
+      <p className="rounded-xl bg-amber-900 p-3 text-amber-100">
+        {t("work.noRation")}
+      </p>
+    );
+  }
+  return (
+    <>
+      {rows.map((line) => (
+        <div className="space-y-2" key={line.feedItemId}>
+          <p className="text-sm">
+            {line.nameBn} · {t("feed.target")}: {line.quantity} {line.unit}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              aria-label={`${line.nameBn} ${t("work.given")}`}
+              className="h-14 text-lg"
+              inputMode="decimal"
+              onChange={(event) =>
+                onGiven((current) => ({
+                  ...current,
+                  [line.feedItemId]: event.target.value,
+                }))
+              }
+              placeholder={t("work.given")}
+              type="number"
+              value={given[line.feedItemId] ?? String(line.quantity)}
+            />
+            <Input
+              aria-label={`${line.nameBn} ${t("work.leftover")}`}
+              className="h-14 text-lg"
+              inputMode="decimal"
+              onChange={(event) =>
+                onLeftover((current) => ({
+                  ...current,
+                  [line.feedItemId]: event.target.value,
+                }))
+              }
+              placeholder={t("work.leftover")}
+              type="number"
+              value={leftover[line.feedItemId] ?? ""}
+            />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+};
+
+/** The first figure the person has entered that its Step calls odd, if any. A warning to
+ *  acknowledge at the animal, never a refusal: the cow is standing there and they can see her. */
+const outsideItsRange = (
+  step: Step,
+  values: Record<number, boolean | number | string>
+): string | null => {
+  for (const [index, item] of step.evidence.entries()) {
+    if (item.type !== "number") {
+      continue;
+    }
+    const typed = Number(values[index]);
+    if (!Number.isNaN(typed)) {
+      const outside = outOfRangeOf(item, typed);
+      if (outside) {
+        return outside;
+      }
+    }
+  }
+  return null;
+};
+
+/** Has everything the Version asks for been given? A tick needs no answer to be true, and a
+ *  photo is answered by the camera rather than by a value. */
+const everythingAsked = (
+  step: Step,
+  values: Record<number, boolean | number | string>,
+  photos: Record<number, { contentType: "image/jpeg"; data: string }>
+): boolean =>
+  step.evidence.every((item, index) => {
+    if (!item.required || item.type === "tick") {
+      return true;
+    }
+    if (item.type === "photo") {
+      return Boolean(photos[index]);
+    }
+    return values[index] !== undefined && values[index] !== "";
+  });
+
+/** Skipping an animal: the Version's own reasons, and nothing typed into a free box. A
+ *  Correction still has to say why, because changing a recorded fact is the person speaking. */
+const SkipSheet = ({
+  step,
+  correcting,
+  reason,
+  onReason,
+  onSkip,
+  onBack,
+}: {
+  step: Step;
+  correcting: boolean;
+  reason: string;
+  onReason: (value: string) => void;
+  onSkip: (payload: RecordPayload) => void;
+  onBack: () => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="mx-auto mt-8 w-full max-w-sm space-y-3 p-4">
+      <p className="text-lg">{t("work.skipWhy")}</p>
+      {correcting ? (
+        <Input
+          aria-label={t("correct.why")}
+          onChange={(event) => onReason(event.target.value)}
+          placeholder={t("correct.why")}
+          value={reason}
+        />
+      ) : null}
+      {step.skipReasons.map((skip) => (
+        <Button
+          className="h-14 w-full text-lg"
+          disabled={correcting && !reason.trim()}
+          key={skip.bn}
+          onClick={() =>
+            onSkip({
+              evidence: [],
+              skipReason: skip.bn,
+              // Never the skip label standing in for a reason: changing what was recorded is
+              // a Correction, and a Correction is the person saying why.
+              reason: correcting ? reason.trim() : undefined,
+            })
+          }
+          variant="outline"
+        >
+          {skip.bn}
+        </Button>
+      ))}
+      <Button className="w-full" onClick={onBack} variant="ghost">
+        {t("work.back")}
+      </Button>
+    </div>
+  );
+};
+
+/**
+ * What this Pen is owed, and whether this phone can say. A phone that has never opened
+ * today's work with signal has no Ration to prefill from, and recording zeros against a
+ * target it does not know would put a false shortfall on the farm.
+ */
+const feedingState = (
+  feeds: boolean,
+  feeding:
+    | {
+        items: {
+          feedItemId: string;
+          nameBn: string;
+          unit: string;
+          quantity: number;
+        }[];
+      }
+    | null
+    | undefined
+) => {
+  const rows = feeds ? (feeding?.items ?? []) : [];
+  return { rows, cannotFeed: feeds && rows.length === 0 };
+};
+
+/**
+ * What went out, per Feed Item. A box left as it was handed over means the figure that was
+ * handed over: somebody who clears one to retype it has not yet said the Pen got nothing.
+ */
+const whatWentOut = (
+  rows: { feedItemId: string; quantity: number }[],
+  given: Record<string, string>,
+  leftover: Record<string, string>
+) =>
+  rows.map((line) => ({
+    feedItemId: line.feedItemId,
+    givenKg: numberOr(given[line.feedItemId], line.quantity),
+    leftoverKg: numberOr(leftover[line.feedItemId], 0),
+  }));
+
+/** A field left as it was handed over means the figure that was handed over. */
+const numberOr = (value: string | undefined, fallback: number): number => {
+  const typed = Number(value);
+  return value === undefined || value.trim() === "" || Number.isNaN(typed)
+    ? fallback
+    : typed;
+};
+
 interface RecordPayload {
   evidence: (boolean | number | string)[];
   skipReason?: string;
   outOfRange?: string;
   destination?: MilkDestination;
+  /** What a Step that feeds a Pen actually put out, per Feed Item. */
+  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   /** One per Evidence slot that asked for a picture. */
   photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
   /** Set when the entry already exists: changing a recorded fact is a Correction, and a
@@ -435,6 +679,7 @@ const EvidenceSheet = ({
   step,
   animal,
   correcting,
+  feeding,
   onCancel,
   onRecord,
 }: {
@@ -442,6 +687,15 @@ const EvidenceSheet = ({
   animal?: Animal;
   /** The entry already exists, so saving it again is a Correction. */
   correcting: boolean;
+  /** What this Pen is owed this session, for a Step that feeds. */
+  feeding?: {
+    items: {
+      feedItemId: string;
+      nameBn: string;
+      unit: string;
+      quantity: number;
+    }[];
+  } | null;
   onCancel: () => void;
   onRecord: (payload: RecordPayload) => void;
 }) => {
@@ -462,6 +716,11 @@ const EvidenceSheet = ({
     locked ? "discard" : "bulk"
   );
   const recordsMilk = step.effect?.kind === "milk_record";
+  const feedsThePen = step.effect?.kind === "feeding";
+  const [given, setGiven] = useState<Record<string, string>>({});
+  const [leftover, setLeftover] = useState<Record<string, string>>({});
+
+  const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
 
   const setValue = (index: number, value: boolean | number | string) => {
     setValues((current) => ({ ...current, [index]: value }));
@@ -475,31 +734,8 @@ const EvidenceSheet = ({
     return values[index] ?? "";
   });
 
-  const firstOutOfRange = (): string | null => {
-    for (const [index, item] of step.evidence.entries()) {
-      if (item.type !== "number") {
-        continue;
-      }
-      const typed = Number(values[index]);
-      if (!Number.isNaN(typed)) {
-        const outside = outOfRangeOf(item, typed);
-        if (outside) {
-          return outside;
-        }
-      }
-    }
-    return null;
-  };
-
-  const ready = step.evidence.every((item, index) => {
-    if (!item.required || item.type === "tick") {
-      return true;
-    }
-    if (item.type === "photo") {
-      return Boolean(photos[index]);
-    }
-    return values[index] !== undefined && values[index] !== "";
-  });
+  const firstOutOfRange = () => outsideItsRange(step, values);
+  const ready = everythingAsked(step, values, photos);
 
   const submit = (force: boolean) => {
     const outside = firstOutOfRange();
@@ -513,6 +749,9 @@ const EvidenceSheet = ({
       ),
       outOfRange: outside ?? undefined,
       destination: recordsMilk ? destination : undefined,
+      feeding: feedsThePen
+        ? whatWentOut(feedingRows, given, leftover)
+        : undefined,
       photos: Object.entries(photos).map(([slot, taken]) => ({
         slot: Number(slot),
         ...taken,
@@ -523,43 +762,14 @@ const EvidenceSheet = ({
 
   if (skipping) {
     return (
-      <div className="mx-auto mt-8 w-full max-w-sm space-y-3 p-4">
-        <p className="text-lg">{t("work.skipWhy")}</p>
-        {correcting ? (
-          <Input
-            aria-label={t("correct.why")}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder={t("correct.why")}
-            value={reason}
-          />
-        ) : null}
-        {step.skipReasons.map((skip) => (
-          <Button
-            className="h-14 w-full text-lg"
-            key={skip.bn}
-            disabled={correcting && !reason.trim()}
-            onClick={() =>
-              onRecord({
-                evidence: [],
-                skipReason: skip.bn,
-                // Never the skip label standing in for a reason: changing what was recorded
-                // is a Correction, and a Correction is the person saying why.
-                reason: correcting ? reason.trim() : undefined,
-              })
-            }
-            variant="outline"
-          >
-            {skip.bn}
-          </Button>
-        ))}
-        <Button
-          variant="ghost"
-          className="w-full"
-          onClick={() => setSkipping(false)}
-        >
-          {t("work.back")}
-        </Button>
-      </div>
+      <SkipSheet
+        correcting={correcting}
+        onBack={() => setSkipping(false)}
+        onReason={setReason}
+        onSkip={onRecord}
+        reason={reason}
+        step={step}
+      />
     );
   }
 
@@ -605,6 +815,15 @@ const EvidenceSheet = ({
         />
       ) : null}
 
+      <FeedingFields
+        cannotFeed={cannotFeed}
+        given={given}
+        leftover={leftover}
+        onGiven={setGiven}
+        onLeftover={setLeftover}
+        rows={feedingRows}
+      />
+
       {correcting ? (
         <div className="space-y-2">
           <p className="text-muted-foreground text-sm">{t("correct.why")}</p>
@@ -642,7 +861,7 @@ const EvidenceSheet = ({
         ) : null}
         <Button
           className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
-          disabled={!(ready && (!correcting || reason.trim()))}
+          disabled={cannotFeed || !(ready && (!correcting || reason.trim()))}
           onClick={() => submit(false)}
         >
           {correcting ? t("correct.save") : t("work.confirm")}

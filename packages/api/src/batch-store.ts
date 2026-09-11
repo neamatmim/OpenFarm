@@ -65,6 +65,7 @@ const applyEntry = async (
         animalTag: entry.animalTag,
         evidence: entry.evidence,
         destination: entry.destination,
+        feeding: entry.feeding,
         outOfRange: entry.outOfRange,
         skipReason: entry.skipReason,
         photoSlots: entry.photoSlots,

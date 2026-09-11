@@ -10,21 +10,20 @@ import { toast } from "sonner";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-type RationRow = {
+interface RationRow {
   id: string;
   name: { bn: string; en: string | null };
   number: number | null;
-  sessionsPerDay: number | null;
   items: { feedItemId: string; kgPerAnimalPerDay: number }[];
   penIds: string[];
-};
+}
 
-type FeedRow = {
+interface FeedRow {
   id: string;
   nameBn: string;
   unit: string;
   retiredAt: Date | null;
-};
+}
 
 /** What the farm feeds, what each Ration says, and what this session calls for in a Pen. The
  *  figures are the farm's own: a Ration says what one animal gets in a day, and the bucket's
@@ -68,7 +67,7 @@ const FeedPage = () => {
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="font-medium text-lg">{t("feed.title")}</h1>
+      <h1 className="text-lg font-medium">{t("feed.title")}</h1>
 
       <FeedItems items={(items.data ?? []) as FeedRow[]} onChanged={refresh} />
 
@@ -92,7 +91,7 @@ const FeedPage = () => {
         {target.data?.ration ? (
           <TargetPanel target={target.data} />
         ) : (
-          <p className="rounded-lg border border-dashed p-3 text-muted-foreground text-sm">
+          <p className="text-muted-foreground rounded-lg border border-dashed p-3 text-sm">
             {t("feed.noRation")}
           </p>
         )}
@@ -103,7 +102,7 @@ const FeedPage = () => {
         {(rations.data ?? []).map((row) => (
           <article className="space-y-2 rounded-lg border p-3" key={row.id}>
             <header className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-medium text-sm">{row.name.bn}</span>
+              <span className="text-sm font-medium">{row.name.bn}</span>
               <span className="text-muted-foreground text-xs">
                 {row.number ? t("feed.version", { number: row.number }) : ""}
                 {" · "}
@@ -143,7 +142,7 @@ const FeedPage = () => {
                   setEditing(null);
                   refresh();
                 }}
-                ration={row as RationRow}
+                ration={row}
               />
             ) : null}
           </article>
@@ -158,7 +157,11 @@ const FeedPage = () => {
             ration={null}
           />
         ) : (
-          <Button onClick={() => setEditing("new")} type="button" variant="outline">
+          <Button
+            onClick={() => setEditing("new")}
+            type="button"
+            variant="outline"
+          >
             {t("feed.newRation")}
           </Button>
         )}
@@ -189,7 +192,7 @@ const TargetPanel = ({
   const { language } = useLanguage();
   return (
     <div className="space-y-2 rounded-lg border p-3">
-      <p className="font-medium text-sm">
+      <p className="text-sm font-medium">
         {target.ration?.name.bn}
         {target.ration
           ? ` · ${t("feed.version", { number: target.ration.number })}`
@@ -331,14 +334,15 @@ const RationForm = ({
   onSaved: () => void;
 }) => {
   const t = useT();
-  const inRation = new Set((ration?.items ?? []).map((line) => line.feedItemId));
-  const offered = items.filter((item) => !item.retiredAt || inRation.has(item.id));
+  const inRation = new Set(
+    (ration?.items ?? []).map((line) => line.feedItemId)
+  );
+  const offered = items.filter(
+    (item) => !item.retiredAt || inRation.has(item.id)
+  );
 
   const [name, setName] = useState(ration?.name.bn ?? "");
   const [english, setEnglish] = useState(ration?.name.en ?? "");
-  const [sessions, setSessions] = useState(
-    String(ration?.sessionsPerDay ?? 2)
-  );
   const [kg, setKg] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       (ration?.items ?? []).map((line) => [
@@ -365,15 +369,13 @@ const RationForm = ({
       kgPerAnimalPerDay: Number(kg[item.id] ?? ""),
     }))
     .filter((line) => line.kgPerAnimalPerDay > 0);
-  const timesADay = Number(sessions);
-  const sessionsAreSane = Number.isInteger(timesADay) && timesADay >= 1;
 
   return (
     <form
       className="space-y-2 border-t pt-2"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!(name.trim() && sessionsAreSane)) {
+        if (!name.trim()) {
           return;
         }
         save.mutate({
@@ -382,7 +384,6 @@ const RationForm = ({
             bn: name.trim(),
             ...(english.trim() ? { en: english.trim() } : {}),
           },
-          sessionsPerDay: timesADay,
           items: lines,
         });
       }}
@@ -408,19 +409,6 @@ const RationForm = ({
             value={english}
           />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor={`ration-sessions-${ration?.id ?? "new"}`}>
-            {t("feed.sessionsPerDay")}
-          </Label>
-          <Input
-            className="w-24"
-            id={`ration-sessions-${ration?.id ?? "new"}`}
-            min={1}
-            onChange={(e) => setSessions(e.target.value)}
-            type="number"
-            value={sessions}
-          />
-        </div>
       </div>
       <ul className="space-y-1">
         {offered.map((item) => (
@@ -443,10 +431,7 @@ const RationForm = ({
           </li>
         ))}
       </ul>
-      <Button
-        disabled={lines.length === 0 || !(name.trim() && sessionsAreSane)}
-        type="submit"
-      >
+      <Button disabled={lines.length === 0 || !name.trim()} type="submit">
         {t("feed.setRation")}
       </Button>
     </form>

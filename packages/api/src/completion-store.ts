@@ -6,6 +6,7 @@ import {
   stepCompletion,
 } from "@OpenFarm/db/schema/instance";
 import type { MilkDestination, SopContent, Step } from "@OpenFarm/domain";
+import { sessionsPerDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -44,6 +45,10 @@ export interface CompletionEntry {
   animalTag?: string;
   evidence: (boolean | number | string)[];
   destination?: MilkDestination;
+  /** What was actually put in front of the Pen, per Feed Item, for a Step that feeds. The
+   *  Items come from the Pen's Ration rather than from the Version, so they travel here
+   *  rather than as Evidence slots. */
+  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   outOfRange?: string;
   skipReason?: string;
   photos?: {
@@ -401,10 +406,16 @@ export const applyCompletion = async (
       farmId: context.farm.id,
       penId: instance.penId,
       dueAt: instance.dueAt,
+      raisedAt: instance.createdAt,
     },
     completionId: saved.id,
     animalId,
     evidence: input.evidence,
+    feeding: input.feeding ?? [],
+    feedTolerancePercent: context.farm.feedTolerancePercent,
+    // From the Version doing the work, so a farm with more than one feeding routine divides
+    // by the schedule that raised this Instance rather than by whichever was written first.
+    sessionsPerDay: sessionsPerDayOf(content),
     destination: input.destination,
     skipped: skipping,
     tolerancePercent: context.farm.milkTolerancePercent,

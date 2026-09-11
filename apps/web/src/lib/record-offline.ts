@@ -20,6 +20,8 @@ export interface StepRecord {
   animalId?: string | null;
   evidence: (boolean | number | string)[];
   destination?: "bulk" | "calves" | "discard";
+  /** What a Step that feeds a Pen actually put out, per Feed Item. */
+  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   outOfRange?: string;
   skipReason?: string;
   /** Taken in the shed. Queued as its own entry against the slot it answers, so a megabyte
