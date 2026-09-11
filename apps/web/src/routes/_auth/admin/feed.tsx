@@ -14,7 +14,6 @@ type RationRow = {
   id: string;
   name: { bn: string; en: string | null };
   number: number | null;
-  sessionsPerDay: number | null;
   items: { feedItemId: string; kgPerAnimalPerDay: number }[];
   penIds: string[];
 };
@@ -143,7 +142,7 @@ const FeedPage = () => {
                   setEditing(null);
                   refresh();
                 }}
-                ration={row as RationRow}
+                ration={row}
               />
             ) : null}
           </article>
@@ -336,9 +335,6 @@ const RationForm = ({
 
   const [name, setName] = useState(ration?.name.bn ?? "");
   const [english, setEnglish] = useState(ration?.name.en ?? "");
-  const [sessions, setSessions] = useState(
-    String(ration?.sessionsPerDay ?? 2)
-  );
   const [kg, setKg] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       (ration?.items ?? []).map((line) => [
@@ -365,15 +361,13 @@ const RationForm = ({
       kgPerAnimalPerDay: Number(kg[item.id] ?? ""),
     }))
     .filter((line) => line.kgPerAnimalPerDay > 0);
-  const timesADay = Number(sessions);
-  const sessionsAreSane = Number.isInteger(timesADay) && timesADay >= 1;
 
   return (
     <form
       className="space-y-2 border-t pt-2"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!(name.trim() && sessionsAreSane)) {
+        if (!name.trim()) {
           return;
         }
         save.mutate({
@@ -382,7 +376,6 @@ const RationForm = ({
             bn: name.trim(),
             ...(english.trim() ? { en: english.trim() } : {}),
           },
-          sessionsPerDay: timesADay,
           items: lines,
         });
       }}
@@ -408,19 +401,6 @@ const RationForm = ({
             value={english}
           />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor={`ration-sessions-${ration?.id ?? "new"}`}>
-            {t("feed.sessionsPerDay")}
-          </Label>
-          <Input
-            className="w-24"
-            id={`ration-sessions-${ration?.id ?? "new"}`}
-            min={1}
-            onChange={(e) => setSessions(e.target.value)}
-            type="number"
-            value={sessions}
-          />
-        </div>
       </div>
       <ul className="space-y-1">
         {offered.map((item) => (
@@ -444,7 +424,7 @@ const RationForm = ({
         ))}
       </ul>
       <Button
-        disabled={lines.length === 0 || !(name.trim() && sessionsAreSane)}
+        disabled={lines.length === 0 || !name.trim()}
         type="submit"
       >
         {t("feed.setRation")}

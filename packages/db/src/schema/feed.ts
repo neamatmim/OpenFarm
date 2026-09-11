@@ -85,9 +85,12 @@ export const rationVersion = pgTable(
       .references(() => ration.id, { onDelete: "cascade" }),
     /** 1, 2, 3 … within the Ration. */
     number: integer("number").notNull(),
-    /** How often this Pen is fed, so one session's share can be worked out from a day's. */
-    sessionsPerDay: integer("sessions_per_day").notNull(),
-    /** [{ feedItemId, kgPerAnimalPerDay }] — what one animal gets in a day. */
+    /**
+     * [{ feedItemId, kgPerAnimalPerDay }] — what one animal gets in a day. How often that day's
+     * worth is split into buckets is the feeding SOP's schedule, not the recipe's business: a
+     * Ration saying twice a day beside an SOP raised three times would feed every bucket at
+     * two thirds, and the working would still read "÷ 2 a day".
+     */
     items: jsonb("items").notNull(),
     note: text("note"),
     publishedBy: text("published_by").references(() => user.id),
@@ -98,5 +101,49 @@ export const rationVersion = pgTable(
     uniqueIndex("ration_version_number_uidx").on(table.rationId, table.number),
     /** The Version in force at a given moment, which is what in-flight work reads. */
     index("ration_version_at_idx").on(table.rationId, table.publishedAt),
+  ]
+);
+
+/**
+ * The recorded act of feeding one Pen in one session: what each Feed Item was owed, what was
+ * actually given, and anything left in the trough from last time. Written by the Step that
+ * did it, in the Completion's own transaction.
+ *
+ * Increment 6 takes Stock off the back of these. Until then a Feeding is the farm's record
+ * that the animals were fed, and the first place a pen off its feed shows up.
+ */
+export const feeding = pgTable(
+  "feeding",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    instanceId: text("instance_id").notNull(),
+    completionId: text("completion_id").notNull(),
+    penId: text("pen_id")
+      .notNull()
+      .references(() => pen.id, { onDelete: "cascade" }),
+    /** The Ration Version this session was worked out from, pinned for ever (ADR 0001). */
+    rationVersionId: text("ration_version_id")
+      .notNull()
+      .references(() => rationVersion.id),
+    /** The animals standing in the Pen when it was fed, and how often that day's ration is
+     *  split — both kept, so the arithmetic can still be shown a year later. */
+    animals: integer("animals").notNull(),
+    sessionsPerDay: integer("sessions_per_day").notNull(),
+    /** [{ feedItemId, targetKg, givenKg, leftoverKg }] */
+    lines: jsonb("lines").notNull(),
+    /** How far under target the whole session came, and when that was worth saying. */
+    shortfallPercent: integer("shortfall_percent").notNull().default(0),
+    flaggedAt: timestamp("flagged_at"),
+    fedBy: text("fed_by").references(() => user.id),
+    fedAt: timestamp("fed_at").notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("feeding_pen_idx").on(table.farmId, table.penId, table.fedAt),
+    /** One Feeding per Completion: a replayed entry is the same meal. */
+    uniqueIndex("feeding_completion_uidx").on(table.completionId),
   ]
 );

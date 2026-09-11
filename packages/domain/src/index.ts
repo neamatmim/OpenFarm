@@ -55,14 +55,16 @@ export {
   isOverdue,
   minutesOverdue,
 } from "./work";
-export type { RationLine } from "./feed";
+export type { FeedingLine, RationLine } from "./feed";
 export {
   KG_DECIMALS,
   MAX_KG_PER_ANIMAL_PER_DAY,
   MAX_SESSIONS_PER_DAY,
   findRationProblems,
+  isShortFed,
   perSessionKg,
   roundKg,
+  shortfallPercent,
 } from "./feed";
 export type { RoleName } from "./roles";
 export { ROLES } from "./roles";
@@ -88,6 +90,7 @@ export {
   TRIGGER_KINDS,
   appliesToAnimal,
   isClosingStep,
+  sessionsPerDayOf,
   findMissingBangla,
   findPublishBlockers,
   findStructuralProblems,

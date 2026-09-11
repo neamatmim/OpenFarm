@@ -32,6 +32,16 @@ export const entryInput = z.discriminatedUnion("kind", [
     animalTag: z.string().trim().optional(),
     evidence: z.array(evidenceValue).default([]),
     destination: z.enum(["bulk", "calves", "discard"]).optional(),
+    /** What a Step that feeds a Pen actually put out, per Feed Item. */
+    feeding: z
+      .array(
+        z.object({
+          feedItemId: z.string(),
+          givenKg: z.number().min(0),
+          leftoverKg: z.number().min(0).optional(),
+        })
+      )
+      .optional(),
     outOfRange: z.string().trim().max(120).optional(),
     skipReason: z.string().trim().max(120).optional(),
     /** The Evidence slots this entry has photos for. The images themselves follow as their

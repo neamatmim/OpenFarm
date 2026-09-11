@@ -18,6 +18,9 @@ export const farm = pgTable("farm", {
   /** How far the bulk total may sit from the sum of the per-cow records before the Manager
    *  is asked to look. */
   milkTolerancePercent: integer("milk_tolerance_percent").notNull().default(5),
+  /** How far under its Feeding Target a Pen may come before the farm says so. Feed is
+   *  weighed by eye more often than by scale, so this is wider than the milk tolerance. */
+  feedTolerancePercent: integer("feed_tolerance_percent").notNull().default(10),
   /** How long an Overdue Instance may stay open before the Owner is told as well. */
   escalationMinutes: integer("escalation_minutes").notNull().default(120),
   /** How long after making an entry each Role may still put it right. The Owner and the Vet

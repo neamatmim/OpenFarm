@@ -1,4 +1,11 @@
-import type { Choice, MilkDestination, Step } from "@OpenFarm/domain";
+import { feeding } from "@OpenFarm/db/schema/feed";
+import type {
+  Choice,
+  FeedingLine,
+  MilkDestination,
+  Step,
+} from "@OpenFarm/domain";
+import { isShortFed, roundKg, shortfallPercent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { uuidv7 } from "@OpenFarm/db/ids";
@@ -7,6 +14,7 @@ import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 
 import type { Tx } from "./audit";
+import { feedingTargetForPen } from "./feed-store";
 import {
   loadLiveAnimal,
   moveOpenWorkWith,
@@ -29,6 +37,12 @@ import {
  */
 export type EffectResult =
   | { kind: "milk_record"; destination: MilkDestination; forced: boolean }
+  | {
+      kind: "feeding";
+      /** What the Pen was owed, and how far under it the session came. */
+      shortfallPercent: number;
+      flagged: boolean;
+    }
   | {
       kind: "observation";
       /** What was seen, as the Version's own choice value. */
@@ -109,12 +123,86 @@ export interface EffectInput {
   destination: MilkDestination | undefined;
   skipped: boolean;
   tolerancePercent: number;
+  /** How far under its Feeding Target a Pen may come before the farm says so. */
+  feedTolerancePercent: number;
+  /** What was actually put in front of the Pen, per Feed Item. */
+  feeding: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   recordedBy: string;
   recordedAt: Date;
   now: Date;
 }
 
 
+
+
+/**
+ * Records what a Pen was actually given against what its Ration owed it.
+ *
+ * The target is worked out from the Ration in force when the work was raised and the animals
+ * standing in the Pen now, and both are written into the record with the figures — so a year
+ * later the arithmetic can still be shown rather than re-derived from a farm that has changed.
+ *
+ * A session appreciably under target is flagged on the farm's own tolerance. That is the
+ * first sign of a pen off its feed, a bag that ran out, or a job somebody did not do.
+ */
+const applyFeedingEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  const owed = await feedingTargetForPen(
+    tx,
+    input.instance.farmId,
+    input.instance.penId,
+    input.instance.dueAt
+  );
+  if (!owed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This pen has no ration to feed against; the Manager sets one before the round",
+    });
+  }
+  const given = new Map(input.feeding.map((line) => [line.feedItemId, line]));
+  const lines: FeedingLine[] = owed.items.map((line) => ({
+    feedItemId: line.feedItemId,
+    targetKg: line.quantity,
+    givenKg: roundKg(given.get(line.feedItemId)?.givenKg ?? 0),
+    leftoverKg: roundKg(given.get(line.feedItemId)?.leftoverKg ?? 0),
+  }));
+  const short = shortfallPercent(lines);
+  const flagged = isShortFed(lines, input.feedTolerancePercent);
+
+  // Keyed on the Completion: a replayed entry is the same meal, and a Correction rewrites
+  // what was given rather than feeding the Pen twice.
+  await tx
+    .insert(feeding)
+    .values({
+      id: uuidv7(input.now),
+      farmId: input.instance.farmId,
+      instanceId: input.instance.id,
+      completionId: input.completionId,
+      penId: input.instance.penId,
+      rationVersionId: owed.rationVersionId,
+      animals: owed.animals,
+      sessionsPerDay: owed.sessionsPerDay,
+      lines,
+      shortfallPercent: short,
+      flaggedAt: flagged ? input.now : null,
+      fedBy: input.recordedBy,
+      fedAt: input.recordedAt,
+      recordedAt: input.now,
+    })
+    .onConflictDoUpdate({
+      target: feeding.completionId,
+      set: {
+        lines,
+        animals: owed.animals,
+        shortfallPercent: short,
+        flaggedAt: flagged ? input.now : null,
+        fedAt: input.recordedAt,
+      },
+    });
+  return { kind: "feeding", shortfallPercent: short, flagged };
+};
 
 /**
  * Records what somebody saw of one animal on the round — the farm's Observation, which
@@ -339,6 +427,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "observation") {
     return await applyObservationEffect(tx, input);
+  }
+  if (effect.kind === "feeding") {
+    return await applyFeedingEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

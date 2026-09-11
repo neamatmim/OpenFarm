@@ -58,6 +58,7 @@ export interface Context {
     name: string;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
+    feedTolerancePercent: number;
     escalationMinutes: number;
     staffCorrectionHours: number;
     managerCorrectionDays: number;

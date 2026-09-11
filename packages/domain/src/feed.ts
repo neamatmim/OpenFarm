@@ -41,22 +41,10 @@ export const perSessionKg = (
 };
 
 /** What is wrong with a Ration, in the Manager's terms rather than the parser's. */
-export const findRationProblems = (ration: {
-  sessionsPerDay: number;
-  items: RationLine[];
-}): string[] => {
+export const findRationProblems = (ration: { items: RationLine[] }): string[] => {
   const problems: string[] = [];
   if (ration.items.length === 0) {
     problems.push("items: a ration needs something in it");
-  }
-  if (
-    !Number.isInteger(ration.sessionsPerDay) ||
-    ration.sessionsPerDay < 1 ||
-    ration.sessionsPerDay > MAX_SESSIONS_PER_DAY
-  ) {
-    problems.push(
-      `sessionsPerDay: a pen is fed between once and ${MAX_SESSIONS_PER_DAY} times a day`
-    );
   }
   const seen = new Set<string>();
   for (const [index, line] of ration.items.entries()) {
@@ -76,3 +64,35 @@ export const findRationProblems = (ration: {
   }
   return problems;
 };
+
+export interface FeedingLine {
+  feedItemId: string;
+  targetKg: number;
+  givenKg: number;
+  leftoverKg: number;
+}
+
+/**
+ * How far under its Feeding Target a session came, as a whole. Per Item would be noise — a
+ * little less straw and a little more concentrate is a normal morning — but a Pen that got
+ * appreciably less than it was owed is the farm's first sign of a problem: a sick pen off its
+ * feed, a bag that ran out, or somebody who did not do it.
+ *
+ * Leftover counts against what was eaten, not against what was given: the trough is the
+ * measure of the meal.
+ */
+export const shortfallPercent = (lines: FeedingLine[]): number => {
+  const owed = lines.reduce((total, line) => total + line.targetKg, 0);
+  if (owed <= 0) {
+    return 0;
+  }
+  const eaten = lines.reduce(
+    (total, line) => total + Math.max(line.givenKg - line.leftoverKg, 0),
+    0
+  );
+  return Math.max(Math.round(((owed - eaten) / owed) * 100), 0);
+};
+
+/** Was this session short enough to be worth saying out loud? */
+export const isShortFed = (lines: FeedingLine[], tolerancePercent: number) =>
+  shortfallPercent(lines) > tolerancePercent;

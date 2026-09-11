@@ -47,6 +47,7 @@ import {
   recentHappenings,
 } from "../instances-store";
 import { pushRaised } from "../push-send";
+import { feedingTargetForPen } from "../feed-store";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
@@ -58,6 +59,13 @@ const reasonInput = z.string().trim().min(1).max(200);
 
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
+/** What one Feed Item was actually given, for a Step that feeds a Pen. */
+const feedingLine = z.object({
+  feedItemId: z.string(),
+  givenKg: z.number().min(0),
+  leftoverKg: z.number().min(0).optional(),
+});
+
 const completionInput = z.object({
   instanceId: z.string(),
   stepId: z.string().trim().min(1),
@@ -68,6 +76,10 @@ const completionInput = z.object({
    *  decides the final answer, because a cow under Withdrawal goes to Discard whatever the
    *  phone worked out from its last sync. */
   destination: z.enum(MILK_DESTINATIONS).optional(),
+  /** What was actually put in front of the Pen, per Feed Item, for a Step that feeds. The
+   *  Items come from the Pen's Ration rather than from the Version, so they travel beside
+   *  the Evidence rather than as slots in it. */
+  feeding: z.array(feedingLine).optional(),
   /** Set when the person was warned a number was outside its range and went ahead. */
   outOfRange: z.string().trim().max(120).optional(),
   skipReason: z.string().trim().max(120).optional(),
@@ -337,10 +349,37 @@ export const instancesRouter = {
         },
       });
       const now = context.clock.now();
+      // What this Pen is owed this session, for a Playbook entry that feeds. Worked out on
+      // the Ration in force when the work was raised, so a Ration changed this afternoon does
+      // not rewrite what the morning's round was asked for.
+      const feeds = content.steps.some(
+        (step) => step.effect?.kind === "feeding"
+      );
+      const feeding = feeds
+        ? await feedingTargetForPen(
+            context.db,
+            context.farm.id,
+            instance.penId,
+            instance.dueAt
+          )
+        : null;
+      const fed = feeds
+        ? await context.db.query.feeding.findFirst({
+            where: { instanceId: instance.id },
+            columns: {
+              lines: true,
+              shortfallPercent: true,
+              flaggedAt: true,
+              animals: true,
+            },
+          })
+        : null;
       return {
         ...instance,
         content,
         milkingSession: milkingSession ?? null,
+        feeding,
+        fed: fed ?? null,
         // The gate the tile renders: the phone re-checks it offline from this, and the
         // server checks it again when the entry lands.
         animals: animals.map((beast) => ({
@@ -663,6 +702,7 @@ export const instancesRouter = {
         completionId: z.string(),
         evidence: z.array(evidenceValue).default([]),
         destination: z.enum(MILK_DESTINATIONS).optional(),
+        feeding: z.array(feedingLine).optional(),
         outOfRange: z.string().trim().max(120).optional(),
         skipReason: z.string().trim().max(120).optional(),
         reason: reasonInput,
@@ -764,6 +804,8 @@ export const instancesRouter = {
             animalId: existing.animalId,
             evidence: input.evidence,
             destination: input.destination,
+            feeding: input.feeding ?? [],
+            feedTolerancePercent: context.farm.feedTolerancePercent,
             skipped: skipping,
             tolerancePercent: context.farm.milkTolerancePercent,
             recordedBy: existing.recordedBy,

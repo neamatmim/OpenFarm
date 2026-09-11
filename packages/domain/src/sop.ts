@@ -49,13 +49,16 @@ export type StepEffect =
   /** The Pen she was walked to, recorded as a Move by the work that walked her. */
   | { kind: "move" }
   /** What somebody saw of her on the round — off her feed, limping, bulling. */
-  | { kind: "observation" };
+  | { kind: "observation" }
+  /** What this Pen was actually given, against what its Ration owed it. */
+  | { kind: "feeding" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
   "bulk_total",
   "move",
   "observation",
+  "feeding",
 ] as const;
 
 export interface Step {
@@ -166,6 +169,15 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   }
   const path = `steps[${stepIndex}]`;
   const problems: string[] = [];
+  if (effect.kind === "feeding") {
+    // What was given is a figure per Feed Item, and the Items come from the Pen's Ration
+    // rather than from the Version — so this Step declares no Evidence of its own beyond
+    // whatever the Owner wants recorded alongside.
+    if (step.repeatPerAnimal) {
+      problems.push(`${path}.effect: a Pen is fed once, not once per animal`);
+    }
+    return problems;
+  }
   if (effect.kind === "move" || effect.kind === "observation") {
     // Both are a choice the person makes about one animal: which Pen she was walked to, or
     // what was seen of her. A Step that offers nothing to choose would silently do nothing.
@@ -289,6 +301,19 @@ export const findPublishBlockers = (content: SopContent): string[] => [
   ...findStructuralProblems(content),
   ...findMissingBangla(content).map((path) => `${path}: Bangla is required`),
 ];
+
+/**
+ * How many times a day this Playbook entry falls due — which is how often a Pen it feeds is
+ * fed, and therefore what a day's Ration is divided by. Stated here and nowhere else: the
+ * schedule that raises the work is the only honest answer to "how often".
+ */
+export const sessionsPerDayOf = (content: SopContent): number => {
+  const times = content.triggers.flatMap((trigger) =>
+    trigger.kind === "schedule" ? trigger.times : []
+  );
+  // Work raised by something that happened is fed as one session when it happens.
+  return Math.max(times.length, 1);
+};
 
 /** Does this SOP concern that animal? */
 export const appliesToAnimal = (

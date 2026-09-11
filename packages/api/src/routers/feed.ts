@@ -6,19 +6,13 @@ import {
   ration,
   rationVersion,
 } from "@OpenFarm/db/schema/feed";
-import { MAX_SESSIONS_PER_DAY, findRationProblems } from "@OpenFarm/domain";
+import { findRationProblems } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import {
-  animalsInPen,
-  feedingTargetFor,
-  feedsById,
-  linesOf,
-  rationInForceAt,
-} from "../feed-store";
+import { feedingTargetForPen, linesOf } from "../feed-store";
 import { assertPenIsTheirs, requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
@@ -32,7 +26,6 @@ const rationInput = z.object({
   /** Omitted for a new Ration; given to publish the next Version of one that exists. */
   rationId: z.string().optional(),
   name: bilingual,
-  sessionsPerDay: z.number().int().min(1).max(MAX_SESSIONS_PER_DAY),
   items: z
     .array(
       z.object({ feedItemId: z.string(), kgPerAnimalPerDay: z.number() })
@@ -51,7 +44,6 @@ const readRation = async (tx: Tx, rationId: string) => {
     ? {
         name: row.nameBn,
         number: row.currentVersion.number,
-        sessionsPerDay: row.currentVersion.sessionsPerDay,
         items: linesOf(row.currentVersion.items),
       }
     : null;
@@ -155,7 +147,6 @@ export const feedRouter = {
         name: { bn: row.nameBn, en: row.nameEn },
         retiredAt: row.retiredAt,
         number: row.currentVersion?.number ?? null,
-        sessionsPerDay: row.currentVersion?.sessionsPerDay ?? null,
         items: linesOf(row.currentVersion?.items),
         penIds: row.pens.map((assignment) => assignment.penId),
       }));
@@ -235,7 +226,6 @@ export const feedRouter = {
             farmId: context.farm.id,
             rationId,
             number,
-            sessionsPerDay: input.sessionsPerDay,
             items: input.items,
             note: input.note ?? null,
             publishedBy: context.actor.id,
@@ -304,11 +294,11 @@ export const feedRouter = {
 
   /**
    * What one session calls for in this Pen, with the working shown: the Ration in force, the
-   * animals standing there, and how often they are fed.
+   * animals standing there, and how often the Playbook feeds them.
    *
    * `rationAsOf` asks which Ration Version to read — work raised yesterday is fed on
-   * yesterday's Ration. The animals are always the animals standing there *now*, because
-   * they are who eats: a cow who arrived this morning is fed this evening.
+   * yesterday's Ration. The animals are always the animals standing there *now*, because they
+   * are who eats: a cow who arrived this morning is fed this evening.
    */
   target: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
@@ -317,47 +307,27 @@ export const feedRouter = {
     )
     .handler(async ({ context, input }) => {
       assertPenIsTheirs(context, input.penId);
-      const nothing = {
-        ration: null,
-        animals: 0,
-        sessionsPerDay: 0,
-        items: [],
-      };
-      const assigned = await context.db.query.penRation.findFirst({
-        where: { penId: input.penId, farmId: context.farm.id },
-        with: { ration: { columns: { id: true, nameBn: true, nameEn: true } } },
-      });
-      if (!assigned) {
-        // A Pen on no Ration is a thing the screen says, not a zero it shows.
-        return nothing;
-      }
-      const version = await rationInForceAt(
-        context.db,
-        assigned.rationId,
-        input.rationAsOf ?? context.clock.now()
-      );
-      if (!version) {
-        return nothing;
-      }
-      const animals = await animalsInPen(
+      const found = await feedingTargetForPen(
         context.db,
         context.farm.id,
-        input.penId
+        input.penId,
+        input.rationAsOf ?? context.clock.now()
       );
+      if (!found) {
+        // A Pen on no Ration, or a Playbook that does not feed yet: things the screen says,
+        // not zeros it shows.
+        return { ration: null, animals: 0, sessionsPerDay: 0, items: [] };
+      }
       return {
         ration: {
-          id: assigned.ration.id,
-          versionId: version.id,
-          name: { bn: assigned.ration.nameBn, en: assigned.ration.nameEn },
-          number: version.number,
+          id: found.rationId,
+          versionId: found.rationVersionId,
+          name: found.name,
+          number: found.number,
         },
-        animals,
-        sessionsPerDay: version.sessionsPerDay,
-        items: feedingTargetFor(
-          { lines: linesOf(version.items), sessionsPerDay: version.sessionsPerDay },
-          await feedsById(context.db, context.farm.id),
-          animals
-        ),
+        animals: found.animals,
+        sessionsPerDay: found.sessionsPerDay,
+        items: found.items,
       };
     }),
 };

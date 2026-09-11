@@ -44,6 +44,10 @@ export interface CompletionEntry {
   animalTag?: string;
   evidence: (boolean | number | string)[];
   destination?: MilkDestination;
+  /** What was actually put in front of the Pen, per Feed Item, for a Step that feeds. The
+   *  Items come from the Pen's Ration rather than from the Version, so they travel here
+   *  rather than as Evidence slots. */
+  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   outOfRange?: string;
   skipReason?: string;
   photos?: {
@@ -405,6 +409,8 @@ export const applyCompletion = async (
     completionId: saved.id,
     animalId,
     evidence: input.evidence,
+    feeding: input.feeding ?? [],
+    feedTolerancePercent: context.farm.feedTolerancePercent,
     destination: input.destination,
     skipped: skipping,
     tolerancePercent: context.farm.milkTolerancePercent,

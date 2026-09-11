@@ -149,11 +149,21 @@ const WorkPage = () => {
     animals: fromFarm,
     completions,
     state,
+    feeding,
   } = instance.data as unknown as {
     content: SopContent;
     animals: Animal[];
     completions: Completion[];
     state: string;
+    /** What this Pen is owed this session, for a Playbook entry that feeds. */
+    feeding: {
+      items: {
+        feedItemId: string;
+        nameBn: string;
+        unit: string;
+        quantity: number;
+      }[];
+    } | null;
   };
   // The Gate the tile renders comes from whichever the phone has: what the farm said this
   // time, or what it last cached. The farm decides again when the entry lands.
@@ -210,6 +220,7 @@ const WorkPage = () => {
       correct.mutate({
         completionId: existing.id,
         destination: payload.destination,
+        feeding: payload.feeding,
         evidence: payload.evidence,
         outOfRange: payload.outOfRange,
         reason: payload.reason,
@@ -250,6 +261,7 @@ const WorkPage = () => {
     return (
       <EvidenceSheet
         correcting={Boolean(existing)}
+        feeding={feeding}
         onCancel={() => setOpenStep(null)}
         onRecord={(payload) => send(openStep, existing, payload)}
         step={openStep}
@@ -422,6 +434,8 @@ interface RecordPayload {
   skipReason?: string;
   outOfRange?: string;
   destination?: MilkDestination;
+  /** What a Step that feeds a Pen actually put out, per Feed Item. */
+  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   /** One per Evidence slot that asked for a picture. */
   photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
   /** Set when the entry already exists: changing a recorded fact is a Correction, and a
@@ -435,6 +449,7 @@ const EvidenceSheet = ({
   step,
   animal,
   correcting,
+  feeding,
   onCancel,
   onRecord,
 }: {
@@ -442,6 +457,15 @@ const EvidenceSheet = ({
   animal?: Animal;
   /** The entry already exists, so saving it again is a Correction. */
   correcting: boolean;
+  /** What this Pen is owed this session, for a Step that feeds. */
+  feeding?: {
+    items: {
+      feedItemId: string;
+      nameBn: string;
+      unit: string;
+      quantity: number;
+    }[];
+  } | null;
   onCancel: () => void;
   onRecord: (payload: RecordPayload) => void;
 }) => {
@@ -462,6 +486,13 @@ const EvidenceSheet = ({
     locked ? "discard" : "bulk"
   );
   const recordsMilk = step.effect?.kind === "milk_record";
+  const feedsThePen = step.effect?.kind === "feeding";
+  const [given, setGiven] = useState<Record<string, string>>({});
+  const [leftover, setLeftover] = useState<Record<string, string>>({});
+
+  /** What this Pen is owed, prefilled: a normal day is confirming the figures, and a sick
+   *  pen is the one where somebody changes them. */
+  const feedingRows = feedsThePen ? (feeding?.items ?? []) : [];
 
   const setValue = (index: number, value: boolean | number | string) => {
     setValues((current) => ({ ...current, [index]: value }));
@@ -513,6 +544,13 @@ const EvidenceSheet = ({
       ),
       outOfRange: outside ?? undefined,
       destination: recordsMilk ? destination : undefined,
+      feeding: feedsThePen
+        ? (feeding?.items ?? []).map((line) => ({
+            feedItemId: line.feedItemId,
+            givenKg: Number(given[line.feedItemId] ?? line.quantity),
+            leftoverKg: Number(leftover[line.feedItemId] ?? 0),
+          }))
+        : undefined,
       photos: Object.entries(photos).map(([slot, taken]) => ({
         slot: Number(slot),
         ...taken,
@@ -604,6 +642,44 @@ const EvidenceSheet = ({
           onChange={setDestination}
         />
       ) : null}
+
+      {feedingRows.map((line) => (
+        <div className="space-y-2" key={line.feedItemId}>
+          <p className="text-sm">
+            {line.nameBn} · {t("feed.target")}: {line.quantity} {line.unit}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              aria-label={`${line.nameBn} ${t("work.given")}`}
+              className="h-14 text-lg"
+              inputMode="decimal"
+              onChange={(event) =>
+                setGiven((current) => ({
+                  ...current,
+                  [line.feedItemId]: event.target.value,
+                }))
+              }
+              placeholder={t("work.given")}
+              type="number"
+              value={given[line.feedItemId] ?? String(line.quantity)}
+            />
+            <Input
+              aria-label={`${line.nameBn} ${t("work.leftover")}`}
+              className="h-14 text-lg"
+              inputMode="decimal"
+              onChange={(event) =>
+                setLeftover((current) => ({
+                  ...current,
+                  [line.feedItemId]: event.target.value,
+                }))
+              }
+              placeholder={t("work.leftover")}
+              type="number"
+              value={leftover[line.feedItemId] ?? ""}
+            />
+          </div>
+        </div>
+      ))}
 
       {correcting ? (
         <div className="space-y-2">

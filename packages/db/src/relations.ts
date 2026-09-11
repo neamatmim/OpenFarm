@@ -72,6 +72,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.sopDefinition.id,
       to: r.sopVersion.definitionId,
     }),
+    instances: r.many.sopInstance({
+      from: r.sopDefinition.id,
+      to: r.sopInstance.definitionId,
+    }),
     currentVersion: r.one.sopVersion({
       from: r.sopDefinition.currentVersionId,
       to: r.sopVersion.id,
