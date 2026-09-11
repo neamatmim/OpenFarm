@@ -16,6 +16,7 @@
   "dependencies": {
     "@OpenFarm/auth": "workspace:*",
     "@OpenFarm/db": "workspace:*",
+    "@OpenFarm/domain": "workspace:*",
     "@OpenFarm/env": "workspace:*",
     "@OpenFarm/i18n": "workspace:*",
     "@orpc/client": "catalog:",

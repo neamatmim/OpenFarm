@@ -10,6 +10,9 @@ allowBuilds:
   ssh2: false
 overrides:
   vite: "npm:@voidzero-dev/vite-plus-core@0.3.1"
+  # One drizzle-orm for the whole workspace: better-auth's adapter introspects the same
+  # tables our schema defines, and drizzle-kit resolves whichever copy is hoisted.
+  drizzle-orm: 1.0.0-rc.4
 catalog:
   dotenv: ^17.4.2
   zod: ^4.6.1

@@ -3,6 +3,30 @@ import { defineRelations } from "drizzle-orm";
 import * as schema from "./schema";
 
 export const relations = defineRelations(schema, (r) => ({
+  shed: {
+    pens: r.many.pen({ from: r.shed.id, to: r.pen.shedId }),
+  },
+  pen: {
+    shed: r.one.shed({ from: r.pen.shedId, to: r.shed.id, optional: false }),
+    animals: r.many.animal({ from: r.pen.id, to: r.animal.penId }),
+  },
+  animal: {
+    pen: r.one.pen({ from: r.animal.penId, to: r.pen.id, optional: false }),
+    moves: r.many.animalMove({ from: r.animal.id, to: r.animalMove.animalId }),
+    retags: r.many.retag({ from: r.animal.id, to: r.retag.animalId }),
+  },
+  animalMove: {
+    animal: r.one.animal({
+      from: r.animalMove.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    toPen: r.one.pen({
+      from: r.animalMove.toPenId,
+      to: r.pen.id,
+      optional: false,
+    }),
+  },
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
   },

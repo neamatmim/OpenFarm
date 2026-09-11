@@ -11,6 +11,8 @@ export default defineConfig({
       "apps/web/src/routeTree.gen.ts",
       "packages/db/dist/**",
       "packages/db/src/migrations/**",
+      // drizzle-kit and defineRelations need one module exporting every table
+      "packages/db/src/schema/index.ts",
     ],
     options: {
       typeAware: false,

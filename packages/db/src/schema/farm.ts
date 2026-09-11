@@ -77,23 +77,3 @@ export const invite = pgTable(
   },
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]
 );
-
-/** Which Pens a Staff person is responsible for. Pens themselves arrive with the herd
- *  register; until then `penId` is an opaque identifier without a foreign key. */
-export const penAssignment = pgTable(
-  "pen_assignment",
-  {
-    id: text("id").primaryKey(),
-    farmId: text("farm_id")
-      .notNull()
-      .references(() => farm.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    penId: text("pen_id").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    uniqueIndex("pen_assignment_user_pen_uidx").on(table.userId, table.penId),
-  ]
-);
