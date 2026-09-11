@@ -5,6 +5,7 @@ export * from "./auth";
 export * from "./backup";
 export * from "./device";
 export * from "./farm";
+export * from "./feed";
 export * from "./herd";
 export * from "./instance";
 export * from "./milk";

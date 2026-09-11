@@ -7,6 +7,7 @@ import { auditRouter } from "./audit";
 import { backupsRouter } from "./backups";
 import { devicesRouter } from "./devices";
 import { farmRouter } from "./farm";
+import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
 import { instancesRouter } from "./instances";
 import { languageRouter } from "./language";
@@ -28,6 +29,7 @@ export const appRouter = {
   backups: backupsRouter,
   devices: devicesRouter,
   farm: farmRouter,
+  feed: feedRouter,
   herd: herdRouter,
   instances: instancesRouter,
   language: languageRouter,
