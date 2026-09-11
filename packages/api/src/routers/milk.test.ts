@@ -272,6 +272,39 @@ describe("the milking effect", () => {
     const loaded = await staff.client.milk.session({ instanceId: instance.id });
     expect(loaded.records).toEqual([]);
   });
+
+  it("refuses to book litres to a cow that has left the farm", async () => {
+    // Her own cow, so that killing her does not take a cow off the later tests' pen board.
+    const doomed = await world.owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: world.pen.id,
+      source: "born",
+      aliases: [],
+    });
+    // Deliberately sequential: the lifecycle refuses a state that skips a step.
+    const walkTo = (state: "pregnant_heifer" | "milking" | "died") =>
+      world.owner.client.animals.setState({
+        tagNumber: doomed.tagNumber,
+        state,
+        reason: "test",
+      });
+    await walkTo("pregnant_heifer");
+    await walkTo("milking");
+    await walkTo("died");
+    const { instance, staff } = await session("2026-10-13");
+
+    // She keeps her Pen, so the Pen alone would still have let the entry through.
+    await expect(
+      staff.client.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "milk",
+        animalTag: doomed.tagNumber,
+        evidence: [8],
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
 });
 
 describe("reconciling the tank", () => {
@@ -446,6 +479,123 @@ describe("reconciling the tank", () => {
   });
 });
 
+describe("review findings", () => {
+  it("asks the Withdrawal gate at whichever clock still holds it shut", async () => {
+    const { instance, staff, clock } = await session(
+      "2026-10-14",
+      world.sickPen.id
+    );
+    await scratchDb()
+      .update(animal)
+      .set({ milkWithdrawalUntil: new Date(clock.now().getTime() + 2 * DAY) })
+      .where(eq(animal.tagNumber, world.sickCow.tagNumber));
+
+    // A phone whose clock runs a week fast — or one sending a made-up time — would walk
+    // this cow's milk into the tank if the gate believed it.
+    const recorded = await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "milk",
+      animalTag: world.sickCow.tagNumber,
+      evidence: [9],
+      destination: "bulk",
+      recordedAt: new Date(clock.now().getTime() + 7 * DAY),
+    });
+
+    expect(recorded.effect).toMatchObject({
+      destination: "discard",
+      forced: true,
+    });
+
+    await scratchDb()
+      .update(animal)
+      .set({ milkWithdrawalUntil: null })
+      .where(eq(animal.tagNumber, world.sickCow.tagNumber));
+  });
+
+  it("refuses a destination on a step that records no milk", async () => {
+    const { instance, staff } = await session("2026-10-15");
+
+    await expect(
+      staff.client.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "bulk",
+        evidence: [20],
+        destination: "calves",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("reads the reconciliation back on the Instance the Manager opens", async () => {
+    const { instance, staff, manager } = await session("2026-10-16");
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "milk",
+      animalTag: tagOf(0),
+      evidence: [10],
+    });
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "milk",
+      animalTag: tagOf(1),
+      evidence: [10],
+    });
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "bulk",
+      evidence: [25],
+    });
+
+    const opened = await manager.client.instances.get({ id: instance.id });
+    expect(opened.milkingSession).toMatchObject({
+      bulkLitres: "25.00",
+      sumBulkLitres: "20.00",
+      differenceLitres: "5.00",
+    });
+    expect(opened.milkingSession?.flaggedAt).not.toBeNull();
+  });
+
+  it("does not date an opening-register cow's lactation to the day she was written down", async () => {
+    const csv = [
+      "sex,side,state,pen,source",
+      `female,dairy,milking,${world.pen.name},bought`,
+    ].join("\n");
+
+    const result = await world.owner.client.animals.importRegister({ csv });
+    const [imported] = result.imported;
+    if (!imported) {
+      throw new Error(`expected an imported row: ${JSON.stringify(result)}`);
+    }
+
+    // She is in her first recorded Lactation, but nobody said when she calved — so how far
+    // into it she is stays unknown rather than reading as day zero.
+    const curve = await world.owner.client.milk.forAnimal({
+      tagNumber: imported.tagNumber,
+    });
+    expect(curve).toMatchObject({
+      lactationNumber: 1,
+      lactationStartedAt: null,
+      daysInMilk: null,
+    });
+  });
+
+  it("refuses a calving date in the future at registration too", async () => {
+    const clock = new FakeClock("2026-10-17T06:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+
+    await expect(
+      owner.client.animals.register({
+        sex: "female",
+        side: "dairy",
+        state: "pregnant_heifer",
+        penId: world.pen.id,
+        source: "bought",
+        aliases: [],
+        calvedAt: new Date(clock.now().getTime() + DAY),
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
 describe("lactations", () => {
   it("numbers themselves and count their own days, from the calving date", async () => {
     const clock = new FakeClock("2026-10-10T06:00:00.000Z");
@@ -540,9 +690,12 @@ describe("lactations", () => {
     });
 
     const curve = await staff.client.milk.forAnimal({ tagNumber: tagOf(0) });
-    expect(curve.records[0]).toMatchObject({
-      litres: "14.00",
-      lactationNumber: curve.lactationNumber,
-    });
+    // Order-independent: other tests in this file milk her too, on their own days.
+    expect(curve.records.map((record) => record.litres)).toContain("14.00");
+    expect(
+      curve.records.every(
+        (record) => record.lactationNumber === curve.lactationNumber
+      )
+    ).toBe(true);
   });
 });

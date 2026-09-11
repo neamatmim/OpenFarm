@@ -1,8 +1,7 @@
-import { daysInMilk, underMilkWithdrawal } from "@OpenFarm/domain";
+import { lactationView, roundLitres } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { litresOf } from "../milk-store";
 import { requireRole } from "../roles";
@@ -74,13 +73,11 @@ export const milkRouter = {
     .use(requireRole("owner", "manager", "staff", "vet"))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        input.tagNumber.toUpperCase()
-      );
       const beast = await context.db.query.animal.findFirst({
-        where: { id: target.id },
+        where: {
+          farmId: context.farm.id,
+          tagNumber: input.tagNumber.toUpperCase(),
+        },
         columns: {
           tagNumber: true,
           state: true,
@@ -103,28 +100,22 @@ export const milkRouter = {
         },
       });
       if (!beast) {
-        throw new ORPCError("NOT_FOUND");
+        throw new ORPCError("NOT_FOUND", {
+          message: `No animal with tag ${input.tagNumber}`,
+        });
       }
-      const now = context.clock.now();
-      // Only what she gave in the Lactation she is in: an earlier one is a different curve.
-      const thisLactation = beast.milkRecords.filter(
+      // Only what she gave in the Lactation she is in: an earlier one is a different curve,
+      // and a total spanning both would be a number that means nothing.
+      const records = beast.milkRecords.filter(
         (record) => record.lactationNumber === beast.lactationNumber
       );
       return {
         tagNumber: beast.tagNumber,
-        lactationNumber: beast.lactationNumber,
-        lactationStartedAt: beast.lactationStartedAt,
-        daysInMilk:
-          beast.state === "milking"
-            ? daysInMilk(beast.lactationStartedAt, now)
-            : null,
-        underMilkWithdrawal: underMilkWithdrawal(beast, now),
-        milkWithdrawalUntil: beast.milkWithdrawalUntil,
-        recentLitres: thisLactation.reduce(
-          (total, record) => total + litresOf(record.litres),
-          0
+        ...lactationView(beast, context.clock.now()),
+        lactationLitres: roundLitres(
+          records.reduce((total, record) => total + litresOf(record.litres), 0)
         ),
-        records: beast.milkRecords,
+        records,
       };
     }),
 };

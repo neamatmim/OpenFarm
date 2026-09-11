@@ -24,3 +24,14 @@ Decisions worth remembering:
 - **Exactly at the Tolerance is not flagged**; beyond it is. The Tolerance in force is stored on the Session, so a flag stays explicable after the Manager changes the parameter.
 - **Nothing about a Lactation is typed.** Reaching Milking starts the next one and the number goes up by one; the only input anyone gives is when she calved, and days-in-milk is derived from that. A cow with no seeded calving date reads as unknown rather than as day zero.
 - A Version whose Step writes a record but asks for no figure — or records milk once for the whole Pen — cannot be published.
+
+**Review outcomes folded in (follow-up commit).** Both review axes independently found the same hole, and it was the one that mattered:
+
+- **The Withdrawal gate ran on the phone's clock.** `recordedAt` arrives from the device — offline capture needs it — and the gate compared it against the Withdrawal's end. A phone running fast, or one sending a made-up time, walked a treated cow's milk into the tank while the record said `forced: false`. The server's clock alone is no better: milk drawn under a Withdrawal that ended before the phone found signal would also pass. The gate now asks whichever of the two clocks still holds it shut.
+- **An opening-register cow read as day 0 of her Lactation.** Registering her dated the Lactation to today, so a cow two hundred days in showed as freshly calved — the ticket's own note says she should read as unknown. Without a seeded calving date the start is now null, and days-in-milk with it.
+- **The flag never reached the Instance.** The reconciliation lived only on the Milking Session, and the only reader was a procedure no screen called — so a Manager opening the flagged work saw nothing. `instances.get` now hands back the Session's reconciliation.
+- **A forced Destination was silent.** The record knew the answer had been taken out of the person's hands; the phone showed a plain tick. It now says so.
+- A `bulk_total` Step accepted a Destination, so a tank reading could be filed as "calves"; a future calving date was refused on `setState` but not at registration; `farm.setParameters` also edited the Shed Phone auto-lock, which nothing here asked for.
+- Tidying: one rounding for litres shared by the arithmetic and the column, one derived `lactationView` behind both screens that show it, a named type for the Session key, a redundant read dropped from `milk.forAnimal`, its total and its records now covering the same Lactation, and a dead translation key removed.
+
+Separately, `resolveStepAnimal` accepted an animal that had left the farm as long as it still carried the Instance's Pen — ticket 08's review closed that for the pen board and for finishing, but not for the write itself. With Steps now writing farm records it would have booked litres to a sold cow.

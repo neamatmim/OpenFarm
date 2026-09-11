@@ -4,8 +4,19 @@ export const MILK_DESTINATIONS = ["bulk", "calves", "discard"] as const;
 export type MilkDestination = (typeof MILK_DESTINATIONS)[number];
 
 const PERCENT = 100;
-/** Litres are kept to two decimals, matching the column; arithmetic rounds to the same. */
-const round2 = (value: number): number => Math.round(value * 100) / 100;
+/** Litres are kept to two decimals, and the column they live in keeps the same. One scale,
+ *  used for both the arithmetic and the value written, so the two cannot drift apart. */
+export const LITRE_DECIMALS = 2;
+const LITRE_SCALE = 10 ** LITRE_DECIMALS;
+
+const toScale = (value: number): number =>
+  Math.round(value * LITRE_SCALE) / LITRE_SCALE;
+
+/** Litres as the record keeps them — the one rounding, shared by the arithmetic here and by
+ *  the value written to the column, so the two cannot drift apart. */
+export const roundLitres = toScale;
+/** Percentages are reported to the same two decimals. */
+const roundPercent = toScale;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -56,19 +67,19 @@ export const reconcile = (
   sumBulkLitres: number,
   tolerancePercent: number
 ): Reconciliation => {
-  const differenceLitres = round2(bulkLitres - sumBulkLitres);
+  const differenceLitres = roundLitres(bulkLitres - sumBulkLitres);
   // With nothing recorded for the tank there is no percentage to take: milk in it at all is
   // entirely unaccounted for, and none at all is nothing to flag.
   let differencePercent = PERCENT;
   if (sumBulkLitres > 0) {
-    differencePercent = round2(
+    differencePercent = roundPercent(
       (Math.abs(differenceLitres) / sumBulkLitres) * PERCENT
     );
   } else if (differenceLitres === 0) {
     differencePercent = 0;
   }
   return {
-    sumBulkLitres: round2(sumBulkLitres),
+    sumBulkLitres: roundLitres(sumBulkLitres),
     differenceLitres,
     differencePercent,
     flagged: differencePercent > tolerancePercent,
@@ -87,3 +98,33 @@ export const daysInMilk = (
   const elapsed = now.getTime() - lactationStartedAt.getTime();
   return Math.max(0, Math.floor(elapsed / DAY_MS));
 };
+
+export interface LactationView {
+  lactationNumber: number;
+  lactationStartedAt: Date | null;
+  /** Null unless she is in milk right now. */
+  daysInMilk: number | null;
+  underMilkWithdrawal: boolean;
+  milkWithdrawalUntil: Date | null;
+}
+
+/** Everything about a cow's Lactation that is derived rather than stored, in one place, so
+ *  every screen that shows it shows the same thing. */
+export const lactationView = (
+  animal: {
+    state: string;
+    lactationNumber: number;
+    lactationStartedAt: Date | null;
+    milkWithdrawalUntil: Date | null;
+  },
+  now: Date
+): LactationView => ({
+  lactationNumber: animal.lactationNumber,
+  lactationStartedAt: animal.lactationStartedAt,
+  daysInMilk:
+    animal.state === "milking"
+      ? daysInMilk(animal.lactationStartedAt, now)
+      : null,
+  underMilkWithdrawal: underMilkWithdrawal(animal, now),
+  milkWithdrawalUntil: animal.milkWithdrawalUntil,
+});

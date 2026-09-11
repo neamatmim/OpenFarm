@@ -3,8 +3,10 @@ import { and, eq, sql } from "@OpenFarm/db/operators";
 import { milkRecord, milkingSession } from "@OpenFarm/db/schema/milk";
 import type { MilkDestination, Reconciliation } from "@OpenFarm/domain";
 import {
+  LITRE_DECIMALS,
   destinationFor,
   reconcile,
+  roundLitres,
   underMilkWithdrawal,
 } from "@OpenFarm/domain";
 
@@ -14,13 +16,22 @@ import type { Tx } from "./audit";
  *  are converted at the edge rather than left to drift as floats in the middle. */
 export const litresOf = (value: string | null | undefined): number =>
   value === null || value === undefined ? 0 : Number(value);
-const asLitres = (value: number): string => value.toFixed(2);
+const asLitres = (value: number): string =>
+  roundLitres(value).toFixed(LITRE_DECIMALS);
+
+/** What a Milking Session is opened from: the Instance it belongs to. */
+export interface SessionKey {
+  id: string;
+  farmId: string;
+  penId: string;
+  dueAt: Date;
+}
 
 /** The Milking Session for an Instance, created the first time an effect needs one. The
  *  unique index on the Instance makes this idempotent however often the phone replays. */
 export const ensureSession = async (
   tx: Tx,
-  instance: { id: string; farmId: string; penId: string; dueAt: Date },
+  instance: SessionKey,
   now: Date
 ): Promise<string> => {
   const [row] = await tx
@@ -90,9 +101,16 @@ export const writeMilkRecord = async (
   if (!beast) {
     throw new Error(`no animal ${entry.animalId}`);
   }
+  // The Gate is a hard block, so it is asked at whichever of the two clocks still holds it
+  // shut. The phone's clock alone would let a device running fast — or one sending a made-up
+  // time — walk a treated cow's milk into the tank; the server's clock alone would let milk
+  // drawn under a Withdrawal through if the phone only reached signal after it ended.
+  const gateAt = new Date(
+    Math.min(entry.recordedAt.getTime(), entry.now.getTime())
+  );
   const { destination, forced } = destinationFor(
     entry.requested,
-    underMilkWithdrawal(beast, entry.recordedAt)
+    underMilkWithdrawal(beast, gateAt)
   );
   const values = {
     farmId: entry.farmId,

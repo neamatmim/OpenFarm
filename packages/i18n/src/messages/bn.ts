@@ -261,7 +261,7 @@ export const bn: Record<MessageKey, string> = {
   "milk.discard": "ফেলে দেওয়া",
   "milk.withdrawal": "উইথড্রয়াল চলছে — এই দুধ ট্যাংকে যাবে না",
   "milk.withdrawalShort": "উইথড্রয়াল",
-  "milk.sum": "এ পর্যন্ত গাভী: {litres} লিটার",
+  "milk.forced": "উইথড্রয়াল চলছে — ট্যাংকে নয়, ফেলে দেওয়া হিসেবে লেখা হলো",
   "milk.difference": "ট্যাংক গাভীর হিসাব থেকে {litres} লিটার দূরে",
   "milk.matched": "ট্যাংক ও গাভীর হিসাব মিলেছে",
   "milk.flagged": "ম্যানেজার এটি দেখবেন",

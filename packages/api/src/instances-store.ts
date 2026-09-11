@@ -12,7 +12,7 @@ const MINUTE_MS = 60_000;
 
 /** An animal that has left the farm keeps its Pen, so every selection must exclude exits —
  *  otherwise a sold or dead cow appears on the pen board and blocks the Instance. */
-const isOnTheFarm = (row: { state: string }): boolean =>
+export const isOnTheFarm = (row: { state: string }): boolean =>
   !(EXIT_STATES as readonly string[]).includes(row.state);
 
 /** The instant a "HH:MM" schedule time falls on, on the farm's day containing `now`. */

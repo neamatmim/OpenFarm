@@ -70,12 +70,14 @@ export const runStepEffect = async (
   input: EffectInput
 ): Promise<EffectResult> => {
   const { effect } = input.step;
+  // Only a Step that writes a Milk Record has anywhere for milk to go. A tank reading filed
+  // as "calves" would be nonsense the record then has to carry.
+  if (input.destination && effect?.kind !== "milk_record") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This step does not record where the milk went",
+    });
+  }
   if (!effect) {
-    if (input.destination) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "This step does not record where the milk went",
-      });
-    }
     return null;
   }
   const sessionId = await ensureSession(tx, input.instance, input.now);

@@ -20,6 +20,7 @@ import {
   animalsForInstance,
   dueSlotsFor,
   farmDayRange,
+  isOnTheFarm,
   raiseDueInstances,
 } from "../instances-store";
 import { requireRole } from "../roles";
@@ -78,9 +79,11 @@ const resolveStepAnimal = async (
   }
   const beast = await tx.query.animal.findFirst({
     where: { farmId, tagNumber: animalTag.toUpperCase() },
-    columns: { id: true, penId: true },
+    columns: { id: true, penId: true, state: true },
   });
-  if (!beast || beast.penId !== instancePenId) {
+  // An animal that has left keeps its Pen, so the Pen alone does not prove she is here —
+  // and a Step that writes a farm record would otherwise book litres to a sold cow.
+  if (!beast || beast.penId !== instancePenId || !isOnTheFarm(beast)) {
     throw new ORPCError("NOT_FOUND", {
       message: "That animal is not in this pen",
     });
@@ -304,10 +307,23 @@ export const instancesRouter = {
             content
           )
         : [];
+      // The Session the Instance's effects wrote, so the reconciliation — and the flag the
+      // Manager is meant to act on — is read where the work itself is read.
+      const milkingSession = await context.db.query.milkingSession.findFirst({
+        where: { farmId: context.farm.id, instanceId: instance.id },
+        columns: {
+          bulkLitres: true,
+          sumBulkLitres: true,
+          differenceLitres: true,
+          tolerancePercent: true,
+          flaggedAt: true,
+        },
+      });
       const now = context.clock.now();
       return {
         ...instance,
         content,
+        milkingSession: milkingSession ?? null,
         // The gate the tile renders: the phone re-checks it offline from this, and the
         // server checks it again when the entry lands.
         animals: animals.map((beast) => ({
@@ -443,8 +459,10 @@ export const instancesRouter = {
     .handler(async ({ context, input }) => {
       const receivedAt = context.clock.now();
       const completionId = uuidv7(receivedAt);
+      // Held aside as well as returned, because the Audit Event's `after` snapshot is read
+      // after `apply` has run and cannot see what it returned.
       let effect: EffectResult = null;
-      await audited(context).write(
+      const applied = await audited(context).write(
         {
           entity: "sop_instance",
           entityId: input.instanceId,
@@ -567,16 +585,14 @@ export const instancesRouter = {
               .set({ state: "in_progress" })
               .where(eq(sopInstance.id, input.instanceId));
           }
+          return effect;
         }
       );
-      // Typed explicitly: `effect` is assigned inside the transaction callback, which the
-      // compiler cannot see, so it would otherwise be inferred as the initial null.
-      const recorded: {
-        instanceId: string;
-        stepId: string;
-        effect: EffectResult;
-      } = { instanceId: input.instanceId, stepId: input.stepId, effect };
-      return recorded;
+      return {
+        instanceId: input.instanceId,
+        stepId: input.stepId,
+        effect: applied,
+      };
     }),
 
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal

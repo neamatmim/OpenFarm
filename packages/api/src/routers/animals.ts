@@ -16,10 +16,9 @@ import {
   SIDES,
   STATES,
   canTransition,
-  daysInMilk,
+  lactationView,
   sideOfState,
   stateAfterSideChange,
-  underMilkWithdrawal,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -104,17 +103,24 @@ const penScope = (assigned: string[] | null, requested: string | undefined) => {
   return requested ? { penId: requested } : {};
 };
 
+/** A calving date is the one thing about a Lactation anyone gives us, so it is the one thing
+ *  worth refusing when it is impossible. */
+const assertCalvedInThePast = (calvedAt: Date | undefined, now: Date) => {
+  if (calvedAt && calvedAt.getTime() > now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calving date cannot be in the future",
+    });
+  }
+};
+
 /** The Lactation a newly recorded Animal is already in. An Animal registered straight into
  *  Milking — the opening register's dairy cows — is in her first recorded Lactation; nobody
- *  types the number, and without a seeded calving date days-in-milk stays unknown rather
- *  than becoming a misleading zero. */
-const openingLactation = (
-  state: AnimalState,
-  calvedAt: Date | undefined,
-  now: Date
-) =>
+ *  types the number. Without a seeded calving date the start stays unknown: registering her
+ *  is not a calving, and dating it today would say she is on day 0 of a Lactation she may be
+ *  two hundred days into. */
+const openingLactation = (state: AnimalState, calvedAt: Date | undefined) =>
   state === "milking"
-    ? { lactationNumber: 1, lactationStartedAt: calvedAt ?? now }
+    ? { lactationNumber: 1, lactationStartedAt: calvedAt ?? null }
     : { lactationNumber: 0, lactationStartedAt: null };
 
 /** A cow reaching Milking has calved, so her next Lactation begins: the number goes up by
@@ -130,11 +136,8 @@ const startingLactation = (
   if (next !== "milking" || current.state === "milking") {
     return {};
   }
-  if (calvedAt && calvedAt.getTime() > now.getTime()) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A calving date cannot be in the future",
-    });
-  }
+  assertCalvedInThePast(calvedAt, now);
+  // She reached Milking, so she calved: today unless a date says otherwise.
   return {
     lactationNumber: current.lactationNumber + 1,
     lactationStartedAt: calvedAt ?? now,
@@ -172,6 +175,7 @@ const createAnimal = async (
   now: Date,
   reason: string
 ): Promise<{ id: string; tagNumber: string }> => {
+  assertCalvedInThePast(input.calvedAt, now);
   const id = newId(now);
   let tagNumber = "";
   await audited(context).write(
@@ -197,7 +201,7 @@ const createAnimal = async (
         source: input.source,
         breed: input.breed ?? null,
         birthDate: input.birthDate ?? null,
-        ...openingLactation(input.state, input.calvedAt, now),
+        ...openingLactation(input.state, input.calvedAt),
         createdAt: now,
         updatedAt: now,
       });
@@ -275,15 +279,7 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      const now = context.clock.now();
-      return {
-        ...row,
-        daysInMilk:
-          row.state === "milking"
-            ? daysInMilk(row.lactationStartedAt, now)
-            : null,
-        underMilkWithdrawal: underMilkWithdrawal(row, now),
-      };
+      return { ...row, ...lactationView(row, context.clock.now()) };
     }),
 
   /** Registers an Animal and assigns the next Tag Number for the Side it came from. */

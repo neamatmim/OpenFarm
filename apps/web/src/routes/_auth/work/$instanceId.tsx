@@ -80,6 +80,11 @@ const WorkPage = () => {
     orpc.instances.completeStep.mutationOptions({
       onSuccess: ({ effect }) => {
         setOutcome(effect?.kind === "bulk_total" ? effect : null);
+        // The server, not this phone, decides where milk under a Withdrawal goes — so say
+        // so when it has overruled what was asked for.
+        if (effect?.kind === "milk_record" && effect.forced) {
+          toast.warning(t("milk.forced"));
+        }
         setOpenAnimal(null);
         setOpenStep(null);
         refresh();

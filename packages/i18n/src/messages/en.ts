@@ -257,7 +257,8 @@ export const en = {
   "milk.discard": "Poured away",
   "milk.withdrawal": "Under withdrawal — this milk cannot go to the tank",
   "milk.withdrawalShort": "Withdrawal",
-  "milk.sum": "Cows so far: {litres} L",
+  "milk.forced":
+    "Under withdrawal — recorded as poured away, not sent to the tank",
   "milk.difference": "The tank is {litres} L away from the cows",
   "milk.matched": "The tank matches the cows",
   "milk.flagged": "The manager will look at this",

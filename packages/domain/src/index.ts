@@ -20,12 +20,15 @@ export {
   parseTagNumber,
   prefixForOrigin,
 } from "./tag-number";
-export type { MilkDestination, Reconciliation } from "./milk";
+export type { LactationView, MilkDestination, Reconciliation } from "./milk";
 export {
+  LITRE_DECIMALS,
   MILK_DESTINATIONS,
   daysInMilk,
   destinationFor,
+  lactationView,
   reconcile,
+  roundLitres,
   underMilkWithdrawal,
 } from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
