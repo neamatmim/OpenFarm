@@ -1,7 +1,12 @@
 import type { MilkDestination, Step } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
+import { animal, animalMove } from "@OpenFarm/db/schema/herd";
+
 import type { Tx } from "./audit";
+import { requirePen } from "./herd-store";
 import {
   ensureSession,
   reReconcile,
@@ -17,6 +22,16 @@ import {
  */
 export type EffectResult =
   | { kind: "milk_record"; destination: MilkDestination; forced: boolean }
+  | {
+      kind: "move";
+      fromPenId: string | null;
+      toPenId: string;
+      /** False when she was already standing there: the Step was done, no journey was made. */
+      moved: boolean;
+      /** She has been moved again since, so a Correction cannot walk this one back and a
+       *  person has to decide what the truth is. */
+      cannotUndo: boolean;
+    }
   | {
       kind: "bulk_total";
       sumBulkLitres: number;
@@ -45,6 +60,19 @@ const numberIn = (step: Step, evidence: unknown[]): number => {
   return typed;
 };
 
+/** The Pen a moving Step walked her to: the first `choice` slot the Version declares. A
+ *  Step that moves an animal offers the Pens she may be walked to, and the person picks. */
+const choiceIn = (step: Step, evidence: unknown[]): string => {
+  const index = step.evidence.findIndex((item) => item.type === "choice");
+  const value = index === -1 ? undefined : evidence[index];
+  if (typeof value !== "string" || value === "") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This step moves an animal, and no pen was chosen",
+    });
+  }
+  return value;
+};
+
 export interface EffectInput {
   step: Step;
   instance: { id: string; farmId: string; penId: string; dueAt: Date };
@@ -58,6 +86,121 @@ export interface EffectInput {
   recordedAt: Date;
   now: Date;
 }
+
+
+/**
+ * Walks her to the Pen the Step recorded, and writes the Move that says the Playbook did it.
+ *
+ * Keyed on the Completion, like every other effect: a phone replaying an entry, or a Manager
+ * correcting one, changes where she went rather than sending her on a second journey. What
+ * it will not do is rewrite where she is when somebody has moved her since — that is a fact
+ * the farm has that this Correction does not, so she stays where she is and a person is
+ * asked (Needs Review, irreversible effect).
+ */
+const applyMoveEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This step moves an animal, and it was not recorded against one",
+    });
+  }
+  const beast = await tx.query.animal.findFirst({
+    where: { id: input.animalId, farmId: input.instance.farmId },
+    columns: { id: true, penId: true, side: true },
+  });
+  if (!beast) {
+    throw new ORPCError("NOT_FOUND", { message: "No such animal" });
+  }
+  const already = await tx.query.animalMove.findFirst({
+    where: { completionId: input.completionId },
+    columns: { id: true, fromPenId: true, toPenId: true },
+  });
+  const movedSince = Boolean(already) && beast.penId !== already?.toPenId;
+
+  // Corrected to a skip: the journey is undone if she is still where it put her.
+  if (input.skipped) {
+    if (!already) {
+      return null;
+    }
+    if (movedSince) {
+      return {
+        kind: "move",
+        fromPenId: already.fromPenId,
+        toPenId: already.toPenId,
+        moved: false,
+        cannotUndo: true,
+      };
+    }
+    await tx
+      .delete(animalMove)
+      .where(eq(animalMove.completionId, input.completionId));
+    if (already.fromPenId) {
+      await tx
+        .update(animal)
+        .set({ penId: already.fromPenId, updatedAt: input.now })
+        .where(eq(animal.id, beast.id));
+    }
+    return null;
+  }
+
+  const toPenId = choiceIn(input.step, input.evidence);
+  // A Pen that is not this farm's is not somewhere she can be walked to.
+  await requirePen(tx, input.instance.farmId, toPenId);
+  const fromPenId = already?.fromPenId ?? beast.penId;
+
+  if (movedSince) {
+    // Record what the Step now says, but leave her where the farm last saw her.
+    await tx
+      .update(animalMove)
+      .set({ toPenId, movedAt: input.recordedAt })
+      .where(eq(animalMove.completionId, input.completionId));
+    return {
+      kind: "move",
+      fromPenId,
+      toPenId,
+      moved: false,
+      cannotUndo: true,
+    };
+  }
+
+  if (already) {
+    await tx
+      .update(animalMove)
+      .set({ toPenId, movedAt: input.recordedAt })
+      .where(eq(animalMove.completionId, input.completionId));
+  } else if (fromPenId !== toPenId) {
+    await tx.insert(animalMove).values({
+      id: uuidv7(input.now),
+      farmId: input.instance.farmId,
+      animalId: beast.id,
+      fromPenId,
+      toPenId,
+      // A Step walks her to another Pen; crossing to the other Side is its own act, with
+      // its own rules about what State she takes with her.
+      fromSide: beast.side,
+      toSide: beast.side,
+      reason: null,
+      completionId: input.completionId,
+      movedBy: input.recordedBy,
+      movedAt: input.recordedAt,
+    });
+  }
+  if (beast.penId !== toPenId) {
+    await tx
+      .update(animal)
+      .set({ penId: toPenId, updatedAt: input.now })
+      .where(eq(animal.id, beast.id));
+  }
+  return {
+    kind: "move",
+    fromPenId,
+    toPenId,
+    moved: fromPenId !== toPenId,
+    cannotUndo: false,
+  };
+};
 
 /**
  * Runs the effect a Step declares, inside the Completion's own transaction: if the effect
@@ -80,6 +223,11 @@ export const runStepEffect = async (
   if (!effect) {
     return null;
   }
+  if (effect.kind === "move") {
+    return await applyMoveEffect(tx, input);
+  }
+  // Only the milk effects belong to a Milking Session, and only they may open one: a Step
+  // that walks a cow to another Pen has no business creating a session nobody milked into.
   const sessionId = await ensureSession(tx, input.instance, input.now);
 
   if (effect.kind === "milk_record") {

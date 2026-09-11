@@ -3,6 +3,7 @@ import type {
   EvidenceType,
   SopContent,
   Step,
+  StepEffect,
   Trigger,
 } from "@OpenFarm/domain";
 
@@ -67,6 +68,56 @@ export const emptyHappening = (): HappeningTrigger => ({
   kind: "event",
   event: "move",
 });
+
+/**
+ * What a Step writes into the farm's records, and the Evidence that implies. A Step that
+ * moves an animal asks which Pen, over the Pens the farm actually has; a Step that writes a
+ * record asks for a figure. Chosen here rather than left to the Owner to get right, because
+ * an effect whose Evidence does not fit it is a Step that cannot be published and does not
+ * say why in the Owner's own words.
+ */
+export const withEffect = (
+  step: Step,
+  kind: StepEffect["kind"] | "",
+  pens: { id: string; name: string }[]
+): Step => {
+  if (kind === "") {
+    const { effect: _dropped, ...rest } = step;
+    return rest;
+  }
+  if (kind === "move") {
+    return {
+      ...step,
+      repeatPerAnimal: true,
+      effect: { kind },
+      evidence: [
+        {
+          type: "choice",
+          required: true,
+          choices: pens.map((pen) => ({
+            value: pen.id,
+            label: { bn: pen.name },
+          })),
+        },
+      ],
+    };
+  }
+  const [first] = step.evidence;
+  return {
+    ...step,
+    repeatPerAnimal: kind === "milk_record",
+    effect: { kind },
+    evidence: [
+      {
+        type: "number",
+        required: true,
+        unit: first?.unit,
+        min: first?.min,
+        max: first?.max,
+      },
+    ],
+  };
+};
 
 export const splitList = (value: string): string[] =>
   value

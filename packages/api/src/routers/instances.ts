@@ -770,6 +770,28 @@ export const instancesRouter = {
             recordedAt: existing.recordedAt,
             now,
           });
+          // She has been walked on since, so putting her back where this entry now says
+          // would overwrite something the farm knows and this Correction does not. She
+          // stays where she was last seen and a person is asked which is true.
+          if (effect?.kind === "move" && effect.cannotUndo) {
+            flagged = true;
+            await raiseNeedsReview(
+              tx,
+              context.farm.id,
+              {
+                entity: "step_completion",
+                entityId: existing.id,
+                reason: "irreversible_effect",
+                auditEventId: eventId,
+                params: {
+                  ...alertParams(instance),
+                  stepId: existing.stepId,
+                  toPenId: effect.toPenId,
+                },
+              },
+              now
+            );
+          }
           // A checker has already signed this work off, on the figures as they were. The
           // system cannot unsign it, so it says so and the Manager decides — in the same
           // transaction as the Correction, because a Correction whose flag went missing is

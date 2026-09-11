@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -136,10 +137,20 @@ export const animalMove = pgTable(
     fromSide: text("from_side", { enum: SIDES }),
     toSide: text("to_side", { enum: SIDES }).notNull(),
     reason: text("reason"),
+    /** The Step that walked her, when the Playbook was what moved her rather than somebody
+     *  recording it afterwards. One Move per Completion: a replayed entry, or a Correction,
+     *  changes where she went rather than sending her on a second journey. */
+    completionId: text("completion_id"),
     movedBy: text("moved_by").references(() => user.id),
     movedAt: timestamp("moved_at").notNull(),
   },
-  (table) => [index("animal_move_animal_idx").on(table.animalId, table.movedAt)]
+  (table) => [
+    index("animal_move_animal_idx").on(table.animalId, table.movedAt),
+    /** One Move per Completion, which is what makes a replayed entry the same journey. */
+    uniqueIndex("animal_move_completion_uidx")
+      .on(table.completionId)
+      .where(sql`${table.completionId} is not null`),
+  ]
 );
 
 /** Replacing a lost or unreadable Ear Tag. The Tag Number is unchanged. */

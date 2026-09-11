@@ -1,7 +1,13 @@
-import type { EvidenceType, SopContent, Step } from "@OpenFarm/domain";
+import type {
+  EvidenceType,
+  SopContent,
+  Step,
+  StepEffect,
+} from "@OpenFarm/domain";
 import {
   EVIDENCE_TYPES,
   FARM_EVENTS,
+  STEP_EFFECT_KINDS,
   LIVE_STATES,
   MAX_TRIGGER_OFFSET_DAYS,
   ROLES,
@@ -27,6 +33,7 @@ import {
   scheduleTimes,
   splitList,
   toBilingualList,
+  withEffect,
   withHappeningTriggers,
   withScheduleTimes,
 } from "@/lib/sop-draft";
@@ -41,6 +48,14 @@ const SopsPage = () => {
   } | null>(null);
 
   const me = useQuery(orpc.people.me.queryOptions());
+  // The Pens a moving Step may walk an animal to, named as the farm names them.
+  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const pens = (sheds.data ?? []).flatMap((shed) =>
+    shed.pens.map((pen) => ({
+      id: pen.id,
+      name: `${shed.name} / ${pen.name}`,
+    }))
+  );
   const sops = useQuery(orpc.sops.list.queryOptions());
   const proposals = useQuery(orpc.sops.proposals.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
@@ -112,6 +127,7 @@ const SopsPage = () => {
         content={draft.content}
         blockers={blockers}
         canPublish={isOwner}
+        pens={pens}
         onChange={(content) => setDraft({ ...draft, content })}
         onSave={save}
         onCancel={() => setDraft(null)}
@@ -349,6 +365,7 @@ const SopEditor = ({
   content,
   blockers,
   canPublish,
+  pens,
   onChange,
   onSave,
   onCancel,
@@ -356,6 +373,7 @@ const SopEditor = ({
   content: SopContent;
   blockers: string[];
   canPublish: boolean;
+  pens: { id: string; name: string }[];
   onChange: (content: SopContent) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -506,6 +524,7 @@ const SopEditor = ({
         {content.steps.map((step, index) => (
           <StepEditor
             key={step.id}
+            pens={pens}
             step={step}
             onChange={(next) => setStep(index, next)}
             onRemove={() =>
@@ -543,10 +562,13 @@ const SopEditor = ({
 
 const StepEditor = ({
   step,
+  pens,
   onChange,
   onRemove,
 }: {
   step: Step;
+  /** The Pens a moving Step may walk an animal to — the farm's own, never typed. */
+  pens: { id: string; name: string }[];
   onChange: (step: Step) => void;
   onRemove: () => void;
 }) => {
@@ -574,6 +596,33 @@ const StepEditor = ({
         <Button type="button" size="sm" variant="ghost" onClick={onRemove}>
           {t("sop.removeStep")}
         </Button>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor={`${step.id}-effect`}>{t("sop.effect")}</Label>
+        <select
+          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          id={`${step.id}-effect`}
+          onChange={(e) =>
+            onChange(
+              withEffect(step, e.target.value as StepEffect["kind"] | "", pens)
+            )
+          }
+          value={step.effect?.kind ?? ""}
+        >
+          <option value="">{t("sop.effect.none")}</option>
+          {STEP_EFFECT_KINDS.map((kind) => (
+            <option
+              disabled={kind === "move" && pens.length === 0}
+              key={kind}
+              value={kind}
+            >
+              {kind === "move" && pens.length === 0
+                ? `${t("sop.effect.move")} — ${t("sop.effect.needsPens")}`
+                : t(`sop.effect.${kind}`)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <label className="flex items-center gap-2 text-sm">

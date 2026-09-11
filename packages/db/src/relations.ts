@@ -25,6 +25,11 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.animal.id,
       optional: false,
     }),
+    /** The Step that walked her, when the Playbook was what moved her. */
+    completion: r.one.stepCompletion({
+      from: r.animalMove.completionId,
+      to: r.stepCompletion.id,
+    }),
     toPen: r.one.pen({
       from: r.animalMove.toPenId,
       to: r.pen.id,
