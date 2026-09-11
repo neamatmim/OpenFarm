@@ -55,11 +55,10 @@ export {
   isOverdue,
   minutesOverdue,
 } from "./work";
-export type { FeedingLine, RationLine } from "./feed";
+export type { FeedingEntryLine, FeedingLine, RationLine } from "./feed";
 export {
   KG_DECIMALS,
   MAX_KG_PER_ANIMAL_PER_DAY,
-  MAX_SESSIONS_PER_DAY,
   findRationProblems,
   isShortFed,
   perSessionKg,

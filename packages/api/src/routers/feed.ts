@@ -27,9 +27,7 @@ const rationInput = z.object({
   rationId: z.string().optional(),
   name: bilingual,
   items: z
-    .array(
-      z.object({ feedItemId: z.string(), kgPerAnimalPerDay: z.number() })
-    )
+    .array(z.object({ feedItemId: z.string(), kgPerAnimalPerDay: z.number() }))
     .min(1),
   note: z.string().trim().max(400).optional(),
 });
@@ -176,20 +174,22 @@ export const feedRouter = {
           entityId: () => rationId,
           action: input.rationId ? "update" : "create",
           reason: input.note,
-          before: async (tx) => (rationId ? await readRation(tx, rationId) : null),
+          before: async (tx) =>
+            rationId ? await readRation(tx, rationId) : null,
           after: (tx) => readRation(tx, rationId),
         },
         async (tx) => {
-          for (const line of input.items) {
-            const known = await tx.query.feedItem.findFirst({
-              where: { id: line.feedItemId, farmId: context.farm.id },
-              columns: { id: true },
+          const known = await tx.query.feedItem.findMany({
+            where: {
+              farmId: context.farm.id,
+              id: { in: input.items.map((line) => line.feedItemId) },
+            },
+            columns: { id: true },
+          });
+          if (known.length !== input.items.length) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "That is not one of this farm's feeds",
             });
-            if (!known) {
-              throw new ORPCError("NOT_FOUND", {
-                message: "That is not one of this farm's feeds",
-              });
-            }
           }
           if (rationId) {
             const existing = await tx.query.ration.findFirst({

@@ -10,20 +10,20 @@ import { toast } from "sonner";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-type RationRow = {
+interface RationRow {
   id: string;
   name: { bn: string; en: string | null };
   number: number | null;
   items: { feedItemId: string; kgPerAnimalPerDay: number }[];
   penIds: string[];
-};
+}
 
-type FeedRow = {
+interface FeedRow {
   id: string;
   nameBn: string;
   unit: string;
   retiredAt: Date | null;
-};
+}
 
 /** What the farm feeds, what each Ration says, and what this session calls for in a Pen. The
  *  figures are the farm's own: a Ration says what one animal gets in a day, and the bucket's
@@ -67,7 +67,7 @@ const FeedPage = () => {
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="font-medium text-lg">{t("feed.title")}</h1>
+      <h1 className="text-lg font-medium">{t("feed.title")}</h1>
 
       <FeedItems items={(items.data ?? []) as FeedRow[]} onChanged={refresh} />
 
@@ -91,7 +91,7 @@ const FeedPage = () => {
         {target.data?.ration ? (
           <TargetPanel target={target.data} />
         ) : (
-          <p className="rounded-lg border border-dashed p-3 text-muted-foreground text-sm">
+          <p className="text-muted-foreground rounded-lg border border-dashed p-3 text-sm">
             {t("feed.noRation")}
           </p>
         )}
@@ -102,7 +102,7 @@ const FeedPage = () => {
         {(rations.data ?? []).map((row) => (
           <article className="space-y-2 rounded-lg border p-3" key={row.id}>
             <header className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-medium text-sm">{row.name.bn}</span>
+              <span className="text-sm font-medium">{row.name.bn}</span>
               <span className="text-muted-foreground text-xs">
                 {row.number ? t("feed.version", { number: row.number }) : ""}
                 {" · "}
@@ -157,7 +157,11 @@ const FeedPage = () => {
             ration={null}
           />
         ) : (
-          <Button onClick={() => setEditing("new")} type="button" variant="outline">
+          <Button
+            onClick={() => setEditing("new")}
+            type="button"
+            variant="outline"
+          >
             {t("feed.newRation")}
           </Button>
         )}
@@ -188,7 +192,7 @@ const TargetPanel = ({
   const { language } = useLanguage();
   return (
     <div className="space-y-2 rounded-lg border p-3">
-      <p className="font-medium text-sm">
+      <p className="text-sm font-medium">
         {target.ration?.name.bn}
         {target.ration
           ? ` · ${t("feed.version", { number: target.ration.number })}`
@@ -330,8 +334,12 @@ const RationForm = ({
   onSaved: () => void;
 }) => {
   const t = useT();
-  const inRation = new Set((ration?.items ?? []).map((line) => line.feedItemId));
-  const offered = items.filter((item) => !item.retiredAt || inRation.has(item.id));
+  const inRation = new Set(
+    (ration?.items ?? []).map((line) => line.feedItemId)
+  );
+  const offered = items.filter(
+    (item) => !item.retiredAt || inRation.has(item.id)
+  );
 
   const [name, setName] = useState(ration?.name.bn ?? "");
   const [english, setEnglish] = useState(ration?.name.en ?? "");
@@ -423,10 +431,7 @@ const RationForm = ({
           </li>
         ))}
       </ul>
-      <Button
-        disabled={lines.length === 0 || !name.trim()}
-        type="submit"
-      >
+      <Button disabled={lines.length === 0 || !name.trim()} type="submit">
         {t("feed.setRation")}
       </Button>
     </form>

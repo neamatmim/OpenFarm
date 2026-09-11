@@ -1,6 +1,6 @@
 # 19 — Feed Items and a Ration per Pen
 
-**What to build:** The Manager defines the farm's Feed Items in Bangla and gives each Pen a Ration: how many kg of each Item one animal in that Pen gets per day. Changing a Ration publishes a new Version of it, exactly like an SOP, so what a Pen was fed in March can still be shown in June. The target for one feeding is computed from the Pen's headcount at that moment and the Ration in force — nobody types a number the farm already knows.
+**What to build:** The Manager defines the farm's Feed Items in Bangla and gives each Pen a Ration: how many kg of each Item one animal in that Pen gets per day. Changing a Ration publishes a new Version of it, exactly like an SOP, so what a Pen was fed in March can still be shown in June. The target for one feeding is computed from the animals in the Pen at that moment, the Ration in force, and how often the Playbook feeds that Pen — nobody types a number the farm already knows.
 
 **Blocked by:** None — can start immediately.
 
@@ -10,7 +10,7 @@
 
 - [x] Feed Items are created and retired by the Manager, Bangla required and English optional, like the Playbook
 - [x] A Ration is named, versioned, and Pens are put on it; in-flight work reads the Version in force when it was raised
-- [x] The target kg per Item for a session is derived from headcount × kg per animal per day ÷ sessions per day, and is shown with its working
+- [x] The target kg per Item for a session is derived from the animals in the Pen × kg per animal per day ÷ how often the Playbook feeds it, and is shown with its working
 - [x] A Pen with no Ration is a state the screen names rather than a zero it displays
 - [x] Tests cover deriving the target across a headcount change and a Ration Version change
 
@@ -32,4 +32,4 @@
 
 **Named, and written down.** "Feeding Target" is now a glossary entry, because **Target Window** was already Fattening's word and two targets in one system is how a spec stops being readable. The herd count in a Pen is the *animals* in it — "head" is on the Animal entry's own avoid list.
 
-**Left for ticket 20, as its own acceptance criterion.** How often a Pen is fed is stated on the Ration, and the feeding SOP will carry a schedule that says the same thing. If they disagree — a Ration saying twice a day beside an SOP raised three times — every bucket is two thirds of what the Manager wrote and the working still reads "÷ 2 a day". Ticket 20 has to make the two agree rather than leave it standing.
+**Settled in ticket 20.** This shipped with "how often" stated on the Ration, beside a feeding SOP that would carry a schedule saying the same thing — two places to disagree, and a disagreement that feeds every bucket at the wrong size while the working still looks right. Ticket 20 removed the second place rather than checking the two against each other: the Ration is the recipe, and the schedule of the SOP that feeds is the only answer to how often. A Feeding Target therefore exists only once something in the Playbook actually feeds, which is the honest dependency.

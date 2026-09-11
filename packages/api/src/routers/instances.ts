@@ -16,6 +16,7 @@ import {
   isOverdue,
   mayCorrect,
   minutesOverdue,
+  sessionsPerDayOf,
   underMilkWithdrawal,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -34,6 +35,7 @@ import {
 import type { Recorded } from "../completion-store";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
+import { feedingTargetForPen } from "../feed-store";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
@@ -47,7 +49,6 @@ import {
   recentHappenings,
 } from "../instances-store";
 import { pushRaised } from "../push-send";
-import { feedingTargetForPen } from "../feed-store";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
@@ -360,7 +361,8 @@ export const instancesRouter = {
             context.db,
             context.farm.id,
             instance.penId,
-            instance.dueAt
+            instance.createdAt,
+            sessionsPerDayOf(content)
           )
         : null;
       const fed = feeds
@@ -799,6 +801,7 @@ export const instancesRouter = {
               farmId: context.farm.id,
               penId: instance.penId,
               dueAt: instance.dueAt,
+              raisedAt: instance.createdAt,
             },
             completionId: existing.id,
             animalId: existing.animalId,
@@ -806,6 +809,7 @@ export const instancesRouter = {
             destination: input.destination,
             feeding: input.feeding ?? [],
             feedTolerancePercent: context.farm.feedTolerancePercent,
+            sessionsPerDay: sessionsPerDayOf(content),
             skipped: skipping,
             tolerancePercent: context.farm.milkTolerancePercent,
             recordedBy: existing.recordedBy,

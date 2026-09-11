@@ -268,7 +268,6 @@ export const en = {
   "feed.noRation": "This pen has no ration",
   "feed.setRation": "Save the ration",
   "feed.rationName": "Ration name",
-  "feed.sessionsPerDay": "Times a day",
   "feed.kgPerAnimal": "Kg per animal per day",
   "feed.rations": "Rations",
   "feed.newRation": "New ration",
@@ -293,6 +292,8 @@ export const en = {
   "work.progress": "{done} of {total}",
   "work.skip": "Skip",
   "work.skipWhy": "Why skip?",
+  "work.noRation":
+    "This phone does not have this pen's ration — open it once with signal",
   "work.given": "Given (kg)",
   "work.leftover": "Left over (kg)",
   "work.shortFed": "{percent}% under the ration",

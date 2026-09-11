@@ -88,7 +88,10 @@ export const feedingTargetForPen = async (
   farmId: string,
   penId: string,
   /** Which Ration Version to read: the moment the work was raised, or now. */
-  rationAsOf: Date
+  rationAsOf: Date,
+  /** How often this Pen is fed. Given by work that knows — the Version doing the feeding —
+   *  and looked up only for a screen asking about a Pen with no work in front of it. */
+  fedTimesADay?: number
 ): Promise<{
   rationId: string;
   rationVersionId: string;
@@ -109,7 +112,8 @@ export const feedingTargetForPen = async (
   if (!version) {
     return null;
   }
-  const sessionsPerDay = await sessionsPerDayForPen(db, farmId, penId);
+  const sessionsPerDay =
+    fedTimesADay ?? (await sessionsPerDayForPen(db, farmId, penId));
   if (sessionsPerDay === null) {
     return null;
   }
@@ -157,8 +161,12 @@ export const sessionsPerDayForPen = async (
     },
   });
   const feeders = definitions.filter((definition) => {
-    const content = definition.currentVersion?.content as SopContent | undefined;
-    return Boolean(content?.steps.some((step) => step.effect?.kind === "feeding"));
+    const content = definition.currentVersion?.content as
+      | SopContent
+      | undefined;
+    return Boolean(
+      content?.steps.some((step) => step.effect?.kind === "feeding")
+    );
   });
   const mine = feeders.find((definition) => definition.instances.length > 0);
   const chosen = mine ?? feeders[0];
@@ -176,5 +184,7 @@ export const feedsById = async (
     where: { farmId },
     columns: { id: true, nameBn: true, unit: true },
   });
-  return new Map(rows.map((row) => [row.id, { nameBn: row.nameBn, unit: row.unit }]));
+  return new Map(
+    rows.map((row) => [row.id, { nameBn: row.nameBn, unit: row.unit }])
+  );
 };

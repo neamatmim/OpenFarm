@@ -93,16 +93,20 @@ describe("feeding a Pen", () => {
   it("arrives knowing what this Pen is owed, on the Ration and the herd standing in it", async () => {
     const clock = new FakeClock("2027-08-01T02:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    for (let i = 0; i < 4; i += 1) {
-      await manager.client.animals.register({
-        sex: "female",
-        side: "dairy",
-        state: "heifer",
-        penId: world.pen.id,
-        source: "born",
-        aliases: [],
-      });
-    }
+    // Four cows into the Pen. Registered together: each takes the next Tag Number under a
+    // row lock, so the farm hands out four of them whichever order they land in.
+    await Promise.all(
+      [0, 1, 2, 3].map(() =>
+        manager.client.animals.register({
+          sex: "female",
+          side: "dairy",
+          state: "heifer",
+          penId: world.pen.id,
+          source: "born",
+          aliases: [],
+        })
+      )
+    );
 
     const { owner, instance } = await feedingDue(clock);
     const board = await owner.client.instances.get({ id: instance.id });
@@ -252,5 +256,54 @@ describe("feeding a Pen", () => {
     // And the flag the first entry raised is gone, because the meal is no longer short.
     expect(after.fed?.flaggedAt).toBeNull();
     expect(after.fed?.shortfallPercent).toBe(0);
+  });
+
+  it("will not let a Pen's feeding be skipped, because a Pen is not skipped one animal at a time", async () => {
+    const clock = new FakeClock("2027-08-07T02:00:00.000Z");
+    const { owner, instance } = await fedWith(clock, 6);
+    const board = await owner.client.instances.get({ id: instance.id });
+    const completionId =
+      board.completions.find((row) => row.stepId === "feed")?.id ?? "";
+
+    // A meal that did not happen is the Manager closing the work as Missed, with a reason —
+    // not a Step quietly marked skipped and a Feeding left standing beside it.
+    await expect(
+      owner.client.instances.correctStep({
+        completionId,
+        evidence: [],
+        skipReason: "খাবার শেষ হয়ে গিয়েছিল",
+        reason: "ওই বেলা খাওয়ানো হয়নি",
+      })
+    ).rejects.toThrow(/per-animal step can be skipped/u);
+
+    const after = await owner.client.instances.get({ id: instance.id });
+    expect(after.fed).not.toBeNull();
+  });
+
+  it("divides by the schedule that raised the work, not by whichever was written first", async () => {
+    // A second feeding routine, at three times a day, on the same Pen.
+    const clock = new FakeClock("2027-08-08T02:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const thrice = await owner.client.sops.create({
+      content: {
+        ...feedingSop(),
+        name: { bn: `তিনবেলা ${Date.now()}`, en: "Three times" },
+        triggers: [{ kind: "schedule", times: ["05:00", "12:00", "19:00"] }],
+      },
+    });
+    await owner.client.instances.ensureDue();
+    const today = await owner.client.instances.today({ penId: world.pen.id });
+    const instance = today.find(
+      (row) => row.definitionId === thrice.definitionId
+    );
+    if (!instance) {
+      throw new Error("expected the three-times instance");
+    }
+    await owner.client.instances.claim({ id: instance.id });
+
+    const board = await owner.client.instances.get({ id: instance.id });
+    // Four animals, 3 kg each a day, fed three times: 4 kg this session, not 6.
+    expect(board.feeding?.sessionsPerDay).toBe(3);
+    expect(board.feeding?.items[0]?.quantity).toBe(4);
   });
 });

@@ -204,8 +204,11 @@ describe("review findings", () => {
       owner.client.people.approveInvite({ id })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
 
+    // Ordered, because a query without one is answered in whatever order the database
+    // finds the rows — and the trail is a sequence, so the test has to ask for it as one.
     const events = await scratchDb().query.auditEvent.findMany({
       where: { entity: "invite", entityId: id },
+      orderBy: { receivedAt: "asc", id: "asc" },
     });
     expect(events.map((e) => e.action)).toEqual(["create", "update"]);
   });

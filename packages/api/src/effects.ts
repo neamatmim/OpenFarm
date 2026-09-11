@@ -1,17 +1,17 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
 import { feeding } from "@OpenFarm/db/schema/feed";
+import { animal, animalMove } from "@OpenFarm/db/schema/herd";
+import { observation } from "@OpenFarm/db/schema/observation";
 import type {
   Choice,
+  FeedingEntryLine,
   FeedingLine,
   MilkDestination,
   Step,
 } from "@OpenFarm/domain";
 import { isShortFed, roundKg, shortfallPercent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
-
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
-import { animal, animalMove } from "@OpenFarm/db/schema/herd";
-import { observation } from "@OpenFarm/db/schema/observation";
 
 import type { Tx } from "./audit";
 import { feedingTargetForPen } from "./feed-store";
@@ -116,7 +116,14 @@ const choiceIn = (
 
 export interface EffectInput {
   step: Step;
-  instance: { id: string; farmId: string; penId: string; dueAt: Date };
+  instance: {
+    id: string;
+    farmId: string;
+    penId: string;
+    dueAt: Date;
+    /** When the work was raised, which is the moment its Ration is read as of. */
+    raisedAt: Date;
+  };
   completionId: string;
   animalId: string | null;
   evidence: unknown[];
@@ -126,19 +133,19 @@ export interface EffectInput {
   /** How far under its Feeding Target a Pen may come before the farm says so. */
   feedTolerancePercent: number;
   /** What was actually put in front of the Pen, per Feed Item. */
-  feeding: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
+  feeding: FeedingEntryLine[];
+  /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
+   *  more than one feeding routine divides by the one that raised this work. */
+  sessionsPerDay: number;
   recordedBy: string;
   recordedAt: Date;
   now: Date;
 }
 
-
-
-
 /**
  * Records what a Pen was actually given against what its Ration owed it.
  *
- * The target is worked out from the Ration in force when the work was raised and the animals
+ * The target is worked out from the Ration in force when the work was *raised* and the animals
  * standing in the Pen now, and both are written into the record with the figures — so a year
  * later the arithmetic can still be shown rather than re-derived from a farm that has changed.
  *
@@ -149,16 +156,34 @@ const applyFeedingEffect = async (
   tx: Tx,
   input: EffectInput
 ): Promise<EffectResult> => {
+  // A whole-Pen Step cannot be skipped today — a meal that did not happen is the Manager
+  // closing the work as Missed — so this is the guard for the day that rule changes, not a
+  // path the farm can reach. A Feeding left standing beside a skip would be a meal the farm
+  // believes it served, and Stock will be drawn from these in increment 6.
+  if (input.skipped) {
+    await tx
+      .delete(feeding)
+      .where(eq(feeding.completionId, input.completionId));
+    return null;
+  }
   const owed = await feedingTargetForPen(
     tx,
     input.instance.farmId,
     input.instance.penId,
-    input.instance.dueAt
+    // When the work was raised, not when it fell due: an Instance raised this morning for
+    // tonight is fed on the Ration the farm had this morning, whatever is published between.
+    input.instance.raisedAt,
+    input.sessionsPerDay
   );
   if (!owed) {
-    throw new ORPCError("BAD_REQUEST", {
+    // The phone had a Ration when it recorded this; the farm does not now. That is the world
+    // moving under an entry, not an entry that was ever wrong (ADR 0002).
+    throw new ORPCError("CONFLICT", {
       message:
-        "This pen has no ration to feed against; the Manager sets one before the round",
+        "This pen is on no ration now, so what was fed cannot be set against one",
+      // The world moved under an entry that was good when it was written, which a phone's
+      // outbox keeps and puts in front of a person rather than throwing away (ADR 0002).
+      data: { late: true },
     });
   }
   const given = new Map(input.feeding.map((line) => [line.feedItemId, line]));
@@ -298,7 +323,13 @@ const applyMoveEffect = async (
   }
   const beast = await tx.query.animal.findFirst({
     where: { id: input.animalId, farmId: input.instance.farmId },
-    columns: { id: true, tagNumber: true, penId: true, side: true, state: true },
+    columns: {
+      id: true,
+      tagNumber: true,
+      penId: true,
+      side: true,
+      state: true,
+    },
   });
   if (!beast) {
     throw new ORPCError("NOT_FOUND", { message: "No such animal" });

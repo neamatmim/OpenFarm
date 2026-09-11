@@ -17,9 +17,6 @@ const KG_SCALE = 10 ** KG_DECIMALS;
 export const roundKg = (value: number): number =>
   Math.round(value * KG_SCALE) / KG_SCALE;
 
-/** Nobody feeds more often than this; a Ration asking for more is a typo, not a routine. */
-export const MAX_SESSIONS_PER_DAY = 6;
-
 /** The most one animal can sensibly be given of one Item in a day. */
 export const MAX_KG_PER_ANIMAL_PER_DAY = 100;
 
@@ -31,17 +28,19 @@ export interface RationLine {
 /** One Feed Item's share of one session, for the animals actually standing in the Pen. */
 export const perSessionKg = (
   kgPerAnimalPerDay: number,
-  headcount: number,
+  animals: number,
   sessionsPerDay: number
 ): number => {
   if (sessionsPerDay < 1) {
     throw new Error("A ration is fed at least once a day");
   }
-  return roundKg((kgPerAnimalPerDay * headcount) / sessionsPerDay);
+  return roundKg((kgPerAnimalPerDay * animals) / sessionsPerDay);
 };
 
 /** What is wrong with a Ration, in the Manager's terms rather than the parser's. */
-export const findRationProblems = (ration: { items: RationLine[] }): string[] => {
+export const findRationProblems = (ration: {
+  items: RationLine[];
+}): string[] => {
   const problems: string[] = [];
   if (ration.items.length === 0) {
     problems.push("items: a ration needs something in it");
@@ -65,6 +64,13 @@ export const findRationProblems = (ration: { items: RationLine[] }): string[] =>
   return problems;
 };
 
+/** What a Step that feeds a Pen says went out, per Feed Item. */
+export interface FeedingEntryLine {
+  feedItemId: string;
+  givenKg: number;
+  leftoverKg?: number;
+}
+
 export interface FeedingLine {
   feedItemId: string;
   targetKg: number;
@@ -73,24 +79,27 @@ export interface FeedingLine {
 }
 
 /**
- * How far under its Feeding Target a session came, as a whole. Per Item would be noise — a
- * little less straw and a little more concentrate is a normal morning — but a Pen that got
- * appreciably less than it was owed is the farm's first sign of a problem: a sick pen off its
- * feed, a bag that ran out, or somebody who did not do it.
+ * How far under its Feeding Target a session came: the Feed Item that fell shortest.
+ *
+ * Item by item rather than in total, because a Feed Item is measured in its own unit — straw
+ * in bales, molasses in litres — and a total that adds bales to litres is arithmetic that
+ * means nothing. It is also the answer the farm wants: a Pen that got its silage and none of
+ * its concentrate has a problem, and a total would average it away.
  *
  * Leftover counts against what was eaten, not against what was given: the trough is the
  * measure of the meal.
  */
 export const shortfallPercent = (lines: FeedingLine[]): number => {
-  const owed = lines.reduce((total, line) => total + line.targetKg, 0);
-  if (owed <= 0) {
-    return 0;
+  let worst = 0;
+  for (const line of lines) {
+    if (line.targetKg <= 0) {
+      continue;
+    }
+    const eaten = Math.max(line.givenKg - line.leftoverKg, 0);
+    const short = Math.round(((line.targetKg - eaten) / line.targetKg) * 100);
+    worst = Math.max(worst, short);
   }
-  const eaten = lines.reduce(
-    (total, line) => total + Math.max(line.givenKg - line.leftoverKg, 0),
-    0
-  );
-  return Math.max(Math.round(((owed - eaten) / owed) * 100), 0);
+  return Math.max(worst, 0);
 };
 
 /** Was this session short enough to be worth saying out loud? */
