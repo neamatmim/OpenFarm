@@ -13,6 +13,10 @@ export const relations = defineRelations(schema, (r) => ({
   animal: {
     pen: r.one.pen({ from: r.animal.penId, to: r.pen.id, optional: false }),
     moves: r.many.animalMove({ from: r.animal.id, to: r.animalMove.animalId }),
+    observations: r.many.observation({
+      from: r.animal.id,
+      to: r.observation.animalId,
+    }),
     retags: r.many.retag({ from: r.animal.id, to: r.retag.animalId }),
     milkRecords: r.many.milkRecord({
       from: r.animal.id,
@@ -91,6 +95,21 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** The animal this work is about, when something that happened to her raised it. */
     animal: r.one.animal({ from: r.sopInstance.animalId, to: r.animal.id }),
+  },
+  observation: {
+    animal: r.one.animal({
+      from: r.observation.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** The Step that recorded what was seen. */
+    completion: r.one.stepCompletion({
+      from: r.observation.completionId,
+      to: r.stepCompletion.id,
+      optional: false,
+    }),
+    /** The person who saw it. */
+    observer: r.one.user({ from: r.observation.seenBy, to: r.user.id }),
   },
   stepCompletion: {
     instance: r.one.sopInstance({

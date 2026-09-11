@@ -47,9 +47,16 @@ export type StepEffect =
   /** The Session's bulk total, reconciled against the sum of the per-cow Bulk records. */
   | { kind: "bulk_total" }
   /** The Pen she was walked to, recorded as a Move by the work that walked her. */
-  | { kind: "move" };
+  | { kind: "move" }
+  /** What somebody saw of her on the round — off her feed, limping, bulling. */
+  | { kind: "observation" };
 
-export const STEP_EFFECT_KINDS = ["milk_record", "bulk_total", "move"] as const;
+export const STEP_EFFECT_KINDS = [
+  "milk_record",
+  "bulk_total",
+  "move",
+  "observation",
+] as const;
 
 export interface Step {
   id: string;
@@ -159,16 +166,22 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   }
   const path = `steps[${stepIndex}]`;
   const problems: string[] = [];
-  if (effect.kind === "move") {
-    // The Pen she is walked to is the Step's own choice of Pen: a Move with nowhere to go
-    // would be a Step that silently does nothing.
+  if (effect.kind === "move" || effect.kind === "observation") {
+    // Both are a choice the person makes about one animal: which Pen she was walked to, or
+    // what was seen of her. A Step that offers nothing to choose would silently do nothing.
     if (!step.evidence.some((item) => item.type === "choice")) {
       problems.push(
-        `${path}.evidence: this step moves an animal and offers no pen to move her to`
+        effect.kind === "move"
+          ? `${path}.evidence: this step moves an animal and offers no pen to move her to`
+          : `${path}.evidence: this step records what was seen and offers nothing to choose`
       );
     }
     if (!step.repeatPerAnimal) {
-      problems.push(`${path}.effect: an animal is moved one at a time`);
+      problems.push(
+        effect.kind === "move"
+          ? `${path}.effect: an animal is moved one at a time`
+          : `${path}.effect: animals are looked at one at a time`
+      );
     }
     return problems;
   }

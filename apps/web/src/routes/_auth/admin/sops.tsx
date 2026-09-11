@@ -27,7 +27,10 @@ import {
   emptyHappening,
   emptySop,
   emptyStep,
+  fromChoices,
   happeningTriggers,
+  needsChoices,
+  toChoices,
   fromBilingualList,
   needsUnit,
   scheduleTimes,
@@ -661,6 +664,28 @@ const StepEditor = ({
             ))}
           </select>
         </div>
+        {needsChoices(step) ? (
+          <div className="flex-1 space-y-1">
+            <Label htmlFor={`${step.id}-choices`}>{t("sop.choices")}</Label>
+            <Input
+              id={`${step.id}-choices`}
+              onChange={(e) =>
+                onChange({
+                  ...step,
+                  evidence: [
+                    {
+                      ...evidence,
+                      type: "choice",
+                      choices: toChoices(e.target.value, evidence.choices),
+                    },
+                  ],
+                })
+              }
+              placeholder={t("sop.choicesHelp")}
+              value={fromChoices(evidence.choices)}
+            />
+          </div>
+        ) : null}
         {needsUnit(evidence.type) ? (
           <>
             <div className="space-y-1">

@@ -113,7 +113,7 @@ describe("a Step that moves an animal", () => {
     expect(latest?.instanceId).toBe(instance.id);
   });
 
-  it("refuses a pen that is not this farm's", async () => {
+  it("refuses a pen the Step never offered", async () => {
     const clock = new FakeClock("2027-02-02T02:00:00.000Z");
     const first = await createTestClient(appRouter, { as: "owner", clock });
     const cow = await aCowIn(first, world.milking.id);
@@ -126,7 +126,7 @@ describe("a Step that moves an animal", () => {
         animalTag: cow.tagNumber,
         evidence: ["not-a-pen-on-this-farm"],
       })
-    ).rejects.toThrow(/No such pen/u);
+    ).rejects.toThrow(/not one of the things this step offers/u);
 
     // And she has not gone anywhere.
     const after = await owner.client.animals.byTag({
@@ -350,5 +350,36 @@ describe("what the farm has learned since", () => {
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.dry.id);
+  });
+
+  it("refuses a pen the Step offers but the farm does not have", async () => {
+    const clock = new FakeClock("2027-02-07T02:00:00.000Z");
+    const first = await createTestClient(appRouter, { as: "owner", clock });
+    const cow = await aCowIn(first, world.milking.id);
+    // A Version authored against a Pen that has since gone, or that was never this farm's.
+    const ghostPen = { id: "pen-that-is-not-here", name: "ভূতুড়ে পেন" };
+    const sop = await first.client.sops.create({
+      content: movingSop([world.milking, ghostPen]),
+    });
+    await first.client.instances.ensureDue();
+    const today = await first.client.instances.today({
+      penId: world.milking.id,
+    });
+    const instance = today.find(
+      (row) => row.definitionId === sop.definitionId
+    );
+    if (!instance) {
+      throw new Error("expected the moving instance");
+    }
+    await first.client.instances.claim({ id: instance.id });
+
+    await expect(
+      first.client.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "walk",
+        animalTag: cow.tagNumber,
+        evidence: [ghostPen.id],
+      })
+    ).rejects.toThrow(/No such pen/u);
   });
 });
