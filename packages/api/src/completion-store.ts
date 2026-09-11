@@ -272,10 +272,16 @@ export const applyCompletion = async (
       animalKey: animalId ?? "",
     },
   });
-  if (already && !sameEntry(already, input, skipping)) {
-    throw lateEntry("That is already recorded; correct it instead", {
-      completionId: already.id,
-    });
+  if (already) {
+    if (!sameEntry(already, input, skipping)) {
+      throw lateEntry("That is already recorded; correct it instead", {
+        completionId: already.id,
+      });
+    }
+    // The same entry again — a phone replaying its outbox. Nothing is written: rewriting
+    // the row would put a second person's name on the first person's work, and the record
+    // says who did it.
+    return { completionId: already.id, effect: null };
   }
 
   const values = {
@@ -294,22 +300,16 @@ export const applyCompletion = async (
     recordedAt: input.recordedAt ?? receivedAt,
     receivedAt,
   };
+  // Never an update: a recorded fact changes only by Correction (ADR 0002). Two phones
+  // racing for the same Step land here, and the second is told so rather than overwriting
+  // the first.
   const [saved] = await tx
     .insert(stepCompletion)
     .values({ id: id ?? uuidv7(receivedAt), ...values })
-    .onConflictDoUpdate({
-      target: [
-        stepCompletion.instanceId,
-        stepCompletion.stepId,
-        stepCompletion.animalKey,
-      ],
-      set: values,
-    })
+    .onConflictDoNothing()
     .returning({ id: stepCompletion.id });
   if (!saved) {
-    throw new ORPCError("CONFLICT", {
-      message: "That entry could not be saved",
-    });
+    throw lateEntry("That is already recorded; correct it instead");
   }
   // The Step's effect writes the farm's record — the litres, the tank reading — in this
   // same transaction, keyed on the Completion so a replay cannot double-count.
@@ -369,7 +369,10 @@ export const applyMove = async (
   tx: Tx,
   context: Recorder,
   input: { tagNumber: string; toPenId: string; reason?: string },
-  movedAt: Date
+  movedAt: Date,
+  /** The client's own id for the Move, so an outbox replay is the same fact rather than a
+   *  second journey. */
+  id?: string
 ): Promise<string> => {
   const tagNumber = input.tagNumber.toUpperCase();
   const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
@@ -380,17 +383,20 @@ export const applyMove = async (
     .update(animal)
     .set({ penId: input.toPenId, updatedAt: movedAt })
     .where(and(eq(animal.farmId, context.farm.id), eq(animal.id, current.id)));
-  await tx.insert(animalMove).values({
-    id: uuidv7(movedAt),
-    farmId: context.farm.id,
-    animalId: current.id,
-    fromPenId: current.penId,
-    toPenId: input.toPenId,
-    fromSide: current.side,
-    toSide: current.side,
-    reason: input.reason ?? null,
-    movedBy: context.actor.id,
-    movedAt,
-  });
+  await tx
+    .insert(animalMove)
+    .values({
+      id: id ?? uuidv7(movedAt),
+      farmId: context.farm.id,
+      animalId: current.id,
+      fromPenId: current.penId,
+      toPenId: input.toPenId,
+      fromSide: current.side,
+      toSide: current.side,
+      reason: input.reason ?? null,
+      movedBy: context.actor.id,
+      movedAt,
+    })
+    .onConflictDoNothing();
   return current.id;
 };

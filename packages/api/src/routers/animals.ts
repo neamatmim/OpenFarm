@@ -311,8 +311,6 @@ export const animalsRouter = {
         context.farm.id,
         tagNumber
       );
-      assertPenIsTheirs(context, target.penId);
-      assertPenIsTheirs(context, input.toPenId);
       await audited(context).write(
         {
           entity: "animal",

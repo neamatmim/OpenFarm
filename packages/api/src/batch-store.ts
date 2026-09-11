@@ -1,0 +1,344 @@
+import type { Database } from "@OpenFarm/db";
+import { ORPCError } from "@orpc/server";
+
+import type { Tx } from "./audit";
+import { audited } from "./audit";
+import type { Recorder } from "./completion-store";
+import { applyCompletion, applyMove, isLate } from "./completion-store";
+import { raiseNeedsReview } from "./review-store";
+import type { Entry, EntryResult } from "./sync-entries";
+import {
+  clockIsOut,
+  entrySeen,
+  highestSeq,
+  missingSeqs,
+  recordBatchResponse,
+  rememberEntry,
+  reserveBatch,
+  seqTaken,
+} from "./sync-store";
+
+/** What to tell the phone about an entry the farm could not take. */
+const message = (error: unknown): string =>
+  error instanceof ORPCError
+    ? error.message
+    : ((error as Error)?.message ?? "could not be recorded");
+
+/** One entry, applied on the transaction the caller holds. */
+const applyEntry = async (
+  tx: Tx,
+  context: Recorder,
+  entry: Entry,
+  receivedAt: Date
+): Promise<{ entity: string; entityId: string }> => {
+  if (entry.kind === "step_completion") {
+    const recorded = await applyCompletion(
+      tx,
+      context,
+      {
+        instanceId: entry.instanceId,
+        stepId: entry.stepId,
+        animalTag: entry.animalTag,
+        evidence: entry.evidence,
+        destination: entry.destination,
+        outOfRange: entry.outOfRange,
+        skipReason: entry.skipReason,
+        recordedAt: entry.recordedAt,
+      },
+      receivedAt,
+      entry.id
+    );
+    return { entity: "step_completion", entityId: recorded.completionId };
+  }
+  if (entry.kind === "animal_move") {
+    const moved = await applyMove(tx, context, entry, receivedAt, entry.id);
+    return { entity: "animal", entityId: moved };
+  }
+  // Observations arrive with health, in a later increment. The kind exists so a client
+  // written against this contract does not have to change; refusing it by name is honest
+  // about what the farm can hold today.
+  throw new ORPCError("NOT_IMPLEMENTED", {
+    message: "Observations are not recorded yet",
+  });
+};
+
+/** What the phone sent, as the trail and a held entry record it. */
+const entryAfter = (entry: Entry): Record<string, unknown> => ({
+  ...entry,
+  recordedAt: entry.recordedAt.toISOString(),
+});
+
+/** Records that the entry was read, holding what the phone sent whenever the farm could not
+ *  take it into its records as it stands — so nothing written down is lost. */
+const keep = async (
+  tx: Tx,
+  context: Recorder,
+  entry: Entry,
+  {
+    input,
+    sourceKey,
+    receivedAt,
+    outcome,
+    reason,
+  }: {
+    input: { key: string };
+    sourceKey: string;
+    receivedAt: Date;
+    outcome: EntryResult["outcome"];
+    reason: string | null;
+  }
+): Promise<void> => {
+  const held = outcome === "kept" || outcome === "rejected";
+  await rememberEntry(tx, {
+    id: entry.id,
+    farmId: context.farm.id,
+    sourceKey,
+    seq: entry.seq,
+    kind: entry.kind,
+    outcome,
+    batchKey: input.key,
+    payload: held ? entryAfter(entry) : null,
+    reason,
+    recordedAt: entry.recordedAt,
+    receivedAt,
+  });
+  if (outcome !== "kept") {
+    return;
+  }
+  // The world moved while the phone was out of signal. What it recorded is held whole on
+  // the entry above; a person is asked what to do with it.
+  const audit = audited(context);
+  const eventId = await audit.recordEvent(
+    tx,
+    {
+      entity: "sync_entry",
+      entityId: entry.id,
+      action: "create",
+      recordedAt: entry.recordedAt,
+      reason: reason ?? undefined,
+      after: entryAfter(entry),
+    },
+    { receivedAt }
+  );
+  await raiseNeedsReview(
+    tx,
+    context.farm.id,
+    {
+      entity: "sync_entry",
+      entityId: entry.id,
+      reason: "late_entry",
+      auditEventId: eventId,
+      params: { kind: entry.kind, seq: entry.seq, why: reason },
+    },
+    receivedAt
+  );
+};
+
+/** One notice about a phone, not one per entry it sent. */
+const flagSource = async (
+  tx: Tx,
+  context: Recorder,
+  {
+    sourceKey,
+    reason,
+    receivedAt,
+    params,
+  }: {
+    sourceKey: string;
+    reason: "clock_skew" | "sync_gap";
+    receivedAt: Date;
+    params: Record<string, unknown>;
+  }
+): Promise<void> => {
+  const entityId = `${sourceKey}:${reason}:${receivedAt.toISOString()}`;
+  const eventId = await audited(context).recordEvent(
+    tx,
+    {
+      entity: "sync_entry",
+      entityId,
+      action: "create",
+      after: params,
+    },
+    { receivedAt }
+  );
+  await raiseNeedsReview(
+    tx,
+    context.farm.id,
+    {
+      entity: "sync_entry",
+      entityId,
+      reason,
+      auditEventId: eventId,
+      params,
+    },
+    receivedAt
+  );
+};
+
+/**
+ * Every entry in the batch, in the order the phone sent them — which is the order they
+ * happened.
+ *
+ * Each is applied inside its own savepoint, so an entry the farm cannot take rolls back
+ * whatever it had half-written rather than leaving a row behind with nothing in the trail to
+ * account for it — and so one failure does not abort the transaction the rest of the batch
+ * is riding on.
+ */
+const applyEntries = async (
+  tx: Tx,
+  context: Recorder,
+  input: { key: string; entries: Entry[] },
+  { receivedAt, sourceKey }: { receivedAt: Date; sourceKey: string }
+): Promise<EntryResult[]> => {
+  const audit = audited(context);
+  const seen = await highestSeq(tx, sourceKey);
+  const missing = missingSeqs(
+    seen,
+    input.entries.map((entry) => entry.seq)
+  );
+  const results: EntryResult[] = [];
+  const skewed: number[] = [];
+
+  for (const entry of input.entries) {
+    // Deliberately sequential: entries are in the order they happened, and a later one can
+    // depend on an earlier one — a Move before the Completion that follows it.
+    // oxlint-disable-next-line no-await-in-loop
+    const before = await entrySeen(tx, context.farm.id, entry.id);
+    if (before) {
+      // The same entry, read already. Its answer stands.
+      results.push({
+        id: entry.id,
+        seq: entry.seq,
+        outcome: before.outcome,
+        reason: before.reason ?? "already recorded",
+      });
+      continue;
+    }
+    // oxlint-disable-next-line no-await-in-loop
+    const clash = await seqTaken(tx, sourceKey, entry.seq);
+    if (clash) {
+      // Two different entries under one number: the phone's own count is wrong, and taking
+      // the second would leave the farm unable to say which is which.
+      // oxlint-disable-next-line no-await-in-loop
+      await keep(tx, context, entry, {
+        input,
+        sourceKey,
+        receivedAt,
+        outcome: "rejected",
+        reason: `sequence ${entry.seq} is already used by another entry`,
+      });
+      results.push({
+        id: entry.id,
+        seq: entry.seq,
+        outcome: "rejected",
+        reason: `sequence ${entry.seq} is already used by another entry`,
+      });
+      continue;
+    }
+
+    let outcome: EntryResult["outcome"] = "applied";
+    let reason: string | null = null;
+    try {
+      // oxlint-disable-next-line no-await-in-loop
+      await tx.transaction(async (entryTx) => {
+        const target = await applyEntry(entryTx, context, entry, receivedAt);
+        await audit.recordEvent(
+          entryTx,
+          {
+            entity: target.entity,
+            entityId: target.entityId,
+            action: "create",
+            recordedAt: entry.recordedAt,
+            device: { id: context.device?.id ?? null, seq: entry.seq },
+            after: entryAfter(entry),
+          },
+          { receivedAt }
+        );
+      });
+    } catch (error) {
+      outcome = isLate(error) ? "kept" : "rejected";
+      reason = message(error);
+    }
+    if (
+      outcome === "applied" &&
+      clockIsOut(entry.recordedAt, receivedAt, context.farm.clockSkewMinutes)
+    ) {
+      // The litres are still the litres; the phone's clock is the thing to look at, and it
+      // is one thing however many entries it stamped.
+      outcome = "flagged";
+      skewed.push(entry.seq);
+    }
+    // oxlint-disable-next-line no-await-in-loop
+    await keep(tx, context, entry, {
+      input,
+      sourceKey,
+      receivedAt,
+      outcome,
+      reason,
+    });
+    results.push({
+      id: entry.id,
+      seq: entry.seq,
+      outcome,
+      ...(reason ? { reason } : {}),
+    });
+  }
+
+  if (skewed.length > 0) {
+    await flagSource(tx, context, {
+      sourceKey,
+      reason: "clock_skew",
+      receivedAt,
+      params: { sourceKey, entries: skewed.length, seqs: skewed },
+    });
+  }
+  if (missing.length > 0) {
+    // Entries this phone made and the farm has never read. Worth saying out loud; never a
+    // reason to refuse what did arrive.
+    await flagSource(tx, context, {
+      sourceKey,
+      reason: "sync_gap",
+      receivedAt,
+      params: { sourceKey, missing },
+    });
+  }
+  return results;
+};
+
+/**
+ * A whole batch, in one transaction. Held here rather than in the router because a router
+ * that opens its own transaction is a router that can write without a trail — the rule the
+ * audit guard exists to keep.
+ */
+export const applyBatch = async (
+  db: Database,
+  context: Recorder,
+  input: { key: string; entries: Entry[] },
+  {
+    receivedAt,
+    sourceKey,
+    requestHash,
+  }: { receivedAt: Date; sourceKey: string; requestHash: string }
+): Promise<EntryResult[]> =>
+  await db.transaction(async (tx) => {
+    const reserved = await reserveBatch(tx, {
+      key: input.key,
+      farmId: context.farm.id,
+      actorId: context.actor.id,
+      requestHash,
+      receivedAt,
+    });
+    if (!reserved) {
+      throw new ORPCError("CONFLICT", {
+        message: "That batch is already being applied",
+      });
+    }
+    const applied = await applyEntries(tx, context, input, {
+      receivedAt,
+      sourceKey,
+    });
+    await recordBatchResponse(tx, input.key, context.farm.id, {
+      results: applied,
+    });
+    return applied;
+  });

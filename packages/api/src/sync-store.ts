@@ -1,8 +1,9 @@
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { desc, eq, sql } from "@OpenFarm/db/operators";
-import type { ReviewReason } from "@OpenFarm/db/schema/review";
+import { createHash } from "node:crypto";
+
+import type { Database } from "@OpenFarm/db";
+import { and, desc, eq } from "@OpenFarm/db/operators";
 import type { EntryOutcome, SyncKind } from "@OpenFarm/db/schema/sync";
-import { syncEntry } from "@OpenFarm/db/schema/sync";
+import { syncBatch, syncEntry } from "@OpenFarm/db/schema/sync";
 
 import type { Tx } from "./audit";
 
@@ -15,10 +16,11 @@ export const sourceKeyFor = (context: {
   actor: { id: string };
 }): string => context.device?.id ?? context.actor.id;
 
-/** A stable fingerprint of what was sent, so the same key carrying different work is refused
- *  rather than answered with someone else's result. */
+/** A digest of what was sent, so the same key carrying different work is refused rather than
+ *  answered with someone else's result. A digest rather than the payload: the point is to
+ *  tell two batches apart, not to keep a second copy of one. */
 export const fingerprint = (payload: unknown): string =>
-  JSON.stringify(payload);
+  createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 
 /** The highest sequence number this source has ever had read. */
 export const highestSeq = async (
@@ -35,21 +37,25 @@ export const highestSeq = async (
 };
 
 /**
- * The sequence numbers between what the farm has read and what has just arrived. Entries the
- * phone made and the farm has never seen: still in an outbox somewhere, or lost with the
- * phone. Worth telling someone; never worth refusing what did arrive.
+ * Sequence numbers this source has made and the farm has never read — before the batch, and
+ * within it. Entries still in an outbox somewhere, or gone with the phone. Worth telling
+ * someone; never worth refusing what did arrive.
  */
-export const gapsBefore = (
+export const missingSeqs = (
   highest: number | null,
   arriving: readonly number[]
 ): number[] => {
-  const lowest = Math.min(...arriving);
-  if (highest === null || lowest <= highest + 1) {
+  if (arriving.length === 0) {
     return [];
   }
+  const here = new Set(arriving);
+  const from = (highest ?? Math.min(...arriving) - 1) + 1;
+  const to = Math.max(...arriving);
   const missing: number[] = [];
-  for (let seq = highest + 1; seq < lowest; seq += 1) {
-    missing.push(seq);
+  for (let seq = from; seq < to; seq += 1) {
+    if (!here.has(seq)) {
+      missing.push(seq);
+    }
   }
   return missing;
 };
@@ -63,8 +69,25 @@ export const clockIsOut = (
   Math.abs(recordedAt.getTime() - receivedAt.getTime()) >
   skewMinutes * MINUTE_MS;
 
-/** Records that this entry was read, under the sequence number the phone gave it. The unique
- *  index on (source, seq) is what makes a replay a no-op and a reused number visible. */
+/** Has this exact entry been read before, and what was it told? */
+export const entrySeen = (tx: Tx, farmId: string, id: string) =>
+  tx.query.syncEntry.findFirst({
+    where: { id, farmId },
+    columns: { id: true, seq: true, outcome: true, reason: true },
+  });
+
+/** Has this source already used that sequence number for something else? */
+export const seqTaken = (tx: Tx, sourceKey: string, seq: number) =>
+  tx.query.syncEntry.findFirst({
+    where: { sourceKey, seq },
+    columns: { id: true },
+  });
+
+/**
+ * Records that this entry was read, under the sequence number the phone gave it, with what
+ * the phone sent when the farm could not take it into its records as it stands. Nothing a
+ * person wrote down is lost (ADR 0002).
+ */
 export const rememberEntry = async (
   tx: Tx,
   entry: {
@@ -75,6 +98,8 @@ export const rememberEntry = async (
     kind: SyncKind;
     outcome: EntryOutcome;
     batchKey: string;
+    payload: unknown;
+    reason: string | null;
     recordedAt: Date;
     receivedAt: Date;
   }
@@ -82,31 +107,41 @@ export const rememberEntry = async (
   await tx.insert(syncEntry).values(entry).onConflictDoNothing();
 };
 
-/** Has this exact entry been read before, and under which sequence number? */
-export const entrySeen = (tx: Tx, id: string) =>
-  tx.query.syncEntry.findFirst({
-    where: { id },
-    columns: { id: true, seq: true, outcome: true, sourceKey: true },
-  });
+/** The batch under this key, whoever sent it. Keys are the client's own, so one belonging to
+ *  another Farm is a collision worth saying out loud rather than answering. */
+export const batchUnder = (db: Pick<Database, "query"> | Tx, key: string) =>
+  db.query.syncBatch.findFirst({ where: { key } });
 
-/** The reasons a batch can flag rather than refuse. Kept here so the router reads as a list
- *  of judgements rather than a list of strings. */
-export const FLAG_REASONS = {
-  late: "late_entry" as ReviewReason,
-  gap: "sync_gap" as ReviewReason,
-  skew: "clock_skew" as ReviewReason,
+/** Takes the key for this batch, or says it was already taken. Reserved before anything is
+ *  applied, so two phones replaying the same batch at once meet here rather than both
+ *  applying it. */
+export const reserveBatch = async (
+  tx: Tx,
+  batch: {
+    key: string;
+    farmId: string;
+    actorId: string;
+    requestHash: string;
+    receivedAt: Date;
+  }
+): Promise<boolean> => {
+  const [reserved] = await tx
+    .insert(syncBatch)
+    .values(batch)
+    .onConflictDoNothing()
+    .returning({ key: syncBatch.key });
+  return Boolean(reserved);
 };
 
-export const newEntryId = (now: Date): string => uuidv7(now);
-
-/** Postgres's own count, for a test that wants to know nothing was written. */
-export const countEntries = async (
+/** Stores what the batch was told, so a replay is answered rather than applied again. */
+export const recordBatchResponse = async (
   tx: Tx,
-  sourceKey: string
-): Promise<number> => {
-  const [row] = await tx
-    .select({ total: sql<string>`count(*)` })
-    .from(syncEntry)
-    .where(eq(syncEntry.sourceKey, sourceKey));
-  return Number(row?.total ?? 0);
+  key: string,
+  farmId: string,
+  response: unknown
+): Promise<void> => {
+  await tx
+    .update(syncBatch)
+    .set({ response })
+    .where(and(eq(syncBatch.key, key), eq(syncBatch.farmId, farmId)));
 };

@@ -29,3 +29,17 @@ Decisions worth remembering:
 - Observations have no home until health arrives, so the kind exists in the contract and is refused by name. A client written against this does not have to change when increment 3 lands.
 
 Retention is the whole of Release 1's answer: nothing is purged, so keys and sequences outlive any phone's time out of signal by a wide margin.
+
+**Review outcomes folded in (follow-up commit).** Both axes found the same worst defect, and between them five more. This one deserved every finding it got:
+
+- **Late entries were dropped while the phone was told they were kept.** ADR 0002 says a late entry is *accepted* flagged, never dropped — but the flag was raised after the write had already thrown, so nothing was stored. A cow sold at two, a phone syncing at six carrying twelve and a half litres drawn at five: the phone cleared its outbox and the litres existed nowhere. What the phone sent is now held whole on the entry itself, with a person asked what to do with it, and the outcome it reports is **kept** rather than flagged, because "flagged" had come to mean two different things.
+- **Writes committed with no Audit Event.** Each entry had no savepoint, so a Completion row written before its effect threw stayed on the transaction and committed with nothing in the trail to account for it — and a real SQL error would have aborted the transaction the rest of the batch was riding on. Every entry now sits in its own savepoint.
+- **A replay could put a second person's name on the first person's work.** The upsert rewrote the row whenever the figures matched, so the same entry arriving from a shed phone restamped a Completion recorded on someone's own phone. Nothing is written when the entry is already there.
+- **A replayed Move was not idempotent at all** — the Move carried no client id, so it could be recorded twice.
+- **Gaps inside a batch were invisible.** Numbers 1 and 3 arriving together reported no gap, because only the run before the batch was checked.
+- **A sequence number could be reused silently**, the second entry's herd write landing while its bookkeeping row was discarded.
+- One phone with a bad clock sending two hundred entries raised two hundred notices. It is one phone and one thing to look at.
+
+The audit guard was evaded rather than satisfied: `tx.insert` inside a router's own transaction slipped past a rule written for `context.db.insert`. Tightening it to catch both handles flagged every router, because they all write on `tx` *inside* the audited helper — which is the correct pattern. The rule that actually holds is narrower and now enforced: **a router may not open a transaction**. Transactions belong to the audited helper and to the stores, where the Audit Event is written beside the change; the batch machinery moved into a store accordingly.
+
+Also: the digest column called `request_hash` held the whole payload rather than a hash; `entrySeen` and the batch lookup were not scoped to the Farm; three exported helpers had no callers; and `applyMove` duplicated a Pen check its caller had already made.

@@ -20,9 +20,23 @@ export const SYNC_KINDS = [
 ] as const;
 export type SyncKind = (typeof SYNC_KINDS)[number];
 
-/** What became of one entry in a batch. Rejected entries are the client's to keep and fix;
- *  flagged ones are in the farm's records, with a person asked to look. */
-export const ENTRY_OUTCOMES = ["applied", "flagged", "rejected"] as const;
+/**
+ * What became of one entry in a batch.
+ *
+ * - `applied` — it is in the farm's records.
+ * - `flagged` — it is in the records, and someone has been asked to look at it anyway: a
+ *   phone whose clock is far out still recorded the litres.
+ * - `kept` — the world moved past it, so it is not in the records as they stand; what the
+ *   phone sent is held whole, with a person asked to decide (ADR 0002: never dropped, and
+ *   never overwriting).
+ * - `rejected` — it was never valid. The client keeps it so somebody can see what was meant.
+ */
+export const ENTRY_OUTCOMES = [
+  "applied",
+  "flagged",
+  "kept",
+  "rejected",
+] as const;
 export type EntryOutcome = (typeof ENTRY_OUTCOMES)[number];
 
 /**
@@ -44,8 +58,8 @@ export const syncBatch = pgTable(
     actorId: text("actor_id")
       .notNull()
       .references(() => user.id),
-    /** What was sent, so the same key carrying different work is refused rather than
-     *  silently answered with someone else's result. */
+    /** A digest of what was sent, so the same key carrying different work is refused rather
+     *  than silently answered with someone else's result. */
     requestHash: text("request_hash").notNull(),
     /** The answer, returned verbatim on a replay. */
     response: jsonb("response"),
@@ -75,6 +89,13 @@ export const syncEntry = pgTable(
     seq: integer("seq").notNull(),
     kind: text("kind", { enum: SYNC_KINDS }).notNull(),
     outcome: text("outcome", { enum: ENTRY_OUTCOMES }).notNull(),
+    /** What the phone actually sent. Kept for every entry the farm could not take into its
+     *  records as it stands — an entry the world moved past, or one that was never valid —
+     *  so nothing a person wrote down is lost, and whoever looks at it can see exactly what
+     *  was meant (ADR 0002). Null once the entry is in the records on its own account. */
+    payload: jsonb("payload"),
+    /** Why it could not be taken as it stands. */
+    reason: text("reason"),
     /** The batch it came in, so a replay finds its own work. */
     batchKey: text("batch_key")
       .notNull()

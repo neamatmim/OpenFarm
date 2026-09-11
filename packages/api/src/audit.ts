@@ -31,8 +31,9 @@ export interface AuditedWrite {
   reason?: string;
   /** The event a correction supersedes. */
   supersedesId?: string;
-  /** Device attribution for entries captured on a Shed Phone (a later ticket). */
-  device?: { id: string; seq: number } | null;
+  /** Device attribution and the phone's own sequence number for an entry that arrived from
+   *  an outbox. The id is null on a personal phone, which still has a sequence. */
+  device?: { id: string | null; seq: number } | null;
   /** When the actor says it happened; defaults to now. */
   recordedAt?: Date;
   /** The Role this write was actually allowed under, when that is narrower than the Role the
