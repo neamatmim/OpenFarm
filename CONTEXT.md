@@ -184,6 +184,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Sequence Number**: The position an entry has in its own phone's Outbox. Gaps in it are entries the farm has never read — worth saying out loud, never a reason to refuse what did arrive. _Avoid_: Index, offset, counter
 
+**Restore Drill**: The quarterly rehearsal of losing the farm's database: a backup restored into a scratch environment and checked by the Manager in the app. Recorded whether or not it went well. _Avoid_: Test, DR test, failover
+
 **Outbox**: The durable on-device queue of entries made without signal, sent in order when signal returns. Never emptied without the server's acknowledgement. _Avoid_: Cache, buffer, pending list (that's what the user _sees_)
 
 **Needs Review**: Something the system accepted but could not settle on its own, waiting for a person: an entry the server took although the world had changed since it was recorded, or a Correction whose effects it cannot walk back. Raised by the system, resolved by the Manager with their judgement recorded; never discarded. _Avoid_: Conflict (reserved for a failed correction), rejected, error

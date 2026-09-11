@@ -230,6 +230,7 @@ export const en = {
   "sop.cannotPublish": "This cannot be published yet",
   "common.cancel": "Cancel",
   "nav.signOff": "To check",
+  "nav.backups": "Backups",
   "nav.settings": "Settings",
   "nav.today": "Today",
   "work.title": "Today's work",
@@ -330,6 +331,13 @@ export const en = {
   "push.title": "Being told",
   "push.why":
     "Late work and escalations reach you here, even when the app is closed.",
+  "backups.title": "Copies of the farm",
+  "backups.lastGood": "Last good copy {when}",
+  "backups.never": "No copy has ever worked",
+  "backups.stale": "No copy for {nights} nights",
+  "backups.ok": "Worked",
+  "backups.failed": "Failed",
+  "backups.none": "Nothing recorded yet",
   "common.notFound": "Not found",
 } as const;
 

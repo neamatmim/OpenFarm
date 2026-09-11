@@ -4,6 +4,7 @@ import { protectedProcedure, publicProcedure } from "../index";
 import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
+import { backupsRouter } from "./backups";
 import { devicesRouter } from "./devices";
 import { farmRouter } from "./farm";
 import { herdRouter } from "./herd";
@@ -23,6 +24,7 @@ export const appRouter = {
   alerts: alertsRouter,
   animals: animalsRouter,
   audit: auditRouter,
+  backups: backupsRouter,
   devices: devicesRouter,
   farm: farmRouter,
   herd: herdRouter,
