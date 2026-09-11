@@ -10,18 +10,23 @@ import { requireRole } from "../roles";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
-const parameters = z.object({
-  /** How far the tank reading may sit from what the cows account for before the Manager
-   *  is asked to look. */
-  milkTolerancePercent: z.number().int().min(0).max(100).optional(),
-  /** How long an Overdue Instance may stay open before the Owner is told as well. */
-  escalationMinutes: z
-    .number()
-    .int()
-    .min(0)
-    .max(24 * 60)
-    .optional(),
-});
+const parameters = z
+  .object({
+    /** How far the tank reading may sit from what the cows account for before the Manager
+     *  is asked to look. */
+    milkTolerancePercent: z.number().int().min(0).max(100).optional(),
+    /** How long an Overdue Instance may stay open before the Owner is told as well. */
+    escalationMinutes: z
+      .number()
+      .int()
+      .min(0)
+      .max(24 * 60)
+      .optional(),
+  })
+  .refine(
+    (value) => Object.values(value).some((entry) => entry !== undefined),
+    { message: "Nothing to change" }
+  );
 
 /** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
 const BOOTSTRAP_LOCK = 7001;
@@ -87,9 +92,6 @@ export const farmRouter = {
       }
       if (input.escalationMinutes !== undefined) {
         changes.escalationMinutes = input.escalationMinutes;
-      }
-      if (Object.keys(changes).length === 0) {
-        throw new ORPCError("BAD_REQUEST", { message: "Nothing to change" });
       }
       await audited(context).write(
         {

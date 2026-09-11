@@ -32,17 +32,16 @@ export {
   underMilkWithdrawal,
 } from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
-export type { InstanceState, Timed } from "./work";
+export type { AlertKind } from "./alerts";
+export { ALERT_KINDS } from "./alerts";
+export type { DueWork } from "./work";
 export {
   AWAITING_SIGN_OFF,
-  INSTANCE_STATES,
   OPEN_INSTANCE_STATES,
-  escalatesAt,
   isEscalated,
   isOpen,
   isOverdue,
   minutesOverdue,
-  overdueAt,
 } from "./work";
 export type { RoleName } from "./roles";
 export { ROLES } from "./roles";

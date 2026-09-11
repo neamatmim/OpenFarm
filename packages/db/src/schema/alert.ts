@@ -7,17 +7,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import { ALERT_KINDS } from "./alert-kinds";
 import { user } from "./auth";
 import { farm } from "./farm";
 
-/** What an Alert is about. The list grows with the increments that raise them; Release 1's
- *  first increment raises the three that keep work from going quiet. */
-export const ALERT_KINDS = [
-  "instance_overdue",
-  "instance_escalated",
-  "instance_sent_back",
-] as const;
-export type AlertKind = (typeof ALERT_KINDS)[number];
+export { ALERT_KINDS } from "./alert-kinds";
+export type { AlertKind } from "./alert-kinds";
 
 /**
  * One thing one person is being told, in app. It stays visible until they dismiss it — an

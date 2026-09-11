@@ -1,4 +1,5 @@
 export * from "./alert";
+export * from "./alert-kinds";
 export * from "./audit";
 export * from "./auth";
 export * from "./device";

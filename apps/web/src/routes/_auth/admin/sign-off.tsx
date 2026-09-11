@@ -8,18 +8,19 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { hoursLate } from "@/lib/lateness";
 import { orpc } from "@/utils/orpc";
 
-const MINUTES_PER_HOUR = 60;
-
 interface Queued {
-  id: string;
-  dueAt: string | Date;
   version: { content: unknown };
   pen: { name: string; shed: { name: string } };
 }
 
-const titleOf = (row: Queued) => (row.version.content as SopContent).name.bn;
+/** SOP content is jsonb, so it arrives untyped; the Version's own shape is the promise. */
+const titleOf = (row: Queued, bangla: boolean) => {
+  const { name } = row.version.content as SopContent;
+  return bangla ? name.bn : (name.en ?? name.bn);
+};
 const whereOf = (row: Queued) => `${row.pen.shed.name} · ${row.pen.name}`;
 
 /** The Manager's two queues: work waiting to be checked, and work that has gone late. */
@@ -67,7 +68,9 @@ const SignOffPage = () => {
                   params={{ instanceId: row.id }}
                   to="/work/$instanceId"
                 >
-                  <p className="text-lg font-bold">{titleOf(row)}</p>
+                  <p className="text-lg font-bold">
+                    {titleOf(row, language === "bn")}
+                  </p>
                   <p className="text-muted-foreground text-sm">
                     {whereOf(row)} ·{" "}
                     {formatDate(new Date(row.dueAt), language, "dateTime")}
@@ -117,14 +120,13 @@ const SignOffPage = () => {
                   params={{ instanceId: row.id }}
                   to="/work/$instanceId"
                 >
-                  <p className="text-lg font-bold">{titleOf(row)}</p>
+                  <p className="text-lg font-bold">
+                    {titleOf(row, language === "bn")}
+                  </p>
                   <p className="text-sm text-amber-200">
                     {whereOf(row)} ·{" "}
                     {t("work.lateFor", {
-                      hours: Math.max(
-                        1,
-                        Math.round(row.minutesOverdue / MINUTES_PER_HOUR)
-                      ),
+                      hours: hoursLate(row.minutesOverdue),
                     })}
                   </p>
                 </Link>

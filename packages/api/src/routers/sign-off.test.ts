@@ -75,7 +75,16 @@ const setup = async () => {
       triggers: [{ kind: "schedule", times: ["06:00"] }],
     }),
   });
-  return { owner, pen, checked, unchecked };
+  /** An SOP the Vet does and the Manager checks, for the Roles the queue must still reach. */
+  const vetChecked = await owner.client.sops.create({
+    content: sop({
+      name: { bn: `টিকা ${suffix}` },
+      assignedRole: "vet",
+      checkerRole: "staff",
+      triggers: [{ kind: "schedule", times: ["04:00"] }],
+    }),
+  });
+  return { owner, pen, checked, unchecked, vetChecked };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -150,7 +159,7 @@ const sweepUntilQuiet = async (client: {
   throw new Error("the sweep never went quiet");
 };
 
-const noticeFor = (
+const alertFor = (
   inbox: { kind: string; entityId: string; id: string }[],
   instanceId: string,
   kind: string
@@ -202,7 +211,7 @@ describe("going late", () => {
     // The Owner hears nothing yet: escalation is a separate rung.
     const owner = await as("owner", clock);
     expect(
-      noticeFor(
+      alertFor(
         await owner.alerts.mine({ entityId: instance.id }),
         instance.id,
         "instance_escalated"
@@ -219,7 +228,7 @@ describe("going late", () => {
     clock.set(after("2026-11-03", 120));
     await sweepUntilQuiet(manager);
     expect(
-      noticeFor(
+      alertFor(
         await owner.alerts.mine({ entityId: instance.id }),
         instance.id,
         "instance_escalated"
@@ -228,7 +237,7 @@ describe("going late", () => {
 
     clock.set(after("2026-11-03", 180));
     await sweepUntilQuiet(manager);
-    const notice = noticeFor(
+    const notice = alertFor(
       await owner.alerts.mine({ entityId: instance.id }),
       instance.id,
       "instance_escalated"
@@ -267,7 +276,7 @@ describe("going late", () => {
 
       const owner = await as("owner", clock);
       expect(
-        noticeFor(
+        alertFor(
           await owner.alerts.mine({ entityId: instance.id }),
           instance.id,
           "instance_escalated"
@@ -314,7 +323,7 @@ describe("sign-off", () => {
     });
 
     expect(
-      noticeFor(
+      alertFor(
         await staff.alerts.mine({ entityId: instance.id }),
         instance.id,
         "instance_sent_back"
@@ -412,6 +421,114 @@ describe("closing as missed", () => {
     await expect(
       manager.instances.closeAsMissed({ id: instance.id, reason: "পরে" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});
+
+describe("review findings", () => {
+  it("tells whoever the work is for, not only the Manager, when nobody has claimed it", async () => {
+    // Nobody claims it: the milking SOP is assigned to Staff, and the Staff member with
+    // this Pen is the person who should be hearing that it is late.
+    const { instance, clock } = await workFor("2026-11-13", "23:05:00.000Z");
+    clock.set(after("2026-11-13", 45));
+    const manager = await as("manager", clock);
+    await sweepUntilQuiet(manager);
+
+    const staff = await as("staff", clock);
+    expect(
+      alertFor(
+        await staff.alerts.mine({ entityId: instance.id }),
+        instance.id,
+        "instance_overdue"
+      )
+    ).toBeDefined();
+  });
+
+  it("reaches the named checker whatever Role that is", async () => {
+    const { instance, clock } = await workFor(
+      "2026-11-14",
+      "22:05:00.000Z",
+      world.vetChecked.definitionId
+    );
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    await vet.client.instances.claim({ id: instance.id });
+    await vet.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "clean",
+      evidence: [true],
+    });
+    await vet.client.instances.complete({ id: instance.id });
+
+    // Checked by Staff, so the Staff member sees it — being Staff is not a reason to be
+    // kept out of a queue the Version named them for.
+    const staff = await as("staff", clock);
+    const queue = await staff.instances.signOffQueue();
+    expect(queue.some((row) => row.id === instance.id)).toBe(true);
+
+    const approved = await staff.instances.approve({ id: instance.id });
+    expect(approved.state).toBe("approved");
+  });
+
+  it("tells the person who recorded the work, even if nobody claimed it", async () => {
+    const { instance, clock } = await workFor("2026-11-15", "23:05:00.000Z");
+    const staff = await as("staff", clock);
+    // Straight to recording: a Step can be done without anyone claiming the Instance first.
+    await staff.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "clean",
+      evidence: [true],
+    });
+    await staff.instances.complete({ id: instance.id });
+
+    const manager = await as("manager", clock);
+    await manager.instances.sendBack({
+      id: instance.id,
+      reason: "আবার করুন",
+    });
+
+    expect(
+      alertFor(
+        await staff.alerts.mine({ entityId: instance.id }),
+        instance.id,
+        "instance_sent_back"
+      )
+    ).toBeDefined();
+  });
+
+  it("refuses to close work as missed before it is even late", async () => {
+    const { instance, clock } = await workFor("2026-11-16", "23:05:00.000Z");
+    const manager = await as("manager", clock);
+
+    // Five minutes past due, still inside the half-hour of Grace.
+    await expect(
+      manager.instances.closeAsMissed({ id: instance.id, reason: "পরে" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    clock.set(after("2026-11-16", 45));
+    const closed = await manager.instances.closeAsMissed({
+      id: instance.id,
+      reason: "লোক ছিল না",
+    });
+    expect(closed.state).toBe("missed");
+    // Nobody completed it, so it carries no completion time.
+    const kept = await manager.instances.get({ id: instance.id });
+    expect(kept.completedAt).toBeNull();
+  });
+
+  it("still says something about work that went late while the farm was quiet", async () => {
+    const { instance, clock } = await workFor("2026-11-17", "23:05:00.000Z");
+
+    // Nobody opens the app for a fortnight. The work is still open, and still unsaid.
+    clock.set(after("2026-11-17", 14 * 24 * 60));
+    const manager = await as("manager", clock);
+    await sweepUntilQuiet(manager);
+
+    expect(
+      alertFor(
+        await manager.alerts.mine({ entityId: instance.id }),
+        instance.id,
+        "instance_overdue"
+      )
+    ).toBeDefined();
   });
 });
 

@@ -19,13 +19,14 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { raiseAlerts } from "../alerts-store";
+import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { protectedProcedure } from "../index";
 import {
+  alertParams,
   animalsForInstance,
   dueSlotsFor,
   farmDayRange,
@@ -215,12 +216,12 @@ const readInstanceState = async (tx: Tx, farmId: string, id: string) => {
 };
 
 /**
- * The Instance a checker may sign off: waiting for sign-off, and waiting on a Role they
- * hold. Holding some other Role is not enough — the Version named who checks this work, and
+ * Loads the Instance a checker may sign off, refusing if they may not: it must be waiting
+ * for sign-off, and waiting on a Role they hold. Holding some other Role is not enough — the Version named who checks this work, and
  * an Owner who is not the named checker is still not the named checker. The one exception is
  * the Owner, who may always unstick the farm; that is the same licence they have elsewhere.
  */
-const assertMayCheck = async (
+const loadCheckableInstance = async (
   tx: Tx,
   context: { farm: { id: string }; roles: string[]; actor: { id: string } },
   id: string
@@ -702,7 +703,7 @@ export const instancesRouter = {
   /** The checker's queue: work that has been done and is waiting on their Role. An SOP with
    *  no checker Role never appears here — that work is finished when it is completed. */
   signOffQueue: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(({ context }) =>
       context.db.query.sopInstance.findMany({
         where: {
@@ -724,7 +725,7 @@ export const instancesRouter = {
 
   /** The checker accepts the work. Terminal: an approved Instance is the farm's record. */
   approve: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet"))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       await audited(context).write(
@@ -736,7 +737,7 @@ export const instancesRouter = {
           after: { state: "approved" },
         },
         async (tx) => {
-          await assertMayCheck(tx, context, input.id);
+          await loadCheckableInstance(tx, context, input.id);
           await tx
             .update(sopInstance)
             .set({ state: "approved" })
@@ -749,7 +750,7 @@ export const instancesRouter = {
   /** The checker sends it back with a reason. It returns to the doer, who fixes or redoes
    *  it; the Completions stay, because recording a Step again corrects it. */
   sendBack: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet"))
     .input(z.object({ id: z.string(), reason: reasonInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
@@ -763,33 +764,26 @@ export const instancesRouter = {
           reason: input.reason,
         },
         async (tx) => {
-          const instance = await assertMayCheck(tx, context, input.id);
+          const instance = await loadCheckableInstance(tx, context, input.id);
           await tx
             .update(sopInstance)
             .set({ state: "sent_back", completedAt: null })
             .where(eq(sopInstance.id, input.id));
-          // The person who did the work is the person who has to hear about it.
-          const doer = instance.claimedBy ?? instance.assignedTo;
-          if (doer) {
-            const { name } = contentOf(instance.version);
-            await raiseAlerts(
-              tx,
-              context.farm.id,
-              [doer],
-              {
-                kind: "instance_sent_back",
-                entity: "sop_instance",
-                entityId: input.id,
-                params: {
-                  sopBn: name.bn,
-                  sopEn: name.en ?? name.bn,
-                  pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
-                  reason: input.reason,
-                },
-              },
-              now
-            );
-          }
+          // The people who did the work are the people who have to hear about it — and a
+          // Step can be recorded without anyone having claimed the Instance, so whoever
+          // actually recorded something counts as having done it.
+          await raiseAlerts(
+            tx,
+            context.farm.id,
+            await doersOf(tx, context.farm.id, instance),
+            {
+              kind: "instance_sent_back",
+              entity: "sop_instance",
+              entityId: input.id,
+              params: { ...alertParams(instance), reason: input.reason },
+            },
+            now
+          );
         }
       );
       return { id: input.id, state: "sent_back" } as const;
@@ -814,7 +808,7 @@ export const instancesRouter = {
         async (tx) => {
           const instance = await tx.query.sopInstance.findFirst({
             where: { id: input.id, farmId: context.farm.id },
-            columns: { state: true },
+            columns: { state: true, dueAt: true, graceMinutes: true },
           });
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
@@ -824,9 +818,17 @@ export const instancesRouter = {
               message: `This work is ${instance.state}; only work still open can be closed as missed`,
             });
           }
+          // Work that is not yet late has not been missed — it has not had its chance.
+          if (!isOverdue(instance, now)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "This work is not overdue yet",
+            });
+          }
+          // No completedAt: nobody completed it. When it was closed, and by whom, is the
+          // Audit Event's business.
           await tx
             .update(sopInstance)
-            .set({ state: "missed", completedAt: now })
+            .set({ state: "missed" })
             .where(eq(sopInstance.id, input.id));
         }
       );

@@ -11,7 +11,7 @@ import {
   minutesOverdue,
 } from "@OpenFarm/domain";
 
-import { holdersOf, raiseAlerts } from "./alerts-store";
+import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 
 /** The farm's clock. Asia/Dhaka has no daylight saving; a farm parameter later. */
@@ -165,9 +165,9 @@ export const animalsForInstance = async (
   );
 };
 
-/** The one-line notice an Alert about a piece of work carries, snapshotted at the moment it
- *  is raised so it still reads the same after the SOP is renamed or the Pen is moved. */
-const noticeParams = (instance: {
+/** What an Alert about a piece of work carries, snapshotted at the moment it is raised so it
+ *  still reads the same after the SOP is renamed or the Pen is moved. */
+export const alertParams = (instance: {
   version: { content: unknown };
   pen: { name: string; shed: { name: string } };
   dueAt: Date;
@@ -189,10 +189,15 @@ const noticeParams = (instance: {
 export const findLate = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
-  now: Date
+  now: Date,
+  /** How much to bring back. Most recently due first either way, so a cap takes the work
+   *  that still matters rather than an arbitrary slice. */
+  limit?: number
 ) => {
   const open = await db.query.sopInstance.findMany({
     where: { farmId, state: { in: [...OPEN_INSTANCE_STATES] } },
+    orderBy: { dueAt: "desc" },
+    limit,
     with: {
       version: { columns: { content: true } },
       pen: {
@@ -206,14 +211,13 @@ export const findLate = async (
 
 export type LateInstance = Awaited<ReturnType<typeof findLate>>[number];
 
-/** How far back a notice is worth sending. Work that went late this week is something to
- *  tell someone about; work that has been late for a month is a list, not a notification,
- *  and it stays on the Overdue list for as long as it stays open. */
-const ALERT_HORIZON_DAYS = 7;
-
 /** A backstop on one sweep, so a farm opening the app after a long silence catches up over
- *  a few sweeps rather than holding one write transaction open against all of it. */
+ *  a few sweeps rather than holding one write transaction open against all of it. The read
+ *  is bounded more loosely than the write, because some of what it finds has been told
+ *  already. Nothing is dropped by either bound: an Instance nobody has been told about stays
+ *  untold until a sweep reaches it, and stays on the Overdue list meanwhile. */
 const SWEEP_BATCH = 200;
+const SWEEP_READ = 1000;
 
 const ALERTED_KINDS = ["instance_overdue", "instance_escalated"] as const;
 
@@ -235,13 +239,12 @@ export const findPendingNotices = async (
   farm: { id: string; escalationMinutes: number },
   now: Date
 ): Promise<PendingNotices> => {
-  const horizon = now.getTime() - ALERT_HORIZON_DAYS * 24 * 60 * MINUTE_MS;
-  // Most recently due first: if a farm has a backlog, the Manager wants to hear about this
-  // morning's milking before an Instance from last week that nobody ever closed.
-  const open = await findLate(db, farm.id, now);
-  const late = open
-    .filter((instance) => instance.dueAt.getTime() >= horizon)
-    .toSorted((a, b) => b.dueAt.getTime() - a.dueAt.getTime());
+  // Most recently due first: if a farm has a backlog, the Manager hears about this morning's
+  // milking before an Instance from last week that nobody ever closed — and still hears
+  // about last week's, on a later sweep. Nothing ages out of being worth saying: the sweep
+  // runs when someone opens the app, so a farm that was quiet for a week would otherwise
+  // come back to silence about the week it missed.
+  const late = await findLate(db, farm.id, now, SWEEP_READ);
   if (late.length === 0) {
     return { overdue: [], escalated: [] };
   }
@@ -293,19 +296,20 @@ export const raiseLateAlerts = async (
   let overdue = 0;
   let escalated = 0;
   for (const instance of pending.overdue) {
-    const onIt = instance.claimedBy ?? instance.assignedTo;
     // Deliberately sequential: a hundred concurrent upserts against one unique index buys
     // nothing but lock contention.
+    // oxlint-disable-next-line no-await-in-loop
+    const onIt = await peopleOnTheWork(tx, farmId, instance);
     // oxlint-disable-next-line no-await-in-loop
     overdue += await raiseAlerts(
       tx,
       farmId,
-      onIt ? [...managers, onIt] : managers,
+      [...managers, ...onIt],
       {
         kind: "instance_overdue",
         entity: "sop_instance",
         entityId: instance.id,
-        params: noticeParams(instance),
+        params: alertParams(instance),
       },
       now
     );
@@ -321,7 +325,7 @@ export const raiseLateAlerts = async (
         entity: "sop_instance",
         entityId: instance.id,
         params: {
-          ...noticeParams(instance),
+          ...alertParams(instance),
           minutesOverdue: minutesOverdue(instance, now),
         },
       },

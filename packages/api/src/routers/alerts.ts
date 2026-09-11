@@ -12,6 +12,13 @@ import { requireRole } from "../roles";
  *  problem the farm has. */
 const INBOX_LIMIT = 50;
 
+/** The Instance the sweep's Audit Event is keyed on: the first it has something to say
+ *  about, with the rest named in the event's payload. */
+const first = (pending: {
+  overdue: { id: string }[];
+  escalated: { id: string }[];
+}): string => pending.overdue[0]?.id ?? pending.escalated[0]?.id ?? "";
+
 export const alertsRouter = {
   /**
    * Raises the Alerts the clock has earned. Idempotent, so the phone and the office can both
@@ -28,15 +35,18 @@ export const alertsRouter = {
       if (pending.overdue.length + pending.escalated.length === 0) {
         return { overdue: 0, escalated: 0 };
       }
+      // Audited against each Instance the notice is about, not against the sweep: an
+      // entityId no row carries is a trail entry nothing can find its way back to. Reading
+      // an Instance's history now shows that it went late and who was told.
       return await audited(context).write(
         {
-          entity: "alert",
-          entityId: `overdue:${now.toISOString()}`,
-          action: "create",
+          entity: "sop_instance",
+          entityId: first(pending),
+          action: "update",
           after: () =>
             Promise.resolve({
-              overdue: pending.overdue.length,
-              escalated: pending.escalated.length,
+              overdue: pending.overdue.map((row) => row.id),
+              escalated: pending.escalated.map((row) => row.id),
             }),
         },
         (tx) => raiseLateAlerts(tx, context.farm.id, pending, now)

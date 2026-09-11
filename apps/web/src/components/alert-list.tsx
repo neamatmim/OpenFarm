@@ -1,38 +1,38 @@
+import type { AlertKind } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { hoursLate } from "@/lib/lateness";
 import { orpc } from "@/utils/orpc";
 
-const MINUTES_PER_HOUR = 60;
-
-const MESSAGE_FOR: Record<string, MessageKey> = {
+/** Every kind of Alert has something to say. Typed by the kind rather than by string, so a
+ *  new one is a compile error here rather than a row that renders as its own name. */
+const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   instance_overdue: "alerts.instanceOverdue",
   instance_escalated: "alerts.instanceEscalated",
   instance_sent_back: "alerts.instanceSentBack",
 };
 
-interface Notice {
-  id: string;
-  kind: string;
-  params: unknown;
-}
-
+/** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
+ *  rather than the type system's; read defensively and in the reader's language. */
 const paramsOf = (
-  notice: Notice,
+  params: unknown,
   bangla: boolean
 ): Record<string, string | number> => {
-  const raw = (notice.params ?? {}) as Record<string, unknown>;
-  const minutes = Number(raw.minutesOverdue ?? 0);
+  const raw = (params ?? {}) as Record<string, unknown>;
   return {
     sop: String((bangla ? raw.sopBn : raw.sopEn) ?? raw.sopBn ?? ""),
     pen: String(raw.pen ?? ""),
     reason: String(raw.reason ?? ""),
-    hours: Math.max(1, Math.round(minutes / MINUTES_PER_HOUR)),
+    hours: hoursLate(Number(raw.minutesOverdue ?? 0)),
   };
 };
+
+const messageFor = (kind: string): MessageKey | null =>
+  (MESSAGE_FOR as Record<string, MessageKey>)[kind] ?? null;
 
 /**
  * What this person is being told. Raising the notices is the same call however anyone opens
@@ -56,7 +56,7 @@ export const AlertList = () => {
   return (
     <ul className="space-y-2">
       {alerts.data.map((notice) => {
-        const key = MESSAGE_FOR[notice.kind];
+        const key = messageFor(notice.kind);
         return (
           <li
             className="flex items-start gap-3 rounded-2xl bg-amber-950 p-3 text-amber-100"
@@ -64,7 +64,9 @@ export const AlertList = () => {
           >
             <AlertTriangle className="mt-0.5 shrink-0" size={18} />
             <p className="flex-1 text-sm">
-              {key ? t(key, paramsOf(notice, language === "bn")) : notice.kind}
+              {key
+                ? t(key, paramsOf(notice.params, language === "bn"))
+                : notice.kind}
             </p>
             <Button
               onClick={() => dismiss.mutate({ id: notice.id })}
