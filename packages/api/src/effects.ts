@@ -1,12 +1,17 @@
 import type { MilkDestination, Step } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 
 import type { Tx } from "./audit";
-import { requirePen } from "./herd-store";
+import {
+  loadLiveAnimal,
+  moveOpenWorkWith,
+  movedSince,
+  recordMove,
+  requirePen,
+} from "./herd-store";
 import {
   ensureSession,
   reReconcile,
@@ -93,9 +98,14 @@ export interface EffectInput {
  *
  * Keyed on the Completion, like every other effect: a phone replaying an entry, or a Manager
  * correcting one, changes where she went rather than sending her on a second journey. What
- * it will not do is rewrite where she is when somebody has moved her since — that is a fact
- * the farm has that this Correction does not, so she stays where she is and a person is
- * asked (Needs Review, irreversible effect).
+ * it will not do is rewrite where she is when anything has moved her since the entry was
+ * recorded — that is a fact the farm has and this Correction does not, so she stays where she
+ * was last seen and a person is asked (Needs Review, irreversible effect).
+ *
+ * The Pen she is walked to is not checked against the doer's Pen Assignments, unlike a Move
+ * somebody records by hand. The destinations are the Owner's, authored into the Step, and a
+ * milker assigned to the milking pen has to be able to walk a cow to the dry pen — that is
+ * what the procedure says to do. What they may work on is already settled by the Instance.
  */
 const applyMoveEffect = async (
   tx: Tx,
@@ -108,23 +118,33 @@ const applyMoveEffect = async (
   }
   const beast = await tx.query.animal.findFirst({
     where: { id: input.animalId, farmId: input.instance.farmId },
-    columns: { id: true, penId: true, side: true },
+    columns: { id: true, tagNumber: true, penId: true, side: true, state: true },
   });
   if (!beast) {
     throw new ORPCError("NOT_FOUND", { message: "No such animal" });
   }
+  // An animal that has left the farm cannot be walked anywhere, whoever is asking.
+  const live = await loadLiveAnimal(tx, input.instance.farmId, beast.tagNumber);
   const already = await tx.query.animalMove.findFirst({
     where: { completionId: input.completionId },
     columns: { id: true, fromPenId: true, toPenId: true },
   });
-  const movedSince = Boolean(already) && beast.penId !== already?.toPenId;
+  // Asked of the Moves themselves, not of where she is standing: a cow walked away and back
+  // again is standing where this entry left her, and is still a cow the farm has learned
+  // something newer about.
+  const somethingMovedHer = await movedSince(
+    tx,
+    live.id,
+    input.recordedAt,
+    input.completionId
+  );
 
-  // Corrected to a skip: the journey is undone if she is still where it put her.
+  // Corrected to a skip: the journey is undone if nothing has happened to her since.
   if (input.skipped) {
     if (!already) {
       return null;
     }
-    if (movedSince) {
+    if (somethingMovedHer) {
       return {
         kind: "move",
         fromPenId: already.fromPenId,
@@ -140,7 +160,13 @@ const applyMoveEffect = async (
       await tx
         .update(animal)
         .set({ penId: already.fromPenId, updatedAt: input.now })
-        .where(eq(animal.id, beast.id));
+        .where(eq(animal.id, live.id));
+      await moveOpenWorkWith(
+        tx,
+        input.instance.farmId,
+        live.id,
+        already.fromPenId
+      );
     }
     return null;
   }
@@ -148,50 +174,39 @@ const applyMoveEffect = async (
   const toPenId = choiceIn(input.step, input.evidence);
   // A Pen that is not this farm's is not somewhere she can be walked to.
   await requirePen(tx, input.instance.farmId, toPenId);
-  const fromPenId = already?.fromPenId ?? beast.penId;
+  const fromPenId = already?.fromPenId ?? live.penId;
 
-  if (movedSince) {
-    // Record what the Step now says, but leave her where the farm last saw her.
-    await tx
-      .update(animalMove)
-      .set({ toPenId, movedAt: input.recordedAt })
-      .where(eq(animalMove.completionId, input.completionId));
-    return {
-      kind: "move",
-      fromPenId,
-      toPenId,
-      moved: false,
-      cannotUndo: true,
-    };
+  if (somethingMovedHer) {
+    // Record what the Step now says, and leave her where the farm last saw her.
+    if (already) {
+      await tx
+        .update(animalMove)
+        .set({ toPenId })
+        .where(eq(animalMove.completionId, input.completionId));
+    }
+    return { kind: "move", fromPenId, toPenId, moved: false, cannotUndo: true };
   }
 
   if (already) {
     await tx
       .update(animalMove)
-      .set({ toPenId, movedAt: input.recordedAt })
+      .set({ toPenId })
       .where(eq(animalMove.completionId, input.completionId));
-  } else if (fromPenId !== toPenId) {
-    await tx.insert(animalMove).values({
-      id: uuidv7(input.now),
-      farmId: input.instance.farmId,
-      animalId: beast.id,
-      fromPenId,
-      toPenId,
-      // A Step walks her to another Pen; crossing to the other Side is its own act, with
-      // its own rules about what State she takes with her.
-      fromSide: beast.side,
-      toSide: beast.side,
-      reason: null,
-      completionId: input.completionId,
-      movedBy: input.recordedBy,
-      movedAt: input.recordedAt,
-    });
-  }
-  if (beast.penId !== toPenId) {
     await tx
       .update(animal)
       .set({ penId: toPenId, updatedAt: input.now })
-      .where(eq(animal.id, beast.id));
+      .where(eq(animal.id, live.id));
+    await moveOpenWorkWith(tx, input.instance.farmId, live.id, toPenId);
+  } else if (fromPenId !== toPenId) {
+    await recordMove(tx, {
+      farmId: input.instance.farmId,
+      beast: live,
+      toPenId,
+      completionId: input.completionId,
+      movedBy: input.recordedBy,
+      movedAt: input.recordedAt,
+      now: input.now,
+    });
   }
   return {
     kind: "move",

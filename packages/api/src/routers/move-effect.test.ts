@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, HOUR } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -237,7 +237,9 @@ describe("correcting a Step that moved her", () => {
     const clock = new FakeClock("2027-02-06T02:00:00.000Z");
     const { owner, cow, completionId } = await walkHer(clock, world.dry.id);
 
-    // Somebody walked her on afterwards, which is a fact this Correction does not have.
+    // Later that morning somebody walked her on, which is a fact this Correction does not
+    // have.
+    clock.advance(HOUR);
     await owner.client.animals.move({
       tagNumber: cow.tagNumber,
       toPenId: world.milking.id,
@@ -255,5 +257,98 @@ describe("correcting a Step that moved her", () => {
       tagNumber: cow.tagNumber,
     });
     expect(after.pen?.id).toBe(world.milking.id);
+  });
+});
+
+describe("what the farm has learned since", () => {
+  const walkHerFrom = async (
+    clock: FakeClock,
+    startPenId: string,
+    chosenPenId: string
+  ) => {
+    const first = await createTestClient(appRouter, { as: "owner", clock });
+    const cow = await aCowIn(first, startPenId);
+    const { owner, instance } = await instanceFor(clock, startPenId);
+    await owner.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "walk",
+      animalTag: cow.tagNumber,
+      evidence: [chosenPenId],
+    });
+    const board = await owner.client.instances.get({ id: instance.id });
+    const completion = board.completions.find(
+      (row) => row.stepId === "walk" && row.animalId !== null
+    );
+    if (!completion) {
+      throw new Error("expected the walk to be recorded");
+    }
+    return { owner, cow, completionId: completion.id };
+  };
+
+  it("does not put her back when she was walked away and walked back again", async () => {
+    const clock = new FakeClock("2027-03-01T02:00:00.000Z");
+    const { owner, cow, completionId } = await walkHerFrom(
+      clock,
+      world.milking.id,
+      world.dry.id
+    );
+
+    // Out of the dry pen and back into it by hand. She is standing where the Step left her,
+    // but the farm has learned two things since.
+    clock.advance(HOUR);
+    await owner.client.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: world.milking.id,
+      reason: "ফিরিয়ে আনা",
+    });
+    clock.advance(HOUR);
+    await owner.client.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: world.dry.id,
+      reason: "আবার শুকনো পেনে",
+    });
+
+    const corrected = await owner.client.instances.correctStep({
+      completionId,
+      evidence: [],
+      skipReason: "আজ নয়",
+      reason: "হাঁটা হয়নি",
+    });
+
+    expect(corrected.needsReview).toBe(true);
+    const after = await owner.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+    // Where the farm last saw her — not the pen she started the morning in.
+    expect(after.pen?.id).toBe(world.dry.id);
+  });
+
+  it("does not walk her when the Step it is correcting never moved her", async () => {
+    const clock = new FakeClock("2027-03-02T02:00:00.000Z");
+    // The Step chose the Pen she was already standing in, so there was no journey to record.
+    const { owner, cow, completionId } = await walkHerFrom(
+      clock,
+      world.milking.id,
+      world.milking.id
+    );
+
+    clock.advance(HOUR);
+    await owner.client.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: world.dry.id,
+      reason: "হাতে সরানো",
+    });
+
+    const corrected = await owner.client.instances.correctStep({
+      completionId,
+      evidence: [world.milking.id],
+      reason: "ঠিক করা",
+    });
+
+    expect(corrected.needsReview).toBe(true);
+    const after = await owner.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+    expect(after.pen?.id).toBe(world.dry.id);
   });
 });

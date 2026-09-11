@@ -142,6 +142,7 @@ export const en = {
   "animals.photoTake": "Take a photo",
   "animals.photoSaved": "Photo saved",
   "animals.history": "History",
+  "animals.moveFromWork": "From the work",
   "animals.movesHistory": "Moves",
   "animals.retagsHistory": "Re-tags",
   "animals.notFound": "No animal with that tag number",

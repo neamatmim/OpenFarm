@@ -1,5 +1,6 @@
 import type {
   Bilingual,
+  Evidence,
   EvidenceType,
   SopContent,
   Step,
@@ -75,6 +76,10 @@ export const emptyHappening = (): HappeningTrigger => ({
  * record asks for a figure. Chosen here rather than left to the Owner to get right, because
  * an effect whose Evidence does not fit it is a Step that cannot be published and does not
  * say why in the Owner's own words.
+ *
+ * Evidence that already fits is left exactly as authored — the unit, the range, the Pens
+ * somebody has already chosen — because a select that silently throws away a morning's
+ * authoring is worse than one that refuses.
  */
 export const withEffect = (
   step: Step,
@@ -85,37 +90,31 @@ export const withEffect = (
     const { effect: _dropped, ...rest } = step;
     return rest;
   }
-  if (kind === "move") {
+  const wants: EvidenceType = kind === "move" ? "choice" : "number";
+  const [first, ...rest] = step.evidence;
+  if (first?.type === wants) {
     return {
       ...step,
-      repeatPerAnimal: true,
+      repeatPerAnimal: kind === "bulk_total" ? false : true,
       effect: { kind },
-      evidence: [
-        {
+    };
+  }
+  const fitted: Evidence =
+    kind === "move"
+      ? {
           type: "choice",
           required: true,
           choices: pens.map((pen) => ({
             value: pen.id,
             label: { bn: pen.name },
           })),
-        },
-      ],
-    };
-  }
-  const [first] = step.evidence;
+        }
+      : { type: "number", required: true, unit: first?.unit };
   return {
     ...step,
-    repeatPerAnimal: kind === "milk_record",
+    repeatPerAnimal: kind === "bulk_total" ? false : true,
     effect: { kind },
-    evidence: [
-      {
-        type: "number",
-        required: true,
-        unit: first?.unit,
-        min: first?.min,
-        max: first?.max,
-      },
-    ],
+    evidence: [fitted, ...rest],
   };
 };
 

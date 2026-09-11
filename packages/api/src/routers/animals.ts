@@ -274,9 +274,13 @@ export const animalsRouter = {
           moves: {
             orderBy: { movedAt: "desc" },
             limit: 20,
-            // The work that walked her, so her history reads as one story rather than as a
-            // Move nobody can account for.
-            with: { completion: { columns: { instanceId: true } } },
+            // Both ends of the journey, and the work that walked her — so her history reads
+            // as one story rather than as a Move nobody can account for.
+            with: {
+              completion: { columns: { instanceId: true } },
+              fromPen: { columns: { name: true } },
+              toPen: { columns: { name: true } },
+            },
           },
           retags: { orderBy: { retaggedAt: "desc" }, limit: 20 },
         },
@@ -288,9 +292,11 @@ export const animalsRouter = {
       }
       return {
         ...row,
-        moves: row.moves.map((move) => ({
+        moves: row.moves.map(({ completion, fromPen, toPen, ...move }) => ({
           ...move,
-          instanceId: move.completion?.instanceId ?? null,
+          fromPenName: fromPen?.name ?? null,
+          toPenName: toPen.name,
+          instanceId: completion?.instanceId ?? null,
         })),
         ...lactationView(row, context.clock.now()),
       };

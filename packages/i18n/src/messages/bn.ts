@@ -146,6 +146,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.photoTake": "ছবি তুলুন",
   "animals.photoSaved": "ছবি সংরক্ষিত",
   "animals.history": "ইতিহাস",
+  "animals.moveFromWork": "কাজ থেকে",
   "animals.movesHistory": "স্থানান্তর",
   "animals.retagsHistory": "ট্যাগ বদল",
   "animals.notFound": "এই ট্যাগ নম্বরের কোনো পশু নেই",

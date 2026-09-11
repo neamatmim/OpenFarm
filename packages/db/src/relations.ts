@@ -35,6 +35,7 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.pen.id,
       optional: false,
     }),
+    fromPen: r.one.pen({ from: r.animalMove.fromPenId, to: r.pen.id }),
   },
   sopDefinition: {
     versions: r.many.sopVersion({

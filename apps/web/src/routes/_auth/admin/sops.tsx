@@ -627,11 +627,12 @@ const StepEditor = ({
 
       <label className="flex items-center gap-2 text-sm">
         <input
-          type="checkbox"
           checked={step.repeatPerAnimal}
+          disabled={Boolean(step.effect)}
           onChange={(e) =>
             onChange({ ...step, repeatPerAnimal: e.target.checked })
           }
+          type="checkbox"
         />
         {t("sop.repeatPerAnimal")}
       </label>
@@ -640,6 +641,7 @@ const StepEditor = ({
         <div className="space-y-1">
           <Label htmlFor={`${step.id}-evidence`}>{t("sop.evidence")}</Label>
           <select
+            disabled={Boolean(step.effect)}
             id={`${step.id}-evidence`}
             value={evidence.type}
             onChange={(e) =>
@@ -650,7 +652,7 @@ const StepEditor = ({
                 ],
               })
             }
-            className="bg-background h-9 rounded-md border px-2 text-sm"
+            className="bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-60"
           >
             {EVIDENCE_TYPES.map((type) => (
               <option key={type} value={type}>

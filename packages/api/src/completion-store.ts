@@ -1,20 +1,23 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
-import { animal, animalMove } from "@OpenFarm/db/schema/herd";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
 import {
   completionPhoto,
   sopInstance,
   stepCompletion,
 } from "@OpenFarm/db/schema/instance";
 import type { MilkDestination, SopContent, Step } from "@OpenFarm/domain";
-import { OPEN_INSTANCE_STATES } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { Context } from "./context";
 import type { EffectResult } from "./effects";
 import { runStepEffect } from "./effects";
-import { assertPenIsTheirs, loadLiveAnimal, requirePen } from "./herd-store";
+import {
+  assertPenIsTheirs,
+  loadLiveAnimal,
+  recordMove,
+  requirePen,
+} from "./herd-store";
 import { animalsForInstance, isOnTheFarm } from "./instances-store";
 
 /**
@@ -449,39 +452,16 @@ export const applyMove = async (
   assertPenIsTheirs(context, current.penId);
   assertPenIsTheirs(context, input.toPenId);
   await requirePen(tx, context.farm.id, input.toPenId);
-  await tx
-    .update(animal)
-    .set({ penId: input.toPenId, updatedAt: movedAt })
-    .where(and(eq(animal.farmId, context.farm.id), eq(animal.id, current.id)));
-  await tx
-    .insert(animalMove)
-    .values({
-      id: id ?? uuidv7(movedAt),
-      farmId: context.farm.id,
-      animalId: current.id,
-      fromPenId: current.penId,
-      toPenId: input.toPenId,
-      fromSide: current.side,
-      toSide: current.side,
-      reason: input.reason ?? null,
-      movedBy: context.actor.id,
-      movedAt,
-    })
-    .onConflictDoNothing();
-  // Work raised about her follows her. An Instance keeps the Pen she was in when it was
-  // raised, and a check due days later would otherwise sit in a Pen she has left: the Staff
-  // assigned to where she is now would never see it, and the ones assigned to where she was
-  // would be sent to fetch a cow who is not there.
-  await tx
-    .update(sopInstance)
-    .set({ penId: input.toPenId })
-    .where(
-      and(
-        eq(sopInstance.farmId, context.farm.id),
-        eq(sopInstance.animalId, current.id),
-        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
-      )
-    );
+  await recordMove(tx, {
+    farmId: context.farm.id,
+    beast: current,
+    toPenId: input.toPenId,
+    reason: input.reason,
+    movedBy: context.actor.id,
+    movedAt,
+    id,
+    now: movedAt,
+  });
   return current.id;
 };
 
