@@ -39,6 +39,9 @@ export const alert = pgTable(
     params: jsonb("params").notNull(),
     createdAt: timestamp("created_at").notNull(),
     dismissedAt: timestamp("dismissed_at"),
+    /** When this was carried in a Digest. Null for one still waiting, and for the immediate
+     *  ones that never travel that way. */
+    carriedAt: timestamp("carried_at"),
   },
   (table) => [
     /** One Alert per person per thing per kind: the sweep that raises them runs as often as

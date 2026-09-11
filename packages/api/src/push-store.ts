@@ -1,11 +1,14 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, inArray, isNull, lte } from "@OpenFarm/db/operators";
+import { alert } from "@OpenFarm/db/schema/alert";
 import { pushSubscription } from "@OpenFarm/db/schema/push";
+import type { AlertKind } from "@OpenFarm/domain";
+import { translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { PushMessage, PushTarget, PushTransport } from "./push";
-import { messageFor, travelsByPush } from "./push";
+import { DIGESTIBLE, DIGEST_WORDING, messageFor, travelsByPush } from "./push";
 
 /**
  * Every browser still listening for these people, with the language its owner reads in.
@@ -62,6 +65,32 @@ export interface Told {
   missed: number;
 }
 
+/** Tells one browser one thing, and stops telling it when the browser says it is gone. */
+const tellOneBrowser = async (
+  tx: Tx,
+  transport: PushTransport,
+  listener: { id: string; endpoint: string; p256dh: string; auth: string },
+  message: PushMessage,
+  tally: Told,
+  now: Date
+): Promise<void> => {
+  const target: PushTarget = {
+    endpoint: listener.endpoint,
+    keys: { p256dh: listener.p256dh, auth: listener.auth },
+  };
+  const answer = await transport
+    .send(target, message)
+    .catch(() => ({ delivered: false, gone: false }));
+  if (answer.gone) {
+    tally.gone += 1;
+    await stopTelling(tx, listener.id, now);
+  } else if (answer.delivered) {
+    tally.sent += 1;
+  } else {
+    tally.missed += 1;
+  }
+};
+
 /**
  * Tells the browsers that are listening. Every failure is swallowed on purpose: the in-app
  * Alert is the farm's record, and push is the tap on the shoulder. A push service that is
@@ -95,7 +124,7 @@ export const pushAlerts = async (
   const listeners = await listenersFor(
     tx,
     farmId,
-    alerts.map((alert) => alert.userId)
+    alerts.map((one) => one.userId)
   );
   const byUser = new Map<string, typeof listeners>();
   for (const listener of listeners) {
@@ -105,41 +134,31 @@ export const pushAlerts = async (
     ]);
   }
   const told: Told = { sent: 0, gone: 0, missed: 0 };
-  for (const alert of alerts) {
-    if (!travelsByPush(alert.kind)) {
+  for (const notice of alerts) {
+    if (!travelsByPush(notice.kind)) {
       // The notification table puts this one in a digest, not in somebody's pocket.
       continue;
     }
     const forThis: Told = { sent: 0, gone: 0, missed: 0 };
-    for (const listener of byUser.get(alert.userId) ?? []) {
-      const message: PushMessage = messageFor(alert, listener.owner.language);
-      const target: PushTarget = {
-        endpoint: listener.endpoint,
-        keys: { p256dh: listener.p256dh, auth: listener.auth },
-      };
+    for (const listener of byUser.get(notice.userId) ?? []) {
       // Sequential on purpose: a farm has a handful of browsers, and a push service is
       // happier with a queue than with a burst.
       // oxlint-disable-next-line no-await-in-loop
-      const answer = await transport.send(target, message).catch(() => ({
-        delivered: false,
-        gone: false,
-      }));
-      if (answer.gone) {
-        forThis.gone += 1;
-        // oxlint-disable-next-line no-await-in-loop
-        await stopTelling(tx, listener.id, now);
-      } else if (answer.delivered) {
-        forThis.sent += 1;
-      } else {
-        forThis.missed += 1;
-      }
+      await tellOneBrowser(
+        tx,
+        transport,
+        listener,
+        messageFor(notice, listener.owner.language),
+        forThis,
+        now
+      );
     }
     told.sent += forThis.sent;
     told.gone += forThis.gone;
     told.missed += forThis.missed;
     if (record && forThis.sent + forThis.gone + forThis.missed > 0) {
       // oxlint-disable-next-line no-await-in-loop
-      await record(tx, alert, forThis);
+      await record(tx, notice, forThis);
     }
   }
   return told;
@@ -202,3 +221,113 @@ export const silenceDevice = (tx: Tx, deviceId: string, now: Date) =>
         isNull(pushSubscription.revokedAt)
       )
     );
+
+/** What one person's post carries, once it is theirs to carry. */
+export interface Post {
+  userId: string;
+  /** How many of each kind, so the message can name what is in it rather than count it. */
+  kinds: { kind: AlertKind; count: number }[];
+  total: number;
+}
+
+/**
+ * Claims the day's quieter notices for the people waiting for them — in one statement, so
+ * that two phones opening the app at six do not both carry the same post.
+ *
+ * Claiming and telling are deliberately separate. The claim is a write and belongs in a
+ * transaction; the telling is a conversation with somebody else's server and must not happen
+ * inside one, because a lock held across it is a lock every phone in the shed waits on, and
+ * a push sent before that transaction commits can buzz a pocket about something the farm
+ * then rolls back.
+ *
+ * A claimed notice is stamped whether or not a push reaches anybody. The stamp is what makes
+ * the post go once; the notices are in the app either way, which is where the farm's record
+ * of them has always been.
+ */
+export const claimTheDigest = async (
+  tx: Tx,
+  farmId: string,
+  now: Date,
+  /** Everything raised before this goes now; everything since waits for the next moment.
+   *  That is what makes this a digest rather than a running commentary. */
+  upTo: Date
+): Promise<Post[]> => {
+  const claimed = await tx
+    .update(alert)
+    .set({ carriedAt: now })
+    .where(
+      and(
+        eq(alert.farmId, farmId),
+        isNull(alert.carriedAt),
+        isNull(alert.dismissedAt),
+        lte(alert.createdAt, upTo),
+        inArray(alert.kind, DIGESTIBLE)
+      )
+    )
+    .returning({ userId: alert.userId, kind: alert.kind });
+
+  const forEachPerson = new Map<string, Map<AlertKind, number>>();
+  for (const row of claimed) {
+    const theirs =
+      forEachPerson.get(row.userId) ?? new Map<AlertKind, number>();
+    theirs.set(row.kind, (theirs.get(row.kind) ?? 0) + 1);
+    forEachPerson.set(row.userId, theirs);
+  }
+  return [...forEachPerson].map(([userId, kinds]) => ({
+    userId,
+    kinds: [...kinds].map(([kind, count]) => ({ kind, count })),
+    total: [...kinds.values()].reduce((sum, count) => sum + count, 0),
+  }));
+};
+
+/**
+ * Carries a claimed post: one push each, naming what is in it — "two needing review, one new
+ * version" rather than "three things waiting", because a number somebody has to go and
+ * identify is a number they learn to ignore.
+ *
+ * An empty post is not sent. A farm whose phone buzzes to say nothing happened is a farm
+ * that stops reading the ones that say something did.
+ */
+export const carryTheDigest = async (
+  tx: Tx,
+  transport: PushTransport,
+  farmId: string,
+  post: readonly Post[],
+  now: Date
+): Promise<{ people: number; told: Told }> => {
+  const told: Told = { sent: 0, gone: 0, missed: 0 };
+  if (post.length === 0) {
+    return { people: 0, told };
+  }
+  const listeners = await listenersFor(
+    tx,
+    farmId,
+    post.map((one) => one.userId)
+  );
+  for (const theirs of post) {
+    const browsers = listeners.filter(
+      (listener) => listener.userId === theirs.userId
+    );
+    for (const listener of browsers) {
+      const message: PushMessage = {
+        title: translate(listener.owner.language, "push.digestTitle"),
+        body: theirs.kinds
+          .map((each) =>
+            translate(listener.owner.language, DIGEST_WORDING[each.kind], {
+              count: each.count,
+            })
+          )
+          .join(" · "),
+        url: "/today",
+        // One digest replaces the last rather than stacking: a phone showing three evenings
+        // of them tells nobody anything.
+        tag: `digest:${theirs.userId}`,
+        lang: listener.owner.language,
+      };
+      // Sequential on purpose, as above.
+      // oxlint-disable-next-line no-await-in-loop
+      await tellOneBrowser(tx, transport, listener, message, told, now);
+    }
+  }
+  return { people: post.length, told };
+};

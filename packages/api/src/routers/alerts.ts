@@ -1,13 +1,19 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import { farm } from "@OpenFarm/db/schema/farm";
+import { isQuiet } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
-import { findPendingNotices, raiseLateAlerts } from "../instances-store";
-import { pushRaised } from "../push-send";
+import {
+  findPendingNotices,
+  minuteOfFarmDay,
+  postDueAt,
+  raiseLateAlerts,
+} from "../instances-store";
+import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
@@ -81,6 +87,36 @@ export const alertsRouter = {
    * Narrowing to one thing answers the question a screen showing that thing actually has:
    * is there anything waiting about this piece of work, and what does it say?
    */
+  /**
+   * Carries the day's quieter notices — one push each, naming what is in it.
+   *
+   * Called wherever the app is opened, like the sweep, and safe to call as often as anybody
+   * likes: the post is claimed in one statement, so two phones opening at six do not both
+   * carry it. A carrying moment inside quiet hours waits for the farm to wake, and so does a
+   * call made in the small hours — a batch of things that could wait is exactly what quiet
+   * hours are for.
+   */
+  digest: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .handler(async ({ context }) => {
+      const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
+      const now = context.clock.now();
+      const quiet = {
+        from: context.farm.quietFrom,
+        until: context.farm.quietUntil,
+      };
+      // Not only "has a carrying moment passed" but "is the farm awake": somebody opening
+      // the app at half past midnight must not set every phone on the farm buzzing.
+      if (isQuiet(minuteOfFarmDay(now), quiet)) {
+        return nothing;
+      }
+      const upTo = postDueAt(now, context.farm.digestTimes, quiet);
+      if (!upTo) {
+        return nothing;
+      }
+      return await carryThePost(context, now, upTo);
+    }),
+
   mine: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .input(z.object({ entityId: z.string().optional() }).default({}))
