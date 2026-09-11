@@ -9,6 +9,9 @@ import { farm } from "./farm";
 export const REVIEW_REASONS = [
   "corrected_after_sign_off",
   "irreversible_effect",
+  "late_entry",
+  "sync_gap",
+  "clock_skew",
 ] as const;
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
 

@@ -25,6 +25,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { applyMove } from "../completion-store";
 import type { Context } from "../context";
 import { parseCsvRecords } from "../csv";
 import {
@@ -321,28 +322,7 @@ export const animalsRouter = {
           after: (tx) => readAnimal(tx, target.id),
           reason: input.reason,
         },
-        async (tx) => {
-          const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          await requirePen(tx, context.farm.id, input.toPenId);
-          await tx
-            .update(animal)
-            .set({ penId: input.toPenId, updatedAt: now })
-            .where(
-              and(eq(animal.farmId, context.farm.id), eq(animal.id, current.id))
-            );
-          await tx.insert(animalMove).values({
-            id: newId(now),
-            farmId: context.farm.id,
-            animalId: current.id,
-            fromPenId: current.penId,
-            toPenId: input.toPenId,
-            fromSide: current.side,
-            toSide: current.side,
-            reason: input.reason ?? null,
-            movedBy: context.actor.id,
-            movedAt: now,
-          });
-        }
+        (tx) => applyMove(tx, context, input, now)
       );
       return { tagNumber, side: target.side, state: target.state };
     }),

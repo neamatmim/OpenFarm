@@ -10,3 +10,4 @@ export * from "./milk";
 export * from "./milk-destinations";
 export * from "./review";
 export * from "./sop";
+export * from "./sync";

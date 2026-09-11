@@ -64,6 +64,51 @@ export const audited = (
   const actorId = context.actor?.id ?? null;
   const { roleUsed } = context;
 
+  /**
+   * Writes one Audit Event on a transaction the caller already holds. `write` is the way in
+   * for a single change; this is the way in for a batch, where many changes and their events
+   * share one transaction (ADR 0002) and opening a transaction each would defeat the point.
+   */
+  const recordEvent = async (
+    tx: Tx,
+    event: AuditedWrite,
+    {
+      before = null,
+      after = null,
+      eventId,
+      receivedAt,
+    }: {
+      before?: SnapshotValue;
+      after?: SnapshotValue;
+      eventId?: string;
+      receivedAt?: Date;
+    } = {}
+  ): Promise<string> => {
+    const at = receivedAt ?? context.clock.now();
+    const id = eventId ?? uuidv7(at);
+    await tx.insert(auditEvent).values({
+      id,
+      farmId,
+      entity: event.entity,
+      entityId:
+        typeof event.entityId === "function"
+          ? event.entityId()
+          : event.entityId,
+      action: event.action,
+      actorId,
+      roleUsed: event.roleUsed ?? roleUsed,
+      deviceId: context.device?.id ?? event.device?.id ?? null,
+      deviceSeq: event.device?.seq ?? null,
+      recordedAt: event.recordedAt ?? at,
+      receivedAt: at,
+      before,
+      after,
+      reason: event.reason ?? null,
+      supersedesId: event.supersedesId ?? null,
+    });
+    return id;
+  };
+
   /** `apply` is handed the id the Audit Event will be written under, so a write that has to
    *  point at its own trail entry — a Correction raising a Needs Review — can do it in the
    *  same transaction rather than hoping a second one succeeds. */
@@ -82,26 +127,7 @@ export const audited = (
       const before = await resolve(tx, event.before);
       const result = await apply(tx, eventId);
       const after = await resolve(tx, event.after);
-      await tx.insert(auditEvent).values({
-        id: eventId,
-        farmId,
-        entity: event.entity,
-        entityId:
-          typeof event.entityId === "function"
-            ? event.entityId()
-            : event.entityId,
-        action: event.action,
-        actorId,
-        roleUsed: event.roleUsed ?? roleUsed,
-        deviceId: context.device?.id ?? event.device?.id ?? null,
-        deviceSeq: event.device?.seq ?? null,
-        recordedAt: event.recordedAt ?? receivedAt,
-        receivedAt,
-        before: before ?? null,
-        after: after ?? null,
-        reason: event.reason ?? null,
-        supersedesId: event.supersedesId ?? null,
-      });
+      await recordEvent(tx, event, { before, after, eventId, receivedAt });
       return result;
     });
   };
@@ -119,5 +145,5 @@ export const audited = (
       columns: { id: true, after: true },
     });
 
-  return { write, latestEventFor };
+  return { write, recordEvent, latestEventFor };
 };

@@ -26,6 +26,10 @@ export const farm = pgTable("farm", {
   managerCorrectionDays: integer("manager_correction_days")
     .notNull()
     .default(30),
+  /** How far a device's clock may differ from the farm's before its entries are flagged.
+   *  Never a reason to refuse one: the entry is the record, and a wrong clock is a fact
+   *  about the phone. */
+  clockSkewMinutes: integer("clock_skew_minutes").notNull().default(15),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

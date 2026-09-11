@@ -178,6 +178,12 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Offline
 
+**Batch**: One send from an Outbox: the entries a phone has been holding, with one key for the lot, applied with their Audit Events in a single transaction. _Avoid_: Sync, upload, push
+
+**Idempotency Key**: The client's own name for a Batch. The same key arriving again is answered from what was stored, never applied twice; the same key carrying different entries is refused. _Avoid_: Request id, transaction id, nonce
+
+**Sequence Number**: The position an entry has in its own phone's Outbox. Gaps in it are entries the farm has never read — worth saying out loud, never a reason to refuse what did arrive. _Avoid_: Index, offset, counter
+
 **Outbox**: The durable on-device queue of entries made without signal, sent in order when signal returns. Never emptied without the server's acknowledgement. _Avoid_: Cache, buffer, pending list (that's what the user _sees_)
 
 **Needs Review**: Something the system accepted but could not settle on its own, waiting for a person: an entry the server took although the world had changed since it was recorded, or a Correction whose effects it cannot walk back. Raised by the system, resolved by the Manager with their judgement recorded; never discarded. _Avoid_: Conflict (reserved for a failed correction), rejected, error

@@ -1,14 +1,8 @@
-import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
-import {
-  completionPhoto,
-  sopInstance,
-  stepCompletion,
-} from "@OpenFarm/db/schema/instance";
+import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
 import type {
   SopContent,
-  Step,
   CorrectionRefusal,
   CorrectionWindows,
 } from "@OpenFarm/domain";
@@ -29,6 +23,13 @@ import { z } from "zod";
 import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import {
+  applyCompletion,
+  assertEvidenceComplete,
+  assertMayWork,
+  stepOf,
+} from "../completion-store";
+import type { Recorded } from "../completion-store";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { protectedProcedure } from "../index";
@@ -38,7 +39,6 @@ import {
   dueSlotsFor,
   farmDayRange,
   findLate,
-  isOnTheFarm,
   raiseDueInstances,
 } from "../instances-store";
 import { raiseNeedsReview } from "../review-store";
@@ -79,138 +79,22 @@ const completionInput = z.object({
 const contentOf = (version: { content: unknown }): SopContent =>
   version.content as SopContent;
 
-/** The animal a per-animal Step is being recorded against — refusing one from another Pen,
- *  and refusing an animal at all for a Step that runs once. */
-const resolveStepAnimal = async (
-  tx: Tx,
-  farmId: string,
-  step: Step,
-  instancePenId: string,
-  animalTag: string | undefined
-): Promise<string | null> => {
-  if (!step.repeatPerAnimal) {
-    if (animalTag) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "This step is recorded once",
-      });
-    }
-    return null;
-  }
-  if (!animalTag) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step is recorded per animal",
-    });
-  }
-  const beast = await tx.query.animal.findFirst({
-    where: { farmId, tagNumber: animalTag.toUpperCase() },
-    columns: { id: true, penId: true, state: true },
+/** The Completion as the trail records it, so a Correction's before and after are the whole
+ *  entry rather than the fields that happened to change. */
+const readCompletion = async (tx: Tx, id: string) => {
+  const row = await tx.query.stepCompletion.findFirst({
+    where: { id },
+    columns: {
+      stepId: true,
+      animalId: true,
+      status: true,
+      skipReason: true,
+      evidence: true,
+      outOfRange: true,
+      destination: true,
+    },
   });
-  // An animal that has left keeps its Pen, so the Pen alone does not prove she is here —
-  // and a Step that writes a farm record would otherwise book litres to a sold cow.
-  if (!beast || beast.penId !== instancePenId || !isOnTheFarm(beast)) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "That animal is not in this pen",
-    });
-  }
-  return beast.id;
-};
-
-/** The Step this Version declares, or nothing. */
-const stepOf = (content: SopContent, stepId: string): Step => {
-  const step = content.steps.find((candidate) => candidate.id === stepId);
-  if (!step) {
-    throw new ORPCError("NOT_FOUND", {
-      message: `No step ${stepId} in this version`,
-    });
-  }
-  return step;
-};
-
-/** An Instance a person may work: theirs by Pen, and pinned or claimed by nobody else. */
-const assertMayWork = (
-  context: {
-    roleUsed: string | null;
-    penIds: string[];
-    actor: { id: string };
-    roles: string[];
-    device: unknown;
-  },
-  instance: {
-    penId: string;
-    assignedTo: string | null;
-    claimedBy: string | null;
-    assignedRole: string;
-  }
-) => {
-  // The Instance says who does this work; holding some other Role is not enough. The Owner
-  // and the Manager may always step in — someone has to be able to unstick a shift.
-  const runsTheFarm =
-    context.roles.includes("owner") || context.roles.includes("manager");
-  if (!(runsTheFarm || context.roles.includes(instance.assignedRole))) {
-    throw new ORPCError("FORBIDDEN", {
-      message: `This work is for ${instance.assignedRole}`,
-    });
-  }
-  // A Vet's clinical work is signed on their own phone, never a shared one (ADR 0003).
-  if (instance.assignedRole === "vet" && context.device) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "This can only be done from your own phone, not a shed phone",
-    });
-  }
-  if (
-    context.roleUsed === "staff" &&
-    !context.penIds.includes(instance.penId)
-  ) {
-    throw new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
-  }
-  if (instance.assignedTo && instance.assignedTo !== context.actor.id) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "This is pinned to someone else",
-    });
-  }
-  if (instance.claimedBy && instance.claimedBy !== context.actor.id) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "Someone else is working on this",
-    });
-  }
-};
-
-/** A Step is either skipped with a reason — only where it repeats per animal — or done with
- *  everything the Version marks required. Checked per slot, not by count: a Step with an
- *  optional note and a required number is not satisfied by filling only the note. A photo
- *  arrives in its own field rather than in the evidence array, so it counts for its slot. */
-const assertEvidenceComplete = (
-  step: Step,
-  evidence: unknown[],
-  skipping: boolean,
-  hasPhoto: boolean
-): void => {
-  if (skipping) {
-    if (!step.repeatPerAnimal) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Only a per-animal step can be skipped",
-      });
-    }
-    return;
-  }
-  const missing = step.evidence
-    .map((item, index) => ({ item, index }))
-    .filter(({ item, index }) => {
-      if (!item.required) {
-        return false;
-      }
-      if (item.type === "photo") {
-        return !hasPhoto;
-      }
-      const value = evidence[index];
-      return value === undefined || value === null || value === "";
-    });
-  if (missing.length > 0) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step needs everything marked required",
-      data: { missing: missing.map(({ index }) => index) },
-    });
-  }
+  return row ? { ...row } : null;
 };
 
 /** The state an Instance was in, for a trail that cannot be argued with. */
@@ -226,9 +110,9 @@ const readInstanceState = async (tx: Tx, farmId: string, id: string) => {
 
 /**
  * Loads the Instance a checker may sign off, refusing if they may not: it must be waiting
- * for sign-off, and waiting on a Role they hold. Holding some other Role is not enough — the Version named who checks this work, and
- * an Owner who is not the named checker is still not the named checker. The one exception is
- * the Owner, who may always unstick the farm; that is the same licence they have elsewhere.
+ * for sign-off, and waiting on a Role they hold. Holding some other Role is not enough — the
+ * Version named who checks this work. The Owner may always step in, the same licence they
+ * have elsewhere.
  */
 const loadCheckableInstance = async (
   tx: Tx,
@@ -292,46 +176,6 @@ const refusalData = (refusal: CorrectionRefusal) => ({
   ...refusal,
   ...describeWindow(refusal.windowHours),
 });
-
-/** Is this the same entry arriving again — a phone replaying its outbox — or a different
- *  one? Compared on what the entry says, not on when it was sent: the same figures sent
- *  twice are one fact, and a different figure is a Correction whoever sent it. */
-const sameEntry = (
-  existing: {
-    status: string;
-    skipReason: string | null;
-    evidence: unknown;
-    destination: string | null;
-  },
-  input: {
-    evidence: unknown[];
-    skipReason?: string;
-    destination?: string;
-  },
-  skipping: boolean
-): boolean =>
-  existing.status === (skipping ? "skipped" : "done") &&
-  existing.skipReason === (input.skipReason ?? null) &&
-  existing.destination === (input.destination ?? null) &&
-  JSON.stringify(existing.evidence) === JSON.stringify(input.evidence);
-
-/** The Completion as the trail records it, so a Correction's before and after are the whole
- *  entry rather than the fields that happened to change. */
-const readCompletion = async (tx: Tx, id: string) => {
-  const row = await tx.query.stepCompletion.findFirst({
-    where: { id },
-    columns: {
-      stepId: true,
-      animalId: true,
-      status: true,
-      skipReason: true,
-      evidence: true,
-      outOfRange: true,
-      destination: true,
-    },
-  });
-  return row ? { ...row } : null;
-};
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
 const penFilter = (
@@ -606,17 +450,15 @@ export const instancesRouter = {
     .input(completionInput)
     .handler(async ({ context, input }) => {
       const receivedAt = context.clock.now();
-      const completionId = uuidv7(receivedAt);
-      // Held aside as well as returned, because the Audit Event's `after` snapshot is read
-      // after `apply` has run and cannot see what it returned.
-      let effect: EffectResult = null;
-      let savedId = completionId;
+      // Held aside as well as returned, because the Audit Event's snapshots are read after
+      // `apply` has run and cannot see what it returned.
+      let recorded: Recorded | null = null;
       const applied = await audited(context).write(
         {
           // The Completion is its own thing in the trail, so a Correction has something
           // precise to supersede and an entry's history reads back on its own.
           entity: "step_completion",
-          entityId: () => savedId,
+          entityId: () => recorded?.completionId ?? "",
           action: "update",
           // Read after the write, so the trail records what the effect actually decided —
           // a Destination forced to Discard reads as Discard, not as what was asked for.
@@ -625,147 +467,18 @@ export const instancesRouter = {
               instanceId: input.instanceId,
               stepId: input.stepId,
               animalTag: input.animalTag ?? null,
-              effect,
+              effect: recorded?.effect ?? null,
             }),
         },
         async (tx) => {
-          const instance = await tx.query.sopInstance.findFirst({
-            where: { id: input.instanceId, farmId: context.farm.id },
-            with: { version: { columns: { content: true } } },
-          });
-          if (!instance) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          if (instance.state === "completed" || instance.state === "approved") {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "This work is already finished",
-            });
-          }
-          assertMayWork(context, instance);
-          const content = contentOf(instance.version);
-          const step = stepOf(content, input.stepId);
-          const animalId = await resolveStepAnimal(
-            tx,
-            context.farm.id,
-            step,
-            instance.penId,
-            input.animalTag
-          );
-          const skipping = Boolean(input.skipReason);
-          assertEvidenceComplete(
-            step,
-            input.evidence,
-            skipping,
-            Boolean(input.photo)
-          );
-
-          // An entry that already exists is a recorded fact, and a recorded fact changes
-          // only by Correction. The phone may still replay the same entry — that is how an
-          // outbox works (ADR 0002) — so an identical one is accepted and changes nothing;
-          // a different one is sent to correctStep, which asks why and checks the window.
-          const already = await tx.query.stepCompletion.findFirst({
-            where: {
-              farmId: context.farm.id,
-              instanceId: input.instanceId,
-              stepId: input.stepId,
-              animalKey: animalId ?? "",
-            },
-          });
-          if (already && !sameEntry(already, input, skipping)) {
-            throw new ORPCError("CONFLICT", {
-              message: "That is already recorded; correct it instead",
-              data: { completionId: already.id },
-            });
-          }
-
-          const values = {
-            farmId: context.farm.id,
-            instanceId: input.instanceId,
-            stepId: input.stepId,
-            animalId,
-            animalKey: animalId ?? "",
-            status: skipping ? ("skipped" as const) : ("done" as const),
-            skipReason: input.skipReason ?? null,
-            evidence: input.evidence,
-            outOfRange: input.outOfRange ?? null,
-            recordedBy: context.actor.id,
-            deviceId: context.device?.id ?? null,
-            destination: input.destination ?? null,
-            recordedAt: input.recordedAt ?? receivedAt,
-            receivedAt,
-          };
-          const [saved] = await tx
-            .insert(stepCompletion)
-            .values({ id: completionId, ...values })
-            .onConflictDoUpdate({
-              target: [
-                stepCompletion.instanceId,
-                stepCompletion.stepId,
-                stepCompletion.animalKey,
-              ],
-              set: values,
-            })
-            .returning({ id: stepCompletion.id });
-          if (!saved) {
-            throw new ORPCError("CONFLICT", {
-              message: "That entry could not be saved",
-            });
-          }
-          // The upsert keeps the existing row on a correction, so this is the id the trail
-          // and the effects must both use.
-          savedId = saved.id;
-          // The Step's effect writes the farm's record — the litres, the tank reading — in
-          // this same transaction, keyed on the Completion so a replay cannot double-count.
-          effect = await runStepEffect(tx, {
-            step,
-            instance: {
-              id: instance.id,
-              farmId: context.farm.id,
-              penId: instance.penId,
-              dueAt: instance.dueAt,
-            },
-            completionId: saved.id,
-            animalId,
-            evidence: input.evidence,
-            destination: input.destination,
-            skipped: skipping,
-            tolerancePercent: context.farm.milkTolerancePercent,
-            recordedBy: context.actor.id,
-            recordedAt: values.recordedAt,
-            now: receivedAt,
-          });
-          if (input.photo) {
-            await tx
-              .insert(completionPhoto)
-              .values({
-                completionId: saved.id,
-                farmId: context.farm.id,
-                contentType: input.photo.contentType,
-                data: input.photo.data,
-                createdAt: receivedAt,
-              })
-              .onConflictDoUpdate({
-                target: completionPhoto.completionId,
-                set: {
-                  contentType: input.photo.contentType,
-                  data: input.photo.data,
-                  createdAt: receivedAt,
-                },
-              });
-          }
-          if (instance.state === "due" || instance.state === "sent_back") {
-            await tx
-              .update(sopInstance)
-              .set({ state: "in_progress" })
-              .where(eq(sopInstance.id, input.instanceId));
-          }
-          return effect;
+          recorded = await applyCompletion(tx, context, input, receivedAt);
+          return recorded;
         }
       );
       return {
         instanceId: input.instanceId,
         stepId: input.stepId,
-        effect: applied,
+        effect: applied.effect,
       };
     }),
 

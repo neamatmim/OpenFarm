@@ -370,13 +370,14 @@ describe("working the pen board", () => {
     expect(loaded.completions.every((c) => c.recordedBy === "test-staff")).toBe(
       true
     );
+    // Finished work is not open to a fresh entry — the world has moved past it.
     await expect(
       staff.client.instances.completeStep({
         instanceId: instance.id,
         stepId: "prep",
         evidence: [true],
       })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({ code: "CONFLICT" });
   });
 
   it("refuses a second, different entry for the same animal — that is a Correction", async () => {
@@ -438,7 +439,7 @@ describe("working the pen board", () => {
         animalTag: world.steer.tagNumber,
         evidence: [10],
       })
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    ).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(
       staff.client.instances.completeStep({
         instanceId: instance.id,

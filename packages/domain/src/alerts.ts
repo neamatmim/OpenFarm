@@ -14,5 +14,11 @@ export type AlertKind = (typeof ALERT_KINDS)[number];
 export const REVIEW_REASONS = [
   "corrected_after_sign_off",
   "irreversible_effect",
+  /** An entry that no longer fits the world it arrived into. */
+  "late_entry",
+  /** A phone's sequence skipped numbers: entries that were never read. */
+  "sync_gap",
+  /** A device's clock is far enough out that its times cannot be taken at face value. */
+  "clock_skew",
 ] as const;
 export type ReviewReason = (typeof REVIEW_REASONS)[number];

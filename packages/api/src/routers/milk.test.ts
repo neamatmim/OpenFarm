@@ -310,7 +310,8 @@ describe("the milking effect", () => {
         animalTag: doomed.tagNumber,
         evidence: [8],
       })
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      // A cow that has left is the world moving under the entry, not a wrong tag.
+    ).rejects.toMatchObject({ code: "CONFLICT" });
   });
 });
 

@@ -58,6 +58,7 @@ export interface Context {
     escalationMinutes: number;
     staffCorrectionHours: number;
     managerCorrectionDays: number;
+    clockSkewMinutes: number;
     alertsSweptFrom: Date | null;
   } | null;
   person: Person | null;
