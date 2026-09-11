@@ -51,3 +51,21 @@ export const keepQueriesOnDevice = (queryClient: QueryClient): void => {
     },
   });
 };
+
+/**
+ * Forgets everything this phone has read. Called when the person at the handset changes.
+ *
+ * A Shed Phone is one device that several people work from, and what it has cached was read
+ * as whoever was PIN-switched in at the time — their work, their Alerts, what they had
+ * already been told. Handing that to the next milker is one person's screen showing another
+ * person's business, and it is a shed phone, so it happens every milking.
+ */
+export const forgetWhatThisPhoneRead = async (
+  queryClient: QueryClient
+): Promise<void> => {
+  queryClient.clear();
+  if (typeof window === "undefined") {
+    return;
+  }
+  await new IndexedDBAdapter("openfarm-queries", "cache").delete(CACHE_KEY);
+};

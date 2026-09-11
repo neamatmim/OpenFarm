@@ -5,10 +5,12 @@ import type {
   AnimalState,
   FarmEvent,
   Side,
+  SopChange,
   SopContent,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  describeChanges,
   MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
@@ -240,7 +242,11 @@ export const recentHappenings = async (
   // arrival is its own happening: a post-move check has no business firing on a cow who has
   // never been moved anywhere.
   const moves = await db.query.animalMove.findMany({
-    where: { farmId, movedAt: { gte: earliest }, fromPenId: { isNotNull: true } },
+    where: {
+      farmId,
+      movedAt: { gte: earliest },
+      fromPenId: { isNotNull: true },
+    },
     columns: { id: true, animalId: true, movedAt: true },
   });
 
@@ -634,4 +640,85 @@ export const raiseLateAlerts = async (
     );
   }
   return { overdue, escalated, raised };
+};
+
+/**
+ * What changed in the Version a piece of work runs on, for the person opening it — and
+ * nothing at all once they have done that work once on that Version.
+ *
+ * The comparison is against the Version they last worked to, not simply the one before this:
+ * somebody who was away for two publications should see everything that changed while they
+ * were away, not only the last of it.
+ *
+ * There is no acknowledgement step in Release 1: a button to press would be one more thing
+ * between somebody and the job. Having recorded something on the new Version is the farm's
+ * evidence that they saw what it says, and it is evidence that cannot be clicked away by
+ * accident.
+ */
+export const whatChangedFor = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  actorId: string,
+  instance: { versionId: string; definitionId: string }
+): Promise<{ from: number; to: number; changes: SopChange[] } | null> => {
+  // Asked first, because it is the cheap question and the common answer: somebody who has
+  // already worked on this Version is told nothing, and nothing else needs reading.
+  const doneOnIt = await db.query.stepCompletion.findFirst({
+    where: {
+      farmId,
+      recordedBy: actorId,
+      instance: { versionId: instance.versionId },
+    },
+    columns: { id: true },
+  });
+  if (doneOnIt) {
+    return null;
+  }
+  const version = await db.query.sopVersion.findFirst({
+    where: { id: instance.versionId },
+    columns: { number: true, content: true },
+  });
+  if (!version || version.number < 2) {
+    // The first Version of an SOP changed nothing; it is the procedure.
+    return null;
+  }
+  // The newest Version of this SOP they have actually worked to. Absent — they are new, or
+  // were away — the Version before this one is the honest baseline.
+  const theirLast = await db.query.stepCompletion.findMany({
+    where: {
+      farmId,
+      recordedBy: actorId,
+      instance: { definitionId: instance.definitionId },
+    },
+    columns: { id: true },
+    with: { instance: { columns: { versionId: true } } },
+  });
+  const workedVersionIds = new Set(
+    theirLast.map((completion) => completion.instance.versionId)
+  );
+  const earlier = await db.query.sopVersion.findMany({
+    where: {
+      definitionId: instance.definitionId,
+      number: { lt: version.number },
+    },
+    orderBy: { number: "desc" },
+    columns: { id: true, number: true, content: true },
+  });
+  const baseline =
+    earlier.find((candidate) => workedVersionIds.has(candidate.id)) ??
+    earlier[0];
+  if (!baseline) {
+    return null;
+  }
+  const changes = describeChanges(
+    baseline.content as SopContent,
+    version.content as SopContent
+  );
+  // Two Versions can differ in ways nobody doing the work would notice — a note, an English
+  // translation. Announcing a change with nothing under it teaches people to ignore the
+  // banner that matters.
+  if (changes.length === 0) {
+    return null;
+  }
+  return { from: baseline.number, to: version.number, changes };
 };

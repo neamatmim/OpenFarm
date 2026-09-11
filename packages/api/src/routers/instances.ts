@@ -47,6 +47,7 @@ import {
   findLate,
   raiseDueInstances,
   recentHappenings,
+  whatChangedFor,
 } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { raiseNeedsReview } from "../review-store";
@@ -317,6 +318,9 @@ export const instancesRouter = {
         where: { id: input.id, farmId: context.farm.id },
         with: {
           version: true,
+          // Which Version the Playbook is on now, so work running on an older one can say so
+          // rather than leaving the person to wonder why the card on the wall differs.
+          definition: { columns: { currentVersionId: true } },
           pen: {
             columns: { name: true },
             with: { shed: { columns: { name: true } } },
@@ -350,6 +354,15 @@ export const instancesRouter = {
         },
       });
       const now = context.clock.now();
+      // What changed in the Version this work runs on, for somebody who has not yet done it
+      // on that Version. No acknowledgement step: the marker is on the work until they have
+      // done it once, which is when they have read it (notification channels, R1).
+      const changed = await whatChangedFor(
+        context.db,
+        context.farm.id,
+        context.actor.id,
+        instance
+      );
       // What this Pen is owed this session, for a Playbook entry that feeds. Worked out on
       // the Ration in force when the work was raised, so a Ration changed this afternoon does
       // not rewrite what the morning's round was asked for.
@@ -376,9 +389,16 @@ export const instancesRouter = {
             },
           })
         : null;
+      const supersededBy =
+        instance.definition.currentVersionId === instance.versionId
+          ? null
+          : instance.version.number;
       return {
         ...instance,
         content,
+        changed,
+        /** The Version this work runs on, when the Playbook has since moved on (ADR 0001). */
+        runningOn: supersededBy,
         milkingSession: milkingSession ?? null,
         feeding,
         fed: fed ?? null,

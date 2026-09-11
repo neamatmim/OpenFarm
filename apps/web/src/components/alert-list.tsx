@@ -15,6 +15,7 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   instance_escalated: "alerts.instanceEscalated",
   instance_sent_back: "alerts.instanceSentBack",
   needs_review: "alerts.needsReview",
+  sop_published: "alerts.sopPublished",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise

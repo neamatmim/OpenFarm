@@ -1,10 +1,13 @@
 import type {
   Evidence,
   MilkDestination,
+  SopChange,
   SopContent,
   Step,
 } from "@OpenFarm/domain";
 import { MILK_DESTINATIONS, isClosingStep } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -151,6 +154,8 @@ const WorkPage = () => {
     state,
     feeding,
     fed,
+    changed,
+    runningOn,
   } = instance.data as unknown as {
     content: SopContent;
     animals: Animal[];
@@ -167,6 +172,10 @@ const WorkPage = () => {
     } | null;
     /** What the Pen was actually given, once somebody has recorded it. */
     fed: { shortfallPercent: number; flaggedAt: string | null } | null;
+    /** What changed in the Version this work runs on, until they have done it once. */
+    changed: Changed | null;
+    /** The Version number this work runs on, when the Playbook has since moved on. */
+    runningOn: number | null;
   };
   // The Gate the tile renders comes from whichever the phone has: what the farm said this
   // time, or what it last cached. The farm decides again when the entry lands.
@@ -290,6 +299,14 @@ const WorkPage = () => {
         </p>
       </header>
 
+      {changed ? <WhatChanged changed={changed} /> : null}
+
+      {runningOn ? (
+        <p className="rounded-xl bg-neutral-800 p-3 text-sm text-neutral-200">
+          {t("changed.onOlder", { number: runningOn })}
+        </p>
+      ) : null}
+
       {shortFed ? (
         <p className="rounded-xl bg-amber-900 p-3 text-sm text-amber-100">
           {t("work.shortFed", { percent: shortFed.shortfallPercent })}
@@ -367,6 +384,84 @@ const WorkPage = () => {
         onFinish={() => finish.mutate()}
       />
     </div>
+  );
+};
+
+/** "০৫:০০" rather than "05:00" for a Bangla reader: a time is digits with a colon in it. */
+const inTheirDigits = (time: string, language: "bn" | "en"): string =>
+  time.replaceAll(/\d/gu, (digit) => formatDigits(Number(digit), language));
+
+/** What changed, as the board is handed it. */
+interface Changed {
+  from: number;
+  to: number;
+  changes: SopChange[];
+}
+
+/** Every kind of change has something to say. Typed by the kind rather than by string, so a
+ *  new one is a compile error here rather than a blank line — or, before this was a map, a
+ *  white screen on the job when the key was missing. */
+const CHANGE_MESSAGE: Record<SopChange["kind"], MessageKey> = {
+  step_added: "changed.step_added",
+  step_removed: "changed.step_removed",
+  step_reworded: "changed.step_reworded",
+  step_evidence: "changed.step_evidence",
+  step_skip_reasons: "changed.step_skip_reasons",
+  step_per_animal: "changed.step_per_animal",
+  step_effect: "changed.step_effect",
+  steps_reordered: "changed.steps_reordered",
+  purpose_changed: "changed.purpose_changed",
+  times_changed: "changed.times_changed",
+  grace_changed: "changed.grace_changed",
+  who_changed: "changed.who_changed",
+  checker_changed: "changed.checker_changed",
+};
+
+/**
+ * What changed in this Version, the first time somebody opens work on it — in the words of
+ * the job rather than as a list of fields. It stays until they have done the work once,
+ * which is the farm's evidence they read it: there is no button, because a button between
+ * somebody and the job is a button that gets pressed without reading (notification
+ * channels, R1).
+ */
+const WhatChanged = ({ changed }: { changed: Changed }) => {
+  const { t, language } = useLanguage();
+  /** The Step's own words in the reader's language, and a Role named rather than spelled. */
+  const said = (change: SopChange): Record<string, string | number> => {
+    const words = (value: { bn: string; en?: string }) =>
+      (language === "en" ? value.en : value.bn) ?? value.bn;
+    return {
+      ...("step" in change ? { step: words(change.step) } : {}),
+      ...("was" in change ? { was: words(change.was) } : {}),
+      ...("times" in change
+        ? {
+            times: change.times
+              .map((at) => inTheirDigits(at, language))
+              .join(", "),
+          }
+        : {}),
+      ...("minutes" in change ? { minutes: change.minutes } : {}),
+      ...("role" in change
+        ? {
+            role: change.role ? t(`role.${change.role}`) : t("sop.checkerNone"),
+          }
+        : {}),
+    };
+  };
+  return (
+    <section className="space-y-1 rounded-xl bg-sky-900 p-3 text-sky-50">
+      <p className="font-medium">{t("changed.title")}</p>
+      <p className="text-sm text-sky-200">
+        {t("changed.versions", { from: changed.from, to: changed.to })}
+      </p>
+      <ul className="space-y-1 text-sm">
+        {changed.changes.map((change, index) => (
+          <li key={`${change.kind}-${index}`}>
+            {t(CHANGE_MESSAGE[change.kind], said(change))}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 

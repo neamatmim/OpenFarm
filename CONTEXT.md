@@ -214,7 +214,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Notifications
 
-**Alert**: An immediate notification for something that costs money or breaks a legal deadline if missed: overdue work, withdrawal ending, a notifiable diagnosis, sync problems. Ignores quiet hours; the two safety Alerts also go by SMS. _Avoid_: Notification (the general word), warning, reminder
+**Alert**: An immediate notification for something that costs money or breaks a legal deadline if missed: overdue work, withdrawal ending, a notifiable diagnosis, sync problems. Ignores quiet hours; the two safety Alerts also go by SMS. What makes one an Alert is that it goes *now* — the farm's in-app list holds these and the quieter notices side by side, and a notice that waits for the Digest is not an Alert however it is stored. _Avoid_: Notification (the general word), warning, reminder
 
 **Digest**: The batched notification sent at 06:00 and 18:00 carrying everything that is not an Alert. _Avoid_: Summary, newsletter, report
 

@@ -12,6 +12,7 @@ import { findPublishBlockers } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { holdersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
@@ -74,6 +75,28 @@ const publishVersion = async (
     .where(
       and(eq(sopDefinition.id, definitionId), eq(sopDefinition.farmId, farmId))
     );
+
+  // Everybody whose Role does this work is told a new Version exists. It is written to the
+  // farm's notification list and shown in-app, and it is deliberately not pushed: a changed
+  // procedure costs nothing if it is read at six in the morning, and Push is for what costs
+  // money or breaks a deadline. Ticket 23 batches notices like this into the morning and
+  // evening digests. What actually changed is shown on the work itself, the first time the
+  // person opens it.
+  if (number > 1) {
+    const doers = await holdersOf(tx, farmId, [content.assignedRole]);
+    await raiseAlerts(
+      tx,
+      farmId,
+      doers,
+      {
+        kind: "sop_published",
+        entity: "sop_version",
+        entityId: id,
+        params: { sopBn: content.name.bn, number },
+      },
+      now
+    );
+  }
   return { id, number };
 };
 
