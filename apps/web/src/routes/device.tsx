@@ -2,7 +2,7 @@ import { verifyPin } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import {
 } from "@/lib/device";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
+import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
 import { orpc } from "@/utils/orpc";
 
 const PIN_LENGTH = 4;
@@ -97,6 +98,7 @@ const DevicePage = () => {
     };
   }, []);
 
+  const queryClient = useQueryClient();
   const switchUser = useMutation(orpc.devices.switchUser.mutationOptions({}));
   const listenAgain = useMutation(orpc.push.listen.mutationOptions({}));
 
@@ -125,6 +127,10 @@ const DevicePage = () => {
         name: entry.name,
         lastSeenAt: Date.now(),
       });
+      // Whatever this phone read for the last person is not this person's to see. A Shed
+      // Phone is one device several milkers work from, and a cache kept across a PIN Switch
+      // is one milker's work — and Alerts — on the next one's screen (ADR 0003).
+      await forgetWhatThisPhoneRead(queryClient);
       // Somebody is signed in again, so whatever the Outbox stopped holding back can go.
       await phoneOutbox()?.resume();
       // And this handset now speaks for them: leaving its subscription under whoever last
@@ -140,7 +146,7 @@ const DevicePage = () => {
       }
       setChosen(null);
     },
-    [switchUser, listenAgain, t]
+    [switchUser, listenAgain, queryClient, t]
   );
 
   if (!token) {

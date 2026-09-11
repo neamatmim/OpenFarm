@@ -1,6 +1,6 @@
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
-import type { ROLES } from "./roles";
+import type { ROLES, RoleName } from "./roles";
 
 /** SOP content is authored in Bangla; English is optional and used for reports and a
  *  visiting Vet (i18n decision, ticket 02). */
@@ -342,18 +342,35 @@ export const isClosingStep = (content: SopContent, step: Step): boolean =>
 /** One thing that is different between two Versions of an SOP, in the terms somebody who
  *  does the work would put it. Rendered by the reader's app in their own language. */
 export type SopChange =
-  | { kind: "step_added"; step: string }
-  | { kind: "step_removed"; step: string }
-  | { kind: "step_reworded"; step: string; was: string }
-  | { kind: "step_evidence"; step: string }
+  | { kind: "step_added"; step: Bilingual }
+  | { kind: "step_removed"; step: Bilingual }
+  | { kind: "step_reworded"; step: Bilingual; was: Bilingual }
+  | { kind: "step_evidence"; step: Bilingual }
+  | { kind: "step_skip_reasons"; step: Bilingual }
+  | { kind: "step_per_animal"; step: Bilingual; perAnimal: boolean }
+  | { kind: "step_effect"; step: Bilingual }
+  | { kind: "steps_reordered" }
+  | { kind: "purpose_changed" }
   | { kind: "times_changed"; times: string[] }
   | { kind: "grace_changed"; minutes: number }
-  | { kind: "who_changed"; role: string }
-  | { kind: "checker_changed"; role: string | null };
+  | { kind: "who_changed"; role: RoleName }
+  | { kind: "checker_changed"; role: RoleName | null };
 
+/** Everything about one piece of Evidence that a person would notice changing: not only
+ *  what kind it is, but the unit it asks for, the range it calls odd, and what may be
+ *  chosen — a move Step whose Pens changed is a changed Step. */
 const evidenceShape = (step: Step): string =>
   step.evidence
-    .map((item) => `${item.type}${item.required ? "!" : ""}`)
+    .map((item) =>
+      [
+        item.type,
+        item.required ? "!" : "",
+        item.unit?.bn ?? "",
+        item.min ?? "",
+        item.max ?? "",
+        (item.choices ?? []).map((choice) => choice.value).join("|"),
+      ].join(":")
+    )
     .join(",");
 
 const timesOf = (content: SopContent): string[] =>
@@ -361,13 +378,51 @@ const timesOf = (content: SopContent): string[] =>
     trigger.kind === "schedule" ? trigger.times : []
   );
 
+const sameWords = (a: Bilingual, b: Bilingual): boolean =>
+  a.bn === b.bn && (a.en ?? "") === (b.en ?? "");
+
+const skipShape = (step: Step): string =>
+  step.skipReasons.map((reason) => reason.bn).join("|");
+
+/** What is different about one Step that exists in both Versions. */
+const stepChanges = (previous: Step, step: Step): SopChange[] => {
+  const changes: SopChange[] = [];
+  if (!sameWords(previous.text, step.text)) {
+    changes.push({
+      kind: "step_reworded",
+      step: step.text,
+      was: previous.text,
+    });
+  }
+  if (evidenceShape(previous) !== evidenceShape(step)) {
+    changes.push({ kind: "step_evidence", step: step.text });
+  }
+  if (skipShape(previous) !== skipShape(step)) {
+    changes.push({ kind: "step_skip_reasons", step: step.text });
+  }
+  if (previous.repeatPerAnimal !== step.repeatPerAnimal) {
+    changes.push({
+      kind: "step_per_animal",
+      step: step.text,
+      perAnimal: step.repeatPerAnimal,
+    });
+  }
+  if ((previous.effect?.kind ?? "") !== (step.effect?.kind ?? "")) {
+    changes.push({ kind: "step_effect", step: step.text });
+  }
+  return changes;
+};
+
 /**
  * What is different between two Versions, for somebody about to do the work.
  *
  * Steps are matched by their id, so a reworded Step reads as a rewording rather than as one
  * Step gone and another arrived. Everything here is what a person would notice on the job —
  * a new Step, a Step that is gone, different words, something else to record, a different
- * time, a longer grace. Nothing about who published it or when: that is on the Card.
+ * order, a different time. Nothing about who published it or when: that is on the Card.
+ *
+ * An empty list means the Versions differ in ways nobody doing the work would see, and the
+ * caller should say nothing rather than announce a change with nothing under it.
  */
 export const describeChanges = (
   before: SopContent,
@@ -379,27 +434,30 @@ export const describeChanges = (
 
   for (const step of after.steps) {
     const previous = was.get(step.id);
-    if (!previous) {
-      changes.push({ kind: "step_added", step: step.text.bn });
-      continue;
-    }
-    if (previous.text.bn !== step.text.bn) {
-      changes.push({
-        kind: "step_reworded",
-        step: step.text.bn,
-        was: previous.text.bn,
-      });
-    }
-    if (evidenceShape(previous) !== evidenceShape(step)) {
-      changes.push({ kind: "step_evidence", step: step.text.bn });
+    if (previous) {
+      changes.push(...stepChanges(previous, step));
+    } else {
+      changes.push({ kind: "step_added", step: step.text });
     }
   }
   for (const step of before.steps) {
     if (!now.has(step.id)) {
-      changes.push({ kind: "step_removed", step: step.text.bn });
+      changes.push({ kind: "step_removed", step: step.text });
     }
   }
+  // The order Steps come in is the order they are done in, and the closing Step is the last
+  // one — so moving them about changes the job even when every Step is the same.
+  const kept = after.steps.filter((step) => was.has(step.id)).map((s) => s.id);
+  const keptBefore = before.steps
+    .filter((step) => now.has(step.id))
+    .map((s) => s.id);
+  if (kept.join(",") !== keptBefore.join(",")) {
+    changes.push({ kind: "steps_reordered" });
+  }
 
+  if (!sameWords(before.purpose, after.purpose)) {
+    changes.push({ kind: "purpose_changed" });
+  }
   const wasTimes = timesOf(before);
   const nowTimes = timesOf(after);
   if (wasTimes.join(",") !== nowTimes.join(",")) {

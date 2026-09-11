@@ -318,6 +318,9 @@ export const instancesRouter = {
         where: { id: input.id, farmId: context.farm.id },
         with: {
           version: true,
+          // Which Version the Playbook is on now, so work running on an older one can say so
+          // rather than leaving the person to wonder why the card on the wall differs.
+          definition: { columns: { currentVersionId: true } },
           pen: {
             columns: { name: true },
             with: { shed: { columns: { name: true } } },
@@ -386,10 +389,16 @@ export const instancesRouter = {
             },
           })
         : null;
+      const supersededBy =
+        instance.definition.currentVersionId === instance.versionId
+          ? null
+          : instance.version.number;
       return {
         ...instance,
         content,
         changed,
+        /** The Version this work runs on, when the Playbook has since moved on (ADR 0001). */
+        runningOn: supersededBy,
         milkingSession: milkingSession ?? null,
         feeding,
         fed: fed ?? null,

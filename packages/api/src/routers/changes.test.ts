@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { DAY, FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -102,7 +102,7 @@ describe("a Version that changed under somebody", () => {
     expect(board.changed?.to).toBe(2);
     expect(board.changed?.changes).toContainEqual({
       kind: "step_added",
-      step: "চাড়ি ঘষে পরিষ্কার করুন",
+      step: { bn: "চাড়ি ঘষে পরিষ্কার করুন" },
     });
   });
 
@@ -163,5 +163,136 @@ describe("a Version that changed under somebody", () => {
     expect(board.versionId).toBe(startedOn);
     expect(board.versionId).not.toBe(published.versionId);
     expect(board.content.steps.map((step) => step.id)).not.toContain("rinse");
+  });
+
+  it("shows everything that changed while somebody was away, not only the last of it", async () => {
+    const clock = new FakeClock("2027-11-05T02:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const shed = await owner.client.herd.createShed({
+      name: `away-${Date.now()}`,
+    });
+    const pen = await owner.client.herd.createPen({
+      shedId: shed.id,
+      name: "দূরের পেন",
+    });
+    await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: pen.id,
+      source: "born",
+      aliases: [],
+    });
+    const sop = await owner.client.sops.create({ content: waterSop() });
+
+    // They do the work on Version 1.
+    await owner.client.instances.ensureDue();
+    const todaysWork = await owner.client.instances.today({ penId: pen.id });
+    const first = todaysWork.find(
+      (row) => row.definitionId === sop.definitionId
+    );
+    if (!first) {
+      throw new Error("expected work on version 1");
+    }
+    await owner.client.instances.claim({ id: first.id });
+    await owner.client.instances.completeStep({
+      instanceId: first.id,
+      stepId: "check",
+      evidence: [true],
+    });
+
+    // Two publications while they are away.
+    const withScrub = {
+      ...waterSop(),
+      steps: [
+        ...waterSop().steps,
+        {
+          id: "scrub",
+          text: { bn: "চাড়ি ঘষুন" },
+          repeatPerAnimal: false,
+          evidence: [{ type: "tick" as const, required: true }],
+          skipReasons: [],
+        },
+      ],
+    };
+    await owner.client.sops.publish({
+      definitionId: sop.definitionId,
+      content: withScrub,
+      note: "ঘষার ধাপ",
+    });
+    await owner.client.sops.publish({
+      definitionId: sop.definitionId,
+      content: {
+        ...withScrub,
+        steps: [
+          ...withScrub.steps,
+          {
+            id: "refill",
+            text: { bn: "চাড়ি ভরে দিন" },
+            repeatPerAnimal: false,
+            evidence: [{ type: "tick" as const, required: true }],
+            skipReasons: [],
+          },
+        ],
+      },
+      note: "ভরার ধাপ",
+    });
+
+    clock.advance(DAY);
+    const later = await createTestClient(appRouter, { as: "owner", clock });
+    await later.client.instances.ensureDue();
+    const laterWork = await later.client.instances.today({ penId: pen.id });
+    const today = laterWork.find(
+      (row) => row.definitionId === sop.definitionId
+    );
+    if (!today) {
+      throw new Error("expected work on version 3");
+    }
+    const board = await later.client.instances.get({ id: today.id });
+
+    // Version 1 is what they last worked to, so both new Steps are new to them.
+    expect(board.changed?.from).toBe(1);
+    expect(board.changed?.to).toBe(3);
+    expect(
+      board.changed?.changes.filter((change) => change.kind === "step_added")
+    ).toHaveLength(2);
+  });
+
+  it("says nothing when two Versions differ in ways nobody doing the work would see", async () => {
+    const clock = new FakeClock("2027-11-06T02:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const shed = await owner.client.herd.createShed({
+      name: `quiet-${Date.now()}`,
+    });
+    const pen = await owner.client.herd.createPen({
+      shedId: shed.id,
+      name: "শান্ত পেন",
+    });
+    await owner.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: pen.id,
+      source: "born",
+      aliases: [],
+    });
+    const sop = await owner.client.sops.create({ content: waterSop() });
+
+    // Published again with nothing changed but the note that goes with it.
+    await owner.client.sops.publish({
+      definitionId: sop.definitionId,
+      content: waterSop(),
+      note: "কিছু বদলায়নি",
+    });
+
+    await owner.client.instances.ensureDue();
+    const raised = await owner.client.instances.today({ penId: pen.id });
+    const work = raised.find((row) => row.definitionId === sop.definitionId);
+    if (!work) {
+      throw new Error("expected work");
+    }
+    const board = await owner.client.instances.get({ id: work.id });
+    // Announcing a change with nothing under it teaches people to ignore the banner.
+    expect(board.changed).toBeNull();
   });
 });
