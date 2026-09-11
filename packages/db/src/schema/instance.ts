@@ -12,6 +12,7 @@ import { user } from "./auth";
 import { shedPhone } from "./device";
 import { ROLES, farm } from "./farm";
 import { animal, pen } from "./herd";
+import { MILK_DESTINATIONS } from "./milk-destinations";
 import { sopDefinition, sopVersion } from "./sop";
 
 export const INSTANCE_STATES = [
@@ -97,6 +98,10 @@ export const stepCompletion = pgTable(
     evidence: jsonb("evidence").notNull(),
     /** Set when a number fell outside its sane range and the person confirmed it anyway. */
     outOfRange: text("out_of_range"),
+    /** Where the milk went, for a Step whose effect writes a Milk Record. Part of the act
+     *  rather than of the Evidence, so a Correction can re-run the effect from the
+     *  Completion alone. Null for every other Step. */
+    destination: text("destination", { enum: MILK_DESTINATIONS }),
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => user.id),

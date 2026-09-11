@@ -8,6 +8,7 @@ import { farmRouter } from "./farm";
 import { herdRouter } from "./herd";
 import { instancesRouter } from "./instances";
 import { languageRouter } from "./language";
+import { milkRouter } from "./milk";
 import { peopleRouter } from "./people";
 import { sopsRouter } from "./sops";
 
@@ -22,6 +23,7 @@ export const appRouter = {
   herd: herdRouter,
   instances: instancesRouter,
   language: languageRouter,
+  milk: milkRouter,
   people: peopleRouter,
   sops: sopsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({

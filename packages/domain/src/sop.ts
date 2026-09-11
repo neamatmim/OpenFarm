@@ -33,6 +33,17 @@ export interface Evidence {
   choices?: Choice[];
 }
 
+/** What completing a Step writes into the farm's records, beyond the Evidence itself. The
+ *  effect runs in the same transaction as the Completion and is idempotent on its id, so a
+ *  replayed entry cannot double-count. */
+export type StepEffect =
+  /** The litres one cow gave this Milking Session. */
+  | { kind: "milk_record" }
+  /** The Session's bulk total, reconciled against the sum of the per-cow Bulk records. */
+  | { kind: "bulk_total" };
+
+export const STEP_EFFECT_KINDS = ["milk_record", "bulk_total"] as const;
+
 export interface Step {
   id: string;
   text: Bilingual;
@@ -41,6 +52,7 @@ export interface Step {
   evidence: Evidence[];
   /** Why an animal may be skipped in a per-animal Step. */
   skipReasons: Bilingual[];
+  effect?: StepEffect;
 }
 
 export const TRIGGER_KINDS = ["schedule", "event", "state"] as const;
@@ -116,6 +128,32 @@ export const findMissingBangla = (content: SopContent): string[] => {
   return missing;
 };
 
+/** A Step that writes a farm record must be able to: it needs the figure it writes, and it
+ *  must run at the level the record is kept at — litres are per cow, a tank reading is per
+ *  Session. A Version that breaks this would raise work nobody can finish. */
+const effectProblems = (step: Step, stepIndex: number): string[] => {
+  const { effect } = step;
+  if (!effect) {
+    return [];
+  }
+  const path = `steps[${stepIndex}]`;
+  const problems: string[] = [];
+  if (!step.evidence.some((item) => item.type === "number")) {
+    problems.push(
+      `${path}.evidence: this step records a figure and asks for none`
+    );
+  }
+  if (effect.kind === "milk_record" && !step.repeatPerAnimal) {
+    problems.push(`${path}.effect: milk is recorded per animal`);
+  }
+  if (effect.kind === "bulk_total" && step.repeatPerAnimal) {
+    problems.push(
+      `${path}.effect: the bulk total is recorded once for the session`
+    );
+  }
+  return problems;
+};
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
@@ -162,6 +200,7 @@ export const findStructuralProblems = (content: SopContent): string[] => {
         problems.push(`${path}.choices: a choice needs something to choose`);
       }
     }
+    problems.push(...effectProblems(step, stepIndex));
   }
   return problems;
 };

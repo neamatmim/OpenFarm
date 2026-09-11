@@ -145,6 +145,7 @@ export const animalsForInstance = async (
       side: true,
       state: true,
       photoUpdatedAt: true,
+      milkWithdrawalUntil: true,
     },
     orderBy: { tagNumber: "asc" },
   });

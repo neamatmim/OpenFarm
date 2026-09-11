@@ -58,6 +58,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Evidence**: What a Step requires to count as done: a tick, a number with unit, a choice from a list, a photo, or a note. Required or optional per Step. _Avoid_: Proof, data, field
 
+**Effect**: What completing a Step writes into the farm's records beyond the Evidence itself — a Milk Record, a Weigh-in, a dose. Runs in the same transaction as the Step Completion and is keyed on it, so a replayed or corrected entry replaces what it wrote. _Avoid_: Side effect, hook, trigger (which is how an SOP falls due)
+
 **Gate**: A rule by which an animal's state blocks a Step or an SOP from completing — e.g. milk withdrawal blocks that cow's milk from bulk; meat withdrawal blocks her sale. A hard block, not a warning. _Avoid_: Validation, warning, lock
 
 **Sign-off**: The checker's review of a completed SOP Instance: approve, or send back with a reason. _Avoid_: Approval (one outcome of Sign-off), verification
@@ -105,6 +107,12 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Dispatch**: The recorded hand-over of Bulk milk to a buyer: litres, buyer, challan/receipt, and optional fat %, SNF %, note. _Avoid_: Sale (finance's word for the money side), delivery, supply
 
 **Lactation**: One cow's milking period from a calving to the following Dry-off. Numbered per cow; days-in-milk and totals are derived from Milk Records. _Avoid_: Milking cycle, production period
+
+**Reconciliation**: The comparison of a Milking Session's Bulk total against the sum of its per-cow Milk Records destined for Bulk. A difference beyond the Tolerance is flagged for the Manager. _Avoid_: Balancing, audit, check
+
+**Tolerance**: The Farm Parameter, as a percentage, within which a Reconciliation difference passes unremarked. _Avoid_: Margin, threshold, allowance
+
+**Days in Milk**: How long a cow has been in her current Lactation, counted from the calving that started it. Derived, never entered. _Avoid_: DIM (in prose), lactation age
 
 **Dry-off**: The recorded end of a Lactation before the next calving. Moves the cow from Milking to Dry. _Avoid_: Drying, rest period
 

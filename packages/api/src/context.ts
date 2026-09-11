@@ -50,7 +50,12 @@ export interface Context {
   clock: Clock;
   db: Database;
   /** The Farm this request acts on; null until the farm is bootstrapped. */
-  farm: { id: string; name: string; pinAutoLockMinutes: number } | null;
+  farm: {
+    id: string;
+    name: string;
+    pinAutoLockMinutes: number;
+    milkTolerancePercent: number;
+  } | null;
   person: Person | null;
   /** Roles the signed-in person holds on the Farm; empty when signed out or disabled. */
   roles: RoleName[];

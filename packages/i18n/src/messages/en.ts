@@ -251,6 +251,16 @@ export const en = {
   "work.photo": "Photo",
   "work.note": "Note",
   "work.saved": "Saved",
+  "milk.destination": "Where did it go?",
+  "milk.bulk": "Bulk tank",
+  "milk.calves": "Calves",
+  "milk.discard": "Poured away",
+  "milk.withdrawal": "Under withdrawal — this milk cannot go to the tank",
+  "milk.withdrawalShort": "Withdrawal",
+  "milk.sum": "Cows so far: {litres} L",
+  "milk.difference": "The tank is {litres} L away from the cows",
+  "milk.matched": "The tank matches the cows",
+  "milk.flagged": "The manager will look at this",
   "common.notFound": "Not found",
 } as const;
 

@@ -20,6 +20,14 @@ export {
   parseTagNumber,
   prefixForOrigin,
 } from "./tag-number";
+export type { MilkDestination, Reconciliation } from "./milk";
+export {
+  MILK_DESTINATIONS,
+  daysInMilk,
+  destinationFor,
+  reconcile,
+  underMilkWithdrawal,
+} from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
 export type { RoleName } from "./roles";
 export { ROLES } from "./roles";
@@ -31,11 +39,13 @@ export type {
   EvidenceType,
   SopContent,
   Step,
+  StepEffect,
   Trigger,
   TriggerKind,
 } from "./sop";
 export {
   EVIDENCE_TYPES,
+  STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
   appliesToAnimal,
   isClosingStep,

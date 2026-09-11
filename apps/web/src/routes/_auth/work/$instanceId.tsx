@@ -1,5 +1,10 @@
-import type { Evidence, SopContent, Step } from "@OpenFarm/domain";
-import { isClosingStep } from "@OpenFarm/domain";
+import type {
+  Evidence,
+  MilkDestination,
+  SopContent,
+  Step,
+} from "@OpenFarm/domain";
+import { MILK_DESTINATIONS, isClosingStep } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +21,15 @@ interface Animal {
   id: string;
   tagNumber: string;
   photoUpdatedAt: Date | null;
+  /** Her milk cannot go to the tank: the tile locks and the sheet offers Discard only. */
+  underMilkWithdrawal: boolean;
+}
+
+/** What the server's effect decided, shown back to the person who recorded it — the tank
+ *  reading against what the cows account for, and whether that needs the Manager. */
+interface BulkOutcome {
+  differenceLitres: number;
+  flagged: boolean;
 }
 interface Completion {
   stepId: string;
@@ -49,6 +63,7 @@ const WorkPage = () => {
   const navigate = useNavigate();
   const [openAnimal, setOpenAnimal] = useState<Animal | null>(null);
   const [openStep, setOpenStep] = useState<Step | null>(null);
+  const [outcome, setOutcome] = useState<BulkOutcome | null>(null);
 
   const instance = useQuery(
     orpc.instances.get.queryOptions({ input: { id: instanceId } })
@@ -63,7 +78,8 @@ const WorkPage = () => {
   );
   const record = useMutation(
     orpc.instances.completeStep.mutationOptions({
-      onSuccess: () => {
+      onSuccess: ({ effect }) => {
+        setOutcome(effect?.kind === "bulk_total" ? effect : null);
         setOpenAnimal(null);
         setOpenStep(null);
         refresh();
@@ -127,6 +143,7 @@ const WorkPage = () => {
   if (openAnimal && perAnimalStep) {
     return (
       <EvidenceSheet
+        key={openAnimal.id}
         step={perAnimalStep}
         animal={openAnimal}
         onCancel={() => setOpenAnimal(null)}
@@ -210,6 +227,11 @@ const WorkPage = () => {
                       ? completion.skipReason
                       : ""}
                   </span>
+                  {beast.underMilkWithdrawal ? (
+                    <span className="flex items-center gap-1 rounded-full bg-amber-900 px-2 py-0.5 text-xs text-amber-200">
+                      <Lock size={12} /> {t("milk.withdrawalShort")}
+                    </span>
+                  ) : null}
                   {completion ? (
                     <Check
                       size={16}
@@ -223,6 +245,8 @@ const WorkPage = () => {
         </ul>
       ) : null}
 
+      {outcome ? <BulkOutcomeBanner outcome={outcome} /> : null}
+
       <ClosingAction
         ready={readyToClose}
         closingStep={closingStep}
@@ -231,6 +255,30 @@ const WorkPage = () => {
         onOpen={(step) => setOpenStep(step)}
         onFinish={() => finish.mutate({ id: instanceId })}
       />
+    </div>
+  );
+};
+
+/** What the tank reading came to. A difference beyond the farm's tolerance has already been
+ *  flagged for the Manager server-side; this says so, rather than asking the person to fix
+ *  it in the parlour. */
+const BulkOutcomeBanner = ({ outcome }: { outcome: BulkOutcome }) => {
+  const { t, language } = useLanguage();
+  const litres = new Intl.NumberFormat(
+    language === "bn" ? "bn-BD" : "en-GB"
+  ).format(Math.abs(outcome.differenceLitres));
+  return (
+    <div
+      className={`rounded-xl p-3 text-sm ${
+        outcome.flagged ? "bg-amber-900 text-amber-100" : "bg-neutral-800"
+      }`}
+    >
+      <p>
+        {outcome.differenceLitres === 0
+          ? t("milk.matched")
+          : t("milk.difference", { litres })}
+      </p>
+      {outcome.flagged ? <p>{t("milk.flagged")}</p> : null}
     </div>
   );
 };
@@ -287,6 +335,7 @@ interface RecordPayload {
   evidence: (boolean | number | string)[];
   skipReason?: string;
   outOfRange?: string;
+  destination?: MilkDestination;
   photo?: { contentType: "image/jpeg" | "image/png"; data: string };
 }
 
@@ -314,6 +363,13 @@ const EvidenceSheet = ({
   const [skipping, setSkipping] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [photo, setPhoto] = useState<RecordPayload["photo"]>();
+  // A cow under Withdrawal has no choice to make. The server decides again when the entry
+  // lands — this phone may have been offline since before she was treated.
+  const locked = Boolean(animal?.underMilkWithdrawal);
+  const [destination, setDestination] = useState<MilkDestination>(
+    locked ? "discard" : "bulk"
+  );
+  const recordsMilk = step.effect?.kind === "milk_record";
 
   const setValue = (index: number, value: boolean | number | string) => {
     setValues((current) => ({ ...current, [index]: value }));
@@ -364,6 +420,7 @@ const EvidenceSheet = ({
         step.evidence[index]?.type === "number" ? Number(value) : value
       ),
       outOfRange: outside ?? undefined,
+      destination: recordsMilk ? destination : undefined,
       photo,
     });
   };
@@ -425,6 +482,14 @@ const EvidenceSheet = ({
         />
       ))}
 
+      {recordsMilk ? (
+        <DestinationChoice
+          value={destination}
+          locked={locked}
+          onChange={setDestination}
+        />
+      ) : null}
+
       {warning ? (
         <div className="space-y-2 rounded-xl border-2 border-amber-500 p-3">
           <p className="flex items-center gap-2 text-amber-300">
@@ -456,6 +521,44 @@ const EvidenceSheet = ({
         >
           {t("work.confirm")}
         </Button>
+      </div>
+    </div>
+  );
+};
+
+/** Where the milk goes. Three buttons, because that is the whole vocabulary — and none at
+ *  all when a Withdrawal has already decided it. */
+const DestinationChoice = ({
+  value,
+  locked,
+  onChange,
+}: {
+  value: MilkDestination;
+  locked: boolean;
+  onChange: (next: MilkDestination) => void;
+}) => {
+  const { t } = useLanguage();
+  if (locked) {
+    return (
+      <p className="flex items-center gap-2 rounded-xl bg-amber-900 p-3 text-amber-100">
+        <Lock size={16} /> {t("milk.withdrawal")}
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground text-sm">{t("milk.destination")}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {MILK_DESTINATIONS.map((option) => (
+          <Button
+            key={option}
+            variant={value === option ? "default" : "outline"}
+            className="h-12"
+            onClick={() => onChange(option)}
+          >
+            {t(`milk.${option}`)}
+          </Button>
+        ))}
       </div>
     </div>
   );

@@ -1,4 +1,10 @@
-import { ANIMAL_STATES, EVIDENCE_TYPES, ROLES, SIDES } from "@OpenFarm/domain";
+import {
+  ANIMAL_STATES,
+  EVIDENCE_TYPES,
+  ROLES,
+  SIDES,
+  STEP_EFFECT_KINDS,
+} from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { z } from "zod";
 
@@ -28,6 +34,8 @@ const step = z.object({
   repeatPerAnimal: z.boolean().default(false),
   evidence: z.array(evidence),
   skipReasons: z.array(bilingual).default([]),
+  /** What completing the Step writes into the farm's records beyond the Evidence itself. */
+  effect: z.object({ kind: z.enum(STEP_EFFECT_KINDS) }).optional(),
 });
 
 const trigger = z.discriminatedUnion("kind", [

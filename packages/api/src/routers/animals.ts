@@ -16,8 +16,10 @@ import {
   SIDES,
   STATES,
   canTransition,
+  daysInMilk,
   sideOfState,
   stateAfterSideChange,
+  underMilkWithdrawal,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -54,6 +56,10 @@ const animalFields = {
   birthDate: z.coerce.date().optional(),
   officialTag: z.string().trim().max(60).optional(),
   aliases: z.array(z.string().trim().min(1).max(60)).default([]),
+  /** When she last calved, for a cow already in milk when the register opens. Her Lactation
+   *  number and days-in-milk are derived from it — until breeding arrives (increment 5) and
+   *  Calving writes it, this seed is the only way the farm's history gets in. */
+  calvedAt: z.coerce.date().optional(),
 } as const;
 
 /** A newly arriving Animal: only the States an animal can arrive in. */
@@ -82,6 +88,9 @@ const summaryColumns = {
   breed: true,
   birthDate: true,
   photoUpdatedAt: true,
+  lactationNumber: true,
+  lactationStartedAt: true,
+  milkWithdrawalUntil: true,
 } as const;
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
@@ -93,6 +102,43 @@ const penScope = (assigned: string[] | null, requested: string | undefined) => {
     return { penId: { in: visible } };
   }
   return requested ? { penId: requested } : {};
+};
+
+/** The Lactation a newly recorded Animal is already in. An Animal registered straight into
+ *  Milking — the opening register's dairy cows — is in her first recorded Lactation; nobody
+ *  types the number, and without a seeded calving date days-in-milk stays unknown rather
+ *  than becoming a misleading zero. */
+const openingLactation = (
+  state: AnimalState,
+  calvedAt: Date | undefined,
+  now: Date
+) =>
+  state === "milking"
+    ? { lactationNumber: 1, lactationStartedAt: calvedAt ?? now }
+    : { lactationNumber: 0, lactationStartedAt: null };
+
+/** A cow reaching Milking has calved, so her next Lactation begins: the number goes up by
+ *  one and the clock starts. Nothing else touches these — days-in-milk is derived from the
+ *  start date, never entered. Going Dry ends the Lactation without forgetting it, so her
+ *  total for it still reads back. */
+const startingLactation = (
+  current: { state: AnimalState; lactationNumber: number },
+  next: AnimalState,
+  calvedAt: Date | undefined,
+  now: Date
+) => {
+  if (next !== "milking" || current.state === "milking") {
+    return {};
+  }
+  if (calvedAt && calvedAt.getTime() > now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calving date cannot be in the future",
+    });
+  }
+  return {
+    lactationNumber: current.lactationNumber + 1,
+    lactationStartedAt: calvedAt ?? now,
+  };
 };
 
 /** The Animal an entry State implies must belong to the Side it is registered on. */
@@ -151,6 +197,7 @@ const createAnimal = async (
         source: input.source,
         breed: input.breed ?? null,
         birthDate: input.birthDate ?? null,
+        ...openingLactation(input.state, input.calvedAt, now),
         createdAt: now,
         updatedAt: now,
       });
@@ -228,7 +275,15 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      return row;
+      const now = context.clock.now();
+      return {
+        ...row,
+        daysInMilk:
+          row.state === "milking"
+            ? daysInMilk(row.lactationStartedAt, now)
+            : null,
+        underMilkWithdrawal: underMilkWithdrawal(row, now),
+      };
     }),
 
   /** Registers an Animal and assigns the next Tag Number for the Side it came from. */
@@ -369,6 +424,8 @@ export const animalsRouter = {
         tagNumber: tagInput,
         state: z.enum(STATES),
         reason: reasonInput.optional(),
+        /** When she calved, for a cow entering Milking. Defaults to now. */
+        calvedAt: z.coerce.date().optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -400,6 +457,7 @@ export const animalsRouter = {
             .set({
               state: input.state,
               side: sideOfState(input.state) ?? current.side,
+              ...startingLactation(current, input.state, input.calvedAt, now),
               updatedAt: now,
             })
             .where(
@@ -568,6 +626,7 @@ export const animalsRouter = {
           source: values.source,
           breed: values.breed || undefined,
           birthDate: values.birth_date || undefined,
+          calvedAt: values.calved_at || undefined,
           officialTag: values.official_tag || undefined,
           aliases: (values.alias ?? values.old_mark ?? "")
             .split(/[;|]/u)

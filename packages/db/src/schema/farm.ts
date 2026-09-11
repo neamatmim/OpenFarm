@@ -15,6 +15,9 @@ export const farm = pgTable("farm", {
   name: text("name").notNull(),
   /** Minutes of inactivity before a Shed Phone locks and asks for a PIN again. */
   pinAutoLockMinutes: integer("pin_auto_lock_minutes").notNull().default(5),
+  /** How far the bulk total may sit from the sum of the per-cow records before the Manager
+   *  is asked to look. */
+  milkTolerancePercent: integer("milk_tolerance_percent").notNull().default(5),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

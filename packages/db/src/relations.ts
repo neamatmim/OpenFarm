@@ -14,6 +14,10 @@ export const relations = defineRelations(schema, (r) => ({
     pen: r.one.pen({ from: r.animal.penId, to: r.pen.id, optional: false }),
     moves: r.many.animalMove({ from: r.animal.id, to: r.animalMove.animalId }),
     retags: r.many.retag({ from: r.animal.id, to: r.retag.animalId }),
+    milkRecords: r.many.milkRecord({
+      from: r.animal.id,
+      to: r.milkRecord.animalId,
+    }),
   },
   animalMove: {
     animal: r.one.animal({
@@ -87,6 +91,39 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
     animal: r.one.animal({ from: r.stepCompletion.animalId, to: r.animal.id }),
+  },
+  milkingSession: {
+    instance: r.one.sopInstance({
+      from: r.milkingSession.instanceId,
+      to: r.sopInstance.id,
+      optional: false,
+    }),
+    pen: r.one.pen({
+      from: r.milkingSession.penId,
+      to: r.pen.id,
+      optional: false,
+    }),
+    records: r.many.milkRecord({
+      from: r.milkingSession.id,
+      to: r.milkRecord.sessionId,
+    }),
+  },
+  milkRecord: {
+    session: r.one.milkingSession({
+      from: r.milkRecord.sessionId,
+      to: r.milkingSession.id,
+      optional: false,
+    }),
+    animal: r.one.animal({
+      from: r.milkRecord.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    completion: r.one.stepCompletion({
+      from: r.milkRecord.completionId,
+      to: r.stepCompletion.id,
+      optional: false,
+    }),
   },
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),

@@ -96,6 +96,14 @@ export const animal = pgTable(
     birthDate: timestamp("birth_date"),
     /** Set when a photo exists; the client uses it to bust its cache. */
     photoUpdatedAt: timestamp("photo_updated_at"),
+    /** The lactation in progress: its number, and when it began. Derived from the lifecycle
+     *  — set when a cow enters Milking — never typed. Breeding (increment 5) writes these
+     *  from Calving instead. */
+    lactationNumber: integer("lactation_number").notNull().default(0),
+    lactationStartedAt: timestamp("lactation_started_at"),
+    /** While this is in the future, the cow's milk may not go to Bulk. Health (increment 3)
+     *  writes it from a Treatment; until then it is the hook the gate reads. */
+    milkWithdrawalUntil: timestamp("milk_withdrawal_until"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

@@ -89,8 +89,11 @@ describe("tag numbers", () => {
 
     expect(first.tagNumber).toMatch(/^D-\d{4}$/u);
     expect(bought.tagNumber).toMatch(/^F-\d{4}$/u);
-    expect(Number(second.tagNumber.slice(2))).toBe(
-      Number(first.tagNumber.slice(2)) + 1
+    // Only that the sequence moves forward, never that the two are adjacent: other test
+    // files register their own animals against this same farm at the same time, and taking
+    // a number is exactly the operation that is allowed to interleave.
+    expect(Number(second.tagNumber.slice(2))).toBeGreaterThan(
+      Number(first.tagNumber.slice(2))
     );
   });
 

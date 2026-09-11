@@ -4,4 +4,6 @@ export * from "./device";
 export * from "./farm";
 export * from "./herd";
 export * from "./instance";
+export * from "./milk";
+export * from "./milk-destinations";
 export * from "./sop";

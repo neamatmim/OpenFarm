@@ -7,11 +7,14 @@ import {
   stepCompletion,
 } from "@OpenFarm/db/schema/instance";
 import type { SopContent, Step } from "@OpenFarm/domain";
+import { MILK_DESTINATIONS, underMilkWithdrawal } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { EffectResult } from "../effects";
+import { runStepEffect } from "../effects";
 import { protectedProcedure } from "../index";
 import {
   animalsForInstance,
@@ -31,6 +34,10 @@ const completionInput = z.object({
   animalTag: z.string().trim().optional(),
   /** One value per Evidence on the Step, in order. */
   evidence: z.array(evidenceValue).default([]),
+  /** Where the milk went. Only for a Step whose effect writes a Milk Record; the server
+   *  decides the final answer, because a cow under Withdrawal goes to Discard whatever the
+   *  phone worked out from its last sync. */
+  destination: z.enum(MILK_DESTINATIONS).optional(),
   /** Set when the person was warned a number was outside its range and went ahead. */
   outOfRange: z.string().trim().max(120).optional(),
   skipReason: z.string().trim().max(120).optional(),
@@ -297,7 +304,17 @@ export const instancesRouter = {
             content
           )
         : [];
-      return { ...instance, content, animals };
+      const now = context.clock.now();
+      return {
+        ...instance,
+        content,
+        // The gate the tile renders: the phone re-checks it offline from this, and the
+        // server checks it again when the entry lands.
+        animals: animals.map((beast) => ({
+          ...beast,
+          underMilkWithdrawal: underMilkWithdrawal(beast, now),
+        })),
+      };
     }),
 
   /** Claiming is exclusive: the first person to take it is the one working it. */
@@ -426,12 +443,20 @@ export const instancesRouter = {
     .handler(async ({ context, input }) => {
       const receivedAt = context.clock.now();
       const completionId = uuidv7(receivedAt);
+      let effect: EffectResult = null;
       await audited(context).write(
         {
           entity: "sop_instance",
           entityId: input.instanceId,
           action: "update",
-          after: { stepId: input.stepId, animalTag: input.animalTag ?? null },
+          // Read after the write, so the trail records what the effect actually decided —
+          // a Destination forced to Discard reads as Discard, not as what was asked for.
+          after: () =>
+            Promise.resolve({
+              stepId: input.stepId,
+              animalTag: input.animalTag ?? null,
+              effect,
+            }),
         },
         async (tx) => {
           const instance = await tx.query.sopInstance.findFirst({
@@ -476,6 +501,7 @@ export const instancesRouter = {
             outOfRange: input.outOfRange ?? null,
             recordedBy: context.actor.id,
             deviceId: context.device?.id ?? null,
+            destination: input.destination ?? null,
             recordedAt: input.recordedAt ?? receivedAt,
             receivedAt,
           };
@@ -491,7 +517,32 @@ export const instancesRouter = {
               set: values,
             })
             .returning({ id: stepCompletion.id });
-          if (input.photo && saved) {
+          if (!saved) {
+            throw new ORPCError("CONFLICT", {
+              message: "That entry could not be saved",
+            });
+          }
+          // The Step's effect writes the farm's record — the litres, the tank reading — in
+          // this same transaction, keyed on the Completion so a replay cannot double-count.
+          effect = await runStepEffect(tx, {
+            step,
+            instance: {
+              id: instance.id,
+              farmId: context.farm.id,
+              penId: instance.penId,
+              dueAt: instance.dueAt,
+            },
+            completionId: saved.id,
+            animalId,
+            evidence: input.evidence,
+            destination: input.destination,
+            skipped: skipping,
+            tolerancePercent: context.farm.milkTolerancePercent,
+            recordedBy: context.actor.id,
+            recordedAt: values.recordedAt,
+            now: receivedAt,
+          });
+          if (input.photo) {
             await tx
               .insert(completionPhoto)
               .values({
@@ -518,7 +569,14 @@ export const instancesRouter = {
           }
         }
       );
-      return { instanceId: input.instanceId, stepId: input.stepId };
+      // Typed explicitly: `effect` is assigned inside the transaction callback, which the
+      // compiler cannot see, so it would otherwise be inferred as the initial null.
+      const recorded: {
+        instanceId: string;
+        stepId: string;
+        effect: EffectResult;
+      } = { instanceId: input.instanceId, stepId: input.stepId, effect };
+      return recorded;
     }),
 
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal
