@@ -1,4 +1,5 @@
 import type { AlertKind } from "@OpenFarm/domain";
+import { ALERT_KINDS, goesNow } from "@OpenFarm/domain";
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
@@ -59,8 +60,17 @@ const WORDING: Partial<
   },
 };
 
-/** Is this the sort of Alert that reaches into a pocket? */
-export const travelsByPush = (kind: string): boolean => kind in WORDING;
+/**
+ * Is this the sort of notice that reaches into a pocket the moment it is raised?
+ *
+ * Asked of the farm's own delivery table and nowhere else: having words for a kind and
+ * carrying it immediately are two different decisions, and when `kind in WORDING` answered
+ * this question, giving a digest kind a title would quietly have made it an Alert.
+ */
+export const travelsByPush = (kind: string): boolean =>
+  (ALERT_KINDS as readonly string[]).includes(kind) &&
+  goesNow(kind as AlertKind) &&
+  kind in WORDING;
 
 const MINUTES_PER_HOUR = 60;
 
@@ -101,4 +111,17 @@ export const messageFor = (
     // show what is waiting, not a history of it being told.
     tag: `${alert.kind}:${alert.entityId}`,
   };
+};
+
+/** The kinds a Digest carries, from the farm's own delivery table. */
+export const DIGESTIBLE = ALERT_KINDS.filter((kind) => !goesNow(kind));
+
+/** How a Digest names what is in it: so many of this, so many of that, rather than a count
+ *  of things the reader then has to go and find. */
+export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
+  instance_overdue: "digest.overdue",
+  instance_escalated: "digest.escalated",
+  instance_sent_back: "digest.sentBack",
+  needs_review: "digest.needsReview",
+  sop_published: "digest.sopPublished",
 };

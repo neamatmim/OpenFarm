@@ -1,6 +1,7 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import { farm } from "@OpenFarm/db/schema/farm";
+import { isQuiet } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -8,11 +9,11 @@ import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import {
   findPendingNotices,
-  lastCarriedAt,
+  minuteOfFarmDay,
+  postDueAt,
   raiseLateAlerts,
 } from "../instances-store";
-import { pushRaised } from "../push-send";
-import { carryTheDigest } from "../push-store";
+import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
@@ -87,46 +88,33 @@ export const alertsRouter = {
    * is there anything waiting about this piece of work, and what does it say?
    */
   /**
-   * Carries the day's quieter notices — one push each, naming how many things are waiting.
+   * Carries the day's quieter notices — one push each, naming what is in it.
    *
    * Called wherever the app is opened, like the sweep, and safe to call as often as anybody
-   * likes: a notice is carried once. A digest time that falls inside quiet hours is not a
-   * digest time, because a batch of things that could wait is exactly what quiet hours are
-   * for; it goes when the farm wakes up.
+   * likes: the post is claimed in one statement, so two phones opening at six do not both
+   * carry it. A carrying moment inside quiet hours waits for the farm to wake, and so does a
+   * call made in the small hours — a batch of things that could wait is exactly what quiet
+   * hours are for.
    */
   digest: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
+      const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
       const now = context.clock.now();
       const quiet = {
         from: context.farm.quietFrom,
         until: context.farm.quietUntil,
       };
-      const upTo = lastCarriedAt(now, context.farm.digestTimes, quiet);
-      if (!upTo) {
-        // Before the farm's first carrying moment of the day, and nothing left over from
-        // yesterday's last: there is nothing this call could honestly carry.
-        return { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
+      // Not only "has a carrying moment passed" but "is the farm awake": somebody opening
+      // the app at half past midnight must not set every phone on the farm buzzing.
+      if (isQuiet(minuteOfFarmDay(now), quiet)) {
+        return nothing;
       }
-      let carried = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
-      await audited(context).write(
-        {
-          entity: "alert",
-          entityId: `digest:${now.toISOString().slice(0, 10)}`,
-          action: "update",
-          after: () => Promise.resolve({ at: now.toISOString() }),
-        },
-        async (tx) => {
-          carried = await carryTheDigest(
-            tx,
-            context.push,
-            context.farm.id,
-            now,
-            upTo
-          );
-        }
-      );
-      return carried;
+      const upTo = postDueAt(now, context.farm.digestTimes, quiet);
+      if (!upTo) {
+        return nothing;
+      }
+      return await carryThePost(context, now, upTo);
     }),
 
   mine: protectedProcedure

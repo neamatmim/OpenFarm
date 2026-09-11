@@ -733,13 +733,19 @@ export const minuteOfFarmDay = (at: Date): number => {
   return Math.floor((at.getTime() - from.getTime()) / MINUTE_MS);
 };
 
+/** The farm's own day, as a date somebody would write down. Not the UTC one: at half past
+ *  midnight in a shed in Dhaka, yesterday's date is the wrong answer. */
+export const farmDayOf = (at: Date): string =>
+  farmDayRange(at).from.toISOString().slice(0, "YYYY-MM-DD".length);
+
 /**
  * When the farm's post was last due to be carried, as an instant — today's most recent
  * carrying moment, or yesterday's last one if the day has not reached its first.
  *
- * Everything raised before it goes in this digest; everything since waits for the next.
+ * Everything raised before it goes in this digest; everything since waits for the next. Not
+ * to be confused with an Alert's own `carriedAt`, which is when it actually went.
  */
-export const lastCarriedAt = (
+export const postDueAt = (
   now: Date,
   times: readonly string[],
   quiet: QuietHours

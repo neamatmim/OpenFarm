@@ -2,8 +2,10 @@ import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
 import type { Context } from "./context";
+import { farmDayOf } from "./instances-store";
 import type { RaisedAlert } from "./instances-store";
-import { pushAlerts } from "./push-store";
+import type { Told } from "./push-store";
+import { carryTheDigest, claimTheDigest, pushAlerts } from "./push-store";
 
 /**
  * Sends the tap on the shoulder, after the Alerts it is about are safely the farm's record.
@@ -62,4 +64,53 @@ export const pushRaised = async (
     }
     return nothing;
   }
+};
+
+/**
+ * Carries the farm's post: claims it in one transaction, tells the browsers outside that
+ * one, and records what became of it.
+ *
+ * Here rather than in the router for the same reason `pushRaised` is: a router opens no
+ * transactions, and a push must not happen inside one.
+ */
+export const carryThePost = async (
+  context: Context & {
+    farm: NonNullable<Context["farm"]>;
+    actor: NonNullable<Context["actor"]>;
+  },
+  now: Date,
+  upTo: Date
+): Promise<{ people: number; told: Told }> => {
+  const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
+  const post = await context.db.transaction((tx) =>
+    claimTheDigest(tx, context.farm.id, now, upTo)
+  );
+  if (post.length === 0) {
+    // Nothing to carry is not an event: no transaction, no trail entry.
+    return nothing;
+  }
+  return await context.db.transaction(async (tx) => {
+    const carried = await carryTheDigest(
+      tx,
+      context.push,
+      context.farm.id,
+      post,
+      now
+    );
+    await audited(context).recordEvent(
+      tx,
+      {
+        entity: "alert",
+        entityId: `digest:${farmDayOf(now)}`,
+        action: "update",
+        after: {
+          people: carried.people,
+          ...carried.told,
+          upTo: upTo.toISOString(),
+        },
+      },
+      { receivedAt: now }
+    );
+    return carried;
+  });
 };

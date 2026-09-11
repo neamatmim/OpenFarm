@@ -216,7 +216,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Alert**: An immediate notification for something that costs money or breaks a legal deadline if missed: overdue work, withdrawal ending, a notifiable diagnosis, sync problems. Ignores quiet hours; the two safety Alerts also go by SMS. What makes one an Alert is that it goes *now* — the farm's in-app list holds these and the quieter notices side by side, and a notice that waits for the Digest is not an Alert however it is stored. _Avoid_: Notification (the general word), warning, reminder
 
-**Digest**: The batched notification sent at 06:00 and 18:00 carrying everything that is not an Alert. _Avoid_: Summary, newsletter, report
+**Digest**: The batched notification carrying everything that is not an Alert, at the times the farm sets (06:00 and 18:00 by default). It names what is in it. Everything it carries is in the app whether or not it is delivered. _Avoid_: Summary, newsletter, report
+
+**Quiet Hours**: The span the farm is asleep (22:00–05:00 by default), when nothing that can wait reaches a phone. A Digest due inside them waits for the farm to wake; an Alert goes anyway. The in-app list is never quietened — quiet hours quieten the phone, not the farm's own record of what is waiting. _Avoid_: Do not disturb, night mode, silence
 
 **Push**: An Alert delivered to an installed app on a device that agreed to be told, so it arrives with the app closed. The in-app Alert is the record; Push is the tap on the shoulder, and may fail without anything being lost. _Avoid_: Notification (the general word), alert (the thing being delivered), message
 

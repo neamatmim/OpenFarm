@@ -236,4 +236,58 @@ describe("the evening digest", () => {
       post.sent.filter((one) => one.target.endpoint === endpoint)
     ).toHaveLength(1);
   });
+
+  it("does not buzz the farm at half past midnight because nobody opened the app", async () => {
+    // Raised at two in the afternoon, farm time, so the six o'clock post should have taken
+    // it — but nobody opened the app all evening.
+    const clock = new FakeClock("2027-12-09T08:00:00.000Z");
+    const post = listeningPost();
+    const { endpoint } = await listening(clock, post.transport);
+    await quietNotice(clock.now());
+
+    // Half past midnight, and somebody looks at their phone.
+    clock.set("2027-12-09T18:30:00.000Z");
+    const atNight = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    const carried = await atNight.client.alerts.digest();
+
+    expect(carried.told.sent).toBe(0);
+    expect(post.sent.filter((one) => one.target.endpoint === endpoint)).toEqual(
+      []
+    );
+
+    // It is still in the app the whole time: quiet hours quieten the phone, not the farm's
+    // own list of what is waiting.
+    const waiting = await atNight.client.alerts.mine({});
+    expect(waiting.some((one) => one.kind === "needs_review")).toBe(true);
+
+    // And it goes with the morning post.
+    clock.set("2027-12-10T00:30:00.000Z");
+    const morning = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await morning.client.alerts.digest();
+    expect(
+      post.sent.filter((one) => one.target.endpoint === endpoint)
+    ).toHaveLength(1);
+  });
+
+  it("names what is in the post rather than counting it", async () => {
+    const clock = new FakeClock("2027-12-11T12:00:00.000Z");
+    const post = listeningPost();
+    const { manager, endpoint } = await listening(clock, post.transport);
+    await quietNotice(clock.now());
+
+    await manager.client.alerts.digest();
+
+    const mine = post.sent.find((one) => one.target.endpoint === endpoint);
+    // "1 needing review", not "1 thing waiting": a number somebody has to go and identify
+    // is a number they learn to ignore.
+    expect(mine?.message.body).toContain("যাচাই");
+  });
 });

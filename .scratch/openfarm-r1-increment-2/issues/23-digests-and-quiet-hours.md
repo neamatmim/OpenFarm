@@ -24,3 +24,19 @@
 - **An empty digest is not sent.** A farm whose phone buzzes to say nothing happened is a farm that stops reading the ones that say something did.
 
 **What the farm can set:** when its post is carried, and when it is asleep. Both are farm parameters, and a time of day that is not one is refused rather than quietly rewritten.
+
+**Review outcomes folded in.** Two of these were the repo telling me a rule it had already written down twice.
+
+- **The pushes were inside the audited transaction.** `push-send.ts` says why in its own words — a lock held across a call to somebody else's server is a lock every phone in the shed waits on, and a push sent before the transaction commits can buzz a pocket about something the farm then rolls back — and the Alert sweep restates it forty lines above where I put this. Claiming and telling are separate now: the claim is one statement in a transaction, the telling happens outside it.
+- **Two phones at six o'clock both carried the same post.** Reading the waiting notices and stamping them afterwards is not a claim; the second phone read the same rows before the first had stamped them, and both pushed. It is one `update … where carried_at is null returning` now, so the post is claimed by whoever gets there first and carried once.
+- **Quiet hours had a hole the size of a night.** The code asked whether a carrying moment had passed, but never whether the farm was asleep *now*: a notice from two in the afternoon that nobody collected, and a Manager glancing at their phone at half past midnight, would have set every phone on the farm buzzing. There is a test for that night.
+- **Two tables decided how a notice travels** — the farm's delivery table, and whether the code happened to have push wording for that kind. Giving a digest kind a title would quietly have made it an Alert. One table decides; the wording is only wording.
+- **The digest counted rather than named.** "Three things waiting" is a number somebody has to go and identify, and a number people learn to ignore. It says what is in it now.
+- **The trail was written on every app-open**, including the ones that carried nothing, with an entityId no row carries and a payload that did not say what was carried. Nothing to carry writes nothing; what is written says how many people, how many browsers heard, and what the post covered.
+- Also: the farm day rather than the UTC date, so half past midnight is not stamped yesterday; quiet hours that begin when they end are refused rather than silently meaning "never quiet"; and one place tells one browser one thing, rather than two copies of the same loop.
+
+**A trade-off worth naming.** A claimed notice is stamped whether or not a push reaches anybody — a person with no browser subscribed has their post marked carried and never hears a buzz. That is deliberate: the stamp is what makes the post go once, and the notices are in the app either way, which is where the farm's record of them has always been. The trail now records how many browsers actually heard, so a farm can see the difference between a post carried and a post delivered.
+
+**Named, and written down.** **Quiet Hours** is a glossary entry now — it was a phrase inside the definition of Alert while being a pair of columns, a predicate and a rule about the in-app list. The **Digest** entry no longer says 06:00 and 18:00 as though they were fixed; they are the farm's to set.
+
+**What the notification table still owes.** Three rows in the decision document name events that exist today and have no kind yet: an SOP proposal waiting for the Owner, work reassigned to its new assignee, and — the one that matters — *sync problems*, which story 92 lists among the immediate Alerts. The batch path produces rejected entries with nothing telling the person. The delivery table is the right place for all three; the first two belong with the queues that tickets 24 and 25 put on screen, and the third should not wait that long.

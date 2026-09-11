@@ -44,11 +44,11 @@ const parameters = z
 /** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
 const BOOTSTRAP_LOCK = 7001;
 
+/** "HH:MM" on the farm's own clock, which is what every time of day here is. */
+const TIME_OF_DAY = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
+
 /** First-run setup: the signed-in person names the Farm and becomes its Owner.
  *  Refused once a Farm exists — after that, people arrive by invitation. */
-/** "HH:MM" on the farm's own clock, which is what every time of day here is. */
-const TIME_OF_DAY = /^(?<hour>[01]\d|2[0-3]):[0-5]\d$/u;
-
 export const farmRouter = {
   bootstrap: protectedProcedure
     .input(z.object({ name: z.string().trim().min(1) }))
@@ -113,6 +113,16 @@ export const farmRouter = {
             message: `"${time}" is not a time of day`,
           });
         }
+      }
+      const quietFrom = input.quietFrom ?? context.farm.quietFrom;
+      const quietUntil = input.quietUntil ?? context.farm.quietUntil;
+      if (quietFrom === quietUntil) {
+        // Silently meaning "never quiet" is how a farm ends up being woken at two in the
+        // morning by a setting it thought it had made.
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Quiet hours that begin when they end are not quiet hours; set them apart or say so plainly",
+        });
       }
       if (input.digestTimes !== undefined) {
         changes.digestTimes = input.digestTimes;
