@@ -9,6 +9,7 @@ import { devicesRouter } from "./devices";
 import { farmRouter } from "./farm";
 import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
+import { homeRouter } from "./home";
 import { instancesRouter } from "./instances";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
@@ -31,6 +32,7 @@ export const appRouter = {
   farm: farmRouter,
   feed: feedRouter,
   herd: herdRouter,
+  home: homeRouter,
   instances: instancesRouter,
   language: languageRouter,
   milk: milkRouter,
