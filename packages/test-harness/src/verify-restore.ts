@@ -4,8 +4,13 @@
  * A restore that produces an empty database succeeds quietly, which is the worst way for a
  * backup to be wrong: the drill passes, the runbook is ticked, and the farm finds out on the
  * day it matters. So this asks for the things a farm cannot be without — its own record of
- * itself, its animals, its Playbook, and the trail that says what happened to them — and
- * fails loudly when any of them is missing.
+ * itself, its herd, its Playbook, the work that was done and the trail of it — and fails
+ * loudly, by name, when any of them is missing.
+ *
+ * It is deliberately a check of *contents*, not of rules. The rules are tested by the suite
+ * in packages/api, which builds its own database from nothing; pointing that at a restored
+ * one would test the migrations, not the restore. What a drill needs to know is whether the
+ * farm came back, and whether the parts still hang together.
  *
  * Run by scripts/restore.sh against the scratch database, never against the live one.
  */
@@ -16,63 +21,115 @@ const url = process.env.DATABASE_URL;
 if (!url) {
   throw new Error("DATABASE_URL is required");
 }
-if (!url.includes("scratch")) {
+const name = (url.split("/").pop() ?? "").split("?")[0] ?? "";
+if (!name.includes("scratch")) {
   throw new Error(
-    "refusing: this checks a restored scratch database, not a live one"
+    `refusing: '${name}' is not a scratch database, and this drops nothing but reads everything`
   );
 }
 
 /** What a farm cannot be without, and the least of it that means the restore worked. */
-const MUST_HOLD: { table: string; atLeast: number; why: string }[] = [
-  { table: "farm", atLeast: 1, why: "the farm's own record of itself" },
-  { table: "animal", atLeast: 1, why: "the herd register" },
-  { table: "sop_definition", atLeast: 1, why: "the Playbook" },
+const MUST_HOLD: { table: string; why: string }[] = [
+  { table: "farm", why: "the farm's own record of itself" },
+  { table: "animal", why: "the herd register" },
+  { table: "sop_definition", why: "the Playbook" },
+  { table: "sop_version", why: "the Versions the Playbook was worked on" },
+  { table: "sop_instance", why: "the work the Playbook raised" },
+  { table: "step_completion", why: "the Steps somebody actually did" },
   {
-    table: "sop_version",
-    atLeast: 1,
-    why: "the Versions the Playbook was worked on",
+    table: "milk_record",
+    why: "the litres — the whole subject of increment 1",
   },
-  { table: "audit_event", atLeast: 1, why: "the trail of what happened" },
+  { table: "milking_session", why: "the Sessions those litres were drawn in" },
+  { table: "audit_event", why: "the trail of what happened" },
 ];
+
+/**
+ * Rows that should not be able to exist alone. A dump that came back missing its photos or
+ * its Milk Records leaves Completions pointing at nothing, and a count alone would not
+ * notice: the numbers would all be non-zero and the drill would pass.
+ */
+const MUST_HANG_TOGETHER: { what: string; query: string }[] = [
+  {
+    what: "every Milk Record still has the Completion it came from",
+    query: `select count(*)::text as total from milk_record m
+            left join step_completion c on c.id = m.completion_id
+            where c.id is null`,
+  },
+  {
+    what: "every photo still has the Completion it is evidence for",
+    query: `select count(*)::text as total from completion_photo p
+            left join step_completion c on c.id = p.completion_id
+            where c.id is null`,
+  },
+  {
+    what: "every Animal is still in a Pen the farm has",
+    query: `select count(*)::text as total from animal a
+            left join pen p on p.id = a.pen_id
+            where p.id is null`,
+  },
+];
+
+/** Postgres for "no such table". */
+const NO_SUCH_TABLE = "42P01";
 
 const db = createDb(url);
 
-/** How many rows a table holds, and zero when the table is not even there. A restore that
- *  produced no schema at all is the same failure as one that produced an empty one, and it
- *  should read the same way rather than as a driver's complaint. */
+const totalFrom = async (query: string): Promise<number> => {
+  const rows = await db.execute<{ total: string }>(sql.raw(query));
+  const first = (rows as unknown as { rows?: { total: string }[] }).rows?.[0];
+  return Number(first?.total ?? 0);
+};
+
+/** How many rows a table holds, and zero when the table is not even there — a restore that
+ *  produced no schema is the same failure as one that produced an empty schema, and should
+ *  read the same way. Anything else — a wrong password, a database that is not listening —
+ *  is a different problem, and saying "not a farm" would send the drill after the wrong
+ *  thing entirely. */
 const countOf = async (table: string): Promise<number> => {
   try {
-    const rows = await db.execute<{ total: string }>(
-      sql.raw(`select count(*)::text as total from "${table}"`)
-    );
-    const first = (rows as unknown as { rows?: { total: string }[] }).rows?.[0];
-    return Number(first?.total ?? 0);
-  } catch {
-    return 0;
+    return await totalFrom(`select count(*)::text as total from "${table}"`);
+  } catch (error) {
+    const code = (error as { cause?: { code?: string }; code?: string }).cause
+      ?.code;
+    if (code === NO_SUCH_TABLE) {
+      return 0;
+    }
+    throw error;
   }
 };
 
 const missing: string[] = [];
 for (const want of MUST_HOLD) {
-  // Deliberately sequential: five counts, and a clear message beats a fast one.
+  // Deliberately sequential: a dozen counts, and a clear message beats a fast one.
   // oxlint-disable-next-line no-await-in-loop
   const held = await countOf(want.table);
-  const line = `${want.table}: ${held}`;
-  if (held < want.atLeast) {
-    missing.push(`${line} — expected ${want.why}`);
+  if (held === 0) {
+    missing.push(`${want.table}: 0 — expected ${want.why}`);
   } else {
-    process.stdout.write(`  ${line}\n`);
+    process.stdout.write(`  ${want.table}: ${held}\n`);
   }
 }
 
-if (missing.length > 0) {
+const broken: string[] = [];
+for (const check of MUST_HANG_TOGETHER) {
+  // oxlint-disable-next-line no-await-in-loop
+  const orphans = await totalFrom(check.query);
+  if (orphans > 0) {
+    broken.push(`${orphans} rows where ${check.what} — and they do not`);
+  }
+}
+
+if (missing.length > 0 || broken.length > 0) {
   process.stderr.write("\n");
-  for (const line of missing) {
+  for (const line of [...missing, ...broken]) {
     process.stderr.write(`  ${line}\n`);
   }
   process.stderr.write("\nthe restore produced a database, but not a farm.\n");
   process.exit(1);
 }
 
-process.stdout.write("\nthe restored database holds a farm.\n");
+process.stdout.write(
+  "\nthe restored database holds a farm, and it hangs together.\n"
+);
 process.exit(0);

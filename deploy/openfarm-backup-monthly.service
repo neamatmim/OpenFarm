@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenFarm monthly copy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=openfarm
+WorkingDirectory=/srv/openfarm
+EnvironmentFile=/etc/openfarm/backup.env
+ExecStart=/srv/openfarm/scripts/backup.sh monthly
+Restart=no

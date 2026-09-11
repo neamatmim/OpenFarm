@@ -21,11 +21,34 @@ is one disk away from losing its own records, and that is the number to watch.
 
 ## What the host needs
 
-The machine that takes the nightly copy — and any machine doing a restore — needs four
-things on its PATH: `pg_dump`, `psql`, [`age`](https://github.com/FiloSottile/age) and
-[`rclone`](https://rclone.org). Both scripts check for them by name and stop before they
-start, because a job that gets halfway and then finds it cannot encrypt has already spent
-the night's window and left a dump of the whole farm lying in a temporary directory.
+The machine that takes the nightly copy needs four things on its PATH: `pg_dump`, `psql`,
+[`age`](https://github.com/FiloSottile/age) and [`rclone`](https://rclone.org).
+
+A machine doing a *restore* needs those, plus `pnpm` and a checkout of this repo with
+`pnpm install` run — the last step of a restore is a check that lives in the repo.
+
+Both scripts look for their tools by name and stop before they start, because a job that
+gets halfway and then finds it cannot encrypt has already spent the night's window and left
+a dump of the whole farm lying in a temporary directory.
+
+## Installing the nightly
+
+Nothing takes a copy until something is scheduled to. On a host with systemd:
+
+```sh
+sudo cp deploy/openfarm-backup.* deploy/openfarm-backup-monthly.* /etc/systemd/system/
+sudo systemctl enable --now openfarm-backup.timer openfarm-backup-monthly.timer
+systemctl list-timers 'openfarm-backup*'      # and see them listed
+```
+
+Without systemd, `deploy/crontab.example` is the same two jobs at the same times.
+
+Either way the job reads `/etc/openfarm/backup.env` — root-owned, readable only by the
+service user, holding `DATABASE_URL`, `BACKUP_AGE_RECIPIENT` and `BACKUP_DESTINATION`.
+
+**Then check the app.** Admin → Backups is the only thing that will tell you the timer is
+doing its job, and a timer that exists but fails every night looks exactly like a timer that
+works until somebody looks.
 
 ## Restoring
 
@@ -50,15 +73,33 @@ passes, the runbook is ticked, and the farm finds out on the day it matters.
 Once a quarter, and after any change to the database provider.
 
 1. **The Owner** runs the restore above into the scratch environment.
-2. **The Manager** points the app at it and opens the **Inspector view**, then checks:
-   - the herd is there, with the right count of animals on each Side;
-   - yesterday's milking shows the litres they remember;
-   - an Animal's history reads back — a Correction still shows what it replaced;
-   - the audit trail reaches back further than the backup is old.
-3. **Write the result down**: a line in the farm's ops log, with the date, the backup used,
-   and who witnessed it. A drill nobody recorded is a drill nobody did.
+2. **The Manager** points the app at it and looks at four screens:
+   - **Animals** — the herd is there, with the right count on each Side;
+   - **a milking Instance** — yesterday's litres are the ones they remember, per cow;
+   - **an Animal's history** — it reads back, and a Correction still shows what it replaced;
+   - **Admin → Audit** — the trail reaches further back than the backup is old.
+3. **Write the result down** twice: a line in the farm's ops log with the date, the backup
+   used and who witnessed it — and, in the restored system itself, dismiss an Alert or make
+   a note so the drill leaves an Audit Event in the copy it was run against. A drill nobody
+   recorded is a drill nobody did.
 4. If anything is missing, the drill has done its job. Do not tidy it away — find out why
    before the next nightly runs.
+
+## What the farm depends on, and how each comes back
+
+Every one of these is the Owner's, and every one needs a way back. The password manager is
+the thing that makes the rest recoverable, so it is the one to protect hardest.
+
+| Depends on | If it is lost |
+| --- | --- |
+| Password manager | Everything else is recovered *from* here. Keep the recovery kit off-line and somewhere else; without it nothing below can be re-established. |
+| Managed PostgreSQL (PITR) | Restore from PITR first, the nightly copy second. A new database means a new `DATABASE_URL` in the app's environment. |
+| App host | Rebuild from `docs/runbooks/deploy.md`; the app holds no state of its own. |
+| Off-site storage (rclone remote) | Its credentials live in rclone's config on the backup host, **and a copy in the password manager**. Without that copy no backup can be fetched after the backup host is gone. |
+| Backup key (age) | The private half is the only thing that can read a backup. Lost, every existing copy is unreadable — take a fresh one the same day and write the loss down. |
+| Web-push keys | Generate new ones. Every browser silently stops being told until each agrees again in Settings; the in-app Alert carries on regardless. |
+| SMS gateway (increments 2–3) | Not used yet. When it is: account with the provider, credentials in the password manager, and the farm pays the bill in BDT. |
+| DNS and TLS | Re-point the record at the new host; the host issues its own certificate. Until then phones cannot sync, and their Outboxes hold the work. |
 
 ## When it is not a drill
 

@@ -24,7 +24,19 @@ that one person's lost phone is not the farm's lost records.
 ## Before the first deploy
 
 The Owner provisions the accounts — that is a go-live prerequisite, not a step here — and
-puts every value from `.env.example` into the password manager.
+puts every value from `.env.example` into the password manager. Then this checklist, which
+is the part that is easy to believe was done and was not:
+
+- [ ] `NODE_ENV=production` is set. Left unset the app runs as development.
+- [ ] **Point-in-time recovery is on**, and its window is at least a day. This is what an
+      RPO of an hour rests on; a nightly copy alone cannot reach it. Check it in the
+      provider's console and write down the window you saw — a provider that *offers* PITR
+      is not a database that *has* it.
+- [ ] The database is in the Singapore region, and so is the app host.
+- [ ] The off-site remote is on a **different provider**, not another bucket on the same one.
+- [ ] The nightly timer is installed and listed — see the restore runbook.
+- [ ] A first copy has run by hand and **Admin → Backups** shows it.
+- [ ] A first restore drill has been done. A backup nobody has restored is a hope.
 
 ```sh
 # The push keys, generated once and kept for ever.
@@ -43,8 +55,13 @@ pnpm check-types          # the whole workspace, web app included
 pnpm test                 # against a real scratch database
 pnpm build                # Nitro output in apps/web/.output
 
-pnpm db:migrate:deploy    # migrations first: the app expects the schema it was built for
-# then ship apps/web/.output to the host and restart it
+# Migrations first: the app expects the schema it was built for.
+pnpm --filter @OpenFarm/db db:migrate:deploy
+
+# Then the app itself. Nitro's output is self-contained, so this is a copy and a restart.
+rsync -a --delete apps/web/.output/ openfarm@HOST:/srv/openfarm/app/
+ssh openfarm@HOST 'sudo systemctl restart openfarm'
+
 ```
 
 Migrations run before the new app starts, never after. Every migration in this repo is

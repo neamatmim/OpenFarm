@@ -22,7 +22,22 @@ const BackupsPage = () => {
   const state = backups.data;
   const worrying =
     state !== undefined &&
-    (state.nightsSince === null || state.nightsSince >= NIGHTS_BEFORE_WORRYING);
+    (state.daysSince === null || state.daysSince >= NIGHTS_BEFORE_WORRYING);
+
+  /** The one line that answers the question somebody came to this screen with. */
+  const howItStands = (): string => {
+    if (!state || state.daysSince === null) {
+      return t("backups.never");
+    }
+    if (worrying) {
+      return t("backups.stale", { nights: state.daysSince });
+    }
+    return t("backups.lastGood", {
+      when: state.lastGoodAt
+        ? formatDate(new Date(state.lastGoodAt), language, "dateTime")
+        : "",
+    });
+  };
 
   return (
     <div className="container mx-auto max-w-2xl space-y-4 px-4 py-6">
@@ -33,19 +48,7 @@ const BackupsPage = () => {
             worrying ? "bg-amber-900 text-amber-100" : "bg-neutral-800"
           }`}
         >
-          {(() => {
-            if (state.nightsSince === null) {
-              return t("backups.never");
-            }
-            if (worrying) {
-              return t("backups.stale", { nights: state.nightsSince });
-            }
-            return t("backups.lastGood", {
-              when: state.lastGoodAt
-                ? formatDate(new Date(state.lastGoodAt), language, "dateTime")
-                : "",
-            });
-          })()}
+          {howItStands()}
         </p>
       ) : null}
       {state?.runs.length ? (

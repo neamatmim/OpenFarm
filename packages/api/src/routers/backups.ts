@@ -37,9 +37,10 @@ export const backupsRouter = {
       return {
         runs,
         lastGoodAt: lastGood?.startedAt ?? null,
-        /** Nights since the last copy that worked. Null when there has never been one, which
-         *  is a different and worse thing than a long gap. */
-        nightsSince: since === null ? null : Math.floor(since / DAY_MS),
+        /** Whole days since the last copy that worked — days, not nights: a copy taken at
+         *  eleven and read at one in the morning is two hours old, not a night. Null when
+         *  there has never been one, which is a different and worse thing than a gap. */
+        daysSince: since === null ? null : Math.floor(since / DAY_MS),
       };
     }),
 };

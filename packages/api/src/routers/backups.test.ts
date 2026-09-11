@@ -40,7 +40,7 @@ describe("whether the farm is being copied", () => {
 
     const state = await manager.client.backups.recent({});
 
-    expect(state.nightsSince).toBe(1);
+    expect(state.daysSince).toBe(1);
     expect(state.lastGoodAt).toEqual(lastNight);
     // A copy that failed is shown, not hidden: silence is what nobody notices.
     const seen = state.runs.filter((run) => [good, bad].includes(run.id));
