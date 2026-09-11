@@ -226,6 +226,38 @@ const AnimalPage = () => {
         </Button>
       </form>
 
+      {detail.sightings.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="font-medium">{t("animals.sightings")}</h2>
+          <ul className="space-y-1 text-sm">
+            {detail.sightings.map((seen) => (
+              <li
+                className={
+                  seen.withdrawn
+                    ? "text-muted-foreground line-through"
+                    : "text-muted-foreground"
+                }
+                key={seen.id}
+              >
+                {formatDate(new Date(seen.seenAt), language, "dateTime")} ·{" "}
+                {seen.saw}
+                {seen.note ? ` · ${seen.note}` : ""}
+                {seen.seenByName ? ` · ${seen.seenByName}` : ""}
+                {" · "}
+                <Link
+                  className="underline"
+                  params={{ instanceId: seen.instanceId }}
+                  to="/work/$instanceId"
+                >
+                  {t("animals.moveFromWork")}
+                </Link>
+                {seen.withdrawn ? ` · ${t("animals.sightingWithdrawn")}` : ""}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="space-y-2">
         <h2 className="font-medium">{t("animals.movesHistory")}</h2>
         <ul className="space-y-1 text-sm">

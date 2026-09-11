@@ -1,8 +1,9 @@
 import type { MilkDestination, Step } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { animal, animalMove } from "@OpenFarm/db/schema/herd";
+import { animal, animalMove, sighting } from "@OpenFarm/db/schema/herd";
 
 import type { Tx } from "./audit";
 import {
@@ -27,6 +28,13 @@ import {
  */
 export type EffectResult =
   | { kind: "milk_record"; destination: MilkDestination; forced: boolean }
+  | {
+      kind: "sighting";
+      /** What was seen, as the Version's own choice value. */
+      saw: string;
+      /** True when this replaced one a Correction withdrew. */
+      supersedes: boolean;
+    }
   | {
       kind: "move";
       fromPenId: string | null;
@@ -92,6 +100,76 @@ export interface EffectInput {
   now: Date;
 }
 
+
+
+/** Anything the person wrote alongside what they saw: the first `note` slot, if the Version
+ *  declares one. A health walk that says "limping" is more use with "left hind" beside it. */
+const noteIn = (step: Step, evidence: unknown[]): string | null => {
+  const index = step.evidence.findIndex((item) => item.type === "note");
+  const value = index === -1 ? undefined : evidence[index];
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+};
+
+/**
+ * Records what somebody saw of one animal on the round.
+ *
+ * Unlike the litres and the Moves, a Correction here never rewrites the row and never
+ * removes it. It withdraws it and writes the new one beside it, pointing back: what somebody
+ * said they saw is a fact about the round, and it stays true that they said it even after
+ * the farm decides they were looking at the wrong cow. Health and Breeding read these in
+ * later increments, and they will need to know which ones still stand.
+ */
+const applySightingEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This step records what was seen of an animal, and it was not recorded against one",
+    });
+  }
+  const standing = await tx.query.sighting.findFirst({
+    where: { completionId: input.completionId, withdrawnAt: { isNull: true } },
+    columns: { id: true, saw: true, note: true },
+  });
+
+  if (input.skipped) {
+    if (standing) {
+      await tx
+        .update(sighting)
+        .set({ withdrawnAt: input.now })
+        .where(eq(sighting.id, standing.id));
+    }
+    return null;
+  }
+
+  const saw = choiceIn(input.step, input.evidence);
+  const note = noteIn(input.step, input.evidence);
+  if (standing && standing.saw === saw && standing.note === note) {
+    // The same entry again — a phone repeating itself, or a Correction that changed
+    // something else about the Step. Nothing was seen twice.
+    return { kind: "sighting", saw, supersedes: false };
+  }
+  const id = uuidv7(input.now);
+  if (standing) {
+    await tx
+      .update(sighting)
+      .set({ withdrawnAt: input.now, supersededById: id })
+      .where(eq(sighting.id, standing.id));
+  }
+  await tx.insert(sighting).values({
+    id,
+    farmId: input.instance.farmId,
+    animalId: input.animalId,
+    completionId: input.completionId,
+    saw,
+    note,
+    seenBy: input.recordedBy,
+    seenAt: input.recordedAt,
+    recordedAt: input.now,
+  });
+  return { kind: "sighting", saw, supersedes: Boolean(standing) };
+};
 
 /**
  * Walks her to the Pen the Step recorded, and writes the Move that says the Playbook did it.
@@ -240,6 +318,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "move") {
     return await applyMoveEffect(tx, input);
+  }
+  if (effect.kind === "sighting") {
+    return await applySightingEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

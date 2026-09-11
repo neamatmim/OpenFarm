@@ -283,6 +283,16 @@ export const animalsRouter = {
             },
           },
           retags: { orderBy: { retaggedAt: "desc" }, limit: 20 },
+          // What people have seen of her lately, withdrawn ones included: a Sighting that
+          // was corrected is still something somebody said on the round.
+          sightings: {
+            orderBy: { seenAt: "desc" },
+            limit: 20,
+            with: {
+              completion: { columns: { instanceId: true } },
+              seer: { columns: { name: true } },
+            },
+          },
         },
       });
       if (!row) {
@@ -297,6 +307,12 @@ export const animalsRouter = {
           fromPenName: fromPen?.name ?? null,
           toPenName: toPen.name,
           instanceId: completion?.instanceId ?? null,
+        })),
+        sightings: row.sightings.map(({ completion, seer, ...seen }) => ({
+          ...seen,
+          instanceId: completion.instanceId,
+          seenByName: seer?.name ?? null,
+          withdrawn: seen.withdrawnAt !== null,
         })),
         ...lactationView(row, context.clock.now()),
       };

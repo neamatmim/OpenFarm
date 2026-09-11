@@ -205,3 +205,45 @@ export const penAssignment = pgTable(
     uniqueIndex("pen_assignment_user_pen_uidx").on(table.userId, table.penId),
   ]
 );
+
+/**
+ * What somebody saw of one animal on the round: bulling, limping, off her feed. Written by
+ * the Step that recorded it and kept for ever — Health (increment 3) turns one into a
+ * Diagnosis and Breeding (increment 5) turns one into a Service, so a heat seen today has to
+ * still be a heat then.
+ *
+ * A Correction never rewrites one. It supersedes it: the row stays, marked with when it was
+ * withdrawn and what replaced it, because what somebody said they saw is a fact about the
+ * round even after the farm decides they saw something else.
+ */
+export const sighting = pgTable(
+  "sighting",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    /** The Step that recorded it. */
+    completionId: text("completion_id").notNull(),
+    /** What was seen, as the Version's own choice value. */
+    saw: text("saw").notNull(),
+    /** Anything the person wrote alongside it. */
+    note: text("note"),
+    seenBy: text("seen_by").references(() => user.id),
+    seenAt: timestamp("seen_at").notNull(),
+    /** When a Correction withdrew it, and what stands in its place. Nothing is deleted. */
+    withdrawnAt: timestamp("withdrawn_at"),
+    supersededById: text("superseded_by_id"),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("sighting_animal_idx").on(table.animalId, table.seenAt),
+    /** One Sighting standing per Completion: a Correction withdraws the old one first. */
+    uniqueIndex("sighting_completion_uidx")
+      .on(table.completionId)
+      .where(sql`${table.withdrawnAt} is null`),
+  ]
+);

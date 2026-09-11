@@ -1,5 +1,6 @@
 import type {
   Bilingual,
+  Choice,
   Evidence,
   EvidenceType,
   SopContent,
@@ -70,6 +71,26 @@ export const emptyHappening = (): HappeningTrigger => ({
   event: "move",
 });
 
+/** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
+ *  Move, an empty list for the Owner to fill in for a Sighting, a figure for the rest. */
+const fittedEvidence = (
+  kind: StepEffect["kind"],
+  current: Evidence | undefined,
+  pens: { id: string; name: string }[]
+): Evidence => {
+  if (kind === "move") {
+    return {
+      type: "choice",
+      required: true,
+      choices: pens.map((pen) => ({ value: pen.id, label: { bn: pen.name } })),
+    };
+  }
+  if (kind === "sighting") {
+    return { type: "choice", required: true, choices: current?.choices ?? [] };
+  }
+  return { type: "number", required: true, unit: current?.unit };
+};
+
 /**
  * What a Step writes into the farm's records, and the Evidence that implies. A Step that
  * moves an animal asks which Pen, over the Pens the farm actually has; a Step that writes a
@@ -90,7 +111,8 @@ export const withEffect = (
     const { effect: _dropped, ...rest } = step;
     return rest;
   }
-  const wants: EvidenceType = kind === "move" ? "choice" : "number";
+  const wants: EvidenceType =
+    kind === "move" || kind === "sighting" ? "choice" : "number";
   const [first, ...rest] = step.evidence;
   if (first?.type === wants) {
     return {
@@ -99,17 +121,7 @@ export const withEffect = (
       effect: { kind },
     };
   }
-  const fitted: Evidence =
-    kind === "move"
-      ? {
-          type: "choice",
-          required: true,
-          choices: pens.map((pen) => ({
-            value: pen.id,
-            label: { bn: pen.name },
-          })),
-        }
-      : { type: "number", required: true, unit: first?.unit };
+  const fitted: Evidence = fittedEvidence(kind, first, pens);
   return {
     ...step,
     repeatPerAnimal: kind === "bulk_total" ? false : true,
@@ -129,5 +141,18 @@ export const toBilingualList = (value: string): Bilingual[] =>
 
 export const fromBilingualList = (values: Bilingual[]): string =>
   values.map((value) => value.bn).join(", ");
+
+/** What may be chosen, as the Owner types it: a comma-separated list in Bangla. The label is
+ *  the value — a record keeps the words somebody actually chose, and renaming the choice
+ *  later cannot rewrite what last month's round said. */
+export const toChoices = (value: string): Choice[] =>
+  splitList(value).map((bn) => ({ value: bn, label: { bn } }));
+
+export const fromChoices = (choices: Choice[] | undefined): string =>
+  (choices ?? []).map((choice) => choice.label.bn).join(", ");
+
+export const needsChoices = (step: Step): boolean =>
+  step.effect?.kind === "sighting" ||
+  (step.effect === undefined && step.evidence[0]?.type === "choice");
 
 export const needsUnit = (type: EvidenceType): boolean => type === "number";
