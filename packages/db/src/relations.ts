@@ -27,6 +27,31 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  sopDefinition: {
+    versions: r.many.sopVersion({
+      from: r.sopDefinition.id,
+      to: r.sopVersion.definitionId,
+    }),
+    currentVersion: r.one.sopVersion({
+      from: r.sopDefinition.currentVersionId,
+      to: r.sopVersion.id,
+    }),
+  },
+  sopVersion: {
+    definition: r.one.sopDefinition({
+      from: r.sopVersion.definitionId,
+      to: r.sopDefinition.id,
+      optional: false,
+    }),
+  },
+  sopProposal: {
+    definition: r.one.sopDefinition({
+      from: r.sopProposal.definitionId,
+      to: r.sopDefinition.id,
+      optional: false,
+    }),
+    proposer: r.one.user({ from: r.sopProposal.proposedBy, to: r.user.id }),
+  },
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
   },

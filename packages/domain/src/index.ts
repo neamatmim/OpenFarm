@@ -20,3 +20,22 @@ export {
   prefixForOrigin,
 } from "./tag-number";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
+export type { RoleName } from "./roles";
+export { ROLES } from "./roles";
+export type {
+  Bilingual,
+  Choice,
+  Evidence,
+  EvidenceType,
+  SopContent,
+  Step,
+  Trigger,
+  TriggerKind,
+} from "./sop";
+export {
+  EVIDENCE_TYPES,
+  TRIGGER_KINDS,
+  findMissingBangla,
+  findPublishBlockers,
+  findStructuralProblems,
+} from "./sop";

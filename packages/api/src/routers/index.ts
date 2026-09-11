@@ -8,6 +8,7 @@ import { farmRouter } from "./farm";
 import { herdRouter } from "./herd";
 import { languageRouter } from "./language";
 import { peopleRouter } from "./people";
+import { sopsRouter } from "./sops";
 
 export const appRouter = {
   healthCheck: publicProcedure.handler(() => "OK"),
@@ -20,6 +21,7 @@ export const appRouter = {
   herd: herdRouter,
   language: languageRouter,
   people: peopleRouter,
+  sops: sopsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({
     message: "This is private",
     user: context.actor,
