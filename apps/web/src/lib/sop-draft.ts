@@ -1,8 +1,10 @@
 import type {
   Bilingual,
+  Evidence,
   EvidenceType,
   SopContent,
   Step,
+  StepEffect,
   Trigger,
 } from "@OpenFarm/domain";
 
@@ -67,6 +69,54 @@ export const emptyHappening = (): HappeningTrigger => ({
   kind: "event",
   event: "move",
 });
+
+/**
+ * What a Step writes into the farm's records, and the Evidence that implies. A Step that
+ * moves an animal asks which Pen, over the Pens the farm actually has; a Step that writes a
+ * record asks for a figure. Chosen here rather than left to the Owner to get right, because
+ * an effect whose Evidence does not fit it is a Step that cannot be published and does not
+ * say why in the Owner's own words.
+ *
+ * Evidence that already fits is left exactly as authored — the unit, the range, the Pens
+ * somebody has already chosen — because a select that silently throws away a morning's
+ * authoring is worse than one that refuses.
+ */
+export const withEffect = (
+  step: Step,
+  kind: StepEffect["kind"] | "",
+  pens: { id: string; name: string }[]
+): Step => {
+  if (kind === "") {
+    const { effect: _dropped, ...rest } = step;
+    return rest;
+  }
+  const wants: EvidenceType = kind === "move" ? "choice" : "number";
+  const [first, ...rest] = step.evidence;
+  if (first?.type === wants) {
+    return {
+      ...step,
+      repeatPerAnimal: kind === "bulk_total" ? false : true,
+      effect: { kind },
+    };
+  }
+  const fitted: Evidence =
+    kind === "move"
+      ? {
+          type: "choice",
+          required: true,
+          choices: pens.map((pen) => ({
+            value: pen.id,
+            label: { bn: pen.name },
+          })),
+        }
+      : { type: "number", required: true, unit: first?.unit };
+  return {
+    ...step,
+    repeatPerAnimal: kind === "bulk_total" ? false : true,
+    effect: { kind },
+    evidence: [fitted, ...rest],
+  };
+};
 
 export const splitList = (value: string): string[] =>
   value

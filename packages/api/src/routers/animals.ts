@@ -271,7 +271,17 @@ export const animalsRouter = {
             columns: { id: true, name: true },
             with: { shed: { columns: { name: true } } },
           },
-          moves: { orderBy: { movedAt: "desc" }, limit: 20 },
+          moves: {
+            orderBy: { movedAt: "desc" },
+            limit: 20,
+            // Both ends of the journey, and the work that walked her — so her history reads
+            // as one story rather than as a Move nobody can account for.
+            with: {
+              completion: { columns: { instanceId: true } },
+              fromPen: { columns: { name: true } },
+              toPen: { columns: { name: true } },
+            },
+          },
           retags: { orderBy: { retaggedAt: "desc" }, limit: 20 },
         },
       });
@@ -280,7 +290,16 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      return { ...row, ...lactationView(row, context.clock.now()) };
+      return {
+        ...row,
+        moves: row.moves.map(({ completion, fromPen, toPen, ...move }) => ({
+          ...move,
+          fromPenName: fromPen?.name ?? null,
+          toPenName: toPen.name,
+          instanceId: completion?.instanceId ?? null,
+        })),
+        ...lactationView(row, context.clock.now()),
+      };
     }),
 
   /** Registers an Animal and assigns the next Tag Number for the Side it came from. */

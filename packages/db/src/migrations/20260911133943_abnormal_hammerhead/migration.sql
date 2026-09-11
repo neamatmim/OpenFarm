@@ -1,0 +1,2 @@
+ALTER TABLE "animal_move" ADD COLUMN "completion_id" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "animal_move_completion_uidx" ON "animal_move" ("completion_id") WHERE "completion_id" is not null;

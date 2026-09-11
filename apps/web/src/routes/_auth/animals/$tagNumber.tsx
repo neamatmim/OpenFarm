@@ -4,7 +4,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -230,10 +230,23 @@ const AnimalPage = () => {
         <h2 className="font-medium">{t("animals.movesHistory")}</h2>
         <ul className="space-y-1 text-sm">
           {detail.moves.map((m) => (
-            <li key={m.id} className="text-muted-foreground">
+            <li className="text-muted-foreground" key={m.id}>
               {formatDate(new Date(m.movedAt), language, "dateTime")} ·{" "}
-              {t(`animals.side.${m.toSide}`)}
+              {m.fromPenName ? `${m.fromPenName} → ` : ""}
+              {m.toPenName}
               {m.reason ? ` · ${m.reason}` : ""}
+              {m.instanceId ? (
+                <>
+                  {" · "}
+                  <Link
+                    className="underline"
+                    params={{ instanceId: m.instanceId }}
+                    to="/work/$instanceId"
+                  >
+                    {t("animals.moveFromWork")}
+                  </Link>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -1,8 +1,11 @@
 import type { Database } from "@OpenFarm/db";
-import { and, eq, sql } from "@OpenFarm/db/operators";
-import { animal, tagSequence } from "@OpenFarm/db/schema/herd";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq, inArray, sql } from "@OpenFarm/db/operators";
+import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { Side } from "@OpenFarm/domain";
 import {
+  OPEN_INSTANCE_STATES,
   formatTagNumber,
   isExitState,
   prefixForOrigin,
@@ -82,6 +85,96 @@ export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
     throw new ORPCError("NOT_FOUND", { message: "No such pen" });
   }
   return row;
+};
+
+
+/**
+ * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
+ * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
+ *
+ * Open work raised about her follows her. Without that, drying a cow off leaves the checks
+ * raised about her standing in the milking pen: the Staff assigned where she now is never
+ * see them, and the ones assigned where she was are sent to fetch a cow who is not there.
+ */
+export const recordMove = async (
+  tx: Tx,
+  entry: {
+    farmId: string;
+    beast: { id: string; penId: string; side: Side };
+    toPenId: string;
+    reason?: string | null;
+    /** The Step that walked her, when the Playbook was what moved her. */
+    completionId?: string | null;
+    movedBy: string | null;
+    movedAt: Date;
+    /** The client's own id for the Move, so an outbox replay is the same fact rather than a
+     *  second journey. */
+    id?: string;
+    now: Date;
+  }
+): Promise<void> => {
+  await tx
+    .update(animal)
+    .set({ penId: entry.toPenId, updatedAt: entry.now })
+    .where(and(eq(animal.farmId, entry.farmId), eq(animal.id, entry.beast.id)));
+  await tx
+    .insert(animalMove)
+    .values({
+      id: entry.id ?? uuidv7(entry.movedAt),
+      farmId: entry.farmId,
+      animalId: entry.beast.id,
+      fromPenId: entry.beast.penId,
+      toPenId: entry.toPenId,
+      // A Pen belongs to a Shed, not to a Side: crossing to the other Side is its own act,
+      // with its own rules about the State she takes with her.
+      fromSide: entry.beast.side,
+      toSide: entry.beast.side,
+      reason: entry.reason ?? null,
+      completionId: entry.completionId ?? null,
+      movedBy: entry.movedBy,
+      movedAt: entry.movedAt,
+    })
+    .onConflictDoNothing();
+  await moveOpenWorkWith(tx, entry.farmId, entry.beast.id, entry.toPenId);
+};
+
+/** Open work raised about one animal moves with her. */
+export const moveOpenWorkWith = (
+  tx: Tx,
+  farmId: string,
+  animalId: string,
+  penId: string
+) =>
+  tx
+    .update(sopInstance)
+    .set({ penId })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.animalId, animalId),
+        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
+      )
+    );
+
+/**
+ * Has anything moved her since this entry was recorded? A Correction can put her back only
+ * while the farm has learned nothing newer about where she is; once it has, the Correction
+ * is a fact about the past and where she stands is a fact about now.
+ */
+export const movedSince = async (
+  tx: Tx,
+  animalId: string,
+  recordedAt: Date,
+  completionId: string
+): Promise<boolean> => {
+  const later = await tx.query.animalMove.findMany({
+    where: { animalId, movedAt: { gt: recordedAt } },
+    columns: { completionId: true },
+  });
+  // Its own Move is not news. The comparison is made here rather than in the query because
+  // a Move nobody recorded through a Step has no Completion at all, and "not this one" in
+  // SQL quietly means "not null and not this one" — which is every manual Move on the farm.
+  return later.some((move) => move.completionId !== completionId);
 };
 
 export const touchAnimal = (
