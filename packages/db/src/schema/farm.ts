@@ -20,6 +20,16 @@ export const farm = pgTable("farm", {
   milkTolerancePercent: integer("milk_tolerance_percent").notNull().default(5),
   /** How long an Overdue Instance may stay open before the Owner is told as well. */
   escalationMinutes: integer("escalation_minutes").notNull().default(120),
+  /** How long after making an entry each Role may still put it right. The Owner and the Vet
+   *  have no limit; these two do. */
+  staffCorrectionHours: integer("staff_correction_hours").notNull().default(2),
+  managerCorrectionDays: integer("manager_correction_days")
+    .notNull()
+    .default(30),
+  /** How far the Alert sweep has told people about. Everything that went late at or after
+   *  this instant has been said; older work lives on the Overdue list, not in anyone's
+   *  notifications. Null until the first sweep. */
+  alertsSweptFrom: timestamp("alerts_swept_from"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

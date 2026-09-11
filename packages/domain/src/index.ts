@@ -33,6 +33,17 @@ export {
 } from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
 export type { AlertKind } from "./alerts";
+export type {
+  CorrectionRefusal,
+  CorrectionVerdict,
+  CorrectionWindows,
+} from "./corrections";
+export {
+  DEFAULT_CORRECTION_WINDOWS,
+  correctableUntil,
+  describeWindow,
+  mayCorrect,
+} from "./corrections";
 export { ALERT_KINDS } from "./alerts";
 export type { DueWork } from "./work";
 export {

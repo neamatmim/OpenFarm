@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "alerts_swept_from" timestamp;

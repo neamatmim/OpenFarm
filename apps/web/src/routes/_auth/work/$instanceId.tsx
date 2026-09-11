@@ -32,6 +32,7 @@ interface BulkOutcome {
   flagged: boolean;
 }
 interface Completion {
+  id: string;
   stepId: string;
   animalId: string | null;
   status: string;
@@ -84,6 +85,20 @@ const WorkPage = () => {
         // so when it has overruled what was asked for.
         if (effect?.kind === "milk_record" && effect.forced) {
           toast.warning(t("milk.forced"));
+        }
+        setOpenAnimal(null);
+        setOpenStep(null);
+        refresh();
+      },
+      onError,
+    })
+  );
+  const correct = useMutation(
+    orpc.instances.correctStep.mutationOptions({
+      onSuccess: ({ effect, needsReview }) => {
+        setOutcome(effect?.kind === "bulk_total" ? effect : null);
+        if (needsReview) {
+          toast.warning(t("review.corrected_after_sign_off"));
         }
         setOpenAnimal(null);
         setOpenStep(null);
@@ -145,33 +160,54 @@ const WorkPage = () => {
     );
   }
 
+  /** Recording a Step that already has an entry changes a recorded fact, which is a
+   *  Correction: the server wants a reason and checks the Correction Window. */
+  const send = (
+    step: Step,
+    existing: Completion | undefined,
+    payload: RecordPayload,
+    animalTag?: string
+  ) => {
+    if (existing && payload.reason) {
+      // A Correction changes what was recorded; replacing the photo with it is a later
+      // ticket's problem, so the one already attached stays.
+      correct.mutate({
+        completionId: existing.id,
+        destination: payload.destination,
+        evidence: payload.evidence,
+        outOfRange: payload.outOfRange,
+        reason: payload.reason,
+        skipReason: payload.skipReason,
+      });
+      return;
+    }
+    record.mutate({ instanceId, stepId: step.id, animalTag, ...payload });
+  };
+
   if (openAnimal && perAnimalStep) {
+    const existing = doneFor(perAnimalStep.id, openAnimal.id);
     return (
       <EvidenceSheet
-        key={openAnimal.id}
-        step={perAnimalStep}
         animal={openAnimal}
+        correcting={Boolean(existing)}
+        key={openAnimal.id}
         onCancel={() => setOpenAnimal(null)}
         onRecord={(payload) =>
-          record.mutate({
-            instanceId,
-            stepId: perAnimalStep.id,
-            animalTag: openAnimal.tagNumber,
-            ...payload,
-          })
+          send(perAnimalStep, existing, payload, openAnimal.tagNumber)
         }
+        step={perAnimalStep}
       />
     );
   }
 
   if (openStep) {
+    const existing = doneFor(openStep.id);
     return (
       <EvidenceSheet
-        step={openStep}
+        correcting={Boolean(existing)}
         onCancel={() => setOpenStep(null)}
-        onRecord={(payload) =>
-          record.mutate({ instanceId, stepId: openStep.id, ...payload })
-        }
+        onRecord={(payload) => send(openStep, existing, payload)}
+        step={openStep}
       />
     );
   }
@@ -342,6 +378,9 @@ interface RecordPayload {
   outOfRange?: string;
   destination?: MilkDestination;
   photo?: { contentType: "image/jpeg" | "image/png"; data: string };
+  /** Set when the entry already exists: changing a recorded fact is a Correction, and a
+   *  Correction carries a reason. */
+  reason?: string;
 }
 
 /** A camera JPEG is easily 3 MB, which is ~4 MB once base64-encoded — more than the server
@@ -353,11 +392,14 @@ const PHOTO_MAX_BYTES = 1_500_000;
 const EvidenceSheet = ({
   step,
   animal,
+  correcting,
   onCancel,
   onRecord,
 }: {
   step: Step;
   animal?: Animal;
+  /** The entry already exists, so saving it again is a Correction. */
+  correcting: boolean;
   onCancel: () => void;
   onRecord: (payload: RecordPayload) => void;
 }) => {
@@ -368,6 +410,7 @@ const EvidenceSheet = ({
   const [skipping, setSkipping] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [photo, setPhoto] = useState<RecordPayload["photo"]>();
+  const [reason, setReason] = useState("");
   // A cow under Withdrawal has no choice to make. The server decides again when the entry
   // lands — this phone may have been offline since before she was treated.
   const locked = Boolean(animal?.underMilkWithdrawal);
@@ -427,6 +470,7 @@ const EvidenceSheet = ({
       outOfRange: outside ?? undefined,
       destination: recordsMilk ? destination : undefined,
       photo,
+      reason: correcting ? reason.trim() : undefined,
     });
   };
 
@@ -434,14 +478,20 @@ const EvidenceSheet = ({
     return (
       <div className="mx-auto mt-8 w-full max-w-sm space-y-3 p-4">
         <p className="text-lg">{t("work.skipWhy")}</p>
-        {step.skipReasons.map((reason) => (
+        {step.skipReasons.map((skip) => (
           <Button
-            key={reason.bn}
-            variant="outline"
             className="h-14 w-full text-lg"
-            onClick={() => onRecord({ evidence: [], skipReason: reason.bn })}
+            key={skip.bn}
+            onClick={() =>
+              onRecord({
+                evidence: [],
+                skipReason: skip.bn,
+                reason: correcting ? reason.trim() || skip.bn : undefined,
+              })
+            }
+            variant="outline"
           >
-            {reason.bn}
+            {skip.bn}
           </Button>
         ))}
         <Button
@@ -495,6 +545,17 @@ const EvidenceSheet = ({
         />
       ) : null}
 
+      {correcting ? (
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-sm">{t("correct.why")}</p>
+          <Input
+            aria-label={t("correct.why")}
+            onChange={(event) => setReason(event.target.value)}
+            value={reason}
+          />
+        </div>
+      ) : null}
+
       {warning ? (
         <div className="space-y-2 rounded-xl border-2 border-amber-500 p-3">
           <p className="flex items-center gap-2 text-amber-300">
@@ -521,10 +582,10 @@ const EvidenceSheet = ({
         ) : null}
         <Button
           className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
-          disabled={!ready}
+          disabled={!(ready && (!correcting || reason.trim()))}
           onClick={() => submit(false)}
         >
-          {t("work.confirm")}
+          {correcting ? t("correct.save") : t("work.confirm")}
         </Button>
       </div>
     </div>

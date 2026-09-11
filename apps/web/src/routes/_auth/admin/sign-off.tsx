@@ -7,6 +7,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { NeedsReview } from "@/components/needs-review";
 import { useLanguage } from "@/i18n/language-provider";
 import { hoursLate } from "@/lib/lateness";
 import { orpc } from "@/utils/orpc";
@@ -108,6 +109,8 @@ const SignOffPage = () => {
           <p className="text-muted-foreground text-sm">{t("signOff.none")}</p>
         )}
       </section>
+
+      <NeedsReview />
 
       <section className="space-y-3">
         <h2 className="text-xl font-bold">{t("work.overdueTitle")}</h2>

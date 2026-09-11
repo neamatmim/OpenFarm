@@ -131,6 +131,13 @@ export const relations = defineRelations(schema, (r) => ({
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
   },
+  needsReview: {
+    raisedBy: r.one.auditEvent({
+      from: r.needsReview.auditEventId,
+      to: r.auditEvent.id,
+      optional: false,
+    }),
+  },
   user: {
     roles: r.many.roleAssignment({
       from: r.user.id,

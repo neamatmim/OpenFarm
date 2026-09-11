@@ -281,6 +281,19 @@ export const en = {
   "signOff.doneBy": "Done by {name}",
   "signOff.missed": "Close as missed",
   "signOff.missedWhy": "Why was it not done?",
+  "correct.title": "Put right",
+  "correct.why": "Why is it being changed?",
+  "correct.save": "Save correction",
+  "correct.window": "Only {role} can change this now",
+  "review.title": "Needs a look",
+  "review.none": "Nothing waiting",
+  "review.resolve": "Close this",
+  "review.resolution": "What did you decide?",
+  "review.corrected_after_sign_off":
+    "An entry was corrected after it was signed off",
+  "review.irreversible_effect":
+    "A correction changed something that cannot be undone",
+  "alerts.needsReview": "{sop} in {pen} needs a look",
   "common.notFound": "Not found",
 } as const;
 

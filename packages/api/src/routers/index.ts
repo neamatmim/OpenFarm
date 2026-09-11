@@ -11,6 +11,7 @@ import { instancesRouter } from "./instances";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
 import { peopleRouter } from "./people";
+import { reviewRouter } from "./review";
 import { sopsRouter } from "./sops";
 
 export const appRouter = {
@@ -27,6 +28,7 @@ export const appRouter = {
   language: languageRouter,
   milk: milkRouter,
   people: peopleRouter,
+  review: reviewRouter,
   sops: sopsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({
     message: "This is private",

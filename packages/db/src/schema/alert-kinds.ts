@@ -5,5 +5,6 @@ export const ALERT_KINDS = [
   "instance_overdue",
   "instance_escalated",
   "instance_sent_back",
+  "needs_review",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

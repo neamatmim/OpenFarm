@@ -22,6 +22,15 @@ const parameters = z
       .min(0)
       .max(24 * 60)
       .optional(),
+    /** How long after making an entry Staff may still put it right. */
+    staffCorrectionHours: z
+      .number()
+      .int()
+      .min(0)
+      .max(24 * 7)
+      .optional(),
+    /** How long after an entry was made the Manager may still put it right. */
+    managerCorrectionDays: z.number().int().min(0).max(365).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -93,6 +102,12 @@ export const farmRouter = {
       if (input.escalationMinutes !== undefined) {
         changes.escalationMinutes = input.escalationMinutes;
       }
+      if (input.staffCorrectionHours !== undefined) {
+        changes.staffCorrectionHours = input.staffCorrectionHours;
+      }
+      if (input.managerCorrectionDays !== undefined) {
+        changes.managerCorrectionDays = input.managerCorrectionDays;
+      }
       await audited(context).write(
         {
           entity: "farm",
@@ -104,6 +119,8 @@ export const farmRouter = {
               columns: {
                 milkTolerancePercent: true,
                 escalationMinutes: true,
+                staffCorrectionHours: true,
+                managerCorrectionDays: true,
               },
             })) ?? null,
           after: changes,

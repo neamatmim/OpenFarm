@@ -514,11 +514,42 @@ describe("review findings", () => {
     expect(kept.completedAt).toBeNull();
   });
 
+  it("picks up where the last sweep left off, rather than from the top", async () => {
+    const early = await workFor("2026-11-18", "23:05:00.000Z");
+    const manager = await as("manager", early.clock);
+    early.clock.set(after("2026-11-18", 45));
+    await sweepUntilQuiet(manager);
+    expect(
+      alertFor(
+        await manager.alerts.mine({ entityId: early.instance.id }),
+        early.instance.id,
+        "instance_overdue"
+      )
+    ).toBeDefined();
+
+    // Nobody opens the app for three days. Another day's work falls due and goes late in
+    // the silence; the next sweep must reach it, not start from today.
+    const later = await workFor("2026-11-21", "23:05:00.000Z");
+    later.clock.set(after("2026-11-21", 45));
+    const backAgain = await as("manager", later.clock);
+    await sweepUntilQuiet(backAgain);
+
+    expect(
+      alertFor(
+        await backAgain.alerts.mine({ entityId: later.instance.id }),
+        later.instance.id,
+        "instance_overdue"
+      )
+    ).toBeDefined();
+  });
+
   it("still says something about work that went late while the farm was quiet", async () => {
-    const { instance, clock } = await workFor("2026-11-17", "23:05:00.000Z");
+    // Later than the sweep above: the watermark only ever moves forward, as a farm's own
+    // clock does, so a test that rewound it would be testing something no farm can do.
+    const { instance, clock } = await workFor("2026-11-22", "23:05:00.000Z");
 
     // Nobody opens the app for a fortnight. The work is still open, and still unsaid.
-    clock.set(after("2026-11-17", 14 * 24 * 60));
+    clock.set(after("2026-11-22", 14 * 24 * 60));
     const manager = await as("manager", clock);
     await sweepUntilQuiet(manager);
 

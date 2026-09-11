@@ -6,13 +6,20 @@ import {
   sopInstance,
   stepCompletion,
 } from "@OpenFarm/db/schema/instance";
-import type { SopContent, Step } from "@OpenFarm/domain";
+import type {
+  SopContent,
+  Step,
+  CorrectionRefusal,
+  CorrectionWindows,
+} from "@OpenFarm/domain";
 import {
   AWAITING_SIGN_OFF,
   MILK_DESTINATIONS,
+  describeWindow,
   isEscalated,
   isOpen,
   isOverdue,
+  mayCorrect,
   minutesOverdue,
   underMilkWithdrawal,
 } from "@OpenFarm/domain";
@@ -34,6 +41,8 @@ import {
   isOnTheFarm,
   raiseDueInstances,
 } from "../instances-store";
+import { raiseNeedsReview } from "../review-store";
+import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
 
 const PHOTO_MAX_BYTES = 2_000_000;
@@ -265,6 +274,66 @@ const loadCheckableInstance = async (
     });
   }
   return instance;
+};
+
+/** The Correction Windows as this Farm has them set. */
+const correctionWindows = (farm: {
+  staffCorrectionHours: number;
+  managerCorrectionDays: number;
+}): CorrectionWindows => ({
+  staffHours: farm.staffCorrectionHours,
+  managerDays: farm.managerCorrectionDays,
+});
+
+/** Why the Correction was refused, in terms the person can act on: which window ran out,
+ *  and how long it was. */
+const refusalMessage = (refusal: CorrectionRefusal): string => {
+  const window = describeWindow(refusal.windowHours);
+  const span =
+    "days" in window ? `${window.days} days` : `${window.hours} hours`;
+  return refusal.ownEntriesOnly
+    ? `A ${refusal.role} may correct their own entries for ${span} after making them`
+    : `A ${refusal.role} may correct an entry for ${span} after it was made`;
+};
+
+/** The Completion as the trail records it, so a Correction's before and after are the whole
+ *  entry rather than the fields that happened to change. */
+const readCompletion = async (tx: Tx, id: string) => {
+  const row = await tx.query.stepCompletion.findFirst({
+    where: { id },
+    columns: {
+      stepId: true,
+      animalId: true,
+      status: true,
+      skipReason: true,
+      evidence: true,
+      outOfRange: true,
+      destination: true,
+    },
+  });
+  return row ? { ...row } : null;
+};
+
+/** An Instance with the Pen names an Alert's message needs. */
+const withPen = async (
+  tx: Tx,
+  farmId: string,
+  instance: { id: string; dueAt: Date; version: { content: unknown } }
+) => {
+  const pen = await tx.query.sopInstance.findFirst({
+    where: { id: instance.id, farmId },
+    columns: {},
+    with: {
+      pen: {
+        columns: { name: true },
+        with: { shed: { columns: { name: true } } },
+      },
+    },
+  });
+  return {
+    ...instance,
+    pen: pen?.pen ?? { name: "", shed: { name: "" } },
+  };
 };
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
@@ -544,15 +613,19 @@ export const instancesRouter = {
       // Held aside as well as returned, because the Audit Event's `after` snapshot is read
       // after `apply` has run and cannot see what it returned.
       let effect: EffectResult = null;
+      let savedId = completionId;
       const applied = await audited(context).write(
         {
-          entity: "sop_instance",
-          entityId: input.instanceId,
+          // The Completion is its own thing in the trail, so a Correction has something
+          // precise to supersede and an entry's history reads back on its own.
+          entity: "step_completion",
+          entityId: () => savedId,
           action: "update",
           // Read after the write, so the trail records what the effect actually decided —
           // a Destination forced to Discard reads as Discard, not as what was asked for.
           after: () =>
             Promise.resolve({
+              instanceId: input.instanceId,
               stepId: input.stepId,
               animalTag: input.animalTag ?? null,
               effect,
@@ -622,6 +695,9 @@ export const instancesRouter = {
               message: "That entry could not be saved",
             });
           }
+          // The upsert keeps the existing row on a correction, so this is the id the trail
+          // and the effects must both use.
+          savedId = saved.id;
           // The Step's effect writes the farm's record — the litres, the tank reading — in
           // this same transaction, keyed on the Completion so a replay cannot double-count.
           effect = await runStepEffect(tx, {
@@ -833,6 +909,162 @@ export const instancesRouter = {
         }
       );
       return { id: input.id, state: "missed" } as const;
+    }),
+
+  /**
+   * Puts a recorded entry right. Unlike recording the Step again — which is what the person
+   * doing the work does while they are still doing it — a Correction carries a reason, is
+   * bounded by the Role's Correction Window, and supersedes the entry it replaces in the
+   * trail rather than quietly overwriting it. The Completion still holds the current truth;
+   * every version it has ever held is in its history.
+   *
+   * The Step's effects run again, keyed on the same Completion, so a corrected litres figure
+   * replaces its Milk Record and the Session's reconciliation is worked out afresh.
+   */
+  correctStep: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .input(
+      z.object({
+        completionId: z.string(),
+        evidence: z.array(evidenceValue).default([]),
+        destination: z.enum(MILK_DESTINATIONS).optional(),
+        outOfRange: z.string().trim().max(120).optional(),
+        skipReason: z.string().trim().max(120).optional(),
+        reason: reasonInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const existing = await context.db.query.stepCompletion.findFirst({
+        where: { id: input.completionId, farmId: context.farm.id },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND");
+      }
+      const verdict = mayCorrect({
+        roles: context.roles,
+        isOwnEntry: existing.recordedBy === context.actor.id,
+        // The farm's clock, not the phone's: a Correction Window measured on a device's own
+        // time would be a window the device could widen.
+        recordedAt: existing.receivedAt,
+        now,
+        windows: correctionWindows(context.farm),
+      });
+      if (!verdict.allowed) {
+        throw new ORPCError("FORBIDDEN", {
+          message: refusalMessage(verdict.refusal),
+          data: { refusal: verdict.refusal },
+        });
+      }
+      const audit = audited(context);
+      const previous = await audit.latestEventFor(
+        context.db,
+        "step_completion",
+        existing.id
+      );
+      const photo = await context.db.query.completionPhoto.findFirst({
+        where: { completionId: existing.id },
+        columns: { completionId: true },
+      });
+      let effect: EffectResult = null;
+      let flagged = false;
+      await audit.write(
+        {
+          entity: "step_completion",
+          entityId: existing.id,
+          action: "correct",
+          reason: input.reason,
+          // The entry this one replaces, so the trail reads as a chain rather than as a
+          // pile of edits.
+          supersedesId: previous?.id,
+          before: (tx) => readCompletion(tx, existing.id),
+          after: (tx) => readCompletion(tx, existing.id),
+        },
+        async (tx, eventId) => {
+          const instance = await tx.query.sopInstance.findFirst({
+            where: { id: existing.instanceId, farmId: context.farm.id },
+            with: { version: { columns: { content: true } } },
+          });
+          if (!instance) {
+            throw new ORPCError("NOT_FOUND");
+          }
+          const content = contentOf(instance.version);
+          const step = stepOf(content, existing.stepId);
+          const skipping = Boolean(input.skipReason);
+          assertEvidenceComplete(
+            step,
+            input.evidence,
+            skipping,
+            Boolean(photo)
+          );
+          await tx
+            .update(stepCompletion)
+            .set({
+              status: skipping ? "skipped" : "done",
+              skipReason: input.skipReason ?? null,
+              evidence: input.evidence,
+              outOfRange: input.outOfRange ?? null,
+              destination: input.destination ?? null,
+            })
+            .where(eq(stepCompletion.id, existing.id));
+          // Keyed on the same Completion, so the record it wrote is replaced rather than
+          // added to, and the Session's reconciliation is worked out afresh.
+          effect = await runStepEffect(tx, {
+            step,
+            instance: {
+              id: instance.id,
+              farmId: context.farm.id,
+              penId: instance.penId,
+              dueAt: instance.dueAt,
+            },
+            completionId: existing.id,
+            animalId: existing.animalId,
+            evidence: input.evidence,
+            destination: input.destination,
+            skipped: skipping,
+            tolerancePercent: context.farm.milkTolerancePercent,
+            recordedBy: existing.recordedBy,
+            recordedAt: existing.recordedAt,
+            now,
+          });
+          // A checker has already signed this work off, on the figures as they were. The
+          // system cannot unsign it, so it says so and the Manager decides — in the same
+          // transaction as the Correction, because a Correction whose flag went missing is
+          // worse than no Correction at all.
+          if (instance.state === "approved") {
+            flagged = true;
+            await raiseNeedsReview(
+              tx,
+              context.farm.id,
+              {
+                entity: "step_completion",
+                entityId: existing.id,
+                reason: "corrected_after_sign_off",
+                auditEventId: eventId,
+                params: {
+                  ...alertParams(await withPen(tx, context.farm.id, instance)),
+                  stepId: existing.stepId,
+                },
+              },
+              now
+            );
+          }
+        }
+      );
+      // Typed explicitly: both are assigned inside the transaction callback, which the
+      // compiler cannot see, so they would otherwise be inferred as their initial values.
+      const outcome: {
+        completionId: string;
+        roleUsed: RoleName;
+        effect: EffectResult;
+        needsReview: boolean;
+      } = {
+        completionId: existing.id,
+        roleUsed: verdict.role,
+        effect,
+        needsReview: flagged,
+      };
+      return outcome;
     }),
 
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal

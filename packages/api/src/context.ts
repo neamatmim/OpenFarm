@@ -56,6 +56,9 @@ export interface Context {
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     escalationMinutes: number;
+    staffCorrectionHours: number;
+    managerCorrectionDays: number;
+    alertsSweptFrom: Date | null;
   } | null;
   person: Person | null;
   /** Roles the signed-in person holds on the Farm; empty when signed out or disabled. */

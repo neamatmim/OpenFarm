@@ -17,7 +17,10 @@ type Snapshot = SnapshotValue | SnapshotReader;
 
 export interface AuditedWrite {
   entity: string;
-  entityId: string;
+  /** The row the event is about. A function when the id is only known once `apply` has run
+   *  — an upsert keeps the existing row's id, and an event keyed on the id we hoped for
+   *  would point at nothing. */
+  entityId: string | (() => string);
   action: AuditAction;
   /** Read before `apply` runs. */
   before?: Snapshot;
@@ -56,9 +59,12 @@ export const audited = (
   const actorId = context.actor?.id ?? null;
   const { roleUsed } = context;
 
+  /** `apply` is handed the id the Audit Event will be written under, so a write that has to
+   *  point at its own trail entry — a Correction raising a Needs Review — can do it in the
+   *  same transaction rather than hoping a second one succeeds. */
   const write = <T>(
     event: AuditedWrite,
-    apply: (tx: Tx) => Promise<T>
+    apply: (tx: Tx, eventId: string) => Promise<T>
   ): Promise<T> => {
     if (event.action === "correct" && !event.reason?.trim()) {
       throw new ORPCError("BAD_REQUEST", {
@@ -66,15 +72,19 @@ export const audited = (
       });
     }
     const receivedAt = context.clock.now();
+    const eventId = uuidv7(receivedAt);
     return context.db.transaction(async (tx) => {
       const before = await resolve(tx, event.before);
-      const result = await apply(tx);
+      const result = await apply(tx, eventId);
       const after = await resolve(tx, event.after);
       await tx.insert(auditEvent).values({
-        id: uuidv7(receivedAt),
+        id: eventId,
         farmId,
         entity: event.entity,
-        entityId: event.entityId,
+        entityId:
+          typeof event.entityId === "function"
+            ? event.entityId()
+            : event.entityId,
         action: event.action,
         actorId,
         roleUsed,

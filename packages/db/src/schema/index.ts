@@ -8,4 +8,5 @@ export * from "./herd";
 export * from "./instance";
 export * from "./milk";
 export * from "./milk-destinations";
+export * from "./review";
 export * from "./sop";

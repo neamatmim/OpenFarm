@@ -1,5 +1,6 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -32,6 +33,8 @@ export const alertsRouter = {
       const pending = await findPendingNotices(context.db, context.farm, now);
       // A sweep with nothing to say is not an event, and opens no transaction: everyone
       // calls this on opening the app, and in steady state there is nothing new to say.
+      // The watermark stays where it is — a window with nothing in it costs nothing to
+      // look at again.
       if (pending.overdue.length + pending.escalated.length === 0) {
         return { overdue: 0, escalated: 0 };
       }
@@ -49,7 +52,21 @@ export const alertsRouter = {
               escalated: pending.escalated.map((row) => row.id),
             }),
         },
-        (tx) => raiseLateAlerts(tx, context.farm.id, pending, now)
+        async (tx) => {
+          const raised = await raiseLateAlerts(
+            tx,
+            context.farm.id,
+            pending,
+            now
+          );
+          // Remembered inside the same transaction as the notices: a watermark that moved
+          // on without them would step over work nobody was ever told about.
+          await tx
+            .update(farm)
+            .set({ alertsSweptFrom: pending.sweptFrom })
+            .where(eq(farm.id, context.farm.id));
+          return raised;
+        }
       );
     }),
 

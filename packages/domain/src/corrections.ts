@@ -1,7 +1,7 @@
 import type { RoleName } from "./roles";
 
 const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
+const HOURS_PER_DAY = 24;
 
 /**
  * How long after an entry each Role may still put it right. Farm Parameters, because the
@@ -45,7 +45,7 @@ const windowHoursFor = (
     return null;
   }
   if (role === "manager") {
-    return windows.managerDays * 24;
+    return windows.managerDays * HOURS_PER_DAY;
   }
   return windows.staffHours;
 };
@@ -125,8 +125,6 @@ export const correctableUntil = (
 export const describeWindow = (
   windowHours: number
 ): { days: number } | { hours: number } =>
-  windowHours >= 24 && windowHours % 24 === 0
-    ? { days: windowHours / 24 }
+  windowHours >= HOURS_PER_DAY && windowHours % HOURS_PER_DAY === 0
+    ? { days: windowHours / HOURS_PER_DAY }
     : { hours: windowHours };
-
-export const DAY_IN_MS = DAY_MS;

@@ -64,6 +64,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Sign-off**: The checker's review of a completed SOP Instance: approve, or send back with a reason. _Avoid_: Approval (one outcome of Sign-off), verification
 
+**Correction Window**: How long after making an entry a Role may still put it right — a Farm Parameter per Role. Staff their own for two hours, the Manager anyone's for thirty days, the Owner and the Vet without limit. _Avoid_: Edit window, grace (which is the SOP's word), deadline
+
+**Needs Review**: Something the system could not put right on its own, waiting for a person to look at it: a Correction to work already signed off, or one whose effects cannot be walked back. Raised by the system, closed by a person with their judgement recorded. _Avoid_: Flag, issue, exception
+
 **Grace**: The minutes after an Instance's due time before it counts as Overdue. Set per SOP. _Avoid_: Buffer, slack, tolerance (which is milk's word)
 
 **Overdue** / **Missed**: An Instance past its due time and Grace is Overdue and the Manager is alerted. It becomes Missed only when the Manager closes it with a reason. Nothing disappears on its own. _Avoid_: Expired, skipped, failed
