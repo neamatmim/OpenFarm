@@ -97,3 +97,57 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fromCacheFirst(request));
   }
 });
+
+/**
+ * A notice from the farm, shown while the app is closed. The body is already written in the
+ * reader's own language — the farm knows who it is speaking to, and the browser does not.
+ */
+self.addEventListener("push", (event) => {
+  if (!event.data) {
+    return;
+  }
+  let notice;
+  try {
+    notice = event.data.json();
+  } catch {
+    return;
+  }
+  event.waitUntil(
+    self.registration.showNotification(notice.title ?? "OpenFarm", {
+      body: notice.body ?? "",
+      // One notice per thing: a phone in a pocket all morning should show what is waiting,
+      // not a history of being told.
+      tag: notice.tag,
+      renotify: Boolean(notice.tag),
+      data: { url: notice.url ?? "/today" },
+      icon: "/icon.svg",
+      badge: "/icon.svg",
+      lang: notice.lang ?? "bn",
+    })
+  );
+});
+
+/** A tap goes to the work it is about — reusing the window that is already open, because a
+ *  phone with six copies of the app open is a phone nobody can work from. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/today";
+  event.waitUntil(
+    (async () => {
+      const open = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of open) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) {
+            await client.navigate(url);
+          }
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
+  );
+});

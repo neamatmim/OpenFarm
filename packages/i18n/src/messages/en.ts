@@ -230,6 +230,7 @@ export const en = {
   "sop.cannotPublish": "This cannot be published yet",
   "common.cancel": "Cancel",
   "nav.signOff": "To check",
+  "nav.settings": "Settings",
   "nav.today": "Today",
   "work.title": "Today's work",
   "work.none": "Nothing due right now",
@@ -317,6 +318,18 @@ export const en = {
   "outbox.discard": "Done with this",
   "outbox.entered": "What was entered",
   "outbox.open": "See them",
+  "push.overdueTitle": "Work is late",
+  "push.escalatedTitle": "Still not done",
+  "push.sentBackTitle": "Sent back to you",
+  "push.needsReviewTitle": "Needs a look",
+  "push.enable": "Tell me on this device",
+  "push.enabled": "This device will be told",
+  "push.blocked": "This device has notifications turned off",
+  "push.unavailable": "This device cannot be told",
+  "push.stop": "Stop telling this device",
+  "push.title": "Being told",
+  "push.why":
+    "Late work and escalations reach you here, even when the app is closed.",
   "common.notFound": "Not found",
 } as const;
 

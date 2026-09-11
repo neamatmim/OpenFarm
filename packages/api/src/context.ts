@@ -15,6 +15,9 @@ import {
   SWITCH_TOKEN_HEADER,
   resolveDeviceSession,
 } from "./device";
+import type { PushTransport } from "./push";
+import { silentTransport } from "./push";
+import { webPush } from "./push-web";
 
 export type Session = typeof auth.$Infer.Session;
 
@@ -68,7 +71,17 @@ export interface Context {
   penIds: string[];
   /** Set by requireRole: the Role this request acts under. Null for role-free procedures. */
   roleUsed: RoleName | null;
+  /** How a notice leaves the farm. Injected so the tests can watch it and development can
+   *  run silent (ticket 14). */
+  push: PushTransport;
 }
+
+let productionPush: PushTransport | undefined;
+/** Made once: setting the farm's keys is a one-time act, not a per-request one. */
+const defaultPush = (): PushTransport => {
+  productionPush ??= webPush();
+  return productionPush;
+};
 
 let productionDb: Database | undefined;
 const defaultDb = (): Database => {
@@ -150,18 +163,21 @@ export const buildContext = async ({
   deviceStatus = device ? "ok" : "none",
   clock,
   db,
+  push = silentTransport,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
   deviceStatus?: DeviceStatus;
   clock: Clock;
   db: Database;
+  push?: PushTransport;
 }): Promise<Context> => {
   const base = {
     auth: null,
     session,
     clock,
     db,
+    push,
     roleUsed: null,
     deviceStatus,
   } as const;
@@ -220,10 +236,12 @@ export const createContext = async ({
   req,
   clock = systemClock,
   db = defaultDb(),
+  push = defaultPush(),
 }: {
   req: Request;
   clock?: Clock;
   db?: Database;
+  push?: PushTransport;
 }): Promise<Context> => {
   const token = req.headers.get(DEVICE_TOKEN_HEADER);
   if (token) {
@@ -238,11 +256,13 @@ export const createContext = async ({
       device: resolved?.device ?? null,
       clock,
       db,
+      push,
     });
   }
   return buildContext({
     session: await auth.api.getSession({ headers: req.headers }),
     clock,
     db,
+    push,
   });
 };

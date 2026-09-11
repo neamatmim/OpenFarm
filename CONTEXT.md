@@ -214,6 +214,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Digest**: The batched notification sent at 06:00 and 18:00 carrying everything that is not an Alert. _Avoid_: Summary, newsletter, report
 
+**Push**: An Alert delivered to an installed app on a device that agreed to be told, so it arrives with the app closed. The in-app Alert is the record; Push is the tap on the shoulder, and may fail without anything being lost. _Avoid_: Notification (the general word), alert (the thing being delivered), message
+
 **Escalation**: The single extra rung: an overdue instance still open after the escalation window (default 2 hours) also notifies the Owner. _Avoid_: Chain, tiering
 
 ## Devices & onboarding

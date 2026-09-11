@@ -14,11 +14,15 @@ import { createRouterClient } from "@orpc/server";
 
 import type { Context } from "../context";
 import { buildContext } from "../context";
+import type { PushTransport } from "../push";
 
 interface Options {
   /** Which Role calls the API; `null` for an unauthenticated caller. */
   as: Principal | null;
   clock?: FakeClock;
+  /** Where a push goes. Omitted, nothing leaves the farm — which is what development does
+   *  too, and what the in-app Alert exists to make harmless. */
+  push?: PushTransport;
   /** Call as this Role PIN-switched in on a Shed Phone, rather than from their own phone. */
   onShedPhone?: boolean;
   /** An enrolled phone with nobody PIN-switched in yet. */
@@ -40,7 +44,13 @@ const deviceStatusOf = (
  *  no HTTP, no UI, real scratch database. */
 export const createTestClient = async <T extends Router<Context>>(
   router: T,
-  { as, clock = new FakeClock(), onShedPhone = false, locked = false }: Options
+  {
+    as,
+    clock = new FakeClock(),
+    onShedPhone = false,
+    locked = false,
+    push,
+  }: Options
 ): Promise<{ client: RouterClient<T>; clock: FakeClock; context: Context }> => {
   const principal =
     as === null ? null : await createTestPrincipal(as, clock.now());
@@ -57,6 +67,7 @@ export const createTestClient = async <T extends Router<Context>>(
     deviceStatus: deviceStatusOf(device, locked),
     clock,
     db: scratchDb(),
+    push,
   });
   // `T extends Router<Context>` guarantees the router's initial context is `Context`;
   // TypeScript cannot reduce the inferred type for an unresolved `T`, hence the cast.

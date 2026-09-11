@@ -10,6 +10,12 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
+    /** The farm's own push keys. Absent in development and in tests, where nothing is sent
+     *  and the in-app Alert is the whole of it. */
+    VAPID_PUBLIC_KEY: z.string().optional(),
+    VAPID_PRIVATE_KEY: z.string().optional(),
+    /** Who the push service should complain to. */
+    VAPID_SUBJECT: z.string().optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
