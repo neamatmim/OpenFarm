@@ -16,6 +16,7 @@ import { farm } from "./farm";
 export const SYNC_KINDS = [
   "instance_claim",
   "step_completion",
+  "completion_photo",
   "instance_complete",
   "animal_move",
   "observation",

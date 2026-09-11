@@ -9,6 +9,7 @@ import {
   applyComplete,
   applyCompletion,
   applyMove,
+  applyPhoto,
   isLate,
 } from "./completion-store";
 import { raiseNeedsReview } from "./review-store";
@@ -66,13 +67,27 @@ const applyEntry = async (
         destination: entry.destination,
         outOfRange: entry.outOfRange,
         skipReason: entry.skipReason,
-        photo: entry.photo,
+        photoSlots: entry.photoSlots,
         recordedAt: entry.recordedAt,
       },
       receivedAt,
       entry.id
     );
     return { entity: "step_completion", entityId: recorded.completionId };
+  }
+  if (entry.kind === "completion_photo") {
+    await applyPhoto(
+      tx,
+      context,
+      {
+        completionId: entry.completionId,
+        slot: entry.slot,
+        contentType: entry.contentType,
+        data: entry.data,
+      },
+      receivedAt
+    );
+    return { entity: "step_completion", entityId: entry.completionId };
   }
   if (entry.kind === "animal_move") {
     const moved = await applyMove(tx, context, entry, receivedAt, entry.id);
@@ -90,15 +105,12 @@ const applyEntry = async (
  *  is a row of its own where the entry was taken, and a megabyte of base64 in an Audit Event
  *  would make the trail unreadable to the people who most need to read it. */
 const entryAfter = (entry: Entry): Record<string, unknown> => {
-  const photo = entry.kind === "step_completion" ? entry.photo : undefined;
-  const rest = { ...entry, photo: undefined };
-  return {
-    ...rest,
-    recordedAt: entry.recordedAt.toISOString(),
-    // The image itself is a row of its own where the entry was taken; a megabyte of base64
-    // in an Audit Event would make the trail unreadable to the people who most need it.
-    photo: photo ? photo.contentType : undefined,
-  };
+  // The image itself never goes in the trail: a megabyte of base64 in an Audit Event would
+  // make it unreadable to the people who most need to read it. What it was, and which slot
+  // it answered, is the part worth keeping.
+  const rest =
+    entry.kind === "completion_photo" ? { ...entry, data: undefined } : entry;
+  return { ...rest, recordedAt: entry.recordedAt.toISOString() };
 };
 
 /** Records that the entry was read, holding what the phone sent whenever the farm could not

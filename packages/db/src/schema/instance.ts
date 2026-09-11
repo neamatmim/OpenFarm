@@ -3,6 +3,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -126,15 +127,31 @@ export const stepCompletion = pgTable(
   ]
 );
 
-/** A photo taken as Evidence for a Step. */
-export const completionPhoto = pgTable("completion_photo", {
-  completionId: text("completion_id")
-    .primaryKey()
-    .references(() => stepCompletion.id, { onDelete: "cascade" }),
-  farmId: text("farm_id")
-    .notNull()
-    .references(() => farm.id, { onDelete: "cascade" }),
-  contentType: text("content_type").notNull(),
-  data: text("data").notNull(),
-  createdAt: timestamp("created_at").notNull(),
-});
+/**
+ * A photo taken as Evidence for a Step, against the slot of the Version that asked for it.
+ * One Step may ask for more than one — the udder and the tag, say — and a photo that could
+ * not say which it answered would be a photo nobody can read back.
+ *
+ * Its own row, and its own entry when it arrives from a phone (ADR 0002): a megabyte of
+ * image should not be able to hold up a morning's litres.
+ */
+export const completionPhoto = pgTable(
+  "completion_photo",
+  {
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+    /** Which Evidence of the Step this answers, by its place in the Version. */
+    slot: integer("slot").notNull().default(0),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    data: text("data").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.completionId, table.slot] }),
+    index("completion_photo_idx").on(table.completionId),
+  ]
+);

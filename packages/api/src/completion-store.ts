@@ -42,10 +42,15 @@ export interface CompletionEntry {
   destination?: MilkDestination;
   outOfRange?: string;
   skipReason?: string;
-  photo?: {
+  photos?: {
+    slot: number;
     contentType: "image/jpeg" | "image/png" | "image/webp";
     data: string;
-  };
+  }[];
+  /** The Evidence slots this entry has photos for, when they travel separately — a phone's
+   *  outbox sends the figures and the images as their own entries, so a megabyte of image
+   *  cannot hold up a morning's litres (ADR 0002). */
+  photoSlots?: number[];
   /** The phone's clock, for work captured offline. */
   recordedAt?: Date;
 }
@@ -173,7 +178,9 @@ export const assertEvidenceComplete = (
   step: Step,
   evidence: unknown[],
   skipping: boolean,
-  hasPhoto: boolean
+  /** Whether a photo answers that slot. A Step may ask for more than one, and a photo that
+   *  could not say which it answered would be a photo nobody can read back. */
+  hasPhotoAt: (slot: number) => boolean
 ): void => {
   if (skipping) {
     if (!step.repeatPerAnimal) {
@@ -190,7 +197,7 @@ export const assertEvidenceComplete = (
         return false;
       }
       if (item.type === "photo") {
-        return !hasPhoto;
+        return !hasPhotoAt(index);
       }
       const value = evidence[index];
       return value === undefined || value === null || value === "";
@@ -220,6 +227,89 @@ const sameEntry = (
   existing.skipReason === (input.skipReason ?? null) &&
   existing.destination === (input.destination ?? null) &&
   JSON.stringify(existing.evidence) === JSON.stringify(input.evidence);
+
+/**
+ * Puts one photo against the slot of the Step it answers. Its own write, whether it came
+ * with the entry or as an entry of its own, so a phone replaying either is the same picture
+ * rather than a second one.
+ */
+export const applyPhoto = async (
+  tx: Tx,
+  context: Recorder,
+  photo: {
+    completionId: string;
+    slot: number;
+    contentType: "image/jpeg" | "image/png" | "image/webp";
+    data: string;
+  },
+  now: Date
+): Promise<string> => {
+  const completion = await tx.query.stepCompletion.findFirst({
+    where: { id: photo.completionId, farmId: context.farm.id },
+    columns: { id: true },
+  });
+  if (!completion) {
+    // The entry it belongs to has not arrived, or never will. The photo is not wrong; it is
+    // early or orphaned, and either way somebody should see it rather than lose it.
+    throw lateEntry("The entry this photo belongs to is not here");
+  }
+  const values = {
+    farmId: context.farm.id,
+    contentType: photo.contentType,
+    data: photo.data,
+    createdAt: now,
+  };
+  await tx
+    .insert(completionPhoto)
+    .values({ completionId: photo.completionId, slot: photo.slot, ...values })
+    .onConflictDoUpdate({
+      target: [completionPhoto.completionId, completionPhoto.slot],
+      set: values,
+    });
+  return photo.completionId;
+};
+
+/**
+ * An entry that already exists is a recorded fact, and a recorded fact changes only by
+ * Correction. The phone may still replay the same entry — that is how an outbox works
+ * (ADR 0002) — so an identical one changes nothing and is handed back as it stands; a
+ * different one goes to correctStep, which asks why and checks the window.
+ */
+const alreadyRecorded = async (
+  tx: Tx,
+  context: Recorder,
+  input: CompletionEntry,
+  animalId: string | null,
+  skipping: boolean
+): Promise<Recorded | null> => {
+  const already = await tx.query.stepCompletion.findFirst({
+    where: {
+      farmId: context.farm.id,
+      instanceId: input.instanceId,
+      stepId: input.stepId,
+      animalKey: animalId ?? "",
+    },
+  });
+  if (!already) {
+    return null;
+  }
+  if (!sameEntry(already, input, skipping)) {
+    throw lateEntry("That is already recorded; correct it instead", {
+      completionId: already.id,
+    });
+  }
+  // Nothing is written: rewriting the row would put a second person's name on the first
+  // person's work, and the record says who did it.
+  return { completionId: already.id, effect: null };
+};
+
+/** Which Evidence slots have a picture: one that came with the entry, or one the phone has
+ *  said is on its way as an entry of its own. */
+const photoSlots = (input: CompletionEntry): ((slot: number) => boolean) => {
+  const here = new Set(input.photos?.map((photo) => photo.slot));
+  const promised = new Set(input.photoSlots);
+  return (slot) => here.has(slot) || promised.has(slot);
+};
 
 /**
  * Records one Step, with whatever its effect writes into the farm's records, on the caller's
@@ -257,30 +347,18 @@ export const applyCompletion = async (
     input.animalTag
   );
   const skipping = Boolean(input.skipReason);
-  assertEvidenceComplete(step, input.evidence, skipping, Boolean(input.photo));
+  // Either the photo is here, or the phone has said it is coming as its own entry.
+  assertEvidenceComplete(step, input.evidence, skipping, photoSlots(input));
 
-  // An entry that already exists is a recorded fact, and a recorded fact changes only by
-  // Correction. The phone may still replay the same entry — that is how an outbox works
-  // (ADR 0002) — so an identical one is accepted and changes nothing; a different one is
-  // sent to correctStep, which asks why and checks the window.
-  const already = await tx.query.stepCompletion.findFirst({
-    where: {
-      farmId: context.farm.id,
-      instanceId: input.instanceId,
-      stepId: input.stepId,
-      animalKey: animalId ?? "",
-    },
-  });
-  if (already) {
-    if (!sameEntry(already, input, skipping)) {
-      throw lateEntry("That is already recorded; correct it instead", {
-        completionId: already.id,
-      });
-    }
-    // The same entry again — a phone replaying its outbox. Nothing is written: rewriting
-    // the row would put a second person's name on the first person's work, and the record
-    // says who did it.
-    return { completionId: already.id, effect: null };
+  const standing = await alreadyRecorded(
+    tx,
+    context,
+    input,
+    animalId,
+    skipping
+  );
+  if (standing) {
+    return standing;
   }
 
   const values = {
@@ -330,24 +408,16 @@ export const applyCompletion = async (
     recordedAt: values.recordedAt,
     now: receivedAt,
   });
-  if (input.photo) {
-    await tx
-      .insert(completionPhoto)
-      .values({
-        completionId: saved.id,
-        farmId: context.farm.id,
-        contentType: input.photo.contentType,
-        data: input.photo.data,
-        createdAt: receivedAt,
-      })
-      .onConflictDoUpdate({
-        target: completionPhoto.completionId,
-        set: {
-          contentType: input.photo.contentType,
-          data: input.photo.data,
-          createdAt: receivedAt,
-        },
-      });
+  for (const photo of input.photos ?? []) {
+    // Sequential: a Step asks for two pictures at most in practice, and they go in beside
+    // the entry they answer.
+    // oxlint-disable-next-line no-await-in-loop
+    await applyPhoto(
+      tx,
+      context,
+      { completionId: saved.id, ...photo },
+      receivedAt
+    );
   }
   if (instance.state === "due" || instance.state === "sent_back") {
     await tx

@@ -34,14 +34,19 @@ export const entryInput = z.discriminatedUnion("kind", [
     destination: z.enum(["bulk", "calves", "discard"]).optional(),
     outOfRange: z.string().trim().max(120).optional(),
     skipReason: z.string().trim().max(120).optional(),
-    /** A photo taken in the shed, carried in the entry it is evidence for: it was recorded
-     *  with no signal, and it has to travel with what it proves. */
-    photo: z
-      .object({
-        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        data: z.string().min(1).max(PHOTO_MAX_BYTES),
-      })
-      .optional(),
+    /** The Evidence slots this entry has photos for. The images themselves follow as their
+     *  own entries, so a megabyte of photograph cannot hold up a morning's litres. */
+    photoSlots: z.array(z.number().int().min(0)).max(8).optional(),
+  }),
+  z.object({
+    ...entryBase,
+    kind: z.literal("completion_photo"),
+    /** The Step Completion this answers, by the id the phone gave it. */
+    completionId: z.string().trim().min(1),
+    /** Which Evidence of the Step it answers. */
+    slot: z.number().int().min(0),
+    contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+    data: z.string().min(1).max(PHOTO_MAX_BYTES),
   }),
   z.object({
     ...entryBase,

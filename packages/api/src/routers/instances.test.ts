@@ -561,7 +561,7 @@ describe("review findings", () => {
       instanceId: mine.id,
       stepId: "evidence",
       evidence: ["note", 12],
-      photo: { contentType: "image/jpeg", data: "AAAA" },
+      photos: [{ slot: 2, contentType: "image/jpeg", data: "AAAA" }],
     });
     const loaded = await worker.client.instances.get({ id: mine.id });
     expect(loaded.completions).toHaveLength(1);

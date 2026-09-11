@@ -760,6 +760,117 @@ describe("a phone that was out of signal all morning", () => {
   });
 });
 
+describe("photos", () => {
+  it("arrive as their own entries, against the slot they answer", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const withPhotos = await owner.client.sops.create({
+      content: {
+        ...milkingSop(),
+        name: { bn: `ছবি এসওপি ${suffix}` },
+        triggers: [{ kind: "schedule", times: ["03:00"] }],
+        steps: [
+          {
+            id: "check",
+            text: { bn: "পরীক্ষা" },
+            repeatPerAnimal: false,
+            evidence: [
+              { type: "photo", required: true },
+              { type: "photo", required: true },
+            ],
+            skipReasons: [],
+          },
+        ],
+      },
+    });
+    const clock = new FakeClock("2027-01-25T05:30:00.000Z");
+    const scheduler = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    await scheduler.client.instances.ensureDue();
+    const today = await scheduler.client.instances.today({
+      penId: world.pen.id,
+    });
+    const instance = today.find(
+      (row) => row.definitionId === withPhotos.definitionId
+    );
+    if (!instance) {
+      throw new Error("expected an instance");
+    }
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const completionId = recordId();
+
+    // The figures go first, saying which slots have pictures coming; the pictures follow as
+    // entries of their own, so a megabyte of image cannot hold up a morning's litres.
+    const sent = await staff.client.sync.batch({
+      key: key(),
+      entries: [
+        {
+          id: completionId,
+          seq: seq(),
+          kind: "step_completion" as const,
+          instanceId: instance.id,
+          stepId: "check",
+          evidence: [],
+          photoSlots: [0, 1],
+          recordedAt: clock.now(),
+        },
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "completion_photo" as const,
+          completionId,
+          slot: 0,
+          contentType: "image/jpeg" as const,
+          data: "AAAA",
+          recordedAt: clock.now(),
+        },
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "completion_photo" as const,
+          completionId,
+          slot: 1,
+          contentType: "image/jpeg" as const,
+          data: "BBBB",
+          recordedAt: clock.now(),
+        },
+      ],
+    });
+
+    expect(sent.results.map((row) => row.outcome)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+    ]);
+    const board = await staff.client.instances.get({ id: instance.id });
+    expect(board.completions).toHaveLength(1);
+  });
+
+  it("keeps a picture whose entry never arrived, rather than losing it", async () => {
+    const { clock, staff } = await session("2027-01-26");
+
+    const sent = await staff.sync.batch({
+      key: key(),
+      entries: [
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "completion_photo" as const,
+          completionId: "no-such-completion",
+          slot: 0,
+          contentType: "image/jpeg" as const,
+          data: "AAAA",
+          recordedAt: clock.now(),
+        },
+      ],
+    });
+
+    // Early, or orphaned. Either way it is a picture somebody took in a shed.
+    expect(sent.results[0]?.outcome).toBe("kept");
+  });
+});
+
 describe("who is sending", () => {
   it("refuses the whole batch when the session has expired, with nothing written", async () => {
     const { instance, clock } = await session("2027-01-12");

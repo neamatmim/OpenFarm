@@ -17,6 +17,7 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import { useLanguage } from "@/i18n/language-provider";
 import { refusalMessage } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
+import { shrink } from "@/lib/photo";
 import type { StepRecord } from "@/lib/record-offline";
 import {
   claimInstance,
@@ -421,15 +422,12 @@ interface RecordPayload {
   skipReason?: string;
   outOfRange?: string;
   destination?: MilkDestination;
-  photo?: { contentType: "image/jpeg" | "image/png"; data: string };
+  /** One per Evidence slot that asked for a picture. */
+  photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
   /** Set when the entry already exists: changing a recorded fact is a Correction, and a
    *  Correction carries a reason. */
   reason?: string;
 }
-
-/** A camera JPEG is easily 3 MB, which is ~4 MB once base64-encoded — more than the server
- *  accepts, and a lot of string for a cheap phone to build. */
-const PHOTO_MAX_BYTES = 1_500_000;
 
 /** The full-screen sheet: one control per piece of Evidence the Version asks for, skip with
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
@@ -453,7 +451,9 @@ const EvidenceSheet = ({
   >({});
   const [skipping, setSkipping] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<RecordPayload["photo"]>();
+  const [photos, setPhotos] = useState<
+    Record<number, { contentType: "image/jpeg"; data: string }>
+  >({});
   const [reason, setReason] = useState("");
   // A cow under Withdrawal has no choice to make. The server decides again when the entry
   // lands — this phone may have been offline since before she was treated.
@@ -496,7 +496,7 @@ const EvidenceSheet = ({
       return true;
     }
     if (item.type === "photo") {
-      return Boolean(photo);
+      return Boolean(photos[index]);
     }
     return values[index] !== undefined && values[index] !== "";
   });
@@ -513,7 +513,10 @@ const EvidenceSheet = ({
       ),
       outOfRange: outside ?? undefined,
       destination: recordsMilk ? destination : undefined,
-      photo,
+      photos: Object.entries(photos).map(([slot, taken]) => ({
+        slot: Number(slot),
+        ...taken,
+      })),
       reason: correcting ? reason.trim() : undefined,
     });
   };
@@ -586,9 +589,11 @@ const EvidenceSheet = ({
           evidence={item}
           language={language}
           value={values[index]}
-          hasPhoto={Boolean(photo)}
+          hasPhoto={Boolean(photos[index])}
           onValue={(value) => setValue(index, value)}
-          onPhoto={setPhoto}
+          onPhoto={(taken) =>
+            setPhotos((current) => ({ ...current, [index]: taken }))
+          }
         />
       ))}
 
@@ -700,7 +705,7 @@ const EvidenceControl = ({
   value: boolean | number | string | undefined;
   hasPhoto: boolean;
   onValue: (value: string) => void;
-  onPhoto: (photo: RecordPayload["photo"]) => void;
+  onPhoto: (photo: { contentType: "image/jpeg"; data: string }) => void;
 }) => {
   const { t } = useLanguage();
 
@@ -765,7 +770,6 @@ const EvidenceControl = ({
     <label className="flex items-center gap-2 rounded-xl bg-neutral-800 p-3 text-base">
       <Camera size={20} /> {hasPhoto ? t("work.saved") : t("work.photo")}
       <input
-        type="file"
         accept="image/*"
         capture="environment"
         className="sr-only"
@@ -774,19 +778,15 @@ const EvidenceControl = ({
           if (!file) {
             return;
           }
-          if (file.size > PHOTO_MAX_BYTES) {
-            toast.error(t("common.error"));
-            return;
+          try {
+            // Shrunk here, on the device. A camera makes three or four megabytes; a
+            // morning of those would sit in the Outbox and time out on every attempt.
+            onPhoto(await shrink(file));
+          } catch (error) {
+            toast.error((error as Error).message || t("common.error"));
           }
-          const bytes = new Uint8Array(await file.arrayBuffer());
-          const binary = Array.from(bytes, (byte) =>
-            String.fromCodePoint(byte)
-          ).join("");
-          onPhoto({
-            contentType: file.type === "image/png" ? "image/png" : "image/jpeg",
-            data: btoa(binary),
-          });
         }}
+        type="file"
       />
     </label>
   );

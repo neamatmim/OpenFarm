@@ -22,11 +22,9 @@ export interface StepRecord {
   destination?: "bulk" | "calves" | "discard";
   outOfRange?: string;
   skipReason?: string;
-  /** Taken in the shed, and travelling with the entry it is evidence for. */
-  photo?: {
-    contentType: "image/jpeg" | "image/png" | "image/webp";
-    data: string;
-  };
+  /** Taken in the shed. Queued as its own entry against the slot it answers, so a megabyte
+   *  of image cannot hold up a morning's litres. */
+  photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
 }
 
 /** The queue, or a refusal. A device with no storage at all cannot be trusted with a
@@ -57,11 +55,37 @@ export const recordStep = async (
   record: StepRecord
 ): Promise<string> => {
   const id = newId();
-  const { instanceId, animalId, ...body } = record;
+  const { instanceId, animalId, photos, ...body } = record;
   // The queue first, and if there is no queue there is nothing to record into: a tile that
   // turns green over work nothing is holding is the one failure this whole file exists to
-  // prevent.
-  await held().add("step_completion", { instanceId, ...body }, id);
+  // prevent. The figures go as one entry, declaring which slots have photos coming; the
+  // images follow as entries of their own.
+  const outbox = held();
+  await outbox.add(
+    "step_completion",
+    {
+      instanceId,
+      ...body,
+      ...(photos?.length
+        ? { photoSlots: photos.map((photo) => photo.slot) }
+        : {}),
+    },
+    id
+  );
+  for (const photo of photos ?? []) {
+    // Sequential: each takes the next number in the phone's own count.
+    // oxlint-disable-next-line no-await-in-loop
+    await outbox.add(
+      "completion_photo",
+      {
+        completionId: id,
+        slot: photo.slot,
+        contentType: photo.contentType,
+        data: photo.data,
+      },
+      newId()
+    );
+  }
 
   // Now the screen. The Completion the farm will write is not here yet, so the board shows
   // what the person just did, keyed on the same id the farm will use.

@@ -6,6 +6,7 @@ import { CloudOff, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { getDeviceToken } from "@/lib/device";
 import { cachedHerd, rememberHerd } from "@/lib/herd-cache";
 import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
@@ -111,6 +112,10 @@ export const SyncBanner = () => {
     return null;
   }
   const waiting = held.paused === "signed_out";
+  // A Shed Phone signs its person back in with a PIN; a personal phone signs in. Sending a
+  // milker to the wrong one of those, with a morning's work in the queue, is the kind of
+  // dead end that ends with the work being re-typed on paper.
+  const signBackIn = getDeviceToken() ? "/device" : "/login";
   return (
     <output
       aria-live="polite"
@@ -136,6 +141,11 @@ export const SyncBanner = () => {
             })
           : t("outbox.never")}
       </span>
+      {waiting ? (
+        <Link className="underline" to={signBackIn}>
+          {t("outbox.signIn")}
+        </Link>
+      ) : null}
       {waiting ? (
         <Button
           aria-label={t("outbox.retry")}

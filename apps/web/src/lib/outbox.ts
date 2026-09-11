@@ -15,6 +15,7 @@ export interface OutboxEntry {
   kind:
     | "instance_claim"
     | "step_completion"
+    | "completion_photo"
     | "instance_complete"
     | "animal_move"
     | "observation";

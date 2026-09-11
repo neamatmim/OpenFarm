@@ -67,11 +67,18 @@ const completionInput = z.object({
   /** Set when the person was warned a number was outside its range and went ahead. */
   outOfRange: z.string().trim().max(120).optional(),
   skipReason: z.string().trim().max(120).optional(),
-  photo: z
-    .object({
-      contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-      data: z.string().min(1).max(PHOTO_MAX_BYTES),
-    })
+  /** One per Evidence slot that asked for a picture. A Step may ask for more than one — the
+   *  udder and the tag, say — and a photo that could not say which it answered would be a
+   *  photo nobody can read back. */
+  photos: z
+    .array(
+      z.object({
+        slot: z.number().int().min(0),
+        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        data: z.string().min(1).max(PHOTO_MAX_BYTES),
+      })
+    )
+    .max(8)
     .optional(),
   /** The phone's clock, for work captured offline. */
   recordedAt: z.coerce.date().optional(),
@@ -660,9 +667,9 @@ export const instancesRouter = {
         "step_completion",
         existing.id
       );
-      const photo = await context.db.query.completionPhoto.findFirst({
+      const photos = await context.db.query.completionPhoto.findMany({
         where: { completionId: existing.id },
-        columns: { completionId: true },
+        columns: { slot: true },
       });
       let effect: EffectResult = null;
       let flagged = false;
@@ -700,11 +707,8 @@ export const instancesRouter = {
           const content = contentOf(instance.version);
           const step = stepOf(content, existing.stepId);
           const skipping = Boolean(input.skipReason);
-          assertEvidenceComplete(
-            step,
-            input.evidence,
-            skipping,
-            Boolean(photo)
+          assertEvidenceComplete(step, input.evidence, skipping, (slot) =>
+            photos.some((row) => row.slot === slot)
           );
           await tx
             .update(stepCompletion)

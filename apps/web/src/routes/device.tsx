@@ -21,6 +21,7 @@ import {
   subscribeDevice,
   touchActiveUser,
 } from "@/lib/device";
+import { phoneOutbox } from "@/lib/outbox-client";
 import { orpc } from "@/utils/orpc";
 
 const PIN_LENGTH = 4;
@@ -122,6 +123,8 @@ const DevicePage = () => {
         name: entry.name,
         lastSeenAt: Date.now(),
       });
+      // Somebody is signed in again, so whatever the Outbox stopped holding back can go.
+      await phoneOutbox()?.resume();
       setChosen(null);
     },
     [switchUser, t]
