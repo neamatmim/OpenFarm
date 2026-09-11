@@ -46,6 +46,16 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         rel: "stylesheet",
         href: appCss,
       },
+      // What makes the app installable on a barn phone's home screen.
+      {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
+      },
+      {
+        rel: "icon",
+        href: "/icon.svg",
+        type: "image/svg+xml",
+      },
     ],
   }),
 

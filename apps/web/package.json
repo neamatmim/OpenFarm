@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @OpenFarm/i18n check && vp build",
+    "check-types": "tsc --noEmit",
     "serve": "vp preview",
     "dev": "vp dev",
     "test": "vitest run"
@@ -21,6 +22,7 @@
     "@orpc/tanstack-query": "2.0.0-beta.35",
     "@orpc/zod": "catalog:",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/offline-transactions": "^1.0.53",
     "@tanstack/react-form": "^1.33.2",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.34",

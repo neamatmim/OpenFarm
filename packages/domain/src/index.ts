@@ -32,7 +32,7 @@ export {
   underMilkWithdrawal,
 } from "./milk";
 export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";
-export type { AlertKind } from "./alerts";
+export type { AlertKind, ReviewReason } from "./alerts";
 export type {
   CorrectionRefusal,
   CorrectionVerdict,
@@ -44,7 +44,7 @@ export {
   describeWindow,
   mayCorrect,
 } from "./corrections";
-export { ALERT_KINDS } from "./alerts";
+export { ALERT_KINDS, REVIEW_REASONS } from "./alerts";
 export type { DueWork } from "./work";
 export {
   AWAITING_SIGN_OFF,

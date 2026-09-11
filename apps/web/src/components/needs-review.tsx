@@ -15,6 +15,9 @@ import { orpc } from "@/utils/orpc";
 const REASON_MESSAGE: Record<ReviewReason, MessageKey> = {
   corrected_after_sign_off: "review.corrected_after_sign_off",
   irreversible_effect: "review.irreversible_effect",
+  late_entry: "review.late_entry",
+  sync_gap: "review.sync_gap",
+  clock_skew: "review.clock_skew",
 };
 
 const messageFor = (reason: string): MessageKey | null =>

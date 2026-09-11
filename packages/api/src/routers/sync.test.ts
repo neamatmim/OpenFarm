@@ -320,12 +320,13 @@ describe("what the farm makes of it", () => {
 
   it("flags a phone whose clock is far out, and keeps the entry", async () => {
     const { instance, clock, staff } = await session("2027-01-09");
-    // A phone whose clock is a day fast. The litres are still the litres.
-    const wrongClock = new Date(clock.now().getTime() + 24 * HOUR);
-
+    const at = clock.now();
+    // A phone whose clock is a day fast, saying so as it sends. The litres are still the
+    // litres — what is wrong is the phone, not the milking.
     const sent = await staff.sync.batch({
       key: key(),
-      entries: [milkEntry(instance.id, tagOf(0), 11, wrongClock)],
+      sentAt: new Date(at.getTime() + 24 * HOUR),
+      entries: [milkEntry(instance.id, tagOf(0), 11, at)],
     });
 
     expect(sent.results[0]?.outcome).toBe("flagged");
@@ -516,15 +517,16 @@ describe("review findings", () => {
 
   it("one notice about a phone whose clock is out, not one per entry", async () => {
     const { instance, clock, staff } = await session("2027-01-19");
-    const wrongClock = new Date(clock.now().getTime() + 24 * HOUR);
+    const at = clock.now();
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const before = await manager.client.review.open();
 
     await staff.sync.batch({
       key: key(),
+      sentAt: new Date(at.getTime() + 24 * HOUR),
       entries: [
-        milkEntry(instance.id, tagOf(0), 11, wrongClock),
-        milkEntry(instance.id, tagOf(1), 9, wrongClock),
+        milkEntry(instance.id, tagOf(0), 11, at),
+        milkEntry(instance.id, tagOf(1), 9, at),
       ],
     });
 
@@ -535,6 +537,70 @@ describe("review findings", () => {
         !before.some((earlier) => earlier.id === row.id)
     );
     expect(raised).toHaveLength(1);
+  });
+});
+
+describe("a phone that was out of signal all morning", () => {
+  it("is not a phone with a wrong clock", async () => {
+    const { instance, clock, staff } = await session("2027-01-21");
+    const now = clock.now();
+    // Recorded at five, sent at nine: four hours old, and entirely ordinary. A farm that
+    // flagged this would flag every entry an outbox ever held.
+    const sent = await staff.sync.batch({
+      key: key(),
+      sentAt: now,
+      entries: [
+        milkEntry(
+          instance.id,
+          tagOf(0),
+          11,
+          new Date(now.getTime() - 4 * HOUR)
+        ),
+      ],
+    });
+
+    expect(sent.results[0]?.outcome).toBe("applied");
+  });
+
+  it("sends the whole milking in order, and the farm ends up where the phone was", async () => {
+    const { instance, clock, staff } = await session("2027-01-20");
+    const drawnAt = new Date(clock.now().getTime() - 2 * HOUR);
+
+    // Everything the milker recorded in the shed, in the order they recorded it, arriving
+    // in one send once the phone is back in range. This is what the client Outbox holds.
+    const sent = await staff.sync.batch({
+      key: key(),
+      entries: [
+        milkEntry(instance.id, tagOf(0), 12.5, drawnAt),
+        milkEntry(instance.id, tagOf(1), 9.5, drawnAt),
+      ],
+    });
+
+    expect(sent.results.map((row) => row.outcome)).toEqual([
+      "applied",
+      "applied",
+    ]);
+    // The farm's records now say what the phone said: both cows, their litres, the time
+    // they were actually milked, and the tank they went to.
+    const milked = await staff.milk.session({ instanceId: instance.id });
+    expect(
+      milked.records.map((row) => [row.animal.tagNumber, row.litres]).toSorted()
+    ).toEqual(
+      [
+        [tagOf(0), "12.50"],
+        [tagOf(1), "9.50"],
+      ].toSorted()
+    );
+    expect(milked.records.every((row) => row.destination === "bulk")).toBe(
+      true
+    );
+    const board = await staff.instances.get({ id: instance.id });
+    expect(
+      board.completions.every(
+        (row) => row.recordedAt.getTime() === drawnAt.getTime()
+      )
+    ).toBe(true);
+    expect(board.state).toBe("in_progress");
   });
 });
 

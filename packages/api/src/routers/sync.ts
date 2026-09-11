@@ -27,6 +27,11 @@ export const syncRouter = {
       z.object({
         /** The client's own key for this transaction. */
         key: z.string().min(1).max(64),
+        /** The phone's clock at the moment it sent. How far an entry's own time is from now
+         *  says nothing about a phone's clock — a milking recorded at five and sent at nine
+         *  is exactly what an outbox is for — but how far the phone thinks it is from the
+         *  farm, at the same instant, says everything. */
+        sentAt: z.coerce.date().optional(),
         entries: z.array(entryInput).min(1).max(BATCH_MAX),
       })
     )

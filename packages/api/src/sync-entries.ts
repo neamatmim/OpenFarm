@@ -3,6 +3,9 @@ import { z } from "zod";
 
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
+/** 1.5 MB of image becomes 2,000,000 base64 characters. */
+const PHOTO_MAX_BYTES = 2_000_000;
+
 /** Every entry carries what the phone knew: its own id for the record, where in its own
  *  sequence the entry sits, and when it says the work happened. The server stamps when it
  *  took it, and the phone can never set that (ADR 0002). */
@@ -23,6 +26,14 @@ export const entryInput = z.discriminatedUnion("kind", [
     destination: z.enum(["bulk", "calves", "discard"]).optional(),
     outOfRange: z.string().trim().max(120).optional(),
     skipReason: z.string().trim().max(120).optional(),
+    /** A photo taken in the shed, carried in the entry it is evidence for: it was recorded
+     *  with no signal, and it has to travel with what it proves. */
+    photo: z
+      .object({
+        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        data: z.string().min(1).max(PHOTO_MAX_BYTES),
+      })
+      .optional(),
   }),
   z.object({
     ...entryBase,

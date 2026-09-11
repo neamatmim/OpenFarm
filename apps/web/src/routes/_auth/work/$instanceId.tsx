@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { AnimalPhoto } from "@/components/animal-photo";
 import { useLanguage } from "@/i18n/language-provider";
 import { refusalMessage } from "@/lib/correction-refusal";
+import type { StepRecord } from "@/lib/record-offline";
+import { recordStep } from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
 
 interface Animal {
@@ -78,22 +80,27 @@ const WorkPage = () => {
   const claim = useMutation(
     orpc.instances.claim.mutationOptions({ onSuccess: refresh, onError })
   );
-  const record = useMutation(
-    orpc.instances.completeStep.mutationOptions({
-      onSuccess: ({ effect }) => {
-        setOutcome(effect?.kind === "bulk_total" ? effect : null);
-        // The server, not this phone, decides where milk under a Withdrawal goes — so say
-        // so when it has overruled what was asked for.
-        if (effect?.kind === "milk_record" && effect.forced) {
-          toast.warning(t("milk.forced"));
-        }
-        setOpenAnimal(null);
-        setOpenStep(null);
-        refresh();
-      },
-      onError,
-    })
-  );
+  /**
+   * Recording goes into the Outbox and onto the screen, in that order, and the farm hears
+   * about it when there is signal. A milker in a shed cannot wait for a round trip that may
+   * not be possible for hours (ADR 0002).
+   */
+  const record = useMutation({
+    mutationFn: (entry: StepRecord) =>
+      recordStep(
+        queryClient,
+        orpc.instances.get.queryKey({ input: { id: instanceId } }),
+        entry
+      ),
+    onSuccess: () => {
+      setOpenAnimal(null);
+      setOpenStep(null);
+      // Not a refresh: the screen already shows what was recorded, and refetching now would
+      // ask the farm about work it has not been told of yet.
+      void queryClient.invalidateQueries({ queryKey: ["outbox"] });
+    },
+    onError,
+  });
   const correct = useMutation(
     orpc.instances.correctStep.mutationOptions({
       onSuccess: ({ effect, needsReview }) => {
@@ -182,7 +189,15 @@ const WorkPage = () => {
       });
       return;
     }
-    record.mutate({ instanceId, stepId: step.id, animalTag, ...payload });
+    const { reason, ...rest } = payload;
+    void reason;
+    record.mutate({
+      instanceId,
+      stepId: step.id,
+      animalTag,
+      animalId: animalTag ? (openAnimal?.id ?? null) : null,
+      ...rest,
+    });
   };
 
   if (openAnimal && perAnimalStep) {

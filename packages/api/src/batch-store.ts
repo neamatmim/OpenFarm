@@ -43,6 +43,7 @@ const applyEntry = async (
         destination: entry.destination,
         outOfRange: entry.outOfRange,
         skipReason: entry.skipReason,
+        photo: entry.photo,
         recordedAt: entry.recordedAt,
       },
       receivedAt,
@@ -62,11 +63,18 @@ const applyEntry = async (
   });
 };
 
-/** What the phone sent, as the trail and a held entry record it. */
-const entryAfter = (entry: Entry): Record<string, unknown> => ({
-  ...entry,
-  recordedAt: entry.recordedAt.toISOString(),
-});
+/** What the phone sent, as the trail and a held entry record it. The photo is left out: it
+ *  is a row of its own where the entry was taken, and a megabyte of base64 in an Audit Event
+ *  would make the trail unreadable to the people who most need to read it. */
+const entryAfter = (entry: Entry): Record<string, unknown> => {
+  const { photo, ...rest } =
+    entry.kind === "step_completion" ? entry : { ...entry, photo: undefined };
+  return {
+    ...rest,
+    recordedAt: entry.recordedAt.toISOString(),
+    ...(photo ? { photo: photo.contentType } : {}),
+  };
+};
 
 /** Records that the entry was read, holding what the phone sent whenever the farm could not
  *  take it into its records as it stands — so nothing written down is lost. */
@@ -187,17 +195,20 @@ const flagSource = async (
 const applyEntries = async (
   tx: Tx,
   context: Recorder,
-  input: { key: string; entries: Entry[] },
+  input: { key: string; entries: Entry[]; sentAt?: Date },
   { receivedAt, sourceKey }: { receivedAt: Date; sourceKey: string }
 ): Promise<EntryResult[]> => {
   const audit = audited(context);
+  // Asked once, of the phone, not of each entry: it is one clock.
+  const skewed =
+    input.sentAt !== undefined &&
+    clockIsOut(input.sentAt, receivedAt, context.farm.clockSkewMinutes);
   const seen = await highestSeq(tx, sourceKey);
   const missing = missingSeqs(
     seen,
     input.entries.map((entry) => entry.seq)
   );
   const results: EntryResult[] = [];
-  const skewed: number[] = [];
 
   for (const entry of input.entries) {
     // Deliberately sequential: entries are in the order they happened, and a later one can
@@ -259,14 +270,9 @@ const applyEntries = async (
       outcome = isLate(error) ? "kept" : "rejected";
       reason = message(error);
     }
-    if (
-      outcome === "applied" &&
-      clockIsOut(entry.recordedAt, receivedAt, context.farm.clockSkewMinutes)
-    ) {
-      // The litres are still the litres; the phone's clock is the thing to look at, and it
-      // is one thing however many entries it stamped.
+    if (outcome === "applied" && skewed) {
+      // The litres are still the litres; the phone's clock is the thing to look at.
       outcome = "flagged";
-      skewed.push(entry.seq);
     }
     // oxlint-disable-next-line no-await-in-loop
     await keep(tx, context, entry, {
@@ -284,12 +290,18 @@ const applyEntries = async (
     });
   }
 
-  if (skewed.length > 0) {
+  if (skewed && input.sentAt) {
+    // One notice about one phone, however many entries its clock stamped.
     await flagSource(tx, context, {
       sourceKey,
       reason: "clock_skew",
       receivedAt,
-      params: { sourceKey, entries: skewed.length, seqs: skewed },
+      params: {
+        sourceKey,
+        entries: input.entries.length,
+        sentAt: input.sentAt.toISOString(),
+        receivedAt: receivedAt.toISOString(),
+      },
     });
   }
   if (missing.length > 0) {
@@ -313,7 +325,7 @@ const applyEntries = async (
 export const applyBatch = async (
   db: Database,
   context: Recorder,
-  input: { key: string; entries: Entry[] },
+  input: { key: string; entries: Entry[]; sentAt?: Date },
   {
     receivedAt,
     sourceKey,

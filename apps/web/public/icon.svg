@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="OpenFarm">
+  <rect width="192" height="192" rx="40" fill="#0a0a0a"/>
+  <path d="M48 128V72l48-28 48 28v56" fill="none" stroke="#34d399" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M72 128V96h48v32" fill="none" stroke="#34d399" stroke-width="12" stroke-linejoin="round"/>
+</svg>

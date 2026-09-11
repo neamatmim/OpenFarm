@@ -298,6 +298,16 @@ export const en = {
   "review.irreversible_effect":
     "A correction changed something that cannot be undone",
   "alerts.needsReview": "{sop} in {pen} needs a look",
+  "review.late_entry":
+    "An entry arrived after the world it described had changed",
+  "review.sync_gap": "A phone's entries are missing between two that arrived",
+  "review.clock_skew": "A phone's clock is far out from the farm's",
+  "outbox.pending": "{count} waiting to send",
+  "outbox.synced": "Last sent {ago}",
+  "outbox.never": "Not sent yet",
+  "outbox.signedOut": "Sign in again to send what is waiting",
+  "outbox.rejected": "{count} the farm sent back",
+  "outbox.offline": "No signal",
   "common.notFound": "Not found",
 } as const;
 
