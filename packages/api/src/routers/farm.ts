@@ -21,7 +21,7 @@ export const farmRouter = {
       }
       const now = context.clock.now();
       const farmId = uuidv7(now);
-      const ownerId = context.session.user.id;
+      const ownerId = context.actor.id;
       await audited(context, farmId).write(
         {
           entity: "farm",

@@ -19,3 +19,4 @@ export {
   parseTagNumber,
   prefixForOrigin,
 } from "./tag-number";
+export { derivePinHash, isPin, randomPinSalt, verifyPin } from "./pin";

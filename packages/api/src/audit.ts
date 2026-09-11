@@ -53,7 +53,7 @@ export const audited = (
   context: Context,
   farmId: string | null = context.farm?.id ?? null
 ) => {
-  const actorId = context.session?.user.id ?? null;
+  const actorId = context.actor?.id ?? null;
   const { roleUsed } = context;
 
   const write = <T>(
@@ -78,7 +78,7 @@ export const audited = (
         action: event.action,
         actorId,
         roleUsed,
-        deviceId: event.device?.id ?? null,
+        deviceId: context.device?.id ?? event.device?.id ?? null,
         deviceSeq: event.device?.seq ?? null,
         recordedAt: event.recordedAt ?? receivedAt,
         receivedAt,

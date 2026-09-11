@@ -9,21 +9,45 @@ import { env } from "@OpenFarm/env/server";
 
 import type { Clock } from "./clock";
 import { systemClock } from "./clock";
+import type { DeviceSession } from "./device";
+import {
+  ACTIVE_USER_HEADER,
+  DEVICE_TOKEN_HEADER,
+  resolveDeviceSession,
+} from "./device";
 
 export type Session = typeof auth.$Infer.Session;
 
 export interface Person {
   id: string;
+  name: string;
   disabledAt: Date | null;
+}
+
+/** The two principals (ADR 0003): a personal session, or a Shed Phone's device session with
+ *  a PIN-switched active user. Either way `actor` is the person the write is attributed to. */
+export interface Actor {
+  id: string;
+  name: string;
+}
+
+export interface Device {
+  id: string;
+  name: string;
 }
 
 export interface Context {
   auth: null;
+  /** A personal Better Auth session. Null on a Shed Phone. */
   session: Session | null;
+  /** The Shed Phone this request came from. Null for a personal session. */
+  device: Device | null;
+  /** Who this write is attributed to, whichever principal it arrived by. */
+  actor: Actor | null;
   clock: Clock;
   db: Database;
   /** The Farm this request acts on; null until the farm is bootstrapped. */
-  farm: { id: string; name: string } | null;
+  farm: { id: string; name: string; pinAutoLockMinutes: number } | null;
   person: Person | null;
   /** Roles the signed-in person holds on the Farm; empty when signed out or disabled. */
   roles: RoleName[];
@@ -91,28 +115,39 @@ const grantPendingApprovals = async (
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 export const buildContext = async ({
   session,
+  device = null,
   clock,
   db,
 }: {
   session: Session | null;
+  device?: DeviceSession | null;
   clock: Clock;
   db: Database;
 }): Promise<Context> => {
   const base = { auth: null, session, clock, db, roleUsed: null } as const;
-  if (!session?.user) {
-    return { ...base, farm: null, person: null, roles: [], penIds: [] };
+  const actingUserId = session?.user.id ?? device?.activeUserId ?? null;
+  const deviceInfo = device ? { id: device.id, name: device.name } : null;
+  const empty = {
+    ...base,
+    device: deviceInfo,
+    actor: null,
+    farm: null,
+    person: null,
+    roles: [],
+    penIds: [],
+  };
+  if (!actingUserId) {
+    return empty;
   }
 
-  const farm =
-    (await db.query.farm.findFirst({ columns: { id: true, name: true } })) ??
-    null;
+  const farm = (await db.query.farm.findFirst()) ?? null;
   if (!farm) {
-    return { ...base, farm, person: null, roles: [], penIds: [] };
+    return { ...empty, farm };
   }
 
   const row = await db.query.user.findFirst({
-    where: { id: session.user.id },
-    columns: { id: true, email: true, disabledAt: true },
+    where: { id: actingUserId },
+    columns: { id: true, name: true, email: true, disabledAt: true },
     with: {
       roles: {
         where: { farmId: farm.id, ...ACTIVE_ROLE },
@@ -121,9 +156,12 @@ export const buildContext = async ({
       penAssignments: { where: { farmId: farm.id }, columns: { penId: true } },
     },
   });
-  const person = row ? { id: row.id, disabledAt: row.disabledAt } : null;
+  const person = row
+    ? { id: row.id, name: row.name, disabledAt: row.disabledAt }
+    : null;
+  const actor = row && !row.disabledAt ? { id: row.id, name: row.name } : null;
   if (!row || row.disabledAt) {
-    return { ...base, farm, person, roles: [], penIds: [] };
+    return { ...empty, farm, person, actor };
   }
 
   let roles = row.roles.map((r) => r.role);
@@ -139,6 +177,8 @@ export const buildContext = async ({
 
   return {
     ...base,
+    device: deviceInfo,
+    actor,
     farm,
     person,
     roles,
@@ -154,9 +194,25 @@ export const createContext = async ({
   req: Request;
   clock?: Clock;
   db?: Database;
-}): Promise<Context> =>
-  buildContext({
+}): Promise<Context> => {
+  const token = req.headers.get(DEVICE_TOKEN_HEADER);
+  if (token) {
+    const resolved = await resolveDeviceSession(
+      db,
+      token,
+      req.headers.get(ACTIVE_USER_HEADER),
+      clock.now()
+    );
+    return buildContext({
+      session: null,
+      device: resolved?.device ?? null,
+      clock,
+      db,
+    });
+  }
+  return buildContext({
     session: await auth.api.getSession({ headers: req.headers }),
     clock,
     db,
   });
+};

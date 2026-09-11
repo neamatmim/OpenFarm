@@ -33,7 +33,7 @@ export const auditRouter = {
     .handler(async ({ context, input }) => {
       const seesAll =
         context.roleUsed === "owner" || context.roleUsed === "manager";
-      const actorId = seesAll ? input.actorId : context.session.user.id;
+      const actorId = seesAll ? input.actorId : context.actor.id;
       const from = input.fromDay ? startOfDay(input.fromDay) : undefined;
       const toExclusive = input.toDay
         ? new Date(startOfDay(input.toDay).getTime() + ONE_DAY_MS)

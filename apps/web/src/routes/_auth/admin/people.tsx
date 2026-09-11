@@ -51,6 +51,12 @@ const PeoplePage = () => {
       onError,
     })
   );
+  const setPin = useMutation(
+    orpc.people.setPin.mutationOptions({
+      onSuccess: () => toast.success(t("people.pinSet")),
+      onError,
+    })
+  );
   const assign = useMutation(
     orpc.people.assignRoles.mutationOptions({
       onSuccess: () => {
@@ -112,6 +118,7 @@ const PeoplePage = () => {
               isOwner={isOwner}
               isSelf={person.id === me.data?.id}
               onSave={(roles) => assign.mutate({ userId: person.id, roles })}
+              onSetPin={(pin) => setPin.mutate({ userId: person.id, pin })}
               onDisable={() => disable.mutate({ userId: person.id })}
               onEnable={() => enable.mutate({ userId: person.id })}
             />
@@ -143,6 +150,7 @@ const PersonRow = ({
   isOwner,
   isSelf,
   onSave,
+  onSetPin,
   onDisable,
   onEnable,
 }: {
@@ -156,11 +164,13 @@ const PersonRow = ({
   isOwner: boolean;
   isSelf: boolean;
   onSave: (roles: RoleName[]) => void;
+  onSetPin: (pin: string) => void;
   onDisable: () => void;
   onEnable: () => void;
 }) => {
   const t = useT();
   const [roles, setRoles] = useState<RoleName[]>(person.roles);
+  const [pin, setPin] = useState("");
   const toggle = (role: RoleName) =>
     setRoles((current) =>
       current.includes(role)
@@ -196,6 +206,28 @@ const PersonRow = ({
           ))}
           <Button size="sm" variant="outline" onClick={() => onSave(roles)}>
             {t("people.saveRoles")}
+          </Button>
+          <Input
+            aria-label={t("people.pin")}
+            inputMode="numeric"
+            maxLength={4}
+            placeholder={t("people.pinHelp")}
+            value={pin}
+            onChange={(event) =>
+              setPin(event.target.value.replaceAll(/\D/gu, "").slice(0, 4))
+            }
+            className="w-28"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={pin.length !== 4}
+            onClick={() => {
+              onSetPin(pin);
+              setPin("");
+            }}
+          >
+            {t("people.setPin")}
           </Button>
           {isSelf ? null : (
             <AccessButton

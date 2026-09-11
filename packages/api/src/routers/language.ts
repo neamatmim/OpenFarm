@@ -19,7 +19,7 @@ const languageOf = (userId: string) => async (tx: Tx) => {
 export const languageRouter = {
   get: protectedProcedure.handler(async ({ context }) => {
     const row = await context.db.query.user.findFirst({
-      where: { id: context.session.user.id },
+      where: { id: context.actor.id },
       columns: { language: true },
     });
     return { language: resolveLanguage(row) };
@@ -27,7 +27,7 @@ export const languageRouter = {
   set: protectedProcedure
     .input(z.object({ language: z.enum(LANGUAGES) }))
     .handler(async ({ context, input }) => {
-      const userId = context.session.user.id;
+      const userId = context.actor.id;
       await audited(context).write(
         {
           entity: "user",

@@ -3,6 +3,7 @@ import type { RouterClient } from "@orpc/server";
 import { protectedProcedure, publicProcedure } from "../index";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
+import { devicesRouter } from "./devices";
 import { farmRouter } from "./farm";
 import { herdRouter } from "./herd";
 import { languageRouter } from "./language";
@@ -14,13 +15,14 @@ export const appRouter = {
   serverTime: publicProcedure.handler(({ context }) => context.clock.now()),
   animals: animalsRouter,
   audit: auditRouter,
+  devices: devicesRouter,
   farm: farmRouter,
   herd: herdRouter,
   language: languageRouter,
   people: peopleRouter,
   privateData: protectedProcedure.handler(({ context }) => ({
     message: "This is private",
-    user: context.session?.user,
+    user: context.actor,
   })),
 };
 export type AppRouter = typeof appRouter;

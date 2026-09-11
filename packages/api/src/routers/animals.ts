@@ -116,8 +116,7 @@ const readAnimal = async (tx: Tx, animalId: string) => {
 
 type FarmContext = Context & {
   farm: { id: string; name: string };
-  session: { user: { id: string } };
-  roleUsed: string | null;
+  actor: { id: string; name: string };
 };
 
 /** Creates one Animal and its arrival Move as a single audited write. */
@@ -164,7 +163,7 @@ const createAnimal = async (
         fromSide: null,
         toSide: input.side,
         reason,
-        movedBy: context.session.user.id,
+        movedBy: context.actor.id,
         movedAt: now,
       });
     }
@@ -289,7 +288,7 @@ export const animalsRouter = {
             fromSide: current.side,
             toSide: current.side,
             reason: input.reason ?? null,
-            movedBy: context.session.user.id,
+            movedBy: context.actor.id,
             movedAt: now,
           });
         }
@@ -354,7 +353,7 @@ export const animalsRouter = {
             fromSide: current.side,
             toSide: input.toSide,
             reason: input.reason ?? null,
-            movedBy: context.session.user.id,
+            movedBy: context.actor.id,
             movedAt: now,
           });
         }
@@ -446,7 +445,7 @@ export const animalsRouter = {
             farmId: context.farm.id,
             animalId: current.id,
             reason: input.reason,
-            retaggedBy: context.session.user.id,
+            retaggedBy: context.actor.id,
             retaggedAt: now,
           });
           if (input.officialTag !== undefined) {

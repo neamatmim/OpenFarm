@@ -1,14 +1,16 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
+import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
+import { derivePinHash, isPin, randomPinSalt } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import { protectedProcedure, publicProcedure } from "../index";
+import { requirePersonalSession, requireRole } from "../roles";
 import { activeRolesFor, grantRoles, revokeRoles } from "../roles-store";
 
 const roleSchema = z.enum(ROLES);
@@ -42,8 +44,8 @@ const grantInvite = async (
 export const peopleRouter = {
   /** Who am I on this Farm. */
   me: protectedProcedure.handler(({ context }) => ({
-    id: context.session.user.id,
-    name: context.session.user.name,
+    id: context.actor.id,
+    name: context.actor.name,
     farm: context.farm,
     roles: context.roles,
     penIds: context.penIds,
@@ -99,6 +101,7 @@ export const peopleRouter = {
   /** Owner invites anyone with any Roles (approved at once); Manager invites Staff (pending). */
   invite: protectedProcedure
     .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
     .input(
       z.object({
         email: z.email().trim().toLowerCase(),
@@ -109,7 +112,7 @@ export const peopleRouter = {
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       const now = context.clock.now();
-      const actor = { id: context.session.user.id, role: context.roleUsed };
+      const actor = { id: context.actor.id, role: context.roleUsed };
       if (actor.role === "manager" && input.roles.some((r) => r !== "staff")) {
         throw new ORPCError("FORBIDDEN", {
           message: "A Manager may only invite Staff",
@@ -154,11 +157,12 @@ export const peopleRouter = {
 
   approveInvite: protectedProcedure
     .use(requireRole("owner"))
+    .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       const now = context.clock.now();
-      const actor = { id: context.session.user.id, role: context.roleUsed };
+      const actor = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "invite",
@@ -200,12 +204,13 @@ export const peopleRouter = {
    *  history; the farm always keeps at least one other Owner. */
   assignRoles: protectedProcedure
     .use(requireRole("owner"))
+    .use(requirePersonalSession())
     .input(z.object({ userId: z.string(), roles: z.array(roleSchema) }))
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       const now = context.clock.now();
       const wanted = [...new Set(input.roles)];
-      const actor = { id: context.session.user.id, role: context.roleUsed };
+      const actor = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
@@ -250,9 +255,10 @@ export const peopleRouter = {
   /** Owner removes a person's access: signed out everywhere, records and history remain. */
   disable: protectedProcedure
     .use(requireRole("owner"))
+    .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
-      if (input.userId === context.session.user.id) {
+      if (input.userId === context.actor.id) {
         throw new ORPCError("BAD_REQUEST", {
           message: "You cannot disable yourself",
         });
@@ -287,6 +293,7 @@ export const peopleRouter = {
 
   enable: protectedProcedure
     .use(requireRole("owner"))
+    .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
       await audited(context).write(
@@ -314,6 +321,7 @@ export const peopleRouter = {
   /** A Correction: the Owner fixes a person's name with a reason; the old name stays readable. */
   correctName: protectedProcedure
     .use(requireRole("owner"))
+    .use(requirePersonalSession())
     .input(
       z.object({
         userId: z.string(),
@@ -351,4 +359,91 @@ export const peopleRouter = {
       );
       return { userId: input.userId, name: input.name };
     }),
+
+  /** Sets or rotates a Staff member's PIN. The PIN itself is never stored: the phone gets a
+   *  salt and a derived hash so PIN Switch works with no signal (ADR 0003). */
+  setPin: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ userId: z.string(), pin: z.string().trim() }))
+    .handler(async ({ context, input }) => {
+      if (!isPin(input.pin)) {
+        throw new ORPCError("BAD_REQUEST", { message: "A PIN is four digits" });
+      }
+      const now = context.clock.now();
+      const salt = randomPinSalt();
+      const hash = await derivePinHash(input.pin, salt);
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: input.userId,
+          action: "update",
+          after: { pinSet: true },
+        },
+        async (tx) => {
+          const person = await tx.query.user.findFirst({
+            where: { id: input.userId },
+            columns: { id: true },
+          });
+          if (!person) {
+            throw new ORPCError("NOT_FOUND");
+          }
+          await tx
+            .insert(staffPin)
+            .values({
+              userId: input.userId,
+              farmId: context.farm.id,
+              salt,
+              hash,
+              setBy: context.actor.id,
+              setByRole: context.roleUsed,
+              updatedAt: now,
+            })
+            .onConflictDoUpdate({
+              target: staffPin.userId,
+              set: {
+                salt,
+                hash,
+                setBy: context.actor.id,
+                setByRole: context.roleUsed,
+                updatedAt: now,
+              },
+            });
+        }
+      );
+      return { userId: input.userId, pinSet: true };
+    }),
+
+  /** The roster a Shed Phone caches: who may PIN Switch on it, and what to check against.
+   *  Only reachable with a device token — that token is the gate, and it is revocable. */
+  roster: publicProcedure.handler(async ({ context }) => {
+    if (!context.device) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Only a shed phone may read the roster",
+      });
+    }
+    const farmId = context.farm?.id;
+    if (!farmId) {
+      return [];
+    }
+    const pins = await context.db.query.staffPin.findMany({
+      where: { farmId },
+      columns: { userId: true, salt: true, hash: true, updatedAt: true },
+    });
+    const people = await context.db.query.user.findMany({
+      where: { id: { in: pins.map((p) => p.userId) } },
+      columns: { id: true, name: true, disabledAt: true },
+    });
+    const byId = new Map(people.map((person) => [person.id, person]));
+    return pins
+      .filter(
+        (pin) => byId.get(pin.userId) && !byId.get(pin.userId)?.disabledAt
+      )
+      .map((pin) => ({
+        userId: pin.userId,
+        name: byId.get(pin.userId)?.name ?? "",
+        salt: pin.salt,
+        hash: pin.hash,
+      }));
+  }),
 };

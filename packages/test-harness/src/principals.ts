@@ -3,6 +3,7 @@ import {
   session as sessionTable,
   user as userTable,
 } from "@OpenFarm/db/schema/auth";
+import { shedPhone, staffPin } from "@OpenFarm/db/schema/device";
 import { farm as farmTable, roleAssignment } from "@OpenFarm/db/schema/farm";
 
 import { DAY } from "./clock";
@@ -102,4 +103,45 @@ export const createTestPrincipal = async (
   }
 
   return { role, user, session };
+};
+
+export const TEST_DEVICE = {
+  id: "test-shed-phone",
+  name: "শেড A ফোন",
+} as const;
+
+/** A Shed Phone enrolled on the test Farm, and a PIN for a Principal so they may PIN Switch
+ *  on it. Returns the device session shape the API context expects. */
+export const createTestDevice = async (
+  role: Principal,
+  now: Date
+): Promise<{ id: string; name: string; activeUserId: string }> => {
+  const db = scratchDb();
+  const principal = await createTestPrincipal(role, now);
+
+  await db
+    .insert(shedPhone)
+    .values({
+      ...TEST_DEVICE,
+      farmId: TEST_FARM.id,
+      tokenHash: `test-token-${TEST_DEVICE.id}`,
+      enrolledBy: principal.user.id,
+      claimedAt: now,
+      createdAt: now,
+    })
+    .onConflictDoNothing();
+
+  await db
+    .insert(staffPin)
+    .values({
+      userId: principal.user.id,
+      farmId: TEST_FARM.id,
+      salt: "dGVzdC1zYWx0LTE2Ynl0ZXM=",
+      hash: "test-hash",
+      setBy: principal.user.id,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+
+  return { ...TEST_DEVICE, activeUserId: principal.user.id };
 };
