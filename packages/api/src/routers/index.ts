@@ -6,6 +6,7 @@ import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
 import { backupsRouter } from "./backups";
 import { devicesRouter } from "./devices";
+import { drugsRouter } from "./drugs";
 import { farmRouter } from "./farm";
 import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
@@ -29,6 +30,7 @@ export const appRouter = {
   audit: auditRouter,
   backups: backupsRouter,
   devices: devicesRouter,
+  drugs: drugsRouter,
   farm: farmRouter,
   feed: feedRouter,
   herd: herdRouter,
