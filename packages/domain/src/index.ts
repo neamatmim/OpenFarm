@@ -76,7 +76,7 @@ export {
   roundKg,
   shortfallPercent,
 } from "./feed";
-export type { WithdrawalDays } from "./health";
+export type { NotPrescribable, WithdrawalDays } from "./health";
 export {
   MAX_WITHDRAWAL_DAYS,
   findWithdrawalProblems,

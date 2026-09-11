@@ -67,6 +67,10 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  drugProduct: {
+    /** Who wrote the withdrawal days — evidence at slaughter, so it is kept with them. */
+    setBy: r.one.user({ from: r.drugProduct.daysSetBy, to: r.user.id }),
+  },
   sopTraining: {
     definition: r.one.sopDefinition({
       from: r.sopTraining.definitionId,

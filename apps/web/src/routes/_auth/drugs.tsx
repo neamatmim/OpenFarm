@@ -1,14 +1,23 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import type { NotPrescribable } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
+
+/** Why a product may not be prescribed, in the reader's words. Typed by the reason, so a
+ *  new one is a compile error here rather than a blank line on a Vet's screen. */
+const WHY_NOT: Record<NotPrescribable, MessageKey> = {
+  no_withdrawal_days: "drugs.blank",
+  retired: "drugs.retiredReason",
+};
 
 /**
  * The farm's Drug List: what it treats animals with, and what each product costs the milk
@@ -98,10 +107,14 @@ const Product = ({
   product: {
     id: string;
     nameBn: string;
+    nameEn: string | null;
     milkWithdrawalDays: number | null;
     meatWithdrawalDays: number | null;
+    daysSetByName: string | null;
+    daysSetAt: Date | null;
     retiredAt: Date | null;
     prescribable: boolean;
+    whyNot: NotPrescribable | null;
   };
   isVet: boolean;
   onChanged: () => void;
@@ -130,7 +143,9 @@ const Product = ({
     <li className="space-y-2 rounded-lg border p-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className={product.retiredAt ? "text-muted-foreground" : ""}>
-          {product.nameBn}
+          {language === "en" && product.nameEn
+            ? product.nameEn
+            : product.nameBn}
           {product.retiredAt ? ` · ${t("drugs.retired")}` : ""}
         </span>
         {product.retiredAt ? null : (
@@ -140,20 +155,30 @@ const Product = ({
         )}
       </div>
 
-      {product.prescribable ? (
+      {product.milkWithdrawalDays === null ||
+      product.meatWithdrawalDays === null ? null : (
         <p className="text-muted-foreground text-sm">
           {t("drugs.milkDays")}:{" "}
           {t("drugs.days", {
-            count: formatNumber(product.milkWithdrawalDays ?? 0, language),
+            count: formatNumber(product.milkWithdrawalDays, language),
           })}{" "}
           · {t("drugs.meatDays")}:{" "}
           {t("drugs.days", {
-            count: formatNumber(product.meatWithdrawalDays ?? 0, language),
+            count: formatNumber(product.meatWithdrawalDays, language),
           })}
+          {product.daysSetByName && product.daysSetAt ? (
+            <span className="block text-xs">
+              {t("drugs.setBy", {
+                name: product.daysSetByName,
+                date: formatDate(new Date(product.daysSetAt), language, "date"),
+              })}
+            </span>
+          ) : null}
         </p>
-      ) : (
-        <p className="text-sm text-amber-500">{t("drugs.blank")}</p>
       )}
+      {product.whyNot ? (
+        <p className="text-sm text-amber-500">{t(WHY_NOT[product.whyNot])}</p>
+      ) : null}
 
       {isVet ? (
         <form
@@ -172,8 +197,10 @@ const Product = ({
             <Input
               className="w-24"
               id={`milk-${product.id}`}
+              max={365}
               min={0}
               onChange={(event) => setMilk(event.target.value)}
+              step="1"
               type="number"
               value={milk}
             />
@@ -183,8 +210,10 @@ const Product = ({
             <Input
               className="w-24"
               id={`meat-${product.id}`}
+              max={365}
               min={0}
               onChange={(event) => setMeat(event.target.value)}
+              step="1"
               type="number"
               value={meat}
             />
@@ -194,12 +223,23 @@ const Product = ({
           </Button>
         </form>
       ) : (
-        <p className="text-muted-foreground text-xs">{t("drugs.vetOnly")}</p>
+        <p className="text-muted-foreground text-xs">
+          {t("drugs.managerAdds")}
+        </p>
       )}
     </li>
   );
 };
 
 export const Route = createFileRoute("/_auth/drugs")({
+  /** The Vet keeps it, the Manager adds to it, the Owner reads it — and Barn Staff have no
+   *  business in it at all, so they are not shown a form that would refuse them. */
+  beforeLoad: ({ context }) => {
+    const { roles } = context.me;
+    const allowed = new Set(["owner", "manager", "vet"]);
+    if (!roles.some((role) => allowed.has(role))) {
+      throw redirect({ to: "/today", search: {} });
+    }
+  },
   component: DrugsPage,
 });

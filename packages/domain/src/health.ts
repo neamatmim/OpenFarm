@@ -8,21 +8,40 @@
 export interface WithdrawalDays {
   milkWithdrawalDays: number | null;
   meatWithdrawalDays: number | null;
+  retiredAt?: Date | null;
 }
+
+/** Why a product may not be prescribed. A reason rather than a sentence: the words belong
+ *  to whoever is reading, and this package has no language of its own. */
+export type NotPrescribable = "no_withdrawal_days" | "retired";
 
 /** The longest a withdrawal is ever going to be. Beyond this it is a typo, not a product. */
 export const MAX_WITHDRAWAL_DAYS = 365;
 
-export const mayBePrescribed = (product: WithdrawalDays): boolean =>
-  product.milkWithdrawalDays !== null && product.meatWithdrawalDays !== null;
-
-/** Why this product may not be prescribed, in the words somebody would use. */
-export const whyNotPrescribable = (product: WithdrawalDays): string | null => {
-  if (mayBePrescribed(product)) {
-    return null;
+/**
+ * Why this product may not be prescribed, or null when it may.
+ *
+ * One answer, asked by the list that shows the product and by the refusal when somebody
+ * tries to prescribe from it — so the screen and the server cannot give different reasons
+ * for the same thing.
+ */
+export const whyNotPrescribable = (
+  product: WithdrawalDays
+): NotPrescribable | null => {
+  if (product.retiredAt) {
+    return "retired";
   }
-  return "This product has no withdrawal days written down, so nothing may be prescribed from it until the Vet fills them in";
+  if (
+    product.milkWithdrawalDays === null ||
+    product.meatWithdrawalDays === null
+  ) {
+    return "no_withdrawal_days";
+  }
+  return null;
 };
+
+export const mayBePrescribed = (product: WithdrawalDays): boolean =>
+  whyNotPrescribable(product) === null;
 
 /** What is wrong with the days somebody has entered. */
 export const findWithdrawalProblems = (days: {
