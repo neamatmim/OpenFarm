@@ -1,3 +1,5 @@
+import { eq } from "@OpenFarm/db/operators";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
@@ -93,6 +95,21 @@ beforeAll(async () => {
   world = await setup();
 });
 
+/**
+ * Puts the farm's Alert watermark back to a chosen instant.
+ *
+ * The sweep deliberately only looks at what has gone late since it last looked, and that
+ * mark is the Farm's — one row, shared by every test file that sweeps. A file working in
+ * one fake year would otherwise carry it past a file working in another, and the second to
+ * run would find its own work behind the mark. Each test says where its own window starts.
+ */
+const sweepFrom = async (at: Date) => {
+  await scratchDb()
+    .update(farm)
+    .set({ alertsSweptFrom: at })
+    .where(eq(farm.id, TEST_FARM.id));
+};
+
 /** The SOP falls due at 05:00 Dhaka — 23:00 UTC the evening before. */
 const dueAtUtc = (day: string) => new Date(`${day}T23:00:00.000Z`);
 /** The instant `minutes` after it fell due. */
@@ -123,6 +140,7 @@ const workFor = async (
   if (!instance) {
     throw new Error(`expected an instance on ${day}`);
   }
+  await sweepFrom(dueAtUtc(day));
   return { instance, clock };
 };
 

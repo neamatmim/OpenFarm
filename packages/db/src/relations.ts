@@ -137,6 +137,10 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.user.id,
       optional: false,
     }),
+    device: r.one.shedPhone({
+      from: r.pushSubscription.deviceId,
+      to: r.shedPhone.id,
+    }),
   },
   needsReview: {
     raisedBy: r.one.auditEvent({

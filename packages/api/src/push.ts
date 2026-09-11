@@ -1,3 +1,4 @@
+import type { AlertKind } from "@OpenFarm/domain";
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
@@ -10,6 +11,8 @@ export interface PushMessage {
   url: string;
   /** So a second notice about the same work replaces the first rather than stacking. */
   tag: string;
+  /** What the words are in, so a screen reader says them properly. */
+  lang: Language;
 }
 
 /** One browser, as the push service knows it. */
@@ -37,19 +40,27 @@ export const silentTransport: PushTransport = {
 };
 
 /** What each kind of Alert says, in the reader's own language. */
-const TITLE: Record<string, MessageKey> = {
-  instance_overdue: "push.overdueTitle",
-  instance_escalated: "push.escalatedTitle",
-  instance_sent_back: "push.sentBackTitle",
-  needs_review: "push.needsReviewTitle",
+/** What each kind says, and nothing for the kinds that do not travel this way: the
+ *  notification table puts Needs Review in the evening digest, not in somebody's pocket. */
+const WORDING: Partial<
+  Record<AlertKind, { title: MessageKey; body: MessageKey }>
+> = {
+  instance_overdue: {
+    title: "push.overdueTitle",
+    body: "alerts.instanceOverdue",
+  },
+  instance_escalated: {
+    title: "push.escalatedTitle",
+    body: "alerts.instanceEscalated",
+  },
+  instance_sent_back: {
+    title: "push.sentBackTitle",
+    body: "alerts.instanceSentBack",
+  },
 };
 
-const BODY: Record<string, MessageKey> = {
-  instance_overdue: "alerts.instanceOverdue",
-  instance_escalated: "alerts.instanceEscalated",
-  instance_sent_back: "alerts.instanceSentBack",
-  needs_review: "alerts.needsReview",
-};
+/** Is this the sort of Alert that reaches into a pocket? */
+export const travelsByPush = (kind: string): boolean => kind in WORDING;
 
 const MINUTES_PER_HOUR = 60;
 
@@ -78,11 +89,13 @@ export const messageFor = (
 ): PushMessage => {
   const reader: Language = resolveLanguage({ language });
   const params = wording(alert.params, reader === "bn");
-  const title = TITLE[alert.kind];
-  const body = BODY[alert.kind];
+  const said = WORDING[alert.kind as AlertKind];
   return {
-    title: title ? translate(reader, title) : translate(reader, "alerts.title"),
-    body: body ? translate(reader, body, params) : alert.kind,
+    lang: reader,
+    title: said
+      ? translate(reader, said.title)
+      : translate(reader, "alerts.title"),
+    body: said ? translate(reader, said.body, params) : alert.kind,
     url: alert.entity === "sop_instance" ? `/work/${alert.entityId}` : "/today",
     // One notice per thing per kind: a phone that has been in a pocket all morning should
     // show what is waiting, not a history of it being told.

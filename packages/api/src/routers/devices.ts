@@ -16,6 +16,7 @@ import {
   requireDevice,
 } from "../device";
 import { protectedProcedure, publicProcedure } from "../index";
+import { silenceDevice } from "../push-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
 /** How long a Manager's enrolment code is good for. Long enough to walk to the shed. */
@@ -175,6 +176,9 @@ export const devicesRouter = {
           if (!row) {
             throw new ORPCError("NOT_FOUND");
           }
+          // And it stops being told things. A handset lost in a yard that kept receiving the
+          // farm's business would be the revocation not having happened at all.
+          await silenceDevice(tx, input.id, now);
         }
       );
       return { id: input.id, revoked: true };

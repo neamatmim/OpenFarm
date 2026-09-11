@@ -1,15 +1,13 @@
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import { farm } from "@OpenFarm/db/schema/farm";
-import { pushSubscription } from "@OpenFarm/db/schema/push";
-import { env } from "@OpenFarm/env/server";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import { findPendingNotices, raiseLateAlerts } from "../instances-store";
-import { rememberListener, tellListeners } from "../push-store";
+import { pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
@@ -33,11 +31,6 @@ export const alertsRouter = {
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
       const now = context.clock.now();
-      let pushed: { sent: number; gone: number; missed: number } = {
-        sent: 0,
-        gone: 0,
-        missed: 0,
-      };
       const pending = await findPendingNotices(context.db, context.farm, now);
       // A sweep with nothing to say is not an event, and opens no transaction: everyone
       // calls this on opening the app, and in steady state there is nothing new to say.
@@ -49,7 +42,7 @@ export const alertsRouter = {
       // Audited against each Instance the notice is about, not against the sweep: an
       // entityId no row carries is a trail entry nothing can find its way back to. Reading
       // an Instance's history now shows that it went late and who was told.
-      return await audited(context).write(
+      const swept = await audited(context).write(
         {
           entity: "sop_instance",
           entityId: first(pending),
@@ -58,12 +51,10 @@ export const alertsRouter = {
             Promise.resolve({
               overdue: pending.overdue.map((row) => row.id),
               escalated: pending.escalated.map((row) => row.id),
-              // What left the farm, so "we told them" is something the trail can show.
-              pushed,
             }),
         },
         async (tx) => {
-          const swept = await raiseLateAlerts(
+          const raised = await raiseLateAlerts(
             tx,
             context.farm.id,
             pending,
@@ -75,20 +66,14 @@ export const alertsRouter = {
             .update(farm)
             .set({ alertsSweptFrom: pending.sweptFrom })
             .where(eq(farm.id, context.farm.id));
-          // The tap on the shoulder, in the same transaction as the Alert it is about.
-          // Every failure is swallowed inside: the in-app Alert is the record, and a push
-          // that did not arrive has cost nobody anything.
-          const told = await tellListeners(
-            tx,
-            context.push,
-            context.farm.id,
-            swept.raised,
-            now
-          );
-          pushed = told;
-          return { ...swept, told };
+          return raised;
         }
       );
+      // The tap on the shoulder goes out after the Alerts are safely the farm's record, and
+      // never inside the transaction that made them: a push is a call to somebody else's
+      // server, and a hung one would hold a lock every phone in the shed is waiting on.
+      await pushRaised(context, swept.raised, now);
+      return { overdue: swept.overdue, escalated: swept.escalated };
     }),
 
   /**
@@ -111,84 +96,6 @@ export const alertsRouter = {
         limit: INBOX_LIMIT,
       })
     ),
-
-  /** What this farm's browsers need to speak to it, and nothing secret: the public half of
-   *  the farm's keys, or nothing when the farm does not push at all. */
-  pushKey: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(() => ({ key: env.VAPID_PUBLIC_KEY ?? null })),
-
-  /** This browser agrees to be told. Per browser, not per person: a Manager with a phone and
-   *  an office machine has two, and an Alert should reach both. */
-  listen: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
-    .input(
-      z.object({
-        endpoint: z.url().max(1000),
-        p256dh: z.string().min(1).max(200),
-        auth: z.string().min(1).max(200),
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "push_subscription",
-          entityId: input.endpoint,
-          action: "create",
-          after: { userId: context.actor.id },
-        },
-        (tx) =>
-          rememberListener(
-            tx,
-            {
-              farmId: context.farm.id,
-              userId: context.actor.id,
-              // A Shed Phone's voice goes when the phone does (ADR 0003).
-              deviceId: context.device?.id ?? null,
-              ...input,
-            },
-            now
-          )
-      );
-      return { listening: true };
-    }),
-
-  /** This browser would rather not be told. The row stays, revoked: who was told what, and
-   *  who stopped being told, is part of the farm's record. */
-  stopListening: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
-    .input(z.object({ endpoint: z.url().max(1000) }))
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "push_subscription",
-          entityId: input.endpoint,
-          action: "update",
-          after: { revokedAt: now.toISOString() },
-        },
-        async (tx) => {
-          const [row] = await tx
-            .update(pushSubscription)
-            .set({ revokedAt: now })
-            .where(
-              and(
-                eq(pushSubscription.endpoint, input.endpoint),
-                eq(pushSubscription.farmId, context.farm.id),
-                // Your own browser, not somebody else's.
-                eq(pushSubscription.userId, context.actor.id),
-                isNull(pushSubscription.revokedAt)
-              )
-            )
-            .returning({ id: pushSubscription.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-        }
-      );
-      return { listening: false };
-    }),
 
   /**
    * Dismissing is the reader saying they have seen it; the row stays. Audited like any other

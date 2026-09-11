@@ -2,6 +2,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BellOff, BellRing } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
@@ -22,7 +23,16 @@ import { orpc } from "@/utils/orpc";
 const SettingsPage = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const key = useQuery(orpc.alerts.pushKey.queryOptions());
+  const [said, setSaid] = useState<string | null>(null);
+  const key = useQuery(orpc.push.key.queryOptions());
+  // Asked of the browser, through the query cache rather than during render: the server
+  // renders this same component and has no browser to ask, and an answer that differs
+  // between the two is a hydration mismatch.
+  const possibleHere = useQuery({
+    queryKey: ["push", "possible"],
+    queryFn: () => canBeTold(),
+    initialData: false,
+  });
   const listening = useQuery({
     queryKey: ["push", "listening"],
     queryFn: () => currentListener(),
@@ -33,24 +43,27 @@ const SettingsPage = () => {
     toast.error(error.message || t("common.error"));
 
   const listen = useMutation(
-    orpc.alerts.listen.mutationOptions({ onSuccess: refresh, onError })
+    orpc.push.listen.mutationOptions({ onSuccess: refresh, onError })
   );
   const stop = useMutation(
-    orpc.alerts.stopListening.mutationOptions({ onSuccess: refresh, onError })
+    orpc.push.stopListening.mutationOptions({ onSuccess: refresh, onError })
   );
 
   const agree = useMutation({
     mutationFn: async () => {
       const publicKey = key.data?.key;
       if (!publicKey) {
-        throw new Error(t("push.unavailable"));
+        setSaid(t("push.unavailable"));
+        return;
       }
       const browser = await askToBeTold(publicKey);
       if (!browser) {
         // The person said no, or the browser has notifications turned off. Neither is a
-        // failure, and neither is worth an error.
-        throw new Error(t("push.blocked"));
+        // failure, and neither belongs in an error: it is an answer, and the screen says so.
+        setSaid(t("push.blocked"));
+        return;
       }
+      setSaid(null);
       await listen.mutateAsync(browser);
     },
     onSuccess: refresh,
@@ -68,7 +81,7 @@ const SettingsPage = () => {
     onError,
   });
 
-  const possible = canBeTold() && Boolean(key.data?.key);
+  const possible = possibleHere.data && Boolean(key.data?.key);
   const already = Boolean(listening.data);
 
   return (
@@ -90,6 +103,11 @@ const SettingsPage = () => {
           {t("push.unavailable")}
         </p>
       )}
+      {said ? (
+        <p className="rounded-xl bg-amber-950 p-3 text-sm text-amber-100">
+          {said}
+        </p>
+      ) : null}
       {already ? (
         <p className="text-muted-foreground text-sm">{t("push.enabled")}</p>
       ) : null}

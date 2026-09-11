@@ -122,6 +122,7 @@ self.addEventListener("push", (event) => {
       data: { url: notice.url ?? "/today" },
       icon: "/icon.svg",
       badge: "/icon.svg",
+      // The farm wrote these words and knows whose they are; the browser does not.
       lang: notice.lang ?? "bn",
     })
   );

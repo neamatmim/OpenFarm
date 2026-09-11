@@ -1,12 +1,20 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { pushSubscription } from "@OpenFarm/db/schema/push";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { PushMessage, PushTarget, PushTransport } from "./push";
-import { messageFor } from "./push";
+import { messageFor, travelsByPush } from "./push";
 
-/** Every browser still listening for these people, with the language its owner reads in. */
+/**
+ * Every browser still listening for these people, with the language its owner reads in.
+ *
+ * A subscription on a Shed Phone that has been revoked is not listening, whatever its own
+ * row says: the phone is gone, and a handset lost in a yard should not keep being told the
+ * farm's business (ADR 0003). Revoking the phone revokes them too; this is the second lock
+ * on the same door.
+ */
 export const listenersFor = async (
   tx: Tx,
   farmId: string,
@@ -15,7 +23,7 @@ export const listenersFor = async (
   if (userIds.length === 0) {
     return [];
   }
-  return await tx.query.pushSubscription.findMany({
+  const listening = await tx.query.pushSubscription.findMany({
     where: {
       farmId,
       userId: { in: [...new Set(userIds)] },
@@ -28,8 +36,12 @@ export const listenersFor = async (
       p256dh: true,
       auth: true,
     },
-    with: { owner: { columns: { language: true } } },
+    with: {
+      owner: { columns: { language: true } },
+      device: { columns: { revokedAt: true } },
+    },
   });
+  return listening.filter((row) => !row.device?.revokedAt);
 };
 
 /** A browser the push service says is gone stops being told. Kept rather than deleted: who
@@ -56,18 +68,29 @@ export interface Told {
  * down, a phone that has been wiped, a browser that has forgotten its keys — none of those
  * are things to put in front of the person who was going to be told.
  */
-export const tellListeners = async (
+export interface Tellable {
+  /** The Alert row, so what became of telling somebody is recorded against it. */
+  id: string;
+  kind: string;
+  entity: string;
+  entityId: string;
+  params: unknown;
+  userId: string;
+}
+
+export const pushAlerts = async (
   tx: Tx,
   transport: PushTransport,
   farmId: string,
-  alerts: {
-    kind: string;
-    entity: string;
-    entityId: string;
-    params: unknown;
-    userId: string;
-  }[],
-  now: Date
+  alerts: Tellable[],
+  now: Date,
+  /** Called for each Alert whose browsers have been tried, so the trail can say the farm
+   *  tried. Given the transaction, because the record of trying belongs with it. */
+  record?: (
+    tx: Tx,
+    alert: Tellable,
+    told: { sent: number; gone: number; missed: number }
+  ) => Promise<void>
 ): Promise<Told> => {
   const listeners = await listenersFor(
     tx,
@@ -83,6 +106,11 @@ export const tellListeners = async (
   }
   const told: Told = { sent: 0, gone: 0, missed: 0 };
   for (const alert of alerts) {
+    if (!travelsByPush(alert.kind)) {
+      // The notification table puts this one in a digest, not in somebody's pocket.
+      continue;
+    }
+    const forThis: Told = { sent: 0, gone: 0, missed: 0 };
     for (const listener of byUser.get(alert.userId) ?? []) {
       const message: PushMessage = messageFor(alert, listener.owner.language);
       const target: PushTarget = {
@@ -97,24 +125,37 @@ export const tellListeners = async (
         gone: false,
       }));
       if (answer.gone) {
-        told.gone += 1;
+        forThis.gone += 1;
         // oxlint-disable-next-line no-await-in-loop
         await stopTelling(tx, listener.id, now);
       } else if (answer.delivered) {
-        told.sent += 1;
+        forThis.sent += 1;
       } else {
-        told.missed += 1;
+        forThis.missed += 1;
       }
+    }
+    told.sent += forThis.sent;
+    told.gone += forThis.gone;
+    told.missed += forThis.missed;
+    if (record && forThis.sent + forThis.gone + forThis.missed > 0) {
+      // oxlint-disable-next-line no-await-in-loop
+      await record(tx, alert, forThis);
     }
   }
   return told;
 };
 
-/** Records one browser as willing to be told. The endpoint is the browser's own name for
- *  itself, so subscribing twice is one subscription. */
-export const rememberListener = async (
+/**
+ * Records one browser as willing to be told.
+ *
+ * The endpoint is the browser's own name for itself, so subscribing twice is one
+ * subscription — but only ever this person's own. A browser somebody else registered is
+ * somebody else's: rewriting it would silently stop them being told, and an endpoint is not
+ * a secret worth resting that on.
+ */
+export const rememberPushBrowser = async (
   tx: Tx,
-  listener: {
+  browser: {
     farmId: string;
     userId: string;
     deviceId: string | null;
@@ -123,19 +164,41 @@ export const rememberListener = async (
     auth: string;
   },
   now: Date
-): Promise<void> => {
+): Promise<string> => {
+  const standing = await tx.query.pushSubscription.findFirst({
+    where: { farmId: browser.farmId, endpoint: browser.endpoint },
+    columns: { id: true, userId: true },
+  });
+  if (standing && standing.userId !== browser.userId) {
+    throw new ORPCError("CONFLICT", {
+      message: "That browser is already listening for somebody else",
+    });
+  }
+  const id = standing?.id ?? uuidv7(now);
   await tx
     .insert(pushSubscription)
-    .values({ id: uuidv7(now), ...listener, createdAt: now })
+    .values({ id, ...browser, createdAt: now })
     .onConflictDoUpdate({
-      target: pushSubscription.endpoint,
+      target: [pushSubscription.farmId, pushSubscription.endpoint],
       set: {
-        userId: listener.userId,
-        deviceId: listener.deviceId,
-        p256dh: listener.p256dh,
-        auth: listener.auth,
+        deviceId: browser.deviceId,
+        p256dh: browser.p256dh,
+        auth: browser.auth,
         // Subscribing again is asking to be told again.
         revokedAt: null,
       },
     });
+  return id;
 };
+
+/** A Shed Phone that has been revoked stops being told, whatever its browsers agreed to. */
+export const silenceDevice = (tx: Tx, deviceId: string, now: Date) =>
+  tx
+    .update(pushSubscription)
+    .set({ revokedAt: now })
+    .where(
+      and(
+        eq(pushSubscription.deviceId, deviceId),
+        isNull(pushSubscription.revokedAt)
+      )
+    );

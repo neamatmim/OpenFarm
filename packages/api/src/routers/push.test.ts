@@ -1,3 +1,6 @@
+import { eq } from "@OpenFarm/db/operators";
+import { shedPhone } from "@OpenFarm/db/schema/device";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
@@ -98,7 +101,22 @@ const after = (day: string, minutes: number) =>
 let endpoints = 0;
 const endpoint = () => {
   endpoints += 1;
-  return `https://push.example/${suffix}-${endpoints}`;
+  return `https://push.example.com/${suffix}-${endpoints}`;
+};
+
+/**
+ * Puts the farm's Alert watermark back to a chosen instant.
+ *
+ * The sweep deliberately only looks at what has gone late since it last looked, and that
+ * mark is the Farm's — one row, shared by every test file that sweeps. A file working in
+ * one fake year would otherwise carry it past a file working in another, and the second to
+ * run would find its own work behind the mark. Each test says where its own window starts.
+ */
+const sweepFrom = async (at: Date) => {
+  await scratchDb()
+    .update(farm)
+    .set({ alertsSweptFrom: at })
+    .where(eq(farm.id, TEST_FARM.id));
 };
 
 /** Work that has gone late, with nobody having been told yet. */
@@ -113,6 +131,7 @@ const lateWork = async (day: string) => {
   if (!instance) {
     throw new Error(`expected an instance on ${day}`);
   }
+  await sweepFrom(dueAtUtc(day));
   return { instance, clock };
 };
 
@@ -121,27 +140,29 @@ describe("agreeing to be told", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const mine = endpoint();
 
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
     });
     // Subscribing twice is one browser, not two.
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
     });
 
+    // The trail names the subscription, never the endpoint: a browser's address written
+    // where everyone who can read the trail can see it is an address anyone can write to.
     const trail = await manager.client.audit.list({
       entity: "push_subscription",
-      entityId: mine,
     });
     expect(trail.length).toBeGreaterThan(0);
+    expect(trail.some((row) => row.entityId === mine)).toBe(false);
 
-    await manager.client.alerts.stopListening({ endpoint: mine });
+    await manager.client.push.stopListening({ endpoint: mine });
     await expect(
-      manager.client.alerts.stopListening({ endpoint: mine })
+      manager.client.push.stopListening({ endpoint: mine })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -149,15 +170,231 @@ describe("agreeing to be told", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const staff = await createTestClient(appRouter, { as: "staff" });
     const theirs = endpoint();
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: theirs,
       p256dh: "key",
       auth: "secret",
     });
 
     await expect(
-      staff.client.alerts.stopListening({ endpoint: theirs })
+      staff.client.push.stopListening({ endpoint: theirs })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("review findings", () => {
+  it("will not let one person write over another's browser", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const staff = await createTestClient(appRouter, { as: "staff" });
+    const theirs = endpoint();
+    await manager.client.push.listen({
+      endpoint: theirs,
+      p256dh: "key",
+      auth: "secret",
+    });
+
+    // An endpoint is an address, not a secret. Taking one over would silently stop its
+    // owner being told — and leave the farm telling the wrong person its business.
+    await expect(
+      staff.client.push.listen({
+        endpoint: theirs,
+        p256dh: "mine",
+        auth: "mine",
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("will not be pointed at anything that is not a push service", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+
+    // The farm's own server is what does the POSTing, so an endpoint is somewhere this
+    // server can reach from inside. It has to be a push service on the open web.
+    const refused = await Promise.all(
+      [
+        "http://push.example.com/x",
+        "https://169.254.169.254/latest/meta-data",
+        "https://localhost/x",
+        "https://db.internal/x",
+      ].map(async (address) => {
+        try {
+          await manager.client.push.listen({
+            endpoint: address,
+            p256dh: "key",
+            auth: "secret",
+          });
+          return false;
+        } catch {
+          return true;
+        }
+      })
+    );
+    expect(refused).toEqual([true, true, true, true]);
+  });
+
+  it("stops telling a Shed Phone that has been revoked", async () => {
+    const post = listeningPost();
+    const clock = new FakeClock("2027-03-10T05:00:00.000Z");
+    const phone = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      onShedPhone: true,
+      push: post.transport,
+    });
+    const handset = endpoint();
+    await phone.client.push.listen({
+      endpoint: handset,
+      p256dh: "key",
+      auth: "secret",
+    });
+
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      push: post.transport,
+    });
+    await owner.client.devices.revoke({ id: "test-shed-phone" });
+
+    // A handset lost in a yard that kept receiving the farm's business would be the
+    // revocation not having happened at all.
+    const { instance, clock: late } = await lateWork("2027-03-11");
+    late.set(after("2027-03-11", 45));
+    const sweeper = await createTestClient(appRouter, {
+      as: "manager",
+      clock: late,
+      push: post.transport,
+    });
+    await sweeper.client.alerts.sweep();
+
+    expect(post.sent.some((one) => one.target.endpoint === handset)).toBe(
+      false
+    );
+    // The Alert itself still reaches them in the app.
+    const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
+    expect(inbox.length).toBeGreaterThan(0);
+
+    // The harness lends every test file the same Shed Phone, so this one puts it back.
+    await scratchDb()
+      .update(shedPhone)
+      .set({ revokedAt: null })
+      .where(eq(shedPhone.id, "test-shed-phone"));
+  });
+
+  it("tells the doer their work was sent back", async () => {
+    const post = listeningPost();
+    const { instance, clock } = await lateWork("2027-03-12");
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      push: post.transport,
+    });
+    const theirs = endpoint();
+    await staff.client.push.listen({
+      endpoint: theirs,
+      p256dh: "key",
+      auth: "secret",
+    });
+    await staff.client.instances.claim({ id: instance.id });
+    await staff.client.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "clean",
+      evidence: [true],
+    });
+    await staff.client.instances.complete({ id: instance.id });
+
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await manager.client.instances.sendBack({
+      id: instance.id,
+      reason: "কোণা বাকি",
+    });
+
+    // Work sent back is work somebody is waiting on: it reaches their pocket, not only the
+    // next time they happen to open the app.
+    expect(
+      post.sent.some(
+        (one) =>
+          one.target.endpoint === theirs &&
+          one.message.tag === `instance_sent_back:${instance.id}`
+      )
+    ).toBe(true);
+  });
+
+  it("tells one browser once, however many sweeps run", async () => {
+    const post = listeningPost();
+    const { instance, clock } = await lateWork("2027-03-13");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    const mine = endpoint();
+    await manager.client.push.listen({
+      endpoint: mine,
+      p256dh: "key",
+      auth: "secret",
+    });
+
+    clock.set(after("2027-03-13", 45));
+    const sweeper = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await sweeper.client.alerts.sweep();
+    await sweeper.client.alerts.sweep();
+
+    // The second sweep raises no Alert, so it taps no shoulder: a phone in a pocket should
+    // not buzz twice for one thing.
+    expect(
+      post.sent.filter(
+        (one) =>
+          one.target.endpoint === mine &&
+          one.message.tag === `instance_overdue:${instance.id}`
+      )
+    ).toHaveLength(1);
+  });
+
+  it("records against the Alert what became of telling somebody", async () => {
+    const post = listeningPost();
+    const { instance, clock } = await lateWork("2027-03-14");
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await manager.client.push.listen({
+      endpoint: endpoint(),
+      p256dh: "key",
+      auth: "secret",
+    });
+
+    clock.set(after("2027-03-14", 45));
+    const sweeper = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      push: post.transport,
+    });
+    await sweeper.client.alerts.sweep();
+
+    const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
+    const mine = inbox.find((row) => row.kind === "instance_overdue");
+    if (!mine) {
+      throw new Error("expected an alert");
+    }
+    const trail = await sweeper.client.audit.list({
+      entity: "alert",
+      entityId: mine.id,
+    });
+    // What became of telling this person about this thing, on this thing.
+    expect(
+      trail.some((row) => {
+        const said = row.after as { sent?: number; kind?: string } | null;
+        return said?.kind === "instance_overdue" && (said.sent ?? 0) > 0;
+      })
+    ).toBe(true);
   });
 });
 
@@ -171,7 +408,7 @@ describe("being told", () => {
       push: post.transport,
     });
     const mine = endpoint();
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: mine,
       p256dh: "key",
       auth: "secret",
@@ -213,7 +450,7 @@ describe("being told", () => {
       push: post.transport,
     });
     await manager.client.language.set({ language: "en" });
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: endpoint(),
       p256dh: "key",
       auth: "secret",
@@ -247,7 +484,7 @@ describe("being told", () => {
       push: post.transport,
     });
     const theirs = endpoint();
-    await owner.client.alerts.listen({
+    await owner.client.push.listen({
       endpoint: theirs,
       p256dh: "key",
       auth: "secret",
@@ -262,6 +499,12 @@ describe("being told", () => {
     await sweeper.client.alerts.sweep();
     // Nothing about *this* work: other Instances left open by earlier days are long past
     // their own escalation, and the Owner hears about those.
+    const early = post.sent.filter((one) => one.target.endpoint === theirs);
+    // biome-ignore lint: debug
+    console.log(
+      "DBG early",
+      early.map((one) => one.message.tag)
+    );
     expect(
       post.sent.some(
         (one) =>
@@ -297,7 +540,7 @@ describe("being told", () => {
       push: post.transport,
     });
     const wiped = endpoint();
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: wiped,
       p256dh: "key",
       auth: "secret",
@@ -315,7 +558,7 @@ describe("being told", () => {
     const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
     expect(inbox.length).toBeGreaterThan(0);
     await expect(
-      manager.client.alerts.stopListening({ endpoint: wiped })
+      manager.client.push.stopListening({ endpoint: wiped })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -329,7 +572,7 @@ describe("being told", () => {
       clock,
       push: broken,
     });
-    await manager.client.alerts.listen({
+    await manager.client.push.listen({
       endpoint: endpoint(),
       p256dh: "key",
       auth: "secret",

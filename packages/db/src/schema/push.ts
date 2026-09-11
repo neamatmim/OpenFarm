@@ -44,8 +44,9 @@ export const pushSubscription = pgTable(
     revokedAt: timestamp("revoked_at"),
   },
   (table) => [
-    /** One row per endpoint: a browser that subscribes twice is one browser. */
-    uniqueIndex("push_endpoint_uidx").on(table.endpoint),
+    /** One row per endpoint per Farm: a browser that subscribes twice is one browser, and
+     *  one Farm's rows are not another Farm's to write over. */
+    uniqueIndex("push_endpoint_uidx").on(table.farmId, table.endpoint),
     index("push_user_idx").on(table.farmId, table.userId, table.revokedAt),
   ]
 );

@@ -348,13 +348,9 @@ export const findPendingNotices = async (
   };
 };
 
-/**
- * Tells the farm about work that has gone late. Overdue reaches the Manager and whoever the
- * work is on; still open after the escalation window, it reaches the Owner too — one rung,
- * because there is nobody above the Owner. Nothing about the Instance changes, because being
- * late is a fact about the clock and not a state to be put into.
- */
 export interface RaisedAlert {
+  /** The Alert row itself, so what became of telling someone is recorded against it. */
+  id: string;
   kind: string;
   entity: string;
   entityId: string;
@@ -362,6 +358,12 @@ export interface RaisedAlert {
   userId: string;
 }
 
+/**
+ * Tells the farm about work that has gone late. Overdue reaches the Manager and whoever the
+ * work is on; still open after the escalation window, it reaches the Owner too — one rung,
+ * because there is nobody above the Owner. Nothing about the Instance changes, because being
+ * late is a fact about the clock and not a state to be put into.
+ */
 export const raiseLateAlerts = async (
   tx: Tx,
   farmId: string,
@@ -390,7 +392,7 @@ export const raiseLateAlerts = async (
     // oxlint-disable-next-line no-await-in-loop
     const told = [...new Set([...managers, ...onIt])];
     // oxlint-disable-next-line no-await-in-loop
-    overdue += await raiseAlerts(
+    const rows = await raiseAlerts(
       tx,
       farmId,
       told,
@@ -402,13 +404,14 @@ export const raiseLateAlerts = async (
       },
       now
     );
+    overdue += rows.length;
     raised.push(
-      ...told.map((userId) => ({
+      ...rows.map((row) => ({
+        ...row,
         kind: "instance_overdue",
         entity: "sop_instance",
         entityId: instance.id,
         params: alertParams(instance) as Record<string, unknown>,
-        userId,
       }))
     );
   }
@@ -419,7 +422,7 @@ export const raiseLateAlerts = async (
       minutesOverdue: minutesOverdue(instance, now),
     };
     // oxlint-disable-next-line no-await-in-loop
-    escalated += await raiseAlerts(
+    const rows = await raiseAlerts(
       tx,
       farmId,
       owners,
@@ -431,13 +434,14 @@ export const raiseLateAlerts = async (
       },
       now
     );
+    escalated += rows.length;
     raised.push(
-      ...owners.map((userId) => ({
+      ...rows.map((row) => ({
+        ...row,
         kind: "instance_escalated",
         entity: "sop_instance",
         entityId: instance.id,
         params: params as Record<string, unknown>,
-        userId,
       }))
     );
   }

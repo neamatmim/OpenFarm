@@ -11,6 +11,7 @@ import { instancesRouter } from "./instances";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
 import { peopleRouter } from "./people";
+import { pushRouter } from "./push";
 import { reviewRouter } from "./review";
 import { sopsRouter } from "./sops";
 import { syncRouter } from "./sync";
@@ -29,6 +30,7 @@ export const appRouter = {
   language: languageRouter,
   milk: milkRouter,
   people: peopleRouter,
+  push: pushRouter,
   review: reviewRouter,
   sops: sopsRouter,
   sync: syncRouter,

@@ -35,6 +35,7 @@ import type { Recorded } from "../completion-store";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { protectedProcedure } from "../index";
+import type { RaisedAlert } from "../instances-store";
 import {
   alertParams,
   animalsForInstance,
@@ -43,6 +44,7 @@ import {
   findLate,
   raiseDueInstances,
 } from "../instances-store";
+import { pushRaised } from "../push-send";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
@@ -535,6 +537,7 @@ export const instancesRouter = {
     .input(z.object({ id: z.string(), reason: reasonInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
+      let raised: RaisedAlert[] = [];
       await audited(context).write(
         {
           entity: "sop_instance",
@@ -553,7 +556,8 @@ export const instancesRouter = {
           // The people who did the work are the people who have to hear about it — and a
           // Step can be recorded without anyone having claimed the Instance, so whoever
           // actually recorded something counts as having done it.
-          await raiseAlerts(
+          const params = { ...alertParams(instance), reason: input.reason };
+          const rows = await raiseAlerts(
             tx,
             context.farm.id,
             await doersOf(tx, context.farm.id, instance),
@@ -561,12 +565,23 @@ export const instancesRouter = {
               kind: "instance_sent_back",
               entity: "sop_instance",
               entityId: input.id,
-              params: { ...alertParams(instance), reason: input.reason },
+              params,
             },
             now
           );
+          raised = rows.map((row) => ({
+            ...row,
+            kind: "instance_sent_back",
+            entity: "sop_instance",
+            entityId: input.id,
+            params,
+          }));
         }
       );
+      // The doer hears about it in their pocket, not only the next time they open the app:
+      // work sent back is work somebody is waiting on (notification table, ticket 23). Sent
+      // after the Instance is safely sent back, and never inside that transaction.
+      await pushRaised(context, raised, now);
       return { id: input.id, state: "sent_back" } as const;
     }),
 

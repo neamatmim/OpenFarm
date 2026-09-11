@@ -74,10 +74,10 @@ export const raiseAlerts = async (
   userIds: readonly string[],
   notice: AlertToRaise,
   now: Date
-): Promise<number> => {
+): Promise<{ id: string; userId: string }[]> => {
   const recipients = [...new Set(userIds)].filter(Boolean);
   if (recipients.length === 0) {
-    return 0;
+    return [];
   }
   const raised = await tx
     .insert(alert)
@@ -94,8 +94,11 @@ export const raiseAlerts = async (
       }))
     )
     .onConflictDoNothing()
-    .returning({ id: alert.id });
-  return raised.length;
+    // Only what was actually written. Two sweeps running at once — the phone and the
+    // office, which is exactly what this system expects — must not both go on to tell
+    // somebody the same thing.
+    .returning({ id: alert.id, userId: alert.userId });
+  return raised;
 };
 
 /**

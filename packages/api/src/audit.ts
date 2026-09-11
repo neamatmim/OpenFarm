@@ -74,8 +74,8 @@ export const audited = (
     tx: Tx,
     event: AuditedWrite,
     {
-      before = null,
-      after = null,
+      before,
+      after,
       eventId,
       receivedAt,
     }: {
@@ -87,6 +87,12 @@ export const audited = (
   ): Promise<string> => {
     const at = receivedAt ?? context.clock.now();
     const id = eventId ?? uuidv7(at);
+    // The event's own snapshots, unless the caller has already read them. `write` reads
+    // them around `apply`; here there is nothing to read around, so whatever the event
+    // carries is what happened — and dropping it would leave a trail entry that records
+    // that something occurred without recording what.
+    const said = before ?? (await resolve(tx, event.before));
+    const happened = after ?? (await resolve(tx, event.after));
     await tx.insert(auditEvent).values({
       id,
       farmId,
@@ -102,8 +108,8 @@ export const audited = (
       deviceSeq: event.device?.seq ?? null,
       recordedAt: event.recordedAt ?? at,
       receivedAt: at,
-      before,
-      after,
+      before: said,
+      after: happened,
       reason: event.reason ?? null,
       supersedesId: event.supersedesId ?? null,
     });

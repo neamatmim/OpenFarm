@@ -22,6 +22,7 @@ import {
   touchActiveUser,
 } from "@/lib/device";
 import { phoneOutbox } from "@/lib/outbox-client";
+import { currentListener } from "@/lib/push";
 import { orpc } from "@/utils/orpc";
 
 const PIN_LENGTH = 4;
@@ -97,6 +98,7 @@ const DevicePage = () => {
   }, []);
 
   const switchUser = useMutation(orpc.devices.switchUser.mutationOptions({}));
+  const listenAgain = useMutation(orpc.push.listen.mutationOptions({}));
 
   const submitPin = useCallback(
     async (entry: RosterEntry, typed: string) => {
@@ -125,9 +127,20 @@ const DevicePage = () => {
       });
       // Somebody is signed in again, so whatever the Outbox stopped holding back can go.
       await phoneOutbox()?.resume();
+      // And this handset now speaks for them: leaving its subscription under whoever last
+      // held it would send one milker's work to the next one's pocket (ADR 0003).
+      const browser = await currentListener();
+      if (browser) {
+        try {
+          await listenAgain.mutateAsync(browser);
+        } catch {
+          // No signal, or this browser is not listening. Either way the Alert is still in
+          // the app, and nobody needs telling about it.
+        }
+      }
       setChosen(null);
     },
-    [switchUser, t]
+    [switchUser, listenAgain, t]
   );
 
   if (!token) {

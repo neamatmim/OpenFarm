@@ -74,6 +74,9 @@ export interface Context {
   /** How a notice leaves the farm. Injected so the tests can watch it and development can
    *  run silent (ticket 14). */
   push: PushTransport;
+  /** The public half of the farm's push keys — the part a browser needs and anyone may see.
+   *  Carried here so no router has to reach into the server's secrets to find it. */
+  pushKey: string | null;
 }
 
 let productionPush: PushTransport | undefined;
@@ -164,6 +167,7 @@ export const buildContext = async ({
   clock,
   db,
   push = silentTransport,
+  pushKey = null,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
@@ -171,6 +175,7 @@ export const buildContext = async ({
   clock: Clock;
   db: Database;
   push?: PushTransport;
+  pushKey?: string | null;
 }): Promise<Context> => {
   const base = {
     auth: null,
@@ -178,6 +183,7 @@ export const buildContext = async ({
     clock,
     db,
     push,
+    pushKey,
     roleUsed: null,
     deviceStatus,
   } as const;
@@ -237,11 +243,13 @@ export const createContext = async ({
   clock = systemClock,
   db = defaultDb(),
   push = defaultPush(),
+  pushKey = env.VAPID_PUBLIC_KEY ?? null,
 }: {
   req: Request;
   clock?: Clock;
   db?: Database;
   push?: PushTransport;
+  pushKey?: string | null;
 }): Promise<Context> => {
   const token = req.headers.get(DEVICE_TOKEN_HEADER);
   if (token) {
@@ -257,6 +265,7 @@ export const createContext = async ({
       clock,
       db,
       push,
+      pushKey,
     });
   }
   return buildContext({
@@ -264,5 +273,6 @@ export const createContext = async ({
     clock,
     db,
     push,
+    pushKey,
   });
 };
