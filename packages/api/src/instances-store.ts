@@ -761,3 +761,61 @@ export const postDueAt = (
     ? null
     : new Date(from.getTime() - 24 * 60 * MINUTE_MS + yesterday * MINUTE_MS);
 };
+
+/** Entries the system could not settle on its own, oldest first. Asked the same way by
+ *  every screen that shows them, so "needing a decision" cannot mean two things. */
+export const openReviews = (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  limit: number
+) =>
+  db.query.needsReview.findMany({
+    where: { farmId, resolvedAt: { isNull: true } },
+    columns: { id: true, entity: true, entityId: true, reason: true },
+    orderBy: { raisedAt: "asc" },
+    limit,
+  });
+
+/** Cows whose milk may not go to the tank, soonest to come off first — a Withdrawal ending
+ *  is the one anybody has to plan around. */
+export const heldByWithdrawal = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  now: Date
+) => {
+  const held = await db.query.animal.findMany({
+    where: { farmId, milkWithdrawalUntil: { gt: now } },
+    columns: {
+      id: true,
+      tagNumber: true,
+      state: true,
+      penId: true,
+      milkWithdrawalUntil: true,
+    },
+  });
+  return held
+    .filter((beast) => isOnTheFarm(beast))
+    .toSorted(
+      (a, b) =>
+        (a.milkWithdrawalUntil?.getTime() ?? 0) -
+        (b.milkWithdrawalUntil?.getTime() ?? 0)
+    );
+};
+
+/** Every piece of work the farm's day holds, done or not. */
+export const daysWork = (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  now: Date
+) => {
+  const { from, to } = farmDayRange(now);
+  return db.query.sopInstance.findMany({
+    where: { farmId, dueAt: { gte: from, lt: to } },
+    columns: { id: true, penId: true, state: true },
+  });
+};
+
+/** Is this piece of work finished, as far as the farm is concerned? Missed is settled but
+ *  not finished: somebody decided it would not happen, and said why. */
+export const isFinished = (state: string): boolean =>
+  state === "completed" || state === "approved";

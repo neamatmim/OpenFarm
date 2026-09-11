@@ -128,3 +128,20 @@ export const lactationView = (
   underMilkWithdrawal: underMilkWithdrawal(animal, now),
   milkWithdrawalUntil: animal.milkWithdrawalUntil,
 });
+
+/**
+ * What a set of Milk Records sent to one Destination, in the litres the record keeps.
+ *
+ * Summed here rather than at each screen, so the Owner's tile and the Manager's report
+ * cannot disagree about what reached the tank — and so "to Bulk" means the same thing
+ * everywhere it is asked.
+ */
+export const litresTo = (
+  destination: MilkDestination,
+  records: readonly { litres: string | number; destination: string }[]
+): number =>
+  roundLitres(
+    records
+      .filter((record) => record.destination === destination)
+      .reduce((total, record) => total + Number(record.litres), 0)
+  );

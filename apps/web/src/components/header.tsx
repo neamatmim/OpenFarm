@@ -23,6 +23,9 @@ const Header = () => {
     ...(session ? [{ to: "/today", label: t("nav.today") }] : []),
     ...(session ? [{ to: "/animals", label: t("nav.animals") }] : []),
     ...(session ? [{ to: "/settings", label: t("nav.settings") }] : []),
+    // The Owner's own screen, and only the Owner's: a Manager sent there is sent to a
+    // refusal.
+    ...(roles.includes("owner") ? [{ to: "/farm", label: t("nav.farm") }] : []),
     ...(runsTheFarm
       ? [
           { to: "/home", label: t("nav.theDay") },

@@ -50,11 +50,15 @@ const ManagerHome = () => {
     )
   );
 
-  if (home.isError) {
-    return <p className="p-6">{t("common.error")}</p>;
-  }
+  // Cached first, error second. A phone with no signal has the farm as it last knew it,
+  // and a screen that throws that away to show the word "error" has taken away the only
+  // thing it had — the sync banner above already says how old it is.
   if (!home.data) {
-    return <p className="p-6">{t("common.loading")}</p>;
+    return (
+      <p className="p-6">
+        {home.isError ? t("common.error") : t("common.loading")}
+      </p>
+    );
   }
   const { queue, pens } = home.data;
   const waiting =

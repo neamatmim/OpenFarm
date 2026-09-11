@@ -28,6 +28,7 @@ export {
   destinationFor,
   lactationView,
   reconcile,
+  litresTo,
   roundLitres,
   underMilkWithdrawal,
 } from "./milk";

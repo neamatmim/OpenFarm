@@ -448,6 +448,24 @@ export const sopsRouter = {
             proposedByRole: context.roleUsed,
             createdAt: now,
           });
+          // The Owner is the only person who can answer a proposal, so the Owner is who is
+          // told. In the digest: a suggested change to the Playbook is not something to
+          // wake anybody for (notification channels).
+          await raiseAlerts(
+            tx,
+            context.farm.id,
+            await holdersOf(tx, context.farm.id, ["owner"]),
+            {
+              kind: "sop_proposed",
+              entity: "sop_proposal",
+              entityId: id,
+              params: {
+                sopBn: input.content.name.bn,
+                sopEn: input.content.name.en ?? input.content.name.bn,
+              },
+            },
+            now
+          );
         }
       );
       return { id, status: "pending" } as const;
