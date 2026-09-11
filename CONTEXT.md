@@ -150,7 +150,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Feed Item**: Something the Farm feeds, tracked in a unit (kg by default). Home-grown fodder is a Feed Item too. _Avoid_: Ingredient, feed type, commodity
 
-**Ration**: A named, versioned list of Feed Items with kg per animal per day, assigned to a Pen. _Avoid_: Diet, feeding plan, formula
+**Ration**: A named, versioned list of Feed Items with kg per animal per day. Pens are put on one; several Pens may share it, and changing it is one change. _Avoid_: Diet, feeding plan, formula
+
+**Feeding Target**: What one session of feeding calls for in one Pen — the Ration in force, times the animals standing there, divided by how often they are fed. Worked out, never typed. Not a **Target Window**, which is Fattening's date range. _Avoid_: Quota, allowance, plan
 
 **Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, plus any leftover note. Consumes Stock. _Avoid_: Feed log, feed entry
 

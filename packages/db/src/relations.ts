@@ -41,6 +41,32 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     fromPen: r.one.pen({ from: r.animalMove.fromPenId, to: r.pen.id }),
   },
+  penRation: {
+    pen: r.one.pen({ from: r.penRation.penId, to: r.pen.id, optional: false }),
+    ration: r.one.ration({
+      from: r.penRation.rationId,
+      to: r.ration.id,
+      optional: false,
+    }),
+  },
+  ration: {
+    pens: r.many.penRation({ from: r.ration.id, to: r.penRation.rationId }),
+    versions: r.many.rationVersion({
+      from: r.ration.id,
+      to: r.rationVersion.rationId,
+    }),
+    currentVersion: r.one.rationVersion({
+      from: r.ration.currentVersionId,
+      to: r.rationVersion.id,
+    }),
+  },
+  rationVersion: {
+    ration: r.one.ration({
+      from: r.rationVersion.rationId,
+      to: r.ration.id,
+      optional: false,
+    }),
+  },
   sopDefinition: {
     versions: r.many.sopVersion({
       from: r.sopDefinition.id,
