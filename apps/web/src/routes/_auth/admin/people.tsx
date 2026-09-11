@@ -160,7 +160,7 @@ const TrainedOn = ({ userId }: { userId: string }) => {
     <ul className="text-muted-foreground space-y-1 text-sm">
       {training.map((row) => (
         <li key={row.id}>
-          {row.name.bn} ·{" "}
+          {row.sopName.bn} ·{" "}
           {t("training.on", {
             number: row.versionNumber,
             date: formatDate(new Date(row.trainedAt), language, "date"),

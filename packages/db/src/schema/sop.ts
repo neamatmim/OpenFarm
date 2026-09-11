@@ -121,7 +121,8 @@ export const sopTraining = pgTable(
   },
   (table) => [
     index("sop_training_person_idx").on(table.farmId, table.userId),
-    /** Teaching somebody the same Version twice on the same day is one fact, not two. */
+    /** Taught one Version once. Being taught it again changes nothing anybody can point
+     *  at — what they were taught, and when they first were, is already written down. */
     uniqueIndex("sop_training_once_uidx").on(table.versionId, table.userId),
   ]
 );

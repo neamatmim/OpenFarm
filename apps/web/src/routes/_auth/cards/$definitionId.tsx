@@ -1,4 +1,4 @@
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -7,6 +7,17 @@ import { toast } from "sonner";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
+
+/** Everything printed on a card is in the language the shed reads. */
+const CARD_LANGUAGE = "bn" as const;
+type CardKey = Parameters<typeof translate>[1];
+type CardParams = Parameters<typeof translate>[2];
+const onTheWall = (key: CardKey, params?: CardParams) =>
+  translate(CARD_LANGUAGE, key, params);
+
+/** Past this many Steps the card tightens up rather than running onto a second sheet, which
+ *  is half a card by the time anybody reads it. */
+const STEPS_BEFORE_TIGHTENING = 8;
 
 /**
  * The SOP Card: one page, in Bangla, for the shed wall.
@@ -18,8 +29,9 @@ import { orpc } from "@/utils/orpc";
  */
 const CardPage = () => {
   const { definitionId } = Route.useParams();
-  const t = useT();
-  const { language } = useLanguage();
+  // The card goes on a shed wall, so it is Bangla whoever printed it — including a Manager
+  // whose own app is in English. The people who read it off the wall read Bangla.
+  const t = onTheWall;
   const card = useQuery(
     orpc.sops.card.queryOptions({ input: { definitionId } })
   );
@@ -31,13 +43,20 @@ const CardPage = () => {
   const times = triggers.flatMap((trigger) =>
     trigger.kind === "schedule" ? trigger.times : []
   );
+  const tight = steps.length > STEPS_BEFORE_TIGHTENING;
 
   return (
-    <div className="mx-auto max-w-[210mm] space-y-4 p-6 print:p-0">
+    <div className="mx-auto max-w-[210mm] space-y-4 p-6 print:p-0" id="sop-card">
       {/* One A4 page: the card is for a wall, not a screen, and a card that runs onto a
           second sheet is half a card by the time somebody reads it. */}
       <style>{`@page { size: A4; margin: 12mm }
-        @media print { .no-print { display: none } body { font-size: 12pt } }`}</style>
+        @media print {
+          body * { visibility: hidden }
+          #sop-card, #sop-card * { visibility: visible }
+          #sop-card { position: absolute; inset: 0 }
+          .no-print { display: none }
+          body { font-size: ${tight ? "10pt" : "12pt"} }
+        }`}</style>
 
       <div className="no-print flex justify-end">
         <Button onClick={() => window.print()} type="button" variant="outline">
@@ -50,7 +69,7 @@ const CardPage = () => {
         <p className="text-muted-foreground text-sm">
           {t("card.version", {
             number,
-            date: formatDate(new Date(publishedAt), language, "date"),
+            date: formatDate(new Date(publishedAt), CARD_LANGUAGE, "date"),
           })}
         </p>
       </header>
@@ -73,10 +92,12 @@ const CardPage = () => {
 
       <TrainedOn definitionId={definitionId} versionId={card.data.versionId} />
 
-      <ol className="space-y-3">
+      <ol className={tight ? "columns-2 gap-6 space-y-2 text-sm" : "space-y-3"}>
         {steps.map((step, index) => (
           <li className="flex gap-3 border-b pb-3" key={step.id}>
-            <span className="text-lg font-semibold">{index + 1}</span>
+            <span className="text-lg font-semibold">
+              {formatDigits(index + 1, CARD_LANGUAGE)}
+            </span>
             <div className="space-y-1">
               <p className="text-lg">{step.text.bn}</p>
               <p className="text-muted-foreground text-sm">
@@ -138,7 +159,7 @@ const TrainedOn = ({
         <ul className="space-y-1 text-sm">
           {trained.data.map((row) => (
             <li className="text-muted-foreground" key={row.id}>
-              {row.name} ·{" "}
+              {row.personName} ·{" "}
               {t("training.on", {
                 number: row.versionNumber,
                 date: formatDate(new Date(row.trainedAt), language, "date"),
@@ -179,6 +200,6 @@ const TrainedOn = ({
   );
 };
 
-export const Route = createFileRoute("/_auth/admin/sops/$definitionId/card")({
+export const Route = createFileRoute("/_auth/cards/$definitionId")({
   component: CardPage,
 });

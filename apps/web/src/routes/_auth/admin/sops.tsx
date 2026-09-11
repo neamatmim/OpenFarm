@@ -178,7 +178,7 @@ const SopsPage = () => {
                     <Link
                       className="text-sm underline"
                       params={{ definitionId: sop.id }}
-                      to="/admin/sops/$definitionId/card"
+                      to="/cards/$definitionId"
                     >
                       {t("nav.card")}
                     </Link>

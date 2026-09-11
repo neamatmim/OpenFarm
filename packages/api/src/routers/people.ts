@@ -42,6 +42,15 @@ const grantInvite = async (
   }
 };
 
+/** One teaching, as a person's row shows it. */
+export interface TaughtOnce {
+  id: string;
+  definitionId: string;
+  versionNumber: number;
+  sopName: { bn: string; en?: string };
+  trainedAt: Date;
+}
+
 export const peopleRouter = {
   /** Who am I on this Farm. */
   me: protectedProcedure.handler(({ context }) => ({
@@ -88,10 +97,29 @@ export const peopleRouter = {
         }),
       ]);
       const knownEmails = new Set(people.map((p) => p.email));
+      // What everybody has been taught, in one question rather than one per person.
+      const taught = await context.db.query.sopTraining.findMany({
+        where: { farmId },
+        orderBy: { trainedAt: "desc" },
+        with: { version: { columns: { number: true, content: true } } },
+      });
+      const theirTraining = new Map<string, TaughtOnce[]>();
+      for (const row of taught) {
+        const forThem = theirTraining.get(row.userId) ?? [];
+        forThem.push({
+          id: row.id,
+          definitionId: row.definitionId,
+          versionNumber: row.version.number,
+          sopName: (row.version.content as SopContent).name,
+          trainedAt: row.trainedAt,
+        });
+        theirTraining.set(row.userId, forThem);
+      }
       return {
         people: people.map((p) => ({
           ...p,
           roles: p.roles.map((r) => r.role),
+          training: theirTraining.get(p.id) ?? [],
         })),
         pendingInvites: pending,
         /** Approved, but the person has not signed up yet — Roles are granted when they do. */
@@ -100,13 +128,19 @@ export const peopleRouter = {
     }),
 
   /** Owner invites anyone with any Roles (approved at once); Manager invites Staff (pending). */
-  /** One person, and what they have been taught. The Manager's answer to "did they know
-   *  this procedure on the day", which is a question that only gets asked after something
-   *  has gone wrong. */
+  /** One person of this farm, and what they have been taught. Anybody may ask about
+   *  themselves — the person who has to follow a procedure should be able to see when they
+   *  were taught it — and the Manager may ask about anybody who works here. */
   get: protectedProcedure
-    .use(requireRole("owner", "manager"))
+    .use(requireRole("owner", "manager", "staff", "vet"))
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
+      const aboutThemselves = input.userId === context.actor.id;
+      const runsTheFarm =
+        context.roleUsed === "owner" || context.roleUsed === "manager";
+      if (!(aboutThemselves || runsTheFarm)) {
+        throw new ORPCError("FORBIDDEN");
+      }
       const person = await context.db.query.user.findFirst({
         where: { id: input.userId },
         columns: { id: true, name: true, email: true, disabledAt: true },
@@ -117,14 +151,17 @@ export const peopleRouter = {
           },
         },
       });
-      if (!person) {
+      // Somebody with no Role here is not this farm's business to talk about.
+      if (!person || person.roles.length === 0) {
         throw new ORPCError("NOT_FOUND", { message: "No such person" });
       }
       const training = await context.db.query.sopTraining.findMany({
         where: { farmId: context.farm.id, userId: input.userId },
         orderBy: { trainedAt: "desc" },
         with: {
-          version: { columns: { number: true, content: true } },
+          version: {
+            columns: { number: true, content: true, publishedAt: true },
+          },
         },
       });
       return {
@@ -133,7 +170,8 @@ export const peopleRouter = {
         training: training.map(({ version, ...row }) => ({
           ...row,
           versionNumber: version.number,
-          name: (version.content as SopContent).name,
+          versionPublishedAt: version.publishedAt,
+          sopName: (version.content as SopContent).name,
         })),
       };
     }),
