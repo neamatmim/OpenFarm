@@ -90,3 +90,39 @@ export const sopProposal = pgTable(
   },
   (table) => [index("sop_proposal_status_idx").on(table.farmId, table.status)]
 );
+
+/**
+ * That a person was taught one Version of one SOP, on a day, by somebody.
+ *
+ * Append-only: the farm records what was taught, not a flag saying somebody is trained. A
+ * Version published afterwards does not untrain anybody, and training on the new one does
+ * not erase what they were taught before — "who knew which procedure on any date" is a
+ * question about the past, and the past does not change.
+ */
+export const sopTraining = pgTable(
+  "sop_training",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    definitionId: text("definition_id")
+      .notNull()
+      .references(() => sopDefinition.id, { onDelete: "cascade" }),
+    versionId: text("version_id")
+      .notNull()
+      .references(() => sopVersion.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    trainedBy: text("trained_by").references(() => user.id),
+    trainedByRole: text("trained_by_role", { enum: ROLES }),
+    trainedAt: timestamp("trained_at").notNull(),
+  },
+  (table) => [
+    index("sop_training_person_idx").on(table.farmId, table.userId),
+    /** Taught one Version once. Being taught it again changes nothing anybody can point
+     *  at — what they were taught, and when they first were, is already written down. */
+    uniqueIndex("sop_training_once_uidx").on(table.versionId, table.userId),
+  ]
+);

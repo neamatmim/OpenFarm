@@ -17,7 +17,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -174,13 +174,24 @@ const SopsPage = () => {
                   </p>
                 </div>
                 {content ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDraft({ content, definitionId: sop.id })}
-                  >
-                    {isOwner ? t("sop.edit") : t("sop.propose")}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      className="text-sm underline"
+                      params={{ definitionId: sop.id }}
+                      to="/cards/$definitionId"
+                    >
+                      {t("nav.card")}
+                    </Link>
+                    <Button
+                      onClick={() =>
+                        setDraft({ content, definitionId: sop.id })
+                      }
+                      size="sm"
+                      variant="outline"
+                    >
+                      {isOwner ? t("sop.edit") : t("sop.propose")}
+                    </Button>
+                  </div>
                 ) : null}
               </li>
             );
@@ -279,7 +290,11 @@ const TriggerFields = ({
               replace(
                 index,
                 e.target.value === "event"
-                  ? { kind: "event", event: "move", offsetDays: happening.offsetDays }
+                  ? {
+                      kind: "event",
+                      event: "move",
+                      offsetDays: happening.offsetDays,
+                    }
                   : {
                       kind: "state",
                       state: "dry",

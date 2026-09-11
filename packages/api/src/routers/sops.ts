@@ -1,8 +1,10 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
+import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import {
   sopDefinition,
   sopProposal,
+  sopTraining,
   sopVersion,
 } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
@@ -231,6 +233,161 @@ export const sopsRouter = {
     }),
 
   /** A Manager's suggested change. It changes nothing until the Owner approves it. */
+  /**
+   * The SOP Card: the published Version as it goes on the shed wall — what it is for, the
+   * Steps in order, and what each one records. It names its own Version and the day it was
+   * published, so a card somebody printed in March can be checked against the Playbook
+   * rather than trusted.
+   */
+  card: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .input(z.object({ definitionId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const definition = await context.db.query.sopDefinition.findFirst({
+        where: { id: input.definitionId, farmId: context.farm.id },
+        with: { currentVersion: true },
+      });
+      if (!definition?.currentVersion) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "That SOP has no published version yet",
+        });
+      }
+      const content = definition.currentVersion.content as SopContent;
+      return {
+        definitionId: definition.id,
+        versionId: definition.currentVersion.id,
+        number: definition.currentVersion.number,
+        publishedAt: definition.currentVersion.publishedAt,
+        name: content.name,
+        purpose: content.purpose,
+        assignedRole: content.assignedRole,
+        triggers: content.triggers,
+        steps: content.steps,
+      };
+    }),
+
+  /**
+   * Who has been taught what, for one SOP. `asOf` answers the question the farm actually
+   * asks — "did they know this procedure on the day it went wrong" — by cutting the list at
+   * that date and saying which Version was in force by then.
+   */
+  training: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        definitionId: z.string(),
+        asOf: z.coerce.date().optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.sopTraining.findMany({
+        where: {
+          farmId: context.farm.id,
+          definitionId: input.definitionId,
+          ...(input.asOf ? { trainedAt: { lte: input.asOf } } : {}),
+        },
+        orderBy: { trainedAt: "desc" },
+        with: {
+          version: { columns: { number: true, publishedAt: true } },
+          person: { columns: { name: true } },
+        },
+      });
+      return rows.map(({ version, person, ...row }) => ({
+        ...row,
+        versionNumber: version.number,
+        versionPublishedAt: version.publishedAt,
+        personName: person?.name ?? null,
+      }));
+    }),
+
+  /**
+   * Records that a person was taught this Version. Never a flag: the farm keeps what was
+   * taught and when, so "who knew which procedure" can be answered for any date, including
+   * the day something went wrong.
+   */
+  recordTraining: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ userId: z.string(), versionId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const version = await context.db.query.sopVersion.findFirst({
+        where: { id: input.versionId, farmId: context.farm.id },
+        columns: { id: true, definitionId: true, number: true },
+      });
+      if (!version) {
+        throw new ORPCError("NOT_FOUND", { message: "No such version" });
+      }
+      // Somebody on this farm, and not somebody it has let go: training is a fact about the
+      // people who do the work here.
+      const person = await context.db.query.user.findFirst({
+        where: { id: input.userId },
+        columns: { id: true, disabledAt: true },
+      });
+      const roles = await context.db.query.roleAssignment.findMany({
+        where: {
+          farmId: context.farm.id,
+          userId: input.userId,
+          ...ACTIVE_ROLE,
+        },
+        columns: { role: true },
+      });
+      if (!person || person.disabledAt || roles.length === 0) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "That is not somebody who works on this farm",
+        });
+      }
+      // Already taught this Version: nothing changed, so nothing is written — least of all
+      // an Audit Event saying something did.
+      const already = await context.db.query.sopTraining.findFirst({
+        where: { versionId: version.id, userId: input.userId },
+        columns: { id: true },
+      });
+      if (already) {
+        return { id: already.id, versionNumber: version.number, taught: false };
+      }
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "sop_training",
+          entityId: id,
+          action: "create",
+          after: async (tx) => {
+            const row = await tx.query.sopTraining.findFirst({
+              where: { id },
+              columns: { userId: true, versionId: true, trainedAt: true },
+            });
+            return row ?? null;
+          },
+        },
+        async (tx) => {
+          const [saved] = await tx
+            .insert(sopTraining)
+            .values({
+              id,
+              farmId: context.farm.id,
+              definitionId: version.definitionId,
+              versionId: version.id,
+              userId: input.userId,
+              trainedBy: context.actor.id,
+              trainedByRole: context.roleUsed,
+              trainedAt: now,
+            })
+            // Two Managers marking the same person at once: the second finds it written.
+            .onConflictDoNothing()
+            .returning({ id: sopTraining.id });
+          if (!saved) {
+            throw new ORPCError("CONFLICT", {
+              message:
+                "That person was already marked as trained on this version",
+            });
+          }
+        }
+      );
+      return { id, versionNumber: version.number, taught: true };
+    }),
+
+  /** A Manager's suggested change, waiting for the Owner. Approving it publishes a Version. */
   propose: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
