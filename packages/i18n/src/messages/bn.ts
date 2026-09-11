@@ -402,6 +402,8 @@ export const bn: Record<MessageKey, string> = {
   "outbox.discard": "এটি সম্পন্ন",
   "outbox.entered": "যা লেখা হয়েছিল",
   "outbox.open": "দেখুন",
+  "push.digestTitle": "আজকের খবর",
+  "push.digestBody": "{count}টি বিষয় অপেক্ষা করছে",
   "push.overdueTitle": "কাজ দেরি হয়েছে",
   "push.escalatedTitle": "এখনো হয়নি",
   "push.sentBackTitle": "আপনাকে ফেরত পাঠানো হয়েছে",

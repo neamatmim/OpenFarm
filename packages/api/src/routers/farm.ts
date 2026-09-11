@@ -16,6 +16,9 @@ const parameters = z
      *  is asked to look. */
     milkTolerancePercent: z.number().int().min(0).max(100).optional(),
     feedTolerancePercent: z.number().int().min(0).max(100).optional(),
+    digestTimes: z.array(z.string().trim()).min(1).max(6).optional(),
+    quietFrom: z.string().trim().optional(),
+    quietUntil: z.string().trim().optional(),
     /** How long an Overdue Instance may stay open before the Owner is told as well. */
     escalationMinutes: z
       .number()
@@ -43,6 +46,9 @@ const BOOTSTRAP_LOCK = 7001;
 
 /** First-run setup: the signed-in person names the Farm and becomes its Owner.
  *  Refused once a Farm exists — after that, people arrive by invitation. */
+/** "HH:MM" on the farm's own clock, which is what every time of day here is. */
+const TIME_OF_DAY = /^(?<hour>[01]\d|2[0-3]):[0-5]\d$/u;
+
 export const farmRouter = {
   bootstrap: protectedProcedure
     .input(z.object({ name: z.string().trim().min(1) }))
@@ -97,6 +103,26 @@ export const farmRouter = {
     .input(parameters)
     .handler(async ({ context, input }) => {
       const changes: Partial<typeof farm.$inferInsert> = {};
+      for (const time of [
+        ...(input.digestTimes ?? []),
+        input.quietFrom,
+        input.quietUntil,
+      ]) {
+        if (time !== undefined && !TIME_OF_DAY.test(time)) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `"${time}" is not a time of day`,
+          });
+        }
+      }
+      if (input.digestTimes !== undefined) {
+        changes.digestTimes = input.digestTimes;
+      }
+      if (input.quietFrom !== undefined) {
+        changes.quietFrom = input.quietFrom;
+      }
+      if (input.quietUntil !== undefined) {
+        changes.quietUntil = input.quietUntil;
+      }
       if (input.feedTolerancePercent !== undefined) {
         changes.feedTolerancePercent = input.feedTolerancePercent;
       }
@@ -123,6 +149,9 @@ export const farmRouter = {
               columns: {
                 milkTolerancePercent: true,
                 feedTolerancePercent: true,
+                digestTimes: true,
+                quietFrom: true,
+                quietUntil: true,
                 escalationMinutes: true,
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,

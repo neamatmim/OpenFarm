@@ -21,6 +21,14 @@ export const farm = pgTable("farm", {
   /** How far under its Feeding Target a Pen may come before the farm says so. Feed is
    *  weighed by eye more often than by scale, so this is wider than the milk tolerance. */
   feedTolerancePercent: integer("feed_tolerance_percent").notNull().default(10),
+  /** When the day's quieter notices are carried, on the farm's own clock. */
+  digestTimes: text("digest_times")
+    .array()
+    .notNull()
+    .default(["06:00", "18:00"]),
+  /** The farm is asleep between these, and nothing that can wait buzzes a phone. */
+  quietFrom: text("quiet_from").notNull().default("22:00"),
+  quietUntil: text("quiet_until").notNull().default("05:00"),
   /** How long an Overdue Instance may stay open before the Owner is told as well. */
   escalationMinutes: integer("escalation_minutes").notNull().default(120),
   /** How long after making an entry each Role may still put it right. The Owner and the Vet

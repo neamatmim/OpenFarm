@@ -33,6 +33,7 @@ const TodayPage = () => {
   const queryClient = useQueryClient();
   const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
   const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
+  const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
   const work = useQuery(orpc.instances.today.queryOptions({ input: {} }));
   const statusOf = useStatusLabel();
 
@@ -41,11 +42,16 @@ const TodayPage = () => {
   // and harmless when the phone has no signal.
   const raise = ensureDue.mutateAsync;
   const tell = sweep.mutateAsync;
+  const carry = digest.mutateAsync;
   useEffect(() => {
     const run = async () => {
       try {
         await raise();
         await tell();
+        // And the quieter notices, if a digest time has come round. Whoever opens the app
+        // first carries the farm's post; a timer on the deploy host can do it as well, and
+        // neither is troubled by the other doing it first.
+        await carry();
         await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
         await queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
       } catch {
@@ -53,7 +59,7 @@ const TodayPage = () => {
       }
     };
     void run();
-  }, [raise, tell, queryClient]);
+  }, [raise, tell, carry, queryClient]);
 
   return (
     <div className="container mx-auto max-w-xl space-y-4 px-4 py-6">

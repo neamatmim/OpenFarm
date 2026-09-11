@@ -1,6 +1,9 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
+import { alert } from "@OpenFarm/db/schema/alert";
 import { pushSubscription } from "@OpenFarm/db/schema/push";
+import { waitsForTheDigest } from "@OpenFarm/domain";
+import { translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -95,7 +98,7 @@ export const pushAlerts = async (
   const listeners = await listenersFor(
     tx,
     farmId,
-    alerts.map((alert) => alert.userId)
+    alerts.map((one) => one.userId)
   );
   const byUser = new Map<string, typeof listeners>();
   for (const listener of listeners) {
@@ -105,14 +108,14 @@ export const pushAlerts = async (
     ]);
   }
   const told: Told = { sent: 0, gone: 0, missed: 0 };
-  for (const alert of alerts) {
-    if (!travelsByPush(alert.kind)) {
+  for (const notice of alerts) {
+    if (!travelsByPush(notice.kind)) {
       // The notification table puts this one in a digest, not in somebody's pocket.
       continue;
     }
     const forThis: Told = { sent: 0, gone: 0, missed: 0 };
-    for (const listener of byUser.get(alert.userId) ?? []) {
-      const message: PushMessage = messageFor(alert, listener.owner.language);
+    for (const listener of byUser.get(notice.userId) ?? []) {
+      const message: PushMessage = messageFor(notice, listener.owner.language);
       const target: PushTarget = {
         endpoint: listener.endpoint,
         keys: { p256dh: listener.p256dh, auth: listener.auth },
@@ -139,7 +142,7 @@ export const pushAlerts = async (
     told.missed += forThis.missed;
     if (record && forThis.sent + forThis.gone + forThis.missed > 0) {
       // oxlint-disable-next-line no-await-in-loop
-      await record(tx, alert, forThis);
+      await record(tx, notice, forThis);
     }
   }
   return told;
@@ -202,3 +205,97 @@ export const silenceDevice = (tx: Tx, deviceId: string, now: Date) =>
         isNull(pushSubscription.revokedAt)
       )
     );
+
+/**
+ * Carries the day's quieter notices to the people waiting for them: one push each, naming
+ * what is in it, and a stamp on every notice so tomorrow's digest does not carry it again.
+ *
+ * An empty digest is not sent. A farm whose phone buzzes to say nothing happened is a farm
+ * that stops reading the ones that say something did.
+ */
+export const carryTheDigest = async (
+  tx: Tx,
+  transport: PushTransport,
+  farmId: string,
+  now: Date,
+  /** Everything raised before this goes now; everything since waits for the next moment.
+   *  That is what makes this a digest rather than a running commentary. */
+  upTo: Date
+): Promise<{ people: number; told: Told }> => {
+  const waiting = await tx.query.alert.findMany({
+    where: {
+      farmId,
+      carriedAt: { isNull: true },
+      dismissedAt: { isNull: true },
+      createdAt: { lte: upTo },
+    },
+    orderBy: { createdAt: "asc" },
+    columns: { id: true, userId: true, kind: true, params: true },
+  });
+  const forEachPerson = new Map<string, typeof waiting>();
+  for (const notice of waiting) {
+    if (!waitsForTheDigest(notice.kind)) {
+      continue;
+    }
+    forEachPerson.set(notice.userId, [
+      ...(forEachPerson.get(notice.userId) ?? []),
+      notice,
+    ]);
+  }
+  if (forEachPerson.size === 0) {
+    return { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
+  }
+
+  const listeners = await listenersFor(tx, farmId, [...forEachPerson.keys()]);
+  const told: Told = { sent: 0, gone: 0, missed: 0 };
+  for (const [userId, notices] of forEachPerson) {
+    const theirs = listeners.filter((listener) => listener.userId === userId);
+    for (const listener of theirs) {
+      const message: PushMessage = {
+        title: translate(listener.owner.language, "push.digestTitle"),
+        body: translate(listener.owner.language, "push.digestBody", {
+          count: notices.length,
+        }),
+        url: "/today",
+        // One digest replaces the last one rather than stacking: a phone showing three
+        // evenings of them tells nobody anything.
+        tag: `digest:${userId}`,
+        lang: listener.owner.language,
+      };
+      // Sequential on purpose: a farm has a handful of browsers, and a push service is
+      // happier with a queue than with a burst.
+      // oxlint-disable-next-line no-await-in-loop
+      const answer = await transport
+        .send(
+          {
+            endpoint: listener.endpoint,
+            keys: { p256dh: listener.p256dh, auth: listener.auth },
+          },
+          message
+        )
+        .catch(() => ({ delivered: false, gone: false }));
+      if (answer.gone) {
+        told.gone += 1;
+        // oxlint-disable-next-line no-await-in-loop
+        await stopTelling(tx, listener.id, now);
+      } else if (answer.delivered) {
+        told.sent += 1;
+      } else {
+        told.missed += 1;
+      }
+    }
+    // Stamped whether or not a push got through: the notices are in the app either way, and
+    // a digest that retries for ever would carry the same fortnight every evening.
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(alert)
+      .set({ carriedAt: now })
+      .where(
+        inArray(
+          alert.id,
+          notices.map((notice) => notice.id)
+        )
+      );
+  }
+  return { people: forEachPerson.size, told };
+};

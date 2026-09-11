@@ -45,6 +45,16 @@ export {
   mayCorrect,
 } from "./corrections";
 export { ALERT_KINDS, REVIEW_REASONS } from "./alerts";
+export type { QuietHours } from "./notify";
+export {
+  DELIVERY,
+  carryingMoments,
+  goesNow,
+  isQuiet,
+  lastCarryingMoment,
+  minutesInTheDay,
+  waitsForTheDigest,
+} from "./notify";
 export type { DueWork } from "./work";
 export {
   AWAITING_SIGN_OFF,

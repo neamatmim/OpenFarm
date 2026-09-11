@@ -63,6 +63,10 @@ export interface Context {
     staffCorrectionHours: number;
     managerCorrectionDays: number;
     clockSkewMinutes: number;
+    /** When the day's quieter notices are carried, and when the farm is asleep. */
+    digestTimes: string[];
+    quietFrom: string;
+    quietUntil: string;
     alertsSweptFrom: Date | null;
   } | null;
   person: Person | null;

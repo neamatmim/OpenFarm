@@ -403,6 +403,8 @@ export const en = {
   "outbox.discard": "Done with this",
   "outbox.entered": "What was entered",
   "outbox.open": "See them",
+  "push.digestTitle": "Today on the farm",
+  "push.digestBody": "{count} things waiting",
   "push.overdueTitle": "Work is late",
   "push.escalatedTitle": "Still not done",
   "push.sentBackTitle": "Sent back to you",

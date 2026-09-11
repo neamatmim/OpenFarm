@@ -4,13 +4,16 @@ import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
   AnimalState,
   FarmEvent,
+  QuietHours,
   Side,
   SopChange,
   SopContent,
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  carryingMoments,
   describeChanges,
+  lastCarryingMoment,
   MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
@@ -721,4 +724,34 @@ export const whatChangedFor = async (
     return null;
   }
   return { from: baseline.number, to: version.number, changes };
+};
+
+/** How far into the farm's own day an instant falls, in minutes. The farm's clock is the
+ *  one everything about times of day is measured on — a shed in Dhaka, not UTC. */
+export const minuteOfFarmDay = (at: Date): number => {
+  const { from } = farmDayRange(at);
+  return Math.floor((at.getTime() - from.getTime()) / MINUTE_MS);
+};
+
+/**
+ * When the farm's post was last due to be carried, as an instant — today's most recent
+ * carrying moment, or yesterday's last one if the day has not reached its first.
+ *
+ * Everything raised before it goes in this digest; everything since waits for the next.
+ */
+export const lastCarriedAt = (
+  now: Date,
+  times: readonly string[],
+  quiet: QuietHours
+): Date | null => {
+  const { from } = farmDayRange(now);
+  const today = lastCarryingMoment(minuteOfFarmDay(now), times, quiet);
+  if (today !== null) {
+    return new Date(from.getTime() + today * MINUTE_MS);
+  }
+  // Before today's first moment: yesterday's last one is the one that has passed.
+  const yesterday = carryingMoments(times, quiet).at(-1);
+  return yesterday === undefined
+    ? null
+    : new Date(from.getTime() - 24 * 60 * MINUTE_MS + yesterday * MINUTE_MS);
 };
