@@ -460,14 +460,10 @@ const FeedingFields = ({
   }[];
   /** The phone has never seen this Pen's Ration, so it cannot say what was owed. */
   cannotFeed: boolean;
-  given: Record<string, string>;
-  leftover: Record<string, string>;
-  onGiven: (
-    next: (current: Record<string, string>) => Record<string, string>
-  ) => void;
-  onLeftover: (
-    next: (current: Record<string, string>) => Record<string, string>
-  ) => void;
+  given: Typed;
+  leftover: Typed;
+  onGiven: (next: (current: Typed) => Typed) => void;
+  onLeftover: (next: (current: Typed) => Typed) => void;
 }) => {
   const { t } = useLanguage();
   if (cannotFeed) {
@@ -522,10 +518,7 @@ const FeedingFields = ({
 
 /** The first figure the person has entered that its Step calls odd, if any. A warning to
  *  acknowledge at the animal, never a refusal: the cow is standing there and they can see her. */
-const outsideItsRange = (
-  step: Step,
-  values: Record<number, boolean | number | string>
-): string | null => {
+const outsideItsRange = (step: Step, values: Entered): string | null => {
   for (const [index, item] of step.evidence.entries()) {
     if (item.type !== "number") {
       continue;
@@ -543,11 +536,7 @@ const outsideItsRange = (
 
 /** Has everything the Version asks for been given? A tick needs no answer to be true, and a
  *  photo is answered by the camera rather than by a value. */
-const everythingAsked = (
-  step: Step,
-  values: Record<number, boolean | number | string>,
-  photos: Record<number, { contentType: "image/jpeg"; data: string }>
-): boolean =>
+const everythingAsked = (step: Step, values: Entered, photos: Taken): boolean =>
   step.evidence.every((item, index) => {
     if (!item.required || item.type === "tick") {
       return true;
@@ -613,6 +602,15 @@ const SkipSheet = ({
   );
 };
 
+/** What was typed into one set of number boxes, by Feed Item. */
+type Typed = Record<string, string>;
+
+/** What has been entered against each Evidence slot the Version asks for. */
+type Entered = Record<number, boolean | number | string>;
+
+/** A picture taken against an Evidence slot, before it is queued. */
+type Taken = Record<number, { contentType: "image/jpeg"; data: string }>;
+
 /**
  * What this Pen is owed, and whether this phone can say. A phone that has never opened
  * today's work with signal has no Ration to prefill from, and recording zeros against a
@@ -642,8 +640,8 @@ const feedingState = (
  */
 const whatWentOut = (
   rows: { feedItemId: string; quantity: number }[],
-  given: Record<string, string>,
-  leftover: Record<string, string>
+  given: Typed,
+  leftover: Typed
 ) =>
   rows.map((line) => ({
     feedItemId: line.feedItemId,
@@ -700,14 +698,10 @@ const EvidenceSheet = ({
   onRecord: (payload: RecordPayload) => void;
 }) => {
   const { t, language } = useLanguage();
-  const [values, setValues] = useState<
-    Record<number, boolean | number | string>
-  >({});
+  const [values, setValues] = useState<Entered>({});
   const [skipping, setSkipping] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<
-    Record<number, { contentType: "image/jpeg"; data: string }>
-  >({});
+  const [photos, setPhotos] = useState<Taken>({});
   const [reason, setReason] = useState("");
   // A cow under Withdrawal has no choice to make. The server decides again when the entry
   // lands — this phone may have been offline since before she was treated.
@@ -717,8 +711,8 @@ const EvidenceSheet = ({
   );
   const recordsMilk = step.effect?.kind === "milk_record";
   const feedsThePen = step.effect?.kind === "feeding";
-  const [given, setGiven] = useState<Record<string, string>>({});
-  const [leftover, setLeftover] = useState<Record<string, string>>({});
+  const [given, setGiven] = useState<Typed>({});
+  const [leftover, setLeftover] = useState<Typed>({});
 
   const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
 
