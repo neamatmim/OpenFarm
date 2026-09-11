@@ -1,5 +1,5 @@
 import type { AnimalState, Side } from "./lifecycle";
-import { STATES } from "./lifecycle";
+import { LIVE_STATES } from "./lifecycle";
 import type { ROLES } from "./roles";
 
 /** SOP content is authored in Bangla; English is optional and used for reports and a
@@ -195,8 +195,15 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
       `${at}.event: the farm does not record "${trigger.event}" happening`
     );
   }
-  if (trigger.kind === "state" && !STATES.includes(trigger.state)) {
-    problems.push(`${at}.state: "${trigger.state}" is not a State an animal has`);
+  if (
+    trigger.kind === "state" &&
+    !(LIVE_STATES as readonly string[]).includes(trigger.state)
+  ) {
+    // Sold, Died and Culled are States too, but an animal that has left the farm is not one
+    // anybody can do work about: the Trigger would publish and raise nothing, for ever.
+    problems.push(
+      `${at}.state: "${trigger.state}" is not a State an animal on the farm is in`
+    );
   }
   const offset = trigger.offsetDays;
   if (offset !== undefined) {

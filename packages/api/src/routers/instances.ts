@@ -222,7 +222,8 @@ export const instancesRouter = {
           definitionId: definition.id,
           versionId: definition.currentVersion?.id ?? "",
           content: contentOf({ content: definition.currentVersion?.content }),
-          definitionCreatedAt: definition.createdAt,
+          triggersInForceSince:
+            definition.currentVersion?.publishedAt ?? definition.createdAt,
         }));
       const animals = await context.db.query.animal.findMany({
         where: { farmId: context.farm.id },

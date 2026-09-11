@@ -43,17 +43,17 @@ export const withScheduleTimes = (
   ],
 });
 
-/** Everything that raises this work apart from the clock: a Move, an arrival, a State. */
-export type Happening = Extract<Trigger, { kind: "event" | "state" }>;
+/** A Trigger that is not a clock: a Move, an arrival, or a State an animal reaches. */
+export type HappeningTrigger = Extract<Trigger, { kind: "event" | "state" }>;
 
-export const happeningTriggers = (content: SopContent): Happening[] =>
+export const happeningTriggers = (content: SopContent): HappeningTrigger[] =>
   content.triggers.filter(
-    (trigger): trigger is Happening => trigger.kind !== "schedule"
+    (trigger): trigger is HappeningTrigger => trigger.kind !== "schedule"
   );
 
 export const withHappeningTriggers = (
   content: SopContent,
-  happenings: Happening[]
+  happenings: HappeningTrigger[]
 ): SopContent => ({
   ...content,
   triggers: [
@@ -63,7 +63,10 @@ export const withHappeningTriggers = (
 });
 
 /** A new one starts on the thing the farm records most often. */
-export const emptyHappening = (): Happening => ({ kind: "event", event: "move" });
+export const emptyHappening = (): HappeningTrigger => ({
+  kind: "event",
+  event: "move",
+});
 
 export const splitList = (value: string): string[] =>
   value

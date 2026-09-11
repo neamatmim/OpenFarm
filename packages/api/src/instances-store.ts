@@ -1,7 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { FarmEvent, SopContent } from "@OpenFarm/domain";
+import type {
+  AnimalState,
+  FarmEvent,
+  Side,
+  SopContent,
+} from "@OpenFarm/domain";
 import {
   EXIT_STATES,
   MAX_GRACE_MINUTES,
@@ -73,8 +78,8 @@ export interface Happening {
   at: Date;
   animalId: string;
   penId: string;
-  side: string;
-  state: string;
+  side: Side;
+  state: AnimalState;
 }
 
 /**
@@ -138,6 +143,17 @@ export const TRIGGER_LOOKBACK_DAYS = 14;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
 /**
+ * When work hung on something that happened falls due. Days later means *that day* — the
+ * farm's day, from its start — because "three days after she was moved" is a day's work, not
+ * an appointment for twenty to midnight because that is when somebody happened to move her.
+ * No days later means now: an arrival check is work for the person still standing there.
+ */
+const dueAfter = (at: Date, offsetDays: number): Date =>
+  offsetDays === 0
+    ? at
+    : dueAtFor(new Date(at.getTime() + offsetDays * DAY_MS), "00:00");
+
+/**
  * Every Instance that things which have happened call for: a Move, an arrival, or an animal
  * reaching a State. One per happening per SOP, about the animal it happened to, due however
  * many days later the Trigger says. Pure — the caller decides which of these already exist,
@@ -149,9 +165,10 @@ export const happeningSlotsFor = (
     definitionId: string;
     versionId: string;
     content: SopContent;
-    /** Nothing that happened before the SOP existed raises work under it: publishing a
-     *  Playbook entry is not a way to give the farm a fortnight of overdue work. */
-    definitionCreatedAt: Date;
+    /** When this Version — the one carrying these Triggers — was published. Nothing that
+     *  happened before it raises work under it: adding a Trigger to the Playbook is not a
+     *  way to give the farm a fortnight of overdue work it never knew about (ADR 0001). */
+    triggersInForceSince: Date;
   }[],
   happenings: Happening[]
 ): DueSlot[] => {
@@ -173,11 +190,8 @@ export const happeningSlotsFor = (
             matches &&
             isOnTheFarm(happening) &&
             happening.at >= earliest &&
-            happening.at >= sop.definitionCreatedAt &&
-            appliesToAnimal(sop.content.appliesTo, {
-              side: happening.side as never,
-              state: happening.state as never,
-            })
+            happening.at >= sop.triggersInForceSince &&
+            appliesToAnimal(sop.content.appliesTo, happening)
           )
         ) {
           continue;
@@ -188,7 +202,7 @@ export const happeningSlotsFor = (
           penId: happening.penId,
           animalId: happening.animalId,
           cause: `${happening.key}:+${offsetDays}`,
-          dueAt: new Date(happening.at.getTime() + offsetDays * DAY_MS),
+          dueAt: dueAfter(happening.at, offsetDays),
           graceMinutes: sop.content.graceMinutes,
           assignedRole: sop.content.assignedRole,
           checkerRole: sop.content.checkerRole,
@@ -221,7 +235,7 @@ export const recentHappenings = async (
       createdAt: true,
     },
   });
-  const whereSheIs = new Map(animals.map((beast) => [beast.id, beast]));
+  const animalsById = new Map(animals.map((beast) => [beast.id, beast]));
   // Registering an animal writes her arrival as a Move from nowhere. That is an arrival, and
   // arrival is its own happening: a post-move check has no business firing on a cow who has
   // never been moved anywhere.
@@ -232,7 +246,7 @@ export const recentHappenings = async (
 
   const happenings: Happening[] = [];
   for (const move of moves) {
-    const beast = whereSheIs.get(move.animalId);
+    const beast = animalsById.get(move.animalId);
     if (beast) {
       happenings.push({
         kind: "move",

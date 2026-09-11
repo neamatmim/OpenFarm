@@ -114,7 +114,11 @@ export const TEST_DEVICE = {
  *  on it. Returns the device session shape the API context expects. */
 export const createTestDevice = async (
   role: Principal,
-  now: Date
+  now: Date,
+  /** A phone of this test file's own. Sequence numbers belong to the phone that sent them,
+   *  so two files sharing one phone take each other's place in its queue — and one file's
+   *  batch then shows up as another's gap. Name your own and the queues stay separate. */
+  phone: { id: string; name: string } = TEST_DEVICE
 ): Promise<{
   id: string;
   name: string;
@@ -127,9 +131,9 @@ export const createTestDevice = async (
   await db
     .insert(shedPhone)
     .values({
-      ...TEST_DEVICE,
+      ...phone,
       farmId: TEST_FARM.id,
-      tokenHash: `test-token-${TEST_DEVICE.id}`,
+      tokenHash: `test-token-${phone.id}`,
       enrolledBy: principal.user.id,
       claimedAt: now,
       createdAt: now,
@@ -150,7 +154,7 @@ export const createTestDevice = async (
     .onConflictDoNothing();
 
   return {
-    ...TEST_DEVICE,
+    ...phone,
     farmId: TEST_FARM.id,
     activeUserId: principal.user.id,
   };

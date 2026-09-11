@@ -1,8 +1,9 @@
 import type { EvidenceType, SopContent, Step } from "@OpenFarm/domain";
 import {
-  ANIMAL_STATES,
   EVIDENCE_TYPES,
   FARM_EVENTS,
+  LIVE_STATES,
+  MAX_TRIGGER_OFFSET_DAYS,
   ROLES,
   findPublishBlockers,
 } from "@OpenFarm/domain";
@@ -15,7 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
-import type { Happening } from "@/lib/sop-draft";
+import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
   emptyHappening,
   emptySop,
@@ -232,7 +233,7 @@ const TriggerFields = ({
 }) => {
   const t = useT();
   const happenings = happeningTriggers(content);
-  const replace = (index: number, next: Happening | null) =>
+  const replace = (index: number, next: HappeningTrigger | null) =>
     onChange(
       withHappeningTriggers(
         content,
@@ -296,7 +297,7 @@ const TriggerFields = ({
               }
               value={happening.state}
             >
-              {ANIMAL_STATES.map((state) => (
+              {LIVE_STATES.map((state) => (
                 <option key={state} value={state}>
                   {t(`state.${state}`)}
                 </option>
@@ -308,6 +309,7 @@ const TriggerFields = ({
             <Input
               className="w-24"
               id={`after-${index}`}
+              max={MAX_TRIGGER_OFFSET_DAYS}
               min={0}
               onChange={(e) =>
                 replace(index, {
