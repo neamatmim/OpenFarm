@@ -23,6 +23,9 @@ export const feedItem = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
+    /** What it is measured in. Kilos unless the farm says otherwise — straw comes in bales
+     *  and molasses in litres, and a Ration line means whatever this says. */
+    unit: text("unit").notNull().default("kg"),
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
@@ -31,9 +34,12 @@ export const feedItem = pgTable(
 );
 
 /**
- * What a Pen is fed. One per Pen, named the way the farm names it. What it *says* lives in
- * immutable Versions, like an SOP (ADR 0001): changing a Ration publishes the next one, so
- * what a Pen was fed in March can still be shown in June.
+ * A named list of what animals are fed in a day, assigned to whichever Pens are on it — the
+ * three milking pens are usually on one Ration, and changing it should be one change, not
+ * three that can quietly drift apart.
+ *
+ * What it *says* lives in immutable Versions, like an SOP (ADR 0001): changing a Ration
+ * publishes the next one, so what a Pen was fed in March can still be shown in June.
  */
 export const ration = pgTable(
   "ration",
@@ -42,16 +48,29 @@ export const ration = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    penId: text("pen_id")
-      .notNull()
-      .references(() => pen.id, { onDelete: "cascade" }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
     currentVersionId: text("current_version_id"),
+    retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),
   },
-  (table) => [uniqueIndex("ration_pen_uidx").on(table.penId)]
+  (table) => [uniqueIndex("ration_name_uidx").on(table.farmId, table.nameBn)]
 );
+
+/** Which Ration a Pen is on. One at a time; changing it is a fact the trail records. */
+export const penRation = pgTable("pen_ration", {
+  penId: text("pen_id")
+    .primaryKey()
+    .references(() => pen.id, { onDelete: "cascade" }),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  rationId: text("ration_id")
+    .notNull()
+    .references(() => ration.id, { onDelete: "cascade" }),
+  assignedBy: text("assigned_by").references(() => user.id),
+  assignedAt: timestamp("assigned_at").notNull(),
+});
 
 /** One published statement of a Ration. Never updated: the next change is the next Version. */
 export const rationVersion = pgTable(

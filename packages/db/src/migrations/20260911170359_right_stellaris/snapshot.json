@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "2d8c3f1d-6df8-4bab-8512-cc2a6a887d59",
+  "id": "d71e7fa4-1fd7-451c-b3df-f191dbf2e460",
   "prevIds": [
     "7a2a0b64-9046-4976-a516-4be3bb368b35"
   ],
@@ -87,6 +87,12 @@
     {
       "isRlsEnabled": false,
       "name": "feed_item",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "pen_ration",
       "entityType": "tables",
       "schema": "public"
     },
@@ -1893,6 +1899,19 @@
       "table": "feed_item"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'kg'",
+      "generated": null,
+      "identity": null,
+      "name": "unit",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "feed_item"
+    },
+    {
       "type": "timestamp",
       "typeSchema": null,
       "notNull": false,
@@ -1939,6 +1958,71 @@
       "default": null,
       "generated": null,
       "identity": null,
+      "name": "pen_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "farm_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ration_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "assigned_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "assigned_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
       "name": "id",
       "entityType": "columns",
       "schema": "public",
@@ -1953,19 +2037,6 @@
       "generated": null,
       "identity": null,
       "name": "farm_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "ration"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "pen_id",
       "entityType": "columns",
       "schema": "public",
       "table": "ration"
@@ -2005,6 +2076,19 @@
       "generated": null,
       "identity": null,
       "name": "current_version_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ration"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "retired_at",
       "entityType": "columns",
       "schema": "public",
       "table": "ration"
@@ -5245,7 +5329,14 @@
       "nameExplicit": true,
       "columns": [
         {
-          "value": "pen_id",
+          "value": "farm_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "name_bn",
           "isExpression": false,
           "asc": true,
           "nullsFirst": false,
@@ -5257,7 +5348,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "ration_pen_uidx",
+      "name": "ration_name_uidx",
       "entityType": "indexes",
       "schema": "public",
       "table": "ration"
@@ -6689,6 +6780,74 @@
     {
       "nameExplicit": false,
       "columns": [
+        "pen_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "pen",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "pen_ration_pen_id_pen_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "farm_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "farm",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "pen_ration_farm_id_farm_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "ration_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ration",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "pen_ration_ration_id_ration_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "assigned_by"
+      ],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "pen_ration_assigned_by_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "pen_ration"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "farm_id"
       ],
       "schemaTo": "public",
@@ -6699,23 +6858,6 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "ration_farm_id_farm_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "ration"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "pen_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "ration_pen_id_pen_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "ration"
@@ -8042,6 +8184,16 @@
       "name": "feed_item_pkey",
       "schema": "public",
       "table": "feed_item",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "pen_id"
+      ],
+      "nameExplicit": false,
+      "name": "pen_ration_pkey",
+      "schema": "public",
+      "table": "pen_ration",
       "entityType": "pks"
     },
     {

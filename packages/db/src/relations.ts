@@ -41,8 +41,16 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     fromPen: r.one.pen({ from: r.animalMove.fromPenId, to: r.pen.id }),
   },
+  penRation: {
+    pen: r.one.pen({ from: r.penRation.penId, to: r.pen.id, optional: false }),
+    ration: r.one.ration({
+      from: r.penRation.rationId,
+      to: r.ration.id,
+      optional: false,
+    }),
+  },
   ration: {
-    pen: r.one.pen({ from: r.ration.penId, to: r.pen.id, optional: false }),
+    pens: r.many.penRation({ from: r.ration.id, to: r.penRation.rationId }),
     versions: r.many.rationVersion({
       from: r.ration.id,
       to: r.rationVersion.rationId,
