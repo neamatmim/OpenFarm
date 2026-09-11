@@ -4,6 +4,7 @@ import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
   isEscalated,
@@ -192,13 +193,22 @@ export const findLate = async (
   now: Date,
   /** Only work due at or after this instant. The Overdue list wants everything still open;
    *  the sweep wants only the window it has not already spoken about. */
-  since?: Date
+  since?: Date,
+  /** …or raised since this one, whatever it was due for. */
+  orRaisedSince?: Date
 ) => {
   const open = await db.query.sopInstance.findMany({
     where: {
       farmId,
       state: { in: [...OPEN_INSTANCE_STATES] },
-      ...(since ? { dueAt: { gte: since } } : {}),
+      ...(since
+        ? {
+            OR: [
+              { dueAt: { gte: since } },
+              ...(orRaisedSince ? [{ createdAt: { gte: orRaisedSince } }] : []),
+            ],
+          }
+        : {}),
     },
     orderBy: { dueAt: "desc" },
     with: {
@@ -217,10 +227,6 @@ export type LateInstance = Awaited<ReturnType<typeof findLate>>[number];
 /** A backstop on one sweep's writes, so a farm opening the app after a long silence catches
  *  up over a few sweeps rather than holding one write transaction open against all of it. */
 const SWEEP_BATCH = 200;
-
-/** The longest Grace an SOP may declare, so a query on `dueAt` can be widened by it and
- *  still catch everything whose Grace has run out inside the window. */
-const MAX_GRACE_MINUTES = 24 * 60;
 
 const ALERTED_KINDS = ["instance_overdue", "instance_escalated"] as const;
 
@@ -242,21 +248,28 @@ const escalatedAt = (
   escalationMinutes: number
 ): number => wentLateAt(instance) + escalationMinutes * MINUTE_MS;
 
-/** The untold ones, most recent moment first, capped — and how far back the cap reached.
- *  `now` when nothing was left over, so the window closes; otherwise the oldest moment
- *  actually handled, so the next sweep starts there rather than stepping over the rest. */
-const batch = (
+/** Is this Instance inside the sweep's window — by when it went late, or by being new to
+ *  the farm since the last sweep looked? The day's Instances are raised when someone opens
+ *  the app, so an SOP published at eleven raises one that was due at five and is already
+ *  late: new to the farm, however old its due time. */
+const inside = (instance: LateInstance, from: Date): boolean =>
+  wentLateAt(instance) >= from.getTime() ||
+  instance.createdAt.getTime() >= from.getTime();
+
+/**
+ * The untold ones, most recent moment first, capped at what one transaction should carry.
+ * Also says whether anything was left over, because a window that closed over work it did
+ * not get to would be a window that lost it: the watermark may only move past a window the
+ * sweep finished.
+ */
+const takeUntold = (
   candidates: LateInstance[],
-  momentOf: (instance: LateInstance) => number,
-  now: Date
-): { taken: LateInstance[]; reached: number } => {
+  momentOf: (instance: LateInstance) => number
+): { taken: LateInstance[]; leftOver: boolean } => {
   const ordered = candidates.toSorted((a, b) => momentOf(b) - momentOf(a));
-  const taken = ordered.slice(0, SWEEP_BATCH);
-  const last = taken.at(-1);
   return {
-    taken,
-    reached:
-      taken.length < ordered.length && last ? momentOf(last) : now.getTime(),
+    taken: ordered.slice(0, SWEEP_BATCH),
+    leftOver: ordered.length > SWEEP_BATCH,
   };
 };
 
@@ -285,14 +298,15 @@ export const findPendingNotices = async (
   },
   now: Date
 ): Promise<PendingNotices> => {
-  const from = (farm.alertsSweptFrom ?? farmDayRange(now).from).getTime();
+  const from = farm.alertsSweptFrom ?? farmDayRange(now).from;
   // Widened by the longest Grace an SOP may declare and by the escalation window, because
   // an Instance due well before the window can still reach either moment inside it; the
-  // exact test follows in memory.
+  // exact test follows in memory. Instances raised since the last sweep come in on their
+  // own account, whatever they were due.
   const due = new Date(
-    from - (MAX_GRACE_MINUTES + farm.escalationMinutes) * MINUTE_MS
+    from.getTime() - (MAX_GRACE_MINUTES + farm.escalationMinutes) * MINUTE_MS
   );
-  const inWindow = await findLate(db, farm.id, now, due);
+  const inWindow = await findLate(db, farm.id, now, due, from);
   if (inWindow.length === 0) {
     return { overdue: [], escalated: [], sweptFrom: now };
   }
@@ -309,30 +323,28 @@ export const findPendingNotices = async (
   const toldOverdue = toldOf("instance_overdue");
   const toldEscalated = toldOf("instance_escalated");
 
-  const late = batch(
+  const late = takeUntold(
     inWindow.filter(
-      (instance) =>
-        wentLateAt(instance) >= from && !toldOverdue.has(instance.id)
+      (instance) => inside(instance, from) && !toldOverdue.has(instance.id)
     ),
-    wentLateAt,
-    now
+    wentLateAt
   );
-  const owners = batch(
+  const owners = takeUntold(
     inWindow.filter(
       (instance) =>
         isEscalated(instance, farm.escalationMinutes, now) &&
-        escalatedAt(instance, farm.escalationMinutes) >= from &&
+        (escalatedAt(instance, farm.escalationMinutes) >= from.getTime() ||
+          instance.createdAt.getTime() >= from.getTime()) &&
         !toldEscalated.has(instance.id)
     ),
-    (instance) => escalatedAt(instance, farm.escalationMinutes),
-    now
+    (instance) => escalatedAt(instance, farm.escalationMinutes)
   );
   return {
     overdue: late.taken,
     escalated: owners.taken,
-    // Neither kind may be stepped over, so the window closes only as far as the one that
-    // reached least far back.
-    sweptFrom: new Date(Math.min(late.reached, owners.reached)),
+    // The window stays open over anything this sweep did not reach. The told-filter means
+    // the next sweep carries on rather than saying it all again.
+    sweptFrom: late.leftOver || owners.leftOver ? from : now,
   };
 };
 

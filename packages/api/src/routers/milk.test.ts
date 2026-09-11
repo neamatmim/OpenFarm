@@ -135,7 +135,7 @@ const session = async (day: string, penId = world.pen.id) => {
 const tagOf = (index: number) => world.cows[index]?.tagNumber ?? "";
 
 describe("the milking effect", () => {
-  it("writes one Milk Record per cow, and recording her again replaces it", async () => {
+  it("writes one Milk Record per cow, and correcting her replaces it", async () => {
     const { instance, staff } = await session("2026-10-01");
 
     await staff.client.instances.completeStep({
@@ -144,18 +144,20 @@ describe("the milking effect", () => {
       animalTag: tagOf(0),
       evidence: [12.5],
     });
-    // The same entry arriving twice — a phone replaying its outbox — and then a correction.
+    // The same entry arriving twice — a phone replaying its outbox — is one fact.
     await staff.client.instances.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tagOf(0),
       evidence: [12.5],
     });
-    await staff.client.instances.completeStep({
-      instanceId: instance.id,
-      stepId: "milk",
-      animalTag: tagOf(0),
+    // A different figure is a changed fact, so it goes through a Correction.
+    const board = await staff.client.instances.get({ id: instance.id });
+    const entry = board.completions.find((row) => row.stepId === "milk");
+    await staff.client.instances.correctStep({
+      completionId: entry?.id ?? "",
       evidence: [13],
+      reason: "কীপ্যাডে ভুল",
     });
 
     const loaded = await staff.client.milk.session({ instanceId: instance.id });
@@ -261,12 +263,17 @@ describe("the milking effect", () => {
     });
     expect(afterSkip.records).toHaveLength(1);
 
-    // The first cow turns out to have been the sick one: her entry becomes a skip.
-    await staff.client.instances.completeStep({
-      instanceId: instance.id,
-      stepId: "milk",
-      animalTag: tagOf(0),
+    // The first cow turns out to have been the sick one: her entry becomes a skip, which
+    // changes what was recorded and so goes through a Correction.
+    const board = await staff.client.instances.get({ id: instance.id });
+    const entry = board.completions.find(
+      (row) => row.stepId === "milk" && row.status === "done"
+    );
+    await staff.client.instances.correctStep({
+      completionId: entry?.id ?? "",
+      evidence: [],
       skipReason: "অসুস্থ",
+      reason: "ওকে দোহন করা হয়নি",
     });
 
     const loaded = await staff.client.milk.session({ instanceId: instance.id });
@@ -428,11 +435,14 @@ describe("reconciling the tank", () => {
     });
 
     // The 10 was a mis-keyed 11.5: the tank was right all along.
-    await staff.client.instances.completeStep({
-      instanceId: instance.id,
-      stepId: "milk",
-      animalTag: tagOf(1),
+    const board = await staff.client.instances.get({ id: instance.id });
+    const entry = board.completions.find(
+      (row) => row.stepId === "milk" && row.animalId === world.cows[1]?.id
+    );
+    await staff.client.instances.correctStep({
+      completionId: entry?.id ?? "",
       evidence: [11.5],
+      reason: "কীপ্যাডে ভুল",
     });
 
     const loaded = await staff.client.milk.session({ instanceId: instance.id });

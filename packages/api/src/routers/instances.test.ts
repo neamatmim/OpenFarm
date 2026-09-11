@@ -379,7 +379,7 @@ describe("working the pen board", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
-  it("recording the same animal again corrects it rather than adding a second row", async () => {
+  it("refuses a second, different entry for the same animal — that is a Correction", async () => {
     const clock = new FakeClock("2026-09-22T05:30:00.000Z");
     const { instance } = await instanceForPen(clock);
     const staff = await createTestClient(appRouter, { as: "staff", clock });
@@ -392,17 +392,37 @@ describe("working the pen board", () => {
       animalTag: tag,
       evidence: [10],
     });
+    // The same entry again is the phone replaying its outbox: one fact, accepted quietly.
     await staff.client.instances.completeStep({
       instanceId: instance.id,
       stepId: "milk",
       animalTag: tag,
-      evidence: [12],
+      evidence: [10],
     });
+    // A different figure is a changed fact, and facts change only by Correction.
+    await expect(
+      staff.client.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "milk",
+        animalTag: tag,
+        evidence: [12],
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
 
     const loaded = await staff.client.instances.get({ id: instance.id });
     const forCow = loaded.completions.filter((c) => c.stepId === "milk");
     expect(forCow).toHaveLength(1);
-    expect(forCow[0]?.evidence).toEqual([12]);
+    expect(forCow[0]?.evidence).toEqual([10]);
+
+    await staff.client.instances.correctStep({
+      completionId: forCow[0]?.id ?? "",
+      evidence: [12],
+      reason: "কীপ্যাডে ভুল",
+    });
+    const corrected = await staff.client.instances.get({ id: instance.id });
+    const after = corrected.completions.filter((c) => c.stepId === "milk");
+    expect(after).toHaveLength(1);
+    expect(after[0]?.evidence).toEqual([12]);
   });
 
   it("refuses an animal from another pen, and a per-animal step with no animal", async () => {
@@ -442,10 +462,12 @@ describe("review findings", () => {
       stepId: "bulk",
       evidence: [21],
     });
-    await staff.client.instances.completeStep({
-      instanceId: instance.id,
-      stepId: "bulk",
+    const first = await staff.client.instances.get({ id: instance.id });
+    const original = first.completions.find((c) => c.stepId === "bulk");
+    await staff.client.instances.correctStep({
+      completionId: original?.id ?? "",
       evidence: [210],
+      reason: "শূন্য বাদ পড়েছিল",
     });
 
     const loaded = await staff.client.instances.get({ id: instance.id });

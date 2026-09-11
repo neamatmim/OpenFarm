@@ -281,10 +281,14 @@ export const en = {
   "signOff.doneBy": "Done by {name}",
   "signOff.missed": "Close as missed",
   "signOff.missedWhy": "Why was it not done?",
-  "correct.title": "Put right",
   "correct.why": "Why is it being changed?",
   "correct.save": "Save correction",
-  "correct.window": "Only {role} can change this now",
+  "correct.windowOwn":
+    "A {role} may put their own entry right for {span} after making it",
+  "correct.windowAny":
+    "A {role} may put an entry right for {span} after it was made",
+  "correct.spanHours": "{hours} hours",
+  "correct.spanDays": "{days} days",
   "review.title": "Needs a look",
   "review.none": "Nothing waiting",
   "review.resolve": "Close this",

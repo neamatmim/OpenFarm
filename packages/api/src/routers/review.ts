@@ -18,7 +18,20 @@ export const reviewRouter = {
     .handler(({ context }) =>
       context.db.query.needsReview.findMany({
         where: { farmId: context.farm.id, resolvedAt: { isNull: true } },
-        with: { raisedBy: true },
+        // Narrowed: the queue needs the Correction's reason and who made it, not the
+        // before-and-after snapshots of the entry it changed.
+        with: {
+          raisedBy: {
+            columns: {
+              id: true,
+              action: true,
+              reason: true,
+              actorId: true,
+              roleUsed: true,
+              recordedAt: true,
+            },
+          },
+        },
         orderBy: { raisedAt: "asc" },
         limit: QUEUE_LIMIT,
       })

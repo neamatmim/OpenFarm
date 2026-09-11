@@ -285,16 +285,35 @@ const correctionWindows = (farm: {
   managerDays: farm.managerCorrectionDays,
 });
 
-/** Why the Correction was refused, in terms the person can act on: which window ran out,
- *  and how long it was. */
-const refusalMessage = (refusal: CorrectionRefusal): string => {
-  const window = describeWindow(refusal.windowHours);
-  const span =
-    "days" in window ? `${window.days} days` : `${window.hours} hours`;
-  return refusal.ownEntriesOnly
-    ? `A ${refusal.role} may correct their own entries for ${span} after making them`
-    : `A ${refusal.role} may correct an entry for ${span} after it was made`;
-};
+/** Why the Correction was refused, as facts rather than as a sentence. The person reading it
+ *  reads Bangla; composing their message here would mean composing it in English. The
+ *  message on the error is for whoever is reading a log. */
+const refusalData = (refusal: CorrectionRefusal) => ({
+  ...refusal,
+  ...describeWindow(refusal.windowHours),
+});
+
+/** Is this the same entry arriving again — a phone replaying its outbox — or a different
+ *  one? Compared on what the entry says, not on when it was sent: the same figures sent
+ *  twice are one fact, and a different figure is a Correction whoever sent it. */
+const sameEntry = (
+  existing: {
+    status: string;
+    skipReason: string | null;
+    evidence: unknown;
+    destination: string | null;
+  },
+  input: {
+    evidence: unknown[];
+    skipReason?: string;
+    destination?: string;
+  },
+  skipping: boolean
+): boolean =>
+  existing.status === (skipping ? "skipped" : "done") &&
+  existing.skipReason === (input.skipReason ?? null) &&
+  existing.destination === (input.destination ?? null) &&
+  JSON.stringify(existing.evidence) === JSON.stringify(input.evidence);
 
 /** The Completion as the trail records it, so a Correction's before and after are the whole
  *  entry rather than the fields that happened to change. */
@@ -312,28 +331,6 @@ const readCompletion = async (tx: Tx, id: string) => {
     },
   });
   return row ? { ...row } : null;
-};
-
-/** An Instance with the Pen names an Alert's message needs. */
-const withPen = async (
-  tx: Tx,
-  farmId: string,
-  instance: { id: string; dueAt: Date; version: { content: unknown } }
-) => {
-  const pen = await tx.query.sopInstance.findFirst({
-    where: { id: instance.id, farmId },
-    columns: {},
-    with: {
-      pen: {
-        columns: { name: true },
-        with: { shed: { columns: { name: true } } },
-      },
-    },
-  });
-  return {
-    ...instance,
-    pen: pen?.pen ?? { name: "", shed: { name: "" } },
-  };
 };
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
@@ -662,6 +659,25 @@ export const instancesRouter = {
             Boolean(input.photo)
           );
 
+          // An entry that already exists is a recorded fact, and a recorded fact changes
+          // only by Correction. The phone may still replay the same entry — that is how an
+          // outbox works (ADR 0002) — so an identical one is accepted and changes nothing;
+          // a different one is sent to correctStep, which asks why and checks the window.
+          const already = await tx.query.stepCompletion.findFirst({
+            where: {
+              farmId: context.farm.id,
+              instanceId: input.instanceId,
+              stepId: input.stepId,
+              animalKey: animalId ?? "",
+            },
+          });
+          if (already && !sameEntry(already, input, skipping)) {
+            throw new ORPCError("CONFLICT", {
+              message: "That is already recorded; correct it instead",
+              data: { completionId: already.id },
+            });
+          }
+
           const values = {
             farmId: context.farm.id,
             instanceId: input.instanceId,
@@ -952,8 +968,8 @@ export const instancesRouter = {
       });
       if (!verdict.allowed) {
         throw new ORPCError("FORBIDDEN", {
-          message: refusalMessage(verdict.refusal),
-          data: { refusal: verdict.refusal },
+          message: "The correction window for that entry has closed",
+          data: { refusal: refusalData(verdict.refusal) },
         });
       }
       const audit = audited(context);
@@ -974,6 +990,9 @@ export const instancesRouter = {
           entityId: existing.id,
           action: "correct",
           reason: input.reason,
+          // Not simply the highest Role they hold: the one whose Correction Window let this
+          // through is the one answerable for it.
+          roleUsed: verdict.role,
           // The entry this one replaces, so the trail reads as a chain rather than as a
           // pile of edits.
           supersedesId: previous?.id,
@@ -981,9 +1000,17 @@ export const instancesRouter = {
           after: (tx) => readCompletion(tx, existing.id),
         },
         async (tx, eventId) => {
+          // Loaded with its Pen, because a Needs Review raised below has to say which work
+          // it is about.
           const instance = await tx.query.sopInstance.findFirst({
             where: { id: existing.instanceId, farmId: context.farm.id },
-            with: { version: { columns: { content: true } } },
+            with: {
+              version: { columns: { content: true } },
+              pen: {
+                columns: { name: true },
+                with: { shed: { columns: { name: true } } },
+              },
+            },
           });
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
@@ -1042,7 +1069,7 @@ export const instancesRouter = {
                 reason: "corrected_after_sign_off",
                 auditEventId: eventId,
                 params: {
-                  ...alertParams(await withPen(tx, context.farm.id, instance)),
+                  ...alertParams(instance),
                   stepId: existing.stepId,
                 },
               },

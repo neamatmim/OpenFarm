@@ -284,10 +284,14 @@ export const bn: Record<MessageKey, string> = {
   "signOff.doneBy": "{name} করেছেন",
   "signOff.missed": "হয়নি হিসেবে বন্ধ করুন",
   "signOff.missedWhy": "কেন করা হয়নি?",
-  "correct.title": "সংশোধন",
   "correct.why": "কেন বদলাচ্ছেন?",
   "correct.save": "সংশোধন সংরক্ষণ",
-  "correct.window": "এখন কেবল {role} এটি বদলাতে পারেন",
+  "correct.windowOwn":
+    "{role} নিজের এন্ট্রি করার পর {span} পর্যন্ত সংশোধন করতে পারেন",
+  "correct.windowAny":
+    "{role} একটি এন্ট্রি হওয়ার পর {span} পর্যন্ত সংশোধন করতে পারেন",
+  "correct.spanHours": "{hours} ঘণ্টা",
+  "correct.spanDays": "{days} দিন",
   "review.title": "দেখা দরকার",
   "review.none": "অপেক্ষায় কিছু নেই",
   "review.resolve": "নিষ্পত্তি করুন",

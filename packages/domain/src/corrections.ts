@@ -24,9 +24,10 @@ export const DEFAULT_CORRECTION_WINDOWS: CorrectionWindows = {
 
 /** Why a Correction was refused, in terms the person can act on. */
 export interface CorrectionRefusal {
-  /** The Role whose window was tried. */
-  role: RoleName;
-  /** How long that Role gets, in words the message can use. */
+  /** The Role whose window was tried, or null when no Role they hold covers this entry at
+   *  all — a Vet has no say over a milking entry, however recent. */
+  role: RoleName | null;
+  /** How long that Role gets. Meaningless when `role` is null. */
   windowHours: number;
   /** Whether the Role may correct other people's entries at all. */
   ownEntriesOnly: boolean;
@@ -54,6 +55,11 @@ const windowHoursFor = (
 const ownEntriesOnly = (role: RoleName): boolean =>
   role === "staff" || role === "vet";
 
+/** A Vet's standing is over the clinical record — a Diagnosis, a Prescription, a dose they
+ *  gave. Being a Vet is not a licence over the milking book. */
+const covers = (role: RoleName, isHealthEntry: boolean): boolean =>
+  role !== "vet" || isHealthEntry;
+
 /**
  * May this person put this entry right, and under which Role? The most permissive Role they
  * hold decides — someone who is both Manager and Staff corrects as the Manager, because that
@@ -64,6 +70,7 @@ export const mayCorrect = (
   {
     roles,
     isOwnEntry,
+    isHealthEntry = false,
     recordedAt,
     now,
     windows,
@@ -71,6 +78,9 @@ export const mayCorrect = (
     roles: readonly RoleName[];
     /** Whether the entry being corrected is this person's own. */
     isOwnEntry: boolean;
+    /** Whether it is part of the clinical record. Health arrives in a later increment; until
+     *  then nothing is, and a Vet's unlimited window has nothing to apply to. */
+    isHealthEntry?: boolean;
     /** When the entry being corrected was made — the farm's clock, not the phone's. */
     recordedAt: Date;
     now: Date;
@@ -82,29 +92,28 @@ export const mayCorrect = (
   const age = now.getTime() - recordedAt.getTime();
   let best: CorrectionRefusal | null = null;
   for (const role of precedence) {
-    if (!roles.includes(role)) {
-      continue;
-    }
-    if (ownEntriesOnly(role) && !isOwnEntry) {
+    const standing =
+      roles.includes(role) &&
+      covers(role, isHealthEntry) &&
+      (isOwnEntry || !ownEntriesOnly(role));
+    if (!standing) {
       continue;
     }
     const hours = windowHoursFor(role, windows);
     if (hours === null || age <= hours * HOUR_MS) {
       return { allowed: true, role };
     }
-    // Remember the widest window they had, so the refusal names the one that ran out rather
-    // than whichever Role happened to be checked last.
+    // The widest window they had, so the refusal names the one that ran out rather than
+    // whichever Role happened to be checked last.
     if (!best || hours > best.windowHours) {
       best = { role, windowHours: hours, ownEntriesOnly: ownEntriesOnly(role) };
     }
   }
+  // No window ran out because no Role they hold covers this entry at all. Saying "your two
+  // hours are up" would send them looking for a clock that was never running.
   return {
     allowed: false,
-    refusal: best ?? {
-      role: "staff",
-      windowHours: windows.staffHours,
-      ownEntriesOnly: true,
-    },
+    refusal: best ?? { role: null, windowHours: 0, ownEntriesOnly: true },
   };
 };
 

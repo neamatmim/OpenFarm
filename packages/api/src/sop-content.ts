@@ -1,6 +1,7 @@
 import {
   ANIMAL_STATES,
   EVIDENCE_TYPES,
+  MAX_GRACE_MINUTES,
   ROLES,
   SIDES,
   STEP_EFFECT_KINDS,
@@ -65,11 +66,7 @@ export const sopContentSchema = z.object({
   appliesTo: appliesTo.optional(),
   assignedRole: z.enum(ROLES),
   checkerRole: z.enum(ROLES).nullable().default(null),
-  graceMinutes: z
-    .number()
-    .int()
-    .min(0)
-    .max(24 * 60),
+  graceMinutes: z.number().int().min(0).max(MAX_GRACE_MINUTES),
   steps: z.array(step),
 });
 

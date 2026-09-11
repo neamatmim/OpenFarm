@@ -561,6 +561,39 @@ describe("review findings", () => {
       )
     ).toBeDefined();
   });
+
+  it("says something about work raised after the sweep had already passed its due time", async () => {
+    // An SOP published mid-morning raises an Instance that was due at five and is already
+    // late. It is new to the farm, however old its due time, and nobody has been told.
+    const opener = await workFor("2026-12-08", "23:05:00.000Z");
+    opener.clock.set(after("2026-12-08", 45));
+    const manager = await as("manager", opener.clock);
+    await sweepUntilQuiet(manager);
+
+    const owner = await as("owner", opener.clock);
+    const late = await owner.sops.create({
+      content: sop({
+        name: { bn: `দেরিতে প্রকাশিত ${suffix}` },
+        triggers: [{ kind: "schedule", times: ["05:00"] }],
+      }),
+    });
+    await owner.instances.ensureDue();
+    const today = await owner.instances.today({ penId: world.pen.id });
+    const raised = today.find((row) => row.definitionId === late.definitionId);
+    if (!raised) {
+      throw new Error("expected an instance from the newly published SOP");
+    }
+    expect(raised.overdue).toBe(true);
+
+    await sweepUntilQuiet(manager);
+    expect(
+      alertFor(
+        await manager.alerts.mine({ entityId: raised.id }),
+        raised.id,
+        "instance_overdue"
+      )
+    ).toBeDefined();
+  });
 });
 
 describe("the trail", () => {

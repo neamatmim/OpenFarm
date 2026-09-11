@@ -2,6 +2,7 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import type { AuditAction } from "@OpenFarm/db/schema/audit";
 import { auditEvent } from "@OpenFarm/db/schema/audit";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ORPCError } from "@orpc/server";
 
 import type { Context } from "./context";
@@ -34,6 +35,10 @@ export interface AuditedWrite {
   device?: { id: string; seq: number } | null;
   /** When the actor says it happened; defaults to now. */
   recordedAt?: Date;
+  /** The Role this write was actually allowed under, when that is narrower than the Role the
+   *  request is acting under. A Correction is permitted by a specific Role's window, and
+   *  that is the Role the trail must name. */
+  roleUsed?: RoleName;
 }
 
 const resolve = (
@@ -87,7 +92,7 @@ export const audited = (
             : event.entityId,
         action: event.action,
         actorId,
-        roleUsed,
+        roleUsed: event.roleUsed ?? roleUsed,
         deviceId: context.device?.id ?? event.device?.id ?? null,
         deviceSeq: event.device?.seq ?? null,
         recordedAt: event.recordedAt ?? receivedAt,

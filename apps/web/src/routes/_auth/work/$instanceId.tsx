@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import { useLanguage } from "@/i18n/language-provider";
+import { refusalMessage } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 interface Animal {
@@ -72,7 +73,7 @@ const WorkPage = () => {
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+    toast.error(refusalMessage(error, t) ?? error.message ?? t("common.error"));
 
   const claim = useMutation(
     orpc.instances.claim.mutationOptions({ onSuccess: refresh, onError })
@@ -478,15 +479,26 @@ const EvidenceSheet = ({
     return (
       <div className="mx-auto mt-8 w-full max-w-sm space-y-3 p-4">
         <p className="text-lg">{t("work.skipWhy")}</p>
+        {correcting ? (
+          <Input
+            aria-label={t("correct.why")}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder={t("correct.why")}
+            value={reason}
+          />
+        ) : null}
         {step.skipReasons.map((skip) => (
           <Button
             className="h-14 w-full text-lg"
             key={skip.bn}
+            disabled={correcting && !reason.trim()}
             onClick={() =>
               onRecord({
                 evidence: [],
                 skipReason: skip.bn,
-                reason: correcting ? reason.trim() || skip.bn : undefined,
+                // Never the skip label standing in for a reason: changing what was recorded
+                // is a Correction, and a Correction is the person saying why.
+                reason: correcting ? reason.trim() : undefined,
               })
             }
             variant="outline"

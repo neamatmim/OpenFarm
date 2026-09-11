@@ -1,3 +1,4 @@
+import type { ReviewReason } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -9,10 +10,15 @@ import { toast } from "sonner";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-const REASON_MESSAGE: Record<string, MessageKey> = {
+/** Every reason has something to say, typed by the reason rather than by string, so a new
+ *  one is a compile error here rather than a row that renders as its own name. */
+const REASON_MESSAGE: Record<ReviewReason, MessageKey> = {
   corrected_after_sign_off: "review.corrected_after_sign_off",
   irreversible_effect: "review.irreversible_effect",
 };
+
+const messageFor = (reason: string): MessageKey | null =>
+  (REASON_MESSAGE as Record<string, MessageKey>)[reason] ?? null;
 
 /** What the system could not put right on its own. Closing one is a judgement, so it asks
  *  for the judgement rather than offering a tick. */
@@ -40,7 +46,7 @@ export const NeedsReview = () => {
       {queue.data?.length ? (
         <ul className="space-y-3">
           {queue.data.map((row) => {
-            const key = REASON_MESSAGE[row.reason];
+            const key = messageFor(row.reason);
             return (
               <li className="rounded-2xl bg-neutral-900 p-4" key={row.id}>
                 <p className="font-bold">{key ? t(key) : row.reason}</p>

@@ -12,6 +12,10 @@ export const AWAITING_SIGN_OFF = "completed" as const;
 
 const MINUTE_MS = 60_000;
 
+/** The longest Grace an SOP may declare. Bounds the sweep's query as well as the Version
+ *  it validates, so the two cannot drift apart and leave late work unseen. */
+export const MAX_GRACE_MINUTES = 24 * 60;
+
 export const isOpen = (state: string): boolean =>
   (OPEN_INSTANCE_STATES as readonly string[]).includes(state);
 

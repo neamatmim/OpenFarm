@@ -198,7 +198,9 @@ describe("correction windows", () => {
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: expect.stringContaining("2 hours"),
+      // The refusal is facts, not a sentence: the person reading it reads Bangla, and the
+      // phone composes the message from these.
+      data: { refusal: { role: "staff", hours: 2, ownEntriesOnly: true } },
     });
   });
 
@@ -245,7 +247,7 @@ describe("correction windows", () => {
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: expect.stringContaining("30 days"),
+      data: { refusal: { role: "manager", days: 30, ownEntriesOnly: false } },
     });
   });
 
@@ -266,7 +268,7 @@ describe("correction windows", () => {
     expect(corrected.roleUsed).toBe("owner");
   });
 
-  it("lets a Vet put their own entry right whenever", async () => {
+  it("gives a Vet no standing over the milking book, however recent", async () => {
     const { instance, clock } = await session(
       "2026-12-05",
       world.vetSop.definitionId
@@ -281,15 +283,22 @@ describe("correction windows", () => {
     const loaded = await vet.instances.get({ id: instance.id });
     const completionId = loaded.completions[0]?.id ?? "";
 
-    clock.advance(200 * DAY);
+    // A Vet's unlimited window is over the clinical record — a Diagnosis, a Prescription,
+    // a dose they gave. Health arrives in increment 3; until then there is no such entry,
+    // and being a Vet is not a licence over the milking book.
+    clock.advance(HOUR);
     const vetLater = await as("vet", clock);
-    const corrected = await vetLater.instances.correctStep({
-      completionId,
-      evidence: ["বাঁ পায়ে খোঁড়া"],
-      reason: "নোট অসম্পূর্ণ ছিল",
-    });
 
-    expect(corrected.roleUsed).toBe("vet");
+    await expect(
+      vetLater.instances.correctStep({
+        completionId,
+        evidence: ["বাঁ পায়ে খোঁড়া"],
+        reason: "নোট অসম্পূর্ণ ছিল",
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: { role: null } },
+    });
   });
 
   it("takes the windows from the Farm Parameters", async () => {
@@ -403,6 +412,66 @@ describe("what a correction does", () => {
 
     const session_ = await staff.milk.session({ instanceId: instance.id });
     expect(session_.records).toHaveLength(0);
+  });
+});
+
+describe("review findings", () => {
+  it("keeps the first figure in the trail when a second, different one is sent", async () => {
+    const { instance, clock } = await session("2026-12-13");
+    const staff = await as("staff", clock);
+    await staff.instances.claim({ id: instance.id });
+    const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
+
+    // Sending a different figure through the recording path would once have overwritten the
+    // first with no reason, no window, and nothing left to say it had ever been ten.
+    await expect(
+      staff.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "milk",
+        animalTag: tagOf(0),
+        evidence: [3],
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    clock.advance(HOUR);
+    await staff.instances.correctStep({
+      completionId,
+      evidence: [3],
+      reason: "খাতার সাথে মিলিয়ে",
+    });
+
+    const manager = await as("manager", clock);
+    const history = await manager.audit.list({
+      entity: "step_completion",
+      entityId: completionId,
+    });
+    const correction = history.find((row) => row.action === "correct");
+    expect((correction?.before as { evidence?: unknown[] })?.evidence).toEqual([
+      10,
+    ]);
+  });
+
+  it("records the Role whose window allowed it, not the highest one held", async () => {
+    const { instance, clock } = await session("2026-12-14");
+    const staff = await as("staff", clock);
+    await staff.instances.claim({ id: instance.id });
+    const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
+
+    clock.advance(3 * HOUR);
+    const owner = await as("owner", clock);
+    await owner.instances.correctStep({
+      completionId,
+      evidence: [12],
+      reason: "নিরীক্ষা",
+    });
+
+    const history = await owner.audit.list({
+      entity: "step_completion",
+      entityId: completionId,
+    });
+    expect(history.find((row) => row.action === "correct")).toMatchObject({
+      roleUsed: "owner",
+    });
   });
 });
 

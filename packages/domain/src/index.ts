@@ -48,6 +48,7 @@ export { ALERT_KINDS } from "./alerts";
 export type { DueWork } from "./work";
 export {
   AWAITING_SIGN_OFF,
+  MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
   isEscalated,
   isOpen,

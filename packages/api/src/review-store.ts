@@ -26,7 +26,7 @@ export const raiseNeedsReview = async (
     params: Record<string, unknown>;
   },
   now: Date
-): Promise<string> => {
+): Promise<void> => {
   const id = uuidv7(now);
   await tx.insert(needsReview).values({
     id,
@@ -37,7 +37,9 @@ export const raiseNeedsReview = async (
     auditEventId: entry.auditEventId,
     raisedAt: now,
   });
-  const managers = await holdersOf(tx, farmId, ["owner", "manager"]);
+  // The Manager's queue, per the notification table: the Owner sees it on their own
+  // exception list rather than being told twice.
+  const managers = await holdersOf(tx, farmId, ["manager"]);
   await raiseAlerts(
     tx,
     farmId,
@@ -50,5 +52,4 @@ export const raiseNeedsReview = async (
     },
     now
   );
-  return id;
 };

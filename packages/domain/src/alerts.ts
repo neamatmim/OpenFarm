@@ -8,3 +8,11 @@ export const ALERT_KINDS = [
   "needs_review",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
+
+/** Why something is waiting for a person to look at it. Shared with the client, which has a
+ *  message for each and should fail to compile when a new one arrives. */
+export const REVIEW_REASONS = [
+  "corrected_after_sign_off",
+  "irreversible_effect",
+] as const;
+export type ReviewReason = (typeof REVIEW_REASONS)[number];
