@@ -29,6 +29,16 @@ export interface StepRecord {
   };
 }
 
+/** The queue, or a refusal. A device with no storage at all cannot be trusted with a
+ *  morning's work, and saying so is better than appearing to take it. */
+const held = () => {
+  const outbox = phoneOutbox();
+  if (!outbox) {
+    throw new Error("This device cannot keep work; nothing was recorded");
+  }
+  return outbox;
+};
+
 const newId = (): string =>
   globalThis.crypto?.randomUUID?.() ??
   `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -46,12 +56,12 @@ export const recordStep = async (
   instanceKey: readonly unknown[],
   record: StepRecord
 ): Promise<string> => {
-  const outbox = phoneOutbox();
   const id = newId();
   const { instanceId, animalId, ...body } = record;
-  if (outbox) {
-    await outbox.add("step_completion", { instanceId, ...body }, id);
-  }
+  // The queue first, and if there is no queue there is nothing to record into: a tile that
+  // turns green over work nothing is holding is the one failure this whole file exists to
+  // prevent.
+  await held().add("step_completion", { instanceId, ...body }, id);
 
   // Now the screen. The Completion the farm will write is not here yet, so the board shows
   // what the person just did, keyed on the same id the farm will use.
@@ -93,7 +103,7 @@ export const claimInstance = async (
   instanceKey: readonly unknown[],
   instanceId: string
 ): Promise<void> => {
-  await phoneOutbox()?.add("instance_claim", { instanceId }, newId());
+  await held().add("instance_claim", { instanceId }, newId());
   queryClient.setQueryData(
     instanceKey,
     (current: { state?: string } | undefined) =>
@@ -108,7 +118,7 @@ export const finishInstance = async (
   instanceKey: readonly unknown[],
   instanceId: string
 ): Promise<void> => {
-  await phoneOutbox()?.add("instance_complete", { instanceId }, newId());
+  await held().add("instance_complete", { instanceId }, newId());
   queryClient.setQueryData(
     instanceKey,
     (current: { state?: string } | undefined) =>

@@ -6,7 +6,7 @@ import { CloudOff, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { rememberHerd } from "@/lib/herd-cache";
+import { cachedHerd, rememberHerd } from "@/lib/herd-cache";
 import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { client, orpc } from "@/utils/orpc";
@@ -14,6 +14,8 @@ import { client, orpc } from "@/utils/orpc";
 /** How often the phone tries what it is holding. Sending is cheap when there is nothing to
  *  send: the Outbox reads its own queue and stops. */
 const FLUSH_EVERY_MS = 15_000;
+/** How often the phone re-reads the herd it works. */
+const HERD_EVERY_MS = 10 * 60_000;
 
 /**
  * What this phone is still holding, on every screen a Staff member works from. A count and
@@ -49,14 +51,23 @@ export const SyncBanner = () => {
         return;
       }
       try {
-        const { sent } = await outbox.flush();
-        if (sent > 0) {
+        const { sent, verdicts } = await outbox.flush();
+        // Whenever the farm has taken anything — or sent anything back — the board is out
+        // of date: a tile left green over an entry that was refused is the phone telling
+        // the person a lie.
+        if (sent > 0 || verdicts.length > 0) {
           await queryClient.invalidateQueries({
             queryKey: orpc.instances.key(),
           });
         }
         // The animals of the Pens this person works, kept for the shed where there are no
-        // bars: which cow, and whether her milk may go to the tank.
+        // bars: which cow, and whether her milk may go to the tank. Read sparingly — this
+        // runs on a battery-limited phone, and a herd does not change by the minute.
+        const { at } = await cachedHerd();
+        const due = !at || Date.now() - new Date(at).getTime() > HERD_EVERY_MS;
+        if (!due) {
+          return;
+        }
         const herd = await client.animals.list({});
         await rememberHerd(
           herd.map((animal) => ({
@@ -73,6 +84,7 @@ export const SyncBanner = () => {
           })),
           new Date()
         );
+        await queryClient.invalidateQueries({ queryKey: ["herd-cache"] });
       } catch {
         // No signal, or the farm is not answering. The queue is on the device; the next
         // tick tries again.
@@ -88,10 +100,14 @@ export const SyncBanner = () => {
   }, [queryClient]);
 
   const held = state.data;
-  const carrying = held
-    ? held.pending + held.rejected + held.reviewed > 0
-    : false;
-  if (!held || (!carrying && held.paused === "none")) {
+  if (!held) {
+    return null;
+  }
+  const carrying = held.pending + held.rejected + held.reviewed > 0;
+  // The sync age shows even with nothing waiting. A phone that has been out of signal for
+  // three hours with an empty queue looks exactly like one that synced a moment ago, and
+  // the difference is the whole question in the barn.
+  if (!(carrying || held.paused !== "none" || held.lastSyncAt)) {
     return null;
   }
   const waiting = held.paused === "signed_out";
@@ -122,9 +138,10 @@ export const SyncBanner = () => {
       </span>
       {waiting ? (
         <Button
-          onClick={() => {
-            phoneOutbox()?.resume();
-            void queryClient.invalidateQueries({ queryKey: ["outbox"] });
+          aria-label={t("outbox.retry")}
+          onClick={async () => {
+            await phoneOutbox()?.resume();
+            await queryClient.invalidateQueries({ queryKey: ["outbox"] });
           }}
           size="sm"
           variant="ghost"

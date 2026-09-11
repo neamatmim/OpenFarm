@@ -13,6 +13,7 @@ import {
   ENTRY_STATES,
   EXIT_STATES,
   LIVE_STATES,
+  PHOTO_MAX_BYTES,
   SIDES,
   STATES,
   canTransition,
@@ -38,8 +39,6 @@ import {
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
-/** 1.5 MB of image becomes 2,000,000 base64 characters. */
-const PHOTO_MAX_BYTES = 2_000_000;
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */
 const IMPORT_MAX_ROWS = 600;

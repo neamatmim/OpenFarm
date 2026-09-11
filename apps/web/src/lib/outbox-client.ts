@@ -7,7 +7,22 @@ import {
 
 import { client } from "@/utils/orpc";
 
+import type { Transport } from "./outbox";
 import { Outbox } from "./outbox";
+
+/** The farm, as the Outbox speaks to it. Typed against the procedure rather than cast at it:
+ *  this is the one seam where a field the server does not recognise would quietly lose a
+ *  morning's work. */
+const farm: Transport = {
+  send: (batch) =>
+    client.sync.batch({
+      key: batch.key,
+      sentAt: new Date(batch.sentAt),
+      entries: batch.entries as Parameters<
+        typeof client.sync.batch
+      >[0]["entries"],
+    }),
+};
 
 /** How many times a batch is offered before its entries are handed back to the person. A
  *  phone can be out of signal for days, so this is generous; what it is not is forever. */
@@ -26,12 +41,7 @@ export const phoneOutbox = (): Outbox | null => {
   }
   outbox ??= new Outbox({
     storage: new IndexedDBAdapter("openfarm-outbox", "entries"),
-    transport: {
-      send: (batch) =>
-        client.sync.batch(
-          batch as unknown as Parameters<typeof client.sync.batch>[0]
-        ) as Promise<{ results: never[] }>,
-    },
+    transport: farm,
     retry: new DefaultRetryPolicy(MAX_ATTEMPTS, true),
     // Web Locks: two tabs open on the same phone would otherwise send the same entries
     // twice, under two keys, and the farm would have no way to know they were one thing.

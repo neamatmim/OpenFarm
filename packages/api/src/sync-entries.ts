@@ -1,10 +1,8 @@
 import type { EntryOutcome } from "@OpenFarm/db/schema/sync";
+import { PHOTO_MAX_BYTES } from "@OpenFarm/domain";
 import { z } from "zod";
 
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
-
-/** 1.5 MB of image becomes 2,000,000 base64 characters. */
-const PHOTO_MAX_BYTES = 2_000_000;
 
 /** Every entry carries what the phone knew: its own id for the record, where in its own
  *  sequence the entry sits, and when it says the work happened. The server stamps when it
@@ -19,12 +17,12 @@ export const entryInput = z.discriminatedUnion("kind", [
   z.object({
     ...entryBase,
     kind: z.literal("instance_claim"),
-    instanceId: z.string(),
+    instanceId: z.string().trim().min(1),
   }),
   z.object({
     ...entryBase,
     kind: z.literal("instance_complete"),
-    instanceId: z.string(),
+    instanceId: z.string().trim().min(1),
   }),
   z.object({
     ...entryBase,

@@ -360,6 +360,74 @@ describe("a shift with no signal", () => {
   });
 });
 
+describe("what a crash must not cost", () => {
+  it("finishes putting away an answer it had already been given", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    await outbox.add("step_completion", milk(9), "b");
+    farm.says((batch) => ({
+      results: batch.entries.map((entry, index) => ({
+        id: String(entry.id),
+        seq: Number(entry.seq),
+        outcome: index === 0 ? ("rejected" as const) : ("applied" as const),
+        reason: index === 0 ? "no animal with tag D-0001" : undefined,
+      })),
+    }));
+    await outbox.flush();
+
+    // A phone that died here would once have come back, found a shorter queue, and offered
+    // the farm the same key with fewer entries — which the farm rightly refuses, and which
+    // would have dumped a morning's work onto the rejected list.
+    const restarted = outboxOn();
+    await restarted.flush();
+
+    // Nothing sent again, and the answer is where it should be.
+    expect(farm.sends).toHaveLength(1);
+    const state = await restarted.state();
+    expect(state).toMatchObject({ pending: 0, rejected: 1 });
+  });
+
+  it("does not throw the queue away over a farm that is merely busy", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses({ status: 429, message: "too many requests" });
+
+    await outbox.flush();
+
+    // Still waiting, not handed back: "not now" is not "not ever".
+    const state = await outbox.state();
+    expect(state).toMatchObject({ pending: 1, rejected: 0 });
+  });
+
+  it("remembers it was signed out, even after a restart", async () => {
+    const outbox = outboxOn();
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses({ code: "UNAUTHORIZED", status: 401 });
+    await outbox.flush();
+
+    const restarted = outboxOn();
+    await restarted.flush();
+
+    expect(farm.sends).toHaveLength(1);
+    const state = await restarted.state();
+    expect(state).toMatchObject({ paused: "signed_out", pending: 1 });
+  });
+
+  it("gives two entries recorded in the same instant their own numbers", async () => {
+    const outbox = outboxOn();
+
+    await Promise.all([
+      outbox.add("step_completion", milk(11), "a"),
+      outbox.add("step_completion", milk(9), "b"),
+      outbox.add("step_completion", milk(7), "c"),
+    ]);
+
+    const waiting = await outbox.pending();
+    expect(waiting).toHaveLength(3);
+    expect(new Set(waiting.map((entry) => entry.seq)).size).toBe(3);
+  });
+});
+
 describe("when the session has gone", () => {
   it("stops, says so, and loses nothing", async () => {
     const outbox = outboxOn();

@@ -41,6 +41,10 @@ interface PendingBatch {
   retryCount: number;
   nextAttemptAt: number;
   lastError?: string;
+  /** What the farm said, written down before a single entry is acted on. A phone that dies
+   *  midway through clearing its queue comes back and finishes the job — rather than
+   *  offering the same key a shorter batch, which the farm rightly refuses. */
+  verdicts?: EntryVerdict[];
 }
 
 export interface Transport {
@@ -76,16 +80,25 @@ const BATCH_MAX = 200;
 const BATCH_MAX_BYTES = 4_000_000;
 const ENTRY = "entry:";
 const REJECTED = "rejected:";
-const REVIEWED = "reviewed:";
+const NEEDS_REVIEW = "needs-review:";
 const PENDING_BATCH = "batch:pending";
 const NEXT_SEQ = "meta:seq";
 const LAST_SYNC = "meta:lastSync";
+const PAUSED = "meta:paused";
 /** Sequence numbers are padded so the storage adapter's key order is the order the work
  *  happened: a phone sends what it recorded first, first. */
 const SEQ_WIDTH = 12;
 
-const entryKey = (seq: number) =>
-  `${ENTRY}${String(seq).padStart(SEQ_WIDTH, "0")}`;
+/** Ordered by sequence, but ending in the entry's own id, so two entries that somehow take
+ *  the same number sit beside each other rather than one quietly replacing the other. */
+const entryKey = (seq: number, id: string) =>
+  `${ENTRY}${String(seq).padStart(SEQ_WIDTH, "0")}:${id}`;
+
+/** Where an entry the farm did not simply take is kept. */
+const HELD_UNDER: Partial<Record<EntryVerdict["outcome"], string>> = {
+  rejected: REJECTED,
+  kept: NEEDS_REVIEW,
+};
 
 /** As much of the queue as one send should carry: bounded by count and by weight, and never
  *  fewer than one, because a single entry too heavy for the budget still has to go. */
@@ -114,10 +127,20 @@ const isSignedOut = (error: unknown): boolean => {
   return code === "UNAUTHORIZED" || status === 401;
 };
 
-/** An error the farm will never accept, however often it is offered. */
+/** Codes that mean "not now" rather than "not ever": a farm too busy to answer, a request
+ *  that timed out on a weak signal. Offering the same batch again is exactly right. */
+const TRY_AGAIN = new Set([408, 425, 429]);
+
+/** An error the farm will never accept, however often it is offered. Everything else — no
+ *  route, a gateway, a server that fell over — is worth another go. */
 const isRefusal = (error: unknown): boolean => {
   const status = (error as { status?: number } | null)?.status;
-  return typeof status === "number" && status >= 400 && status < 500;
+  return (
+    typeof status === "number" &&
+    status >= 400 &&
+    status < 500 &&
+    !TRY_AGAIN.has(status)
+  );
 };
 
 export interface OutboxOptions {
@@ -147,6 +170,9 @@ export class Outbox {
     OutboxOptions;
   private paused: OutboxPause = "none";
   private flushing = false;
+  /** This phone's own count of what it has recorded. */
+  private counter: number | null = null;
+  private fromDevice: Promise<number | null> | null = null;
 
   constructor(options: OutboxOptions) {
     this.options = options;
@@ -176,9 +202,19 @@ export class Outbox {
   /** The next number in this phone's own count. Kept on the device, never reset: a gap in
    *  it is how the farm learns an entry never arrived. */
   private async takeSeq(): Promise<number> {
-    const next = (await this.read<number>(NEXT_SEQ)) ?? 1;
-    await this.write(NEXT_SEQ, next + 1);
-    return next;
+    // Read from the device once, then counted in memory. Taking a number and putting the
+    // next one back are two steps, and two taps in the same instant would otherwise take
+    // the same one — the increment below is a single step nothing can get between.
+    this.fromDevice ??= this.read<number>(NEXT_SEQ);
+    const stored = await this.fromDevice;
+    // Checked after the wait, not before it. `??=` tests its target first, so three taps
+    // arriving together all passed the test while the number was still unread, and all
+    // three took the same one.
+    this.counter ??= stored ?? 1;
+    const seq = this.counter;
+    this.counter += 1;
+    await this.write(NEXT_SEQ, this.counter);
+    return seq;
   }
 
   /** Records something, durably, before anything on screen says it happened. */
@@ -195,7 +231,7 @@ export class Outbox {
       body,
       recordedAt: this.now().toISOString(),
     };
-    await this.write(entryKey(seq), entry);
+    await this.write(entryKey(seq, id), entry);
     return entry;
   }
 
@@ -237,13 +273,13 @@ export class Outbox {
 
   /** What the farm took but put in front of somebody. */
   reviewed(): Promise<{ entry: OutboxEntry; reason: string }[]> {
-    return this.under(REVIEWED);
+    return this.under(NEEDS_REVIEW);
   }
 
   /** The person has dealt with a refused or reviewed entry: it leaves the phone. */
   async discard(id: string): Promise<void> {
     await this.options.storage.delete(`${REJECTED}${id}`);
-    await this.options.storage.delete(`${REVIEWED}${id}`);
+    await this.options.storage.delete(`${NEEDS_REVIEW}${id}`);
   }
 
   async state(): Promise<OutboxState> {
@@ -253,6 +289,7 @@ export class Outbox {
       this.reviewed(),
       this.read<string>(LAST_SYNC),
     ]);
+    await this.pausedNow();
     return {
       pending: waiting.length,
       rejected: refused.length,
@@ -263,8 +300,19 @@ export class Outbox {
   }
 
   /** The person has signed in again. */
-  resume(): void {
+  async resume(): Promise<void> {
     this.paused = "none";
+    await this.options.storage.delete(PAUSED);
+  }
+
+  /** Read back at every flush, because a phone that is reloaded has forgotten it stopped. */
+  private async pausedNow(): Promise<OutboxPause> {
+    if (this.paused !== "none") {
+      return this.paused;
+    }
+    const stored = await this.read<OutboxPause>(PAUSED);
+    this.paused = stored ?? "none";
+    return this.paused;
   }
 
   /**
@@ -276,7 +324,7 @@ export class Outbox {
    */
   async flush(): Promise<{ sent: number; verdicts: EntryVerdict[] }> {
     const nothing = { sent: 0, verdicts: [] };
-    if (this.flushing || this.paused !== "none") {
+    if (this.flushing || (await this.pausedNow()) !== "none") {
       return nothing;
     }
     if (this.options.online && !this.options.online.isOnline()) {
@@ -303,6 +351,12 @@ export class Outbox {
       return nothing;
     }
     const batch = await this.batchFor(waiting);
+    if (batch.verdicts) {
+      // The farm already answered this batch; the phone stopped before it had finished
+      // putting the answer away. Finish that, and send nothing.
+      await this.finish(batch, waiting);
+      return { sent: 0, verdicts: batch.verdicts };
+    }
     if (this.now().getTime() < batch.nextAttemptAt) {
       // Still backing off from the last attempt.
       return nothing;
@@ -322,9 +376,11 @@ export class Outbox {
           recordedAt: entry.recordedAt,
         })),
       });
-      await this.settle(entries, answer.results);
-      await this.options.storage.delete(PENDING_BATCH);
-      await this.write(LAST_SYNC, this.now().toISOString());
+      // Written down first. From here the batch is settled business whatever becomes of the
+      // phone; what is left is bookkeeping the next flush can finish.
+      const answered = { ...batch, verdicts: answer.results };
+      await this.write(PENDING_BATCH, answered);
+      await this.finish(answered, waiting);
       return { sent: entries.length, verdicts: answer.results };
     } catch (error) {
       await this.stumble(batch, error);
@@ -354,6 +410,18 @@ export class Outbox {
 
   /** What the farm said, entry by entry. Everything it took leaves the phone; everything it
    *  refused stays, with its data and the reason. */
+  /** Puts the farm's answer away and clears what it took. Written before deleted, every
+   *  time: an entry in neither place is an entry nobody can account for. Safe to run again,
+   *  because every step is a write to a known key or a delete of one. */
+  private async finish(
+    batch: PendingBatch,
+    waiting: OutboxEntry[]
+  ): Promise<void> {
+    await this.settle(waiting, batch.verdicts ?? []);
+    await this.options.storage.delete(PENDING_BATCH);
+    await this.write(LAST_SYNC, this.now().toISOString());
+  }
+
   private async settle(
     entries: OutboxEntry[],
     verdicts: EntryVerdict[]
@@ -361,24 +429,21 @@ export class Outbox {
     const byId = new Map(verdicts.map((verdict) => [verdict.id, verdict]));
     for (const entry of entries) {
       const verdict = byId.get(entry.id);
+      if (!verdict) {
+        continue;
+      }
+      const held = HELD_UNDER[verdict.outcome];
+      if (held) {
+        // Written first. An entry the farm refused, or took and put in front of somebody,
+        // is still the only record on this phone of what a person wrote down.
+        // oxlint-disable-next-line no-await-in-loop
+        await this.write(`${held}${entry.id}`, {
+          entry,
+          reason: verdict.reason ?? "",
+        });
+      }
       // oxlint-disable-next-line no-await-in-loop
-      await this.options.storage.delete(entryKey(entry.seq));
-      if (verdict?.outcome === "rejected") {
-        // oxlint-disable-next-line no-await-in-loop
-        await this.write(`${REJECTED}${entry.id}`, {
-          entry,
-          reason: verdict.reason ?? "refused",
-        });
-      }
-      if (verdict?.outcome === "kept") {
-        // The farm has it and somebody is looking at it. Not the phone's to fix, but the
-        // person who recorded it should hear that it did not simply go in.
-        // oxlint-disable-next-line no-await-in-loop
-        await this.write(`${REVIEWED}${entry.id}`, {
-          entry,
-          reason: verdict.reason ?? "waiting for someone to look",
-        });
-      }
+      await this.options.storage.delete(entryKey(entry.seq, entry.id));
     }
   }
 
@@ -387,6 +452,7 @@ export class Outbox {
   private async stumble(batch: PendingBatch, error: unknown): Promise<void> {
     if (isSignedOut(error)) {
       this.paused = "signed_out";
+      await this.write(PAUSED, "signed_out");
       await this.write(PENDING_BATCH, { ...batch, lastError: "signed out" });
       return;
     }

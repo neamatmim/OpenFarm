@@ -32,13 +32,29 @@ const AuthLayout = () => {
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
   beforeLoad: async ({ context, location }) => {
-    const session = await getUser();
+    const known = context.queryClient.getQueryData(
+      context.orpc.people.me.queryKey()
+    );
+    let session: Awaited<ReturnType<typeof getUser>> = null;
+    try {
+      session = await getUser();
+    } catch {
+      // No signal. A phone that cannot ask who is signed in is not a phone that has been
+      // signed out — and sending a milker to the login screen mid-shift, with a morning's
+      // work in the Outbox, would be the worst answer available.
+      if (known) {
+        return { session: null, me: known };
+      }
+      throw redirect({ to: "/login" });
+    }
     if (!session) {
       throw redirect({ to: "/login" });
     }
-    const me = await context.queryClient.ensureQueryData(
-      context.orpc.people.me.queryOptions()
-    );
+    const me: NonNullable<typeof known> =
+      known ??
+      (await context.queryClient.ensureQueryData(
+        context.orpc.people.me.queryOptions()
+      ));
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });
     }

@@ -307,7 +307,7 @@ export const bn: Record<MessageKey, string> = {
   "outbox.never": "এখনো পাঠানো হয়নি",
   "outbox.signedOut": "বাকিগুলো পাঠাতে আবার সাইন ইন করুন",
   "outbox.rejected": "{count}টি খামার ফেরত পাঠিয়েছে",
-  "outbox.offline": "সিগন্যাল নেই",
+  "outbox.retry": "আবার চেষ্টা",
   "outbox.title": "পাঠানো বাকি",
   "outbox.heldTitle": "ফেরত এসেছে",
   "outbox.heldNone": "কিছু ফেরত আসেনি",

@@ -36,14 +36,23 @@ const applyEntry = async (
   context: Recorder,
   entry: Entry,
   receivedAt: Date
-): Promise<{ entity: string; entityId: string }> => {
+): Promise<{ entity: string; entityId: string; changed?: boolean }> => {
   if (entry.kind === "instance_claim") {
     await applyClaim(tx, context, entry.instanceId, receivedAt);
     return { entity: "sop_instance", entityId: entry.instanceId };
   }
   if (entry.kind === "instance_complete") {
-    await applyComplete(tx, context, entry.instanceId, receivedAt);
-    return { entity: "sop_instance", entityId: entry.instanceId };
+    const { changed } = await applyComplete(
+      tx,
+      context,
+      entry.instanceId,
+      receivedAt
+    );
+    return {
+      entity: "sop_instance",
+      entityId: entry.instanceId,
+      changed,
+    };
   }
   if (entry.kind === "step_completion") {
     const recorded = await applyCompletion(
@@ -81,14 +90,14 @@ const applyEntry = async (
  *  is a row of its own where the entry was taken, and a megabyte of base64 in an Audit Event
  *  would make the trail unreadable to the people who most need to read it. */
 const entryAfter = (entry: Entry): Record<string, unknown> => {
-  const { photo, ...rest } =
-    entry.kind === "step_completion"
-      ? entry
-      : { ...entry, photo: undefined as undefined };
+  const photo = entry.kind === "step_completion" ? entry.photo : undefined;
+  const rest = { ...entry, photo: undefined };
   return {
     ...rest,
     recordedAt: entry.recordedAt.toISOString(),
-    ...(photo ? { photo: photo.contentType } : {}),
+    // The image itself is a row of its own where the entry was taken; a megabyte of base64
+    // in an Audit Event would make the trail unreadable to the people who most need it.
+    photo: photo ? photo.contentType : undefined,
   };
 };
 
@@ -269,6 +278,11 @@ const applyEntries = async (
       // oxlint-disable-next-line no-await-in-loop
       await tx.transaction(async (entryTx) => {
         const target = await applyEntry(entryTx, context, entry, receivedAt);
+        if (target.changed === false) {
+          // Nothing happened, so there is nothing to write down. The entry is still read,
+          // which is what stops it being offered for ever.
+          return;
+        }
         await audit.recordEvent(
           entryTx,
           {
@@ -306,7 +320,7 @@ const applyEntries = async (
     });
   }
 
-  if (skewed && input.sentAt) {
+  if (input.sentAt && skewed) {
     // One notice about one phone, however many entries its clock stamped.
     await flagSource(tx, context, {
       sourceKey,

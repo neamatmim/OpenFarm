@@ -34,3 +34,18 @@
 - **Finishing twice changes nothing** rather than being refused, because a replayed outbox sends what it sent.
 - **What the phone is carrying has a screen.** Entries the farm sent back are listed with the figures the person typed, so they can be put in again; entries the farm took but put in front of somebody are listed too, because the person who recorded them should hear that they did not simply go in. Nothing leaves the phone until the person says it may.
 - **The Pens' animals are cached at every sync** — which cow, and whether her milk may go to the tank — and the pen board renders the Gate from whichever it has. A shed with no bars is exactly where that mistake gets made. The farm decides again when the entry lands; the cache is what the phone shows, not what the farm believes.
+
+**Review outcomes folded in (follow-up commit).** The spec axis found the headline claim false, and it was right: the pen board read everything over the network, so with the network cut it sat on a spinner for ever — no claim button, no cow tiles, nothing to finish. The Outbox was only ever half the job. What the app has read is now kept on the device too, the service worker caches the built assets rather than a page that cannot boot, and a signed-in phone that cannot reach the farm is no longer sent to the login screen mid-shift with a morning's work in its queue.
+
+Data loss the standards axis found in the queue itself:
+
+- **An entry could exist in neither place.** Settling deleted the entry and then wrote the held row; a phone dying between the two lost exactly what "nothing is dropped" promises. Written first, deleted second, every time.
+- **A crash between the farm answering and the phone putting the answer away** left a shorter batch under the same key — which the farm rightly refuses, and which would then have dumped the morning onto the refused list for retyping. The answer is written down before a single entry is acted on, so the next flush finishes the job instead of asking again.
+- **Two taps in the same instant took the same sequence number.** The first fix was wrong in a way its own test caught: `??=` tests its target *before* evaluating what follows, so all three passed the test while the number was still unread. Checked after the wait now.
+- **A farm merely busy discarded the queue**: every 4xx counted as permanent, so a 429 or a timeout handed a morning back for re-entry.
+- **Being signed out did not survive a reload**, so the phone came back and hammered the farm.
+- **A tile turned green with no queue to hold the work** — the one failure the whole file exists to prevent. Recording now refuses rather than appearing to take it.
+
+Also: an Audit Event was written for a finish that changed nothing (a trail that lies); the transport seam was cast rather than typed, at exactly the point where a field mismatch loses work; the banner hid the sync age whenever the queue was empty, which is the one case the spec asks it for; the whole herd was re-read every fifteen seconds on a battery-limited phone; the resume button had no accessible name; and the photo bound sat in three files.
+
+**Still not done, and honestly so:** the paused banner offers a retry but no route back to signing in or a PIN Switch (AC4); photos are not downscaled before they are queued, so a large camera JPEG is refused rather than shrunk (spec line 239); and none of the PWA behaviour — installing, persistent storage, opening with the network cut — has an automated test. Those want a device or a browser harness, and are the honest remainder of this ticket.

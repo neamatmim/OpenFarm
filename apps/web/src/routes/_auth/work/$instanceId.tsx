@@ -156,16 +156,14 @@ const WorkPage = () => {
   };
   // The Gate the tile renders comes from whichever the phone has: what the farm said this
   // time, or what it last cached. The farm decides again when the entry lands.
-  const cached = herd.data?.animals ?? [];
+  const cached = new Map(
+    (herd.data?.animals ?? []).map((one) => [one.id, one])
+  );
   const now = new Date();
   const animals = fromFarm.map((beast) => ({
     ...beast,
     underMilkWithdrawal:
-      beast.underMilkWithdrawal ||
-      cachedWithdrawal(
-        cached.find((one) => one.id === beast.id),
-        now
-      ),
+      beast.underMilkWithdrawal || cachedWithdrawal(cached.get(beast.id), now),
   }));
   const perAnimalStep = content.steps.find((step) => step.repeatPerAnimal);
   // The closing Step is the last one *and* not per-animal: a Playbook whose last Step
@@ -218,8 +216,9 @@ const WorkPage = () => {
       });
       return;
     }
-    const { reason, ...rest } = payload;
-    void reason;
+    // The reason belongs to a Correction, which took the branch above; recording a new
+    // entry has nothing to explain.
+    const { reason: _forCorrections, ...rest } = payload;
     record.mutate({
       instanceId,
       stepId: step.id,

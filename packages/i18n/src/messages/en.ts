@@ -307,7 +307,7 @@ export const en = {
   "outbox.never": "Not sent yet",
   "outbox.signedOut": "Sign in again to send what is waiting",
   "outbox.rejected": "{count} the farm sent back",
-  "outbox.offline": "No signal",
+  "outbox.retry": "Try again",
   "outbox.title": "Waiting to send",
   "outbox.heldTitle": "Sent back",
   "outbox.heldNone": "Nothing sent back",

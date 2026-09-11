@@ -8,6 +8,10 @@ export interface Bilingual {
   en?: string;
 }
 
+/** 1.5 MB of image becomes 2,000,000 base64 characters. The one bound, shared by every
+ *  place a photo can arrive: the single procedure, the batch, and the Animal's own photo. */
+export const PHOTO_MAX_BYTES = 2_000_000;
+
 export const EVIDENCE_TYPES = [
   "tick",
   "number",

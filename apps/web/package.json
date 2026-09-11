@@ -23,6 +23,7 @@
     "@orpc/zod": "catalog:",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/offline-transactions": "^1.0.53",
+    "@tanstack/query-persist-client-core": "^5.102.8",
     "@tanstack/react-form": "^1.33.2",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.34",

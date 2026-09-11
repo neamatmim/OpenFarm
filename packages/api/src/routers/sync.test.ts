@@ -650,6 +650,53 @@ describe("a phone that was out of signal all morning", () => {
     ).toBe(true);
   });
 
+  it("writes no trail entry for a finish that changed nothing", async () => {
+    const { instance, clock, staff } = await session("2027-01-24");
+    const at = clock.now();
+    await staff.sync.batch({
+      key: key(),
+      entries: [
+        milkEntry(instance.id, tagOf(0), 11, at),
+        milkEntry(instance.id, tagOf(1), 9, at),
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "instance_complete" as const,
+          instanceId: instance.id,
+          recordedAt: at,
+        },
+      ],
+    });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const before = await manager.client.audit.list({
+      entity: "sop_instance",
+      entityId: instance.id,
+    });
+
+    // The phone sends the finish again — a replayed outbox, under a new record id.
+    const again = await staff.sync.batch({
+      key: key(),
+      entries: [
+        {
+          id: recordId(),
+          seq: seq(),
+          kind: "instance_complete" as const,
+          instanceId: instance.id,
+          recordedAt: at,
+        },
+      ],
+    });
+
+    expect(again.results[0]?.outcome).toBe("applied");
+    const after = await manager.client.audit.list({
+      entity: "sop_instance",
+      entityId: instance.id,
+    });
+    // Nothing happened, so the trail says nothing happened. An Audit Event claiming a
+    // transition that did not occur is a trail that lies.
+    expect(after).toHaveLength(before.length);
+  });
+
   it("is not a phone with a wrong clock", async () => {
     const { instance, clock, staff } = await session("2027-01-21");
     const now = clock.now();

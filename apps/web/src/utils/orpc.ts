@@ -27,7 +27,17 @@ export const createQueryClient = () =>
         });
       },
     }),
-    defaultOptions: { queries: { staleTime: 60 * 1000 } },
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000,
+        // Kept long enough to be worth restoring from the device after a day in the shed.
+        gcTime: 14 * 24 * 60 * 60 * 1000,
+        // A phone with no signal is not a phone with an error: it shows what it last knew,
+        // and tries again when the network comes back.
+        networkMode: "offlineFirst",
+        retry: 1,
+      },
+    },
   });
 
 const getORPCClient = createIsomorphicFn()

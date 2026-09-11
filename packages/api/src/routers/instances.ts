@@ -9,6 +9,7 @@ import type {
 import {
   AWAITING_SIGN_OFF,
   MILK_DESTINATIONS,
+  PHOTO_MAX_BYTES,
   describeWindow,
   isEscalated,
   isOpen,
@@ -46,7 +47,6 @@ import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
 
-const PHOTO_MAX_BYTES = 2_000_000;
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
 
@@ -783,6 +783,15 @@ export const instancesRouter = {
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
+      // Read first: work already finished needs no second telling, and an Audit Event for a
+      // transition that did not happen is a trail that lies.
+      const already = await context.db.query.sopInstance.findFirst({
+        where: { id: input.id, farmId: context.farm.id },
+        columns: { state: true },
+      });
+      if (already?.state === "completed" || already?.state === "approved") {
+        return { id: input.id, state: "completed" } as const;
+      }
       await audited(context).write(
         {
           entity: "sop_instance",

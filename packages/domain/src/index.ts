@@ -71,6 +71,7 @@ export type {
 } from "./sop";
 export {
   EVIDENCE_TYPES,
+  PHOTO_MAX_BYTES,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
   appliesToAnimal,

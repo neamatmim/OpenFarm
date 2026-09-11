@@ -451,7 +451,7 @@ export const applyComplete = async (
   context: Recorder,
   instanceId: string,
   now: Date
-): Promise<string> => {
+): Promise<{ changed: boolean }> => {
   const instance = await tx.query.sopInstance.findFirst({
     where: { id: instanceId, farmId: context.farm.id },
     with: { version: { columns: { content: true } }, completions: true },
@@ -459,14 +459,16 @@ export const applyComplete = async (
   if (!instance) {
     throw new ORPCError("NOT_FOUND");
   }
+  assertMayWork(context, instance);
   if (instance.state === "completed" || instance.state === "approved") {
-    // Already finished — by this phone's earlier send, or by somebody else.
-    return instanceId;
+    // Already finished — by this phone's earlier send, or by somebody else. Nothing changes,
+    // and the caller is told so: an Audit Event for a transition that did not happen would
+    // be a trail that lies.
+    return { changed: false };
   }
   if (instance.state !== "in_progress" && instance.state !== "sent_back") {
     throw lateEntry(`This work is ${instance.state}, not in progress`);
   }
-  assertMayWork(context, instance);
   const content = contentOf(instance.version);
   const animals = await animalsForInstance(
     tx,
@@ -502,5 +504,5 @@ export const applyComplete = async (
     .update(sopInstance)
     .set({ state: "completed", completedAt: now })
     .where(eq(sopInstance.id, instanceId));
-  return instanceId;
+  return { changed: true };
 };
