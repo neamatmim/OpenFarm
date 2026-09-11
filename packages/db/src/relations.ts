@@ -67,6 +67,19 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  sopTraining: {
+    definition: r.one.sopDefinition({
+      from: r.sopTraining.definitionId,
+      to: r.sopDefinition.id,
+      optional: false,
+    }),
+    version: r.one.sopVersion({
+      from: r.sopTraining.versionId,
+      to: r.sopVersion.id,
+      optional: false,
+    }),
+    person: r.one.user({ from: r.sopTraining.userId, to: r.user.id }),
+  },
   sopDefinition: {
     versions: r.many.sopVersion({
       from: r.sopDefinition.id,

@@ -231,3 +231,5 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Coach Overlay**: The one-time in-app hint shown the first time a person meets a screen type. Dismissable; re-openable from help. _Avoid_: Tutorial, tour, onboarding flow
 
 **SOP Card**: The one-page Bangla print/in-app sheet generated from a published SOP Version: name, steps, icons, evidence. The training material. _Avoid_: Manual, guide, cheat-sheet
+
+**Trained On**: The record that one person was taught one SOP Version, on a day, by somebody. Append-only: a new Version does not untrain anybody and training on it does not erase what they were taught before, because "who knew which procedure" is a question about a date that has already passed. _Avoid_: Certified, signed off (that is the Manager checking work), competent

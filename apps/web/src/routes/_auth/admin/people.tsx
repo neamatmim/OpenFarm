@@ -1,5 +1,6 @@
 import type { RoleName } from "@OpenFarm/api/roles";
 import { ROLES } from "@OpenFarm/api/roles";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -8,7 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 const roleKey = (role: RoleName) => `role.${role}` as const;
@@ -145,6 +146,31 @@ const PeoplePage = () => {
   );
 };
 
+/** What this person has been taught, newest first. Not a tick beside their name: a Version
+ *  published this morning does not untrain anybody, and what they knew in March stays true. */
+const TrainedOn = ({ userId }: { userId: string }) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const person = useQuery(orpc.people.get.queryOptions({ input: { userId } }));
+  const training = person.data?.training ?? [];
+  if (training.length === 0) {
+    return null;
+  }
+  return (
+    <ul className="text-muted-foreground space-y-1 text-sm">
+      {training.map((row) => (
+        <li key={row.id}>
+          {row.name.bn} ·{" "}
+          {t("training.on", {
+            number: row.versionNumber,
+            date: formatDate(new Date(row.trainedAt), language, "date"),
+          })}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 const PersonRow = ({
   person,
   isOwner,
@@ -192,6 +218,7 @@ const PersonRow = ({
           {disabled ? t("people.disabled") : t("people.active")}
         </span>
       </div>
+      <TrainedOn userId={person.id} />
       {isOwner ? (
         <div className="flex flex-wrap items-center gap-3">
           {ROLES.map((role) => (

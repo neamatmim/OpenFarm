@@ -3,6 +3,7 @@ import { and, eq } from "@OpenFarm/db/operators";
 import {
   sopDefinition,
   sopProposal,
+  sopTraining,
   sopVersion,
 } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
@@ -231,6 +232,118 @@ export const sopsRouter = {
     }),
 
   /** A Manager's suggested change. It changes nothing until the Owner approves it. */
+  /**
+   * The SOP Card: the published Version as it goes on the shed wall — what it is for, the
+   * Steps in order, and what each one records. It names its own Version and the day it was
+   * published, so a card somebody printed in March can be checked against the Playbook
+   * rather than trusted.
+   */
+  card: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .input(z.object({ definitionId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const definition = await context.db.query.sopDefinition.findFirst({
+        where: { id: input.definitionId, farmId: context.farm.id },
+        with: { currentVersion: true },
+      });
+      if (!definition?.currentVersion) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "That SOP has no published version yet",
+        });
+      }
+      const content = definition.currentVersion.content as SopContent;
+      return {
+        definitionId: definition.id,
+        versionId: definition.currentVersion.id,
+        number: definition.currentVersion.number,
+        publishedAt: definition.currentVersion.publishedAt,
+        name: content.name,
+        purpose: content.purpose,
+        assignedRole: content.assignedRole,
+        triggers: content.triggers,
+        steps: content.steps,
+      };
+    }),
+
+  /** Who has been taught what, for one SOP. */
+  training: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ definitionId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.sopTraining.findMany({
+        where: { farmId: context.farm.id, definitionId: input.definitionId },
+        orderBy: { trainedAt: "desc" },
+        with: {
+          version: { columns: { number: true } },
+          person: { columns: { name: true } },
+        },
+      });
+      return rows.map(({ version, person, ...row }) => ({
+        ...row,
+        versionNumber: version.number,
+        name: person?.name ?? null,
+      }));
+    }),
+
+  /**
+   * Records that a person was taught this Version. Never a flag: the farm keeps what was
+   * taught and when, so "who knew which procedure" can be answered for any date, including
+   * the day something went wrong.
+   */
+  recordTraining: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ userId: z.string(), versionId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const id = uuidv7(now);
+      let versionNumber = 0;
+      await audited(context).write(
+        {
+          entity: "sop_training",
+          entityId: id,
+          action: "create",
+          after: () =>
+            Promise.resolve({
+              userId: input.userId,
+              versionId: input.versionId,
+            }),
+        },
+        async (tx) => {
+          const version = await tx.query.sopVersion.findFirst({
+            where: { id: input.versionId, farmId: context.farm.id },
+            columns: { id: true, definitionId: true, number: true },
+          });
+          if (!version) {
+            throw new ORPCError("NOT_FOUND", { message: "No such version" });
+          }
+          versionNumber = version.number;
+          const person = await tx.query.user.findFirst({
+            where: { id: input.userId },
+            columns: { id: true },
+          });
+          if (!person) {
+            throw new ORPCError("NOT_FOUND", { message: "No such person" });
+          }
+          await tx
+            .insert(sopTraining)
+            .values({
+              id,
+              farmId: context.farm.id,
+              definitionId: version.definitionId,
+              versionId: version.id,
+              userId: input.userId,
+              trainedBy: context.actor.id,
+              trainedByRole: context.roleUsed,
+              trainedAt: now,
+            })
+            // Teaching somebody the same Version twice is one fact, not two.
+            .onConflictDoNothing();
+        }
+      );
+      return { id, versionNumber };
+    }),
+
   propose: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())

@@ -4,6 +4,7 @@ import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
 import { derivePinHash, isPin, randomPinSalt } from "@OpenFarm/domain";
+import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -99,6 +100,44 @@ export const peopleRouter = {
     }),
 
   /** Owner invites anyone with any Roles (approved at once); Manager invites Staff (pending). */
+  /** One person, and what they have been taught. The Manager's answer to "did they know
+   *  this procedure on the day", which is a question that only gets asked after something
+   *  has gone wrong. */
+  get: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ userId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const person = await context.db.query.user.findFirst({
+        where: { id: input.userId },
+        columns: { id: true, name: true, email: true, disabledAt: true },
+        with: {
+          roles: {
+            where: { farmId: context.farm.id, ...ACTIVE_ROLE },
+            columns: { role: true },
+          },
+        },
+      });
+      if (!person) {
+        throw new ORPCError("NOT_FOUND", { message: "No such person" });
+      }
+      const training = await context.db.query.sopTraining.findMany({
+        where: { farmId: context.farm.id, userId: input.userId },
+        orderBy: { trainedAt: "desc" },
+        with: {
+          version: { columns: { number: true, content: true } },
+        },
+      });
+      return {
+        ...person,
+        roles: person.roles.map((role) => role.role),
+        training: training.map(({ version, ...row }) => ({
+          ...row,
+          versionNumber: version.number,
+          name: (version.content as SopContent).name,
+        })),
+      };
+    }),
+
   invite: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
