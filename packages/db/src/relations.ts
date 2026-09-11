@@ -125,6 +125,9 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
   },
+  alert: {
+    user: r.one.user({ from: r.alert.userId, to: r.user.id, optional: false }),
+  },
   auditEvent: {
     actor: r.one.user({ from: r.auditEvent.actorId, to: r.user.id }),
   },

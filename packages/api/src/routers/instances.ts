@@ -7,10 +7,19 @@ import {
   stepCompletion,
 } from "@OpenFarm/db/schema/instance";
 import type { SopContent, Step } from "@OpenFarm/domain";
-import { MILK_DESTINATIONS, underMilkWithdrawal } from "@OpenFarm/domain";
+import {
+  AWAITING_SIGN_OFF,
+  MILK_DESTINATIONS,
+  isEscalated,
+  isOpen,
+  isOverdue,
+  minutesOverdue,
+  underMilkWithdrawal,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import type { EffectResult } from "../effects";
@@ -20,12 +29,17 @@ import {
   animalsForInstance,
   dueSlotsFor,
   farmDayRange,
+  findLate,
   isOnTheFarm,
   raiseDueInstances,
 } from "../instances-store";
 import { requireRole } from "../roles";
 
 const PHOTO_MAX_BYTES = 2_000_000;
+/** How much of the sign-off queue a screen is handed at once. */
+const SIGN_OFF_LIMIT = 100;
+
+const reasonInput = z.string().trim().min(1).max(200);
 
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
@@ -189,6 +203,69 @@ const assertEvidenceComplete = (
   }
 };
 
+/** The state an Instance was in, for a trail that cannot be argued with. */
+const readInstanceState = async (tx: Tx, farmId: string, id: string) => {
+  const row = await tx.query.sopInstance.findFirst({
+    where: { id, farmId },
+    columns: { state: true, completedAt: true },
+  });
+  return row
+    ? { ...row, completedAt: row.completedAt?.toISOString() ?? null }
+    : null;
+};
+
+/**
+ * The Instance a checker may sign off: waiting for sign-off, and waiting on a Role they
+ * hold. Holding some other Role is not enough — the Version named who checks this work, and
+ * an Owner who is not the named checker is still not the named checker. The one exception is
+ * the Owner, who may always unstick the farm; that is the same licence they have elsewhere.
+ */
+const assertMayCheck = async (
+  tx: Tx,
+  context: { farm: { id: string }; roles: string[]; actor: { id: string } },
+  id: string
+) => {
+  const instance = await tx.query.sopInstance.findFirst({
+    where: { id, farmId: context.farm.id },
+    with: {
+      version: { columns: { content: true } },
+      pen: {
+        columns: { name: true },
+        with: { shed: { columns: { name: true } } },
+      },
+    },
+  });
+  if (!instance) {
+    throw new ORPCError("NOT_FOUND");
+  }
+  if (instance.state !== AWAITING_SIGN_OFF) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `This work is ${instance.state}, not waiting for sign-off`,
+    });
+  }
+  if (!instance.checkerRole) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This work is not checked by anyone",
+    });
+  }
+  const mayCheck =
+    context.roles.includes(instance.checkerRole) ||
+    context.roles.includes("owner");
+  if (!mayCheck) {
+    throw new ORPCError("FORBIDDEN", {
+      message: `This work is signed off by ${instance.checkerRole}`,
+    });
+  }
+  // Marking your own work as checked is not a check.
+  const doer = instance.claimedBy ?? instance.assignedTo;
+  if (doer === context.actor.id) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "Work is signed off by someone other than the person who did it",
+    });
+  }
+  return instance;
+};
+
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
 const penFilter = (
   assigned: string[] | null,
@@ -250,15 +327,16 @@ export const instancesRouter = {
   today: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .input(z.object({ penId: z.string().optional() }).default({}))
-    .handler(({ context, input }) => {
+    .handler(async ({ context, input }) => {
       const scoped = context.roleUsed === "staff";
       if (scoped && context.penIds.length === 0) {
         return [];
       }
       // Today means the farm's day: yesterday's unfinished work belongs on the Overdue
-      // list (ticket 10), not on the phone's list of what to do now.
-      const { from, to } = farmDayRange(context.clock.now());
-      return context.db.query.sopInstance.findMany({
+      // list, not on the phone's list of what to do now.
+      const now = context.clock.now();
+      const { from, to } = farmDayRange(now);
+      const rows = await context.db.query.sopInstance.findMany({
         where: {
           farmId: context.farm.id,
           state: { in: ["due", "in_progress", "sent_back"] },
@@ -276,6 +354,9 @@ export const instancesRouter = {
         },
         orderBy: { dueAt: "asc" },
       });
+      // Late is a fact about the clock, not a state, so it is worked out on the way out
+      // rather than waiting for something to have run.
+      return rows.map((row) => ({ ...row, overdue: isOverdue(row, now) }));
     }),
 
   /** Everything the pen board needs: the Version's Steps, the Pen's animals, and what has
@@ -593,6 +674,163 @@ export const instancesRouter = {
         stepId: input.stepId,
         effect: applied,
       };
+    }),
+
+  /** Work that has gone late and is still open, whatever day it was due — the list the
+   *  Manager works from, and the only way to reach work old enough to have left today's. */
+  overdue: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .handler(async ({ context }) => {
+      const scoped = context.roleUsed === "staff";
+      if (scoped && context.penIds.length === 0) {
+        return [];
+      }
+      const now = context.clock.now();
+      const late = await findLate(context.db, context.farm.id, now);
+      const mine = scoped
+        ? late.filter((row) => context.penIds.includes(row.penId))
+        : late;
+      return mine
+        .map((row) => ({
+          ...row,
+          minutesOverdue: minutesOverdue(row, now),
+          escalated: isEscalated(row, context.farm.escalationMinutes, now),
+        }))
+        .toSorted((a, b) => b.minutesOverdue - a.minutesOverdue);
+    }),
+
+  /** The checker's queue: work that has been done and is waiting on their Role. An SOP with
+   *  no checker Role never appears here — that work is finished when it is completed. */
+  signOffQueue: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      context.db.query.sopInstance.findMany({
+        where: {
+          farmId: context.farm.id,
+          state: AWAITING_SIGN_OFF,
+          checkerRole: { in: context.roles },
+        },
+        with: {
+          version: { columns: { content: true, number: true } },
+          pen: {
+            columns: { name: true },
+            with: { shed: { columns: { name: true } } },
+          },
+        },
+        orderBy: { completedAt: "asc" },
+        limit: SIGN_OFF_LIMIT,
+      })
+    ),
+
+  /** The checker accepts the work. Terminal: an approved Instance is the farm's record. */
+  approve: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "sop_instance",
+          entityId: input.id,
+          action: "update",
+          before: { state: AWAITING_SIGN_OFF },
+          after: { state: "approved" },
+        },
+        async (tx) => {
+          await assertMayCheck(tx, context, input.id);
+          await tx
+            .update(sopInstance)
+            .set({ state: "approved" })
+            .where(eq(sopInstance.id, input.id));
+        }
+      );
+      return { id: input.id, state: "approved" } as const;
+    }),
+
+  /** The checker sends it back with a reason. It returns to the doer, who fixes or redoes
+   *  it; the Completions stay, because recording a Step again corrects it. */
+  sendBack: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ id: z.string(), reason: reasonInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      await audited(context).write(
+        {
+          entity: "sop_instance",
+          entityId: input.id,
+          action: "update",
+          before: { state: AWAITING_SIGN_OFF },
+          after: { state: "sent_back" },
+          reason: input.reason,
+        },
+        async (tx) => {
+          const instance = await assertMayCheck(tx, context, input.id);
+          await tx
+            .update(sopInstance)
+            .set({ state: "sent_back", completedAt: null })
+            .where(eq(sopInstance.id, input.id));
+          // The person who did the work is the person who has to hear about it.
+          const doer = instance.claimedBy ?? instance.assignedTo;
+          if (doer) {
+            const { name } = contentOf(instance.version);
+            await raiseAlerts(
+              tx,
+              context.farm.id,
+              [doer],
+              {
+                kind: "instance_sent_back",
+                entity: "sop_instance",
+                entityId: input.id,
+                params: {
+                  sopBn: name.bn,
+                  sopEn: name.en ?? name.bn,
+                  pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
+                  reason: input.reason,
+                },
+              },
+              now
+            );
+          }
+        }
+      );
+      return { id: input.id, state: "sent_back" } as const;
+    }),
+
+  /** Nothing disappears on its own: work that was never done stays open until someone says,
+   *  with a reason, that it will not be. Only the people who run the farm may say it. */
+  closeAsMissed: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ id: z.string(), reason: reasonInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      await audited(context).write(
+        {
+          entity: "sop_instance",
+          entityId: input.id,
+          action: "update",
+          before: (tx) => readInstanceState(tx, context.farm.id, input.id),
+          after: { state: "missed" },
+          reason: input.reason,
+        },
+        async (tx) => {
+          const instance = await tx.query.sopInstance.findFirst({
+            where: { id: input.id, farmId: context.farm.id },
+            columns: { state: true },
+          });
+          if (!instance) {
+            throw new ORPCError("NOT_FOUND");
+          }
+          if (!isOpen(instance.state)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `This work is ${instance.state}; only work still open can be closed as missed`,
+            });
+          }
+          await tx
+            .update(sopInstance)
+            .set({ state: "missed", completedAt: now })
+            .where(eq(sopInstance.id, input.id));
+        }
+      );
+      return { id: input.id, state: "missed" } as const;
     }),
 
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal

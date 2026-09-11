@@ -13,7 +13,14 @@ import { requireRole } from "../roles";
 const parameters = z.object({
   /** How far the tank reading may sit from what the cows account for before the Manager
    *  is asked to look. */
-  milkTolerancePercent: z.number().int().min(0).max(100),
+  milkTolerancePercent: z.number().int().min(0).max(100).optional(),
+  /** How long an Overdue Instance may stay open before the Owner is told as well. */
+  escalationMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(24 * 60)
+    .optional(),
 });
 
 /** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
@@ -74,7 +81,16 @@ export const farmRouter = {
     .use(requireRole("owner", "manager"))
     .input(parameters)
     .handler(async ({ context, input }) => {
-      const changes = { milkTolerancePercent: input.milkTolerancePercent };
+      const changes: Partial<typeof farm.$inferInsert> = {};
+      if (input.milkTolerancePercent !== undefined) {
+        changes.milkTolerancePercent = input.milkTolerancePercent;
+      }
+      if (input.escalationMinutes !== undefined) {
+        changes.escalationMinutes = input.escalationMinutes;
+      }
+      if (Object.keys(changes).length === 0) {
+        throw new ORPCError("BAD_REQUEST", { message: "Nothing to change" });
+      }
       await audited(context).write(
         {
           entity: "farm",
@@ -83,7 +99,10 @@ export const farmRouter = {
           before: async (tx) =>
             (await tx.query.farm.findFirst({
               where: { id: context.farm.id },
-              columns: { milkTolerancePercent: true },
+              columns: {
+                milkTolerancePercent: true,
+                escalationMinutes: true,
+              },
             })) ?? null,
           after: changes,
         },

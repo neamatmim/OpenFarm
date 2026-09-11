@@ -50,6 +50,9 @@ export const sopInstance = pgTable(
     graceMinutes: integer("grace_minutes").notNull(),
     /** The Role the Instance is assigned to, and optionally the person the Manager pinned. */
     assignedRole: text("assigned_role", { enum: ROLES }).notNull(),
+    /** The Role that signs it off, pinned from the Version like everything else about the
+     *  work. Null for an SOP nobody checks: that work is finished when it is completed. */
+    checkerRole: text("checker_role", { enum: ROLES }),
     assignedTo: text("assigned_to").references(() => user.id),
     assignedBy: text("assigned_by").references(() => user.id),
     claimedBy: text("claimed_by").references(() => user.id),

@@ -2,8 +2,16 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { SopContent } from "@OpenFarm/domain";
-import { EXIT_STATES, appliesToAnimal } from "@OpenFarm/domain";
+import {
+  EXIT_STATES,
+  OPEN_INSTANCE_STATES,
+  appliesToAnimal,
+  isEscalated,
+  isOverdue,
+  minutesOverdue,
+} from "@OpenFarm/domain";
 
+import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 
 /** The farm's clock. Asia/Dhaka has no daylight saving; a farm parameter later. */
@@ -44,6 +52,7 @@ export interface DueSlot {
   dueAt: Date;
   graceMinutes: number;
   assignedRole: SopContent["assignedRole"];
+  checkerRole: SopContent["checkerRole"];
 }
 
 /**
@@ -90,6 +99,7 @@ export const dueSlotsFor = (
             dueAt,
             graceMinutes: sop.content.graceMinutes,
             assignedRole: sop.content.assignedRole,
+            checkerRole: sop.content.checkerRole,
           });
         }
       }
@@ -122,6 +132,7 @@ export const raiseDueInstances = async (
         dueAt: slot.dueAt,
         graceMinutes: slot.graceMinutes,
         assignedRole: slot.assignedRole,
+        checkerRole: slot.checkerRole,
         createdAt: now,
       }))
     )
@@ -152,4 +163,170 @@ export const animalsForInstance = async (
   return rows.filter(
     (row) => isOnTheFarm(row) && appliesToAnimal(content.appliesTo, row)
   );
+};
+
+/** The one-line notice an Alert about a piece of work carries, snapshotted at the moment it
+ *  is raised so it still reads the same after the SOP is renamed or the Pen is moved. */
+const noticeParams = (instance: {
+  version: { content: unknown };
+  pen: { name: string; shed: { name: string } };
+  dueAt: Date;
+}) => {
+  const content = instance.version.content as SopContent;
+  return {
+    sopBn: content.name.bn,
+    sopEn: content.name.en ?? content.name.bn,
+    pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
+    dueAt: instance.dueAt.toISOString(),
+  };
+};
+
+/**
+ * Work that has gone late: open Instances past their due time and their grace. A read, so
+ * both the sweep and the day's list can ask, and so a sweep with nothing to say writes
+ * nothing at all.
+ */
+export const findLate = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  now: Date
+) => {
+  const open = await db.query.sopInstance.findMany({
+    where: { farmId, state: { in: [...OPEN_INSTANCE_STATES] } },
+    with: {
+      version: { columns: { content: true } },
+      pen: {
+        columns: { name: true },
+        with: { shed: { columns: { name: true } } },
+      },
+    },
+  });
+  return open.filter((instance) => isOverdue(instance, now));
+};
+
+export type LateInstance = Awaited<ReturnType<typeof findLate>>[number];
+
+/** How far back a notice is worth sending. Work that went late this week is something to
+ *  tell someone about; work that has been late for a month is a list, not a notification,
+ *  and it stays on the Overdue list for as long as it stays open. */
+const ALERT_HORIZON_DAYS = 7;
+
+/** A backstop on one sweep, so a farm opening the app after a long silence catches up over
+ *  a few sweeps rather than holding one write transaction open against all of it. */
+const SWEEP_BATCH = 200;
+
+const ALERTED_KINDS = ["instance_overdue", "instance_escalated"] as const;
+
+export interface PendingNotices {
+  overdue: LateInstance[];
+  escalated: LateInstance[];
+}
+
+/**
+ * Late work nobody has been told about yet. A read: in steady state it finds nothing, so the
+ * sweep everyone triggers by opening the app opens no transaction at all.
+ *
+ * "Nobody" is per Instance and kind rather than per person, so someone who joins the farm
+ * after the notice went out is not handed a backlog of other people's old alerts. What they
+ * are told about is the work that goes late from then on.
+ */
+export const findPendingNotices = async (
+  db: Pick<Database, "query">,
+  farm: { id: string; escalationMinutes: number },
+  now: Date
+): Promise<PendingNotices> => {
+  const horizon = now.getTime() - ALERT_HORIZON_DAYS * 24 * 60 * MINUTE_MS;
+  // Most recently due first: if a farm has a backlog, the Manager wants to hear about this
+  // morning's milking before an Instance from last week that nobody ever closed.
+  const open = await findLate(db, farm.id, now);
+  const late = open
+    .filter((instance) => instance.dueAt.getTime() >= horizon)
+    .toSorted((a, b) => b.dueAt.getTime() - a.dueAt.getTime());
+  if (late.length === 0) {
+    return { overdue: [], escalated: [] };
+  }
+  const told = await db.query.alert.findMany({
+    where: {
+      farmId: farm.id,
+      kind: { in: [...ALERTED_KINDS] },
+      entityId: { in: late.map((instance) => instance.id) },
+    },
+    columns: { entityId: true, kind: true },
+  });
+  const toldOf = (kind: string) =>
+    new Set(told.filter((row) => row.kind === kind).map((row) => row.entityId));
+  const toldOverdue = toldOf("instance_overdue");
+  const toldEscalated = toldOf("instance_escalated");
+  return {
+    overdue: late
+      .filter((instance) => !toldOverdue.has(instance.id))
+      .slice(0, SWEEP_BATCH),
+    escalated: late
+      .filter(
+        (instance) =>
+          isEscalated(instance, farm.escalationMinutes, now) &&
+          !toldEscalated.has(instance.id)
+      )
+      .slice(0, SWEEP_BATCH),
+  };
+};
+
+/**
+ * Tells the farm about work that has gone late. Overdue reaches the Manager and whoever the
+ * work is on; still open after the escalation window, it reaches the Owner too — one rung,
+ * because there is nobody above the Owner. Nothing about the Instance changes, because being
+ * late is a fact about the clock and not a state to be put into.
+ */
+export const raiseLateAlerts = async (
+  tx: Tx,
+  farmId: string,
+  pending: PendingNotices,
+  now: Date
+): Promise<{ overdue: number; escalated: number }> => {
+  const managers = pending.overdue.length
+    ? await holdersOf(tx, farmId, ["manager"])
+    : [];
+  const owners = pending.escalated.length
+    ? await holdersOf(tx, farmId, ["owner"])
+    : [];
+
+  let overdue = 0;
+  let escalated = 0;
+  for (const instance of pending.overdue) {
+    const onIt = instance.claimedBy ?? instance.assignedTo;
+    // Deliberately sequential: a hundred concurrent upserts against one unique index buys
+    // nothing but lock contention.
+    // oxlint-disable-next-line no-await-in-loop
+    overdue += await raiseAlerts(
+      tx,
+      farmId,
+      onIt ? [...managers, onIt] : managers,
+      {
+        kind: "instance_overdue",
+        entity: "sop_instance",
+        entityId: instance.id,
+        params: noticeParams(instance),
+      },
+      now
+    );
+  }
+  for (const instance of pending.escalated) {
+    // oxlint-disable-next-line no-await-in-loop
+    escalated += await raiseAlerts(
+      tx,
+      farmId,
+      owners,
+      {
+        kind: "instance_escalated",
+        entity: "sop_instance",
+        entityId: instance.id,
+        params: {
+          ...noticeParams(instance),
+          minutesOverdue: minutesOverdue(instance, now),
+        },
+      },
+      now
+    );
+  }
+  return { overdue, escalated };
 };

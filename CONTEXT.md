@@ -60,6 +60,18 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Effect**: What completing a Step writes into the farm's records beyond the Evidence itself — a Milk Record, a Weigh-in, a dose. Runs in the same transaction as the Step Completion and is keyed on it, so a replayed or corrected entry replaces what it wrote. _Avoid_: Side effect, hook, trigger (which is how an SOP falls due)
 
+**Alert**: One thing one person is told, in app, and which stays in their list until they dismiss it. Raised by the system, never by a person. _Avoid_: Notification (the delivery), warning, message
+
+**Overdue**: Open work past its due time plus its Grace. Not a state an Instance is put into but a fact about it and the clock, so nothing has to have run for work to be late. _Avoid_: Late (in the model), expired, breached
+
+**Grace**: The minutes after an Instance's due time before it counts as Overdue. Set per SOP. _Avoid_: Buffer, slack, tolerance (which is milk's word)
+
+**Escalation**: The Owner being told about an Overdue Instance still open after the Escalation Window. One rung: there is nobody above the Owner. _Avoid_: Chasing, raising, bumping
+
+**Missed**: Work closed without being done, by the Manager or Owner, with a reason. The only way an Instance leaves the open list undone; nothing closes itself. _Avoid_: Skipped (which is an animal within a Step), cancelled, failed
+
+**Sign-off**: The checker Role accepting completed work, or sending it back with a reason for the doer to put right. _Avoid_: Approval (finance's word for money above the threshold), review, verification
+
 **Gate**: A rule by which an animal's state blocks a Step or an SOP from completing — e.g. milk withdrawal blocks that cow's milk from bulk; meat withdrawal blocks her sale. A hard block, not a warning. _Avoid_: Validation, warning, lock
 
 **Sign-off**: The checker's review of a completed SOP Instance: approve, or send back with a reason. _Avoid_: Approval (one outcome of Sign-off), verification

@@ -1,6 +1,7 @@
 import type { RouterClient } from "@orpc/server";
 
 import { protectedProcedure, publicProcedure } from "../index";
+import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
 import { devicesRouter } from "./devices";
@@ -16,6 +17,7 @@ export const appRouter = {
   healthCheck: publicProcedure.handler(() => "OK"),
   /** The API's notion of now — from the injected Clock, so clients can show sync age. */
   serverTime: publicProcedure.handler(({ context }) => context.clock.now()),
+  alerts: alertsRouter,
   animals: animalsRouter,
   audit: auditRouter,
   devices: devicesRouter,

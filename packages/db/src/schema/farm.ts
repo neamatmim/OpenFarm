@@ -18,6 +18,8 @@ export const farm = pgTable("farm", {
   /** How far the bulk total may sit from the sum of the per-cow records before the Manager
    *  is asked to look. */
   milkTolerancePercent: integer("milk_tolerance_percent").notNull().default(5),
+  /** How long an Overdue Instance may stay open before the Owner is told as well. */
+  escalationMinutes: integer("escalation_minutes").notNull().default(120),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

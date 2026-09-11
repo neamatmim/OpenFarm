@@ -24,6 +24,7 @@ const Header = () => {
     ...(session ? [{ to: "/animals", label: t("nav.animals") }] : []),
     ...(runsTheFarm
       ? [
+          { to: "/admin/sign-off", label: t("nav.signOff") },
           { to: "/admin/sops", label: t("nav.sops") },
           { to: "/admin/herd", label: t("nav.herd") },
           { to: "/admin/devices", label: t("nav.devices") },

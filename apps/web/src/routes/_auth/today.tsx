@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { AlertList } from "@/components/alert-list";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -31,27 +32,33 @@ const TodayPage = () => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
+  const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
   const work = useQuery(orpc.instances.today.queryOptions({ input: {} }));
   const statusOf = useStatusLabel();
 
-  // Raise whatever the day needs when someone opens the app; idempotent, so it is safe to
-  // run on every open, and harmless when the phone has no signal.
+  // Raise whatever the day needs — the work, then the notices about work already late —
+  // when someone opens the app. Both are idempotent, so running them on every open is safe,
+  // and harmless when the phone has no signal.
   const raise = ensureDue.mutateAsync;
+  const tell = sweep.mutateAsync;
   useEffect(() => {
     const run = async () => {
       try {
         await raise();
+        await tell();
         await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
+        await queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
       } catch {
         // no signal: the list shows what the phone already knows about
       }
     };
     void run();
-  }, [raise, queryClient]);
+  }, [raise, tell, queryClient]);
 
   return (
     <div className="container mx-auto max-w-xl space-y-4 px-4 py-6">
       <h1 className="text-2xl font-bold">{t("work.title")}</h1>
+      <AlertList />
       {work.data?.length ? (
         <ul className="space-y-2">
           {work.data.map((instance) => {
@@ -76,7 +83,14 @@ const TodayPage = () => {
                       })}
                     </p>
                   </div>
-                  <span className="text-sm">{statusOf(instance)}</span>
+                  <span className="flex items-center gap-2 text-sm">
+                    {instance.overdue ? (
+                      <span className="rounded-full bg-amber-900 px-2 py-0.5 text-xs text-amber-200">
+                        {t("work.overdue")}
+                      </span>
+                    ) : null}
+                    {statusOf(instance)}
+                  </span>
                 </Link>
               </li>
             );
