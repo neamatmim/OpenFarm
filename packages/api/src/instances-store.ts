@@ -1,7 +1,12 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { SopContent } from "@OpenFarm/domain";
+import type {
+  AnimalState,
+  FarmEvent,
+  Side,
+  SopContent,
+} from "@OpenFarm/domain";
 import {
   EXIT_STATES,
   MAX_GRACE_MINUTES,
@@ -54,6 +59,27 @@ export interface DueSlot {
   graceMinutes: number;
   assignedRole: SopContent["assignedRole"];
   checkerRole: SopContent["checkerRole"];
+  /** What raised it, for work the clock did not. Null for scheduled work. */
+  cause?: string;
+  /** The animal it is about, for work something that happened to her raised. */
+  animalId?: string;
+}
+
+/**
+ * Something that happened to one animal, flattened to what raising work needs to know. The
+ * store reads Moves and registrations; the animal's own State change is one of these too,
+ * because "she reached Dry" is a thing that happened at an instant just as much as a Move is.
+ */
+export interface Happening {
+  kind: FarmEvent | "state";
+  /** "move:<move id>", "arrival:<animal id>", "state:<animal id>:dry:<instant>" — what the
+   *  cause is built from, and what makes one happening distinguishable from the next. */
+  key: string;
+  at: Date;
+  animalId: string;
+  penId: string;
+  side: Side;
+  state: AnimalState;
 }
 
 /**
@@ -109,6 +135,159 @@ export const dueSlotsFor = (
   return slots;
 };
 
+/** How far back the farm looks for things that should have raised work. Long enough to
+ *  cover a phone left in a drawer over a weekend, short enough that publishing an SOP does
+ *  not bring a fortnight of backlog with it. */
+export const TRIGGER_LOOKBACK_DAYS = 14;
+
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+/**
+ * When work hung on something that happened falls due. Days later means *that day* — the
+ * farm's day, from its start — because "three days after she was moved" is a day's work, not
+ * an appointment for twenty to midnight because that is when somebody happened to move her.
+ * No days later means now: an arrival check is work for the person still standing there.
+ */
+const dueAfter = (at: Date, offsetDays: number): Date =>
+  offsetDays === 0
+    ? at
+    : dueAtFor(new Date(at.getTime() + offsetDays * DAY_MS), "00:00");
+
+/**
+ * Every Instance that things which have happened call for: a Move, an arrival, or an animal
+ * reaching a State. One per happening per SOP, about the animal it happened to, due however
+ * many days later the Trigger says. Pure — the caller decides which of these already exist,
+ * and the cause is what lets it decide.
+ */
+export const happeningSlotsFor = (
+  now: Date,
+  sops: {
+    definitionId: string;
+    versionId: string;
+    content: SopContent;
+    /** When this Version — the one carrying these Triggers — was published. Nothing that
+     *  happened before it raises work under it: adding a Trigger to the Playbook is not a
+     *  way to give the farm a fortnight of overdue work it never knew about (ADR 0001). */
+    triggersInForceSince: Date;
+  }[],
+  happenings: Happening[]
+): DueSlot[] => {
+  const slots: DueSlot[] = [];
+  const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
+  for (const sop of sops) {
+    for (const trigger of sop.content.triggers) {
+      if (trigger.kind === "schedule") {
+        continue;
+      }
+      const offsetDays = trigger.offsetDays ?? 0;
+      for (const happening of happenings) {
+        const matches =
+          trigger.kind === "event"
+            ? happening.kind === trigger.event
+            : happening.kind === "state" && happening.state === trigger.state;
+        if (
+          !(
+            matches &&
+            isOnTheFarm(happening) &&
+            happening.at >= earliest &&
+            happening.at >= sop.triggersInForceSince &&
+            appliesToAnimal(sop.content.appliesTo, happening)
+          )
+        ) {
+          continue;
+        }
+        slots.push({
+          definitionId: sop.definitionId,
+          versionId: sop.versionId,
+          penId: happening.penId,
+          animalId: happening.animalId,
+          cause: `${happening.key}:+${offsetDays}`,
+          dueAt: dueAfter(happening.at, offsetDays),
+          graceMinutes: sop.content.graceMinutes,
+          assignedRole: sop.content.assignedRole,
+          checkerRole: sop.content.checkerRole,
+        });
+      }
+    }
+  }
+  return slots;
+};
+
+/**
+ * Everything that has happened lately and might call for work: Moves, arrivals, and the
+ * State each animal is in with the moment she reached it. Read in one go, because the sweep
+ * runs on every app-open and a farm has one of these tables per question.
+ */
+export const recentHappenings = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  now: Date
+): Promise<Happening[]> => {
+  const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
+  const animals = await db.query.animal.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      penId: true,
+      side: true,
+      state: true,
+      stateChangedAt: true,
+      createdAt: true,
+    },
+  });
+  const animalsById = new Map(animals.map((beast) => [beast.id, beast]));
+  // Registering an animal writes her arrival as a Move from nowhere. That is an arrival, and
+  // arrival is its own happening: a post-move check has no business firing on a cow who has
+  // never been moved anywhere.
+  const moves = await db.query.animalMove.findMany({
+    where: { farmId, movedAt: { gte: earliest }, fromPenId: { isNotNull: true } },
+    columns: { id: true, animalId: true, movedAt: true },
+  });
+
+  const happenings: Happening[] = [];
+  for (const move of moves) {
+    const beast = animalsById.get(move.animalId);
+    if (beast) {
+      happenings.push({
+        kind: "move",
+        key: `move:${move.id}`,
+        at: move.movedAt,
+        animalId: beast.id,
+        // Where she is now, not where that Move put her: she may have been moved twice, and
+        // the work has to be raised in the Pen somebody will find her in.
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+  }
+  for (const beast of animals) {
+    if (beast.createdAt >= earliest) {
+      happenings.push({
+        kind: "arrival",
+        key: `arrival:${beast.id}`,
+        at: beast.createdAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+    if (beast.stateChangedAt >= earliest) {
+      happenings.push({
+        kind: "state",
+        key: `state:${beast.id}:${beast.state}:${beast.stateChangedAt.toISOString()}`,
+        at: beast.stateChangedAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+  }
+  return happenings;
+};
+
 /** Raises the Instances the farm's day needs. Idempotent: the unique index on
  *  (definition, pen, due time) means running it twice changes nothing. */
 export const raiseDueInstances = async (
@@ -130,6 +309,8 @@ export const raiseDueInstances = async (
         versionId: slot.versionId,
         penId: slot.penId,
         state: "due" as const,
+        cause: slot.cause ?? null,
+        animalId: slot.animalId ?? null,
         dueAt: slot.dueAt,
         graceMinutes: slot.graceMinutes,
         assignedRole: slot.assignedRole,
@@ -147,10 +328,13 @@ export const animalsForInstance = async (
   db: Pick<Database, "query">,
   farmId: string,
   penId: string,
-  content: SopContent
+  content: SopContent,
+  /** Work raised by something that happened to one animal is about her, not about everything
+   *  standing in the Pen she happens to be in. */
+  animalId?: string | null
 ) => {
   const rows = await db.query.animal.findMany({
-    where: { farmId, penId },
+    where: animalId ? { farmId, id: animalId } : { farmId, penId },
     columns: {
       id: true,
       tagNumber: true,
@@ -162,7 +346,11 @@ export const animalsForInstance = async (
     orderBy: { tagNumber: "asc" },
   });
   return rows.filter(
-    (row) => isOnTheFarm(row) && appliesToAnimal(content.appliesTo, row)
+    (row) =>
+      isOnTheFarm(row) &&
+      // Work raised about one animal stays about her even if she has moved on since — a cow
+      // dried off between the Move and the check is still the cow to look at.
+      (Boolean(animalId) || appliesToAnimal(content.appliesTo, row))
   );
 };
 

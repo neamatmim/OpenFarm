@@ -104,6 +104,10 @@ export const animal = pgTable(
     /** While this is in the future, the cow's milk may not go to Bulk. Health (increment 3)
      *  writes it from a Treatment; until then it is the hook the gate reads. */
     milkWithdrawalUntil: timestamp("milk_withdrawal_until"),
+    /** When she reached the State she is in. A State-triggered SOP counts its days from
+     *  here, and a cow who comes back to Milking next lactation reaches it afresh — which is
+     *  what makes the work raised then a new occasion rather than one already done. */
+    stateChangedAt: timestamp("state_changed_at").defaultNow().notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

@@ -63,6 +63,7 @@ export type {
   Choice,
   Evidence,
   EvidenceType,
+  FarmEvent,
   SopContent,
   Step,
   StepEffect,
@@ -71,6 +72,8 @@ export type {
 } from "./sop";
 export {
   EVIDENCE_TYPES,
+  FARM_EVENTS,
+  MAX_TRIGGER_OFFSET_DAYS,
   PHOTO_MAX_BYTES,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,

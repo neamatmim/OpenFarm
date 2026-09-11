@@ -202,6 +202,7 @@ const createAnimal = async (
         breed: input.breed ?? null,
         birthDate: input.birthDate ?? null,
         ...openingLactation(input.state, input.calvedAt),
+        stateChangedAt: now,
         createdAt: now,
         updatedAt: now,
       });
@@ -367,6 +368,7 @@ export const animalsRouter = {
               penId: input.toPenId,
               side: input.toSide,
               state: nextState,
+              ...(nextState === current.state ? {} : { stateChangedAt: now }),
               updatedAt: now,
             })
             .where(
@@ -431,6 +433,9 @@ export const animalsRouter = {
               state: input.state,
               side: sideOfState(input.state) ?? current.side,
               ...startingLactation(current, input.state, input.calvedAt, now),
+              // When she reached it, so a State-triggered SOP can count its days from here
+              // and tell this occasion apart from the last time she was in this State.
+              stateChangedAt: now,
               updatedAt: now,
             })
             .where(

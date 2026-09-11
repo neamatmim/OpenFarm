@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import {
   completionPhoto,
@@ -7,6 +7,7 @@ import {
   stepCompletion,
 } from "@OpenFarm/db/schema/instance";
 import type { MilkDestination, SopContent, Step } from "@OpenFarm/domain";
+import { OPEN_INSTANCE_STATES } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -467,6 +468,20 @@ export const applyMove = async (
       movedAt,
     })
     .onConflictDoNothing();
+  // Work raised about her follows her. An Instance keeps the Pen she was in when it was
+  // raised, and a check due days later would otherwise sit in a Pen she has left: the Staff
+  // assigned to where she is now would never see it, and the ones assigned to where she was
+  // would be sent to fetch a cow who is not there.
+  await tx
+    .update(sopInstance)
+    .set({ penId: input.toPenId })
+    .where(
+      and(
+        eq(sopInstance.farmId, context.farm.id),
+        eq(sopInstance.animalId, current.id),
+        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
+      )
+    );
   return current.id;
 };
 
@@ -544,7 +559,8 @@ export const applyComplete = async (
     tx,
     context.farm.id,
     instance.penId,
-    content
+    content,
+    instance.animalId
   );
   const outstanding: string[] = [];
   for (const step of content.steps) {

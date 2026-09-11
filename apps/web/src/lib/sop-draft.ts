@@ -3,6 +3,7 @@ import type {
   EvidenceType,
   SopContent,
   Step,
+  Trigger,
 } from "@OpenFarm/domain";
 
 /** A blank procedure the Owner fills in — Bangla first, everything else optional. */
@@ -40,6 +41,31 @@ export const withScheduleTimes = (
     { kind: "schedule", times },
     ...content.triggers.filter((t) => t.kind !== "schedule"),
   ],
+});
+
+/** A Trigger that is not a clock: a Move, an arrival, or a State an animal reaches. */
+export type HappeningTrigger = Extract<Trigger, { kind: "event" | "state" }>;
+
+export const happeningTriggers = (content: SopContent): HappeningTrigger[] =>
+  content.triggers.filter(
+    (trigger): trigger is HappeningTrigger => trigger.kind !== "schedule"
+  );
+
+export const withHappeningTriggers = (
+  content: SopContent,
+  happenings: HappeningTrigger[]
+): SopContent => ({
+  ...content,
+  triggers: [
+    ...content.triggers.filter((trigger) => trigger.kind === "schedule"),
+    ...happenings,
+  ],
+});
+
+/** A new one starts on the thing the farm records most often. */
+export const emptyHappening = (): HappeningTrigger => ({
+  kind: "event",
+  event: "move",
 });
 
 export const splitList = (value: string): string[] =>

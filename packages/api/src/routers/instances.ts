@@ -40,9 +40,11 @@ import {
   alertParams,
   animalsForInstance,
   dueSlotsFor,
+  happeningSlotsFor,
   farmDayRange,
   findLate,
   raiseDueInstances,
+  recentHappenings,
 } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { raiseNeedsReview } from "../review-store";
@@ -220,12 +222,24 @@ export const instancesRouter = {
           definitionId: definition.id,
           versionId: definition.currentVersion?.id ?? "",
           content: contentOf({ content: definition.currentVersion?.content }),
+          triggersInForceSince:
+            definition.currentVersion?.publishedAt ?? definition.createdAt,
         }));
       const animals = await context.db.query.animal.findMany({
         where: { farmId: context.farm.id },
         columns: { penId: true, side: true, state: true },
       });
-      const slots = dueSlotsFor(now, sops, animals);
+      const slots = [
+        ...dueSlotsFor(now, sops, animals),
+        // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same
+        // pass, because whatever opened the app wants the whole day's work, not the half
+        // of it a schedule accounts for.
+        ...happeningSlotsFor(
+          now,
+          sops,
+          await recentHappenings(context.db, context.farm.id, now)
+        ),
+      ];
       if (slots.length === 0) {
         return { raised: 0 };
       }
@@ -306,7 +320,8 @@ export const instancesRouter = {
             context.db,
             context.farm.id,
             instance.penId,
-            content
+            content,
+            instance.animalId
           )
         : [];
       // The Session the Instance's effects wrote, so the reconciliation — and the flag the

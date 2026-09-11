@@ -27,6 +27,9 @@ interface Options {
   onShedPhone?: boolean;
   /** An enrolled phone with nobody PIN-switched in yet. */
   locked?: boolean;
+  /** A Shed Phone of this test file's own, rather than the one every file shares. What a
+   *  phone has sent is counted per phone, so a file that sends batches wants its own. */
+  phone?: { id: string; name: string };
 }
 
 const deviceStatusOf = (
@@ -49,13 +52,16 @@ export const createTestClient = async <T extends Router<Context>>(
     clock = new FakeClock(),
     onShedPhone = false,
     locked = false,
+    phone,
     push,
   }: Options
 ): Promise<{ client: RouterClient<T>; clock: FakeClock; context: Context }> => {
   const principal =
     as === null ? null : await createTestPrincipal(as, clock.now());
   const enrolled =
-    as !== null && onShedPhone ? await createTestDevice(as, clock.now()) : null;
+    as !== null && onShedPhone
+      ? await createTestDevice(as, clock.now(), phone)
+      : null;
   const device =
     enrolled && locked ? { ...enrolled, activeUserId: null } : enrolled;
   const context = await buildContext({
