@@ -17,11 +17,16 @@ const Header = () => {
   });
   const roles = me.data?.roles ?? [];
   const runsTheFarm = roles.includes("owner") || roles.includes("manager");
+  /** The Vet keeps the Drug List, and is off-site more often than on it. */
+  const isVet = roles.includes("vet");
   const links = [
     { to: "/", label: t("nav.home") },
     { to: "/dashboard", label: t("nav.dashboard") },
     ...(session ? [{ to: "/today", label: t("nav.today") }] : []),
     ...(session ? [{ to: "/animals", label: t("nav.animals") }] : []),
+    // The Drug List is the Vet's to keep and the Manager's to add to, so it does not live
+    // behind the admin screens — a Vet sent there is sent away.
+    ...(isVet || runsTheFarm ? [{ to: "/drugs", label: t("nav.drugs") }] : []),
     ...(session ? [{ to: "/settings", label: t("nav.settings") }] : []),
     // The Owner's own screen, and only the Owner's: a Manager sent there is sent to a
     // refusal.
