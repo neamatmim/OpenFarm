@@ -1,5 +1,7 @@
+import { eq } from "@OpenFarm/db/operators";
+import { animal } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -75,9 +77,7 @@ describe("the screen the Manager runs the day from", () => {
     // Two sessions of this round in each Pen, and nothing done in either. Counted with
     // "at least", because a Pen's day is every SOP that concerns it — and other test files
     // share this farm and author their own.
-    expect(
-      mine.every((pen) => pen.done === 0 && pen.raised >= 2)
-    ).toBe(true);
+    expect(mine.every((pen) => pen.done === 0 && pen.raised >= 2)).toBe(true);
     // And the morning round is late in both.
     expect(
       home.queue.overdue.filter((row) =>
@@ -143,5 +143,61 @@ describe("the screen the Manager runs the day from", () => {
   it("will not show the farm's queue to a Staff member", async () => {
     const staff = await createTestClient(appRouter, { as: "staff" });
     await expect(staff.client.home.manager()).rejects.toThrow();
+  });
+
+  it("keeps a Pen that was settled as Missed out of what is still outstanding", async () => {
+    const clock = new FakeClock("2028-01-08T03:30:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.instances.ensureDue();
+    const today = await manager.client.instances.today({
+      penId: world.untouched.id,
+    });
+    const morning = today.find(
+      (row) => row.definitionId === world.sop.definitionId
+    );
+    if (!morning) {
+      throw new Error("expected the morning round");
+    }
+
+    await manager.client.instances.closeAsMissed({
+      id: morning.id,
+      reason: "কেউ ছিল না",
+    });
+
+    const home = await manager.client.home.manager();
+    const pen = home.pens.find((row) => row.penId === world.untouched.id);
+    // Settled, not outstanding: the Manager decided this one, and a screen that keeps
+    // showing it is telling them about a decision they have already made.
+    expect(pen?.missed).toBe(1);
+    expect(home.queue.overdue.map((row) => row.id)).not.toContain(morning.id);
+  });
+
+  it("puts the cow whose withdrawal ends soonest at the top, and says when", async () => {
+    const clock = new FakeClock("2028-01-09T03:30:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const cow = await manager.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: world.worked.id,
+      source: "born",
+      aliases: [],
+    });
+    // Treated, and off withdrawal tomorrow morning. Health sets this from a Treatment in
+    // increment 3; until then it is set directly, which is what that column is for.
+    await scratchDb()
+      .update(animal)
+      .set({
+        milkWithdrawalUntil: new Date(clock.now().getTime() + 20 * 60 * 60_000),
+      })
+      .where(eq(animal.tagNumber, cow.tagNumber));
+
+    const home = await manager.client.home.manager();
+    const hers = home.queue.withdrawal.find(
+      (row) => row.tagNumber === cow.tagNumber
+    );
+
+    expect(hers?.endingSoon).toBe(true);
+    expect(hers?.until).toBeInstanceOf(Date);
   });
 });

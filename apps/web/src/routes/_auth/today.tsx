@@ -34,7 +34,10 @@ const TodayPage = () => {
   const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
   const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
   const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
-  const work = useQuery(orpc.instances.today.queryOptions({ input: {} }));
+  const { pen } = Route.useSearch();
+  const work = useQuery(
+    orpc.instances.today.queryOptions({ input: pen ? { penId: pen } : {} })
+  );
   const statusOf = useStatusLabel();
 
   // Raise whatever the day needs — the work, then the notices about work already late —
@@ -111,4 +114,10 @@ const TodayPage = () => {
 
 export const Route = createFileRoute("/_auth/today")({
   component: TodayPage,
+  /** One Pen's day, when somebody arrived here from a screen that was talking about it.
+   *  Absent is the whole of what this person works, which is what a milker wants. */
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { pen?: string | undefined } =>
+    typeof search.pen === "string" ? { pen: search.pen } : {},
 });

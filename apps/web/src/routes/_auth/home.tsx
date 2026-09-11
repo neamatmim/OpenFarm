@@ -1,6 +1,9 @@
-import { formatNumber } from "@OpenFarm/i18n";
-import { useQuery } from "@tanstack/react-query";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { useEffect } from "react";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -14,7 +17,32 @@ import { orpc } from "@/utils/orpc";
  */
 const ManagerHome = () => {
   const t = useT();
+  const { language } = useLanguage();
+  const queryClient = useQueryClient();
+  const ensureDue = useMutation(orpc.instances.ensureDue.mutationOptions({}));
+  const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
+  const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
   const home = useQuery(orpc.home.manager.queryOptions());
+
+  // The Manager often opens this before anybody has opened Today, and the day's work is
+  // raised by whoever opens the app first. Without this the screen would say the farm had
+  // nothing to do at six in the morning, which is the one hour it is certainly wrong.
+  const raise = ensureDue.mutateAsync;
+  const tell = sweep.mutateAsync;
+  const carry = digest.mutateAsync;
+  useEffect(() => {
+    const run = async () => {
+      try {
+        await raise();
+        await tell();
+        await carry();
+        await queryClient.invalidateQueries({ queryKey: orpc.home.key() });
+      } catch {
+        // No signal: the screen shows what this phone last knew.
+      }
+    };
+    void run();
+  }, [raise, tell, carry, queryClient]);
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const penNames = new Map(
     (sheds.data ?? []).flatMap((shed) =>
@@ -22,6 +50,9 @@ const ManagerHome = () => {
     )
   );
 
+  if (home.isError) {
+    return <p className="p-6">{t("common.error")}</p>;
+  }
   if (!home.data) {
     return <p className="p-6">{t("common.loading")}</p>;
   }
@@ -36,6 +67,31 @@ const ManagerHome = () => {
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
       <h1 className="text-lg font-medium">{t("home.title")}</h1>
 
+      <section className="space-y-2">
+        <h2 className="font-medium">{t("home.tiles")}</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            className="rounded-xl border p-3 text-sm"
+            search={{}}
+            to="/today"
+          >
+            <span className="text-muted-foreground">{t("home.workDone")}</span>
+            <span className="block text-lg font-medium">
+              {t("home.progress", {
+                done: formatNumber(home.data.tiles.workDone, language),
+                raised: formatNumber(home.data.tiles.workRaised, language),
+              })}
+            </span>
+          </Link>
+          <Link className="rounded-xl border p-3 text-sm" to="/animals">
+            <span className="text-muted-foreground">{t("home.cowsHeld")}</span>
+            <span className="block text-lg font-medium">
+              {formatNumber(home.data.tiles.underWithdrawal, language)}
+            </span>
+          </Link>
+        </div>
+      </section>
+
       <section className="space-y-3">
         <h2 className="font-medium">{t("home.queue")}</h2>
         {waiting === 0 ? (
@@ -44,42 +100,86 @@ const ManagerHome = () => {
           </p>
         ) : null}
 
+        <QueueBlock count={queue.overdue.length} label={t("home.overdue")}>
+          {queue.overdue.map((row) => (
+            <QueueRow key={row.id}>
+              <Link
+                className="underline"
+                params={{ instanceId: row.id }}
+                to="/work/$instanceId"
+              >
+                {row.sopBn} · {row.pen}
+              </Link>
+            </QueueRow>
+          ))}
+        </QueueBlock>
+
+        <QueueBlock count={queue.signOff.length} label={t("home.signOff")}>
+          {queue.signOff.map((row) => (
+            <QueueRow key={row.id}>
+              <Link
+                className="underline"
+                params={{ instanceId: row.id }}
+                to="/work/$instanceId"
+              >
+                {row.sopBn} · {row.pen}
+              </Link>
+            </QueueRow>
+          ))}
+        </QueueBlock>
+
         <QueueBlock
-          label={t("home.overdue")}
-          rows={queue.overdue.map((row) => ({
-            key: row.id,
-            words: `${row.sopBn} · ${row.pen}`,
-            to: "/work/$instanceId" as const,
-            params: { instanceId: row.id },
-          }))}
-        />
-        <QueueBlock
-          label={t("home.signOff")}
-          rows={queue.signOff.map((row) => ({
-            key: row.id,
-            words: `${row.sopBn} · ${row.pen}`,
-            to: "/work/$instanceId" as const,
-            params: { instanceId: row.id },
-          }))}
-        />
-        <QueueBlock
+          count={queue.needsReview.length}
           label={t("home.needsReview")}
-          rows={queue.needsReview.map((row) => ({
-            key: row.id,
-            words: t(`review.${row.reason}`),
-            to: "/admin/sign-off" as const,
-            params: {},
-          }))}
-        />
+        >
+          {queue.needsReview.map((row) => (
+            <QueueRow key={row.id}>
+              {row.instanceId ? (
+                <Link
+                  className="underline"
+                  params={{ instanceId: row.instanceId }}
+                  to="/work/$instanceId"
+                >
+                  {t(`review.${row.reason}` as MessageKey)}
+                </Link>
+              ) : (
+                <Link className="underline" to="/admin/sign-off">
+                  {t(`review.${row.reason}` as MessageKey)}
+                </Link>
+              )}
+            </QueueRow>
+          ))}
+        </QueueBlock>
+
         <QueueBlock
+          count={queue.withdrawal.length}
           label={t("home.withdrawal")}
-          rows={queue.withdrawal.map((row) => ({
-            key: row.id,
-            words: row.tagNumber,
-            to: "/animals/$tagNumber" as const,
-            params: { tagNumber: row.tagNumber },
-          }))}
-        />
+        >
+          {queue.withdrawal.map((row) => (
+            <QueueRow key={row.id}>
+              <Link
+                className="underline"
+                params={{ tagNumber: row.tagNumber }}
+                to="/animals/$tagNumber"
+              >
+                {row.tagNumber}
+              </Link>
+              {row.until ? (
+                <span
+                  className={
+                    row.endingSoon
+                      ? "ml-2 text-amber-400"
+                      : "text-muted-foreground ml-2"
+                  }
+                >
+                  {t("home.until", {
+                    date: formatDate(new Date(row.until), language, "date"),
+                  })}
+                </span>
+              ) : null}
+            </QueueRow>
+          ))}
+        </QueueBlock>
       </section>
 
       <section className="space-y-2">
@@ -104,44 +204,35 @@ const ManagerHome = () => {
   );
 };
 
-/** One queue, or nothing at all: an empty heading is a line of furniture. */
+/** One queue, or nothing at all: an empty heading is a line of furniture. Each row brings
+ *  its own link, so the route and its parameters are typed where they are written. */
 const QueueBlock = ({
   label,
-  rows,
+  count,
+  children,
 }: {
   label: string;
-  rows: {
-    key: string;
-    words: string;
-    to: "/work/$instanceId" | "/admin/sign-off" | "/animals/$tagNumber";
-    params: Record<string, string>;
-  }[];
+  count: number;
+  children: ReactNode;
 }) => {
   const { language } = useLanguage();
-  if (rows.length === 0) {
+  if (count === 0) {
     return null;
   }
   return (
     <div className="space-y-1">
       <p className="text-muted-foreground text-sm">
-        {label} · {formatNumber(rows.length, language)}
+        {label} · {formatNumber(count, language)}
       </p>
-      <ul className="space-y-1">
-        {rows.map((row) => (
-          <li key={row.key}>
-            <Link
-              className="block rounded-lg border p-2 text-sm underline"
-              params={row.params}
-              to={row.to}
-            >
-              {row.words}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <ul className="space-y-1">{children}</ul>
     </div>
   );
 };
+
+/** One line of a queue: what it is, and the way to it. */
+const QueueRow = ({ children }: { children: ReactNode }) => (
+  <li className="rounded-lg border p-2 text-sm">{children}</li>
+);
 
 /** How one Pen's day is going, and how many animals are standing in it. */
 const PenProgress = ({
@@ -160,7 +251,7 @@ const PenProgress = ({
         finished ? "border-emerald-800" : ""
       }`}
     >
-      <Link className="underline" params={{ penId: pen.penId }} to="/today">
+      <Link className="underline" search={{ pen: pen.penId }} to="/today">
         {name}
       </Link>
       <span className="text-muted-foreground">

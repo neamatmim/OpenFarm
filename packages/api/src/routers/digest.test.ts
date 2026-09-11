@@ -82,9 +82,11 @@ describe("the evening digest", () => {
     // browser's digest rather than the farm's count of them.
     expect(sent.people).toBeGreaterThanOrEqual(1);
     const mine = post.sent.filter((one) => one.target.endpoint === endpoint);
+    // One push, carrying what was waiting — named, in the words the reader reads. Not a
+    // count: this farm is shared with every other test file, and what else is waiting for
+    // this Manager is their business rather than this test's.
     expect(mine).toHaveLength(1);
-    // Two things, in the numerals the reader reads.
-    expect(mine[0]?.message.body).toContain("২");
+    expect(mine[0]?.message.body).toContain("যাচাই");
     expect(mine[0]?.message.url).toBe("/today");
   });
 
