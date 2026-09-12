@@ -46,7 +46,10 @@ const CardPage = () => {
   const tight = steps.length > STEPS_BEFORE_TIGHTENING;
 
   return (
-    <div className="mx-auto max-w-[210mm] space-y-4 p-6 print:p-0" id="sop-card">
+    <div
+      className="mx-auto max-w-[210mm] space-y-4 p-6 print:p-0"
+      id="sop-card"
+    >
       {/* One A4 page: the card is for a wall, not a screen, and a card that runs onto a
           second sheet is half a card by the time somebody reads it. */}
       <style>{`@page { size: A4; margin: 12mm }

@@ -1,13 +1,13 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
-import { identityView } from "@OpenFarm/domain";
+import { identityView, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { farmDay, startOfFarmDay } from "../farm-clock";
+import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -40,6 +40,9 @@ const parameters = z
     managerCorrectionDays: z.number().int().min(0).max(365).optional(),
     /** How early the farm is told its DLS registration is running out. */
     registrationRenewalLeadDays: z.number().int().min(0).max(365).optional(),
+    /** What a bought-in fattening animal is fed towards unless the Manager says otherwise
+     *  for that animal. */
+    fatteningTargetWeightKg: z.number().int().min(1).max(2000).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -259,6 +262,7 @@ export const farmRouter = {
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,
                 registrationRenewalLeadDays: true,
+                fatteningTargetWeightKg: true,
               },
             })) ?? null,
           after: changes,

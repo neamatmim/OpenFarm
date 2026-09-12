@@ -1,12 +1,18 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "911acf5d-3a77-45a1-9f10-eae4b6985fbd",
-  "prevIds": ["0aff5e8f-9fc1-4879-bb92-761399f893d0"],
+  "id": "42e2338b-2d30-4d91-916d-8b868b00c6b1",
+  "prevIds": ["e82d2fb2-da6e-45b8-b4d2-edee168ad9e3"],
   "ddl": [
     {
       "isRlsEnabled": false,
       "name": "alert",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "text_message",
       "entityType": "tables",
       "schema": "public"
     },
@@ -79,6 +85,18 @@
     {
       "isRlsEnabled": false,
       "name": "role_assignment",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "counterparty",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "intake",
       "entityType": "tables",
       "schema": "public"
     },
@@ -415,6 +433,110 @@
       "entityType": "columns",
       "schema": "public",
       "table": "alert"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "farm_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "entity_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sent_to",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "delivered",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sent_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "text_message"
     },
     {
       "type": "text",
@@ -958,6 +1080,19 @@
       "generated": null,
       "identity": null,
       "name": "language",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "phone",
       "entityType": "columns",
       "schema": "public",
       "table": "user"
@@ -1691,6 +1826,110 @@
       "table": "farm"
     },
     {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "phone",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "registration_number",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "registration_office",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "registration_issued_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "registration_expires_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "90",
+      "generated": null,
+      "identity": null,
+      "name": "registration_renewal_lead_days",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "350",
+      "generated": null,
+      "identity": null,
+      "name": "fattening_target_weight_kg",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
       "type": "timestamp",
       "typeSchema": null,
       "notNull": false,
@@ -1974,6 +2213,253 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "farm_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "phone",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "farm_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "animal_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "counterparty_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "numeric(12,2)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "purchase_price_bdt",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "numeric(7,2)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "weight_kg",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "estimated_age_months",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "target_window_start",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "target_window_end",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "numeric(7,2)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "target_weight_kg",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "arrived_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "recorded_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
       "table": "diagnosis"
     },
     {
@@ -2135,12 +2621,25 @@
     {
       "type": "text",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
       "name": "instance_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "dls_report"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "disease_id",
       "entityType": "columns",
       "schema": "public",
       "table": "dls_report"
@@ -2193,6 +2692,19 @@
       "generated": null,
       "identity": null,
       "name": "delivered_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "dls_report"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "withdrawn_at",
       "entityType": "columns",
       "schema": "public",
       "table": "dls_report"
@@ -3961,6 +4473,19 @@
       "generated": null,
       "identity": null,
       "name": "cause",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "mortality"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "diagnosis_id",
       "entityType": "columns",
       "schema": "public",
       "table": "mortality"
@@ -6275,6 +6800,69 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "user_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "kind",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "entity_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "text_message_once_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "farm_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "sent_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "text_message_farm_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "farm_id",
           "isExpression": false,
           "asc": true,
@@ -6744,6 +7332,83 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "farm_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "counterparty_name_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "animal_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "intake_animal_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "farm_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "target_window_start",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "intake_window_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "animal_id",
           "isExpression": false,
           "asc": true,
@@ -6850,7 +7515,7 @@
         }
       ],
       "isUnique": true,
-      "where": null,
+      "where": "\"instance_id\" is not null",
       "with": "",
       "method": "btree",
       "concurrently": false,
@@ -8446,6 +9111,32 @@
       "tableTo": "farm",
       "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "text_message_farm_id_farm_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["user_id"],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "text_message_user_id_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "text_message"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["farm_id"],
+      "schemaTo": "public",
+      "tableTo": "farm",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "audit_event_farm_id_farm_id_fkey",
       "entityType": "fks",
@@ -8681,6 +9372,71 @@
       "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
+      "name": "counterparty_farm_id_farm_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "counterparty"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["farm_id"],
+      "schemaTo": "public",
+      "tableTo": "farm",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "intake_farm_id_farm_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["animal_id"],
+      "schemaTo": "public",
+      "tableTo": "animal",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "intake_animal_id_animal_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["counterparty_id"],
+      "schemaTo": "public",
+      "tableTo": "counterparty",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "intake_counterparty_id_counterparty_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["recorded_by"],
+      "schemaTo": "public",
+      "tableTo": "user",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "intake_recorded_by_user_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "intake"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["farm_id"],
+      "schemaTo": "public",
+      "tableTo": "farm",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "diagnosis_farm_id_farm_id_fkey",
       "entityType": "fks",
       "schema": "public",
@@ -8760,6 +9516,19 @@
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dls_report_instance_id_sop_instance_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "dls_report"
+    },
+    {
+      "nameExplicit": false,
+      "columns": ["disease_id"],
+      "schemaTo": "public",
+      "tableTo": "notifiable_disease",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "dls_report_disease_id_notifiable_disease_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "dls_report"
@@ -10187,6 +10956,14 @@
     {
       "columns": ["id"],
       "nameExplicit": false,
+      "name": "text_message_pkey",
+      "schema": "public",
+      "table": "text_message",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
       "name": "audit_event_pkey",
       "schema": "public",
       "table": "audit_event",
@@ -10278,6 +11055,22 @@
       "name": "role_assignment_pkey",
       "schema": "public",
       "table": "role_assignment",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "counterparty_pkey",
+      "schema": "public",
+      "table": "counterparty",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "intake_pkey",
+      "schema": "public",
+      "table": "intake",
       "entityType": "pks"
     },
     {

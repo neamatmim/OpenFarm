@@ -161,7 +161,10 @@ describe("what somebody saw on the round", () => {
     const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
     // Both are there: the one that stands, and the one somebody said on the round.
     expect(
-      her.observations.map((seen) => ({ saw: seen.saw, withdrawn: seen.withdrawn }))
+      her.observations.map((seen) => ({
+        saw: seen.saw,
+        withdrawn: seen.withdrawn,
+      }))
     ).toEqual([
       { saw: "bulling", withdrawn: false },
       { saw: "lame", withdrawn: true },
@@ -226,9 +229,9 @@ describe("what somebody saw on the round", () => {
       instanceId: instance.id,
     });
     // And the other cow's finding is not in this answer.
-    expect(
-      inHeat.filter((seen) => seen.tagNumber === lame.tagNumber)
-    ).toEqual([]);
+    expect(inHeat.filter((seen) => seen.tagNumber === lame.tagNumber)).toEqual(
+      []
+    );
 
     // The words the rounds have actually used, for the filter to offer.
     const kinds = await owner.client.observations.kinds();

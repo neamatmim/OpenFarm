@@ -22,6 +22,13 @@ export {
 } from "./lifecycle";
 export type { FarmIdentity } from "./farm";
 export { identityView } from "./farm";
+export {
+  FARM_UTC_OFFSET_MINUTES,
+  farmDayOf,
+  startOfFarmDay,
+} from "./farm-clock";
+export type { TargetWindow } from "./fattening";
+export { EID_UL_ADHA, QURBANI_DAYS, nextEidWindow } from "./fattening";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";

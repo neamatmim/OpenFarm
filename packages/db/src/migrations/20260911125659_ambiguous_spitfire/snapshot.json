@@ -2,9 +2,7 @@
   "version": "8",
   "dialect": "postgres",
   "id": "434a6460-83ae-4900-a09c-aafb74b12098",
-  "prevIds": [
-    "f9e712d3-03c0-46b2-8c49-7a776e391e89"
-  ],
+  "prevIds": ["f9e712d3-03c0-46b2-8c49-7a776e391e89"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -5619,14 +5617,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "alert_farm_id_farm_id_fkey",
@@ -5636,14 +5630,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "alert_user_id_user_id_fkey",
@@ -5653,14 +5643,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "audit_event_farm_id_farm_id_fkey",
@@ -5670,14 +5656,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "actor_id"
-      ],
+      "columns": ["actor_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "audit_event_actor_id_user_id_fkey",
@@ -5687,14 +5669,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "account_user_id_user_id_fkey",
@@ -5704,14 +5682,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "session_user_id_user_id_fkey",
@@ -5721,14 +5695,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "device_id"
-      ],
+      "columns": ["device_id"],
       "schemaTo": "public",
       "tableTo": "shed_phone",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "device_switch_device_id_shed_phone_id_fkey",
@@ -5738,14 +5708,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "device_switch_user_id_user_id_fkey",
@@ -5755,14 +5721,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "shed_phone_farm_id_farm_id_fkey",
@@ -5772,14 +5734,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "shed_id"
-      ],
+      "columns": ["shed_id"],
       "schemaTo": "public",
       "tableTo": "shed",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "shed_phone_shed_id_shed_id_fkey",
@@ -5789,14 +5747,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "enrolled_by"
-      ],
+      "columns": ["enrolled_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "shed_phone_enrolled_by_user_id_fkey",
@@ -5806,14 +5760,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "staff_pin_user_id_user_id_fkey",
@@ -5823,14 +5773,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "staff_pin_farm_id_farm_id_fkey",
@@ -5840,14 +5786,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "set_by"
-      ],
+      "columns": ["set_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "staff_pin_set_by_user_id_fkey",
@@ -5857,14 +5799,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invite_farm_id_farm_id_fkey",
@@ -5874,14 +5812,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "invited_by"
-      ],
+      "columns": ["invited_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "invite_invited_by_user_id_fkey",
@@ -5891,14 +5825,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "approved_by"
-      ],
+      "columns": ["approved_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "invite_approved_by_user_id_fkey",
@@ -5908,14 +5838,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "role_assignment_farm_id_farm_id_fkey",
@@ -5925,14 +5851,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "role_assignment_user_id_user_id_fkey",
@@ -5942,14 +5864,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "granted_by"
-      ],
+      "columns": ["granted_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "role_assignment_granted_by_user_id_fkey",
@@ -5959,14 +5877,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "animal_farm_id_farm_id_fkey",
@@ -5976,14 +5890,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "pen_id"
-      ],
+      "columns": ["pen_id"],
       "schemaTo": "public",
       "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "animal_pen_id_pen_id_fkey",
@@ -5993,14 +5903,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "animal_move_farm_id_farm_id_fkey",
@@ -6010,14 +5916,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "schemaTo": "public",
       "tableTo": "animal",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "animal_move_animal_id_animal_id_fkey",
@@ -6027,14 +5929,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "from_pen_id"
-      ],
+      "columns": ["from_pen_id"],
       "schemaTo": "public",
       "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "animal_move_from_pen_id_pen_id_fkey",
@@ -6044,14 +5942,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "to_pen_id"
-      ],
+      "columns": ["to_pen_id"],
       "schemaTo": "public",
       "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "animal_move_to_pen_id_pen_id_fkey",
@@ -6061,14 +5955,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "moved_by"
-      ],
+      "columns": ["moved_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "animal_move_moved_by_user_id_fkey",
@@ -6078,14 +5968,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "schemaTo": "public",
       "tableTo": "animal",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "animal_photo_animal_id_animal_id_fkey",
@@ -6095,14 +5981,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "animal_photo_farm_id_farm_id_fkey",
@@ -6112,14 +5994,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "pen_farm_id_farm_id_fkey",
@@ -6129,14 +6007,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "shed_id"
-      ],
+      "columns": ["shed_id"],
       "schemaTo": "public",
       "tableTo": "shed",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "pen_shed_id_shed_id_fkey",
@@ -6146,14 +6020,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "pen_assignment_farm_id_farm_id_fkey",
@@ -6163,14 +6033,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "pen_assignment_user_id_user_id_fkey",
@@ -6180,14 +6046,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "pen_id"
-      ],
+      "columns": ["pen_id"],
       "schemaTo": "public",
       "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "pen_assignment_pen_id_pen_id_fkey",
@@ -6197,14 +6059,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "retag_farm_id_farm_id_fkey",
@@ -6214,14 +6072,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "schemaTo": "public",
       "tableTo": "animal",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "retag_animal_id_animal_id_fkey",
@@ -6231,14 +6085,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "retagged_by"
-      ],
+      "columns": ["retagged_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "retag_retagged_by_user_id_fkey",
@@ -6248,14 +6098,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "shed_farm_id_farm_id_fkey",
@@ -6265,14 +6111,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "tag_sequence_farm_id_farm_id_fkey",
@@ -6282,14 +6124,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "completion_id"
-      ],
+      "columns": ["completion_id"],
       "schemaTo": "public",
       "tableTo": "step_completion",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "completion_photo_completion_id_step_completion_id_fkey",
@@ -6299,14 +6137,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "completion_photo_farm_id_farm_id_fkey",
@@ -6316,14 +6150,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_instance_farm_id_farm_id_fkey",
@@ -6333,14 +6163,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "definition_id"
-      ],
+      "columns": ["definition_id"],
       "schemaTo": "public",
       "tableTo": "sop_definition",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_instance_definition_id_sop_definition_id_fkey",
@@ -6350,14 +6176,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "version_id"
-      ],
+      "columns": ["version_id"],
       "schemaTo": "public",
       "tableTo": "sop_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_instance_version_id_sop_version_id_fkey",
@@ -6367,14 +6189,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "pen_id"
-      ],
+      "columns": ["pen_id"],
       "schemaTo": "public",
       "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_instance_pen_id_pen_id_fkey",
@@ -6384,14 +6202,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "schemaTo": "public",
       "tableTo": "animal",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_instance_animal_id_animal_id_fkey",
@@ -6401,14 +6215,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "assigned_to"
-      ],
+      "columns": ["assigned_to"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_instance_assigned_to_user_id_fkey",
@@ -6418,14 +6228,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "assigned_by"
-      ],
+      "columns": ["assigned_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_instance_assigned_by_user_id_fkey",
@@ -6435,14 +6241,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "claimed_by"
-      ],
+      "columns": ["claimed_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_instance_claimed_by_user_id_fkey",
@@ -6452,14 +6254,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "step_completion_farm_id_farm_id_fkey",
@@ -6469,14 +6267,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "instance_id"
-      ],
+      "columns": ["instance_id"],
       "schemaTo": "public",
       "tableTo": "sop_instance",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "step_completion_instance_id_sop_instance_id_fkey",
@@ -6486,14 +6280,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "schemaTo": "public",
       "tableTo": "animal",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "step_completion_animal_id_animal_id_fkey",
@@ -6503,14 +6293,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "recorded_by"
-      ],
+      "columns": ["recorded_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "step_completion_recorded_by_user_id_fkey",
@@ -6520,14 +6306,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "device_id"
-      ],
+      "columns": ["device_id"],
       "schemaTo": "public",
       "tableTo": "shed_phone",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "step_completion_device_id_shed_phone_id_fkey",
@@ -6537,14 +6319,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "milk_record_farm_id_farm_id_fkey",
@@ -6554,14 +6332,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "session_id"
-      ],
+      "columns": ["session_id"],
       "schemaTo": "public",
       "tableTo": "milking_session",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "milk_record_session_id_milking_session_id_fkey",
@@ -6571,14 +6345,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "schemaTo": "public",
       "tableTo": "animal",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "milk_record_animal_id_animal_id_fkey",
@@ -6588,14 +6358,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "completion_id"
-      ],
+      "columns": ["completion_id"],
       "schemaTo": "public",
       "tableTo": "step_completion",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "milk_record_completion_id_step_completion_id_fkey",
@@ -6605,14 +6371,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "recorded_by"
-      ],
+      "columns": ["recorded_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "milk_record_recorded_by_user_id_fkey",
@@ -6622,14 +6384,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "milking_session_farm_id_farm_id_fkey",
@@ -6639,14 +6397,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "instance_id"
-      ],
+      "columns": ["instance_id"],
       "schemaTo": "public",
       "tableTo": "sop_instance",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "milking_session_instance_id_sop_instance_id_fkey",
@@ -6656,14 +6410,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "pen_id"
-      ],
+      "columns": ["pen_id"],
       "schemaTo": "public",
       "tableTo": "pen",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "milking_session_pen_id_pen_id_fkey",
@@ -6673,14 +6423,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "push_subscription_farm_id_farm_id_fkey",
@@ -6690,14 +6436,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "push_subscription_user_id_user_id_fkey",
@@ -6707,14 +6449,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "device_id"
-      ],
+      "columns": ["device_id"],
       "schemaTo": "public",
       "tableTo": "shed_phone",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "push_subscription_device_id_shed_phone_id_fkey",
@@ -6724,14 +6462,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "needs_review_farm_id_farm_id_fkey",
@@ -6741,14 +6475,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "audit_event_id"
-      ],
+      "columns": ["audit_event_id"],
       "schemaTo": "public",
       "tableTo": "audit_event",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "needs_review_audit_event_id_audit_event_id_fkey",
@@ -6758,14 +6488,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "resolved_by"
-      ],
+      "columns": ["resolved_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "needs_review_resolved_by_user_id_fkey",
@@ -6775,14 +6501,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_definition_farm_id_farm_id_fkey",
@@ -6792,14 +6514,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_definition_created_by_user_id_fkey",
@@ -6809,14 +6527,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_proposal_farm_id_farm_id_fkey",
@@ -6826,14 +6540,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "definition_id"
-      ],
+      "columns": ["definition_id"],
       "schemaTo": "public",
       "tableTo": "sop_definition",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_proposal_definition_id_sop_definition_id_fkey",
@@ -6843,14 +6553,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "based_on_version_id"
-      ],
+      "columns": ["based_on_version_id"],
       "schemaTo": "public",
       "tableTo": "sop_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_proposal_based_on_version_id_sop_version_id_fkey",
@@ -6860,14 +6566,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "proposed_by"
-      ],
+      "columns": ["proposed_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_proposal_proposed_by_user_id_fkey",
@@ -6877,14 +6579,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "decided_by"
-      ],
+      "columns": ["decided_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_proposal_decided_by_user_id_fkey",
@@ -6894,14 +6592,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_version_farm_id_farm_id_fkey",
@@ -6911,14 +6605,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "definition_id"
-      ],
+      "columns": ["definition_id"],
       "schemaTo": "public",
       "tableTo": "sop_definition",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sop_version_definition_id_sop_definition_id_fkey",
@@ -6928,14 +6618,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "published_by"
-      ],
+      "columns": ["published_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sop_version_published_by_user_id_fkey",
@@ -6945,14 +6631,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sync_batch_farm_id_farm_id_fkey",
@@ -6962,14 +6644,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "actor_id"
-      ],
+      "columns": ["actor_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "sync_batch_actor_id_user_id_fkey",
@@ -6979,14 +6657,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "farm_id"
-      ],
+      "columns": ["farm_id"],
       "schemaTo": "public",
       "tableTo": "farm",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sync_entry_farm_id_farm_id_fkey",
@@ -6996,14 +6670,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "batch_key"
-      ],
+      "columns": ["batch_key"],
       "schemaTo": "public",
       "tableTo": "sync_batch",
-      "columnsTo": [
-        "key"
-      ],
+      "columnsTo": ["key"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sync_entry_batch_key_sync_batch_key_fkey",
@@ -7012,10 +6682,7 @@
       "table": "sync_entry"
     },
     {
-      "columns": [
-        "completion_id",
-        "slot"
-      ],
+      "columns": ["completion_id", "slot"],
       "nameExplicit": false,
       "name": "completion_photo_pkey",
       "entityType": "pks",
@@ -7023,9 +6690,7 @@
       "table": "completion_photo"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "alert_pkey",
       "schema": "public",
@@ -7033,9 +6698,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "audit_event_pkey",
       "schema": "public",
@@ -7043,9 +6706,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "account_pkey",
       "schema": "public",
@@ -7053,9 +6714,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "session_pkey",
       "schema": "public",
@@ -7063,9 +6722,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "user_pkey",
       "schema": "public",
@@ -7073,9 +6730,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "verification_pkey",
       "schema": "public",
@@ -7083,9 +6738,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "backup_run_pkey",
       "schema": "public",
@@ -7093,9 +6746,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "device_switch_pkey",
       "schema": "public",
@@ -7103,9 +6754,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "shed_phone_pkey",
       "schema": "public",
@@ -7113,9 +6762,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "staff_pin_pkey",
       "schema": "public",
@@ -7123,9 +6770,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "farm_pkey",
       "schema": "public",
@@ -7133,9 +6778,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "invite_pkey",
       "schema": "public",
@@ -7143,9 +6786,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "role_assignment_pkey",
       "schema": "public",
@@ -7153,9 +6794,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "animal_pkey",
       "schema": "public",
@@ -7163,9 +6802,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "animal_move_pkey",
       "schema": "public",
@@ -7173,9 +6810,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "animal_id"
-      ],
+      "columns": ["animal_id"],
       "nameExplicit": false,
       "name": "animal_photo_pkey",
       "schema": "public",
@@ -7183,9 +6818,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "pen_pkey",
       "schema": "public",
@@ -7193,9 +6826,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "pen_assignment_pkey",
       "schema": "public",
@@ -7203,9 +6834,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "retag_pkey",
       "schema": "public",
@@ -7213,9 +6842,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "shed_pkey",
       "schema": "public",
@@ -7223,9 +6850,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "sop_instance_pkey",
       "schema": "public",
@@ -7233,9 +6858,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "step_completion_pkey",
       "schema": "public",
@@ -7243,9 +6866,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "milk_record_pkey",
       "schema": "public",
@@ -7253,9 +6874,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "milking_session_pkey",
       "schema": "public",
@@ -7263,9 +6882,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "push_subscription_pkey",
       "schema": "public",
@@ -7273,9 +6890,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "needs_review_pkey",
       "schema": "public",
@@ -7283,9 +6898,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "sop_definition_pkey",
       "schema": "public",
@@ -7293,9 +6906,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "sop_proposal_pkey",
       "schema": "public",
@@ -7303,9 +6914,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "sop_version_pkey",
       "schema": "public",
@@ -7313,9 +6922,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "key"
-      ],
+      "columns": ["key"],
       "nameExplicit": false,
       "name": "sync_batch_pkey",
       "schema": "public",
@@ -7323,9 +6930,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "sync_entry_pkey",
       "schema": "public",
@@ -7334,9 +6939,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "token"
-      ],
+      "columns": ["token"],
       "nullsNotDistinct": false,
       "name": "session_token_key",
       "schema": "public",
@@ -7345,9 +6948,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "email"
-      ],
+      "columns": ["email"],
       "nullsNotDistinct": false,
       "name": "user_email_key",
       "schema": "public",

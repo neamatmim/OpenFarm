@@ -14,6 +14,19 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 
+/** What every way of arriving has to say about the Animal it makes. */
+export interface NewAnimalRows {
+  sex: (typeof animal.$inferInsert)["sex"];
+  side: Side;
+  state: (typeof animal.$inferInsert)["state"];
+  penId: string;
+  source: (typeof animal.$inferInsert)["source"];
+  breed?: string;
+  birthDate?: Date;
+  officialTag?: string;
+  aliases?: string[];
+}
+
 /** Takes the next Tag Number for a prefix. Row-locked inside the caller's transaction, so
  *  two concurrent registrations cannot take the same number, and numbers never rewind. */
 export const nextTagNumber = async (
@@ -85,6 +98,71 @@ export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
     throw new ORPCError("NOT_FOUND", { message: "No such pen" });
   }
   return row;
+};
+
+/**
+ * The rows that make an Animal: the Animal itself and the Move that put it in its Pen.
+ *
+ * Takes a transaction rather than opening one, because an arrival writes more than an Animal —
+ * an Intake records what the farm paid on the same day — and an Animal without the record of how
+ * it arrived is exactly the thing a half-written transaction would leave behind.
+ */
+export const insertAnimal = async (
+  tx: Tx,
+  {
+    id,
+    farmId,
+    actorId,
+    input,
+    now,
+    reason,
+    extra = {},
+  }: {
+    /** Made by the caller, because the Audit Event naming the new Animal is written around
+     *  this and has to know what it is naming before the row exists. */
+    id: string;
+    farmId: string;
+    actorId: string;
+    input: NewAnimalRows;
+    now: Date;
+    reason: string;
+    /** Columns only one kind of arrival sets, such as an opening register's Lactation. */
+    extra?: Partial<typeof animal.$inferInsert>;
+  }
+): Promise<{ tagNumber: string }> => {
+  await requirePen(tx, farmId, input.penId);
+  const tagNumber = await nextTagNumber(tx, farmId, input.side);
+  await tx.insert(animal).values({
+    id,
+    farmId,
+    tagNumber,
+    officialTag: input.officialTag ?? null,
+    aliases: input.aliases ?? [],
+    sex: input.sex,
+    side: input.side,
+    state: input.state,
+    penId: input.penId,
+    source: input.source,
+    breed: input.breed ?? null,
+    birthDate: input.birthDate ?? null,
+    ...extra,
+    stateChangedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await tx.insert(animalMove).values({
+    id: uuidv7(now),
+    farmId,
+    animalId: id,
+    fromPenId: null,
+    toPenId: input.penId,
+    fromSide: null,
+    toSide: input.side,
+    reason,
+    movedBy: actorId,
+    movedAt: now,
+  });
+  return { tagNumber };
 };
 
 /**

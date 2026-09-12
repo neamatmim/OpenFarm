@@ -1,15 +1,17 @@
-import type { Disposal, MortalityKind } from "@OpenFarm/domain";
+import type { Disposal, MortalityKind, TargetWindow } from "@OpenFarm/domain";
 import {
   DISPOSALS,
   MORTALITY_KINDS,
   allowedNextStates,
+  startOfFarmDay,
 } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -124,6 +126,8 @@ const AnimalPage = () => {
           ) : null}
         </div>
       </header>
+
+      <HowSheArrived intake={detail.intake} />
 
       <HowSheWent
         detail={detail}
@@ -460,6 +464,71 @@ const PutItRight = ({
     </details>
   );
 };
+
+/**
+ * How a bought-in animal arrived: what the farm paid, what it weighed off the lorry, and what it
+ * is being fed towards. Nothing here ever changes — an arrival happened once — so it reads as a
+ * record rather than as a form.
+ */
+const HowSheArrived = ({
+  intake,
+}: {
+  intake: {
+    purchasePriceBdt: number;
+    weightKg: number;
+    targetWeightKg: number;
+    estimatedAgeMonths: number;
+    targetWindow: TargetWindow;
+    sellerName: string | null;
+    sellerAddress: string | null;
+  } | null;
+}) => {
+  const { t, language } = useLanguage();
+  if (!intake) {
+    return null;
+  }
+  const kg = (value: number) =>
+    t("intake.kg", { kg: formatNumber(value, language) });
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("intake.title")}</h2>
+      <Fact label={t("intake.seller")}>
+        {[intake.sellerName, intake.sellerAddress]
+          .filter(Boolean)
+          .join(" · ") || "—"}
+      </Fact>
+      <Fact label={t("intake.price")}>
+        {t("intake.taka", {
+          taka: formatNumber(intake.purchasePriceBdt, language),
+        })}
+      </Fact>
+      <Fact label={t("intake.weight")}>{kg(intake.weightKg)}</Fact>
+      <Fact label={t("intake.age")}>
+        {t("intake.months", {
+          months: formatNumber(intake.estimatedAgeMonths, language),
+        })}
+      </Fact>
+      <Fact label={t("intake.targetWeight")}>{kg(intake.targetWeightKg)}</Fact>
+      <Fact label={t("intake.targetWindow")}>
+        {formatDate(
+          startOfFarmDay(intake.targetWindow.start),
+          language,
+          "date"
+        )}{" "}
+        –{" "}
+        {formatDate(startOfFarmDay(intake.targetWindow.end), language, "date")}
+      </Fact>
+    </section>
+  );
+};
+
+/** One line of a record: what it is, and what it says. */
+const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
+  <p>
+    <span className="text-muted-foreground">{label}: </span>
+    {children}
+  </p>
+);
 
 /**
  * How she left the herd, or — for an Owner or a Manager looking at an animal who is still

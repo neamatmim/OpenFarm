@@ -5,6 +5,7 @@ export * from "./auth";
 export * from "./backup";
 export * from "./device";
 export * from "./farm";
+export * from "./fattening";
 export * from "./health";
 export * from "./feed";
 export * from "./herd";

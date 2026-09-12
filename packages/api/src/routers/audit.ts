@@ -1,6 +1,7 @@
+import { startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
-import { farmDay, startOfFarmDay } from "../farm-clock";
+import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
