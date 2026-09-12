@@ -77,6 +77,14 @@ export const emptyHappening = (): HappeningTrigger => ({
 
 /** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
  *  Move, an empty list for the Owner to fill in for a Sighting, a figure for the rest. */
+/** What Evidence an effect needs before it can write anything. */
+const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
+  if (kind === "move" || kind === "observation") {
+    return "choice";
+  }
+  return kind === "treatment" ? "tick" : "number";
+};
+
 const fittedEvidence = (
   kind: StepEffect["kind"],
   current: Evidence | undefined,
@@ -93,6 +101,11 @@ const fittedEvidence = (
     // Nothing to carry over: this is reached only when what is there is not a choice at all.
     // What may be seen is the Owner's to write down.
     return { type: "choice", required: true, choices: [] };
+  }
+  if (kind === "treatment") {
+    // Giving a dose is a thing somebody did or did not do. There is no figure to write down:
+    // how much is the Prescription's or the campaign's to say, not the milker's.
+    return { type: "tick", required: true };
   }
   return { type: "number", required: true, unit: current?.unit };
 };
@@ -117,23 +130,39 @@ export const withEffect = (
     const { effect: _dropped, ...rest } = step;
     return rest;
   }
-  const wants: EvidenceType =
-    kind === "move" || kind === "observation" ? "choice" : "number";
+  const wants: EvidenceType = wantedEvidence(kind);
   const [first, ...rest] = step.evidence;
+  // A Pen is fed and its tank read once; everything else is done animal by animal. A dose
+  // Step starts as a prescribed dose — the shape that is complete without anything else being
+  // chosen — and naming a product turns it into a campaign over the Pen.
+  const perAnimal = kind !== "bulk_total" && kind !== "treatment";
   if (first?.type === wants) {
-    return {
-      ...step,
-      repeatPerAnimal: kind === "bulk_total" ? false : true,
-      effect: { kind },
-    };
+    return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
   }
   const fitted: Evidence = fittedEvidence(kind, first, pens);
   return {
     ...step,
-    repeatPerAnimal: kind === "bulk_total" ? false : true,
+    repeatPerAnimal: perAnimal,
     effect: { kind },
     evidence: [fitted, ...rest],
   };
+};
+
+/**
+ * Which product a campaign's Step gives, or none — and none means the other shape of a dose
+ * Step: the farm's Treatment procedure, whose doses a Prescription names one at a time.
+ */
+export const withProduct = (step: Step, productId: string): Step => {
+  if (step.effect?.kind !== "treatment") {
+    return step;
+  }
+  return productId
+    ? {
+        ...step,
+        repeatPerAnimal: true,
+        effect: { kind: "treatment", productId },
+      }
+    : { ...step, repeatPerAnimal: false, effect: { kind: "treatment" } };
 };
 
 export const splitList = (value: string): string[] =>

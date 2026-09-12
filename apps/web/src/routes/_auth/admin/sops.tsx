@@ -38,6 +38,7 @@ import {
   splitList,
   toBilingualList,
   withEffect,
+  withProduct,
   withHappeningTriggers,
   withScheduleTimes,
 } from "@/lib/sop-draft";
@@ -60,6 +61,12 @@ const SopsPage = () => {
       name: `${shed.name} / ${pen.name}`,
     }))
   );
+  // What a campaign may give: the farm's own Drug List, and only what has its withdrawal days
+  // written down — a campaign that gave anything else would be milk nobody could call safe.
+  const drugs = useQuery(orpc.drugs.list.queryOptions());
+  const products = (drugs.data ?? [])
+    .filter((one) => one.prescribable)
+    .map((one) => ({ id: one.id, name: one.nameBn }));
   const sops = useQuery(orpc.sops.list.queryOptions());
   const proposals = useQuery(orpc.sops.proposals.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
@@ -132,6 +139,7 @@ const SopsPage = () => {
         blockers={blockers}
         canPublish={isOwner}
         pens={pens}
+        products={products}
         onChange={(content) => setDraft({ ...draft, content })}
         onSave={save}
         onCancel={() => setDraft(null)}
@@ -295,6 +303,11 @@ const TriggerFields = ({
       <legend className="text-muted-foreground text-sm">
         {t("sop.triggers")}
       </legend>
+      {content.triggers.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          {t("sop.trigger.byHand")}
+        </p>
+      ) : null}
       {happenings.map((happening, index) => (
         <div
           className="flex flex-wrap items-end gap-2"
@@ -401,6 +414,7 @@ const SopEditor = ({
   blockers,
   canPublish,
   pens,
+  products,
   onChange,
   onSave,
   onCancel,
@@ -409,6 +423,8 @@ const SopEditor = ({
   blockers: string[];
   canPublish: boolean;
   pens: { id: string; name: string }[];
+  /** What a campaign may give: the Drug List's products whose withdrawal days are known. */
+  products: { id: string; name: string }[];
   onChange: (content: SopContent) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -560,6 +576,7 @@ const SopEditor = ({
           <StepEditor
             key={step.id}
             pens={pens}
+            products={products}
             step={step}
             onChange={(next) => setStep(index, next)}
             onRemove={() =>
@@ -598,12 +615,14 @@ const SopEditor = ({
 const StepEditor = ({
   step,
   pens,
+  products,
   onChange,
   onRemove,
 }: {
   step: Step;
   /** The Pens a moving Step may walk an animal to — the farm's own, never typed. */
   pens: { id: string; name: string }[];
+  products: { id: string; name: string }[];
   onChange: (step: Step) => void;
   onRemove: () => void;
 }) => {
@@ -659,6 +678,29 @@ const StepEditor = ({
           ))}
         </select>
       </div>
+
+      {step.effect?.kind === "treatment" ? (
+        <div className="space-y-1">
+          <Label htmlFor={`${step.id}-product`}>
+            {t("sop.effect.product")}
+          </Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id={`${step.id}-product`}
+            onChange={(e) => onChange(withProduct(step, e.target.value))}
+            value={step.effect.productId ?? ""}
+          >
+            {/* Blank is the farm's one Treatment procedure, whose doses a Prescription names
+                one at a time. Anything else is a campaign over a Pen. */}
+            <option value="">{t("sop.effect.prescriptionNames")}</option>
+            {products.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       <label className="flex items-center gap-2 text-sm">
         <input

@@ -1,4 +1,4 @@
-import { eq } from "@OpenFarm/db/operators";
+import { inArray } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
@@ -104,7 +104,12 @@ afterAll(async () => {
   await scratchDb()
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
-    .where(eq(sopDefinition.id, world.milking.definitionId));
+    .where(
+      inArray(sopDefinition.id, [
+        world.milking.definitionId,
+        world.treatment.definitionId,
+      ])
+    );
 });
 
 /** A milking cow on a three-day course, and the work her doses raised. */

@@ -79,6 +79,7 @@ const raiseCourse = async (
   {
     farmId,
     prescriptionId,
+    productId,
     animalId,
     penId,
     doseTimes,
@@ -87,6 +88,7 @@ const raiseCourse = async (
   }: {
     farmId: string;
     prescriptionId: string;
+    productId: string;
     animalId: string;
     penId: string;
     doseTimes: Date[];
@@ -128,6 +130,7 @@ const raiseCourse = async (
             id: uuidv7(now),
             farmId,
             prescriptionId,
+            productId,
             animalId,
             instanceId: instance.id,
             number: dose.number,
@@ -240,6 +243,7 @@ export const prescriptionsRouter = {
           await raiseCourse(tx, {
             farmId: context.farm.id,
             prescriptionId: id,
+            productId: input.productId,
             animalId: her.id,
             penId: her.penId,
             doseTimes,

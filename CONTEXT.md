@@ -90,11 +90,13 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Prescription**: The Vet's order for one Animal: drug, dose, route, frequency, duration. Vet-only, from their own account, and only from a product whose Withdrawal days are known. It answers a Diagnosis. The system turns it into one Instance of the Treatment SOP per dose, at the times the Vet set, so a dose nobody gave is Overdue beside a milking nobody did. _Avoid_: Treatment plan, order, script
 
-**Treatment**: One dose of a Prescription: what the course calls for, and — once somebody records giving it — who gave it and when. A dose the farm has not given yet is still a dose it owes, which is what makes a missed one visible as work nobody did. The last Treatment **given** starts the Withdrawal. _Avoid_: Medication, administration, dosing
+**Treatment**: One dose given to an Animal, and the Withdrawal it earns: what was given, who gave it and when. It reaches her two ways — a dose of a Prescription, where the farm knows it owes the dose before anybody gives it (which is what makes a missed one visible as work nobody did), or a dose of a Campaign, where nothing is owed until the Pen is walked. The last Treatment **given** starts the Withdrawal. _Avoid_: Medication, administration, dosing
 
-**Drug List**: The farm's list of products that may be prescribed, each with milk and meat withdrawal days. Maintained by the Vet; a product with blank days cannot be prescribed. _Avoid_: Formulary, inventory (stock is a different concern), medicine list
+**Drug List**: The farm's list of products that may be prescribed or given in a Campaign, each with milk and meat withdrawal days. Maintained by the Vet; a product with blank days cannot be prescribed. _Avoid_: Formulary, inventory (stock is a different concern), medicine list
 
 **Withdrawal**: The period after the last Treatment given during which an Animal's milk may not go to bulk (milk withdrawal) or the Animal may not be sold for meat (meat withdrawal). A hard Gate. Only the Vet may shorten it, with a reason. _Avoid_: Withholding period, waiting time, hold
+
+**Campaign**: A vaccination or a deworming run over a Pen as one piece of work with a per-Animal Step, so every Animal ends up with the Treatment in her own history. The Version names the product; the Manager decides the day. _Avoid_: Programme, batch treatment, mass medication
 
 **Notifiable Disease**: A disease on the farm's list of conditions that must be reported to DLS in writing without delay. A Diagnosis of one auto-raises the DLS report SOP. _Avoid_: Reportable disease, outbreak
 

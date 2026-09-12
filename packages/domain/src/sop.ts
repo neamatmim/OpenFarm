@@ -52,8 +52,16 @@ export type StepEffect =
   | { kind: "observation" }
   /** What this Pen was actually given, against what its Ration owed it. */
   | { kind: "feeding" }
-  /** One dose of a Prescription, given. The last one given starts the Withdrawal. */
-  | { kind: "treatment" };
+  /**
+   * One dose given, and the Withdrawal it earns. Two shapes, because a dose reaches an animal
+   * two ways:
+   *
+   * - a dose of a Prescription: the work is about the one animal it names, and the
+   *   Prescription says what she is given, so the Step names no product;
+   * - a campaign over a Pen — a vaccination, a deworming — where the work is done animal by
+   *   animal and it is this Version that says what every one of them gets.
+   */
+  | { kind: "treatment"; productId?: string };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -192,11 +200,17 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
     return problems;
   }
   if (effect.kind === "treatment") {
-    // The Instance a Prescription raises is about the one animal it names. A Step that ran
-    // once per animal would give her dose to every cow standing in her Pen.
-    if (step.repeatPerAnimal) {
+    // A campaign goes round the Pen animal by animal and this Version says what each of them
+    // gets; a Prescription's dose is about the one animal it names, and the Prescription says
+    // what she gets. Anything between the two records a dose nobody can account for.
+    if (step.repeatPerAnimal && !effect.productId) {
       problems.push(
-        `${path}.effect: a dose is for the animal the prescription names, not for every animal in her pen`
+        `${path}.effect: a step that doses every animal in the pen has to say which product`
+      );
+    }
+    if (effect.productId && !step.repeatPerAnimal) {
+      problems.push(
+        `${path}.effect: a dose of a prescription is the prescription's to name, not this step's`
       );
     }
     return problems;
@@ -297,17 +311,31 @@ const treatmentPairProblems = (content: SopContent): string[] => {
   const raisedByPrescription = content.triggers.some(
     (trigger) => trigger.kind === "prescription"
   );
-  const recordsADose = content.steps.some(
+  const doses = content.steps.filter(
     (step) => step.effect?.kind === "treatment"
   );
-  if (raisedByPrescription === recordsADose) {
-    return [];
+  if (doses.length > 1) {
+    // One dose per piece of work per animal is what keeps a dose from being recorded twice.
+    // Two dose Steps in one procedure would write over each other's record of what she had.
+    return [
+      "steps: a procedure gives one dose, and this one gives more than one",
+    ];
   }
-  return [
-    raisedByPrescription
-      ? "steps: a prescription raises one dose at a time, and no step here records giving one"
-      : "triggers: a step here records a dose given, and nothing but a prescription raises a dose",
-  ];
+  // A campaign says what it gives, so it needs nothing to have prescribed it.
+  const prescribedDose = doses.some(
+    (step) => step.effect?.kind === "treatment" && !step.effect.productId
+  );
+  if (raisedByPrescription && !prescribedDose) {
+    return [
+      "steps: a prescription raises one dose at a time, and no step here records giving one",
+    ];
+  }
+  if (prescribedDose && !raisedByPrescription) {
+    return [
+      "triggers: a step here gives a dose somebody prescribed, and nothing but a prescription raises one",
+    ];
+  }
+  return [];
 };
 
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
@@ -317,9 +345,10 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
   }
-  if (content.triggers.length === 0) {
-    problems.push("triggers: an SOP needs at least one trigger");
-  }
+  // No Trigger is no longer work that never arrives: the Manager can raise a piece of work for
+  // a Pen when the farm decides to do it, which is exactly how a campaign happens. A quarterly
+  // deworming has no time of day, and giving it one would put it on the shed's list every
+  // morning for ever.
   for (const [index, trigger] of content.triggers.entries()) {
     problems.push(...triggerProblems(trigger, index));
   }

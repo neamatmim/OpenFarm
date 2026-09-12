@@ -207,14 +207,11 @@ const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
   const given = await tx.query.treatment.findMany({
     where: { farmId, animalId, givenAt: { isNotNull: true } },
     columns: { givenAt: true },
+    // The product is the Treatment's own, so a campaign's dose is read the same way as a
+    // course's — a Withdrawal does not care which put it there.
     with: {
-      prescription: {
-        columns: {},
-        with: {
-          product: {
-            columns: { milkWithdrawalDays: true, meatWithdrawalDays: true },
-          },
-        },
+      product: {
+        columns: { milkWithdrawalDays: true, meatWithdrawalDays: true },
       },
     },
   });
@@ -228,8 +225,7 @@ const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
     // A product may not be prescribed without its days, so a dose given under one had them.
     // Days cleared from the Drug List afterwards therefore cannot free a cow retrospectively
     // — but they also cannot hold her, and nothing on the farm clears them.
-    const { milkWithdrawalDays, meatWithdrawalDays } =
-      dose.prescription.product;
+    const { milkWithdrawalDays, meatWithdrawalDays } = dose.product;
     milk = later(
       milk,
       milkWithdrawalDays === null

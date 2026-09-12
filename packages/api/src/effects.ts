@@ -132,6 +132,9 @@ export interface EffectInput {
     id: string;
     farmId: string;
     penId: string;
+    /** The animal this work is about, for work raised about one — a dose of a Prescription is
+     *  hers alone. Null for work about the whole Pen. */
+    animalId: string | null;
     dueAt: Date;
     /** When the work was raised, which is the moment its Ration is read as of. */
     raisedAt: Date;
@@ -241,24 +244,127 @@ const applyFeedingEffect = async (
   return { kind: "feeding", shortfallPercent: short, flagged };
 };
 
+/** What a Step records when it gives a dose, or takes one back. */
+interface DoseGiven {
+  completionId: string | null;
+  givenBy: string | null;
+  givenAt: Date | null;
+}
+
 /**
- * Records that one dose of a Prescription was actually given — or, when the Step was skipped,
- * that it was not after all.
+ * Which of the two shapes of dose this Step is recording, decided once.
  *
- * The Treatment row already exists: the Prescription wrote one for every dose it calls for,
- * which is what makes a dose nobody gave visible as work nobody did. This fills in who gave
- * it and when, keyed on the Instance, so a phone sending the same dose twice records it once
- * and a Correction that turns it back into a skip clears it again.
+ * A **prescribed** dose is one the course already owed: its row was written when the Vet wrote
+ * the Prescription, and the work is about the one animal it names. A **campaign** dose is one
+ * this Version gives every animal in the Pen, and nothing was owed until the Pen was walked.
+ */
+const doseShape = (input: EffectInput) => {
+  const { effect } = input.step;
+  const productId = effect?.kind === "treatment" ? effect.productId : undefined;
+  if (!productId) {
+    return { campaign: false as const, animalId: input.instance.animalId };
+  }
+  // A campaign's Step is done animal by animal, so it always names one.
+  if (!input.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This step doses one animal, and it was not recorded against one",
+    });
+  }
+  return { campaign: true as const, productId, animalId: input.animalId };
+};
+
+/**
+ * The dose a campaign gives her now. Nothing was owed beforehand, so the row is written by the
+ * Step that gives it — and written again over itself if two phones send the same dose at once,
+ * which the unique index on the work and the animal is there to catch.
+ */
+const recordCampaignDose = async (
+  tx: Tx,
+  input: EffectInput,
+  {
+    productId,
+    animalId,
+    given,
+  }: { productId: string; animalId: string; given: DoseGiven }
+) => {
+  // What the Version named may have been retired from the Drug List since it was published,
+  // and a Version never changes (ADR 0001). Retired is fine — the farm may still have stock,
+  // and its days are still written down — but a product the farm cannot say the withdrawal of
+  // must not go into an animal.
+  const product = await tx.query.drugProduct.findFirst({
+    where: { id: productId, farmId: input.instance.farmId },
+    columns: {
+      nameBn: true,
+      milkWithdrawalDays: true,
+      meatWithdrawalDays: true,
+    },
+  });
+  if (!product || product.milkWithdrawalDays === null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: product
+        ? `${product.nameBn} has no withdrawal days written down, so it cannot be given`
+        : "That product is no longer on the farm's drug list",
+      data: { refusal: "no_withdrawal_days" },
+    });
+  }
+  const id = uuidv7(input.now);
+  await tx
+    .insert(treatment)
+    .values({
+      id,
+      farmId: input.instance.farmId,
+      prescriptionId: null,
+      productId,
+      animalId,
+      instanceId: input.instance.id,
+      number: 1,
+      dueAt: input.instance.dueAt,
+      createdAt: input.now,
+      ...given,
+    })
+    .onConflictDoUpdate({
+      target: [treatment.instanceId, treatment.animalId],
+      set: given,
+    });
+  return { id, number: 1, prescriptionId: null, animalId };
+};
+
+/** How many doses the course this one belongs to calls for — one, for a campaign. */
+const dosesInTheCourse = async (
+  tx: Tx,
+  prescriptionId: string | null
+): Promise<number> => {
+  if (!prescriptionId) {
+    return 1;
+  }
+  const course = await tx.query.prescription.findFirst({
+    where: { id: prescriptionId },
+    columns: { times: true, days: true },
+  });
+  return course ? course.times.length * course.days : 1;
+};
+
+/**
+ * Records that a dose was actually given — or, when the Step was skipped, that it was not
+ * after all — and works her Withdrawals out afresh from everything she has had.
+ *
+ * The row is keyed on the work and the animal, so a phone sending the same dose twice records
+ * it once, and a Correction back to a skip takes it off her again.
  */
 const applyTreatmentEffect = async (
   tx: Tx,
   input: EffectInput
 ): Promise<EffectResult> => {
-  const dose = await tx.query.treatment.findFirst({
-    where: { instanceId: input.instance.id },
+  const shape = doseShape(input);
+  const owed = await tx.query.treatment.findFirst({
+    where: {
+      instanceId: input.instance.id,
+      ...(shape.animalId ? { animalId: shape.animalId } : {}),
+    },
     columns: { id: true, number: true, prescriptionId: true, animalId: true },
   });
-  if (!dose) {
+  if (!(owed || shape.campaign)) {
     // The Treatment SOP was raised by something other than a Prescription — a schedule
     // somebody added to it, say. There is no dose to give, and saying so is better than
     // writing a Treatment that belongs to no course.
@@ -266,46 +372,47 @@ const applyTreatmentEffect = async (
       message: "This work is not a dose of any prescription",
     });
   }
-  const course = await tx.query.prescription.findFirst({
-    where: { id: dose.prescriptionId },
-    columns: { times: true, days: true },
-  });
-  await tx
-    .update(treatment)
-    .set(
-      input.skipped
-        ? { completionId: null, givenBy: null, givenAt: null }
-        : {
-            completionId: input.completionId,
-            givenBy: input.recordedBy,
-            givenAt: input.recordedAt,
-          }
-    )
-    .where(eq(treatment.id, dose.id));
+  const given: DoseGiven = input.skipped
+    ? { completionId: null, givenBy: null, givenAt: null }
+    : {
+        completionId: input.completionId,
+        givenBy: input.recordedBy,
+        givenAt: input.recordedAt,
+      };
+
+  let dose = owed;
+  if (owed) {
+    await tx.update(treatment).set(given).where(eq(treatment.id, owed.id));
+  } else if (shape.campaign) {
+    dose = await recordCampaignDose(tx, input, {
+      productId: shape.productId,
+      animalId: shape.animalId,
+      given,
+    });
+  }
   // From the doses she has actually had, every time — a dose corrected back to a skip has to
   // shorten the hold again, and the farm's milk gate reads the answer.
   const { milkUntil } = await recomputeWithdrawal(
     tx,
     input.instance.farmId,
-    dose.animalId
+    dose?.animalId ?? shape.animalId ?? ""
   );
   return {
     kind: "treatment",
-    /** When her milk may go to the tank again, so the phone can say so where she stands. */
-    milkWithdrawalUntil: milkUntil,
-    number: dose.number,
-    of: course ? course.times.length * course.days : dose.number,
+    number: dose?.number ?? 1,
+    of: await dosesInTheCourse(tx, dose?.prescriptionId ?? null),
     given: !input.skipped,
+    milkWithdrawalUntil: milkUntil,
   };
 };
 
 /**
- * Records what somebody saw of one animal on the round — the farm's Observation, which
- * starts the health chain and which Breeding reads as a Heat when that is what was seen.
+ * Records what somebody saw of one animal on the round — the farm's Observation, which starts
+ * the health chain and which Breeding reads as a Heat when that is what was seen.
  *
  * Unlike the litres and the Moves, a Correction here never rewrites the row and never removes
- * it. It withdraws it and writes the new one beside it, pointing back: what somebody said
- * they saw is a fact about the round, and it stays true that they said it even after the farm
+ * it. It withdraws it and writes the new one beside it, pointing back: what somebody said they
+ * saw is a fact about the round, and it stays true that they said it even after the farm
  * decides they were looking at the wrong cow.
  */
 const applyObservationEffect = async (

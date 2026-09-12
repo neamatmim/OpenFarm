@@ -409,6 +409,7 @@ export const applyCompletion = async (
       id: instance.id,
       farmId: context.farm.id,
       penId: instance.penId,
+      animalId: instance.animalId,
       dueAt: instance.dueAt,
       raisedAt: instance.createdAt,
     },

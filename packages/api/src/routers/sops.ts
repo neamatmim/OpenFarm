@@ -8,7 +8,11 @@ import {
   sopVersion,
 } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { findPublishBlockers } from "@OpenFarm/domain";
+import {
+  findPublishBlockers,
+  mayBePrescribed,
+  whyNotPrescribable,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -17,9 +21,100 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
-import { asSopContent, sopContentSchema } from "../sop-content";
+import { asSopContent, contentOf, sopContentSchema } from "../sop-content";
 
 const note = z.string().trim().max(400).optional();
+
+/**
+ * A campaign names the product it gives every animal in the Pen. That product has to be on
+ * the farm's own Drug List and have its withdrawal days written down — otherwise the campaign
+ * would put milk in the tank that nobody could call safe, and the shed would find out about it
+ * with the syringe in hand rather than the Owner finding out here.
+ *
+ * Checked when the Version is published, because a Version is immutable and this is the moment
+ * it becomes the farm's word. Days cleared afterwards cannot happen: nothing on the farm
+ * clears them.
+ */
+const assertProductsMayBeGiven = async (
+  tx: Tx,
+  farmId: string,
+  content: SopContent
+): Promise<void> => {
+  const named = content.steps.flatMap((step) =>
+    step.effect?.kind === "treatment" && step.effect.productId
+      ? [step.effect.productId]
+      : []
+  );
+  if (named.length === 0) {
+    return;
+  }
+  const known = await tx.query.drugProduct.findMany({
+    where: { farmId, id: { in: named } },
+    columns: {
+      id: true,
+      nameBn: true,
+      milkWithdrawalDays: true,
+      meatWithdrawalDays: true,
+      retiredAt: true,
+    },
+  });
+  for (const productId of named) {
+    const product = known.find((row) => row.id === productId);
+    if (!product) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "That product is not on the farm's drug list",
+        data: { refusal: "no_such_product" },
+      });
+    }
+    if (!mayBePrescribed(product)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `${product.nameBn} has no withdrawal days written down, so a campaign cannot give it`,
+        data: { refusal: whyNotPrescribable(product) },
+      });
+    }
+  }
+};
+
+/**
+ * The farm treats with one procedure at a time.
+ *
+ * A Prescription raises its doses against the SOP that says a Prescription raises it, and with
+ * two of those the farm would have to pick — silently, by some rule nobody asked for, and
+ * differently from the one the Owner had in mind. Retiring the old one first is how a farm
+ * changes how it treats, and that is the same act as changing anything else in the Playbook.
+ */
+const assertOneTreatmentProcedure = async (
+  tx: Tx,
+  farmId: string,
+  definitionId: string,
+  content: SopContent
+): Promise<void> => {
+  const raisesDoses = content.triggers.some(
+    (trigger) => trigger.kind === "prescription"
+  );
+  if (!raisesDoses) {
+    return;
+  }
+  const live = await tx.query.sopDefinition.findMany({
+    where: { farmId, retiredAt: { isNull: true } },
+    columns: { id: true },
+    with: { currentVersion: { columns: { content: true } } },
+  });
+  const already = live.find(
+    (definition) =>
+      definition.id !== definitionId &&
+      contentOf({ content: definition.currentVersion?.content }).triggers.some(
+        (trigger) => trigger.kind === "prescription"
+      )
+  );
+  if (already) {
+    throw new ORPCError("CONFLICT", {
+      message:
+        "The farm already has a procedure a prescription raises; retire that one first",
+      data: { refusal: "treatment_sop_exists", definitionId: already.id },
+    });
+  }
+};
 
 /** Publishing is the only way an SOP's content changes: a new immutable Version, and the
  *  Definition pointed at it. Nothing ever rewrites a published Version (ADR 0001). */
@@ -50,6 +145,8 @@ const publishVersion = async (
       data: { blockers },
     });
   }
+  await assertProductsMayBeGiven(tx, farmId, content);
+  await assertOneTreatmentProcedure(tx, farmId, definitionId, content);
   const previous = await tx.query.sopVersion.findMany({
     where: { definitionId },
     columns: { number: true },

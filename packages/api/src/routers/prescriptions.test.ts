@@ -1,8 +1,9 @@
+import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
@@ -70,6 +71,15 @@ let world: Awaited<ReturnType<typeof setup>>;
 
 beforeAll(async () => {
   world = await setup();
+});
+
+/** Hands the farm back as it was found: the farm treats with one procedure at a time, and the
+ *  next file to run publishes its own. */
+afterAll(async () => {
+  await scratchDb()
+    .update(sopDefinition)
+    .set({ retiredAt: new Date() })
+    .where(eq(sopDefinition.id, world.sop.definitionId));
 });
 
 /** A cow with something wrong with her, and the Vet's conclusion about it. */
@@ -547,6 +557,6 @@ describe("a Prescription, and a dose per Instance", () => {
           triggers: [{ kind: "schedule", times: ["08:00"] }],
         },
       })
-    ).rejects.toThrow(/nothing but a prescription raises a dose/u);
+    ).rejects.toThrow(/nothing but a prescription raises one/u);
   });
 });
