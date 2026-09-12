@@ -77,6 +77,10 @@ const trigger = z.discriminatedUnion("kind", [
   }),
   z.object({ kind: z.literal("prescription") }),
   z.object({ kind: z.literal("notifiable_disease") }),
+  z.object({
+    kind: z.literal("before_calving"),
+    lead: z.string().trim().min(1).max(40),
+  }),
 ]);
 
 /** Which animals the SOP concerns; absent means the whole herd. */

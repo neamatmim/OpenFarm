@@ -20,6 +20,7 @@ import { z } from "zod";
 import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { pregnancyTimesOf } from "../breeding-store";
 import {
   applyClaim,
   applyComplete,
@@ -282,6 +283,7 @@ export const instancesRouter = {
           endHours: context.farm.aiWindowEndHours,
         },
         pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
+        calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
       };
       const slots = [
         ...dueSlotsFor(now, sops, animals),
@@ -928,7 +930,12 @@ export const instancesRouter = {
           // pile of edits.
           supersedesId: previous?.id,
           before: (tx) => readCompletion(tx, existing.id),
-          after: (tx) => readCompletion(tx, existing.id),
+          // With what the effect decided, as a completion's own entry has: a corrected day that
+          // moved the calving work has to say which work went where.
+          after: async (tx) => ({
+            ...(await readCompletion(tx, existing.id)),
+            effect,
+          }),
         },
         async (tx, eventId) => {
           // Loaded with its Pen, because a Needs Review raised below has to say which work
@@ -986,7 +993,7 @@ export const instancesRouter = {
             sessionsPerDay: sessionsPerDayOf(content),
             skipped: skipping,
             tolerancePercent: context.farm.milkTolerancePercent,
-            gestationDays: context.farm.gestationDays,
+            pregnancyTimes: pregnancyTimesOf(context.farm),
             recordedBy: existing.recordedBy,
             recordedAt: existing.recordedAt,
             now,
@@ -994,7 +1001,10 @@ export const instancesRouter = {
           // She has been walked on since, so putting her back where this entry now says
           // would overwrite something the farm knows and this Correction does not. She
           // stays where she was last seen and a person is asked which is true.
-          if (effect?.kind === "move" && effect.cannotUndo) {
+          if (
+            (effect?.kind === "move" || effect?.kind === "dry_off") &&
+            effect.cannotUndo
+          ) {
             flagged = true;
             await raiseNeedsReview(
               tx,
@@ -1007,7 +1017,9 @@ export const instancesRouter = {
                 params: {
                   ...alertParams(instance),
                   stepId: existing.stepId,
-                  toPenId: effect.toPenId,
+                  ...(effect.kind === "move"
+                    ? { toPenId: effect.toPenId }
+                    : {}),
                 },
               },
               now

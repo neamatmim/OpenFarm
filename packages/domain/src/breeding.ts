@@ -1,3 +1,5 @@
+import { farmDayOf, startOfFarmDay } from "./farm-clock";
+
 /**
  * The word an Observation uses for oestrus. An Observation that says this is a **Heat**.
  *
@@ -193,6 +195,30 @@ export const failedAttempts = (
 };
 
 const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * The work Expected Calving pulls towards it, each named for the Farm Parameter that says how long
+ * before her Expected Calving: drying her off, and walking her to the calving pen. The days are the farm's,
+ * set once for every cow, so a procedure names which lead it keeps rather than a number of its own.
+ */
+export const CALVING_LEADS = ["dry_off", "calving_prep"] as const;
+export type CalvingLead = (typeof CALVING_LEADS)[number];
+
+export const isCalvingLead = (value: string): value is CalvingLead =>
+  (CALVING_LEADS as readonly string[]).includes(value);
+
+/**
+ * When work a lead ahead of her calving falls due: the farm's day that many days before she is
+ * expected. A day's work, like anything counted in days — not an appointment at whatever hour a
+ * service happened to be.
+ */
+export const calvingWorkDue = (
+  expectedCalvingAt: Date,
+  leadDays: number
+): Date =>
+  startOfFarmDay(
+    farmDayOf(new Date(expectedCalvingAt.getTime() - leadDays * DAY_MS))
+  );
 
 /**
  * When she is expected to calve: the attempt's first service, carried the farm's gestation on.

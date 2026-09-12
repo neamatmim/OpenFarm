@@ -79,6 +79,10 @@ export const farm = pgTable("farm", {
     .notNull()
     .default(45),
   gestationDays: integer("gestation_days").notNull().default(283),
+  /** How many days before she is expected to calve a milking cow is dried off, and a cow is walked
+   *  to the calving pen. Every cow the same, so nobody counts days. */
+  dryOffLeadDays: integer("dry_off_lead_days").notNull().default(60),
+  calvingPrepLeadDays: integer("calving_prep_lead_days").notNull().default(7),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

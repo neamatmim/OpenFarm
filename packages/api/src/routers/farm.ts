@@ -55,6 +55,9 @@ const parameters = z
     pregnancyCheckAfterDays: z.number().int().min(28).max(90).optional(),
     /** How long a cow carries, which Expected Calving is worked out from. Within what cattle do. */
     gestationDays: z.number().int().min(260).max(300).optional(),
+    /** How long before she is due a cow is dried off, and walked to the calving pen. */
+    dryOffLeadDays: z.number().int().min(30).max(90).optional(),
+    calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -296,6 +299,8 @@ export const farmRouter = {
                 aiWindowEndHours: true,
                 pregnancyCheckAfterDays: true,
                 gestationDays: true,
+                dryOffLeadDays: true,
+                calvingPrepLeadDays: true,
               },
             })) ?? null,
           after: changes,

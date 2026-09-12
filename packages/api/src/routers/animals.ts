@@ -23,10 +23,12 @@ import {
   STATES,
   canTransition,
   failedAttempts,
+  farmDayOf,
   lactationView,
   mayCorrect,
   withdrawalView,
   sideOfState,
+  startOfFarmDay,
   stateAfterSideChange,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -34,6 +36,8 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { CalvingWorkFollowed } from "../breeding-store";
+import { followExpectedCalving, pregnancyTimesOf } from "../breeding-store";
 import { applyMove } from "../completion-store";
 import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
@@ -59,7 +63,11 @@ import { requireRole } from "../roles";
  *  fits comfortably, and a larger register should be pasted in batches. */
 const IMPORT_MAX_ROWS = 600;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const tagInput = z.string().trim().min(1).max(32);
+
+const farmDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "a day as YYYY-MM-DD");
 
 const animalFields = {
   sex: z.enum(SEXES),
@@ -74,6 +82,10 @@ const animalFields = {
    *  number and days-in-milk are derived from it — until breeding arrives (increment 5) and
    *  Calving writes it, this seed is the only way the farm's history gets in. */
   calvedAt: z.coerce.date().optional(),
+  /** Her Expected Calving, for a cow bought in carrying or on the opening register already in
+   *  calf: the one screen where somebody knows (Owner, 2026-09-13). A farm day, not an instant —
+   *  nobody knows the hour a cow will calve. */
+  expectedCalvingOn: farmDay.optional(),
 } as const;
 
 /** A newly arriving Animal: only the States an animal can arrive in. */
@@ -351,6 +363,76 @@ const startingLactation = (
   };
 };
 
+/** The States a cow can be carrying in. */
+const CARRYING_STATES = new Set<AnimalState>([
+  "pregnant_heifer",
+  "milking",
+  "dry",
+]);
+
+/** The farm day somebody said she will calve, refused when it has gone or is further off than a cow
+ *  carries. */
+const expectedCalvingWithinReach = (
+  day: string,
+  now: Date,
+  gestationDays: number
+): Date => {
+  const due = startOfFarmDay(day);
+  if (Number.isNaN(due.getTime())) {
+    throw new ORPCError("BAD_REQUEST", { message: `"${day}" is not a day` });
+  }
+  if (due < startOfFarmDay(farmDayOf(now))) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That day has already gone",
+      data: { refusal: "expected_calving_passed" },
+    });
+  }
+  if (due.getTime() > now.getTime() + gestationDays * DAY_MS) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "No cow calves further off than a whole gestation",
+      data: { refusal: "expected_calving_too_far" },
+    });
+  }
+  return due;
+};
+
+/**
+ * The Expected Calving somebody gave for a cow already in calf when she reached this farm, as the
+ * day it begins on the farm's clock — or nothing, for a cow nobody said was carrying.
+ *
+ * A Pregnant Heifer bought in has to have one: without it nothing would ever fall due for her, and
+ * she would calve without anybody having walked her to the calving pen. One of the farm's own
+ * heifers, written into the register late, may go without — the farm served her, and her service and
+ * check are where her date should come from.
+ */
+const enteredCalving = (
+  { state, source }: { state: AnimalState; source: string },
+  day: string | undefined,
+  now: Date,
+  gestationDays: number
+): { expectedCalvingAt: Date; expectedCalvingServiceId: null } | null => {
+  if (!day) {
+    if (state === "pregnant_heifer" && source === "bought") {
+      throw new ORPCError("BAD_REQUEST", {
+        message:
+          "A heifer bought in carrying needs the day she is expected to calve",
+        data: { refusal: "expected_calving_needed" },
+      });
+    }
+    return null;
+  }
+  if (!CARRYING_STATES.has(state)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `An animal in state ${state} is not carrying a calf`,
+      data: { refusal: "expected_calving_without_pregnancy" },
+    });
+  }
+  return {
+    expectedCalvingAt: expectedCalvingWithinReach(day, now, gestationDays),
+    expectedCalvingServiceId: null,
+  };
+};
+
 /** The Animal an entry State implies must belong to the Side it is registered on. */
 const assertStateFitsSide = (side: string, state: AnimalState) => {
   if (sideOfState(state) !== side) {
@@ -371,7 +453,7 @@ const readAnimal = async (tx: Tx, animalId: string) => {
 };
 
 type FarmContext = Context & {
-  farm: { id: string; name: string };
+  farm: { id: string; name: string; gestationDays: number };
   actor: { id: string; name: string };
 };
 
@@ -383,6 +465,12 @@ const createAnimal = async (
   reason: string
 ): Promise<{ id: string; tagNumber: string }> => {
   assertCalvedInThePast(input.calvedAt, now);
+  const calving = enteredCalving(
+    input,
+    input.expectedCalvingOn,
+    now,
+    context.farm.gestationDays
+  );
   const id = newId(now);
   let tagNumber = "";
   await audited(context).write(
@@ -400,7 +488,10 @@ const createAnimal = async (
         input,
         now,
         reason,
-        extra: openingLactation(input.state, input.calvedAt),
+        extra: {
+          ...openingLactation(input.state, input.calvedAt),
+          ...calving,
+        },
       });
       ({ tagNumber } = made);
     }
@@ -1012,6 +1103,76 @@ export const animalsRouter = {
       return { tagNumber, state: input.state };
     }),
 
+  /**
+   * Puts right the Expected Calving somebody gave for a cow bought in carrying, and takes her open calving
+   * work to the new day. Only a day that was entered: one worked out from a Pregnancy Check is put
+   * right by correcting the service or the check it came from, never typed over.
+   */
+  correctExpectedCalving: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        expectedCalvingOn: farmDay,
+        reason: reasonInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      let followed: CalvingWorkFollowed | null = null;
+      await audited(context).write(
+        {
+          entity: "animal",
+          entityId: target.id,
+          action: "correct",
+          reason: input.reason,
+          before: (tx) => readAnimal(tx, target.id),
+          after: async (tx) => ({
+            ...(await readAnimal(tx, target.id)),
+            ...followed,
+          }),
+        },
+        async (tx) => {
+          const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          if (!her.expectedCalvingAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `${tagNumber} is not expected to calve`,
+              data: { refusal: "no_calving_expected" },
+            });
+          }
+          if (her.expectedCalvingServiceId) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "Her Expected Calving is worked out from her service; correct the service or the check instead",
+              data: { refusal: "calving_is_derived" },
+            });
+          }
+          const expectedCalvingAt = expectedCalvingWithinReach(
+            input.expectedCalvingOn,
+            now,
+            context.farm.gestationDays
+          );
+          await tx
+            .update(animal)
+            .set({ expectedCalvingAt, updatedAt: now })
+            .where(eq(animal.id, her.id));
+          followed = await followExpectedCalving(
+            tx,
+            context.farm.id,
+            { ...her, expectedCalvingAt },
+            pregnancyTimesOf(context.farm).calvingLeadDays
+          );
+        }
+      );
+      return { tagNumber };
+    }),
+
   /** A replacement Ear Tag carrying the same Tag Number. */
   retag: protectedProcedure
     .use(requireRole("owner", "manager", "staff"))
@@ -1171,6 +1332,7 @@ export const animalsRouter = {
           breed: values.breed || undefined,
           birthDate: values.birth_date || undefined,
           calvedAt: values.calved_at || undefined,
+          expectedCalvingOn: values.expected_calving || undefined,
           officialTag: values.official_tag || undefined,
           aliases: (values.alias ?? values.old_mark ?? "")
             .split(/[;|]/u)

@@ -10,6 +10,7 @@ import { sessionsPerDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import type { EffectResult } from "./effects";
 import { runStepEffect } from "./effects";
@@ -442,7 +443,7 @@ export const applyCompletion = async (
     destination: input.destination,
     skipped: skipping,
     tolerancePercent: context.farm.milkTolerancePercent,
-    gestationDays: context.farm.gestationDays,
+    pregnancyTimes: pregnancyTimesOf(context.farm),
     recordedBy: context.actor.id,
     recordedAt: values.recordedAt,
     now: receivedAt,

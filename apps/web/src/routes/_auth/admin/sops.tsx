@@ -6,8 +6,11 @@ import type {
   TriggerKind,
 } from "@OpenFarm/domain";
 import {
+  CALVING_LEADS,
   EVIDENCE_TYPES,
   FARM_EVENTS,
+  HEAT,
+  SERVICE,
   STEP_EFFECT_KINDS,
   LIVE_STATES,
   MAX_TRIGGER_OFFSET_DAYS,
@@ -260,6 +263,12 @@ const SopsPage = () => {
   );
 };
 
+/** A happening whose work the farm times by its own Parameters rather than days on the Trigger. */
+const farmTimed = (happening: HappeningTrigger): boolean =>
+  happening.kind === "before_calving" ||
+  (happening.kind === "event" &&
+    (happening.event === HEAT || happening.event === SERVICE));
+
 /** The same trigger, as another kind of thing that raises work — keeping the days-after
  *  count where the new kind has one to keep. */
 const ofKind = (
@@ -271,6 +280,9 @@ const ofKind = (
   }
   if (kind === "notifiable_disease") {
     return { kind: "notifiable_disease" };
+  }
+  if (kind === "before_calving") {
+    return { kind: "before_calving", lead: "dry_off" };
   }
   const offsetDays =
     "offsetDays" in happening ? happening.offsetDays : undefined;
@@ -332,7 +344,26 @@ const TriggerFields = ({
             <option value="notifiable_disease">
               {t("sop.trigger.notifiable")}
             </option>
+            <option value="before_calving">
+              {t("sop.trigger.beforeCalving")}
+            </option>
           </select>
+          {happening.kind === "before_calving" ? (
+            <select
+              aria-label={t("sop.trigger.beforeCalving")}
+              className="bg-background h-9 rounded-md border px-2 text-sm"
+              onChange={(e) =>
+                replace(index, { ...happening, lead: e.target.value as never })
+              }
+              value={happening.lead}
+            >
+              {CALVING_LEADS.map((lead) => (
+                <option key={lead} value={lead}>
+                  {t(`calvingLead.${lead}`)}
+                </option>
+              ))}
+            </select>
+          ) : null}
           {happening.kind === "prescription" ? (
             // A Prescription says when its own doses fall due, so there is nothing here to
             // choose and nothing to count days from.
@@ -378,8 +409,15 @@ const TriggerFields = ({
               ))}
             </select>
           ) : null}
-          {happening.kind === "prescription" ||
-          happening.kind === "notifiable_disease" ? null : (
+          {farmTimed(happening) ? (
+            // A Heat's and a Service's work — and calving work — are timed by the farm's own
+            // Parameters, and the Playbook refuses a number of days here, so it does not offer one.
+            <p className="text-muted-foreground text-sm">
+              {t("sop.trigger.farmTimed")}
+            </p>
+          ) : null}
+          {(happening.kind === "event" || happening.kind === "state") &&
+          !farmTimed(happening) ? (
             <div className="space-y-1">
               <Label htmlFor={`after-${index}`}>{t("sop.trigger.after")}</Label>
               <Input
@@ -397,7 +435,7 @@ const TriggerFields = ({
                 value={happening.offsetDays ?? 0}
               />
             </div>
-          )}
+          ) : null}
           <Button
             onClick={() => replace(index, null)}
             type="button"

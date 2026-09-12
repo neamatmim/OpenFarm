@@ -20,8 +20,13 @@ export {
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
-export type { PregnancyCheckResult, ServiceMethod } from "./breeding";
+export type {
+  CalvingLead,
+  PregnancyCheckResult,
+  ServiceMethod,
+} from "./breeding";
 export {
+  CALVING_LEADS,
   HEAT,
   PREGNANCY_CHECK_RESULTS,
   SAME_HEAT_WITHIN_HOURS,
@@ -30,9 +35,11 @@ export {
   aiWindow,
   attemptOf,
   attemptsThatBegin,
+  calvingWorkDue,
   expectedCalvingFrom,
   failedAttempts,
   heatsThatBegin,
+  isCalvingLead,
   isPregnancyCheckResult,
   isServiceMethod,
 } from "./breeding";

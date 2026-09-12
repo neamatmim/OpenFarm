@@ -3,6 +3,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
   AnimalState,
+  CalvingLead,
   FarmEvent,
   QuietHours,
   Side,
@@ -17,6 +18,7 @@ import {
   SERVICE,
   aiWindow,
   attemptsThatBegin,
+  calvingWorkDue,
   heatsThatBegin,
   raisesItsOwnWork,
   carryingMoments,
@@ -114,8 +116,42 @@ export const attemptKeyOf = (served: { id: string; servedAt: Date }): string =>
 /** Every attempt's key begins so: how the work an attempt raised is found among a cow's work. */
 export const ATTEMPT_KEY_PREFIX = `${SERVICE}:`;
 
+/**
+ * The key a pregnancy's calving writes: the cow, the Lactation it will begin, and where the date came
+ * from — the first service it counts from, or `entered` for a date given at intake. Not the date
+ * itself: a date that moves takes its work with it rather than raising a second lot.
+ */
+export const calvingKeyOf = (her: {
+  id: string;
+  lactationNumber: number;
+  expectedCalvingServiceId: string | null;
+}): string =>
+  `calving:${her.id}:${her.lactationNumber}:${her.expectedCalvingServiceId ?? "entered"}`;
+
+/** The cause calving work carries: its pregnancy's key, and which lead it keeps. */
+export const calvingCauseOf = (key: string, lead: CalvingLead): string =>
+  `${key}:${lead}`;
+
+/** Every piece of calving work about one cow has a cause beginning so. */
+export const calvingWorkPrefix = (animalId: string): string =>
+  `calving:${animalId}:`;
+
+const CALVING_CAUSE =
+  /^(?<key>calving:[^:]+:\d+:[^:]+):(?<lead>dry_off|calving_prep)$/u;
+
+/** A calving cause read back: its pregnancy's key and its lead, or null for any other cause. */
+export const calvingCauseParts = (
+  cause: string | null
+): { key: string; lead: CalvingLead } | null => {
+  const groups = cause ? CALVING_CAUSE.exec(cause)?.groups : undefined;
+  return groups?.key && groups.lead
+    ? { key: groups.key, lead: groups.lead as CalvingLead }
+    : null;
+};
+
 export interface Happening {
-  kind: FarmEvent | "state";
+  /** What happened — or, for `calving_due`, what the farm expects to: her Expected Calving. */
+  kind: FarmEvent | "state" | "calving_due";
   /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
    *  "service:<first service id>:<instant>", "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
    *  happening distinguishable from the next. */
@@ -201,6 +237,8 @@ const dueAfter = (at: Date, offsetDays: number): Date =>
 export interface BreedingTimes {
   aiWindow: { startHours: number; endHours: number };
   pregnancyCheckAfterDays: number;
+  /** Days before Expected Calving, by the lead a procedure keeps. */
+  calvingLeadDays: Record<CalvingLead, number>;
 }
 
 /**
@@ -209,19 +247,50 @@ export interface BreedingTimes {
  */
 const timingOf = (
   happening: Happening,
-  offsetDays: number,
+  trigger: HappeningTrigger,
   content: SopContent,
   breeding: BreedingTimes
 ): { dueAt: Date; graceMinutes: number } => {
   if (happening.kind === HEAT) {
     return aiWindow(happening.at, breeding.aiWindow);
   }
+  if (trigger.kind === "before_calving") {
+    return {
+      dueAt: calvingWorkDue(
+        happening.at,
+        breeding.calvingLeadDays[trigger.lead]
+      ),
+      graceMinutes: content.graceMinutes,
+    };
+  }
   const days =
-    happening.kind === SERVICE ? breeding.pregnancyCheckAfterDays : offsetDays;
+    happening.kind === SERVICE
+      ? breeding.pregnancyCheckAfterDays
+      : (trigger.offsetDays ?? 0);
   return {
     dueAt: dueAfter(happening.at, days),
     graceMinutes: content.graceMinutes,
   };
+};
+
+/** A Trigger that waits for something about an animal, rather than the clock or an act. */
+type HappeningTrigger = Extract<
+  SopContent["triggers"][number],
+  { kind: "event" | "state" | "before_calving" }
+>;
+
+/** Whether a happening is what this Trigger waits for. */
+const triggerMatches = (
+  trigger: HappeningTrigger,
+  happening: Happening
+): boolean => {
+  if (trigger.kind === "event") {
+    return happening.kind === trigger.event;
+  }
+  if (trigger.kind === "state") {
+    return happening.kind === "state" && happening.state === trigger.state;
+  }
+  return happening.kind === "calving_due";
 };
 
 /**
@@ -229,7 +298,8 @@ const timingOf = (
  * an attempt at a Service, or an animal reaching a State. One per happening per SOP, about the
  * animal it happened to. Due however many days later the Trigger says — except a Heat's, which falls
  * due in the farm's AI window, in hours, and is late at its end; and an attempt's, which falls due
- * the farm's days to a Pregnancy Check after her first service. Pure — the caller decides which of
+ * the farm's days to a Pregnancy Check after her first service. And one thing that has not happened
+ * yet: a calving the farm expects, whose work falls the farm's lead of days before it. Pure — the caller decides which of
  * these already exist, and the cause is what lets it decide.
  *
  * Looked back for by when the work falls due, not by when its happening was: a Pregnancy Check is
@@ -264,15 +334,10 @@ export const happeningSlotsFor = (
       if (raisesItsOwnWork(trigger)) {
         continue;
       }
-      const offsetDays = trigger.offsetDays ?? 0;
       for (const happening of happenings) {
-        const matches =
-          trigger.kind === "event"
-            ? happening.kind === trigger.event
-            : happening.kind === "state" && happening.state === trigger.state;
         if (
           !(
-            matches &&
+            triggerMatches(trigger, happening) &&
             // Work about a cow who has left is exactly what a death raises, and nothing else
             // may be raised about her.
             (happening.kind === "death" || isOnTheFarm(happening)) &&
@@ -282,7 +347,7 @@ export const happeningSlotsFor = (
         ) {
           continue;
         }
-        const timing = timingOf(happening, offsetDays, sop.content, breeding);
+        const timing = timingOf(happening, trigger, sop.content, breeding);
         if (timing.dueAt < earliest) {
           continue;
         }
@@ -291,7 +356,10 @@ export const happeningSlotsFor = (
           versionId: sop.versionId,
           penId: happening.penId,
           animalId: happening.animalId,
-          cause: causeOf(happening.key, offsetDays),
+          cause:
+            trigger.kind === "before_calving"
+              ? calvingCauseOf(happening.key, trigger.lead)
+              : causeOf(happening.key, trigger.offsetDays ?? 0),
           ...timing,
           assignedRole: sop.content.assignedRole,
           checkerRole: sop.content.checkerRole,
@@ -325,6 +393,9 @@ export const recentHappenings = async (
       state: true,
       stateChangedAt: true,
       createdAt: true,
+      lactationNumber: true,
+      expectedCalvingAt: true,
+      expectedCalvingServiceId: true,
     },
   });
   const animalsById = new Map(animals.map((beast) => [beast.id, beast]));
@@ -426,6 +497,19 @@ export const recentHappenings = async (
     }
   }
   for (const beast of animals) {
+    // A calving the farm expects: what dry-off and calving prep count backwards from. Read every
+    // time, not from a window — the date is ahead of her, and the work falls due long before it.
+    if (beast.expectedCalvingAt) {
+      happenings.push({
+        kind: "calving_due",
+        key: calvingKeyOf(beast),
+        at: beast.expectedCalvingAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
     if (beast.createdAt >= earliest) {
       happenings.push({
         kind: "arrival",

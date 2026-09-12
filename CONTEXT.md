@@ -156,7 +156,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Pregnancy Check**: The Vet's recorded result, positive or negative, of an Attempt — due a Farm Parameter's days (45 by default) after its first service, once per Attempt, and only for her latest. The Vet's alone. Positive sets the Expected Calving and makes a Heifer a Pregnant Heifer; a negative is kept and takes nothing from her. _Avoid_: PD (fine in speech), scan, confirmation
 
-**Expected Calving**: The first service of the heat a positive Pregnancy Check found her carrying from, plus the gestation length (a Farm Parameter, 283 days by default). Worked out and re-worked whenever what it counts from changes, never typed. Drives the Dry-off and Calving-prep SOPs. _Avoid_: Due date, calving date (that's the actual Calving)
+**Expected Calving**: The first service of the heat a positive Pregnancy Check found her carrying from, plus the gestation length (a Farm Parameter, 283 days by default). Worked out and re-worked whenever what it counts from changes, never typed — except for a cow that arrives already carrying, whose Expected Calving is given at intake or on the opening register because nobody on this farm served her. Drives the Dry-off and Calving-prep SOPs, due a lead of days before it (Farm Parameters, 60 and 7 by default); when it moves, work still open moves with it and work done stays done. _Avoid_: Due date, calving date (that's the actual Calving)
 
 **Calving**: The recorded birth event: date, ease, calf sex, live/stillborn. Starts the dam's next Lactation and creates the Calf. _Avoid_: Birth, parturition, delivery
 
