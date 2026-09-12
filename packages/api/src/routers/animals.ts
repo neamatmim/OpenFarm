@@ -79,6 +79,11 @@ const importRowInput = z.object({
 });
 type NewAnimal = z.infer<typeof importRowInput>;
 
+/** How much of her treatment history a page shows. Longer than her Moves or her Observations,
+ *  because a course of six doses twice a year is what this list is made of, and the question it
+ *  answers — what has she been given — looks back further than the others. */
+const DOSES_SHOWN = 40;
+
 const summaryColumns = {
   id: true,
   tagNumber: true,
@@ -318,7 +323,7 @@ export const animalsRouter = {
           treatments: {
             where: { givenAt: { isNotNull: true } },
             orderBy: { givenAt: "desc" },
-            limit: 40,
+            limit: DOSES_SHOWN,
             with: {
               product: { columns: { nameBn: true, nameEn: true } },
               giver: { columns: { name: true } },

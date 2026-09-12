@@ -78,12 +78,18 @@ describe("the screen the Manager runs the day from", () => {
     // "at least", because a Pen's day is every SOP that concerns it — and other test files
     // share this farm and author their own.
     expect(mine.every((pen) => pen.done === 0 && pen.raised >= 2)).toBe(true);
-    // And the morning round is late in both.
-    expect(
-      home.queue.overdue.filter((row) =>
-        [world.worked.id, world.untouched.id].includes(row.penId)
-      ).length
-    ).toBeGreaterThanOrEqual(2);
+    // And the morning round is late in both. Asked of the day's work rather than of the
+    // Manager's queue: the queue shows the farm's fifty most overdue pieces of work, so on a
+    // farm — or a test database — carrying an older backlog, this Pen's round is late whether
+    // or not it makes that list.
+    const lateIn = async (penId: string) => {
+      const work = await manager.client.instances.today({ penId });
+      return work.some(
+        (row) => row.definitionId === world.sop.definitionId && row.overdue
+      );
+    };
+    expect(await lateIn(world.worked.id)).toBe(true);
+    expect(await lateIn(world.untouched.id)).toBe(true);
   });
 
   it("counts a Pen nobody has touched as raised and not done, rather than leaving it out", async () => {

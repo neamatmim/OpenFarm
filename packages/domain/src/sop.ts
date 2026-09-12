@@ -314,6 +314,13 @@ const treatmentPairProblems = (content: SopContent): string[] => {
   const doses = content.steps.filter(
     (step) => step.effect?.kind === "treatment"
   );
+  if (doses.length > 1) {
+    // One dose per piece of work per animal is what keeps a dose from being recorded twice.
+    // Two dose Steps in one procedure would write over each other's record of what she had.
+    return [
+      "steps: a procedure gives one dose, and this one gives more than one",
+    ];
+  }
   // A campaign says what it gives, so it needs nothing to have prescribed it.
   const prescribedDose = doses.some(
     (step) => step.effect?.kind === "treatment" && !step.effect.productId
@@ -338,9 +345,10 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
   }
-  if (content.triggers.length === 0) {
-    problems.push("triggers: an SOP needs at least one trigger");
-  }
+  // No Trigger is no longer work that never arrives: the Manager can raise a piece of work for
+  // a Pen when the farm decides to do it, which is exactly how a campaign happens. A quarterly
+  // deworming has no time of day, and giving it one would put it on the shed's list every
+  // morning for ever.
   for (const [index, trigger] of content.triggers.entries()) {
     problems.push(...triggerProblems(trigger, index));
   }

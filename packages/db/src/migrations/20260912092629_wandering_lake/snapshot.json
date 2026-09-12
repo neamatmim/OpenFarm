@@ -6573,7 +6573,7 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "treatment_instance_uidx",
+      "name": "treatment_dose_uidx",
       "entityType": "indexes",
       "schema": "public",
       "table": "treatment"

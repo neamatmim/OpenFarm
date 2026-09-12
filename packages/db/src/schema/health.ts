@@ -219,7 +219,7 @@ export const treatment = pgTable(
     /** One dose per animal per piece of work: a Prescription's Instance is about one animal,
      *  and a campaign's covers the Pen one animal at a time. This is what keeps a dose from
      *  being recorded twice however often a phone sends it. */
-    uniqueIndex("treatment_instance_uidx").on(table.instanceId, table.animalId),
+    uniqueIndex("treatment_dose_uidx").on(table.instanceId, table.animalId),
     /** The withdrawal question: what has this animal been given, and when was the last one. */
     index("treatment_animal_idx").on(table.animalId, table.givenAt),
     index("treatment_prescription_idx").on(table.prescriptionId, table.number),

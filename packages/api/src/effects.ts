@@ -132,6 +132,9 @@ export interface EffectInput {
     id: string;
     farmId: string;
     penId: string;
+    /** The animal this work is about, for work raised about one — a dose of a Prescription is
+     *  hers alone. Null for work about the whole Pen. */
+    animalId: string | null;
     dueAt: Date;
     /** When the work was raised, which is the moment its Ration is read as of. */
     raisedAt: Date;
@@ -248,17 +251,33 @@ interface DoseGiven {
   givenAt: Date | null;
 }
 
-/** The dose a course already owed for this piece of work, if there is one. */
-const theDoseOwed = (tx: Tx, instanceId: string, animalId: string | null) =>
-  tx.query.treatment.findFirst({
-    where: { instanceId, ...(animalId ? { animalId } : {}) },
-    columns: { id: true, number: true, prescriptionId: true, animalId: true },
-  });
+/**
+ * Which of the two shapes of dose this Step is recording, decided once.
+ *
+ * A **prescribed** dose is one the course already owed: its row was written when the Vet wrote
+ * the Prescription, and the work is about the one animal it names. A **campaign** dose is one
+ * this Version gives every animal in the Pen, and nothing was owed until the Pen was walked.
+ */
+const doseShape = (input: EffectInput) => {
+  const { effect } = input.step;
+  const productId = effect?.kind === "treatment" ? effect.productId : undefined;
+  if (!productId) {
+    return { campaign: false as const, animalId: input.instance.animalId };
+  }
+  // A campaign's Step is done animal by animal, so it always names one.
+  if (!input.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This step doses one animal, and it was not recorded against one",
+    });
+  }
+  return { campaign: true as const, productId, animalId: input.animalId };
+};
 
 /**
- * The dose a campaign is giving her now. Nothing was owed beforehand — a Pen being walked with
- * a syringe is not work the farm was keeping count of — so the row is written by the Step that
- * gave it, and written again on top of itself when the same entry arrives twice.
+ * The dose a campaign gives her now. Nothing was owed beforehand, so the row is written by the
+ * Step that gives it — and written again over itself if two phones send the same dose at once,
+ * which the unique index on the work and the animal is there to catch.
  */
 const recordCampaignDose = async (
   tx: Tx,
@@ -267,12 +286,28 @@ const recordCampaignDose = async (
     productId,
     animalId,
     given,
-  }: {
-    productId: string;
-    animalId: string;
-    given: DoseGiven;
-  }
+  }: { productId: string; animalId: string; given: DoseGiven }
 ) => {
+  // What the Version named may have been retired from the Drug List since it was published,
+  // and a Version never changes (ADR 0001). Retired is fine — the farm may still have stock,
+  // and its days are still written down — but a product the farm cannot say the withdrawal of
+  // must not go into an animal.
+  const product = await tx.query.drugProduct.findFirst({
+    where: { id: productId, farmId: input.instance.farmId },
+    columns: {
+      nameBn: true,
+      milkWithdrawalDays: true,
+      meatWithdrawalDays: true,
+    },
+  });
+  if (!product || product.milkWithdrawalDays === null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: product
+        ? `${product.nameBn} has no withdrawal days written down, so it cannot be given`
+        : "That product is no longer on the farm's drug list",
+      data: { refusal: "no_withdrawal_days" },
+    });
+  }
   const id = uuidv7(input.now);
   await tx
     .insert(treatment)
@@ -288,7 +323,6 @@ const recordCampaignDose = async (
       createdAt: input.now,
       ...given,
     })
-    // Recording it again is a Correction of what she was given, not a second dose.
     .onConflictDoUpdate({
       target: [treatment.instanceId, treatment.animalId],
       set: given,
@@ -315,24 +349,27 @@ const dosesInTheCourse = async (
  * Records that a dose was actually given — or, when the Step was skipped, that it was not
  * after all — and works her Withdrawals out afresh from everything she has had.
  *
- * A dose of a Prescription already has its row: the course wrote one for every dose it calls
- * for, which is what makes a dose nobody gave visible as work nobody did. A campaign's has
- * none until somebody gives it. Either way the row is keyed on the work and the animal, so a
- * phone sending the same dose twice records it once, and a Correction back to a skip takes it
- * off her again.
+ * The row is keyed on the work and the animal, so a phone sending the same dose twice records
+ * it once, and a Correction back to a skip takes it off her again.
  */
 const applyTreatmentEffect = async (
   tx: Tx,
   input: EffectInput
 ): Promise<EffectResult> => {
-  const { effect } = input.step;
-  const productId = effect?.kind === "treatment" ? effect.productId : undefined;
-  // A campaign's Step is done animal by animal, so it always names one.
-  const animalId = productId ? input.animalId : null;
-  if (productId && !animalId) {
+  const shape = doseShape(input);
+  const owed = await tx.query.treatment.findFirst({
+    where: {
+      instanceId: input.instance.id,
+      ...(shape.animalId ? { animalId: shape.animalId } : {}),
+    },
+    columns: { id: true, number: true, prescriptionId: true, animalId: true },
+  });
+  if (!(owed || shape.campaign)) {
+    // The Treatment SOP was raised by something other than a Prescription — a schedule
+    // somebody added to it, say. There is no dose to give, and saying so is better than
+    // writing a Treatment that belongs to no course.
     throw new ORPCError("BAD_REQUEST", {
-      message:
-        "This step doses one animal, and it was not recorded against one",
+      message: "This work is not a dose of any prescription",
     });
   }
   const given: DoseGiven = input.skipped
@@ -343,25 +380,14 @@ const applyTreatmentEffect = async (
         givenAt: input.recordedAt,
       };
 
-  const owed = await theDoseOwed(tx, input.instance.id, animalId);
+  let dose = owed;
   if (owed) {
     await tx.update(treatment).set(given).where(eq(treatment.id, owed.id));
-  }
-  if (!(owed || (productId && animalId))) {
-    // The Treatment SOP was raised by something other than a Prescription — a schedule
-    // somebody added to it, say. There is no dose to give, and saying so is better than
-    // writing a Treatment that belongs to no course.
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This work is not a dose of any prescription",
-    });
-  }
-  let dose = owed;
-  if (!owed && productId && animalId) {
-    dose = await recordCampaignDose(tx, input, { productId, animalId, given });
-  }
-  if (!dose) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This dose is not recorded against any animal",
+  } else if (shape.campaign) {
+    dose = await recordCampaignDose(tx, input, {
+      productId: shape.productId,
+      animalId: shape.animalId,
+      given,
     });
   }
   // From the doses she has actually had, every time — a dose corrected back to a skip has to
@@ -369,17 +395,26 @@ const applyTreatmentEffect = async (
   const { milkUntil } = await recomputeWithdrawal(
     tx,
     input.instance.farmId,
-    dose.animalId
+    dose?.animalId ?? shape.animalId ?? ""
   );
   return {
     kind: "treatment",
-    number: dose.number,
-    of: await dosesInTheCourse(tx, dose.prescriptionId),
+    number: dose?.number ?? 1,
+    of: await dosesInTheCourse(tx, dose?.prescriptionId ?? null),
     given: !input.skipped,
     milkWithdrawalUntil: milkUntil,
   };
 };
 
+/**
+ * Records what somebody saw of one animal on the round — the farm's Observation, which starts
+ * the health chain and which Breeding reads as a Heat when that is what was seen.
+ *
+ * Unlike the litres and the Moves, a Correction here never rewrites the row and never removes
+ * it. It withdraws it and writes the new one beside it, pointing back: what somebody said they
+ * saw is a fact about the round, and it stays true that they said it even after the farm
+ * decides they were looking at the wrong cow.
+ */
 const applyObservationEffect = async (
   tx: Tx,
   input: EffectInput

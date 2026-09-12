@@ -15,7 +15,8 @@ import { appRouter } from "./index";
 const campaignSop = (productId: string): SopContent => ({
   name: { bn: "কৃমিনাশক অভিযান", en: "Deworming campaign" },
   purpose: { bn: "পেনের প্রতিটি পশুকে কৃমিনাশক খাওয়ান" },
-  triggers: [{ kind: "schedule", times: ["09:00"] }],
+  // Nothing raises it: a deworming happens when the farm decides, not every morning.
+  triggers: [],
   assignedRole: "staff",
   checkerRole: "manager",
   graceMinutes: 240,
@@ -114,7 +115,11 @@ describe("a campaign over a Pen", () => {
     }
     const staff = await createTestClient(appRouter, { as: "staff", clock });
 
-    await staff.client.instances.ensureDue();
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.instances.raiseNow({
+      definitionId: world.sop.definitionId,
+      penId: pen.id,
+    });
     const today = await staff.client.instances.today({ penId: pen.id });
     const campaign = today.find(
       (row) => row.definitionId === world.sop.definitionId
@@ -138,6 +143,11 @@ describe("a campaign over a Pen", () => {
       evidence: [],
       skipReason: "পশু পাওয়া যায়নি",
     });
+
+    // Finished, because a campaign with an animal accounted for either way is finished — and
+    // work left open on an early date is work every later test finds at the top of its
+    // overdue list.
+    await staff.client.instances.complete({ id: campaign.id });
 
     // Per animal, not per campaign: the treated cow carries the event and the hold it earns.
     const treated = await staff.client.animals.byTag({
@@ -169,7 +179,10 @@ describe("a campaign over a Pen", () => {
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
-    await staff.client.instances.ensureDue();
+    await manager.client.instances.raiseNow({
+      definitionId: world.sop.definitionId,
+      penId: pen.id,
+    });
     const today = await staff.client.instances.today({ penId: pen.id });
     const campaign = today.find(
       (row) => row.definitionId === world.sop.definitionId
@@ -220,5 +233,60 @@ describe("a campaign over a Pen", () => {
     await expect(
       owner.client.sops.create({ content: campaignSop("no-such-product") })
     ).rejects.toThrow(/drug list/iu);
+  });
+  it("is run when the Manager says, not every morning for ever", async () => {
+    const clock = new FakeClock("2026-11-03T03:30:00.000Z");
+    const { pen, cows } = await aPenOfCows(clock, 1);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+
+    // The Manager decides today is the day.
+    const raised = await manager.client.instances.raiseNow({
+      definitionId: world.sop.definitionId,
+      penId: pen.id,
+    });
+    expect(raised.raised).toBe(1);
+
+    const today = await staff.client.instances.today({ penId: pen.id });
+    const mine = today.filter(
+      (row) => row.definitionId === world.sop.definitionId
+    );
+    expect(mine.length).toBeGreaterThan(0);
+
+    // Asked twice in one day by accident, the farm has one campaign to do, not two.
+    await manager.client.instances.raiseNow({
+      definitionId: world.sop.definitionId,
+      penId: pen.id,
+    });
+    const after = await staff.client.instances.today({ penId: pen.id });
+    expect(
+      after.filter((row) => row.definitionId === world.sop.definitionId)
+    ).toHaveLength(mine.length);
+
+    // And Barn Staff do not decide when the farm runs a campaign.
+    await expect(
+      staff.client.instances.raiseNow({
+        definitionId: world.sop.definitionId,
+        penId: pen.id,
+      })
+    ).rejects.toThrow();
+
+    // Done and dusted, so the farm is handed back with nothing standing open.
+    const [cow] = cows;
+    if (!cow) {
+      throw new Error("expected a cow");
+    }
+    const [work] = mine;
+    if (!work) {
+      throw new Error("expected the campaign");
+    }
+    await staff.client.instances.claim({ id: work.id });
+    await staff.client.instances.completeStep({
+      instanceId: work.id,
+      stepId: "dose",
+      animalTag: cow.tagNumber,
+      evidence: [true],
+    });
+    await staff.client.instances.complete({ id: work.id });
   });
 });

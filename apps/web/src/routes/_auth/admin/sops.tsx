@@ -303,6 +303,11 @@ const TriggerFields = ({
       <legend className="text-muted-foreground text-sm">
         {t("sop.triggers")}
       </legend>
+      {content.triggers.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          {t("sop.trigger.byHand")}
+        </p>
+      ) : null}
       {happenings.map((happening, index) => (
         <div
           className="flex flex-wrap items-end gap-2"

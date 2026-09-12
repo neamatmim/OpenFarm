@@ -31,12 +31,14 @@ import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { feedingTargetForPen } from "../feed-store";
+import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
   alertParams,
   animalsForInstance,
   dueSlotsFor,
+  farmDayOf,
   happeningSlotsFor,
   farmDayRange,
   findLate,
@@ -244,6 +246,79 @@ export const instancesRouter = {
             tx,
             context.farm.id,
             slots,
+            now
+          );
+          raised = instances.length;
+        }
+      );
+      return { raised };
+    }),
+
+  /**
+   * Raises one piece of work now, for one Pen, because somebody has decided to do it today: a
+   * deworming, a vaccination round, a job the Playbook holds but no schedule should raise.
+   *
+   * The alternative is worse than it sounds. A campaign has to be raised somehow, and the only
+   * other shape the Playbook offers is a time of day — which would put a deworming on the
+   * shed's list every morning for ever. The farm decides when a campaign happens; the Playbook
+   * says what it is.
+   */
+  raiseNow: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ definitionId: z.string(), penId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const definition = await context.db.query.sopDefinition.findFirst({
+        where: {
+          id: input.definitionId,
+          farmId: context.farm.id,
+          retiredAt: { isNull: true },
+        },
+        with: { currentVersion: true },
+      });
+      if (!definition?.currentVersion) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "No such procedure, or nothing published in it yet",
+        });
+      }
+      const content = contentOf(definition.currentVersion);
+      // A dose of a Prescription is raised by the Prescription, and raising one by hand would
+      // be a dose belonging to no course.
+      if (content.triggers.some((trigger) => trigger.kind === "prescription")) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A prescription raises this work, one dose at a time",
+          data: { refusal: "prescription_raises_it" },
+        });
+      }
+      let raised = 0;
+      await audited(context).write(
+        {
+          entity: "sop_instance",
+          entityId: `${input.definitionId}:${now.toISOString()}`,
+          action: "create",
+          after: { definitionId: input.definitionId, penId: input.penId },
+        },
+        async (tx) => {
+          // Inside the transaction, like every other read a write depends on: a Pen deleted
+          // between the check and the insert would leave work standing in nowhere.
+          await requirePen(tx, context.farm.id, input.penId);
+          const instances = await raiseDueInstances(
+            tx,
+            context.farm.id,
+            [
+              {
+                definitionId: definition.id,
+                versionId: definition.currentVersion?.id ?? "",
+                penId: input.penId,
+                dueAt: now,
+                // Named for who asked and when, so asking twice by accident raises one piece
+                // of work rather than two.
+                cause: `byHand:${input.penId}:${farmDayOf(now)}`,
+                graceMinutes: content.graceMinutes,
+                assignedRole: content.assignedRole,
+                checkerRole: content.checkerRole,
+              },
+            ],
             now
           );
           raised = instances.length;
@@ -800,6 +875,7 @@ export const instancesRouter = {
               id: instance.id,
               farmId: context.farm.id,
               penId: instance.penId,
+              animalId: instance.animalId,
               dueAt: instance.dueAt,
               raisedAt: instance.createdAt,
             },

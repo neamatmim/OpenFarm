@@ -133,9 +133,9 @@ export const withEffect = (
   const wants: EvidenceType = wantedEvidence(kind);
   const [first, ...rest] = step.evidence;
   // A Pen is fed and its tank read once; everything else is done animal by animal. A dose
-  // starts as a campaign's, which is the one an Owner writes: the other shape belongs to the
-  // farm's one Treatment procedure, and blanking the product here says so.
-  const perAnimal = kind !== "bulk_total";
+  // Step starts as a prescribed dose — the shape that is complete without anything else being
+  // chosen — and naming a product turns it into a campaign over the Pen.
+  const perAnimal = kind !== "bulk_total" && kind !== "treatment";
   if (first?.type === wants) {
     return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
   }
