@@ -25,9 +25,8 @@ import {
 
 import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
+import { FARM_UTC_OFFSET_MINUTES } from "./farm-clock";
 
-/** The farm's clock. Asia/Dhaka has no daylight saving; a farm parameter later. */
-const FARM_UTC_OFFSET_MINUTES = 6 * 60;
 const MINUTE_MS = 60_000;
 
 /** An animal that has left the farm keeps its Pen, so every selection must exclude exits —

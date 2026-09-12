@@ -1,6 +1,10 @@
+import type { FarmIdentity } from "./farm";
+
 /** What the letter to the Upazila Livestock Officer has to say, from what the farm knows. */
 export interface NotifiableLetter {
-  farmName: string;
+  /** The Farm Identity, as the office files it. Whatever the farm has not written down is left
+   *  off: the letter still goes, because a notifiable disease does not wait for paperwork. */
+  farm: FarmIdentity;
   tagNumber: string;
   /** The Vet's own words for the disease — what the Diagnosis says, not a translation. */
   disease: string;
@@ -23,8 +27,9 @@ export interface NotifiableLetter {
  * says is only what the farm already knows: nothing here asks the Manager to type anything a
  * record could have told it.
  *
- * The Act requires the report in writing and without delay (Animal Disease Act 2005, s.3); the
- * farm's own registration number joins the heading when registration arrives (increment 7).
+ * The Act requires the report in writing and without delay (Animal Disease Act 2005, s.3). The
+ * farm's address, phone and registration number head the letter when it has written them down,
+ * and are simply left off when it has not — the notice must not wait for them.
  */
 export const notifiableLetter = (letter: NotifiableLetter): string => {
   // A notice with a blank farm, animal, disease or signatory is not a notice. Better to refuse
@@ -32,7 +37,7 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
   // office.
   const missing = (
     [
-      ["farmName", letter.farmName],
+      ["farmName", letter.farm.name],
       ["tagNumber", letter.tagNumber],
       ["disease", letter.disease],
       ["vetName", letter.vetName],
@@ -44,7 +49,17 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
       `the letter cannot be written without ${missing.map(([field]) => field).join(", ")}`
     );
   }
+  // The farm of origin, as the office files it. Each line appears only if the farm has the fact.
+  const { name, address, phone, registrationNumber } = letter.farm;
+  const heading = [
+    `খামার: ${name}`,
+    address?.trim() ? `ঠিকানা: ${address}` : null,
+    phone?.trim() ? `মোবাইল: ${phone}` : null,
+    registrationNumber?.trim() ? `নিবন্ধন নম্বর: ${registrationNumber}` : null,
+  ].filter((line) => line !== null);
   return [
+    ...heading,
+    "",
     "বরাবর,",
     "উপজেলা প্রাণিসম্পদ কর্মকর্তা",
     "",
@@ -52,7 +67,7 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
     "",
     "জনাব,",
     "",
-    `আমাদের খামার "${letter.farmName}"-এ একটি পশুর মধ্যে ${letter.disease} রোগ শনাক্ত হয়েছে। প্রাণিরোগ আইন, ২০০৫ অনুসারে বিষয়টি বিলম্ব না করে আপনাকে লিখিতভাবে জানানো হলো।`,
+    `আমাদের খামার "${name}"-এ একটি পশুর মধ্যে ${letter.disease} রোগ শনাক্ত হয়েছে। প্রাণিরোগ আইন, ২০০৫ অনুসারে বিষয়টি বিলম্ব না করে আপনাকে লিখিতভাবে জানানো হলো।`,
     "",
     `পশুর ট্যাগ নম্বর: ${letter.tagNumber}`,
     `রোগ শনাক্তের তারিখ: ${letter.diagnosedOn}`,
@@ -65,7 +80,7 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
     "",
     "বিনীত,",
     letter.reportedByName,
-    letter.farmName,
+    name,
     letter.reportedOn,
   ].join("\n");
 };

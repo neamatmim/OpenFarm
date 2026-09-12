@@ -61,6 +61,16 @@ export interface Context {
   farm: {
     id: string;
     name: string;
+    /** Where the farm is and how to reach it — the lines that appear on documents it sends out. */
+    address: string | null;
+    phone: string | null;
+    /** The DLS registration an inspector asks for first, and when it runs out. */
+    registrationNumber: string | null;
+    registrationOffice: string | null;
+    registrationIssuedOn: Date | null;
+    registrationExpiresOn: Date | null;
+    /** How early the farm wants to be told the registration is running out. */
+    registrationRenewalLeadDays: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

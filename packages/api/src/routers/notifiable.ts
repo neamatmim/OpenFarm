@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { notifiableDisease } from "@OpenFarm/db/schema/health";
+import type { FarmIdentity } from "@OpenFarm/domain";
 import { notifiableLetter } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
@@ -34,7 +35,7 @@ const readDisease = async (tx: Tx, id: string) => {
  */
 const buildLetter = async (
   context: Parameters<typeof audited>[0] & {
-    farm: { id: string; name: string };
+    farm: { id: string } & FarmIdentity;
     actor: { name: string };
   },
   diagnosisId: string
@@ -65,7 +66,7 @@ const buildLetter = async (
   return {
     reportId: found.report.id,
     text: notifiableLetter({
-      farmName: context.farm.name,
+      farm: context.farm,
       tagNumber: found.animal.tagNumber,
       disease: found.disease,
       diagnosedOn: formatDate(found.diagnosedAt, "bn", "date"),
