@@ -33,6 +33,36 @@ a notifiable disease must not wait for paperwork. **This closes the blank ticket
 The screen is `/admin/farm`, reached from the nav by the Owner and the Manager only (the `/admin`
 layout already refuses everyone else).
 
+## What the review changed
+
+Both axes found real things, and all of them are folded in.
+
+- **Barn Staff could read the Farm Identity.** The roles matrix gives farm parameters `R U` to the
+  Owner and the Manager and `R` to a full Vet; Staff is `—`. The read had been opened to everyone
+  on the farm on my own reasoning rather than on the matrix. Narrowed to Owner, Manager and Vet,
+  and the test now asserts Staff is refused the **read** as well as the write.
+- **The ninety-day renewal lead was a constant in the code.** The spec's own Farm Parameters list
+  names "registration renewal lead 90 d" alongside every other tunable number. It is now a column
+  with that default, `setParameters` takes it, and `identityView` is given it — so increment 7's
+  renewal SOP will find a parameter, not a hidden rule.
+- **The Staff refusal was a bare `rejects.toThrow()`**, which a validation error would also have
+  satisfied. It asserts `FORBIDDEN` now.
+- **Criterion 4 was implemented but untested.** The test now reads the trail back and checks the
+  Farm's update carries a `before`, an `after` and the Role that wrote it.
+- **"Identity" was a word the glossary did not have.** CONTEXT.md had **Registration** (the number,
+  office, dates and photo) but nothing for the farm's address and phone. **Farm Identity** is added
+  to the Compliance section, naming the whole and pointing at the Registration inside it.
+- **`setParameters`' doc comment was detached** by my insertion — the fifth time this has happened.
+  Put back.
+- **The same three shapes were written twice**: the `YYYY-MM-DD` validator (here and in
+  `audit.list`), the "only the fields this request named" spread (six copies here, eight in
+  `setParameters`), and the farm's time zone in the i18n package. One `farmDay`, one `touched()`
+  used by both procedures, one `FARM_TIME_ZONE`.
+- **The letter took the farm as four loose fields.** It takes one `FarmIdentity` now, so the
+  transport card adding `registrationOffice` will not change three files.
+- **The screen** used a hardcoded red that the repo has no precedent for (now the `destructive`
+  token), a field patcher called `set`, and kept its local draft after saving.
+
 ## Decisions and departures
 
 - **The registration date is a day, not an instant.** The router takes `YYYY-MM-DD` and reads it
@@ -50,10 +80,21 @@ layout already refuses everyone else).
 - **No photograph of the certificate.** The Owner's decision put the renewal SOP and its evidence
   in increment 7; this ticket carries only the facts an inspector asks for first.
 - **Nothing yet prints the transport card.** Ticket 40 does that; what it needs now exists.
+- **Nothing warns at the letter itself.** Each heading line is simply left off when the farm has
+  not written that fact down, so a letter can still go to the office with no registration number on
+  it. The only warning lives on `/admin/farm`, which somebody has to open. The Owner's decision
+  said both documents should "print complete"; making the document itself say what it is missing
+  belongs with ticket 40, which is where a document first has to be complete to be worth anything.
 - **The expiry is visible but says nothing on its own.** Nobody is told when ninety days arrive —
   that is the renewal SOP's job in increment 7. Today the Owner or Manager has to open the screen.
 
 ## Verification
 
 `pnpm check-types` clean across the workspace; `pnpm test` 366 passing (337 api + 19 web + 10
-i18n), up from 364; `pnpm build` clean; `oxfmt` and `oxlint` clean on every changed file.
+i18n), up from 364; `pnpm build` clean; `oxfmt` and `oxlint` clean on every changed file (the
+pre-existing lint errors in `login.tsx`, `__root.tsx`, the sign-in/up forms, `feed.test.ts` and
+`rpc/$.ts` are untouched by this ticket).
+
+Two migrations were generated while working and squashed into one before merging, so the farm
+applies a single `ALTER TABLE` — seven nullable columns plus the renewal lead, which has a default
+and so backfills itself. Safe on a farm that already has rows.

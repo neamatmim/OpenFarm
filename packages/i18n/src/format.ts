@@ -17,6 +17,10 @@ export const formatDigits = (value: number, language: Language): string =>
     maximumFractionDigits: 0,
   });
 
+/** The farm's own clock, which is what every date shown to somebody on it is read on. Asia/Dhaka
+ *  has no daylight saving; a farm parameter later. */
+const FARM_TIME_ZONE = "Asia/Dhaka";
+
 export type DateStyle = "date" | "dateTime" | "monthYear";
 
 const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
@@ -36,7 +40,7 @@ export const formatDate = (
   date: Date,
   language: Language,
   style: DateStyle = "date",
-  timeZone = "Asia/Dhaka"
+  timeZone = FARM_TIME_ZONE
 ): string =>
   new Intl.DateTimeFormat(LOCALE[language], {
     ...DATE_OPTIONS[style],
@@ -47,7 +51,7 @@ export const formatDate = (
  * A date as an `<input type="date">` holds it: the farm's own day in plain digits, never Bangla
  * ones — the field itself is not translated, and a browser reads only this shape.
  */
-export const formatDayField = (date: Date, timeZone = "Asia/Dhaka"): string =>
+export const formatDayField = (date: Date, timeZone = FARM_TIME_ZONE): string =>
   new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
     month: "2-digit",

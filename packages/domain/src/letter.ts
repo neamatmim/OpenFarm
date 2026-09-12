@@ -1,12 +1,10 @@
+import type { FarmIdentity } from "./farm";
+
 /** What the letter to the Upazila Livestock Officer has to say, from what the farm knows. */
 export interface NotifiableLetter {
-  farmName: string;
-  /** Where the farm is and how the office reaches it. Null until the farm has written it down —
-   *  the letter still goes, because a notifiable disease does not wait for paperwork. */
-  farmAddress: string | null;
-  farmPhone: string | null;
-  /** The DLS registration number, when the farm has one. The office's own file is keyed on it. */
-  farmRegistrationNumber: string | null;
+  /** The Farm Identity, as the office files it. Whatever the farm has not written down is left
+   *  off: the letter still goes, because a notifiable disease does not wait for paperwork. */
+  farm: FarmIdentity;
   tagNumber: string;
   /** The Vet's own words for the disease — what the Diagnosis says, not a translation. */
   disease: string;
@@ -39,7 +37,7 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
   // office.
   const missing = (
     [
-      ["farmName", letter.farmName],
+      ["farmName", letter.farm.name],
       ["tagNumber", letter.tagNumber],
       ["disease", letter.disease],
       ["vetName", letter.vetName],
@@ -52,13 +50,12 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
     );
   }
   // The farm of origin, as the office files it. Each line appears only if the farm has the fact.
+  const { name, address, phone, registrationNumber } = letter.farm;
   const heading = [
-    `খামার: ${letter.farmName}`,
-    letter.farmAddress?.trim() ? `ঠিকানা: ${letter.farmAddress}` : null,
-    letter.farmPhone?.trim() ? `মোবাইল: ${letter.farmPhone}` : null,
-    letter.farmRegistrationNumber?.trim()
-      ? `নিবন্ধন নম্বর: ${letter.farmRegistrationNumber}`
-      : null,
+    `খামার: ${name}`,
+    address?.trim() ? `ঠিকানা: ${address}` : null,
+    phone?.trim() ? `মোবাইল: ${phone}` : null,
+    registrationNumber?.trim() ? `নিবন্ধন নম্বর: ${registrationNumber}` : null,
   ].filter((line) => line !== null);
   return [
     ...heading,
@@ -70,7 +67,7 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
     "",
     "জনাব,",
     "",
-    `আমাদের খামার "${letter.farmName}"-এ একটি পশুর মধ্যে ${letter.disease} রোগ শনাক্ত হয়েছে। প্রাণিরোগ আইন, ২০০৫ অনুসারে বিষয়টি বিলম্ব না করে আপনাকে লিখিতভাবে জানানো হলো।`,
+    `আমাদের খামার "${name}"-এ একটি পশুর মধ্যে ${letter.disease} রোগ শনাক্ত হয়েছে। প্রাণিরোগ আইন, ২০০৫ অনুসারে বিষয়টি বিলম্ব না করে আপনাকে লিখিতভাবে জানানো হলো।`,
     "",
     `পশুর ট্যাগ নম্বর: ${letter.tagNumber}`,
     `রোগ শনাক্তের তারিখ: ${letter.diagnosedOn}`,
@@ -83,7 +80,7 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
     "",
     "বিনীত,",
     letter.reportedByName,
-    letter.farmName,
+    name,
     letter.reportedOn,
   ].join("\n");
 };

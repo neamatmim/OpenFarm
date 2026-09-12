@@ -1,14 +1,12 @@
 import { z } from "zod";
 
-import { startOfFarmDay } from "../farm-clock";
+import { farmDay, startOfFarmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
 const LIMIT_MAX = 200;
 const LIMIT_DEFAULT = 50;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-const dayString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "YYYY-MM-DD");
 
 /** The audit log. Owner and Manager see everything; every other Role sees only their own
  *  actions. Day filters are farm-local, half-open: [fromDay 00:00, toDay + 1 day 00:00). */
@@ -21,8 +19,8 @@ export const auditRouter = {
           entity: z.string().min(1).optional(),
           entityId: z.string().min(1).optional(),
           actorId: z.string().min(1).optional(),
-          fromDay: dayString.optional(),
-          toDay: dayString.optional(),
+          fromDay: farmDay.optional(),
+          toDay: farmDay.optional(),
           limit: z.number().int().min(1).max(LIMIT_MAX).default(LIMIT_DEFAULT),
         })
         .default({ limit: LIMIT_DEFAULT })

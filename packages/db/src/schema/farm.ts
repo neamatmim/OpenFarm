@@ -55,6 +55,12 @@ export const farm = pgTable("farm", {
   registrationOffice: text("registration_office"),
   registrationIssuedOn: timestamp("registration_issued_on"),
   registrationExpiresOn: timestamp("registration_expires_on"),
+  /** How long before the registration runs out the farm starts saying so. The renewal SOP is
+   *  raised on the same lead (increment 7), so a farm that has not been told by then is a farm
+   *  finding out from an inspector. */
+  registrationRenewalLeadDays: integer("registration_renewal_lead_days")
+    .notNull()
+    .default(90),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

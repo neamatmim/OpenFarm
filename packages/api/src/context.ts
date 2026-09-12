@@ -69,6 +69,8 @@ export interface Context {
     registrationOffice: string | null;
     registrationIssuedOn: Date | null;
     registrationExpiresOn: Date | null;
+    /** How early the farm wants to be told the registration is running out. */
+    registrationRenewalLeadDays: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

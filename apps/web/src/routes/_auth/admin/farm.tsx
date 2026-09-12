@@ -38,6 +38,8 @@ const IdentityPage = () => {
     orpc.farm.setIdentity.mutationOptions({
       onSuccess: () => {
         toast.success(t("identity.saved"));
+        // Back to the record: what the farm holds is the answer, not what was typed at it.
+        setDraft(null);
         queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
       },
       onError: (error) => toast.error(error.message || t("common.error")),
@@ -65,7 +67,7 @@ const IdentityPage = () => {
       ? formatDayField(farm.registrationExpiresOn)
       : "",
   };
-  const set = (patch: Partial<typeof fields>) =>
+  const edit = (patch: Partial<typeof fields>) =>
     setDraft({ ...fields, ...patch });
   const expiresOn = farm.registrationExpiresOn;
 
@@ -85,7 +87,7 @@ const IdentityPage = () => {
         <p
           className={`rounded-xl p-4 ${
             farm.registrationExpired
-              ? "bg-red-950 text-red-100"
+              ? "bg-destructive/10 text-destructive"
               : "bg-amber-950 text-amber-100"
           }`}
         >
@@ -122,7 +124,7 @@ const IdentityPage = () => {
           <Input
             id="identity-address"
             maxLength={300}
-            onChange={(e) => set({ address: e.target.value })}
+            onChange={(e) => edit({ address: e.target.value })}
             value={fields.address}
           />
         </div>
@@ -132,7 +134,7 @@ const IdentityPage = () => {
             id="identity-phone"
             inputMode="tel"
             maxLength={20}
-            onChange={(e) => set({ phone: e.target.value })}
+            onChange={(e) => edit({ phone: e.target.value })}
             value={fields.phone}
           />
         </div>
@@ -143,7 +145,7 @@ const IdentityPage = () => {
           <Input
             id="identity-number"
             maxLength={60}
-            onChange={(e) => set({ registrationNumber: e.target.value })}
+            onChange={(e) => edit({ registrationNumber: e.target.value })}
             value={fields.registrationNumber}
           />
         </div>
@@ -154,7 +156,7 @@ const IdentityPage = () => {
           <Input
             id="identity-office"
             maxLength={200}
-            onChange={(e) => set({ registrationOffice: e.target.value })}
+            onChange={(e) => edit({ registrationOffice: e.target.value })}
             value={fields.registrationOffice}
           />
         </div>
@@ -165,7 +167,7 @@ const IdentityPage = () => {
             </Label>
             <Input
               id="identity-issued"
-              onChange={(e) => set({ registrationIssuedOn: e.target.value })}
+              onChange={(e) => edit({ registrationIssuedOn: e.target.value })}
               type="date"
               value={fields.registrationIssuedOn}
             />
@@ -176,7 +178,7 @@ const IdentityPage = () => {
             </Label>
             <Input
               id="identity-expires"
-              onChange={(e) => set({ registrationExpiresOn: e.target.value })}
+              onChange={(e) => edit({ registrationExpiresOn: e.target.value })}
               type="date"
               value={fields.registrationExpiresOn}
             />

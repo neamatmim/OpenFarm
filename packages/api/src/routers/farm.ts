@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { startOfFarmDay } from "../farm-clock";
+import { farmDay, startOfFarmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -38,14 +38,13 @@ const parameters = z
       .optional(),
     /** How long after an entry was made the Manager may still put it right. */
     managerCorrectionDays: z.number().int().min(0).max(365).optional(),
+    /** How early the farm is told its DLS registration is running out. */
+    registrationRenewalLeadDays: z.number().int().min(0).max(365).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
     { message: "Nothing to change" }
   );
-
-/** A day as the certificate prints it. */
-const FARM_DAY = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "YYYY-MM-DD");
 
 /**
  * What the farm is, rather than how it is tuned: where it is, how to reach it, and the
@@ -64,8 +63,8 @@ const identity = z
     /** Days as the certificate prints them, read on the farm's own clock: what a certificate
      *  says is a date, not an instant, and the office in Dhaka and the farm in Savar must
      *  agree on which day it means. */
-    registrationIssuedOn: FARM_DAY.nullish(),
-    registrationExpiresOn: FARM_DAY.nullish(),
+    registrationIssuedOn: farmDay.nullish(),
+    registrationExpiresOn: farmDay.nullish(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -74,6 +73,22 @@ const identity = z
 
 /** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
 const BOOTSTRAP_LOCK = 7001;
+
+/**
+ * Only the fields this request actually named, so a form that sends one line does not blank the
+ * rest. A field the caller left out is untouched; one it sent empty is cleared on purpose.
+ *
+ * `Object.fromEntries` cannot keep the key types, hence the one cast.
+ */
+const touched = <Fields extends object>(fields: Fields): Partial<Fields> =>
+  Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined)
+  ) as Partial<Fields>;
+
+/** A day the caller named, read on the farm's clock. Undefined stays undefined, which is how
+ *  `touched` knows the caller left the field alone. */
+const onFarmDay = (day: string | null | undefined) =>
+  typeof day === "string" ? startOfFarmDay(day) : day;
 
 /** The farm as the trail records it either side of a change. */
 const readIdentity = async (tx: Tx, farmId: string) => {
@@ -144,15 +159,20 @@ export const farmRouter = {
     }),
   current: protectedProcedure.handler(({ context }) => context.farm),
 
-  /** The Manager tunes the Farm Parameters. Audited like any other write, with the values
-   *  as they stood before, so a flag raised under an old tolerance stays explicable. */
   /**
-   * What the farm is. Read by anybody who is on it — a Vet writing a letter and a milker looking
-   * at the farm's own page both see the same thing the office sees.
+   * The Farm Identity. Whoever the roles matrix lets read the Farm Parameters: the Owner, the
+   * Manager, and a Vet who needs it to write a letter. Not Barn Staff — what the farm's paperwork
+   * says is none of a milker's business.
    */
   identity: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) => identityView(context.farm, context.clock.now())),
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(({ context }) =>
+      identityView(
+        context.farm,
+        context.clock.now(),
+        context.farm.registrationRenewalLeadDays
+      )
+    ),
 
   /**
    * Writes the farm down. The Owner or the Manager (roles matrix: farm parameters are both
@@ -177,44 +197,27 @@ export const farmRouter = {
         (tx) =>
           tx
             .update(farm)
-            .set({
-              ...(input.address === undefined
-                ? {}
-                : { address: input.address ?? null }),
-              ...(input.phone === undefined
-                ? {}
-                : { phone: input.phone ?? null }),
-              ...(input.registrationNumber === undefined
-                ? {}
-                : { registrationNumber: input.registrationNumber ?? null }),
-              ...(input.registrationOffice === undefined
-                ? {}
-                : { registrationOffice: input.registrationOffice ?? null }),
-              ...(input.registrationIssuedOn === undefined
-                ? {}
-                : {
-                    registrationIssuedOn: input.registrationIssuedOn
-                      ? startOfFarmDay(input.registrationIssuedOn)
-                      : null,
-                  }),
-              ...(input.registrationExpiresOn === undefined
-                ? {}
-                : {
-                    registrationExpiresOn: input.registrationExpiresOn
-                      ? startOfFarmDay(input.registrationExpiresOn)
-                      : null,
-                  }),
-            })
+            .set(
+              touched({
+                address: input.address,
+                phone: input.phone,
+                registrationNumber: input.registrationNumber,
+                registrationOffice: input.registrationOffice,
+                registrationIssuedOn: onFarmDay(input.registrationIssuedOn),
+                registrationExpiresOn: onFarmDay(input.registrationExpiresOn),
+              })
+            )
             .where(eq(farm.id, farmId))
       );
       return { id: farmId };
     }),
 
+  /** The Manager tunes the Farm Parameters. Audited like any other write, with the values
+   *  as they stood before, so a flag raised under an old tolerance stays explicable. */
   setParameters: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(parameters)
     .handler(async ({ context, input }) => {
-      const changes: Partial<typeof farm.$inferInsert> = {};
       for (const time of [
         ...(input.digestTimes ?? []),
         input.quietFrom,
@@ -236,30 +239,8 @@ export const farmRouter = {
             "Quiet hours that begin when they end are not quiet hours; set them apart or say so plainly",
         });
       }
-      if (input.digestTimes !== undefined) {
-        changes.digestTimes = input.digestTimes;
-      }
-      if (input.quietFrom !== undefined) {
-        changes.quietFrom = input.quietFrom;
-      }
-      if (input.quietUntil !== undefined) {
-        changes.quietUntil = input.quietUntil;
-      }
-      if (input.feedTolerancePercent !== undefined) {
-        changes.feedTolerancePercent = input.feedTolerancePercent;
-      }
-      if (input.milkTolerancePercent !== undefined) {
-        changes.milkTolerancePercent = input.milkTolerancePercent;
-      }
-      if (input.escalationMinutes !== undefined) {
-        changes.escalationMinutes = input.escalationMinutes;
-      }
-      if (input.staffCorrectionHours !== undefined) {
-        changes.staffCorrectionHours = input.staffCorrectionHours;
-      }
-      if (input.managerCorrectionDays !== undefined) {
-        changes.managerCorrectionDays = input.managerCorrectionDays;
-      }
+      // Only the Parameters this request named; the rest stay as the Manager last set them.
+      const changes = touched(input);
       await audited(context).write(
         {
           entity: "farm",
@@ -277,6 +258,7 @@ export const farmRouter = {
                 escalationMinutes: true,
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,
+                registrationRenewalLeadDays: true,
               },
             })) ?? null,
           after: changes,

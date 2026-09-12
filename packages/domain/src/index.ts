@@ -21,7 +21,7 @@ export {
   stateAfterSideChange,
 } from "./lifecycle";
 export type { FarmIdentity } from "./farm";
-export { REGISTRATION_NOTICE_DAYS, identityView } from "./farm";
+export { identityView } from "./farm";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";

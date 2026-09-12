@@ -63,16 +63,33 @@ describe("the farm's own identity", () => {
     expect(letter.text).toContain("শিমুলিয়া");
     expect(letter.text).toContain("+8801711000099");
     expect(letter.text).toContain("DLS/SAV/2026/০৪২");
+
+    // And what it said before the Manager wrote it: these are the words on documents the farm
+    // has already sent out, so "what did the card say in March" has an answer.
+    const trail = await manager.client.audit.list({ entity: "farm" });
+    const wrote = trail.find(
+      (event) =>
+        event.action === "update" &&
+        (event.after as { registrationNumber?: string } | null)
+          ?.registrationNumber === "DLS/SAV/2026/০৪২"
+    );
+    expect(wrote).toBeDefined();
+    expect(wrote?.before).not.toBeNull();
+    expect(wrote?.roleUsed).toBe("manager");
   });
 
   it("says when the registration is running out, and refuses the milker", async () => {
     const clock = new FakeClock("2027-02-02T04:00:00.000Z");
     const staff = await createTestClient(appRouter, { as: "staff", clock });
 
-    // Not the milker's business.
+    // Not the milker's business — neither writing it nor reading it. The roles matrix gives farm
+    // parameters to the Owner, the Manager and a full Vet, and to nobody else.
     await expect(
       staff.client.farm.setIdentity({ phone: "+8801711000098" })
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(staff.client.farm.identity()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
 
     const writer = await createTestClient(appRouter, { as: "manager", clock });
     await writer.client.farm.setIdentity({
@@ -94,5 +111,19 @@ describe("the farm's own identity", () => {
     const gone = await later.client.farm.identity();
     expect(gone.registrationExpired).toBe(true);
     expect(gone.registrationEndingSoon).toBe(false);
+
+    // How early the farm is told is the Manager's to set, not a rule buried in the code.
+    await manager.client.farm.setParameters({
+      registrationRenewalLeadDays: 7,
+    });
+    const impatient = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    const impatiently = await impatient.client.farm.identity();
+    expect(impatiently.registrationEndingSoon).toBe(false);
+    await manager.client.farm.setParameters({
+      registrationRenewalLeadDays: 90,
+    });
   });
 });

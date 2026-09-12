@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "216bb258-e606-47e8-96a0-4d9a39e4da59",
+  "id": "e82d2fb2-da6e-45b8-b4d2-edee168ad9e3",
   "prevIds": [
     "4a5b29bc-8a88-425d-bea2-e068535a41e9"
   ],
@@ -1889,6 +1889,19 @@
       "generated": null,
       "identity": null,
       "name": "registration_expires_on",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "farm"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "90",
+      "generated": null,
+      "identity": null,
+      "name": "registration_renewal_lead_days",
       "entityType": "columns",
       "schema": "public",
       "table": "farm"

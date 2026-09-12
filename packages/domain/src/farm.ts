@@ -1,8 +1,3 @@
-/** How long before a registration runs out the farm starts saying so. The renewal SOP is due
- *  ninety days ahead (the registration decision), so a farm that has not been told by then is a
- *  farm finding out from an inspector. */
-export const REGISTRATION_NOTICE_DAYS = 90;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** What the farm is, as every document it sends out needs it. */
@@ -22,8 +17,15 @@ export interface FarmIdentity {
  *
  * Derived rather than stored, because "expired" is a fact about today and not about the farm — a
  * flag written last March would be wrong by April.
+ *
+ * `renewalLeadDays` is the Farm Parameter, not a rule hidden here: how early a farm wants to be
+ * told is the Manager's to set.
  */
-export const identityView = (farm: FarmIdentity, now: Date) => {
+export const identityView = (
+  farm: FarmIdentity,
+  now: Date,
+  renewalLeadDays: number
+) => {
   const expiresOn = farm.registrationExpiresOn;
   // A certificate that says it expires on the 31st is good all of the 31st, so the registration
   // has run out only once that whole day is behind the farm. `registrationExpiresOn` is the
@@ -38,6 +40,6 @@ export const identityView = (farm: FarmIdentity, now: Date) => {
     registrationEndingSoon:
       !expired &&
       goodUntil !== null &&
-      goodUntil - now.getTime() <= REGISTRATION_NOTICE_DAYS * DAY_MS,
+      goodUntil - now.getTime() <= renewalLeadDays * DAY_MS,
   };
 };

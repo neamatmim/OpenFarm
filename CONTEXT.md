@@ -210,6 +210,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Compliance
 
+**Farm Identity**: What the Farm is, as every document leaving it prints: name, address, phone and Registration number. Written down once by the Owner or the Manager; not a Farm Parameter, which is a number to tune. _Avoid_: Farm details, farm profile, company information
+
 **Registration**: The Farm's DLS registration: number, office, issue and expiry dates, certificate photo. Renewed annually by 31 March; the renewal SOP is raised 90 days before. _Avoid_: Licence, permit
 
 **Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd count, vaccination register, 30-day treatment register, 6-month disease history, mortality — each exportable to PDF. _Avoid_: Audit page, compliance dashboard
