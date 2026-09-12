@@ -51,7 +51,56 @@ export interface TaughtOnce {
   trainedAt: Date;
 }
 
+/** A number as the farm writes it down. Not validated into a shape: a farm writes numbers the
+ *  way the people who use them do, and a gateway that cannot dial one will say so. */
+const phoneInput = z.string().trim().min(6).max(20);
+
 export const peopleRouter = {
+  /**
+   * The number the farm can text. Your own always; somebody else's if you run the farm, because
+   * a Manager writing down the Owner's number from a scrap of paper is how a farm actually gets
+   * these.
+   *
+   * Only the two safety notices go by text — a Withdrawal ending and a notifiable Diagnosis —
+   * and a person with no number simply does not get those; the in-app Alert is the record.
+   */
+  setPhone: protectedProcedure
+    .use(requireRole("owner", "manager", "staff", "vet"))
+    .input(
+      z.object({
+        /** Whose. Left out, your own. */
+        userId: z.string().optional(),
+        /** Cleared by sending nothing at all. */
+        phone: phoneInput.nullish(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const whose = input.userId ?? context.actor.id;
+      const mine = whose === context.actor.id;
+      const runsTheFarm =
+        context.roleUsed === "owner" || context.roleUsed === "manager";
+      if (!(mine || runsTheFarm)) {
+        throw new ORPCError("FORBIDDEN", {
+          message:
+            "Only you, or whoever runs the farm, may write down your number",
+        });
+      }
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: whose,
+          action: "update",
+          after: { phone: input.phone ?? null },
+        },
+        (tx) =>
+          tx
+            .update(user)
+            .set({ phone: input.phone ?? null })
+            .where(eq(user.id, whose))
+      );
+      return { userId: whose };
+    }),
+
   /** Who am I on this Farm. */
   me: protectedProcedure.handler(({ context }) => ({
     id: context.actor.id,
@@ -59,6 +108,8 @@ export const peopleRouter = {
     farm: context.farm,
     roles: context.roles,
     penIds: context.penIds,
+    /** The number the farm can text, so a screen can show what is written down. */
+    phone: context.person?.phone ?? null,
     disabled: Boolean(context.person?.disabledAt),
   })),
 

@@ -19,6 +19,7 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   sop_proposed: "alerts.sopProposed",
   withdrawal_ending: "alerts.withdrawalEnding",
   notifiable_diagnosis: "alerts.notifiableDiagnosis",
+  entry_rejected: "alerts.entryRejected",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
@@ -37,6 +38,8 @@ const paramsOf = (
     tag: String(raw.tag ?? ""),
     /** What the Vet called it, for the one notice that is about a disease. */
     disease: String(raw.disease ?? ""),
+    /** How many, for the notice about entries the farm would not take. */
+    count: Number(raw.count ?? 0),
   };
 };
 

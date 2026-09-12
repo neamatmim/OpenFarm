@@ -60,6 +60,7 @@ export type { QuietHours } from "./notify";
 export {
   DELIVERY,
   carryingMoments,
+  goesByText,
   goesNow,
   isQuiet,
   lastCarryingMoment,

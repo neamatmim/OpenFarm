@@ -16,6 +16,13 @@ export const env = createEnv({
     VAPID_PRIVATE_KEY: z.string().optional(),
     /** Who the push service should complain to. */
     VAPID_SUBJECT: z.string().optional(),
+    /** The farm's own SMS gateway, configured at go-live. Absent until then, and the farm
+     *  sends no text messages — the in-app Alert is the record either way. The credentials are
+     *  the Owner's, and the bill is the farm's. */
+    SMS_GATEWAY_URL: z.string().optional(),
+    SMS_GATEWAY_KEY: z.string().optional(),
+    /** The sender id the provider registered for this farm, where one is needed. */
+    SMS_GATEWAY_FROM: z.string().optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

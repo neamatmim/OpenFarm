@@ -393,6 +393,18 @@ export const bn: Record<MessageKey, string> = {
   "nav.notifiable": "জানানোর রোগ",
   "sop.trigger.notifiable": "জানানোর মতো রোগ শনাক্ত",
   "sop.effect.dls_report": "চিঠি পৌঁছানো লেখে",
+  "sms.myNumber": "আপনার মোবাইল নম্বর",
+  "sms.why":
+    "শুধু দুটি জরুরি খবর এসএমএসে যায় — দুধ আটকে রাখার সময় শেষ, আর জানানোর মতো রোগ",
+  "sms.save": "নম্বর সংরক্ষণ",
+  "sms.saved": "নম্বর সংরক্ষণ হয়েছে",
+  "sms.withdrawalEnding": "{tag} — দুধ আটকে রাখার সময় শেষ হচ্ছে। খামারের অ্যাপ দেখুন।",
+  "sms.notifiableDiagnosis":
+    "{tag} — {disease}। ডিএলএস-কে দেরি না করে জানাতে হবে। খামারের অ্যাপ দেখুন।",
+  "alerts.entryRejected": "{count}টি এন্ট্রি খামার নেয়নি — {reason}",
+  "digest.entryRejected": "{count}টি এন্ট্রি নেওয়া যায়নি",
+  "push.entryRejectedTitle": "এন্ট্রি নেওয়া যায়নি",
+  "push.entryRejectedBody": "আপনার পাঠানো কিছু এন্ট্রি খামার নিতে পারেনি",
   "nav.farm": "খামার",
   "drugs.title": "ওষুধের তালিকা",
   "drugs.add": "ওষুধ যোগ করুন",

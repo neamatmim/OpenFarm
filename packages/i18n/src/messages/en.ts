@@ -389,6 +389,19 @@ export const en = {
   "nav.notifiable": "Notifiable",
   "sop.trigger.notifiable": "A notifiable disease is found",
   "sop.effect.dls_report": "Records the letter delivered",
+  "sms.myNumber": "Your mobile number",
+  "sms.why":
+    "Only two notices go by text — a withdrawal ending, and a disease that must be reported",
+  "sms.save": "Save the number",
+  "sms.saved": "Number saved",
+  "sms.withdrawalEnding":
+    "{tag} — her milk withdrawal is ending. See the farm app.",
+  "sms.notifiableDiagnosis":
+    "{tag} — {disease}. Must be reported to DLS without delay. See the farm app.",
+  "alerts.entryRejected": "{count} entries the farm could not take — {reason}",
+  "digest.entryRejected": "{count} entries not taken",
+  "push.entryRejectedTitle": "An entry was not taken",
+  "push.entryRejectedBody": "Some of what you sent could not be recorded",
   "nav.farm": "The farm",
   "drugs.title": "The Drug List",
   "drugs.add": "Add a product",

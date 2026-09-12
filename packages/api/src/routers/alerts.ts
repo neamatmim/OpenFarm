@@ -20,6 +20,7 @@ import {
 } from "../instances-store";
 import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
+import { textTheSafetyAlerts } from "../sms-send";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
  *  problem the farm has. */
@@ -57,6 +58,9 @@ const tellAboutWithdrawals = async (context: Sweeping, now: Date) => {
     (tx) => raiseWithdrawalAlerts(tx, context.farm.id, ending, now)
   );
   await pushRaised(context, raised, now);
+  // And by text, for the two the farm cannot afford to miss. After the push and outside the
+  // transaction, for the same reason: a gateway is somebody else's server.
+  await textTheSafetyAlerts(context, raised);
 };
 
 export const alertsRouter = {

@@ -17,6 +17,9 @@ export const user = pgTable("user", {
   language: text("language", { enum: ["bn", "en"] })
     .notNull()
     .default("bn"),
+  /** A number the farm can text. Only the two safety notices ever go this way, and only to the
+   *  Owner and the Manager — but the number is the person's, so anybody may have one. */
+  phone: text("phone"),
   /** Set when the Owner removes a person's access; the person and their history remain. */
   disabledAt: timestamp("disabled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

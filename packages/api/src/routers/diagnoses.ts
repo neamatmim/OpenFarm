@@ -25,6 +25,7 @@ import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
+import { textTheSafetyAlerts } from "../sms-send";
 
 /** The Vet visits about weekly, so a fortnight is what they need to catch up on. */
 const VET_WINDOW_DAYS = 14;
@@ -228,8 +229,10 @@ export const diagnosesRouter = {
         }
       );
       // Outside the transaction, never inside it: a push is a call to somebody else's server,
-      // and a hung one would hold a lock the whole shed is waiting on.
+      // and a hung one would hold a lock the whole shed is waiting on. A text message is the
+      // same, and this is one of the two the farm sends them for.
       await pushRaised(context, alerts, now);
+      await textTheSafetyAlerts(context, alerts);
       return { id, notifiable, reportInstanceId: reporting };
     }),
 
@@ -348,6 +351,7 @@ export const diagnosesRouter = {
         }
       );
       await pushRaised(context, alerts, context.clock.now());
+      await textTheSafetyAlerts(context, alerts);
       return { id: existing.id, notifiable, reportInstanceId: reporting };
     }),
 

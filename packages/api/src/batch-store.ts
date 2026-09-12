@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { ORPCError } from "@orpc/server";
 
+import { raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
@@ -374,7 +375,11 @@ export const applyBatch = async (
     sourceKey,
     requestHash,
   }: { receivedAt: Date; sourceKey: string; requestHash: string }
-): Promise<EntryResult[]> =>
+): Promise<{
+  results: EntryResult[];
+  /** The notice raised for whoever sent the batch, when the farm refused any of it. */
+  told: { id: string; userId: string }[];
+}> =>
   await db.transaction(async (tx) => {
     const reserved = await reserveBatch(tx, {
       key: input.key,
@@ -395,5 +400,27 @@ export const applyBatch = async (
     await recordBatchResponse(tx, input.key, context.farm.id, {
       results: applied,
     });
-    return applied;
+    // An entry the farm would not take is work somebody believes they have done. They are told
+    // at once, in the app, because the alternative is a phone quietly holding an entry nobody
+    // will ever look at again.
+    const refused = applied.filter((one) => one.outcome === "rejected");
+    const told =
+      refused.length > 0
+        ? await raiseAlerts(
+            tx,
+            context.farm.id,
+            [context.actor.id],
+            {
+              kind: "entry_rejected",
+              entity: "sync_batch",
+              entityId: input.key,
+              params: {
+                count: refused.length,
+                reason: refused[0]?.reason ?? "",
+              },
+            },
+            receivedAt
+          )
+        : [];
+    return { results: applied, told };
   });

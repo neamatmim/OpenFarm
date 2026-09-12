@@ -10,26 +10,45 @@ import type { AlertKind } from "./alerts";
  * Typed by the kind, so a new kind of notice cannot be added without somebody deciding
  * which of the two it is. That decision is the whole of the farm's notification table.
  */
-export const DELIVERY: Record<AlertKind, "immediate" | "digest"> = {
-  instance_overdue: "immediate",
-  instance_escalated: "immediate",
-  instance_sent_back: "immediate",
-  needs_review: "digest",
-  sop_published: "digest",
-  sop_proposed: "digest",
+/**
+ * The farm's delivery table: when each kind of notice goes, and whether it is one of the two
+ * worth a text message as well.
+ *
+ * One table, because "what goes by SMS" is a delivery decision like any other and a second list
+ * somewhere else is how a farm ends up texting people about a feed digest. Two kinds carry
+ * `sms`, and they are the two that cost money or break a legal deadline if they are missed.
+ */
+export const DELIVERY: Record<
+  AlertKind,
+  { when: "immediate" | "digest"; sms?: true }
+> = {
+  instance_overdue: { when: "immediate" },
+  instance_escalated: { when: "immediate" },
+  instance_sent_back: { when: "immediate" },
+  needs_review: { when: "digest" },
+  sop_published: { when: "digest" },
+  sop_proposed: { when: "digest" },
   // A Withdrawal ending is one of the two the farm cannot afford to miss: a tank the milk
   // could have gone into, or a cow that could have been sold, and a day of either is money.
-  withdrawal_ending: "immediate",
+  withdrawal_ending: { when: "immediate", sms: true },
   // The other one the farm cannot afford to miss: the Act says the report goes without delay,
   // and a notice that waits for the evening post has already made the farm late.
-  notifiable_diagnosis: "immediate",
+  notifiable_diagnosis: { when: "immediate", sms: true },
+  // The last row the notification table owed: an entry the farm would not take is work somebody
+  // believes they have done. They are told at once, in the app, and never by text — it is their
+  // own phone that is holding the entry.
+  entry_rejected: { when: "immediate" },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>
-  DELIVERY[kind] === "immediate";
+  DELIVERY[kind].when === "immediate";
 
 export const waitsForTheDigest = (kind: AlertKind): boolean =>
-  DELIVERY[kind] === "digest";
+  DELIVERY[kind].when === "digest";
+
+/** Is this one of the two worth a text message as well? */
+export const goesByText = (kind: AlertKind): boolean =>
+  DELIVERY[kind].sms === true;
 
 const MINUTES_PER_HOUR = 60;
 
