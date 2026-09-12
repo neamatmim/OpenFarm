@@ -1,10 +1,15 @@
 import type { Database } from "@OpenFarm/db";
-import type { FarmIdentity } from "@OpenFarm/domain";
+import type { DoseGiven, FarmIdentity, PenSpell } from "@OpenFarm/domain";
 import {
+  WITHDRAWAL_LOOK_BACK_DAYS,
+  animalPassport,
   farmDayOf,
   saleReceipt,
   startOfFarmDay,
   transportCard,
+  underMeatWithdrawal,
+  withdrawalEndsAt,
+  withdrawalSummary,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber, resolveLanguage } from "@OpenFarm/i18n";
@@ -26,6 +31,15 @@ const languageOf = async (db: Database, userId: string): Promise<Language> => {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const tagInput = z.string().trim().min(1).max(32);
+
+/** Long enough to carry the last thirty days and the stay before them. */
+const PEN_HISTORY = 30;
+/** A course of six doses twice a year, for several years. */
+const DOSES_ON_A_PAPER = 40;
+/** Two years of fortnights. */
+const READINGS_ON_A_PAPER = 52;
 
 /** A buyer's animals on one day. More than this on one morning is a different kind of farm,
  *  and a paper that quietly left some off would be worse than one that refused. */
@@ -110,7 +124,7 @@ const salesWith = async (
  *  registration did that card quote" is a question an inspector can ask years later. */
 const exportedPaper = (
   farm: FarmIdentity,
-  paper: "receipt" | "transport_card",
+  paper: "receipt" | "transport_card" | "passport" | "withdrawal_summary",
   tagNumbers: string[],
   extra: Record<string, unknown> = {}
 ) => ({
@@ -121,7 +135,253 @@ const exportedPaper = (
   ...extra,
 });
 
+/**
+ * Everything one animal's papers are made from, whether she is standing in the shed or gone.
+ *
+ * `requireAnimal` and not `loadLiveAnimal`: a passport is asked for *because* she has left, by
+ * whoever is holding her now, and a record that stopped being readable the moment she went would
+ * be no use to the person who most needs it.
+ */
+const herWholeRecord = async (
+  db: Database,
+  farmId: string,
+  tagNumber: string
+) => {
+  const row = await db.query.animal.findFirst({
+    where: { farmId, tagNumber: tagNumber.toUpperCase() },
+    columns: {
+      id: true,
+      tagNumber: true,
+      sex: true,
+      breed: true,
+      birthDate: true,
+      source: true,
+      state: true,
+      meatWithdrawalUntil: true,
+      meatWithdrawalFromDoses: true,
+      milkWithdrawalUntil: true,
+      milkWithdrawalFromDoses: true,
+      withdrawalShortenedAt: true,
+      withdrawalShortenedReason: true,
+    },
+    with: {
+      moves: {
+        orderBy: { movedAt: "desc", id: "desc" },
+        limit: PEN_HISTORY,
+        with: { toPen: { columns: { name: true } } },
+      },
+      treatments: {
+        where: { givenAt: { isNotNull: true } },
+        orderBy: { givenAt: "desc", id: "desc" },
+        limit: DOSES_ON_A_PAPER,
+        with: {
+          product: { columns: { nameBn: true, meatWithdrawalDays: true } },
+        },
+      },
+      weighIns: {
+        orderBy: { weighedAt: "desc", id: "desc" },
+        limit: READINGS_ON_A_PAPER,
+        columns: { weightKg: true, weighedAt: true },
+      },
+      intake: {
+        columns: { arrivedAt: true, estimatedAgeMonths: true },
+        with: { seller: { columns: { name: true } } },
+      },
+      sale: {
+        columns: { soldAt: true, destination: true },
+        with: { buyer: { columns: { name: true } } },
+      },
+    },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: `No animal with tag ${tagNumber}`,
+    });
+  }
+  return row;
+};
+
+/** Where she came from, in words rather than a column value. */
+const sourceOf = (her: {
+  source: string;
+  intake?: { seller: { name: string } | null } | null;
+}): string =>
+  her.intake?.seller
+    ? `${her.intake.seller.name} থেকে কেনা / bought`
+    : "খামারে জন্ম / born here";
+
+/** Her age as the farm can say it: from her birth date if it knows one, and otherwise from what
+ *  the seller said at Intake, which is a judgement and is labelled as one. */
+const ageOf = (
+  her: {
+    birthDate: Date | null;
+    intake?: { estimatedAgeMonths: number } | null;
+  },
+  language: Language
+): string | null => {
+  if (her.birthDate) {
+    return formatDate(her.birthDate, language, "date");
+  }
+  return her.intake
+    ? `আনুমানিক ${formatNumber(her.intake.estimatedAgeMonths, language)} মাস (আসার সময়) / estimated at intake`
+    : null;
+};
+
+/** Her pen history as spells: where she stood, from when, and until the next Move took her. */
+const penSpells = (
+  moves: { movedAt: Date; toPen: { name: string } }[],
+  language: Language
+): PenSpell[] =>
+  moves.map((move, index) => ({
+    penName: move.toPen.name,
+    from: formatDate(move.movedAt, language, "date"),
+    // The Move before it in the list is the one that took her away again; the newest has none.
+    until:
+      index === 0
+        ? null
+        : formatDate(
+            moves[index - 1]?.movedAt ?? move.movedAt,
+            language,
+            "date"
+          ),
+  }));
+
+/** One dose, as either paper reports it. */
+const doseGiven = (
+  dose: {
+    givenAt: Date | null;
+    prescriptionId: string | null;
+    product: { nameBn: string; meatWithdrawalDays: number | null };
+  },
+  language: Language
+): DoseGiven => ({
+  productName: dose.product.nameBn,
+  givenOn: formatDate(dose.givenAt ?? new Date(0), language, "date"),
+  meatClearOn:
+    dose.givenAt && dose.product.meatWithdrawalDays
+      ? formatDate(
+          withdrawalEndsAt(dose.givenAt, dose.product.meatWithdrawalDays),
+          language,
+          "date"
+        )
+      : null,
+  prescribed: dose.prescriptionId !== null,
+});
+
 export const papersRouter = {
+  /**
+   * Everything the farm knows about one animal, on one page, for whoever asks — a buyer before
+   * they buy, a slaughter vet afterwards.
+   *
+   * The Vet may produce it as well as the Owner and the Manager: the roles matrix gives them
+   * health reports to export, and this is the one a slaughter vet asks the farm for. Barn Staff
+   * may not — they give the doses and record what they see; what the farm tells the outside world
+   * about an animal is not theirs to hand over.
+   */
+  passport: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const her = await herWholeRecord(
+        context.db,
+        context.farm.id,
+        input.tagNumber
+      );
+      const text = animalPassport({
+        farm: context.farm,
+        tagNumber: her.tagNumber,
+        sex: her.sex,
+        breed: her.breed,
+        age: ageOf(her, language),
+        source: sourceOf(her),
+        arrived: her.intake
+          ? formatDate(her.intake.arrivedAt, language, "date")
+          : null,
+        pens: penSpells(her.moves, language),
+        doses: her.treatments.map((dose) => doseGiven(dose, language)),
+        weighIns: her.weighIns.map((one) => ({
+          weight: formatNumber(Number(one.weightKg), language),
+          on: formatDate(one.weighedAt, language, "date"),
+        })),
+        leftFor: her.sale
+          ? `${her.sale.buyer.name} · ${her.sale.destination}`
+          : null,
+        producedBy: context.actor.name,
+        producedAt: formatDate(now, language, "dateTime"),
+      });
+      await audited(context).write(
+        {
+          entity: "animal",
+          entityId: her.id,
+          action: "export",
+          after: exportedPaper(context.farm, "passport", [her.tagNumber], {
+            doses: her.treatments.length,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      return { text, tagNumber: her.tagNumber };
+    }),
+
+  /**
+   * The sharp question on its own page: has she had anything lately, and may her meat be sold
+   * today.
+   *
+   * Answered against the farm's own withdrawal record — the same one the Sale is gated on — so
+   * the paper a buyer holds and the gate that refused a sale can never disagree.
+   */
+  withdrawalSummary: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const her = await herWholeRecord(
+        context.db,
+        context.farm.id,
+        input.tagNumber
+      );
+      const since = new Date(
+        now.getTime() - WITHDRAWAL_LOOK_BACK_DAYS * DAY_MS
+      );
+      const lately = her.treatments.filter(
+        (dose) => dose.givenAt !== null && dose.givenAt >= since
+      );
+      const clear = !underMeatWithdrawal(her, now);
+      const doses = lately.map((dose) => doseGiven(dose, language));
+      const text = withdrawalSummary({
+        farm: context.farm,
+        tagNumber: her.tagNumber,
+        asOf: formatDate(now, language, "date"),
+        clear,
+        clearOn:
+          clear || !her.meatWithdrawalUntil
+            ? null
+            : formatDate(her.meatWithdrawalUntil, language, "date"),
+        doses,
+        lookBackDays: formatNumber(WITHDRAWAL_LOOK_BACK_DAYS, language),
+        producedBy: context.actor.name,
+        producedAt: formatDate(now, language, "dateTime"),
+      });
+      await audited(context).write(
+        {
+          entity: "animal",
+          entityId: her.id,
+          action: "export",
+          after: exportedPaper(
+            context.farm,
+            "withdrawal_summary",
+            [her.tagNumber],
+            { clear, doses: doses.length }
+          ),
+        },
+        () => Promise.resolve()
+      );
+      return { text, clear, treatments: doses };
+    }),
+
   /**
    * What the farm sold on a day, newest first — the list a receipt or a card is asked for from.
    */

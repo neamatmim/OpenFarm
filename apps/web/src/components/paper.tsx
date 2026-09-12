@@ -7,6 +7,8 @@ import { useLanguage } from "@/i18n/language-provider";
 export type PaperId =
   | "sale-receipt"
   | "transport-card"
+  | "animal-passport"
+  | "withdrawal-summary"
   | "dls-letter"
   | "sop-card";
 

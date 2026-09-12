@@ -148,3 +148,10 @@ export const withdrawalView = (
       }
     : null,
 });
+
+/**
+ * How far back a buyer's summary looks. Thirty days is what the report set asks for, and it is
+ * longer than any withdrawal the farm's own products carry — so a beast clear today with nothing
+ * in her last thirty days has nothing to declare at all.
+ */
+export const WITHDRAWAL_LOOK_BACK_DAYS = 30;

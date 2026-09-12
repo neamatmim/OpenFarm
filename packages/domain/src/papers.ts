@@ -140,3 +140,142 @@ export const transportCard = (card: TransportCard): string => {
     `${card.producedAt} · ${card.producedBy}`,
   ].join("\n");
 };
+
+/** One place she stood, and when. */
+export interface PenSpell {
+  penName: string;
+  from: string;
+  /** Blank while she is still there. */
+  until: string | null;
+}
+
+/** One dose she has had, as a paper reports it. */
+export interface DoseGiven {
+  productName: string;
+  givenOn: string;
+  /** Null when the product holds nothing for meat. */
+  meatClearOn: string | null;
+  /** True for a dose a Vet prescribed for her, as against a campaign over her Pen. */
+  prescribed: boolean;
+}
+
+export interface AnimalPassport {
+  farm: FarmIdentity;
+  tagNumber: string;
+  sex: string;
+  breed: string | null;
+  /** Her age as the farm can say it — estimated for a bought-in beast. */
+  age: string | null;
+  /** Where she came from: born here, or bought from somebody. */
+  source: string;
+  arrived: string | null;
+  /** Every pen she has stood in, newest first, with the last thirty days among them. */
+  pens: PenSpell[];
+  doses: DoseGiven[];
+  /** Every reading, newest first: tag her weight, and the date. */
+  weighIns: { weight: string; on: string }[];
+  /** How she left, when she has. */
+  leftFor: string | null;
+  producedBy: string;
+  producedAt: string;
+}
+
+/** One dose, with what it holds and where it came from. */
+const doseLine = (dose: DoseGiven): string =>
+  [
+    `${dose.givenOn} · ${dose.productName}`,
+    dose.meatClearOn
+      ? `মাংসের জন্য মুক্ত / clear for meat: ${dose.meatClearOn}`
+      : "মাংসে অপেক্ষা নেই / no meat withdrawal",
+    dose.prescribed
+      ? "ভেটের ব্যবস্থাপত্র / prescribed"
+      : "পেনভিত্তিক কর্মসূচি / campaign",
+  ].join(" · ");
+
+/**
+ * Everything the farm knows about one animal, on one page: what she is, where she came from,
+ * every pen she has stood in, what she has been given and every time she has been weighed.
+ *
+ * Produced for an animal who has already gone as readily as for one standing in the shed — that
+ * is exactly when a buyer or a slaughter vet asks, and a record that stopped being readable the
+ * moment she left would be no use to anybody.
+ */
+export const animalPassport = (passport: AnimalPassport): string =>
+  [
+    ...farmOfOriginLines(passport.farm),
+    "",
+    "পশুর পরিচয়পত্র / Animal passport",
+    "",
+    field("ট্যাগ নম্বর", "Tag", passport.tagNumber),
+    field("লিঙ্গ", "Sex", passport.sex),
+    passport.breed ? field("জাত", "Breed", passport.breed) : null,
+    passport.age ? field("বয়স", "Age", passport.age) : null,
+    field("উৎস", "Source", passport.source),
+    passport.arrived ? field("আসার তারিখ", "Arrived", passport.arrived) : null,
+    passport.leftFor ? field("যেখানে গেছে", "Left for", passport.leftFor) : null,
+    "",
+    "যেসব পেনে ছিল / Pen history",
+    ...(passport.pens.length > 0
+      ? passport.pens.map(
+          (spell) =>
+            `${spell.penName} · ${spell.from}${spell.until ? ` – ${spell.until}` : " –"}`
+        )
+      : ["—"]),
+    "",
+    "চিকিৎসা ও অপেক্ষমাণ সময় / Treatments and withdrawal",
+    ...(passport.doses.length > 0 ? passport.doses.map(doseLine) : ["—"]),
+    "",
+    "ওজনের রেকর্ড / Weigh-ins",
+    ...(passport.weighIns.length > 0
+      ? passport.weighIns.map((one) => `${one.on} · ${one.weight} কেজি`)
+      : ["—"]),
+    "",
+    `${passport.producedAt} · ${passport.producedBy}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+export interface WithdrawalSummary {
+  farm: FarmIdentity;
+  tagNumber: string;
+  /** The day this was asked, as the reader reads it. */
+  asOf: string;
+  clear: boolean;
+  /** The day she becomes clear, when she is not clear today. */
+  clearOn: string | null;
+  /** Everything given inside the look-back, newest first. */
+  doses: DoseGiven[];
+  /** How far back the farm looked, in the reader's own digits. */
+  lookBackDays: string;
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * The sharp question on its own page: has she had anything lately, and may her meat be sold
+ * today.
+ *
+ * The answer comes first and in both languages, because this is the paper somebody reads at a
+ * slaughterhouse gate with a lorry behind them. The doses follow it — a buyer asked what she has
+ * had, not only whether she is clear this morning.
+ */
+export const withdrawalSummary = (summary: WithdrawalSummary): string =>
+  [
+    ...farmOfOriginLines(summary.farm),
+    "",
+    "চিকিৎসা ও অপেক্ষমাণ সময়ের সারসংক্ষেপ / Treatment and withdrawal summary",
+    "",
+    field("ট্যাগ নম্বর", "Tag", summary.tagNumber),
+    field("তারিখ", "As of", summary.asOf),
+    "",
+    summary.clear
+      ? "মাংসের জন্য মুক্ত / CLEAR for meat"
+      : `মাংসের জন্য মুক্ত নয় / NOT CLEAR for meat${
+          summary.clearOn ? ` — ${summary.clearOn}` : ""
+        }`,
+    "",
+    `গত ${summary.lookBackDays} দিনের চিকিৎসা / Treatments in the last ${summary.lookBackDays} days`,
+    ...(summary.doses.length > 0 ? summary.doses.map(doseLine) : ["—"]),
+    "",
+    `${summary.producedAt} · ${summary.producedBy}`,
+  ].join("\n");
