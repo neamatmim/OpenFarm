@@ -31,7 +31,7 @@ export type {
   FatteningView,
   GainBasis,
   TargetWindow,
-  Weighing,
+  WeighIn,
 } from "./fattening";
 export {
   EID_UL_ADHA,

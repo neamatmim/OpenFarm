@@ -130,6 +130,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Weigh-in**: A recorded scale reading for one Animal on a date. Fortnightly for Fattening; daily gain and projections are derived from Weigh-ins. Every reading is kept — the difference between two of them is the thing being measured — and one that changed more than an animal could is still kept, flagged with what the farm found, and raised as a **Needs Review** for the Manager. _Avoid_: Weight check, weighing record
 
+**Days on Feed**: How long a bought-in Animal has been on the Farm being fed, counted from its Intake. Derived, never entered — like Days in Milk. _Avoid_: Age on farm, feeding days
+
+**Average Daily Gain**: Kilogrammes an Animal puts on in a day, worked out between two Weigh-ins or between its Intake and its latest Weigh-in. The Farm reads both: the gap between them is how it sees a Ration that has stopped working. Derived, never entered. _Avoid_: ADG on its own (say it in full), growth rate
+
 **Target Window**: The period in which the Farm intends to sell an Animal — by default the next Eid-ul-Adha. Drives projected weight and the Ready-for-Sale suggestion. _Avoid_: Sale date, deadline
 
 **Ready for Sale**: The State an Animal enters when the Manager confirms it may be sold. Suggested by the system when target weight is reached or the Target Window opens; impossible under meat Withdrawal. _Avoid_: Finished, market-ready, matured

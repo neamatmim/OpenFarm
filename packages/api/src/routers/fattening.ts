@@ -1,6 +1,6 @@
-import { fatteningView, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { fatteningOf } from "../fattening-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -44,43 +44,26 @@ export const fatteningRouter = {
               targetWindowEnd: true,
             },
           },
+          /** Newest first, because a `limit` on an ascending order takes her *first* readings
+           *  and would leave the board a year behind her own page. Sorted back into order where
+           *  the gain is worked out. */
           weighIns: {
-            orderBy: { weighedAt: "asc" },
+            orderBy: { weighedAt: "desc", id: "desc" },
             limit: READINGS_READ,
             columns: { weightKg: true, weighedAt: true },
           },
         },
       });
-      return rows.flatMap((row) => {
-        // An animal on the fattening side that the farm did not buy in — one moved across from
-        // the dairy — has no Intake to measure from. It belongs on the side, not on this board.
-        if (!row.intake) {
-          return [];
-        }
-        const { intake, weighIns, pen, ...animal } = row;
-        return [
-          {
-            ...animal,
-            penName: pen.name,
-            targetWindow: {
-              start: intake.targetWindowStart,
-              end: intake.targetWindowEnd,
-            },
-            ...fatteningView(
-              {
-                weightKg: Number(intake.weightKg),
-                arrivedAt: intake.arrivedAt,
-                targetWeightKg: Number(intake.targetWeightKg),
-              },
-              weighIns.map((reading) => ({
-                weightKg: Number(reading.weightKg),
-                weighedAt: reading.weighedAt,
-              })),
-              startOfFarmDay(intake.targetWindowStart),
-              now
-            ),
-          },
-        ];
-      });
+      // A male calf weaned onto this side was never bought, so it has no Intake and no gain
+      // since one — but it is standing in the pen being fed, and a board that left it out would
+      // be hiding a whole cohort from the Owner. It appears with what is knowable about it.
+      return rows.map(({ intake, weighIns, pen, ...animal }) => ({
+        ...animal,
+        penName: pen.name,
+        targetWindow: intake
+          ? { start: intake.targetWindowStart, end: intake.targetWindowEnd }
+          : null,
+        ...fatteningOf(intake, weighIns, now),
+      }));
     }),
 };

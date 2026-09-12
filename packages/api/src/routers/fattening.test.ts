@@ -9,12 +9,12 @@ import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
 
-/**
- * What the scale means: gain, days on feed, and what she will weigh at her Target Window.
- *
- * The expected figures here are worked by hand from the readings below, never re-derived the
- * way the code derives them — a test that recomputes the answer can never disagree with it.
- */
+// What the scale means: gain, days on feed, and what she will weigh at her Target Window.
+//
+// Every expected figure below is worked by hand from the readings, never re-derived the way the
+// code derives them — a test that recomputes the answer can never disagree with it.
+
+/** The weigh-in round this file walks: a scale reading per animal and nothing else. */
 const weighInSop = (): SopContent => ({
   name: { bn: `ওজন ${suffix}`, en: "Weigh-in" },
   purpose: { bn: "প্রতিটি পশুর ওজন নেওয়া" },
@@ -196,8 +196,10 @@ describe("gain, days on feed and the projections to Eid", () => {
     // from, but no second reading and so no recent rate — and the farm says so plainly
     // rather than calling one reading a trend.
     const only = await manager.client.animals.byTag({ tagNumber: tagOf(2) });
+    expect(only.fattening).not.toBeNull();
     expect(only.fattening?.sinceIntake).not.toBeNull();
     expect(only.fattening?.recent).toBeNull();
+    expect(only.fattening?.onTrackFrom).toBe("sinceIntake");
   });
 
   it("shows the Owner who is on track and who has stopped gaining", async () => {
@@ -210,16 +212,17 @@ describe("gain, days on feed and the projections to Eid", () => {
     const gaining = board.find((row) => row.tagNumber === tagOf(0));
     const stalling = board.find((row) => row.tagNumber === tagOf(1));
 
-    // The one gaining a kilo a day is doing better lately than over his whole stay; the one
-    // who has gone off his feed is doing worse. That gap is the whole point of showing both.
-    expect(gaining?.recent?.dailyGainKg).toBeGreaterThan(
-      gaining?.sinceIntake?.dailyGainKg ?? 0
-    );
-    expect(stalling?.recent?.dailyGainKg).toBeLessThan(
-      stalling?.sinceIntake?.dailyGainKg ?? 0
-    );
-    // Neither will make 350 kg by Eid at the rate he is going.
+    // The first put on 14 kg in the last fortnight — a kilo a day against 0.67 over his whole
+    // stay, so he is doing better lately. The second put on 4 kg in the same fortnight: 0.29 a
+    // day against 18 kg over 42 days, which is 0.43. That gap is the point of showing both.
+    expect(gaining?.recent?.dailyGainKg).toBe(1);
+    expect(gaining?.sinceIntake?.dailyGainKg).toBe(0.67);
+    expect(stalling?.recent?.dailyGainKg).toBe(0.29);
+    expect(stalling?.sinceIntake?.dailyGainKg).toBe(0.43);
+    // Neither will make 350 kg by Eid at the rate he is going — and the board says which rate
+    // it judged on, so two animals in one list are not ranked by different measures in silence.
     expect(gaining?.onTrack).toBe(false);
+    expect(gaining?.onTrackFrom).toBe("recent");
     expect(stalling?.onTrack).toBe(false);
   });
 

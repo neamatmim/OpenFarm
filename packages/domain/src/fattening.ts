@@ -1,3 +1,5 @@
+import { roundKg } from "./feed";
+
 /**
  * Eid-ul-Adha, as Bangladesh expects to keep it.
  *
@@ -74,7 +76,8 @@ export const PLAUSIBLE_DAILY_GAIN_KG = 2.5;
 export const PLAUSIBLE_DAILY_LOSS_KG = 3;
 
 /** Below this, two readings are too close together in time for a daily rate to mean anything —
- *  two weighings on the same morning differ by what the animal drank. */
+ *  two weighings on the same morning differ by what the animal drank. Kept by everything that
+ *  divides a weight change by a span, so nothing quotes a rate off a few hours. */
 const RATE_NEEDS_DAYS = 1;
 
 /**
@@ -103,7 +106,7 @@ export const implausibleChange = (
 };
 
 /** One reading on the scale: what she weighed and when. */
-export interface Weighing {
+export interface WeighIn {
   weightKg: number;
   weighedAt: Date;
 }
@@ -129,28 +132,32 @@ export interface GainBasis {
 
 /** What the farm knows about one fattening animal beyond the readings themselves. */
 export interface FatteningView {
-  /** How long she has been on the farm being fed, to today. */
-  daysOnFeed: number;
-  /** What she weighs now: her last reading, or what she weighed off the lorry. */
-  latestKg: number;
-  latestAt: Date;
-  targetWeightKg: number;
-  /** Over her whole stay. Null until she has been on the scale at least once. */
+  /** How long she has been on the farm being fed, to today. Null for an animal born here:
+   *  there is no arrival to count from, and weaning is Breeding's to record (increment 5). */
+  daysOnFeed: number | null;
+  /** What she weighs now: her last reading, or what she weighed off the lorry. Null for an
+   *  animal born here who has never been on the scale — the farm does not know. */
+  latestKg: number | null;
+  latestAt: Date | null;
+  /** What she is being fed towards, when somebody said. */
+  targetWeightKg: number | null;
+  /** Over her whole stay, from what she weighed off the lorry. Null for an animal the farm did
+   *  not buy in, and until she has been on the scale at least once. */
   sinceIntake: GainBasis | null;
   /** Between her last two readings. Null until there are two — one reading is not a trend. */
   recent: GainBasis | null;
-  /** Whether she will make her target weight, judged on the rate she is going at *now* —
-   *  which is the recent one when there is one. Null when neither rate can be worked out. */
+  /** Whether she will make her target weight. Null when there is no rate to judge on. */
   onTrack: boolean | null;
+  /** Which of the two the verdict came from, so a board ranking by it can say so rather than
+   *  ranking two animals by different measures without a word. */
+  onTrackFrom: "recent" | "sinceIntake" | null;
 }
 
 const daysBetween = (from: Date, to: Date): number =>
   (to.getTime() - from.getTime()) / DAY_MS;
 
-/** Kilogrammes to one decimal, which is what a crush scale reads and what the farm writes down. */
-const KG_SCALE = 10;
-const toKg = (value: number): number => Math.round(value * KG_SCALE) / KG_SCALE;
-/** Rates carry a decimal more: a fattening bull's whole day's work is the second one. */
+/** Rates carry a decimal more than kilogrammes do: a fattening bull's whole day's work is the
+ *  second decimal place. */
 const RATE_SCALE = 100;
 const toRate = (value: number): number =>
   Math.round(value * RATE_SCALE) / RATE_SCALE;
@@ -164,22 +171,41 @@ const toRate = (value: number): number =>
 const basisFrom = (
   from: { weightKg: number; at: Date },
   to: { weightKg: number; at: Date },
-  windowOpensAt: Date,
-  targetWeightKg: number
+  windowOpensAt: Date | null,
+  targetWeightKg: number | null
 ): GainBasis | null => {
   const overDays = daysBetween(from.at, to.at);
-  if (overDays <= 0) {
+  // The same floor the plausibility check keeps: a daily rate over a few hours is noise, and
+  // two weighings on one morning differ by what the animal drank.
+  if (overDays < RATE_NEEDS_DAYS) {
     return null;
   }
   const rate = (to.weightKg - from.weightKg) / overDays;
-  const toGo = daysBetween(to.at, windowOpensAt);
-  const projectedKg = toGo > 0 ? toKg(to.weightKg + rate * toGo) : null;
+  const toGo = windowOpensAt === null ? 0 : daysBetween(to.at, windowOpensAt);
+  const projectedKg = toGo > 0 ? roundKg(to.weightKg + rate * toGo) : null;
   return {
     dailyGainKg: toRate(rate),
     overDays: Math.round(overDays),
     projectedKg,
-    reachesTarget: projectedKg === null ? null : projectedKg >= targetWeightKg,
+    reachesTarget:
+      projectedKg === null || targetWeightKg === null
+        ? null
+        : projectedKg >= targetWeightKg,
   };
+};
+
+/**
+ * Which of the two rates the verdict came from: the recent one when there is one, because a bull
+ * who gained well for three months and nothing for the last fortnight is a bull who has stopped.
+ */
+const whichRate = (
+  recent: GainBasis | null,
+  sinceIntake: GainBasis | null
+): FatteningView["onTrackFrom"] => {
+  if (recent) {
+    return "recent";
+  }
+  return sinceIntake ? "sinceIntake" : null;
 };
 
 /**
@@ -191,42 +217,54 @@ const basisFrom = (
  * that stopped being true in April.
  */
 export const fatteningView = (
-  intake: { weightKg: number; arrivedAt: Date; targetWeightKg: number },
+  /** How she arrived, for an animal the farm bought in. Null for one born here: she is on the
+   *  Fattening side and being weighed, but there is no arrival weight to measure gain from. */
+  intake: {
+    weightKg: number;
+    arrivedAt: Date;
+    targetWeightKg: number;
+  } | null,
   /** Her readings, oldest first. */
-  weighings: Weighing[],
-  windowOpensAt: Date,
+  weighIns: WeighIn[],
+  windowOpensAt: Date | null,
   now: Date
 ): FatteningView => {
-  const latest = weighings.at(-1);
-  const previous = weighings.at(-2);
-  const start = { weightKg: intake.weightKg, at: intake.arrivedAt };
-  const sinceIntake = latest
-    ? basisFrom(
-        start,
-        { weightKg: latest.weightKg, at: latest.weighedAt },
-        windowOpensAt,
-        intake.targetWeightKg
-      )
-    : null;
+  const latest = weighIns.at(-1);
+  const previous = weighIns.at(-2);
+  const targetWeightKg = intake?.targetWeightKg ?? null;
+  const sinceIntake =
+    latest && intake
+      ? basisFrom(
+          { weightKg: intake.weightKg, at: intake.arrivedAt },
+          { weightKg: latest.weightKg, at: latest.weighedAt },
+          windowOpensAt,
+          targetWeightKg
+        )
+      : null;
   const recent =
     latest && previous
       ? basisFrom(
           { weightKg: previous.weightKg, at: previous.weighedAt },
           { weightKg: latest.weightKg, at: latest.weighedAt },
           windowOpensAt,
-          intake.targetWeightKg
+          targetWeightKg
         )
       : null;
-  // The rate she is going at now, which is the recent one when there is one: a bull who gained
-  // well for three months and nothing for the last fortnight is a bull who has stopped.
+  // The rate she is going at now, and which of the two it is: a board that ranks by the verdict
+  // should be able to say so rather than ranking two animals by different measures in silence.
   const current = recent ?? sinceIntake;
+  const onTrackFrom = whichRate(recent, sinceIntake);
+  const daysOnFeed = intake
+    ? Math.max(0, Math.round(daysBetween(intake.arrivedAt, now)))
+    : null;
   return {
-    daysOnFeed: Math.max(0, Math.round(daysBetween(intake.arrivedAt, now))),
-    latestKg: latest?.weightKg ?? intake.weightKg,
-    latestAt: latest?.weighedAt ?? intake.arrivedAt,
-    targetWeightKg: intake.targetWeightKg,
+    daysOnFeed,
+    latestKg: latest?.weightKg ?? intake?.weightKg ?? null,
+    latestAt: latest?.weighedAt ?? intake?.arrivedAt ?? null,
+    targetWeightKg,
     sinceIntake,
     recent,
     onTrack: current?.reachesTarget ?? null,
+    onTrackFrom,
   };
 };

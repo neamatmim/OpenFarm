@@ -50,6 +50,51 @@ asked to be able to see.
   stories 60–65 and 66 onward is Breeding, but the tickets pointed at 63–74 — ticket 36 was citing
   the Ready-for-Sale story and this one was citing the Sale. All seven files corrected.
 
+## What the review changed
+
+- **The Owner's board was reading her *first* twelve readings, not her last twelve.** An
+  ascending order with a limit takes the oldest rows; her own page had it right and the board
+  did not, so after about six months of fortnightly weighing the two screens would have quietly
+  disagreed and the board would have shown a stale weight and a months-old rate. The two
+  conversions are now one `fatteningOf` in `fattening-store.ts` — the drift between the copies is
+  what produced the bug.
+- **The Vet could still see what the farm paid.** My fix above gated the Intake on
+  `readsTheClinicalRecord`, which is false only for Barn Staff — but the matrix gives Intake to
+  the Owner and the Manager and to nobody else. Money is not a clinical question and now has its
+  own gate.
+- **A whole cohort was missing from the board.** An animal weaned onto the Fattening side was
+  never bought, so it has no Intake — and I had dropped those rows entirely. The spec makes that
+  routine ("Male Calf → Fattening at Weaning"), so the board would have hidden them from the
+  Owner. They appear now with what is knowable about them: a weight and a recent rate, and
+  nothing where the farm has nothing.
+- **`basisFrom` had no floor on its span**, so two readings hours apart would have produced a wild
+  daily rate over "0 days" — and that rate drove the verdict. It keeps the same one-day floor the
+  plausibility check keeps.
+- **`onTrack` picked a winner in silence.** You asked for both rates side by side; the board still
+  has to sort by something, so it says which rate the verdict came from (`onTrackFrom`) rather
+  than ranking two animals by different measures without a word.
+- **`Weighing` was a word the glossary tells you to avoid** (Weigh-in: *avoid weighing record*).
+  Renamed. **Days on Feed** and **Average Daily Gain** are new farm vocabulary and now have
+  glossary entries, both marked derived and never entered.
+- **`toKg` re-implemented `roundKg`**, whose own comment says it exists so the two cannot drift
+  apart. Gone. Two i18n keys duplicated existing ones (`correct.spanDays`, `intake.targetWeight`)
+  and were dropped in favour of them.
+- **A test assertion that could not fail**: `expect(only.fattening?.sinceIntake).not.toBeNull()`
+  passes when `fattening` itself is null. And the third test compared the response against itself
+  rather than against hand-worked rates; it now asserts 1.0 against 0.67 and 0.29 against 0.43.
+- **A doc comment detached by my insertion** — eighth time this session.
+
+## A flake explained, after two sessions
+
+`animals.test.ts > moves > records a move and keeps the side` failed once in an earlier session,
+did not reproduce in seven runs, and was written down as unexplained. It reproduced here, and it
+was a real bug rather than a flaky test: **a cow's Moves were ordered by timestamp alone.**
+Registering an animal writes her first Move in the same transaction as the Animal, so two Moves
+can share an instant, and which one the database hands back first is undefined — her history
+could read in the wrong order on her own page. Ordered by `movedAt, id` now; the ids are UUIDv7
+and time-ordered, which is the tie-break `latestEventFor` already used. Her Retags and her
+Weigh-ins had the same hazard and are fixed with it. Three consecutive full runs pass.
+
 ## A correction to my own arithmetic
 
 The first version of this test asserted 288.7 kg and 319.0 kg, worked by hand from the calendar.
@@ -74,6 +119,6 @@ and the arithmetic can be read.
 ## Verification
 
 `pnpm check-types` clean across the workspace; `pnpm test` 376 passing (347 api + 19 web + 10
-i18n), up from 372 — the worked example, one weight only, the Owner's board with a bull who has
+i18n), up from 372, and the api suite run three times over to confirm the ordering flake is gone — the worked example, one weight only, the Owner's board with a bull who has
 stopped gaining, and the milker who may not see the price. `pnpm build` clean; `oxfmt` and
 `oxlint` clean on every changed file.

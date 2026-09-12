@@ -33,7 +33,9 @@ export const GainColumn = ({
         {t("gain.perDay", { kg: formatNumber(basis.dailyGainKg, language) })}
       </p>
       <p className="text-muted-foreground text-xs">
-        {t("gain.days", { days: formatNumber(basis.overDays, language) })}
+        {t("correct.spanDays", {
+          days: formatNumber(basis.overDays, language),
+        })}
       </p>
       {basis.projectedKg === null ? null : (
         <p
@@ -57,12 +59,23 @@ export const TwoProjections = ({ view }: { view: FatteningView }) => {
     <section className="space-y-2 rounded-lg border p-4">
       <h2 className="font-medium">{t("gain.title")}</h2>
       <p className="text-muted-foreground text-sm">
-        {t("gain.daysOnFeed")}:{" "}
-        {t("gain.days", { days: formatNumber(view.daysOnFeed, language) })} ·{" "}
-        {t("gain.now")}:{" "}
-        {t("intake.kg", { kg: formatNumber(view.latestKg, language) })} ·{" "}
-        {t("gain.target")}:{" "}
-        {t("intake.kg", { kg: formatNumber(view.targetWeightKg, language) })}
+        {/* Each of these is left out rather than shown blank: an animal born here has no
+            arrival to count days from and nobody has said what it is being fed towards. */}
+        {view.daysOnFeed === null
+          ? null
+          : `${t("gain.daysOnFeed")}: ${t("correct.spanDays", {
+              days: formatNumber(view.daysOnFeed, language),
+            })} · `}
+        {view.latestKg === null
+          ? t("gain.noneYet")
+          : `${t("gain.now")}: ${t("intake.kg", {
+              kg: formatNumber(view.latestKg, language),
+            })}`}
+        {view.targetWeightKg === null
+          ? null
+          : ` · ${t("intake.targetWeight")}: ${t("intake.kg", {
+              kg: formatNumber(view.targetWeightKg, language),
+            })}`}
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <GainColumn basis={view.sinceIntake} label={t("gain.sinceIntake")} />

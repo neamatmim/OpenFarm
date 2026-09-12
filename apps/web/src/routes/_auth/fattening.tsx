@@ -66,15 +66,24 @@ const FatteningPage = () => {
                   : t(row.onTrack ? "gain.onTrack" : "gain.behind")}
               </span>
             </div>
+            {/* Each figure is left out rather than shown blank: an animal born onto this side
+                has no arrival to count days from and nothing said about its target. */}
             <p className="text-muted-foreground text-sm">
-              {t("gain.now")}:{" "}
-              {t("intake.kg", { kg: formatNumber(row.latestKg, language) })} ·{" "}
-              {t("gain.target")}:{" "}
-              {t("intake.kg", {
-                kg: formatNumber(row.targetWeightKg, language),
-              })}{" "}
-              · {t("gain.daysOnFeed")}:{" "}
-              {t("gain.days", { days: formatNumber(row.daysOnFeed, language) })}
+              {row.latestKg === null
+                ? t("gain.noneYet")
+                : `${t("gain.now")}: ${t("intake.kg", {
+                    kg: formatNumber(row.latestKg, language),
+                  })}`}
+              {row.targetWeightKg === null
+                ? null
+                : ` · ${t("intake.targetWeight")}: ${t("intake.kg", {
+                    kg: formatNumber(row.targetWeightKg, language),
+                  })}`}
+              {row.daysOnFeed === null
+                ? null
+                : ` · ${t("gain.daysOnFeed")}: ${t("correct.spanDays", {
+                    days: formatNumber(row.daysOnFeed, language),
+                  })}`}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <GainColumn
