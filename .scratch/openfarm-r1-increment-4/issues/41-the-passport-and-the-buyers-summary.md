@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-**Spec:** [Compliance reports and exports](../../openfarm-release-1/issues/19-compliance-reports-and-exports.md) — R7 and R8; [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 73 and 74; [Health, medicine and withdrawal](../../openfarm-release-1/issues/08-health-medicine-and-withdrawal.md) (the 30-day look-back and the 6-month disease history).
+**Spec:** [Compliance reports and exports](../../openfarm-release-1/issues/19-compliance-reports-and-exports.md) — R7 and R8; the report set's own R7 and R8 (the spec's numbered stories for Fattening end at 65; these two documents are named in the report set rather than in a story); [Health, medicine and withdrawal](../../openfarm-release-1/issues/08-health-medicine-and-withdrawal.md) (the 30-day look-back and the 6-month disease history).
 
 - [ ] The passport carries her identity and photo, her source, her pen history including the last thirty days' locations, her treatments with their withdrawals, her vaccinations and her weigh-ins
 - [ ] The withdrawal summary answers clear or not clear as of today, and lists the treatments of the last thirty days with the prescription behind each

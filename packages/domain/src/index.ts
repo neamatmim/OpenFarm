@@ -27,12 +27,18 @@ export {
   farmDayOf,
   startOfFarmDay,
 } from "./farm-clock";
-export type { TargetWindow } from "./fattening";
+export type {
+  FatteningView,
+  GainBasis,
+  TargetWindow,
+  Weighing,
+} from "./fattening";
 export {
   EID_UL_ADHA,
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
   QURBANI_DAYS,
+  fatteningView,
   implausibleChange,
   nextEidWindow,
 } from "./fattening";

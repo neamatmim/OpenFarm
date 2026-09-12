@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { AnimalPhoto } from "@/components/animal-photo";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
+import { TwoProjections } from "@/components/gain";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -126,6 +127,8 @@ const AnimalPage = () => {
           ) : null}
         </div>
       </header>
+
+      {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
       <HowSheArrived intake={detail.intake} />
 

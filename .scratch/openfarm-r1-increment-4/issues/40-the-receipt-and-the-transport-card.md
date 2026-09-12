@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-**Spec:** [Compliance reports and exports](../../openfarm-release-1/issues/19-compliance-reports-and-exports.md) — R9 and R10; [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 71 and 72.
+**Spec:** [Compliance reports and exports](../../openfarm-release-1/issues/19-compliance-reports-and-exports.md) — R9 and R10; [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user story 64 ("produce the transport-card data and a receipt") and user story 65 (the combined receipt).
 
 - [ ] One receipt carries every Sale to one buyer on one day: animals with weights and prices, the buyer, the date, the farm, and the total
 - [ ] The transport card carries the farm of origin and its registration number, the animals by tag, the count, the destination, the date and the driver and vehicle where known

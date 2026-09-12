@@ -20,8 +20,10 @@ import {
   SIDES,
   STATES,
   canTransition,
+  fatteningView,
   lactationView,
   mayCorrect,
+  startOfFarmDay,
   withdrawalView,
   sideOfState,
   stateAfterSideChange,
@@ -114,6 +116,44 @@ const summaryColumns = {
   withdrawalShortenedAt: true,
   withdrawalShortenedReason: true,
 } as const;
+
+/**
+ * What the scale means for her, from what the farm already holds.
+ *
+ * Null for an animal the farm did not buy in: a dairy heifer born here is not being fed towards
+ * a date, and "days on feed" would be a number about nothing.
+ */
+const fatteningOf = (
+  intake:
+    | {
+        weightKg: string;
+        arrivedAt: Date;
+        targetWeightKg: string;
+        targetWindowStart: string;
+      }
+    | null
+    | undefined,
+  weighIns: { weightKg: string; weighedAt: Date }[],
+  now: Date
+) =>
+  intake
+    ? fatteningView(
+        {
+          weightKg: Number(intake.weightKg),
+          arrivedAt: intake.arrivedAt,
+          targetWeightKg: Number(intake.targetWeightKg),
+        },
+        // Oldest first, which is the order gain is read in; the page reads them the other way.
+        weighIns
+          .map((reading) => ({
+            weightKg: Number(reading.weightKg),
+            weighedAt: reading.weighedAt,
+          }))
+          .toReversed(),
+        startOfFarmDay(intake.targetWindowStart),
+        now
+      )
+    : null;
 
 /**
  * Her arrival as her page reads it. The money and the weights live in numeric columns and come
@@ -455,7 +495,12 @@ export const animalsRouter = {
           productNameEn: product.nameEn,
           givenByName: giver?.name ?? null,
         })),
-        intake: intakeView(row.intake),
+        /** What the farm paid and who it bought her from is the Intake row of the roles
+         *  matrix: the Manager's and the Owner's. A milker weighs her without being told
+         *  what she cost. */
+        intake: readsTheClinicalRecord ? intakeView(row.intake) : null,
+        /** What the scale means, which anybody who may see her may see. */
+        fattening: fatteningOf(row.intake, row.weighIns, context.clock.now()),
         /** Kilogrammes live in a numeric column and come back as strings; converted here at
          *  the edge, like the litres, rather than left to drift as floats. */
         weighIns: row.weighIns.map(({ weigher, ...reading }) => ({

@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 66 and 67; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Ready for Sale").
+**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user story 63; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Ready for Sale").
 
 - [ ] The farm suggests an animal when her target weight is reached or her Target Window opens, and says which of the two it was
 - [ ] The Manager confirms, and that is the State change; Barn Staff cannot

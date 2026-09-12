@@ -8,7 +8,7 @@ A cull that ends in a sale is a Sale, not a Cull: the Manager decides at the tim
 
 **Status:** ready-for-agent
 
-**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 68–70; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Sale"); [Animal lifecycle and groups](../../openfarm-release-1/issues/04-animal-lifecycle-and-groups.md).
+**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 64 and 65; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Sale"); [Animal lifecycle and groups](../../openfarm-release-1/issues/04-animal-lifecycle-and-groups.md).
 
 - [ ] The Manager records a Sale: buyer name, address and phone, sale price, weight at sale, date, destination, vehicle and driver; the Owner checks it
 - [ ] Meat Withdrawal refuses the Sale outright, naming the day she is fit for sale
