@@ -72,6 +72,13 @@ export const farm = pgTable("farm", {
    *  fact, so both are the Manager's to set. */
   aiWindowStartHours: integer("ai_window_start_hours").notNull().default(12),
   aiWindowEndHours: integer("ai_window_end_hours").notNull().default(18),
+  /** How many days after an attempt's first service the Vet checks her, and how long a cow is
+   *  carried. Both are the Manager's: when a vet can tell is a matter of the vet's hands and
+   *  equipment, and gestation runs a little differently by breed. */
+  pregnancyCheckAfterDays: integer("pregnancy_check_after_days")
+    .notNull()
+    .default(45),
+  gestationDays: integer("gestation_days").notNull().default(283),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

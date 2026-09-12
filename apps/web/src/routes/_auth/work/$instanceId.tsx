@@ -875,7 +875,15 @@ const EvidenceSheet = ({
   onRecord: (payload: RecordPayload) => void;
 }) => {
   const { t, language } = useLanguage();
-  const [values, setValues] = useState<Entered>({});
+  // A date and time the Step asks for starts as now: it is changed only when the thing happened
+  // earlier than it is being written down, which is the exception and not the rule.
+  const [values, setValues] = useState<Entered>(() =>
+    Object.fromEntries(
+      step.evidence.flatMap((item, index) =>
+        item.type === "datetime" ? [[index, new Date().toISOString()]] : []
+      )
+    )
+  );
   const [skipping, setSkipping] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [photos, setPhotos] = useState<Taken>({});
@@ -1080,6 +1088,21 @@ const DestinationChoice = ({
   );
 };
 
+/** Two digits, as a date field writes a month, a day, an hour or a minute. */
+const twoDigits = (part: number) => String(part).padStart(2, "0");
+
+/** An instant as a `datetime-local` field holds it: the phone's own day and minute, no zone. */
+const asLocalField = (value: boolean | number | string | undefined): string => {
+  if (typeof value !== "string" || value === "") {
+    return "";
+  }
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) {
+    return "";
+  }
+  return `${at.getFullYear()}-${twoDigits(at.getMonth() + 1)}-${twoDigits(at.getDate())}T${twoDigits(at.getHours())}:${twoDigits(at.getMinutes())}`;
+};
+
 /** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
  *  control — confirming the Step is the tick. */
 const EvidenceControl = ({
@@ -1142,6 +1165,25 @@ const EvidenceControl = ({
           </Button>
         ))}
       </div>
+    );
+  }
+
+  if (evidence.type === "datetime") {
+    return (
+      <Input
+        aria-label={t("work.when")}
+        // The field speaks the phone's own clock, which on this farm is the farm's; what is kept
+        // is the instant, so a phone set a zone away still records the right moment.
+        onChange={(event) =>
+          onValue(
+            event.target.value === ""
+              ? ""
+              : new Date(event.target.value).toISOString()
+          )
+        }
+        type="datetime-local"
+        value={asLocalField(value)}
+      />
     );
   }
 

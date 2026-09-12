@@ -8,6 +8,12 @@
  */
 export const HEAT = "heat";
 
+/**
+ * The farm event a Service is. The work it raises — the Pregnancy Check — falls due the farm's
+ * number of days after the attempt's first service, not after every service.
+ */
+export const SERVICE = "service";
+
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
@@ -36,6 +42,38 @@ export const aiWindow = (
 export const SAME_HEAT_WITHIN_HOURS = 48;
 
 /**
+ * The first of each run of one cow's records closer together than a heat: every record that is not
+ * within `SAME_HEAT_WITHIN_HOURS` of the one that began her current run. Measured from the record
+ * that began the run, not from the last one: a cow marked every day for a week is not one long heat,
+ * and chaining would let a run of records hide the fact.
+ */
+const firstOfEachHeat = <Entry extends { id: string; animalId: string }>(
+  entries: Entry[],
+  at: (entry: Entry) => Date
+): Entry[] => {
+  const ordered = entries.toSorted(
+    (a, b) =>
+      a.animalId.localeCompare(b.animalId) ||
+      at(a).getTime() - at(b).getTime() ||
+      a.id.localeCompare(b.id)
+  );
+  const begun: Entry[] = [];
+  let began: Entry | undefined;
+  for (const entry of ordered) {
+    const sameHeat =
+      began !== undefined &&
+      began.animalId === entry.animalId &&
+      at(entry).getTime() - at(began).getTime() <
+        SAME_HEAT_WITHIN_HOURS * HOUR_MS;
+    if (!sameHeat) {
+      begun.push(entry);
+      began = entry;
+    }
+  }
+  return begun;
+};
+
+/**
  * Which sightings begin a heat, and so which raise work.
  *
  * Decided from the sightings themselves and not from whatever work happens to be open, because
@@ -52,30 +90,26 @@ export const heatsThatBegin = <
   },
 >(
   sightings: Sighting[]
-): Sighting[] => {
-  const ordered = sightings.toSorted(
-    (a, b) =>
-      a.animalId.localeCompare(b.animalId) ||
-      a.seenAt.getTime() - b.seenAt.getTime() ||
-      a.id.localeCompare(b.id)
-  );
-  const begun: Sighting[] = [];
-  // Measured from the sighting that began her heat, not from the last one: a cow marked every
-  // day for a week is not one long heat, and chaining would let a run of sightings hide the fact.
-  let began: Sighting | undefined;
-  for (const sighting of ordered) {
-    const sameHeat =
-      began !== undefined &&
-      began.animalId === sighting.animalId &&
-      sighting.seenAt.getTime() - began.seenAt.getTime() <
-        SAME_HEAT_WITHIN_HOURS * HOUR_MS;
-    if (!sameHeat) {
-      begun.push(sighting);
-      began = sighting;
-    }
-  }
-  return begun;
-};
+): Sighting[] => firstOfEachHeat(sightings, (sighting) => sighting.seenAt);
+
+/**
+ * Which services begin an attempt: the first a cow was given in each heat.
+ *
+ * The farm sometimes serves a cow twice in one heat — at twelve hours and again at twenty-four — and
+ * those are one attempt, not two (Owner, 2026-09-13). The Pregnancy Check falls due from the first,
+ * and a heat whose services did not take is one failure: counted per service, a cow served twice
+ * every heat would be a Repeat Breeder a whole cycle early. Told apart by time rather than by the
+ * Heat each answered, because a bull running with the herd serves cows nobody saw in heat.
+ */
+export const attemptsThatBegin = <
+  Served extends {
+    id: string;
+    animalId: string;
+    servedAt: Date;
+  },
+>(
+  services: Served[]
+): Served[] => firstOfEachHeat(services, (served) => served.servedAt);
 
 /**
  * How a cow is served. Fixed words, like `HEAT`: the Step offering the choice may call them what
@@ -87,3 +121,84 @@ export type ServiceMethod = (typeof SERVICE_METHODS)[number];
 
 export const isServiceMethod = (value: string): value is ServiceMethod =>
   (SERVICE_METHODS as readonly string[]).includes(value);
+
+/**
+ * What a Pregnancy Check found. Fixed words for the same reason a Heat is one: the Step may word
+ * the choice as the Vet likes, but Breeding has to read the answer seasons later.
+ */
+export const PREGNANCY_CHECK_RESULTS = ["positive", "negative"] as const;
+export type PregnancyCheckResult = (typeof PREGNANCY_CHECK_RESULTS)[number];
+
+export const isPregnancyCheckResult = (
+  value: string
+): value is PregnancyCheckResult =>
+  (PREGNANCY_CHECK_RESULTS as readonly string[]).includes(value);
+
+/**
+ * The attempt a service belongs to: the first service of the heat it was given in — itself, or the
+ * latest attempt begun before it.
+ */
+export const attemptOf = <
+  Served extends { id: string; animalId: string; servedAt: Date },
+>(
+  services: Served[],
+  serviceId: string
+): Served | null => {
+  const one = services.find((each) => each.id === serviceId);
+  if (!one) {
+    return null;
+  }
+  return (
+    attemptsThatBegin(
+      services.filter((each) => each.animalId === one.animalId)
+    ).findLast((attempt) => attempt.servedAt <= one.servedAt) ?? null
+  );
+};
+
+/**
+ * How many of her attempts did not take — what a Repeat Breeder is counted from.
+ *
+ * An attempt failed when the Vet's latest word on it is negative, or when nobody found her carrying
+ * from it and she was served again: a cow back in heat three weeks later has answered the question
+ * before the Vet was due to ask it. One attempt is one failure however many times she was served in
+ * that heat. An attempt still waiting for its check has not failed yet.
+ */
+export const failedAttempts = (
+  /** One cow's services, the ones that did not take included. */
+  services: { id: string; animalId: string; servedAt: Date }[],
+  checks: {
+    id: string;
+    serviceId: string;
+    result: PregnancyCheckResult;
+    checkedAt: Date;
+  }[]
+): number => {
+  const attempts = attemptsThatBegin(services);
+  const latestWord = new Map<string, PregnancyCheckResult>();
+  const newestFirst = checks.toSorted(
+    (a, b) =>
+      b.checkedAt.getTime() - a.checkedAt.getTime() || b.id.localeCompare(a.id)
+  );
+  for (const check of newestFirst) {
+    const attempt = attemptOf(services, check.serviceId);
+    if (attempt && !latestWord.has(attempt.id)) {
+      latestWord.set(attempt.id, check.result);
+    }
+  }
+  return attempts.filter((attempt, index) => {
+    const word = latestWord.get(attempt.id);
+    const servedAgain = index < attempts.length - 1;
+    return word === "negative" || (word === undefined && servedAgain);
+  }).length;
+};
+
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * When she is expected to calve: the attempt's first service, carried the farm's gestation on.
+ * Worked out, never typed — a correction to the day she was served moves it with the service.
+ */
+export const expectedCalvingFrom = (
+  servedAt: Date,
+  gestationDays: number
+): Date => new Date(servedAt.getTime() + gestationDays * DAY_MS);

@@ -22,6 +22,7 @@ import {
   SIDES,
   STATES,
   canTransition,
+  failedAttempts,
   lactationView,
   mayCorrect,
   withdrawalView,
@@ -111,6 +112,7 @@ const summaryColumns = {
   photoUpdatedAt: true,
   lactationNumber: true,
   lactationStartedAt: true,
+  expectedCalvingAt: true,
   milkWithdrawalUntil: true,
   meatWithdrawalUntil: true,
   milkWithdrawalFromDoses: true,
@@ -177,6 +179,32 @@ const servicesOf = async (db: Database, animalId: string) => {
     ...one,
     sireTagNumber: sire?.tagNumber ?? null,
   }));
+};
+
+/**
+ * Her Pregnancy Checks, newest first, each with the first service of the attempt it checked — and how
+ * many of her attempts did not take, which is what the Repeat Breeder flag will count. Counted by
+ * attempt, so a heat served twice and found empty is one failure, and a cow served again before her
+ * check came is one too.
+ */
+const pregnancyChecksOf = async (db: Database, animalId: string) => {
+  const checks = await db.query.pregnancyCheck.findMany({
+    where: { animalId },
+    orderBy: { checkedAt: "desc", id: "desc" },
+    columns: { id: true, result: true, checkedAt: true, serviceId: true },
+    with: { service: { columns: { servedAt: true } } },
+  });
+  const services = await db.query.service.findMany({
+    where: { animalId },
+    columns: { id: true, animalId: true, servedAt: true },
+  });
+  return {
+    pregnancyChecks: checks.map(({ service, ...check }) => ({
+      ...check,
+      firstServedAt: service.servedAt,
+    })),
+    failedAttempts: failedAttempts(services, checks),
+  };
 };
 
 /** Three years of three-weekly heats, which is more than a breeding cow's history needs. */
@@ -580,6 +608,7 @@ export const animalsRouter = {
         sale: readsWhatSheCost ? saleView(row.sale) : null,
         heats: await heatsOf(context.db, row.id),
         services: await servicesOf(context.db, row.id),
+        ...(await pregnancyChecksOf(context.db, row.id)),
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */

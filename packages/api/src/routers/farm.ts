@@ -50,6 +50,11 @@ const parameters = z
     /** The AI window after a Heat, in hours. */
     aiWindowStartHours: z.number().int().min(0).max(72).optional(),
     aiWindowEndHours: z.number().int().min(1).max(96).optional(),
+    /** The days from an attempt's first service to its Pregnancy Check — not before a vet can
+     *  tell, and not so late that a cow who did not take has missed two heats. */
+    pregnancyCheckAfterDays: z.number().int().min(28).max(90).optional(),
+    /** How long a cow carries, which Expected Calving is worked out from. Within what cattle do. */
+    gestationDays: z.number().int().min(260).max(300).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -289,6 +294,8 @@ export const farmRouter = {
                 fatteningTargetWeightKg: true,
                 aiWindowStartHours: true,
                 aiWindowEndHours: true,
+                pregnancyCheckAfterDays: true,
+                gestationDays: true,
               },
             })) ?? null,
           after: changes,

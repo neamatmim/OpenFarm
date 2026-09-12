@@ -102,6 +102,10 @@ export const animal = pgTable(
      *  from Calving instead. */
     lactationNumber: integer("lactation_number").notNull().default(0),
     lactationStartedAt: timestamp("lactation_started_at"),
+    /** When she is expected to calve: her last positive Pregnancy Check's attempt, carried the
+     *  farm's gestation on. Derived and re-derived whenever a check or a service under it changes,
+     *  never typed. Null while nobody has found her carrying. */
+    expectedCalvingAt: timestamp("expected_calving_at"),
     /** While this is in the future, the cow's milk may not go to Bulk. Written from the last
      *  Treatment given, on the product's own days. */
     milkWithdrawalUntil: timestamp("milk_withdrawal_until"),

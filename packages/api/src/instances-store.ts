@@ -14,7 +14,9 @@ import {
   FARM_UTC_OFFSET_MINUTES,
   HEAT,
   SAME_HEAT_WITHIN_HOURS,
+  SERVICE,
   aiWindow,
+  attemptsThatBegin,
   heatsThatBegin,
   raisesItsOwnWork,
   carryingMoments,
@@ -101,10 +103,21 @@ const HEAT_CAUSE = /^heat:(?<id>[^:]+):\+\d+$/u;
 export const heatThatRaised = (cause: string | null): string | null =>
   (cause ? HEAT_CAUSE.exec(cause)?.groups?.id : undefined) ?? null;
 
+/**
+ * The key an attempt writes: its first service, and the instant she was served. The instant is
+ * part of it, as it is of a State reached, because a Correction to the day she was served moves the
+ * Pregnancy Check — the work raised on the old day is closed and the new day raises its own.
+ */
+export const attemptKeyOf = (served: { id: string; servedAt: Date }): string =>
+  `${SERVICE}:${served.id}:${served.servedAt.toISOString()}`;
+
+/** Every attempt's key begins so: how the work an attempt raised is found among a cow's work. */
+export const ATTEMPT_KEY_PREFIX = `${SERVICE}:`;
+
 export interface Happening {
   kind: FarmEvent | "state";
   /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
-   *  "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
+   *  "service:<first service id>:<instant>", "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
    *  happening distinguishable from the next. */
   key: string;
   at: Date;
@@ -185,12 +198,43 @@ const dueAfter = (at: Date, offsetDays: number): Date =>
     ? at
     : dueAtFor(new Date(at.getTime() + offsetDays * DAY_MS), "00:00");
 
+export interface BreedingTimes {
+  aiWindow: { startHours: number; endHours: number };
+  pregnancyCheckAfterDays: number;
+}
+
+/**
+ * When a happening's work falls due and how long it has. A Heat's is timed by the hours a service
+ * takes, and an attempt's by the days until a vet can tell — both the farm's, not the Version's.
+ */
+const timingOf = (
+  happening: Happening,
+  offsetDays: number,
+  content: SopContent,
+  breeding: BreedingTimes
+): { dueAt: Date; graceMinutes: number } => {
+  if (happening.kind === HEAT) {
+    return aiWindow(happening.at, breeding.aiWindow);
+  }
+  const days =
+    happening.kind === SERVICE ? breeding.pregnancyCheckAfterDays : offsetDays;
+  return {
+    dueAt: dueAfter(happening.at, days),
+    graceMinutes: content.graceMinutes,
+  };
+};
+
 /**
  * Every Instance that things which have happened call for: a Move, an arrival, a death, a Heat,
- * or an animal reaching a State. One per happening per SOP, about the animal it happened to. Due
- * however many days later the Trigger says — except a Heat's, which falls due in the farm's AI
- * window, in hours, and is late at its end. Pure — the caller decides which of these already
- * exist, and the cause is what lets it decide.
+ * an attempt at a Service, or an animal reaching a State. One per happening per SOP, about the
+ * animal it happened to. Due however many days later the Trigger says — except a Heat's, which falls
+ * due in the farm's AI window, in hours, and is late at its end; and an attempt's, which falls due
+ * the farm's days to a Pregnancy Check after her first service. Pure — the caller decides which of
+ * these already exist, and the cause is what lets it decide.
+ *
+ * Looked back for by when the work falls due, not by when its happening was: a Pregnancy Check is
+ * due six weeks after the service that raised it, and the farm's fortnight of looking back is about
+ * work that should have been on somebody's list, not about how long ago its cause was.
  */
 export const happeningSlotsFor = (
   now: Date,
@@ -204,8 +248,9 @@ export const happeningSlotsFor = (
     triggersInForceSince: Date;
   }[],
   happenings: Happening[],
-  /** The farm's AI window, which is what a Heat's work is timed by rather than the Version. */
-  aiHours: { startHours: number; endHours: number }
+  /** The Farm Parameters Breeding's work is timed by rather than the Version: the AI window a
+   *  Heat opens, and the days from a service to its Pregnancy Check. */
+  breeding: BreedingTimes
 ): DueSlot[] => {
   const slots: DueSlot[] = [];
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
@@ -231,22 +276,16 @@ export const happeningSlotsFor = (
             // Work about a cow who has left is exactly what a death raises, and nothing else
             // may be raised about her.
             (happening.kind === "death" || isOnTheFarm(happening)) &&
-            happening.at >= earliest &&
             happening.at >= sop.triggersInForceSince &&
             appliesToAnimal(sop.content.appliesTo, happening)
           )
         ) {
           continue;
         }
-        // A Heat's work is timed by the hours a service takes, not by a whole number of days
-        // and not by the Version's own grace: both ends of that window are the farm's.
-        const timing =
-          happening.kind === "heat"
-            ? aiWindow(happening.at, aiHours)
-            : {
-                dueAt: dueAfter(happening.at, offsetDays),
-                graceMinutes: sop.content.graceMinutes,
-              };
+        const timing = timingOf(happening, offsetDays, sop.content, breeding);
+        if (timing.dueAt < earliest) {
+          continue;
+        }
         slots.push({
           definitionId: sop.definitionId,
           versionId: sop.versionId,
@@ -271,7 +310,10 @@ export const happeningSlotsFor = (
 export const recentHappenings = async (
   db: Pick<Database, "query">,
   farmId: string,
-  now: Date
+  now: Date,
+  /** How long after a service its check falls due, and so how far back a service that has yet to
+   *  be checked can lie. */
+  { pregnancyCheckAfterDays }: Pick<BreedingTimes, "pregnancyCheckAfterDays">
 ): Promise<Happening[]> => {
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
   const animals = await db.query.animal.findMany({
@@ -316,7 +358,43 @@ export const recentHappenings = async (
     (heat) => heat.seenAt >= earliest
   );
 
+  // Attempts: the first service of the latest heat she was served in. Read far enough back that one
+  // whose check falls due today is still found, and a heat further, so its first service can be told
+  // from a second. Only her latest: a cow served again has come back into heat, and the attempt before
+  // has answered its own question.
+  const served = await db.query.service.findMany({
+    where: {
+      farmId,
+      servedAt: {
+        gte: new Date(
+          earliest.getTime() -
+            pregnancyCheckAfterDays * DAY_MS -
+            SAME_HEAT_WITHIN_HOURS * HOUR_MS
+        ),
+      },
+    },
+    columns: { id: true, animalId: true, servedAt: true },
+  });
+
+  const latestAttempts = new Map(
+    attemptsThatBegin(served).map((attempt) => [attempt.animalId, attempt])
+  );
+
   const happenings: Happening[] = [];
+  for (const attempt of latestAttempts.values()) {
+    const beast = animalsById.get(attempt.animalId);
+    if (beast) {
+      happenings.push({
+        kind: SERVICE,
+        key: attemptKeyOf(attempt),
+        at: attempt.servedAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+  }
   for (const heat of heats) {
     const beast = animalsById.get(heat.animalId);
     if (beast) {

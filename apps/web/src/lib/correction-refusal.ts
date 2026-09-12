@@ -41,10 +41,13 @@ export const refusalMessage = (
  * at the animal and the server's English is not for them.
  */
 const WORDED_REFUSALS = {
+  check_without_a_service: "refusal.checkWithoutAService",
   manager_only: "refusal.managerOnly",
   no_such_bull: "refusal.noSuchBull",
   service_needs_technician: "refusal.serviceNeedsTechnician",
+  service_already_checked: "refusal.serviceAlreadyChecked",
   service_of_a_male: "refusal.serviceOfAMale",
+  vet_only: "refusal.vetOnly",
 } as const satisfies Record<string, MessageKey>;
 
 /** A worded refusal in the reader's language, or nothing when the error was about something else. */

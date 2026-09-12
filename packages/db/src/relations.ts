@@ -45,6 +45,11 @@ export const relations = defineRelations(schema, (r) => ({
     weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
     /** Every time she has been served, the ones that did not take included. */
     services: r.many.service({ from: r.animal.id, to: r.service.animalId }),
+    /** Every time the Vet checked whether she was carrying, the negatives included. */
+    pregnancyChecks: r.many.pregnancyCheck({
+      from: r.animal.id,
+      to: r.pregnancyCheck.animalId,
+    }),
     /** How she left, for an animal sold to a buyer. */
     sale: r.one.sale({ from: r.animal.id, to: r.sale.animalId }),
     /** The Manager's last word on a Ready-for-Sale suggestion about her. */
@@ -61,6 +66,19 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** The farm's own bull, for a natural service. */
     sire: r.one.animal({ from: r.service.sireAnimalId, to: r.animal.id }),
+  },
+  pregnancyCheck: {
+    animal: r.one.animal({
+      from: r.pregnancyCheck.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** The first service of the attempt checked. */
+    service: r.one.service({
+      from: r.pregnancyCheck.serviceId,
+      to: r.service.id,
+      optional: false,
+    }),
   },
   sale: {
     animal: r.one.animal({

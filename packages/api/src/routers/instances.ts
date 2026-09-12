@@ -8,6 +8,7 @@ import {
   isEscalated,
   isOpen,
   isOverdue,
+  isClinicalStep,
   mayCorrect,
   minutesOverdue,
   sessionsPerDayOf,
@@ -275,6 +276,13 @@ export const instancesRouter = {
         where: { farmId: context.farm.id },
         columns: { penId: true, side: true, state: true },
       });
+      const breeding = {
+        aiWindow: {
+          startHours: context.farm.aiWindowStartHours,
+          endHours: context.farm.aiWindowEndHours,
+        },
+        pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
+      };
       const slots = [
         ...dueSlotsFor(now, sops, animals),
         // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same
@@ -283,11 +291,8 @@ export const instancesRouter = {
         ...happeningSlotsFor(
           now,
           sops,
-          await recentHappenings(context.db, context.farm.id, now),
-          {
-            startHours: context.farm.aiWindowStartHours,
-            endHours: context.farm.aiWindowEndHours,
-          }
+          await recentHappenings(context.db, context.farm.id, now, breeding),
+          breeding
         ),
       ];
       if (slots.length === 0) {
@@ -870,9 +875,22 @@ export const instancesRouter = {
       if (!existing) {
         throw new ORPCError("NOT_FOUND");
       }
+      // A Pregnancy Check is a clinical finding, and the Vet's window over the clinical record is
+      // the one that lets a Vet put their own finding right.
+      const recordedUnder = await context.db.query.sopInstance.findFirst({
+        where: { id: existing.instanceId },
+        with: { version: { columns: { content: true } } },
+        columns: { id: true },
+      });
+      const clinical =
+        recordedUnder !== undefined &&
+        isClinicalStep(
+          stepOf(contentOf(recordedUnder.version), existing.stepId)
+        );
       const verdict = mayCorrect({
         roles: context.roles,
         isOwnEntry: existing.recordedBy === context.actor.id,
+        isHealthEntry: clinical,
         // The farm's clock, not the phone's: a Correction Window measured on a device's own
         // time would be a window the device could widen.
         recordedAt: existing.receivedAt,
@@ -968,6 +986,7 @@ export const instancesRouter = {
             sessionsPerDay: sessionsPerDayOf(content),
             skipped: skipping,
             tolerancePercent: context.farm.milkTolerancePercent,
+            gestationDays: context.farm.gestationDays,
             recordedBy: existing.recordedBy,
             recordedAt: existing.recordedAt,
             now,

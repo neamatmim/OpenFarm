@@ -179,9 +179,13 @@ export const assertMayWork = (
 
 /** Which Steps may be skipped with a reason: one done animal by animal, where the animal is
  *  the thing being skipped — and a dose, which is about the one animal the Prescription names
- *  without repeating, so that "the bottle was empty" can be recorded rather than go quiet. */
+ *  without repeating, so that "the bottle was empty" can be recorded rather than go quiet. And a
+ *  service: the farm serves some cows a second time in a heat and not others, so the AI work
+ *  carries a second service Step that "once was enough" has to be able to pass. */
 const maySkip = (step: Step): boolean =>
-  step.repeatPerAnimal || step.effect?.kind === "treatment";
+  step.repeatPerAnimal ||
+  step.effect?.kind === "treatment" ||
+  step.effect?.kind === "service";
 
 /** A Step is either skipped with a reason — only where a reason means something — or done with
  *  everything the Version marks required. Checked per slot, not by count: a Step with an
@@ -438,6 +442,7 @@ export const applyCompletion = async (
     destination: input.destination,
     skipped: skipping,
     tolerancePercent: context.farm.milkTolerancePercent,
+    gestationDays: context.farm.gestationDays,
     recordedBy: context.actor.id,
     recordedAt: values.recordedAt,
     now: receivedAt,

@@ -75,8 +75,33 @@ export const emptyHappening = (): HappeningTrigger => ({
   event: "move",
 });
 
-/** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
- *  Move, an empty list for the Owner to fill in for a Sighting, a figure for the rest. */
+/** The four things a Service Step asks, in the order the record reads them (SERVICE_EVIDENCE). The
+ *  method's labels are the farm's words and may be reworded; its values may not. */
+const SERVICE_STEP_EVIDENCE: Evidence[] = [
+  {
+    type: "choice",
+    required: true,
+    choices: [
+      { value: "ai", label: { bn: "কৃত্রিম প্রজনন", en: "AI" } },
+      { value: "natural", label: { bn: "ষাঁড় দিয়ে", en: "Natural" } },
+    ],
+  },
+  { type: "note", required: true },
+  { type: "note", required: false },
+  { type: "datetime", required: true },
+];
+
+/** What a Pregnancy Check Step asks first: what the Vet found. The labels are the farm's words; the
+ *  values are what Breeding reads back. */
+const PREGNANCY_CHECK_RESULT: Evidence = {
+  type: "choice",
+  required: true,
+  choices: [
+    { value: "positive", label: { bn: "গর্ভবতী", en: "Carrying" } },
+    { value: "negative", label: { bn: "গর্ভবতী নয়", en: "Not carrying" } },
+  ],
+};
+
 /** What Evidence an effect needs before it can write anything. */
 const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "move" || kind === "observation") {
@@ -88,6 +113,8 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   return kind === "treatment" ? "tick" : "number";
 };
 
+/** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
+ *  Move, an empty list for the Owner to fill in for a Sighting, a figure for the rest. */
 const fittedEvidence = (
   kind: StepEffect["kind"],
   current: Evidence | undefined,
@@ -137,6 +164,28 @@ export const withEffect = (
   if (kind === "") {
     const { effect: _dropped, ...rest } = step;
     return rest;
+  }
+  // A Service asks four things in a fixed order — how, the sire, who served her, and when — so its
+  // Step is given all four at once rather than one box the Owner then has to fill out by hand, and
+  // anything already authored after them is kept.
+  if (kind === "service") {
+    return {
+      ...step,
+      repeatPerAnimal: false,
+      effect: { kind },
+      evidence: [
+        ...SERVICE_STEP_EVIDENCE,
+        ...step.evidence.slice(SERVICE_STEP_EVIDENCE.length),
+      ],
+    };
+  }
+  if (kind === "pregnancy_check") {
+    return {
+      ...step,
+      repeatPerAnimal: false,
+      effect: { kind },
+      evidence: [PREGNANCY_CHECK_RESULT, ...step.evidence.slice(1)],
+    };
   }
   const wants: EvidenceType = wantedEvidence(kind);
   const [first, ...rest] = step.evidence;

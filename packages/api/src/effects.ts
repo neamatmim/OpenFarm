@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { service } from "@OpenFarm/db/schema/breeding";
+import { pregnancyCheck, service } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { feeding } from "@OpenFarm/db/schema/feed";
@@ -12,6 +12,7 @@ import type {
   FeedingEntryLine,
   FeedingLine,
   MilkDestination,
+  PregnancyCheckResult,
   ServiceMethod,
   Step,
 } from "@OpenFarm/domain";
@@ -19,6 +20,7 @@ import {
   HEAT,
   KG_DECIMALS,
   SERVICE_EVIDENCE,
+  isPregnancyCheckResult,
   isServiceMethod,
   implausibleChange,
   isShortFed,
@@ -28,6 +30,11 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import {
+  attemptThatRaisedWork,
+  closeWorkOfAttemptsNoLongerStanding,
+  rederivePregnancy,
+} from "./breeding-store";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
@@ -111,6 +118,7 @@ export type EffectResult =
       flagged: boolean;
     }
   | { kind: "service"; method: ServiceMethod }
+  | { kind: "pregnancy_check"; result: PregnancyCheckResult }
   | null;
 
 /** The figure a record-writing Step asks for: the first `number` slot the Version declares.
@@ -195,6 +203,8 @@ export interface EffectInput {
   /** The Roles the person recording holds. Most effects do not ask — the Step's own gate is
    *  enough — but a Service is the Manager's alone whoever is standing at the Step. */
   roles: readonly RoleName[];
+  /** How long this farm's cows carry, which Expected Calving is worked out from. */
+  gestationDays: number;
   /** What was actually put in front of the Pen, per Feed Item. */
   feeding: FeedingEntryLine[];
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
@@ -826,6 +836,37 @@ const textAt = (evidence: unknown[], position: number): string | null => {
 };
 
 /**
+ * Works her pregnancy out again after something under it changed. Only the caller knows whether that
+ * change was a positive being put right.
+ */
+const rederiveFor = (
+  tx: Tx,
+  input: EffectInput,
+  cowId: string,
+  undoingPositive: boolean
+) =>
+  rederivePregnancy(tx, cowId, {
+    gestationDays: input.gestationDays,
+    at: input.recordedAt,
+    now: input.now,
+    undoingPositive,
+  });
+
+/**
+ * What a service changed further down the chain. A day corrected, a first service taken back, or a
+ * new heat served moves her latest attempt: work raised by one that no longer stands is closed, and
+ * a check already made counts from the day as it now stands.
+ */
+const breedingFollowsService = async (
+  tx: Tx,
+  input: EffectInput,
+  cowId: string
+) => {
+  await closeWorkOfAttemptsNoLongerStanding(tx, input.instance.farmId, cowId);
+  await rederiveFor(tx, input, cowId, false);
+};
+
+/**
  * Records that she was served: how, by which sire, by whom, and in answer to which Heat.
  *
  * The Manager's alone. The roles matrix gives Service `C R U` to the Manager and nothing to Barn
@@ -871,7 +912,20 @@ const applyServiceEffect = async (
   });
   if (input.skipped) {
     if (standing) {
+      // A service the Vet has checked is the attempt that check is of. Taking it back would leave a
+      // finding about nothing; the check is corrected first, by the Vet whose finding it is.
+      const checked = await tx.query.pregnancyCheck.findFirst({
+        where: { serviceId: standing.id },
+        columns: { id: true },
+      });
+      if (checked) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The Vet has checked this service; it cannot be taken back",
+          data: { refusal: "service_already_checked" },
+        });
+      }
       await tx.delete(service).where(eq(service.id, standing.id));
+      await breedingFollowsService(tx, input, cowId);
     }
     return null;
   }
@@ -900,6 +954,21 @@ const applyServiceEffect = async (
     throw new ORPCError("BAD_REQUEST", {
       message: "An AI service names who served her",
       data: { refusal: "service_needs_technician" },
+    });
+  }
+
+  // When she was served, which is not when it was written down. A day that has not come yet is not
+  // a service; one that cannot be read is not a day.
+  const servedAt = new Date(String(input.evidence[SERVICE_EVIDENCE.servedAt]));
+  if (Number.isNaN(servedAt.getTime())) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A service says when she was served",
+    });
+  }
+  if (servedAt.getTime() > input.now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A service cannot have happened later than now",
+      data: { refusal: "served_in_the_future" },
     });
   }
 
@@ -935,7 +1004,7 @@ const applyServiceEffect = async (
     // person holds first, which for somebody who is both Owner and Manager reads "owner" — a Role
     // that may only read a Service.
     recordedByRole: "manager" as const,
-    servedAt: input.recordedAt,
+    servedAt,
     recordedBy: input.recordedBy,
   };
   await (standing
@@ -943,7 +1012,90 @@ const applyServiceEffect = async (
     : tx
         .insert(service)
         .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
+  await breedingFollowsService(tx, input, cowId);
   return { kind: "service", method };
+};
+
+/**
+ * Records what the Vet found: whether the attempt a Service began has taken.
+ *
+ * The Vet's alone. The roles matrix gives the Pregnancy Check `C R U` to the Vet and read to the
+ * Owner and the Manager — and both of those may step into any shift, so the Step's own gate lets
+ * them in and the effect asks. Whether a cow is carrying is a clinical finding.
+ *
+ * Of an attempt, not of a service, and only on the work that attempt raised: which of her heats a
+ * pregnancy dates from is the farm's to know, not the Vet's to guess. A positive makes a Heifer a
+ * Pregnant Heifer and sets Expected Calving from the attempt's first service; a negative is kept — a
+ * run of them is a Repeat Breeder — and takes nothing from her. Both are worked out from the checks,
+ * never typed.
+ */
+const applyPregnancyCheckEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.roles.includes("vet")) {
+    throw forbidden({
+      message: "A pregnancy check is the Vet's to record",
+      reason: "vet_only",
+    });
+  }
+  const cowId = input.instance.animalId;
+  const standing = await tx.query.pregnancyCheck.findFirst({
+    where: { completionId: input.completionId },
+    columns: { id: true, serviceId: true, result: true },
+  });
+  const wasPositive = standing?.result === "positive";
+  if (input.skipped) {
+    if (standing && cowId) {
+      await tx.delete(pregnancyCheck).where(eq(pregnancyCheck.id, standing.id));
+      await rederiveFor(tx, input, cowId, wasPositive);
+    }
+    return null;
+  }
+
+  const result = choiceIn(
+    input.step,
+    input.evidence,
+    "A pregnancy check says what was found, and nothing was chosen"
+  ).value;
+  if (!isPregnancyCheckResult(result)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `"${result}" is not something a pregnancy check finds`,
+    });
+  }
+  // A correction keeps the attempt the check was made of, even if she has been served since.
+  const raisedBy =
+    standing || !cowId
+      ? null
+      : await attemptThatRaisedWork(tx, cowId, input.instance.cause);
+  const serviceId = standing?.serviceId ?? raisedBy?.id;
+  if (!(cowId && serviceId)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A pregnancy check is of the service that raised it, and this work was not raised by her latest",
+      data: { refusal: "check_without_a_service" },
+    });
+  }
+
+  const values = {
+    farmId: input.instance.farmId,
+    animalId: cowId,
+    completionId: input.completionId,
+    serviceId,
+    result,
+    checkedAt: input.recordedAt,
+    recordedBy: input.recordedBy,
+  };
+  await (standing
+    ? tx
+        .update(pregnancyCheck)
+        .set(values)
+        .where(eq(pregnancyCheck.id, standing.id))
+    : tx
+        .insert(pregnancyCheck)
+        .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
+  await rederiveFor(tx, input, cowId, wasPositive && result === "negative");
+  return { kind: "pregnancy_check", result };
 };
 
 /**
@@ -987,6 +1139,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "service") {
     return await applyServiceEffect(tx, input);
+  }
+  if (effect.kind === "pregnancy_check") {
+    return await applyPregnancyCheckEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.
