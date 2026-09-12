@@ -61,9 +61,9 @@ export const drugProduct = pgTable(
  * round saw, what the Vet made of it, and what was done about it. It may also stand alone —
  * the Vet comes for something else and finds this.
  *
- * The condition is the Vet's own words. A Diagnosis of a Notifiable Disease must be reported
- * to DLS without delay; matching these words against the farm's notifiable list is the
- * report's own work, not this table's.
+ * The disease is named in the Vet's own words. A Diagnosis of a Notifiable Disease must be
+ * reported to DLS without delay; matching these words against the farm's notifiable list is
+ * the report's own work, not this table's.
  */
 export const diagnosis = pgTable(
   "diagnosis",
@@ -77,9 +77,10 @@ export const diagnosis = pgTable(
       .references(() => animal.id, { onDelete: "cascade" }),
     /** The Observation it answers, when the Vet is answering the round. */
     observationId: text("observation_id").references(() => observation.id),
-    /** What the Vet concluded she has, in their own words. */
-    condition: text("condition").notNull(),
-    conditionEn: text("condition_en"),
+    /** What the Vet concluded she has, in their own words. The glossary's word for the
+     *  thing itself is Disease; the record of concluding it is the Diagnosis. */
+    disease: text("disease").notNull(),
+    diseaseEn: text("disease_en"),
     /** What they found: the clinical detail behind the conclusion. */
     note: text("note"),
     /** The Vet. Not nullable: a Diagnosis with nobody's name on it is not a Diagnosis. */

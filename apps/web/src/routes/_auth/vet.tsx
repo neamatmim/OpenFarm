@@ -7,8 +7,18 @@ import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { refusalMessage } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
+
+/** What the Vet types either way: the disease, and what they found. */
+interface Conclusion {
+  disease: string;
+  note: string;
+}
+
+const emptyConclusion: Conclusion = { disease: "", note: "" };
 
 /**
  * The Vet's screen, and the only one they need: what the rounds have seen and nobody has
@@ -25,9 +35,7 @@ const VetPage = () => {
 
   const kinds = useQuery(orpc.observations.kinds.queryOptions());
   const waiting = useQuery(
-    orpc.diagnoses.waiting.queryOptions({
-      input: saw ? { saw } : {},
-    })
+    orpc.diagnoses.waiting.queryOptions({ input: saw ? { saw } : {} })
   );
   const mine = useQuery(orpc.diagnoses.mine.queryOptions({ input: {} }));
 
@@ -43,21 +51,7 @@ const VetPage = () => {
         {/* Every choice a round offers is written down, the ones that say she is well
             included, and nothing in an SOP says which of them wants a Vet. So the Vet
             narrows the list by the word the farm used. */}
-        <div className="flex flex-wrap gap-2">
-          <FilterButton
-            chosen={saw === ""}
-            label={t("observations.all")}
-            onChoose={() => setSaw("")}
-          />
-          {(kinds.data ?? []).map((kind) => (
-            <FilterButton
-              chosen={saw === kind.saw}
-              key={kind.saw}
-              label={kind.label}
-              onChoose={() => setSaw(kind.saw)}
-            />
-          ))}
-        </div>
+        <SawFilter chosen={saw} kinds={kinds.data ?? []} onChoose={setSaw} />
 
         {waiting.data?.length ? (
           <ul className="space-y-2">
@@ -71,6 +65,8 @@ const VetPage = () => {
           </p>
         )}
       </section>
+
+      <OnItsOwn onRecorded={refresh} />
 
       <section className="space-y-3">
         <h2 className="font-medium">{t("vet.mine")}</h2>
@@ -88,23 +84,56 @@ const VetPage = () => {
   );
 };
 
-const FilterButton = ({
-  chosen,
-  label,
-  onChoose,
+/** The refusal in the reader's own language where the server gave the facts to say it with,
+ *  and the server's own words only when it did not. */
+const useRefusal = () => {
+  const t = useT();
+  return (error: Error) =>
+    toast.error(refusalMessage(error, t) ?? error.message ?? t("common.error"));
+};
+
+/** The disease and what was found — the two fields a Diagnosis is, wherever it is typed. */
+const ConclusionFields = ({
+  conclusion,
+  idPrefix,
+  onChange,
 }: {
-  chosen: boolean;
-  label: string;
-  onChoose: () => void;
-}) => (
-  <button
-    className={`rounded-md border px-3 py-1 text-sm ${chosen ? "bg-neutral-800 text-neutral-100" : ""}`}
-    onClick={onChoose}
-    type="button"
-  >
-    {label}
-  </button>
-);
+  conclusion: Conclusion;
+  idPrefix: string;
+  onChange: (next: Conclusion) => void;
+}) => {
+  const t = useT();
+  return (
+    <>
+      <div className="space-y-1">
+        <Label htmlFor={`disease-${idPrefix}`}>{t("vet.disease")}</Label>
+        <Input
+          id={`disease-${idPrefix}`}
+          onChange={(event) =>
+            onChange({ ...conclusion, disease: event.target.value })
+          }
+          value={conclusion.disease}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`note-${idPrefix}`}>{t("vet.note")}</Label>
+        <Input
+          id={`note-${idPrefix}`}
+          onChange={(event) =>
+            onChange({ ...conclusion, note: event.target.value })
+          }
+          value={conclusion.note}
+        />
+      </div>
+    </>
+  );
+};
+
+/** What the server wants: the typed disease and note, trimmed, the note left out when blank. */
+const asRecorded = (conclusion: Conclusion) => ({
+  disease: { bn: conclusion.disease.trim() },
+  ...(conclusion.note.trim() ? { note: conclusion.note.trim() } : {}),
+});
 
 /** One thing a round saw that nobody has answered, and the Vet's answer to it. */
 const Unanswered = ({
@@ -113,7 +142,6 @@ const Unanswered = ({
 }: {
   seen: {
     id: string;
-    saw: string;
     sawLabel: string;
     seenAt: Date;
     tagNumber: string;
@@ -123,18 +151,17 @@ const Unanswered = ({
 }) => {
   const t = useT();
   const { language } = useLanguage();
-  const [condition, setCondition] = useState("");
-  const [note, setNote] = useState("");
+  const onError = useRefusal();
+  const [conclusion, setConclusion] = useState(emptyConclusion);
 
   const record = useMutation(
     orpc.diagnoses.record.mutationOptions({
       onSuccess: () => {
-        setCondition("");
-        setNote("");
+        setConclusion(emptyConclusion);
         toast.success(t("vet.recorded"));
         onRecorded();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError,
     })
   );
 
@@ -163,32 +190,77 @@ const Unanswered = ({
           record.mutate({
             animalTag: seen.tagNumber,
             answers: seen.id,
-            condition: { bn: condition.trim() },
-            ...(note.trim() ? { note: note.trim() } : {}),
+            ...asRecorded(conclusion),
           });
         }}
       >
-        <div className="space-y-1">
-          <Label htmlFor={`condition-${seen.id}`}>{t("vet.condition")}</Label>
-          <Input
-            id={`condition-${seen.id}`}
-            onChange={(event) => setCondition(event.target.value)}
-            value={condition}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor={`note-${seen.id}`}>{t("vet.note")}</Label>
-          <Input
-            id={`note-${seen.id}`}
-            onChange={(event) => setNote(event.target.value)}
-            value={note}
-          />
-        </div>
-        <Button disabled={!condition.trim()} type="submit">
+        <ConclusionFields
+          conclusion={conclusion}
+          idPrefix={seen.id}
+          onChange={setConclusion}
+        />
+        <Button disabled={!conclusion.disease.trim()} type="submit">
           {t("vet.record")}
         </Button>
       </form>
     </li>
+  );
+};
+
+/** The Vet came for one cow and found something on another: a Diagnosis that answers no
+ *  Observation, on whichever animal they name. */
+const OnItsOwn = ({ onRecorded }: { onRecorded: () => void }) => {
+  const t = useT();
+  const onError = useRefusal();
+  const [tagNumber, setTagNumber] = useState("");
+  const [conclusion, setConclusion] = useState(emptyConclusion);
+
+  const record = useMutation(
+    orpc.diagnoses.record.mutationOptions({
+      onSuccess: () => {
+        setTagNumber("");
+        setConclusion(emptyConclusion);
+        toast.success(t("vet.recorded"));
+        onRecorded();
+      },
+      onError,
+    })
+  );
+
+  return (
+    <section className="space-y-2 rounded-lg border p-4">
+      <h2 className="font-medium">{t("vet.onItsOwn")}</h2>
+      <form
+        className="space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          record.mutate({
+            animalTag: tagNumber.trim(),
+            ...asRecorded(conclusion),
+          });
+        }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="own-tag">{t("vet.tagNumber")}</Label>
+          <Input
+            id="own-tag"
+            onChange={(event) => setTagNumber(event.target.value)}
+            value={tagNumber}
+          />
+        </div>
+        <ConclusionFields
+          conclusion={conclusion}
+          idPrefix="own"
+          onChange={setConclusion}
+        />
+        <Button
+          disabled={!(tagNumber.trim() && conclusion.disease.trim())}
+          type="submit"
+        >
+          {t("vet.record")}
+        </Button>
+      </form>
+    </section>
   );
 };
 
@@ -200,7 +272,7 @@ const Concluded = ({
 }: {
   made: {
     id: string;
-    condition: string;
+    disease: string;
     note: string | null;
     diagnosedAt: Date;
     tagNumber: string;
@@ -210,9 +282,12 @@ const Concluded = ({
 }) => {
   const t = useT();
   const { language } = useLanguage();
+  const onError = useRefusal();
   const [open, setOpen] = useState(false);
-  const [condition, setCondition] = useState(made.condition);
-  const [note, setNote] = useState(made.note ?? "");
+  const [conclusion, setConclusion] = useState<Conclusion>({
+    disease: made.disease,
+    note: made.note ?? "",
+  });
   const [reason, setReason] = useState("");
 
   const correct = useMutation(
@@ -223,7 +298,7 @@ const Concluded = ({
         toast.success(t("vet.corrected"));
         onCorrected();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError,
     })
   );
 
@@ -242,7 +317,7 @@ const Concluded = ({
         </span>
       </div>
       <p>
-        {made.condition}
+        {made.disease}
         {made.answers
           ? ` · ${t("vet.answering", { saw: made.answers.sawLabel })}`
           : ""}
@@ -256,30 +331,16 @@ const Concluded = ({
             event.preventDefault();
             correct.mutate({
               id: made.id,
-              condition: { bn: condition.trim() },
-              ...(note.trim() ? { note: note.trim() } : {}),
+              ...asRecorded(conclusion),
               reason: reason.trim(),
             });
           }}
         >
-          <div className="space-y-1">
-            <Label htmlFor={`fix-condition-${made.id}`}>
-              {t("vet.condition")}
-            </Label>
-            <Input
-              id={`fix-condition-${made.id}`}
-              onChange={(event) => setCondition(event.target.value)}
-              value={condition}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`fix-note-${made.id}`}>{t("vet.note")}</Label>
-            <Input
-              id={`fix-note-${made.id}`}
-              onChange={(event) => setNote(event.target.value)}
-              value={note}
-            />
-          </div>
+          <ConclusionFields
+            conclusion={conclusion}
+            idPrefix={`fix-${made.id}`}
+            onChange={setConclusion}
+          />
           <div className="space-y-1">
             <Label htmlFor={`fix-reason-${made.id}`}>{t("vet.reason")}</Label>
             <Input
@@ -288,7 +349,10 @@ const Concluded = ({
               value={reason}
             />
           </div>
-          <Button disabled={!(condition.trim() && reason.trim())} type="submit">
+          <Button
+            disabled={!(conclusion.disease.trim() && reason.trim())}
+            type="submit"
+          >
             {t("vet.saveCorrection")}
           </Button>
         </form>

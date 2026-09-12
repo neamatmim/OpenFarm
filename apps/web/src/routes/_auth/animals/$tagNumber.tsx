@@ -228,7 +228,7 @@ const AnimalPage = () => {
 
       {detail.observations.length > 0 || detail.diagnoses.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="font-medium">{t("animals.observations")}</h2>
+          <h2 className="font-medium">{t("animals.healthChain")}</h2>
           {/* One chain, not two lists: what the round saw, and under it what the Vet made of
               it. A Diagnosis that answers no Observation stands on its own at the end. */}
           <ul className="space-y-1 text-sm">
@@ -265,11 +265,7 @@ const AnimalPage = () => {
               </li>
             ))}
             {detail.diagnoses.map((made) => (
-              <li className="text-muted-foreground" key={made.id}>
-                <ul className="space-y-1">
-                  <Conclusion made={made} />
-                </ul>
-              </li>
+              <Conclusion key={made.id} made={made} />
             ))}
           </ul>
         </section>
@@ -323,7 +319,7 @@ const Conclusion = ({
 }: {
   made: {
     id: string;
-    condition: string;
+    disease: string;
     note: string | null;
     diagnosedAt: Date;
     diagnosedByName: string;
@@ -332,7 +328,7 @@ const Conclusion = ({
   const { t, language } = useLanguage();
   return (
     <li>
-      {t("animals.diagnosis")}: {made.condition}
+      {t("animals.diagnosis")}: {made.disease}
       {made.note ? ` · ${made.note}` : ""} ·{" "}
       {t("animals.diagnosedBy", {
         name: made.diagnosedByName,

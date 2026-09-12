@@ -16,22 +16,31 @@ export const pickRoleUsed = (
   PRECEDENCE.find((role) => held.includes(role) && allowed.includes(role)) ??
   null;
 
+/** The reasons a Role gate gives. A word, not a sentence: the screen says it in the
+ *  reader's own language, so a new one is a decision taken here and there rather than a
+ *  blank line on somebody's phone. */
+export type RefusalReason = "vet_only";
+
 /** Why a Role gate refused, for the gates whose answer a person needs to understand. */
-interface Refusal {
+export interface Refusal {
   /** For whoever reads a log. The screen composes what the person reads, in their language. */
   message: string;
-  /** The reason, as a word the screen can match on. */
-  reason: string;
+  reason: RefusalReason;
 }
+
+/** One refusal shape for every "this is not yours to do", whether a gate raised it or a
+ *  handler did. */
+export const forbidden = (refusal: Refusal) =>
+  new ORPCError("FORBIDDEN", {
+    message: refusal.message,
+    data: { refusal: refusal.reason },
+  });
 
 const roleGate = (allowed: readonly RoleName[], refusal?: Refusal) =>
   os.$context<Context & { actor: Actor }>().middleware(({ context, next }) => {
     const roleUsed = pickRoleUsed(context.roles, allowed);
     if (!roleUsed || !context.farm) {
-      throw new ORPCError("FORBIDDEN", {
-        message: refusal?.message,
-        data: refusal ? { refusal: refusal.reason } : undefined,
-      });
+      throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
     }
     return next({ context: { roleUsed, farm: context.farm } });
   });

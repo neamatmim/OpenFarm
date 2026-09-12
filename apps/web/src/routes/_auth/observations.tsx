@@ -1,9 +1,9 @@
+import { formatDate } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { formatDate } from "@OpenFarm/i18n";
-
+import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -26,30 +26,12 @@ const ObservationsPage = () => {
 
   return (
     <div className="container mx-auto max-w-2xl space-y-4 px-4 py-6">
-      <h1 className="font-medium text-lg">{t("observations.title")}</h1>
+      <h1 className="text-lg font-medium">{t("observations.title")}</h1>
       <p className="text-muted-foreground text-sm">
         {t("observations.days", { days: WINDOW_DAYS })}
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          className={`rounded-md border px-3 py-1 text-sm ${saw === "" ? "bg-neutral-800 text-neutral-100" : ""}`}
-          onClick={() => setSaw("")}
-          type="button"
-        >
-          {t("observations.all")}
-        </button>
-        {(kinds.data ?? []).map((kind) => (
-          <button
-            className={`rounded-md border px-3 py-1 text-sm ${saw === kind.saw ? "bg-neutral-800 text-neutral-100" : ""}`}
-            key={kind.saw}
-            onClick={() => setSaw(kind.saw)}
-            type="button"
-          >
-            {kind.label}
-          </button>
-        ))}
-      </div>
+      <SawFilter chosen={saw} kinds={kinds.data ?? []} onChoose={setSaw} />
 
       {seen.data?.length ? (
         <ul className="space-y-2">

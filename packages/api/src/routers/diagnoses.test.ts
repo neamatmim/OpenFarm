@@ -81,8 +81,8 @@ const aLameCow = async (clock: FakeClock) => {
     animalTag: cow.tagNumber,
     evidence: ["lame"],
   });
-  const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
-  const seen = her.observations.at(0);
+  const page = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+  const seen = page.observations.at(0);
   if (!seen) {
     throw new Error("expected the round to have seen her");
   }
@@ -98,17 +98,17 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
       answers: seen.id,
-      condition: { bn: "পায়ের ক্ষুরে পচন", en: "Foot rot" },
+      disease: { bn: "পায়ের ক্ষুরে পচন", en: "Foot rot" },
       note: "বাম পিছনের পা, খুরের মাঝে পচন",
     });
 
     // The animal's page reads as one chain: what the round saw, and what the Vet made of it.
-    const her = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
-    const chain = her.observations.find((one) => one.id === seen.id);
+    const page = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const chain = page.observations.find((one) => one.id === seen.id);
     expect(chain?.diagnoses).toHaveLength(1);
     expect(chain?.diagnoses[0]).toMatchObject({
       id: made.id,
-      condition: "পায়ের ক্ষুরে পচন",
+      disease: "পায়ের ক্ষুরে পচন",
       note: "বাম পিছনের পা, খুরের মাঝে পচন",
       // The act is legally the Vet's, so the record names them rather than the farm.
       diagnosedByName: "ডা. করিম",
@@ -121,7 +121,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     const conclusion = {
       animalTag: cow.tagNumber,
       answers: seen.id,
-      condition: { bn: "পায়ের ক্ষুরে পচন" },
+      disease: { bn: "পায়ের ক্ষুরে পচন" },
     };
 
     for (const role of ["owner", "manager", "staff"] as const) {
@@ -147,35 +147,35 @@ describe("a Diagnosis, and the Vet who makes it", () => {
 
     // And nothing was written by any of them.
     const vet = await createTestClient(appRouter, { as: "vet", clock });
-    const her = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const page = await vet.client.animals.byTag({ tagNumber: cow.tagNumber });
     expect(
-      her.observations.find((one) => one.id === seen.id)?.diagnoses
+      page.observations.find((one) => one.id === seen.id)?.diagnoses
     ).toEqual([]);
   });
 
   it("keeps the chain to one animal, and to what still stands", async () => {
     const clock = new FakeClock("2028-05-03T02:00:00.000Z");
-    const her = await aLameCow(clock);
+    const lame = await aLameCow(clock);
     const another = await aLameCow(clock);
     const vet = await createTestClient(appRouter, { as: "vet", clock });
 
     // Another cow's Observation would put this conclusion in a history it was never about.
     await expect(
       vet.client.diagnoses.record({
-        animalTag: her.cow.tagNumber,
+        animalTag: lame.cow.tagNumber,
         answers: another.seen.id,
-        condition: { bn: "ওলান প্রদাহ" },
+        disease: { bn: "ওলান প্রদাহ" },
       })
     ).rejects.toThrow(/not this animal/u);
 
     // A Diagnosis need answer nothing: the Vet came for one cow and found something on the
     // way out.
     const found = await vet.client.diagnoses.record({
-      animalTag: her.cow.tagNumber,
-      condition: { bn: "ওলান প্রদাহ", en: "Mastitis" },
+      animalTag: lame.cow.tagNumber,
+      disease: { bn: "ওলান প্রদাহ", en: "Mastitis" },
     });
     const page = await vet.client.animals.byTag({
-      tagNumber: her.cow.tagNumber,
+      tagNumber: lame.cow.tagNumber,
     });
     expect(page.diagnoses.map((one) => one.id)).toContain(found.id);
     // It answers no Observation, so it does not appear under one.
@@ -192,7 +192,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     const made = await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
       answers: seen.id,
-      condition: { bn: "পায়ের ক্ষুরে পচন" },
+      disease: { bn: "পায়ের ক্ষুরে পচন" },
       note: "বাম পিছনের পা",
     });
 
@@ -204,16 +204,16 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     const later = await createTestClient(appRouter, { as: "vet", clock });
     await later.client.diagnoses.correct({
       id: made.id,
-      condition: { bn: "ক্ষুর রোগ", en: "Foot and mouth" },
+      disease: { bn: "ক্ষুর রোগ", en: "Foot and mouth" },
       note: "মুখেও ঘা, আগের সিদ্ধান্ত ভুল ছিল",
       reason: "মুখের ঘা পরে দেখা গেছে",
     });
 
-    const her = await later.client.animals.byTag({ tagNumber: cow.tagNumber });
-    const standing = her.observations
+    const page = await later.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const standing = page.observations
       .find((one) => one.id === seen.id)
       ?.diagnoses.find((one) => one.id === made.id);
-    expect(standing?.condition).toBe("ক্ষুর রোগ");
+    expect(standing?.disease).toBe("ক্ষুর রোগ");
 
     // Nothing deleted: the trail holds what it said before, why it changed, and in order.
     const trail = await later.client.audit.list({
@@ -225,8 +225,8 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     expect(correction).toMatchObject({
       reason: "মুখের ঘা পরে দেখা গেছে",
       roleUsed: "vet",
-      before: { condition: "পায়ের ক্ষুরে পচন" },
-      after: { condition: "ক্ষুর রোগ" },
+      before: { disease: "পায়ের ক্ষুরে পচন" },
+      after: { disease: "ক্ষুর রোগ" },
     });
   });
 
@@ -245,7 +245,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     await vet.client.diagnoses.record({
       animalTag: cow.tagNumber,
       answers: seen.id,
-      condition: { bn: "পায়ের ক্ষুরে পচন" },
+      disease: { bn: "পায়ের ক্ষুরে পচন" },
     });
 
     const after = await vet.client.diagnoses.waiting();
@@ -273,8 +273,60 @@ describe("a Diagnosis, and the Vet who makes it", () => {
       vet.client.diagnoses.record({
         animalTag: cow.tagNumber,
         answers: seen.id,
-        condition: { bn: "পায়ের ক্ষুরে পচন" },
+        disease: { bn: "পায়ের ক্ষুরে পচন" },
       })
     ).rejects.toThrow(/corrected/u);
+  });
+  it("is one Vet's own: another Vet may read it but not change it", async () => {
+    const clock = new FakeClock("2028-05-07T02:00:00.000Z");
+    const { cow, seen } = await aLameCow(clock);
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    const other = await createTestClient(appRouter, { as: "otherVet", clock });
+
+    const made = await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      answers: seen.id,
+      disease: { bn: "পায়ের ক্ষুরে পচন" },
+    });
+
+    // The other Vet sees it — the herd's health is every Vet's business —
+    const page = await other.client.animals.byTag({ tagNumber: cow.tagNumber });
+    expect(
+      page.observations
+        .find((one) => one.id === seen.id)
+        ?.diagnoses.map((one) => one.id)
+    ).toContain(made.id);
+    // — but a conclusion somebody else signed is not theirs to rewrite.
+    await expect(
+      other.client.diagnoses.correct({
+        id: made.id,
+        disease: { bn: "ক্ষুর রোগ" },
+        reason: "আমার মনে হয় অন্য রোগ",
+      })
+    ).rejects.toThrow(/the vet's own/u);
+
+    // And it is not in their own work either.
+    const theirs = await other.client.diagnoses.mine();
+    expect(theirs.map((one) => one.id)).not.toContain(made.id);
+  });
+
+  it("keeps the clinical record from Barn Staff, who see the round's own notes", async () => {
+    const clock = new FakeClock("2028-05-08T02:00:00.000Z");
+    const { cow, seen } = await aLameCow(clock);
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      answers: seen.id,
+      disease: { bn: "পায়ের ক্ষুরে পচন" },
+    });
+
+    // Staff record what they see and give the doses they are told to give; the conclusions
+    // drawn from them are not theirs to read (roles matrix).
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const page = await staff.client.animals.byTag({ tagNumber: cow.tagNumber });
+    const theirView = page.observations.find((one) => one.id === seen.id);
+    expect(theirView?.sawLabel).toBe("খোঁড়াচ্ছে");
+    expect(theirView?.diagnoses).toEqual([]);
+    expect(page.diagnoses).toEqual([]);
   });
 });

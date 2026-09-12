@@ -11,8 +11,10 @@ import { scratchDb } from "./database";
 
 /** The four Roles the roles matrix names. */
 export type Role = "owner" | "manager" | "staff" | "vet";
-/** A Role, or a signed-in person who holds none ("newcomer"). */
-export type Principal = Role | "newcomer";
+/** A Role, a signed-in person who holds none ("newcomer"), or a second person holding a
+ *  Role somebody else already holds ("otherVet") — a farm has more than one Vet, and the
+ *  clinical record is each Vet's own. */
+export type Principal = Role | "newcomer" | "otherVet";
 
 export const TEST_FARM = { id: "test-farm", name: "পরীক্ষা খামার" } as const;
 
@@ -30,6 +32,21 @@ const PEOPLE: Record<Principal, { id: string; name: string; email: string }> = {
     name: "নতুন",
     email: "newcomer@test.openfarm",
   },
+  otherVet: {
+    id: "test-other-vet",
+    name: "ডা. সালমা",
+    email: "othervet@test.openfarm",
+  },
+};
+
+/** Which Role each Principal holds on the Farm. Null for the newcomer, who holds none. */
+const ROLE_OF: Record<Principal, Role | null> = {
+  owner: "owner",
+  manager: "manager",
+  staff: "staff",
+  vet: "vet",
+  otherVet: "vet",
+  newcomer: null,
 };
 
 const SESSION_LIFETIME = 7 * DAY;
@@ -65,16 +82,17 @@ export const createTestPrincipal = async (
     throw new Error(`test harness: could not seed or find user ${person.id}`);
   }
 
-  if (role !== "newcomer") {
+  const held = ROLE_OF[role];
+  if (held) {
     await db
       .insert(roleAssignment)
       .values({
-        id: `role-${person.id}-${role}`,
+        id: `role-${person.id}-${held}`,
         farmId: TEST_FARM.id,
         userId: person.id,
-        role,
+        role: held,
         grantedBy: person.id,
-        grantedByRole: role,
+        grantedByRole: held,
         createdAt: now,
       })
       .onConflictDoNothing();

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "d8032c45-f53f-49ab-b55b-b08a69f6b3a8",
+  "id": "61585ec9-9602-4190-a3ca-2173d4f98ba3",
   "prevIds": [
     "5ecca9d7-ee09-46d6-accd-2d3035dd3054"
   ],
@@ -1995,7 +1995,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "condition",
+      "name": "disease",
       "entityType": "columns",
       "schema": "public",
       "table": "diagnosis"
@@ -2008,7 +2008,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "condition_en",
+      "name": "disease_en",
       "entityType": "columns",
       "schema": "public",
       "table": "diagnosis"
