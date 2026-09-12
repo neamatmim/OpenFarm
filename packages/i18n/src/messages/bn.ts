@@ -614,7 +614,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.effect.pregnancy_check": "গর্ভ পরীক্ষা",
   "event.service": "গাভীকে পাল দেওয়া হলে (খামারের নির্ধারিত দিন পরে পরীক্ষা)",
   "refusal.vetOnly": "এটি ভেটের কাজ",
-  "refusal.checkOfACowNotServed": "তাকে পাল দেওয়া হয়নি, তাই পরীক্ষার কিছু নেই",
+  "refusal.checkWithoutAService": "গর্ভ পরীক্ষা তার শেষ পাল দেওয়ার কাজ থেকেই রেকর্ড হয়",
   "refusal.serviceAlreadyChecked":
     "ভেট এই পাল দেওয়া পরীক্ষা করেছেন; আগে পরীক্ষাটি ঠিক করুন",
   "pregnancy.title": "গর্ভ পরীক্ষার রেকর্ড",
@@ -622,7 +622,7 @@ export const bn: Record<MessageKey, string> = {
   "pregnancy.negative": "গর্ভবতী নয়",
   "pregnancy.ofService": "{when} তারিখের পাল দেওয়ার",
   "pregnancy.expectedCalving": "সম্ভাব্য বাচ্চা দেওয়ার দিন: {when}",
-  "pregnancy.failedAttempts": "যে পাল দেওয়া কাজে লাগেনি: {count}",
+  "pregnancy.failedAttempts": "যে গরমে পাল দিয়ে কাজ হয়নি: {count}",
   "heat.work": "পাল দেওয়ার কাজ",
   "heat.title": "গরম হওয়ার রেকর্ড",
   "heat.seen": "গরম দেখা গেছে",

@@ -1088,8 +1088,6 @@ const DestinationChoice = ({
   );
 };
 
-/** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
- *  control — confirming the Step is the tick. */
 /** Two digits, as a date field writes a month, a day, an hour or a minute. */
 const twoDigits = (part: number) => String(part).padStart(2, "0");
 
@@ -1105,6 +1103,8 @@ const asLocalField = (value: boolean | number | string | undefined): string => {
   return `${at.getFullYear()}-${twoDigits(at.getMonth() + 1)}-${twoDigits(at.getDate())}T${twoDigits(at.getHours())}:${twoDigits(at.getMinutes())}`;
 };
 
+/** One piece of Evidence: a big number pad, a note, a choice, or the camera. A tick needs no
+ *  control — confirming the Step is the tick. */
 const EvidenceControl = ({
   evidence,
   language,

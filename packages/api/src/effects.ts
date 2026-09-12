@@ -31,8 +31,8 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import {
-  attemptToCheck,
-  closeChecksNoLongerCalledFor,
+  attemptThatRaisedWork,
+  closeWorkOfAttemptsNoLongerStanding,
   rederivePregnancy,
 } from "./breeding-store";
 import { feedingTargetForPen } from "./feed-store";
@@ -45,12 +45,7 @@ import {
   recordMove,
   requirePen,
 } from "./herd-store";
-import {
-  attemptThatRaised,
-  heatKeyOf,
-  heatThatRaised,
-  isOnTheFarm,
-} from "./instances-store";
+import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
 import {
   ensureSession,
   reReconcile,
@@ -841,21 +836,34 @@ const textAt = (evidence: unknown[], position: number): string | null => {
 };
 
 /**
- * What a service changed further down the chain. A day corrected, or a first service taken back,
- * moves the attempt: the check raised on the old day is closed, and a check already made of it
- * counts from the day as it now stands.
+ * Works her pregnancy out again after something under it changed. Only the caller knows whether that
+ * change was a positive being put right.
+ */
+const rederiveFor = (
+  tx: Tx,
+  input: EffectInput,
+  cowId: string,
+  undoingPositive: boolean
+) =>
+  rederivePregnancy(tx, cowId, {
+    gestationDays: input.gestationDays,
+    at: input.recordedAt,
+    now: input.now,
+    undoingPositive,
+  });
+
+/**
+ * What a service changed further down the chain. A day corrected, a first service taken back, or a
+ * new heat served moves her latest attempt: work raised by one that no longer stands is closed, and
+ * a check already made counts from the day as it now stands.
  */
 const breedingFollowsService = async (
   tx: Tx,
   input: EffectInput,
   cowId: string
 ) => {
-  await closeChecksNoLongerCalledFor(tx, input.instance.farmId, cowId);
-  await rederivePregnancy(tx, cowId, {
-    gestationDays: input.gestationDays,
-    at: input.recordedAt,
-    now: input.now,
-  });
+  await closeWorkOfAttemptsNoLongerStanding(tx, input.instance.farmId, cowId);
+  await rederiveFor(tx, input, cowId, false);
 };
 
 /**
@@ -1015,10 +1023,11 @@ const applyServiceEffect = async (
  * Owner and the Manager — and both of those may step into any shift, so the Step's own gate lets
  * them in and the effect asks. Whether a cow is carrying is a clinical finding.
  *
- * Of an attempt, not of a service: the work a Service raised says which, and a Vet walking a Pen
- * checks each cow's latest. A positive makes a Heifer a Pregnant Heifer and sets Expected Calving
- * from the attempt's first service; a negative is kept — a run of them is a Repeat Breeder — and
- * takes nothing from her. Both are worked out from the checks, never typed.
+ * Of an attempt, not of a service, and only on the work that attempt raised: which of her heats a
+ * pregnancy dates from is the farm's to know, not the Vet's to guess. A positive makes a Heifer a
+ * Pregnant Heifer and sets Expected Calving from the attempt's first service; a negative is kept — a
+ * run of them is a Repeat Breeder — and takes nothing from her. Both are worked out from the checks,
+ * never typed.
  */
 const applyPregnancyCheckEffect = async (
   tx: Tx,
@@ -1030,25 +1039,16 @@ const applyPregnancyCheckEffect = async (
       reason: "vet_only",
     });
   }
-  const cowId = input.animalId ?? input.instance.animalId;
-  if (!cowId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "A pregnancy check is recorded about one cow, and this work is about none",
-    });
-  }
+  const cowId = input.instance.animalId;
   const standing = await tx.query.pregnancyCheck.findFirst({
     where: { completionId: input.completionId },
-    columns: { id: true },
+    columns: { id: true, serviceId: true, result: true },
   });
+  const wasPositive = standing?.result === "positive";
   if (input.skipped) {
-    if (standing) {
+    if (standing && cowId) {
       await tx.delete(pregnancyCheck).where(eq(pregnancyCheck.id, standing.id));
-      await rederivePregnancy(tx, cowId, {
-        gestationDays: input.gestationDays,
-        at: input.recordedAt,
-        now: input.now,
-      });
+      await rederiveFor(tx, input, cowId, wasPositive);
     }
     return null;
   }
@@ -1063,15 +1063,17 @@ const applyPregnancyCheckEffect = async (
       message: `"${result}" is not something a pregnancy check finds`,
     });
   }
-  const attempt = await attemptToCheck(
-    tx,
-    cowId,
-    attemptThatRaised(input.instance.cause)
-  );
-  if (!attempt) {
+  // A correction keeps the attempt the check was made of, even if she has been served since.
+  const raisedBy =
+    standing || !cowId
+      ? null
+      : await attemptThatRaisedWork(tx, cowId, input.instance.cause);
+  const serviceId = standing?.serviceId ?? raisedBy?.id;
+  if (!(cowId && serviceId)) {
     throw new ORPCError("BAD_REQUEST", {
-      message: "She has not been served, so there is nothing to check",
-      data: { refusal: "check_of_a_cow_not_served" },
+      message:
+        "A pregnancy check is of the service that raised it, and this work was not raised by her latest",
+      data: { refusal: "check_without_a_service" },
     });
   }
 
@@ -1079,7 +1081,7 @@ const applyPregnancyCheckEffect = async (
     farmId: input.instance.farmId,
     animalId: cowId,
     completionId: input.completionId,
-    serviceId: attempt.id,
+    serviceId,
     result,
     checkedAt: input.recordedAt,
     recordedBy: input.recordedBy,
@@ -1092,11 +1094,7 @@ const applyPregnancyCheckEffect = async (
     : tx
         .insert(pregnancyCheck)
         .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
-  await rederivePregnancy(tx, cowId, {
-    gestationDays: input.gestationDays,
-    at: input.recordedAt,
-    now: input.now,
-  });
+  await rederiveFor(tx, input, cowId, wasPositive && result === "negative");
   return { kind: "pregnancy_check", result };
 };
 

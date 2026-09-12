@@ -134,6 +134,64 @@ export const isPregnancyCheckResult = (
 ): value is PregnancyCheckResult =>
   (PREGNANCY_CHECK_RESULTS as readonly string[]).includes(value);
 
+/**
+ * The attempt a service belongs to: the first service of the heat it was given in — itself, or the
+ * latest attempt begun before it.
+ */
+export const attemptOf = <
+  Served extends { id: string; animalId: string; servedAt: Date },
+>(
+  services: Served[],
+  serviceId: string
+): Served | null => {
+  const one = services.find((each) => each.id === serviceId);
+  if (!one) {
+    return null;
+  }
+  return (
+    attemptsThatBegin(
+      services.filter((each) => each.animalId === one.animalId)
+    ).findLast((attempt) => attempt.servedAt <= one.servedAt) ?? null
+  );
+};
+
+/**
+ * How many of her attempts did not take — what a Repeat Breeder is counted from.
+ *
+ * An attempt failed when the Vet's latest word on it is negative, or when nobody found her carrying
+ * from it and she was served again: a cow back in heat three weeks later has answered the question
+ * before the Vet was due to ask it. One attempt is one failure however many times she was served in
+ * that heat. An attempt still waiting for its check has not failed yet.
+ */
+export const failedAttempts = (
+  /** One cow's services, the ones that did not take included. */
+  services: { id: string; animalId: string; servedAt: Date }[],
+  checks: {
+    id: string;
+    serviceId: string;
+    result: PregnancyCheckResult;
+    checkedAt: Date;
+  }[]
+): number => {
+  const attempts = attemptsThatBegin(services);
+  const latestWord = new Map<string, PregnancyCheckResult>();
+  const newestFirst = checks.toSorted(
+    (a, b) =>
+      b.checkedAt.getTime() - a.checkedAt.getTime() || b.id.localeCompare(a.id)
+  );
+  for (const check of newestFirst) {
+    const attempt = attemptOf(services, check.serviceId);
+    if (attempt && !latestWord.has(attempt.id)) {
+      latestWord.set(attempt.id, check.result);
+    }
+  }
+  return attempts.filter((attempt, index) => {
+    const word = latestWord.get(attempt.id);
+    const servedAgain = index < attempts.length - 1;
+    return word === "negative" || (word === undefined && servedAgain);
+  }).length;
+};
+
 const DAY_MS = 24 * HOUR_MS;
 
 /**

@@ -618,8 +618,8 @@ export const en = {
   "event.service":
     "A cow is served (the check falls due the farm's days later)",
   "refusal.vetOnly": "This is the Vet's to record",
-  "refusal.checkOfACowNotServed":
-    "She has not been served, so there is nothing to check",
+  "refusal.checkWithoutAService":
+    "A pregnancy check is recorded on the work her latest service raised",
   "refusal.serviceAlreadyChecked":
     "The Vet has checked this service; correct the check first",
   "pregnancy.title": "Pregnancy checks",
@@ -627,7 +627,7 @@ export const en = {
   "pregnancy.negative": "Not carrying",
   "pregnancy.ofService": "Of the service on {when}",
   "pregnancy.expectedCalving": "Expected calving: {when}",
-  "pregnancy.failedAttempts": "Services that did not take: {count}",
+  "pregnancy.failedAttempts": "Heats served that did not take: {count}",
   "heat.work": "AI work",
   "heat.title": "Heats",
   "heat.seen": "Seen in heat",

@@ -22,6 +22,7 @@ import {
   SIDES,
   STATES,
   canTransition,
+  failedAttempts,
   lactationView,
   mayCorrect,
   withdrawalView,
@@ -182,8 +183,9 @@ const servicesOf = async (db: Database, animalId: string) => {
 
 /**
  * Her Pregnancy Checks, newest first, each with the first service of the attempt it checked — and how
- * many attempts the Vet found had not taken, which is what the Repeat Breeder flag will count.
- * Counted by attempt, so a heat served twice and found empty is one failure.
+ * many of her attempts did not take, which is what the Repeat Breeder flag will count. Counted by
+ * attempt, so a heat served twice and found empty is one failure, and a cow served again before her
+ * check came is one too.
  */
 const pregnancyChecksOf = async (db: Database, animalId: string) => {
   const checks = await db.query.pregnancyCheck.findMany({
@@ -192,22 +194,16 @@ const pregnancyChecksOf = async (db: Database, animalId: string) => {
     columns: { id: true, result: true, checkedAt: true, serviceId: true },
     with: { service: { columns: { servedAt: true } } },
   });
-  // The latest finding about each attempt is the one that stands: a Vet who looks again and finds
-  // her carrying has not recorded a failure.
-  const latestByAttempt = new Map<string, string>();
-  for (const check of checks) {
-    if (!latestByAttempt.has(check.serviceId)) {
-      latestByAttempt.set(check.serviceId, check.result);
-    }
-  }
+  const services = await db.query.service.findMany({
+    where: { animalId },
+    columns: { id: true, animalId: true, servedAt: true },
+  });
   return {
     pregnancyChecks: checks.map(({ service, ...check }) => ({
       ...check,
       firstServedAt: service.servedAt,
     })),
-    failedAttempts: [...latestByAttempt.values()].filter(
-      (result) => result === "negative"
-    ).length,
+    failedAttempts: failedAttempts(services, checks),
   };
 };
 

@@ -41,7 +41,7 @@ export const refusalMessage = (
  * at the animal and the server's English is not for them.
  */
 const WORDED_REFUSALS = {
-  check_of_a_cow_not_served: "refusal.checkOfACowNotServed",
+  check_without_a_service: "refusal.checkWithoutAService",
   manager_only: "refusal.managerOnly",
   no_such_bull: "refusal.noSuchBull",
   service_needs_technician: "refusal.serviceNeedsTechnician",

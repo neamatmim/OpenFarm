@@ -1,4 +1,9 @@
-import type { Disposal, MortalityKind, TargetWindow } from "@OpenFarm/domain";
+import type {
+  Disposal,
+  MortalityKind,
+  PregnancyCheckResult,
+  TargetWindow,
+} from "@OpenFarm/domain";
 import {
   DISPOSALS,
   MORTALITY_KINDS,
@@ -602,7 +607,7 @@ const HerPregnancyChecks = ({
 }: {
   checks: {
     id: string;
-    result: "positive" | "negative";
+    result: PregnancyCheckResult;
     checkedAt: Date;
     firstServedAt: Date;
   }[];

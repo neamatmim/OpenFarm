@@ -114,12 +114,6 @@ export const attemptKeyOf = (served: { id: string; servedAt: Date }): string =>
 /** Every attempt's key begins so: how the work an attempt raised is found among a cow's work. */
 export const ATTEMPT_KEY_PREFIX = `${SERVICE}:`;
 
-const ATTEMPT_CAUSE = /^service:(?<id>[^:]+):/u;
-
-/** Which first service's attempt raised a piece of work, or null when an attempt did not. */
-export const attemptThatRaised = (cause: string | null): string | null =>
-  (cause ? ATTEMPT_CAUSE.exec(cause)?.groups?.id : undefined) ?? null;
-
 export interface Happening {
   kind: FarmEvent | "state";
   /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
@@ -288,8 +282,6 @@ export const happeningSlotsFor = (
         ) {
           continue;
         }
-        // A Heat's work is timed by the hours a service takes, not by a whole number of days
-        // and not by the Version's own grace: both ends of that window are the farm's.
         const timing = timingOf(happening, offsetDays, sop.content, breeding);
         if (timing.dueAt < earliest) {
           continue;
@@ -321,7 +313,7 @@ export const recentHappenings = async (
   now: Date,
   /** How long after a service its check falls due, and so how far back a service that has yet to
    *  be checked can lie. */
-  pregnancyCheckAfterDays: number
+  { pregnancyCheckAfterDays }: Pick<BreedingTimes, "pregnancyCheckAfterDays">
 ): Promise<Happening[]> => {
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
   const animals = await db.query.animal.findMany({
@@ -366,9 +358,10 @@ export const recentHappenings = async (
     (heat) => heat.seenAt >= earliest
   );
 
-  // Attempts: the first service of each heat she was served in. Read far enough back that one whose
-  // check falls due today is still found, and a heat further, so its first service can be told
-  // from a second.
+  // Attempts: the first service of the latest heat she was served in. Read far enough back that one
+  // whose check falls due today is still found, and a heat further, so its first service can be told
+  // from a second. Only her latest: a cow served again has come back into heat, and the attempt before
+  // has answered its own question.
   const served = await db.query.service.findMany({
     where: {
       farmId,
@@ -383,18 +376,14 @@ export const recentHappenings = async (
     columns: { id: true, animalId: true, servedAt: true },
   });
 
-  // An attempt the Vet has already checked — on a round of the Pen, say, before its own check fell
-  // due — has had its check. Once per attempt.
-  const checks = await db.query.pregnancyCheck.findMany({
-    where: { farmId, serviceId: { in: served.map((one) => one.id) } },
-    columns: { serviceId: true },
-  });
-  const checked = new Set(checks.map((check) => check.serviceId));
+  const latestAttempts = new Map(
+    attemptsThatBegin(served).map((attempt) => [attempt.animalId, attempt])
+  );
 
   const happenings: Happening[] = [];
-  for (const attempt of attemptsThatBegin(served)) {
+  for (const attempt of latestAttempts.values()) {
     const beast = animalsById.get(attempt.animalId);
-    if (beast && !checked.has(attempt.id)) {
+    if (beast) {
       happenings.push({
         kind: SERVICE,
         key: attemptKeyOf(attempt),

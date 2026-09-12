@@ -110,7 +110,7 @@ const checkSop = (): SopContent => ({
 });
 
 const setup = async () => {
-  const clock = new FakeClock("2028-01-01T00:00:00.000Z");
+  const clock = new FakeClock("2030-01-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
   const shed = await owner.client.herd.createShed({ name: `pd-${suffix}` });
   const pen = await owner.client.herd.createPen({
@@ -118,7 +118,7 @@ const setup = async () => {
     name: `গর্ভ ${suffix}`,
   });
   const cows = [];
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 5; index += 1) {
     cows.push(
       // oxlint-disable-next-line no-await-in-loop
       await owner.client.animals.register({
@@ -213,7 +213,8 @@ const workFor = async (
 const heatAndServe = async (
   day: string,
   tagNumber: string,
-  servedAt: string[]
+  servedAt: string[],
+  { onShedPhone = false }: { onShedPhone?: boolean } = {}
 ): Promise<string> => {
   const clock = new FakeClock(`${day}T00:00:00.000Z`);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
@@ -245,6 +246,7 @@ const heatAndServe = async (
   const serving = await createTestClient(appRouter, {
     as: "manager",
     clock: later,
+    onShedPhone,
   });
   await serving.client.instances.claim({ id: workId });
   await serving.client.instances.completeStep({
@@ -271,14 +273,14 @@ const heatAndServe = async (
 describe("the pregnancy check", () => {
   it("raises one check for a heat served twice, due from the first service", async () => {
     // Served at 12:00 and again at 20:00 on 2 January — one heat, one attempt.
-    await heatAndServe("2028-01-02", tagOf(0), [
-      "2028-01-02T12:00:00.000Z",
-      "2028-01-02T20:00:00.000Z",
+    await heatAndServe("2030-01-02", tagOf(0), [
+      "2030-01-02T12:00:00.000Z",
+      "2030-01-02T20:00:00.000Z",
     ]);
 
     const her = await createTestClient(appRouter, {
       as: "manager",
-      clock: new FakeClock("2028-01-03T00:00:00.000Z"),
+      clock: new FakeClock("2030-01-03T00:00:00.000Z"),
     });
     const record = await her.client.animals.byTag({ tagNumber: tagOf(0) });
     // Both services are kept.
@@ -288,18 +290,18 @@ describe("the pregnancy check", () => {
     // raised by the second service — served on the farm's next day — would be late as well: one
     // check, not two.
     const { rows } = await workFor(
-      "2028-02-18T03:00:00.000Z",
+      "2030-02-18T03:00:00.000Z",
       world.check.definitionId,
       tagOf(0)
     );
     expect(rows).toHaveLength(1);
     // Due on the farm's day forty-five days on — midnight in Dhaka is 18:00 the day before.
-    expect(rows[0]?.dueAt.toISOString()).toBe("2028-02-15T18:00:00.000Z");
+    expect(rows[0]?.dueAt.toISOString()).toBe("2030-02-15T18:00:00.000Z");
   });
 
   it("sets Expected Calving and makes a heifer a Pregnant Heifer when she is carrying", async () => {
     const { rows, client } = await workFor(
-      "2028-02-18T04:00:00.000Z",
+      "2030-02-18T04:00:00.000Z",
       world.check.definitionId,
       tagOf(0),
       "vet"
@@ -314,22 +316,40 @@ describe("the pregnancy check", () => {
 
     const manager = await createTestClient(appRouter, {
       as: "manager",
-      clock: new FakeClock("2028-02-18T05:00:00.000Z"),
+      clock: new FakeClock("2030-02-18T05:00:00.000Z"),
     });
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(her.state).toBe("pregnant_heifer");
     // Worked out from the first service, never typed: 12:00 on 2 January plus 283 days.
     const expected = new Date(
-      new Date("2028-01-02T12:00:00.000Z").getTime() + 283 * DAY
+      new Date("2030-01-02T12:00:00.000Z").getTime() + 283 * DAY
     );
     expect(her.expectedCalvingAt?.toISOString()).toBe(expected.toISOString());
     expect(her.pregnancyChecks[0]).toMatchObject({ result: "positive" });
   });
 
-  it("counts a negative check as a failed attempt and leaves her to heat watch", async () => {
-    await heatAndServe("2028-01-05", tagOf(1), ["2028-01-05T12:00:00.000Z"]);
+  it("counts a heat served twice and found empty as one failed attempt", async () => {
+    // Served twice, across the farm's midnight, from the Shed Phone.
+    const aiWork = await heatAndServe(
+      "2030-01-05",
+      tagOf(1),
+      ["2030-01-05T12:00:00.000Z", "2030-01-05T19:00:00.000Z"],
+      { onShedPhone: true }
+    );
+    const office = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2030-01-06T00:00:00.000Z"),
+    });
+    const board = await office.client.instances.get({ id: aiWork });
+    // The trail says which phone, and the record says it was the Manager's.
+    expect(
+      board.completions
+        .filter((row) => row.stepId !== "look")
+        .map((row) => row.deviceId)
+    ).toEqual(["test-shed-phone", "test-shed-phone"]);
+
     const { rows, client } = await workFor(
-      "2028-02-19T04:00:00.000Z",
+      "2030-02-19T04:00:00.000Z",
       world.check.definitionId,
       tagOf(1),
       "vet"
@@ -344,21 +364,72 @@ describe("the pregnancy check", () => {
 
     const manager = await createTestClient(appRouter, {
       as: "manager",
-      clock: new FakeClock("2028-02-19T05:00:00.000Z"),
+      clock: new FakeClock("2030-02-19T05:00:00.000Z"),
     });
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
-    // Nothing she has is taken away: she is still a heifer, with no calving to expect.
+    // Nothing she has is taken away: she is still a heifer — on heat watch, as every heifer is — with
+    // no calving to expect. And two services that did not take are one failure.
     expect(her.state).toBe("heifer");
     expect(her.expectedCalvingAt).toBeNull();
+    expect(her.services).toHaveLength(2);
+    expect(her.failedAttempts).toBe(1);
+  });
+
+  it("closes the check of an attempt she came back into heat from, and counts it failed", async () => {
+    await heatAndServe("2030-01-14", tagOf(4), ["2030-01-14T12:00:00.000Z"]);
+    // Three weeks on she is in heat again and served: the first attempt did not take.
+    await heatAndServe("2030-02-04", tagOf(4), ["2030-02-04T12:00:00.000Z"]);
+
+    const { rows, client } = await workFor(
+      "2030-03-21T03:00:00.000Z",
+      world.check.definitionId,
+      tagOf(4)
+    );
+    // Only the latest attempt's check: 4 February and forty-five days is the farm's 21 March. The one
+    // raised for 14 January — due 28 February, and late by now — went when she was served again.
+    expect(rows.map((row) => row.dueAt.toISOString())).toEqual([
+      "2030-03-20T18:00:00.000Z",
+    ]);
+    const her = await client.client.animals.byTag({ tagNumber: tagOf(4) });
+    expect(her.failedAttempts).toBe(1);
+  });
+
+  it("keeps a confirmed pregnancy when a later check disagrees", async () => {
+    // She was found carrying from 2 January. Served again on 1 March — a heat nobody should have
+    // served — and that attempt, checked, is negative.
+    await heatAndServe("2030-03-01", tagOf(0), ["2030-03-01T12:00:00.000Z"]);
+    const { rows, client } = await workFor(
+      "2030-04-15T04:00:00.000Z",
+      world.check.definitionId,
+      tagOf(0),
+      "vet"
+    );
+    const workId = rows[0]?.id ?? "";
+    await client.client.instances.claim({ id: workId });
+    await client.client.instances.completeStep({
+      instanceId: workId,
+      stepId: "check",
+      evidence: ["negative"],
+    });
+
+    const her = await client.client.animals.byTag({ tagNumber: tagOf(0) });
+    // Losing a confirmed pregnancy is an Abortion, recorded as one. A check that disagrees takes
+    // nothing from her.
+    expect(her.state).toBe("pregnant_heifer");
+    expect(her.expectedCalvingAt?.toISOString()).toBe(
+      new Date(
+        new Date("2030-01-02T12:00:00.000Z").getTime() + 283 * DAY
+      ).toISOString()
+    );
     expect(her.failedAttempts).toBe(1);
   });
 
   it("moves the check when the day she was served is put right", async () => {
     // Written up as the 11th, and the check it raises is due on the farm's 25 February.
-    const workId = await heatAndServe("2028-01-11", tagOf(3), [
-      "2028-01-11T12:00:00.000Z",
+    const workId = await heatAndServe("2030-01-11", tagOf(3), [
+      "2030-01-11T12:00:00.000Z",
     ]);
-    const nextDay = "2028-01-12T03:00:00.000Z";
+    const nextDay = "2030-01-12T03:00:00.000Z";
     const before = await workFor(nextDay, world.check.definitionId, tagOf(3));
     expect(before.rows).toHaveLength(0);
 
@@ -371,24 +442,24 @@ describe("the pregnancy check", () => {
     const entry = board.completions.find((row) => row.stepId === "first");
     await manager.client.instances.correctStep({
       completionId: entry?.id ?? "",
-      evidence: ["ai", "HF-2231-BD", "রহিম", "2028-01-10T12:00:00.000Z"],
+      evidence: ["ai", "HF-2231-BD", "রহিম", "2030-01-10T12:00:00.000Z"],
       reason: "তারিখ ভুল লেখা হয়েছিল",
     });
 
     const { rows } = await workFor(
-      "2028-02-26T03:00:00.000Z",
+      "2030-02-26T03:00:00.000Z",
       world.check.definitionId,
       tagOf(3)
     );
     // One check, on the corrected day — the one raised on the wrong day went with it.
     expect(rows.map((row) => row.dueAt.toISOString())).toEqual([
-      "2028-02-23T18:00:00.000Z",
+      "2030-02-23T18:00:00.000Z",
     ]);
   });
 
   it("is the Vet's alone to record", async () => {
-    await heatAndServe("2028-01-08", tagOf(2), ["2028-01-08T12:00:00.000Z"]);
-    const at = "2028-02-22T04:00:00.000Z";
+    await heatAndServe("2030-01-08", tagOf(2), ["2030-01-08T12:00:00.000Z"]);
+    const at = "2030-02-22T04:00:00.000Z";
     const { rows } = await workFor(at, world.check.definitionId, tagOf(2));
     const workId = rows[0]?.id ?? "";
     const clock = new FakeClock(at);
@@ -420,5 +491,59 @@ describe("the pregnancy check", () => {
         evidence: ["positive"],
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("will not publish a check the clock raises, or one handed to anybody but the Vet", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    // Raised over a Pen at six in the morning, a check would be of no service at all.
+    await expect(
+      owner.client.sops.create({
+        content: {
+          ...checkSop(),
+          name: { bn: `ভুল গর্ভ পরীক্ষা ${suffix}` },
+          triggers: [{ kind: "schedule", times: ["06:00"] }],
+        },
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      owner.client.sops.create({
+        content: {
+          ...checkSop(),
+          name: { bn: `ম্যানেজারের গর্ভ পরীক্ষা ${suffix}` },
+          assignedRole: "manager",
+        },
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("puts a mistaken positive right when the Vet corrects it", async () => {
+    // The check the refusals above left waiting for the Vet.
+    const at = "2030-02-22T05:00:00.000Z";
+    const { rows, client } = await workFor(
+      at,
+      world.check.definitionId,
+      tagOf(2),
+      "vet"
+    );
+    const workId = rows[0]?.id ?? "";
+    await client.client.instances.claim({ id: workId });
+    await client.client.instances.completeStep({
+      instanceId: workId,
+      stepId: "check",
+      evidence: ["positive"],
+    });
+    const carrying = await client.client.animals.byTag({ tagNumber: tagOf(2) });
+    expect(carrying.state).toBe("pregnant_heifer");
+
+    const board = await client.client.instances.get({ id: workId });
+    const entry = board.completions.find((row) => row.stepId === "check");
+    await client.client.instances.correctStep({
+      completionId: entry?.id ?? "",
+      evidence: ["negative"],
+      reason: "ভুল গাভী দেখা হয়েছিল",
+    });
+    const her = await client.client.animals.byTag({ tagNumber: tagOf(2) });
+    expect(her.state).toBe("heifer");
+    expect(her.expectedCalvingAt).toBeNull();
   });
 });

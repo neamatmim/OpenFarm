@@ -75,8 +75,6 @@ export const emptyHappening = (): HappeningTrigger => ({
   event: "move",
 });
 
-/** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
- *  Move, an empty list for the Owner to fill in for a Sighting, a figure for the rest. */
 /** The four things a Service Step asks, in the order the record reads them (SERVICE_EVIDENCE). The
  *  method's labels are the farm's words and may be reworded; its values may not. */
 const SERVICE_STEP_EVIDENCE: Evidence[] = [
@@ -115,6 +113,8 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   return kind === "treatment" ? "tick" : "number";
 };
 
+/** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
+ *  Move, an empty list for the Owner to fill in for a Sighting, a figure for the rest. */
 const fittedEvidence = (
   kind: StepEffect["kind"],
   current: Evidence | undefined,
@@ -173,7 +173,10 @@ export const withEffect = (
       ...step,
       repeatPerAnimal: false,
       effect: { kind },
-      evidence: [...SERVICE_STEP_EVIDENCE, ...step.evidence.slice(4)],
+      evidence: [
+        ...SERVICE_STEP_EVIDENCE,
+        ...step.evidence.slice(SERVICE_STEP_EVIDENCE.length),
+      ],
     };
   }
   if (kind === "pregnancy_check") {

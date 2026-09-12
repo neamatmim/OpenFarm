@@ -150,9 +150,11 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **AI Window**: The hours after a Heat is seen within which a service takes — by default twelve to eighteen. A Farm Parameter, because how soon a technician reaches the farm is this farm's fact and not a fact about cattle. _Avoid_: Service window, breeding window
 
-**Service**: A recorded insemination — AI (semen straw) or natural (bull) — with date, sire, and who did it. Recorded by the Manager alone, as the Step of the AI work its Heat raised, so the service *is* that work done rather than something closed beside it. A natural service names a bull standing on this farm. A cow served twice in one heat has had one attempt, not two: the Pregnancy Check counts from the first, and if neither took that is one failure. The ones that did not take are kept: a run of them is what makes a Repeat Breeder. _Avoid_: Breeding (the whole area), mating, insemination (AI only)
+**Service**: A recorded insemination — AI (semen straw) or natural (bull) — with date, sire, and who did it. Recorded by the Manager alone, as the Step of the AI work its Heat raised, so the service *is* that work done rather than something closed beside it. A natural service names a bull standing on this farm. The ones that did not take are kept: a run of them is what makes a Repeat Breeder. _Avoid_: Breeding (the whole area), mating, insemination (AI only)
 
-**Pregnancy Check**: The Vet's recorded result, positive or negative, of a heat's services — due a Farm Parameter's days (45 by default) after the first, once however many times she was served. The Vet's alone. Positive sets the Expected Calving and makes a Heifer a Pregnant Heifer; a negative is kept and takes nothing from her. _Avoid_: PD (fine in speech), scan, confirmation
+**Attempt**: The services of one heat — one, or two when she is served again a few hours later. The Pregnancy Check is of an Attempt and counts from its first service, and one that did not take is one failure however many times she was served. An Attempt followed by another before anybody found her carrying did not take: she came back into heat. _Avoid_: Cycle, try, breeding
+
+**Pregnancy Check**: The Vet's recorded result, positive or negative, of an Attempt — due a Farm Parameter's days (45 by default) after its first service, once per Attempt, and only for her latest. The Vet's alone. Positive sets the Expected Calving and makes a Heifer a Pregnant Heifer; a negative is kept and takes nothing from her. _Avoid_: PD (fine in speech), scan, confirmation
 
 **Expected Calving**: The first service of the heat a positive Pregnancy Check found her carrying from, plus the gestation length (a Farm Parameter, 283 days by default). Worked out and re-worked whenever what it counts from changes, never typed. Drives the Dry-off and Calving-prep SOPs. _Avoid_: Due date, calving date (that's the actual Calving)
 
@@ -160,7 +162,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Abortion**: The recorded loss of a pregnancy before Calving: date, stage, Vet note. Clears the pregnancy. _Avoid_: Miscarriage, loss
 
-**Repeat Breeder**: A flag the system raises on a cow after a threshold of failed Services (default 3), counted by heat — two services in one heat that did not take are one failure. A prompt for a human decision, never an automatic State change. _Avoid_: Infertile, cull candidate
+**Repeat Breeder**: A flag the system raises on a cow after a threshold of failed Services (default 3), counted by Attempt — two services in one heat that did not take are one failure. A prompt for a human decision, never an automatic State change. _Avoid_: Infertile, cull candidate
 
 ## Feed
 

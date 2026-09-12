@@ -3,6 +3,7 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
   OPEN_INSTANCE_STATES,
+  attemptOf,
   attemptsThatBegin,
   expectedCalvingFrom,
 } from "@OpenFarm/domain";
@@ -16,68 +17,56 @@ interface Served {
   servedAt: Date;
 }
 
-/** Every service she has had, oldest first — the ones that did not take included. */
-const servicesOf = (tx: Tx, animalId: string): Promise<Served[]> =>
+/** Every service one cow has had, oldest first — the ones that did not take included. */
+const everyServiceOf = (tx: Tx, animalId: string): Promise<Served[]> =>
   tx.query.service.findMany({
     where: { animalId },
     columns: { id: true, animalId: true, servedAt: true },
     orderBy: { servedAt: "asc", id: "asc" },
   });
 
-/**
- * The attempt a service belongs to: the first service of the heat it was given in. A service is
- * the start of its own attempt, or the second of the latest attempt begun before it.
- */
-export const attemptOf = (
-  services: Served[],
-  serviceId: string
-): Served | null => {
-  const one = services.find((each) => each.id === serviceId);
-  if (!one) {
-    return null;
-  }
-  return (
-    attemptsThatBegin(services).findLast(
-      (attempt) => attempt.servedAt <= one.servedAt
-    ) ?? null
-  );
+/** Her latest attempt, or none: the only one whose check is still worth making. */
+const latestAttemptOf = async (
+  tx: Tx,
+  animalId: string
+): Promise<Served | null> => {
+  const services = await everyServiceOf(tx, animalId);
+  return attemptsThatBegin(services).at(-1) ?? null;
 };
 
 /**
- * Which attempt a Pregnancy Check is of. The attempt that raised the work, while it still stands as
- * one; otherwise — a Vet walking a Pen of served cows — her latest attempt. Null when she has not
- * been served, which is a check of nothing.
+ * The attempt a piece of work was raised by, while it is still her latest and still stands as it was
+ * raised — or null. A check is of the attempt that raised it and nothing else: a Vet cannot tell at
+ * a glance which of her heats a pregnancy dates from, and the farm can.
  */
-export const attemptToCheck = async (
+export const attemptThatRaisedWork = async (
   tx: Tx,
   animalId: string,
-  raisedBy: string | null
+  cause: string | null
 ): Promise<Served | null> => {
-  // No service lies in the future: the Service refuses one.
-  const attempts = attemptsThatBegin(await servicesOf(tx, animalId));
-  return (
-    attempts.find((attempt) => attempt.id === raisedBy) ??
-    attempts.at(-1) ??
-    null
-  );
+  const latest = await latestAttemptOf(tx, animalId);
+  return latest && cause?.startsWith(`${attemptKeyOf(latest)}:`)
+    ? latest
+    : null;
 };
 
 /**
- * Closes the Pregnancy Checks no attempt calls for any more.
+ * Closes the work raised by attempts that no longer call for it.
  *
- * An attempt's check is raised under its first service and the day she was served. A Correction
- * that moves that day, or takes the first service back so that the second now begins the attempt,
- * leaves work raised on a day or a service that no longer stands — which would send the Vet on the
- * wrong day. Only open work: a check already done was done. The attempt as it now stands raises its
- * own on the next pass.
+ * Only her latest attempt's work is worth doing. A Correction that moves the day she was served, or
+ * takes the first service back so the second now begins the attempt, leaves work raised on a day or
+ * a service that no longer stands. And a cow served again has come back into heat: the attempt
+ * before has answered its own question, and its check would send the Vet to confirm a pregnancy
+ * that is not there. Only open work — anything already done was done. The attempt as it now stands
+ * raises its own on the next pass.
  */
-export const closeChecksNoLongerCalledFor = async (
+export const closeWorkOfAttemptsNoLongerStanding = async (
   tx: Tx,
   farmId: string,
   animalId: string
 ): Promise<void> => {
-  const services = await servicesOf(tx, animalId);
-  const standing = new Set(attemptsThatBegin(services).map(attemptKeyOf));
+  const latest = await latestAttemptOf(tx, animalId);
+  const standing = latest ? `${attemptKeyOf(latest)}:` : null;
   const open = await tx.query.sopInstance.findMany({
     where: {
       farmId,
@@ -88,8 +77,7 @@ export const closeChecksNoLongerCalledFor = async (
     columns: { id: true, cause: true },
   });
   const orphaned = open.filter(
-    (work) =>
-      ![...standing].some((key) => work.cause?.startsWith(`${key}:`) ?? false)
+    (work) => !(standing && work.cause?.startsWith(standing))
   );
   if (orphaned.length > 0) {
     await tx
@@ -108,36 +96,39 @@ export const closeChecksNoLongerCalledFor = async (
  * Works out, again, what her Pregnancy Checks say about her: when she is expected to calve, and
  * whether a heifer is carrying.
  *
- * Decided by her latest check, and never typed. Positive: Expected Calving is that attempt's first
- * service carried the farm's gestation on, and a Heifer is a Pregnant Heifer. Negative: nothing is
- * expected, and a Pregnant Heifer whose latest check says otherwise is a Heifer — which is how a
- * mistaken positive, corrected, is put back. A cow with no check at all is left as she is: a heifer
- * bought in carrying has her due date from her intake, not from a check this farm never made.
+ * A positive stands until something undoes it. Her latest positive check sets Expected Calving at
+ * its attempt's first service carried the farm's gestation on, and makes a Heifer a Pregnant
+ * Heifer. A negative takes nothing from her: losing a confirmed pregnancy is an Abortion, recorded as
+ * one, not a later check that happens to disagree. The one thing that does undo a positive is that
+ * positive being put right — corrected to negative, or taken back — and only the caller knows that.
+ * A cow with no positive check is otherwise left as she is: a heifer bought in carrying has her due
+ * date from her intake, not from a check this farm never made.
  */
 export const rederivePregnancy = async (
   tx: Tx,
   animalId: string,
-  { gestationDays, at, now }: { gestationDays: number; at: Date; now: Date }
+  {
+    gestationDays,
+    at,
+    now,
+    undoingPositive,
+  }: { gestationDays: number; at: Date; now: Date; undoingPositive: boolean }
 ): Promise<void> => {
-  const [latest] = await tx.query.pregnancyCheck.findMany({
-    where: { animalId },
-    columns: { result: true, serviceId: true },
+  const [positive] = await tx.query.pregnancyCheck.findMany({
+    where: { animalId, result: "positive" },
+    columns: { serviceId: true },
     orderBy: { checkedAt: "desc", id: "desc" },
     limit: 1,
   });
-  if (!latest) {
+  if (!(positive || undoingPositive)) {
     return;
   }
   const her = await tx.query.animal.findFirst({
     where: { id: animalId },
     columns: { state: true },
   });
-  const attempt =
-    latest.result === "positive"
-      ? attemptOf(await servicesOf(tx, animalId), latest.serviceId)
-      : null;
-  const expectedCalvingAt = attempt
-    ? expectedCalvingFrom(attempt.servedAt, gestationDays)
+  const attempt = positive
+    ? attemptOf(await everyServiceOf(tx, animalId), positive.serviceId)
     : null;
   let state = her?.state;
   if (attempt && state === "heifer") {
@@ -148,7 +139,9 @@ export const rederivePregnancy = async (
   await tx
     .update(animal)
     .set({
-      expectedCalvingAt,
+      expectedCalvingAt: attempt
+        ? expectedCalvingFrom(attempt.servedAt, gestationDays)
+        : null,
       ...(state && state !== her?.state ? { state, stateChangedAt: at } : {}),
       updatedAt: now,
     })

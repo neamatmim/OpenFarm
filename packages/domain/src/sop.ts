@@ -330,10 +330,16 @@ const serviceStepProblems = (step: Step, path: string): string[] => {
  * What a Pregnancy Check Step has to ask: what the Vet found, as a required choice offering exactly
  * `positive` and `negative`. Anything else the Vet wants to write sits after it.
  *
- * The Step may be per animal: the Vet walking a Pen of served cows is how a visit usually goes, as
- * well as work a Service raised about one.
+ * Not per animal: a check is of the attempt that raised it, and that work is about one cow. A Vet
+ * walking a Pen could not say which of a cow's heats a pregnancy dates from; the farm can.
  */
 const pregnancyCheckStepProblems = (step: Step, path: string): string[] => {
+  const problems: string[] = [];
+  if (step.repeatPerAnimal) {
+    problems.push(
+      `${path}: a pregnancy check is of one cow's service, not walked animal by animal`
+    );
+  }
   const [result] = step.evidence;
   const offered = result?.choices?.map((choice) => choice.value) ?? [];
   const exactlyTheResults =
@@ -341,11 +347,41 @@ const pregnancyCheckStepProblems = (step: Step, path: string): string[] => {
     result.required &&
     offered.length === PREGNANCY_CHECK_RESULTS.length &&
     PREGNANCY_CHECK_RESULTS.every((one) => offered.includes(one));
-  return exactlyTheResults
-    ? []
-    : [
-        `${path}.evidence[0]: a pregnancy check first asks what was found, as a required choice offering "positive" and "negative"`,
-      ];
+  if (!exactlyTheResults) {
+    problems.push(
+      `${path}.evidence[0]: a pregnancy check first asks what was found, as a required choice offering "positive" and "negative"`
+    );
+  }
+  return problems;
+};
+
+/**
+ * A procedure recording a Pregnancy Check is the Vet's (roles matrix: Breeding — PD is `C R U` to the
+ * Vet and read to everybody else), because whether she is carrying is a clinical finding. And it is
+ * raised by a Service and by nothing else: the check is of the attempt that raised it, and work the
+ * clock raised over a Pen would be a check of no service at all.
+ */
+const pregnancyCheckProcedureProblems = (content: SopContent): string[] => {
+  if (!content.steps.some((step) => step.effect?.kind === "pregnancy_check")) {
+    return [];
+  }
+  const problems: string[] = [];
+  if (content.assignedRole !== "vet") {
+    problems.push(
+      "assignedRole: a procedure that records a pregnancy check is the Vet's"
+    );
+  }
+  const raisedByAServiceAlone =
+    content.triggers.length > 0 &&
+    content.triggers.every(
+      (trigger) => trigger.kind === "event" && trigger.event === SERVICE
+    );
+  if (!raisedByAServiceAlone) {
+    problems.push(
+      "triggers: a procedure that records a pregnancy check is raised by a service, and by nothing else"
+    );
+  }
+  return problems;
 };
 
 const SHAPED_STEPS: Partial<
@@ -639,18 +675,17 @@ export const findStructuralProblems = (content: SopContent): string[] => {
       "assignedRole: a procedure that records a service is the Manager's"
     );
   }
-  // And a Pregnancy Check is the Vet's (roles matrix: Breeding — PD is `C R U` to the Vet and read
-  // to everybody else): whether she is carrying is a clinical finding.
-  if (
-    content.steps.some((step) => step.effect?.kind === "pregnancy_check") &&
-    content.assignedRole !== "vet"
-  ) {
-    problems.push(
-      "assignedRole: a procedure that records a pregnancy check is the Vet's"
-    );
-  }
+  problems.push(...pregnancyCheckProcedureProblems(content));
   return problems;
 };
+
+/**
+ * Whether a Step writes the clinical record — a finding only a Vet may make, and so one the Vet's
+ * correction window covers. A Pregnancy Check is; a dose given on a round is the farm's work, and
+ * the Diagnosis and Prescription behind it are corrected where they are made.
+ */
+export const isClinicalStep = (step: Step): boolean =>
+  step.effect?.kind === "pregnancy_check";
 
 /** Everything that stops a Version being published, in one list. */
 export const findPublishBlockers = (content: SopContent): string[] => [
