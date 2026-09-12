@@ -1,5 +1,10 @@
 export type { DateStyle } from "./format";
-export { formatDate, formatDigits, formatNumber } from "./format";
+export {
+  formatDate,
+  formatDayField,
+  formatDigits,
+  formatNumber,
+} from "./format";
 export type { Language } from "./languages";
 export {
   DEFAULT_LANGUAGE,

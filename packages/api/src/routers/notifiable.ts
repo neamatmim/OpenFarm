@@ -34,7 +34,13 @@ const readDisease = async (tx: Tx, id: string) => {
  */
 const buildLetter = async (
   context: Parameters<typeof audited>[0] & {
-    farm: { id: string; name: string };
+    farm: {
+      id: string;
+      name: string;
+      address: string | null;
+      phone: string | null;
+      registrationNumber: string | null;
+    };
     actor: { name: string };
   },
   diagnosisId: string
@@ -66,6 +72,9 @@ const buildLetter = async (
     reportId: found.report.id,
     text: notifiableLetter({
       farmName: context.farm.name,
+      farmAddress: context.farm.address,
+      farmPhone: context.farm.phone,
+      farmRegistrationNumber: context.farm.registrationNumber,
       tagNumber: found.animal.tagNumber,
       disease: found.disease,
       diagnosedOn: formatDate(found.diagnosedAt, "bn", "date"),

@@ -1,6 +1,12 @@
 /** What the letter to the Upazila Livestock Officer has to say, from what the farm knows. */
 export interface NotifiableLetter {
   farmName: string;
+  /** Where the farm is and how the office reaches it. Null until the farm has written it down —
+   *  the letter still goes, because a notifiable disease does not wait for paperwork. */
+  farmAddress: string | null;
+  farmPhone: string | null;
+  /** The DLS registration number, when the farm has one. The office's own file is keyed on it. */
+  farmRegistrationNumber: string | null;
   tagNumber: string;
   /** The Vet's own words for the disease — what the Diagnosis says, not a translation. */
   disease: string;
@@ -23,8 +29,9 @@ export interface NotifiableLetter {
  * says is only what the farm already knows: nothing here asks the Manager to type anything a
  * record could have told it.
  *
- * The Act requires the report in writing and without delay (Animal Disease Act 2005, s.3); the
- * farm's own registration number joins the heading when registration arrives (increment 7).
+ * The Act requires the report in writing and without delay (Animal Disease Act 2005, s.3). The
+ * farm's address, phone and registration number head the letter when it has written them down,
+ * and are simply left off when it has not — the notice must not wait for them.
  */
 export const notifiableLetter = (letter: NotifiableLetter): string => {
   // A notice with a blank farm, animal, disease or signatory is not a notice. Better to refuse
@@ -44,7 +51,18 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
       `the letter cannot be written without ${missing.map(([field]) => field).join(", ")}`
     );
   }
+  // The farm of origin, as the office files it. Each line appears only if the farm has the fact.
+  const heading = [
+    `খামার: ${letter.farmName}`,
+    letter.farmAddress?.trim() ? `ঠিকানা: ${letter.farmAddress}` : null,
+    letter.farmPhone?.trim() ? `মোবাইল: ${letter.farmPhone}` : null,
+    letter.farmRegistrationNumber?.trim()
+      ? `নিবন্ধন নম্বর: ${letter.farmRegistrationNumber}`
+      : null,
+  ].filter((line) => line !== null);
   return [
+    ...heading,
+    "",
     "বরাবর,",
     "উপজেলা প্রাণিসম্পদ কর্মকর্তা",
     "",

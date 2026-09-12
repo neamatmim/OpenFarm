@@ -42,3 +42,15 @@ export const formatDate = (
     ...DATE_OPTIONS[style],
     timeZone,
   }).format(date);
+
+/**
+ * A date as an `<input type="date">` holds it: the farm's own day in plain digits, never Bangla
+ * ones — the field itself is not translated, and a browser reads only this shape.
+ */
+export const formatDayField = (date: Date, timeZone = "Asia/Dhaka"): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).format(date);

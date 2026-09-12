@@ -41,6 +41,20 @@ export const farm = pgTable("farm", {
    *  Never a reason to refuse one: the entry is the record, and a wrong clock is a fact
    *  about the phone. */
   clockSkewMinutes: integer("clock_skew_minutes").notNull().default(15),
+  /** Where the farm is, as the farm writes it. On the transport card a lorry carries and in the
+   *  letter the office reads: both name the farm of origin, and a name alone is not a farm of
+   *  origin. */
+  address: text("address"),
+  /** How the office, a buyer or a vet reaches the farm. */
+  phone: text("phone"),
+  /** The DLS registration: the number, the office that issued it, and when it runs out.
+   *  Registration is one of the few hard legal duties, and its number goes on the transport card
+   *  (Meat Rules 2021 r.18). The renewal SOP and the certificate photograph arrive with
+   *  increment 7; the facts an inspector asks for first are here from the start. */
+  registrationNumber: text("registration_number"),
+  registrationOffice: text("registration_office"),
+  registrationIssuedOn: timestamp("registration_issued_on"),
+  registrationExpiresOn: timestamp("registration_expires_on"),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

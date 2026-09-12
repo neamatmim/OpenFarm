@@ -1,17 +1,14 @@
 import { z } from "zod";
 
+import { startOfFarmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
 const LIMIT_MAX = 200;
 const LIMIT_DEFAULT = 50;
-/** The farm's clock for day filters. Asia/Dhaka has no daylight saving; a farm parameter later. */
-const FARM_UTC_OFFSET = "+06:00";
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const dayString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "YYYY-MM-DD");
-const startOfDay = (day: string) =>
-  new Date(`${day}T00:00:00${FARM_UTC_OFFSET}`);
 
 /** The audit log. Owner and Manager see everything; every other Role sees only their own
  *  actions. Day filters are farm-local, half-open: [fromDay 00:00, toDay + 1 day 00:00). */
@@ -34,9 +31,9 @@ export const auditRouter = {
       const seesAll =
         context.roleUsed === "owner" || context.roleUsed === "manager";
       const actorId = seesAll ? input.actorId : context.actor.id;
-      const from = input.fromDay ? startOfDay(input.fromDay) : undefined;
+      const from = input.fromDay ? startOfFarmDay(input.fromDay) : undefined;
       const toExclusive = input.toDay
-        ? new Date(startOfDay(input.toDay).getTime() + ONE_DAY_MS)
+        ? new Date(startOfFarmDay(input.toDay).getTime() + ONE_DAY_MS)
         : undefined;
       const rows = await context.db.query.auditEvent.findMany({
         where: {

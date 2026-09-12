@@ -596,6 +596,23 @@ export const en = {
   "backups.failed": "Failed",
   "backups.none": "Nothing recorded yet",
   "common.notFound": "Not found",
+  "nav.identity": "Farm identity",
+  "identity.title": "The farm's own identity",
+  "identity.why":
+    "Every paper that leaves the farm — the transport card, the letter to the office — prints what is written here.",
+  "identity.name": "Farm name",
+  "identity.address": "Address",
+  "identity.phone": "Phone",
+  "identity.registrationNumber": "Registration number",
+  "identity.registrationOffice": "Issuing office",
+  "identity.registrationIssuedOn": "Issued on",
+  "identity.registrationExpiresOn": "Expires on",
+  "identity.save": "Save",
+  "identity.saved": "The farm's identity is saved",
+  "identity.missing":
+    "No registration number written down — the transport card cannot be printed complete.",
+  "identity.expired": "The registration ran out on {when}.",
+  "identity.endingSoon": "The registration runs out on {when}.",
 } as const;
 
 export type MessageKey = keyof typeof en;
