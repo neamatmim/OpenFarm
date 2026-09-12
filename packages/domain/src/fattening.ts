@@ -268,3 +268,56 @@ export const fatteningView = (
     onTrackFrom,
   };
 };
+
+/** Why the farm is suggesting an Animal be made Ready for Sale. */
+export const READY_REASONS = ["weight", "window"] as const;
+export type ReadyReason = (typeof READY_REASONS)[number];
+
+/**
+ * Whether the farm should suggest this Animal, and on which of the two grounds.
+ *
+ * A suggestion, never a decision: whether an animal is ready to sell is a judgement about the
+ * animal standing in front of you, and the farm only knows two things about her — what she
+ * weighs and what day it is.
+ *
+ * The window wins when both are true. It is the harder fact: a target weight is a figure somebody
+ * chose, and a market day is not.
+ */
+export const readySuggestion = (
+  view: { latestKg: number | null; targetWeightKg: number | null },
+  windowOpensAt: Date | null,
+  now: Date
+): ReadyReason | null => {
+  if (windowOpensAt !== null && windowOpensAt.getTime() <= now.getTime()) {
+    return "window";
+  }
+  const reached =
+    view.latestKg !== null &&
+    view.targetWeightKg !== null &&
+    view.latestKg >= view.targetWeightKg;
+  return reached ? "weight" : null;
+};
+
+/**
+ * Whether a suggestion the Manager has already set aside should be made again.
+ *
+ * Setting one aside is the Manager saying "I have looked at him and he is staying" — so the farm
+ * stops shouting until it has something new to say. The window opening is new; a weight the
+ * Manager has already judged is not. A set-aside against the window covers both, because there is
+ * no stronger ground left to raise.
+ *
+ * A set-aside older than the animal's last State change has been overtaken by it: an animal
+ * confirmed Ready and later put back to Fattening is one the Manager has changed their mind about
+ * twice, and the older word should not go on silencing the farm. Nothing is deleted to say so —
+ * the record of what was decided and why stays, and stops being the last word.
+ */
+export const stillWorthSaying = (
+  suggestion: ReadyReason,
+  setAside: { because: ReadyReason; setAsideAt: Date } | null,
+  stateChangedAt: Date
+): boolean => {
+  if (setAside === null || setAside.setAsideAt < stateChangedAt) {
+    return true;
+  }
+  return setAside.because === "weight" && suggestion === "window";
+};
