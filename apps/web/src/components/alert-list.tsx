@@ -17,6 +17,7 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   needs_review: "alerts.needsReview",
   sop_published: "alerts.sopPublished",
   sop_proposed: "alerts.sopProposed",
+  withdrawal_ending: "alerts.withdrawalEnding",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
@@ -31,6 +32,8 @@ const paramsOf = (
     pen: String(raw.pen ?? ""),
     reason: String(raw.reason ?? ""),
     hours: hoursLate(Number(raw.minutesOverdue ?? 0)),
+    /** A cow, for the notices that are about one rather than about a piece of work. */
+    tag: String(raw.tag ?? ""),
   };
 };
 

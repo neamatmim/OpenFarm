@@ -792,13 +792,21 @@ export const heldByWithdrawal = async (
   now: Date
 ) => {
   const held = await db.query.animal.findMany({
-    where: { farmId, milkWithdrawalUntil: { gt: now } },
+    where: {
+      farmId,
+      // Either hold counts: her milk out of the tank, or her carcass off the lorry.
+      OR: [
+        { milkWithdrawalUntil: { gt: now } },
+        { meatWithdrawalUntil: { gt: now } },
+      ],
+    },
     columns: {
       id: true,
       tagNumber: true,
       state: true,
       penId: true,
       milkWithdrawalUntil: true,
+      meatWithdrawalUntil: true,
     },
   });
   return held

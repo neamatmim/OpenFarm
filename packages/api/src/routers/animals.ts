@@ -18,6 +18,7 @@ import {
   STATES,
   canTransition,
   lactationView,
+  withdrawalView,
   sideOfState,
   stateAfterSideChange,
 } from "@OpenFarm/domain";
@@ -94,6 +95,9 @@ const summaryColumns = {
   lactationNumber: true,
   lactationStartedAt: true,
   milkWithdrawalUntil: true,
+  meatWithdrawalUntil: true,
+  withdrawalShortenedAt: true,
+  withdrawalShortenedReason: true,
 } as const;
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
@@ -349,6 +353,7 @@ export const animalsRouter = {
           ? row.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
         ...lactationView(row, context.clock.now()),
+        ...withdrawalView(row, context.clock.now()),
       };
     }),
 

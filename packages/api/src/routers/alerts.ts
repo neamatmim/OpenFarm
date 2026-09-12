@@ -6,6 +6,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { raiseWithdrawalAlerts, withdrawalsEndingSoon } from "../health-store";
 import { protectedProcedure } from "../index";
 import {
   findPendingNotices,
@@ -27,6 +28,33 @@ const first = (pending: {
   escalated: { id: string }[];
 }): string => pending.overdue[0]?.id ?? pending.escalated[0]?.id ?? "";
 
+/**
+ * The other half of the sweep: cows coming off a Withdrawal within the day. Its own audited
+ * write, keyed on an animal rather than on an Instance, because no work raised it — the clock
+ * did, against a date a Treatment set.
+ */
+const tellAboutWithdrawals = async (
+  context: Parameters<typeof pushRaised>[0],
+  now: Date
+) => {
+  const ending = await withdrawalsEndingSoon(context.db, context.farm.id, now);
+  const [soonest] = ending;
+  if (!soonest) {
+    return;
+  }
+  const raised = await audited(context).write(
+    {
+      entity: "animal",
+      entityId: soonest.id,
+      action: "update",
+      after: () =>
+        Promise.resolve({ endingSoon: ending.map((beast) => beast.tagNumber) }),
+    },
+    (tx) => raiseWithdrawalAlerts(tx, context.farm.id, ending, now)
+  );
+  await pushRaised(context, raised, now);
+};
+
 export const alertsRouter = {
   /**
    * Raises the Alerts the clock has earned. Idempotent, so the phone and the office can both
@@ -37,6 +65,10 @@ export const alertsRouter = {
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
       const now = context.clock.now();
+      // Two halves that have nothing to do with each other: work that went late, and cows
+      // coming off a Withdrawal. Told about first, because late work having nothing to say is
+      // the steady state and must not silence the other half.
+      await tellAboutWithdrawals(context, now);
       const pending = await findPendingNotices(context.db, context.farm, now);
       // A sweep with nothing to say is not an event, and opens no transaction: everyone
       // calls this on opening the app, and in steady state there is nothing new to say.

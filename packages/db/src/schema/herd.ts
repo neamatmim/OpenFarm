@@ -102,9 +102,21 @@ export const animal = pgTable(
      *  from Calving instead. */
     lactationNumber: integer("lactation_number").notNull().default(0),
     lactationStartedAt: timestamp("lactation_started_at"),
-    /** While this is in the future, the cow's milk may not go to Bulk. Health (increment 3)
-     *  writes it from a Treatment; until then it is the hook the gate reads. */
+    /** While this is in the future, the cow's milk may not go to Bulk. Written from the last
+     *  Treatment given, on the product's own days. */
     milkWithdrawalUntil: timestamp("milk_withdrawal_until"),
+    /** While this is in the future, she may not be sold for meat. The Sale SOP arrives in
+     *  increment 4 and reads this same date; until then the farm records it and says so, so
+     *  nobody sells a cow who is still carrying a drug. */
+    meatWithdrawalUntil: timestamp("meat_withdrawal_until"),
+    /** When a Vet last shortened or ended a Withdrawal of hers, who, and why. Kept on the
+     *  animal and not only in the trail: a shortened Withdrawal is exactly what a slaughter
+     *  vet asks about, and the answer should not need an audit query. */
+    withdrawalShortenedAt: timestamp("withdrawal_shortened_at"),
+    withdrawalShortenedBy: text("withdrawal_shortened_by").references(
+      () => user.id
+    ),
+    withdrawalShortenedReason: text("withdrawal_shortened_reason"),
     /** When she reached the State she is in. A State-triggered SOP counts its days from
      *  here, and a cow who comes back to Milking next lactation reaches it afresh — which is
      *  what makes the work raised then a new occasion rather than one already done. */

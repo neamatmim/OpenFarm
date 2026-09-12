@@ -5,6 +5,7 @@ import {
   litresTo,
   minutesOverdue,
   roundLitres,
+  underMeatWithdrawal,
   underMilkWithdrawal,
 } from "@OpenFarm/domain";
 
@@ -188,6 +189,16 @@ export const homeRouter = {
                 beast.milkWithdrawalUntil !== null &&
                 beast.milkWithdrawalUntil.getTime() - now.getTime() <= DAY_MS,
             })),
+          /** Cows who must not be sold yet, and the day each is fit for sale again. The Sale
+           *  SOP arrives in increment 4 and reads the same date; until then this is what
+           *  stops a Manager selling a cow who is still carrying a drug. */
+          meatWithdrawal: underWithdrawal
+            .filter((beast) => underMeatWithdrawal(beast, now))
+            .map((beast) => ({
+              id: beast.id,
+              tagNumber: beast.tagNumber,
+              fitForSaleAt: beast.meatWithdrawalUntil,
+            })),
         },
         pens: [...pens].map(([penId, tally]) => ({
           penId,
@@ -210,7 +221,7 @@ export const homeRouter = {
     .handler(async ({ context }) => {
       const now = context.clock.now();
       const farmId = context.farm.id;
-      const { from } = farmDayRange(now);
+      const { from, to } = farmDayRange(now);
 
       const [
         late,
@@ -265,8 +276,16 @@ export const homeRouter = {
         // Every Milking Session of the week behind today — all of them, not the newest
         // seven rows: a Session belongs to one Pen, so a farm with four pens milking twice
         // raises eight a day, and seven rows would be this morning rather than the week.
+        //
+        // Bounded at both ends. A phone whose clock is days ahead can record a Session dated
+        // in the future (ADR 0002 keeps the entry and flags the skew), and an unbounded window
+        // would make that tomorrow the last bar on the tile — so the farm would be shown
+        // tomorrow's half-empty figure as today's.
         context.db.query.milkingSession.findMany({
-          where: { farmId, dueAt: { gte: new Date(from.getTime() - WEEK_MS) } },
+          where: {
+            farmId,
+            dueAt: { gte: new Date(from.getTime() - WEEK_MS), lt: to },
+          },
           columns: { id: true, dueAt: true },
           orderBy: { dueAt: "desc" },
           with: {
