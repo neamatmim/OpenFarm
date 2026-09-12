@@ -654,3 +654,32 @@ export const raiseNotifiableAlerts = async (
   const rows = await raiseAlerts(tx, farmId, people, notice, now);
   return rows.map((row) => ({ ...row, ...notice }));
 };
+
+/**
+ * Tells the Manager that a cow's Withdrawal has changed: a dose has started one, or a Vet has
+ * shortened one.
+ *
+ * The farm's notification table asks for this, and it is a different question from the one the
+ * ending answers: a hold beginning takes her milk out of tomorrow's tank, and a hold shortened
+ * puts it back. Told once per cow per hold, so a course of six doses is one piece of news rather
+ * than six.
+ */
+export const raiseWithdrawalChanged = async (
+  tx: Tx,
+  farmId: string,
+  told: { animalId: string; tagNumber: string; until: Date | null },
+  now: Date
+): Promise<RaisedAlert[]> => {
+  const managers = await holdersOf(tx, farmId, ["manager"]);
+  const notice = {
+    kind: "withdrawal_changed" as const,
+    entity: "animal",
+    entityId: withdrawalNoticeId(told.animalId, told.until ?? new Date(0)),
+    params: {
+      tag: told.tagNumber,
+      until: told.until?.toISOString() ?? "",
+    },
+  };
+  const rows = await raiseAlerts(tx, farmId, managers, notice, now);
+  return rows.map((row) => ({ ...row, ...notice }));
+};

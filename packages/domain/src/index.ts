@@ -60,11 +60,13 @@ export type { QuietHours } from "./notify";
 export {
   DELIVERY,
   carryingMoments,
+  goesByText,
   goesNow,
   isQuiet,
   lastCarryingMoment,
   minutesInTheDay,
   waitsForTheDigest,
+  wakesTheFarm,
 } from "./notify";
 export type { DueWork } from "./work";
 export {

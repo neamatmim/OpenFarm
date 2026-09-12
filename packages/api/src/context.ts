@@ -18,12 +18,17 @@ import {
 import type { PushTransport } from "./push";
 import { silentTransport } from "./push";
 import { webPush } from "./push-web";
+import type { SmsTransport } from "./sms";
+import { silentSms } from "./sms";
+import { smsGateway } from "./sms-gateway";
 
 export type Session = typeof auth.$Infer.Session;
 
 export interface Person {
   id: string;
   name: string;
+  /** The number the farm can text, when they have written one down. */
+  phone: string | null;
   disabledAt: Date | null;
 }
 
@@ -79,10 +84,20 @@ export interface Context {
   /** How a notice leaves the farm. Injected so the tests can watch it and development can
    *  run silent (ticket 14). */
   push: PushTransport;
+  /** How a text message leaves the farm, for the two notices worth one. Injected the same way,
+   *  so the path is built and tested before the farm has an account with a gateway. */
+  sms: SmsTransport;
   /** The public half of the farm's push keys — the part a browser needs and anyone may see.
    *  Carried here so no router has to reach into the server's secrets to find it. */
   pushKey: string | null;
 }
+
+let productionSms: SmsTransport | undefined;
+/** Made once, like the push keys: reading the Owner's gateway credentials is a one-time act. */
+const defaultSms = (): SmsTransport => {
+  productionSms ??= smsGateway();
+  return productionSms;
+};
 
 let productionPush: PushTransport | undefined;
 /** Made once: setting the farm's keys is a one-time act, not a per-request one. */
@@ -156,7 +171,13 @@ const resolveFarm = (db: Database, device: DeviceSession | null) =>
 const resolvePerson = (db: Database, userId: string, farmId: string) =>
   db.query.user.findFirst({
     where: { id: userId },
-    columns: { id: true, name: true, email: true, disabledAt: true },
+    columns: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      disabledAt: true,
+    },
     with: {
       roles: { where: { farmId, ...ACTIVE_ROLE }, columns: { role: true } },
       penAssignments: { where: { farmId }, columns: { penId: true } },
@@ -172,6 +193,7 @@ export const buildContext = async ({
   clock,
   db,
   push = silentTransport,
+  sms = silentSms,
   pushKey = null,
 }: {
   session: Session | null;
@@ -180,6 +202,7 @@ export const buildContext = async ({
   clock: Clock;
   db: Database;
   push?: PushTransport;
+  sms?: SmsTransport;
   pushKey?: string | null;
 }): Promise<Context> => {
   const base = {
@@ -188,6 +211,7 @@ export const buildContext = async ({
     clock,
     db,
     push,
+    sms,
     pushKey,
     roleUsed: null,
     deviceStatus,
@@ -215,7 +239,12 @@ export const buildContext = async ({
 
   const row = await resolvePerson(db, actingUserId, farm.id);
   const person = row
-    ? { id: row.id, name: row.name, disabledAt: row.disabledAt }
+    ? {
+        id: row.id,
+        name: row.name,
+        phone: row.phone,
+        disabledAt: row.disabledAt,
+      }
     : null;
   if (!row || row.disabledAt) {
     return { ...empty, farm, person };
@@ -248,12 +277,14 @@ export const createContext = async ({
   clock = systemClock,
   db = defaultDb(),
   push = defaultPush(),
+  sms = defaultSms(),
   pushKey = env.VAPID_PUBLIC_KEY ?? null,
 }: {
   req: Request;
   clock?: Clock;
   db?: Database;
   push?: PushTransport;
+  sms?: SmsTransport;
   pushKey?: string | null;
 }): Promise<Context> => {
   const token = req.headers.get(DEVICE_TOKEN_HEADER);
@@ -270,6 +301,7 @@ export const createContext = async ({
       clock,
       db,
       push,
+      sms,
       pushKey,
     });
   }
@@ -278,6 +310,7 @@ export const createContext = async ({
     clock,
     db,
     push,
+    sms,
     pushKey,
   });
 };

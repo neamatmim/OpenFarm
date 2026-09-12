@@ -15,6 +15,7 @@ import { createRouterClient } from "@orpc/server";
 import type { Context } from "../context";
 import { buildContext } from "../context";
 import type { PushTransport } from "../push";
+import type { SmsTransport } from "../sms";
 
 interface Options {
   /** Which Role calls the API; `null` for an unauthenticated caller. */
@@ -23,6 +24,8 @@ interface Options {
   /** Where a push goes. Omitted, nothing leaves the farm — which is what development does
    *  too, and what the in-app Alert exists to make harmless. */
   push?: PushTransport;
+  /** Where a text message goes. Omitted, nowhere: the farm has no gateway until go-live. */
+  sms?: SmsTransport;
   /** Call as this Role PIN-switched in on a Shed Phone, rather than from their own phone. */
   onShedPhone?: boolean;
   /** An enrolled phone with nobody PIN-switched in yet. */
@@ -54,6 +57,7 @@ export const createTestClient = async <T extends Router<Context>>(
     locked = false,
     phone,
     push,
+    sms,
   }: Options
 ): Promise<{ client: RouterClient<T>; clock: FakeClock; context: Context }> => {
   const principal =
@@ -74,6 +78,7 @@ export const createTestClient = async <T extends Router<Context>>(
     clock,
     db: scratchDb(),
     push,
+    sms,
   });
   // `T extends Router<Context>` guarantees the router's initial context is `Context`;
   // TypeScript cannot reduce the inferred type for an unresolved `T`, hence the cast.

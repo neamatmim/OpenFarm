@@ -1,4 +1,6 @@
 import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
+import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BellOff, BellRing } from "lucide-react";
@@ -111,7 +113,55 @@ const SettingsPage = () => {
       {already ? (
         <p className="text-muted-foreground text-sm">{t("push.enabled")}</p>
       ) : null}
+
+      <MyNumber />
     </div>
+  );
+};
+
+/**
+ * The number the farm can text.
+ *
+ * Only two notices ever go this way — a Withdrawal ending and a notifiable Diagnosis — and only
+ * to whoever runs the farm. Everything else is a push and an entry in the app, which cost
+ * nothing and are enough.
+ */
+const MyNumber = () => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const [phone, setPhone] = useState<string | null>(null);
+  const save = useMutation(
+    orpc.people.setPhone.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("sms.saved"));
+        void queryClient.invalidateQueries({ queryKey: orpc.people.key() });
+      },
+      onError: (error) => toast.error(error.message),
+    })
+  );
+  const mine = phone ?? me.data?.phone ?? "";
+
+  return (
+    <form
+      className="space-y-2 border-t pt-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save.mutate({ phone: mine.trim() || null });
+      }}
+    >
+      <Label htmlFor="my-phone">{t("sms.myNumber")}</Label>
+      <p className="text-muted-foreground text-sm">{t("sms.why")}</p>
+      <Input
+        id="my-phone"
+        inputMode="tel"
+        onChange={(event) => setPhone(event.target.value)}
+        value={mine}
+      />
+      <Button type="submit" variant="outline">
+        {t("sms.save")}
+      </Button>
+    </form>
   );
 };
 

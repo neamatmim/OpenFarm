@@ -10,5 +10,7 @@ export const ALERT_KINDS = [
   "sop_proposed",
   "withdrawal_ending",
   "notifiable_diagnosis",
+  "entry_rejected",
+  "withdrawal_changed",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

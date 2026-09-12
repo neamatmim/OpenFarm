@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   jsonb,
   pgTable,
@@ -52,5 +53,44 @@ export const alert = pgTable(
       table.dismissedAt,
       table.createdAt
     ),
+  ]
+);
+
+/**
+ * One text message the farm sent, or tried to.
+ *
+ * Two jobs, both of them the reason this table exists rather than a counter in a log. It is the
+ * farm's evidence that it told the people it is supposed to tell — these are the two notices
+ * that cost money or break a legal deadline, and "we did text you" should not rest on anybody's
+ * memory. And it is how the farm knows it has already said this: a notice reaches the app for
+ * every person it concerns, but one Withdrawal ending is one thing to be texted about, not one
+ * per person who happens to be told in the app.
+ */
+export const textMessage = pgTable(
+  "text_message",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ALERT_KINDS }).notNull(),
+    /** What it was about — the same thing the Alert is about. */
+    entityId: text("entity_id").notNull(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    /** The number as the farm had it written down when it sent. */
+    sentTo: text("sent_to").notNull(),
+    /** What the gateway said. False is kept too: a message that did not go is the thing worth
+     *  knowing. */
+    delivered: boolean("delivered").notNull(),
+    sentAt: timestamp("sent_at").notNull(),
+  },
+  (table) => [
+    /** One message per person per thing. Said once, however many times the farm is told. */
+    uniqueIndex("text_message_once_uidx").on(
+      table.userId,
+      table.kind,
+      table.entityId
+    ),
+    index("text_message_farm_idx").on(table.farmId, table.sentAt),
   ]
 );

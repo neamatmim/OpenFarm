@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { applyBatch } from "../batch-store";
 import { protectedProcedure } from "../index";
+import { pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 import type { EntryResult } from "../sync-entries";
 import { entryInput } from "../sync-entries";
@@ -64,11 +65,14 @@ export const syncRouter = {
         return already.response as { results: EntryResult[] };
       }
 
-      const results = await applyBatch(context.db, context, input, {
+      const { results, told } = await applyBatch(context.db, context, input, {
         receivedAt,
         sourceKey: sourceKeyFor(context),
         requestHash,
       });
+      // Outside the transaction, like every other notice: an entry the farm refused is work
+      // somebody believes they have done, and they are told at once.
+      await pushRaised(context, told, receivedAt);
       return { results };
     }),
 };

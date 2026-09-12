@@ -10,26 +10,61 @@ import type { AlertKind } from "./alerts";
  * Typed by the kind, so a new kind of notice cannot be added without somebody deciding
  * which of the two it is. That decision is the whole of the farm's notification table.
  */
-export const DELIVERY: Record<AlertKind, "immediate" | "digest"> = {
-  instance_overdue: "immediate",
-  instance_escalated: "immediate",
-  instance_sent_back: "immediate",
-  needs_review: "digest",
-  sop_published: "digest",
-  sop_proposed: "digest",
+/**
+ * The farm's delivery table: when each kind of notice goes, and whether it is one of the two
+ * worth a text message as well.
+ *
+ * One table, because "what goes by SMS" is a delivery decision like any other and a second list
+ * somewhere else is how a farm ends up texting people about a feed digest. Two kinds carry
+ * `sms`, and they are the two that cost money or break a legal deadline if they are missed.
+ */
+export const DELIVERY: Record<
+  AlertKind,
+  {
+    when: "immediate" | "digest";
+    /** Also worth a text message, to the Owner and the Manager. */
+    sms?: true;
+    /** May wake the farm: quiet hours are 22:00–05:00 and safety alerts are the exception,
+     *  which means these and nothing else. Everything else still reaches the app at once — the
+     *  quiet is on the phone, not on the record. */
+    wakesTheFarm?: true;
+  }
+> = {
+  instance_overdue: { when: "immediate" },
+  instance_escalated: { when: "immediate" },
+  instance_sent_back: { when: "immediate" },
+  needs_review: { when: "digest" },
+  sop_published: { when: "digest" },
+  sop_proposed: { when: "digest" },
   // A Withdrawal ending is one of the two the farm cannot afford to miss: a tank the milk
   // could have gone into, or a cow that could have been sold, and a day of either is money.
-  withdrawal_ending: "immediate",
+  withdrawal_ending: { when: "immediate", sms: true, wakesTheFarm: true },
   // The other one the farm cannot afford to miss: the Act says the report goes without delay,
   // and a notice that waits for the evening post has already made the farm late.
-  notifiable_diagnosis: "immediate",
+  notifiable_diagnosis: { when: "immediate", sms: true, wakesTheFarm: true },
+  // The last row the notification table owed: an entry the farm would not take is work somebody
+  // believes they have done. They are told at once, in the app, and never by text — it is their
+  // own phone that is holding the entry.
+  entry_rejected: { when: "immediate" },
+  // A hold starting or being shortened changes where tomorrow's milk goes, so the Manager is
+  // told at once — but it is not one of the two that cost money the moment they are missed, so
+  // it waits for the farm to wake.
+  withdrawal_changed: { when: "immediate" },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>
-  DELIVERY[kind] === "immediate";
+  DELIVERY[kind].when === "immediate";
 
 export const waitsForTheDigest = (kind: AlertKind): boolean =>
-  DELIVERY[kind] === "digest";
+  DELIVERY[kind].when === "digest";
+
+/** Is this one of the two worth a text message as well? */
+export const goesByText = (kind: AlertKind): boolean =>
+  DELIVERY[kind].sms === true;
+
+/** May this notice buzz a phone while the farm is asleep? Only the safety ones may. */
+export const wakesTheFarm = (kind: AlertKind): boolean =>
+  DELIVERY[kind].wakesTheFarm === true;
 
 const MINUTES_PER_HOUR = 60;
 

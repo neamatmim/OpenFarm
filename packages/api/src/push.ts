@@ -54,6 +54,14 @@ const WORDING: Partial<
     title: "push.escalatedTitle",
     body: "alerts.instanceEscalated",
   },
+  entry_rejected: {
+    title: "push.entryRejectedTitle",
+    body: "push.entryRejectedBody",
+  },
+  withdrawal_changed: {
+    title: "push.withdrawalChangedTitle",
+    body: "push.withdrawalChangedBody",
+  },
   instance_sent_back: {
     title: "push.sentBackTitle",
     body: "alerts.instanceSentBack",
@@ -128,5 +136,7 @@ export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
    *  every kind, so that a new one cannot be forgotten here. */
   withdrawal_ending: "digest.withdrawalEnding",
   notifiable_diagnosis: "digest.notifiable",
+  entry_rejected: "digest.entryRejected",
+  withdrawal_changed: "digest.withdrawalChanged",
   sop_proposed: "digest.sopProposed",
 };
