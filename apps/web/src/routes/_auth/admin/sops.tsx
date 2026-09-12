@@ -269,6 +269,9 @@ const ofKind = (
   if (kind === "prescription") {
     return { kind: "prescription" };
   }
+  if (kind === "notifiable_disease") {
+    return { kind: "notifiable_disease" };
+  }
   const offsetDays =
     "offsetDays" in happening ? happening.offsetDays : undefined;
   return kind === "event"
@@ -326,12 +329,21 @@ const TriggerFields = ({
             <option value="prescription">
               {t("sop.trigger.prescription")}
             </option>
+            <option value="notifiable_disease">
+              {t("sop.trigger.notifiable")}
+            </option>
           </select>
           {happening.kind === "prescription" ? (
             // A Prescription says when its own doses fall due, so there is nothing here to
             // choose and nothing to count days from.
             <p className="text-muted-foreground text-sm">
               {t("sop.trigger.perDose")}
+            </p>
+          ) : null}
+          {happening.kind === "notifiable_disease" ? (
+            // Due the moment the Diagnosis is made: the Act says without delay.
+            <p className="text-muted-foreground text-sm">
+              {t("sop.trigger.withoutDelay")}
             </p>
           ) : null}
           {happening.kind === "event" ? (
@@ -366,7 +378,8 @@ const TriggerFields = ({
               ))}
             </select>
           ) : null}
-          {happening.kind === "prescription" ? null : (
+          {happening.kind === "prescription" ||
+          happening.kind === "notifiable_disease" ? null : (
             <div className="space-y-1">
               <Label htmlFor={`after-${index}`}>{t("sop.trigger.after")}</Label>
               <Input

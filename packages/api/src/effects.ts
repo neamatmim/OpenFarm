@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { feeding } from "@OpenFarm/db/schema/feed";
-import { treatment } from "@OpenFarm/db/schema/health";
+import { dlsReport, treatment } from "@OpenFarm/db/schema/health";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
@@ -51,6 +51,13 @@ export type EffectResult =
       saw: string;
       /** True when this replaced one a Correction withdrew. */
       supersedes: boolean;
+    }
+  | {
+      kind: "dls_report";
+      /** What the office filed it under. */
+      reference: string;
+      /** False when a Correction took the delivery back: the report is owed again. */
+      delivered: boolean;
     }
   | {
       kind: "treatment";
@@ -105,6 +112,14 @@ const numberIn = (step: Step, evidence: unknown[]): number => {
  * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
  * checked against the farm's: a value no Version ever offered is not something anybody saw.
  */
+/** What was written in the Step's note, trimmed, or nothing when it was left empty. */
+const noteIn = (step: Step, evidence: unknown[]): string | null => {
+  const index = step.evidence.findIndex((item) => item.type === "note");
+  const value = index === -1 ? undefined : evidence[index];
+  const written = typeof value === "string" ? value.trim() : "";
+  return written === "" ? null : written;
+};
+
 const choiceIn = (
   step: Step,
   evidence: unknown[],
@@ -242,6 +257,61 @@ const applyFeedingEffect = async (
       },
     });
   return { kind: "feeding", shortfallPercent: short, flagged };
+};
+
+/**
+ * Records that the letter reached the Upazila Livestock Officer, and under what reference.
+ *
+ * The Step is completed when the letter is delivered, so the moment it was recorded is the
+ * moment it went; the required note is the reference the office gave it back under. A report
+ * that was sent and cannot be evidenced is a report that was not sent, which is why the
+ * reference is the Step's evidence rather than something to fill in afterwards.
+ */
+const applyReportEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  const owed = await tx.query.dlsReport.findFirst({
+    where: { instanceId: input.instance.id },
+    columns: { id: true },
+  });
+  if (!owed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This work is not the report of any diagnosis",
+    });
+  }
+  const reference = input.skipped
+    ? null
+    : (noteIn(input.step, input.evidence) ?? null);
+  if (!input.skipped && !reference) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "Write the reference the office gave the letter: a report that cannot be evidenced is a report that was not made",
+    });
+  }
+  await tx
+    .update(dlsReport)
+    .set(
+      input.skipped
+        ? {
+            deliveredAt: null,
+            reference: null,
+            completionId: null,
+            deliveredBy: null,
+          }
+        : {
+            deliveredAt: input.recordedAt,
+            reference,
+            completionId: input.completionId,
+            deliveredBy: input.recordedBy,
+          }
+    )
+    .where(eq(dlsReport.id, owed.id));
+  return {
+    kind: "dls_report",
+    reference: reference ?? "",
+    delivered: !input.skipped,
+  };
 };
 
 /** What a Step records when it gives a dose, or takes one back. */
@@ -641,6 +711,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "treatment") {
     return await applyTreatmentEffect(tx, input);
+  }
+  if (effect.kind === "dls_report") {
+    return await applyReportEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

@@ -11,6 +11,9 @@ import { audited } from "../audit";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import {
   MAX_SEEN_ROWS,
+  isNotifiable,
+  raiseNotifiableAlerts,
+  raiseTheReport,
   seenLately,
   seenLatelyInput,
   theConclusionAndWhatFollowed,
@@ -18,6 +21,8 @@ import {
 } from "../health-store";
 import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
+import type { RaisedAlert } from "../instances-store";
+import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
 
 /** The Vet visits about weekly, so a fortnight is what they need to catch up on. */
@@ -121,6 +126,9 @@ export const diagnosesRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const id = uuidv7(now);
+      let notifiable = false;
+      let reporting: string | null = null;
+      let alerts: RaisedAlert[] = [];
       // The animal, the Observation and the insert are all read and written inside the one
       // transaction: checking first and writing afterwards would let the trail record a
       // Diagnosis against a cow who left the farm between the two.
@@ -156,9 +164,39 @@ export const diagnosesRouter = {
             diagnosedAt: now,
             recordedAt: now,
           });
+          // If the farm's list says this one must be reported, the work to report it is raised
+          // here and now, due now: the Act says without delay, and a farm that waits for
+          // somebody to open an app has waited.
+          const listed = await isNotifiable(tx, context.farm.id, input.disease);
+          notifiable = listed !== null;
+          if (listed) {
+            const raised = await raiseTheReport(tx, {
+              farmId: context.farm.id,
+              diagnosisId: id,
+              animalId: her.id,
+              penId: her.penId,
+              now,
+            });
+            reporting = raised?.instanceId ?? null;
+            // Told immediately, whether or not the farm has a procedure to raise: somebody has
+            // to know, and a farm missing the procedure needs telling most of all.
+            alerts = await raiseNotifiableAlerts(
+              tx,
+              context.farm.id,
+              {
+                diagnosisId: id,
+                tagNumber: her.tagNumber,
+                disease: input.disease.bn,
+              },
+              now
+            );
+          }
         }
       );
-      return { id };
+      // Outside the transaction, never inside it: a push is a call to somebody else's server,
+      // and a hung one would hold a lock the whole shed is waiting on.
+      await pushRaised(context, alerts, now);
+      return { id, notifiable, reportInstanceId: reporting };
     }),
 
   /**

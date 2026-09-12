@@ -184,9 +184,13 @@ export const happeningSlotsFor = (
       if (trigger.kind === "schedule") {
         continue;
       }
-      // A Prescription raises its own doses at the times the Vet set, when it is written.
-      // Nothing that happens on the farm raises one, and nothing here should go looking.
-      if (trigger.kind === "prescription") {
+      // Both of these raise their own work the moment the act happens — a Prescription's doses
+      // when the Vet writes it, a report when the Vet names a notifiable disease. Nothing that
+      // happens on the farm raises either, and nothing here should go looking.
+      if (
+        trigger.kind === "prescription" ||
+        trigger.kind === "notifiable_disease"
+      ) {
         continue;
       }
       const offsetDays = trigger.offsetDays ?? 0;

@@ -151,6 +151,26 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     giver: r.one.user({ from: r.treatment.givenBy, to: r.user.id }),
   },
+  notifiableDisease: {
+    /** Who put it on the list — the list is evidence, so its author is part of it. */
+    addedByPerson: r.one.user({
+      from: r.notifiableDisease.addedBy,
+      to: r.user.id,
+    }),
+  },
+  dlsReport: {
+    diagnosis: r.one.diagnosis({
+      from: r.dlsReport.diagnosisId,
+      to: r.diagnosis.id,
+      optional: false,
+    }),
+    instance: r.one.sopInstance({
+      from: r.dlsReport.instanceId,
+      to: r.sopInstance.id,
+      optional: false,
+    }),
+    deliverer: r.one.user({ from: r.dlsReport.deliveredBy, to: r.user.id }),
+  },
   diagnosis: {
     animal: r.one.animal({
       from: r.diagnosis.animalId,
@@ -167,6 +187,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.diagnosis.diagnosedBy,
       to: r.user.id,
       optional: false,
+    }),
+    /** The report it owed the office, when the farm's list says it is notifiable. */
+    report: r.one.dlsReport({
+      from: r.diagnosis.id,
+      to: r.dlsReport.diagnosisId,
     }),
     /** What was ordered for it — the next link in the health chain. */
     prescriptions: r.many.prescription({
@@ -224,6 +249,11 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   sopInstance: {
+    /** The report this work is about, when a notifiable Diagnosis raised it. */
+    report: r.one.dlsReport({
+      from: r.sopInstance.id,
+      to: r.dlsReport.instanceId,
+    }),
     definition: r.one.sopDefinition({
       from: r.sopInstance.definitionId,
       to: r.sopDefinition.id,

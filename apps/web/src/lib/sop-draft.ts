@@ -50,7 +50,7 @@ export const withScheduleTimes = (
  *  Prescription, which raises a dose of its own accord. */
 export type HappeningTrigger = Extract<
   Trigger,
-  { kind: "event" | "state" | "prescription" }
+  { kind: "event" | "state" | "prescription" | "notifiable_disease" }
 >;
 
 export const happeningTriggers = (content: SopContent): HappeningTrigger[] =>
@@ -82,6 +82,9 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "move" || kind === "observation") {
     return "choice";
   }
+  if (kind === "dls_report") {
+    return "note";
+  }
   return kind === "treatment" ? "tick" : "number";
 };
 
@@ -106,6 +109,11 @@ const fittedEvidence = (
     // Giving a dose is a thing somebody did or did not do. There is no figure to write down:
     // how much is the Prescription's or the campaign's to say, not the milker's.
     return { type: "tick", required: true };
+  }
+  if (kind === "dls_report") {
+    // The reference the office files the letter under. Required, because a report that cannot
+    // be evidenced is a report that was not made.
+    return { type: "note", required: true };
   }
   return { type: "number", required: true, unit: current?.unit };
 };
@@ -135,7 +143,8 @@ export const withEffect = (
   // A Pen is fed and its tank read once; everything else is done animal by animal. A dose
   // Step starts as a prescribed dose — the shape that is complete without anything else being
   // chosen — and naming a product turns it into a campaign over the Pen.
-  const perAnimal = kind !== "bulk_total" && kind !== "treatment";
+  const perAnimal =
+    kind !== "bulk_total" && kind !== "treatment" && kind !== "dls_report";
   if (first?.type === wants) {
     return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
   }

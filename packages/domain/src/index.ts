@@ -20,6 +20,8 @@ export {
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
+export type { NotifiableLetter } from "./letter";
+export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";
 export {
   TAG_PREFIXES,

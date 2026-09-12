@@ -376,6 +376,9 @@ export const instancesRouter = {
           // Which Version the Playbook is on now, so work running on an older one can say so
           // rather than leaving the person to wonder why the card on the wall differs.
           definition: { columns: { currentVersionId: true } },
+          /** The report this work is about, so the Manager can reach the letter from the work
+           *  rather than hunting for the Diagnosis that raised it. */
+          report: { columns: { diagnosisId: true, reference: true } },
           pen: {
             columns: { name: true },
             with: { shed: { columns: { name: true } } },
