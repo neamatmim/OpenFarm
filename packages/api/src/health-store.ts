@@ -198,6 +198,112 @@ const later = (a: Date | null, b: Date | null): Date | null => {
   return a > b ? a : b;
 };
 
+const sameInstant = (a: Date | null, b: Date | null): boolean =>
+  (a?.getTime() ?? null) === (b?.getTime() ?? null);
+
+/** What her Treatments alone say her two Withdrawals are: the last dose of each product plus
+ *  that product's own days, whichever course it came from. */
+const fromHerDoses = async (tx: Tx, farmId: string, animalId: string) => {
+  const given = await tx.query.treatment.findMany({
+    where: { farmId, animalId, givenAt: { isNotNull: true } },
+    columns: { givenAt: true },
+    with: {
+      prescription: {
+        columns: {},
+        with: {
+          product: {
+            columns: { milkWithdrawalDays: true, meatWithdrawalDays: true },
+          },
+        },
+      },
+    },
+  });
+  let milk: Date | null = null;
+  let meat: Date | null = null;
+  for (const dose of given) {
+    const { givenAt } = dose;
+    if (!givenAt) {
+      continue;
+    }
+    // A product may not be prescribed without its days, so a dose given under one had them.
+    // Days cleared from the Drug List afterwards therefore cannot free a cow retrospectively
+    // — but they also cannot hold her, and nothing on the farm clears them.
+    const { milkWithdrawalDays, meatWithdrawalDays } =
+      dose.prescription.product;
+    milk = later(
+      milk,
+      milkWithdrawalDays === null
+        ? null
+        : withdrawalEndsAt(givenAt, milkWithdrawalDays)
+    );
+    meat = later(
+      meat,
+      meatWithdrawalDays === null
+        ? null
+        : withdrawalEndsAt(givenAt, meatWithdrawalDays)
+    );
+  }
+  return { milk, meat };
+};
+
+/**
+ * Works out both of a cow's Withdrawals from the Treatments she has actually been given, and
+ * writes them where the gates read them.
+ *
+ * Worked out afresh every time rather than pushed forward dose by dose, because the answer has
+ * to survive a Correction: a dose corrected back to a skip must shorten the hold again, and a
+ * dose given late — or given days ago and only synced this morning — must lengthen it. The
+ * latest end wins, whichever course or product it came from.
+ *
+ * A Vet's shortening stands only while the doses say what they said when the Vet wrote it.
+ * That is why what the doses alone say is kept beside the dates in force: a phone sending the
+ * same dose twice finds nothing changed and leaves the Vet's word alone, while a dose the farm
+ * had not seen before supersedes it — the Vet shortened a hold on what was known then, and a
+ * dose is new knowledge, whenever it happened to be given.
+ */
+export const recomputeWithdrawal = async (
+  tx: Tx,
+  farmId: string,
+  animalId: string
+): Promise<{ milkUntil: Date | null; meatUntil: Date | null }> => {
+  const doses = await fromHerDoses(tx, farmId, animalId);
+  const her = await tx.query.animal.findFirst({
+    where: { id: animalId, farmId },
+    columns: {
+      milkWithdrawalUntil: true,
+      meatWithdrawalUntil: true,
+      milkWithdrawalFromDoses: true,
+      meatWithdrawalFromDoses: true,
+    },
+  });
+  const unchanged =
+    sameInstant(doses.milk, her?.milkWithdrawalFromDoses ?? null) &&
+    sameInstant(doses.meat, her?.meatWithdrawalFromDoses ?? null);
+  if (her && unchanged) {
+    // Nothing the farm did not already know. Whatever is in force — the product's days, or a
+    // shorter end a Vet has since written — stays in force.
+    return {
+      milkUntil: her.milkWithdrawalUntil,
+      meatUntil: her.meatWithdrawalUntil,
+    };
+  }
+  await tx
+    .update(animal)
+    .set({
+      milkWithdrawalUntil: doses.milk,
+      meatWithdrawalUntil: doses.meat,
+      milkWithdrawalFromDoses: doses.milk,
+      meatWithdrawalFromDoses: doses.meat,
+      // Her doses have changed, so a shortening written against the old ones no longer
+      // describes anything the farm is doing.
+      withdrawalShortenedAt: null,
+      withdrawalShortenedBy: null,
+      withdrawalShortenedReason: null,
+    })
+    .where(eq(animal.id, animalId));
+  return { milkUntil: doses.milk, meatUntil: doses.meat };
+};
+
 /**
  * Cows coming off a milk Withdrawal within the day, soonest first.
  *
@@ -205,6 +311,13 @@ const later = (a: Date | null, b: Date | null): Date | null => {
  * is money, and so is milk that went to the tank a day early. One of the two notices the farm
  * sends immediately rather than in the digest.
  */
+export interface EndingSoon {
+  id: string;
+  tagNumber: string;
+  penId: string;
+  milkWithdrawalUntil: Date | null;
+}
+
 export const withdrawalsEndingSoon = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
@@ -218,7 +331,12 @@ export const withdrawalsEndingSoon = async (
         lte: new Date(now.getTime() + DAY_MS),
       },
     },
-    columns: { id: true, tagNumber: true, milkWithdrawalUntil: true },
+    columns: {
+      id: true,
+      tagNumber: true,
+      penId: true,
+      milkWithdrawalUntil: true,
+    },
   });
   if (rows.length === 0) {
     return rows;
@@ -245,148 +363,86 @@ export const withdrawalsEndingSoon = async (
     );
 };
 
+/** One cow's one Withdrawal, as the thing a notice is about. */
+export const withdrawalNoticeId = (animalId: string, until: Date): string =>
+  `${animalId}:${until.toISOString()}`;
+
 /**
- * Tells the Owner and the Manager that a Withdrawal is nearly over — once per cow per
- * Withdrawal, because the end instant is part of what the Alert is about. A second course
- * months later is a different thing to be told.
+ * Tells the Manager, and the milkers of her Pen, that a milk Withdrawal is nearly over — the
+ * two the farm's notification table names for this, because they are the people who decide
+ * where tomorrow morning's litres go.
+ *
+ * Once per cow per Withdrawal: the end instant is part of what the notice is about, so a second
+ * course months later is a new thing to be told rather than one already dismissed.
  */
 export const raiseWithdrawalAlerts = async (
   tx: Tx,
   farmId: string,
-  ending: { id: string; tagNumber: string; milkWithdrawalUntil: Date | null }[],
+  ending: EndingSoon[],
   now: Date
 ): Promise<RaisedAlert[]> => {
   if (ending.length === 0) {
     return [];
   }
-  const told = await holdersOf(tx, farmId, ["owner", "manager"]);
+  const managers = await holdersOf(tx, farmId, ["manager"]);
+  const milkers = await tx.query.penAssignment.findMany({
+    where: { farmId, penId: { in: ending.map((beast) => beast.penId) } },
+    columns: { penId: true, userId: true },
+  });
   const raised: RaisedAlert[] = [];
   for (const beast of ending) {
     const until = beast.milkWithdrawalUntil;
     if (!until) {
       continue;
     }
+    const told = [
+      ...managers,
+      ...milkers
+        .filter((row) => row.penId === beast.penId)
+        .map((row) => row.userId),
+    ];
+    const notice = {
+      kind: "withdrawal_ending" as const,
+      /** The Withdrawal, not the cow: one cow has many over her life, and this notice is
+       *  about one of them. Her id and tag travel in the params, so anything reading the
+       *  notice can still find her. */
+      entity: "withdrawal",
+      entityId: withdrawalNoticeId(beast.id, until),
+      params: {
+        tag: beast.tagNumber,
+        animalId: beast.id,
+        until: until.toISOString(),
+      },
+    };
     // Deliberately sequential: a herd of concurrent upserts against one unique index buys
     // nothing but lock contention.
     // oxlint-disable-next-line no-await-in-loop
-    const rows = await raiseAlerts(
-      tx,
-      farmId,
-      told,
-      {
-        kind: "withdrawal_ending",
-        entity: "animal",
-        /** The cow and the Withdrawal: told again for the next course, not for this one. */
-        entityId: `${beast.id}:${until.toISOString()}`,
-        params: { tag: beast.tagNumber, until: until.toISOString() },
-      },
-      now
-    );
-    raised.push(
-      ...rows.map((row) => ({
-        ...row,
-        kind: "withdrawal_ending" as const,
-        entity: "animal",
-        entityId: `${beast.id}:${until.toISOString()}`,
-        params: { tag: beast.tagNumber, until: until.toISOString() },
-      }))
-    );
+    const rows = await raiseAlerts(tx, farmId, told, notice, now);
+    raised.push(...rows.map((row) => ({ ...row, ...notice })));
   }
   return raised;
 };
 
-/**
- * Works out both of a cow's Withdrawals from the Treatments she has actually been given, and
- * writes them where the gates read them.
- *
- * Worked out afresh every time rather than pushed forward dose by dose, because the answer
- * has to survive a Correction: a dose corrected back to a skip must shorten the hold again,
- * and a dose given late must lengthen it. The latest end wins, whichever course or product it
- * came from — two overlapping courses hold her until the last of them lets go.
- *
- * A Vet's shortening stands until she is given another dose. After that the new dose sets the
- * dates afresh: the exception was about the course that had finished, not a promise about
- * everything to come.
- */
-export const recomputeWithdrawal = async (
-  tx: Tx,
+/** Whether any of these Withdrawals is still worth telling anybody about. Asked before a
+ *  transaction is opened, because a sweep with nothing to say is not an event — everyone calls
+ *  it on opening the app, and in steady state there is nothing new. */
+export const anyUntold = async (
+  db: Pick<Database, "query"> | Tx,
   farmId: string,
-  animalId: string
-): Promise<{ milkUntil: Date | null; meatUntil: Date | null }> => {
-  const given = await tx.query.treatment.findMany({
-    where: { farmId, animalId, givenAt: { isNotNull: true } },
-    columns: { givenAt: true },
-    with: {
-      prescription: {
-        columns: {},
-        with: {
-          product: {
-            columns: { milkWithdrawalDays: true, meatWithdrawalDays: true },
-          },
-        },
-      },
-    },
-  });
-  let milkUntil: Date | null = null;
-  let meatUntil: Date | null = null;
-  let lastGiven: Date | null = null;
-  for (const dose of given) {
-    const { givenAt } = dose;
-    const { milkWithdrawalDays, meatWithdrawalDays } =
-      dose.prescription.product;
-    if (!givenAt) {
-      continue;
-    }
-    if (!lastGiven || givenAt > lastGiven) {
-      lastGiven = givenAt;
-    }
-    // A product may not be prescribed without its days, so a dose given under one always has
-    // them; a product whose days were cleared afterwards holds her for as long as the rest.
-    const milkEnd =
-      milkWithdrawalDays === null
-        ? null
-        : withdrawalEndsAt(givenAt, milkWithdrawalDays);
-    const meatEnd =
-      meatWithdrawalDays === null
-        ? null
-        : withdrawalEndsAt(givenAt, meatWithdrawalDays);
-    milkUntil = later(milkUntil, milkEnd);
-    meatUntil = later(meatUntil, meatEnd);
+  ending: EndingSoon[]
+): Promise<boolean> => {
+  const ids = ending.flatMap((beast) =>
+    beast.milkWithdrawalUntil
+      ? [withdrawalNoticeId(beast.id, beast.milkWithdrawalUntil)]
+      : []
+  );
+  if (ids.length === 0) {
+    return false;
   }
-
-  const her = await tx.query.animal.findFirst({
-    where: { id: animalId, farmId },
-    columns: {
-      milkWithdrawalUntil: true,
-      meatWithdrawalUntil: true,
-      withdrawalShortenedAt: true,
-    },
+  const told = await db.query.alert.findMany({
+    where: { farmId, kind: "withdrawal_ending", entityId: { in: ids } },
+    columns: { entityId: true },
   });
-  // The Vet shortened it and nothing has been given since: their word stands.
-  if (
-    her?.withdrawalShortenedAt &&
-    (!lastGiven || lastGiven <= her.withdrawalShortenedAt)
-  ) {
-    return {
-      milkUntil: her.milkWithdrawalUntil,
-      meatUntil: her.meatWithdrawalUntil,
-    };
-  }
-  await tx
-    .update(animal)
-    .set({
-      milkWithdrawalUntil: milkUntil,
-      meatWithdrawalUntil: meatUntil,
-      // A dose given after a shortening puts the farm back on the product's own days, so the
-      // old exception no longer describes anything.
-      ...(her?.withdrawalShortenedAt && lastGiven
-        ? {
-            withdrawalShortenedAt: null,
-            withdrawalShortenedBy: null,
-            withdrawalShortenedReason: null,
-          }
-        : {}),
-    })
-    .where(eq(animal.id, animalId));
-  return { milkUntil, meatUntil };
+  const said = new Set(told.map((row) => row.entityId));
+  return ids.some((id) => !said.has(id));
 };

@@ -240,6 +240,54 @@ describe("withdrawal, from the last dose actually given", () => {
       forced: true,
     });
   });
+  it("pours away litres the phone was still holding when the dose was recorded", async () => {
+    const clock = new FakeClock("2026-10-12T02:00:00.000Z");
+    const { cow } = await onACourse(clock, 1);
+    await giveDose(clock, cow.tagNumber, 1);
+
+    // The milking round is on the shed phone's Outbox from before the dose was recorded, and
+    // reaches the farm afterwards asking for the tank. The phone's gate is its last sync; the
+    // server's is the one that decides.
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-gate", name: "গেট শেড ফোন" },
+    });
+    await phone.client.instances.ensureDue();
+    const today = await phone.client.instances.today({ penId: world.pen.id });
+    const milking = today.find(
+      (row) => row.definitionId === world.milking.definitionId
+    );
+    if (!milking) {
+      throw new Error("expected the milking round");
+    }
+    const sent = await phone.client.sync.batch({
+      key: `gate-${cow.tagNumber}`,
+      entries: [
+        {
+          id: `gate-entry-${cow.tagNumber}`,
+          seq: 1,
+          recordedAt: clock.now(),
+          kind: "step_completion" as const,
+          instanceId: milking.id,
+          stepId: "litres",
+          animalTag: cow.tagNumber,
+          evidence: [6],
+          destination: "bulk" as const,
+        },
+      ],
+    });
+    expect(sent.results.every((one) => one.outcome === "applied")).toBe(true);
+
+    // Recorded, never lost — and not in the tank.
+    const session = await phone.client.milk.session({ instanceId: milking.id });
+    const hers = session.records.find(
+      (row) => row.animal.tagNumber === cow.tagNumber
+    );
+    expect(hers).toMatchObject({ destination: "discard", forced: true });
+  });
+
   it("lets the Vet shorten it, with a reason, and nobody else at all", async () => {
     const clock = new FakeClock("2026-10-04T02:00:00.000Z");
     const { cow, vet, owner } = await onACourse(clock, 1);
@@ -370,5 +418,107 @@ describe("withdrawal, from the last dose actually given", () => {
     expect(hers?.fitForSaleAt).toEqual(
       new Date(clock.now().getTime() + 21 * DAY)
     );
+  });
+  it("ends a hold outright when the Vet says it is over", async () => {
+    const clock = new FakeClock("2026-10-09T02:00:00.000Z");
+    const { cow, vet, owner } = await onACourse(clock, 1);
+    await giveDose(clock, cow.tagNumber, 1);
+
+    // The wrong bottle: nothing that holds milk back ever went in.
+    const ended = await vet.client.withdrawals.shorten({
+      animalTag: cow.tagNumber,
+      milkUntil: null,
+      meatUntil: null,
+      reason: "ভুল বোতল, কিছুই দেওয়া হয়নি",
+    });
+    // What is in force now, not what was in force before: a farm told the old date would
+    // think nothing had happened.
+    expect(ended).toEqual({ milkUntil: null, meatUntil: null });
+
+    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    expect(her.milkWithdrawalUntil).toBeNull();
+    expect(her.underMilkWithdrawal).toBe(false);
+    // And what her doses said is still on her page, because that is what a slaughter vet asks.
+    expect(her.shortened?.wasMilkUntil).toEqual(
+      new Date(clock.now().getTime() + 4 * DAY)
+    );
+  });
+
+  it("holds her again for a dose the farm only hears about later", async () => {
+    const clock = new FakeClock("2026-10-10T02:00:00.000Z");
+    const { cow, vet, owner } = await onACourse(clock, 2);
+    await giveDose(clock, cow.tagNumber, 1);
+    await vet.client.withdrawals.shorten({
+      animalTag: cow.tagNumber,
+      milkUntil: clock.now(),
+      reason: "একটি ডোজেই সেরে গেছে",
+    });
+
+    // The next morning, a phone that has been out of signal since yesterday sends the second
+    // dose. The Vet shortened a hold on what the farm knew then; a dose is new knowledge
+    // however long it took to arrive.
+    clock.advance(DAY);
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-withdrawals", name: "আটকে রাখার শেড ফোন" },
+    });
+    const [course] = await vet.client.prescriptions.forAnimal({
+      tagNumber: cow.tagNumber,
+    });
+    const second = course?.doses.find((one) => one.number === 2);
+    if (!second) {
+      throw new Error("expected a second dose");
+    }
+    const batch = {
+      key: `held-dose-${cow.tagNumber}`,
+      entries: [
+        {
+          id: `held-dose-entry-${cow.tagNumber}`,
+          seq: 1,
+          recordedAt: clock.now(),
+          kind: "step_completion" as const,
+          instanceId: second.instanceId,
+          stepId: "dose",
+          evidence: [true],
+        },
+      ],
+    };
+    const sent = await phone.client.sync.batch(batch);
+
+    const her = await owner.client.animals.byTag({ tagNumber: cow.tagNumber });
+    expect(her.milkWithdrawalUntil).toEqual(
+      new Date(clock.now().getTime() + 4 * DAY)
+    );
+    expect(her.shortened).toBeNull();
+
+    // And the same entry sent again changes nothing: the doses say what they already said, so
+    // nothing is recomputed and nothing the Vet wrote is undone.
+    await vet.client.withdrawals.shorten({
+      animalTag: cow.tagNumber,
+      milkUntil: clock.now(),
+      reason: "দেখে মনে হলো ঠিক আছে",
+    });
+    expect(await phone.client.sync.batch(batch)).toEqual(sent);
+    const after = await owner.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+    expect(after.milkWithdrawalUntil).toEqual(clock.now());
+    expect(after.shortened?.reason).toBe("দেখে মনে হলো ঠিক আছে");
+  });
+
+  it("refuses to hold her where nothing is holding her", async () => {
+    const clock = new FakeClock("2026-10-11T02:00:00.000Z");
+    const { cow, vet } = await onACourse(clock, 1);
+
+    // No dose given, so nothing holds her. Inventing a hold is not shortening one.
+    await expect(
+      vet.client.withdrawals.shorten({
+        animalTag: cow.tagNumber,
+        milkUntil: new Date(clock.now().getTime() + DAY),
+        reason: "সাবধানতা",
+      })
+    ).rejects.toThrow(/shortened/u);
   });
 });

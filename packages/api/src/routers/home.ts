@@ -139,7 +139,11 @@ export const homeRouter = {
         tiles: {
           workDone: doneToday,
           workRaised: today.length,
-          underWithdrawal: underWithdrawal.length,
+          // The tile says "milk the farm may not sell", so it counts the cows that is true
+          // of. A cow held back only from sale is held, but not from the tank.
+          underWithdrawal: underWithdrawal.filter((beast) =>
+            underMilkWithdrawal(beast, now)
+          ).length,
         },
         queue: {
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
@@ -178,6 +182,13 @@ export const homeRouter = {
            *  Withdrawal ending is the one a Manager has to plan around. */
           withdrawal: underWithdrawal
             .filter((beast) => underMilkWithdrawal(beast, now))
+            // Soonest to come off first: a Withdrawal ending is the one a Manager has to plan
+            // around, and it was this read that used to do the sorting.
+            .toSorted(
+              (a, b) =>
+                (a.milkWithdrawalUntil?.getTime() ?? 0) -
+                (b.milkWithdrawalUntil?.getTime() ?? 0)
+            )
             .map((beast) => ({
               id: beast.id,
               tagNumber: beast.tagNumber,
@@ -194,6 +205,13 @@ export const homeRouter = {
            *  stops a Manager selling a cow who is still carrying a drug. */
           meatWithdrawal: underWithdrawal
             .filter((beast) => underMeatWithdrawal(beast, now))
+            // Soonest fit for sale first: this list is read to plan, and the cow closest to
+            // being sellable is the one the plan turns on.
+            .toSorted(
+              (a, b) =>
+                (a.meatWithdrawalUntil?.getTime() ?? 0) -
+                (b.meatWithdrawalUntil?.getTime() ?? 0)
+            )
             .map((beast) => ({
               id: beast.id,
               tagNumber: beast.tagNumber,
@@ -373,7 +391,9 @@ export const homeRouter = {
           workDone: today.filter((instance) => isFinished(instance.state))
             .length,
           workRaised: today.length,
-          underWithdrawal: held.length,
+          underWithdrawal: held.filter((beast) =>
+            underMilkWithdrawal(beast, now)
+          ).length,
         },
       };
     }),

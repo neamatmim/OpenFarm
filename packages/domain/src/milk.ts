@@ -20,9 +20,9 @@ const roundPercent = toScale;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Is this cow's milk inside a Withdrawal right now? Health (increment 3) sets the date from
- *  the last dose given; until then it is seeded. The boundary is inclusive of the instant
- *  itself: milk drawn at the moment the Withdrawal ends is still held back. */
+/** Is this cow's milk inside a Withdrawal right now? The date comes from the last Treatment
+ *  given, on the product's own days. She comes off at the instant it names: milk drawn at that
+ *  instant may go to the tank, and a moment before it may not. */
 export const underMilkWithdrawal = (
   animal: { milkWithdrawalUntil: Date | null },
   now: Date
@@ -104,18 +104,16 @@ export interface LactationView {
   lactationStartedAt: Date | null;
   /** Null unless she is in milk right now. */
   daysInMilk: number | null;
-  underMilkWithdrawal: boolean;
-  milkWithdrawalUntil: Date | null;
 }
 
 /** Everything about a cow's Lactation that is derived rather than stored, in one place, so
- *  every screen that shows it shows the same thing. */
+ *  every screen that shows it shows the same thing. What is holding her back is
+ *  `withdrawalView`'s business, not this one's — a Withdrawal is not part of a lactation. */
 export const lactationView = (
   animal: {
     state: string;
     lactationNumber: number;
     lactationStartedAt: Date | null;
-    milkWithdrawalUntil: Date | null;
   },
   now: Date
 ): LactationView => ({
@@ -125,8 +123,6 @@ export const lactationView = (
     animal.state === "milking"
       ? daysInMilk(animal.lactationStartedAt, now)
       : null,
-  underMilkWithdrawal: underMilkWithdrawal(animal, now),
-  milkWithdrawalUntil: animal.milkWithdrawalUntil,
 });
 
 /**

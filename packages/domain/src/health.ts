@@ -1,6 +1,8 @@
 import { underMilkWithdrawal } from "./milk";
+
 /**
- * What the farm may prescribe, and what it may not.
+ * What the farm may prescribe, and what it may not — and what a Treatment holds back once it
+ * has been given.
  *
  * A product with either withdrawal figure blank cannot be prescribed. That is not a
  * technicality: the withdrawal days are the only thing standing between a treated cow and
@@ -85,7 +87,7 @@ export const MAX_TIMES_A_DAY = 4;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Is she still inside her meat Withdrawal? The twin of `underMilkWithdrawal`, which lives
- *  with the milk it holds back. Inclusive of the instant itself, like its twin. */
+ *  with the milk it holds back. She comes off at the instant it names, like its twin. */
 export const underMeatWithdrawal = (
   animal: { meatWithdrawalUntil: Date | null },
   now: Date
@@ -112,13 +114,22 @@ export interface WithdrawalView {
   underMeatWithdrawal: boolean;
   /** The day she is fit for sale again. Null when nothing holds her. */
   meatWithdrawalUntil: Date | null;
-  shortened: { at: Date; reason: string | null } | null;
+  shortened: {
+    at: Date;
+    reason: string | null;
+    /** What her doses alone said, before the Vet shortened it — the figure a slaughter vet
+     *  asks about, kept where the page can show it rather than only in the trail. */
+    wasMilkUntil: Date | null;
+    wasMeatUntil: Date | null;
+  } | null;
 }
 
 export const withdrawalView = (
   animal: {
     milkWithdrawalUntil: Date | null;
     meatWithdrawalUntil: Date | null;
+    milkWithdrawalFromDoses: Date | null;
+    meatWithdrawalFromDoses: Date | null;
     withdrawalShortenedAt: Date | null;
     withdrawalShortenedReason: string | null;
   },
@@ -132,6 +143,8 @@ export const withdrawalView = (
     ? {
         at: animal.withdrawalShortenedAt,
         reason: animal.withdrawalShortenedReason,
+        wasMilkUntil: animal.milkWithdrawalFromDoses,
+        wasMeatUntil: animal.meatWithdrawalFromDoses,
       }
     : null,
 });

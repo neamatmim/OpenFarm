@@ -6,7 +6,11 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { raiseWithdrawalAlerts, withdrawalsEndingSoon } from "../health-store";
+import {
+  anyUntold,
+  raiseWithdrawalAlerts,
+  withdrawalsEndingSoon,
+} from "../health-store";
 import { protectedProcedure } from "../index";
 import {
   findPendingNotices,
@@ -33,13 +37,13 @@ const first = (pending: {
  * write, keyed on an animal rather than on an Instance, because no work raised it — the clock
  * did, against a date a Treatment set.
  */
-const tellAboutWithdrawals = async (
-  context: Parameters<typeof pushRaised>[0],
-  now: Date
-) => {
+type Sweeping = Parameters<typeof pushRaised>[0];
+
+const tellAboutWithdrawals = async (context: Sweeping, now: Date) => {
   const ending = await withdrawalsEndingSoon(context.db, context.farm.id, now);
   const [soonest] = ending;
-  if (!soonest) {
+  // Nothing coming off, or everyone has already been told: no transaction, no trail entry.
+  if (!soonest || !(await anyUntold(context.db, context.farm.id, ending))) {
     return;
   }
   const raised = await audited(context).write(

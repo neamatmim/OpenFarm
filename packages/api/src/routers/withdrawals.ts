@@ -34,7 +34,11 @@ const readWithdrawals = async (tx: Tx, id: string) => {
   return row ?? null;
 };
 
-/** What a Withdrawal may be shortened to: an instant no later than where it stands, or now. */
+/**
+ * What a Withdrawal may be shortened to: nothing at all, or an instant no later than where it
+ * already stands. A hold where none stands is not a shortening either — inventing one would be
+ * the Vet holding a cow the Drug List says is free, which is the Drug List's business.
+ */
 const shorterThan = (
   standing: Date | null,
   asked: Date | null | undefined,
@@ -46,7 +50,8 @@ const shorterThan = (
   if (asked === null) {
     return null;
   }
-  if (standing && asked.getTime() > standing.getTime()) {
+  const wouldLengthen = !standing || asked.getTime() > standing.getTime();
+  if (wouldLengthen) {
     throw new ORPCError("BAD_REQUEST", {
       message: `A withdrawal can only be shortened, and that would hold her ${what} for longer`,
       data: { refusal: "not_shorter" },
@@ -92,11 +97,7 @@ export const withdrawalsRouter = {
         context.farm.id,
         tagNumber
       );
-      let changed = {
-        milkUntil: null as Date | null,
-        meatUntil: null as Date | null,
-      };
-      await audited(context).write(
+      return await audited(context).write(
         {
           entity: "animal",
           entityId: target.id,
@@ -131,12 +132,15 @@ export const withdrawalsRouter = {
               withdrawalShortenedReason: input.reason,
             })
             .where(eq(animal.id, her.id));
-          changed = {
-            milkUntil: milkUntil ?? her.milkWithdrawalUntil,
-            meatUntil: meatUntil ?? her.meatWithdrawalUntil,
+          // What is now in force. `undefined` left that hold alone; `null` ended it, and
+          // reporting the old date back would be the farm saying it had done nothing.
+          return {
+            milkUntil:
+              milkUntil === undefined ? her.milkWithdrawalUntil : milkUntil,
+            meatUntil:
+              meatUntil === undefined ? her.meatWithdrawalUntil : meatUntil,
           };
         }
       );
-      return changed;
     }),
 };

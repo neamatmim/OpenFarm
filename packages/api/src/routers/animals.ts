@@ -96,6 +96,8 @@ const summaryColumns = {
   lactationStartedAt: true,
   milkWithdrawalUntil: true,
   meatWithdrawalUntil: true,
+  milkWithdrawalFromDoses: true,
+  meatWithdrawalFromDoses: true,
   withdrawalShortenedAt: true,
   withdrawalShortenedReason: true,
 } as const;
