@@ -612,6 +612,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.windowEnd": "বিক্রির সময় শেষ",
   "intake.windowNote": "খালি রাখলে আগামী ঈদুল আজহা ধরা হবে; তারিখ ঘোষণার পর বদলে নিন।",
   "intake.targetWeightNote": "খালি রাখলে খামারের নির্ধারিত লক্ষ্য ওজন ধরা হবে।",
+  "intake.photoLater": "ছবিটি যায়নি — পশুর পাতা থেকে আবার তুলুন।",
   "intake.record": "তোলা হলো",
   "intake.recorded": "{tag} খামারে তোলা হয়েছে",
   "nav.identity": "খামারের পরিচয়",

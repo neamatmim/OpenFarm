@@ -101,14 +101,6 @@ export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
 };
 
 /**
- * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
- * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
- *
- * Open work raised about her follows her. Without that, drying a cow off leaves the checks
- * raised about her standing in the milking pen: the Staff assigned where she now is never
- * see them, and the ones assigned where she was are sent to fetch a cow who is not there.
- */
-/**
  * The rows that make an Animal: the Animal itself and the Move that put it in its Pen.
  *
  * Takes a transaction rather than opening one, because an arrival writes more than an Animal —
@@ -173,6 +165,14 @@ export const insertAnimal = async (
   return { tagNumber };
 };
 
+/**
+ * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
+ * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
+ *
+ * Open work raised about her follows her. Without that, drying a cow off leaves the checks
+ * raised about her standing in the milking pen: the Staff assigned where she now is never
+ * see them, and the ones assigned where she was are sent to fetch a cow who is not there.
+ */
 export const recordMove = async (
   tx: Tx,
   entry: {

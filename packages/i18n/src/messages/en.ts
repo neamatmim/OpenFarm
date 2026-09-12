@@ -617,6 +617,8 @@ export const en = {
     "Left blank, the next Eid-ul-Adha is used; change it once the date is announced.",
   "intake.targetWeightNote":
     "Left blank, the farm's own target weight is used.",
+  "intake.photoLater":
+    "The photo did not go up — take it again from the animal's page.",
   "intake.record": "Take it in",
   "intake.recorded": "{tag} is on the farm",
   "nav.identity": "Farm identity",

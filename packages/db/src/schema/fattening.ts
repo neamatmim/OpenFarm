@@ -27,8 +27,8 @@ export const counterparty = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    /** Where he trades from, as the farm would say it aloud — a hat, a village, a district. */
-    place: text("place"),
+    /** Where he is, as the farm would say it aloud — a hat, a village, a district. */
+    address: text("address"),
     phone: text("phone"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -65,7 +65,7 @@ export const intake = pgTable(
     /** What it weighed when it came off the lorry: the first point every gain is measured from. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     /** Months, as the seller says and the Manager judges. Nobody has a bought-in bull's papers. */
-    estimatedAgeMonths: integer("estimated_age_months"),
+    estimatedAgeMonths: integer("estimated_age_months").notNull(),
     /** The period the farm intends to sell it in — days, as a calendar names them, because Eid
      *  is a date in a calendar and not an instant on a clock. */
     targetWindowStart: text("target_window_start").notNull(),

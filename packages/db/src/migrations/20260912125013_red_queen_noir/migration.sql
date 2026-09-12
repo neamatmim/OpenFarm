@@ -2,7 +2,7 @@ CREATE TABLE "counterparty" (
 	"id" text PRIMARY KEY,
 	"farm_id" text NOT NULL,
 	"name" text NOT NULL,
-	"place" text,
+	"address" text,
 	"phone" text,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
@@ -14,7 +14,7 @@ CREATE TABLE "intake" (
 	"counterparty_id" text,
 	"purchase_price_bdt" numeric(12,2) NOT NULL,
 	"weight_kg" numeric(7,2) NOT NULL,
-	"estimated_age_months" integer,
+	"estimated_age_months" integer NOT NULL,
 	"target_window_start" text NOT NULL,
 	"target_window_end" text NOT NULL,
 	"target_weight_kg" numeric(7,2) NOT NULL,

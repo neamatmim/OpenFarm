@@ -38,6 +38,42 @@ The screen is `/admin/intake` — the Manager standing at a lorry types the four
 can know, and the window and the target weight fill themselves in. Her page now opens with **how
 she arrived**: what she cost, what she weighed, and what she is being fed towards.
 
+## What the review changed
+
+Both axes found real things, and all of them are folded in.
+
+- **I ticked a criterion I had not met.** The ticket asks for "a photo"; the spec's story 60 and the
+  glossary both list one; and my own "Not done" note said there was none — the tick and the note
+  contradicted each other on the same page. The intake form takes a photograph now, sent after the
+  animal exists (a photo belongs to an animal, and there was none until a moment ago). A photo that
+  fails to go up does not undo the arrival: the animal is on the farm either way.
+- **Intake was open to the Owner.** The roles matrix is explicit — *Intake / Sale: Owner `R; approve
+  above threshold`, Manager `C R U`*. The Owner answers for the money, not for the buying. It is the
+  Manager's alone now, refused by name so an Owner is told why rather than left looking for a
+  permission to change; an Owner who does the buying on a small farm holds the Manager role too.
+- **The new Farm Parameter could not be set.** `fatteningTargetWeightKg` reached the table, the
+  Context and the audit snapshot but never the input schema, so it was a hard-coded 350 nobody
+  could change — which made the whole "one number the Manager may tune" departure untrue. Fixed
+  and tested.
+- **Estimated age was optional**, though story 60 marks only breed optional. Required, in the
+  schema and on the form.
+- **Two traders with one name silently merged**, discarding the second's address and phone. The
+  farm now keeps what it knew and learns only what it lacked, and `intake.sellers` lets the Manager
+  see who the farm already deals with.
+- **Two doc comments were orphaned** by my insertions — `recordMove`'s in `herd-store.ts` and
+  `HowSheWent`'s on the animal page. Sixth and seventh time this session. Both put back.
+- **"Seller" and "place" were new words** for a Counterparty and its address. The column is
+  `address` again, and CONTEXT.md's Counterparty entry is widened to say that *seller* and *buyer*
+  are the sides he stands on, not a second kind of record.
+- **The farm's clock had a fourth copy**, this time hardcoded as `+06:00` inside the browser. It
+  now lives in `packages/domain/src/farm-clock.ts`, where the server and the browser both reach it;
+  the API keeps only the shape a request is validated against.
+- **The Target Window travelled as two loose strings.** It is one `TargetWindow` through the view
+  and the page.
+
+The spec reviewer also checked the Eid table against the Hijri year: every interval is 354 or 355
+days from 2026 to 2036, and 2026-05-28 matches Bangladesh.
+
 ## Decisions and departures
 
 - **Target weight is one Farm Parameter, not "by class".** The spec says "target weight from a
@@ -47,13 +83,18 @@ she arrived**: what she cost, what she weighed, and what she is being fed toward
   three days of selling. Stored as days rather than instants: Eid is a date in a calendar.
 - **The seller may be named and nothing else.** A name is required; place and phone are what
   anybody remembers. A trader already known by that name is reused rather than written twice.
-- **No photo at intake.** The animal page already takes one, and the arrival form asking for a
-  photograph before the animal is in the system would be a second way to do the same thing.
+- **The photo is taken at the lorry but sent after.** `animals.setPhoto` needs an animal to hang
+  it on, and there is none until the arrival is written — so the form holds the file and sends it
+  once the animal exists. Optional, per the identity scheme: "optional at registration; prompted
+  later if missing".
 
 ## Not done, and why
 
 - **Nothing projects yet.** Days on feed, average daily gain and projected weight at the Target
   Window are ticket 37's, and they need Weigh-ins (ticket 36) to exist first.
+- **No way to correct an Intake.** The matrix gives the Manager `U` on Intake and there is no
+  procedure for it: a price typed wrong stays typed wrong. Correcting is the corrections module's
+  own mechanism and a ticket of its own; recorded here rather than half-built.
 - **Intake is not an SOP.** The decision calls it SOP 20; today it is a Manager's act on a screen,
   like every other arrival on this farm. Whether arrivals should raise work is a Playbook question,
   not this ticket's.
@@ -62,7 +103,10 @@ she arrived**: what she cost, what she weighed, and what she is being fed toward
 
 ## Verification
 
-`pnpm check-types` clean across the workspace; `pnpm test` 368 passing (339 api + 19 web + 10
+`pnpm check-types` clean across the workspace; `pnpm test` 370 passing (341 api + 19 web + 10
 i18n), up from 366; `pnpm build` clean; `oxfmt` clean and `oxlint` clean on every changed file (the
 one `no-use-before-define` in `herd-store.ts` pre-dates this ticket — it moved line but not
 existence).
+
+The ticket's two migrations are squashed into one: two new tables and one column with a default,
+so it is safe on a farm that already has rows.

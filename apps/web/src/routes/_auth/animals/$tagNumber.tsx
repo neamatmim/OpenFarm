@@ -1,8 +1,9 @@
-import type { Disposal, MortalityKind } from "@OpenFarm/domain";
+import type { Disposal, MortalityKind, TargetWindow } from "@OpenFarm/domain";
 import {
   DISPOSALS,
   MORTALITY_KINDS,
   allowedNextStates,
+  startOfFarmDay,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -465,13 +466,6 @@ const PutItRight = ({
 };
 
 /**
- * How she left the herd, or — for an Owner or a Manager looking at an animal who is still
- * here — the way to write it down.
- *
- * Disposal is evidence: the burial rule is six feet and an inspector may ask which it was, so
- * the farm records it beside the cause rather than leaving it in somebody's memory.
- */
-/**
  * How a bought-in animal arrived: what the farm paid, what it weighed off the lorry, and what it
  * is being fed towards. Nothing here ever changes — an arrival happened once — so it reads as a
  * record rather than as a form.
@@ -483,11 +477,10 @@ const HowSheArrived = ({
     purchasePriceBdt: number;
     weightKg: number;
     targetWeightKg: number;
-    estimatedAgeMonths: number | null;
-    targetWindowStart: string;
-    targetWindowEnd: string;
+    estimatedAgeMonths: number;
+    targetWindow: TargetWindow;
     sellerName: string | null;
-    sellerPlace: string | null;
+    sellerAddress: string | null;
   } | null;
 }) => {
   const { t, language } = useLanguage();
@@ -500,8 +493,9 @@ const HowSheArrived = ({
     <section className="space-y-1 rounded-lg border p-4 text-sm">
       <h2 className="font-medium">{t("intake.title")}</h2>
       <Fact label={t("intake.seller")}>
-        {[intake.sellerName, intake.sellerPlace].filter(Boolean).join(" · ") ||
-          "—"}
+        {[intake.sellerName, intake.sellerAddress]
+          .filter(Boolean)
+          .join(" · ") || "—"}
       </Fact>
       <Fact label={t("intake.price")}>
         {t("intake.taka", {
@@ -509,17 +503,20 @@ const HowSheArrived = ({
         })}
       </Fact>
       <Fact label={t("intake.weight")}>{kg(intake.weightKg)}</Fact>
-      {intake.estimatedAgeMonths === null ? null : (
-        <Fact label={t("intake.age")}>
-          {t("intake.months", {
-            months: formatNumber(intake.estimatedAgeMonths, language),
-          })}
-        </Fact>
-      )}
+      <Fact label={t("intake.age")}>
+        {t("intake.months", {
+          months: formatNumber(intake.estimatedAgeMonths, language),
+        })}
+      </Fact>
       <Fact label={t("intake.targetWeight")}>{kg(intake.targetWeightKg)}</Fact>
       <Fact label={t("intake.targetWindow")}>
-        {formatDate(startOfDay(intake.targetWindowStart), language, "date")} –{" "}
-        {formatDate(startOfDay(intake.targetWindowEnd), language, "date")}
+        {formatDate(
+          startOfFarmDay(intake.targetWindow.start),
+          language,
+          "date"
+        )}{" "}
+        –{" "}
+        {formatDate(startOfFarmDay(intake.targetWindow.end), language, "date")}
       </Fact>
     </section>
   );
@@ -533,9 +530,13 @@ const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
   </p>
 );
 
-/** A Target Window's days are days; shown on the farm's own clock, which is where Eid falls. */
-const startOfDay = (day: string) => new Date(`${day}T00:00:00+06:00`);
-
+/**
+ * How she left the herd, or — for an Owner or a Manager looking at an animal who is still
+ * here — the way to write it down.
+ *
+ * Disposal is evidence: the burial rule is six feet and an inspector may ask which it was, so
+ * the farm records it beside the cause rather than leaving it in somebody's memory.
+ */
 const HowSheWent = ({
   detail,
   mayRecord,

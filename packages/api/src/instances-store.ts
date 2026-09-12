@@ -11,6 +11,7 @@ import type {
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  FARM_UTC_OFFSET_MINUTES,
   raisesItsOwnWork,
   carryingMoments,
   describeChanges,
@@ -25,7 +26,6 @@ import {
 
 import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
-import { FARM_UTC_OFFSET_MINUTES } from "./farm-clock";
 
 const MINUTE_MS = 60_000;
 

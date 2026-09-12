@@ -170,7 +170,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. _Avoid_: Transaction, journal entry, payment (one kind)
 
-**Counterparty**: A person or business the Farm buys from, sells to, or pays: name, address, phone. Shared across Sale, Dispatch, Intake, Purchase and Money Events. _Avoid_: Customer, vendor, contact, party
+**Counterparty**: A person or business the Farm buys from, sells to, or pays: name, address, phone. Recorded once per name and shared across Sale, Dispatch, Intake, Purchase and Money Events — the trader who sells the Farm a bull is often the man who buys one back at Eid. Called the **seller** on an Intake and the **buyer** on a Sale, which is the side he stands on rather than a second kind of record. _Avoid_: Customer, vendor, contact, party
 
 **Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. _Avoid_: Account, head, GL code
 

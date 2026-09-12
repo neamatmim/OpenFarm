@@ -365,9 +365,7 @@ describe("what the farm has learned since", () => {
     const today = await first.client.instances.today({
       penId: world.milking.id,
     });
-    const instance = today.find(
-      (row) => row.definitionId === sop.definitionId
-    );
+    const instance = today.find((row) => row.definitionId === sop.definitionId);
     if (!instance) {
       throw new Error("expected the moving instance");
     }

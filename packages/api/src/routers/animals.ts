@@ -122,11 +122,11 @@ const intakeView = (
         purchasePriceBdt: string;
         weightKg: string;
         targetWeightKg: string;
-        estimatedAgeMonths: number | null;
+        estimatedAgeMonths: number;
         targetWindowStart: string;
         targetWindowEnd: string;
         arrivedAt: Date;
-        seller: { name: string; place: string | null } | null;
+        seller: { name: string; address: string | null } | null;
       }
     | null
     | undefined
@@ -137,11 +137,13 @@ const intakeView = (
         weightKg: Number(row.weightKg),
         targetWeightKg: Number(row.targetWeightKg),
         estimatedAgeMonths: row.estimatedAgeMonths,
-        targetWindowStart: row.targetWindowStart,
-        targetWindowEnd: row.targetWindowEnd,
+        targetWindow: {
+          start: row.targetWindowStart,
+          end: row.targetWindowEnd,
+        },
         arrivedAt: row.arrivedAt,
         sellerName: row.seller?.name ?? null,
-        sellerPlace: row.seller?.place ?? null,
+        sellerAddress: row.seller?.address ?? null,
       }
     : null;
 
@@ -374,7 +376,7 @@ export const animalsRouter = {
           /** How she arrived, for an animal the farm bought in: what she cost, what she
            *  weighed off the lorry, and what she is being fed towards. */
           intake: {
-            with: { seller: { columns: { name: true, place: true } } },
+            with: { seller: { columns: { name: true, address: true } } },
           },
           /** The Vet came for something else and found this: a Diagnosis answering no
            *  Observation still belongs to her history. */
