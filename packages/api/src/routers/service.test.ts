@@ -67,6 +67,8 @@ const aiSop = (): SopContent => ({
         { type: "note", required: true },
         // Who actually served her — a technician or a vet, rarely somebody with an account.
         { type: "note", required: false },
+        // When she was served: filled in with now, and changed when it is written up late.
+        { type: "datetime", required: true },
       ],
       skipReasons: [],
       effect: { kind: "service" },
@@ -110,7 +112,7 @@ const setup = async () => {
       aliases: [],
     });
   const cows = [];
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     // oxlint-disable-next-line no-await-in-loop
     cows.push(await heifer());
   }
@@ -221,7 +223,12 @@ describe("the service", () => {
     await manager.client.instances.completeStep({
       instanceId: workId,
       stepId: "serve",
-      evidence: ["ai", "HF-2231-BD", "রহিম (এআই টেকনিশিয়ান)"],
+      evidence: [
+        "ai",
+        "HF-2231-BD",
+        "রহিম (এআই টেকনিশিয়ান)",
+        "2027-11-02T13:00:00.000Z",
+      ],
     });
     await manager.client.instances.complete({ id: workId });
 
@@ -241,6 +248,50 @@ describe("the service", () => {
     expect(board.state).toBe("completed");
   });
 
+  it("carries the day she was served, not the day it was written up", async () => {
+    // Served on the evening of the 7th, written up the next morning. Every later date — the
+    // Pregnancy Check forty-five days on, Expected Calving — counts from the 7th.
+    const workId = await inHeat("2027-11-07", tagOf(5));
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2027-11-08T03:00:00.000Z"),
+    });
+    await manager.client.instances.claim({ id: workId });
+
+    // Not tomorrow: a service that has not happened yet is not a service.
+    await expect(
+      manager.client.instances.completeStep({
+        instanceId: workId,
+        stepId: "serve",
+        evidence: ["ai", "HF-4400", "রহিম", "2027-11-09T12:00:00.000Z"],
+      })
+    ).rejects.toMatchObject({ data: { refusal: "served_in_the_future" } });
+
+    await manager.client.instances.completeStep({
+      instanceId: workId,
+      stepId: "serve",
+      evidence: ["ai", "HF-4400", "রহিম", "2027-11-07T13:30:00.000Z"],
+    });
+    const her = await manager.client.animals.byTag({ tagNumber: tagOf(5) });
+    const [served] = her.services;
+    expect(served?.servedAt.toISOString()).toBe("2027-11-07T13:30:00.000Z");
+
+    // And a wrong hour can be put right, which the moment of writing it down never could.
+    const board = await manager.client.instances.get({ id: workId });
+    const entry = board.completions.find((row) => row.stepId === "serve");
+    await manager.client.instances.correctStep({
+      completionId: entry?.id ?? "",
+      evidence: ["ai", "HF-4400", "রহিম", "2027-11-07T11:00:00.000Z"],
+      reason: "সময় ভুল লেখা হয়েছিল",
+    });
+    const corrected = await manager.client.animals.byTag({
+      tagNumber: tagOf(5),
+    });
+    expect(corrected.services[0]?.servedAt.toISOString()).toBe(
+      "2027-11-07T11:00:00.000Z"
+    );
+  });
+
   it("records a natural service by the farm's own bull", async () => {
     const workId = await inHeat("2027-11-03", tagOf(1));
     const manager = await createTestClient(appRouter, {
@@ -251,7 +302,12 @@ describe("the service", () => {
     await manager.client.instances.completeStep({
       instanceId: workId,
       stepId: "serve",
-      evidence: ["natural", world.bull.tagNumber, ""],
+      evidence: [
+        "natural",
+        world.bull.tagNumber,
+        "",
+        "2027-11-03T13:00:00.000Z",
+      ],
     });
 
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(1) });
@@ -280,7 +336,12 @@ describe("the service", () => {
       instanceId: round?.id ?? "",
       stepId: "served",
       animalTag: tagOf(4),
-      evidence: ["natural", world.bull.tagNumber, ""],
+      evidence: [
+        "natural",
+        world.bull.tagNumber,
+        "",
+        "2027-11-06T09:00:00.000Z",
+      ],
     });
 
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(4) });
@@ -299,7 +360,12 @@ describe("the service", () => {
         instanceId: round?.id ?? "",
         stepId: "served",
         animalTag: world.bull.tagNumber,
-        evidence: ["natural", world.bull.tagNumber, ""],
+        evidence: [
+          "natural",
+          world.bull.tagNumber,
+          "",
+          "2027-11-06T09:00:00.000Z",
+        ],
       })
     ).rejects.toMatchObject({ data: { refusal: "service_of_a_male" } });
   });
@@ -317,7 +383,7 @@ describe("the service", () => {
         instanceId: round?.id ?? "",
         stepId: "served",
         animalTag: tagOf(3),
-        evidence: ["ai", "HF-3300", ""],
+        evidence: ["ai", "HF-3300", "", "2027-11-06T10:00:00.000Z"],
       })
     ).rejects.toMatchObject({
       data: { refusal: "service_needs_technician" },
@@ -337,7 +403,7 @@ describe("the service", () => {
       manager.client.instances.completeStep({
         instanceId: workId,
         stepId: "serve",
-        evidence: ["natural", "D-9999", ""],
+        evidence: ["natural", "D-9999", "", "2027-11-04T13:00:00.000Z"],
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -358,7 +424,7 @@ describe("the service", () => {
         other.client.instances.completeStep({
           instanceId: workId,
           stepId: "serve",
-          evidence: ["ai", "HF-1100", "রহিম"],
+          evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
         })
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
@@ -372,7 +438,7 @@ describe("the service", () => {
       owner.client.instances.completeStep({
         instanceId: workId,
         stepId: "serve",
-        evidence: ["ai", "HF-1100", "রহিম"],
+        evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",

@@ -20,6 +20,7 @@ export const EVIDENCE_TYPES = [
   "choice",
   "photo",
   "note",
+  "datetime",
 ] as const;
 export type EvidenceType = (typeof EVIDENCE_TYPES)[number];
 
@@ -247,16 +248,22 @@ const doseStepProblems = (
 
 /** Where each fact sits in a Service Step's Evidence. Validated and read by the same positions,
  *  so what the Step asks for and what the record takes from it cannot drift apart. */
-export const SERVICE_EVIDENCE = { method: 0, sire: 1, servedBy: 2 } as const;
+export const SERVICE_EVIDENCE = {
+  method: 0,
+  sire: 1,
+  servedBy: 2,
+  servedAt: 3,
+} as const;
 
 /**
  * What a Service Step has to ask for. The Step's own words are the farm's, but the record is read
  * back by every later act in the breeding chain, so its shape is not.
  *
  * How she was served, as a choice offering exactly `ai` and `natural`; the sire, as a required note
- * — a straw's number, or the farm's own bull by his Tag Number; and who served her, as a note. That
- * last is not required here, because a bull running with the herd has nobody standing over him, but
- * an AI service is refused without it: the story asks for the technician.
+ * — a straw's number, or the farm's own bull by his Tag Number; who served her, as a note; and when,
+ * as a required date and time. Who served her is not required here, because a bull running with the
+ * herd has nobody standing over him, but an AI service is refused without it: the story asks for the
+ * technician.
  *
  * The Step may be per animal. A Heat raises work about one cow, but a bull running with the herd
  * serves cows nobody saw in heat, and the round that walks the Pen afterwards is where that is
@@ -267,6 +274,7 @@ const serviceStepProblems = (step: Step, path: string): string[] => {
   const method = step.evidence[SERVICE_EVIDENCE.method];
   const sire = step.evidence[SERVICE_EVIDENCE.sire];
   const servedBy = step.evidence[SERVICE_EVIDENCE.servedBy];
+  const servedAt = step.evidence[SERVICE_EVIDENCE.servedAt];
   const offered = method?.choices?.map((choice) => choice.value) ?? [];
   const exactlyTheMethods =
     method?.type === "choice" &&
@@ -285,6 +293,13 @@ const serviceStepProblems = (step: Step, path: string): string[] => {
   if (servedBy?.type !== "note") {
     problems.push(
       `${path}.evidence[2]: a service step then asks who served her, as a note`
+    );
+  }
+  // When she was served, which is not when it was written down: every later date in the chain —
+  // the Pregnancy Check, Expected Calving — counts from this day (Owner's decision, 2026-09-13).
+  if (servedAt?.type !== "datetime" || !servedAt.required) {
+    problems.push(
+      `${path}.evidence[3]: a service step then asks when she was served, as a required date and time`
     );
   }
   return problems;

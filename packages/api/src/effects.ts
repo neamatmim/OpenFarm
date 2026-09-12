@@ -903,6 +903,21 @@ const applyServiceEffect = async (
     });
   }
 
+  // When she was served, which is not when it was written down. A day that has not come yet is not
+  // a service; one that cannot be read is not a day.
+  const servedAt = new Date(String(input.evidence[SERVICE_EVIDENCE.servedAt]));
+  if (Number.isNaN(servedAt.getTime())) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A service says when she was served",
+    });
+  }
+  if (servedAt.getTime() > input.now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A service cannot have happened later than now",
+      data: { refusal: "served_in_the_future" },
+    });
+  }
+
   let sireAnimalId: string | null = null;
   if (method === "natural") {
     const bull = await tx.query.animal.findFirst({
@@ -935,7 +950,7 @@ const applyServiceEffect = async (
     // person holds first, which for somebody who is both Owner and Manager reads "owner" — a Role
     // that may only read a Service.
     recordedByRole: "manager" as const,
-    servedAt: input.recordedAt,
+    servedAt,
     recordedBy: input.recordedBy,
   };
   await (standing
