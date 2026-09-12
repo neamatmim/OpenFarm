@@ -43,3 +43,20 @@ export const identityView = (
       goodUntil - now.getTime() <= renewalLeadDays * DAY_MS,
   };
 };
+
+/**
+ * The farm of origin as every document leaving the farm heads itself: name, address, phone and
+ * Registration number, leaving out whatever the farm has not written down.
+ *
+ * One place, because the DLS letter, the sale receipt and the transport card all begin with the
+ * same four lines and three copies of them is three chances to disagree about the farm.
+ */
+export const farmOfOriginLines = (farm: FarmIdentity): string[] =>
+  [
+    `খামার: ${farm.name}`,
+    farm.address?.trim() ? `ঠিকানা: ${farm.address}` : null,
+    farm.phone?.trim() ? `মোবাইল: ${farm.phone}` : null,
+    farm.registrationNumber?.trim()
+      ? `নিবন্ধন নম্বর: ${farm.registrationNumber}`
+      : null,
+  ].filter((line) => line !== null);

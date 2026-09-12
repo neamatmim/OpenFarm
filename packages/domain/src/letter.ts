@@ -1,4 +1,5 @@
 import type { FarmIdentity } from "./farm";
+import { farmOfOriginLines } from "./farm";
 
 /** What the letter to the Upazila Livestock Officer has to say, from what the farm knows. */
 export interface NotifiableLetter {
@@ -49,16 +50,11 @@ export const notifiableLetter = (letter: NotifiableLetter): string => {
       `the letter cannot be written without ${missing.map(([field]) => field).join(", ")}`
     );
   }
-  // The farm of origin, as the office files it. Each line appears only if the farm has the fact.
-  const { name, address, phone, registrationNumber } = letter.farm;
-  const heading = [
-    `খামার: ${name}`,
-    address?.trim() ? `ঠিকানা: ${address}` : null,
-    phone?.trim() ? `মোবাইল: ${phone}` : null,
-    registrationNumber?.trim() ? `নিবন্ধন নম্বর: ${registrationNumber}` : null,
-  ].filter((line) => line !== null);
+  const { name } = letter.farm;
   return [
-    ...heading,
+    // The farm of origin, as the office files it — the same heading the receipt and the
+    // transport card carry.
+    ...farmOfOriginLines(letter.farm),
     "",
     "বরাবর,",
     "উপজেলা প্রাণিসম্পদ কর্মকর্তা",

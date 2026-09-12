@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -77,8 +78,10 @@ const LastBuyerOfTheDay = ({
  */
 const TodaysSales = () => {
   const { t, language } = useLanguage();
-  const sold = useQuery(orpc.sale.day.queryOptions({ input: {} }));
-  const [paper, setPaper] = useState<{ id: string; text: string } | null>(null);
+  const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
+  const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
+    null
+  );
   const onError = (error: Error) =>
     toast.error(
       (error as { data?: { refusal?: string } }).data?.refusal ===
@@ -87,13 +90,13 @@ const TodaysSales = () => {
         : (error.message ?? t("common.error"))
     );
   const receipt = useMutation(
-    orpc.sale.receipt.mutationOptions({
+    orpc.papers.receipt.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "sale-receipt", text }),
       onError,
     })
   );
   const card = useMutation(
-    orpc.sale.transportCard.mutationOptions({
+    orpc.papers.transportCard.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "transport-card", text }),
       onError,
     })
@@ -179,7 +182,7 @@ const SalePage = () => {
         // The buyer and the lorry stay on the screen: the next beast is usually his too.
         setFields({ ...fields, tagNumber: "", weightKg: "", priceBdt: "" });
         await Promise.all(
-          [orpc.sale.key(), orpc.ready.key()].map((key) =>
+          [orpc.papers.key(), orpc.ready.key()].map((key) =>
             queryClient.invalidateQueries({ queryKey: key })
           )
         );

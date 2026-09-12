@@ -1,3 +1,6 @@
+import type { FarmIdentity } from "./farm";
+import { farmOfOriginLines } from "./farm";
+
 /**
  * The two papers a buyer leaves with: the receipt for what they bought, and the card the lorry
  * carries.
@@ -9,15 +12,15 @@
  *
  * Dates and numbers arrive already formatted, because how a date looks is the i18n package's
  * business and this package depends on nothing.
+ *
+ * Labels are Bangla with the English alongside, as the report set asks of every paper the farm
+ * produces: the farm reads the Bangla, and a processor's clerk or an inspector from outside the
+ * district reads the English without anybody having to explain the form.
  */
 
-/** What the farm is, as both papers print it at their head. */
-export interface FarmOfOrigin {
-  name: string;
-  address: string | null;
-  phone: string | null;
-  registrationNumber: string | null;
-}
+/** A field label, in the farm's language and in the one a visitor may read. */
+const field = (bn: string, en: string, value: string): string =>
+  `${bn} / ${en}: ${value}`;
 
 /** One animal on either paper. */
 export interface SoldAnimal {
@@ -29,7 +32,7 @@ export interface SoldAnimal {
 }
 
 export interface SaleReceipt {
-  farm: FarmOfOrigin;
+  farm: FarmIdentity;
   buyerName: string;
   buyerAddress: string | null;
   buyerPhone: string | null;
@@ -38,18 +41,11 @@ export interface SaleReceipt {
   animals: SoldAnimal[];
   /** Taka, formatted. Worked out from the animals; never typed. */
   total: string;
+  /** Who produced this copy and when — the report set asks it of every paper, so that two
+   *  copies of one receipt can be told apart and the later one accounted for. */
+  producedBy: string;
+  producedAt: string;
 }
-
-/** The lines of a farm's own heading, leaving out what it has not written down. */
-const originLines = (farm: FarmOfOrigin): string[] =>
-  [
-    `খামার: ${farm.name}`,
-    farm.address?.trim() ? `ঠিকানা: ${farm.address}` : null,
-    farm.phone?.trim() ? `মোবাইল: ${farm.phone}` : null,
-    farm.registrationNumber?.trim()
-      ? `নিবন্ধন নম্বর: ${farm.registrationNumber}`
-      : null,
-  ].filter((line) => line !== null);
 
 /**
  * The receipt: every animal that went to one buyer on one day, on one sheet.
@@ -62,31 +58,37 @@ export const saleReceipt = (receipt: SaleReceipt): string => {
     throw new Error("a receipt with no animals on it is not a receipt");
   }
   return [
-    ...originLines(receipt.farm),
+    ...farmOfOriginLines(receipt.farm),
     "",
-    "বিক্রয় রসিদ",
+    "বিক্রয় রসিদ / Sale receipt",
     "",
-    `ক্রেতা: ${receipt.buyerName}`,
-    receipt.buyerAddress?.trim() ? `ঠিকানা: ${receipt.buyerAddress}` : null,
-    receipt.buyerPhone?.trim() ? `মোবাইল: ${receipt.buyerPhone}` : null,
-    `তারিখ: ${receipt.day}`,
+    field("ক্রেতা", "Buyer", receipt.buyerName),
+    receipt.buyerAddress?.trim()
+      ? field("ঠিকানা", "Address", receipt.buyerAddress)
+      : null,
+    receipt.buyerPhone?.trim()
+      ? field("মোবাইল", "Phone", receipt.buyerPhone)
+      : null,
+    field("তারিখ", "Date", receipt.day),
     "",
-    "ট্যাগ নম্বর · ওজন · মূল্য",
+    "ট্যাগ নম্বর · ওজন · মূল্য / Tag · weight · price",
     ...receipt.animals.map(
       (one) => `${one.tagNumber} · ${one.weight} কেজি · ${one.price} টাকা`
     ),
     "",
-    `মোট: ${receipt.total} টাকা`,
+    field("মোট", "Total", `${receipt.total} টাকা`),
     "",
-    "ক্রেতার স্বাক্ষর: ____________________",
-    "বিক্রেতার স্বাক্ষর: ____________________",
+    "ক্রেতার স্বাক্ষর / Buyer: ____________________",
+    "বিক্রেতার স্বাক্ষর / Seller: ____________________",
+    "",
+    `${receipt.producedAt} · ${receipt.producedBy}`,
   ]
     .filter((line) => line !== null)
     .join("\n");
 };
 
 export interface TransportCard {
-  farm: FarmOfOrigin;
+  farm: FarmIdentity;
   buyerName: string;
   destination: string;
   vehicle: string;
@@ -97,6 +99,8 @@ export interface TransportCard {
   /** How many, formatted for the reader — the whole card is in Bangla, and a count in Arabic
    *  numerals in the middle of it is the one line an inspector's eye stops on. */
   count: string;
+  producedBy: string;
+  producedAt: string;
 }
 
 /**
@@ -117,20 +121,22 @@ export const transportCard = (card: TransportCard): string => {
     throw new Error("a transport card with no animals on it is not a card");
   }
   return [
-    "পশু পরিবহন কার্ড",
-    "(মাংস বিধিমালা ২০২১, বিধি ১৮)",
+    "পশু পরিবহন কার্ড / Animal transport card",
+    "(মাংস বিধিমালা ২০২১, বিধি ১৮ / Meat Rules 2021, r.18)",
     "",
-    ...originLines(card.farm),
+    ...farmOfOriginLines(card.farm),
     "",
-    `গন্তব্য: ${card.destination}`,
-    `ক্রেতা: ${card.buyerName}`,
-    `তারিখ ও সময়: ${card.when}`,
-    `গাড়ি: ${card.vehicle}`,
-    `চালক: ${card.driver}`,
+    field("গন্তব্য", "Destination", card.destination),
+    field("ক্রেতা", "Buyer", card.buyerName),
+    field("তারিখ ও সময়", "Date and time", card.when),
+    field("গাড়ি", "Vehicle", card.vehicle),
+    field("চালক", "Driver", card.driver),
     "",
-    `পশুর সংখ্যা: ${card.count}`,
-    `ট্যাগ নম্বর: ${card.tagNumbers.join(", ")}`,
+    field("পশুর সংখ্যা", "Animals", card.count),
+    field("ট্যাগ নম্বর", "Tags", card.tagNumbers.join(", ")),
     "",
-    "খামারের স্বাক্ষর: ____________________",
+    "খামারের স্বাক্ষর / Farm: ____________________",
+    "",
+    `${card.producedAt} · ${card.producedBy}`,
   ].join("\n");
 };

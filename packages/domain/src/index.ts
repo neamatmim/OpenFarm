@@ -21,7 +21,7 @@ export {
   stateAfterSideChange,
 } from "./lifecycle";
 export type { FarmIdentity } from "./farm";
-export { identityView } from "./farm";
+export { farmOfOriginLines, identityView } from "./farm";
 export {
   FARM_UTC_OFFSET_MINUTES,
   farmDayOf,
@@ -49,12 +49,7 @@ export {
   stillWorthSaying,
   windowHasClosed,
 } from "./ready";
-export type {
-  FarmOfOrigin,
-  SaleReceipt,
-  SoldAnimal,
-  TransportCard,
-} from "./papers";
+export type { SaleReceipt, SoldAnimal, TransportCard } from "./papers";
 export { saleReceipt, transportCard } from "./papers";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";

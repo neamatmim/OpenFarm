@@ -2,6 +2,14 @@ import { Button } from "@OpenFarm/ui/components/button";
 
 import { useLanguage } from "@/i18n/language-provider";
 
+/** The papers the farm prints. A closed list, because the id is written straight into a
+ *  stylesheet and anything a caller could compose does not belong in one. */
+export type PaperId =
+  | "sale-receipt"
+  | "transport-card"
+  | "dls-letter"
+  | "sop-card";
+
 /**
  * A document the farm hands somebody, on one page.
  *
@@ -9,7 +17,7 @@ import { useLanguage } from "@/i18n/language-provider";
  * to produce again years later, and they should read the same every time. The print rules are
  * the DLS letter's — one page, and only the paper on it.
  */
-export const Paper = ({ id, text }: { id: string; text: string }) => {
+export const Paper = ({ id, text }: { id: PaperId; text: string }) => {
   const { t } = useLanguage();
   return (
     <section className="space-y-2 rounded-xl border p-3 text-sm" id={id}>
@@ -31,7 +39,7 @@ export const Paper = ({ id, text }: { id: string; text: string }) => {
         type="button"
         variant="outline"
       >
-        {t("sale.print")}
+        {t("common.print")}
       </Button>
     </section>
   );

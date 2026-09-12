@@ -178,6 +178,12 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. _Avoid_: Transaction, journal entry, payment (one kind)
 
+**Receipt**: The paper a buyer leaves with: every Animal they took on one day, with weights, prices and the total, headed by the farm of origin. One per buyer per day, however many beasts — five sheets is how one of them gets lost. _Avoid_: Invoice (the farm is not billing anybody), bill, challan (that is milk's word, on a Dispatch)
+
+**Transport Card**: The paper the lorry carries: farm of origin with its Registration number, the Animals on that vehicle by tag, the destination, the date and the driver (Meat Rules 2021 r.18). One per **Load**, never one per day. _Avoid_: Movement permit, waybill, pass
+
+**Load**: The Animals that went to one destination, on one vehicle, with one driver, on one day. What a Transport Card describes — a card covering a whole day's sales to one buyer would assert a load that was never on that lorry. _Avoid_: Consignment, shipment, batch
+
 **Counterparty**: A person or business the Farm buys from, sells to, or pays: name, address, phone. Recorded once per name and shared across Sale, Dispatch, Intake, Purchase and Money Events — the trader who sells the Farm a bull is often the man who buys one back at Eid. Called the **seller** on an Intake and the **buyer** on a Sale, which is the side he stands on rather than a second kind of record. _Avoid_: Customer, vendor, contact, party
 
 **Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. _Avoid_: Account, head, GL code

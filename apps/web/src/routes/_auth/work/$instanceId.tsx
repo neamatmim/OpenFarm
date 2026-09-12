@@ -103,7 +103,7 @@ const TheLetter = ({
           type="button"
           variant="outline"
         >
-          {t("notifiable.print")}
+          {t("common.print")}
         </Button>
       ) : null}
     </section>
