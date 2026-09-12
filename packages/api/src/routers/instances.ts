@@ -1,7 +1,6 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
-import type { SopContent } from "@OpenFarm/domain";
 import {
   AWAITING_SIGN_OFF,
   MILK_DESTINATIONS,
@@ -49,6 +48,7 @@ import { pushRaised } from "../push-send";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
+import { contentOf } from "../sop-content";
 
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
@@ -95,9 +95,6 @@ const completionInput = z.object({
   /** The phone's clock, for work captured offline. */
   recordedAt: z.coerce.date().optional(),
 });
-
-const contentOf = (version: { content: unknown }): SopContent =>
-  version.content as SopContent;
 
 /** The Completion as the trail records it, so a Correction's before and after are the whole
  *  entry rather than the fields that happened to change. */
@@ -243,7 +240,13 @@ export const instancesRouter = {
           after: { slots: slots.length },
         },
         async (tx) => {
-          raised = await raiseDueInstances(tx, context.farm.id, slots, now);
+          const instances = await raiseDueInstances(
+            tx,
+            context.farm.id,
+            slots,
+            now
+          );
+          raised = instances.length;
         }
       );
       return { raised };

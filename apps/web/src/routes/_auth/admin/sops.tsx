@@ -3,6 +3,7 @@ import type {
   SopContent,
   Step,
   StepEffect,
+  TriggerKind,
 } from "@OpenFarm/domain";
 import {
   EVIDENCE_TYPES,
@@ -251,9 +252,25 @@ const SopsPage = () => {
   );
 };
 
-/** What raises this work besides the clock: a Move, an arrival, or a cow reaching a State.
- *  Only what the farm actually records can be picked, because a Trigger nobody writes is
- *  work that never arrives. */
+/** The same trigger, as another kind of thing that raises work — keeping the days-after
+ *  count where the new kind has one to keep. */
+const ofKind = (
+  kind: TriggerKind,
+  happening: HappeningTrigger
+): HappeningTrigger => {
+  if (kind === "prescription") {
+    return { kind: "prescription" };
+  }
+  const offsetDays =
+    "offsetDays" in happening ? happening.offsetDays : undefined;
+  return kind === "event"
+    ? { kind: "event", event: "move", offsetDays }
+    : { kind: "state", state: "dry", offsetDays };
+};
+
+/** What raises this work besides the clock: a Move, an arrival, a cow reaching a State, or a
+ *  Prescription — one dose of which is one piece of work. Only what the farm actually records
+ *  can be picked, because a Trigger nobody writes is work that never arrives. */
 const TriggerFields = ({
   content,
   onChange,
@@ -287,26 +304,23 @@ const TriggerFields = ({
             aria-label={t("sop.triggers")}
             className="bg-background h-9 rounded-md border px-2 text-sm"
             onChange={(e) =>
-              replace(
-                index,
-                e.target.value === "event"
-                  ? {
-                      kind: "event",
-                      event: "move",
-                      offsetDays: happening.offsetDays,
-                    }
-                  : {
-                      kind: "state",
-                      state: "dry",
-                      offsetDays: happening.offsetDays,
-                    }
-              )
+              replace(index, ofKind(e.target.value as TriggerKind, happening))
             }
             value={happening.kind}
           >
             <option value="event">{t("sop.trigger.event")}</option>
             <option value="state">{t("sop.trigger.state")}</option>
+            <option value="prescription">
+              {t("sop.trigger.prescription")}
+            </option>
           </select>
+          {happening.kind === "prescription" ? (
+            // A Prescription says when its own doses fall due, so there is nothing here to
+            // choose and nothing to count days from.
+            <p className="text-muted-foreground text-sm">
+              {t("sop.trigger.perDose")}
+            </p>
+          ) : null}
           {happening.kind === "event" ? (
             <select
               aria-label={t("sop.trigger.event")}
@@ -322,7 +336,8 @@ const TriggerFields = ({
                 </option>
               ))}
             </select>
-          ) : (
+          ) : null}
+          {happening.kind === "state" ? (
             <select
               aria-label={t("sop.trigger.state")}
               className="bg-background h-9 rounded-md border px-2 text-sm"
@@ -337,24 +352,26 @@ const TriggerFields = ({
                 </option>
               ))}
             </select>
+          ) : null}
+          {happening.kind === "prescription" ? null : (
+            <div className="space-y-1">
+              <Label htmlFor={`after-${index}`}>{t("sop.trigger.after")}</Label>
+              <Input
+                className="w-24"
+                id={`after-${index}`}
+                max={MAX_TRIGGER_OFFSET_DAYS}
+                min={0}
+                onChange={(e) =>
+                  replace(index, {
+                    ...happening,
+                    offsetDays: Number(e.target.value) || 0,
+                  })
+                }
+                type="number"
+                value={happening.offsetDays ?? 0}
+              />
+            </div>
           )}
-          <div className="space-y-1">
-            <Label htmlFor={`after-${index}`}>{t("sop.trigger.after")}</Label>
-            <Input
-              className="w-24"
-              id={`after-${index}`}
-              max={MAX_TRIGGER_OFFSET_DAYS}
-              min={0}
-              onChange={(e) =>
-                replace(index, {
-                  ...happening,
-                  offsetDays: Number(e.target.value) || 0,
-                })
-              }
-              type="number"
-              value={happening.offsetDays ?? 0}
-            />
-          </div>
           <Button
             onClick={() => replace(index, null)}
             type="button"

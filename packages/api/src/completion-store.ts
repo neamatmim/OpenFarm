@@ -20,6 +20,7 @@ import {
   requirePen,
 } from "./herd-store";
 import { animalsForInstance, isOnTheFarm } from "./instances-store";
+import { contentOf } from "./sop-content";
 
 /**
  * An entry that was true when it was written and is not true now: the animal has been sold,
@@ -74,9 +75,6 @@ export type Recorder = Context & {
   farm: NonNullable<Context["farm"]>;
   actor: NonNullable<Context["actor"]>;
 };
-
-const contentOf = (version: { content: unknown }): SopContent =>
-  version.content as SopContent;
 
 /** The Step this Version declares, or nothing. */
 export const stepOf = (content: SopContent, stepId: string): Step => {
@@ -179,7 +177,13 @@ export const assertMayWork = (
   }
 };
 
-/** A Step is either skipped with a reason — only where it repeats per animal — or done with
+/** Which Steps may be skipped with a reason: one done animal by animal, where the animal is
+ *  the thing being skipped — and a dose, which is about the one animal the Prescription names
+ *  without repeating, so that "the bottle was empty" can be recorded rather than go quiet. */
+const maySkip = (step: Step): boolean =>
+  step.repeatPerAnimal || step.effect?.kind === "treatment";
+
+/** A Step is either skipped with a reason — only where a reason means something — or done with
  *  everything the Version marks required. Checked per slot, not by count: a Step with an
  *  optional note and a required number is not satisfied by filling only the note. A photo
  *  arrives in its own field rather than in the evidence array, so it counts for its slot. */
@@ -192,9 +196,9 @@ export const assertEvidenceComplete = (
   hasPhotoAt: (slot: number) => boolean
 ): void => {
   if (skipping) {
-    if (!step.repeatPerAnimal) {
+    if (!maySkip(step)) {
       throw new ORPCError("BAD_REQUEST", {
-        message: "Only a per-animal step can be skipped",
+        message: "Only a per-animal step or a dose can be skipped",
       });
     }
     return;

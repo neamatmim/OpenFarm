@@ -30,7 +30,10 @@ import { applyMove } from "../completion-store";
 import type { Context } from "../context";
 import { reasonInput } from "../corrections";
 import { parseCsvRecords } from "../csv";
-import { diagnosisView } from "../health-store";
+import {
+  theConclusionAndWhatFollowed,
+  withPrescriptions,
+} from "../health-store";
 import {
   assertPenIsTheirs,
   loadLiveAnimal,
@@ -297,7 +300,10 @@ export const animalsRouter = {
               // has to line up by date themselves.
               diagnoses: {
                 orderBy: { diagnosedAt: "asc" },
-                with: { vet: { columns: { name: true } } },
+                with: {
+                  vet: { columns: { name: true } },
+                  ...withPrescriptions,
+                },
               },
             },
           },
@@ -307,7 +313,7 @@ export const animalsRouter = {
             where: { observationId: { isNull: true } },
             orderBy: { diagnosedAt: "desc" },
             limit: 20,
-            with: { vet: { columns: { name: true } } },
+            with: { vet: { columns: { name: true } }, ...withPrescriptions },
           },
         },
       });
@@ -335,12 +341,12 @@ export const animalsRouter = {
             seenByName: observer?.name ?? null,
             withdrawn: seen.withdrawnAt !== null,
             diagnoses: readsTheClinicalRecord
-              ? diagnoses.map(diagnosisView)
+              ? diagnoses.map(theConclusionAndWhatFollowed)
               : [],
           })
         ),
         diagnoses: readsTheClinicalRecord
-          ? row.diagnoses.map(diagnosisView)
+          ? row.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
         ...lactationView(row, context.clock.now()),
       };

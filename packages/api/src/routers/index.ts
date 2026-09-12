@@ -17,6 +17,7 @@ import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
 import { observationsRouter } from "./observations";
 import { peopleRouter } from "./people";
+import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { reviewRouter } from "./review";
 import { sopsRouter } from "./sops";
@@ -42,6 +43,7 @@ export const appRouter = {
   milk: milkRouter,
   observations: observationsRouter,
   people: peopleRouter,
+  prescriptions: prescriptionsRouter,
   push: pushRouter,
   review: reviewRouter,
   sops: sopsRouter,

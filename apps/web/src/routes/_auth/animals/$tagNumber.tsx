@@ -9,6 +9,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import type { Course } from "@/components/course";
+import { CourseLine } from "@/components/course";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -313,7 +315,8 @@ const AnimalPage = () => {
   );
 };
 
-/** What the Vet made of it: their conclusion, in their name, because the act is theirs. */
+/** What the Vet made of it, and what was ordered because of it: the rest of the chain, in
+ *  their name, because the acts are theirs. */
 const Conclusion = ({
   made,
 }: {
@@ -323,6 +326,7 @@ const Conclusion = ({
     note: string | null;
     diagnosedAt: Date;
     diagnosedByName: string;
+    prescriptions: Course[];
   };
 }) => {
   const { t, language } = useLanguage();
@@ -334,6 +338,15 @@ const Conclusion = ({
         name: made.diagnosedByName,
         date: formatDate(new Date(made.diagnosedAt), language, "dateTime"),
       })}
+      {made.prescriptions.length > 0 ? (
+        <ul className="mt-1 ml-4 space-y-1">
+          {made.prescriptions.map((course) => (
+            <li key={course.id}>
+              {t("prescribe.course")}: <CourseLine course={course} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </li>
   );
 };

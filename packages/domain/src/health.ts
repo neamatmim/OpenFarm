@@ -61,3 +61,22 @@ export const findWithdrawalProblems = (days: {
   }
   return problems;
 };
+
+/**
+ * How a dose goes in. The same list as the column's own enum in the schema — the database
+ * package does not depend on this one, so both say it, as milk's destinations do.
+ */
+export const ROUTES = [
+  "intramuscular",
+  "intravenous",
+  "subcutaneous",
+  "oral",
+  "intramammary",
+  "topical",
+] as const;
+export type DoseRoute = (typeof ROUTES)[number];
+
+/** A course may not run for ever: a Prescription is a treatment, not a regime. */
+export const MAX_COURSE_DAYS = 30;
+/** Four times a day is as often as a farm gives anything by hand. */
+export const MAX_TIMES_A_DAY = 4;

@@ -11,9 +11,10 @@ import { audited } from "../audit";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import {
   MAX_SEEN_ROWS,
-  diagnosisView,
   seenLately,
   seenLatelyInput,
+  theConclusionAndWhatFollowed,
+  withPrescriptions,
 } from "../health-store";
 import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -295,10 +296,13 @@ export const diagnosesRouter = {
           animal: { columns: { tagNumber: true } },
           vet: { columns: { name: true } },
           answers: { columns: { saw: true, sawLabel: true, seenAt: true } },
+          // What they ordered for it, so the Vet reads their own conclusion and the course
+          // that followed in one place rather than two.
+          ...withPrescriptions,
         },
       });
       return rows.map(({ animal, ...row }) => ({
-        ...diagnosisView(row),
+        ...theConclusionAndWhatFollowed(row),
         tagNumber: animal.tagNumber,
       }));
     }),

@@ -1,3 +1,6 @@
+import type { DoseRoute } from "@OpenFarm/domain";
+import { MAX_COURSE_DAYS, ROUTES } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -7,6 +10,8 @@ import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { Course as CourseOfTreatment } from "@/components/course";
+import { CourseLine, DoseLine } from "@/components/course";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { refusalMessage } from "@/lib/correction-refusal";
@@ -84,12 +89,28 @@ const VetPage = () => {
   );
 };
 
+/** The refusals a health screen has something of its own to say about. */
+const REFUSALS: Record<string, MessageKey> = {
+  no_treatment_sop: "prescribe.noTreatmentSop",
+};
+
+const reasonGiven = (error: unknown): string | null => {
+  const refusal = (error as { data?: { refusal?: unknown } })?.data?.refusal;
+  return typeof refusal === "string" ? refusal : null;
+};
+
 /** The refusal in the reader's own language where the server gave the facts to say it with,
  *  and the server's own words only when it did not. */
 const useRefusal = () => {
   const t = useT();
-  return (error: Error) =>
-    toast.error(refusalMessage(error, t) ?? error.message ?? t("common.error"));
+  return (error: Error) => {
+    const named = REFUSALS[reasonGiven(error) ?? ""];
+    toast.error(
+      named
+        ? t(named)
+        : (refusalMessage(error, t) ?? error.message ?? t("common.error"))
+    );
+  };
 };
 
 /** The disease and what was found — the two fields a Diagnosis is, wherever it is typed. */
@@ -264,6 +285,132 @@ const OnItsOwn = ({ onRecorded }: { onRecorded: () => void }) => {
   );
 };
 
+/**
+ * The order itself: which product, how much, how it goes in, at what times and for how many
+ * days. The farm turns it into one piece of work per dose, so the times are what somebody in
+ * the shed will be asked to do something at.
+ */
+const Prescribe = ({
+  diagnosisId,
+  tagNumber,
+  onPrescribed,
+}: {
+  diagnosisId: string;
+  tagNumber: string;
+  onPrescribed: () => void;
+}) => {
+  const t = useT();
+  const onError = useRefusal();
+  const [productId, setProductId] = useState("");
+  const [dose, setDose] = useState("");
+  const [route, setRoute] = useState<DoseRoute>("intramuscular");
+  const [times, setTimes] = useState("08:00");
+  const [days, setDays] = useState("3");
+  const drugs = useQuery(orpc.drugs.list.queryOptions());
+
+  const write = useMutation(
+    orpc.prescriptions.prescribe.mutationOptions({
+      onSuccess: ({ doses }) => {
+        setDose("");
+        toast.success(t("prescribe.written", { doses: String(doses) }));
+        onPrescribed();
+      },
+      onError,
+    })
+  );
+  // Only what may actually be prescribed: a product whose withdrawal days nobody has written
+  // is milk nobody could call safe afterwards, and offering it would only end in a refusal.
+  const prescribable = (drugs.data ?? []).filter((one) => one.prescribable);
+
+  return (
+    <form
+      className="space-y-2 border-t pt-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        write.mutate({
+          animalTag: tagNumber,
+          diagnosisId,
+          productId,
+          dose: dose.trim(),
+          route,
+          times: times
+            .split(",")
+            .map((time) => time.trim())
+            .filter(Boolean),
+          days: Number(days),
+        });
+      }}
+    >
+      <div className="space-y-1">
+        <Label htmlFor={`product-${diagnosisId}`}>
+          {t("prescribe.product")}
+        </Label>
+        <select
+          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          id={`product-${diagnosisId}`}
+          onChange={(event) => setProductId(event.target.value)}
+          value={productId}
+        >
+          <option value="">—</option>
+          {prescribable.map((one) => (
+            <option key={one.id} value={one.id}>
+              {one.nameBn}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`dose-${diagnosisId}`}>{t("prescribe.dose")}</Label>
+        <Input
+          id={`dose-${diagnosisId}`}
+          onChange={(event) => setDose(event.target.value)}
+          value={dose}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`route-${diagnosisId}`}>{t("prescribe.route")}</Label>
+        <select
+          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          id={`route-${diagnosisId}`}
+          onChange={(event) => setRoute(event.target.value as DoseRoute)}
+          value={route}
+        >
+          {ROUTES.map((one) => (
+            <option key={one} value={one}>
+              {t(`route.${one}` as MessageKey)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1 space-y-1">
+          <Label htmlFor={`times-${diagnosisId}`}>{t("prescribe.times")}</Label>
+          <Input
+            id={`times-${diagnosisId}`}
+            onChange={(event) => setTimes(event.target.value)}
+            value={times}
+          />
+        </div>
+        <div className="w-24 space-y-1">
+          <Label htmlFor={`days-${diagnosisId}`}>{t("prescribe.days")}</Label>
+          <Input
+            id={`days-${diagnosisId}`}
+            max={MAX_COURSE_DAYS}
+            min={1}
+            onChange={(event) => setDays(event.target.value)}
+            step="1"
+            type="number"
+            value={days}
+          />
+        </div>
+      </div>
+      <Button disabled={!(productId && dose.trim())} type="submit">
+        {t("prescribe.write")}
+      </Button>
+    </form>
+  );
+};
+
 /** One of the Vet's own conclusions, and the form to put it right. Nothing is deleted: the
  *  correction carries a reason and the trail keeps what it said before. */
 const Concluded = ({
@@ -277,6 +424,7 @@ const Concluded = ({
     diagnosedAt: Date;
     tagNumber: string;
     answers: { sawLabel: string } | null;
+    prescriptions: CourseOfTreatment[];
   };
   onCorrected: () => void;
 }) => {
@@ -323,6 +471,28 @@ const Concluded = ({
           : ""}
       </p>
       {made.note ? <p className="text-muted-foreground">{made.note}</p> : null}
+
+      {made.prescriptions.length > 0 ? (
+        <ul className="space-y-2">
+          {made.prescriptions.map((course) => (
+            <li className="space-y-1 rounded-lg border p-2" key={course.id}>
+              <p>
+                <CourseLine course={course} />
+              </p>
+              <ul className="space-y-1">
+                {course.doses.map((dose) => (
+                  <DoseLine dose={dose} key={dose.id} />
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <Prescribe
+        diagnosisId={made.id}
+        onPrescribed={onCorrected}
+        tagNumber={made.tagNumber}
+      />
 
       {open ? (
         <form
