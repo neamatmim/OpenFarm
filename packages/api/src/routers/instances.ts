@@ -283,10 +283,18 @@ export const instancesRouter = {
         ...happeningSlotsFor(
           now,
           sops,
-          await recentHappenings(context.db, context.farm.id, now),
+          await recentHappenings(
+            context.db,
+            context.farm.id,
+            now,
+            context.farm.pregnancyCheckAfterDays
+          ),
           {
-            startHours: context.farm.aiWindowStartHours,
-            endHours: context.farm.aiWindowEndHours,
+            aiWindow: {
+              startHours: context.farm.aiWindowStartHours,
+              endHours: context.farm.aiWindowEndHours,
+            },
+            pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
           }
         ),
       ];
@@ -968,6 +976,7 @@ export const instancesRouter = {
             sessionsPerDay: sessionsPerDayOf(content),
             skipped: skipping,
             tolerancePercent: context.farm.milkTolerancePercent,
+            gestationDays: context.farm.gestationDays,
             recordedBy: existing.recordedBy,
             recordedAt: existing.recordedAt,
             now,

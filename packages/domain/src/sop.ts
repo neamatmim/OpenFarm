@@ -1,4 +1,9 @@
-import { HEAT, SERVICE_METHODS } from "./breeding";
+import {
+  HEAT,
+  PREGNANCY_CHECK_RESULTS,
+  SERVICE,
+  SERVICE_METHODS,
+} from "./breeding";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
 import type { ROLES, RoleName } from "./roles";
@@ -69,7 +74,9 @@ export type StepEffect =
   /** What one animal weighed on the scale this round. */
   | { kind: "weigh_in" }
   /** She was served: how, by what sire, and by whom. The event the breeding chain counts from. */
-  | { kind: "service" };
+  | { kind: "service" }
+  /** What the Vet found: positive or negative, of the attempt the Service began. */
+  | { kind: "pregnancy_check" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -81,6 +88,7 @@ export const STEP_EFFECT_KINDS = [
   "dls_report",
   "weigh_in",
   "service",
+  "pregnancy_check",
 ] as const;
 
 export interface Step {
@@ -110,14 +118,27 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
  * the list in the tickets that record them.
  *
  * A Heat is the first of Breeding's: an Observation of oestrus, and the work it raises falls due
- * in the farm's AI window rather than a whole number of days later.
+ * in the farm's AI window rather than a whole number of days later. A Service is the second: the
+ * work it raises — the Pregnancy Check — falls due the farm's number of days after the attempt's
+ * first service, and once per attempt however many times she was served.
  *
  * A death is the one that raises work about an animal who is no longer on the farm — burying
  * her to the depth the rule names, and reporting her if what killed her is notifiable. That is
  * work precisely because she has gone.
  */
-export const FARM_EVENTS = ["move", "arrival", "death", HEAT] as const;
+export const FARM_EVENTS = ["move", "arrival", "death", HEAT, SERVICE] as const;
 export type FarmEvent = (typeof FARM_EVENTS)[number];
+
+/**
+ * The events whose work the farm times rather than the Trigger, and why: a Heat's in the AI window's
+ * hours; a Service's the farm's days to a Pregnancy Check, set once for every check, so that a second
+ * number on a Trigger would be a second answer to the same question.
+ */
+const FARM_TIMED_EVENTS: Partial<Record<FarmEvent, string>> = {
+  [HEAT]: "a heat's work falls due in the farm's AI window, not days later",
+  [SERVICE]:
+    "a service's work falls due the farm's days to a pregnancy check after it, not a number set here",
+};
 
 /** How far ahead of the event or the State change work may be hung. */
 export const MAX_TRIGGER_OFFSET_DAYS = 365;
@@ -305,6 +326,36 @@ const serviceStepProblems = (step: Step, path: string): string[] => {
   return problems;
 };
 
+/**
+ * What a Pregnancy Check Step has to ask: what the Vet found, as a required choice offering exactly
+ * `positive` and `negative`. Anything else the Vet wants to write sits after it.
+ *
+ * The Step may be per animal: the Vet walking a Pen of served cows is how a visit usually goes, as
+ * well as work a Service raised about one.
+ */
+const pregnancyCheckStepProblems = (step: Step, path: string): string[] => {
+  const [result] = step.evidence;
+  const offered = result?.choices?.map((choice) => choice.value) ?? [];
+  const exactlyTheResults =
+    result?.type === "choice" &&
+    result.required &&
+    offered.length === PREGNANCY_CHECK_RESULTS.length &&
+    PREGNANCY_CHECK_RESULTS.every((one) => offered.includes(one));
+  return exactlyTheResults
+    ? []
+    : [
+        `${path}.evidence[0]: a pregnancy check first asks what was found, as a required choice offering "positive" and "negative"`,
+      ];
+};
+
+const SHAPED_STEPS: Partial<
+  Record<StepEffect["kind"], (step: Step, path: string) => string[]>
+> = {
+  dls_report: reportStepProblems,
+  service: serviceStepProblems,
+  pregnancy_check: pregnancyCheckStepProblems,
+};
+
 const effectProblems = (step: Step, stepIndex: number): string[] => {
   const { effect } = step;
   if (!effect) {
@@ -321,12 +372,11 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
     }
     return problems;
   }
-  if (effect.kind === "dls_report") {
-    return reportStepProblems(step, path);
-  }
-  // A service records a choice and a sire, not a figure: its shape is its own.
-  if (effect.kind === "service") {
-    return serviceStepProblems(step, path);
+  // A letter, a service and a pregnancy check each record something other than a figure: their
+  // shapes are their own.
+  const shaped = SHAPED_STEPS[effect.kind];
+  if (shaped) {
+    return shaped(step, path);
   }
   if (effect.kind === "treatment") {
     return doseStepProblems(step, effect, path);
@@ -411,17 +461,13 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
     );
   }
   const offset = trigger.offsetDays;
-  // A Heat's work is timed by the farm's AI window, in hours. A number of days here would be
-  // quietly ignored — and a setting the Playbook accepts and then does not honour is how an author
-  // comes to believe the farm does something it does not.
-  if (
-    trigger.kind === "event" &&
-    trigger.event === HEAT &&
-    offset !== undefined
-  ) {
-    problems.push(
-      `${at}.offsetDays: a heat's work falls due in the farm's AI window, not days later`
-    );
+  // A Heat's and a Service's work are timed by the farm, not by the Trigger. A number of days here
+  // would be quietly ignored — and a setting the Playbook accepts and then does not honour is how an
+  // author comes to believe the farm does something it does not.
+  const timedByTheFarm =
+    trigger.kind === "event" ? FARM_TIMED_EVENTS[trigger.event] : undefined;
+  if (timedByTheFarm && offset !== undefined) {
+    problems.push(`${at}.offsetDays: ${timedByTheFarm}`);
   }
   if (offset !== undefined) {
     if (!Number.isInteger(offset) || offset < 0) {
@@ -591,6 +637,16 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   ) {
     problems.push(
       "assignedRole: a procedure that records a service is the Manager's"
+    );
+  }
+  // And a Pregnancy Check is the Vet's (roles matrix: Breeding — PD is `C R U` to the Vet and read
+  // to everybody else): whether she is carrying is a clinical finding.
+  if (
+    content.steps.some((step) => step.effect?.kind === "pregnancy_check") &&
+    content.assignedRole !== "vet"
+  ) {
+    problems.push(
+      "assignedRole: a procedure that records a pregnancy check is the Vet's"
     );
   }
   return problems;

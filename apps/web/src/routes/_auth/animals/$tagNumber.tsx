@@ -133,6 +133,11 @@ const AnimalPage = () => {
       <HerHeats heats={detail.heats} />
 
       <HerServices heats={detail.heats} services={detail.services} />
+      <HerPregnancyChecks
+        checks={detail.pregnancyChecks}
+        expectedCalvingAt={detail.expectedCalvingAt}
+        failedAttempts={detail.failedAttempts}
+      />
 
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
@@ -568,7 +573,7 @@ const HerServices = ({
               <p className="text-muted-foreground text-xs">
                 {t("service.sire")}: {one.sireTagNumber ?? one.sireStraw}
                 {one.servedBy
-                  ? ` · ${t("service.servedBy")}: ${one.servedBy}`
+                  ? ` · ${t("service.servedBy", { name: one.servedBy })}`
                   : ""}
               </p>
               {answered ? (
@@ -581,6 +586,66 @@ const HerServices = ({
             </li>
           );
         })}
+      </ul>
+    </section>
+  );
+};
+
+/**
+ * What the Vet found, newest first, and what follows from it: when she is expected to calve, and how
+ * many attempts did not take. Both are worked out from the checks — nothing here is typed.
+ */
+const HerPregnancyChecks = ({
+  checks,
+  expectedCalvingAt,
+  failedAttempts,
+}: {
+  checks: {
+    id: string;
+    result: "positive" | "negative";
+    checkedAt: Date;
+    firstServedAt: Date;
+  }[];
+  expectedCalvingAt: Date | null;
+  failedAttempts: number;
+}) => {
+  const { t, language } = useLanguage();
+  if (checks.length === 0 && !expectedCalvingAt) {
+    return null;
+  }
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("pregnancy.title")}</h2>
+      {expectedCalvingAt ? (
+        <p>
+          {t("pregnancy.expectedCalving", {
+            when: formatDate(expectedCalvingAt, language),
+          })}
+        </p>
+      ) : null}
+      {failedAttempts > 0 ? (
+        <p className="text-muted-foreground text-xs">
+          {t("pregnancy.failedAttempts", { count: failedAttempts })}
+        </p>
+      ) : null}
+      <ul className="space-y-2">
+        {checks.map((check) => (
+          <li className="space-y-0.5" key={check.id}>
+            <p>
+              {formatDate(check.checkedAt, language)} ·{" "}
+              {t(
+                check.result === "positive"
+                  ? "pregnancy.positive"
+                  : "pregnancy.negative"
+              )}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {t("pregnancy.ofService", {
+                when: formatDate(check.firstServedAt, language, "dateTime"),
+              })}
+            </p>
+          </li>
+        ))}
       </ul>
     </section>
   );

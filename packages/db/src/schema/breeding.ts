@@ -15,6 +15,7 @@ import { observation } from "./observation";
 /** How a cow is served. Its own copy, as the schema's other enums are: this package depends on
  *  nothing, and the domain keeps the rules that read it. */
 export const SERVICE_METHODS = ["ai", "natural"] as const;
+export const PREGNANCY_CHECK_RESULTS = ["positive", "negative"] as const;
 
 /**
  * A cow served: how, by which sire, by whom, and in answer to which Heat.
@@ -57,5 +58,42 @@ export const service = pgTable(
   (table) => [
     uniqueIndex("service_completion_uidx").on(table.completionId),
     index("service_animal_idx").on(table.animalId, table.servedAt),
+  ]
+);
+
+/**
+ * What the Vet found when she was checked: whether the attempt a Service began has taken.
+ *
+ * Of the attempt, not of one service: a cow served twice in one heat is checked once, and the check
+ * points at the first service, which is where Expected Calving counts from. Keyed on the Step
+ * Completion, as the Service is, so a correction replaces the finding rather than adding a second.
+ * A negative is kept, not cleared: a run of attempts that did not take is what makes a Repeat
+ * Breeder.
+ */
+export const pregnancyCheck = pgTable(
+  "pregnancy_check",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+    /** The first service of the attempt checked. */
+    serviceId: text("service_id")
+      .notNull()
+      .references(() => service.id),
+    result: text("result", { enum: PREGNANCY_CHECK_RESULTS }).notNull(),
+    checkedAt: timestamp("checked_at").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("pregnancy_check_completion_uidx").on(table.completionId),
+    index("pregnancy_check_animal_idx").on(table.animalId, table.checkedAt),
   ]
 );

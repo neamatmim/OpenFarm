@@ -111,6 +111,7 @@ const summaryColumns = {
   photoUpdatedAt: true,
   lactationNumber: true,
   lactationStartedAt: true,
+  expectedCalvingAt: true,
   milkWithdrawalUntil: true,
   meatWithdrawalUntil: true,
   milkWithdrawalFromDoses: true,
@@ -177,6 +178,37 @@ const servicesOf = async (db: Database, animalId: string) => {
     ...one,
     sireTagNumber: sire?.tagNumber ?? null,
   }));
+};
+
+/**
+ * Her Pregnancy Checks, newest first, each with the first service of the attempt it checked — and how
+ * many attempts the Vet found had not taken, which is what the Repeat Breeder flag will count.
+ * Counted by attempt, so a heat served twice and found empty is one failure.
+ */
+const pregnancyChecksOf = async (db: Database, animalId: string) => {
+  const checks = await db.query.pregnancyCheck.findMany({
+    where: { animalId },
+    orderBy: { checkedAt: "desc", id: "desc" },
+    columns: { id: true, result: true, checkedAt: true, serviceId: true },
+    with: { service: { columns: { servedAt: true } } },
+  });
+  // The latest finding about each attempt is the one that stands: a Vet who looks again and finds
+  // her carrying has not recorded a failure.
+  const latestByAttempt = new Map<string, string>();
+  for (const check of checks) {
+    if (!latestByAttempt.has(check.serviceId)) {
+      latestByAttempt.set(check.serviceId, check.result);
+    }
+  }
+  return {
+    pregnancyChecks: checks.map(({ service, ...check }) => ({
+      ...check,
+      firstServedAt: service.servedAt,
+    })),
+    failedAttempts: [...latestByAttempt.values()].filter(
+      (result) => result === "negative"
+    ).length,
+  };
 };
 
 /** Three years of three-weekly heats, which is more than a breeding cow's history needs. */
@@ -580,6 +612,7 @@ export const animalsRouter = {
         sale: readsWhatSheCost ? saleView(row.sale) : null,
         heats: await heatsOf(context.db, row.id),
         services: await servicesOf(context.db, row.id),
+        ...(await pregnancyChecksOf(context.db, row.id)),
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */

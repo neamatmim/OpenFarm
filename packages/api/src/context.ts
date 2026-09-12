@@ -76,6 +76,9 @@ export interface Context {
     /** The hours after a Heat within which the AI work is due, and after which it is late. */
     aiWindowStartHours: number;
     aiWindowEndHours: number;
+    /** How long after an attempt's first service the Vet checks her, and how long a cow carries. */
+    pregnancyCheckAfterDays: number;
+    gestationDays: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

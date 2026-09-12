@@ -93,6 +93,17 @@ const SERVICE_STEP_EVIDENCE: Evidence[] = [
   { type: "datetime", required: true },
 ];
 
+/** What a Pregnancy Check Step asks first: what the Vet found. The labels are the farm's words; the
+ *  values are what Breeding reads back. */
+const PREGNANCY_CHECK_RESULT: Evidence = {
+  type: "choice",
+  required: true,
+  choices: [
+    { value: "positive", label: { bn: "গর্ভবতী", en: "Carrying" } },
+    { value: "negative", label: { bn: "গর্ভবতী নয়", en: "Not carrying" } },
+  ],
+};
+
 /** What Evidence an effect needs before it can write anything. */
 const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "move" || kind === "observation") {
@@ -163,6 +174,14 @@ export const withEffect = (
       repeatPerAnimal: false,
       effect: { kind },
       evidence: [...SERVICE_STEP_EVIDENCE, ...step.evidence.slice(4)],
+    };
+  }
+  if (kind === "pregnancy_check") {
+    return {
+      ...step,
+      repeatPerAnimal: false,
+      effect: { kind },
+      evidence: [PREGNANCY_CHECK_RESULT, ...step.evidence.slice(1)],
     };
   }
   const wants: EvidenceType = wantedEvidence(kind);

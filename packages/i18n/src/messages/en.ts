@@ -614,6 +614,20 @@ export const en = {
   "service.servedBy": "Served by {name}",
   "service.afterHeat": "After the heat of {when}",
   "sop.effect.service": "Service",
+  "sop.effect.pregnancy_check": "Pregnancy check",
+  "event.service":
+    "A cow is served (the check falls due the farm's days later)",
+  "refusal.vetOnly": "This is the Vet's to record",
+  "refusal.checkOfACowNotServed":
+    "She has not been served, so there is nothing to check",
+  "refusal.serviceAlreadyChecked":
+    "The Vet has checked this service; correct the check first",
+  "pregnancy.title": "Pregnancy checks",
+  "pregnancy.positive": "Carrying",
+  "pregnancy.negative": "Not carrying",
+  "pregnancy.ofService": "Of the service on {when}",
+  "pregnancy.expectedCalving": "Expected calving: {when}",
+  "pregnancy.failedAttempts": "Services that did not take: {count}",
   "heat.work": "AI work",
   "heat.title": "Heats",
   "heat.seen": "Seen in heat",

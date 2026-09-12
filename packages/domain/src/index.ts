@@ -20,13 +20,18 @@ export {
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
-export type { ServiceMethod } from "./breeding";
+export type { PregnancyCheckResult, ServiceMethod } from "./breeding";
 export {
   HEAT,
+  PREGNANCY_CHECK_RESULTS,
   SAME_HEAT_WITHIN_HOURS,
+  SERVICE,
   SERVICE_METHODS,
   aiWindow,
+  attemptsThatBegin,
+  expectedCalvingFrom,
   heatsThatBegin,
+  isPregnancyCheckResult,
   isServiceMethod,
 } from "./breeding";
 export type { FarmIdentity } from "./farm";
