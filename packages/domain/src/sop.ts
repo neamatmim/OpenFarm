@@ -63,7 +63,9 @@ export type StepEffect =
    */
   | { kind: "treatment"; productId?: string }
   /** The letter to the Upazila Livestock Officer went, and under what reference. */
-  | { kind: "dls_report" };
+  | { kind: "dls_report" }
+  /** What one animal weighed on the scale this round. */
+  | { kind: "weigh_in" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -73,6 +75,7 @@ export const STEP_EFFECT_KINDS = [
   "feeding",
   "treatment",
   "dls_report",
+  "weigh_in",
 ] as const;
 
 export interface Step {
@@ -283,6 +286,9 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   }
   if (effect.kind === "milk_record" && !step.repeatPerAnimal) {
     problems.push(`${path}.effect: milk is recorded per animal`);
+  }
+  if (effect.kind === "weigh_in" && !step.repeatPerAnimal) {
+    problems.push(`${path}.effect: an animal is weighed one at a time`);
   }
   if (effect.kind === "bulk_total" && step.repeatPerAnimal) {
     problems.push(

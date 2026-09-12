@@ -29,6 +29,6 @@
 - **The animal's page showed the internal word**, not the Bangla the person chose — see the value/label decision above.
 - **The Observation had no foreign key to the Completion that made it**, unlike every comparable table, so a dangling row would have been a crash on the animal's page rather than a null.
 - **The wrong message.** A blank Observation was refused with a pen error, because the Move's validation was reused without its words.
-- **A note alongside what was seen was dropped**, along with its column. The Playbook editor authors one piece of Evidence per Step, so no Owner could have authored an Observation *and* a note — plumbing for something nobody can reach is not worth the column. It comes back when a Step can be authored with more than one piece of Evidence.
+- **A note alongside what was seen was dropped**, along with its column. The Playbook editor authors one piece of Evidence per Step, so no Owner could have authored an Observation _and_ a note — plumbing for something nobody can reach is not worth the column. It comes back when a Step can be authored with more than one piece of Evidence.
 
 **Still to come, and worth knowing.** Nothing marks which Observations are Heats: increment 5 raises the AI SOP from a Heat, and it will do that by reading the word the farm chose for oestrus — additive, but it is the first thing that increment has to decide.

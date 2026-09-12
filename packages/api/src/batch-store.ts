@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { ORPCError } from "@orpc/server";
 
 import { raiseAlerts } from "./alerts-store";
@@ -38,7 +39,10 @@ const applyEntry = async (
   tx: Tx,
   context: Recorder,
   entry: Entry,
-  receivedAt: Date
+  receivedAt: Date,
+  /** Made before the entry is applied, because an effect may have to hang a Needs Review on
+   *  it inside this same transaction. The Audit Event is then written under the same id. */
+  eventId: string
 ): Promise<{ entity: string; entityId: string; changed?: boolean }> => {
   if (entry.kind === "instance_claim") {
     await applyClaim(tx, context, entry.instanceId, receivedAt);
@@ -74,6 +78,7 @@ const applyEntry = async (
         recordedAt: entry.recordedAt,
       },
       receivedAt,
+      eventId,
       entry.id
     );
     return { entity: "step_completion", entityId: recorded.completionId };
@@ -289,10 +294,17 @@ const applyEntries = async (
 
     let outcome: EntryResult["outcome"] = "applied";
     let reason: string | null = null;
+    const eventId = uuidv7(receivedAt);
     try {
       // oxlint-disable-next-line no-await-in-loop
       await tx.transaction(async (entryTx) => {
-        const target = await applyEntry(entryTx, context, entry, receivedAt);
+        const target = await applyEntry(
+          entryTx,
+          context,
+          entry,
+          receivedAt,
+          eventId
+        );
         if (target.changed === false) {
           // Nothing happened, so there is nothing to write down. The entry is still read,
           // which is what stops it being offered for ever.
@@ -308,7 +320,7 @@ const applyEntries = async (
             device: { id: context.device?.id ?? null, seq: entry.seq },
             after: entryAfter(entry),
           },
-          { receivedAt }
+          { eventId, receivedAt }
         );
       });
     } catch (error) {

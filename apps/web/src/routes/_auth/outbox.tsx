@@ -3,13 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useLanguage } from "@/i18n/language-provider";
-import type { OutboxEntry } from "@/lib/outbox";
+import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
-
-interface Held {
-  entry: OutboxEntry;
-  reason: string;
-}
 
 /** What the person actually typed, so they can see it and put it in again. */
 const entered = (entry: OutboxEntry): string => {

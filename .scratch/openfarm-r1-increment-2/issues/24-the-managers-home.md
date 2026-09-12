@@ -21,7 +21,7 @@
 - **A Pen nobody has been to is on the screen saying so.** The obvious reading — "show the Pens with work done" — makes the Pen that has been forgotten disappear from the only screen that would have caught it. Every Pen with work raised today is listed, done or not, with the animals standing in it.
 - **The day's work comes from the same query the Today screen reads**, so the Manager's screen and the milker's cannot disagree about what was raised.
 
-**A flake caught before it was committed.** The first tests asserted a Pen had exactly two pieces of work raised. It does have two of *this* round — but a Pen's day is every SOP that concerns it, and the other test files share this farm and author their own, so the total depended on which files had run. The assertions are about this round's work now. That is the third time this farm's shared state has taught the same lesson, and the first time it was caught before the commit rather than by a rerun.
+**A flake caught before it was committed.** The first tests asserted a Pen had exactly two pieces of work raised. It does have two of _this_ round — but a Pen's day is every SOP that concerns it, and the other test files share this farm and author their own, so the total depended on which files had run. The assertions are about this round's work now. That is the third time this farm's shared state has taught the same lesson, and the first time it was caught before the commit rather than by a rerun.
 
 **What it does not do yet.** The Owner's exception list is ticket 25 — proposals waiting, and the tiles the farm is judged by. The two notification rows this screen's queues imply (an SOP proposal waiting for the Owner, work reassigned to its new assignee) belong with it.
 

@@ -345,6 +345,7 @@ export const applyCompletion = async (
   context: Recorder,
   input: CompletionEntry,
   receivedAt: Date,
+  eventId: string,
   id?: string
 ): Promise<Recorded> => {
   const instance = await tx.query.sopInstance.findFirst({
@@ -426,6 +427,9 @@ export const applyCompletion = async (
     evidence: input.evidence,
     feeding: input.feeding ?? [],
     feedTolerancePercent: context.farm.feedTolerancePercent,
+    // The Audit Event this Completion is written under, so an effect that has to put something
+    // in front of the Manager can do it in the same transaction.
+    eventId,
     // From the Version doing the work, so a farm with more than one feeding routine divides
     // by the schedule that raised this Instance rather than by whichever was written first.
     sessionsPerDay: sessionsPerDayOf(content),

@@ -154,13 +154,13 @@ describe("work that starts because something happened", () => {
     // test files share this database and move their own animals about, so this is counted on
     // this SOP's own Pens rather than on everything the farm has open.
     const late = await owner.client.instances.overdue();
-    const mineOnly = [world.from.id, world.to.id];
+    const mineOnly = new Set([world.from.id, world.to.id]);
     const everything = new Map(
       [...back, ...moved, ...late]
         .filter(
           (row) =>
             row.definitionId === world.sop.definitionId &&
-            mineOnly.includes(row.penId)
+            mineOnly.has(row.penId)
         )
         .map((row) => [row.id, row.dueAt.toISOString()])
     );

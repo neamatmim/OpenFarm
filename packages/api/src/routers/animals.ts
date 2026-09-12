@@ -89,6 +89,9 @@ type NewAnimal = z.infer<typeof importRowInput>;
  *  answers — what has she been given — looks back further than the others. */
 const DOSES_SHOWN = 40;
 
+/** Two years of fortnights. Long enough to see a whole fattening cycle and the one before it. */
+const WEIGH_INS_SHOWN = 52;
+
 const summaryColumns = {
   id: true,
   tagNumber: true,
@@ -265,7 +268,7 @@ const createAnimal = async (
         reason,
         extra: openingLactation(input.state, input.calvedAt),
       });
-      tagNumber = made.tagNumber;
+      ({ tagNumber } = made);
     }
   );
   return { id, tagNumber };
@@ -378,6 +381,13 @@ export const animalsRouter = {
           intake: {
             with: { seller: { columns: { name: true, address: true } } },
           },
+          /** Every time she has been on the scale, newest first: her page answers "what does
+           *  she weigh now" before it answers anything else. */
+          weighIns: {
+            orderBy: { weighedAt: "desc" },
+            limit: WEIGH_INS_SHOWN,
+            with: { weigher: { columns: { name: true } } },
+          },
           /** The Vet came for something else and found this: a Diagnosis answering no
            *  Observation still belongs to her history. */
           diagnoses: {
@@ -446,6 +456,18 @@ export const animalsRouter = {
           givenByName: giver?.name ?? null,
         })),
         intake: intakeView(row.intake),
+        /** Kilogrammes live in a numeric column and come back as strings; converted here at
+         *  the edge, like the litres, rather than left to drift as floats. */
+        weighIns: row.weighIns.map(({ weigher, ...reading }) => ({
+          id: reading.id,
+          weightKg: Number(reading.weightKg),
+          method: reading.method,
+          weighedAt: reading.weighedAt,
+          /** What the farm found doubtful about it, and null for one it did not doubt. */
+          flagged: reading.flaggedNote !== null,
+          flaggedNote: reading.flaggedNote,
+          weighedByName: weigher?.name ?? null,
+        })),
         ...lactationView(row, context.clock.now()),
         ...withdrawalView(row, context.clock.now()),
       };

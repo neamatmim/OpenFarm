@@ -129,6 +129,8 @@ const AnimalPage = () => {
 
       <HowSheArrived intake={detail.intake} />
 
+      <TheScale readings={detail.weighIns} />
+
       <HowSheWent
         detail={detail}
         mayRecord={
@@ -462,6 +464,62 @@ const PutItRight = ({
         </Button>
       </form>
     </details>
+  );
+};
+
+/**
+ * Every time she has been on the scale, newest first.
+ *
+ * The whole list and not only the latest: fattening is the difference between two readings, and
+ * a page that showed one weight would be hiding the thing the farm is actually measuring. A
+ * reading the farm doubted says so and says why, because a figure that looks wrong a year from
+ * now should not need working out again.
+ */
+const TheScale = ({
+  readings,
+}: {
+  readings: {
+    id: string;
+    weightKg: number;
+    weighedAt: Date;
+    flagged: boolean;
+    flaggedNote: string | null;
+    weighedByName: string | null;
+  }[];
+}) => {
+  const { t, language } = useLanguage();
+  if (readings.length === 0) {
+    return null;
+  }
+  return (
+    <section className="space-y-2 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("weighIn.title")}</h2>
+      <ul className="space-y-1">
+        {readings.map((reading) => (
+          <li className="flex flex-wrap items-baseline gap-2" key={reading.id}>
+            <span className="font-medium">
+              {t("intake.kg", {
+                kg: formatNumber(reading.weightKg, language),
+              })}
+            </span>
+            <span className="text-muted-foreground">
+              {formatDate(reading.weighedAt, language, "date")}
+            </span>
+            {reading.weighedByName ? (
+              <span className="text-muted-foreground text-xs">
+                {t("weighIn.by", { name: reading.weighedByName })}
+              </span>
+            ) : null}
+            {reading.flagged ? (
+              <span className="text-xs text-amber-400">
+                {t("weighIn.flagged")}
+                {reading.flaggedNote ? ` · ${reading.flaggedNote}` : ""}
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 

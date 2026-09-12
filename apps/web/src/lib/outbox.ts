@@ -25,6 +25,12 @@ export interface OutboxEntry {
   recordedAt: string;
 }
 
+/** An entry the phone is still holding, and what the farm said about it. */
+export interface Held {
+  entry: OutboxEntry;
+  reason: string;
+}
+
 /** What the farm said about one entry. */
 export interface EntryVerdict {
   id: string;
@@ -252,14 +258,12 @@ export class Outbox {
     return entries;
   }
 
-  private async under(
-    prefix: string
-  ): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  private async under(prefix: string): Promise<Held[]> {
     const keys = await this.options.storage.keys();
-    const rows: { entry: OutboxEntry; reason: string }[] = [];
+    const rows: Held[] = [];
     for (const key of keys.filter((one) => one.startsWith(prefix)).toSorted()) {
       // oxlint-disable-next-line no-await-in-loop
-      const row = await this.read<{ entry: OutboxEntry; reason: string }>(key);
+      const row = await this.read<Held>(key);
       if (row) {
         rows.push(row);
       }
@@ -268,12 +272,12 @@ export class Outbox {
   }
 
   /** What the farm sent back, with the data the person entered, so they can put it right. */
-  rejected(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  rejected(): Promise<Held[]> {
     return this.under(REJECTED);
   }
 
   /** What the farm took but put in front of somebody. */
-  reviewed(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  reviewed(): Promise<Held[]> {
     return this.under(NEEDS_REVIEW);
   }
 
