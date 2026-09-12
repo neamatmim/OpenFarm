@@ -18,6 +18,7 @@ import type {
 import {
   HEAT,
   KG_DECIMALS,
+  SERVICE_EVIDENCE,
   isServiceMethod,
   implausibleChange,
   isShortFed,
@@ -37,7 +38,7 @@ import {
   recordMove,
   requirePen,
 } from "./herd-store";
-import { isOnTheFarm } from "./instances-store";
+import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
 import {
   ensureSession,
   reReconcile,
@@ -178,7 +179,7 @@ export interface EffectInput {
     /** When the work was raised, which is the moment its Ration is read as of. */
     raisedAt: Date;
     /** What raised it, for work a happening raised — a Service reads which Heat it answered. */
-    cause?: string | null;
+    cause: string | null;
   };
   completionId: string;
   animalId: string | null;
@@ -517,7 +518,7 @@ const unraiseIfHeat = async (
   withdrawn: { id: string; saw: string }
 ) => {
   if (withdrawn.saw === HEAT) {
-    await closeWorkRaisedBy(tx, farmId, `heat:${withdrawn.id}`);
+    await closeWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id));
   }
 };
 
@@ -818,23 +819,9 @@ const applyWeighInEffect = async (
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
 };
 
-/** A cause a Heat's sighting wrote: `heat:<observation id>:+<days>`. */
-const HEAT_CAUSE = /^heat:(?<id>[^:]+):/u;
-
-/** The Heat whose sighting raised this work, read off the cause the work carries. */
-const heatThatRaised = (cause: string | null | undefined): string | null =>
-  (cause ? HEAT_CAUSE.exec(cause)?.groups?.id : undefined) ?? null;
-
-/** The Nth note a Step asks for, trimmed, or null when it was left empty. */
-const nthNote = (
-  step: Step,
-  evidence: unknown[],
-  nth: number
-): string | null => {
-  const at = step.evidence
-    .map((item, index) => (item.type === "note" ? index : -1))
-    .filter((index) => index !== -1)[nth];
-  const value = at === undefined ? undefined : evidence[at];
+/** What was written at one position of the Evidence, trimmed, or null when it was left empty. */
+const textAt = (evidence: unknown[], position: number): string | null => {
+  const value = evidence[position];
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 };
 
@@ -866,6 +853,18 @@ const applyServiceEffect = async (
         "A service is recorded about one cow, and this work is about none",
     });
   }
+  // A service is of a cow. Recorded against a bull or a steer, it is a service of nothing, and the
+  // Pregnancy Check and Calving that count from it would be counting from a mistake.
+  const cow = await tx.query.animal.findFirst({
+    where: { id: cowId },
+    columns: { sex: true },
+  });
+  if (cow?.sex !== "female") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only a cow is served",
+      data: { refusal: "service_of_a_male" },
+    });
+  }
   const standing = await tx.query.service.findFirst({
     where: { completionId: input.completionId },
     columns: { id: true },
@@ -887,10 +886,20 @@ const applyServiceEffect = async (
       message: `"${method}" is not a way a cow is served`,
     });
   }
-  const sire = nthNote(input.step, input.evidence, 0);
+  const sire = textAt(input.evidence, SERVICE_EVIDENCE.sire);
   if (!sire) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A service names its sire",
+    });
+  }
+
+  // The story asks for the technician. A bull running with the herd has nobody standing over him,
+  // so it is only an AI service that is refused without a name.
+  const servedBy = textAt(input.evidence, SERVICE_EVIDENCE.servedBy);
+  if (method === "ai" && !servedBy) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An AI service names who served her",
+      data: { refusal: "service_needs_technician" },
     });
   }
 
@@ -920,8 +929,12 @@ const applyServiceEffect = async (
     method,
     sireStraw: method === "ai" ? sire : null,
     sireAnimalId,
-    servedBy: nthNote(input.step, input.evidence, 1),
+    servedBy,
     heatId: heatThatRaised(input.instance.cause),
+    // The Role the Service belongs to, on the record itself. The Step ran under whichever Role the
+    // person holds first, which for somebody who is both Owner and Manager reads "owner" — a Role
+    // that may only read a Service.
+    recordedByRole: "manager" as const,
     servedAt: input.recordedAt,
     recordedBy: input.recordedBy,
   };

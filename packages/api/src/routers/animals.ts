@@ -51,6 +51,7 @@ import {
   requirePen,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { causeOf, heatKeyOf } from "../instances-store";
 import { requireRole } from "../roles";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
@@ -204,13 +205,13 @@ const heatsOf = async (db: Database, animalId: string) => {
   const work = await db.query.sopInstance.findMany({
     where: {
       animalId,
-      cause: { in: sightings.map((seen) => `heat:${seen.id}:+0`) },
+      cause: { in: sightings.map((seen) => causeOf(heatKeyOf(seen.id), 0)) },
     },
     columns: { id: true, cause: true, state: true },
   });
   const byCause = new Map(work.map((one) => [one.cause, one]));
   return sightings.map((seen) => {
-    const raised = byCause.get(`heat:${seen.id}:+0`);
+    const raised = byCause.get(causeOf(heatKeyOf(seen.id), 0));
     return {
       id: seen.id,
       seenAt: seen.seenAt,

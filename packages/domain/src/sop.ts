@@ -245,17 +245,28 @@ const doseStepProblems = (
   return problems;
 };
 
+/** Where each fact sits in a Service Step's Evidence. Validated and read by the same positions,
+ *  so what the Step asks for and what the record takes from it cannot drift apart. */
+export const SERVICE_EVIDENCE = { method: 0, sire: 1, servedBy: 2 } as const;
+
 /**
  * What a Service Step has to ask for. The Step's own words are the farm's, but the record is read
  * back by every later act in the breeding chain, so its shape is not.
  *
- * The method first, as a choice offering exactly `ai` and `natural`; then the sire, as a note — a
- * straw's number, or the farm's own bull by his Tag Number. A second note, for who served her, is
- * optional: a technician rarely has an account, and the farm still wants his name.
+ * How she was served, as a choice offering exactly `ai` and `natural`; the sire, as a required note
+ * — a straw's number, or the farm's own bull by his Tag Number; and who served her, as a note. That
+ * last is not required here, because a bull running with the herd has nobody standing over him, but
+ * an AI service is refused without it: the story asks for the technician.
+ *
+ * The Step may be per animal. A Heat raises work about one cow, but a bull running with the herd
+ * serves cows nobody saw in heat, and the round that walks the Pen afterwards is where that is
+ * written down — refusing a per-animal Service Step would leave that service no way in at all.
  */
 const serviceStepProblems = (step: Step, path: string): string[] => {
   const problems: string[] = [];
-  const [method, sire] = step.evidence;
+  const method = step.evidence[SERVICE_EVIDENCE.method];
+  const sire = step.evidence[SERVICE_EVIDENCE.sire];
+  const servedBy = step.evidence[SERVICE_EVIDENCE.servedBy];
   const offered = method?.choices?.map((choice) => choice.value) ?? [];
   const exactlyTheMethods =
     method?.type === "choice" &&
@@ -271,9 +282,9 @@ const serviceStepProblems = (step: Step, path: string): string[] => {
       `${path}.evidence[1]: a service step then asks for the sire, as a required note`
     );
   }
-  if (step.repeatPerAnimal) {
+  if (servedBy?.type !== "note") {
     problems.push(
-      `${path}.effect: a service is recorded about the one cow the work was raised for`
+      `${path}.evidence[2]: a service step then asks who served her, as a note`
     );
   }
   return problems;

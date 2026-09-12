@@ -10,6 +10,7 @@ CREATE TABLE "service" (
 	"heat_id" text,
 	"served_at" timestamp NOT NULL,
 	"recorded_by" text,
+	"recorded_by_role" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint

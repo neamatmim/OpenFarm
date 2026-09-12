@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "f8874a63-1c38-4602-ad73-f5375e4ef515",
+  "id": "6e229b3f-5950-4a0f-9079-9b285684bb13",
   "prevIds": ["cc4f5ddb-1dbf-4134-8a4f-ff760732919c"],
   "ddl": [
     {
@@ -1481,6 +1481,19 @@
       "generated": null,
       "identity": null,
       "name": "recorded_by",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "service"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "recorded_by_role",
       "entityType": "columns",
       "schema": "public",
       "table": "service"

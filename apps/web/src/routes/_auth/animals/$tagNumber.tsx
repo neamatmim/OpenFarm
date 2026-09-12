@@ -573,8 +573,9 @@ const HerServices = ({
               </p>
               {answered ? (
                 <p className="text-muted-foreground text-xs">
-                  {t("service.afterHeat")}{" "}
-                  {formatDate(answered, language, "dateTime")}
+                  {t("service.afterHeat", {
+                    when: formatDate(answered, language, "dateTime"),
+                  })}
                 </p>
               ) : null}
             </li>

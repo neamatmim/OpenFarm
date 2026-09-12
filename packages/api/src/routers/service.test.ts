@@ -74,6 +74,23 @@ const aiSop = (): SopContent => ({
   ],
 });
 
+/** A bull running with the herd serves cows nobody saw in heat. The round that walks the Pen
+ *  afterwards is where those services are written down — no heat raised this work. */
+const bullRunSop = (): SopContent => ({
+  ...aiSop(),
+  name: { bn: `ষাঁড়ের সঙ্গে ${suffix}`, en: "Bull run" },
+  purpose: { bn: "ষাঁড় যেসব গাভীকে পাল দিয়েছে তা লেখা" },
+  triggers: [],
+  steps: [
+    {
+      ...(aiSop().steps[0] as SopContent["steps"][number]),
+      id: "served",
+      repeatPerAnimal: true,
+      skipReasons: [{ bn: "পাল দেয়নি" }],
+    },
+  ],
+});
+
 const setup = async () => {
   const clock = new FakeClock("2027-11-01T00:00:00.000Z");
   const owner = await createTestClient(appRouter, { as: "owner", clock });
@@ -93,7 +110,7 @@ const setup = async () => {
       aliases: [],
     });
   const cows = [];
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 5; index += 1) {
     // oxlint-disable-next-line no-await-in-loop
     cows.push(await heifer());
   }
@@ -120,7 +137,8 @@ const setup = async () => {
 
   const watch = await owner.client.sops.create({ content: heatWatchSop() });
   const ai = await owner.client.sops.create({ content: aiSop() });
-  return { owner, pen, cows, bull, watch, ai };
+  const bullRun = await owner.client.sops.create({ content: bullRunSop() });
+  return { owner, pen, cows, bull, watch, ai, bullRun };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -134,7 +152,11 @@ afterAll(async () => {
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
   const { sopInstance } = await import("@OpenFarm/db/schema/instance");
   const db = scratchDb();
-  const mine = [world.watch.definitionId, world.ai.definitionId];
+  const mine = [
+    world.watch.definitionId,
+    world.ai.definitionId,
+    world.bullRun.definitionId,
+  ];
   await db
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
@@ -240,6 +262,68 @@ describe("the service", () => {
     });
   });
 
+  it("records a natural service that no heat went before", async () => {
+    // The bull runs with the herd and serves a cow nobody saw in heat. The round that walks the
+    // Pen afterwards writes it down, on work no heat raised.
+    const clock = new FakeClock("2027-11-06T09:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.instances.raiseNow({
+      definitionId: world.bullRun.definitionId,
+      penId: world.pen.id,
+    });
+    const today = await manager.client.instances.today({ penId: world.pen.id });
+    const round = today.find(
+      (row) => row.definitionId === world.bullRun.definitionId
+    );
+    await manager.client.instances.claim({ id: round?.id ?? "" });
+    await manager.client.instances.completeStep({
+      instanceId: round?.id ?? "",
+      stepId: "served",
+      animalTag: tagOf(4),
+      evidence: ["natural", world.bull.tagNumber, ""],
+    });
+
+    const her = await manager.client.animals.byTag({ tagNumber: tagOf(4) });
+    expect(her.services).toHaveLength(1);
+    expect(her.services[0]).toMatchObject({
+      method: "natural",
+      sireTagNumber: world.bull.tagNumber,
+      // No heat raised it, and the record does not pretend one did.
+      heatId: null,
+    });
+
+    // A bull is not served. Recorded against him, a service would be a service of nothing, and
+    // everything that counts from it would be counting from a mistake.
+    await expect(
+      manager.client.instances.completeStep({
+        instanceId: round?.id ?? "",
+        stepId: "served",
+        animalTag: world.bull.tagNumber,
+        evidence: ["natural", world.bull.tagNumber, ""],
+      })
+    ).rejects.toMatchObject({ data: { refusal: "service_of_a_male" } });
+  });
+
+  it("asks who served her when it was AI", async () => {
+    // The story asks for the technician. A bull has nobody standing over him, but a straw does.
+    const clock = new FakeClock("2027-11-06T10:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const today = await manager.client.instances.today({ penId: world.pen.id });
+    const round = today.find(
+      (row) => row.definitionId === world.bullRun.definitionId
+    );
+    await expect(
+      manager.client.instances.completeStep({
+        instanceId: round?.id ?? "",
+        stepId: "served",
+        animalTag: tagOf(3),
+        evidence: ["ai", "HF-3300", ""],
+      })
+    ).rejects.toMatchObject({
+      data: { refusal: "service_needs_technician" },
+    });
+  });
+
   it("will not take a bull the farm does not have", async () => {
     const workId = await inHeat("2027-11-04", tagOf(2));
     const manager = await createTestClient(appRouter, {
@@ -263,6 +347,22 @@ describe("the service", () => {
     const workId = await inHeat("2027-11-05", tagOf(3));
     const clock = new FakeClock("2027-11-05T13:00:00.000Z");
 
+    // Not the milker's and not the Vet's: the roles matrix gives them no part in a Service. The
+    // work is the Manager's, so the Step's own gate turns them away before the Service is asked.
+    for (const as of ["staff", "vet"] as const) {
+      // Sequential: each refusal is read before the next person tries.
+      // oxlint-disable-next-line no-await-in-loop
+      const other = await createTestClient(appRouter, { as, clock });
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        other.client.instances.completeStep({
+          instanceId: workId,
+          stepId: "serve",
+          evidence: ["ai", "HF-1100", "রহিম"],
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    }
+
     // The Owner may always step into a shift — someone has to be able to unstick one — so the
     // step's own gate lets them in. But the roles matrix gives the Owner only read on a Service,
     // and parentage recorded by the wrong hand is parentage nobody can trust. An Owner who does
@@ -272,7 +372,7 @@ describe("the service", () => {
       owner.client.instances.completeStep({
         instanceId: workId,
         stepId: "serve",
-        evidence: ["ai", "HF-1100", ""],
+        evidence: ["ai", "HF-1100", "রহিম"],
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",

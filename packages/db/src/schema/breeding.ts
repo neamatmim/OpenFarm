@@ -49,6 +49,9 @@ export const service = pgTable(
     heatId: text("heat_id").references(() => observation.id),
     servedAt: timestamp("served_at").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
+    /** The Role the Service belongs to — always the Manager's — kept on the record because the
+     *  Step it came through may have run under another Role the same person holds. */
+    recordedByRole: text("recorded_by_role").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

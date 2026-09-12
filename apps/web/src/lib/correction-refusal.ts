@@ -34,3 +34,26 @@ export const refusalMessage = (
     span,
   });
 };
+
+/**
+ * Refusals that are a single word rather than a Correction Window: the reason a Step's record
+ * would not be taken. Said in the reader's own language, because the person reading it is standing
+ * at the animal and the server's English is not for them.
+ */
+const WORDED_REFUSALS = {
+  manager_only: "refusal.managerOnly",
+  no_such_bull: "refusal.noSuchBull",
+  service_needs_technician: "refusal.serviceNeedsTechnician",
+  service_of_a_male: "refusal.serviceOfAMale",
+} as const satisfies Record<string, MessageKey>;
+
+/** A worded refusal in the reader's language, or nothing when the error was about something else. */
+export const wordedRefusal = (
+  error: unknown,
+  t: (key: MessageKey, params?: MessageParams) => string
+): string | null => {
+  const word = (error as { data?: { refusal?: unknown } })?.data?.refusal;
+  return typeof word === "string" && word in WORDED_REFUSALS
+    ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS])
+    : null;
+};
