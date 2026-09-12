@@ -41,8 +41,8 @@ import {
 } from "../health-store";
 import {
   assertPenIsTheirs,
+  insertAnimal,
   loadLiveAnimal,
-  nextTagNumber,
   closeOpenWorkAboutHer,
   requireAnimal,
   requirePen,
@@ -111,6 +111,39 @@ const summaryColumns = {
   withdrawalShortenedAt: true,
   withdrawalShortenedReason: true,
 } as const;
+
+/**
+ * Her arrival as her page reads it. The money and the weights live in numeric columns and come
+ * back as strings; they are converted here at the edge rather than left to drift as floats.
+ */
+const intakeView = (
+  row:
+    | {
+        purchasePriceBdt: string;
+        weightKg: string;
+        targetWeightKg: string;
+        estimatedAgeMonths: number | null;
+        targetWindowStart: string;
+        targetWindowEnd: string;
+        arrivedAt: Date;
+        seller: { name: string; place: string | null } | null;
+      }
+    | null
+    | undefined
+) =>
+  row
+    ? {
+        purchasePriceBdt: Number(row.purchasePriceBdt),
+        weightKg: Number(row.weightKg),
+        targetWeightKg: Number(row.targetWeightKg),
+        estimatedAgeMonths: row.estimatedAgeMonths,
+        targetWindowStart: row.targetWindowStart,
+        targetWindowEnd: row.targetWindowEnd,
+        arrivedAt: row.arrivedAt,
+        sellerName: row.seller?.name ?? null,
+        sellerPlace: row.seller?.place ?? null,
+      }
+    : null;
 
 /** The mortality as the trail records it either side of a Correction. */
 const readMortality = async (tx: Tx, id: string) => {
@@ -221,38 +254,16 @@ const createAnimal = async (
       after: (tx) => readAnimal(tx, id),
     },
     async (tx) => {
-      await requirePen(tx, context.farm.id, input.penId);
-      tagNumber = await nextTagNumber(tx, context.farm.id, input.side);
-      await tx.insert(animal).values({
+      const made = await insertAnimal(tx, {
         id,
         farmId: context.farm.id,
-        tagNumber,
-        officialTag: input.officialTag ?? null,
-        aliases: input.aliases,
-        sex: input.sex,
-        side: input.side,
-        state: input.state,
-        penId: input.penId,
-        source: input.source,
-        breed: input.breed ?? null,
-        birthDate: input.birthDate ?? null,
-        ...openingLactation(input.state, input.calvedAt),
-        stateChangedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-      await tx.insert(animalMove).values({
-        id: newId(now),
-        farmId: context.farm.id,
-        animalId: id,
-        fromPenId: null,
-        toPenId: input.penId,
-        fromSide: null,
-        toSide: input.side,
+        actorId: context.actor.id,
+        input,
+        now,
         reason,
-        movedBy: context.actor.id,
-        movedAt: now,
+        extra: openingLactation(input.state, input.calvedAt),
       });
+      tagNumber = made.tagNumber;
     }
   );
   return { id, tagNumber };
@@ -360,6 +371,11 @@ export const animalsRouter = {
               giver: { columns: { name: true } },
             },
           },
+          /** How she arrived, for an animal the farm bought in: what she cost, what she
+           *  weighed off the lorry, and what she is being fed towards. */
+          intake: {
+            with: { seller: { columns: { name: true, place: true } } },
+          },
           /** The Vet came for something else and found this: a Diagnosis answering no
            *  Observation still belongs to her history. */
           diagnoses: {
@@ -427,6 +443,7 @@ export const animalsRouter = {
           productNameEn: product.nameEn,
           givenByName: giver?.name ?? null,
         })),
+        intake: intakeView(row.intake),
         ...lactationView(row, context.clock.now()),
         ...withdrawalView(row, context.clock.now()),
       };

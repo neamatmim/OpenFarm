@@ -39,6 +39,21 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.mortality.animalId,
     }),
+    /** How she arrived, for an animal the farm bought in. */
+    intake: r.one.intake({ from: r.animal.id, to: r.intake.animalId }),
+  },
+  intake: {
+    animal: r.one.animal({
+      from: r.intake.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** Who the farm bought her from. */
+    seller: r.one.counterparty({
+      from: r.intake.counterpartyId,
+      to: r.counterparty.id,
+    }),
+    recorder: r.one.user({ from: r.intake.recordedBy, to: r.user.id }),
   },
   mortality: {
     animal: r.one.animal({

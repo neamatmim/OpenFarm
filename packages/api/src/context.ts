@@ -71,6 +71,8 @@ export interface Context {
     registrationExpiresOn: Date | null;
     /** How early the farm wants to be told the registration is running out. */
     registrationRenewalLeadDays: number;
+    /** What a bought-in fattening animal is fed towards unless the Manager says otherwise. */
+    fatteningTargetWeightKg: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

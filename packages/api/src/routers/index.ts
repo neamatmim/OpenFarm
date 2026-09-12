@@ -13,6 +13,7 @@ import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
 import { homeRouter } from "./home";
 import { instancesRouter } from "./instances";
+import { intakeRouter } from "./intake";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
 import { notifiableRouter } from "./notifiable";
@@ -41,6 +42,7 @@ export const appRouter = {
   herd: herdRouter,
   home: homeRouter,
   instances: instancesRouter,
+  intake: intakeRouter,
   language: languageRouter,
   milk: milkRouter,
   notifiable: notifiableRouter,

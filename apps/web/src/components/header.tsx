@@ -46,6 +46,8 @@ const Header = () => {
           { to: "/admin/sign-off", label: t("nav.signOff") },
           { to: "/admin/sops", label: t("nav.sops") },
           { to: "/admin/herd", label: t("nav.herd") },
+          // Taking a bought-in animal in: the Manager's act, at the lorry.
+          { to: "/admin/intake", label: t("nav.intake") },
           { to: "/admin/feed", label: t("nav.feed") },
           { to: "/admin/devices", label: t("nav.devices") },
           { to: "/admin/people", label: t("nav.people") },

@@ -259,6 +259,7 @@ export const farmRouter = {
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,
                 registrationRenewalLeadDays: true,
+                fatteningTargetWeightKg: true,
               },
             })) ?? null,
           after: changes,

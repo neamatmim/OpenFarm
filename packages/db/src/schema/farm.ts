@@ -61,6 +61,12 @@ export const farm = pgTable("farm", {
   registrationRenewalLeadDays: integer("registration_renewal_lead_days")
     .notNull()
     .default(90),
+  /** What a bought-in fattening animal is fed towards unless the Manager says otherwise for
+   *  that animal. One number for the farm; the spec's target weight "by class" waits for the
+   *  farm to have enough Weigh-ins to tell the classes apart. */
+  fatteningTargetWeightKg: integer("fattening_target_weight_kg")
+    .notNull()
+    .default(350),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */
