@@ -21,7 +21,11 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
-import { asSopContent, contentOf, sopContentSchema } from "../sop-content";
+import {
+  asSopContent,
+  publishedContent,
+  sopContentSchema,
+} from "../sop-content";
 
 const note = z.string().trim().max(400).optional();
 
@@ -76,23 +80,39 @@ const assertProductsMayBeGiven = async (
 };
 
 /**
- * The farm treats with one procedure at a time.
+ * The farm has one procedure for each act that raises its own work: one it treats with, one it
+ * reports with.
  *
- * A Prescription raises its doses against the SOP that says a Prescription raises it, and with
- * two of those the farm would have to pick — silently, by some rule nobody asked for, and
- * differently from the one the Owner had in mind. Retiring the old one first is how a farm
- * changes how it treats, and that is the same act as changing anything else in the Playbook.
+ * Those acts raise their work against the SOP that says they raise it, and with two of those the
+ * farm would have to pick — silently, by some rule nobody asked for, and differently from the one
+ * the Owner had in mind. Retiring the old one first is how a farm changes how it treats or how it
+ * reports, and that is the same act as changing anything else in the Playbook.
  */
-const assertOneTreatmentProcedure = async (
+const RAISED_BY_AN_ACT = [
+  {
+    kind: "prescription" as const,
+    refusal: "treatment_sop_exists",
+    message:
+      "The farm already has a procedure a prescription raises; retire that one first",
+  },
+  {
+    kind: "notifiable_disease" as const,
+    refusal: "report_sop_exists",
+    message:
+      "The farm already has a procedure a notifiable diagnosis raises; retire that one first",
+  },
+];
+
+const assertOneSuchProcedure = async (
   tx: Tx,
   farmId: string,
   definitionId: string,
   content: SopContent
 ): Promise<void> => {
-  const raisesDoses = content.triggers.some(
-    (trigger) => trigger.kind === "prescription"
+  const raising = RAISED_BY_AN_ACT.filter((act) =>
+    content.triggers.some((trigger) => trigger.kind === act.kind)
   );
-  if (!raisesDoses) {
+  if (raising.length === 0) {
     return;
   }
   const live = await tx.query.sopDefinition.findMany({
@@ -100,19 +120,20 @@ const assertOneTreatmentProcedure = async (
     columns: { id: true },
     with: { currentVersion: { columns: { content: true } } },
   });
-  const already = live.find(
-    (definition) =>
-      definition.id !== definitionId &&
-      contentOf({ content: definition.currentVersion?.content }).triggers.some(
-        (trigger) => trigger.kind === "prescription"
-      )
-  );
-  if (already) {
-    throw new ORPCError("CONFLICT", {
-      message:
-        "The farm already has a procedure a prescription raises; retire that one first",
-      data: { refusal: "treatment_sop_exists", definitionId: already.id },
-    });
+  for (const act of raising) {
+    const already = live.find(
+      (definition) =>
+        definition.id !== definitionId &&
+        publishedContent(definition)?.triggers.some(
+          (trigger) => trigger.kind === act.kind
+        )
+    );
+    if (already) {
+      throw new ORPCError("CONFLICT", {
+        message: act.message,
+        data: { refusal: act.refusal, definitionId: already.id },
+      });
+    }
   }
 };
 
@@ -146,7 +167,7 @@ const publishVersion = async (
     });
   }
   await assertProductsMayBeGiven(tx, farmId, content);
-  await assertOneTreatmentProcedure(tx, farmId, definitionId, content);
+  await assertOneSuchProcedure(tx, farmId, definitionId, content);
   const previous = await tx.query.sopVersion.findMany({
     where: { definitionId },
     columns: { number: true },

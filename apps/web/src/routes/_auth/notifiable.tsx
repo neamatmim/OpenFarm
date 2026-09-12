@@ -25,6 +25,7 @@ const NotifiablePage = () => {
   const queryClient = useQueryClient();
   const list = useQuery(orpc.notifiable.list.queryOptions());
   const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [note, setNote] = useState("");
   /** Which disease is being taken off, and why — typed in place, because a browser dialog
    *  blocks everything else on the phone. */
@@ -37,6 +38,7 @@ const NotifiablePage = () => {
     orpc.notifiable.add.mutationOptions({
       onSuccess: () => {
         setName("");
+        setNameEn("");
         setNote("");
         refresh();
       },
@@ -125,7 +127,12 @@ const NotifiablePage = () => {
           event.preventDefault();
           if (name.trim()) {
             add.mutate({
-              name: { bn: name.trim() },
+              // The English name too, when the farm has one: a Vet who writes "Anthrax" and a
+              // list that only says "তড়কা" would not match, and the farm would not report.
+              name: {
+                bn: name.trim(),
+                ...(nameEn.trim() ? { en: nameEn.trim() } : {}),
+              },
               ...(note.trim() ? { note: note.trim() } : {}),
             });
           }
@@ -137,6 +144,14 @@ const NotifiablePage = () => {
             id="disease-name"
             onChange={(event) => setName(event.target.value)}
             value={name}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="disease-name-en">{t("notifiable.nameEn")}</Label>
+          <Input
+            id="disease-name-en"
+            onChange={(event) => setNameEn(event.target.value)}
+            value={nameEn}
           />
         </div>
         <div className="space-y-1">

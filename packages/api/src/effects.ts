@@ -54,8 +54,8 @@ export type EffectResult =
     }
   | {
       kind: "dls_report";
-      /** What the office filed it under. */
-      reference: string;
+      /** What the office filed it under. Null when a Correction took the delivery back. */
+      reference: string | null;
       /** False when a Correction took the delivery back: the report is owed again. */
       delivered: boolean;
     }
@@ -107,11 +107,6 @@ const numberIn = (step: Step, evidence: unknown[]): number => {
   return typed;
 };
 
-/**
- * What the person chose, as the Version declares it — the value, and the Bangla they were
- * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
- * checked against the farm's: a value no Version ever offered is not something anybody saw.
- */
 /** What was written in the Step's note, trimmed, or nothing when it was left empty. */
 const noteIn = (step: Step, evidence: unknown[]): string | null => {
   const index = step.evidence.findIndex((item) => item.type === "note");
@@ -120,6 +115,11 @@ const noteIn = (step: Step, evidence: unknown[]): string | null => {
   return written === "" ? null : written;
 };
 
+/**
+ * What the person chose, as the Version declares it — the value, and the Bangla they were
+ * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
+ * checked against the farm's: a value no Version ever offered is not something anybody saw.
+ */
 const choiceIn = (
   step: Step,
   evidence: unknown[],
@@ -280,15 +280,10 @@ const applyReportEffect = async (
       message: "This work is not the report of any diagnosis",
     });
   }
-  const reference = input.skipped
-    ? null
-    : (noteIn(input.step, input.evidence) ?? null);
-  if (!input.skipped && !reference) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "Write the reference the office gave the letter: a report that cannot be evidenced is a report that was not made",
-    });
-  }
+  // The reference is required evidence, so whether it was given at all is settled before the
+  // effect runs — by the Version (publishing refuses a Step that lets it be blank) and by the
+  // Completion (a required slot with nothing in it is not complete).
+  const reference = input.skipped ? null : noteIn(input.step, input.evidence);
   await tx
     .update(dlsReport)
     .set(
@@ -309,7 +304,7 @@ const applyReportEffect = async (
     .where(eq(dlsReport.id, owed.id));
   return {
     kind: "dls_report",
-    reference: reference ?? "",
+    reference,
     delivered: !input.skipped,
   };
 };

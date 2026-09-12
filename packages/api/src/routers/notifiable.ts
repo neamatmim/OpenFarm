@@ -44,13 +44,17 @@ const buildLetter = async (
     with: {
       animal: { columns: { tagNumber: true } },
       vet: { columns: { name: true } },
-      report: { columns: { id: true } },
+      report: { columns: { id: true, withdrawnAt: true } },
+      /** What has been given for it, so the letter can say what the farm has already done. */
+      prescriptions: {
+        with: { product: { columns: { nameBn: true } } },
+      },
     },
   });
   if (!found) {
     throw new ORPCError("NOT_FOUND", { message: "No such diagnosis" });
   }
-  if (!found.report) {
+  if (!found.report || found.report.withdrawnAt) {
     throw new ORPCError("BAD_REQUEST", {
       message:
         "That diagnosis is not one the farm's list says must be reported",
@@ -66,6 +70,10 @@ const buildLetter = async (
       disease: found.disease,
       diagnosedOn: formatDate(found.diagnosedAt, "bn", "date"),
       vetName: found.vet.name,
+      // What the farm has already done about it, which is what the office asks next.
+      treatedWith: [
+        ...new Set(found.prescriptions.map((one) => one.product.nameBn)),
+      ],
       reportedByName: context.actor.name,
       reportedOn: formatDate(now, "bn", "date"),
     }),

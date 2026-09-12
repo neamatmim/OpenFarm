@@ -380,6 +380,7 @@ export const bn: Record<MessageKey, string> = {
   "notifiable.title": "যে রোগ জানাতে হয়",
   "notifiable.add": "রোগ যোগ করুন",
   "notifiable.name": "রোগের নাম",
+  "notifiable.nameEn": "ইংরেজি নাম (থাকলে)",
   "notifiable.note": "ইউএলও যা বলেছেন",
   "notifiable.retire": "তালিকা থেকে বাদ",
   "notifiable.retired": "বাদ দেওয়া",

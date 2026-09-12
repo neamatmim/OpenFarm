@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -281,10 +282,15 @@ export const dlsReport = pgTable(
     diagnosisId: text("diagnosis_id")
       .notNull()
       .references(() => diagnosis.id, { onDelete: "cascade" }),
-    /** The work raised to report it. */
-    instanceId: text("instance_id")
-      .notNull()
-      .references(() => sopInstance.id, { onDelete: "cascade" }),
+    /** The work raised to report it — null when the farm has published no report procedure.
+     *  The report is owed to the office either way; an Instance is only how the farm remembers
+     *  to do it, and a farm missing the procedure still has the letter to write. */
+    instanceId: text("instance_id").references(() => sopInstance.id, {
+      onDelete: "cascade",
+    }),
+    /** The list entry that matched, so the farm can say which of its diseases this was
+     *  reported as — the answer to "why did you report that one". */
+    diseaseId: text("disease_id").references(() => notifiableDisease.id),
     /** When the letter reached the office, as the person who took it says. Null until it has. */
     deliveredAt: timestamp("delivered_at"),
     /** What the office filed it under. The farm's evidence that it went. */
@@ -293,11 +299,17 @@ export const dlsReport = pgTable(
       onDelete: "set null",
     }),
     deliveredBy: text("delivered_by").references(() => user.id),
+    /** When a Correction to the Diagnosis left nothing to report — the disease it now names is
+     *  not on the farm's list. Withdrawn, never deleted: a letter that went, went. */
+    withdrawnAt: timestamp("withdrawn_at"),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
     uniqueIndex("dls_report_diagnosis_uidx").on(table.diagnosisId),
-    uniqueIndex("dls_report_instance_uidx").on(table.instanceId),
+    /** One report per piece of work, for the work that exists. */
+    uniqueIndex("dls_report_instance_uidx")
+      .on(table.instanceId)
+      .where(sql`${table.instanceId} is not null`),
     index("dls_report_farm_idx").on(table.farmId, table.createdAt),
   ]
 );

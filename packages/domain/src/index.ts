@@ -130,6 +130,7 @@ export {
   appliesToAnimal,
   describeChanges,
   isClosingStep,
+  raisesItsOwnWork,
   sessionsPerDayOf,
   findMissingBangla,
   findPublishBlockers,

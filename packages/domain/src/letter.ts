@@ -8,6 +8,8 @@ export interface NotifiableLetter {
    *  a date looks is the i18n package's business and this package depends on nothing. */
   diagnosedOn: string;
   vetName: string;
+  /** What the farm has already given the animal, by product. The office's next question. */
+  treatedWith: string[];
   /** Who is sending it, and when. */
   reportedByName: string;
   reportedOn: string;
@@ -24,8 +26,25 @@ export interface NotifiableLetter {
  * The Act requires the report in writing and without delay (Animal Disease Act 2005, s.3); the
  * farm's own registration number joins the heading when registration arrives (increment 7).
  */
-export const notifiableLetter = (letter: NotifiableLetter): string =>
-  [
+export const notifiableLetter = (letter: NotifiableLetter): string => {
+  // A notice with a blank farm, animal, disease or signatory is not a notice. Better to refuse
+  // to write it than to hand somebody a page with a hole in it and let them take it to the
+  // office.
+  const missing = (
+    [
+      ["farmName", letter.farmName],
+      ["tagNumber", letter.tagNumber],
+      ["disease", letter.disease],
+      ["vetName", letter.vetName],
+      ["reportedByName", letter.reportedByName],
+    ] as const
+  ).filter(([, value]) => value.trim() === "");
+  if (missing.length > 0) {
+    throw new Error(
+      `the letter cannot be written without ${missing.map(([field]) => field).join(", ")}`
+    );
+  }
+  return [
     "বরাবর,",
     "উপজেলা প্রাণিসম্পদ কর্মকর্তা",
     "",
@@ -38,6 +57,9 @@ export const notifiableLetter = (letter: NotifiableLetter): string =>
     `পশুর ট্যাগ নম্বর: ${letter.tagNumber}`,
     `রোগ শনাক্তের তারিখ: ${letter.diagnosedOn}`,
     `শনাক্তকারী ভেটেরিনারিয়ান: ${letter.vetName}`,
+    letter.treatedWith.length > 0
+      ? `গৃহীত ব্যবস্থা: ${letter.treatedWith.join(", ")} প্রয়োগ করা হয়েছে`
+      : "গৃহীত ব্যবস্থা: এখনও কোনো ওষুধ প্রয়োগ করা হয়নি",
     "",
     "প্রয়োজনীয় ব্যবস্থা গ্রহণের জন্য অনুরোধ করছি।",
     "",
@@ -46,3 +68,4 @@ export const notifiableLetter = (letter: NotifiableLetter): string =>
     letter.farmName,
     letter.reportedOn,
   ].join("\n");
+};

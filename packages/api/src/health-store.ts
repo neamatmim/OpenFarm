@@ -5,6 +5,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { dlsReport } from "@OpenFarm/db/schema/health";
 import { animal } from "@OpenFarm/db/schema/herd";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { DoseRoute } from "@OpenFarm/domain";
 import { withdrawalEndsAt } from "@OpenFarm/domain";
 import { z } from "zod";
@@ -13,7 +14,7 @@ import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { RaisedAlert } from "./instances-store";
 import { dueAtFor, raiseDueInstances } from "./instances-store";
-import { contentOf } from "./sop-content";
+import { contentOf, publishedContent } from "./sop-content";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DAYS = 180;
@@ -457,13 +458,11 @@ export const theReportSop = async (tx: Tx, farmId: string) => {
     orderBy: { createdAt: "asc" },
     with: { currentVersion: true },
   });
-  const reporting = definitions
-    .filter((definition) => definition.currentVersion)
-    .find((definition) =>
-      contentOf({ content: definition.currentVersion?.content }).triggers.some(
-        (trigger) => trigger.kind === "notifiable_disease"
-      )
-    );
+  const reporting = definitions.find((definition) =>
+    publishedContent(definition)?.triggers.some(
+      (trigger) => trigger.kind === "notifiable_disease"
+    )
+  );
   if (!reporting?.currentVersion) {
     return null;
   }
@@ -516,50 +515,120 @@ export const raiseTheReport = async (
   {
     farmId,
     diagnosisId,
+    diseaseId,
     animalId,
     penId,
     now,
   }: {
     farmId: string;
     diagnosisId: string;
+    /** Which of the farm's listed diseases matched, so the report can say what it was made as. */
+    diseaseId: string;
     animalId: string;
     penId: string;
     now: Date;
   }
-): Promise<{ instanceId: string } | null> => {
+): Promise<{ reportId: string; instanceId: string | null }> => {
   const sop = await theReportSop(tx, farmId);
-  if (!sop) {
-    return null;
-  }
-  const [raised] = await raiseDueInstances(
-    tx,
-    farmId,
-    [
-      {
-        definitionId: sop.definitionId,
-        versionId: sop.versionId,
-        penId,
-        animalId,
-        dueAt: now,
-        cause: `notifiable:${diagnosisId}`,
-        graceMinutes: sop.content.graceMinutes,
-        assignedRole: sop.content.assignedRole,
-        checkerRole: sop.content.checkerRole,
-      },
-    ],
-    now
-  );
-  if (!raised) {
-    return null;
-  }
-  await tx.insert(dlsReport).values({
-    id: uuidv7(now),
+  const [raised] = sop
+    ? await raiseDueInstances(
+        tx,
+        farmId,
+        [
+          {
+            definitionId: sop.definitionId,
+            versionId: sop.versionId,
+            penId,
+            animalId,
+            dueAt: now,
+            cause: `notifiable:${diagnosisId}`,
+            graceMinutes: sop.content.graceMinutes,
+            assignedRole: sop.content.assignedRole,
+            checkerRole: sop.content.checkerRole,
+          },
+        ],
+        now
+      )
+    : [];
+  const id = uuidv7(now);
+  // The report exists whether or not the Playbook has work for it: the duty is the Act's, not
+  // the Playbook's, and a farm with no procedure published still has a letter to write and take.
+  // Its Instance is only how the farm remembers to do it.
+  const [row] = await tx
+    .insert(dlsReport)
+    .values({
+      id,
+      farmId,
+      diagnosisId,
+      diseaseId,
+      instanceId: raised?.id ?? null,
+      createdAt: now,
+    })
+    .onConflictDoNothing()
+    .returning({ id: dlsReport.id });
+  return { reportId: row?.id ?? id, instanceId: raised?.id ?? null };
+};
+
+/**
+ * A Correction to a Diagnosis can change whether the farm owes the office a letter at all.
+ *
+ * Newly notifiable: the duty starts now, so the report and the work are raised now. No longer
+ * notifiable: the letter is not owed, so a report nobody has delivered is withdrawn and the work
+ * to deliver it is closed — leaving the Manager under orders to write a letter about a disease
+ * the Vet has taken back would be worse than not raising one.
+ *
+ * A report already delivered is left exactly where it is. That letter went.
+ */
+export const reconsiderTheReport = async (
+  tx: Tx,
+  {
     farmId,
     diagnosisId,
-    instanceId: raised.id,
-    createdAt: now,
+    disease,
+    animalId,
+    penId,
+    now,
+  }: {
+    farmId: string;
+    diagnosisId: string;
+    disease: { bn: string; en?: string };
+    animalId: string;
+    penId: string;
+    now: Date;
+  }
+): Promise<{ notifiable: boolean; instanceId: string | null }> => {
+  const listed = await isNotifiable(tx, farmId, disease);
+  const standing = await tx.query.dlsReport.findFirst({
+    where: { diagnosisId, withdrawnAt: { isNull: true } },
+    columns: { id: true, instanceId: true, deliveredAt: true },
   });
-  return { instanceId: raised.id };
+  if (listed) {
+    if (standing) {
+      return { notifiable: true, instanceId: standing.instanceId };
+    }
+    const raised = await raiseTheReport(tx, {
+      farmId,
+      diagnosisId,
+      diseaseId: listed.id,
+      animalId,
+      penId,
+      now,
+    });
+    return { notifiable: true, instanceId: raised.instanceId };
+  }
+  if (standing && !standing.deliveredAt) {
+    await tx
+      .update(dlsReport)
+      .set({ withdrawnAt: now })
+      .where(eq(dlsReport.id, standing.id));
+    if (standing.instanceId) {
+      await tx
+        .update(sopInstance)
+        .set({ state: "missed" })
+        .where(eq(sopInstance.id, standing.instanceId));
+    }
+  }
+  return { notifiable: false, instanceId: null };
 };
 
 /**

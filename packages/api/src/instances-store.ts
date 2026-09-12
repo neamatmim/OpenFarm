@@ -11,6 +11,7 @@ import type {
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  raisesItsOwnWork,
   carryingMoments,
   describeChanges,
   lastCarryingMoment,
@@ -184,13 +185,9 @@ export const happeningSlotsFor = (
       if (trigger.kind === "schedule") {
         continue;
       }
-      // Both of these raise their own work the moment the act happens — a Prescription's doses
-      // when the Vet writes it, a report when the Vet names a notifiable disease. Nothing that
-      // happens on the farm raises either, and nothing here should go looking.
-      if (
-        trigger.kind === "prescription" ||
-        trigger.kind === "notifiable_disease"
-      ) {
+      // Raised by the act itself, inside the transaction that records it. Nothing that happens
+      // on the farm raises these, and nothing here should go looking.
+      if (raisesItsOwnWork(trigger)) {
         continue;
       }
       const offsetDays = trigger.offsetDays ?? 0;

@@ -48,6 +48,12 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** Who wrote it down: a mortality is evidence, so its author is part of it. */
     recorder: r.one.user({ from: r.mortality.recordedBy, to: r.user.id }),
+    /** What she is said to have died of, when a Vet concluded it — and through it, the report
+     *  the farm owed the office. */
+    diagnosis: r.one.diagnosis({
+      from: r.mortality.diagnosisId,
+      to: r.diagnosis.id,
+    }),
   },
   animalMove: {
     animal: r.one.animal({
@@ -164,10 +170,15 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.diagnosis.id,
       optional: false,
     }),
+    /** The work raised to report it, when the farm has a procedure for it. */
     instance: r.one.sopInstance({
       from: r.dlsReport.instanceId,
       to: r.sopInstance.id,
-      optional: false,
+    }),
+    /** Which of the farm's listed diseases it was reported as. */
+    disease: r.one.notifiableDisease({
+      from: r.dlsReport.diseaseId,
+      to: r.notifiableDisease.id,
     }),
     deliverer: r.one.user({ from: r.dlsReport.deliveredBy, to: r.user.id }),
   },
