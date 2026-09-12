@@ -35,6 +35,7 @@ import { applyMove } from "../completion-store";
 import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { parseCsvRecords } from "../csv";
+import { fatteningOf } from "../fattening-store";
 import {
   theConclusionAndWhatFollowed,
   withPrescriptions,
@@ -323,7 +324,11 @@ export const animalsRouter = {
             with: { shed: { columns: { name: true } } },
           },
           moves: {
-            orderBy: { movedAt: "desc" },
+            // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an
+            // instant — registering an animal walks her to her first Pen in the same
+            // transaction as a Move recorded a moment later, and her history should not
+            // depend on which row the database happens to hand back first.
+            orderBy: { movedAt: "desc", id: "desc" },
             limit: 20,
             // Both ends of the journey, and the work that walked her — so her history reads
             // as one story rather than as a Move nobody can account for.
@@ -333,7 +338,7 @@ export const animalsRouter = {
               toPen: { columns: { name: true } },
             },
           },
-          retags: { orderBy: { retaggedAt: "desc" }, limit: 20 },
+          retags: { orderBy: { retaggedAt: "desc", id: "desc" }, limit: 20 },
           // What people have seen of her lately, withdrawn ones included: an Observation
           // that was corrected is still something somebody said on the round.
           observations: {
@@ -384,7 +389,7 @@ export const animalsRouter = {
           /** Every time she has been on the scale, newest first: her page answers "what does
            *  she weigh now" before it answers anything else. */
           weighIns: {
-            orderBy: { weighedAt: "desc" },
+            orderBy: { weighedAt: "desc", id: "desc" },
             limit: WEIGH_INS_SHOWN,
             with: { weigher: { columns: { name: true } } },
           },
@@ -407,6 +412,10 @@ export const animalsRouter = {
       // conclusions drawn from them are not theirs to read (roles matrix: Staff read
       // treatment instances only). They still see the round's own Observations.
       const readsTheClinicalRecord = context.roleUsed !== "staff";
+      // A separate question from the clinical one, and a separate row of the matrix: money is
+      // the Owner's and the Manager's whoever else may read her history.
+      const readsWhatSheCost =
+        context.roleUsed === "owner" || context.roleUsed === "manager";
       return {
         ...row,
         moves: row.moves.map(({ completion, fromPen, toPen, ...move }) => ({
@@ -455,7 +464,17 @@ export const animalsRouter = {
           productNameEn: product.nameEn,
           givenByName: giver?.name ?? null,
         })),
-        intake: intakeView(row.intake),
+        /** What the farm paid and who it bought her from is the Intake row of the roles
+         *  matrix — `R` to the Owner, `C R U` to the Manager, and nothing to anybody else.
+         *  A milker weighs her and a Vet treats her without being told what she cost. */
+        intake: readsWhatSheCost ? intakeView(row.intake) : null,
+        /** What the scale means, which anybody who may see her may see. Null for an animal
+         *  who is not on the Fattening side: "days on feed" about a milking cow is a number
+         *  about nothing. */
+        fattening:
+          row.side === "fattening"
+            ? fatteningOf(row.intake, row.weighIns, context.clock.now())
+            : null,
         /** Kilogrammes live in a numeric column and come back as strings; converted here at
          *  the edge, like the litres, rather than left to drift as floats. */
         weighIns: row.weighIns.map(({ weigher, ...reading }) => ({

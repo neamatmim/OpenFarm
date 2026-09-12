@@ -6,7 +6,7 @@
 
 **Status:** done
 
-**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user story 63; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Weigh-in").
+**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user story 61; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Weigh-in").
 
 - [x] A weigh-in is one Instance per Pen with a per-animal Step, raised by the Playbook like anything else
 - [x] The reading is typed in kilograms and kept per animal, with the method recorded as a scale reading

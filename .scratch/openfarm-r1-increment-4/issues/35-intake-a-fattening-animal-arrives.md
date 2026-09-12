@@ -6,7 +6,7 @@
 
 **Status:** done
 
-**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 60–62; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Intake"); [Animal identity scheme](../../openfarm-release-1/issues/06-animal-identity-scheme.md).
+**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user story 60; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Intake"); [Animal identity scheme](../../openfarm-release-1/issues/06-animal-identity-scheme.md).
 
 - [x] The Manager records an intake: seller name and place, purchase price, intake weight, estimated age, breed if known, a photo, a Target Window and a target weight
 - [x] The Target Window defaults to the next Eid-ul-Adha, and the Manager may move it

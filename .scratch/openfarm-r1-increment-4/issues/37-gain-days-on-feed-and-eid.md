@@ -4,12 +4,121 @@
 
 **Blocked by:** 36
 
-**Status:** ready-for-agent
+**Status:** done
 
-**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 64 and 65; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Derived, never typed").
+**Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user story 62; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Derived, never typed").
 
-- [ ] Average daily gain since intake and over the last period, days on feed, and both projections to the Target Window, all derived and none of them stored as typed figures
-- [ ] Her page shows the two projections side by side against her target weight
-- [ ] The Owner sees the fattening side at a glance: who is on track for the window and who is not
-- [ ] An animal with one weight only says so rather than projecting from nothing
-- [ ] Tests cover the arithmetic on a worked example, one weight only, and a pen where recent gain and lifetime gain disagree
+- [x] Average daily gain since intake and over the last period, days on feed, and both projections to the Target Window, all derived and none of them stored as typed figures
+- [x] Her page shows the two projections side by side against her target weight
+- [x] The Owner sees the fattening side at a glance: who is on track for the window and who is not
+- [x] An animal with one weight only says so rather than projecting from nothing
+- [x] Tests cover the arithmetic on a worked example, one weight only, and a pen where recent gain and lifetime gain disagree
+
+## What was built
+
+`fatteningView` in the domain: days on feed, what she weighs now, and **two** rates of gain —
+over her whole stay and between her last two weigh-ins — each carrying the span it was measured
+over and what it projects her to at the Target Window. Derived on every read, never stored,
+because every one of these answers changes when the next reading arrives and a farm holding a
+projection from March would be reading a number that stopped being true in April.
+
+`fattening.board` gives the Owner and the Manager the side at a glance, those falling short
+first. Her own page carries the same two columns side by side against her target weight, and the
+board says out loud when the recent rate is below the lifetime one — which is the gap the Owner
+asked to be able to see.
+
+## Decisions and departures
+
+- **On track is judged on the recent rate, not the average.** A bull who gained well all winter
+  and nothing this fortnight has stopped, and a lifetime average would hide it. Where there is no
+  recent rate the since-intake one stands in; where there is neither, the farm says it does not
+  know rather than guessing.
+- **A projection is made from the unrounded rate and rounded once at the end.** Rounding the rate
+  first and multiplying it by ninety days turns a hundredth of a kilo into most of a kilo.
+- **One reading is not a trend.** `recent` is null until there are two, and the screen says so
+  rather than drawing a line through a single point.
+- **An animal moved across from the dairy has no Intake**, so it is not on the board: there is no
+  arrival weight to measure gain from. It is still on the Fattening side and still weighable.
+
+## What was fixed on the way
+
+- **Ticket 35 leaked the purchase price to Barn Staff.** I had put the Intake on `animals.byTag`,
+  which every Role may read, but the roles matrix gives Intake to the Manager and the Owner and
+  gives Barn Staff no row at all. A milker could see what the farm paid for a bull. Staff now see
+  her weights and what she is being fed towards; not what she cost. There is a test for it.
+- **Every ticket in this increment cited the wrong user stories.** The spec's Fattening block is
+  stories 60–65 and 66 onward is Breeding, but the tickets pointed at 63–74 — ticket 36 was citing
+  the Ready-for-Sale story and this one was citing the Sale. All seven files corrected.
+
+## What the review changed
+
+- **The Owner's board was reading her *first* twelve readings, not her last twelve.** An
+  ascending order with a limit takes the oldest rows; her own page had it right and the board
+  did not, so after about six months of fortnightly weighing the two screens would have quietly
+  disagreed and the board would have shown a stale weight and a months-old rate. The two
+  conversions are now one `fatteningOf` in `fattening-store.ts` — the drift between the copies is
+  what produced the bug.
+- **The Vet could still see what the farm paid.** My fix above gated the Intake on
+  `readsTheClinicalRecord`, which is false only for Barn Staff — but the matrix gives Intake to
+  the Owner and the Manager and to nobody else. Money is not a clinical question and now has its
+  own gate.
+- **A whole cohort was missing from the board.** An animal weaned onto the Fattening side was
+  never bought, so it has no Intake — and I had dropped those rows entirely. The spec makes that
+  routine ("Male Calf → Fattening at Weaning"), so the board would have hidden them from the
+  Owner. They appear now with what is knowable about them: a weight and a recent rate, and
+  nothing where the farm has nothing.
+- **`basisFrom` had no floor on its span**, so two readings hours apart would have produced a wild
+  daily rate over "0 days" — and that rate drove the verdict. It keeps the same one-day floor the
+  plausibility check keeps.
+- **`onTrack` picked a winner in silence.** You asked for both rates side by side; the board still
+  has to sort by something, so it says which rate the verdict came from (`onTrackFrom`) rather
+  than ranking two animals by different measures without a word.
+- **`Weighing` was a word the glossary tells you to avoid** (Weigh-in: *avoid weighing record*).
+  Renamed. **Days on Feed** and **Average Daily Gain** are new farm vocabulary and now have
+  glossary entries, both marked derived and never entered.
+- **`toKg` re-implemented `roundKg`**, whose own comment says it exists so the two cannot drift
+  apart. Gone. Two i18n keys duplicated existing ones (`correct.spanDays`, `intake.targetWeight`)
+  and were dropped in favour of them.
+- **A test assertion that could not fail**: `expect(only.fattening?.sinceIntake).not.toBeNull()`
+  passes when `fattening` itself is null. And the third test compared the response against itself
+  rather than against hand-worked rates; it now asserts 1.0 against 0.67 and 0.29 against 0.43.
+- **A doc comment detached by my insertion** — eighth time this session.
+
+## A flake explained, after two sessions
+
+`animals.test.ts > moves > records a move and keeps the side` failed once in an earlier session,
+did not reproduce in seven runs, and was written down as unexplained. It reproduced here, and it
+was a real bug rather than a flaky test: **a cow's Moves were ordered by timestamp alone.**
+Registering an animal writes her first Move in the same transaction as the Animal, so two Moves
+can share an instant, and which one the database hands back first is undefined — her history
+could read in the wrong order on her own page. Ordered by `movedAt, id` now; the ids are UUIDv7
+and time-ordered, which is the tie-break `latestEventFor` already used. Her Retags and her
+Weigh-ins had the same hazard and are fixed with it. Three consecutive full runs pass.
+
+## A correction to my own arithmetic
+
+The first version of this test asserted 288.7 kg and 319.0 kg, worked by hand from the calendar.
+The code said 288.3 and 318.4, and **the code was right**: a Target Window's first day begins at
+midnight in Dhaka, which is 18:00 the day before in UTC, so the span from a weighing at 07:30 to
+the window opening is 90.4375 days and not 91. The test now shows that working, and the intake
+clock was moved to the same time of day the rounds are walked at so the gain spans are whole days
+and the arithmetic can be read.
+
+## Not done, and why
+
+- **No cost of gain.** The Owner's home is specified as carrying "ADG and cost of gain"; the
+  second needs feed cost per animal, which is increment 6's. What is here is the gain.
+- **The board is its own screen, not a tile on the Owner's home.** The spec puts a Ready-for-Sale
+  tile with an Eid projection on that home; Ready for Sale is ticket 38, and the tile belongs with
+  it rather than half-built here.
+- **The fortnight is still not in the Playbook.** Carried over from ticket 36: a `schedule` trigger
+  is `{ times }` and raises work daily, so these rates are measured between whatever readings
+  exist rather than between fortnightly ones. The arithmetic does not care — it divides by the
+  real span — but "the last two weigh-ins" means less on a farm weighing irregularly.
+
+## Verification
+
+`pnpm check-types` clean across the workspace; `pnpm test` 376 passing (347 api + 19 web + 10
+i18n), up from 372, and the api suite run three times over to confirm the ordering flake is gone — the worked example, one weight only, the Owner's board with a bull who has
+stopped gaining, and the milker who may not see the price. `pnpm build` clean; `oxfmt` and
+`oxlint` clean on every changed file.
