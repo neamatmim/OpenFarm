@@ -1,15 +1,11 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
-import type { OutboxEntry } from "@/lib/outbox";
+import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
-
-interface Held {
-  entry: OutboxEntry;
-  reason: string;
-}
 
 /** What the person actually typed, so they can see it and put it in again. */
 const entered = (entry: OutboxEntry): string => {
@@ -24,10 +20,13 @@ const HeldList = ({
   rows,
   emptyKey,
   onDiscard,
+  onConfirm,
 }: {
   rows: Held[];
   emptyKey: "outbox.heldNone" | "outbox.reviewedNone";
   onDiscard: (id: string) => void;
+  /** Only for the rows the farm merely doubted: a figure the person may stand behind. */
+  onConfirm?: (id: string) => void;
 }) => {
   const { t } = useLanguage();
   if (rows.length === 0) {
@@ -35,12 +34,17 @@ const HeldList = ({
   }
   return (
     <ul className="space-y-3">
-      {rows.map(({ entry, reason }) => (
+      {rows.map(({ entry, reason, mayConfirm }) => (
         <li className="rounded-2xl bg-neutral-900 p-4" key={entry.id}>
           <p className="font-bold">{reason}</p>
           <p className="text-muted-foreground text-sm">
             {t("outbox.entered")}: {entered(entry) || entry.kind}
           </p>
+          {mayConfirm && onConfirm ? (
+            <Button className="mt-3 w-full" onClick={() => onConfirm(entry.id)}>
+              {t("outbox.sendAnyway")}
+            </Button>
+          ) : null}
           <Button
             className="mt-3 w-full"
             onClick={() => onDiscard(entry.id)}
@@ -81,6 +85,17 @@ const OutboxPage = () => {
       void queryClient.invalidateQueries({ queryKey: ["outbox"] });
     },
   });
+  /** The farm doubted a figure and the person standing next to the animal says it is right.
+   *  It goes back into the queue carrying what they were shown, and leaves with the next send. */
+  const confirm = useMutation({
+    mutationFn: async (id: string) => {
+      await phoneOutbox()?.confirm(id);
+    },
+    onSuccess: () => {
+      toast.success(t("outbox.confirmed"));
+      void queryClient.invalidateQueries({ queryKey: ["outbox"] });
+    },
+  });
 
   return (
     <div className="container mx-auto max-w-xl space-y-8 px-4 py-6">
@@ -88,6 +103,7 @@ const OutboxPage = () => {
         <h1 className="text-2xl font-bold">{t("outbox.heldTitle")}</h1>
         <HeldList
           emptyKey="outbox.heldNone"
+          onConfirm={(id) => confirm.mutate(id)}
           onDiscard={(id) => discard.mutate(id)}
           rows={held.data?.rejected ?? []}
         />

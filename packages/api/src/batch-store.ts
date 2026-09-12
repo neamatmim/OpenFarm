@@ -33,6 +33,16 @@ const message = (error: unknown): string =>
     ? error.message
     : ((error as Error)?.message ?? "could not be recorded");
 
+/** Refusals that are questions rather than rules. A figure the farm doubts is one the person
+ *  standing next to the animal may confirm; a gate they have no business overruling is not. */
+const QUESTIONS = new Set(["implausible_gain"]);
+
+const mayBeConfirmed = (error: unknown): boolean =>
+  error instanceof ORPCError &&
+  QUESTIONS.has(
+    String((error.data as { refusal?: unknown } | undefined)?.refusal)
+  );
+
 /** One entry, applied on the transaction the caller holds. */
 const applyEntry = async (
   tx: Tx,
@@ -289,6 +299,7 @@ const applyEntries = async (
 
     let outcome: EntryResult["outcome"] = "applied";
     let reason: string | null = null;
+    let mayConfirm = false;
     try {
       // oxlint-disable-next-line no-await-in-loop
       await tx.transaction(async (entryTx) => {
@@ -314,6 +325,7 @@ const applyEntries = async (
     } catch (error) {
       outcome = isLate(error) ? "kept" : "rejected";
       reason = message(error);
+      mayConfirm = mayBeConfirmed(error);
     }
     if (outcome === "applied" && skewed) {
       // The litres are still the litres; the phone's clock is the thing to look at.
@@ -332,6 +344,7 @@ const applyEntries = async (
       seq: entry.seq,
       outcome,
       ...(reason ? { reason } : {}),
+      ...(mayConfirm ? { mayConfirm } : {}),
     });
   }
 

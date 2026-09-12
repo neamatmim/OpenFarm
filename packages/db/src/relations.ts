@@ -41,6 +41,16 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** How she arrived, for an animal the farm bought in. */
     intake: r.one.intake({ from: r.animal.id, to: r.intake.animalId }),
+    /** Every time she has been on the scale. Fattening is the difference between them. */
+    weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
+  },
+  weighIn: {
+    animal: r.one.animal({
+      from: r.weighIn.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    weigher: r.one.user({ from: r.weighIn.recordedBy, to: r.user.id }),
   },
   intake: {
     animal: r.one.animal({

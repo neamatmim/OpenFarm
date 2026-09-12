@@ -426,6 +426,9 @@ export const applyCompletion = async (
     evidence: input.evidence,
     feeding: input.feeding ?? [],
     feedTolerancePercent: context.farm.feedTolerancePercent,
+    // What the person was shown when a figure was queried and they went ahead: the weigh-in
+    // asks the question the phone cannot, and this is the answer coming back.
+    outOfRange: input.outOfRange,
     // From the Version doing the work, so a farm with more than one feeding routine divides
     // by the schedule that raised this Instance rather than by whichever was written first.
     sessionsPerDay: sessionsPerDayOf(content),

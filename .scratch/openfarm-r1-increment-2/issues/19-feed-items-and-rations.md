@@ -16,9 +16,9 @@
 
 **How it was built.**
 
-- **A Ration is named and shared, not private to a Pen.** The first cut gave every Pen its own, which the glossary already ruled out — *"a named, versioned list … assigned to a Pen"* — and which the farm would feel: three milking pens on the same recipe means three copies to change and three chances to forget one. Pens are put on a Ration; changing it is one change.
+- **A Ration is named and shared, not private to a Pen.** The first cut gave every Pen its own, which the glossary already ruled out — _"a named, versioned list … assigned to a Pen"_ — and which the farm would feel: three milking pens on the same recipe means three copies to change and three chances to forget one. Pens are put on a Ration; changing it is one change.
 - **The working is shown because a number nobody can check is a number nobody trusts.** `3 animals × 2.5 kg ÷ 2 a day`, in Bangla digits, beside the figure.
-- **Which Ration, and which animals, are two different questions.** The Version is the one in force when the work was raised, because what the farm did has to stay explicable. The animals are always the animals standing in the Pen *now*, because they are who eats — a cow who arrived this morning is fed this evening. The first cut mixed the two and could answer with a figure that was never true on any day.
+- **Which Ration, and which animals, are two different questions.** The Version is the one in force when the work was raised, because what the farm did has to stay explicable. The animals are always the animals standing in the Pen _now_, because they are who eats — a cow who arrived this morning is fed this evening. The first cut mixed the two and could answer with a figure that was never true on any day.
 - **A Feed Item is retired, never removed**, and carries the unit it is measured in — straw comes in bales and molasses in litres, and a Ration line means whatever the Item says.
 - **A Pen on no Ration says so.** It is something the Manager has not done yet, not a Pen whose animals are fed nothing.
 
@@ -30,6 +30,6 @@
 - **Bangla-first broke on the one line that mattered**: the figure was rendered with Western digits and a literal "kg" beside a sentence that was already being formatted properly.
 - Also: the Pen picker was labelled as the Ration; bad input for "times a day" was quietly rewritten to 1 instead of refused; a saved Ration refetched the entire app; and what comes out of the jsonb column is parsed now rather than asserted to be what it should be.
 
-**Named, and written down.** "Feeding Target" is now a glossary entry, because **Target Window** was already Fattening's word and two targets in one system is how a spec stops being readable. The herd count in a Pen is the *animals* in it — "head" is on the Animal entry's own avoid list.
+**Named, and written down.** "Feeding Target" is now a glossary entry, because **Target Window** was already Fattening's word and two targets in one system is how a spec stops being readable. The herd count in a Pen is the _animals_ in it — "head" is on the Animal entry's own avoid list.
 
 **Settled in ticket 20.** This shipped with "how often" stated on the Ration, beside a feeding SOP that would carry a schedule saying the same thing — two places to disagree, and a disagreement that feeds every bucket at the wrong size while the working still looks right. Ticket 20 removed the second place rather than checking the two against each other: the Ration is the recipe, and the schedule of the SOP that feeds is the only answer to how often. A Feeding Target therefore exists only once something in the Playbook actually feeds, which is the honest dependency.

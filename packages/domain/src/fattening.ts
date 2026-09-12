@@ -60,3 +60,44 @@ export const nextEidWindow = (today: string): TargetWindow | null => {
   }
   return null;
 };
+
+/**
+ * What a beast can plausibly do between two weighings.
+ *
+ * Not a Farm Parameter: these are facts about cattle rather than about this farm. A fattening
+ * bull on good feed gains about a kilo a day and exceptionally two; three is a scale read wrong,
+ * a tag read wrong, or two animals confused. Loss is allowed more room in one direction than gain
+ * is in the other, because an animal can go off its feed for a fortnight and a sick one can drop
+ * fast, and the farm would rather be told that than argued with.
+ */
+export const PLAUSIBLE_DAILY_GAIN_KG = 2.5;
+export const PLAUSIBLE_DAILY_LOSS_KG = 3;
+
+/** Below this, two readings are too close together in time for a daily rate to mean anything —
+ *  two weighings on the same morning differ by what the animal drank. */
+const RATE_NEEDS_DAYS = 1;
+
+/**
+ * Why a reading should be queried before the farm accepts it, or null when it is unremarkable.
+ *
+ * Only the farm's own records can tell: a phone that has not synced does not know what she
+ * weighed a fortnight ago, so the question is asked where her history is.
+ */
+export const implausibleChange = (
+  last: { weightKg: number; weighedAt: Date } | null,
+  now: { weightKg: number; weighedAt: Date }
+): { dailyKg: number; days: number; lastKg: number } | null => {
+  if (!last) {
+    return null;
+  }
+  const days =
+    (now.weighedAt.getTime() - last.weighedAt.getTime()) /
+    (24 * 60 * 60 * 1000);
+  if (days < RATE_NEEDS_DAYS) {
+    return null;
+  }
+  const dailyKg = (now.weightKg - last.weightKg) / days;
+  const impossible =
+    dailyKg > PLAUSIBLE_DAILY_GAIN_KG || dailyKg < -PLAUSIBLE_DAILY_LOSS_KG;
+  return impossible ? { dailyKg, days, lastKg: last.weightKg } : null;
+};

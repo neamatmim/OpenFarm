@@ -11,6 +11,7 @@ import {
 import { user } from "./auth";
 import { farm } from "./farm";
 import { animal } from "./herd";
+import { stepCompletion } from "./instance";
 
 /**
  * A person or business the Farm buys from, sells to, or pays.
@@ -83,5 +84,45 @@ export const intake = pgTable(
   (table) => [
     uniqueIndex("intake_animal_uidx").on(table.animalId),
     index("intake_window_idx").on(table.farmId, table.targetWindowStart),
+  ]
+);
+
+/** How a weight was arrived at. A crush scale today; a girth tape, if the farm ever falls back
+ *  to one, is recorded as an estimate so nobody reads it as a measurement. */
+export const WEIGH_METHODS = ["scale"] as const;
+
+/**
+ * A recorded scale reading for one Animal on a date.
+ *
+ * Kept for ever and never overwritten: the whole of fattening is the difference between two of
+ * these, and a farm that keeps only the latest has thrown away everything it was measuring.
+ * Keyed on the Step Completion, so a phone replaying its outbox or a Manager correcting an entry
+ * replaces the reading rather than adding a second one (ADR 0002).
+ */
+export const weighIn = pgTable(
+  "weigh_in",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+    weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
+    method: text("method", { enum: WEIGH_METHODS }).notNull().default("scale"),
+    /** What the person was shown when the farm queried the reading and they went ahead. Null
+     *  for a reading nobody had to be asked about. */
+    queriedNote: text("queried_note"),
+    weighedAt: timestamp("weighed_at").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("weigh_in_completion_uidx").on(table.completionId),
+    index("weigh_in_animal_idx").on(table.animalId, table.weighedAt),
   ]
 );

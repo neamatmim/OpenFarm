@@ -81,4 +81,7 @@ export interface EntryResult {
   outcome: EntryOutcome;
   /** Why it was held or refused, in words the client can show and keep. */
   reason?: string;
+  /** True when the refusal was a question rather than a rule: the farm doubts the figure, and
+   *  the person standing next to the animal may say it is right after all. */
+  mayConfirm?: boolean;
 }

@@ -25,12 +25,25 @@ export interface OutboxEntry {
   recordedAt: string;
 }
 
+/** As much of the farm's reply as `outOfRange` can carry back to it. */
+const OUT_OF_RANGE_MAX = 120;
+
+/** An entry the phone is still holding, and what the farm said about it. */
+export interface Held {
+  entry: OutboxEntry;
+  reason: string;
+  mayConfirm?: boolean;
+}
+
 /** What the farm said about one entry. */
 export interface EntryVerdict {
   id: string;
   seq: number;
   outcome: "applied" | "flagged" | "kept" | "rejected";
   reason?: string;
+  /** True when the farm doubted a figure rather than refused an act: the person who was
+   *  standing next to the animal may say it was right after all. */
+  mayConfirm?: boolean;
 }
 
 /** A send in flight: the entries, and the one key they go under. The key is made before the
@@ -252,14 +265,12 @@ export class Outbox {
     return entries;
   }
 
-  private async under(
-    prefix: string
-  ): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  private async under(prefix: string): Promise<Held[]> {
     const keys = await this.options.storage.keys();
-    const rows: { entry: OutboxEntry; reason: string }[] = [];
+    const rows: Held[] = [];
     for (const key of keys.filter((one) => one.startsWith(prefix)).toSorted()) {
       // oxlint-disable-next-line no-await-in-loop
-      const row = await this.read<{ entry: OutboxEntry; reason: string }>(key);
+      const row = await this.read<Held>(key);
       if (row) {
         rows.push(row);
       }
@@ -268,12 +279,37 @@ export class Outbox {
   }
 
   /** What the farm sent back, with the data the person entered, so they can put it right. */
-  rejected(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  rejected(): Promise<Held[]> {
     return this.under(REJECTED);
   }
 
+  /**
+   * The person has looked again and means it: the entry goes back to the farm carrying what
+   * they were shown, and the farm takes it.
+   *
+   * A new id, because the farm has already answered the old one and the same id twice is one
+   * fact by design. What they were shown travels with it, so a figure that looks wrong a year
+   * from now says whether anybody was asked about it.
+   */
+  async confirm(id: string): Promise<OutboxEntry | null> {
+    const held = await this.read<Held>(`${REJECTED}${id}`);
+    if (!held?.mayConfirm) {
+      return null;
+    }
+    const again = await this.add(
+      held.entry.kind,
+      {
+        ...held.entry.body,
+        outOfRange: held.reason.slice(0, OUT_OF_RANGE_MAX),
+      },
+      `${id}-confirmed`
+    );
+    await this.options.storage.delete(`${REJECTED}${id}`);
+    return again;
+  }
+
   /** What the farm took but put in front of somebody. */
-  reviewed(): Promise<{ entry: OutboxEntry; reason: string }[]> {
+  reviewed(): Promise<Held[]> {
     return this.under(NEEDS_REVIEW);
   }
 
@@ -441,6 +477,7 @@ export class Outbox {
         await this.write(`${held}${entry.id}`, {
           entry,
           reason: verdict.reason ?? "",
+          ...(verdict.mayConfirm ? { mayConfirm: true } : {}),
         });
       }
       // oxlint-disable-next-line no-await-in-loop

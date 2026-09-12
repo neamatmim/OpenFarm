@@ -1,5 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
+import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { feeding } from "@OpenFarm/db/schema/feed";
 import { dlsReport, treatment } from "@OpenFarm/db/schema/health";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
@@ -11,7 +12,13 @@ import type {
   MilkDestination,
   Step,
 } from "@OpenFarm/domain";
-import { isShortFed, roundKg, shortfallPercent } from "@OpenFarm/domain";
+import {
+  KG_DECIMALS,
+  implausibleChange,
+  isShortFed,
+  roundKg,
+  shortfallPercent,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -51,6 +58,13 @@ export type EffectResult =
       saw: string;
       /** True when this replaced one a Correction withdrew. */
       supersedes: boolean;
+    }
+  | {
+      kind: "weigh_in";
+      /** What the scale said, as the record now holds it. */
+      weightKg: number;
+      /** True when the farm queried the reading and the person went ahead anyway. */
+      queried: boolean;
     }
   | {
       kind: "dls_report";
@@ -162,6 +176,8 @@ export interface EffectInput {
   tolerancePercent: number;
   /** How far under its Feeding Target a Pen may come before the farm says so. */
   feedTolerancePercent: number;
+  /** What the person was shown when a figure was queried and they went ahead anyway. */
+  outOfRange?: string;
   /** What was actually put in front of the Pen, per Feed Item. */
   feeding: FeedingEntryLine[];
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
@@ -675,6 +691,90 @@ const applyMoveEffect = async (
 };
 
 /**
+ * Records what one animal weighed on the scale this round.
+ *
+ * The reading is kept and never overwritten by the next one: the whole of fattening is the
+ * difference between two of these. A replayed entry or a Correction replaces this Completion's
+ * own reading, because that is one weighing however many times the phone sends it.
+ *
+ * A jump nobody could have grown is refused rather than swallowed — and only the farm can catch
+ * it, because a phone that has not synced does not know what she weighed a fortnight ago. The
+ * person weighing her may still go ahead, and what they were shown is kept with the reading, so
+ * a figure that looks wrong a year from now says whether anybody was asked about it.
+ */
+const applyWeighInEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This step weighs an animal, and it was not recorded against one",
+    });
+  }
+  const standing = await tx.query.weighIn.findFirst({
+    where: { completionId: input.completionId },
+    columns: { id: true },
+  });
+  if (input.skipped) {
+    // An animal that would not go up the crush has no weight to her name this round.
+    if (standing) {
+      await tx.delete(weighIn).where(eq(weighIn.id, standing.id));
+    }
+    return null;
+  }
+
+  const weightKg = roundKg(numberIn(input.step, input.evidence));
+  const weighedAt = input.recordedAt;
+  // Her last reading before this one — not simply her latest, because an entry that synced
+  // late belongs where it happened and is judged against what came before it.
+  const previous = await tx.query.weighIn.findFirst({
+    where: {
+      animalId: input.animalId,
+      weighedAt: { lt: weighedAt },
+      completionId: { ne: input.completionId },
+    },
+    orderBy: { weighedAt: "desc" },
+    columns: { weightKg: true, weighedAt: true },
+  });
+  const doubtful = implausibleChange(
+    previous
+      ? { weightKg: Number(previous.weightKg), weighedAt: previous.weighedAt }
+      : null,
+    { weightKg, weighedAt }
+  );
+  if (doubtful && !input.outOfRange) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "That is more change than an animal makes in the days since it was last weighed",
+      data: {
+        refusal: "implausible_gain",
+        lastKg: doubtful.lastKg,
+        days: Math.round(doubtful.days),
+        dailyKg: roundKg(doubtful.dailyKg),
+      },
+    });
+  }
+
+  const queriedNote = doubtful ? (input.outOfRange ?? null) : null;
+  const values = {
+    farmId: input.instance.farmId,
+    animalId: input.animalId,
+    completionId: input.completionId,
+    weightKg: weightKg.toFixed(KG_DECIMALS),
+    queriedNote,
+    weighedAt,
+    recordedBy: input.recordedBy,
+  };
+  await (standing
+    ? tx.update(weighIn).set(values).where(eq(weighIn.id, standing.id))
+    : tx
+        .insert(weighIn)
+        .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
+  return { kind: "weigh_in", weightKg, queried: queriedNote !== null };
+};
+
+/**
  * Runs the effect a Step declares, inside the Completion's own transaction: if the effect
  * fails, the Completion and its Audit Event fail with it. Every effect is keyed on the
  * Completion, so a phone that replays an entry — or a Manager who corrects one — replaces
@@ -709,6 +809,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "dls_report") {
     return await applyReportEffect(tx, input);
+  }
+  if (effect.kind === "weigh_in") {
+    return await applyWeighInEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.
