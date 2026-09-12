@@ -280,6 +280,29 @@ const AnimalPage = () => {
         </section>
       ) : null}
 
+      {detail.treatments.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="font-medium">{t("animals.treatments")}</h2>
+          {/* Per animal, not per campaign: this is the list a slaughter vet asks for, and it
+              holds what a course gave her and what a round of the Pen gave her alike. */}
+          <ul className="space-y-1 text-sm">
+            {detail.treatments.map((dose) => (
+              <li className="text-muted-foreground" key={dose.id}>
+                {dose.givenAt
+                  ? formatDate(new Date(dose.givenAt), language, "dateTime")
+                  : ""}{" "}
+                ·{" "}
+                {language === "en" && dose.productNameEn
+                  ? dose.productNameEn
+                  : dose.productNameBn}
+                {dose.fromPrescription ? "" : ` · ${t("animals.fromCampaign")}`}
+                {dose.givenByName ? ` · ${dose.givenByName}` : ""}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="space-y-2">
         <h2 className="font-medium">{t("animals.movesHistory")}</h2>
         <ul className="space-y-1 text-sm">

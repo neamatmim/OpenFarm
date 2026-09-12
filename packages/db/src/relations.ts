@@ -112,9 +112,16 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   treatment: {
+    /** The course it belongs to, for a dose somebody prescribed. */
     prescription: r.one.prescription({
       from: r.treatment.prescriptionId,
       to: r.prescription.id,
+    }),
+    /** What went into her — a campaign's Version names it, a Prescription names it, and the
+     *  Withdrawal is worked out from it either way. */
+    product: r.one.drugProduct({
+      from: r.treatment.productId,
+      to: r.drugProduct.id,
       optional: false,
     }),
     animal: r.one.animal({

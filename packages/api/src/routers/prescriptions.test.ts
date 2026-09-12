@@ -547,6 +547,6 @@ describe("a Prescription, and a dose per Instance", () => {
           triggers: [{ kind: "schedule", times: ["08:00"] }],
         },
       })
-    ).rejects.toThrow(/nothing but a prescription raises a dose/u);
+    ).rejects.toThrow(/nothing but a prescription raises one/u);
   });
 });

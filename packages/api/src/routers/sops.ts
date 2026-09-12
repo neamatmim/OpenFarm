@@ -8,7 +8,11 @@ import {
   sopVersion,
 } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { findPublishBlockers } from "@OpenFarm/domain";
+import {
+  findPublishBlockers,
+  mayBePrescribed,
+  whyNotPrescribable,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -23,6 +27,56 @@ const note = z.string().trim().max(400).optional();
 
 /** Publishing is the only way an SOP's content changes: a new immutable Version, and the
  *  Definition pointed at it. Nothing ever rewrites a published Version (ADR 0001). */
+/**
+ * A campaign names the product it gives every animal in the Pen. That product has to be on
+ * the farm's own Drug List and have its withdrawal days written down — otherwise the campaign
+ * would put milk in the tank that nobody could call safe, and the shed would find out about it
+ * with the syringe in hand rather than the Owner finding out here.
+ *
+ * Checked when the Version is published, because a Version is immutable and this is the moment
+ * it becomes the farm's word. Days cleared afterwards cannot happen: nothing on the farm
+ * clears them.
+ */
+const assertProductsMayBeGiven = async (
+  tx: Tx,
+  farmId: string,
+  content: SopContent
+): Promise<void> => {
+  const named = content.steps.flatMap((step) =>
+    step.effect?.kind === "treatment" && step.effect.productId
+      ? [step.effect.productId]
+      : []
+  );
+  if (named.length === 0) {
+    return;
+  }
+  const known = await tx.query.drugProduct.findMany({
+    where: { farmId, id: { in: named } },
+    columns: {
+      id: true,
+      nameBn: true,
+      milkWithdrawalDays: true,
+      meatWithdrawalDays: true,
+      retiredAt: true,
+    },
+  });
+  for (const productId of named) {
+    const product = known.find((row) => row.id === productId);
+    if (!product) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "That product is not on the farm's drug list",
+        data: { refusal: "no_such_product" },
+      });
+    }
+    if (!mayBePrescribed(product)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `${product.nameBn} has no withdrawal days written down, so a campaign cannot give it`,
+        data: { refusal: whyNotPrescribable(product) },
+      });
+    }
+  }
+};
+
 const publishVersion = async (
   tx: Tx,
   {
@@ -50,6 +104,7 @@ const publishVersion = async (
       data: { blockers },
     });
   }
+  await assertProductsMayBeGiven(tx, farmId, content);
   const previous = await tx.query.sopVersion.findMany({
     where: { definitionId },
     columns: { number: true },

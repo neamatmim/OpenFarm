@@ -42,7 +42,13 @@ const step = z.object({
   evidence: z.array(evidence),
   skipReasons: z.array(bilingual).default([]),
   /** What completing the Step writes into the farm's records beyond the Evidence itself. */
-  effect: z.object({ kind: z.enum(STEP_EFFECT_KINDS) }).optional(),
+  effect: z
+    .object({
+      kind: z.enum(STEP_EFFECT_KINDS),
+      /** Which product a campaign gives every animal in the Pen. */
+      productId: z.string().trim().min(1).max(64).optional(),
+    })
+    .optional(),
 });
 
 const trigger = z.discriminatedUnion("kind", [

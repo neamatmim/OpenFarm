@@ -162,14 +162,22 @@ export const prescription = pgTable(
 );
 
 /**
- * One dose of a Prescription: what the course calls for, and — once somebody records giving
- * it — who gave it and when. **The last one given starts the Withdrawal**, so this is the
- * row the farm's milk and meat gates are answerable to.
+ * One dose: what was owed, and — once somebody records giving it — who gave it and when.
+ * **The last one given starts the Withdrawal**, so this is the row the farm's milk and meat
+ * gates are answerable to.
  *
- * A row exists from the moment the Prescription is written, because a dose the farm has not
- * yet given is still a dose it owes: that is what makes a missed one visible. `givenAt` is
- * what separates the two, and a Correction that turns "gave it" back into "skipped" clears it
- * again — nothing is deleted, and the Instance is still there to say what was asked for.
+ * Two ways a dose reaches an animal, and one table, because a slaughter vet asking what she
+ * has been given does not care which:
+ *
+ * - **a dose of a Prescription**: the row exists from the moment the Vet writes the course,
+ *   because a dose the farm has not given yet is still a dose it owes — that is what makes a
+ *   missed one visible as work nobody did;
+ * - **a dose of a campaign**: a vaccination or a deworming over a Pen, where the row is
+ *   written by the Step that gave it, animal by animal, and nothing was owed beforehand.
+ *
+ * `givenAt` separates owed from given. A Correction that turns "gave it" back into "skipped"
+ * clears it again — nothing is deleted, and the Instance is still there to say what was asked
+ * for.
  */
 export const treatment = pgTable(
   "treatment",
@@ -178,18 +186,25 @@ export const treatment = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    prescriptionId: text("prescription_id")
+    /** The course this dose belongs to. Null for a campaign, which nobody prescribed. */
+    prescriptionId: text("prescription_id").references(() => prescription.id, {
+      onDelete: "cascade",
+    }),
+    /** What was given. Kept here rather than read back through the Prescription: what went
+     *  into the animal is the Treatment's own fact, and it is what the Withdrawal is worked
+     *  out from. */
+    productId: text("product_id")
       .notNull()
-      .references(() => prescription.id, { onDelete: "cascade" }),
+      .references(() => drugProduct.id),
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id, { onDelete: "cascade" }),
-    /** The work raised for this dose. One dose per Instance, which is what keeps a dose from
-     *  being recorded twice however often a phone sends it. */
+    /** The work this dose was given under. */
     instanceId: text("instance_id")
       .notNull()
       .references(() => sopInstance.id, { onDelete: "cascade" }),
-    /** Which dose of the course this is — 1 of 6 — so the farm can say where it got to. */
+    /** Which dose of the course this is — 1 of 6 — so the farm can say where it got to. One
+     *  for a campaign, which gives each animal a single dose. */
     number: integer("number").notNull(),
     dueAt: timestamp("due_at").notNull(),
     /** The Step that recorded giving it. Null until somebody does. */
@@ -201,7 +216,10 @@ export const treatment = pgTable(
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
-    uniqueIndex("treatment_instance_uidx").on(table.instanceId),
+    /** One dose per animal per piece of work: a Prescription's Instance is about one animal,
+     *  and a campaign's covers the Pen one animal at a time. This is what keeps a dose from
+     *  being recorded twice however often a phone sends it. */
+    uniqueIndex("treatment_instance_uidx").on(table.instanceId, table.animalId),
     /** The withdrawal question: what has this animal been given, and when was the last one. */
     index("treatment_animal_idx").on(table.animalId, table.givenAt),
     index("treatment_prescription_idx").on(table.prescriptionId, table.number),

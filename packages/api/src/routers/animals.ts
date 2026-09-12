@@ -313,6 +313,17 @@ export const animalsRouter = {
               },
             },
           },
+          /** Every dose she has actually had, a course's or a campaign's. This is what a
+           *  slaughter vet asks for: per animal, not per campaign. */
+          treatments: {
+            where: { givenAt: { isNotNull: true } },
+            orderBy: { givenAt: "desc" },
+            limit: 40,
+            with: {
+              product: { columns: { nameBn: true, nameEn: true } },
+              giver: { columns: { name: true } },
+            },
+          },
           /** The Vet came for something else and found this: a Diagnosis answering no
            *  Observation still belongs to her history. */
           diagnoses: {
@@ -354,6 +365,17 @@ export const animalsRouter = {
         diagnoses: readsTheClinicalRecord
           ? row.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
+        /** Barn Staff give the doses, so they may read what has been given (roles matrix:
+         *  treatment instances). What the Vet concluded stays the clinical record's own. */
+        treatments: row.treatments.map(({ product, giver, ...dose }) => ({
+          id: dose.id,
+          givenAt: dose.givenAt,
+          number: dose.number,
+          fromPrescription: dose.prescriptionId !== null,
+          productNameBn: product.nameBn,
+          productNameEn: product.nameEn,
+          givenByName: giver?.name ?? null,
+        })),
         ...lactationView(row, context.clock.now()),
         ...withdrawalView(row, context.clock.now()),
       };
