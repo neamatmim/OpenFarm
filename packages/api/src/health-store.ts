@@ -1,5 +1,6 @@
 /** The clinical record's shared reads. */
 
+import type { DoseRoute } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { dueAtFor } from "./instances-store";
@@ -55,13 +56,16 @@ export const diagnosisView = <T extends { vet: { name: string } }>(row: T) => {
 };
 
 /**
- * When each dose of a course falls due: the first `times.length * days` occurrences of those
- * times of day that are still ahead of the Vet writing it.
+ * When each dose of a Prescription falls due: as many occurrences of those times of day as
+ * the course calls for, none of them in the past.
  *
  * Counting forward from now rather than from midnight is what makes a course prescribed at
- * noon start tonight instead of tomorrow, and still be a full course — a twice-daily course
- * of three days written at noon runs to its sixth dose on the fourth morning, which is what
- * the Vet standing in the shed means by it.
+ * noon start the same day — a twice-daily course of three days written at noon runs to its
+ * sixth dose on the fourth morning, which is what the Vet standing in the shed means by it.
+ *
+ * And when every one of the day's times has already passed, the first dose is **now**: a Vet
+ * who orders a once-daily antibiotic at ten in the morning means the cow gets one today, not
+ * that she waits until tomorrow's eight o'clock.
  */
 export const doseTimesFor = (
   now: Date,
@@ -69,16 +73,17 @@ export const doseTimesFor = (
   days: number
 ): Date[] => {
   const wanted = times.length * days;
-  const doses: Date[] = [];
+  const stillToCome = (day: number) =>
+    times
+      .map((time) => dueAtFor(new Date(now.getTime() + day * DAY_MS), time))
+      .filter((at) => at >= now)
+      .toSorted((a, b) => a.getTime() - b.getTime());
+
+  const doses: Date[] = stillToCome(0).length === 0 ? [now] : [];
   // One day past the course's length, because a course that starts mid-day finishes on the
   // morning after its last full day.
   for (let day = 0; day <= days && doses.length < wanted; day += 1) {
-    const on = new Date(now.getTime() + day * DAY_MS);
-    const ofThatDay = times
-      .map((time) => dueAtFor(on, time))
-      .filter((at) => at >= now)
-      .toSorted((a, b) => a.getTime() - b.getTime());
-    for (const at of ofThatDay) {
+    for (const at of stillToCome(day)) {
       if (doses.length < wanted) {
         doses.push(at);
       }
@@ -98,11 +103,11 @@ interface DoseRow {
 }
 
 /** A Prescription and its doses, as the database hands them over. */
-interface CourseRow {
+interface PrescriptionRow {
   id: string;
   diagnosisId: string;
   dose: string;
-  route: string;
+  route: DoseRoute;
   times: string[];
   days: number;
   prescribedAt: Date;
@@ -118,7 +123,7 @@ interface CourseRow {
  *
  * Written out rather than spread, because this is what the API answers with.
  */
-export const courseView = (row: CourseRow) => ({
+export const prescriptionView = (row: PrescriptionRow) => ({
   id: row.id,
   diagnosisId: row.diagnosisId,
   dose: row.dose,
@@ -142,7 +147,7 @@ export const courseView = (row: CourseRow) => ({
     })),
 });
 
-export const theCourse = {
+export const thePrescription = {
   product: { columns: { nameBn: true, nameEn: true } },
   vet: { columns: { name: true } },
   treatments: {
@@ -155,22 +160,22 @@ export const theCourse = {
 
 /** Each Diagnosis with the courses ordered for it — the chain's next link, for a page that
  *  reads the whole of it at once. */
-export const withCourses = {
+export const withPrescriptions = {
   prescriptions: {
     orderBy: { prescribedAt: "desc" },
-    with: theCourse,
+    with: thePrescription,
   },
 } as const;
 
 /** The Vet's conclusion, and what was ordered because of it. */
 export const theConclusionAndWhatFollowed = <
-  T extends { vet: { name: string }; prescriptions: CourseRow[] },
+  T extends { vet: { name: string }; prescriptions: PrescriptionRow[] },
 >(
   row: T
 ) => {
   const { prescriptions, ...rest } = row;
   return {
     ...diagnosisView(rest),
-    prescriptions: prescriptions.map(courseView),
+    prescriptions: prescriptions.map(prescriptionView),
   };
 };

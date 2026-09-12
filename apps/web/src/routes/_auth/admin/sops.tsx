@@ -3,6 +3,7 @@ import type {
   SopContent,
   Step,
   StepEffect,
+  TriggerKind,
 } from "@OpenFarm/domain";
 import {
   EVIDENCE_TYPES,
@@ -251,13 +252,10 @@ const SopsPage = () => {
   );
 };
 
-/** What raises this work besides the clock: a Move, an arrival, a cow reaching a State, or a
- *  Prescription — one dose of which is one piece of work. Only what the farm actually records
- *  can be picked, because a Trigger nobody writes is work that never arrives. */
 /** The same trigger, as another kind of thing that raises work — keeping the days-after
  *  count where the new kind has one to keep. */
 const ofKind = (
-  kind: string,
+  kind: TriggerKind,
   happening: HappeningTrigger
 ): HappeningTrigger => {
   if (kind === "prescription") {
@@ -270,6 +268,9 @@ const ofKind = (
     : { kind: "state", state: "dry", offsetDays };
 };
 
+/** What raises this work besides the clock: a Move, an arrival, a cow reaching a State, or a
+ *  Prescription — one dose of which is one piece of work. Only what the farm actually records
+ *  can be picked, because a Trigger nobody writes is work that never arrives. */
 const TriggerFields = ({
   content,
   onChange,
@@ -302,7 +303,9 @@ const TriggerFields = ({
           <select
             aria-label={t("sop.triggers")}
             className="bg-background h-9 rounded-md border px-2 text-sm"
-            onChange={(e) => replace(index, ofKind(e.target.value, happening))}
+            onChange={(e) =>
+              replace(index, ofKind(e.target.value as TriggerKind, happening))
+            }
             value={happening.kind}
           >
             <option value="event">{t("sop.trigger.event")}</option>

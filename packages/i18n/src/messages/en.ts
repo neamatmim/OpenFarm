@@ -379,6 +379,8 @@ export const en = {
   "vet.reason": "Why the change",
   "vet.saveCorrection": "Save the correction",
   "vet.corrected": "Corrected",
+  "prescribe.noTreatmentSop":
+    "The farm has no published treatment procedure yet — the Owner publishes one",
   "prescribe.product": "Product",
   "prescribe.dose": "Dose",
   "prescribe.route": "How it goes in",

@@ -12,11 +12,15 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { courseView, doseTimesFor, theCourse } from "../health-store";
+import {
+  prescriptionView,
+  doseTimesFor,
+  thePrescription,
+} from "../health-store";
 import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { raiseDueInstances } from "../instances-store";
-import { requireOnly, requirePersonalSession } from "../roles";
+import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 import { contentOf } from "../sop-content";
 
 /** A Prescription is the Vet's act in law, like the Diagnosis it answers (BVC Act 2019). */
@@ -40,15 +44,19 @@ const theTreatmentSop = async (tx: Tx, farmId: string) => {
     orderBy: { createdAt: "asc" },
     with: { currentVersion: true },
   });
-  const treating = definitions.find((definition) =>
-    contentOf({ content: definition.currentVersion?.content }).triggers.some(
-      (trigger) => trigger.kind === "prescription"
-    )
-  );
-  if (!(treating && treating.currentVersion)) {
+  const treating = definitions
+    // A Definition with nothing published yet says nothing about what raises it, and asking
+    // it would be asking an empty column what its triggers are.
+    .filter((definition) => definition.currentVersion)
+    .find((definition) =>
+      contentOf({ content: definition.currentVersion?.content }).triggers.some(
+        (trigger) => trigger.kind === "prescription"
+      )
+    );
+  if (!treating?.currentVersion) {
     throw new ORPCError("BAD_REQUEST", {
       message:
-        "The farm has no published treatment procedure for a prescription to raise",
+        "The farm has no published treatment procedure for a prescription to raise; the Owner publishes one whose trigger is a prescription",
       data: { refusal: "no_treatment_sop" },
     });
   }
@@ -243,9 +251,10 @@ export const prescriptionsRouter = {
       return { id, doses: doseTimes.length };
     }),
 
-  /** Every course this animal has been on, newest first, with each dose and its work. */
+  /** Every course this animal has been on, newest first, with each dose and its work. The
+   *  Vet writes them; the Owner and the Manager read them (roles matrix). */
   forAnimal: protectedProcedure
-    .use(requireOnly("vet", VET_ONLY))
+    .use(requireRole("owner", "manager", "vet"))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
       const her = await context.db.query.animal.findFirst({
@@ -263,8 +272,8 @@ export const prescriptionsRouter = {
       const rows = await context.db.query.prescription.findMany({
         where: { farmId: context.farm.id, animalId: her.id },
         orderBy: { prescribedAt: "desc" },
-        with: theCourse,
+        with: thePrescription,
       });
-      return rows.map(courseView);
+      return rows.map(prescriptionView);
     }),
 };

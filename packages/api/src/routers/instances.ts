@@ -779,12 +779,8 @@ export const instancesRouter = {
           const content = contentOf(instance.version);
           const step = stepOf(content, existing.stepId);
           const skipping = Boolean(input.skipReason);
-          assertEvidenceComplete(
-            step,
-            input.evidence,
-            skipping,
-            (slot) => photos.some((row) => row.slot === slot),
-            instance.animalId !== null
+          assertEvidenceComplete(step, input.evidence, skipping, (slot) =>
+            photos.some((row) => row.slot === slot)
           );
           await tx
             .update(stepCompletion)

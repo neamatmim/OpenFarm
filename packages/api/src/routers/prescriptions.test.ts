@@ -1,4 +1,5 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
+import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -62,7 +63,7 @@ const setup = async () => {
   const unknown = await manager.client.drugs.add({
     name: { bn: `অজানা ${Date.now()}` },
   });
-  return { pen, sop, product, unknown };
+  return { shedId: shed.id, pen, sop, product, unknown };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -419,5 +420,133 @@ describe("a Prescription, and a dose per Instance", () => {
     const doses = courses.find((one) => one.id === course.id)?.doses ?? [];
     expect(doses.at(0)?.givenAt).toBeNull();
     expect(doses.at(0)?.givenByName).toBeNull();
+  });
+  it("prescribes past a Playbook entry nobody has published yet", async () => {
+    const clock = new FakeClock("2028-06-09T02:00:00.000Z");
+    const { cow, diagnosis, vet } = await aSickCow(clock);
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+
+    // A Definition with no published Version — the schema allows one, so the farm may hold
+    // one. It says nothing about what raises it, and looking for the treatment procedure
+    // must not trip over it. Written directly, because publishing is the only way in
+    // through the API and that is the point.
+    await scratchDb()
+      .insert(sopDefinition)
+      .values({
+        id: `draft-${Date.now()}`,
+        farmId: TEST_FARM.id,
+        createdBy: owner.context.actor?.id ?? null,
+        createdAt: clock.now(),
+      })
+      .onConflictDoNothing();
+
+    const course = await vet.client.prescriptions.prescribe({
+      animalTag: cow.tagNumber,
+      diagnosisId: diagnosis.id,
+      productId: world.product.id,
+      dose: "১০ মিলি",
+      route: "intramuscular",
+      times: ["08:00"],
+      days: 1,
+    });
+    expect(course.doses).toBe(1);
+  });
+  it("starts the course today when the day's times have already gone by", async () => {
+    // Ten in the morning, farm time, and the course says eight o'clock.
+    const clock = new FakeClock("2028-06-10T04:00:00.000Z");
+    const { cow, diagnosis, vet } = await aSickCow(clock);
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+
+    const course = await vet.client.prescriptions.prescribe({
+      animalTag: cow.tagNumber,
+      diagnosisId: diagnosis.id,
+      productId: world.product.id,
+      dose: "১০ মিলি",
+      route: "intramuscular",
+      times: ["08:00"],
+      days: 3,
+    });
+    expect(course.doses).toBe(3);
+
+    // The cow gets one today: a Vet who orders an antibiotic at ten does not mean she waits
+    // until tomorrow morning for the first of it.
+    const today = await staff.client.instances.today({ penId: world.pen.id });
+    expect(today.filter((row) => row.animalId === cow.id)).toHaveLength(1);
+
+    const courses = await vet.client.prescriptions.forAnimal({
+      tagNumber: cow.tagNumber,
+    });
+    const doses = courses.find((one) => one.id === course.id)?.doses ?? [];
+    // The first is due now, and the rest keep to the time the Vet set.
+    expect(doses.at(0)?.dueAt).toEqual(clock.now());
+    expect(doses.map((one) => one.dueAt.toISOString())).toEqual([
+      "2028-06-10T04:00:00.000Z",
+      "2028-06-11T02:00:00.000Z",
+      "2028-06-12T02:00:00.000Z",
+    ]);
+  });
+
+  it("keeps the doses with the cow when she is moved", async () => {
+    const clock = new FakeClock("2028-06-11T02:00:00.000Z");
+    const { cow, diagnosis, vet } = await aSickCow(clock);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const sickBay = await manager.client.herd.createPen({
+      shedId: world.shedId,
+      name: `আইসোলেশন ${Date.now()}`,
+    });
+
+    await vet.client.prescriptions.prescribe({
+      animalTag: cow.tagNumber,
+      diagnosisId: diagnosis.id,
+      productId: world.product.id,
+      dose: "১০ মিলি",
+      route: "intramuscular",
+      times: ["08:00", "20:00"],
+      days: 3,
+    });
+
+    // A sick cow is walked to isolation. Her doses are hers, so they go with her — otherwise
+    // they would stay on a board the staff looking after her never open.
+    await manager.client.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: sickBay.id,
+      reason: "চিকিৎসার জন্য আলাদা করা হয়েছে",
+    });
+
+    const there = await manager.client.instances.today({ penId: sickBay.id });
+    expect(
+      there.filter((row) => row.animalId === cow.id).length
+    ).toBeGreaterThan(0);
+    const behind = await manager.client.instances.today({
+      penId: world.pen.id,
+    });
+    expect(behind.filter((row) => row.animalId === cow.id)).toHaveLength(0);
+  });
+
+  it("will not publish a treatment procedure and a prescription trigger apart", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const content = treatmentSop();
+
+    // A procedure a Prescription raises whose steps record no dose would raise work for six
+    // doses and record none of them given.
+    await expect(
+      owner.client.sops.create({
+        content: {
+          ...content,
+          steps: content.steps.map((step) => ({ ...step, effect: undefined })),
+        },
+      })
+    ).rejects.toThrow(/no step here records giving one/u);
+
+    // And a dose step in a procedure nothing prescribes is a step that can never find the
+    // dose it is recording.
+    await expect(
+      owner.client.sops.create({
+        content: {
+          ...content,
+          triggers: [{ kind: "schedule", times: ["08:00"] }],
+        },
+      })
+    ).rejects.toThrow(/nothing but a prescription raises a dose/u);
   });
 });

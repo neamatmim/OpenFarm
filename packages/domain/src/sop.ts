@@ -285,10 +285,35 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
   return problems;
 };
 
+/**
+ * A Prescription and the Step that gives the dose have to be declared together.
+ *
+ * A procedure raised by a Prescription whose Steps record no dose would raise work for six
+ * doses and record none of them given — the course would read "none given" after all six
+ * were, and the Withdrawal would have no last dose to count from. A dose Step in a procedure
+ * no Prescription raises is a Step that can never find the dose it is recording.
+ */
+const treatmentPairProblems = (content: SopContent): string[] => {
+  const raisedByPrescription = content.triggers.some(
+    (trigger) => trigger.kind === "prescription"
+  );
+  const recordsADose = content.steps.some(
+    (step) => step.effect?.kind === "treatment"
+  );
+  if (raisedByPrescription === recordsADose) {
+    return [];
+  }
+  return [
+    raisedByPrescription
+      ? "steps: a prescription raises one dose at a time, and no step here records giving one"
+      : "triggers: a step here records a dose given, and nothing but a prescription raises a dose",
+  ];
+};
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
-  const problems: string[] = [];
+  const problems: string[] = [...treatmentPairProblems(content)];
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
   }

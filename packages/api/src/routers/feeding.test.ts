@@ -274,7 +274,7 @@ describe("feeding a Pen", () => {
         skipReason: "খাবার শেষ হয়ে গিয়েছিল",
         reason: "ওই বেলা খাওয়ানো হয়নি",
       })
-    ).rejects.toThrow(/work about one animal can be skipped/u);
+    ).rejects.toThrow(/per-animal step or a dose can be skipped/u);
 
     const after = await owner.client.instances.get({ id: instance.id });
     expect(after.fed).not.toBeNull();

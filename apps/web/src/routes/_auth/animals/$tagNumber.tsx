@@ -1,6 +1,5 @@
 import { allowedNextStates } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -10,6 +9,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import type { Course } from "@/components/course";
+import { CourseLine } from "@/components/course";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -325,14 +326,7 @@ const Conclusion = ({
     note: string | null;
     diagnosedAt: Date;
     diagnosedByName: string;
-    prescriptions: {
-      id: string;
-      dose: string;
-      route: string;
-      productNameBn: string;
-      productNameEn: string | null;
-      doses: { id: string; givenAt: Date | null }[];
-    }[];
+    prescriptions: Course[];
   };
 }) => {
   const { t, language } = useLanguage();
@@ -348,18 +342,7 @@ const Conclusion = ({
         <ul className="mt-1 ml-4 space-y-1">
           {made.prescriptions.map((course) => (
             <li key={course.id}>
-              {t("prescribe.course")}:{" "}
-              {language === "en" && course.productNameEn
-                ? course.productNameEn
-                : course.productNameBn}{" "}
-              · {course.dose} · {t(`route.${course.route}` as MessageKey)} ·{" "}
-              {t("prescribe.progress", {
-                given: formatNumber(
-                  course.doses.filter((one) => one.givenAt !== null).length,
-                  language
-                ),
-                of: formatNumber(course.doses.length, language),
-              })}
+              {t("prescribe.course")}: <CourseLine course={course} />
             </li>
           ))}
         </ul>

@@ -1,7 +1,7 @@
 import type { DoseRoute } from "@OpenFarm/domain";
 import { MAX_COURSE_DAYS, ROUTES } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -10,6 +10,8 @@ import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { Course as CourseOfTreatment } from "@/components/course";
+import { CourseLine, DoseLine } from "@/components/course";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { refusalMessage } from "@/lib/correction-refusal";
@@ -87,12 +89,28 @@ const VetPage = () => {
   );
 };
 
+/** The refusals a health screen has something of its own to say about. */
+const REFUSALS: Record<string, MessageKey> = {
+  no_treatment_sop: "prescribe.noTreatmentSop",
+};
+
+const reasonGiven = (error: unknown): string | null => {
+  const refusal = (error as { data?: { refusal?: unknown } })?.data?.refusal;
+  return typeof refusal === "string" ? refusal : null;
+};
+
 /** The refusal in the reader's own language where the server gave the facts to say it with,
  *  and the server's own words only when it did not. */
 const useRefusal = () => {
   const t = useT();
-  return (error: Error) =>
-    toast.error(refusalMessage(error, t) ?? error.message ?? t("common.error"));
+  return (error: Error) => {
+    const named = REFUSALS[reasonGiven(error) ?? ""];
+    toast.error(
+      named
+        ? t(named)
+        : (refusalMessage(error, t) ?? error.message ?? t("common.error"))
+    );
+  };
 };
 
 /** The disease and what was found — the two fields a Diagnosis is, wherever it is typed. */
@@ -267,82 +285,6 @@ const OnItsOwn = ({ onRecorded }: { onRecorded: () => void }) => {
   );
 };
 
-/** A dose of a course: due when, and given by whom — or still owed. */
-const Dose = ({
-  dose,
-}: {
-  dose: {
-    number: number;
-    dueAt: Date;
-    givenAt: Date | null;
-    givenByName: string | null;
-    state: string;
-  };
-}) => {
-  const t = useT();
-  const { language } = useLanguage();
-  const when = formatDate(new Date(dose.dueAt), language, "dateTime");
-  const what = () => {
-    if (dose.givenAt) {
-      return t("prescribe.given", { name: dose.givenByName ?? "" });
-    }
-    return dose.state === "missed"
-      ? t("prescribe.missed")
-      : t("prescribe.owed");
-  };
-  return (
-    <li className="text-muted-foreground text-xs">
-      {formatNumber(dose.number, language)}. {when} · {what()}
-    </li>
-  );
-};
-
-/** One course and how far it has got: what was ordered, and which doses were given. */
-const Course = ({
-  course,
-}: {
-  course: {
-    id: string;
-    dose: string;
-    route: string;
-    productNameBn: string;
-    productNameEn: string | null;
-    doses: {
-      id: string;
-      number: number;
-      dueAt: Date;
-      givenAt: Date | null;
-      givenByName: string | null;
-      state: string;
-    }[];
-  };
-}) => {
-  const t = useT();
-  const { language } = useLanguage();
-  const given = course.doses.filter((one) => one.givenAt !== null).length;
-  return (
-    <li className="space-y-1 rounded-lg border p-2">
-      <p>
-        {language === "en" && course.productNameEn
-          ? course.productNameEn
-          : course.productNameBn}{" "}
-        · {course.dose} · {t(`route.${course.route}` as MessageKey)}
-      </p>
-      <p className="text-muted-foreground">
-        {t("prescribe.progress", {
-          given: formatNumber(given, language),
-          of: formatNumber(course.doses.length, language),
-        })}
-      </p>
-      <ul className="space-y-1">
-        {course.doses.map((dose) => (
-          <Dose dose={dose} key={dose.id} />
-        ))}
-      </ul>
-    </li>
-  );
-};
-
 /**
  * The order itself: which product, how much, how it goes in, at what times and for how many
  * days. The farm turns it into one piece of work per dose, so the times are what somebody in
@@ -482,21 +424,7 @@ const Concluded = ({
     diagnosedAt: Date;
     tagNumber: string;
     answers: { sawLabel: string } | null;
-    prescriptions: {
-      id: string;
-      dose: string;
-      route: string;
-      productNameBn: string;
-      productNameEn: string | null;
-      doses: {
-        id: string;
-        number: number;
-        dueAt: Date;
-        givenAt: Date | null;
-        givenByName: string | null;
-        state: string;
-      }[];
-    }[];
+    prescriptions: CourseOfTreatment[];
   };
   onCorrected: () => void;
 }) => {
@@ -547,7 +475,16 @@ const Concluded = ({
       {made.prescriptions.length > 0 ? (
         <ul className="space-y-2">
           {made.prescriptions.map((course) => (
-            <Course course={course} key={course.id} />
+            <li className="space-y-1 rounded-lg border p-2" key={course.id}>
+              <p>
+                <CourseLine course={course} />
+              </p>
+              <ul className="space-y-1">
+                {course.doses.map((dose) => (
+                  <DoseLine dose={dose} key={dose.id} />
+                ))}
+              </ul>
+            </li>
           ))}
         </ul>
       ) : null}

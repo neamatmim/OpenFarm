@@ -14,7 +14,7 @@ import {
   seenLately,
   seenLatelyInput,
   theConclusionAndWhatFollowed,
-  withCourses,
+  withPrescriptions,
 } from "../health-store";
 import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -298,7 +298,7 @@ export const diagnosesRouter = {
           answers: { columns: { saw: true, sawLabel: true, seenAt: true } },
           // What they ordered for it, so the Vet reads their own conclusion and the course
           // that followed in one place rather than two.
-          ...withCourses,
+          ...withPrescriptions,
         },
       });
       return rows.map(({ animal, ...row }) => ({

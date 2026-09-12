@@ -383,6 +383,8 @@ export const bn: Record<MessageKey, string> = {
   "vet.reason": "কেন বদলাচ্ছেন",
   "vet.saveCorrection": "সংশোধন সংরক্ষণ",
   "vet.corrected": "সংশোধন হয়েছে",
+  "prescribe.noTreatmentSop":
+    "খামারে চিকিৎসার কোনো প্রকাশিত কাজ নেই — মালিক একটি প্রকাশ করবেন",
   "prescribe.product": "ওষুধ",
   "prescribe.dose": "মাত্রা",
   "prescribe.route": "কীভাবে দেবেন",

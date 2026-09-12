@@ -239,15 +239,6 @@ const applyFeedingEffect = async (
 };
 
 /**
- * Records what somebody saw of one animal on the round — the farm's Observation, which
- * starts the health chain and which Breeding reads as a Heat when that is what was seen.
- *
- * Unlike the litres and the Moves, a Correction here never rewrites the row and never removes
- * it. It withdraws it and writes the new one beside it, pointing back: what somebody said
- * they saw is a fact about the round, and it stays true that they said it even after the farm
- * decides they were looking at the wrong cow.
- */
-/**
  * Records that one dose of a Prescription was actually given — or, when the Step was skipped,
  * that it was not after all.
  *
@@ -272,9 +263,9 @@ const applyTreatmentEffect = async (
       message: "This work is not a dose of any prescription",
     });
   }
-  const course = await tx.query.treatment.findMany({
-    where: { prescriptionId: dose.prescriptionId },
-    columns: { id: true },
+  const course = await tx.query.prescription.findFirst({
+    where: { id: dose.prescriptionId },
+    columns: { times: true, days: true },
   });
   await tx
     .update(treatment)
@@ -291,11 +282,20 @@ const applyTreatmentEffect = async (
   return {
     kind: "treatment",
     number: dose.number,
-    of: course.length,
+    of: course ? course.times.length * course.days : dose.number,
     given: !input.skipped,
   };
 };
 
+/**
+ * Records what somebody saw of one animal on the round — the farm's Observation, which
+ * starts the health chain and which Breeding reads as a Heat when that is what was seen.
+ *
+ * Unlike the litres and the Moves, a Correction here never rewrites the row and never removes
+ * it. It withdraws it and writes the new one beside it, pointing back: what somebody said
+ * they saw is a fact about the round, and it stays true that they said it even after the farm
+ * decides they were looking at the wrong cow.
+ */
 const applyObservationEffect = async (
   tx: Tx,
   input: EffectInput
