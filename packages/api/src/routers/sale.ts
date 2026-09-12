@@ -1,22 +1,32 @@
+import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { sale } from "@OpenFarm/db/schema/fattening";
+import type { FarmOfOrigin } from "@OpenFarm/domain";
 import {
   farmDayOf,
+  saleReceipt,
   startOfFarmDay,
+  transportCard,
   underMeatWithdrawal,
 } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
+import { farmDay } from "../farm-clock";
 import { loadLiveAnimal, recordExit } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { fatteningRows } from "../ready-store";
 import { requireOnly, requireRole } from "../roles";
 
 const tagInput = z.string().trim().min(1).max(32);
+
+/** A day's sales to one buyer. More than this on one morning is a different kind of farm. */
+const LOAD_LIMIT = 200;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The Sale as the trail records it, so a Correction has the whole entry to supersede. */
 const readSale = async (tx: Tx, id: string) => {
@@ -35,6 +45,65 @@ const readSale = async (tx: Tx, id: string) => {
   });
   return row ?? null;
 };
+
+/**
+ * Every Sale to one buyer on the farm-day of a given Sale — which is what one receipt covers and
+ * what one lorry carries.
+ *
+ * At Eid a man buys five beasts in a morning. Grouping by the buyer and the day is how the farm
+ * hands him one piece of paper instead of five, and it is also how the lorry's card knows what is
+ * on the lorry.
+ */
+const theLoad = async (db: Database, farmId: string, saleId: string) => {
+  const one = await db.query.sale.findFirst({
+    where: { id: saleId, farmId },
+    columns: { counterpartyId: true, soldAt: true },
+  });
+  if (!one) {
+    throw new ORPCError("NOT_FOUND", { message: "No such sale" });
+  }
+  const from = startOfFarmDay(farmDayOf(one.soldAt));
+  const rows = await db.query.sale.findMany({
+    where: {
+      farmId,
+      counterpartyId: one.counterpartyId,
+      soldAt: { gte: from, lt: new Date(from.getTime() + DAY_MS) },
+    },
+    orderBy: { soldAt: "asc", id: "asc" },
+    limit: LOAD_LIMIT,
+    columns: {
+      id: true,
+      priceBdt: true,
+      weightKg: true,
+      destination: true,
+      vehicle: true,
+      driver: true,
+      soldAt: true,
+    },
+    with: {
+      animal: { columns: { tagNumber: true } },
+      buyer: { columns: { name: true, address: true, phone: true } },
+    },
+  });
+  const [first] = rows;
+  if (!first) {
+    throw new ORPCError("NOT_FOUND", { message: "No such sale" });
+  }
+  return { rows, first, day: one.soldAt };
+};
+
+/** The farm as both papers print it at their head. */
+const farmOfOrigin = (farm: {
+  name: string;
+  address: string | null;
+  phone: string | null;
+  registrationNumber: string | null;
+}): FarmOfOrigin => ({
+  name: farm.name,
+  address: farm.address,
+  phone: farm.phone,
+  registrationNumber: farm.registrationNumber,
+});
 
 export const saleRouter = {
   /**
@@ -191,7 +260,141 @@ export const saleRouter = {
           }));
         }
       );
-      return { tagNumber, state: "sold" as const, workClosed: closed };
+      return { id, tagNumber, state: "sold" as const, workClosed: closed };
+    }),
+
+  /**
+   * What the farm sold on a day, newest first — the list a receipt or a card is asked for from.
+   */
+  day: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ day: farmDay.optional() }).optional())
+    .handler(async ({ context, input }) => {
+      const from = startOfFarmDay(input?.day ?? farmDayOf(context.clock.now()));
+      const rows = await context.db.query.sale.findMany({
+        where: {
+          farmId: context.farm.id,
+          soldAt: { gte: from, lt: new Date(from.getTime() + DAY_MS) },
+        },
+        orderBy: { soldAt: "desc", id: "desc" },
+        limit: LOAD_LIMIT,
+        columns: { id: true, priceBdt: true, weightKg: true, soldAt: true },
+        with: {
+          animal: { columns: { tagNumber: true } },
+          buyer: { columns: { name: true } },
+        },
+      });
+      return rows.map(({ animal: beast, buyer, ...row }) => ({
+        ...row,
+        priceBdt: Number(row.priceBdt),
+        weightKg: Number(row.weightKg),
+        tagNumber: beast.tagNumber,
+        buyerName: buyer.name,
+      }));
+    }),
+
+  /**
+   * The receipt for everything one buyer took on one day.
+   *
+   * Producing it is an Audit Event of its own — a paper that went with a buyer is the farm's
+   * evidence, and "when did you write it" is a question with an answer.
+   */
+  receipt: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ saleId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const { rows, first, day } = await theLoad(
+        context.db,
+        context.farm.id,
+        input.saleId
+      );
+      const animals = rows.map((row) => ({
+        tagNumber: row.animal.tagNumber,
+        weight: formatNumber(Number(row.weightKg), "bn"),
+        price: formatNumber(Number(row.priceBdt), "bn"),
+      }));
+      const totalBdt = rows.reduce((sum, row) => sum + Number(row.priceBdt), 0);
+      const text = saleReceipt({
+        farm: farmOfOrigin(context.farm),
+        buyerName: first.buyer.name,
+        buyerAddress: first.buyer.address,
+        buyerPhone: first.buyer.phone,
+        day: formatDate(day, "bn", "date"),
+        animals,
+        total: formatNumber(totalBdt, "bn"),
+      });
+      await audited(context).write(
+        {
+          entity: "sale",
+          entityId: input.saleId,
+          action: "export",
+          after: {
+            paper: "receipt",
+            animals: animals.length,
+            totalBdt,
+            characters: text.length,
+          },
+        },
+        () => Promise.resolve()
+      );
+      return {
+        text,
+        animals: animals.map((one) => one.tagNumber),
+        totalBdt,
+      };
+    }),
+
+  /**
+   * The card the lorry carries for one buyer's load: farm of origin with its registration
+   * number, the animals by tag, where they are going and who is driving (Meat Rules 2021 r.18).
+   *
+   * A farm that has not written its registration down is told what is missing rather than handed
+   * a card with a hole in it — a card that looks lawful and is not is worse than no card.
+   */
+  transportCard: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ saleId: z.string() }))
+    .handler(async ({ context, input }) => {
+      if (!context.farm.registrationNumber?.trim()) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "The farm's DLS registration number is not recorded, and a transport card cannot be written without it",
+          data: {
+            refusal: "farm_identity_incomplete",
+            missing: "registrationNumber",
+          },
+        });
+      }
+      const { rows, first, day } = await theLoad(
+        context.db,
+        context.farm.id,
+        input.saleId
+      );
+      const tagNumbers = rows.map((row) => row.animal.tagNumber);
+      const text = transportCard({
+        farm: farmOfOrigin(context.farm),
+        buyerName: first.buyer.name,
+        destination: first.destination,
+        vehicle: first.vehicle,
+        driver: first.driver,
+        when: formatDate(day, "bn", "dateTime"),
+        tagNumbers,
+        count: formatNumber(tagNumbers.length, "bn"),
+      });
+      await audited(context).write(
+        {
+          entity: "sale",
+          entityId: input.saleId,
+          action: "export",
+          after: {
+            paper: "transport_card",
+            animals: tagNumbers.length,
+            characters: text.length,
+          },
+        },
+        () => Promise.resolve()
+      );
+      return { text, animalCount: tagNumbers.length, tagNumbers };
     }),
 
   /**

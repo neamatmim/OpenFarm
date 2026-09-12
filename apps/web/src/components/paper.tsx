@@ -1,0 +1,38 @@
+import { Button } from "@OpenFarm/ui/components/button";
+
+import { useLanguage } from "@/i18n/language-provider";
+
+/**
+ * A document the farm hands somebody, on one page.
+ *
+ * Pre-formatted, because the line breaks *are* the document: these are papers the farm may have
+ * to produce again years later, and they should read the same every time. The print rules are
+ * the DLS letter's — one page, and only the paper on it.
+ */
+export const Paper = ({ id, text }: { id: string; text: string }) => {
+  const { t } = useLanguage();
+  return (
+    <section className="space-y-2 rounded-xl border p-3 text-sm" id={id}>
+      <style>{`@page { size: A4; margin: 20mm }
+        @media print {
+          body * { visibility: hidden }
+          #${id}, #${id} * { visibility: visible }
+          #${id} { position: absolute; inset: 0; border: 0 }
+          .no-print { display: none }
+          body { font-size: 12pt }
+        }`}</style>
+      <pre className="overflow-x-auto font-sans text-sm whitespace-pre-wrap">
+        {text}
+      </pre>
+      <Button
+        className="no-print"
+        onClick={() => window.print()}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {t("sale.print")}
+      </Button>
+    </section>
+  );
+};

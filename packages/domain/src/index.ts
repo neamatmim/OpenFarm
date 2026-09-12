@@ -49,6 +49,13 @@ export {
   stillWorthSaying,
   windowHasClosed,
 } from "./ready";
+export type {
+  FarmOfOrigin,
+  SaleReceipt,
+  SoldAnimal,
+  TransportCard,
+} from "./papers";
+export { saleReceipt, transportCard } from "./papers";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";

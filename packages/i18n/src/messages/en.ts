@@ -653,6 +653,13 @@ export const en = {
   "nav.sale": "Sale",
   "sale.title": "Sell an animal",
   "sale.animal": "Which animal",
+  "sale.today": "Sold today",
+  "sale.receipt": "Receipt",
+  "sale.transportCard": "Transport card",
+  "sale.print": "Print",
+  "sale.noneToday": "Nothing sold today",
+  "sale.missingRegistration":
+    "The farm's registration number is not recorded, so no transport card can be given. Write it on the farm identity page.",
   "sale.otherAnimal": "An animal not on the list",
   "sale.byTag": "Type the tag number",
   "sale.fromList": "Choose from the list",

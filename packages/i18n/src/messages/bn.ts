@@ -647,6 +647,13 @@ export const bn: Record<MessageKey, string> = {
   "nav.sale": "বিক্রয়",
   "sale.title": "পশু বিক্রয়",
   "sale.animal": "কোন পশু",
+  "sale.today": "আজকের বিক্রয়",
+  "sale.receipt": "রসিদ",
+  "sale.transportCard": "পরিবহন কার্ড",
+  "sale.print": "প্রিন্ট",
+  "sale.noneToday": "আজ কোনো বিক্রয় হয়নি",
+  "sale.missingRegistration":
+    "খামারের নিবন্ধন নম্বর লেখা নেই — পরিবহন কার্ড দেওয়া যাবে না। খামারের পরিচয় পাতায় লিখুন।",
   "sale.otherAnimal": "তালিকার বাইরের পশু",
   "sale.byTag": "ট্যাগ নম্বর লিখুন",
   "sale.fromList": "তালিকা থেকে বাছুন",

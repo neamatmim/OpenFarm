@@ -1,4 +1,4 @@
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -65,6 +66,85 @@ const LastBuyerOfTheDay = ({
     >
       {t("sale.again")}
     </Button>
+  );
+};
+
+/**
+ * The day's sales, and the two papers each buyer leaves with.
+ *
+ * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
+ * the man has finished buying, and it covers everything he took that morning.
+ */
+const TodaysSales = () => {
+  const { t, language } = useLanguage();
+  const sold = useQuery(orpc.sale.day.queryOptions({ input: {} }));
+  const [paper, setPaper] = useState<{ id: string; text: string } | null>(null);
+  const onError = (error: Error) =>
+    toast.error(
+      (error as { data?: { refusal?: string } }).data?.refusal ===
+        "farm_identity_incomplete"
+        ? t("sale.missingRegistration")
+        : (error.message ?? t("common.error"))
+    );
+  const receipt = useMutation(
+    orpc.sale.receipt.mutationOptions({
+      onSuccess: ({ text }) => setPaper({ id: "sale-receipt", text }),
+      onError,
+    })
+  );
+  const card = useMutation(
+    orpc.sale.transportCard.mutationOptions({
+      onSuccess: ({ text }) => setPaper({ id: "transport-card", text }),
+      onError,
+    })
+  );
+
+  if (!sold.data || sold.data.length === 0) {
+    return (
+      <section className="space-y-2">
+        <h2 className="font-medium">{t("sale.today")}</h2>
+        <p className="text-muted-foreground text-sm">{t("sale.noneToday")}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-2">
+      <h2 className="no-print font-medium">{t("sale.today")}</h2>
+      <ul className="no-print space-y-2">
+        {sold.data.map((row) => (
+          <li
+            className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border p-3 text-sm"
+            key={row.id}
+          >
+            <span className="font-medium">{row.tagNumber}</span>
+            <span className="text-muted-foreground">{row.buyerName}</span>
+            <span>
+              {t("intake.taka", {
+                taka: formatNumber(row.priceBdt, language),
+              })}
+            </span>
+            <span className="flex gap-2">
+              <Button
+                onClick={() => receipt.mutate({ saleId: row.id })}
+                size="sm"
+                variant="outline"
+              >
+                {t("sale.receipt")}
+              </Button>
+              <Button
+                onClick={() => card.mutate({ saleId: row.id })}
+                size="sm"
+                variant="outline"
+              >
+                {t("sale.transportCard")}
+              </Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {paper ? <Paper id={paper.id} text={paper.text} /> : null}
+    </section>
   );
 };
 
@@ -295,6 +375,8 @@ const SalePage = () => {
           {t("sale.record")}
         </Button>
       </form>
+
+      <TodaysSales />
     </div>
   );
 };
