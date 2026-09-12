@@ -1,16 +1,27 @@
 import type { Database } from "@OpenFarm/db";
 import type { FarmIdentity } from "@OpenFarm/domain";
 import {
+  WITHDRAWAL_LOOK_BACK_DAYS,
+  animalPassport,
   farmDayOf,
   saleReceipt,
   startOfFarmDay,
   transportCard,
+  withdrawalSummary,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber, resolveLanguage } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import {
+  ageOf,
+  doseGiven,
+  herWholeRecord,
+  herWithdrawal,
+  penSpells,
+  sourceOf,
+} from "../animal-record";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -26,6 +37,8 @@ const languageOf = async (db: Database, userId: string): Promise<Language> => {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const tagInput = z.string().trim().min(1).max(32);
 
 /** A buyer's animals on one day. More than this on one morning is a different kind of farm,
  *  and a paper that quietly left some off would be worse than one that refused. */
@@ -110,7 +123,7 @@ const salesWith = async (
  *  registration did that card quote" is a question an inspector can ask years later. */
 const exportedPaper = (
   farm: FarmIdentity,
-  paper: "receipt" | "transport_card",
+  paper: "receipt" | "transport_card" | "passport" | "withdrawal_summary",
   tagNumbers: string[],
   extra: Record<string, unknown> = {}
 ) => ({
@@ -122,6 +135,123 @@ const exportedPaper = (
 });
 
 export const papersRouter = {
+  /**
+   * Everything the farm knows about one animal, on one page, for whoever asks — a buyer before
+   * they buy, a slaughter vet afterwards.
+   *
+   * The Vet may produce it as well as the Owner and the Manager: the roles matrix gives them
+   * health reports to export, and this is the one a slaughter vet asks the farm for. Barn Staff
+   * may not — they give the doses and record what they see; what the farm tells the outside world
+   * about an animal is not theirs to hand over.
+   */
+  passport: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const her = await herWholeRecord(
+        context.db,
+        context.farm.id,
+        input.tagNumber
+      );
+      const text = animalPassport({
+        farm: context.farm,
+        tagNumber: her.tagNumber,
+        sex: her.sex,
+        breed: her.breed,
+        age: ageOf(her, language),
+        source: sourceOf(her),
+        arrived: her.intake
+          ? formatDate(her.intake.arrivedAt, language, "date")
+          : null,
+        pens: penSpells(her.moves, her.sale?.soldAt ?? null, language),
+        doses: her.treatments.map((dose) => doseGiven(dose, language)),
+        ...herWithdrawal(her, now, language),
+        moreThanShown: her.moreThanShown,
+        weighIns: her.weighIns.map((one) => ({
+          weight: formatNumber(Number(one.weightKg), language),
+          on: formatDate(one.weighedAt, language, "date"),
+        })),
+        // Where she went, not who took her: R7 names the destination, and one buyer's name is
+        // not the next holder's business.
+        leftFor: her.sale?.destination ?? null,
+        producedBy: context.actor.name,
+        producedAt: formatDate(now, language, "dateTime"),
+      });
+      await audited(context).write(
+        {
+          entity: "animal",
+          entityId: her.id,
+          action: "export",
+          after: exportedPaper(context.farm, "passport", [her.tagNumber], {
+            doses: her.treatments.length,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      return { text, tagNumber: her.tagNumber };
+    }),
+
+  /**
+   * The sharp question on its own page: has she had anything lately, and may her meat be sold
+   * today.
+   *
+   * Answered against the farm's own withdrawal record — the same one the Sale is gated on — so
+   * the paper a buyer holds and the gate that refused a sale can never disagree.
+   */
+  withdrawalSummary: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ tagNumber: tagInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const her = await herWholeRecord(
+        context.db,
+        context.farm.id,
+        input.tagNumber
+      );
+      // Thirty farm days, not thirty times twenty-four hours: the rule is "the thirty days
+      // before slaughter", and a regulator counts them on a calendar.
+      const since = new Date(
+        startOfFarmDay(farmDayOf(now)).getTime() -
+          (WITHDRAWAL_LOOK_BACK_DAYS - 1) * DAY_MS
+      );
+      const lately = her.treatments.filter((dose) => dose.givenAt >= since);
+      const held = herWithdrawal(her, now, language);
+      const doses = lately.map((dose) => doseGiven(dose, language));
+      const text = withdrawalSummary({
+        farm: context.farm,
+        tagNumber: her.tagNumber,
+        asOf: formatDate(now, language, "date"),
+        ...held,
+        doses,
+        lookBackDays: formatNumber(WITHDRAWAL_LOOK_BACK_DAYS, language),
+        producedBy: context.actor.name,
+        producedAt: formatDate(now, language, "dateTime"),
+      });
+      await audited(context).write(
+        {
+          entity: "animal",
+          entityId: her.id,
+          action: "export",
+          after: exportedPaper(
+            context.farm,
+            "withdrawal_summary",
+            [her.tagNumber],
+            {
+              clear: held.clear,
+              doses: doses.length,
+              // Whether the farm was leaning on a hold a Vet cut short, at the moment it said so.
+              shortened: held.shortened !== null,
+            }
+          ),
+        },
+        () => Promise.resolve()
+      );
+      return { text, clear: held.clear, doses };
+    }),
+
   /**
    * What the farm sold on a day, newest first — the list a receipt or a card is asked for from.
    */

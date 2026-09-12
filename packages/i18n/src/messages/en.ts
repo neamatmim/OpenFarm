@@ -651,6 +651,8 @@ export const en = {
   "ready.underWithdrawal": "Cannot be sold before {when}",
   "nav.sale": "Sale",
   "sale.title": "Sell an animal",
+  "papers.passport": "Passport",
+  "papers.withdrawalSummary": "Withdrawal summary",
   "sale.animal": "Which animal",
   "sale.today": "Sold today",
   "sale.receipt": "Receipt",

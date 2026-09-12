@@ -230,7 +230,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd count, vaccination register, 30-day treatment register, 6-month disease history, mortality — each exportable to PDF. _Avoid_: Audit page, compliance dashboard
 
-**Animal Passport**: The per-animal PDF: identity, photo, Pen history, treatments and withdrawal status, vaccinations, weigh-ins. Given to a buyer or slaughter vet on request. _Avoid_: Animal record (that's the live data), certificate
+**Animal Passport**: The per-animal paper: identity, Pen history, treatments with their withdrawals, weigh-ins, and how she left if she has. Given to a buyer or slaughter vet on request — including after she has gone, which is when they ask. _Avoid_: Animal record (that's the live data), certificate
+
+**Withdrawal Summary**: The one-page answer to the question a buyer actually asks: what an Animal has had in the last thirty days, and whether her meat is clear today. Read from the same Withdrawal record the Sale is gated on, so the paper and the gate cannot disagree. _Avoid_: Health certificate (the farm certifies nothing), clearance
 
 **Export**: Any report or document the system generates for someone outside it. Always an Audit Event; always stamped with farm, Registration number, time and user. _Avoid_: Download, print-out, report (a Report is what it shows; an Export is the act)
 

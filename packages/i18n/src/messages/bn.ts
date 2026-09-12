@@ -645,6 +645,8 @@ export const bn: Record<MessageKey, string> = {
   "ready.underWithdrawal": "{when} তারিখের আগে বিক্রয় করা যাবে না",
   "nav.sale": "বিক্রয়",
   "sale.title": "পশু বিক্রয়",
+  "papers.passport": "পরিচয়পত্র",
+  "papers.withdrawalSummary": "অপেক্ষমাণ সময়ের সারসংক্ষেপ",
   "sale.animal": "কোন পশু",
   "sale.today": "আজকের বিক্রয়",
   "sale.receipt": "রসিদ",

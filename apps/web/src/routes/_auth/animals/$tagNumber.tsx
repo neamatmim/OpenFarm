@@ -19,6 +19,8 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { TwoProjections } from "@/components/gain";
+import type { PaperId } from "@/components/paper";
+import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -133,6 +135,12 @@ const AnimalPage = () => {
       <HowSheArrived intake={detail.intake} />
 
       <HowSheLeft sale={detail.sale} />
+
+      {/* Barn Staff give the doses and record what they see; what the farm tells the outside
+          world about an animal is not theirs to hand over, so they are not offered it. */}
+      {me.data?.roles.some((role) => role !== "staff") ? (
+        <HerPapers tagNumber={detail.tagNumber} />
+      ) : null}
 
       <TheScale readings={detail.weighIns} />
 
@@ -469,6 +477,58 @@ const PutItRight = ({
         </Button>
       </form>
     </details>
+  );
+};
+
+/** Whatever the farm said went wrong, in its own words. */
+const sayWhy = (error: Error) => toast.error(error.message);
+
+/**
+ * The two papers the farm hands over about one animal: her passport, and the sharp question on
+ * its own page.
+ *
+ * Here on her own page rather than on a report screen, because that is where somebody is standing
+ * when a buyer asks — and they are asked for by name, not printed with every visit, so the trail
+ * records the ones that actually went.
+ */
+const HerPapers = ({ tagNumber }: { tagNumber: string }) => {
+  const { t } = useLanguage();
+  const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
+    null
+  );
+  const passport = useMutation(
+    orpc.papers.passport.mutationOptions({
+      onSuccess: ({ text }) => setPaper({ id: "animal-passport", text }),
+      onError: sayWhy,
+    })
+  );
+  const summary = useMutation(
+    orpc.papers.withdrawalSummary.mutationOptions({
+      onSuccess: ({ text }) => setPaper({ id: "withdrawal-summary", text }),
+      onError: sayWhy,
+    })
+  );
+
+  return (
+    <section className="space-y-2">
+      <div className="no-print flex flex-wrap gap-2">
+        <Button
+          onClick={() => passport.mutate({ tagNumber })}
+          size="sm"
+          variant="outline"
+        >
+          {t("papers.passport")}
+        </Button>
+        <Button
+          onClick={() => summary.mutate({ tagNumber })}
+          size="sm"
+          variant="outline"
+        >
+          {t("papers.withdrawalSummary")}
+        </Button>
+      </div>
+      {paper ? <Paper id={paper.id} text={paper.text} /> : null}
+    </section>
   );
 };
 

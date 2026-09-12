@@ -49,8 +49,22 @@ export {
   stillWorthSaying,
   windowHasClosed,
 } from "./ready";
-export type { SaleReceipt, SoldAnimal, TransportCard } from "./papers";
-export { saleReceipt, transportCard } from "./papers";
+export type {
+  AnimalPassport,
+  DoseGiven,
+  PenSpell,
+  ShortenedHold,
+  SaleReceipt,
+  SoldAnimal,
+  TransportCard,
+  WithdrawalSummary,
+} from "./papers";
+export {
+  animalPassport,
+  saleReceipt,
+  transportCard,
+  withdrawalSummary,
+} from "./papers";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";
@@ -134,6 +148,7 @@ export {
   mayBePrescribed,
   underMeatWithdrawal,
   whyNotPrescribable,
+  WITHDRAWAL_LOOK_BACK_DAYS,
   withdrawalEndsAt,
   withdrawalView,
 } from "./health";

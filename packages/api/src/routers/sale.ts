@@ -18,6 +18,8 @@ import { requireOnly, requireRole } from "../roles";
 
 const tagInput = z.string().trim().min(1).max(32);
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** The Sale as the trail records it, so a Correction has the whole entry to supersede. */
 const readSale = async (tx: Tx, id: string) => {
   const row = await tx.query.sale.findFirst({
@@ -205,10 +207,13 @@ export const saleRouter = {
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {
       const now = context.clock.now();
+      const from = startOfFarmDay(farmDayOf(now));
       const row = await context.db.query.sale.findFirst({
         where: {
           farmId: context.farm.id,
-          soldAt: { gte: startOfFarmDay(farmDayOf(now)) },
+          // Both ends of the day. A lower bound alone would reach forward as well as back and
+          // offer the buyer of a sale written up with a later date than today's.
+          soldAt: { gte: from, lt: new Date(from.getTime() + DAY_MS) },
         },
         orderBy: { soldAt: "desc", id: "desc" },
         columns: { destination: true, vehicle: true, driver: true },
