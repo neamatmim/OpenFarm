@@ -21,7 +21,7 @@ import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { raiseDueInstances } from "../instances-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
-import { contentOf } from "../sop-content";
+import { contentOf, publishedContent } from "../sop-content";
 
 /** A Prescription is the Vet's act in law, like the Diagnosis it answers (BVC Act 2019). */
 const VET_ONLY = {
@@ -44,15 +44,13 @@ const theTreatmentSop = async (tx: Tx, farmId: string) => {
     orderBy: { createdAt: "asc" },
     with: { currentVersion: true },
   });
-  const treating = definitions
-    // A Definition with nothing published yet says nothing about what raises it, and asking
-    // it would be asking an empty column what its triggers are.
-    .filter((definition) => definition.currentVersion)
-    .find((definition) =>
-      contentOf({ content: definition.currentVersion?.content }).triggers.some(
-        (trigger) => trigger.kind === "prescription"
-      )
-    );
+  // A Definition with nothing published yet says nothing about what raises it, and asking it
+  // would be asking an empty column what its triggers are.
+  const treating = definitions.find((definition) =>
+    publishedContent(definition)?.triggers.some(
+      (trigger) => trigger.kind === "prescription"
+    )
+  );
   if (!treating?.currentVersion) {
     throw new ORPCError("BAD_REQUEST", {
       message:

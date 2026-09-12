@@ -102,7 +102,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. Never a word for a Sale — an Animal sold is Sold, and "disposal" is what happened to a body. _Avoid_: Removal, destruction
 
-**Notifiable Disease**: A disease on the farm's list of conditions that must be reported to DLS in writing without delay. A Diagnosis of one auto-raises the DLS report SOP. _Avoid_: Reportable disease, outbreak
+**Notifiable Disease**: A disease on the farm's own list of those that must be reported to DLS in writing without delay (Animal Disease Act 2005, s.3). The list is what the Upazila Livestock Officer confirms to this farm, with the confirmation noted beside each entry, because the national schedule could not be sourced. A Vet Diagnosis naming one raises the DLS report work immediately and tells the Owner and the Manager. _Avoid_: Reportable disease, outbreak
 
 ## Milk
 
@@ -219,6 +219,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Export**: Any report or document the system generates for someone outside it. Always an Audit Event; always stamped with farm, Registration number, time and user. _Avoid_: Download, print-out, report (a Report is what it shows; an Export is the act)
 
 ## Notifications
+
+**DLS Report**: The letter to the Upazila Livestock Officer about one notifiable Diagnosis, and the record of it going: when it was delivered and the reference the office filed it under. A report that was sent and cannot be evidenced is a report that was not sent. _Avoid_: Notification (the general word), filing, submission
 
 **Alert**: An immediate notification for something that costs money or breaks a legal deadline if missed: overdue work, withdrawal ending, a notifiable diagnosis, sync problems. Ignores quiet hours; the two safety Alerts also go by SMS. What makes one an Alert is that it goes *now* — the farm's in-app list holds these and the quieter notices side by side, and a notice that waits for the Digest is not an Alert however it is stored. _Avoid_: Notification (the general word), warning, reminder
 

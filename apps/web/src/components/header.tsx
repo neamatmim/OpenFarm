@@ -30,6 +30,11 @@ const Header = () => {
     // The Vet's own screen: what the rounds have seen and nobody has answered. Theirs alone,
     // because a Diagnosis is theirs alone.
     ...(isVet ? [{ to: "/vet", label: t("nav.vet") }] : []),
+    // The list of diseases that must be reported: the Vet knows the schedule, the Manager takes
+    // the letter, and the Owner answers for the farm.
+    ...(isVet || runsTheFarm
+      ? [{ to: "/notifiable", label: t("nav.notifiable") }]
+      : []),
     ...(session ? [{ to: "/settings", label: t("nav.settings") }] : []),
     // The Owner's own screen, and only the Owner's: a Manager sent there is sent to a
     // refusal.

@@ -61,7 +61,9 @@ export type StepEffect =
    * - a campaign over a Pen — a vaccination, a deworming — where the work is done animal by
    *   animal and it is this Version that says what every one of them gets.
    */
-  | { kind: "treatment"; productId?: string };
+  | { kind: "treatment"; productId?: string }
+  /** The letter to the Upazila Livestock Officer went, and under what reference. */
+  | { kind: "dls_report" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -70,6 +72,7 @@ export const STEP_EFFECT_KINDS = [
   "observation",
   "feeding",
   "treatment",
+  "dls_report",
 ] as const;
 
 export interface Step {
@@ -88,6 +91,7 @@ export const TRIGGER_KINDS = [
   "event",
   "state",
   "prescription",
+  "notifiable_disease",
 ] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 
@@ -120,7 +124,10 @@ export type Trigger =
    *  else raises this work — not the clock, and nothing that happens to an animal — so the
    *  farm can have exactly one procedure for giving a dose and raise it only when a dose is
    *  actually owed. */
-  | { kind: "prescription" };
+  | { kind: "prescription" }
+  /** A Vet named a disease on the farm's notifiable list. Raised the moment the Diagnosis is
+   *  recorded and due immediately, because the Act says the report goes without delay. */
+  | { kind: "notifiable_disease" };
 
 /** Which animals an SOP concerns. A schedule-triggered SOP raises one Instance per Pen
  *  holding at least one matching animal, and its per-animal Steps cover those animals.
@@ -187,6 +194,47 @@ export const findMissingBangla = (content: SopContent): string[] => {
 /** A Step that writes a farm record must be able to: it needs the figure it writes, and it
  *  must run at the level the record is kept at — litres are per cow, a tank reading is per
  *  Session. A Version that breaks this would raise work nobody can finish. */
+/** What a Step that records delivering the letter has to ask for. The reference the office
+ *  files it under is what the farm keeps, and it is written rather than counted — required,
+ *  because a report that cannot be evidenced is a report that was not made. */
+const reportStepProblems = (step: Step, path: string): string[] => {
+  const problems: string[] = [];
+  if (!step.evidence.some((item) => item.type === "note" && item.required)) {
+    problems.push(
+      `${path}.evidence: this step records the reference the report was delivered under, and it has to be asked for and required`
+    );
+  }
+  if (step.repeatPerAnimal) {
+    problems.push(
+      `${path}.effect: one letter reports one animal, so this step runs once`
+    );
+  }
+  return problems;
+};
+
+/** The two shapes of a dose Step. A campaign goes round the Pen animal by animal and this
+ *  Version says what each of them gets; a Prescription's dose is about the one animal it names,
+ *  and the Prescription says what she gets. Anything between the two records a dose nobody can
+ *  account for. */
+const doseStepProblems = (
+  step: Step,
+  effect: { productId?: string },
+  path: string
+): string[] => {
+  const problems: string[] = [];
+  if (step.repeatPerAnimal && !effect.productId) {
+    problems.push(
+      `${path}.effect: a step that doses every animal in the pen has to say which product`
+    );
+  }
+  if (effect.productId && !step.repeatPerAnimal) {
+    problems.push(
+      `${path}.effect: a dose of a prescription is the prescription's to name, not this step's`
+    );
+  }
+  return problems;
+};
+
 const effectProblems = (step: Step, stepIndex: number): string[] => {
   const { effect } = step;
   if (!effect) {
@@ -203,21 +251,11 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
     }
     return problems;
   }
+  if (effect.kind === "dls_report") {
+    return reportStepProblems(step, path);
+  }
   if (effect.kind === "treatment") {
-    // A campaign goes round the Pen animal by animal and this Version says what each of them
-    // gets; a Prescription's dose is about the one animal it names, and the Prescription says
-    // what she gets. Anything between the two records a dose nobody can account for.
-    if (step.repeatPerAnimal && !effect.productId) {
-      problems.push(
-        `${path}.effect: a step that doses every animal in the pen has to say which product`
-      );
-    }
-    if (effect.productId && !step.repeatPerAnimal) {
-      problems.push(
-        `${path}.effect: a dose of a prescription is the prescription's to name, not this step's`
-      );
-    }
-    return problems;
+    return doseStepProblems(step, effect, path);
   }
   if (effect.kind === "move" || effect.kind === "observation") {
     // Both are a choice the person makes about one animal: which Pen she was walked to, or
@@ -269,8 +307,12 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
     }
     return problems;
   }
-  // A Prescription says when its own doses fall due, so there is nothing here to be wrong.
-  if (trigger.kind === "prescription") {
+  // A Prescription says when its own doses fall due, and a notifiable Diagnosis is due the
+  // moment it is made, so there is nothing in either to be wrong.
+  if (
+    trigger.kind === "prescription" ||
+    trigger.kind === "notifiable_disease"
+  ) {
     return problems;
   }
   // An event or a State the farm does not record is work that would never arrive, and the
@@ -304,48 +346,119 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
 };
 
 /**
- * A Prescription and the Step that gives the dose have to be declared together.
- *
- * A procedure raised by a Prescription whose Steps record no dose would raise work for six
- * doses and record none of them given — the course would read "none given" after all six
- * were, and the Withdrawal would have no last dose to count from. A dose Step in a procedure
- * no Prescription raises is a Step that can never find the dose it is recording.
+ * Which Trigger raises its own work the moment an act happens, rather than waiting for the clock
+ * or for something to happen to an animal. Both are raised inside the transaction that records
+ * the act, which is why nothing in the scheduler goes looking for them.
  */
-const treatmentPairProblems = (content: SopContent): string[] => {
-  const raisedByPrescription = content.triggers.some(
-    (trigger) => trigger.kind === "prescription"
-  );
-  const doses = content.steps.filter(
-    (step) => step.effect?.kind === "treatment"
-  );
-  if (doses.length > 1) {
-    // One dose per piece of work per animal is what keeps a dose from being recorded twice.
-    // Two dose Steps in one procedure would write over each other's record of what she had.
-    return [
-      "steps: a procedure gives one dose, and this one gives more than one",
-    ];
-  }
-  // A campaign says what it gives, so it needs nothing to have prescribed it.
-  const prescribedDose = doses.some(
-    (step) => step.effect?.kind === "treatment" && !step.effect.productId
-  );
-  if (raisedByPrescription && !prescribedDose) {
-    return [
+export const raisesItsOwnWork = (
+  trigger: Trigger
+): trigger is Extract<
+  Trigger,
+  { kind: "prescription" | "notifiable_disease" }
+> => trigger.kind === "prescription" || trigger.kind === "notifiable_disease";
+
+/**
+ * The Triggers and the Step Effects that only make sense together, and what to say when one is
+ * there without the other.
+ *
+ * Three of these now, which is why they are a table rather than three near-identical functions:
+ * a procedure raised by an act that records nothing of that act is work whose point is lost, and
+ * a Step that records an act nothing raises is a Step that can never find what it is recording.
+ */
+const PAIRS: {
+  trigger: Trigger["kind"];
+  effect: NonNullable<Step["effect"]>["kind"];
+  /** True when this Step is the paired one — a dose Step naming a product is a campaign's, and
+   *  campaigns are raised by the clock or by hand, not by a Prescription. */
+  isPaired?: (step: Step) => boolean;
+  missingStep: string;
+  missingTrigger: string;
+}[] = [
+  {
+    trigger: "prescription",
+    effect: "treatment",
+    isPaired: (step) =>
+      step.effect?.kind === "treatment" && !step.effect.productId,
+    missingStep:
       "steps: a prescription raises one dose at a time, and no step here records giving one",
-    ];
-  }
-  if (prescribedDose && !raisedByPrescription) {
-    return [
+    missingTrigger:
       "triggers: a step here gives a dose somebody prescribed, and nothing but a prescription raises one",
-    ];
+  },
+  {
+    trigger: "notifiable_disease",
+    effect: "dls_report",
+    missingStep:
+      "steps: this report is raised by a notifiable diagnosis, and no step here records delivering it",
+    missingTrigger:
+      "triggers: a step here records a report delivered, and nothing but a notifiable diagnosis raises one",
+  },
+];
+
+const pairProblems = (content: SopContent): string[] => {
+  const problems: string[] = [];
+  for (const pair of PAIRS) {
+    const raised = content.triggers.some(
+      (trigger) => trigger.kind === pair.trigger
+    );
+    const recorded = content.steps.some((step) =>
+      pair.isPaired ? pair.isPaired(step) : step.effect?.kind === pair.effect
+    );
+    if (raised && !recorded) {
+      problems.push(pair.missingStep);
+    }
+    if (recorded && !raised) {
+      problems.push(pair.missingTrigger);
+    }
   }
-  return [];
+  return problems;
+};
+
+/**
+ * A procedure gives one dose, and reports one disease. Two of either in one Version would write
+ * over each other's record of what was done.
+ */
+const oneOfEachProblems = (content: SopContent): string[] => {
+  const problems: string[] = [];
+  for (const effect of ["treatment", "dls_report"] as const) {
+    const count = content.steps.filter(
+      (step) => step.effect?.kind === effect
+    ).length;
+    if (count > 1) {
+      problems.push(
+        effect === "treatment"
+          ? "steps: a procedure gives one dose, and this one gives more than one"
+          : "steps: a procedure reports one disease, and this one reports more than one"
+      );
+    }
+  }
+  return problems;
+};
+
+/**
+ * The letter is the Manager's to take, with the Owner checking it (the farm's Playbook). A report
+ * assigned to Barn Staff is a legal notice resting on whoever is nearest the shed.
+ */
+const reportRoleProblems = (content: SopContent): string[] => {
+  const reports = content.steps.some(
+    (step) => step.effect?.kind === "dls_report"
+  );
+  const carried =
+    content.assignedRole === "manager" || content.assignedRole === "owner";
+  return reports && !carried
+    ? [
+        "assignedRole: the report to DLS is the Manager's to take, or the Owner's",
+      ]
+    : [];
 };
 
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
-  const problems: string[] = [...treatmentPairProblems(content)];
+  const problems: string[] = [
+    ...pairProblems(content),
+    ...oneOfEachProblems(content),
+    ...reportRoleProblems(content),
+  ];
   if (content.steps.length === 0) {
     problems.push("steps: an SOP needs at least one step");
   }

@@ -1,8 +1,11 @@
 /** The clinical record's shared reads. */
 
 import type { Database } from "@OpenFarm/db";
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
+import { dlsReport } from "@OpenFarm/db/schema/health";
 import { animal } from "@OpenFarm/db/schema/herd";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { DoseRoute } from "@OpenFarm/domain";
 import { withdrawalEndsAt } from "@OpenFarm/domain";
 import { z } from "zod";
@@ -10,7 +13,8 @@ import { z } from "zod";
 import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { RaisedAlert } from "./instances-store";
-import { dueAtFor } from "./instances-store";
+import { dueAtFor, raiseDueInstances } from "./instances-store";
+import { contentOf, publishedContent } from "./sop-content";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DAYS = 180;
@@ -441,4 +445,212 @@ export const anyUntold = async (
   });
   const said = new Set(told.map((row) => row.entityId));
   return ids.some((id) => !said.has(id));
+};
+
+/**
+ * The procedure the farm reports with: the one whose Version says a notifiable Diagnosis raises
+ * it. An SOP declares what raises it, so there is no second place recording which procedure this
+ * is — and the Owner can reword the letter's Step without it becoming a different procedure.
+ */
+export const theReportSop = async (tx: Tx, farmId: string) => {
+  const definitions = await tx.query.sopDefinition.findMany({
+    where: { farmId, retiredAt: { isNull: true } },
+    orderBy: { createdAt: "asc" },
+    with: { currentVersion: true },
+  });
+  const reporting = definitions.find((definition) =>
+    publishedContent(definition)?.triggers.some(
+      (trigger) => trigger.kind === "notifiable_disease"
+    )
+  );
+  if (!reporting?.currentVersion) {
+    return null;
+  }
+  return {
+    definitionId: reporting.id,
+    versionId: reporting.currentVersion.id,
+    content: contentOf(reporting.currentVersion),
+  };
+};
+
+/**
+ * Is this what the Vet called it one of the diseases the farm must report?
+ *
+ * Matched on the Vet's own words, because that is what both the list and the Diagnosis are
+ * written in. Trimmed and case-folded so "তড়কা " and "Anthrax" versus "anthrax" are not the
+ * farm's problem; anything subtler than that is the Manager's to keep tidy in the list.
+ */
+export const isNotifiable = async (
+  tx: Tx,
+  farmId: string,
+  disease: { bn: string; en?: string }
+): Promise<{ id: string; nameBn: string } | null> => {
+  const list = await tx.query.notifiableDisease.findMany({
+    where: { farmId, retiredAt: { isNull: true } },
+    columns: { id: true, nameBn: true, nameEn: true },
+  });
+  const said = new Set(
+    [disease.bn, disease.en]
+      .filter(Boolean)
+      .map((word) => word?.trim().toLowerCase())
+  );
+  const found = list.find((one) =>
+    [one.nameBn, one.nameEn]
+      .filter(Boolean)
+      .some((listed) => said.has(listed?.trim().toLowerCase()))
+  );
+  return found ? { id: found.id, nameBn: found.nameBn } : null;
+};
+
+/**
+ * Raises the report of one notifiable Diagnosis — now, due now, because the Act says the report
+ * goes without delay and a farm that waits for somebody to open an app has waited.
+ *
+ * Once per Diagnosis: the cause names it, so nothing can raise a second report for the same
+ * conclusion however often anything runs. Returns nothing when the farm has published no report
+ * procedure — the Diagnosis still stands, and the farm is told what it is missing elsewhere.
+ */
+export const raiseTheReport = async (
+  tx: Tx,
+  {
+    farmId,
+    diagnosisId,
+    diseaseId,
+    animalId,
+    penId,
+    now,
+  }: {
+    farmId: string;
+    diagnosisId: string;
+    /** Which of the farm's listed diseases matched, so the report can say what it was made as. */
+    diseaseId: string;
+    animalId: string;
+    penId: string;
+    now: Date;
+  }
+): Promise<{ reportId: string; instanceId: string | null }> => {
+  const sop = await theReportSop(tx, farmId);
+  const [raised] = sop
+    ? await raiseDueInstances(
+        tx,
+        farmId,
+        [
+          {
+            definitionId: sop.definitionId,
+            versionId: sop.versionId,
+            penId,
+            animalId,
+            dueAt: now,
+            cause: `notifiable:${diagnosisId}`,
+            graceMinutes: sop.content.graceMinutes,
+            assignedRole: sop.content.assignedRole,
+            checkerRole: sop.content.checkerRole,
+          },
+        ],
+        now
+      )
+    : [];
+  const id = uuidv7(now);
+  // The report exists whether or not the Playbook has work for it: the duty is the Act's, not
+  // the Playbook's, and a farm with no procedure published still has a letter to write and take.
+  // Its Instance is only how the farm remembers to do it.
+  const [row] = await tx
+    .insert(dlsReport)
+    .values({
+      id,
+      farmId,
+      diagnosisId,
+      diseaseId,
+      instanceId: raised?.id ?? null,
+      createdAt: now,
+    })
+    .onConflictDoNothing()
+    .returning({ id: dlsReport.id });
+  return { reportId: row?.id ?? id, instanceId: raised?.id ?? null };
+};
+
+/**
+ * A Correction to a Diagnosis can change whether the farm owes the office a letter at all.
+ *
+ * Newly notifiable: the duty starts now, so the report and the work are raised now. No longer
+ * notifiable: the letter is not owed, so a report nobody has delivered is withdrawn and the work
+ * to deliver it is closed — leaving the Manager under orders to write a letter about a disease
+ * the Vet has taken back would be worse than not raising one.
+ *
+ * A report already delivered is left exactly where it is. That letter went.
+ */
+export const reconsiderTheReport = async (
+  tx: Tx,
+  {
+    farmId,
+    diagnosisId,
+    disease,
+    animalId,
+    penId,
+    now,
+  }: {
+    farmId: string;
+    diagnosisId: string;
+    disease: { bn: string; en?: string };
+    animalId: string;
+    penId: string;
+    now: Date;
+  }
+): Promise<{ notifiable: boolean; instanceId: string | null }> => {
+  const listed = await isNotifiable(tx, farmId, disease);
+  const standing = await tx.query.dlsReport.findFirst({
+    where: { diagnosisId, withdrawnAt: { isNull: true } },
+    columns: { id: true, instanceId: true, deliveredAt: true },
+  });
+  if (listed) {
+    if (standing) {
+      return { notifiable: true, instanceId: standing.instanceId };
+    }
+    const raised = await raiseTheReport(tx, {
+      farmId,
+      diagnosisId,
+      diseaseId: listed.id,
+      animalId,
+      penId,
+      now,
+    });
+    return { notifiable: true, instanceId: raised.instanceId };
+  }
+  if (standing && !standing.deliveredAt) {
+    await tx
+      .update(dlsReport)
+      .set({ withdrawnAt: now })
+      .where(eq(dlsReport.id, standing.id));
+    if (standing.instanceId) {
+      await tx
+        .update(sopInstance)
+        .set({ state: "missed" })
+        .where(eq(sopInstance.id, standing.instanceId));
+    }
+  }
+  return { notifiable: false, instanceId: null };
+};
+
+/**
+ * Tells the Owner and the Manager that a disease the farm must report has been found.
+ *
+ * Immediately, and to both: the Manager takes the letter to the office and the Owner answers
+ * for the farm if it does not go. One notice per Diagnosis, so the same conclusion cannot be
+ * announced twice.
+ */
+export const raiseNotifiableAlerts = async (
+  tx: Tx,
+  farmId: string,
+  told: { diagnosisId: string; tagNumber: string; disease: string },
+  now: Date
+): Promise<RaisedAlert[]> => {
+  const people = await holdersOf(tx, farmId, ["owner", "manager"]);
+  const notice = {
+    kind: "notifiable_diagnosis" as const,
+    entity: "diagnosis",
+    entityId: told.diagnosisId,
+    params: { tag: told.tagNumber, disease: told.disease },
+  };
+  const rows = await raiseAlerts(tx, farmId, people, notice, now);
+  return rows.map((row) => ({ ...row, ...notice }));
 };

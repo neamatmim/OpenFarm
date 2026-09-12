@@ -20,6 +20,9 @@ export const DELIVERY: Record<AlertKind, "immediate" | "digest"> = {
   // A Withdrawal ending is one of the two the farm cannot afford to miss: a tank the milk
   // could have gone into, or a cow that could have been sold, and a day of either is money.
   withdrawal_ending: "immediate",
+  // The other one the farm cannot afford to miss: the Act says the report goes without delay,
+  // and a notice that waits for the evening post has already made the farm late.
+  notifiable_diagnosis: "immediate",
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

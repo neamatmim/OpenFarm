@@ -11,6 +11,10 @@ import { audited } from "../audit";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import {
   MAX_SEEN_ROWS,
+  isNotifiable,
+  raiseNotifiableAlerts,
+  raiseTheReport,
+  reconsiderTheReport,
   seenLately,
   seenLatelyInput,
   theConclusionAndWhatFollowed,
@@ -18,6 +22,8 @@ import {
 } from "../health-store";
 import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
+import type { RaisedAlert } from "../instances-store";
+import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
 
 /** The Vet visits about weekly, so a fortnight is what they need to catch up on. */
@@ -100,6 +106,55 @@ const assertAnswerable = async (
 const unanswered = (table: typeof observation) =>
   sql`not exists (select 1 from ${diagnosis} where ${diagnosis.observationId} = ${table.id})`;
 
+/**
+ * Whether the farm owes the office a letter about this Diagnosis, and everything that follows
+ * from it: the report, the work to deliver it, and telling the people who answer for it.
+ *
+ * Told whether or not a procedure exists to raise. Somebody has to know, and a farm missing the
+ * procedure needs telling most of all.
+ */
+const reportIfNotifiable = async (
+  tx: Tx,
+  {
+    farmId,
+    diagnosisId,
+    named,
+    animal,
+    now,
+  }: {
+    farmId: string;
+    diagnosisId: string;
+    /** What the Vet called it. */
+    named: { bn: string; en?: string };
+    animal: { id: string; penId: string; tagNumber: string };
+    now: Date;
+  }
+): Promise<{
+  notifiable: boolean;
+  instanceId: string | null;
+  alerts: RaisedAlert[];
+}> => {
+  const listed = await isNotifiable(tx, farmId, named);
+  if (!listed) {
+    return { notifiable: false, instanceId: null, alerts: [] };
+  }
+  const raised = await raiseTheReport(tx, {
+    farmId,
+    diagnosisId,
+    diseaseId: listed.id,
+    animalId: animal.id,
+    penId: animal.penId,
+    now,
+  });
+  const alerts = await raiseNotifiableAlerts(
+    tx,
+    farmId,
+    { diagnosisId, tagNumber: animal.tagNumber, disease: named.bn },
+    now
+  );
+  return { notifiable: true, instanceId: raised.instanceId, alerts };
+};
+
 export const diagnosesRouter = {
   /**
    * The Vet's conclusion about one animal, recorded by the Vet themselves — wherever they
@@ -121,6 +176,9 @@ export const diagnosesRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const id = uuidv7(now);
+      let notifiable = false;
+      let reporting: string | null = null;
+      let alerts: RaisedAlert[] = [];
       // The animal, the Observation and the insert are all read and written inside the one
       // transaction: checking first and writing afterwards would let the trail record a
       // Diagnosis against a cow who left the farm between the two.
@@ -156,9 +214,23 @@ export const diagnosesRouter = {
             diagnosedAt: now,
             recordedAt: now,
           });
+          // If the farm's list says this one must be reported, the letter is owed and the work
+          // to deliver it is raised here and now, due now: the Act says without delay, and a
+          // farm that waits for somebody to open an app has waited.
+          const owed = await reportIfNotifiable(tx, {
+            farmId: context.farm.id,
+            diagnosisId: id,
+            named: input.disease,
+            animal: her,
+            now,
+          });
+          ({ notifiable, instanceId: reporting, alerts } = owed);
         }
       );
-      return { id };
+      // Outside the transaction, never inside it: a push is a call to somebody else's server,
+      // and a hung one would hold a lock the whole shed is waiting on.
+      await pushRaised(context, alerts, now);
+      return { id, notifiable, reportInstanceId: reporting };
     }),
 
   /**
@@ -180,9 +252,17 @@ export const diagnosesRouter = {
       })
     )
     .handler(async ({ context, input }) => {
+      let notifiable = false;
+      let reporting: string | null = null;
+      let alerts: RaisedAlert[] = [];
       const existing = await context.db.query.diagnosis.findFirst({
         where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, diagnosedBy: true, recordedAt: true },
+        columns: {
+          id: true,
+          diagnosedBy: true,
+          recordedAt: true,
+          animalId: true,
+        },
       });
       if (!existing) {
         throw new ORPCError("NOT_FOUND");
@@ -223,17 +303,52 @@ export const diagnosesRouter = {
           before: (tx) => readDiagnosis(tx, existing.id),
           after: (tx) => readDiagnosis(tx, existing.id),
         },
-        (tx) =>
-          tx
+        async (tx) => {
+          await tx
             .update(diagnosis)
             .set({
               disease: input.disease.bn,
               diseaseEn: input.disease.en ?? null,
               note: input.note ?? null,
             })
-            .where(eq(diagnosis.id, existing.id))
+            .where(eq(diagnosis.id, existing.id));
+          // A Correction can start the duty or end it. Named a disease on the list where it did
+          // not before, the letter is owed from now; named something off the list, a report
+          // nobody has delivered is withdrawn and the work to deliver it closed — leaving the
+          // Manager under orders to write about a disease the Vet has taken back would be worse
+          // than never having raised it.
+          const her = await tx.query.animal.findFirst({
+            where: { id: existing.animalId, farmId: context.farm.id },
+            columns: { id: true, penId: true, tagNumber: true },
+          });
+          if (!her) {
+            throw new ORPCError("NOT_FOUND");
+          }
+          const owed = await reconsiderTheReport(tx, {
+            farmId: context.farm.id,
+            diagnosisId: existing.id,
+            disease: input.disease,
+            animalId: her.id,
+            penId: her.penId,
+            now: context.clock.now(),
+          });
+          ({ notifiable, instanceId: reporting } = owed);
+          if (owed.notifiable) {
+            alerts = await raiseNotifiableAlerts(
+              tx,
+              context.farm.id,
+              {
+                diagnosisId: existing.id,
+                tagNumber: her.tagNumber,
+                disease: input.disease.bn,
+              },
+              context.clock.now()
+            );
+          }
+        }
       );
-      return { id: existing.id };
+      await pushRaised(context, alerts, context.clock.now());
+      return { id: existing.id, notifiable, reportInstanceId: reporting };
     }),
 
   /**

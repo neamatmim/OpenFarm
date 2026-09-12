@@ -37,6 +37,79 @@ interface Animal {
   underMilkWithdrawal: boolean;
 }
 
+/**
+ * The letter this work exists to deliver, fetched when the Manager asks for it.
+ *
+ * Written from what the farm already knows, so there is nothing to fill in — the job is to take
+ * it to the office and come back with the reference. Asking for it is recorded, because a letter
+ * that went is the farm's evidence.
+ */
+const TheLetter = ({
+  report,
+}: {
+  report: { diagnosisId: string; reference: string | null };
+}) => {
+  const { t } = useLanguage();
+  const letter = useMutation(
+    orpc.notifiable.letter.mutationOptions({
+      onError: (error) => toast.error(error.message),
+    })
+  );
+
+  return (
+    <section
+      className="space-y-2 rounded-xl border p-3 text-sm"
+      id="dls-letter"
+    >
+      {/* One page, and only the letter on it: printing the work board with it would send the
+          office a page of step tiles. The same shape as the SOP card's. */}
+      <style>{`@page { size: A4; margin: 20mm }
+        @media print {
+          body * { visibility: hidden }
+          #dls-letter, #dls-letter * { visibility: visible }
+          #dls-letter { position: absolute; inset: 0; border: 0 }
+          .no-print { display: none }
+          body { font-size: 12pt }
+        }`}</style>
+      <div className="no-print flex items-baseline justify-between gap-2">
+        <h2 className="font-medium">{t("notifiable.letterTitle")}</h2>
+        {report.reference ? (
+          <span className="text-muted-foreground text-xs">
+            {report.reference}
+          </span>
+        ) : null}
+      </div>
+      {letter.data ? (
+        // Pre-formatted, because it is a letter: the line breaks are the document.
+        <pre className="overflow-x-auto font-sans text-sm whitespace-pre-wrap">
+          {letter.data.text}
+        </pre>
+      ) : (
+        <Button
+          className="no-print"
+          onClick={() => letter.mutate({ diagnosisId: report.diagnosisId })}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {t("notifiable.letter")}
+        </Button>
+      )}
+      {letter.data ? (
+        <Button
+          className="no-print"
+          onClick={() => window.print()}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {t("notifiable.print")}
+        </Button>
+      ) : null}
+    </section>
+  );
+};
+
 /** What the server's effect decided, shown back to the person who recorded it — the tank
  *  reading against what the cows account for, and whether that needs the Manager. */
 interface BulkOutcome {
@@ -298,6 +371,10 @@ const WorkPage = () => {
           })}
         </p>
       </header>
+
+      {instance.data.report ? (
+        <TheLetter report={instance.data.report} />
+      ) : null}
 
       {changed ? <WhatChanged changed={changed} /> : null}
 

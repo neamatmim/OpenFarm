@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -223,5 +224,92 @@ export const treatment = pgTable(
     /** The withdrawal question: what has this animal been given, and when was the last one. */
     index("treatment_animal_idx").on(table.animalId, table.givenAt),
     index("treatment_prescription_idx").on(table.prescriptionId, table.number),
+  ]
+);
+
+/**
+ * One disease the farm must report to DLS in writing without delay (Animal Disease Act 2005,
+ * s.3).
+ *
+ * The farm's own list, not a table shipped with the software: the schedule of the Animal Disease
+ * Rules could not be sourced, so what is reportable is what the Upazila Livestock Officer
+ * confirms — and the note says who confirmed it and when, because that is the farm's answer to
+ * "why did you report this one and not that one".
+ *
+ * Matched against a Diagnosis by the Vet's own words for the disease, which is why the list is
+ * written in the same words the Vet writes.
+ */
+export const notifiableDisease = pgTable(
+  "notifiable_disease",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    nameBn: text("name_bn").notNull(),
+    nameEn: text("name_en"),
+    /** What the office said, and when. Evidence for the list itself. */
+    note: text("note"),
+    addedBy: text("added_by").references(() => user.id),
+    addedByRole: text("added_by_role", { enum: ROLES }),
+    createdAt: timestamp("created_at").notNull(),
+    /** Taken off the list, never deleted: a report made last year was made against the list as
+     *  it stood then. */
+    retiredAt: timestamp("retired_at"),
+  },
+  (table) => [
+    uniqueIndex("notifiable_disease_name_uidx").on(table.farmId, table.nameBn),
+    index("notifiable_disease_farm_idx").on(table.farmId),
+  ]
+);
+
+/**
+ * The report of one notifiable Diagnosis to the Upazila Livestock Officer: the letter the farm
+ * sent, when it was delivered, and the reference the office gave it back under.
+ *
+ * One row per Diagnosis, created with the work that reports it, so a letter owed and a letter
+ * delivered are the same row in two states. A report that was sent and cannot be evidenced is a
+ * report that was not sent — which is why the reference is required to finish the Step, and why
+ * every export of the letter is an Audit Event of its own.
+ */
+export const dlsReport = pgTable(
+  "dls_report",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    diagnosisId: text("diagnosis_id")
+      .notNull()
+      .references(() => diagnosis.id, { onDelete: "cascade" }),
+    /** The work raised to report it — null when the farm has published no report procedure.
+     *  The report is owed to the office either way; an Instance is only how the farm remembers
+     *  to do it, and a farm missing the procedure still has the letter to write. */
+    instanceId: text("instance_id").references(() => sopInstance.id, {
+      onDelete: "cascade",
+    }),
+    /** The list entry that matched, so the farm can say which of its diseases this was
+     *  reported as — the answer to "why did you report that one". */
+    diseaseId: text("disease_id").references(() => notifiableDisease.id),
+    /** When the letter reached the office, as the person who took it says. Null until it has. */
+    deliveredAt: timestamp("delivered_at"),
+    /** What the office filed it under. The farm's evidence that it went. */
+    reference: text("reference"),
+    completionId: text("completion_id").references(() => stepCompletion.id, {
+      onDelete: "set null",
+    }),
+    deliveredBy: text("delivered_by").references(() => user.id),
+    /** When a Correction to the Diagnosis left nothing to report — the disease it now names is
+     *  not on the farm's list. Withdrawn, never deleted: a letter that went, went. */
+    withdrawnAt: timestamp("withdrawn_at"),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("dls_report_diagnosis_uidx").on(table.diagnosisId),
+    /** One report per piece of work, for the work that exists. */
+    uniqueIndex("dls_report_instance_uidx")
+      .on(table.instanceId)
+      .where(sql`${table.instanceId} is not null`),
+    index("dls_report_farm_idx").on(table.farmId, table.createdAt),
   ]
 );

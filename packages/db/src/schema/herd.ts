@@ -258,6 +258,11 @@ export const mortality = pgTable(
     /** When she died or was culled, on the farm's clock — not when it was written down. */
     happenedAt: timestamp("happened_at").notNull(),
     cause: text("cause").notNull(),
+    /** The Diagnosis the farm attributes her death to, when there is one. This is the register's
+     *  path to the report reference: a mortality of a notifiable disease reaches its DLS report
+     *  through the Diagnosis that named it, rather than through a flag somebody has to remember
+     *  to tick. */
+    diagnosisId: text("diagnosis_id"),
     disposal: text("disposal", { enum: DISPOSALS }).notNull(),
     /** Where, how deep, who took her — the detail the rule does not name but an inspector
      *  asks about. */

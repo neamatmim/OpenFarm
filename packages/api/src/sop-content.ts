@@ -15,6 +15,18 @@ import { z } from "zod";
 export const contentOf = (version: { content: unknown }): SopContent =>
   version.content as SopContent;
 
+/**
+ * What a Definition currently says, or nothing when it has published nothing yet.
+ *
+ * A Definition with no Version is a real row — the column is nullable, and the farm can hold one
+ * — and `contentOf` is a cast, so reading through it lands on `undefined.triggers`. That has now
+ * crashed two publish paths, so asking the question this way is the only way worth asking it.
+ */
+export const publishedContent = (definition: {
+  currentVersion?: { content: unknown } | null;
+}): SopContent | null =>
+  definition.currentVersion ? contentOf(definition.currentVersion) : null;
+
 /** Zod mirror of the domain's SopContent, so the wire is validated before the domain's
  *  publish rules run. Shape lives in @OpenFarm/domain; this is the boundary check. */
 const bilingual = z.object({
@@ -64,6 +76,7 @@ const trigger = z.discriminatedUnion("kind", [
     offsetDays: z.number().int().optional(),
   }),
   z.object({ kind: z.literal("prescription") }),
+  z.object({ kind: z.literal("notifiable_disease") }),
 ]);
 
 /** Which animals the SOP concerns; absent means the whole herd. */

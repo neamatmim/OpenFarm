@@ -341,7 +341,16 @@ export const animalsRouter = {
           /** Every dose she has actually had, a course's or a campaign's. This is what a
            *  slaughter vet asks for: per animal, not per campaign. */
           /** How she went, for an animal who has left. */
-          mortality: { with: { recorder: { columns: { name: true } } } },
+          mortality: {
+            with: {
+              recorder: { columns: { name: true } },
+              /** What she is said to have died of, and the report the farm owed for it. */
+              diagnosis: {
+                columns: { disease: true },
+                with: { report: { columns: { reference: true } } },
+              },
+            },
+          },
           treatments: {
             where: { givenAt: { isNotNull: true } },
             orderBy: { givenAt: "desc" },
@@ -400,6 +409,11 @@ export const animalsRouter = {
               disposal: row.mortality.disposal,
               disposalNote: row.mortality.disposalNote,
               recordedByName: row.mortality.recorder?.name ?? null,
+              /** For the mortality register: what she died of, and the office's reference for
+               *  it when the farm had to report it. */
+              disease: row.mortality.diagnosis?.disease ?? null,
+              reportReference:
+                row.mortality.diagnosis?.report?.reference ?? null,
             }
           : null,
         /** Barn Staff give the doses, so they may read what has been given (roles matrix:
@@ -547,6 +561,9 @@ export const animalsRouter = {
         kind: z.enum(MORTALITY_KINDS),
         /** What the farm knows, not a diagnosis: a Vet's conclusion is a Diagnosis. */
         cause: z.string().trim().min(1).max(300),
+        /** The Vet's conclusion the farm attributes it to, when there is one: this is how the
+         *  mortality register reaches the DLS report reference for a notifiable death. */
+        diagnosisId: z.string().optional(),
         disposal: z.enum(DISPOSALS),
         disposalNote: z.string().trim().max(300).optional(),
         /** When she went, if it was not now — the morning round finds her, the record is
@@ -586,6 +603,7 @@ export const animalsRouter = {
             kind: input.kind,
             happenedAt,
             cause: input.cause,
+            diagnosisId: input.diagnosisId ?? null,
             disposal: input.disposal,
             disposalNote: input.disposalNote ?? null,
             recordedBy: context.actor.id,

@@ -187,6 +187,15 @@ const maySkip = (step: Step): boolean =>
  *  everything the Version marks required. Checked per slot, not by count: a Step with an
  *  optional note and a required number is not satisfied by filling only the note. A photo
  *  arrives in its own field rather than in the evidence array, so it counts for its slot. */
+/** Whether a slot has an answer in it. Spaces are not an answer: a required note filled with
+ *  nothing is a required note nobody filled in. */
+const filledIn = (value: unknown): boolean => {
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+  return !(value === undefined || value === null);
+};
+
 export const assertEvidenceComplete = (
   step: Step,
   evidence: unknown[],
@@ -212,8 +221,7 @@ export const assertEvidenceComplete = (
       if (item.type === "photo") {
         return !hasPhotoAt(index);
       }
-      const value = evidence[index];
-      return value === undefined || value === null || value === "";
+      return !filledIn(evidence[index]);
     });
   if (missing.length > 0) {
     throw new ORPCError("BAD_REQUEST", {
