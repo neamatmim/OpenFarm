@@ -65,7 +65,8 @@ const ManagerHome = () => {
     queue.overdue.length +
     queue.signOff.length +
     queue.needsReview.length +
-    queue.withdrawal.length;
+    queue.withdrawal.length +
+    queue.meatWithdrawal.length;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -178,6 +179,34 @@ const ManagerHome = () => {
                 >
                   {t("home.until", {
                     date: formatDate(new Date(row.until), language, "date"),
+                  })}
+                </span>
+              ) : null}
+            </QueueRow>
+          ))}
+        </QueueBlock>
+
+        <QueueBlock
+          count={queue.meatWithdrawal.length}
+          label={t("home.meatWithdrawal")}
+        >
+          {queue.meatWithdrawal.map((row) => (
+            <QueueRow key={row.id}>
+              <Link
+                className="underline"
+                params={{ tagNumber: row.tagNumber }}
+                to="/animals/$tagNumber"
+              >
+                {row.tagNumber}
+              </Link>
+              {row.fitForSaleAt ? (
+                <span className="text-muted-foreground ml-2">
+                  {t("animals.meatHeldUntil", {
+                    date: formatDate(
+                      new Date(row.fitForSaleAt),
+                      language,
+                      "date"
+                    ),
                   })}
                 </span>
               ) : null}

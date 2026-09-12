@@ -22,6 +22,7 @@ import { pushRouter } from "./push";
 import { reviewRouter } from "./review";
 import { sopsRouter } from "./sops";
 import { syncRouter } from "./sync";
+import { withdrawalsRouter } from "./withdrawals";
 
 export const appRouter = {
   healthCheck: publicProcedure.handler(() => "OK"),
@@ -48,6 +49,7 @@ export const appRouter = {
   review: reviewRouter,
   sops: sopsRouter,
   sync: syncRouter,
+  withdrawals: withdrawalsRouter,
   privateData: protectedProcedure.handler(({ context }) => ({
     message: "This is private",
     user: context.actor,

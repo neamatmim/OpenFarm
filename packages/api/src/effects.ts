@@ -16,6 +16,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { feedingTargetForPen } from "./feed-store";
+import { recomputeWithdrawal } from "./health-store";
 import {
   loadLiveAnimal,
   moveOpenWorkWith,
@@ -58,6 +59,8 @@ export type EffectResult =
       of: number;
       /** False when the dose was skipped: what the course owes is still owed. */
       given: boolean;
+      /** When her milk may go to the tank again. */
+      milkWithdrawalUntil: Date | null;
     }
   | {
       kind: "move";
@@ -253,7 +256,7 @@ const applyTreatmentEffect = async (
 ): Promise<EffectResult> => {
   const dose = await tx.query.treatment.findFirst({
     where: { instanceId: input.instance.id },
-    columns: { id: true, number: true, prescriptionId: true },
+    columns: { id: true, number: true, prescriptionId: true, animalId: true },
   });
   if (!dose) {
     // The Treatment SOP was raised by something other than a Prescription — a schedule
@@ -279,8 +282,17 @@ const applyTreatmentEffect = async (
           }
     )
     .where(eq(treatment.id, dose.id));
+  // From the doses she has actually had, every time — a dose corrected back to a skip has to
+  // shorten the hold again, and the farm's milk gate reads the answer.
+  const { milkUntil } = await recomputeWithdrawal(
+    tx,
+    input.instance.farmId,
+    dose.animalId
+  );
   return {
     kind: "treatment",
+    /** When her milk may go to the tank again, so the phone can say so where she stands. */
+    milkWithdrawalUntil: milkUntil,
     number: dose.number,
     of: course ? course.times.length * course.days : dose.number,
     given: !input.skipped,

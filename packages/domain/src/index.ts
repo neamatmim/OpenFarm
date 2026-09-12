@@ -76,7 +76,12 @@ export {
   roundKg,
   shortfallPercent,
 } from "./feed";
-export type { DoseRoute, NotPrescribable, WithdrawalDays } from "./health";
+export type {
+  DoseRoute,
+  NotPrescribable,
+  WithdrawalDays,
+  WithdrawalView,
+} from "./health";
 export {
   MAX_COURSE_DAYS,
   MAX_TIMES_A_DAY,
@@ -84,7 +89,10 @@ export {
   ROUTES,
   findWithdrawalProblems,
   mayBePrescribed,
+  underMeatWithdrawal,
   whyNotPrescribable,
+  withdrawalEndsAt,
+  withdrawalView,
 } from "./health";
 export type { RoleName } from "./roles";
 export { ROLES } from "./roles";

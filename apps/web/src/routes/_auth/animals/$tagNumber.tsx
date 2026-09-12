@@ -35,6 +35,7 @@ const AnimalPage = () => {
   const animal = useQuery(
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
+  const me = useQuery(orpc.people.me.queryOptions());
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
@@ -118,6 +119,12 @@ const AnimalPage = () => {
           ) : null}
         </div>
       </header>
+
+      <Withdrawals
+        detail={detail}
+        isVet={me.data?.roles.includes("vet") ?? false}
+        onShortened={refresh}
+      />
 
       <section className="space-y-2 rounded-lg border p-4">
         <Label htmlFor="photo">{t("animals.photoTake")}</Label>
@@ -312,6 +319,157 @@ const AnimalPage = () => {
         ) : null}
       </section>
     </div>
+  );
+};
+
+/**
+ * What is holding her back, and — for the Vet, and only the Vet — the way to shorten it.
+ *
+ * Both holds are shown whether or not they are in force: "held until Tuesday" and "fit for
+ * sale from the 30th" are the two things anybody looking at a treated cow wants to know, and
+ * a page that only mentions them while they bite teaches nobody to look.
+ */
+const Withdrawals = ({
+  detail,
+  isVet,
+  onShortened,
+}: {
+  detail: {
+    tagNumber: string;
+    milkWithdrawalUntil: Date | null;
+    meatWithdrawalUntil: Date | null;
+    shortened: {
+      at: Date;
+      reason: string | null;
+      wasMilkUntil: Date | null;
+      wasMeatUntil: Date | null;
+    } | null;
+  };
+  isVet: boolean;
+  onShortened: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const [milkUntil, setMilkUntil] = useState("");
+  const [meatUntil, setMeatUntil] = useState("");
+  const [reason, setReason] = useState("");
+  const shorten = useMutation(
+    orpc.withdrawals.shorten.mutationOptions({
+      onSuccess: () => {
+        setReason("");
+        toast.success(t("withdrawal.shortened"));
+        onShortened();
+      },
+      onError: (error) => toast.error(error.message || t("common.error")),
+    })
+  );
+  if (!(detail.milkWithdrawalUntil || detail.meatWithdrawalUntil)) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-2 rounded-lg border p-4 text-sm">
+      {detail.milkWithdrawalUntil ? (
+        <p>
+          {t("animals.milkHeldUntil", {
+            date: formatDate(
+              new Date(detail.milkWithdrawalUntil),
+              language,
+              "dateTime"
+            ),
+          })}
+        </p>
+      ) : null}
+      {detail.meatWithdrawalUntil ? (
+        <p>
+          {t("animals.meatHeldUntil", {
+            date: formatDate(
+              new Date(detail.meatWithdrawalUntil),
+              language,
+              "date"
+            ),
+          })}
+        </p>
+      ) : null}
+      {detail.shortened ? (
+        <>
+          <p className="text-amber-400">
+            {t("animals.withdrawalShortened", {
+              reason: detail.shortened.reason ?? "",
+            })}
+          </p>
+          {/* What her doses alone said. A shortened hold is the thing a slaughter vet asks
+              about, so the figure it was shortened from stays on the page. */}
+          {detail.shortened.wasMilkUntil ? (
+            <p className="text-muted-foreground text-xs">
+              {t("animals.withdrawalWas", {
+                date: formatDate(
+                  new Date(detail.shortened.wasMilkUntil),
+                  language,
+                  "dateTime"
+                ),
+              })}
+            </p>
+          ) : null}
+        </>
+      ) : null}
+
+      {isVet ? (
+        <form
+          className="space-y-2 border-t pt-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            shorten.mutate({
+              animalTag: detail.tagNumber,
+              // Left blank, that hold ends now; left alone, it is not touched at all.
+              ...(detail.milkWithdrawalUntil
+                ? { milkUntil: milkUntil ? new Date(milkUntil) : null }
+                : {}),
+              ...(detail.meatWithdrawalUntil
+                ? { meatUntil: meatUntil ? new Date(meatUntil) : null }
+                : {}),
+              reason: reason.trim(),
+            });
+          }}
+        >
+          {detail.milkWithdrawalUntil ? (
+            <div className="space-y-1">
+              <Label htmlFor="milk-until">{t("withdrawal.milkUntil")}</Label>
+              <Input
+                id="milk-until"
+                onChange={(event) => setMilkUntil(event.target.value)}
+                type="datetime-local"
+                value={milkUntil}
+              />
+              <p className="text-muted-foreground text-xs">
+                {t("withdrawal.endNow")}
+              </p>
+            </div>
+          ) : null}
+          {detail.meatWithdrawalUntil ? (
+            <div className="space-y-1">
+              <Label htmlFor="meat-until">{t("withdrawal.meatUntil")}</Label>
+              <Input
+                id="meat-until"
+                onChange={(event) => setMeatUntil(event.target.value)}
+                type="datetime-local"
+                value={meatUntil}
+              />
+            </div>
+          ) : null}
+          <div className="space-y-1">
+            <Label htmlFor="shorten-reason">{t("withdrawal.reason")}</Label>
+            <Input
+              id="shorten-reason"
+              onChange={(event) => setReason(event.target.value)}
+              value={reason}
+            />
+          </div>
+          <Button disabled={!reason.trim()} type="submit" variant="outline">
+            {t("withdrawal.shorten")}
+          </Button>
+        </form>
+      ) : null}
+    </section>
   );
 };
 

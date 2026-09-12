@@ -1,5 +1,8 @@
+import { underMilkWithdrawal } from "./milk";
+
 /**
- * What the farm may prescribe, and what it may not.
+ * What the farm may prescribe, and what it may not — and what a Treatment holds back once it
+ * has been given.
  *
  * A product with either withdrawal figure blank cannot be prescribed. That is not a
  * technicality: the withdrawal days are the only thing standing between a treated cow and
@@ -80,3 +83,68 @@ export type DoseRoute = (typeof ROUTES)[number];
 export const MAX_COURSE_DAYS = 30;
 /** Four times a day is as often as a farm gives anything by hand. */
 export const MAX_TIMES_A_DAY = 4;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Is she still inside her meat Withdrawal? The twin of `underMilkWithdrawal`, which lives
+ *  with the milk it holds back. She comes off at the instant it names, like its twin. */
+export const underMeatWithdrawal = (
+  animal: { meatWithdrawalUntil: Date | null },
+  now: Date
+): boolean =>
+  animal.meatWithdrawalUntil !== null &&
+  animal.meatWithdrawalUntil.getTime() > now.getTime();
+
+/**
+ * When a Withdrawal that started with this dose ends: the dose plus the product's own days.
+ *
+ * Counted from the dose actually given, which is why a course cut short and a course finished
+ * late end on different days — and why the farm works this out from the Treatments rather
+ * than from the Prescription that planned them.
+ */
+export const withdrawalEndsAt = (givenAt: Date, days: number): Date =>
+  new Date(givenAt.getTime() + days * DAY_MS);
+
+/** Both of a cow's Withdrawals as every screen shows them, and the Vet's shortening if there
+ *  was one. Derived in one place so her page, the Manager's queue and increment 4's Sale all
+ *  read the same dates. */
+export interface WithdrawalView {
+  underMilkWithdrawal: boolean;
+  milkWithdrawalUntil: Date | null;
+  underMeatWithdrawal: boolean;
+  /** The day she is fit for sale again. Null when nothing holds her. */
+  meatWithdrawalUntil: Date | null;
+  shortened: {
+    at: Date;
+    reason: string | null;
+    /** What her doses alone said, before the Vet shortened it — the figure a slaughter vet
+     *  asks about, kept where the page can show it rather than only in the trail. */
+    wasMilkUntil: Date | null;
+    wasMeatUntil: Date | null;
+  } | null;
+}
+
+export const withdrawalView = (
+  animal: {
+    milkWithdrawalUntil: Date | null;
+    meatWithdrawalUntil: Date | null;
+    milkWithdrawalFromDoses: Date | null;
+    meatWithdrawalFromDoses: Date | null;
+    withdrawalShortenedAt: Date | null;
+    withdrawalShortenedReason: string | null;
+  },
+  now: Date
+): WithdrawalView => ({
+  underMilkWithdrawal: underMilkWithdrawal(animal, now),
+  milkWithdrawalUntil: animal.milkWithdrawalUntil,
+  underMeatWithdrawal: underMeatWithdrawal(animal, now),
+  meatWithdrawalUntil: animal.meatWithdrawalUntil,
+  shortened: animal.withdrawalShortenedAt
+    ? {
+        at: animal.withdrawalShortenedAt,
+        reason: animal.withdrawalShortenedReason,
+        wasMilkUntil: animal.milkWithdrawalFromDoses,
+        wasMeatUntil: animal.meatWithdrawalFromDoses,
+      }
+    : null,
+});

@@ -124,5 +124,8 @@ export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
   instance_sent_back: "digest.sentBack",
   needs_review: "digest.needsReview",
   sop_published: "digest.sopPublished",
+  /** Never carried in a Digest — it goes the moment it is raised — but the table is over
+   *  every kind, so that a new one cannot be forgotten here. */
+  withdrawal_ending: "digest.withdrawalEnding",
   sop_proposed: "digest.sopProposed",
 };

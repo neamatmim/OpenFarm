@@ -786,28 +786,32 @@ export const openReviews = (
 
 /** Cows whose milk may not go to the tank, soonest to come off first — a Withdrawal ending
  *  is the one anybody has to plan around. */
+/** Every cow the farm is holding back — her milk from the tank, her carcass from the lorry,
+ *  or both. Each screen sorts and counts by the hold it is actually about. */
 export const heldByWithdrawal = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
   now: Date
 ) => {
   const held = await db.query.animal.findMany({
-    where: { farmId, milkWithdrawalUntil: { gt: now } },
+    where: {
+      farmId,
+      // Either hold counts: her milk out of the tank, or her carcass off the lorry.
+      OR: [
+        { milkWithdrawalUntil: { gt: now } },
+        { meatWithdrawalUntil: { gt: now } },
+      ],
+    },
     columns: {
       id: true,
       tagNumber: true,
       state: true,
       penId: true,
       milkWithdrawalUntil: true,
+      meatWithdrawalUntil: true,
     },
   });
-  return held
-    .filter((beast) => isOnTheFarm(beast))
-    .toSorted(
-      (a, b) =>
-        (a.milkWithdrawalUntil?.getTime() ?? 0) -
-        (b.milkWithdrawalUntil?.getTime() ?? 0)
-    );
+  return held.filter((beast) => isOnTheFarm(beast));
 };
 
 /** Every piece of work the farm's day holds, done or not. */
