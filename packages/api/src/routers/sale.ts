@@ -191,7 +191,7 @@ export const saleRouter = {
           }));
         }
       );
-      return { tagNumber, state: "sold" as const, workClosed: closed };
+      return { id, tagNumber, state: "sold" as const, workClosed: closed };
     }),
 
   /**

@@ -63,7 +63,7 @@ const CardPage = () => {
 
       <div className="no-print flex justify-end">
         <Button onClick={() => window.print()} type="button" variant="outline">
-          {t("card.print")}
+          {t("common.print")}
         </Button>
       </div>
 
