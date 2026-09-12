@@ -9,6 +9,8 @@ import {
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { animal } from "./herd";
+import { observation } from "./observation";
 
 /**
  * One product on the farm's Drug List, with the days its milk and its meat must be withheld.
@@ -47,5 +49,52 @@ export const drugProduct = pgTable(
   (table) => [
     uniqueIndex("drug_product_name_uidx").on(table.farmId, table.nameBn),
     index("drug_product_farm_idx").on(table.farmId),
+  ]
+);
+
+/**
+ * The Vet's recorded conclusion about what an Animal has — **Vet only**, and never recorded
+ * on their behalf: antibiotics require a registered practitioner's own prescription (BVC Act
+ * 2019), so the act has to be theirs in the record as well as in law.
+ *
+ * It may answer an Observation, which is how the farm's health chain holds together: what the
+ * round saw, what the Vet made of it, and what was done about it. It may also stand alone —
+ * the Vet comes for something else and finds this.
+ *
+ * The condition is the Vet's own words. A Diagnosis of a Notifiable Disease must be reported
+ * to DLS without delay; matching these words against the farm's notifiable list is the
+ * report's own work, not this table's.
+ */
+export const diagnosis = pgTable(
+  "diagnosis",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    /** The Observation it answers, when the Vet is answering the round. */
+    observationId: text("observation_id").references(() => observation.id),
+    /** What the Vet concluded she has, in their own words. */
+    condition: text("condition").notNull(),
+    conditionEn: text("condition_en"),
+    /** What they found: the clinical detail behind the conclusion. */
+    note: text("note"),
+    /** The Vet. Not nullable: a Diagnosis with nobody's name on it is not a Diagnosis. */
+    diagnosedBy: text("diagnosed_by")
+      .notNull()
+      .references(() => user.id),
+    /** The farm's clock, not the phone's — the clinical record's own order. */
+    diagnosedAt: timestamp("diagnosed_at").notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("diagnosis_animal_idx").on(table.animalId, table.diagnosedAt),
+    /** The herd health summary: everything diagnosed lately, whatever animal. */
+    index("diagnosis_farm_idx").on(table.farmId, table.diagnosedAt),
+    /** Which Observations the Vet has answered, and which are still waiting. */
+    index("diagnosis_observation_idx").on(table.observationId),
   ]
 );

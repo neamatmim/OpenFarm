@@ -86,7 +86,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Observation**: What somebody saw of one Animal on the round — off her feed, lame, bulling — recorded by the Step that saw it, from the words that Version offers. Starts the health chain; not a Diagnosis. An Observation of oestrus is what a Heat is recorded as. Corrections withdraw one and write another beside it; nothing is removed. _Avoid_: Symptom, complaint, report, sighting
 
-**Diagnosis**: The Vet's recorded conclusion about what an Animal has. Vet-only. _Avoid_: Finding, condition
+**Diagnosis**: The Vet's recorded conclusion about what an Animal has. Vet-only, recorded by the Vet themselves and never on their behalf — it is their act in law. It may answer an Observation, which is how the health chain reads as one story on the Animal's page; it may also stand alone. Corrected only by the Vet who made it, with a reason, and nothing is removed. _Avoid_: Finding, condition, case
 
 **Prescription**: The Vet's order for one Animal: drug, dose, route, frequency, duration. Vet-only; the system turns it into one Treatment instance per dose. _Avoid_: Treatment plan, order, script
 

@@ -226,9 +226,11 @@ const AnimalPage = () => {
         </Button>
       </form>
 
-      {detail.observations.length > 0 ? (
+      {detail.observations.length > 0 || detail.diagnoses.length > 0 ? (
         <section className="space-y-2">
           <h2 className="font-medium">{t("animals.observations")}</h2>
+          {/* One chain, not two lists: what the round saw, and under it what the Vet made of
+              it. A Diagnosis that answers no Observation stands on its own at the end. */}
           <ul className="space-y-1 text-sm">
             {detail.observations.map((seen) => (
               <li
@@ -250,7 +252,23 @@ const AnimalPage = () => {
                 >
                   {t("animals.moveFromWork")}
                 </Link>
-                {seen.withdrawn ? ` · ${t("animals.observationWithdrawn")}` : ""}
+                {seen.withdrawn
+                  ? ` · ${t("animals.observationWithdrawn")}`
+                  : ""}
+                {seen.diagnoses.length > 0 ? (
+                  <ul className="mt-1 ml-4 space-y-1">
+                    {seen.diagnoses.map((made) => (
+                      <Conclusion key={made.id} made={made} />
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+            {detail.diagnoses.map((made) => (
+              <li className="text-muted-foreground" key={made.id}>
+                <ul className="space-y-1">
+                  <Conclusion made={made} />
+                </ul>
               </li>
             ))}
           </ul>
@@ -296,6 +314,31 @@ const AnimalPage = () => {
         ) : null}
       </section>
     </div>
+  );
+};
+
+/** What the Vet made of it: their conclusion, in their name, because the act is theirs. */
+const Conclusion = ({
+  made,
+}: {
+  made: {
+    id: string;
+    condition: string;
+    note: string | null;
+    diagnosedAt: Date;
+    diagnosedByName: string;
+  };
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <li>
+      {t("animals.diagnosis")}: {made.condition}
+      {made.note ? ` · ${made.note}` : ""} ·{" "}
+      {t("animals.diagnosedBy", {
+        name: made.diagnosedByName,
+        date: formatDate(new Date(made.diagnosedAt), language, "dateTime"),
+      })}
+    </li>
   );
 };
 

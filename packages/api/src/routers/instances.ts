@@ -1,16 +1,11 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
-import type {
-  SopContent,
-  CorrectionRefusal,
-  CorrectionWindows,
-} from "@OpenFarm/domain";
+import type { SopContent } from "@OpenFarm/domain";
 import {
   AWAITING_SIGN_OFF,
   MILK_DESTINATIONS,
   PHOTO_MAX_BYTES,
-  describeWindow,
   isEscalated,
   isOpen,
   isOverdue,
@@ -33,6 +28,7 @@ import {
   stepOf,
 } from "../completion-store";
 import type { Recorded } from "../completion-store";
+import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { feedingTargetForPen } from "../feed-store";
@@ -56,8 +52,6 @@ import { requireRole } from "../roles";
 
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
-
-const reasonInput = z.string().trim().min(1).max(200);
 
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
@@ -185,23 +179,6 @@ const loadCheckableInstance = async (
   }
   return instance;
 };
-
-/** The Correction Windows as this Farm has them set. */
-const correctionWindows = (farm: {
-  staffCorrectionHours: number;
-  managerCorrectionDays: number;
-}): CorrectionWindows => ({
-  staffHours: farm.staffCorrectionHours,
-  managerDays: farm.managerCorrectionDays,
-});
-
-/** Why the Correction was refused, as facts rather than as a sentence. The person reading it
- *  reads Bangla; composing their message here would mean composing it in English. The
- *  message on the error is for whoever is reading a log. */
-const refusalData = (refusal: CorrectionRefusal) => ({
-  ...refusal,
-  ...describeWindow(refusal.windowHours),
-});
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
 const penFilter = (

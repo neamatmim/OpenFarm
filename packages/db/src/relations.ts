@@ -22,6 +22,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.milkRecord.animalId,
     }),
+    diagnoses: r.many.diagnosis({
+      from: r.animal.id,
+      to: r.diagnosis.animalId,
+    }),
   },
   animalMove: {
     animal: r.one.animal({
@@ -70,6 +74,24 @@ export const relations = defineRelations(schema, (r) => ({
   drugProduct: {
     /** Who wrote the withdrawal days — evidence at slaughter, so it is kept with them. */
     setBy: r.one.user({ from: r.drugProduct.daysSetBy, to: r.user.id }),
+  },
+  diagnosis: {
+    animal: r.one.animal({
+      from: r.diagnosis.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** What the round saw, when this Diagnosis answers one. */
+    answers: r.one.observation({
+      from: r.diagnosis.observationId,
+      to: r.observation.id,
+    }),
+    /** The Vet whose act it is. */
+    vet: r.one.user({
+      from: r.diagnosis.diagnosedBy,
+      to: r.user.id,
+      optional: false,
+    }),
   },
   sopTraining: {
     definition: r.one.sopDefinition({
@@ -157,6 +179,11 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     /** The person who saw it. */
     observer: r.one.user({ from: r.observation.seenBy, to: r.user.id }),
+    /** What the Vet made of it — the next link in the health chain. */
+    diagnoses: r.many.diagnosis({
+      from: r.observation.id,
+      to: r.diagnosis.observationId,
+    }),
   },
   stepCompletion: {
     instance: r.one.sopInstance({
