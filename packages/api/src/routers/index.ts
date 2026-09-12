@@ -24,6 +24,7 @@ import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { readyRouter } from "./ready";
 import { reviewRouter } from "./review";
+import { saleRouter } from "./sale";
 import { sopsRouter } from "./sops";
 import { syncRouter } from "./sync";
 import { withdrawalsRouter } from "./withdrawals";
@@ -55,6 +56,7 @@ export const appRouter = {
   push: pushRouter,
   ready: readyRouter,
   review: reviewRouter,
+  sale: saleRouter,
   sops: sopsRouter,
   sync: syncRouter,
   withdrawals: withdrawalsRouter,

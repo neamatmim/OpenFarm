@@ -116,6 +116,36 @@ const summaryColumns = {
   withdrawalShortenedReason: true,
 } as const;
 
+/** How she left, for a page that has to say where a cow went. Money in numeric columns comes
+ *  back as strings, and is converted here at the edge like the litres. */
+const saleView = (
+  row:
+    | {
+        priceBdt: string;
+        weightKg: string;
+        destination: string;
+        vehicle: string;
+        driver: string;
+        note: string | null;
+        soldAt: Date;
+        buyer: { name: string };
+      }
+    | null
+    | undefined
+) =>
+  row
+    ? {
+        priceBdt: Number(row.priceBdt),
+        weightKg: Number(row.weightKg),
+        destination: row.destination,
+        vehicle: row.vehicle,
+        driver: row.driver,
+        note: row.note,
+        soldAt: row.soldAt,
+        buyerName: row.buyer.name,
+      }
+    : null;
+
 /**
  * Her arrival as her page reads it. The money and the weights live in numeric columns and come
  * back as strings; they are converted here at the edge rather than left to drift as floats.
@@ -386,6 +416,9 @@ export const animalsRouter = {
           intake: {
             with: { seller: { columns: { name: true, address: true } } },
           },
+          /** How she left, for an animal sold to a buyer: what she fetched, who took her,
+           *  and what carried her. */
+          sale: { with: { buyer: { columns: { name: true } } } },
           /** Every time she has been on the scale, newest first: her page answers "what does
            *  she weigh now" before it answers anything else. */
           weighIns: {
@@ -468,6 +501,8 @@ export const animalsRouter = {
          *  matrix — `R` to the Owner, `C R U` to the Manager, and nothing to anybody else.
          *  A milker weighs her and a Vet treats her without being told what she cost. */
         intake: readsWhatSheCost ? intakeView(row.intake) : null,
+        /** What she fetched is the money row too: the Owner's and the Manager's. */
+        sale: readsWhatSheCost ? saleView(row.sale) : null,
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */
@@ -838,16 +873,16 @@ export const animalsRouter = {
         },
         async (tx) => {
           const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          // A death or a cull is an act with a record behind it — the cause, and what was
-          // done with the carcass — so it is recorded as a Mortality and not as a State
-          // somebody sets, which would leave the farm saying a cow is dead and nothing saying
-          // how. Sold has no record of its own until the Sale arrives (increment 4); refusing
-          // it here would leave the farm unable to say a cow was sold at all.
-          if ((MORTALITY_KINDS as readonly string[]).includes(input.state)) {
+          // Every way out of the herd is an act with a record behind it — a death or a cull
+          // has a cause and a disposal, a sale has a buyer, a price and a lorry — so none of
+          // them is a State somebody sets, which would leave the farm saying a cow is gone and
+          // nothing saying where. Sold was the exception until the Sale arrived; it is not any
+          // more, and a gate on one door and not the others is no gate.
+          if ((EXIT_STATES as readonly string[]).includes(input.state)) {
             throw new ORPCError("BAD_REQUEST", {
               message:
-                "A death or a cull is recorded with its cause and disposal, not as a change of state",
-              data: { refusal: "exit_needs_a_record" },
+                "An animal leaves the herd by the record of how she went, not by a change of state",
+              data: { refusal: "exit_needs_a_record", state: input.state },
             });
           }
           // Readiness is a judgement with a gate behind it: an animal inside her meat

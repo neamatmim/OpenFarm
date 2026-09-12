@@ -132,6 +132,8 @@ const AnimalPage = () => {
 
       <HowSheArrived intake={detail.intake} />
 
+      <HowSheLeft sale={detail.sale} />
+
       <TheScale readings={detail.weighIns} />
 
       <HowSheWent
@@ -522,6 +524,51 @@ const TheScale = ({
           </li>
         ))}
       </ul>
+    </section>
+  );
+};
+
+/**
+ * How she left, for an animal sold to a buyer: what she fetched, who took her, and what carried
+ * her. The transport lines are what the Meat Rules ask a lorry to carry, so they are part of the
+ * record rather than a detail somebody may or may not have written down.
+ */
+const HowSheLeft = ({
+  sale,
+}: {
+  sale: {
+    priceBdt: number;
+    weightKg: number;
+    destination: string;
+    vehicle: string;
+    driver: string;
+    note: string | null;
+    soldAt: Date;
+    buyerName: string;
+  } | null;
+}) => {
+  const { t, language } = useLanguage();
+  if (!sale) {
+    return null;
+  }
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("sale.howSheWent")}</h2>
+      <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
+      <Fact label={t("sale.price")}>
+        {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
+      </Fact>
+      <Fact label={t("sale.weight")}>
+        {t("intake.kg", { kg: formatNumber(sale.weightKg, language) })}
+      </Fact>
+      <Fact label={t("sale.destination")}>{sale.destination}</Fact>
+      <Fact label={t("sale.vehicle")}>
+        {sale.vehicle} · {sale.driver}
+      </Fact>
+      <Fact label={t("mortality.happenedAt")}>
+        {formatDate(sale.soldAt, language, "date")}
+      </Fact>
+      {sale.note ? <Fact label={t("sale.note")}>{sale.note}</Fact> : null}
     </section>
   );
 };

@@ -363,12 +363,13 @@ describe("a death and a cull", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     // Marking her dead without saying how would leave the farm with a dead cow and no cause,
-    // no disposal, and nothing for an inspector to read.
-    for (const state of ["died", "culled"] as const) {
+    // no disposal, and nothing for an inspector to read — and the same is true of every other
+    // way out of the herd.
+    for (const state of ["died", "culled", "sold"] as const) {
       // oxlint-disable-next-line no-await-in-loop
       await expect(
         manager.client.animals.setState({ tagNumber: cow.tagNumber, state })
-      ).rejects.toThrow(/cause and disposal/u);
+      ).rejects.toMatchObject({ data: { refusal: "exit_needs_a_record" } });
     }
 
     const her = await manager.client.animals.byTag({
