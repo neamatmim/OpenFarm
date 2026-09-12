@@ -948,6 +948,7 @@ export const instancesRouter = {
           effect = await runStepEffect(tx, {
             step,
             eventId,
+            roles: context.roles,
             instance: {
               id: instance.id,
               farmId: context.farm.id,
@@ -955,6 +956,7 @@ export const instancesRouter = {
               animalId: instance.animalId,
               dueAt: instance.dueAt,
               raisedAt: instance.createdAt,
+              cause: instance.cause,
             },
             completionId: existing.id,
             animalId: existing.animalId,

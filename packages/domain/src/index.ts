@@ -20,11 +20,14 @@ export {
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
+export type { ServiceMethod } from "./breeding";
 export {
   HEAT,
   SAME_HEAT_WITHIN_HOURS,
+  SERVICE_METHODS,
   aiWindow,
   heatsThatBegin,
+  isServiceMethod,
 } from "./breeding";
 export type { FarmIdentity } from "./farm";
 export { farmOfOriginLines, identityView } from "./farm";

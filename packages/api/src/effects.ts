@@ -1,5 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
+import { service } from "@OpenFarm/db/schema/breeding";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { feeding } from "@OpenFarm/db/schema/feed";
 import { dlsReport, treatment } from "@OpenFarm/db/schema/health";
@@ -10,11 +12,13 @@ import type {
   FeedingEntryLine,
   FeedingLine,
   MilkDestination,
+  ServiceMethod,
   Step,
 } from "@OpenFarm/domain";
 import {
   HEAT,
   KG_DECIMALS,
+  isServiceMethod,
   implausibleChange,
   isShortFed,
   roundKg,
@@ -33,6 +37,7 @@ import {
   recordMove,
   requirePen,
 } from "./herd-store";
+import { isOnTheFarm } from "./instances-store";
 import {
   ensureSession,
   reReconcile,
@@ -41,6 +46,7 @@ import {
   writeMilkRecord,
 } from "./milk-store";
 import { raiseNeedsReview } from "./review-store";
+import { forbidden } from "./roles";
 
 /**
  * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
@@ -103,6 +109,7 @@ export type EffectResult =
       /** True when the farm doubted it and put it in front of the Manager. */
       flagged: boolean;
     }
+  | { kind: "service"; method: ServiceMethod }
   | null;
 
 /** The figure a record-writing Step asks for: the first `number` slot the Version declares.
@@ -170,6 +177,8 @@ export interface EffectInput {
     dueAt: Date;
     /** When the work was raised, which is the moment its Ration is read as of. */
     raisedAt: Date;
+    /** What raised it, for work a happening raised — a Service reads which Heat it answered. */
+    cause?: string | null;
   };
   completionId: string;
   animalId: string | null;
@@ -182,6 +191,9 @@ export interface EffectInput {
   /** The Audit Event this Completion is being written under, for an effect that has to put
    *  something in front of the Manager in the same transaction. */
   eventId: string;
+  /** The Roles the person recording holds. Most effects do not ask — the Step's own gate is
+   *  enough — but a Service is the Manager's alone whoever is standing at the Step. */
+  roles: readonly RoleName[];
   /** What was actually put in front of the Pen, per Feed Item. */
   feeding: FeedingEntryLine[];
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
@@ -806,6 +818,121 @@ const applyWeighInEffect = async (
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
 };
 
+/** A cause a Heat's sighting wrote: `heat:<observation id>:+<days>`. */
+const HEAT_CAUSE = /^heat:(?<id>[^:]+):/u;
+
+/** The Heat whose sighting raised this work, read off the cause the work carries. */
+const heatThatRaised = (cause: string | null | undefined): string | null =>
+  (cause ? HEAT_CAUSE.exec(cause)?.groups?.id : undefined) ?? null;
+
+/** The Nth note a Step asks for, trimmed, or null when it was left empty. */
+const nthNote = (
+  step: Step,
+  evidence: unknown[],
+  nth: number
+): string | null => {
+  const at = step.evidence
+    .map((item, index) => (item.type === "note" ? index : -1))
+    .filter((index) => index !== -1)[nth];
+  const value = at === undefined ? undefined : evidence[at];
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+};
+
+/**
+ * Records that she was served: how, by which sire, by whom, and in answer to which Heat.
+ *
+ * The Manager's alone. The roles matrix gives Service `C R U` to the Manager and nothing to Barn
+ * Staff or the Vet, and a Step is completed by whoever is standing at it — so the Step's own gate is
+ * not enough and the effect asks. The Vet's breeding acts are the Pregnancy Check and the Abortion;
+ * a milker's is recording a Calving on the round.
+ *
+ * A natural service names a bull standing on this farm. A tag that is not one is a sire nobody can
+ * trace, and parentage is the whole reason the record exists.
+ */
+const applyServiceEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.roles.includes("manager")) {
+    throw forbidden({
+      message: "A service is the Manager's to record",
+      reason: "manager_only",
+    });
+  }
+  const cowId = input.animalId ?? input.instance.animalId;
+  if (!cowId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A service is recorded about one cow, and this work is about none",
+    });
+  }
+  const standing = await tx.query.service.findFirst({
+    where: { completionId: input.completionId },
+    columns: { id: true },
+  });
+  if (input.skipped) {
+    if (standing) {
+      await tx.delete(service).where(eq(service.id, standing.id));
+    }
+    return null;
+  }
+
+  const method = choiceIn(
+    input.step,
+    input.evidence,
+    "A service says how she was served, and nothing was chosen"
+  ).value;
+  if (!isServiceMethod(method)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `"${method}" is not a way a cow is served`,
+    });
+  }
+  const sire = nthNote(input.step, input.evidence, 0);
+  if (!sire) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A service names its sire",
+    });
+  }
+
+  let sireAnimalId: string | null = null;
+  if (method === "natural") {
+    const bull = await tx.query.animal.findFirst({
+      where: {
+        farmId: input.instance.farmId,
+        tagNumber: sire.toUpperCase(),
+        sex: "male",
+      },
+      columns: { id: true, state: true },
+    });
+    if (!(bull && isOnTheFarm(bull))) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: `There is no bull with tag ${sire} on this farm`,
+        data: { refusal: "no_such_bull" },
+      });
+    }
+    sireAnimalId = bull.id;
+  }
+
+  const values = {
+    farmId: input.instance.farmId,
+    animalId: cowId,
+    completionId: input.completionId,
+    method,
+    sireStraw: method === "ai" ? sire : null,
+    sireAnimalId,
+    servedBy: nthNote(input.step, input.evidence, 1),
+    heatId: heatThatRaised(input.instance.cause),
+    servedAt: input.recordedAt,
+    recordedBy: input.recordedBy,
+  };
+  await (standing
+    ? tx.update(service).set(values).where(eq(service.id, standing.id))
+    : tx
+        .insert(service)
+        .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
+  return { kind: "service", method };
+};
+
 /**
  * Runs the effect a Step declares, inside the Completion's own transaction: if the effect
  * fails, the Completion and its Audit Event fail with it. Every effect is keyed on the
@@ -844,6 +971,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "weigh_in") {
     return await applyWeighInEffect(tx, input);
+  }
+  if (effect.kind === "service") {
+    return await applyServiceEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

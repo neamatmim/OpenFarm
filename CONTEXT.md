@@ -150,7 +150,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **AI Window**: The hours after a Heat is seen within which a service takes — by default twelve to eighteen. A Farm Parameter, because how soon a technician reaches the farm is this farm's fact and not a fact about cattle. _Avoid_: Service window, breeding window
 
-**Service**: A recorded insemination — AI (semen straw) or natural (bull) — with date, sire, and who did it. _Avoid_: Breeding (the whole area), mating, insemination (AI only)
+**Service**: A recorded insemination — AI (semen straw) or natural (bull) — with date, sire, and who did it. Recorded by the Manager alone, as the Step of the AI work its Heat raised, so the service *is* that work done rather than something closed beside it. A natural service names a bull standing on this farm. The ones that did not take are kept: a run of them is what makes a Repeat Breeder. _Avoid_: Breeding (the whole area), mating, insemination (AI only)
 
 **Pregnancy Check**: The Vet's recorded result ~45 days after a Service: positive or negative. Positive sets the Expected Calving. _Avoid_: PD (fine in speech), scan, confirmation
 

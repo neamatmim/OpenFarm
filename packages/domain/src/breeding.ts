@@ -76,3 +76,14 @@ export const heatsThatBegin = <
   }
   return begun;
 };
+
+/**
+ * How a cow is served. Fixed words, like `HEAT`: the Step offering the choice may call them what
+ * the farm calls them, but the record has to say which of the two it was in a way Breeding can
+ * still read when a Pregnancy Check and a Calving look back at it.
+ */
+export const SERVICE_METHODS = ["ai", "natural"] as const;
+export type ServiceMethod = (typeof SERVICE_METHODS)[number];
+
+export const isServiceMethod = (value: string): value is ServiceMethod =>
+  (SERVICE_METHODS as readonly string[]).includes(value);

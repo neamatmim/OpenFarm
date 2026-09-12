@@ -132,6 +132,8 @@ const AnimalPage = () => {
 
       <HerHeats heats={detail.heats} />
 
+      <HerServices heats={detail.heats} services={detail.services} />
+
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
       <HowSheArrived intake={detail.intake} />
@@ -519,6 +521,65 @@ const HerHeats = ({
             ) : null}
           </li>
         ))}
+      </ul>
+    </section>
+  );
+};
+
+/**
+ * Every time she has been served, newest first, each naming the heat it answered.
+ *
+ * Read as a chain rather than two lists: the heat she was seen in, and the service it led to. The
+ * ones that did not take stay on the page, because a run of them is exactly what somebody deciding
+ * about a Repeat Breeder needs to see.
+ */
+const HerServices = ({
+  services,
+  heats,
+}: {
+  services: {
+    id: string;
+    method: "ai" | "natural";
+    sireStraw: string | null;
+    sireTagNumber: string | null;
+    servedBy: string | null;
+    heatId: string | null;
+    servedAt: Date;
+  }[];
+  heats: { id: string; seenAt: Date }[];
+}) => {
+  const { t, language } = useLanguage();
+  if (services.length === 0) {
+    return null;
+  }
+  const heatSeen = new Map(heats.map((heat) => [heat.id, heat.seenAt]));
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("service.title")}</h2>
+      <ul className="space-y-2">
+        {services.map((one) => {
+          const answered = one.heatId ? heatSeen.get(one.heatId) : undefined;
+          return (
+            <li className="space-y-0.5" key={one.id}>
+              <p>
+                {formatDate(one.servedAt, language, "dateTime")} ·{" "}
+                {t(one.method === "ai" ? "service.ai" : "service.natural")}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {t("service.sire")}: {one.sireTagNumber ?? one.sireStraw}
+                {one.servedBy
+                  ? ` · ${t("service.servedBy")}: ${one.servedBy}`
+                  : ""}
+              </p>
+              {answered ? (
+                <p className="text-muted-foreground text-xs">
+                  {t("service.afterHeat")}{" "}
+                  {formatDate(answered, language, "dateTime")}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
