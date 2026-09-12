@@ -29,9 +29,11 @@ export const fatteningRouter = {
       // A male calf weaned onto this side was never bought, so it has no Intake and no gain
       // since one — but it is standing in the pen being fed, and a board that left it out would
       // be hiding a whole cohort from the Owner. It appears with what is knowable about it.
-      return rows.map(({ window: _window, setAside: _aside, view, ...rest }) => ({
-        ...rest,
-        ...view,
-      }));
+      return rows.map(
+        ({ window: _window, setAside: _aside, view, ...rest }) => ({
+          ...rest,
+          ...view,
+        })
+      );
     }),
 };

@@ -368,7 +368,7 @@ describe("what the farm makes of it", () => {
       source: "born",
       aliases: [],
     });
-    const walk = (state: "pregnant_heifer" | "milking" | "sold") =>
+    const walk = (state: "pregnant_heifer" | "milking") =>
       owner.client.animals.setState({
         tagNumber: doomed.tagNumber,
         state,
@@ -376,7 +376,20 @@ describe("what the farm makes of it", () => {
       });
     await walk("pregnant_heifer");
     await walk("milking");
-    await walk("sold");
+    // She leaves by the record of how she went, which for a sale is a buyer and a lorry.
+    const seller = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    await seller.client.sale.record({
+      tagNumber: doomed.tagNumber,
+      buyer: { name: `বাজার ${Date.now()}` },
+      priceBdt: 90_000,
+      weightKg: 260,
+      destination: "হাট",
+      vehicle: "ট ১১-২২৩৩",
+      driver: "সোহেল",
+    });
 
     // The milker recorded her before she went; the phone is only now in signal.
     const sent = await staff.sync.batch({

@@ -159,3 +159,50 @@ export const readySetAside = pgTable(
   },
   (table) => [uniqueIndex("ready_set_aside_animal_uidx").on(table.animalId)]
 );
+
+/**
+ * An Animal leaving the farm to a buyer: who took her, for how much, what she weighed on the
+ * day, and what carried her.
+ *
+ * One per Animal, because an animal leaves once. A cull that ends at a butcher is one of these
+ * and not a Mortality (the Owner's decision, 2026-09-12): the Manager decides at the time, and
+ * the reason she was culled goes in this record's own note. One exit, one record.
+ *
+ * The transport details are not decoration: the Meat Rules 2021 r.18 transport card is made from
+ * them and from the farm's own Registration, and a lorry stopped without one is the farm's
+ * problem rather than the driver's.
+ */
+export const sale = pgTable(
+  "sale",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    /** Who took her. The same Counterparty the farm buys from, on the other side of the deal. */
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** What she weighed on the day. Not her last Weigh-in: a beast loses weight on a lorry and
+     *  the price was struck on this figure. */
+    weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
+    /** Where she was going, and what took her there. */
+    destination: text("destination").notNull(),
+    vehicle: text("vehicle").notNull(),
+    driver: text("driver").notNull(),
+    /** Anything the farm wants said about why she went — a culled cow's reason lives here. */
+    note: text("note"),
+    soldAt: timestamp("sold_at").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sale_animal_uidx").on(table.animalId),
+    index("sale_day_idx").on(table.farmId, table.soldAt),
+  ]
+);

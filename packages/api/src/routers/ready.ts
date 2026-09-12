@@ -209,5 +209,3 @@ export const readyRouter = {
       return { tagNumber, grounds: input.grounds };
     }),
 };
-
-

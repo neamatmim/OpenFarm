@@ -156,10 +156,24 @@ describe("the state machine", () => {
 
   it("lets any live animal exit, and nothing move afterwards", async () => {
     const { tagNumber } = await registerDairyCalf();
-    await pens.owner.client.animals.setState({
+    // She leaves by the record of how she went. Setting the State by hand is refused for every
+    // exit now that each of them has a record of its own to be written.
+    await expect(
+      pens.owner.client.animals.setState({
+        tagNumber,
+        state: "sold",
+        reason: "sold at market",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "exit_needs_a_record" } });
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    await manager.client.sale.record({
       tagNumber,
-      state: "sold",
-      reason: "sold at market",
+      buyer: { name: `বাজার ${Date.now()}` },
+      priceBdt: 90_000,
+      weightKg: 220,
+      destination: "হাট",
+      vehicle: "ট ১১-২২৩৩",
+      driver: "সোহেল",
     });
 
     await expect(

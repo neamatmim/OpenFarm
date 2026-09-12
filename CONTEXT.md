@@ -142,7 +142,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Set Aside**: The Manager's recorded answer to a Suggestion — this Animal is staying, and why. Not a **Needs Review**, which is the system asking a person to settle something it could not; this is a person settling something the system only offered. The farm stops suggesting her until a ground appears that was not there when the Manager looked. _Avoid_: Dismiss, snooze, ignore
 
-**Sale**: The recorded hand-over of an Animal to a buyer: buyer, price, weight at sale, destination, transport. Hard-gated by meat Withdrawal; the Animal exits as Sold. _Avoid_: Dispatch (milk's word), disposal, exit
+**Sale**: The recorded hand-over of an Animal to a buyer: buyer, price, weight at sale, destination, transport. Hard-gated by meat Withdrawal; the Animal exits as Sold, and by no other route — every way out of the herd is the record of how she went. A cull that ends at a butcher is a Sale and not a **Mortality**: one exit, one record, and the reason she was culled in the Sale's own note. _Avoid_: Dispatch (milk's word), disposal, exit, offtake
 
 ## Reproduction
 

@@ -52,6 +52,8 @@ const Header = () => {
           { to: "/fattening", label: t("nav.fattening") },
           // What the farm thinks is ready to sell, for the Manager to decide on.
           { to: "/ready", label: t("nav.ready") },
+          // Eid morning: the one gate that stops a farm selling meat it cannot say is safe.
+          { to: "/sale", label: t("nav.sale") },
           { to: "/admin/feed", label: t("nav.feed") },
           { to: "/admin/devices", label: t("nav.devices") },
           { to: "/admin/people", label: t("nav.people") },
