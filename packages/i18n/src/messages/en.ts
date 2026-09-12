@@ -641,7 +641,6 @@ export const en = {
   "gain.slowing": "Slower than before",
   "gain.empty": "Nothing on the fattening side yet",
   "nav.ready": "Ready for sale",
-  "ready.title": "Ready for sale",
   "ready.none": "Nothing is being suggested for sale",
   "ready.because.weight": "Reached its target weight",
   "ready.because.window": "Its Target Window has opened",

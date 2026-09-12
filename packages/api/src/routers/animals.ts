@@ -850,6 +850,16 @@ export const animalsRouter = {
               data: { refusal: "exit_needs_a_record" },
             });
           }
+          // Readiness is a judgement with a gate behind it: an animal inside her meat
+          // Withdrawal may not be made ready at all. A gate on one door and not the other is
+          // no gate, so this door sends the caller to the one that checks.
+          if (input.state === "ready_for_sale") {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "Readiness for sale is confirmed against the withdrawal record, not set as a state",
+              data: { refusal: "ready_needs_confirming" },
+            });
+          }
           if (!canTransition(current.state, input.state)) {
             throw new ORPCError("BAD_REQUEST", {
               message: `An animal cannot go from ${current.state} to ${input.state}`,

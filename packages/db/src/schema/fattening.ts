@@ -148,9 +148,9 @@ export const readySetAside = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id, { onDelete: "cascade" }),
-    /** Which suggestion was answered. A weight set aside is still overruled by the window
-     *  opening; a window set aside is the last word, there being no stronger ground. */
-    because: text("because", { enum: READY_REASONS }).notNull(),
+    /** The grounds the Manager was looking at when they decided she is staying. A ground that
+     *  was not among them is something new, and worth raising again. */
+    grounds: text("grounds", { enum: READY_REASONS }).array().notNull(),
     /** Why she is staying, in the Manager's own words. A queue cleared without a word is a
      *  queue nobody can audit. */
     reason: text("reason").notNull(),

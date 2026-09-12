@@ -635,7 +635,6 @@ export const bn: Record<MessageKey, string> = {
   "gain.slowing": "আগের চেয়ে ধীর",
   "gain.empty": "মোটাতাজাকরণে এখনো কোনো পশু নেই",
   "nav.ready": "বিক্রয়ের জন্য",
-  "ready.title": "বিক্রয়ের জন্য প্রস্তুত",
   "ready.none": "এখন কোনো পশু বিক্রয়ের জন্য প্রস্তাব করা হয়নি",
   "ready.because.weight": "লক্ষ্য ওজনে পৌঁছেছে",
   "ready.because.window": "বিক্রির সময় শুরু হয়েছে",

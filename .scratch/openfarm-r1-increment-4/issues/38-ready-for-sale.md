@@ -27,14 +27,46 @@ An animal inside her meat Withdrawal cannot be made ready at all — not warned 
 anyway — and the refusal carries the day she is fit, because "not yet" without a date is not an
 answer anybody can plan around.
 
+## What the review changed
+
+Both axes found the same hole, independently, and it was the serious one.
+
+- **The gate was decorative.** `ready.confirm` refused an animal inside her meat Withdrawal — and
+  `animals.setState` would move her straight to `ready_for_sale` with no check at all, because the
+  lifecycle lists that transition as legal. A gate on one door and not the other is no gate. This
+  is the exact failure the whole system exists to prevent, and my own test had been *using* the
+  unguarded door to set up its fixtures. `setState` now refuses the move by name and sends the
+  caller to the door that checks; there is a test for the bypass.
+- **I invented farm policy.** "A weight set aside is overruled by the window; a window set aside is
+  the last word" was mine, not yours and not the spec's — and because an open window never closes,
+  it would have silenced an animal permanently even after she passed her target weight. Gone. The
+  rule is now only what criterion 4 actually asks: the farm stops saying it until **a ground
+  appears that was not there when the Manager looked**. No ranking, no precedence.
+- **Both grounds are reported when both hold.** The decision says "target weight reached **or**
+  Target Window open"; preferring one was me deciding for the Manager which fact should move them.
+- **The list offered work the Manager could not do**: animals still in Quarantine, which `confirm`
+  then refuses, and animals inside their withdrawal, which it also refuses. Only animals who could
+  actually be confirmed are suggested now.
+- **`before` was read outside the transaction**, which is the one thing the audit module says a
+  snapshot reader exists to prevent; the withdrawal and State checks were too, so a dose recorded
+  between parsing and writing would have slipped past. Both are read inside it now.
+- **A second set-aside erased the first** — the row was overwritten with no `before`, so the
+  earlier decision left no trace, against the rule that the original stays visible.
+- **The query had a limit and no order**, so past a hundred head suggestions would have vanished
+  without saying so, and which ones vanished was undefined.
+- **`suggestions` and `board` were two copies of one query** that had already begun to disagree
+  about states, limits and readings. One `fatteningRows` now.
+- **`ready.title` duplicated `state.ready_for_sale`** and the two Banglas disagreed for one State.
+- **Readiness has left the fattening file**: the Eid table, the gain arithmetic and the readiness
+  rules were three unrelated reasons to edit one file.
+- **The glossary gained Suggestion and Set Aside**, both saying what they are *not*: a Suggestion
+  is not a Gate and not an Alert, and a Set Aside is not a Needs Review.
+
 ## Decisions and departures
 
 - **A set-aside is a record, not a dismissal.** Why she is staying is worth as much as why she
-  went, so the reason is required and kept. One row per animal: a second look replaces the first,
-  because what matters is the last thing the Manager decided.
-- **A weight set aside is still overruled by the window opening; a window set aside is the last
-  word.** There is no stronger ground left to raise after the window, and a suggestion that
-  returns every morning after it has been answered is a suggestion nobody reads.
+  went, so the reason is required and kept. One row per animal holds the latest; the trail holds
+  every one of them.
 - **A State change overtakes a set-aside.** An animal confirmed Ready and later put back to
   Fattening is one the Manager has changed their mind about twice, and the older word should not
   go on silencing the farm. Nothing is deleted to say so — the set-aside stays on the record and
@@ -64,8 +96,9 @@ what somebody decided and why. The guard is doing exactly what it was built to d
 
 ## Verification
 
-`pnpm check-types` clean across the workspace; `pnpm test` 380 passing (351 api + 19 web + 10
+`pnpm check-types` clean across the workspace; `pnpm test` 381 passing (352 api + 19 web + 10
 i18n), up from 376 — a suggestion on weight with the Manager confirming, a suggestion when the
-window opens, the milker refused and the wormed bull refused with the day he is fit, and one set
-aside going quiet while staying on the board. `pnpm build` clean; `oxfmt` and `oxlint` clean on
+window opens, the other door refused at the gate, the milker refused and the wormed bull refused
+with the day he is fit, and one set aside going quiet, staying on the board, and being raised
+again when he makes his weight a fortnight later. `pnpm build` clean; `oxfmt` and `oxlint` clean on
 every changed file.

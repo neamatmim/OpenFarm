@@ -139,7 +139,7 @@ beforeAll(async () => {
 /** This file's SOP applies to the whole Fattening side, so it raises a round in every pen
  *  holding one. Retiring it stops new ones; what it already raised has to be shut. */
 afterAll(async () => {
-  const { eq, inArray } = await import("@OpenFarm/db/operators");
+  const { inArray } = await import("@OpenFarm/db/operators");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
   const { sopInstance } = await import("@OpenFarm/db/schema/instance");
   const db = scratchDb();
@@ -157,7 +157,10 @@ afterAll(async () => {
     .set({ state: "missed" })
     .where(
       and(
-        eq(sopInstance.definitionId, world.sop.definitionId),
+        inArray(sopInstance.definitionId, [
+          world.sop.definitionId,
+          world.campaign.definitionId,
+        ]),
         inArray(sopInstance.state, ["due", "in_progress"])
       )
     );
@@ -232,22 +235,29 @@ describe("ready for sale", () => {
     await worm("2027-03-15");
     const manager = await asManager("2027-03-15");
 
-    const suggested = await manager.client.ready.suggestions();
-    const him = suggested.find((row) => row.tagNumber === tagOf(0));
-    expect(him?.because).toBe("weight");
-
-    // The one still 230 kg short of his target is not suggested for his weight.
-    expect(
-      suggested.find((row) => row.tagNumber === tagOf(1))?.because
-    ).not.toBe("weight");
-
-    // Confirming is the State change. A suggestion on its own moves nothing.
-    const before = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
-    expect(before.state).toBe("quarantine");
+    // Only an animal being fattened can be confirmed, so only one is suggested: a list that
+    // offered work the Manager cannot do would waste their morning.
     await manager.client.animals.setState({
       tagNumber: tagOf(0),
       state: "fattening",
     });
+    await manager.client.animals.setState({
+      tagNumber: tagOf(1),
+      state: "fattening",
+    });
+
+    const suggested = await manager.client.ready.suggestions();
+    const him = suggested.find((row) => row.tagNumber === tagOf(0));
+    expect(him?.grounds).toEqual(["weight"]);
+
+    // The one still 230 kg short of his target is not suggested on his weight.
+    expect(
+      suggested.find((row) => row.tagNumber === tagOf(1))?.grounds ?? []
+    ).not.toContain("weight");
+
+    // Confirming is the State change. A suggestion on its own moves nothing.
+    const before = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
+    expect(before.state).toBe("fattening");
     await manager.client.ready.confirm({ tagNumber: tagOf(0) });
     const after = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(after.state).toBe("ready_for_sale");
@@ -257,9 +267,24 @@ describe("ready for sale", () => {
     // His window opens on 16 March and he is nowhere near 500 kg.
     const manager = await asManager("2027-03-16");
     const suggested = await manager.client.ready.suggestions();
-    expect(suggested.find((row) => row.tagNumber === tagOf(1))?.because).toBe(
-      "window"
-    );
+    expect(
+      suggested.find((row) => row.tagNumber === tagOf(1))?.grounds
+    ).toEqual(["window"]);
+  });
+
+  it("will not let the other door past the withdrawal gate", async () => {
+    const manager = await asManager("2027-03-16");
+    // A gate on one door and not the other is no gate: setting the State by hand would have
+    // walked a treated animal straight past her withdrawal.
+    await expect(
+      manager.client.animals.setState({
+        tagNumber: tagOf(2),
+        state: "ready_for_sale",
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "ready_needs_confirming" },
+    });
   });
 
   it("will not let a milker decide, and will not sell a treated animal", async () => {
@@ -296,7 +321,7 @@ describe("ready for sale", () => {
     // His window is open and the Manager has looked at him and wants another month on him.
     await manager.client.ready.setAside({
       tagNumber: tagOf(1),
-      because: "window",
+      grounds: ["window"],
       reason: "আরও এক মাস খাওয়াতে চাই",
     });
 
@@ -306,5 +331,15 @@ describe("ready for sale", () => {
     // He is still on the board — set aside is not hidden, it is only no longer shouted.
     const board = await manager.client.fattening.board({ penId: world.pen.id });
     expect(board.find((row) => row.tagNumber === tagOf(1))).toBeDefined();
+
+    // And when the farm has something new to say, it says it: he makes his target weight a
+    // fortnight later, which is a ground that was not there when the Manager looked.
+    await weigh("2027-03-29", [[1, 512]]);
+    const later = await asManager("2027-03-29");
+    const again = await later.client.ready.suggestions();
+    expect(again.find((row) => row.tagNumber === tagOf(1))?.grounds).toEqual([
+      "weight",
+      "window",
+    ]);
   });
 });

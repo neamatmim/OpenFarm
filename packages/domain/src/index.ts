@@ -30,22 +30,25 @@ export {
 export type {
   FatteningView,
   GainBasis,
-  ReadyReason,
   TargetWindow,
   WeighIn,
 } from "./fattening";
 export {
   EID_UL_ADHA,
-  READY_REASONS,
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
   QURBANI_DAYS,
   fatteningView,
   implausibleChange,
   nextEidWindow,
-  readySuggestion,
-  stillWorthSaying,
 } from "./fattening";
+export type { ReadyReason } from "./ready";
+export {
+  READY_REASONS,
+  readyGrounds,
+  stillWorthSaying,
+  windowHasClosed,
+} from "./ready";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";

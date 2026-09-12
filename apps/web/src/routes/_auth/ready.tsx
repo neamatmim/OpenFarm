@@ -1,4 +1,3 @@
-import type { ReadyReason } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -82,7 +81,7 @@ const ReadyPage = () => {
 
   return (
     <div className="container mx-auto max-w-3xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("ready.title")}</h1>
+      <h1 className="text-2xl font-bold">{t("state.ready_for_sale")}</h1>
       <ul className="space-y-3">
         {suggestions.data.map((row) => (
           <li className="space-y-2 rounded-xl border p-4" key={row.id}>
@@ -98,7 +97,9 @@ const ReadyPage = () => {
                 {row.penName}
               </span>
               <span className="text-emerald-400">
-                {t(`ready.because.${row.because as ReadyReason}`)}
+                {row.grounds
+                  .map((ground) => t(`ready.because.${ground}`))
+                  .join(" · ")}
               </span>
             </div>
             <p className="text-muted-foreground text-sm">
@@ -128,7 +129,7 @@ const ReadyPage = () => {
                   event.preventDefault();
                   setAside.mutate({
                     tagNumber: row.tagNumber,
-                    because: row.because as ReadyReason,
+                    grounds: row.grounds,
                     reason: reason.trim(),
                   });
                 }}

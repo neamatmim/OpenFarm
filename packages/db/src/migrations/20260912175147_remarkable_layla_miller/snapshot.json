@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "3f72fc66-1b57-472e-96af-e263e85f8279",
+  "id": "94d22ca8-fd58-49e9-8b4e-8b4c2b1e787a",
   "prevIds": ["d4359c24-0443-4dbb-a5e6-4f91475ce218"],
   "ddl": [
     {
@@ -2504,11 +2504,11 @@
       "type": "text",
       "typeSchema": null,
       "notNull": true,
-      "dimensions": 0,
+      "dimensions": 1,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "because",
+      "name": "grounds",
       "entityType": "columns",
       "schema": "public",
       "table": "ready_set_aside"
