@@ -192,7 +192,7 @@ describe("the passport and the withdrawal summary", () => {
       tagNumber: tagOf(0),
     });
     expect(held.clear).toBe(false);
-    expect(held.treatments).toHaveLength(1);
+    expect(held.doses).toHaveLength(1);
     expect(held.text).toContain("২৩ জুলাই");
 
     // Twenty-one days later she is clear, and the paper says so.
@@ -203,7 +203,7 @@ describe("the passport and the withdrawal summary", () => {
     expect(free.clear).toBe(true);
     // The dose is still listed: it happened inside the thirty days, and a buyer asked what she
     // has had, not only whether she is clear today.
-    expect(free.treatments).toHaveLength(1);
+    expect(free.doses).toHaveLength(1);
   });
 
   it("is still readable after she has gone, which is when a vet asks", async () => {
@@ -224,13 +224,44 @@ describe("the passport and the withdrawal summary", () => {
       tagNumber: tagOf(0),
     });
     expect(passport.text).toContain(tagOf(0));
-    // How she left is part of what she is, for whoever is holding her now.
-    expect(passport.text).toContain(`কসাই ${suffix}`);
+    // Where she went is part of what she is; who took her is not the next holder's business.
+    expect(passport.text).toContain("গাবতলী");
 
     const summary = await after.client.papers.withdrawalSummary({
       tagNumber: tagOf(0),
     });
     expect(summary.clear).toBe(true);
+  });
+
+  it("says so when a vet has cut a hold short, even where it says clear", async () => {
+    // The second bull is vaccinated, and then the Vet ends his hold early — which is exactly
+    // the thing a slaughter vet asks the farm about.
+    await vaccinate("2027-07-02", world.second.id, tagOf(1));
+    const vet = await createTestClient(appRouter, {
+      as: "vet",
+      clock: new FakeClock("2027-07-06T09:00:00.000Z"),
+    });
+    await vet.client.withdrawals.shorten({
+      animalTag: tagOf(1),
+      meatUntil: null,
+      reason: "টিকার ব্যাচ বদলেছে — অপেক্ষার প্রয়োজন নেই",
+    });
+
+    const manager = await asManager("2027-07-07");
+    const summary = await manager.client.papers.withdrawalSummary({
+      tagNumber: tagOf(1),
+    });
+    // Clear — but the farm says on whose word, and what the doses alone would have held her to.
+    expect(summary.clear).toBe(true);
+    expect(summary.text).toContain("ভেট অপেক্ষমাণ সময় কমিয়েছেন");
+    expect(summary.text).toContain("২৩ জুলাই");
+    expect(summary.text).toContain("টিকার ব্যাচ বদলেছে");
+
+    // And her passport says it too, so the two papers cannot tell a buyer different things.
+    const passport = await manager.client.papers.passport({
+      tagNumber: tagOf(1),
+    });
+    expect(passport.text).toContain("ভেট অপেক্ষমাণ সময় কমিয়েছেন");
   });
 
   it("is the Vet's to produce as well, and never a milker's", async () => {

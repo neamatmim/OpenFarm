@@ -2,8 +2,8 @@ import type { FarmIdentity } from "./farm";
 import { farmOfOriginLines } from "./farm";
 
 /**
- * The two papers a buyer leaves with: the receipt for what they bought, and the card the lorry
- * carries.
+ * The papers the farm hands somebody: the receipt for what a buyer bought, the card the lorry
+ * carries, an animal's passport, and the one-page answer about her withdrawal.
  *
  * Written out as strings rather than assembled on a screen, for the same reason the DLS letter
  * is: they are documents the farm may have to produce again years later, and they should read
@@ -155,8 +155,25 @@ export interface DoseGiven {
   givenOn: string;
   /** Null when the product holds nothing for meat. */
   meatClearOn: string | null;
-  /** True for a dose a Vet prescribed for her, as against a campaign over her Pen. */
-  prescribed: boolean;
+  /** The Vet who prescribed it, or null for a dose given on a campaign over her Pen. A buyer
+   *  and a slaughter vet are entitled to ask whose prescription it was. */
+  prescribedBy: string | null;
+  /** Who actually gave it. */
+  givenBy: string | null;
+}
+
+/**
+ * A Vet's shortening of a hold, when there has been one.
+ *
+ * On the paper and not only in the trail, because this is the single thing a slaughter vet asks
+ * about: a farm saying "clear" on a hold somebody cut short, without saying so, is the farm
+ * asking to be taken at its word on exactly the point where its word is not enough.
+ */
+export interface ShortenedHold {
+  on: string;
+  reason: string | null;
+  /** What her doses alone said, before it was shortened. */
+  wouldHaveRunTo: string | null;
 }
 
 export interface AnimalPassport {
@@ -172,8 +189,16 @@ export interface AnimalPassport {
   /** Every pen she has stood in, newest first, with the last thirty days among them. */
   pens: PenSpell[];
   doses: DoseGiven[];
-  /** Every reading, newest first: tag her weight, and the date. */
+  /** Every reading, newest first: her weight, and the date. */
   weighIns: { weight: string; on: string }[];
+  /** Whether her meat may be sold today, and when it may if not — the same answer the
+   *  withdrawal summary gives, so the two papers cannot disagree. */
+  clear: boolean;
+  clearOn: string | null;
+  shortened: ShortenedHold | null;
+  /** True when a list on this paper is longer than the paper: the farm says so rather than
+   *  letting a reader believe they have seen everything. */
+  moreThanShown: boolean;
   /** How she left, when she has. */
   leftFor: string | null;
   producedBy: string;
@@ -187,10 +212,31 @@ const doseLine = (dose: DoseGiven): string =>
     dose.meatClearOn
       ? `মাংসের জন্য মুক্ত / clear for meat: ${dose.meatClearOn}`
       : "মাংসে অপেক্ষা নেই / no meat withdrawal",
-    dose.prescribed
-      ? "ভেটের ব্যবস্থাপত্র / prescribed"
+    dose.prescribedBy
+      ? `ব্যবস্থাপত্র / prescribed by: ${dose.prescribedBy}`
       : "পেনভিত্তিক কর্মসূচি / campaign",
-  ].join(" · ");
+    dose.givenBy ? `দিয়েছেন / given by: ${dose.givenBy}` : null,
+  ]
+    .filter((part) => part !== null)
+    .join(" · ");
+
+/** The lines that disclose a shortened hold, and nothing at all when none was shortened. */
+const shorteningLines = (shortened: ShortenedHold | null): (string | null)[] =>
+  shortened
+    ? [
+        "",
+        "⚠ ভেট অপেক্ষমাণ সময় কমিয়েছেন / A vet shortened the withdrawal",
+        field("তারিখ", "On", shortened.on),
+        shortened.wouldHaveRunTo
+          ? field(
+              "ওষুধ অনুযায়ী চলত",
+              "Doses alone would have run to",
+              shortened.wouldHaveRunTo
+            )
+          : null,
+        shortened.reason ? field("কারণ", "Reason", shortened.reason) : null,
+      ]
+    : [];
 
 /**
  * Everything the farm knows about one animal, on one page: what she is, where she came from,
@@ -211,6 +257,11 @@ export const animalPassport = (passport: AnimalPassport): string =>
     passport.breed ? field("জাত", "Breed", passport.breed) : null,
     passport.age ? field("বয়স", "Age", passport.age) : null,
     field("উৎস", "Source", passport.source),
+    passport.clear
+      ? "মাংসের জন্য মুক্ত / CLEAR for meat"
+      : `মাংসের জন্য মুক্ত নয় / NOT CLEAR for meat${
+          passport.clearOn ? ` — ${passport.clearOn}` : ""
+        }`,
     passport.arrived ? field("আসার তারিখ", "Arrived", passport.arrived) : null,
     passport.leftFor ? field("যেখানে গেছে", "Left for", passport.leftFor) : null,
     "",
@@ -224,11 +275,15 @@ export const animalPassport = (passport: AnimalPassport): string =>
     "",
     "চিকিৎসা ও অপেক্ষমাণ সময় / Treatments and withdrawal",
     ...(passport.doses.length > 0 ? passport.doses.map(doseLine) : ["—"]),
+    ...shorteningLines(passport.shortened),
     "",
     "ওজনের রেকর্ড / Weigh-ins",
     ...(passport.weighIns.length > 0
       ? passport.weighIns.map((one) => `${one.on} · ${one.weight} কেজি`)
       : ["—"]),
+    passport.moreThanShown
+      ? "(আগের রেকর্ড এই পাতায় আসেনি / earlier records not shown)"
+      : null,
     "",
     `${passport.producedAt} · ${passport.producedBy}`,
   ]
@@ -243,6 +298,9 @@ export interface WithdrawalSummary {
   clear: boolean;
   /** The day she becomes clear, when she is not clear today. */
   clearOn: string | null;
+  /** Disclosed whether she is clear or not: a hold cut short is the thing a slaughter vet asks
+   *  about, and it matters most in the case where the answer is "clear". */
+  shortened: ShortenedHold | null;
   /** Everything given inside the look-back, newest first. */
   doses: DoseGiven[];
   /** How far back the farm looked, in the reader's own digits. */
@@ -273,9 +331,12 @@ export const withdrawalSummary = (summary: WithdrawalSummary): string =>
       : `মাংসের জন্য মুক্ত নয় / NOT CLEAR for meat${
           summary.clearOn ? ` — ${summary.clearOn}` : ""
         }`,
+    ...shorteningLines(summary.shortened),
     "",
     `গত ${summary.lookBackDays} দিনের চিকিৎসা / Treatments in the last ${summary.lookBackDays} days`,
     ...(summary.doses.length > 0 ? summary.doses.map(doseLine) : ["—"]),
     "",
     `${summary.producedAt} · ${summary.producedBy}`,
-  ].join("\n");
+  ]
+    .filter((line) => line !== null)
+    .join("\n");

@@ -53,6 +53,7 @@ export type {
   AnimalPassport,
   DoseGiven,
   PenSpell,
+  ShortenedHold,
   SaleReceipt,
   SoldAnimal,
   TransportCard,
@@ -140,7 +141,6 @@ export type {
 } from "./health";
 export {
   MAX_COURSE_DAYS,
-  WITHDRAWAL_LOOK_BACK_DAYS,
   MAX_TIMES_A_DAY,
   MAX_WITHDRAWAL_DAYS,
   ROUTES,
@@ -148,6 +148,7 @@ export {
   mayBePrescribed,
   underMeatWithdrawal,
   whyNotPrescribable,
+  WITHDRAWAL_LOOK_BACK_DAYS,
   withdrawalEndsAt,
   withdrawalView,
 } from "./health";

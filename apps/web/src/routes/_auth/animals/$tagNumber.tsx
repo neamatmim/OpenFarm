@@ -136,7 +136,11 @@ const AnimalPage = () => {
 
       <HowSheLeft sale={detail.sale} />
 
-      <HerPapers tagNumber={detail.tagNumber} />
+      {/* Barn Staff give the doses and record what they see; what the farm tells the outside
+          world about an animal is not theirs to hand over, so they are not offered it. */}
+      {me.data?.roles.some((role) => role !== "staff") ? (
+        <HerPapers tagNumber={detail.tagNumber} />
+      ) : null}
 
       <TheScale readings={detail.weighIns} />
 
