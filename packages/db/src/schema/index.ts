@@ -3,6 +3,7 @@ export * from "./alert-kinds";
 export * from "./audit";
 export * from "./auth";
 export * from "./backup";
+export * from "./breeding";
 export * from "./device";
 export * from "./farm";
 export * from "./fattening";

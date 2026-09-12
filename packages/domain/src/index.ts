@@ -20,11 +20,14 @@ export {
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
+export type { ServiceMethod } from "./breeding";
 export {
   HEAT,
   SAME_HEAT_WITHIN_HOURS,
+  SERVICE_METHODS,
   aiWindow,
   heatsThatBegin,
+  isServiceMethod,
 } from "./breeding";
 export type { FarmIdentity } from "./farm";
 export { farmOfOriginLines, identityView } from "./farm";
@@ -179,6 +182,7 @@ export {
   FARM_EVENTS,
   MAX_TRIGGER_OFFSET_DAYS,
   PHOTO_MAX_BYTES,
+  SERVICE_EVIDENCE,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
   appliesToAnimal,

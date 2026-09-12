@@ -43,6 +43,8 @@ export const relations = defineRelations(schema, (r) => ({
     intake: r.one.intake({ from: r.animal.id, to: r.intake.animalId }),
     /** Every time she has been on the scale. Fattening is the difference between them. */
     weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
+    /** Every time she has been served, the ones that did not take included. */
+    services: r.many.service({ from: r.animal.id, to: r.service.animalId }),
     /** How she left, for an animal sold to a buyer. */
     sale: r.one.sale({ from: r.animal.id, to: r.sale.animalId }),
     /** The Manager's last word on a Ready-for-Sale suggestion about her. */
@@ -50,6 +52,15 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.readySetAside.animalId,
     }),
+  },
+  service: {
+    animal: r.one.animal({
+      from: r.service.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** The farm's own bull, for a natural service. */
+    sire: r.one.animal({ from: r.service.sireAnimalId, to: r.animal.id }),
   },
   sale: {
     animal: r.one.animal({

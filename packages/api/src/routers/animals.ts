@@ -51,6 +51,7 @@ import {
   requirePen,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { causeOf, heatKeyOf } from "../instances-store";
 import { requireRole } from "../roles";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
@@ -148,6 +149,36 @@ const saleView = (
       }
     : null;
 
+/** Every service a breeding cow is likely to have had in her working life, and then some. */
+const SERVICES_SHOWN = 60;
+
+/**
+ * Every time she has been served, newest first — the ones that did not take included, because a
+ * run of failed services is what a Repeat Breeder is counted from.
+ *
+ * The sire by his Tag Number for a natural service, so her page names a bull rather than an id.
+ */
+const servicesOf = async (db: Database, animalId: string) => {
+  const rows = await db.query.service.findMany({
+    where: { animalId },
+    orderBy: { servedAt: "desc", id: "desc" },
+    limit: SERVICES_SHOWN,
+    columns: {
+      id: true,
+      method: true,
+      sireStraw: true,
+      servedBy: true,
+      heatId: true,
+      servedAt: true,
+    },
+    with: { sire: { columns: { tagNumber: true } } },
+  });
+  return rows.map(({ sire, ...one }) => ({
+    ...one,
+    sireTagNumber: sire?.tagNumber ?? null,
+  }));
+};
+
 /** Three years of three-weekly heats, which is more than a breeding cow's history needs. */
 const HEATS_SHOWN = 60;
 
@@ -174,13 +205,13 @@ const heatsOf = async (db: Database, animalId: string) => {
   const work = await db.query.sopInstance.findMany({
     where: {
       animalId,
-      cause: { in: sightings.map((seen) => `heat:${seen.id}:+0`) },
+      cause: { in: sightings.map((seen) => causeOf(heatKeyOf(seen.id), 0)) },
     },
     columns: { id: true, cause: true, state: true },
   });
   const byCause = new Map(work.map((one) => [one.cause, one]));
   return sightings.map((seen) => {
-    const raised = byCause.get(`heat:${seen.id}:+0`);
+    const raised = byCause.get(causeOf(heatKeyOf(seen.id), 0));
     return {
       id: seen.id,
       seenAt: seen.seenAt,
@@ -548,6 +579,7 @@ export const animalsRouter = {
         /** What she fetched is the money row too: the Owner's and the Manager's. */
         sale: readsWhatSheCost ? saleView(row.sale) : null,
         heats: await heatsOf(context.db, row.id),
+        services: await servicesOf(context.db, row.id),
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */

@@ -81,6 +81,26 @@ export interface DueSlot {
  * State change is one of these too, because "she reached Dry" is a thing that happened at an
  * instant just as much as a Move is.
  */
+/**
+ * The cause a happening writes on the work it raises: `<happening key>:+<days later>`.
+ *
+ * Built here and read back here, because four places had begun to agree on this string by
+ * convention — the slot builder, the effect that finds which Heat a Service answered, her page
+ * linking a Heat to its work, and the correction that takes a Heat's work back.
+ */
+export const causeOf = (happeningKey: string, offsetDays: number): string =>
+  `${happeningKey}:+${offsetDays}`;
+
+/** The key a Heat's sighting writes, and the cause the work it raises therefore carries. */
+export const heatKeyOf = (observationId: string): string =>
+  `heat:${observationId}`;
+
+const HEAT_CAUSE = /^heat:(?<id>[^:]+):\+\d+$/u;
+
+/** Which Heat's sighting raised a piece of work, or null when a Heat did not raise it. */
+export const heatThatRaised = (cause: string | null): string | null =>
+  (cause ? HEAT_CAUSE.exec(cause)?.groups?.id : undefined) ?? null;
+
 export interface Happening {
   kind: FarmEvent | "state";
   /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
@@ -232,7 +252,7 @@ export const happeningSlotsFor = (
           versionId: sop.versionId,
           penId: happening.penId,
           animalId: happening.animalId,
-          cause: `${happening.key}:+${offsetDays}`,
+          cause: causeOf(happening.key, offsetDays),
           ...timing,
           assignedRole: sop.content.assignedRole,
           checkerRole: sop.content.checkerRole,
@@ -302,7 +322,7 @@ export const recentHappenings = async (
     if (beast) {
       happenings.push({
         kind: HEAT,
-        key: `heat:${heat.id}`,
+        key: heatKeyOf(heat.id),
         at: heat.seenAt,
         animalId: beast.id,
         penId: beast.penId,

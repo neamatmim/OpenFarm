@@ -1,4 +1,4 @@
-import { HEAT } from "./breeding";
+import { HEAT, SERVICE_METHODS } from "./breeding";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
 import type { ROLES, RoleName } from "./roles";
@@ -66,7 +66,9 @@ export type StepEffect =
   /** The letter to the Upazila Livestock Officer went, and under what reference. */
   | { kind: "dls_report" }
   /** What one animal weighed on the scale this round. */
-  | { kind: "weigh_in" };
+  | { kind: "weigh_in" }
+  /** She was served: how, by what sire, and by whom. The event the breeding chain counts from. */
+  | { kind: "service" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -77,6 +79,7 @@ export const STEP_EFFECT_KINDS = [
   "treatment",
   "dls_report",
   "weigh_in",
+  "service",
 ] as const;
 
 export interface Step {
@@ -242,6 +245,51 @@ const doseStepProblems = (
   return problems;
 };
 
+/** Where each fact sits in a Service Step's Evidence. Validated and read by the same positions,
+ *  so what the Step asks for and what the record takes from it cannot drift apart. */
+export const SERVICE_EVIDENCE = { method: 0, sire: 1, servedBy: 2 } as const;
+
+/**
+ * What a Service Step has to ask for. The Step's own words are the farm's, but the record is read
+ * back by every later act in the breeding chain, so its shape is not.
+ *
+ * How she was served, as a choice offering exactly `ai` and `natural`; the sire, as a required note
+ * — a straw's number, or the farm's own bull by his Tag Number; and who served her, as a note. That
+ * last is not required here, because a bull running with the herd has nobody standing over him, but
+ * an AI service is refused without it: the story asks for the technician.
+ *
+ * The Step may be per animal. A Heat raises work about one cow, but a bull running with the herd
+ * serves cows nobody saw in heat, and the round that walks the Pen afterwards is where that is
+ * written down — refusing a per-animal Service Step would leave that service no way in at all.
+ */
+const serviceStepProblems = (step: Step, path: string): string[] => {
+  const problems: string[] = [];
+  const method = step.evidence[SERVICE_EVIDENCE.method];
+  const sire = step.evidence[SERVICE_EVIDENCE.sire];
+  const servedBy = step.evidence[SERVICE_EVIDENCE.servedBy];
+  const offered = method?.choices?.map((choice) => choice.value) ?? [];
+  const exactlyTheMethods =
+    method?.type === "choice" &&
+    offered.length === SERVICE_METHODS.length &&
+    SERVICE_METHODS.every((one) => offered.includes(one));
+  if (!exactlyTheMethods) {
+    problems.push(
+      `${path}.evidence[0]: a service step first asks how she was served, offering "ai" and "natural"`
+    );
+  }
+  if (sire?.type !== "note" || !sire.required) {
+    problems.push(
+      `${path}.evidence[1]: a service step then asks for the sire, as a required note`
+    );
+  }
+  if (servedBy?.type !== "note") {
+    problems.push(
+      `${path}.evidence[2]: a service step then asks who served her, as a note`
+    );
+  }
+  return problems;
+};
+
 const effectProblems = (step: Step, stepIndex: number): string[] => {
   const { effect } = step;
   if (!effect) {
@@ -260,6 +308,10 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   }
   if (effect.kind === "dls_report") {
     return reportStepProblems(step, path);
+  }
+  // A service records a choice and a sire, not a figure: its shape is its own.
+  if (effect.kind === "service") {
+    return serviceStepProblems(step, path);
   }
   if (effect.kind === "treatment") {
     return doseStepProblems(step, effect, path);
@@ -294,6 +346,7 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   if (effect.kind === "weigh_in" && !step.repeatPerAnimal) {
     problems.push(`${path}.effect: an animal is weighed one at a time`);
   }
+
   if (effect.kind === "bulk_total" && step.repeatPerAnimal) {
     problems.push(
       `${path}.effect: the bulk total is recorded once for the session`
@@ -512,6 +565,18 @@ export const findStructuralProblems = (content: SopContent): string[] => {
       }
     }
     problems.push(...effectProblems(step, stepIndex));
+  }
+  // A Service is the Manager's to record (roles matrix: Breeding — Service is `C R U` to the
+  // Manager and to nobody else who records). The work is completed by whoever it is assigned to,
+  // so a procedure recording a Service and assigned to anybody else would hand parentage to the
+  // wrong person the day it was published.
+  if (
+    content.steps.some((step) => step.effect?.kind === "service") &&
+    content.assignedRole !== "manager"
+  ) {
+    problems.push(
+      "assignedRole: a procedure that records a service is the Manager's"
+    );
   }
   return problems;
 };

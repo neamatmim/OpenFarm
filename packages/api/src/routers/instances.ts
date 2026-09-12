@@ -43,6 +43,7 @@ import {
   farmDayRange,
   findLate,
   raiseDueInstances,
+  heatThatRaised,
   recentHappenings,
   whatChangedFor,
 } from "../instances-store";
@@ -227,7 +228,7 @@ const flagHeatsThatArrivedTooLate = async (
     const slot = work.cause ? slotsByCause.get(work.cause) : undefined;
     const windowShut =
       slot !== undefined &&
-      work.cause?.startsWith("heat:") &&
+      heatThatRaised(work.cause) !== null &&
       slot.dueAt.getTime() + slot.graceMinutes * MINUTE_MS <= now.getTime();
     if (windowShut) {
       // Sequential: one Needs Review each, in the order the work was raised.
@@ -948,6 +949,7 @@ export const instancesRouter = {
           effect = await runStepEffect(tx, {
             step,
             eventId,
+            roles: context.roles,
             instance: {
               id: instance.id,
               farmId: context.farm.id,
@@ -955,6 +957,7 @@ export const instancesRouter = {
               animalId: instance.animalId,
               dueAt: instance.dueAt,
               raisedAt: instance.createdAt,
+              cause: instance.cause,
             },
             completionId: existing.id,
             animalId: existing.animalId,

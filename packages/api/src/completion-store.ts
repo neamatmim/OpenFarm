@@ -421,6 +421,7 @@ export const applyCompletion = async (
       animalId: instance.animalId,
       dueAt: instance.dueAt,
       raisedAt: instance.createdAt,
+      cause: instance.cause,
     },
     completionId: saved.id,
     animalId,
@@ -430,6 +431,7 @@ export const applyCompletion = async (
     // The Audit Event this Completion is written under, so an effect that has to put something
     // in front of the Manager can do it in the same transaction.
     eventId,
+    roles: context.roles,
     // From the Version doing the work, so a farm with more than one feeding routine divides
     // by the schedule that raised this Instance rather than by whichever was written first.
     sessionsPerDay: sessionsPerDayOf(content),

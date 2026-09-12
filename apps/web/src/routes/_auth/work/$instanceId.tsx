@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import { useLanguage } from "@/i18n/language-provider";
-import { refusalMessage } from "@/lib/correction-refusal";
+import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import { shrink } from "@/lib/photo";
 import type { StepRecord } from "@/lib/record-offline";
@@ -164,7 +164,12 @@ const WorkPage = () => {
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
-    toast.error(refusalMessage(error, t) ?? error.message ?? t("common.error"));
+    toast.error(
+      refusalMessage(error, t) ??
+        wordedRefusal(error, t) ??
+        error.message ??
+        t("common.error")
+    );
 
   const instanceKey = orpc.instances.get.queryKey({
     input: { id: instanceId },
