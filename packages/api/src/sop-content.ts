@@ -9,6 +9,12 @@ import {
 import type { SopContent } from "@OpenFarm/domain";
 import { z } from "zod";
 
+/** What a Version says, read back out of the column it is stored in. The database column is
+ *  jsonb, so every reader needs this one cast; having it in one place is what keeps the cast
+ *  from being made differently in three of them. */
+export const contentOf = (version: { content: unknown }): SopContent =>
+  version.content as SopContent;
+
 /** Zod mirror of the domain's SopContent, so the wire is validated before the domain's
  *  publish rules run. Shape lives in @OpenFarm/domain; this is the boundary check. */
 const bilingual = z.object({
@@ -51,6 +57,7 @@ const trigger = z.discriminatedUnion("kind", [
     state: z.string().trim().min(1).max(60),
     offsetDays: z.number().int().optional(),
   }),
+  z.object({ kind: z.literal("prescription") }),
 ]);
 
 /** Which animals the SOP concerns; absent means the whole herd. */

@@ -1,5 +1,6 @@
 import { allowedNextStates } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -313,7 +314,8 @@ const AnimalPage = () => {
   );
 };
 
-/** What the Vet made of it: their conclusion, in their name, because the act is theirs. */
+/** What the Vet made of it, and what was ordered because of it: the rest of the chain, in
+ *  their name, because the acts are theirs. */
 const Conclusion = ({
   made,
 }: {
@@ -323,6 +325,14 @@ const Conclusion = ({
     note: string | null;
     diagnosedAt: Date;
     diagnosedByName: string;
+    prescriptions: {
+      id: string;
+      dose: string;
+      route: string;
+      productNameBn: string;
+      productNameEn: string | null;
+      doses: { id: string; givenAt: Date | null }[];
+    }[];
   };
 }) => {
   const { t, language } = useLanguage();
@@ -334,6 +344,26 @@ const Conclusion = ({
         name: made.diagnosedByName,
         date: formatDate(new Date(made.diagnosedAt), language, "dateTime"),
       })}
+      {made.prescriptions.length > 0 ? (
+        <ul className="mt-1 ml-4 space-y-1">
+          {made.prescriptions.map((course) => (
+            <li key={course.id}>
+              {t("prescribe.course")}:{" "}
+              {language === "en" && course.productNameEn
+                ? course.productNameEn
+                : course.productNameBn}{" "}
+              · {course.dose} · {t(`route.${course.route}` as MessageKey)} ·{" "}
+              {t("prescribe.progress", {
+                given: formatNumber(
+                  course.doses.filter((one) => one.givenAt !== null).length,
+                  language
+                ),
+                of: formatNumber(course.doses.length, language),
+              })}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </li>
   );
 };

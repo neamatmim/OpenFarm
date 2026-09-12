@@ -46,8 +46,12 @@ export const withScheduleTimes = (
   ],
 });
 
-/** A Trigger that is not a clock: a Move, an arrival, or a State an animal reaches. */
-export type HappeningTrigger = Extract<Trigger, { kind: "event" | "state" }>;
+/** A Trigger that is not a clock: a Move, an arrival, a State an animal reaches — or a
+ *  Prescription, which raises a dose of its own accord. */
+export type HappeningTrigger = Extract<
+  Trigger,
+  { kind: "event" | "state" | "prescription" }
+>;
 
 export const happeningTriggers = (content: SopContent): HappeningTrigger[] =>
   content.triggers.filter(

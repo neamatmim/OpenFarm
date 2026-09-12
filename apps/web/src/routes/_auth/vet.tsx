@@ -1,4 +1,7 @@
-import { formatDate } from "@OpenFarm/i18n";
+import type { DoseRoute } from "@OpenFarm/domain";
+import { MAX_COURSE_DAYS, ROUTES } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -264,6 +267,208 @@ const OnItsOwn = ({ onRecorded }: { onRecorded: () => void }) => {
   );
 };
 
+/** A dose of a course: due when, and given by whom — or still owed. */
+const Dose = ({
+  dose,
+}: {
+  dose: {
+    number: number;
+    dueAt: Date;
+    givenAt: Date | null;
+    givenByName: string | null;
+    state: string;
+  };
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const when = formatDate(new Date(dose.dueAt), language, "dateTime");
+  const what = () => {
+    if (dose.givenAt) {
+      return t("prescribe.given", { name: dose.givenByName ?? "" });
+    }
+    return dose.state === "missed"
+      ? t("prescribe.missed")
+      : t("prescribe.owed");
+  };
+  return (
+    <li className="text-muted-foreground text-xs">
+      {formatNumber(dose.number, language)}. {when} · {what()}
+    </li>
+  );
+};
+
+/** One course and how far it has got: what was ordered, and which doses were given. */
+const Course = ({
+  course,
+}: {
+  course: {
+    id: string;
+    dose: string;
+    route: string;
+    productNameBn: string;
+    productNameEn: string | null;
+    doses: {
+      id: string;
+      number: number;
+      dueAt: Date;
+      givenAt: Date | null;
+      givenByName: string | null;
+      state: string;
+    }[];
+  };
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const given = course.doses.filter((one) => one.givenAt !== null).length;
+  return (
+    <li className="space-y-1 rounded-lg border p-2">
+      <p>
+        {language === "en" && course.productNameEn
+          ? course.productNameEn
+          : course.productNameBn}{" "}
+        · {course.dose} · {t(`route.${course.route}` as MessageKey)}
+      </p>
+      <p className="text-muted-foreground">
+        {t("prescribe.progress", {
+          given: formatNumber(given, language),
+          of: formatNumber(course.doses.length, language),
+        })}
+      </p>
+      <ul className="space-y-1">
+        {course.doses.map((dose) => (
+          <Dose dose={dose} key={dose.id} />
+        ))}
+      </ul>
+    </li>
+  );
+};
+
+/**
+ * The order itself: which product, how much, how it goes in, at what times and for how many
+ * days. The farm turns it into one piece of work per dose, so the times are what somebody in
+ * the shed will be asked to do something at.
+ */
+const Prescribe = ({
+  diagnosisId,
+  tagNumber,
+  onPrescribed,
+}: {
+  diagnosisId: string;
+  tagNumber: string;
+  onPrescribed: () => void;
+}) => {
+  const t = useT();
+  const onError = useRefusal();
+  const [productId, setProductId] = useState("");
+  const [dose, setDose] = useState("");
+  const [route, setRoute] = useState<DoseRoute>("intramuscular");
+  const [times, setTimes] = useState("08:00");
+  const [days, setDays] = useState("3");
+  const drugs = useQuery(orpc.drugs.list.queryOptions());
+
+  const write = useMutation(
+    orpc.prescriptions.prescribe.mutationOptions({
+      onSuccess: ({ doses }) => {
+        setDose("");
+        toast.success(t("prescribe.written", { doses: String(doses) }));
+        onPrescribed();
+      },
+      onError,
+    })
+  );
+  // Only what may actually be prescribed: a product whose withdrawal days nobody has written
+  // is milk nobody could call safe afterwards, and offering it would only end in a refusal.
+  const prescribable = (drugs.data ?? []).filter((one) => one.prescribable);
+
+  return (
+    <form
+      className="space-y-2 border-t pt-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        write.mutate({
+          animalTag: tagNumber,
+          diagnosisId,
+          productId,
+          dose: dose.trim(),
+          route,
+          times: times
+            .split(",")
+            .map((time) => time.trim())
+            .filter(Boolean),
+          days: Number(days),
+        });
+      }}
+    >
+      <div className="space-y-1">
+        <Label htmlFor={`product-${diagnosisId}`}>
+          {t("prescribe.product")}
+        </Label>
+        <select
+          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          id={`product-${diagnosisId}`}
+          onChange={(event) => setProductId(event.target.value)}
+          value={productId}
+        >
+          <option value="">—</option>
+          {prescribable.map((one) => (
+            <option key={one.id} value={one.id}>
+              {one.nameBn}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`dose-${diagnosisId}`}>{t("prescribe.dose")}</Label>
+        <Input
+          id={`dose-${diagnosisId}`}
+          onChange={(event) => setDose(event.target.value)}
+          value={dose}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`route-${diagnosisId}`}>{t("prescribe.route")}</Label>
+        <select
+          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          id={`route-${diagnosisId}`}
+          onChange={(event) => setRoute(event.target.value as DoseRoute)}
+          value={route}
+        >
+          {ROUTES.map((one) => (
+            <option key={one} value={one}>
+              {t(`route.${one}` as MessageKey)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1 space-y-1">
+          <Label htmlFor={`times-${diagnosisId}`}>{t("prescribe.times")}</Label>
+          <Input
+            id={`times-${diagnosisId}`}
+            onChange={(event) => setTimes(event.target.value)}
+            value={times}
+          />
+        </div>
+        <div className="w-24 space-y-1">
+          <Label htmlFor={`days-${diagnosisId}`}>{t("prescribe.days")}</Label>
+          <Input
+            id={`days-${diagnosisId}`}
+            max={MAX_COURSE_DAYS}
+            min={1}
+            onChange={(event) => setDays(event.target.value)}
+            step="1"
+            type="number"
+            value={days}
+          />
+        </div>
+      </div>
+      <Button disabled={!(productId && dose.trim())} type="submit">
+        {t("prescribe.write")}
+      </Button>
+    </form>
+  );
+};
+
 /** One of the Vet's own conclusions, and the form to put it right. Nothing is deleted: the
  *  correction carries a reason and the trail keeps what it said before. */
 const Concluded = ({
@@ -277,6 +482,21 @@ const Concluded = ({
     diagnosedAt: Date;
     tagNumber: string;
     answers: { sawLabel: string } | null;
+    prescriptions: {
+      id: string;
+      dose: string;
+      route: string;
+      productNameBn: string;
+      productNameEn: string | null;
+      doses: {
+        id: string;
+        number: number;
+        dueAt: Date;
+        givenAt: Date | null;
+        givenByName: string | null;
+        state: string;
+      }[];
+    }[];
   };
   onCorrected: () => void;
 }) => {
@@ -323,6 +543,19 @@ const Concluded = ({
           : ""}
       </p>
       {made.note ? <p className="text-muted-foreground">{made.note}</p> : null}
+
+      {made.prescriptions.length > 0 ? (
+        <ul className="space-y-2">
+          {made.prescriptions.map((course) => (
+            <Course course={course} key={course.id} />
+          ))}
+        </ul>
+      ) : null}
+      <Prescribe
+        diagnosisId={made.id}
+        onPrescribed={onCorrected}
+        tagNumber={made.tagNumber}
+      />
 
       {open ? (
         <form

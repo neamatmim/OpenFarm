@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { feeding } from "@OpenFarm/db/schema/feed";
+import { treatment } from "@OpenFarm/db/schema/health";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
@@ -49,6 +50,14 @@ export type EffectResult =
       saw: string;
       /** True when this replaced one a Correction withdrew. */
       supersedes: boolean;
+    }
+  | {
+      kind: "treatment";
+      /** Which dose of the course this was — 3 of 6 — so the phone can say where it got to. */
+      number: number;
+      of: number;
+      /** False when the dose was skipped: what the course owes is still owed. */
+      given: boolean;
     }
   | {
       kind: "move";
@@ -238,6 +247,55 @@ const applyFeedingEffect = async (
  * they saw is a fact about the round, and it stays true that they said it even after the farm
  * decides they were looking at the wrong cow.
  */
+/**
+ * Records that one dose of a Prescription was actually given — or, when the Step was skipped,
+ * that it was not after all.
+ *
+ * The Treatment row already exists: the Prescription wrote one for every dose it calls for,
+ * which is what makes a dose nobody gave visible as work nobody did. This fills in who gave
+ * it and when, keyed on the Instance, so a phone sending the same dose twice records it once
+ * and a Correction that turns it back into a skip clears it again.
+ */
+const applyTreatmentEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  const dose = await tx.query.treatment.findFirst({
+    where: { instanceId: input.instance.id },
+    columns: { id: true, number: true, prescriptionId: true },
+  });
+  if (!dose) {
+    // The Treatment SOP was raised by something other than a Prescription — a schedule
+    // somebody added to it, say. There is no dose to give, and saying so is better than
+    // writing a Treatment that belongs to no course.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This work is not a dose of any prescription",
+    });
+  }
+  const course = await tx.query.treatment.findMany({
+    where: { prescriptionId: dose.prescriptionId },
+    columns: { id: true },
+  });
+  await tx
+    .update(treatment)
+    .set(
+      input.skipped
+        ? { completionId: null, givenBy: null, givenAt: null }
+        : {
+            completionId: input.completionId,
+            givenBy: input.recordedBy,
+            givenAt: input.recordedAt,
+          }
+    )
+    .where(eq(treatment.id, dose.id));
+  return {
+    kind: "treatment",
+    number: dose.number,
+    of: course.length,
+    given: !input.skipped,
+  };
+};
+
 const applyObservationEffect = async (
   tx: Tx,
   input: EffectInput
@@ -461,6 +519,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "feeding") {
     return await applyFeedingEffect(tx, input);
+  }
+  if (effect.kind === "treatment") {
+    return await applyTreatmentEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

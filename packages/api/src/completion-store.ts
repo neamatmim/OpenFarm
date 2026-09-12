@@ -20,6 +20,7 @@ import {
   requirePen,
 } from "./herd-store";
 import { animalsForInstance, isOnTheFarm } from "./instances-store";
+import { contentOf } from "./sop-content";
 
 /**
  * An entry that was true when it was written and is not true now: the animal has been sold,
@@ -74,9 +75,6 @@ export type Recorder = Context & {
   farm: NonNullable<Context["farm"]>;
   actor: NonNullable<Context["actor"]>;
 };
-
-const contentOf = (version: { content: unknown }): SopContent =>
-  version.content as SopContent;
 
 /** The Step this Version declares, or nothing. */
 export const stepOf = (content: SopContent, stepId: string): Step => {
@@ -179,8 +177,8 @@ export const assertMayWork = (
   }
 };
 
-/** A Step is either skipped with a reason — only where it repeats per animal — or done with
- *  everything the Version marks required. Checked per slot, not by count: a Step with an
+/** A Step is either skipped with a reason — only where the work is about one animal — or done
+ *  with everything the Version marks required. Checked per slot, not by count: a Step with an
  *  optional note and a required number is not satisfied by filling only the note. A photo
  *  arrives in its own field rather than in the evidence array, so it counts for its slot. */
 export const assertEvidenceComplete = (
@@ -189,12 +187,16 @@ export const assertEvidenceComplete = (
   skipping: boolean,
   /** Whether a photo answers that slot. A Step may ask for more than one, and a photo that
    *  could not say which it answered would be a photo nobody can read back. */
-  hasPhotoAt: (slot: number) => boolean
+  hasPhotoAt: (slot: number) => boolean,
+  /** Whether this work is about one animal even though the Step does not repeat — a dose of a
+   *  Prescription is raised for her alone. "The bottle was empty" is then a thing that can be
+   *  recorded, rather than work that goes quiet. */
+  aboutOneAnimal = false
 ): void => {
   if (skipping) {
-    if (!step.repeatPerAnimal) {
+    if (!(step.repeatPerAnimal || aboutOneAnimal)) {
       throw new ORPCError("BAD_REQUEST", {
-        message: "Only a per-animal step can be skipped",
+        message: "Only work about one animal can be skipped",
       });
     }
     return;
@@ -357,7 +359,13 @@ export const applyCompletion = async (
   );
   const skipping = Boolean(input.skipReason);
   // Either the photo is here, or the phone has said it is coming as its own entry.
-  assertEvidenceComplete(step, input.evidence, skipping, photoSlots(input));
+  assertEvidenceComplete(
+    step,
+    input.evidence,
+    skipping,
+    photoSlots(input),
+    instance.animalId !== null
+  );
 
   const standing = await alreadyRecorded(
     tx,

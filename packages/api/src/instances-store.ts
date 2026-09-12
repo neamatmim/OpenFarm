@@ -184,6 +184,11 @@ export const happeningSlotsFor = (
       if (trigger.kind === "schedule") {
         continue;
       }
+      // A Prescription raises its own doses at the times the Vet set, when it is written.
+      // Nothing that happens on the farm raises one, and nothing here should go looking.
+      if (trigger.kind === "prescription") {
+        continue;
+      }
       const offsetDays = trigger.offsetDays ?? 0;
       for (const happening of happenings) {
         const matches =
@@ -304,9 +309,9 @@ export const raiseDueInstances = async (
   farmId: string,
   slots: DueSlot[],
   now: Date
-): Promise<number> => {
+): Promise<{ id: string; cause: string | null }[]> => {
   if (slots.length === 0) {
-    return 0;
+    return [];
   }
   const created = await tx
     .insert(sopInstance)
@@ -328,8 +333,11 @@ export const raiseDueInstances = async (
       }))
     )
     .onConflictDoNothing()
-    .returning({ id: sopInstance.id });
-  return created.length;
+    // The cause as well as the id: work already raised is quietly skipped, so a caller that
+    // has something to hang on each new Instance has to know which slot it came from rather
+    // than counting on the rows lining up.
+    .returning({ id: sopInstance.id, cause: sopInstance.cause });
+  return created;
 };
 
 /** The animals a per-animal Step covers in this Instance's Pen, right now. */

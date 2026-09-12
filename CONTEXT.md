@@ -88,13 +88,13 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Diagnosis**: The Vet's recorded conclusion about what an Animal has. Vet-only, recorded by the Vet themselves and never on their behalf — it is their act in law. It may answer an Observation, which is how the health chain reads as one story on the Animal's page; it may also stand alone. Corrected only by the Vet who made it, with a reason, and nothing is removed. _Avoid_: Finding, condition, case
 
-**Prescription**: The Vet's order for one Animal: drug, dose, route, frequency, duration. Vet-only; the system turns it into one Treatment instance per dose. _Avoid_: Treatment plan, order, script
+**Prescription**: The Vet's order for one Animal: drug, dose, route, frequency, duration. Vet-only, from their own account, and only from a product whose Withdrawal days are known. It answers a Diagnosis. The system turns it into one Instance of the Treatment SOP per dose, at the times the Vet set, so a dose nobody gave is Overdue beside a milking nobody did. _Avoid_: Treatment plan, order, script
 
-**Treatment**: One dose actually given to an Animal under a Prescription — who, when, what. The last Treatment starts the Withdrawal. _Avoid_: Medication, administration, dosing
+**Treatment**: One dose of a Prescription: what the course calls for, and — once somebody records giving it — who gave it and when. A dose the farm has not given yet is still a dose it owes, which is what makes a missed one visible as work nobody did. The last Treatment **given** starts the Withdrawal. _Avoid_: Medication, administration, dosing
 
 **Drug List**: The farm's list of products that may be prescribed, each with milk and meat withdrawal days. Maintained by the Vet; a product with blank days cannot be prescribed. _Avoid_: Formulary, inventory (stock is a different concern), medicine list
 
-**Withdrawal**: The period after the last Treatment during which an Animal's milk may not go to bulk (milk withdrawal) or the Animal may not be sold for meat (meat withdrawal). A hard Gate. Only the Vet may shorten it, with a reason. _Avoid_: Withholding period, waiting time, hold
+**Withdrawal**: The period after the last Treatment given during which an Animal's milk may not go to bulk (milk withdrawal) or the Animal may not be sold for meat (meat withdrawal). A hard Gate. Only the Vet may shorten it, with a reason. _Avoid_: Withholding period, waiting time, hold
 
 **Notifiable Disease**: A disease on the farm's list of conditions that must be reported to DLS in writing without delay. A Diagnosis of one auto-raises the DLS report SOP. _Avoid_: Reportable disease, outbreak
 

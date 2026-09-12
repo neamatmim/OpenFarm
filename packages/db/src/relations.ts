@@ -26,6 +26,14 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.diagnosis.animalId,
     }),
+    prescriptions: r.many.prescription({
+      from: r.animal.id,
+      to: r.prescription.animalId,
+    }),
+    treatments: r.many.treatment({
+      from: r.animal.id,
+      to: r.treatment.animalId,
+    }),
   },
   animalMove: {
     animal: r.one.animal({
@@ -75,6 +83,53 @@ export const relations = defineRelations(schema, (r) => ({
     /** Who wrote the withdrawal days — evidence at slaughter, so it is kept with them. */
     setBy: r.one.user({ from: r.drugProduct.daysSetBy, to: r.user.id }),
   },
+  prescription: {
+    animal: r.one.animal({
+      from: r.prescription.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** What it treats: a course is given for something the Vet concluded. */
+    diagnosis: r.one.diagnosis({
+      from: r.prescription.diagnosisId,
+      to: r.diagnosis.id,
+      optional: false,
+    }),
+    product: r.one.drugProduct({
+      from: r.prescription.productId,
+      to: r.drugProduct.id,
+      optional: false,
+    }),
+    vet: r.one.user({
+      from: r.prescription.prescribedBy,
+      to: r.user.id,
+      optional: false,
+    }),
+    /** The doses it calls for, given or still owed. */
+    treatments: r.many.treatment({
+      from: r.prescription.id,
+      to: r.treatment.prescriptionId,
+    }),
+  },
+  treatment: {
+    prescription: r.one.prescription({
+      from: r.treatment.prescriptionId,
+      to: r.prescription.id,
+      optional: false,
+    }),
+    animal: r.one.animal({
+      from: r.treatment.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** The work raised for this dose, which says whether it is due, late or done. */
+    instance: r.one.sopInstance({
+      from: r.treatment.instanceId,
+      to: r.sopInstance.id,
+      optional: false,
+    }),
+    giver: r.one.user({ from: r.treatment.givenBy, to: r.user.id }),
+  },
   diagnosis: {
     animal: r.one.animal({
       from: r.diagnosis.animalId,
@@ -91,6 +146,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.diagnosis.diagnosedBy,
       to: r.user.id,
       optional: false,
+    }),
+    /** What was ordered for it — the next link in the health chain. */
+    prescriptions: r.many.prescription({
+      from: r.diagnosis.id,
+      to: r.prescription.diagnosisId,
     }),
   },
   sopTraining: {

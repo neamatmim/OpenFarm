@@ -51,7 +51,9 @@ export type StepEffect =
   /** What somebody saw of her on the round — off her feed, limping, bulling. */
   | { kind: "observation" }
   /** What this Pen was actually given, against what its Ration owed it. */
-  | { kind: "feeding" };
+  | { kind: "feeding" }
+  /** One dose of a Prescription, given. The last one given starts the Withdrawal. */
+  | { kind: "treatment" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -59,6 +61,7 @@ export const STEP_EFFECT_KINDS = [
   "move",
   "observation",
   "feeding",
+  "treatment",
 ] as const;
 
 export interface Step {
@@ -72,7 +75,12 @@ export interface Step {
   effect?: StepEffect;
 }
 
-export const TRIGGER_KINDS = ["schedule", "event", "state"] as const;
+export const TRIGGER_KINDS = [
+  "schedule",
+  "event",
+  "state",
+  "prescription",
+] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 
 /**
@@ -95,7 +103,12 @@ export type Trigger =
   /** An animal reached a State — quarantine, dry, ready for sale — optionally some days
    *  before the work is due. Counted from when she reached it, so a cow who comes back to
    *  Milking next lactation is a new occasion and raises the work again. */
-  | { kind: "state"; state: AnimalState; offsetDays?: number };
+  | { kind: "state"; state: AnimalState; offsetDays?: number }
+  /** A Vet wrote a Prescription: one Instance per dose, at the times the Vet set. Nothing
+   *  else raises this work — not the clock, and nothing that happens to an animal — so the
+   *  farm can have exactly one procedure for giving a dose and raise it only when a dose is
+   *  actually owed. */
+  | { kind: "prescription" };
 
 /** Which animals an SOP concerns. A schedule-triggered SOP raises one Instance per Pen
  *  holding at least one matching animal, and its per-animal Steps cover those animals.
@@ -178,6 +191,16 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
     }
     return problems;
   }
+  if (effect.kind === "treatment") {
+    // The Instance a Prescription raises is about the one animal it names. A Step that ran
+    // once per animal would give her dose to every cow standing in her Pen.
+    if (step.repeatPerAnimal) {
+      problems.push(
+        `${path}.effect: a dose is for the animal the prescription names, not for every animal in her pen`
+      );
+    }
+    return problems;
+  }
   if (effect.kind === "move" || effect.kind === "observation") {
     // Both are a choice the person makes about one animal: which Pen she was walked to, or
     // what was seen of her. A Step that offers nothing to choose would silently do nothing.
@@ -226,6 +249,10 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
         problems.push(`${at}.times: "${time}" is not a time of day`);
       }
     }
+    return problems;
+  }
+  // A Prescription says when its own doses fall due, so there is nothing here to be wrong.
+  if (trigger.kind === "prescription") {
     return problems;
   }
   // An event or a State the farm does not record is work that would never arrive, and the
