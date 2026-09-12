@@ -100,7 +100,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
 
-**Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. _Avoid_: Removal, destruction
+**Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. Never a word for a Sale — an Animal sold is Sold, and "disposal" is what happened to a body. _Avoid_: Removal, destruction
 
 **Notifiable Disease**: A disease on the farm's list of conditions that must be reported to DLS in writing without delay. A Diagnosis of one auto-raises the DLS report SOP. _Avoid_: Reportable disease, outbreak
 

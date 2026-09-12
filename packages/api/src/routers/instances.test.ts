@@ -487,10 +487,11 @@ describe("review findings", () => {
     const before = await owner.client.instances.get({ id: instance.id });
     const doomed = before.animals[0]?.tagNumber ?? "";
 
-    await owner.client.animals.setState({
+    await owner.client.animals.recordMortality({
       tagNumber: doomed,
-      state: "died",
-      reason: "test",
+      kind: "died",
+      cause: "test",
+      disposal: "buried",
     });
 
     const after = await owner.client.instances.get({ id: instance.id });

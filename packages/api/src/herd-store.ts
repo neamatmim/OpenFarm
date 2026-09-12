@@ -87,7 +87,6 @@ export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
   return row;
 };
 
-
 /**
  * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
  * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
@@ -155,6 +154,31 @@ export const moveOpenWorkWith = (
         inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
       )
     );
+
+/**
+ * Work raised about an animal who has left the herd is work nobody can do: she is not in the
+ * Pen to be dosed or looked at, and the Instance would sit there going late and telling people
+ * about a cow who is dead.
+ *
+ * Closed as missed, which is the farm's word for work that will not happen — settled, but not
+ * finished, and the reason is in the Audit Event that closed it.
+ */
+export const closeOpenWorkAboutHer = (
+  tx: Tx,
+  farmId: string,
+  animalId: string
+) =>
+  tx
+    .update(sopInstance)
+    .set({ state: "missed" })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        eq(sopInstance.animalId, animalId),
+        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
+      )
+    )
+    .returning({ id: sopInstance.id });
 
 /**
  * Has anything moved her since this entry was recorded? A Correction can put her back only

@@ -24,13 +24,53 @@ const roundSop = (): SopContent => ({
   ],
 });
 
+/** Work the farm hangs on a Move, so a dead cow has something of her own left open. */
+const checkSop = (): SopContent => ({
+  name: { bn: "স্থানান্তরের পর দেখা", en: "Post-move check" },
+  purpose: { bn: "নতুন পেনে পশুটি কেমন আছে দেখুন" },
+  triggers: [{ kind: "event", event: "move" }],
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 240,
+  steps: [
+    {
+      id: "settled",
+      text: { bn: "পশুটি থিতু হয়েছে?" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+    },
+  ],
+});
+
+/** The Playbook's mortality handling: raised by a death, and the Owner checks it. */
+const handlingSop = (): SopContent => ({
+  name: { bn: "মৃত পশু ব্যবস্থাপনা", en: "Mortality handling" },
+  purpose: { bn: "মৃতদেহ ছয় ফুট গভীরে মাটিচাপা দিন" },
+  triggers: [{ kind: "event", event: "death" }],
+  assignedRole: "manager",
+  checkerRole: "owner",
+  graceMinutes: 720,
+  steps: [
+    {
+      id: "buried",
+      text: { bn: "ছয় ফুট গভীরে মাটিচাপা দেওয়া হয়েছে?" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+    },
+  ],
+});
+
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const shed = await owner.client.herd.createShed({
     name: `mortality-${Date.now()}`,
   });
   const sop = await owner.client.sops.create({ content: roundSop() });
-  return { shedId: shed.id, sop };
+  const check = await owner.client.sops.create({ content: checkSop() });
+  const handling = await owner.client.sops.create({ content: handlingSop() });
+  return { shedId: shed.id, sop, check, handling };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -41,13 +81,19 @@ beforeAll(async () => {
 
 /** Hands the farm back: a round left standing raises work in every Pen on the farm. */
 afterAll(async () => {
-  const { eq } = await import("@OpenFarm/db/operators");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
   const { scratchDb } = await import("@OpenFarm/test-harness");
+  const { inArray } = await import("@OpenFarm/db/operators");
   await scratchDb()
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
-    .where(eq(sopDefinition.id, world.sop.definitionId));
+    .where(
+      inArray(sopDefinition.id, [
+        world.sop.definitionId,
+        world.check.definitionId,
+        world.handling.definitionId,
+      ])
+    );
 });
 
 /** A Pen of her own, and a cow in it. */
@@ -73,14 +119,13 @@ describe("a death and a cull", () => {
     const clock = new FakeClock("2026-12-01T02:00:00.000Z");
     const { pen, cow } = await aCowOfHerOwn(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    const staff = await createTestClient(appRouter, { as: "staff", clock });
 
     // She was on the pen board this morning.
-    await staff.client.instances.ensureDue();
+    await manager.client.instances.ensureDue();
     const before = await manager.client.animals.list({ penId: pen.id });
     expect(before.map((one) => one.id)).toContain(cow.id);
 
-    await manager.client.animals.recordExit({
+    await manager.client.animals.recordMortality({
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "পেট ফুলে গিয়েছিল, সকালে মরে পড়ে ছিল",
@@ -91,14 +136,17 @@ describe("a death and a cull", () => {
     // Off the herd, and out of the day's work in one act.
     const after = await manager.client.animals.list({ penId: pen.id });
     expect(after.map((one) => one.id)).not.toContain(cow.id);
-    const today = await staff.client.instances.today({ penId: pen.id });
+    // Asked as the Manager: Barn Staff see the Pens they are assigned to, and nobody is
+    // assigned to a Pen made a minute ago.
+    const today = await manager.client.instances.today({ penId: pen.id });
     const round = today.find(
       (row) => row.definitionId === world.sop.definitionId
     );
-    if (round) {
-      const board = await staff.client.instances.get({ id: round.id });
-      expect(board.animals.map((one) => one.id)).not.toContain(cow.id);
+    if (!round) {
+      throw new Error("expected the morning round in her pen");
     }
+    const board = await manager.client.instances.get({ id: round.id });
+    expect(board.animals.map((one) => one.id)).not.toContain(cow.id);
 
     // And her page still says everything it said, with how she went on it.
     const her = await manager.client.animals.byTag({
@@ -127,7 +175,7 @@ describe("a death and a cull", () => {
     for (const role of ["staff", "vet"] as const) {
       const them = await createTestClient(appRouter, { as: role, clock });
       // oxlint-disable-next-line no-await-in-loop
-      await expect(them.client.animals.recordExit(exit)).rejects.toThrow();
+      await expect(them.client.animals.recordMortality(exit)).rejects.toThrow();
     }
     const staff = await createTestClient(appRouter, { as: "staff", clock });
     const stillHere = await staff.client.animals.byTag({
@@ -138,7 +186,7 @@ describe("a death and a cull", () => {
 
     // The Manager culls her, and the reason she was culled is on the record.
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.animals.recordExit(exit);
+    await manager.client.animals.recordMortality(exit);
     const her = await manager.client.animals.byTag({
       tagNumber: cow.tagNumber,
     });
@@ -151,7 +199,7 @@ describe("a death and a cull", () => {
 
     // She goes once: a second exit would lose which one the farm stands behind.
     await expect(
-      manager.client.animals.recordExit({ ...exit, kind: "died" })
+      manager.client.animals.recordMortality({ ...exit, kind: "died" })
     ).rejects.toThrow(/has left the farm/u);
   });
 
@@ -162,7 +210,7 @@ describe("a death and a cull", () => {
 
     // Found dead this morning; written up at noon, and the record says which was which.
     const foundAt = new Date(clock.now().getTime() - 4 * 60 * 60 * 1000);
-    await manager.client.animals.recordExit({
+    await manager.client.animals.recordMortality({
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "সাপে কাটা",
@@ -175,23 +223,23 @@ describe("a death and a cull", () => {
     });
     expect(her.mortality?.happenedAt).toEqual(foundAt);
 
-    // An Audit Event like any other: against the animal, with the cause as its reason, under
-    // the Role the person acted in.
-    const trail = await manager.client.audit.list({
-      entity: "animal",
-      entityId: cow.id,
-    });
-    expect(trail.at(0)).toMatchObject({
-      action: "update",
+    // An Audit Event like any other: keyed on the mortality itself, so putting it right later
+    // is a Correction pointing at this, and what it says about her is in the snapshot rather
+    // than only in a reason field.
+    const trail = await manager.client.audit.list({ entity: "mortality" });
+    const written = trail.find(
+      (event) => (event.after as { cause?: string } | null)?.cause === "সাপে কাটা"
+    );
+    expect(written).toMatchObject({
+      action: "create",
       roleUsed: "manager",
-      reason: "সাপে কাটা",
-      after: { state: "died" },
+      after: { kind: "died", disposal: "buried" },
     });
 
     // And she cannot have gone tomorrow.
     const another = await aCowOfHerOwn(clock);
     await expect(
-      manager.client.animals.recordExit({
+      manager.client.animals.recordMortality({
         tagNumber: another.cow.tagNumber,
         kind: "died",
         cause: "ভুল তারিখ",
@@ -204,7 +252,7 @@ describe("a death and a cull", () => {
     const clock = new FakeClock("2026-12-04T02:00:00.000Z");
     const { cow } = await aCowOfHerOwn(clock);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
-    await manager.client.animals.recordExit({
+    await manager.client.animals.recordMortality({
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "কারণ জানা যায়নি",
@@ -247,7 +295,7 @@ describe("a death and a cull", () => {
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
     const before = await owner.client.home.owner();
-    await manager.client.animals.recordExit({
+    await manager.client.animals.recordMortality({
       tagNumber: cow.tagNumber,
       kind: "died",
       cause: "হঠাৎ মরে গেছে",
@@ -259,5 +307,73 @@ describe("a death and a cull", () => {
     const after = await owner.client.home.owner();
     expect(after.tiles.died).toBe(before.tiles.died + 1);
     expect(after.tiles.culled).toBe(before.tiles.culled);
+  });
+  it("closes the work that was about her, and lets the Playbook take over", async () => {
+    const clock = new FakeClock("2026-12-06T02:00:00.000Z");
+    const { pen, cow, owner } = await aCowOfHerOwn(clock);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+
+    // A check raised about her by her last Move: work about one animal, hers alone.
+    const other = await owner.client.herd.createPen({
+      shedId: world.shedId,
+      name: `আরেক ${Date.now()}`,
+    });
+    await manager.client.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: other.id,
+      reason: "দেখে রাখার জন্য",
+    });
+    await manager.client.instances.ensureDue();
+    const hers = await manager.client.instances.today({ penId: other.id });
+    const check = hers.find(
+      (row) =>
+        row.animalId === cow.id && row.definitionId === world.check.definitionId
+    );
+    if (!check) {
+      throw new Error("expected the post-move check about her");
+    }
+
+    await manager.client.animals.recordMortality({
+      tagNumber: cow.tagNumber,
+      kind: "died",
+      cause: "রাতে মরে গেছে",
+      disposal: "buried",
+    });
+
+    // Work nobody can do is settled rather than left going late about a cow who is buried.
+    const after = await manager.client.instances.get({ id: check.id });
+    expect(after.state).toBe("missed");
+
+    // And the Playbook's own mortality handling is raised by her death: bury her to the depth
+    // the rule names, and the Owner checks it.
+    await manager.client.instances.ensureDue();
+    const handling = await manager.client.instances.today({ penId: other.id });
+    expect(
+      handling.some(
+        (row) =>
+          row.definitionId === world.handling.definitionId &&
+          row.animalId === cow.id
+      )
+    ).toBe(true);
+    expect(pen.id).not.toBe(other.id);
+  });
+  it("cannot be done by setting her State instead", async () => {
+    const clock = new FakeClock("2026-12-07T02:00:00.000Z");
+    const { cow } = await aCowOfHerOwn(clock);
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+
+    // Marking her dead without saying how would leave the farm with a dead cow and no cause,
+    // no disposal, and nothing for an inspector to read.
+    for (const state of ["died", "culled"] as const) {
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        manager.client.animals.setState({ tagNumber: cow.tagNumber, state })
+      ).rejects.toThrow(/cause and disposal/u);
+    }
+
+    const her = await manager.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+    expect(her.state).toBe("heifer");
   });
 });

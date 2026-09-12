@@ -99,10 +99,11 @@ describe("tag numbers", () => {
 
   it("never reuses a number, even after the animal has left", async () => {
     const gone = await registerDairyCalf();
-    await pens.owner.client.animals.setState({
+    await pens.owner.client.animals.recordMortality({
       tagNumber: gone.tagNumber,
-      state: "died",
-      reason: "test",
+      kind: "died",
+      cause: "test",
+      disposal: "buried",
     });
 
     const next = await registerDairyCalf();
@@ -336,10 +337,11 @@ describe("audit", () => {
 describe("review findings", () => {
   it("nothing may change an animal that has left", async () => {
     const { tagNumber } = await registerDairyCalf();
-    await pens.owner.client.animals.setState({
+    await pens.owner.client.animals.recordMortality({
       tagNumber,
-      state: "died",
-      reason: "test",
+      kind: "died",
+      cause: "test",
+      disposal: "buried",
     });
 
     await expect(

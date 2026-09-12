@@ -30,6 +30,9 @@ const QUEUE_LIMIT = 50;
 /** How far back the day's late work is worth listing. Older than this and it is not a queue
  *  any more; it is a conversation the farm needs to have about the month. */
 const LATE_SINCE_DAYS = 30;
+/** How far back the Owner's tile counts the farm's losses. A month is what a farm judges a
+ *  mortality rate over, and it is the Owner's number rather than a list of late work. */
+export const MORTALITY_DAYS = 30;
 
 /** How many milkings the Owner's tile shows beside today's: a week of them, which is what
  *  a farm reads a day against. */

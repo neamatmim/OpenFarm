@@ -43,6 +43,7 @@ import {
   assertPenIsTheirs,
   loadLiveAnimal,
   nextTagNumber,
+  closeOpenWorkAboutHer,
   requireAnimal,
   requirePen,
 } from "../herd-store";
@@ -538,7 +539,7 @@ export const animalsRouter = {
    * exactly where they are: the farm's mortality register is read from this row, and the
    * six-month disease history an inspector asks for is read from the ones beside it.
    */
-  recordExit: protectedProcedure
+  recordMortality: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(
       z.object({
@@ -556,11 +557,6 @@ export const animalsRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
       const happenedAt = input.happenedAt ?? now;
       if (happenedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
@@ -568,14 +564,16 @@ export const animalsRouter = {
         });
       }
       const id = newId(now);
+      let closed = 0;
       await audited(context).write(
         {
-          entity: "animal",
-          entityId: target.id,
-          action: "update",
-          reason: input.cause,
-          before: (tx) => readAnimal(tx, target.id),
-          after: (tx) => readAnimal(tx, target.id),
+          // Keyed on the Mortality, not on the animal, so that putting it right later is a
+          // Correction pointing at this event rather than an edit nothing links back to. What
+          // it says about her is in the snapshot, where the trail can read it.
+          entity: "mortality",
+          entityId: id,
+          action: "create",
+          after: (tx) => readMortality(tx, id),
         },
         async (tx) => {
           // Live, because an animal who has already left cannot leave again — and recording a
@@ -601,10 +599,20 @@ export const animalsRouter = {
               stateChangedAt: happenedAt,
               updatedAt: now,
             })
-            .where(eq(animal.id, her.id));
+            .where(
+              and(eq(animal.id, her.id), eq(animal.farmId, context.farm.id))
+            );
+          // Work about her outlives her otherwise: a dose due tomorrow, a check raised by her
+          // last Move, both going late and telling somebody about a cow who is buried.
+          const settled = await closeOpenWorkAboutHer(
+            tx,
+            context.farm.id,
+            her.id
+          );
+          closed = settled.length;
         }
       );
-      return { tagNumber, state: input.kind };
+      return { tagNumber, state: input.kind, workClosed: closed };
     }),
 
   /**
@@ -612,15 +620,18 @@ export const animalsRouter = {
    * wrong, the morning it actually happened.
    *
    * A Correction like any other — it carries a reason, it is bounded by the Role's Correction
-   * Window, and the trail holds what the record said before. What it cannot change is whether
-   * she died or was culled: that is her exit State as well as this row, and an animal who left
-   * one way did not leave the other.
+   * Window, and the trail holds what the record said before.
+   *
+   * Whether she died or was culled can be put right too: it is her exit State as well as this
+   * row, so both move together, and a death written up as a cull by somebody in a hurry is a
+   * mistake the farm can correct rather than live with.
    */
   correctMortality: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(
       z.object({
         tagNumber: tagInput,
+        kind: z.enum(MORTALITY_KINDS).optional(),
         cause: z.string().trim().min(1).max(300).optional(),
         disposal: z.enum(DISPOSALS).optional(),
         disposalNote: z.string().trim().max(300).optional(),
@@ -684,6 +695,7 @@ export const animalsRouter = {
           await tx
             .update(mortality)
             .set({
+              ...(input.kind ? { kind: input.kind } : {}),
               ...(input.cause ? { cause: input.cause } : {}),
               ...(input.disposal ? { disposal: input.disposal } : {}),
               ...(input.disposalNote === undefined
@@ -692,12 +704,25 @@ export const animalsRouter = {
               ...(input.happenedAt ? { happenedAt: input.happenedAt } : {}),
             })
             .where(eq(mortality.id, existing.id));
-          if (input.happenedAt) {
-            // Her State changed when she went, not when somebody typed it.
+          if (input.happenedAt || input.kind) {
+            // Her State is the other half of this record, so the two move together: the
+            // instant she went, and the way she went. Both are in this event's own snapshot,
+            // so the trail says why her State moved with it.
             await tx
               .update(animal)
-              .set({ stateChangedAt: input.happenedAt, updatedAt: now })
-              .where(eq(animal.id, target.id));
+              .set({
+                ...(input.kind ? { state: input.kind } : {}),
+                ...(input.happenedAt
+                  ? { stateChangedAt: input.happenedAt }
+                  : {}),
+                updatedAt: now,
+              })
+              .where(
+                and(
+                  eq(animal.id, target.id),
+                  eq(animal.farmId, context.farm.id)
+                )
+              );
           }
         }
       );
@@ -735,6 +760,18 @@ export const animalsRouter = {
         },
         async (tx) => {
           const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          // A death or a cull is an act with a record behind it — the cause, and what was
+          // done with the carcass — so it is recorded as a Mortality and not as a State
+          // somebody sets, which would leave the farm saying a cow is dead and nothing saying
+          // how. Sold has no record of its own until the Sale arrives (increment 4); refusing
+          // it here would leave the farm unable to say a cow was sold at all.
+          if ((MORTALITY_KINDS as readonly string[]).includes(input.state)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "A death or a cull is recorded with its cause and disposal, not as a change of state",
+              data: { refusal: "exit_needs_a_record" },
+            });
+          }
           if (!canTransition(current.state, input.state)) {
             throw new ORPCError("BAD_REQUEST", {
               message: `An animal cannot go from ${current.state} to ${input.state}`,

@@ -198,7 +198,9 @@ export const happeningSlotsFor = (
         if (
           !(
             matches &&
-            isOnTheFarm(happening) &&
+            // Work about a cow who has left is exactly what a death raises, and nothing else
+            // may be raised about her.
+            (happening.kind === "death" || isOnTheFarm(happening)) &&
             happening.at >= earliest &&
             happening.at >= sop.triggersInForceSince &&
             appliesToAnimal(sop.content.appliesTo, happening)
@@ -281,6 +283,20 @@ export const recentHappenings = async (
         kind: "arrival",
         key: `arrival:${beast.id}`,
         at: beast.createdAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+    // A death or a cull is its own happening, not a State an animal reached: the Playbook's
+    // mortality handling — bury her, report her — is work about a cow who has left, and every
+    // other State trigger is about one who has not.
+    if (!(isOnTheFarm(beast) || beast.stateChangedAt < earliest)) {
+      happenings.push({
+        kind: "death",
+        key: `death:${beast.id}:${beast.stateChangedAt.toISOString()}`,
+        at: beast.stateChangedAt,
         animalId: beast.id,
         penId: beast.penId,
         side: beast.side,
