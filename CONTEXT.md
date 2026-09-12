@@ -98,6 +98,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Campaign**: A vaccination or a deworming run over a Pen as one piece of work with a per-Animal Step, so every Animal ends up with the Treatment in her own history. The Version names the product; the Manager decides the day. _Avoid_: Programme, batch treatment, mass medication
 
+**Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
+
+**Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. _Avoid_: Removal, destruction
+
 **Notifiable Disease**: A disease on the farm's list of conditions that must be reported to DLS in writing without delay. A Diagnosis of one auto-raises the DLS report SOP. _Avoid_: Reportable disease, outbreak
 
 ## Milk

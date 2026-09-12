@@ -1,4 +1,10 @@
-import { allowedNextStates } from "@OpenFarm/domain";
+import type { Disposal, MortalityKind } from "@OpenFarm/domain";
+import {
+  DISPOSALS,
+  MORTALITY_KINDS,
+  allowedNextStates,
+} from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -119,6 +125,16 @@ const AnimalPage = () => {
           ) : null}
         </div>
       </header>
+
+      <HowSheWent
+        detail={detail}
+        mayRecord={
+          me.data?.roles.some(
+            (role) => role === "owner" || role === "manager"
+          ) ?? false
+        }
+        onRecorded={refresh}
+      />
 
       <Withdrawals
         detail={detail}
@@ -342,6 +358,142 @@ const AnimalPage = () => {
         ) : null}
       </section>
     </div>
+  );
+};
+
+/**
+ * How she left the herd, or — for an Owner or a Manager looking at an animal who is still
+ * here — the way to write it down.
+ *
+ * Disposal is evidence: the burial rule is six feet and an inspector may ask which it was, so
+ * the farm records it beside the cause rather than leaving it in somebody's memory.
+ */
+const HowSheWent = ({
+  detail,
+  mayRecord,
+  onRecorded,
+}: {
+  detail: {
+    tagNumber: string;
+    state: string;
+    mortality: {
+      kind: string;
+      happenedAt: Date;
+      cause: string;
+      disposal: string;
+      disposalNote: string | null;
+      recordedByName: string | null;
+    } | null;
+  };
+  mayRecord: boolean;
+  onRecorded: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const [kind, setKind] = useState<MortalityKind>("died");
+  const [cause, setCause] = useState("");
+  const [disposal, setDisposal] = useState<Disposal>("buried");
+  const [note, setNote] = useState("");
+  const record = useMutation(
+    orpc.animals.recordExit.mutationOptions({
+      onSuccess: () => {
+        setCause("");
+        toast.success(t("mortality.recorded"));
+        onRecorded();
+      },
+      onError: (error) => toast.error(error.message || t("common.error")),
+    })
+  );
+
+  if (detail.mortality) {
+    const gone = detail.mortality;
+    return (
+      <section className="space-y-1 rounded-lg border p-4 text-sm">
+        <p className="font-medium">
+          {t(`mortality.${gone.kind}` as MessageKey)}
+        </p>
+        <p className="text-muted-foreground">
+          {formatDate(new Date(gone.happenedAt), language, "dateTime")} ·{" "}
+          {gone.cause}
+        </p>
+        <p className="text-muted-foreground">
+          {t(`mortality.${gone.disposal}` as MessageKey)}
+          {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
+          {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
+        </p>
+      </section>
+    );
+  }
+  if (!mayRecord) {
+    return null;
+  }
+
+  return (
+    <details className="rounded-lg border p-4 text-sm">
+      <summary className="cursor-pointer">{t("mortality.record")}</summary>
+      <form
+        className="mt-2 space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          record.mutate({
+            tagNumber: detail.tagNumber,
+            kind,
+            cause: cause.trim(),
+            disposal,
+            ...(note.trim() ? { disposalNote: note.trim() } : {}),
+          });
+        }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="mortality-kind">{t("mortality.kind")}</Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id="mortality-kind"
+            onChange={(event) => setKind(event.target.value as MortalityKind)}
+            value={kind}
+          >
+            {MORTALITY_KINDS.map((one) => (
+              <option key={one} value={one}>
+                {t(`mortality.${one}` as MessageKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-cause">{t("mortality.cause")}</Label>
+          <Input
+            id="mortality-cause"
+            onChange={(event) => setCause(event.target.value)}
+            value={cause}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-disposal">{t("mortality.disposal")}</Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id="mortality-disposal"
+            onChange={(event) => setDisposal(event.target.value as Disposal)}
+            value={disposal}
+          >
+            {DISPOSALS.map((one) => (
+              <option key={one} value={one}>
+                {t(`mortality.${one}` as MessageKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-note">{t("mortality.disposalNote")}</Label>
+          <Input
+            id="mortality-note"
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
+          />
+        </div>
+        <Button disabled={!cause.trim()} type="submit" variant="outline">
+          {t("mortality.record")}
+        </Button>
+      </form>
+    </details>
   );
 };
 

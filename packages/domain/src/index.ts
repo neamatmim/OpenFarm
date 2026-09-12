@@ -1,11 +1,19 @@
-export type { AnimalState, ExitState, Side } from "./lifecycle";
+export type {
+  AnimalState,
+  Disposal,
+  ExitState,
+  MortalityKind,
+  Side,
+} from "./lifecycle";
 export {
-  STATES as ANIMAL_STATES,
+  DISPOSALS,
   ENTRY_STATES,
   EXIT_STATES,
   LIVE_STATES,
+  MORTALITY_KINDS,
   SIDES,
   STATES,
+  STATES as ANIMAL_STATES,
   allowedNextStates,
   canTransition,
   isExitState,

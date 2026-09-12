@@ -6,18 +6,22 @@ import {
   animal,
   animalMove,
   animalPhoto,
+  mortality,
   retag,
 } from "@OpenFarm/db/schema/herd";
 import type { AnimalState } from "@OpenFarm/domain";
 import {
+  DISPOSALS,
   ENTRY_STATES,
   EXIT_STATES,
+  MORTALITY_KINDS,
   LIVE_STATES,
   PHOTO_MAX_BYTES,
   SIDES,
   STATES,
   canTransition,
   lactationView,
+  mayCorrect,
   withdrawalView,
   sideOfState,
   stateAfterSideChange,
@@ -29,7 +33,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { applyMove } from "../completion-store";
 import type { Context } from "../context";
-import { reasonInput } from "../corrections";
+import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { parseCsvRecords } from "../csv";
 import {
   theConclusionAndWhatFollowed,
@@ -106,6 +110,21 @@ const summaryColumns = {
   withdrawalShortenedAt: true,
   withdrawalShortenedReason: true,
 } as const;
+
+/** The mortality as the trail records it either side of a Correction. */
+const readMortality = async (tx: Tx, id: string) => {
+  const row = await tx.query.mortality.findFirst({
+    where: { id },
+    columns: {
+      kind: true,
+      happenedAt: true,
+      cause: true,
+      disposal: true,
+      disposalNote: true,
+    },
+  });
+  return row ?? null;
+};
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
 const penScope = (assigned: string[] | null, requested: string | undefined) => {
@@ -320,6 +339,8 @@ export const animalsRouter = {
           },
           /** Every dose she has actually had, a course's or a campaign's. This is what a
            *  slaughter vet asks for: per animal, not per campaign. */
+          /** How she went, for an animal who has left. */
+          mortality: { with: { recorder: { columns: { name: true } } } },
           treatments: {
             where: { givenAt: { isNotNull: true } },
             orderBy: { givenAt: "desc" },
@@ -370,6 +391,16 @@ export const animalsRouter = {
         diagnoses: readsTheClinicalRecord
           ? row.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
+        mortality: row.mortality
+          ? {
+              kind: row.mortality.kind,
+              happenedAt: row.mortality.happenedAt,
+              cause: row.mortality.cause,
+              disposal: row.mortality.disposal,
+              disposalNote: row.mortality.disposalNote,
+              recordedByName: row.mortality.recorder?.name ?? null,
+            }
+          : null,
         /** Barn Staff give the doses, so they may read what has been given (roles matrix:
          *  treatment instances). What the Vet concluded stays the clinical record's own. */
         treatments: row.treatments.map(({ product, giver, ...dose }) => ({
@@ -489,6 +520,185 @@ export const animalsRouter = {
             movedBy: context.actor.id,
             movedAt: now,
           });
+        }
+      );
+      return { tagNumber };
+    }),
+
+  /**
+   * Records that an Animal died or was culled: when, the cause as far as the farm knows it, and
+   * what was done with the carcass.
+   *
+   * The Owner's and the Manager's act, and nobody else's (roles matrix). It is one act, so it
+   * is one transaction: she reaches her exit State and the mortality is written together, and
+   * from that moment she is off the pen boards, out of the day's work and out of the
+   * headcounts — everywhere at once, because everywhere reads the same State.
+   *
+   * Nothing of hers is removed. Her litres, her Treatments, her Moves and her Observations stay
+   * exactly where they are: the farm's mortality register is read from this row, and the
+   * six-month disease history an inspector asks for is read from the ones beside it.
+   */
+  recordExit: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        kind: z.enum(MORTALITY_KINDS),
+        /** What the farm knows, not a diagnosis: a Vet's conclusion is a Diagnosis. */
+        cause: z.string().trim().min(1).max(300),
+        disposal: z.enum(DISPOSALS),
+        disposalNote: z.string().trim().max(300).optional(),
+        /** When she went, if it was not now — the morning round finds her, the record is
+         *  written at noon. */
+        happenedAt: z.coerce.date().optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      const happenedAt = input.happenedAt ?? now;
+      if (happenedAt > now) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "An animal cannot have died in the future",
+        });
+      }
+      const id = newId(now);
+      await audited(context).write(
+        {
+          entity: "animal",
+          entityId: target.id,
+          action: "update",
+          reason: input.cause,
+          before: (tx) => readAnimal(tx, target.id),
+          after: (tx) => readAnimal(tx, target.id),
+        },
+        async (tx) => {
+          // Live, because an animal who has already left cannot leave again — and recording a
+          // second exit over the first would lose which one the farm stands behind.
+          const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          await tx.insert(mortality).values({
+            id,
+            farmId: context.farm.id,
+            animalId: her.id,
+            kind: input.kind,
+            happenedAt,
+            cause: input.cause,
+            disposal: input.disposal,
+            disposalNote: input.disposalNote ?? null,
+            recordedBy: context.actor.id,
+            recordedByRole: context.roleUsed,
+            recordedAt: now,
+          });
+          await tx
+            .update(animal)
+            .set({
+              state: input.kind,
+              stateChangedAt: happenedAt,
+              updatedAt: now,
+            })
+            .where(eq(animal.id, her.id));
+        }
+      );
+      return { tagNumber, state: input.kind };
+    }),
+
+  /**
+   * Puts a mortality right: the cause the farm learned afterwards, the disposal written down
+   * wrong, the morning it actually happened.
+   *
+   * A Correction like any other — it carries a reason, it is bounded by the Role's Correction
+   * Window, and the trail holds what the record said before. What it cannot change is whether
+   * she died or was culled: that is her exit State as well as this row, and an animal who left
+   * one way did not leave the other.
+   */
+  correctMortality: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        cause: z.string().trim().min(1).max(300).optional(),
+        disposal: z.enum(DISPOSALS).optional(),
+        disposalNote: z.string().trim().max(300).optional(),
+        happenedAt: z.coerce.date().optional(),
+        reason: reasonInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const tagNumber = input.tagNumber.toUpperCase();
+      const target = await requireAnimal(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
+      const existing = await context.db.query.mortality.findFirst({
+        where: { animalId: target.id, farmId: context.farm.id },
+        columns: { id: true, recordedBy: true, recordedAt: true },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", {
+          message: `${tagNumber} has no death or cull recorded`,
+        });
+      }
+      if (input.happenedAt && input.happenedAt > now) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "An animal cannot have died in the future",
+        });
+      }
+      const verdict = mayCorrect({
+        roles: context.roles,
+        isOwnEntry: existing.recordedBy === context.actor.id,
+        recordedAt: existing.recordedAt,
+        now,
+        windows: correctionWindows(context.farm),
+      });
+      if (!verdict.allowed) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "The correction window for that entry has closed",
+          data: { refusal: refusalData(verdict.refusal) },
+        });
+      }
+      const audit = audited(context);
+      const previous = await audit.latestEventFor(
+        context.db,
+        "mortality",
+        existing.id
+      );
+      await audit.write(
+        {
+          entity: "mortality",
+          entityId: existing.id,
+          action: "correct",
+          reason: input.reason,
+          roleUsed: verdict.role,
+          supersedesId: previous?.id,
+          before: (tx) => readMortality(tx, existing.id),
+          after: (tx) => readMortality(tx, existing.id),
+        },
+        async (tx) => {
+          await tx
+            .update(mortality)
+            .set({
+              ...(input.cause ? { cause: input.cause } : {}),
+              ...(input.disposal ? { disposal: input.disposal } : {}),
+              ...(input.disposalNote === undefined
+                ? {}
+                : { disposalNote: input.disposalNote }),
+              ...(input.happenedAt ? { happenedAt: input.happenedAt } : {}),
+            })
+            .where(eq(mortality.id, existing.id));
+          if (input.happenedAt) {
+            // Her State changed when she went, not when somebody typed it.
+            await tx
+              .update(animal)
+              .set({ stateChangedAt: input.happenedAt, updatedAt: now })
+              .where(eq(animal.id, target.id));
+          }
         }
       );
       return { tagNumber };

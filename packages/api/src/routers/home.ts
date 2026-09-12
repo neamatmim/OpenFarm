@@ -248,6 +248,7 @@ export const homeRouter = {
         completions,
         held,
         today,
+        mortalities,
         approvals,
         week,
       ] = await Promise.all([
@@ -272,6 +273,18 @@ export const homeRouter = {
         }),
         heldByWithdrawal(context.db, farmId, now),
         daysWork(context.db, farmId, now),
+        // What the farm has lost lately. The register an inspector reads is increment 7's; the
+        // number a farm lives by is this one, and it belongs where the Owner's other numbers
+        // are rather than nowhere until then.
+        context.db.query.mortality.findMany({
+          where: {
+            farmId,
+            happenedAt: {
+              gte: new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS),
+            },
+          },
+          columns: { id: true, kind: true },
+        }),
         // Work waiting on the Owner's own word. Money Events join this row in increment 6;
         // today the only thing anybody waits on an Owner to approve is work whose Version
         // named the Owner as its checker.
@@ -394,6 +407,9 @@ export const homeRouter = {
           underWithdrawal: held.filter((beast) =>
             underMilkWithdrawal(beast, now)
           ).length,
+          /** What the farm has lost in the last thirty days, and how. */
+          died: mortalities.filter((row) => row.kind === "died").length,
+          culled: mortalities.filter((row) => row.kind === "culled").length,
         },
       };
     }),

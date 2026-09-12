@@ -208,6 +208,20 @@ const OwnerHome = () => {
               {formatNumber(tiles.underWithdrawal, language)}
             </p>
           </Link>
+          {/* What the farm has lost lately. The register an inspector reads comes later; the
+              number a farm lives by belongs with the Owner's other numbers now. */}
+          <div className="rounded-xl border p-3">
+            <p className="text-muted-foreground text-sm">{t("home.died")}</p>
+            <p className="text-lg font-medium">
+              {formatNumber(tiles.died, language)}
+            </p>
+          </div>
+          <div className="rounded-xl border p-3">
+            <p className="text-muted-foreground text-sm">{t("home.culled")}</p>
+            <p className="text-lg font-medium">
+              {formatNumber(tiles.culled, language)}
+            </p>
+          </div>
         </div>
         <p className="text-muted-foreground text-xs">{t("owner.later")}</p>
       </section>

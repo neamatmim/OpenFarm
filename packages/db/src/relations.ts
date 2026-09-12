@@ -34,6 +34,20 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.treatment.animalId,
     }),
+    /** How she went, for an animal who has left. */
+    mortality: r.one.mortality({
+      from: r.animal.id,
+      to: r.mortality.animalId,
+    }),
+  },
+  mortality: {
+    animal: r.one.animal({
+      from: r.mortality.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    /** Who wrote it down: a mortality is evidence, so its author is part of it. */
+    recorder: r.one.user({ from: r.mortality.recordedBy, to: r.user.id }),
   },
   animalMove: {
     animal: r.one.animal({
