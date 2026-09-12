@@ -30,6 +30,9 @@ const QUEUE_LIMIT = 50;
 /** How far back the day's late work is worth listing. Older than this and it is not a queue
  *  any more; it is a conversation the farm needs to have about the month. */
 const LATE_SINCE_DAYS = 30;
+/** How far back the Owner's tile counts the farm's losses. A month is what a farm judges a
+ *  mortality rate over, and it is the Owner's number rather than a list of late work. */
+export const MORTALITY_DAYS = 30;
 
 /** How many milkings the Owner's tile shows beside today's: a week of them, which is what
  *  a farm reads a day against. */
@@ -248,6 +251,7 @@ export const homeRouter = {
         completions,
         held,
         today,
+        mortalities,
         approvals,
         week,
       ] = await Promise.all([
@@ -272,6 +276,18 @@ export const homeRouter = {
         }),
         heldByWithdrawal(context.db, farmId, now),
         daysWork(context.db, farmId, now),
+        // What the farm has lost lately. The register an inspector reads is increment 7's; the
+        // number a farm lives by is this one, and it belongs where the Owner's other numbers
+        // are rather than nowhere until then.
+        context.db.query.mortality.findMany({
+          where: {
+            farmId,
+            happenedAt: {
+              gte: new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS),
+            },
+          },
+          columns: { id: true, kind: true },
+        }),
         // Work waiting on the Owner's own word. Money Events join this row in increment 6;
         // today the only thing anybody waits on an Owner to approve is work whose Version
         // named the Owner as its checker.
@@ -394,6 +410,9 @@ export const homeRouter = {
           underWithdrawal: held.filter((beast) =>
             underMilkWithdrawal(beast, now)
           ).length,
+          /** What the farm has lost in the last thirty days, and how. */
+          died: mortalities.filter((row) => row.kind === "died").length,
+          culled: mortalities.filter((row) => row.kind === "culled").length,
         },
       };
     }),

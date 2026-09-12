@@ -291,7 +291,7 @@ describe("the milking effect", () => {
       aliases: [],
     });
     // Deliberately sequential: the lifecycle refuses a state that skips a step.
-    const walkTo = (state: "pregnant_heifer" | "milking" | "died") =>
+    const walkTo = (state: "pregnant_heifer" | "milking") =>
       world.owner.client.animals.setState({
         tagNumber: doomed.tagNumber,
         state,
@@ -299,7 +299,13 @@ describe("the milking effect", () => {
       });
     await walkTo("pregnant_heifer");
     await walkTo("milking");
-    await walkTo("died");
+    // She leaves the herd the way the farm records it leaving: with a cause and a disposal.
+    await world.owner.client.animals.recordMortality({
+      tagNumber: doomed.tagNumber,
+      kind: "died",
+      cause: "test",
+      disposal: "buried",
+    });
     const { instance, staff } = await session("2026-10-13");
 
     // She keeps her Pen, so the Pen alone would still have let the entry through.

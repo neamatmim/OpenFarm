@@ -96,8 +96,12 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
  * actually records belongs here: a Trigger naming an event nobody writes is work that never
  * arrives, and the Owner would have no way of knowing. Calving, Service and Diagnosis join
  * the list in the increments that record them.
+ *
+ * A death is the one that raises work about an animal who is no longer on the farm — burying
+ * her to the depth the rule names, and reporting her if what killed her is notifiable. That is
+ * work precisely because she has gone.
  */
-export const FARM_EVENTS = ["move", "arrival"] as const;
+export const FARM_EVENTS = ["move", "arrival", "death"] as const;
 export type FarmEvent = (typeof FARM_EVENTS)[number];
 
 /** How far ahead of the event or the State change work may be hung. */

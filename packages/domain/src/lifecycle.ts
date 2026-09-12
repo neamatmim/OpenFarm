@@ -94,3 +94,16 @@ export const stateAfterSideChange = (
   }
   return toSide === "fattening" ? "fattening" : null;
 };
+
+/**
+ * How a carcass left the farm. Said here as well as in the schema because the database package
+ * depends on nothing; keep the two in step, as milk's destinations are.
+ *
+ * The burial rule is six feet, and which of these it was is what an inspector asks.
+ */
+export const DISPOSALS = ["buried", "burned"] as const;
+export type Disposal = (typeof DISPOSALS)[number];
+
+/** Why she left the herd: she died, or the farm culled her. */
+export const MORTALITY_KINDS = ["died", "culled"] as const;
+export type MortalityKind = (typeof MORTALITY_KINDS)[number];

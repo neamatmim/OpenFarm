@@ -1,4 +1,9 @@
-import { allowedNextStates } from "@OpenFarm/domain";
+import type { Disposal, MortalityKind } from "@OpenFarm/domain";
+import {
+  DISPOSALS,
+  MORTALITY_KINDS,
+  allowedNextStates,
+} from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -119,6 +124,16 @@ const AnimalPage = () => {
           ) : null}
         </div>
       </header>
+
+      <HowSheWent
+        detail={detail}
+        mayRecord={
+          me.data?.roles.some(
+            (role) => role === "owner" || role === "manager"
+          ) ?? false
+        }
+        onRecorded={refresh}
+      />
 
       <Withdrawals
         detail={detail}
@@ -342,6 +357,259 @@ const AnimalPage = () => {
         ) : null}
       </section>
     </div>
+  );
+};
+
+/** Putting a mortality right: what the farm learned afterwards, or a hurried entry corrected. */
+const PutItRight = ({
+  detail,
+  onDone,
+}: {
+  detail: {
+    tagNumber: string;
+    mortality: { kind: MortalityKind; cause: string; disposal: Disposal };
+  };
+  onDone: () => void;
+}) => {
+  const { t } = useLanguage();
+  const [kind, setKind] = useState<MortalityKind>(detail.mortality.kind);
+  const [cause, setCause] = useState(detail.mortality.cause);
+  const [disposal, setDisposal] = useState<Disposal>(detail.mortality.disposal);
+  const [reason, setReason] = useState("");
+  const correct = useMutation(
+    orpc.animals.correctMortality.mutationOptions({
+      onSuccess: () => {
+        setReason("");
+        toast.success(t("mortality.corrected"));
+        onDone();
+      },
+      onError: (error) => toast.error(error.message || t("common.error")),
+    })
+  );
+
+  return (
+    <details className="border-t pt-2">
+      <summary className="cursor-pointer">{t("mortality.correct")}</summary>
+      <form
+        className="mt-2 space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          correct.mutate({
+            tagNumber: detail.tagNumber,
+            kind,
+            cause: cause.trim(),
+            disposal,
+            reason: reason.trim(),
+          });
+        }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="fix-kind">{t("mortality.kind")}</Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id="fix-kind"
+            onChange={(event) => setKind(event.target.value as MortalityKind)}
+            value={kind}
+          >
+            {MORTALITY_KINDS.map((one) => (
+              <option key={one} value={one}>
+                {t(`mortality.${one}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="fix-cause">{t("mortality.cause")}</Label>
+          <Input
+            id="fix-cause"
+            onChange={(event) => setCause(event.target.value)}
+            value={cause}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="fix-disposal">{t("mortality.disposal")}</Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id="fix-disposal"
+            onChange={(event) => setDisposal(event.target.value as Disposal)}
+            value={disposal}
+          >
+            {DISPOSALS.map((one) => (
+              <option key={one} value={one}>
+                {t(`mortality.${one}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="fix-why">{t("mortality.why")}</Label>
+          <Input
+            id="fix-why"
+            onChange={(event) => setReason(event.target.value)}
+            value={reason}
+          />
+        </div>
+        <Button
+          disabled={!(cause.trim() && reason.trim())}
+          type="submit"
+          variant="outline"
+        >
+          {t("mortality.saveCorrection")}
+        </Button>
+      </form>
+    </details>
+  );
+};
+
+/**
+ * How she left the herd, or — for an Owner or a Manager looking at an animal who is still
+ * here — the way to write it down.
+ *
+ * Disposal is evidence: the burial rule is six feet and an inspector may ask which it was, so
+ * the farm records it beside the cause rather than leaving it in somebody's memory.
+ */
+const HowSheWent = ({
+  detail,
+  mayRecord,
+  onRecorded,
+}: {
+  detail: {
+    tagNumber: string;
+    mortality: {
+      kind: MortalityKind;
+      happenedAt: Date;
+      cause: string;
+      disposal: Disposal;
+      disposalNote: string | null;
+      recordedByName: string | null;
+    } | null;
+  };
+  mayRecord: boolean;
+  onRecorded: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const [kind, setKind] = useState<MortalityKind>("died");
+  const [cause, setCause] = useState("");
+  const [disposal, setDisposal] = useState<Disposal>("buried");
+  const [note, setNote] = useState("");
+  const [happenedAt, setHappenedAt] = useState("");
+  const record = useMutation(
+    orpc.animals.recordMortality.mutationOptions({
+      onSuccess: () => {
+        setCause("");
+        toast.success(t("mortality.recorded"));
+        onRecorded();
+      },
+      onError: (error) => toast.error(error.message || t("common.error")),
+    })
+  );
+
+  if (detail.mortality) {
+    const gone = detail.mortality;
+    return (
+      <section className="space-y-1 rounded-lg border p-4 text-sm">
+        <p className="font-medium">{t(`mortality.${gone.kind}`)}</p>
+        <p className="text-muted-foreground">
+          {formatDate(new Date(gone.happenedAt), language, "dateTime")} ·{" "}
+          {gone.cause}
+        </p>
+        <p className="text-muted-foreground">
+          {t(`mortality.${gone.disposal}`)}
+          {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
+          {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
+        </p>
+        {mayRecord ? (
+          <PutItRight
+            detail={{ tagNumber: detail.tagNumber, mortality: gone }}
+            onDone={onRecorded}
+          />
+        ) : null}
+      </section>
+    );
+  }
+  if (!mayRecord) {
+    return null;
+  }
+
+  return (
+    <details className="rounded-lg border p-4 text-sm">
+      <summary className="cursor-pointer">{t("mortality.record")}</summary>
+      <form
+        className="mt-2 space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          record.mutate({
+            tagNumber: detail.tagNumber,
+            kind,
+            cause: cause.trim(),
+            disposal,
+            ...(note.trim() ? { disposalNote: note.trim() } : {}),
+            // The round finds her at dawn and the record is written at noon; which was which
+            // is the farm's business, so it can be said.
+            ...(happenedAt ? { happenedAt: new Date(happenedAt) } : {}),
+          });
+        }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="mortality-kind">{t("mortality.kind")}</Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id="mortality-kind"
+            onChange={(event) => setKind(event.target.value as MortalityKind)}
+            value={kind}
+          >
+            {MORTALITY_KINDS.map((one) => (
+              <option key={one} value={one}>
+                {t(`mortality.${one}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-cause">{t("mortality.cause")}</Label>
+          <Input
+            id="mortality-cause"
+            onChange={(event) => setCause(event.target.value)}
+            value={cause}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-disposal">{t("mortality.disposal")}</Label>
+          <select
+            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            id="mortality-disposal"
+            onChange={(event) => setDisposal(event.target.value as Disposal)}
+            value={disposal}
+          >
+            {DISPOSALS.map((one) => (
+              <option key={one} value={one}>
+                {t(`mortality.${one}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-note">{t("mortality.disposalNote")}</Label>
+          <Input
+            id="mortality-note"
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="mortality-when">{t("mortality.happenedAt")}</Label>
+          <Input
+            id="mortality-when"
+            onChange={(event) => setHappenedAt(event.target.value)}
+            type="datetime-local"
+            value={happenedAt}
+          />
+        </div>
+        <Button disabled={!cause.trim()} type="submit" variant="outline">
+          {t("mortality.record")}
+        </Button>
+      </form>
+    </details>
   );
 };
 

@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { farm } from "./farm";
+import { ROLES, farm } from "./farm";
 
 export const SIDES = ["dairy", "fattening"] as const;
 export const ANIMAL_STATES = [
@@ -221,5 +221,54 @@ export const penAssignment = pgTable(
   },
   (table) => [
     uniqueIndex("pen_assignment_user_pen_uidx").on(table.userId, table.penId),
+  ]
+);
+
+/** How a carcass left the farm. The burial rule is six feet, and an inspector may ask which
+ *  of these it was — so these are the two the rule names, and the note carries the rest. */
+export const DISPOSALS = ["buried", "burned"] as const;
+
+/** Why she left, as far as the farm is answerable for it. */
+export const MORTALITY_KINDS = ["died", "culled"] as const;
+
+/**
+ * That an Animal died or was culled: when, the cause as far as the farm knows it, and how the
+ * carcass was disposed of.
+ *
+ * One row per Animal, because she goes once. Everything else recorded about her stays exactly
+ * where it is — her litres, her Treatments, her Moves — because a mortality is one more fact
+ * about her and not an erasure: the farm's mortality register is read from these rows, and the
+ * six-month disease history behind a slaughter certificate is read from the ones beside them.
+ *
+ * The cause is what the farm knows, not a diagnosis. A Vet's conclusion about what killed her
+ * is a Diagnosis, recorded by the Vet; this is the Manager saying what she found and what she
+ * did with the body.
+ */
+export const mortality = pgTable(
+  "mortality",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: MORTALITY_KINDS }).notNull(),
+    /** When she died or was culled, on the farm's clock — not when it was written down. */
+    happenedAt: timestamp("happened_at").notNull(),
+    cause: text("cause").notNull(),
+    disposal: text("disposal", { enum: DISPOSALS }).notNull(),
+    /** Where, how deep, who took her — the detail the rule does not name but an inspector
+     *  asks about. */
+    disposalNote: text("disposal_note"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    /** She goes once. Recording it again is a Correction of what is there. */
+    uniqueIndex("mortality_animal_uidx").on(table.animalId),
+    index("mortality_farm_idx").on(table.farmId, table.happenedAt),
   ]
 );
