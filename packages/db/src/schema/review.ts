@@ -12,6 +12,7 @@ export const REVIEW_REASONS = [
   "late_entry",
   "sync_gap",
   "clock_skew",
+  "implausible_weight",
 ] as const;
 export type ReviewReason = (typeof REVIEW_REASONS)[number];
 

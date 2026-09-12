@@ -471,9 +471,9 @@ const PutItRight = ({
  * Every time she has been on the scale, newest first.
  *
  * The whole list and not only the latest: fattening is the difference between two readings, and
- * a page that showed one weight would be hiding the thing the farm is actually measuring. What
- * the farm queried and the person stood behind says so, because a figure that looks wrong a year
- * from now should say whether anybody was asked about it.
+ * a page that showed one weight would be hiding the thing the farm is actually measuring. A
+ * reading the farm doubted says so and says why, because a figure that looks wrong a year from
+ * now should not need working out again.
  */
 const TheScale = ({
   readings,
@@ -482,7 +482,8 @@ const TheScale = ({
     id: string;
     weightKg: number;
     weighedAt: Date;
-    queried: boolean;
+    flagged: boolean;
+    flaggedNote: string | null;
     weighedByName: string | null;
   }[];
 }) => {
@@ -509,9 +510,10 @@ const TheScale = ({
                 {t("weighIn.by", { name: reading.weighedByName })}
               </span>
             ) : null}
-            {reading.queried ? (
+            {reading.flagged ? (
               <span className="text-xs text-amber-400">
-                {t("weighIn.queried")}
+                {t("weighIn.flagged")}
+                {reading.flaggedNote ? ` · ${reading.flaggedNote}` : ""}
               </span>
             ) : null}
           </li>

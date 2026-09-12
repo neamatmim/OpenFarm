@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "d295a094-d958-43f0-9e4c-54b5eb3f7642",
+  "id": "d4359c24-0443-4dbb-a5e6-4f91475ce218",
   "prevIds": ["42e2338b-2d30-4d91-916d-8b868b00c6b1"],
   "ddl": [
     {
@@ -2541,7 +2541,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "queried_note",
+      "name": "flagged_note",
       "entityType": "columns",
       "schema": "public",
       "table": "weigh_in"

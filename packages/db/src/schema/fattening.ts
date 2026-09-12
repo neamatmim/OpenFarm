@@ -114,9 +114,9 @@ export const weighIn = pgTable(
       .references(() => stepCompletion.id, { onDelete: "cascade" }),
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     method: text("method", { enum: WEIGH_METHODS }).notNull().default("scale"),
-    /** What the person was shown when the farm queried the reading and they went ahead. Null
-     *  for a reading nobody had to be asked about. */
-    queriedNote: text("queried_note"),
+    /** What the farm found doubtful about this reading, in its own words, and null for one it
+     *  did not doubt. The reading is kept either way: the barn wrote it down (ADR 0002). */
+    flaggedNote: text("flagged_note"),
     weighedAt: timestamp("weighed_at").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at").defaultNow().notNull(),

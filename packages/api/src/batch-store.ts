@@ -1,4 +1,5 @@
 import type { Database } from "@OpenFarm/db";
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { ORPCError } from "@orpc/server";
 
 import { raiseAlerts } from "./alerts-store";
@@ -33,22 +34,15 @@ const message = (error: unknown): string =>
     ? error.message
     : ((error as Error)?.message ?? "could not be recorded");
 
-/** Refusals that are questions rather than rules. A figure the farm doubts is one the person
- *  standing next to the animal may confirm; a gate they have no business overruling is not. */
-const QUESTIONS = new Set(["implausible_gain"]);
-
-const mayBeConfirmed = (error: unknown): boolean =>
-  error instanceof ORPCError &&
-  QUESTIONS.has(
-    String((error.data as { refusal?: unknown } | undefined)?.refusal)
-  );
-
 /** One entry, applied on the transaction the caller holds. */
 const applyEntry = async (
   tx: Tx,
   context: Recorder,
   entry: Entry,
-  receivedAt: Date
+  receivedAt: Date,
+  /** Made before the entry is applied, because an effect may have to hang a Needs Review on
+   *  it inside this same transaction. The Audit Event is then written under the same id. */
+  eventId: string
 ): Promise<{ entity: string; entityId: string; changed?: boolean }> => {
   if (entry.kind === "instance_claim") {
     await applyClaim(tx, context, entry.instanceId, receivedAt);
@@ -84,6 +78,7 @@ const applyEntry = async (
         recordedAt: entry.recordedAt,
       },
       receivedAt,
+      eventId,
       entry.id
     );
     return { entity: "step_completion", entityId: recorded.completionId };
@@ -299,11 +294,17 @@ const applyEntries = async (
 
     let outcome: EntryResult["outcome"] = "applied";
     let reason: string | null = null;
-    let mayConfirm = false;
+    const eventId = uuidv7(receivedAt);
     try {
       // oxlint-disable-next-line no-await-in-loop
       await tx.transaction(async (entryTx) => {
-        const target = await applyEntry(entryTx, context, entry, receivedAt);
+        const target = await applyEntry(
+          entryTx,
+          context,
+          entry,
+          receivedAt,
+          eventId
+        );
         if (target.changed === false) {
           // Nothing happened, so there is nothing to write down. The entry is still read,
           // which is what stops it being offered for ever.
@@ -319,13 +320,12 @@ const applyEntries = async (
             device: { id: context.device?.id ?? null, seq: entry.seq },
             after: entryAfter(entry),
           },
-          { receivedAt }
+          { eventId, receivedAt }
         );
       });
     } catch (error) {
       outcome = isLate(error) ? "kept" : "rejected";
       reason = message(error);
-      mayConfirm = mayBeConfirmed(error);
     }
     if (outcome === "applied" && skewed) {
       // The litres are still the litres; the phone's clock is the thing to look at.
@@ -344,7 +344,6 @@ const applyEntries = async (
       seq: entry.seq,
       outcome,
       ...(reason ? { reason } : {}),
-      ...(mayConfirm ? { mayConfirm } : {}),
     });
   }
 

@@ -582,8 +582,14 @@ export const instancesRouter = {
               effect: recorded?.effect ?? null,
             }),
         },
-        async (tx) => {
-          recorded = await applyCompletion(tx, context, input, receivedAt);
+        async (tx, eventId) => {
+          recorded = await applyCompletion(
+            tx,
+            context,
+            input,
+            receivedAt,
+            eventId
+          );
           return recorded;
         }
       );
@@ -874,6 +880,7 @@ export const instancesRouter = {
           // added to, and the Session's reconciliation is worked out afresh.
           effect = await runStepEffect(tx, {
             step,
+            eventId,
             instance: {
               id: instance.id,
               farmId: context.farm.id,

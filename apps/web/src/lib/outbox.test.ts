@@ -242,49 +242,6 @@ describe("when the farm answers", () => {
     expect(cleared.rejected).toBe(0);
   });
 
-  it("sends a doubted figure again when the person stands behind it", async () => {
-    const outbox = outboxOn();
-    await outbox.add("step_completion", milk(274), "a");
-    farm.says((batch) => ({
-      results: batch.entries.map((entry) => ({
-        id: String(entry.id),
-        seq: Number(entry.seq),
-        outcome: "rejected" as const,
-        reason: "that is more change than an animal makes",
-        // The farm doubted the figure; it did not refuse the act.
-        mayConfirm: true,
-      })),
-    }));
-    await outbox.flush();
-
-    const again = await outbox.confirm("a");
-    // It goes back carrying what the person was shown, under a new id: the farm has already
-    // answered the old one, and the same id twice is one fact by design.
-    expect(again?.id).not.toBe("a");
-    expect(again?.body).toMatchObject({
-      evidence: [274],
-      outOfRange: "that is more change than an animal makes",
-    });
-    expect(await outbox.state()).toMatchObject({ pending: 1, rejected: 0 });
-  });
-
-  it("will not send back a refusal that was a rule rather than a question", async () => {
-    const outbox = outboxOn();
-    await outbox.add("step_completion", milk(11), "a");
-    farm.says((batch) => ({
-      results: batch.entries.map((entry) => ({
-        id: String(entry.id),
-        seq: Number(entry.seq),
-        outcome: "rejected" as const,
-        reason: "no animal with tag D-0001",
-      })),
-    }));
-    await outbox.flush();
-
-    expect(await outbox.confirm("a")).toBeNull();
-    expect(await outbox.state()).toMatchObject({ pending: 0, rejected: 1 });
-  });
-
   it("lets go of an entry the farm kept for review: it is the farm's business now", async () => {
     const outbox = outboxOn();
     await outbox.add("step_completion", milk(11), "a");

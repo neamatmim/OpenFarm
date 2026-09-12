@@ -1,3 +1,4 @@
+import { and } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
@@ -79,13 +80,30 @@ beforeAll(async () => {
   world = await setup();
 });
 
+/**
+ * Every test file shares one Farm, and `appliesTo` can name a Side but not a Pen — so this
+ * file's SOP raises a round in *every* pen holding a fattening animal, including the ones other
+ * files made. Retiring the definition stops new ones; the rounds already raised have to be shut
+ * or they go Overdue for every file whose clock is later than this one's.
+ */
 afterAll(async () => {
-  const { eq } = await import("@OpenFarm/db/operators");
+  const { eq, inArray } = await import("@OpenFarm/db/operators");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
-  await scratchDb()
+  const { sopInstance } = await import("@OpenFarm/db/schema/instance");
+  const db = scratchDb();
+  await db
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
     .where(eq(sopDefinition.id, world.sop.definitionId));
+  await db
+    .update(sopInstance)
+    .set({ state: "missed" })
+    .where(
+      and(
+        eq(sopInstance.definitionId, world.sop.definitionId),
+        inArray(sopInstance.state, ["due", "in_progress"])
+      )
+    );
 });
 
 /** A round of the weigh-in for the farm's own pen, on its own day, claimed by the Staff
@@ -103,7 +121,8 @@ const round = async (day: string) => {
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
   await staff.client.instances.claim({ id: instance.id });
-  return { instance, staff, clock };
+  const manager = await createTestClient(appRouter, { as: "manager", clock });
+  return { instance, staff, manager, clock };
 };
 
 const tagOf = (index: number) => world.bulls[index]?.tagNumber ?? "";
@@ -143,36 +162,46 @@ describe("the fortnightly weigh-in", () => {
     expect(other.weighIns).toHaveLength(0);
   });
 
-  it("queries a jump nobody could have grown, and takes it when confirmed", async () => {
-    const { instance, staff } = await round("2027-02-15");
+  it("takes a jump nobody could have grown, and asks the Manager about it", async () => {
+    const { instance, staff, manager } = await round("2027-02-15");
 
-    // Fourteen days and sixty kilos: more than four kilos a day, which no bull does.
-    await expect(
-      staff.client.instances.completeStep({
-        instanceId: instance.id,
-        stepId: "weigh",
-        animalTag: tagOf(0),
-        evidence: [274],
-      })
-    ).rejects.toMatchObject({
-      code: "BAD_REQUEST",
-      data: { refusal: "implausible_gain" },
-    });
-
-    // The same reading, from somebody who has looked at the animal and means it.
-    const forced = await staff.client.instances.completeStep({
+    // Fourteen days and sixty kilos: more than four a day, which no bull does. The barn wrote
+    // it down, so it is kept (ADR 0002) — the farm does not throw away what somebody recorded.
+    const taken = await staff.client.instances.completeStep({
       instanceId: instance.id,
       stepId: "weigh",
       animalTag: tagOf(0),
       evidence: [274],
-      outOfRange: "4.3 kg/day",
     });
-    expect(forced.effect).toMatchObject({ kind: "weigh_in", queried: true });
+    expect(taken.effect).toMatchObject({
+      kind: "weigh_in",
+      weightKg: 274,
+      flagged: true,
+    });
 
     const her = await staff.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(her.weighIns).toHaveLength(2);
-    // Newest first: her page answers "what does she weigh now" before anything else.
-    expect(her.weighIns[0]).toMatchObject({ weightKg: 274, queried: true });
+    // Newest first: her page answers "what does she weigh now" before anything else, and says
+    // what was doubtful about it in the farm's own words.
+    expect(her.weighIns[0]).toMatchObject({ weightKg: 274, flagged: true });
+    expect(her.weighIns[0]?.flaggedNote).toContain("kg/day");
+
+    // And the Manager is asked rather than left to notice.
+    const board = await staff.client.instances.get({ id: instance.id });
+    const entry = board.completions.find(
+      (row) => row.stepId === "weigh" && row.animalId === her.id
+    );
+    const queue = await manager.client.review.open();
+    const asked = queue.find(
+      (row) => row.reason === "implausible_weight" && row.entityId === entry?.id
+    );
+    expect(asked).toBeDefined();
+    // Closed again, because the queue is the whole Farm's and every test file shares it: one
+    // left open here is one more between the next file and the cap.
+    await manager.client.review.resolve({
+      id: asked?.id ?? "",
+      resolution: "স্কেল দেখে নিশ্চিত করা হয়েছে",
+    });
 
     await staff.client.instances.completeStep({
       instanceId: instance.id,

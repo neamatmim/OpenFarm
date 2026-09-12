@@ -5,7 +5,7 @@ CREATE TABLE "weigh_in" (
 	"completion_id" text NOT NULL,
 	"weight_kg" numeric(7,2) NOT NULL,
 	"method" text DEFAULT 'scale' NOT NULL,
-	"queried_note" text,
+	"flagged_note" text,
 	"weighed_at" timestamp NOT NULL,
 	"recorded_by" text,
 	"created_at" timestamp DEFAULT now() NOT NULL

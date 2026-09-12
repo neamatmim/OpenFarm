@@ -38,6 +38,7 @@ import {
   removeMilkRecord,
   writeMilkRecord,
 } from "./milk-store";
+import { raiseNeedsReview } from "./review-store";
 
 /**
  * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
@@ -58,13 +59,6 @@ export type EffectResult =
       saw: string;
       /** True when this replaced one a Correction withdrew. */
       supersedes: boolean;
-    }
-  | {
-      kind: "weigh_in";
-      /** What the scale said, as the record now holds it. */
-      weightKg: number;
-      /** True when the farm queried the reading and the person went ahead anyway. */
-      queried: boolean;
     }
   | {
       kind: "dls_report";
@@ -98,6 +92,13 @@ export type EffectResult =
       sumBulkLitres: number;
       differenceLitres: number;
       differencePercent: number;
+      flagged: boolean;
+    }
+  | {
+      kind: "weigh_in";
+      /** What the scale said, as the record now holds it. */
+      weightKg: number;
+      /** True when the farm doubted it and put it in front of the Manager. */
       flagged: boolean;
     }
   | null;
@@ -176,8 +177,9 @@ export interface EffectInput {
   tolerancePercent: number;
   /** How far under its Feeding Target a Pen may come before the farm says so. */
   feedTolerancePercent: number;
-  /** What the person was shown when a figure was queried and they went ahead anyway. */
-  outOfRange?: string;
+  /** The Audit Event this Completion is being written under, for an effect that has to put
+   *  something in front of the Manager in the same transaction. */
+  eventId: string;
   /** What was actually put in front of the Pen, per Feed Item. */
   feeding: FeedingEntryLine[];
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
@@ -697,10 +699,11 @@ const applyMoveEffect = async (
  * difference between two of these. A replayed entry or a Correction replaces this Completion's
  * own reading, because that is one weighing however many times the phone sends it.
  *
- * A jump nobody could have grown is refused rather than swallowed — and only the farm can catch
- * it, because a phone that has not synced does not know what she weighed a fortnight ago. The
- * person weighing her may still go ahead, and what they were shown is kept with the reading, so
- * a figure that looks wrong a year from now says whether anybody was asked about it.
+ * A jump nobody could have grown is **taken and flagged**, never refused (ADR 0002; story 85
+ * names a weight out of range by hand). The barn wrote something down, and a farm that throws it
+ * away on the phone's behalf has lost the only record of it — so the reading goes in, what the
+ * farm found is kept beside it, and the Manager is asked. Only the farm can catch the jump at
+ * all: a phone that has not synced does not know what she weighed a fortnight ago.
  */
 const applyWeighInEffect = async (
   tx: Tx,
@@ -743,26 +746,17 @@ const applyWeighInEffect = async (
       : null,
     { weightKg, weighedAt }
   );
-  if (doubtful && !input.outOfRange) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "That is more change than an animal makes in the days since it was last weighed",
-      data: {
-        refusal: "implausible_gain",
-        lastKg: doubtful.lastKg,
-        days: Math.round(doubtful.days),
-        dailyKg: roundKg(doubtful.dailyKg),
-      },
-    });
-  }
-
-  const queriedNote = doubtful ? (input.outOfRange ?? null) : null;
+  // The farm's own words, kept with the reading: a figure that looks wrong a year from now
+  // should say what was doubtful about it without anybody having to work it out again.
+  const flaggedNote = doubtful
+    ? `${roundKg(doubtful.dailyKg)} kg/day over ${Math.round(doubtful.days)} days from ${doubtful.lastKg} kg`
+    : null;
   const values = {
     farmId: input.instance.farmId,
     animalId: input.animalId,
     completionId: input.completionId,
     weightKg: weightKg.toFixed(KG_DECIMALS),
-    queriedNote,
+    flaggedNote,
     weighedAt,
     recordedBy: input.recordedBy,
   };
@@ -771,7 +765,23 @@ const applyWeighInEffect = async (
     : tx
         .insert(weighIn)
         .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
-  return { kind: "weigh_in", weightKg, queried: queriedNote !== null };
+  if (flaggedNote) {
+    // In the same transaction as the reading. A doubt whose flag went missing is worse than
+    // no doubt at all — the farm would be holding a figure it distrusts and saying nothing.
+    await raiseNeedsReview(
+      tx,
+      input.instance.farmId,
+      {
+        entity: "weigh_in",
+        entityId: input.completionId,
+        reason: "implausible_weight",
+        auditEventId: input.eventId,
+        params: { weightKg, note: flaggedNote },
+      },
+      input.now
+    );
+  }
+  return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
 };
 
 /**

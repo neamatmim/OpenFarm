@@ -463,9 +463,9 @@ export const animalsRouter = {
           weightKg: Number(reading.weightKg),
           method: reading.method,
           weighedAt: reading.weighedAt,
-          /** What the person was shown when the farm queried the reading. */
-          queried: reading.queriedNote !== null,
-          queriedNote: reading.queriedNote,
+          /** What the farm found doubtful about it, and null for one it did not doubt. */
+          flagged: reading.flaggedNote !== null,
+          flaggedNote: reading.flaggedNote,
           weighedByName: weigher?.name ?? null,
         })),
         ...lactationView(row, context.clock.now()),
