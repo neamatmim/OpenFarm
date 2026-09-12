@@ -3,7 +3,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, inArray, sql } from "@OpenFarm/db/operators";
 import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { Side } from "@OpenFarm/domain";
+import type { ExitState, Side } from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
   formatTagNumber,
@@ -257,6 +257,33 @@ export const closeOpenWorkAboutHer = (
       )
     )
     .returning({ id: sopInstance.id });
+
+/**
+ * Takes an Animal out of the herd: the exit State, when she went, and the work about her shut.
+ *
+ * One place for both ways out, because they are the same act with different paperwork — a
+ * Mortality has a cause and a disposal, a Sale has a buyer and a lorry, and the herd should not
+ * be able to tell the difference in how it lets go of her. Anything that only one of them does
+ * belongs in its own procedure, not here.
+ *
+ * `at` is when she actually went, not when somebody wrote it down: a cow found dead at dawn and
+ * recorded at noon reached that State at dawn, and a State-triggered SOP counts from there.
+ */
+export const recordExit = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string },
+  { state, at, now }: { state: ExitState; at: Date; now: Date }
+): Promise<{ workClosed: number }> => {
+  await tx
+    .update(animal)
+    .set({ state, stateChangedAt: at, updatedAt: now })
+    .where(and(eq(animal.id, her.id), eq(animal.farmId, farmId)));
+  // Work about her outlives her otherwise: a dose due tomorrow, a weigh-in raised last week,
+  // both going late and sending somebody to fetch an animal who is not there.
+  const settled = await closeOpenWorkAboutHer(tx, farmId, her.id);
+  return { workClosed: settled.length };
+};
 
 /**
  * Has anything moved her since this entry was recorded? A Correction can put her back only

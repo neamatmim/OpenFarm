@@ -1,4 +1,3 @@
-import { and } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
@@ -106,7 +105,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  const { eq, inArray } = await import("@OpenFarm/db/operators");
+  const { and: allOf, eq, inArray } = await import("@OpenFarm/db/operators");
+  const { penAssignment: assignment } =
+    await import("@OpenFarm/db/schema/herd");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
   const { sopInstance } = await import("@OpenFarm/db/schema/instance");
   const db = scratchDb();
@@ -118,11 +119,16 @@ afterAll(async () => {
     .update(sopInstance)
     .set({ state: "missed" })
     .where(
-      and(
+      allOf(
         eq(sopInstance.definitionId, world.campaign.definitionId),
         inArray(sopInstance.state, ["due", "in_progress"])
       )
     );
+  // The Staff member is the whole farm's; the Pen this file gave them is not, and another file
+  // counting what they can see would count this one's.
+  await db
+    .delete(assignment)
+    .where(eq(assignment.id, `pa-sale-${world.treatedPen.id}`));
 });
 
 const tagOf = (index: number) => world.bulls[index]?.tagNumber ?? "";
@@ -263,7 +269,32 @@ describe("the sale", () => {
     });
   });
 
-  it("is not a milker's to make, and not twice over", async () => {
+  it("asks the gate about the day she went, not the day it was typed", async () => {
+    // Wormed on 2 April, fit on the 16th. Written up on the 20th, but sold on the 10th —
+    // back-dating is exactly how the gate would otherwise be got around.
+    const manager = await asManager("2027-04-20");
+    await expect(
+      manager.client.sale.record({
+        tagNumber: tagOf(2),
+        ...aBuyer,
+        priceBdt: 120_000,
+        weightKg: 290,
+        soldAt: new Date("2027-04-10T09:00:00.000Z"),
+      })
+    ).rejects.toMatchObject({ data: { refusal: "meat_withdrawal" } });
+
+    // The same beast, sold after her days were up, goes through.
+    const sold = await manager.client.sale.record({
+      tagNumber: tagOf(2),
+      ...aBuyer,
+      priceBdt: 120_000,
+      weightKg: 290,
+      soldAt: new Date("2027-04-18T09:00:00.000Z"),
+    });
+    expect(sold.state).toBe("sold");
+  });
+
+  it("is not a milker's to make, nor the Owner's, and not twice over", async () => {
     const staff = await createTestClient(appRouter, {
       as: "staff",
       clock: new FakeClock("2027-04-03T09:00:00.000Z"),
@@ -276,6 +307,24 @@ describe("the sale", () => {
         weightKg: 300,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    // Nor the Owner's: the roles matrix gives Intake and Sale to the Manager, the Owner
+    // approving what it fetched rather than doing the selling.
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2027-04-03T09:00:00.000Z"),
+    });
+    await expect(
+      owner.client.sale.record({
+        tagNumber: tagOf(1),
+        ...aBuyer,
+        priceBdt: 130_000,
+        weightKg: 300,
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: "manager_only" },
+    });
 
     // An animal who has left cannot leave again — the second sale would lose which one the
     // farm stands behind.

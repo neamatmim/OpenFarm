@@ -553,7 +553,7 @@ const HowSheLeft = ({
   }
   return (
     <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("sale.howSheWent")}</h2>
+      <h2 className="font-medium">{t("sale.howSheLeft")}</h2>
       <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
       <Fact label={t("sale.price")}>
         {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
@@ -565,7 +565,7 @@ const HowSheLeft = ({
       <Fact label={t("sale.vehicle")}>
         {sale.vehicle} · {sale.driver}
       </Fact>
-      <Fact label={t("mortality.happenedAt")}>
+      <Fact label={t("sale.soldOn")}>
         {formatDate(sale.soldAt, language, "date")}
       </Fact>
       {sale.note ? <Fact label={t("sale.note")}>{sale.note}</Fact> : null}

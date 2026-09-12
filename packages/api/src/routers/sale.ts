@@ -1,7 +1,5 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
 import { sale } from "@OpenFarm/db/schema/fattening";
-import { animal } from "@OpenFarm/db/schema/herd";
 import {
   farmDayOf,
   startOfFarmDay,
@@ -13,9 +11,10 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
-import { closeOpenWorkAboutHer, loadLiveAnimal } from "../herd-store";
+import { loadLiveAnimal, recordExit } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import { fatteningRows } from "../ready-store";
+import { requireOnly, requireRole } from "../roles";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -39,6 +38,39 @@ const readSale = async (tx: Tx, id: string) => {
 
 export const saleRouter = {
   /**
+   * The animals that can actually be sold this morning: confirmed Ready, and not inside their
+   * days.
+   *
+   * Answered here rather than filtered on the phone, because the phone cannot see a withdrawal
+   * — and a beast confirmed Ready last week and treated on Thursday would sit in the list
+   * looking sellable and refuse whoever pressed the button.
+   */
+  sellable: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const now = context.clock.now();
+      const rows = await fatteningRows(
+        context.db,
+        context.farm.id,
+        { states: ["ready_for_sale"] },
+        now
+      );
+      return rows.flatMap((row) =>
+        underMeatWithdrawal(row, now)
+          ? []
+          : [
+              {
+                id: row.id,
+                tagNumber: row.tagNumber,
+                penName: row.penName,
+                /** What she last weighed, as the figure the Manager starts from. */
+                latestKg: row.view.latestKg,
+              },
+            ]
+      );
+    }),
+
+  /**
    * Sells an Animal: who took her, for how much, what she weighed on the day, where she went
    * and what carried her.
    *
@@ -47,14 +79,25 @@ export const saleRouter = {
    * is fit so somebody can plan around it rather than argue with it. She is read live and inside
    * the transaction, so a dose recorded while this request was in flight still stops the sale.
    *
+   * The gate is asked about **the day she went**, not the day somebody typed it up. A sale made
+   * inside her days and written up a fortnight later is still a sale made inside her days, and
+   * back-dating is exactly how it would otherwise be got around.
+   *
    * A cull that ends at a butcher is one of these and not a Mortality (the Owner's decision,
    * 2026-09-12): one exit, one record, and the reason she was culled in the note.
    *
-   * The Manager records it; the Owner checks it above the Approval Threshold, which arrives with
-   * finance in increment 6.
+   * The Manager's alone (roles matrix: Intake / Sale is `C R U` to the Manager and `R; approve
+   * above threshold` to the Owner). The Owner's part is the check above the Approval Threshold,
+   * which arrives with finance in increment 6.
    */
   record: protectedProcedure
-    .use(requireRole("owner", "manager"))
+    .use(
+      requireOnly("manager", {
+        message:
+          "Selling an animal is the Manager's to record; the Owner approves what it fetched",
+        reason: "manager_only",
+      })
+    )
     .input(
       z.object({
         tagNumber: tagInput,
@@ -99,7 +142,19 @@ export const saleRouter = {
           // Live, because an animal who has already left cannot leave again — and a second exit
           // written over the first would lose which one the farm stands behind.
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          if (underMeatWithdrawal(her, now)) {
+          // Belt as well as braces: the unique index is the guarantee, and this is the message
+          // somebody reads when two phones sell one beast in the same minute.
+          const already = await tx.query.sale.findFirst({
+            where: { animalId: her.id },
+            columns: { id: true },
+          });
+          if (already) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "She has already been sold",
+              data: { refusal: "already_sold" },
+            });
+          }
+          if (underMeatWithdrawal(her, soldAt)) {
             throw new ORPCError("BAD_REQUEST", {
               message: "She is still inside her meat withdrawal",
               data: {
@@ -129,20 +184,11 @@ export const saleRouter = {
             recordedByRole: context.roleUsed,
             createdAt: now,
           });
-          await tx
-            .update(animal)
-            .set({ state: "sold", stateChangedAt: soldAt, updatedAt: now })
-            .where(
-              and(eq(animal.id, her.id), eq(animal.farmId, context.farm.id))
-            );
-          // Work about her outlives her otherwise: a weigh-in due next week going late and
-          // telling somebody to fetch a beast that left on a lorry.
-          const settled = await closeOpenWorkAboutHer(
-            tx,
-            context.farm.id,
-            her.id
-          );
-          closed = settled.length;
+          ({ workClosed: closed } = await recordExit(tx, context.farm.id, her, {
+            state: "sold",
+            at: soldAt,
+            now,
+          }));
         }
       );
       return { tagNumber, state: "sold" as const, workClosed: closed };

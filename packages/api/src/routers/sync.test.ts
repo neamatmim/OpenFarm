@@ -377,11 +377,11 @@ describe("what the farm makes of it", () => {
     await walk("pregnant_heifer");
     await walk("milking");
     // She leaves by the record of how she went, which for a sale is a buyer and a lorry.
-    const manager0 = await createTestClient(appRouter, {
+    const seller = await createTestClient(appRouter, {
       as: "manager",
       clock,
     });
-    await manager0.client.sale.record({
+    await seller.client.sale.record({
       tagNumber: doomed.tagNumber,
       buyer: { name: `বাজার ${Date.now()}` },
       priceBdt: 90_000,

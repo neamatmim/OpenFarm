@@ -44,7 +44,7 @@ import {
   assertPenIsTheirs,
   insertAnimal,
   loadLiveAnimal,
-  closeOpenWorkAboutHer,
+  recordExit,
   requireAnimal,
   requirePen,
 } from "../herd-store";
@@ -705,24 +705,11 @@ export const animalsRouter = {
             recordedByRole: context.roleUsed,
             recordedAt: now,
           });
-          await tx
-            .update(animal)
-            .set({
-              state: input.kind,
-              stateChangedAt: happenedAt,
-              updatedAt: now,
-            })
-            .where(
-              and(eq(animal.id, her.id), eq(animal.farmId, context.farm.id))
-            );
-          // Work about her outlives her otherwise: a dose due tomorrow, a check raised by her
-          // last Move, both going late and telling somebody about a cow who is buried.
-          const settled = await closeOpenWorkAboutHer(
-            tx,
-            context.farm.id,
-            her.id
-          );
-          closed = settled.length;
+          ({ workClosed: closed } = await recordExit(tx, context.farm.id, her, {
+            state: input.kind,
+            at: happenedAt,
+            now,
+          }));
         }
       );
       return { tagNumber, state: input.kind, workClosed: closed };

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-const EMPTY = {
+const NOTHING_TYPED = {
   tagNumber: "",
   buyerName: "",
   buyerAddress: "",
@@ -31,7 +31,7 @@ const fitOnFrom = (error: unknown): string | null => {
 
 /** The last buyer and lorry of the day, one button away. Nothing at all on a day the farm has
  *  sold nothing: yesterday's buyer is a different market. */
-const TheLastOne = ({
+const LastBuyerOfTheDay = ({
   sale,
   onUse,
 }: {
@@ -43,7 +43,7 @@ const TheLastOne = ({
     vehicle: string;
     driver: string;
   } | null;
-  onUse: (patch: Partial<typeof EMPTY>) => void;
+  onUse: (patch: Partial<typeof NOTHING_TYPED>) => void;
 }) => {
   const { t } = useLanguage();
   if (!sale) {
@@ -79,35 +79,36 @@ const TheLastOne = ({
 const SalePage = () => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
-  const [fields, setFields] = useState(EMPTY);
-  const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
+  const [fields, setFields] = useState(NOTHING_TYPED);
+  // A fattening beast is chosen from the list. A dairy cow going to a butcher — the cull the
+  // Owner decided is a Sale — is never Ready for Sale, so she is named by her tag instead.
+  const [byTag, setByTag] = useState(false);
+  // Asked of the farm, not filtered here: the phone cannot see a withdrawal, and a beast
+  // confirmed Ready last week and treated on Thursday would sit in this list looking sellable.
+  const sellable = useQuery(orpc.sale.sellable.queryOptions());
   const last = useQuery(orpc.sale.lastToday.queryOptions());
 
-  const ready = (board.data ?? []).filter(
-    (row) => row.state === "ready_for_sale"
-  );
+  const ready = sellable.data ?? [];
   const edit = (patch: Partial<typeof fields>) =>
     setFields({ ...fields, ...patch });
 
   const record = useMutation(
     orpc.sale.record.mutationOptions({
-      onSuccess: ({ tagNumber }) => {
+      onSuccess: async ({ tagNumber }) => {
         toast.success(t("sale.done", { tag: tagNumber }));
         // The buyer and the lorry stay on the screen: the next beast is usually his too.
         setFields({ ...fields, tagNumber: "", weightKg: "", priceBdt: "" });
-        for (const key of [
-          orpc.sale.key(),
-          orpc.fattening.key(),
-          orpc.ready.key(),
-        ]) {
-          queryClient.invalidateQueries({ queryKey: key });
-        }
+        await Promise.all(
+          [orpc.sale.key(), orpc.ready.key()].map((key) =>
+            queryClient.invalidateQueries({ queryKey: key })
+          )
+        );
       },
       onError: (error) => {
         const fitOn = fitOnFrom(error);
         toast.error(
           fitOn
-            ? t("sale.withdrawal", {
+            ? t("ready.underWithdrawal", {
                 when: formatDate(new Date(fitOn), language, "date"),
               })
             : (error.message ?? t("common.error"))
@@ -120,7 +121,7 @@ const SalePage = () => {
     <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
       <h1 className="text-2xl font-bold">{t("sale.title")}</h1>
 
-      <TheLastOne onUse={edit} sale={last.data ?? null} />
+      <LastBuyerOfTheDay onUse={edit} sale={last.data ?? null} />
 
       <form
         className="space-y-4"
@@ -144,10 +145,15 @@ const SalePage = () => {
       >
         <div className="space-y-1">
           <Label htmlFor="sale-animal">{t("sale.animal")}</Label>
-          {ready.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              {t("sale.noneReady")}
-            </p>
+          {byTag || ready.length === 0 ? (
+            <Input
+              id="sale-animal"
+              maxLength={32}
+              onChange={(e) => edit({ tagNumber: e.target.value })}
+              placeholder="F-0001"
+              required
+              value={fields.tagNumber}
+            />
           ) : (
             <select
               className="bg-background h-9 w-full rounded-md border px-2 text-sm"
@@ -163,6 +169,23 @@ const SalePage = () => {
                 </option>
               ))}
             </select>
+          )}
+          {ready.length === 0 ? (
+            <p className="text-muted-foreground text-xs">
+              {t("sale.noneReady")}
+            </p>
+          ) : (
+            <Button
+              className="px-0"
+              onClick={() => {
+                setByTag(!byTag);
+                edit({ tagNumber: "" });
+              }}
+              type="button"
+              variant="link"
+            >
+              {t(byTag ? "sale.fromList" : "sale.otherAnimal")}
+            </Button>
           )}
         </div>
 
