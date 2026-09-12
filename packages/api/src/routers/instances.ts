@@ -45,6 +45,7 @@ import {
   raiseDueInstances,
   recentHappenings,
   whatChangedFor,
+  withoutHeatWorkAlreadyOpen,
 } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { raiseNeedsReview } from "../review-store";
@@ -219,15 +220,31 @@ export const instancesRouter = {
         where: { farmId: context.farm.id },
         columns: { penId: true, side: true, state: true },
       });
+      // A Heat seen twice raises one job, not two: work already open about that cow stands.
+      const openAboutAnimals = await context.db.query.sopInstance.findMany({
+        where: {
+          farmId: context.farm.id,
+          state: { in: ["due", "in_progress"] },
+          animalId: { isNotNull: true },
+        },
+        columns: { definitionId: true, animalId: true },
+      });
       const slots = [
         ...dueSlotsFor(now, sops, animals),
         // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same
         // pass, because whatever opened the app wants the whole day's work, not the half
         // of it a schedule accounts for.
-        ...happeningSlotsFor(
-          now,
-          sops,
-          await recentHappenings(context.db, context.farm.id, now)
+        ...withoutHeatWorkAlreadyOpen(
+          happeningSlotsFor(
+            now,
+            sops,
+            await recentHappenings(context.db, context.farm.id, now),
+            {
+              startHours: context.farm.aiWindowStartHours,
+              endHours: context.farm.aiWindowEndHours,
+            }
+          ),
+          openAboutAnimals
         ),
       ];
       if (slots.length === 0) {

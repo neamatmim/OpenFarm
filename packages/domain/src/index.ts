@@ -20,6 +20,7 @@ export {
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
+export { HEAT, aiWindow } from "./breeding";
 export type { FarmIdentity } from "./farm";
 export { farmOfOriginLines, identityView } from "./farm";
 export {

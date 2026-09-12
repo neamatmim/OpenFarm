@@ -43,6 +43,9 @@ const parameters = z
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise
      *  for that animal. */
     fatteningTargetWeightKg: z.number().int().min(1).max(2000).optional(),
+    /** The AI window after a Heat, in hours. */
+    aiWindowStartHours: z.number().int().min(0).max(72).optional(),
+    aiWindowEndHours: z.number().int().min(1).max(96).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -232,6 +235,15 @@ export const farmRouter = {
           });
         }
       }
+      const opens = input.aiWindowStartHours ?? context.farm.aiWindowStartHours;
+      const closes = input.aiWindowEndHours ?? context.farm.aiWindowEndHours;
+      if (closes <= opens) {
+        // A window that shuts before it opens would make every AI job late the moment it was
+        // raised, and the farm would learn to ignore the alert that matters most in breeding.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The AI window has to close after it opens",
+        });
+      }
       const quietFrom = input.quietFrom ?? context.farm.quietFrom;
       const quietUntil = input.quietUntil ?? context.farm.quietUntil;
       if (quietFrom === quietUntil) {
@@ -263,6 +275,8 @@ export const farmRouter = {
                 managerCorrectionDays: true,
                 registrationRenewalLeadDays: true,
                 fatteningTargetWeightKg: true,
+                aiWindowStartHours: true,
+                aiWindowEndHours: true,
               },
             })) ?? null,
           after: changes,

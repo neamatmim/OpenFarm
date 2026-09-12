@@ -67,6 +67,11 @@ export const farm = pgTable("farm", {
   fatteningTargetWeightKg: integer("fattening_target_weight_kg")
     .notNull()
     .default(350),
+  /** The hours after a Heat is seen within which a service takes: the AI work falls due at the
+   *  first and is late after the second. How soon a technician reaches this farm is this farm's
+   *  fact, so both are the Manager's to set. */
+  aiWindowStartHours: integer("ai_window_start_hours").notNull().default(12),
+  aiWindowEndHours: integer("ai_window_end_hours").notNull().default(18),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

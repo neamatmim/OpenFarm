@@ -12,6 +12,7 @@ import {
 import type { AnimalState } from "@OpenFarm/domain";
 import {
   DISPOSALS,
+  HEAT,
   ENTRY_STATES,
   EXIT_STATES,
   MORTALITY_KINDS,
@@ -503,6 +504,12 @@ export const animalsRouter = {
         intake: readsWhatSheCost ? intakeView(row.intake) : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
         sale: readsWhatSheCost ? saleView(row.sale) : null,
+        /** Her Heats: the Observations that said she was bulling, newest first. Read off the
+         *  round's own record rather than kept twice, because a Heat *is* an Observation of
+         *  oestrus and a second table would be a second place for the two to disagree. */
+        heats: row.observations
+          .filter((seen) => seen.saw === HEAT && seen.withdrawnAt === null)
+          .map((seen) => ({ id: seen.id, seenAt: seen.seenAt })),
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */

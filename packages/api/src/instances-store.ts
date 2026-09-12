@@ -12,6 +12,8 @@ import type {
 import {
   EXIT_STATES,
   FARM_UTC_OFFSET_MINUTES,
+  HEAT,
+  aiWindow,
   raisesItsOwnWork,
   carryingMoments,
   describeChanges,
@@ -175,7 +177,9 @@ export const happeningSlotsFor = (
      *  way to give the farm a fortnight of overdue work it never knew about (ADR 0001). */
     triggersInForceSince: Date;
   }[],
-  happenings: Happening[]
+  happenings: Happening[],
+  /** The farm's AI window, which is what a Heat's work is timed by rather than the Version. */
+  aiHours: { startHours: number; endHours: number }
 ): DueSlot[] => {
   const slots: DueSlot[] = [];
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
@@ -208,14 +212,22 @@ export const happeningSlotsFor = (
         ) {
           continue;
         }
+        // A Heat's work is timed by the hours a service takes, not by a whole number of days
+        // and not by the Version's own grace: both ends of that window are the farm's.
+        const timing =
+          happening.kind === "heat"
+            ? aiWindow(happening.at, aiHours)
+            : {
+                dueAt: dueAfter(happening.at, offsetDays),
+                graceMinutes: sop.content.graceMinutes,
+              };
         slots.push({
           definitionId: sop.definitionId,
           versionId: sop.versionId,
           penId: happening.penId,
           animalId: happening.animalId,
           cause: `${happening.key}:+${offsetDays}`,
-          dueAt: dueAfter(happening.at, offsetDays),
-          graceMinutes: sop.content.graceMinutes,
+          ...timing,
           assignedRole: sop.content.assignedRole,
           checkerRole: sop.content.checkerRole,
         });
@@ -260,7 +272,33 @@ export const recentHappenings = async (
     columns: { id: true, animalId: true, movedAt: true },
   });
 
+  // Heats: Observations of oestrus that still stand. One a Correction withdrew is not a Heat the
+  // farm believes in, and work raised on it would send somebody to serve a cow who was not bulling.
+  const heats = await db.query.observation.findMany({
+    where: {
+      farmId,
+      saw: HEAT,
+      seenAt: { gte: earliest },
+      withdrawnAt: { isNull: true },
+    },
+    columns: { id: true, animalId: true, seenAt: true },
+  });
+
   const happenings: Happening[] = [];
+  for (const heat of heats) {
+    const beast = animalsById.get(heat.animalId);
+    if (beast) {
+      happenings.push({
+        kind: "heat",
+        key: `heat:${heat.id}`,
+        at: heat.seenAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+  }
   for (const move of moves) {
     const beast = animalsById.get(move.animalId);
     if (beast) {
@@ -316,6 +354,29 @@ export const recentHappenings = async (
     }
   }
   return happenings;
+};
+
+/**
+ * Leaves out a Heat's work when that same procedure already has open work about that same cow.
+ *
+ * She is seen bulling on the morning round and again on the evening one — two Heats, one heat. The
+ * cause of each is its own Observation, so nothing else stops the second raising a second job, and
+ * a technician sent twice to one cow is a technician who stops trusting the list.
+ */
+export const withoutHeatWorkAlreadyOpen = (
+  slots: DueSlot[],
+  open: { definitionId: string; animalId: string | null }[]
+): DueSlot[] => {
+  const held = new Set(
+    open.map((row) => `${row.definitionId}:${row.animalId}`)
+  );
+  return slots.filter(
+    (slot) =>
+      !(
+        slot.cause?.startsWith("heat:") &&
+        held.has(`${slot.definitionId}:${slot.animalId}`)
+      )
+  );
 };
 
 /** Raises the Instances the farm's day needs. Idempotent: the unique index on

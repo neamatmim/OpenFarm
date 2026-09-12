@@ -101,14 +101,17 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 /**
  * Things that happen to an animal that the Playbook may hang work on. Only what the farm
  * actually records belongs here: a Trigger naming an event nobody writes is work that never
- * arrives, and the Owner would have no way of knowing. Calving, Service and Diagnosis join
- * the list in the increments that record them.
+ * arrives, and the Owner would have no way of knowing. Service, Calving and Diagnosis join
+ * the list in the tickets that record them.
+ *
+ * A Heat is the first of Breeding's: an Observation of oestrus, and the work it raises falls due
+ * in the farm's AI window rather than a whole number of days later.
  *
  * A death is the one that raises work about an animal who is no longer on the farm — burying
  * her to the depth the rule names, and reporting her if what killed her is notifiable. That is
  * work precisely because she has gone.
  */
-export const FARM_EVENTS = ["move", "arrival", "death"] as const;
+export const FARM_EVENTS = ["move", "arrival", "death", "heat"] as const;
 export type FarmEvent = (typeof FARM_EVENTS)[number];
 
 /** How far ahead of the event or the State change work may be hung. */
@@ -339,6 +342,18 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
     );
   }
   const offset = trigger.offsetDays;
+  // A Heat's work is timed by the farm's AI window, in hours. A number of days here would be
+  // quietly ignored — and a setting the Playbook accepts and then does not honour is how an author
+  // comes to believe the farm does something it does not.
+  if (
+    trigger.kind === "event" &&
+    trigger.event === "heat" &&
+    offset !== undefined
+  ) {
+    problems.push(
+      `${at}.offsetDays: a heat's work falls due in the farm's AI window, not days later`
+    );
+  }
   if (offset !== undefined) {
     if (!Number.isInteger(offset) || offset < 0) {
       problems.push(`${at}.offsetDays: count whole days, from none upwards`);

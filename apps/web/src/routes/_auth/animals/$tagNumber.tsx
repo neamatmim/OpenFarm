@@ -130,6 +130,8 @@ const AnimalPage = () => {
         </div>
       </header>
 
+      <HerHeats heats={detail.heats} />
+
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
       <HowSheArrived intake={detail.intake} />
@@ -477,6 +479,33 @@ const PutItRight = ({
         </Button>
       </form>
     </details>
+  );
+};
+
+/**
+ * When she has been seen bulling, newest first.
+ *
+ * Nothing at all for a cow who never has — a heading over an empty list reads as a record that
+ * something went missing. Each Heat raised her AI work; the work itself is on the day's list,
+ * where the person who serves her will find it.
+ */
+const HerHeats = ({ heats }: { heats: { id: string; seenAt: Date }[] }) => {
+  const { t, language } = useLanguage();
+  if (heats.length === 0) {
+    return null;
+  }
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("heat.title")}</h2>
+      <ul className="space-y-1">
+        {heats.map((heat) => (
+          <li key={heat.id}>
+            <span className="text-muted-foreground">{t("heat.seen")}: </span>
+            {formatDate(heat.seenAt, language, "dateTime")}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 
