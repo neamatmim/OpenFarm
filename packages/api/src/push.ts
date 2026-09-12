@@ -58,6 +58,10 @@ const WORDING: Partial<
     title: "push.entryRejectedTitle",
     body: "push.entryRejectedBody",
   },
+  withdrawal_changed: {
+    title: "push.withdrawalChangedTitle",
+    body: "push.withdrawalChangedBody",
+  },
   instance_sent_back: {
     title: "push.sentBackTitle",
     body: "alerts.instanceSentBack",
@@ -133,5 +137,6 @@ export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
   withdrawal_ending: "digest.withdrawalEnding",
   notifiable_diagnosis: "digest.notifiable",
   entry_rejected: "digest.entryRejected",
+  withdrawal_changed: "digest.withdrawalChanged",
   sop_proposed: "digest.sopProposed",
 };

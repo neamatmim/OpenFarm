@@ -72,17 +72,7 @@ export const syncRouter = {
       });
       // Outside the transaction, like every other notice: an entry the farm refused is work
       // somebody believes they have done, and they are told at once.
-      await pushRaised(
-        context,
-        told.map((row) => ({
-          ...row,
-          kind: "entry_rejected",
-          entity: "sync_batch",
-          entityId: input.key,
-          params: {},
-        })),
-        receivedAt
-      );
+      await pushRaised(context, told, receivedAt);
       return { results };
     }),
 };

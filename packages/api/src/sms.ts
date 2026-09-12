@@ -1,4 +1,4 @@
-import type { AlertKind } from "@OpenFarm/domain";
+import type { AlertKind, DELIVERY } from "@OpenFarm/domain";
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
@@ -29,12 +29,18 @@ export const silentSms: SmsTransport = {
   send: () => Promise.resolve({ delivered: false }),
 };
 
+/** The kinds the farm's delivery table says go by text — read from the table itself, so a kind
+ *  marked for texting and given no words is a compile error here rather than silence on
+ *  somebody's phone. */
+type TextableKind = {
+  [K in AlertKind]: (typeof DELIVERY)[K] extends { sms: true } ? K : never;
+}[AlertKind];
+
 /**
- * What a text message says, for the two kinds that travel this way. Nothing else has an entry,
- * so nothing else can be sent even by mistake: the farm's delivery table decides what goes by
- * text, and this is where that decision is spelled out in words.
+ * What a text message says, for the kinds that travel this way. The table decides *that* one
+ * goes; this says what it says, and the two cannot drift apart.
  */
-const WORDING: Partial<Record<AlertKind, MessageKey>> = {
+const WORDING: Record<TextableKind, MessageKey> = {
   withdrawal_ending: "sms.withdrawalEnding",
   notifiable_diagnosis: "sms.notifiableDiagnosis",
 };
@@ -46,7 +52,7 @@ export const smsFor = (
   params: MessageParams,
   person: { language?: string | null } | null
 ): SmsMessage | null => {
-  const key = WORDING[kind];
+  const key = WORDING[kind as TextableKind] as MessageKey | undefined;
   if (!key) {
     return null;
   }

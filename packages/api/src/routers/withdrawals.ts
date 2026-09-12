@@ -6,8 +6,11 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { reasonInput } from "../corrections";
+import { raiseWithdrawalChanged } from "../health-store";
 import { loadLiveAnimal, requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
+import type { RaisedAlert } from "../instances-store";
+import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
 
 /**
@@ -97,7 +100,8 @@ export const withdrawalsRouter = {
         context.farm.id,
         tagNumber
       );
-      return await audited(context).write(
+      let told: RaisedAlert[] = [];
+      const changed = await audited(context).write(
         {
           entity: "animal",
           entityId: target.id,
@@ -132,6 +136,18 @@ export const withdrawalsRouter = {
               withdrawalShortenedReason: input.reason,
             })
             .where(eq(animal.id, her.id));
+          // The Manager plans the tank around this, so they are told that it moved.
+          told = await raiseWithdrawalChanged(
+            tx,
+            context.farm.id,
+            {
+              animalId: her.id,
+              tagNumber: her.tagNumber,
+              until:
+                milkUntil === undefined ? her.milkWithdrawalUntil : milkUntil,
+            },
+            now
+          );
           // What is now in force. `undefined` left that hold alone; `null` ended it, and
           // reporting the old date back would be the farm saying it had done nothing.
           return {
@@ -142,5 +158,7 @@ export const withdrawalsRouter = {
           };
         }
       );
+      await pushRaised(context, told, now);
+      return changed;
     }),
 };

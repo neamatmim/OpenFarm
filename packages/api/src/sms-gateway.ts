@@ -3,6 +3,11 @@ import { env } from "@OpenFarm/env/server";
 import type { SmsMessage, SmsTransport } from "./sms";
 import { silentSms } from "./sms";
 
+/** How long one message may take before the farm stops waiting on it. The same reasoning as
+ *  the push service's: a gateway that will not answer must not become a farm that will not
+ *  answer, and this is called from the sweep every phone on the farm runs. */
+const SEND_TIMEOUT_MS = 5000;
+
 /**
  * The farm's own SMS gateway, over plain HTTP form posts — which is what the local Bangladeshi
  * providers offer, and what the Owner will have credentials for.
@@ -30,6 +35,7 @@ export const smsGateway = (): SmsTransport => {
             msg: message.text,
             ...(from ? { from } : {}),
           }),
+          signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
         });
         return { delivered: response.ok };
       } catch {

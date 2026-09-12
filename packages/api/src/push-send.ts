@@ -1,8 +1,10 @@
+import type { AlertKind } from "@OpenFarm/domain";
+import { isQuiet, wakesTheFarm } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
 import type { Context } from "./context";
-import { farmDayOf } from "./instances-store";
+import { farmDayOf, minuteOfFarmDay } from "./instances-store";
 import type { RaisedAlert } from "./instances-store";
 import type { Told } from "./push-store";
 import { carryTheDigest, claimTheDigest, pushAlerts } from "./push-store";
@@ -28,7 +30,17 @@ export const pushRaised = async (
   now: Date
 ): Promise<{ sent: number; gone: number; missed: number }> => {
   const nothing = { sent: 0, gone: 0, missed: 0 };
-  if (raised.length === 0) {
+  // Quiet hours are the farm's, and only a safety notice may cross them. Everything else still
+  // reaches the app at once and is read when somebody opens it: the quiet is on the phone, not
+  // on the record.
+  const asleep = isQuiet(minuteOfFarmDay(now), {
+    from: context.farm.quietFrom,
+    until: context.farm.quietUntil,
+  });
+  const toSend = asleep
+    ? raised.filter((alert) => wakesTheFarm(alert.kind as AlertKind))
+    : raised;
+  if (toSend.length === 0) {
     return nothing;
   }
   try {
@@ -40,7 +52,7 @@ export const pushRaised = async (
         tx,
         context.push,
         context.farm.id,
-        raised,
+        toSend,
         now,
         async (inner, alert, told) => {
           await audited(context).recordEvent(

@@ -13,6 +13,7 @@ import {
   applyPhoto,
   isLate,
 } from "./completion-store";
+import type { RaisedAlert } from "./instances-store";
 import { raiseNeedsReview } from "./review-store";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
@@ -378,7 +379,7 @@ export const applyBatch = async (
 ): Promise<{
   results: EntryResult[];
   /** The notice raised for whoever sent the batch, when the farm refused any of it. */
-  told: { id: string; userId: string }[];
+  told: RaisedAlert[];
 }> =>
   await db.transaction(async (tx) => {
     const reserved = await reserveBatch(tx, {
@@ -404,23 +405,26 @@ export const applyBatch = async (
     // at once, in the app, because the alternative is a phone quietly holding an entry nobody
     // will ever look at again.
     const refused = applied.filter((one) => one.outcome === "rejected");
-    const told =
+    const notice = {
+      kind: "entry_rejected" as const,
+      entity: "sync_batch",
+      entityId: input.key,
+      params: { count: refused.length, reason: refused[0]?.reason ?? "" },
+    };
+    const rows =
       refused.length > 0
         ? await raiseAlerts(
             tx,
             context.farm.id,
             [context.actor.id],
-            {
-              kind: "entry_rejected",
-              entity: "sync_batch",
-              entityId: input.key,
-              params: {
-                count: refused.length,
-                reason: refused[0]?.reason ?? "",
-              },
-            },
+            notice,
             receivedAt
           )
         : [];
-    return { results: applied, told };
+    // The whole notice, not its id: whoever pushes it needs what it says, and rebuilding it at
+    // the call site is how the count and the reason got lost.
+    return {
+      results: applied,
+      told: rows.map((row) => ({ ...row, ...notice })),
+    };
   });

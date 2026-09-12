@@ -20,6 +20,7 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   withdrawal_ending: "alerts.withdrawalEnding",
   notifiable_diagnosis: "alerts.notifiableDiagnosis",
   entry_rejected: "alerts.entryRejected",
+  withdrawal_changed: "alerts.withdrawalChanged",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise

@@ -300,4 +300,72 @@ describe("the two alerts worth a text message", () => {
       params: { count: 1 },
     });
   });
+  it("says one thing once, however many people are told in the app", async () => {
+    const clock = new FakeClock("2026-10-24T02:00:00.000Z");
+    const { cow } = await aTreatedCow(clock);
+    const gateway = listeningGateway();
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    await owner.client.people.setPhone({ phone: "+8801711000005" });
+
+    clock.advance(3 * DAY + DAY / 2);
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      sms: gateway.transport,
+    });
+    await manager.client.alerts.sweep();
+    const first = gateway.sent.filter((one) =>
+      one.message.text.includes(cow.tagNumber)
+    ).length;
+    expect(first).toBeGreaterThan(0);
+
+    // Swept again — and a message the farm has already sent is not sent twice, whatever the
+    // app does about telling somebody new.
+    await manager.client.alerts.sweep();
+    const after = gateway.sent.filter((one) =>
+      one.message.text.includes(cow.tagNumber)
+    ).length;
+    expect(after).toBe(first);
+  });
+
+  it("does not buzz a pocket at two in the morning about a refused entry", async () => {
+    // Quiet hours are the farm's, and only a safety notice crosses them.
+    const clock = new FakeClock("2026-10-24T20:30:00.000Z");
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-quiet", name: "রাতের শেড ফোন" },
+    });
+    const key = `quiet-${Date.now()}`;
+    await phone.client.sync.batch({
+      key: `${key}-a`,
+      entries: [
+        {
+          id: `${key}-one`,
+          seq: 950,
+          recordedAt: clock.now(),
+          kind: "instance_claim" as const,
+          instanceId: "no-such-instance",
+        },
+      ],
+    });
+    const refused = await phone.client.sync.batch({
+      key,
+      entries: [
+        {
+          id: `${key}-two`,
+          seq: 950,
+          recordedAt: clock.now(),
+          kind: "instance_claim" as const,
+          instanceId: "no-such-instance",
+        },
+      ],
+    });
+    expect(refused.results.at(0)?.outcome).toBe("rejected");
+
+    // The notice is in the app the whole time — the quiet is on the phone, not on the record.
+    const told = await phone.client.alerts.mine({ entityId: key });
+    expect(told).toHaveLength(1);
+  });
 });

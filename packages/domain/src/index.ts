@@ -66,6 +66,7 @@ export {
   lastCarryingMoment,
   minutesInTheDay,
   waitsForTheDigest,
+  wakesTheFarm,
 } from "./notify";
 export type { DueWork } from "./work";
 export {
