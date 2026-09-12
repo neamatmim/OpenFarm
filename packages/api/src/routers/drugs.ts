@@ -12,7 +12,12 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
-import { requirePersonalSession, requireRole } from "../roles";
+import {
+  forbidden,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 
 const name = z.object({
   bn: z.string().trim().min(1).max(120),
@@ -64,19 +69,24 @@ const changeProduct = async (
   );
 };
 
+/** The Drug List is the Vet's to keep (roles matrix): the withdrawal days are the
+ *  prescriber's statement and the farm's evidence at slaughter. */
+const VET_ONLY = {
+  message:
+    "Only the Vet keeps the Drug List; a product can be added for them to fill in",
+  reason: "vet_only",
+} as const;
+
 /**
- * The Drug List is the Vet's to keep (roles matrix). A person may hold several Roles and
+ * For the one place the Vet's part is a field rather than the whole procedure: a Manager may
+ * add a product, but not say what it costs the milk. A person may hold several Roles and
  * their permissions are the union, so this asks what they hold rather than which Role the
  * request happens to be acting under — an in-house Vet who is also the Manager is still
  * the Vet.
  */
 const assertIsVet = (context: { roles: readonly string[] }) => {
   if (!context.roles.includes("vet")) {
-    throw new ORPCError("FORBIDDEN", {
-      message:
-        "Only the Vet keeps the Drug List; a product can be added for them to fill in",
-      data: { refusal: "vet_only" },
-    });
+    throw forbidden(VET_ONLY);
   }
 };
 
@@ -183,7 +193,7 @@ export const drugsRouter = {
    * statement and the farm's evidence at slaughter.
    */
   setWithdrawal: protectedProcedure
-    .use(requireRole("vet"))
+    .use(requireOnly("vet", VET_ONLY))
     .use(requirePersonalSession())
     .input(
       z.object({
@@ -217,7 +227,7 @@ export const drugsRouter = {
   /** Retired, never removed: a Treatment given last March still names its product. Taking
    *  something out of what may be prescribed is the Vet's call (roles matrix). */
   retire: protectedProcedure
-    .use(requireRole("vet"))
+    .use(requireOnly("vet", VET_ONLY))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
@@ -239,7 +249,7 @@ export const drugsRouter = {
 
   /** A retired product bought again. The Vet's, like retiring it. */
   bringBack: protectedProcedure
-    .use(requireRole("vet"))
+    .use(requireOnly("vet", VET_ONLY))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       await changeProduct(context, input.id, (tx) =>

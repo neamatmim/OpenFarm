@@ -1,12 +1,9 @@
-import { z } from "zod";
-
+import { MAX_SEEN_ROWS, seenLately, seenLatelyInput } from "../health-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
-const DEFAULT_DAYS = 7;
-const MAX_DAYS = 90;
-const MAX_ROWS = 200;
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** A week is the Manager's question: which cows were seen bulling since Friday. */
+const MANAGER_WINDOW_DAYS = 7;
 
 export const observationsRouter = {
   /**
@@ -16,27 +13,17 @@ export const observationsRouter = {
    */
   recent: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
-    .input(
-      z
-        .object({
-          /** One kind of thing seen, by the Version's own word for it. */
-          saw: z.string().trim().max(60).optional(),
-          days: z.number().int().min(1).max(MAX_DAYS).default(DEFAULT_DAYS),
-        })
-        .default(() => ({ days: DEFAULT_DAYS }))
-    )
+    .input(seenLatelyInput(MANAGER_WINDOW_DAYS))
     .handler(async ({ context, input }) => {
-      const since = new Date(context.clock.now().getTime() - input.days * DAY_MS);
       const rows = await context.db.query.observation.findMany({
-        where: {
+        where: seenLately({
           farmId: context.farm.id,
-          seenAt: { gte: since },
-          // What was withdrawn by a Correction is kept, but it is not what the farm saw.
-          withdrawnAt: { isNull: true },
-          ...(input.saw ? { saw: input.saw } : {}),
-        },
+          saw: input.saw,
+          days: input.days,
+          now: context.clock.now(),
+        }),
         orderBy: { seenAt: "desc" },
-        limit: MAX_ROWS,
+        limit: MAX_SEEN_ROWS,
         with: {
           animal: { columns: { tagNumber: true, penId: true } },
           observer: { columns: { name: true } },
@@ -55,23 +42,16 @@ export const observationsRouter = {
   /** The words the farm's rounds have actually used lately, for the filter to offer. */
   kinds: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
-    .input(
-      z
-        .object({
-          days: z.number().int().min(1).max(MAX_DAYS).default(DEFAULT_DAYS),
-        })
-        .default(() => ({ days: DEFAULT_DAYS }))
-    )
+    .input(seenLatelyInput(MANAGER_WINDOW_DAYS))
     .handler(async ({ context, input }) => {
-      const since = new Date(context.clock.now().getTime() - input.days * DAY_MS);
       const rows = await context.db.query.observation.findMany({
-        where: {
+        where: seenLately({
           farmId: context.farm.id,
-          seenAt: { gte: since },
-          withdrawnAt: { isNull: true },
-        },
+          days: input.days,
+          now: context.clock.now(),
+        }),
         columns: { saw: true, sawLabel: true },
-        limit: MAX_ROWS,
+        limit: MAX_SEEN_ROWS,
       });
       const seen = new Map<string, string>();
       for (const row of rows) {

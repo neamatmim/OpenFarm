@@ -27,6 +27,9 @@ const Header = () => {
     // The Drug List is the Vet's to keep and the Manager's to add to, so it does not live
     // behind the admin screens — a Vet sent there is sent away.
     ...(isVet || runsTheFarm ? [{ to: "/drugs", label: t("nav.drugs") }] : []),
+    // The Vet's own screen: what the rounds have seen and nobody has answered. Theirs alone,
+    // because a Diagnosis is theirs alone.
+    ...(isVet ? [{ to: "/vet", label: t("nav.vet") }] : []),
     ...(session ? [{ to: "/settings", label: t("nav.settings") }] : []),
     // The Owner's own screen, and only the Owner's: a Manager sent there is sent to a
     // refusal.

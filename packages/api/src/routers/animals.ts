@@ -28,7 +28,9 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { applyMove } from "../completion-store";
 import type { Context } from "../context";
+import { reasonInput } from "../corrections";
 import { parseCsvRecords } from "../csv";
+import { diagnosisView } from "../health-store";
 import {
   assertPenIsTheirs,
   loadLiveAnimal,
@@ -44,7 +46,6 @@ import { requireRole } from "../roles";
 const IMPORT_MAX_ROWS = 600;
 
 const tagInput = z.string().trim().min(1).max(32);
-const reasonInput = z.string().trim().min(1).max(200);
 
 const animalFields = {
   sex: z.enum(SEXES),
@@ -291,7 +292,22 @@ export const animalsRouter = {
             with: {
               completion: { columns: { instanceId: true } },
               observer: { columns: { name: true } },
+              // What the Vet made of it, so her page reads as one chain — what the round
+              // saw, and the conclusion drawn from it — rather than as two lists the reader
+              // has to line up by date themselves.
+              diagnoses: {
+                orderBy: { diagnosedAt: "asc" },
+                with: { vet: { columns: { name: true } } },
+              },
             },
+          },
+          /** The Vet came for something else and found this: a Diagnosis answering no
+           *  Observation still belongs to her history. */
+          diagnoses: {
+            where: { observationId: { isNull: true } },
+            orderBy: { diagnosedAt: "desc" },
+            limit: 20,
+            with: { vet: { columns: { name: true } } },
           },
         },
       });
@@ -300,6 +316,10 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
+      // Barn Staff record what they see and give the doses they are told to give; the
+      // conclusions drawn from them are not theirs to read (roles matrix: Staff read
+      // treatment instances only). They still see the round's own Observations.
+      const readsTheClinicalRecord = context.roleUsed !== "staff";
       return {
         ...row,
         moves: row.moves.map(({ completion, fromPen, toPen, ...move }) => ({
@@ -309,13 +329,19 @@ export const animalsRouter = {
           instanceId: completion?.instanceId ?? null,
         })),
         observations: row.observations.map(
-          ({ completion, observer, ...seen }) => ({
+          ({ completion, observer, diagnoses, ...seen }) => ({
             ...seen,
             instanceId: completion.instanceId,
             seenByName: observer?.name ?? null,
             withdrawn: seen.withdrawnAt !== null,
+            diagnoses: readsTheClinicalRecord
+              ? diagnoses.map(diagnosisView)
+              : [],
           })
         ),
+        diagnoses: readsTheClinicalRecord
+          ? row.diagnoses.map(diagnosisView)
+          : [],
         ...lactationView(row, context.clock.now()),
       };
     }),
