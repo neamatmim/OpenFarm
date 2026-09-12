@@ -10,7 +10,7 @@ A cull that ends in a sale is a Sale, not a Cull: the Manager decides at the tim
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 4, user stories 64 and 65; [Fattening, weights and sale](../../openfarm-release-1/issues/10-fattening-weights-and-sale.md) ("Sale"); [Animal lifecycle and groups](../../openfarm-release-1/issues/04-animal-lifecycle-and-groups.md).
 
-- [x] The Manager records a Sale: buyer name, address and phone, sale price, weight at sale, date, destination, vehicle and driver; the Owner checks it
+- [~] The Manager records a Sale: buyer name, address and phone, sale price, weight at sale, date, destination, vehicle and driver — **done**; the Owner checks it — **not done**, see below
 - [x] Meat Withdrawal refuses the Sale outright, naming the day she is fit for sale
 - [x] She exits as Sold, leaves the herd everywhere at once, and her history is untouched
 - [x] A second sale to the same buyer on the same day offers that buyer and that transport again
@@ -57,9 +57,11 @@ and now go through the Sale instead, which is what they were always describing.
 
 ## Not done, and why
 
-- **The Owner does not check it yet.** The criterion says "the Owner checks it"; the Approval
-  Threshold (BDT 20,000) is a Farm Parameter that arrives with finance in increment 6, and inventing
-  an approval flow without the threshold it turns on would be inventing farm policy.
+- **The Owner does not check it yet, and criterion 1 is only half ticked because of it.** The
+  roles matrix says the Owner's part in a Sale is "R; approve above threshold", and the Approval
+  Threshold (BDT 20,000) is a Farm Parameter that arrives with finance in increment 6. Building an
+  approval flow without the threshold that turns it on would be inventing farm policy, so the
+  criterion stays open rather than being ticked on the half that was easy.
 - **No receipt and no transport card.** Ticket 40; the Sale now holds everything both need.
 - **No combined receipt for a day's sales to one buyer.** Also ticket 40, and it reads this same
   day-scoped query.
