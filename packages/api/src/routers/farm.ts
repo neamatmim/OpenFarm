@@ -1,7 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
-import { identityView, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  MAX_GRACE_MINUTES,
+  identityView,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -242,6 +246,14 @@ export const farmRouter = {
         // raised, and the farm would learn to ignore the alert that matters most in breeding.
         throw new ORPCError("BAD_REQUEST", {
           message: "The AI window has to close after it opens",
+        });
+      }
+      if ((closes - opens) * 60 > MAX_GRACE_MINUTES) {
+        // The window's length becomes the work's grace, and the late-work sweep only looks as far
+        // back as the longest grace any work may have. A longer window would let a missed service
+        // go late without anybody being told.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The AI window cannot be longer than a day",
         });
       }
       const quietFrom = input.quietFrom ?? context.farm.quietFrom;

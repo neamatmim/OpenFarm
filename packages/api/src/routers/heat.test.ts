@@ -81,7 +81,13 @@ const setup = async () => {
       source: "born",
       aliases: [],
     });
-  const cows = [await heifer(), await heifer()];
+  // A cow for each question, so no test's heats become another test's history.
+  const cows = [];
+  for (let index = 0; index < 6; index += 1) {
+    // Sequential: Tag Numbers are handed out in order from one counter.
+    // oxlint-disable-next-line no-await-in-loop
+    cows.push(await heifer());
+  }
 
   await createTestClient(appRouter, { as: "staff" });
   await scratchDb()
@@ -133,8 +139,14 @@ afterAll(async () => {
 
 const tagOf = (index: number) => world.cows[index]?.tagNumber ?? "";
 
-/** One heat-watch round in this file's Pen, recording what was seen of one cow. */
-const watchRound = async (at: string, tagNumber: string, saw: string) => {
+/** One heat-watch round in this file's Pen, recording what was seen of one cow. `recordedAt` is
+ *  the phone's own clock, for a sighting that reaches the farm later than it was made. */
+const watchRound = async (
+  at: string,
+  tagNumber: string,
+  saw: string,
+  recordedAt?: string
+) => {
   const clock = new FakeClock(at);
   const manager = await createTestClient(appRouter, { as: "manager", clock });
   await manager.client.instances.raiseNow({
@@ -157,8 +169,22 @@ const watchRound = async (at: string, tagNumber: string, saw: string) => {
     stepId: "look",
     animalTag: tagNumber,
     evidence: [saw],
+    ...(recordedAt ? { recordedAt: new Date(recordedAt) } : {}),
   });
-  return { clock, manager };
+  return { clock, manager, staff, roundId: round.id };
+};
+
+/** Serves her: the Manager does the AI work a Heat raised and finishes it. */
+const serve = async (at: string, workId: string) => {
+  const clock = new FakeClock(at);
+  const manager = await createTestClient(appRouter, { as: "manager", clock });
+  await manager.client.instances.claim({ id: workId });
+  await manager.client.instances.completeStep({
+    instanceId: workId,
+    stepId: "serve",
+    evidence: [true],
+  });
+  await manager.client.instances.complete({ id: workId });
 };
 
 /** Every open piece of AI work about one cow: today's, and anything from an earlier day that is
@@ -210,6 +236,7 @@ describe("a heat, and the window it opens", () => {
 
   it("follows the farm's own window when the Manager changes it", async () => {
     const setter = await createTestClient(appRouter, { as: "manager" });
+    const before = setter.context.farm;
     await setter.client.farm.setParameters({
       aiWindowStartHours: 10,
       aiWindowEndHours: 20,
@@ -220,10 +247,10 @@ describe("a heat, and the window it opens", () => {
       expect(work?.dueAt.toISOString()).toBe("2027-09-04T10:00:00.000Z");
       expect(work?.graceMinutes).toBe(10 * 60);
     } finally {
-      // The Farm is the whole test run's.
+      // Back to what it was, whatever that was: the Farm is the whole test run's.
       await setter.client.farm.setParameters({
-        aiWindowStartHours: 12,
-        aiWindowEndHours: 18,
+        aiWindowStartHours: before?.aiWindowStartHours ?? 12,
+        aiWindowEndHours: before?.aiWindowEndHours ?? 18,
       });
     }
   });
@@ -244,6 +271,94 @@ describe("a heat, and the window it opens", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
+  it("raises nothing more for a heat already served", async () => {
+    // Seen on the morning round, served that afternoon, and seen again the next morning — the
+    // same heat. There is no open job to hide the second sighting behind, and it must still raise
+    // nothing: a technician sent back to a cow he has just served stops trusting the list.
+    await watchRound("2027-09-10T00:00:00.000Z", tagOf(2), HEAT);
+    const [work] = await aiWorkFor("2027-09-10T00:30:00.000Z", tagOf(2));
+    await serve("2027-09-10T12:30:00.000Z", work?.id ?? "");
+
+    await watchRound("2027-09-11T00:00:00.000Z", tagOf(2), HEAT);
+    const afterwards = await aiWorkFor("2027-09-11T00:30:00.000Z", tagOf(2));
+    expect(afterwards).toHaveLength(0);
+
+    // Three weeks later she is back in heat — the service did not take — and that is a new heat.
+    await watchRound("2027-10-01T00:00:00.000Z", tagOf(2), HEAT);
+    const again = await aiWorkFor("2027-10-01T00:30:00.000Z", tagOf(2));
+    expect(again).toHaveLength(1);
+  });
+
+  it("raises one job for two sightings that reach the farm together", async () => {
+    // A shed phone with no signal for two days carries two sightings of one heat, and the farm
+    // hears both on one app-open. One heat, one job.
+    await watchRound("2027-09-12T00:00:00.000Z", tagOf(3), HEAT);
+    await watchRound("2027-09-13T00:00:00.000Z", tagOf(3), HEAT);
+    const raised = await aiWorkFor("2027-09-13T00:30:00.000Z", tagOf(3));
+    expect(raised).toHaveLength(1);
+  });
+
+  it("takes the work back when the heat is corrected away", async () => {
+    await watchRound("2027-09-14T00:00:00.000Z", tagOf(4), HEAT);
+    const [work] = await aiWorkFor("2027-09-14T00:30:00.000Z", tagOf(4));
+    expect(work).toBeDefined();
+
+    // The milker had the wrong cow. Put right, her AI work goes with the heat that raised it,
+    // rather than sending somebody to serve a cow who was not in heat.
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2027-09-14T01:00:00.000Z"),
+    });
+    const her = await manager.client.animals.byTag({ tagNumber: tagOf(4) });
+    const rounds = await manager.client.instances.today({
+      penId: world.pen.id,
+    });
+    const round = rounds.find(
+      (row) => row.definitionId === world.watch.definitionId
+    );
+    const board = await manager.client.instances.get({ id: round?.id ?? "" });
+    const entry = board.completions.find(
+      (row) => row.stepId === "look" && row.animalId === her.id
+    );
+    await manager.client.instances.correctStep({
+      completionId: entry?.id ?? "",
+      evidence: ["nothing"],
+      reason: "ভুল গাভী লেখা হয়েছিল",
+    });
+
+    const left = await aiWorkFor("2027-09-14T01:30:00.000Z", tagOf(4));
+    expect(left).toHaveLength(0);
+  });
+
+  it("asks the Manager about a heat that reached the farm after its window", async () => {
+    // Seen at dawn on the 16th, but the phone had no signal until that night: by the time the farm
+    // hears of it, the window closed at midnight. The job is still raised — the heat is never
+    // dropped — and the Manager is told the window went by for want of signal.
+    await watchRound(
+      "2027-09-16T19:00:00.000Z",
+      tagOf(5),
+      HEAT,
+      "2027-09-16T00:00:00.000Z"
+    );
+    const raised = await aiWorkFor("2027-09-16T19:30:00.000Z", tagOf(5));
+    expect(raised).toHaveLength(1);
+
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2027-09-16T19:30:00.000Z"),
+    });
+    const queue = await manager.client.review.open();
+    const asked = queue.find(
+      (row) => row.reason === "late_entry" && row.entityId === raised[0]?.id
+    );
+    expect(asked).toBeDefined();
+    // Answered, because the queue is the whole Farm's and this file shares it.
+    await manager.client.review.resolve({
+      id: asked?.id ?? "",
+      resolution: "পরের গরমে প্রজনন করা হবে",
+    });
+  });
+
   it("shows her Heats on her page", async () => {
     const manager = await createTestClient(appRouter, {
       as: "manager",
@@ -251,5 +366,9 @@ describe("a heat, and the window it opens", () => {
     });
     const her = await manager.client.animals.byTag({ tagNumber: tagOf(0) });
     expect(her.heats).toHaveLength(2);
+    // Newest first. The second sighting was of a heat already begun, so it raised nothing and
+    // points to nothing; the first raised her AI work and links to it.
+    expect(her.heats[0]?.workId).toBeNull();
+    expect(her.heats[1]?.workId).not.toBeNull();
   });
 });

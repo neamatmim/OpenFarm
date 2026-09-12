@@ -13,7 +13,9 @@ import {
   EXIT_STATES,
   FARM_UTC_OFFSET_MINUTES,
   HEAT,
+  SAME_HEAT_WITHIN_HOURS,
   aiWindow,
+  heatsThatBegin,
   raisesItsOwnWork,
   carryingMoments,
   describeChanges,
@@ -30,6 +32,7 @@ import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 
 const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
 
 /** An animal that has left the farm keeps its Pen, so every selection must exclude exits —
  *  otherwise a sold or dead cow appears on the pen board and blocks the Instance. */
@@ -74,13 +77,15 @@ export interface DueSlot {
 
 /**
  * Something that happened to one animal, flattened to what raising work needs to know. The
- * store reads Moves and registrations; the animal's own State change is one of these too,
- * because "she reached Dry" is a thing that happened at an instant just as much as a Move is.
+ * store reads Moves, registrations, deaths and the sightings that began a Heat; the animal's own
+ * State change is one of these too, because "she reached Dry" is a thing that happened at an
+ * instant just as much as a Move is.
  */
 export interface Happening {
   kind: FarmEvent | "state";
-  /** "move:<move id>", "arrival:<animal id>", "state:<animal id>:dry:<instant>" — what the
-   *  cause is built from, and what makes one happening distinguishable from the next. */
+  /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
+   *  "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
+   *  happening distinguishable from the next. */
   key: string;
   at: Date;
   animalId: string;
@@ -161,10 +166,11 @@ const dueAfter = (at: Date, offsetDays: number): Date =>
     : dueAtFor(new Date(at.getTime() + offsetDays * DAY_MS), "00:00");
 
 /**
- * Every Instance that things which have happened call for: a Move, an arrival, or an animal
- * reaching a State. One per happening per SOP, about the animal it happened to, due however
- * many days later the Trigger says. Pure — the caller decides which of these already exist,
- * and the cause is what lets it decide.
+ * Every Instance that things which have happened call for: a Move, an arrival, a death, a Heat,
+ * or an animal reaching a State. One per happening per SOP, about the animal it happened to. Due
+ * however many days later the Trigger says — except a Heat's, which falls due in the farm's AI
+ * window, in hours, and is late at its end. Pure — the caller decides which of these already
+ * exist, and the cause is what lets it decide.
  */
 export const happeningSlotsFor = (
   now: Date,
@@ -272,24 +278,30 @@ export const recentHappenings = async (
     columns: { id: true, animalId: true, movedAt: true },
   });
 
-  // Heats: Observations of oestrus that still stand. One a Correction withdrew is not a Heat the
-  // farm believes in, and work raised on it would send somebody to serve a cow who was not bulling.
-  const heats = await db.query.observation.findMany({
+  // Heats: the sightings of oestrus that still stand, and only those that *began* a heat. One a
+  // Correction withdrew is not a heat the farm believes in. Read from a little before the lookback,
+  // so a sighting near its edge can tell whether an earlier one had already begun that heat.
+  const sightings = await db.query.observation.findMany({
     where: {
       farmId,
       saw: HEAT,
-      seenAt: { gte: earliest },
+      seenAt: {
+        gte: new Date(earliest.getTime() - SAME_HEAT_WITHIN_HOURS * HOUR_MS),
+      },
       withdrawnAt: { isNull: true },
     },
     columns: { id: true, animalId: true, seenAt: true },
   });
+  const heats = heatsThatBegin(sightings).filter(
+    (heat) => heat.seenAt >= earliest
+  );
 
   const happenings: Happening[] = [];
   for (const heat of heats) {
     const beast = animalsById.get(heat.animalId);
     if (beast) {
       happenings.push({
-        kind: "heat",
+        kind: HEAT,
         key: `heat:${heat.id}`,
         at: heat.seenAt,
         animalId: beast.id,
@@ -354,29 +366,6 @@ export const recentHappenings = async (
     }
   }
   return happenings;
-};
-
-/**
- * Leaves out a Heat's work when that same procedure already has open work about that same cow.
- *
- * She is seen bulling on the morning round and again on the evening one — two Heats, one heat. The
- * cause of each is its own Observation, so nothing else stops the second raising a second job, and
- * a technician sent twice to one cow is a technician who stops trusting the list.
- */
-export const withoutHeatWorkAlreadyOpen = (
-  slots: DueSlot[],
-  open: { definitionId: string; animalId: string | null }[]
-): DueSlot[] => {
-  const held = new Set(
-    open.map((row) => `${row.definitionId}:${row.animalId}`)
-  );
-  return slots.filter(
-    (slot) =>
-      !(
-        slot.cause?.startsWith("heat:") &&
-        held.has(`${slot.definitionId}:${slot.animalId}`)
-      )
-  );
 };
 
 /** Raises the Instances the farm's day needs. Idempotent: the unique index on

@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, sql } from "@OpenFarm/db/operators";
+import { and, eq, inArray, like, sql } from "@OpenFarm/db/operators";
 import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { ExitState, Side } from "@OpenFarm/domain";
@@ -253,6 +253,32 @@ export const closeOpenWorkAboutHer = (
       and(
         eq(sopInstance.farmId, farmId),
         eq(sopInstance.animalId, animalId),
+        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
+      )
+    )
+    .returning({ id: sopInstance.id });
+
+/**
+ * Shuts the work a happening raised, when the farm no longer believes the happening.
+ *
+ * A Heat a Correction withdrew is the case: its AI work would still send somebody to serve a cow
+ * who was not in heat. Only open work — anything already done was done. Closed as missed, the
+ * word the farm already uses for work that can no longer sensibly be done; why it was closed is
+ * the Correction's own reason, in the trail beside it.
+ */
+export const closeWorkRaisedBy = (
+  tx: Tx,
+  farmId: string,
+  happeningKey: string
+) =>
+  tx
+    .update(sopInstance)
+    .set({ state: "missed" })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        // The cause is `<happening key>:+<days>`; the key alone is the happening.
+        like(sopInstance.cause, `${happeningKey}:%`),
         inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
       )
     )

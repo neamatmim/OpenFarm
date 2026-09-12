@@ -13,6 +13,7 @@ import type {
   Step,
 } from "@OpenFarm/domain";
 import {
+  HEAT,
   KG_DECIMALS,
   implausibleChange,
   isShortFed,
@@ -25,6 +26,7 @@ import type { Tx } from "./audit";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
+  closeWorkRaisedBy,
   loadLiveAnimal,
   moveOpenWorkWith,
   movedSince,
@@ -490,6 +492,24 @@ const applyTreatmentEffect = async (
 };
 
 /**
+ * A Heat the farm no longer believes in takes its AI work back with it.
+ *
+ * Withdrawing the Observation stops new work being raised on it — `recentHappenings` reads only
+ * sightings that stand — but not work already raised, which would still send somebody to serve a
+ * cow who was not in heat. If this sighting had begun her heat, its job closes; a later sighting
+ * of the same heat that still stands will begin it instead, and raise afresh on the next pass.
+ */
+const unraiseIfHeat = async (
+  tx: Tx,
+  farmId: string,
+  withdrawn: { id: string; saw: string }
+) => {
+  if (withdrawn.saw === HEAT) {
+    await closeWorkRaisedBy(tx, farmId, `heat:${withdrawn.id}`);
+  }
+};
+
+/**
  * Records what somebody saw of one animal on the round — the farm's Observation, which starts
  * the health chain and which Breeding reads as a Heat when that is what was seen.
  *
@@ -519,6 +539,7 @@ const applyObservationEffect = async (
         .update(observation)
         .set({ withdrawnAt: input.now })
         .where(eq(observation.id, standing.id));
+      await unraiseIfHeat(tx, input.instance.farmId, standing);
     }
     return null;
   }
@@ -539,6 +560,7 @@ const applyObservationEffect = async (
       .update(observation)
       .set({ withdrawnAt: input.now, supersededById: id })
       .where(eq(observation.id, standing.id));
+    await unraiseIfHeat(tx, input.instance.farmId, standing);
   }
   await tx.insert(observation).values({
     id,

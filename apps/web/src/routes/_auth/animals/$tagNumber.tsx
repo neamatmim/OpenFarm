@@ -483,13 +483,17 @@ const PutItRight = ({
 };
 
 /**
- * When she has been seen bulling, newest first.
+ * When she has been seen in heat, newest first, and the AI work each heat raised.
  *
  * Nothing at all for a cow who never has — a heading over an empty list reads as a record that
- * something went missing. Each Heat raised her AI work; the work itself is on the day's list,
- * where the person who serves her will find it.
+ * something went missing. A second sighting of the same heat raised nothing, and says so by
+ * having no work beside it.
  */
-const HerHeats = ({ heats }: { heats: { id: string; seenAt: Date }[] }) => {
+const HerHeats = ({
+  heats,
+}: {
+  heats: { id: string; seenAt: Date; workId: string | null }[];
+}) => {
   const { t, language } = useLanguage();
   if (heats.length === 0) {
     return null;
@@ -499,9 +503,20 @@ const HerHeats = ({ heats }: { heats: { id: string; seenAt: Date }[] }) => {
       <h2 className="font-medium">{t("heat.title")}</h2>
       <ul className="space-y-1">
         {heats.map((heat) => (
-          <li key={heat.id}>
-            <span className="text-muted-foreground">{t("heat.seen")}: </span>
-            {formatDate(heat.seenAt, language, "dateTime")}
+          <li className="flex flex-wrap gap-2" key={heat.id}>
+            <span>
+              <span className="text-muted-foreground">{t("heat.seen")}: </span>
+              {formatDate(heat.seenAt, language, "dateTime")}
+            </span>
+            {heat.workId ? (
+              <Link
+                className="underline"
+                params={{ instanceId: heat.workId }}
+                to="/work/$instanceId"
+              >
+                {t("heat.work")}
+              </Link>
+            ) : null}
           </li>
         ))}
       </ul>

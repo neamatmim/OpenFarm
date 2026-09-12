@@ -598,6 +598,7 @@ export const bn: Record<MessageKey, string> = {
   "weighIn.flagged": "ওজন নিয়ে প্রশ্ন",
   "review.implausible_weight": "ওজনের হঠাৎ পরিবর্তন — দেখা দরকার",
   "weighIn.by": "নিয়েছেন {name}",
+  "heat.work": "প্রজননের কাজ",
   "heat.title": "গরম হওয়ার রেকর্ড",
   "heat.seen": "গরম দেখা গেছে",
   "nav.intake": "পশু তোলা",

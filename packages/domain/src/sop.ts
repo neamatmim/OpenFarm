@@ -1,3 +1,4 @@
+import { HEAT } from "./breeding";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
 import type { ROLES, RoleName } from "./roles";
@@ -111,7 +112,7 @@ export type TriggerKind = (typeof TRIGGER_KINDS)[number];
  * her to the depth the rule names, and reporting her if what killed her is notifiable. That is
  * work precisely because she has gone.
  */
-export const FARM_EVENTS = ["move", "arrival", "death", "heat"] as const;
+export const FARM_EVENTS = ["move", "arrival", "death", HEAT] as const;
 export type FarmEvent = (typeof FARM_EVENTS)[number];
 
 /** How far ahead of the event or the State change work may be hung. */
@@ -347,7 +348,7 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
   // comes to believe the farm does something it does not.
   if (
     trigger.kind === "event" &&
-    trigger.event === "heat" &&
+    trigger.event === HEAT &&
     offset !== undefined
   ) {
     problems.push(

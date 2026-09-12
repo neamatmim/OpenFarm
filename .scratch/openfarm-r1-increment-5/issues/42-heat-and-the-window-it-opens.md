@@ -29,12 +29,46 @@ old.
 by a whole number of days: due at the window's start, late at its end. A window that closes before
 it opens is refused, because it would make every AI job late the moment it was raised.
 
-A Heat seen twice before she is served is one heat. Each is its own Observation, so nothing else
-stops the second raising a second job, and a technician sent twice to one cow stops trusting the
-list — open work about the same cow under the same procedure stands.
+A Heat seen twice is one heat. Which sightings *begin* a heat is decided from the sightings
+themselves — a sighting within 48 hours of the one that began her heat is the same heat — and only
+those raise work.
 
 A heat Observation that a Correction withdrew raises nothing: work raised on it would send somebody
 to serve a cow who was not bulling.
+
+## What the review changed
+
+Both axes found the same bug independently, and the spec axis found more — including in the one
+case I had asked it to break.
+
+- **"One heat, one job" only held while the first job was still open.** I had it hide a Heat's
+  work behind whatever work was open about her. Serve her on the morning of her heat, and the
+  evening sighting had nothing open to hide behind — so it raised a second job for a cow just
+  served. Two sightings reaching the farm together from a phone with no signal both raised jobs,
+  because neither was open yet. **The open work was the wrong thing to ask.** Which sightings begin
+  a heat is now decided from the sightings themselves, and it gives the same answer however late
+  they arrive. That also deleted the rule's string-prefix check and a query that read every open
+  job about every animal on the farm on every app-open. A mutation check confirmed the new tests
+  go red when the rule is broken.
+- **A heat corrected away left its AI work standing**, sending somebody to serve a cow who was not
+  in heat. Withdrawing the Observation stopped *new* work being raised on it and did nothing about
+  work already raised. It closes that work now.
+- **A heat that reached the farm after its window had closed was indistinguishable from
+  negligence.** On a farm whose sheds have no signal that is an ordinary morning, not an edge: a
+  dawn sighting reaches the farm when the phone does. The work is still raised — never dropped
+  (ADR 0002) — and it goes on the Manager's queue as a late entry, so a lost service window is put
+  down to a phone's lag and the Manager can decide whether she is still worth serving.
+- **Her page lost older heats.** It picked them out of her last twenty Observations, and a twice-
+  daily round writes one for every cow — so her page held about a week, and the heat that matters
+  after a failed service is three weeks old. Heats are read on their own now, and each one links
+  to the work it raised.
+- **The window could be set longer than a day**, and its length becomes the work's grace, while the
+  late-work sweep only looks back as far as the longest grace any work may have — so a missed
+  service could have gone late with nobody told. Capped at a day.
+- **Stale comments**: the slot builder and the `Happening` type still described a world with no
+  heats. **"Bulling" is on the glossary's _Avoid_ list** and was on the button. **One string, two
+  meanings**: the event name and the Observation's word are now the one constant.
+- **The test's `finally` put the window back to 12 and 18** rather than to whatever it found.
 
 ## Decisions and departures
 
@@ -59,11 +93,20 @@ event). Written into session memory.
   writes and publishes them; the test publishes its own.
 - **Nothing counts failed services yet.** A Heat that leads nowhere is ticket 44's and 47's
   business.
+- **Owners and Managers can record a Heat by stepping into the round**, though the roles matrix gives
+  them read only on Heats; and Barn Staff can read Heats on her page, though the matrix gives them
+  create only. Both are the existing rules for every Step and every Observation rather than
+  anything this ticket introduced — the same shape recorded against the Weigh-in in ticket 36 — so
+  they are written down rather than changed here.
+- **48 hours is a fact about cattle, not a Farm Parameter.** Named, and explained where it lives.
 
 ## Verification
 
-`pnpm check-types` clean across the workspace with colour stripped; `pnpm test` 404 passing (375
-api + 19 web + 10 i18n), up from 398 — a heat raising the work in the window, a second heat raising
-nothing while the first is open, a cow seen and found not bulling raising nothing, the window
-following the Manager's parameter, a days offset refused at publish, and her heats on her page.
+`pnpm check-types` clean across the workspace with colour stripped; `pnpm test` 408 passing (379
+api + 19 web + 10 i18n), up from 398 — a heat raising the work in the window; a second sighting
+raising nothing while the first job is open, **after she has been served**, and **when two sightings
+reach the farm together**; a new heat three weeks later raising new work; a heat corrected away
+taking its work back; a heat that arrived after its window raised and put on the Manager's queue;
+the window following the Manager's parameter; a days offset refused at publish; and her heats on
+her page, each linked to its work.
 `pnpm build` clean; `oxfmt` and `oxlint` clean on every changed file.
