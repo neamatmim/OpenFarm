@@ -104,7 +104,7 @@ export const en = {
   "herd.animalCount": "{count} animals",
   "herd.import": "Opening register",
   "herd.importHelp":
-    "Paste the CSV: sex, side, state, pen, source, breed, alias",
+    "Paste the CSV: sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, for a cow already in calf)",
   "herd.importRun": "Import",
   "herd.imported": "{count} imported",
   "herd.failedRows": "{count} rows could not be imported",
@@ -615,6 +615,22 @@ export const en = {
   "service.afterHeat": "After the heat of {when}",
   "sop.effect.service": "Service",
   "sop.effect.pregnancy_check": "Pregnancy check",
+  "sop.effect.dry_off": "Dries the cow off",
+  "sop.trigger.beforeCalving": "Before a cow's Expected Calving",
+  "sop.trigger.farmTimed": "The farm's days, set once for every cow",
+  "calvingLead.dry_off": "Dry-off lead",
+  "calvingLead.calving_prep": "Calving-prep lead",
+  "refusal.expectedCalvingNeeded":
+    "A Pregnant Heifer needs the day she is expected to calve",
+  "refusal.expectedCalvingPassed": "That day has already gone",
+  "refusal.expectedCalvingTooFar":
+    "No cow calves further off than a whole gestation",
+  "refusal.expectedCalvingWithoutPregnancy":
+    "Only a cow in calf is expected to calve",
+  "refusal.calvingIsDerived":
+    "This day comes from her service; correct the service or the check",
+  "refusal.dryOffOfACowNotInMilk": "Only a cow in milk is dried off",
+  "refusal.noCalvingExpected": "She is not expected to calve",
   "event.service":
     "A cow is served (the check falls due the farm's days later)",
   "refusal.vetOnly": "This is the Vet's to record",

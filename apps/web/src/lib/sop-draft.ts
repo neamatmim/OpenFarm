@@ -50,7 +50,14 @@ export const withScheduleTimes = (
  *  Prescription, which raises a dose of its own accord. */
 export type HappeningTrigger = Extract<
   Trigger,
-  { kind: "event" | "state" | "prescription" | "notifiable_disease" }
+  {
+    kind:
+      | "event"
+      | "state"
+      | "prescription"
+      | "notifiable_disease"
+      | "before_calving";
+  }
 >;
 
 export const happeningTriggers = (content: SopContent): HappeningTrigger[] =>
@@ -110,7 +117,7 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "dls_report") {
     return "note";
   }
-  return kind === "treatment" ? "tick" : "number";
+  return kind === "treatment" || kind === "dry_off" ? "tick" : "number";
 };
 
 /** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
@@ -131,6 +138,10 @@ const fittedEvidence = (
     // Nothing to carry over: this is reached only when what is there is not a choice at all.
     // What may be seen is the Owner's to write down.
     return { type: "choice", required: true, choices: [] };
+  }
+  if (kind === "dry_off") {
+    // Drying a cow off is a thing somebody did or did not do; which cow is the whole record.
+    return { type: "tick", required: true };
   }
   if (kind === "treatment") {
     // Giving a dose is a thing somebody did or did not do. There is no figure to write down:

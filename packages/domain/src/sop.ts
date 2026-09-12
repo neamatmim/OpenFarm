@@ -1,8 +1,10 @@
+import type { CalvingLead } from "./breeding";
 import {
   HEAT,
   PREGNANCY_CHECK_RESULTS,
   SERVICE,
   SERVICE_METHODS,
+  isCalvingLead,
 } from "./breeding";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
@@ -76,7 +78,9 @@ export type StepEffect =
   /** She was served: how, by what sire, and by whom. The event the breeding chain counts from. */
   | { kind: "service" }
   /** What the Vet found: positive or negative, of the attempt the Service began. */
-  | { kind: "pregnancy_check" };
+  | { kind: "pregnancy_check" }
+  /** She was dried off: a milking cow is Dry from this Step. */
+  | { kind: "dry_off" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -89,6 +93,7 @@ export const STEP_EFFECT_KINDS = [
   "weigh_in",
   "service",
   "pregnancy_check",
+  "dry_off",
 ] as const;
 
 export interface Step {
@@ -108,6 +113,7 @@ export const TRIGGER_KINDS = [
   "state",
   "prescription",
   "notifiable_disease",
+  "before_calving",
 ] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 
@@ -159,7 +165,11 @@ export type Trigger =
   | { kind: "prescription" }
   /** A Vet named a disease on the farm's notifiable list. Raised the moment the Diagnosis is
    *  recorded and due immediately, because the Act says the report goes without delay. */
-  | { kind: "notifiable_disease" };
+  | { kind: "notifiable_disease" }
+  /** Some days before an animal's Expected Calving — the farm's days for the lead named, so every
+   *  cow is dried off and prepared the same number of days out. Counted backwards from a date the
+   *  farm worked out, and moved with it when that date moves. */
+  | { kind: "before_calving"; lead: CalvingLead };
 
 /** Which animals an SOP concerns. A schedule-triggered SOP raises one Instance per Pen
  *  holding at least one matching animal, and its per-animal Steps cover those animals.
@@ -384,12 +394,24 @@ const pregnancyCheckProcedureProblems = (content: SopContent): string[] => {
   return problems;
 };
 
+/**
+ * A dry-off Step is walked cow by cow: which cow went Dry is the whole of what it records, so the
+ * Step has to be about one.
+ */
+const dryOffStepProblems = (step: Step, path: string): string[] =>
+  step.repeatPerAnimal
+    ? []
+    : [
+        `${path}: drying off is done cow by cow, so the step is walked animal by animal`,
+      ];
+
 const SHAPED_STEPS: Partial<
   Record<StepEffect["kind"], (step: Step, path: string) => string[]>
 > = {
   dls_report: reportStepProblems,
   service: serviceStepProblems,
   pregnancy_check: pregnancyCheckStepProblems,
+  dry_off: dryOffStepProblems,
 };
 
 const effectProblems = (step: Step, stepIndex: number): string[] => {
@@ -477,6 +499,14 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
     trigger.kind === "prescription" ||
     trigger.kind === "notifiable_disease"
   ) {
+    return problems;
+  }
+  if (trigger.kind === "before_calving") {
+    if (!isCalvingLead(trigger.lead)) {
+      problems.push(
+        `${at}.lead: "${trigger.lead}" is not a lead the farm keeps before a calving`
+      );
+    }
     return problems;
   }
   // An event or a State the farm does not record is work that would never arrive, and the

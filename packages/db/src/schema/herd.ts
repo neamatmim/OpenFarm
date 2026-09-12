@@ -106,6 +106,11 @@ export const animal = pgTable(
      *  farm's gestation on. Derived and re-derived whenever a check or a service under it changes,
      *  never typed. Null while nobody has found her carrying. */
     expectedCalvingAt: timestamp("expected_calving_at"),
+    /** The first service Expected Calving counts from — null when the date was given at intake or
+     *  on the opening register, where nobody on this farm served her. Only an entered date may be
+     *  put right by hand; one worked out from a check is put right by correcting what it came from.
+     *  No foreign key: the herd schema is read by the breeding one, not the other way about. */
+    expectedCalvingServiceId: text("expected_calving_service_id"),
     /** While this is in the future, the cow's milk may not go to Bulk. Written from the last
      *  Treatment given, on the product's own days. */
     milkWithdrawalUntil: timestamp("milk_withdrawal_until"),

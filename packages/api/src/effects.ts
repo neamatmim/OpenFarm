@@ -20,6 +20,7 @@ import {
   HEAT,
   KG_DECIMALS,
   SERVICE_EVIDENCE,
+  canTransition,
   isPregnancyCheckResult,
   isServiceMethod,
   implausibleChange,
@@ -30,6 +31,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
 import {
   attemptThatRaisedWork,
   closeWorkOfAttemptsNoLongerStanding,
@@ -117,8 +119,21 @@ export type EffectResult =
       /** True when the farm doubted it and put it in front of the Manager. */
       flagged: boolean;
     }
-  | { kind: "service"; method: ServiceMethod }
-  | { kind: "pregnancy_check"; result: PregnancyCheckResult }
+  /** A service or a check — or, with nothing, one taken back — and the calving work that followed the
+   *  date it changed. */
+  | ({ kind: "service"; method: ServiceMethod | null } & CalvingWorkFollowed)
+  | ({
+      kind: "pregnancy_check";
+      result: PregnancyCheckResult | null;
+    } & CalvingWorkFollowed)
+  | {
+      kind: "dry_off";
+      /** False when she was already Dry: a phone replaying the entry dries nobody twice. */
+      dried: boolean;
+      /** Corrected to a skip, but she cannot be put back in milk from here: what she was before,
+       *  and since when, is the trail's to say and a person's to decide. */
+      cannotUndo: boolean;
+    }
   | null;
 
 /** The figure a record-writing Step asks for: the first `number` slot the Version declares.
@@ -203,8 +218,9 @@ export interface EffectInput {
   /** The Roles the person recording holds. Most effects do not ask — the Step's own gate is
    *  enough — but a Service is the Manager's alone whoever is standing at the Step. */
   roles: readonly RoleName[];
-  /** How long this farm's cows carry, which Expected Calving is worked out from. */
-  gestationDays: number;
+  /** How long this farm's cows carry, and how long before calving its work falls — which Expected
+   *  Calving, and the work that follows it, are worked out from. */
+  pregnancyTimes: PregnancyTimes;
   /** What was actually put in front of the Pen, per Feed Item. */
   feeding: FeedingEntryLine[];
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
@@ -846,7 +862,7 @@ const rederiveFor = (
   undoingPositive: boolean
 ) =>
   rederivePregnancy(tx, cowId, {
-    gestationDays: input.gestationDays,
+    times: input.pregnancyTimes,
     at: input.recordedAt,
     now: input.now,
     undoingPositive,
@@ -863,7 +879,7 @@ const breedingFollowsService = async (
   cowId: string
 ) => {
   await closeWorkOfAttemptsNoLongerStanding(tx, input.instance.farmId, cowId);
-  await rederiveFor(tx, input, cowId, false);
+  return rederiveFor(tx, input, cowId, false);
 };
 
 /**
@@ -925,7 +941,11 @@ const applyServiceEffect = async (
         });
       }
       await tx.delete(service).where(eq(service.id, standing.id));
-      await breedingFollowsService(tx, input, cowId);
+      return {
+        kind: "service",
+        method: null,
+        ...(await breedingFollowsService(tx, input, cowId)),
+      };
     }
     return null;
   }
@@ -1012,8 +1032,11 @@ const applyServiceEffect = async (
     : tx
         .insert(service)
         .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
-  await breedingFollowsService(tx, input, cowId);
-  return { kind: "service", method };
+  return {
+    kind: "service",
+    method,
+    ...(await breedingFollowsService(tx, input, cowId)),
+  };
 };
 
 /**
@@ -1048,7 +1071,11 @@ const applyPregnancyCheckEffect = async (
   if (input.skipped) {
     if (standing && cowId) {
       await tx.delete(pregnancyCheck).where(eq(pregnancyCheck.id, standing.id));
-      await rederiveFor(tx, input, cowId, wasPositive);
+      return {
+        kind: "pregnancy_check",
+        result: null,
+        ...(await rederiveFor(tx, input, cowId, wasPositive)),
+      };
     }
     return null;
   }
@@ -1094,8 +1121,74 @@ const applyPregnancyCheckEffect = async (
     : tx
         .insert(pregnancyCheck)
         .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
-  await rederiveFor(tx, input, cowId, wasPositive && result === "negative");
-  return { kind: "pregnancy_check", result };
+  return {
+    kind: "pregnancy_check",
+    result,
+    ...(await rederiveFor(
+      tx,
+      input,
+      cowId,
+      wasPositive && result === "negative"
+    )),
+  };
+};
+
+/**
+ * Dries her off: a milking cow is Dry from the moment this Step says, and her Lactation ends there
+ * without being forgotten.
+ *
+ * Keyed on the cow rather than a row of its own, because Dry is her State and the State is the
+ * record: a phone replaying the entry finds her Dry already and dries nobody twice. What it will not
+ * do is put her back in milk when the entry is corrected to a skip. What she was before, and since
+ * when, matters to every State-triggered procedure — a cow put back in Milking from here would look
+ * freshly calved — so she stays Dry and a person is asked (Needs Review, irreversible effect).
+ */
+const applyDryOffEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.animalId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This step dries off a cow, and it was not recorded against one",
+    });
+  }
+  const her = await tx.query.animal.findFirst({
+    where: { id: input.animalId, farmId: input.instance.farmId },
+    columns: { tagNumber: true },
+  });
+  if (!her) {
+    throw new ORPCError("NOT_FOUND", { message: "No such animal" });
+  }
+  // A cow who has left the farm cannot be dried off, whoever is asking.
+  const live = await loadLiveAnimal(tx, input.instance.farmId, her.tagNumber);
+  if (input.skipped) {
+    // Only an entry that dried her has anything to undo: she went Dry at the moment it was recorded.
+    // A cow already Dry when this entry came asks nobody anything.
+    const driedByThisEntry =
+      live.state === "dry" &&
+      live.stateChangedAt.getTime() === input.recordedAt.getTime();
+    return driedByThisEntry
+      ? { kind: "dry_off", dried: false, cannotUndo: true }
+      : null;
+  }
+  if (live.state === "dry") {
+    return { kind: "dry_off", dried: false, cannotUndo: false };
+  }
+  if (!canTransition(live.state, "dry")) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only a cow in milk is dried off",
+      data: { refusal: "dry_off_of_a_cow_not_in_milk" },
+    });
+  }
+  await tx
+    .update(animal)
+    .set({
+      state: "dry",
+      stateChangedAt: input.recordedAt,
+      updatedAt: input.now,
+    })
+    .where(eq(animal.id, live.id));
+  return { kind: "dry_off", dried: true, cannotUndo: false };
 };
 
 /**
@@ -1142,6 +1235,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "pregnancy_check") {
     return await applyPregnancyCheckEffect(tx, input);
+  }
+  if (effect.kind === "dry_off") {
+    return await applyDryOffEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

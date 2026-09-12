@@ -119,10 +119,14 @@ const onACourse = async (clock: FakeClock, days = 3) => {
   const cow = await owner.client.animals.register({
     sex: "female",
     side: "dairy",
-    state: "pregnant_heifer",
+    state: "heifer",
     penId: world.pen.id,
     source: "born",
     aliases: [],
+  });
+  await owner.client.animals.setState({
+    tagNumber: cow.tagNumber,
+    state: "pregnant_heifer",
   });
   // In milk, because the milk gate is the thing with teeth.
   await owner.client.animals.setState({

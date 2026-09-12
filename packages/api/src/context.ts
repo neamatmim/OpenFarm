@@ -79,6 +79,9 @@ export interface Context {
     /** How long after an attempt's first service the Vet checks her, and how long a cow carries. */
     pregnancyCheckAfterDays: number;
     gestationDays: number;
+    /** How long before Expected Calving a cow is dried off, and walked to the calving pen. */
+    dryOffLeadDays: number;
+    calvingPrepLeadDays: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;
