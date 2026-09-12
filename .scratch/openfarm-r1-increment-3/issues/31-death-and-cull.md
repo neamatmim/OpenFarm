@@ -45,9 +45,11 @@ that raises work about an animal who is no longer here, which is precisely why i
 - **"DLS report ref if notifiable"** (report set R6) has no home yet: the Mortality carries no
   notifiable flag and no link to the report. Ticket 32 writes the letter, and the link belongs
   with it.
-- **A culled animal can never be sold.** The lifecycle doc says "if the cull ends in a sale the
-  sale record is still made", and once she is Culled every further write is refused. That is
-  increment 4's knot to untie, with the Sale in front of it.
+- **A culled animal can never be sold** — **decided with the Owner 2026-09-12, and it needs no
+  code here.** A cull that ends in a sale is recorded as a *Sale*, not a Cull: the Manager decides
+  at the time, one exit and one record, and the reason she was culled goes in the Sale's own note.
+  So "Culled" means an animal destroyed or dead on the farm, and the rule that nothing may change
+  an animal who has left stands as it is. Carried into increment 4's Sale ticket (39).
 - **Sold is still a State somebody sets.** A death and a cull now need their record; Sold has no
   record of its own until increment 4, and refusing it here would leave the farm unable to say a
   cow was sold at all. It joins them when the Sale exists.

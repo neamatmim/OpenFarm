@@ -51,8 +51,10 @@ somebody has to remember to tick — which is what R6's last column asks for.
 ## Cut, and owed
 
 - **The farm has no contact details.** R14 wants "farm identity & Registration no. … and
-  contact"; the `farm` table has a name and nothing else. The registration number arrives with
-  registration (increment 7); a phone number is a farm parameter somebody should decide on.
+  contact"; the `farm` table has a name and nothing else. **Decided with the Owner 2026-09-12:**
+  address, phone and registration number are added as farm parameters now, so both this letter and
+  increment 4's transport card print complete. Increment 4 ticket 34 does it, and this letter picks
+  them up there.
 - **Matching is still on words.** The Vet types the disease and the farm matches it against the
   list, case-folded and trimmed. A typo means no report — so the Vet's screen should offer the
   list, and does not yet. The report now records *which* list entry matched, so at least the
