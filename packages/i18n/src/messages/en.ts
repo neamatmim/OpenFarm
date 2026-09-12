@@ -621,14 +621,14 @@ export const en = {
   "calvingLead.dry_off": "Dry-off lead",
   "calvingLead.calving_prep": "Calving-prep lead",
   "refusal.expectedCalvingNeeded":
-    "A heifer bought in carrying needs the day she is expected to calve",
+    "A Pregnant Heifer needs the day she is expected to calve",
   "refusal.expectedCalvingPassed": "That day has already gone",
   "refusal.expectedCalvingTooFar":
     "No cow calves further off than a whole gestation",
   "refusal.expectedCalvingWithoutPregnancy":
     "Only a cow in calf is expected to calve",
   "refusal.calvingIsDerived":
-    "This date comes from her service; correct the service or the check",
+    "This day comes from her service; correct the service or the check",
   "refusal.dryOffOfACowNotInMilk": "Only a cow in milk is dried off",
   "refusal.noCalvingExpected": "She is not expected to calve",
   "event.service":

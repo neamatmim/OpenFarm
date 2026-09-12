@@ -182,9 +182,10 @@ const setup = async () => {
       `female,dairy,milking,দুধের ঘর ${suffix},bought,`,
       `female,dairy,milking,দুধের ঘর ${suffix},bought,2031-09-01`,
       `female,dairy,milking,দুধের ঘর ${suffix},bought,`,
+      `female,dairy,milking,দুধের ঘর ${suffix},bought,2031-01-31`,
     ].join("\n"),
   });
-  const [homeBred, alreadyCarrying, mistaken] = imported.imported;
+  const [homeBred, alreadyCarrying, mistaken, nearlyDue] = imported.imported;
   const watch = await owner.client.sops.create({ content: heatWatchSop() });
   const ai = await owner.client.sops.create({ content: aiSop() });
   const check = await owner.client.sops.create({ content: checkSop() });
@@ -199,6 +200,7 @@ const setup = async () => {
     homeBred: homeBred?.tagNumber ?? "",
     alreadyCarrying: alreadyCarrying?.tagNumber ?? "",
     mistaken: mistaken?.tagNumber ?? "",
+    nearlyDue: nearlyDue?.tagNumber ?? "",
     imported,
     watch,
     ai,
@@ -576,5 +578,110 @@ describe("the work Expected Calving pulls towards it", () => {
     expect((trail?.effect.workClosed ?? []).toSorted()).toEqual(
       raised.map((work) => work.id).toSorted()
     );
+
+    // She was carrying after all. The same calving, so the same work comes back on its day.
+    await vet.client.instances.correctStep({
+      completionId: entry?.id ?? "",
+      evidence: ["positive"],
+      reason: "আবার দেখে গর্ভবতী পাওয়া গেছে",
+    });
+    for (const work of raised) {
+      // Sequential, reading each piece of work back.
+      // oxlint-disable-next-line no-await-in-loop
+      const back = await manager.client.instances.get({ id: work.id });
+      expect(back.state).toBe("due");
+    }
+  });
+
+  it("dries off a cow who arrives close to calving, late, and stops once she has calved", async () => {
+    // On the register on 1 January, due on 31 January: her dry-off fell on 2 December, before she
+    // was ever on this farm. She is still in milk and carrying, so it is raised, and it is late.
+    const drying = await workFor(
+      "2031-01-02T03:00:00.000Z",
+      world.dryOff.definitionId,
+      world.nearlyDue
+    );
+    expect(drying.rows.map((row) => row.dueAt.toISOString())).toEqual([
+      "2030-12-01T18:00:00.000Z",
+    ]);
+
+    // She calves on the 25th, recorded by hand, before anybody walked her anywhere.
+    const clock = new FakeClock("2031-01-25T06:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    // Dried off by hand that morning, so the dry-off Step written up later dries nobody — and putting
+    // that entry right as a skip has nothing to undo and nobody to ask.
+    const earlier = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2031-01-25T01:00:00.000Z"),
+    });
+    await earlier.client.animals.setState({
+      tagNumber: world.nearlyDue,
+      state: "dry",
+    });
+    const dryWork = drying.rows[0]?.id ?? "";
+    await manager.client.instances.claim({ id: dryWork });
+    await manager.client.instances.completeStep({
+      instanceId: dryWork,
+      stepId: "dry",
+      animalTag: world.nearlyDue,
+      evidence: [true],
+    });
+    const board = await manager.client.instances.get({ id: dryWork });
+    const entry = board.completions.find((row) => row.stepId === "dry");
+    const corrected = await manager.client.instances.correctStep({
+      completionId: entry?.id ?? "",
+      skipReason: "পাওয়া যায়নি",
+      reason: "হাতে আগেই দুধ বন্ধ করা হয়েছিল",
+    });
+    expect(corrected.needsReview).toBe(false);
+    const prep = await workFor(
+      "2031-01-25T06:00:00.000Z",
+      world.prep.definitionId,
+      world.nearlyDue
+    );
+    expect(prep.rows).toHaveLength(1);
+    await manager.client.animals.setState({
+      tagNumber: world.nearlyDue,
+      state: "milking",
+      calvedAt: new Date("2031-01-25T02:00:00.000Z"),
+    });
+
+    // The calving is behind her: nothing is expected, and no work for it waits or comes round again.
+    const after = await workFor(
+      "2031-01-26T03:00:00.000Z",
+      world.prep.definitionId,
+      world.nearlyDue
+    );
+    expect(after.her.expectedCalvingAt).toBeNull();
+    expect(after.rows).toHaveLength(0);
+    const closed = await manager.client.instances.get({
+      id: prep.rows[0]?.id ?? "",
+    });
+    expect(closed.state).toBe("missed");
+  });
+
+  it("moves open work when the farm changes a lead", async () => {
+    // Her prep was put on 4 September after her date was corrected. Ten days' lead instead of seven
+    // puts it on 1 September; seven again puts it back.
+    const clock = new FakeClock("2031-07-05T04:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const her = await manager.client.animals.byTag({
+      tagNumber: world.alreadyCarrying,
+    });
+    const raisedPrep = await scratchDb().query.sopInstance.findFirst({
+      where: { definitionId: world.prep.definitionId, animalId: her.id },
+      columns: { id: true },
+    });
+    const prepId = raisedPrep?.id ?? "";
+    try {
+      await manager.client.farm.setParameters({ calvingPrepLeadDays: 10 });
+      const moved = await manager.client.instances.get({ id: prepId });
+      expect(moved.dueAt.toISOString()).toBe("2031-08-31T18:00:00.000Z");
+    } finally {
+      // Every test file shares this farm: the lead goes back whatever happened above.
+      await manager.client.farm.setParameters({ calvingPrepLeadDays: 7 });
+    }
+    const back = await manager.client.instances.get({ id: prepId });
+    expect(back.dueAt.toISOString()).toBe("2031-09-03T18:00:00.000Z");
   });
 });

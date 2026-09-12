@@ -117,16 +117,15 @@ export const attemptKeyOf = (served: { id: string; servedAt: Date }): string =>
 export const ATTEMPT_KEY_PREFIX = `${SERVICE}:`;
 
 /**
- * The key a pregnancy's calving writes: the cow, the Lactation it will begin, and where the date came
- * from — the first service it counts from, or `entered` for a date given at intake. Not the date
- * itself: a date that moves takes its work with it rather than raising a second lot.
+ * The key an expected calving writes: the cow, and the Lactation her calving will end. Not the date,
+ * and not where the date came from — a date that moves, or comes to be worked out from a different
+ * service, is still the same calving, and takes its work with it rather than raising a second lot
+ * beside work already done.
  */
 export const calvingKeyOf = (her: {
   id: string;
   lactationNumber: number;
-  expectedCalvingServiceId: string | null;
-}): string =>
-  `calving:${her.id}:${her.lactationNumber}:${her.expectedCalvingServiceId ?? "entered"}`;
+}): string => `calving:${her.id}:${her.lactationNumber}`;
 
 /** The cause calving work carries: its pregnancy's key, and which lead it keeps. */
 export const calvingCauseOf = (key: string, lead: CalvingLead): string =>
@@ -137,7 +136,7 @@ export const calvingWorkPrefix = (animalId: string): string =>
   `calving:${animalId}:`;
 
 const CALVING_CAUSE =
-  /^(?<key>calving:[^:]+:\d+:[^:]+):(?<lead>dry_off|calving_prep)$/u;
+  /^(?<key>calving:[^:]+:\d+):(?<lead>dry_off|calving_prep)$/u;
 
 /** A calving cause read back: its pregnancy's key and its lead, or null for any other cause. */
 export const calvingCauseParts = (
@@ -150,10 +149,11 @@ export const calvingCauseParts = (
 };
 
 export interface Happening {
-  /** What happened — or, for `calving_due`, what the farm expects to: her Expected Calving. */
-  kind: FarmEvent | "state" | "calving_due";
+  /** What happened — or, for `calving_expected`, what the farm expects to: her Expected Calving. */
+  kind: FarmEvent | "state" | "calving_expected";
   /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
-   *  "service:<first service id>:<instant>", "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
+   *  "service:<first service id>:<instant>", "calving:<animal id>:<lactation>",
+   *  "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
    *  happening distinguishable from the next. */
   key: string;
   at: Date;
@@ -243,7 +243,8 @@ export interface BreedingTimes {
 
 /**
  * When a happening's work falls due and how long it has. A Heat's is timed by the hours a service
- * takes, and an attempt's by the days until a vet can tell — both the farm's, not the Version's.
+ * takes, an attempt's by the days until a vet can tell, and calving work by the lead it keeps before
+ * her Expected Calving — all the farm's, not the Version's.
  */
 const timingOf = (
   happening: Happening,
@@ -290,7 +291,7 @@ const triggerMatches = (
   if (trigger.kind === "state") {
     return happening.kind === "state" && happening.state === trigger.state;
   }
-  return happening.kind === "calving_due";
+  return happening.kind === "calving_expected";
 };
 
 /**
@@ -298,8 +299,8 @@ const triggerMatches = (
  * an attempt at a Service, or an animal reaching a State. One per happening per SOP, about the
  * animal it happened to. Due however many days later the Trigger says — except a Heat's, which falls
  * due in the farm's AI window, in hours, and is late at its end; and an attempt's, which falls due
- * the farm's days to a Pregnancy Check after her first service. And one thing that has not happened
- * yet: a calving the farm expects, whose work falls the farm's lead of days before it. Pure — the caller decides which of
+ * the farm's days to a Pregnancy Check after her first service. And one thing that has not
+ * happened yet: a calving the farm expects, whose work falls the farm's lead of days before it. Pure — the caller decides which of
  * these already exist, and the cause is what lets it decide.
  *
  * Looked back for by when the work falls due, not by when its happening was: a Pregnancy Check is
@@ -348,7 +349,12 @@ export const happeningSlotsFor = (
           continue;
         }
         const timing = timingOf(happening, trigger, sop.content, breeding);
-        if (timing.dueAt < earliest) {
+        // Calving work is looked back for by the calving, not by its own day. A cow who reaches the
+        // farm three weeks from calving is still to be dried off — late, and on the Overdue list
+        // saying so — because she is still in milk and still carrying.
+        const lookedBackBy =
+          trigger.kind === "before_calving" ? happening.at : timing.dueAt;
+        if (lookedBackBy < earliest) {
           continue;
         }
         slots.push({
@@ -501,7 +507,7 @@ export const recentHappenings = async (
     // time, not from a window — the date is ahead of her, and the work falls due long before it.
     if (beast.expectedCalvingAt) {
       happenings.push({
-        kind: "calving_due",
+        kind: "calving_expected",
         key: calvingKeyOf(beast),
         at: beast.expectedCalvingAt,
         animalId: beast.id,

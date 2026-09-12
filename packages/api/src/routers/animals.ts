@@ -42,6 +42,7 @@ import { applyMove } from "../completion-store";
 import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { parseCsvRecords } from "../csv";
+import { farmDay } from "../farm-clock";
 import { fatteningOf } from "../fattening-store";
 import {
   theConclusionAndWhatFollowed,
@@ -66,8 +67,6 @@ const IMPORT_MAX_ROWS = 600;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const tagInput = z.string().trim().min(1).max(32);
-
-const farmDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "a day as YYYY-MM-DD");
 
 const animalFields = {
   sex: z.enum(SEXES),
@@ -400,22 +399,21 @@ const expectedCalvingWithinReach = (
  * The Expected Calving somebody gave for a cow already in calf when she reached this farm, as the
  * day it begins on the farm's clock — or nothing, for a cow nobody said was carrying.
  *
- * A Pregnant Heifer bought in has to have one: without it nothing would ever fall due for her, and
- * she would calve without anybody having walked her to the calving pen. One of the farm's own
- * heifers, written into the register late, may go without — the farm served her, and her service and
- * check are where her date should come from.
+ * A Pregnant Heifer has to have one: registered carrying, she has no service on this farm to work a
+ * date out from, and without one nothing would ever fall due for her — she would calve without
+ * anybody having walked her to the calving pen. A cow in milk or Dry may be in calf or not, so hers is
+ * given when somebody knows it.
  */
 const enteredCalving = (
-  { state, source }: { state: AnimalState; source: string },
+  state: AnimalState,
   day: string | undefined,
   now: Date,
   gestationDays: number
 ): { expectedCalvingAt: Date; expectedCalvingServiceId: null } | null => {
   if (!day) {
-    if (state === "pregnant_heifer" && source === "bought") {
+    if (state === "pregnant_heifer") {
       throw new ORPCError("BAD_REQUEST", {
-        message:
-          "A heifer bought in carrying needs the day she is expected to calve",
+        message: "A Pregnant Heifer needs the day she is expected to calve",
         data: { refusal: "expected_calving_needed" },
       });
     }
@@ -466,7 +464,7 @@ const createAnimal = async (
 ): Promise<{ id: string; tagNumber: string }> => {
   assertCalvedInThePast(input.calvedAt, now);
   const calving = enteredCalving(
-    input,
+    input.state,
     input.expectedCalvingOn,
     now,
     context.farm.gestationDays
@@ -1084,12 +1082,19 @@ export const animalsRouter = {
               message: `An animal cannot go from ${current.state} to ${input.state}`,
             });
           }
+          const calved =
+            input.state === "milking" && current.state !== "milking";
           await tx
             .update(animal)
             .set({
               state: input.state,
               side: sideOfState(input.state) ?? current.side,
               ...startingLactation(current, input.state, input.calvedAt, now),
+              // She calved, so the calving the farm expected is behind her. Left standing, the date
+              // would read as the next calving, and the work before it would come round again.
+              ...(calved
+                ? { expectedCalvingAt: null, expectedCalvingServiceId: null }
+                : {}),
               // When she reached it, so a State-triggered SOP can count its days from here
               // and tell this occasion apart from the last time she was in this State.
               stateChangedAt: now,
@@ -1098,6 +1103,14 @@ export const animalsRouter = {
             .where(
               and(eq(animal.farmId, context.farm.id), eq(animal.id, current.id))
             );
+          if (calved) {
+            await followExpectedCalving(
+              tx,
+              { ...current, expectedCalvingAt: null },
+              pregnancyTimesOf(context.farm).calvingLeadDays,
+              { expectedAgain: false }
+            );
+          }
         }
       );
       return { tagNumber, state: input.state };
@@ -1164,9 +1177,9 @@ export const animalsRouter = {
             .where(eq(animal.id, her.id));
           followed = await followExpectedCalving(
             tx,
-            context.farm.id,
             { ...her, expectedCalvingAt },
-            pregnancyTimesOf(context.farm).calvingLeadDays
+            pregnancyTimesOf(context.farm).calvingLeadDays,
+            { expectedAgain: false }
           );
         }
       );

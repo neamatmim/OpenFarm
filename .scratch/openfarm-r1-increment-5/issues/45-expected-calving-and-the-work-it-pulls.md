@@ -22,60 +22,106 @@ Two decisions from the Owner, 2026-09-13. **If the date moves, the work moves wi
 keeps — dry-off or calving prep — and the days are Farm Parameters (`dryOffLeadDays` 60,
 `calvingPrepLeadDays` 7), as the spec lists them. It follows the Heat and the Service: the farm times
 this work, not the Version, so every cow is dried off the same number of days out. The work falls on
-the farm's day that many days before her Expected Calving, and it is raised as soon as a date is known,
-months ahead. The SOP editor offers the new Trigger, and no longer offers a "days after" box for a Heat
-or a Service, where publishing refused one.
+the farm's day that many days before her Expected Calving, and is raised as soon as a date is known.
+It is looked back for by the calving, not by its own day: a cow who reaches the farm three weeks from
+calving still gets her dry-off, late and on the Overdue list. The SOP editor offers the new Trigger,
+and no longer offers a "days after" box for a Heat or a Service, where publishing refused one.
 
 **Drying her off puts her in Dry.** A new `dry_off` Step Effect, walked cow by cow. A replay finds her
-Dry already and dries nobody twice. A cow not in milk is refused. Corrected to a skip, she is not put
-back in milk: a cow returned to Milking from there would look freshly calved to every State-triggered
-procedure, so she stays Dry and the Manager gets a Needs Review, as an irreversible Move does.
-**Calving prep needs no new effect**: its Step is a Move to the calving Pen the Owner authors.
+Dry already and dries nobody twice. A cow not in milk is refused. If the entry that dried her is
+corrected to a skip, she stays Dry and the Manager gets a Needs Review, as an irreversible Move does:
+put back in Milking from there, she would look freshly calved to every State-triggered procedure. An
+entry that dried nobody, because she was Dry already, asks nobody anything. **Calving prep needs no new
+effect**: its Step is a Move to the calving Pen the Owner authors.
 
-**When the date moves, open work moves with it.** Calving work is keyed on the cow, the Lactation the
-calving will begin, and where the date came from — the service it counts from, or *entered* — not on
-the date. Whenever Expected Calving changes, her open calving work goes to its new day, and takes the
-new key if the date now comes from a different service. Work already done stays done. With no calving
-expected any more — a positive put right — the open work closes. What moved and what closed goes on
-the trail: in the Completion's entry when a service or a check caused it, which a Correction's entry
-now carries as well, and in the Correction's own entry when an entered date is put right, with its
-reason.
+**When the date moves, the work moves with it.** Calving work is keyed on the calving — the cow and the
+Lactation it will end — not on the date or where the date came from. Whenever Expected Calving
+changes, her open calving work goes to its new day, and work already done stays done and is never
+raised twice. The date can change through a service or check it is worked out from, a date entered at
+intake being put right, or the Manager changing the gestation or a lead.
 
-**A heifer bought in carrying is asked when she will calve.** Registering a Pregnant Heifer bought in
-is refused without an Expected Calving. A day already gone is refused, and so is one further off than
-a gestation. The opening register takes an optional `expected_calving` column for a heifer or cow
-already in calf. Her date is marked as *entered*, so it can be put right by hand with a reason
-(`correctExpectedCalving`). One worked out from a check cannot be typed over: that date is corrected
-through the service or check it came from.
+When no calving is expected any more, the open work closes: a positive put right, or a calving
+recorded by hand. When one is expected again in the same Lactation — a positive corrected away and
+then back — the work that closed comes back on its day. What moved, closed or came back goes on the
+trail. For a service or check, it goes in the Completion's entry, which a Correction's entry now
+carries as well. For a corrected date, it goes in the Correction's own entry, with the reason. For a
+parameter change, it goes in the Farm Parameters entry.
 
-**Five tests**, in a year no other file uses: a home-bred cow served, checked, dried off on the right
-day and walked to the calving pen on the right day; a bought-in heifer refused without a date, then
-given calving prep and no dry-off; an entered date corrected, moving her open prep and leaving her
-finished dry-off alone, with the move and its reason on the trail; a checked date refused for typing
-over; a mistaken positive corrected, closing both pieces of work and saying so on the Correction's
-trail. Mutation-checked, each red: no moving; dry-off drying nobody; one lead for both procedures; no
-date required; a derived date typed over; finished work moved; a derived calving not raising work;
-never closing; the effect missing from a Correction's trail.
+**A Pregnant Heifer registered is asked when she will calve.** Registering one is refused without an
+Expected Calving. So is a day already gone, or one further off than a gestation. The opening register
+takes an optional `expected_calving` column for a heifer or cow already in calf. That date is marked as
+*entered*, so it can be put right by hand with a reason (`correctExpectedCalving`). One worked out from
+a check cannot be typed over; it is corrected through the service or check it came from.
+
+**Seven tests**, in a year no other test file uses:
+
+- **Home-bred cow:** served, checked, dried off on the right day, and walked to the calving pen on the
+  right day.
+- **Bought-in heifer:** refused without a date, then given calving prep and no dry-off.
+- **Entered date corrected:** her open prep moves and her finished dry-off stays, with the move and its
+  reason on the trail.
+- **Derived date:** refused for typing over.
+- **Mistaken positive:** corrected away closes both pieces of work and says so on the trail; corrected
+  back, the work returns.
+- **Cow on the register three weeks from calving:** her dry-off is raised late. A dry-off entry that
+  dried nobody raises no review when skipped. Her calving, recorded by hand, closes her prep and
+  nothing comes round again.
+- **Lead changed and put back:** her open work moves both ways.
+
+Mutation-checked, each red: no moving; dry-off drying nobody; one lead for both procedures; no date
+required; a derived date typed over; finished work moved; a derived calving not raising work; never
+closing; the effect missing from a Correction's trail; never reopening; looking back by the work's own
+day; a calving leaving the date standing, or not closing the work; no retiming on a parameter change;
+any Dry cow raising a review.
+
+## What the review changed
+
+The standards axis found two bugs in the key:
+
+- **Keying calving work on where the date came from** meant a service correction after dry-off was
+  done raised a second dry-off under the new key.
+- **The clash guard** could close her last open dry-off.
+
+The key is now the calving alone, and a closed calving's work comes back when it is expected again.
+
+Also from the standards axis:
+
+- **A skipped dry-off raised a false Needs Review** on any Dry cow.
+- **"calving_due" and the Bangla copy used the glossary's avoided *due date*.**
+- **The day schema was declared twice.**
+- **Three doc comments were stale.**
+- **A lead validator went unused.**
+
+The spec axis found:
+
+- **A calving recorded by hand brought the prep back overdue.** Her Lactation number moved on, but her
+  date stood.
+- **A cow on the register close to calving never got her dry-off.** It fell before the fortnight
+  looked back.
+- **Changing gestation or a lead moved nothing**, against the Owner's decision that work moves with its
+  date.
+- **The acceptance criterion says any Pregnant Heifer registered is asked for a date.** I had required
+  it only for one bought in, to spare tests that use one as a shortcut. Only one test file registered
+  one that way. It now registers a Heifer and moves her on.
 
 ## Decisions made here
 
 - **The leads are Farm Parameters, and the Trigger names the lead, not a number.** The ticket's words
   were "so many days before", but the spec lists both leads as Farm Parameters, and the Heat and
   Service triggers already work this way.
-- **Only a heifer *bought in* must have a date.** Twelve existing tests register a home-born Pregnant
-  Heifer as the way to a milking cow. The Owner's decision was about one bought in; a home-born heifer
-  written in late gets her date from her service.
 - **Manual `setState` to Pregnant Heifer still sets no date**, so it raises no calving work. It is the
   Manager's escape hatch, and closing it is a separate decision.
 
 ## Left open
 
-- **Work closed because a positive was put right is marked missed**, like the other work this
-  increment closes. The same Owner question as ticket 44.
-- **Changing a lead or the gestation does not move work already raised.** Expected Calving is worked
-  out again when a service or check changes, not when a Farm Parameter does. There is no screen for
-  these Parameters yet.
-- **A positive put right, then the same attempt found positive again, raises no new calving work.**
-  Its causes are the same as the closed work's. Found positive from a different service, it does.
-- **Calving itself (ticket 46)** clears Expected Calving and starts the next Lactation; its work key
-  moves on with the Lactation number.
+- **Closed calving work is marked missed**, like the other work this increment closes: the same Owner
+  question as ticket 44. A calving expected again reopens *missed* work of the same Lactation, which
+  would include a dry-off somebody genuinely missed.
+- **A service or check that moves the work gives no reason of its own.** The Completion is the reason,
+  and a Correction carries one.
+- **Undoing a positive on a cow who also had an entered date loses the entered date.** A heifer bought
+  in carrying is not normally served, so this is unlikely.
+- **Whether a dry-off entry dried her is read from her State changing at the moment the entry was
+  recorded.** A hand change at the same millisecond would be mistaken for it. A Dry-off record of its
+  own belongs with Calving (ticket 46), where Lactations start and end from records.
+- **Calving itself (ticket 46)** clears Expected Calving, as a hand-recorded calving now does.

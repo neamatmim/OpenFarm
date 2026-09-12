@@ -1001,10 +1001,7 @@ export const instancesRouter = {
           // She has been walked on since, so putting her back where this entry now says
           // would overwrite something the farm knows and this Correction does not. She
           // stays where she was last seen and a person is asked which is true.
-          if (
-            (effect?.kind === "move" || effect?.kind === "dry_off") &&
-            effect.cannotUndo
-          ) {
+          if (effect && "cannotUndo" in effect && effect.cannotUndo) {
             flagged = true;
             await raiseNeedsReview(
               tx,

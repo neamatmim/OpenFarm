@@ -1162,7 +1162,12 @@ const applyDryOffEffect = async (
   // A cow who has left the farm cannot be dried off, whoever is asking.
   const live = await loadLiveAnimal(tx, input.instance.farmId, her.tagNumber);
   if (input.skipped) {
-    return live.state === "dry"
+    // Only an entry that dried her has anything to undo: she went Dry at the moment it was recorded.
+    // A cow already Dry when this entry came asks nobody anything.
+    const driedByThisEntry =
+      live.state === "dry" &&
+      live.stateChangedAt.getTime() === input.recordedAt.getTime();
+    return driedByThisEntry
       ? { kind: "dry_off", dried: false, cannotUndo: true }
       : null;
   }

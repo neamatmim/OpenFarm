@@ -1,10 +1,10 @@
 import type { CalvingLead } from "./breeding";
 import {
-  CALVING_LEADS,
   HEAT,
   PREGNANCY_CHECK_RESULTS,
   SERVICE,
   SERVICE_METHODS,
+  isCalvingLead,
 } from "./breeding";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
@@ -502,7 +502,7 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
     return problems;
   }
   if (trigger.kind === "before_calving") {
-    if (!(CALVING_LEADS as readonly string[]).includes(trigger.lead)) {
+    if (!isCalvingLead(trigger.lead)) {
       problems.push(
         `${at}.lead: "${trigger.lead}" is not a lead the farm keeps before a calving`
       );

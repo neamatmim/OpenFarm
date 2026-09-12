@@ -11,6 +11,8 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { CalvingWorkFollowed } from "../breeding-store";
+import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
@@ -55,7 +57,7 @@ const parameters = z
     pregnancyCheckAfterDays: z.number().int().min(28).max(90).optional(),
     /** How long a cow carries, which Expected Calving is worked out from. Within what cattle do. */
     gestationDays: z.number().int().min(260).max(300).optional(),
-    /** How long before she is due a cow is dried off, and walked to the calving pen. */
+    /** How long before her Expected Calving a cow is dried off, and walked to the calving pen. */
     dryOffLeadDays: z.number().int().min(30).max(90).optional(),
     calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
   })
@@ -276,6 +278,7 @@ export const farmRouter = {
       }
       // Only the Parameters this request named; the rest stay as the Manager last set them.
       const changes = touched(input);
+      let retimed: CalvingWorkFollowed | null = null;
       await audited(context).write(
         {
           entity: "farm",
@@ -303,9 +306,28 @@ export const farmRouter = {
                 calvingPrepLeadDays: true,
               },
             })) ?? null,
-          after: changes,
+          after: () => Promise.resolve({ ...changes, ...retimed }),
         },
-        (tx) => tx.update(farm).set(changes).where(eq(farm.id, context.farm.id))
+        async (tx) => {
+          await tx
+            .update(farm)
+            .set(changes)
+            .where(eq(farm.id, context.farm.id));
+          // A calving timed by a gestation or a lead that just changed is timed again, and its open
+          // work goes to the new day — the same as a date that moves for any other reason.
+          if (
+            changes.gestationDays !== undefined ||
+            changes.dryOffLeadDays !== undefined ||
+            changes.calvingPrepLeadDays !== undefined
+          ) {
+            retimed = await retimeEveryCalving(
+              tx,
+              context.farm.id,
+              pregnancyTimesOf({ ...context.farm, ...changes }),
+              context.clock.now()
+            );
+          }
+        }
       );
       return { ...context.farm, ...changes };
     }),
