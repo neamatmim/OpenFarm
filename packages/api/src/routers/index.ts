@@ -22,6 +22,7 @@ import { observationsRouter } from "./observations";
 import { peopleRouter } from "./people";
 import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
+import { readyRouter } from "./ready";
 import { reviewRouter } from "./review";
 import { sopsRouter } from "./sops";
 import { syncRouter } from "./sync";
@@ -52,6 +53,7 @@ export const appRouter = {
   people: peopleRouter,
   prescriptions: prescriptionsRouter,
   push: pushRouter,
+  ready: readyRouter,
   review: reviewRouter,
   sops: sopsRouter,
   sync: syncRouter,

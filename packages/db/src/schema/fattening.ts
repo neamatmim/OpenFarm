@@ -126,3 +126,36 @@ export const weighIn = pgTable(
     index("weigh_in_animal_idx").on(table.animalId, table.weighedAt),
   ]
 );
+
+/** Why the farm suggested an Animal. Its own copy, as `SIDES` and `ANIMAL_STATES` are: this
+ *  package depends on nothing, and the domain keeps the rule that reads it. */
+export const READY_REASONS = ["weight", "window"] as const;
+
+/**
+ * The Manager has looked at an Animal the farm suggested and decided she is staying.
+ *
+ * Kept so the farm stops shouting about her: a suggestion that returns every morning after it has
+ * been answered is a suggestion nobody reads. One row per Animal — a second look replaces the
+ * first, because what matters is the last thing the Manager decided about her.
+ */
+export const readySetAside = pgTable(
+  "ready_set_aside",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    /** The grounds the Manager was looking at when they decided she is staying. A ground that
+     *  was not among them is something new, and worth raising again. */
+    grounds: text("grounds", { enum: READY_REASONS }).array().notNull(),
+    /** Why she is staying, in the Manager's own words. A queue cleared without a word is a
+     *  queue nobody can audit. */
+    reason: text("reason").notNull(),
+    setAsideBy: text("set_aside_by").references(() => user.id),
+    setAsideAt: timestamp("set_aside_at").notNull(),
+  },
+  (table) => [uniqueIndex("ready_set_aside_animal_uidx").on(table.animalId)]
+);

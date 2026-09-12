@@ -42,6 +42,13 @@ export {
   implausibleChange,
   nextEidWindow,
 } from "./fattening";
+export type { ReadyReason } from "./ready";
+export {
+  READY_REASONS,
+  readyGrounds,
+  stillWorthSaying,
+  windowHasClosed,
+} from "./ready";
 export type { NotifiableLetter } from "./letter";
 export { notifiableLetter } from "./letter";
 export type { TagPrefix } from "./tag-number";

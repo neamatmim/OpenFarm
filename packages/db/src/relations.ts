@@ -43,6 +43,19 @@ export const relations = defineRelations(schema, (r) => ({
     intake: r.one.intake({ from: r.animal.id, to: r.intake.animalId }),
     /** Every time she has been on the scale. Fattening is the difference between them. */
     weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
+    /** The Manager's last word on a Ready-for-Sale suggestion about her. */
+    readySetAside: r.one.readySetAside({
+      from: r.animal.id,
+      to: r.readySetAside.animalId,
+    }),
+  },
+  readySetAside: {
+    animal: r.one.animal({
+      from: r.readySetAside.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    decidedBy: r.one.user({ from: r.readySetAside.setAsideBy, to: r.user.id }),
   },
   weighIn: {
     animal: r.one.animal({

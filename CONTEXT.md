@@ -136,7 +136,11 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Target Window**: The period in which the Farm intends to sell an Animal — by default the next Eid-ul-Adha. Drives projected weight and the Ready-for-Sale suggestion. _Avoid_: Sale date, deadline
 
-**Ready for Sale**: The State an Animal enters when the Manager confirms it may be sold. Suggested by the system when target weight is reached or the Target Window opens; impossible under meat Withdrawal. _Avoid_: Finished, market-ready, matured
+**Ready for Sale**: The State an Animal enters when the Manager confirms it may be sold. Suggested by the system when target weight is reached or the Target Window opens; impossible under meat Withdrawal, whichever way it is asked for. _Avoid_: Finished, market-ready, matured
+
+**Suggestion**: The farm saying an Animal may be ready to sell, with the grounds it says so on. Never a decision and never a **Gate**: it moves nothing on its own, and the Manager confirms or sets it aside. _Avoid_: Recommendation, alert (an Alert is told to somebody; a Suggestion waits on a screen)
+
+**Set Aside**: The Manager's recorded answer to a Suggestion — this Animal is staying, and why. Not a **Needs Review**, which is the system asking a person to settle something it could not; this is a person settling something the system only offered. The farm stops suggesting her until a ground appears that was not there when the Manager looked. _Avoid_: Dismiss, snooze, ignore
 
 **Sale**: The recorded hand-over of an Animal to a buyer: buyer, price, weight at sale, destination, transport. Hard-gated by meat Withdrawal; the Animal exits as Sold. _Avoid_: Dispatch (milk's word), disposal, exit
 

@@ -50,6 +50,8 @@ const Header = () => {
           { to: "/admin/intake", label: t("nav.intake") },
           // The fattening side at a glance: who will make their weight by their window.
           { to: "/fattening", label: t("nav.fattening") },
+          // What the farm thinks is ready to sell, for the Manager to decide on.
+          { to: "/ready", label: t("nav.ready") },
           { to: "/admin/feed", label: t("nav.feed") },
           { to: "/admin/devices", label: t("nav.devices") },
           { to: "/admin/people", label: t("nav.people") },
