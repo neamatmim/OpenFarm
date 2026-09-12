@@ -1,7 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
-import { identityView, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  MAX_GRACE_MINUTES,
+  identityView,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -43,6 +47,9 @@ const parameters = z
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise
      *  for that animal. */
     fatteningTargetWeightKg: z.number().int().min(1).max(2000).optional(),
+    /** The AI window after a Heat, in hours. */
+    aiWindowStartHours: z.number().int().min(0).max(72).optional(),
+    aiWindowEndHours: z.number().int().min(1).max(96).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -232,6 +239,23 @@ export const farmRouter = {
           });
         }
       }
+      const opens = input.aiWindowStartHours ?? context.farm.aiWindowStartHours;
+      const closes = input.aiWindowEndHours ?? context.farm.aiWindowEndHours;
+      if (closes <= opens) {
+        // A window that shuts before it opens would make every AI job late the moment it was
+        // raised, and the farm would learn to ignore the alert that matters most in breeding.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The AI window has to close after it opens",
+        });
+      }
+      if ((closes - opens) * 60 > MAX_GRACE_MINUTES) {
+        // The window's length becomes the work's grace, and the late-work sweep only looks as far
+        // back as the longest grace any work may have. A longer window would let a missed service
+        // go late without anybody being told.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The AI window cannot be longer than a day",
+        });
+      }
       const quietFrom = input.quietFrom ?? context.farm.quietFrom;
       const quietUntil = input.quietUntil ?? context.farm.quietUntil;
       if (quietFrom === quietUntil) {
@@ -263,6 +287,8 @@ export const farmRouter = {
                 managerCorrectionDays: true,
                 registrationRenewalLeadDays: true,
                 fatteningTargetWeightKg: true,
+                aiWindowStartHours: true,
+                aiWindowEndHours: true,
               },
             })) ?? null,
           after: changes,

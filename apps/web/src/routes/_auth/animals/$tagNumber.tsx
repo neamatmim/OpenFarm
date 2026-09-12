@@ -130,6 +130,8 @@ const AnimalPage = () => {
         </div>
       </header>
 
+      <HerHeats heats={detail.heats} />
+
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
       <HowSheArrived intake={detail.intake} />
@@ -477,6 +479,48 @@ const PutItRight = ({
         </Button>
       </form>
     </details>
+  );
+};
+
+/**
+ * When she has been seen in heat, newest first, and the AI work each heat raised.
+ *
+ * Nothing at all for a cow who never has — a heading over an empty list reads as a record that
+ * something went missing. A second sighting of the same heat raised nothing, and says so by
+ * having no work beside it.
+ */
+const HerHeats = ({
+  heats,
+}: {
+  heats: { id: string; seenAt: Date; workId: string | null }[];
+}) => {
+  const { t, language } = useLanguage();
+  if (heats.length === 0) {
+    return null;
+  }
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("heat.title")}</h2>
+      <ul className="space-y-1">
+        {heats.map((heat) => (
+          <li className="flex flex-wrap gap-2" key={heat.id}>
+            <span>
+              <span className="text-muted-foreground">{t("heat.seen")}: </span>
+              {formatDate(heat.seenAt, language, "dateTime")}
+            </span>
+            {heat.workId ? (
+              <Link
+                className="underline"
+                params={{ instanceId: heat.workId }}
+                to="/work/$instanceId"
+              >
+                {t("heat.work")}
+              </Link>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 

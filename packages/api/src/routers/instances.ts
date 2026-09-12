@@ -52,6 +52,8 @@ import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
 import { contentOf } from "../sop-content";
 
+const MINUTE_MS = 60_000;
+
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
 
@@ -193,6 +195,59 @@ const penFilter = (
   return { penId: { in: visible } };
 };
 
+/**
+ * Work for a Heat whose AI window had already closed by the time the farm heard about it.
+ *
+ * On a farm whose sheds have no signal this is an ordinary morning, not an edge: a sighting at
+ * dawn reaches the farm when the phone does. The work is still raised — the barn wrote the heat
+ * down, and it is never dropped (ADR 0002) — but it goes on the Manager's queue too, so a missed
+ * service window is put down to a phone's lag and not to somebody's negligence, and so the
+ * Manager can decide whether she is still worth serving.
+ *
+ * Only work raised on this pass: a job already on the list was flagged the first time, or was
+ * not late then.
+ */
+const flagHeatsThatArrivedTooLate = async (
+  tx: Tx,
+  farmId: string,
+  raised: { id: string; cause: string | null }[],
+  slots: {
+    cause?: string | null;
+    dueAt: Date;
+    graceMinutes: number;
+    animalId?: string | null;
+  }[],
+  eventId: string,
+  now: Date
+) => {
+  const slotsByCause = new Map(
+    slots.flatMap((slot) => (slot.cause ? [[slot.cause, slot]] : []))
+  );
+  for (const work of raised) {
+    const slot = work.cause ? slotsByCause.get(work.cause) : undefined;
+    const windowShut =
+      slot !== undefined &&
+      work.cause?.startsWith("heat:") &&
+      slot.dueAt.getTime() + slot.graceMinutes * MINUTE_MS <= now.getTime();
+    if (windowShut) {
+      // Sequential: one Needs Review each, in the order the work was raised.
+      // oxlint-disable-next-line no-await-in-loop
+      await raiseNeedsReview(
+        tx,
+        farmId,
+        {
+          entity: "sop_instance",
+          entityId: work.id,
+          reason: "late_entry",
+          auditEventId: eventId,
+          params: { why: "heat_after_window", closedAt: slot.dueAt },
+        },
+        now
+      );
+    }
+  }
+};
+
 export const instancesRouter = {
   /**
    * Raises the Instances the farm's day needs. Idempotent, so the phone and the office can
@@ -227,7 +282,11 @@ export const instancesRouter = {
         ...happeningSlotsFor(
           now,
           sops,
-          await recentHappenings(context.db, context.farm.id, now)
+          await recentHappenings(context.db, context.farm.id, now),
+          {
+            startHours: context.farm.aiWindowStartHours,
+            endHours: context.farm.aiWindowEndHours,
+          }
         ),
       ];
       if (slots.length === 0) {
@@ -241,7 +300,7 @@ export const instancesRouter = {
           action: "create",
           after: { slots: slots.length },
         },
-        async (tx) => {
+        async (tx, eventId) => {
           const instances = await raiseDueInstances(
             tx,
             context.farm.id,
@@ -249,6 +308,14 @@ export const instancesRouter = {
             now
           );
           raised = instances.length;
+          await flagHeatsThatArrivedTooLate(
+            tx,
+            context.farm.id,
+            instances,
+            slots,
+            eventId,
+            now
+          );
         }
       );
       return { raised };

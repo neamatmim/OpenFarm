@@ -73,6 +73,9 @@ export interface Context {
     registrationRenewalLeadDays: number;
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise. */
     fatteningTargetWeightKg: number;
+    /** The hours after a Heat within which the AI work is due, and after which it is late. */
+    aiWindowStartHours: number;
+    aiWindowEndHours: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

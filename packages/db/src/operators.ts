@@ -8,6 +8,7 @@ export {
   gte,
   inArray,
   isNull,
+  like,
   lt,
   lte,
   ne,

@@ -12,6 +12,10 @@ import type {
 import {
   EXIT_STATES,
   FARM_UTC_OFFSET_MINUTES,
+  HEAT,
+  SAME_HEAT_WITHIN_HOURS,
+  aiWindow,
+  heatsThatBegin,
   raisesItsOwnWork,
   carryingMoments,
   describeChanges,
@@ -28,6 +32,7 @@ import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 
 const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
 
 /** An animal that has left the farm keeps its Pen, so every selection must exclude exits —
  *  otherwise a sold or dead cow appears on the pen board and blocks the Instance. */
@@ -72,13 +77,15 @@ export interface DueSlot {
 
 /**
  * Something that happened to one animal, flattened to what raising work needs to know. The
- * store reads Moves and registrations; the animal's own State change is one of these too,
- * because "she reached Dry" is a thing that happened at an instant just as much as a Move is.
+ * store reads Moves, registrations, deaths and the sightings that began a Heat; the animal's own
+ * State change is one of these too, because "she reached Dry" is a thing that happened at an
+ * instant just as much as a Move is.
  */
 export interface Happening {
   kind: FarmEvent | "state";
-  /** "move:<move id>", "arrival:<animal id>", "state:<animal id>:dry:<instant>" — what the
-   *  cause is built from, and what makes one happening distinguishable from the next. */
+  /** "move:<move id>", "arrival:<animal id>", "heat:<observation id>",
+   *  "state:<animal id>:dry:<instant>" — what the cause is built from, and what makes one
+   *  happening distinguishable from the next. */
   key: string;
   at: Date;
   animalId: string;
@@ -159,10 +166,11 @@ const dueAfter = (at: Date, offsetDays: number): Date =>
     : dueAtFor(new Date(at.getTime() + offsetDays * DAY_MS), "00:00");
 
 /**
- * Every Instance that things which have happened call for: a Move, an arrival, or an animal
- * reaching a State. One per happening per SOP, about the animal it happened to, due however
- * many days later the Trigger says. Pure — the caller decides which of these already exist,
- * and the cause is what lets it decide.
+ * Every Instance that things which have happened call for: a Move, an arrival, a death, a Heat,
+ * or an animal reaching a State. One per happening per SOP, about the animal it happened to. Due
+ * however many days later the Trigger says — except a Heat's, which falls due in the farm's AI
+ * window, in hours, and is late at its end. Pure — the caller decides which of these already
+ * exist, and the cause is what lets it decide.
  */
 export const happeningSlotsFor = (
   now: Date,
@@ -175,7 +183,9 @@ export const happeningSlotsFor = (
      *  way to give the farm a fortnight of overdue work it never knew about (ADR 0001). */
     triggersInForceSince: Date;
   }[],
-  happenings: Happening[]
+  happenings: Happening[],
+  /** The farm's AI window, which is what a Heat's work is timed by rather than the Version. */
+  aiHours: { startHours: number; endHours: number }
 ): DueSlot[] => {
   const slots: DueSlot[] = [];
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
@@ -208,14 +218,22 @@ export const happeningSlotsFor = (
         ) {
           continue;
         }
+        // A Heat's work is timed by the hours a service takes, not by a whole number of days
+        // and not by the Version's own grace: both ends of that window are the farm's.
+        const timing =
+          happening.kind === "heat"
+            ? aiWindow(happening.at, aiHours)
+            : {
+                dueAt: dueAfter(happening.at, offsetDays),
+                graceMinutes: sop.content.graceMinutes,
+              };
         slots.push({
           definitionId: sop.definitionId,
           versionId: sop.versionId,
           penId: happening.penId,
           animalId: happening.animalId,
           cause: `${happening.key}:+${offsetDays}`,
-          dueAt: dueAfter(happening.at, offsetDays),
-          graceMinutes: sop.content.graceMinutes,
+          ...timing,
           assignedRole: sop.content.assignedRole,
           checkerRole: sop.content.checkerRole,
         });
@@ -260,7 +278,39 @@ export const recentHappenings = async (
     columns: { id: true, animalId: true, movedAt: true },
   });
 
+  // Heats: the sightings of oestrus that still stand, and only those that *began* a heat. One a
+  // Correction withdrew is not a heat the farm believes in. Read from a little before the lookback,
+  // so a sighting near its edge can tell whether an earlier one had already begun that heat.
+  const sightings = await db.query.observation.findMany({
+    where: {
+      farmId,
+      saw: HEAT,
+      seenAt: {
+        gte: new Date(earliest.getTime() - SAME_HEAT_WITHIN_HOURS * HOUR_MS),
+      },
+      withdrawnAt: { isNull: true },
+    },
+    columns: { id: true, animalId: true, seenAt: true },
+  });
+  const heats = heatsThatBegin(sightings).filter(
+    (heat) => heat.seenAt >= earliest
+  );
+
   const happenings: Happening[] = [];
+  for (const heat of heats) {
+    const beast = animalsById.get(heat.animalId);
+    if (beast) {
+      happenings.push({
+        kind: HEAT,
+        key: `heat:${heat.id}`,
+        at: heat.seenAt,
+        animalId: beast.id,
+        penId: beast.penId,
+        side: beast.side,
+        state: beast.state,
+      });
+    }
+  }
   for (const move of moves) {
     const beast = animalsById.get(move.animalId);
     if (beast) {

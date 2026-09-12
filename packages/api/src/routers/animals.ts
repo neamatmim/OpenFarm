@@ -1,3 +1,4 @@
+import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import {
@@ -12,6 +13,7 @@ import {
 import type { AnimalState } from "@OpenFarm/domain";
 import {
   DISPOSALS,
+  HEAT,
   ENTRY_STATES,
   EXIT_STATES,
   MORTALITY_KINDS,
@@ -145,6 +147,48 @@ const saleView = (
         buyerName: row.buyer.name,
       }
     : null;
+
+/** Three years of three-weekly heats, which is more than a breeding cow's history needs. */
+const HEATS_SHOWN = 60;
+
+/**
+ * Her Heats, newest first, each with the AI work it raised.
+ *
+ * Read on their own rather than picked out of her recent Observations: a twice-daily heat-watch
+ * round writes one for every cow, so her last twenty Observations are about a week — and the heat
+ * that matters after a failed service is three weeks old. Read off the round's own record rather
+ * than kept twice, because a Heat *is* an Observation of oestrus.
+ */
+const heatsOf = async (db: Database, animalId: string) => {
+  const sightings = await db.query.observation.findMany({
+    where: { animalId, saw: HEAT, withdrawnAt: { isNull: true } },
+    orderBy: { seenAt: "desc", id: "desc" },
+    limit: HEATS_SHOWN,
+    columns: { id: true, seenAt: true },
+  });
+  if (sightings.length === 0) {
+    return [];
+  }
+  // A sighting of a heat already begun raised nothing, so it has no work to point to — and that
+  // is the page telling the truth rather than a link going missing.
+  const work = await db.query.sopInstance.findMany({
+    where: {
+      animalId,
+      cause: { in: sightings.map((seen) => `heat:${seen.id}:+0`) },
+    },
+    columns: { id: true, cause: true, state: true },
+  });
+  const byCause = new Map(work.map((one) => [one.cause, one]));
+  return sightings.map((seen) => {
+    const raised = byCause.get(`heat:${seen.id}:+0`);
+    return {
+      id: seen.id,
+      seenAt: seen.seenAt,
+      workId: raised?.id ?? null,
+      workState: raised?.state ?? null,
+    };
+  });
+};
 
 /**
  * Her arrival as her page reads it. The money and the weights live in numeric columns and come
@@ -503,6 +547,7 @@ export const animalsRouter = {
         intake: readsWhatSheCost ? intakeView(row.intake) : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
         sale: readsWhatSheCost ? saleView(row.sale) : null,
+        heats: await heatsOf(context.db, row.id),
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */
