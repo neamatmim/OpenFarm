@@ -138,6 +138,52 @@ const MOVEMENT_ORDER: Record<StockMovement["kind"], number> = {
   count: 2,
 };
 
+/** The store replayed, one movement at a time, in the order things happened. */
+const replayStore = (
+  movements: readonly StockMovement[],
+  afterEach?: (at: Date, price: number | null) => void
+): { onHand: number; price: number | null } => {
+  const inOrder = movements.toSorted(
+    (a, b) =>
+      a.at.getTime() - b.at.getTime() ||
+      // Feed that came in on a day is in the store before that day's Feedings take from it.
+      MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
+  );
+  let onHand = 0;
+  let value = 0;
+  let price: number | null = null;
+  for (const one of inOrder) {
+    if (one.kind === "count") {
+      // The count is what is there. What it cost a unit does not change because somebody counted:
+      // the store is worth what was counted, at the price it already had.
+      onHand = one.counted;
+      value = price === null ? 0 : one.counted * price;
+    } else if (one.kind === "out") {
+      const unitPrice = price ?? 0;
+      onHand -= one.quantity;
+      value = onHand > 0 ? Math.max(0, value - unitPrice * one.quantity) : 0;
+    } else {
+      const cost = one.priceBdt ?? 0;
+      // A store at or below nothing starts again from what came in: there is nothing left to average the
+      // new lot with, and what the pens already ate of it before it was written down was charged when
+      // they ate it — so only the part still standing carries its share of the cost.
+      if (onHand <= 0) {
+        const standing = Math.max(0, one.quantity + onHand);
+        onHand += one.quantity;
+        value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
+      } else {
+        onHand += one.quantity;
+        value += cost;
+      }
+      if (one.priceBdt !== null || price !== null) {
+        price = onHand > 0 ? value / onHand : price;
+      }
+    }
+    afterEach?.(one.at, price);
+  }
+  return { onHand, price };
+};
+
 /**
  * What is in the store, and what a unit of it cost: a moving weighted average, recomputed on each
  * Purchase over what is already there (the feed decision, 2026-09-10: no FIFO).
@@ -156,51 +202,43 @@ export const stockLedger = (
   movements: readonly StockMovement[],
   asOf?: Date
 ): { onHand: number; averagePriceBdt: number | null } => {
-  const inOrder = movements
-    .filter((one) => !asOf || one.at <= asOf)
-    .toSorted(
-      (a, b) =>
-        a.at.getTime() - b.at.getTime() ||
-        // Feed that came in on a day is in the store before that day's Feedings take from it.
-        MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
-    );
-  let onHand = 0;
-  let value = 0;
-  let price: number | null = null;
-  for (const one of inOrder) {
-    if (one.kind === "count") {
-      // The count is what is there. What it cost a unit does not change because somebody counted:
-      // the store is worth what was counted, at the price it already had.
-      onHand = one.counted;
-      value = price === null ? 0 : one.counted * price;
-      continue;
-    }
-    if (one.kind === "out") {
-      const unitPrice = price ?? 0;
-      onHand -= one.quantity;
-      value = onHand > 0 ? Math.max(0, value - unitPrice * one.quantity) : 0;
-      continue;
-    }
-    const cost = one.priceBdt ?? 0;
-    // A store at or below nothing starts again from what came in: there is nothing left to average the
-    // new lot with, and what the pens already ate of it before it was written down was charged when
-    // they ate it — so only the part still standing carries its share of the cost.
-    if (onHand <= 0) {
-      const standing = Math.max(0, one.quantity + onHand);
-      onHand += one.quantity;
-      value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
-    } else {
-      onHand += one.quantity;
-      value += cost;
-    }
-    if (one.priceBdt !== null || price !== null) {
-      price = onHand > 0 ? value / onHand : price;
-    }
-  }
+  const { onHand, price } = replayStore(
+    asOf ? movements.filter((one) => one.at <= asOf) : movements
+  );
   return {
     onHand: roundKg(onHand),
     averagePriceBdt: price === null ? null : roundTaka(price),
   };
+};
+
+/**
+ * What a unit of a Feed Item cost at any moment, from one replay of its store: what a Feeding at that
+ * moment is charged at. The same price `stockLedger` reads as of that moment, without replaying the store
+ * once for every Feeding in a year — and not yet rounded, so that it is rounded once, where it is added up.
+ */
+export const priceHistory = (
+  movements: readonly StockMovement[]
+): ((at: Date) => number | null) => {
+  const steps: { at: number; price: number | null }[] = [];
+  replayStore(movements, (at, price) => {
+    steps.push({ at: at.getTime(), price });
+  });
+  const priceAt = (at: Date): number | null => {
+    const moment = at.getTime();
+    let low = 0;
+    let high = steps.length;
+    // The last step at or before the moment.
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if ((steps[middle]?.at ?? 0) <= moment) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+    return steps[low - 1]?.price ?? null;
+  };
+  return priceAt;
 };
 
 /**

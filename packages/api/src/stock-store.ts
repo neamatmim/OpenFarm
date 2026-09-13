@@ -37,7 +37,7 @@ export interface StockLine {
  * A count being recorded again is left out of what it is compared against — otherwise a corrected
  * count would find the store already holding what it said the first time.
  */
-const movementsByItem = async (
+export const movementsByItem = async (
   db: Pick<Database, "query" | "execute">,
   farmId: string,
   { excludingCount }: { excludingCount?: string } = {}

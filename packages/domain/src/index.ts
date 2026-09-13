@@ -182,6 +182,7 @@ export {
   perSessionKg,
   roundKg,
   shortfallPercent,
+  priceHistory,
   stockLedger,
 } from "./feed";
 export type {
@@ -245,3 +246,22 @@ export {
   roundTaka,
   termsUnchanged,
 } from "./money";
+export type {
+  Costs,
+  FeedShare,
+  FeedingToCost,
+  PenHistoryLine,
+  UnallocatedFeeding,
+} from "./costs";
+export {
+  PURCHASES_A_DOSE_IS_COSTED_OVER,
+  costOfGainOf,
+  costPerLitreOf,
+  dosePriceOf,
+  feedShares,
+  groupedBy,
+  marginOf,
+  penHistoryOf,
+  roundedCosts,
+  sidesOverTime,
+} from "./costs";
