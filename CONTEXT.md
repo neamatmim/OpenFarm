@@ -202,9 +202,11 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. Every farm starts with the standard ones; the farm adds its own, and retires one rather than removing it. A Category a record books under — milk sales from a Dispatch, say — is not retired, nor entered by hand, which would be the same money twice; the one exception is a vet's fee, which a visiting vet with no login is paid all the same. Wages are not retired either: the one-wage-a-month rule is kept by them. _Avoid_: Account, head, GL code
 
-**Margin**: What a fattening Animal made: her Sale price less her purchase price, the feed charged to her and her doses. Worked out, never stored, and only once she is sold. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Profit, return
+**Margin**: What a fattening Animal made: her Sale price less her purchase price, the feed charged to her, her doses and her share of the Vet Fees for visits that named her. Worked out, never stored, and only once she is sold. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Profit, return
 
-**Cost per Litre**: What a litre of a dairy cow's milk cost the farm: the feed charged to her and her doses, over the litres she sent to Bulk. Worked out, never stored. _Avoid_: Production cost, unit cost
+**Cost per Litre**: What a litre of milk cost the farm: the feed, doses and Vet Fees charged to a cow over her current Lactation, over the litres she sent to Bulk in it — or, for the Dairy side, everything charged to its animals in a period over the litres sent to Bulk in it. Worked out, never stored. _Avoid_: Production cost, unit cost
+
+**Cost of Gain**: What each kilogram a fattening Animal put on cost: everything charged to her, over the weight she gained between arriving and her latest Weigh-in or her Sale. _Avoid_: Feed conversion (that is kg of feed, not taka)
 
 **Approval Threshold**: The BDT amount above which a Money Event the Owner did not enter waits, unapproved, for the Owner's approval. Only the money waits: the record that made it — the milk gone, the bull bought — is never held back. An approval is of what the Owner read — the amount, who it went to or came from, and its Category — so a Correction that changes any of those asks again. _Avoid_: Limit, sign-off amount
 

@@ -1,22 +1,28 @@
+import { roundKg } from "./feed";
+import type { Side } from "./lifecycle";
 import { roundTaka } from "./money";
 
-type Side = "dairy" | "fattening";
-
 /** Things gathered under the key each belongs to. */
-const groupedBy = <T>(
+export const groupedBy = <T>(
   items: readonly T[],
   keyOf: (item: T) => string
 ): Map<string, T[]> => {
   const groups = new Map<string, T[]>();
   for (const item of items) {
     const key = keyOf(item);
-    groups.set(key, [...(groups.get(key) ?? []), item]);
+    const group = groups.get(key);
+    if (group) {
+      group.push(item);
+    } else {
+      groups.set(key, [item]);
+    }
   }
   return groups;
 };
 
-/** Where an Animal stood, and on which Side, from one move until the next — or until she left. */
-export interface Stay {
+/** One line of an Animal's Pen history: where she stood, and on which Side, from one move until the next
+ *  — or until she left. */
+export interface PenHistoryLine {
   animalId: string;
   penId: string;
   side: Side;
@@ -25,38 +31,52 @@ export interface Stay {
   until: Date | null;
 }
 
+const covers = (line: PenHistoryLine, at: Date): boolean =>
+  line.from <= at && (line.until === null || at < line.until);
+
 /**
- * Every Animal's stays, from her moves and the day she left. The first move is the one that put her on
- * the farm; each later one ends the stay before it.
+ * Every Animal's Pen history, from her moves and the day she left. The first move is the one that put her
+ * on the farm; each later one ends the line before it. Moves at the same instant keep the order they were
+ * written in.
  */
-export const staysOf = (
+export const penHistoryOf = (
   moves: readonly {
+    id: string;
     animalId: string;
     toPenId: string;
     toSide: Side;
     movedAt: Date;
   }[],
   leftAt: ReadonlyMap<string, Date>
-): Stay[] => {
-  const byAnimal = groupedBy(moves, (move) => move.animalId);
-  return [...byAnimal.entries()].flatMap(([animalId, hers]) => {
-    const inOrder = hers.toSorted(
-      (a, b) => a.movedAt.getTime() - b.movedAt.getTime()
-    );
-    return inOrder.map((move, index) => ({
-      animalId,
-      penId: move.toPenId,
-      side: move.toSide,
-      from: move.movedAt,
-      until: inOrder[index + 1]?.movedAt ?? leftAt.get(animalId) ?? null,
-    }));
-  });
-};
+): PenHistoryLine[] =>
+  [...groupedBy(moves, (move) => move.animalId).entries()].flatMap(
+    ([animalId, hers]) => {
+      const inOrder = hers.toSorted(
+        (a, b) =>
+          a.movedAt.getTime() - b.movedAt.getTime() || a.id.localeCompare(b.id)
+      );
+      return inOrder.map((move, index) => ({
+        animalId,
+        penId: move.toPenId,
+        side: move.toSide,
+        from: move.movedAt,
+        until: inOrder[index + 1]?.movedAt ?? leftAt.get(animalId) ?? null,
+      }));
+    }
+  );
 
-const isStandingIn = (stay: Stay, penId: string, at: Date): boolean =>
-  stay.penId === penId &&
-  stay.from <= at &&
-  (stay.until === null || at < stay.until);
+/**
+ * Which Side each Animal was on at a moment, read from her own Pen history — indexed once, because the
+ * farm asks it for every dose and every litre.
+ */
+export const sidesOverTime = (
+  history: readonly PenHistoryLine[]
+): ((animal: { id: string; side: Side }, at: Date) => Side) => {
+  const byAnimal = groupedBy(history, (line) => line.animalId);
+  return (animal, at) =>
+    byAnimal.get(animal.id)?.find((line) => covers(line, at))?.side ??
+    animal.side;
+};
 
 /** One Feeding, as its cost is worked out: the Pen, when, and what was given of each Feed Item. */
 export interface FeedingToCost {
@@ -75,6 +95,13 @@ export interface FeedShare {
   unpricedKg: number;
 }
 
+/** A Feeding nobody can be found standing for: charged to nobody, and said. */
+export interface UnallocatedFeeding {
+  at: Date;
+  feedBdt: number;
+  unpricedKg: number;
+}
+
 /**
  * What the Pens were fed, charged to the animals that ate it (the feed decision, 2026-09-10): each Feed
  * Item's weighted-average price at the time, times what was given, split evenly across the animals
@@ -85,62 +112,72 @@ export interface FeedShare {
  */
 export const feedShares = ({
   feedings,
-  stays,
+  history,
   priceOf,
 }: {
   feedings: readonly FeedingToCost[];
-  stays: readonly Stay[];
+  history: readonly PenHistoryLine[];
   priceOf: (feedItemId: string, at: Date) => number | null;
-}): { shares: FeedShare[]; unallocatedBdt: number } => {
-  const byPen = groupedBy(stays, (stay) => stay.penId);
+}): { shares: FeedShare[]; unallocated: UnallocatedFeeding[] } => {
+  const byPen = groupedBy(history, (line) => line.penId);
   const shares: FeedShare[] = [];
-  let unallocatedBdt = 0;
+  const unallocated: UnallocatedFeeding[] = [];
   for (const fed of feedings) {
-    let costBdt = 0;
+    let feedBdt = 0;
     let unpricedKg = 0;
     for (const line of fed.lines) {
       const price = priceOf(line.feedItemId, fed.fedAt);
       if (price === null) {
         unpricedKg += line.givenKg;
       } else {
-        costBdt += price * line.givenKg;
+        feedBdt += price * line.givenKg;
       }
     }
-    const standing = (byPen.get(fed.penId) ?? []).filter((stay) =>
-      isStandingIn(stay, fed.penId, fed.fedAt)
+    const standing = (byPen.get(fed.penId) ?? []).filter((line) =>
+      covers(line, fed.fedAt)
     );
     if (standing.length === 0) {
-      unallocatedBdt += costBdt;
+      unallocated.push({ at: fed.fedAt, feedBdt, unpricedKg });
       continue;
     }
-    for (const stay of standing) {
+    for (const line of standing) {
       shares.push({
-        animalId: stay.animalId,
-        side: stay.side,
+        animalId: line.animalId,
+        side: line.side,
         at: fed.fedAt,
-        feedBdt: costBdt / standing.length,
+        feedBdt: feedBdt / standing.length,
         unpricedKg: unpricedKg / standing.length,
       });
     }
   }
-  return { shares, unallocatedBdt: roundTaka(unallocatedBdt) };
+  return { shares, unallocated };
 };
 
-/** How many of a product's latest purchases a dose is costed over. */
+/** How many of a product's latest purchases a dose is costed over: recent enough to follow the price, and
+ *  more than one so that a single odd lot does not set it. */
 export const PURCHASES_A_DOSE_IS_COSTED_OVER = 3;
 
 /**
- * What one dose of a product cost: its most recent purchases before the dose, what they cost together
- * divided by the doses they held (the Owner's decision, 2026-09-13). Null for a product the farm had not
- * bought by then: a dose nobody paid for as far as the records know is uncosted, never free.
+ * What one dose of a product cost: its most recent purchases on or before the dose, what they cost
+ * together divided by the doses they held (the Owner's decision, 2026-09-13). Null for a product the farm
+ * had not bought by then: a dose nobody paid for as far as the records know is uncosted, never free.
  */
 export const dosePriceOf = (
-  purchases: readonly { purchasedOn: Date; priceBdt: number; doses: number }[],
+  purchases: readonly {
+    id: string;
+    purchasedOn: Date;
+    priceBdt: number;
+    doses: number;
+  }[],
   givenAt: Date
 ): number | null => {
   const recent = purchases
     .filter((one) => one.purchasedOn <= givenAt)
-    .toSorted((a, b) => b.purchasedOn.getTime() - a.purchasedOn.getTime())
+    .toSorted(
+      (a, b) =>
+        b.purchasedOn.getTime() - a.purchasedOn.getTime() ||
+        b.id.localeCompare(a.id)
+    )
     .slice(0, PURCHASES_A_DOSE_IS_COSTED_OVER);
   const doses = recent.reduce((sum, one) => sum + one.doses, 0);
   if (doses === 0) {
@@ -149,46 +186,57 @@ export const dosePriceOf = (
   return recent.reduce((sum, one) => sum + one.priceBdt, 0) / doses;
 };
 
-/** What an Animal has cost and earned, from her own records. */
-export interface AnimalEconomics {
+/** What an Animal has cost, added up from her shares. */
+export interface Costs {
   feedBdt: number;
   unpricedKg: number;
   medicineBdt: number;
   /** Doses of products the farm had not bought by then, shown rather than counted as free. */
   uncostedDoses: number;
-  purchaseBdt: number | null;
-  saleBdt: number | null;
-  /** Sale less purchase, feed and medicine; null until she is sold. */
-  marginBdt: number | null;
-  litresToBulk: number;
-  /** Feed and medicine per litre sent to Bulk; null for an animal who sent none. */
-  costPerLitreBdt: number | null;
+  /** Her share of the Vet Fees for visits that named her. */
+  vetBdt: number;
 }
 
+const spentOn = (costs: Costs): number =>
+  costs.feedBdt + costs.medicineBdt + costs.vetBdt;
+
+/** Costs as the farm reads them: to the poisha and to the kilo. */
+export const roundedCosts = (costs: Costs): Costs => ({
+  feedBdt: roundTaka(costs.feedBdt),
+  unpricedKg: roundKg(costs.unpricedKg),
+  medicineBdt: roundTaka(costs.medicineBdt),
+  uncostedDoses: costs.uncostedDoses,
+  vetBdt: roundTaka(costs.vetBdt),
+});
+
 /**
- * A fattening animal's margin and a dairy cow's cost per litre, worked out and never stored. A beast
- * bred on the farm was bought for nothing.
+ * A fattening Animal's Margin: her sale price less her purchase price and everything she cost. Null until
+ * she is sold. A beast bred on the farm was bought for nothing.
  */
-export const economicsOf = ({
-  feedBdt,
-  unpricedKg,
-  medicineBdt,
-  uncostedDoses,
+export const marginOf = ({
+  costs,
   purchaseBdt,
   saleBdt,
-  litresToBulk,
-}: Omit<AnimalEconomics, "marginBdt" | "costPerLitreBdt">): AnimalEconomics => {
-  const cost = feedBdt + medicineBdt;
-  return {
-    feedBdt: roundTaka(feedBdt),
-    unpricedKg: Math.round(unpricedKg * 10) / 10,
-    medicineBdt: roundTaka(medicineBdt),
-    uncostedDoses,
-    purchaseBdt,
-    saleBdt,
-    marginBdt:
-      saleBdt === null ? null : roundTaka(saleBdt - (purchaseBdt ?? 0) - cost),
-    litresToBulk: Math.round(litresToBulk * 100) / 100,
-    costPerLitreBdt: litresToBulk > 0 ? roundTaka(cost / litresToBulk) : null,
-  };
-};
+}: {
+  costs: Costs;
+  purchaseBdt: number | null;
+  saleBdt: number | null;
+}): number | null =>
+  saleBdt === null
+    ? null
+    : roundTaka(saleBdt - (purchaseBdt ?? 0) - spentOn(costs));
+
+/** What each kilogram an Animal put on cost: everything she cost over the weight she gained. Null for an
+ *  animal who has not gained. */
+export const costOfGainOf = (
+  costs: Costs,
+  gainKg: number | null
+): number | null =>
+  gainKg !== null && gainKg > 0 ? roundTaka(spentOn(costs) / gainKg) : null;
+
+/** A dairy cow's Cost per Litre: what she cost over the litres she sent to Bulk. Null for none sent. */
+export const costPerLitreOf = (
+  costs: Costs,
+  litresToBulk: number
+): number | null =>
+  litresToBulk > 0 ? roundTaka(spentOn(costs) / litresToBulk) : null;

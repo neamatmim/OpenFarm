@@ -1,5 +1,5 @@
 import type { Language } from "@OpenFarm/i18n";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
@@ -14,6 +14,15 @@ export const categoryName = (
   language === "bn"
     ? category.categoryBn
     : (category.categoryEn ?? category.categoryBn);
+
+/** Whether the person reading holds a Role money is shown to: the Owner or the Manager. */
+export const useReadsMoney = (): boolean => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  return (
+    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
+    false
+  );
+};
 
 /** Shows a refused money write in the reader's words where the farm has them. */
 export const useRefusalToast = () => {

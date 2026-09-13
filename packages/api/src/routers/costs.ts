@@ -18,20 +18,15 @@ export const costsRouter = {
     .use(requireRole("owner", "manager"))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
-      const animal = await context.db.query.animal.findFirst({
-        where: {
-          farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
-        },
-        columns: { id: true, side: true },
-      });
+      const tagNumber = input.tagNumber.toUpperCase();
+      const costs = await farmCosts(context.db, context.farm.id);
+      const animal = costs.animals.find((one) => one.tagNumber === tagNumber);
       if (!animal) {
         throw new ORPCError("NOT_FOUND", {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      const costs = await farmCosts(context.db, context.farm.id);
-      return { side: animal.side, ...economicsOfAnimal(costs, animal.id) };
+      return { side: animal.side, ...economicsOfAnimal(costs, animal) };
     }),
 
   /** A period added up by Side: which side of the farm makes money. The Owner's and the Manager's. */

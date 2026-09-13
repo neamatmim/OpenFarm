@@ -2,6 +2,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+import { useReadsMoney } from "@/components/money";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -34,19 +35,41 @@ const useTaka = () => {
   return (amount: number) => `৳${formatNumber(amount, language)}`;
 };
 
+/** Feed, doses and the Vet, however much of each there was — and what the figures leave out. */
+const WhatWasSpent = ({
+  costs,
+}: {
+  costs: {
+    feedBdt: number;
+    unpricedKg: number;
+    medicineBdt: number;
+    uncostedDoses: number;
+    vetBdt: number;
+  };
+}) => {
+  const { t } = useLanguage();
+  const taka = useTaka();
+  return (
+    <>
+      <Line label={t("costs.feed")}>{taka(costs.feedBdt)}</Line>
+      <Line label={t("costs.medicine")}>{taka(costs.medicineBdt)}</Line>
+      <Line label={t("costs.vet")}>{taka(costs.vetBdt)}</Line>
+      <Note amount={costs.unpricedKg} word="costs.unpricedNote" />
+      <Note amount={costs.uncostedDoses} word="costs.uncostedNote" />
+    </>
+  );
+};
+
 /**
- * What one animal has cost and earned over her time on the farm: her share of the Pens' feed, her doses,
- * and — for a fattening animal — her margin, or for a cow what a litre of hers cost. Every figure worked
- * out from the records, none typed.
+ * What one animal has cost and earned: her share of the Pens' feed, her doses and the Vet's visits over
+ * her time on the farm, and — for a fattening animal — what she was bought and sold for, her Margin and
+ * what each kilogram she put on cost; for a cow in milk, what this Lactation has cost a litre. Every figure
+ * worked out from the records, none typed. The Owner's and the Manager's alone.
  */
 export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const me = useQuery(orpc.people.me.queryOptions());
-  // What she cost is money, and money is the Owner's and the Manager's alone.
-  const readsMoney =
-    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
-    false;
+  const readsMoney = useReadsMoney();
   const costs = useQuery({
     ...orpc.costs.ofAnimal.queryOptions({ input: { tagNumber } }),
     enabled: readsMoney,
@@ -55,48 +78,42 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
     return null;
   }
   const her = costs.data;
+  const orDash = (amount: number | null) =>
+    amount === null ? "—" : taka(amount);
   return (
     <section className="space-y-1 rounded-lg border p-3 text-sm">
       <h2 className="font-medium">{t("costs.title")}</h2>
-      <Line label={t("costs.feed")}>{taka(her.feedBdt)}</Line>
-      {her.unpricedKg > 0 ? (
-        <Line label={t("costs.unpriced")}>
-          {t("costs.kg", { kg: formatNumber(her.unpricedKg, language) })}
-        </Line>
-      ) : null}
-      <Line label={t("costs.medicine")}>{taka(her.medicineBdt)}</Line>
-      {her.uncostedDoses > 0 ? (
-        <Line label={t("costs.uncosted")}>
-          {formatNumber(her.uncostedDoses, language)}
-        </Line>
-      ) : null}
+      <WhatWasSpent costs={her} />
       {her.side === "fattening" ? (
         <>
-          {her.purchaseBdt === null ? null : (
-            <Line label={t("costs.bought")}>{taka(her.purchaseBdt)}</Line>
-          )}
-          {her.saleBdt === null ? null : (
-            <Line label={t("costs.sold")}>{taka(her.saleBdt)}</Line>
-          )}
+          <Line label={t("costs.bought")}>{orDash(her.purchaseBdt)}</Line>
+          <Line label={t("costs.sold")}>{orDash(her.saleBdt)}</Line>
           <Line label={t("costs.margin")}>
             {her.marginBdt === null ? t("costs.notSold") : taka(her.marginBdt)}
           </Line>
+          <Line label={t("costs.costOfGain")}>{orDash(her.costOfGainBdt)}</Line>
         </>
-      ) : (
+      ) : null}
+      {her.lactation ? (
         <>
+          <h3 className="pt-2 font-medium">{t("costs.thisLactation")}</h3>
+          <WhatWasSpent costs={her.lactation} />
           <Line label={t("costs.litres")}>
-            {formatNumber(her.litresToBulk, language)}
+            {formatNumber(her.lactation.litresToBulk, language)}
           </Line>
           <Line label={t("costs.perLitre")}>
-            {her.costPerLitreBdt === null ? "—" : taka(her.costPerLitreBdt)}
+            {orDash(her.lactation.costPerLitreBdt)}
           </Line>
         </>
-      )}
+      ) : null}
     </section>
   );
 };
 
-/** A period by Side: which side of the farm makes money. */
+/**
+ * A period by Side: what each Side's animals were fed, dosed and visited for in it, what a litre of the
+ * Dairy side's milk cost — and, apart, the fattening animals sold in it with each one's whole-life Margin.
+ */
 export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
@@ -106,14 +123,13 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
   if (!report.data) {
     return null;
   }
-  const { dairy, fattening, unallocatedFeedBdt } = report.data;
+  const { dairy, fattening, soldFattening, unallocated } = report.data;
   return (
     <section className="space-y-3">
       <h2 className="font-medium">{t("costs.bySide")}</h2>
       <div className="space-y-1 rounded-lg border p-3 text-sm">
         <h3 className="font-medium">{t("animals.side.dairy")}</h3>
-        <Line label={t("costs.feed")}>{taka(dairy.feedBdt)}</Line>
-        <Line label={t("costs.medicine")}>{taka(dairy.medicineBdt)}</Line>
+        <WhatWasSpent costs={dairy} />
         <Line label={t("costs.litres")}>
           {formatNumber(dairy.litresToBulk, language)}
         </Line>
@@ -123,24 +139,18 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
       </div>
       <div className="space-y-1 rounded-lg border p-3 text-sm">
         <h3 className="font-medium">{t("animals.side.fattening")}</h3>
-        <Line label={t("costs.feed")}>{taka(fattening.feedBdt)}</Line>
-        <Line label={t("costs.medicine")}>{taka(fattening.medicineBdt)}</Line>
-        {fattening.sold.map((one) => (
+        <WhatWasSpent costs={fattening} />
+      </div>
+      <div className="space-y-1 rounded-lg border p-3 text-sm">
+        <h3 className="font-medium">{t("costs.soldInPeriod")}</h3>
+        {soldFattening.animals.map((one) => (
           <Line key={one.tagNumber} label={one.tagNumber}>
             {one.marginBdt === null ? "—" : taka(one.marginBdt)}
           </Line>
         ))}
-        <Line label={t("costs.margin")}>{taka(fattening.marginBdt)}</Line>
+        <Line label={t("costs.margin")}>{taka(soldFattening.marginBdt)}</Line>
       </div>
-      <Note
-        amount={dairy.unpricedKg + fattening.unpricedKg}
-        word="costs.unpricedNote"
-      />
-      <Note
-        amount={dairy.uncostedDoses + fattening.uncostedDoses}
-        word="costs.uncostedNote"
-      />
-      <Note amount={unallocatedFeedBdt} word="costs.unallocatedNote" />
+      <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />
     </section>
   );
 };

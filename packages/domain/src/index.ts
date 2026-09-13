@@ -246,11 +246,22 @@ export {
   roundTaka,
   termsUnchanged,
 } from "./money";
-export type { AnimalEconomics, FeedShare, FeedingToCost, Stay } from "./costs";
+export type {
+  Costs,
+  FeedShare,
+  FeedingToCost,
+  PenHistoryLine,
+  UnallocatedFeeding,
+} from "./costs";
 export {
   PURCHASES_A_DOSE_IS_COSTED_OVER,
+  costOfGainOf,
+  costPerLitreOf,
   dosePriceOf,
-  economicsOf,
   feedShares,
-  staysOf,
+  groupedBy,
+  marginOf,
+  penHistoryOf,
+  roundedCosts,
+  sidesOverTime,
 } from "./costs";

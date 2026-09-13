@@ -214,7 +214,7 @@ export const stockLedger = (
 /**
  * What a unit of a Feed Item cost at any moment, from one replay of its store: what a Feeding at that
  * moment is charged at. The same price `stockLedger` reads as of that moment, without replaying the store
- * once for every Feeding in a year.
+ * once for every Feeding in a year — and not yet rounded, so that it is rounded once, where it is added up.
  */
 export const priceHistory = (
   movements: readonly StockMovement[]
@@ -236,10 +236,7 @@ export const priceHistory = (
         high = middle;
       }
     }
-    const step = steps[low - 1];
-    return step?.price === null || step === undefined
-      ? null
-      : roundTaka(step.price);
+    return steps[low - 1]?.price ?? null;
   };
   return priceAt;
 };

@@ -115,6 +115,14 @@ const setup = async () => {
     shedId: shed.id,
     name: `খরচ দুধ ${suffix}`,
   });
+  const empty = await owner.client.herd.createPen({
+    shedId: shed.id,
+    name: `খরচ খালি ${suffix}`,
+  });
+  const away = await owner.client.herd.createPen({
+    shedId: shed.id,
+    name: `খরচ অন্যত্র ${suffix}`,
+  });
 
   // Concentrate bought at 30 a kg; grass cut from the farm's own fields at no price.
   const concentrate = await manager.client.feed.addItem({
@@ -144,7 +152,7 @@ const setup = async () => {
       { feedItemId: grass.id, kgPerAnimalPerDay: 10 },
     ],
   });
-  for (const pen of [fattening, dairy]) {
+  for (const pen of [fattening, dairy, empty]) {
     // oxlint-disable-next-line no-await-in-loop
     await manager.client.feed.assignRation({
       penId: pen.id,
@@ -184,7 +192,7 @@ const setup = async () => {
   };
 
   await createTestClient(appRouter, { as: "staff" });
-  for (const pen of [fattening, dairy]) {
+  for (const pen of [fattening, dairy, empty]) {
     // oxlint-disable-next-line no-await-in-loop
     await scratchDb()
       .insert(penAssignment)
@@ -219,13 +227,21 @@ const setup = async () => {
     tagNumber: cow.tagNumber,
     state: "pregnant_heifer",
   });
-  await owner.client.animals.setState({
-    tagNumber: cow.tagNumber,
-    state: "milking",
+  // A heifer who stands in the empty Pen only long enough for its feeding to be raised.
+  const heifer = await owner.client.animals.register({
+    sex: "female",
+    side: "dairy",
+    state: "heifer",
+    penId: empty.id,
+    source: "born",
+    aliases: [],
   });
   return {
     fattening,
     dairy,
+    empty,
+    away,
+    heifer,
     concentrate,
     grass,
     sops,
@@ -303,6 +319,13 @@ beforeAll(async () => {
   world = await setup();
   // The first morning, bull A stands alone in the Pen and eats alone: 10 kg at 30, and 20 kg of grass.
   await feed(world.fattening.id, "2039-01-02T02:00:00.000Z", 10, 20);
+  // The cow eats 20 kg while still an in-calf heifer, then calves that afternoon: her Lactation begins.
+  await feed(world.dairy.id, "2039-01-02T02:00:00.000Z", 20, 0);
+  const calving = await as("owner", "2039-01-02T12:00:00.000Z");
+  await calving.client.animals.setState({
+    tagNumber: world.cow.tagNumber,
+    state: "milking",
+  });
   const manager = await as("manager", "2039-01-02T04:00:00.000Z");
   const taken = await manager.client.intake.record({
     penId: world.fattening.id,
@@ -338,6 +361,37 @@ beforeAll(async () => {
   // The next morning the two bulls share what the Pen is given; the cow eats 20 kg on her own.
   await feed(world.fattening.id, "2039-01-03T02:00:00.000Z", 10, 20);
   await feed(world.dairy.id, "2039-01-03T02:00:00.000Z", 20, 0);
+
+  // A Pen fed with nobody in it, as the records have it: 10 kg at 30 and 5 kg of grass, charged to nobody.
+  const emptied = await workIn(
+    world.empty.id,
+    world.sops.feeding.definitionId,
+    "2039-01-03T01:00:00.000Z"
+  );
+  const mover = await as("owner", "2039-01-03T01:30:00.000Z");
+  await mover.client.animals.move({
+    tagNumber: world.heifer.tagNumber,
+    toPenId: world.away.id,
+    reason: "অন্য পেনে",
+  });
+  const late = await as("staff", "2039-01-03T02:00:00.000Z");
+  await late.client.instances.completeStep({
+    instanceId: emptied.id,
+    stepId: "feed",
+    evidence: [true],
+    feeding: [
+      { feedItemId: world.concentrate.id, givenKg: 10 },
+      { feedItemId: world.grass.id, givenKg: 5 },
+    ],
+  });
+
+  // The Vet saw both bulls on one visit, for 1,000: 500 each.
+  const vet = await as("vet", "2039-01-05T08:00:00.000Z");
+  await vet.client.money.vetFee({
+    amountBdt: 1000,
+    visitedOn: "2039-01-05",
+    animalTags: [world.bullA.tagNumber, bullB],
+  });
 
   // Bull A wormed from a bought lot; bull B given a tonic the farm never bought.
   await dose(
@@ -406,7 +460,7 @@ afterAll(async () => {
         inArray(sopInstance.state, ["due", "in_progress"])
       )
     );
-  for (const pen of [world.fattening, world.dairy]) {
+  for (const pen of [world.fattening, world.dairy, world.empty]) {
     // oxlint-disable-next-line no-await-in-loop
     await db
       .delete(penAssignment)
@@ -422,7 +476,8 @@ afterAll(async () => {
 describe("what an animal costs, and what a litre costs", () => {
   it("charges a Pen's feed to the animals standing in it, day by day, and a sold bull's margin", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
-    // Bull A: 300 alone, then half of 300; 20 kg of grass alone, then half of 20; one dose at 100.
+    // Bull A: 300 alone, then half of 300; 20 kg of grass alone, then half of 20; one dose at 100; half
+    // of the Vet's visit. Bought at 250 kg and sold at 270: 20 kg gained for 1,050.
     expect(
       await owner.client.costs.ofAnimal({ tagNumber: world.bullA.tagNumber })
     ).toEqual({
@@ -431,11 +486,13 @@ describe("what an animal costs, and what a litre costs", () => {
       unpricedKg: 30,
       medicineBdt: 100,
       uncostedDoses: 0,
+      vetBdt: 500,
       purchaseBdt: 50_000,
       saleBdt: 60_000,
-      marginBdt: 9450,
-      litresToBulk: 0,
-      costPerLitreBdt: null,
+      marginBdt: 8950,
+      gainKg: 20,
+      costOfGainBdt: 52.5,
+      lactation: null,
     });
     expect(soldA).not.toBe("");
   });
@@ -450,57 +507,71 @@ describe("what an animal costs, and what a litre costs", () => {
       unpricedKg: 30,
       medicineBdt: 0,
       uncostedDoses: 1,
+      vetBdt: 500,
       purchaseBdt: 40_000,
       saleBdt: null,
       marginBdt: null,
     });
   });
 
-  it("works out a dairy cow's cost per litre from her feed and her litres to the tank", async () => {
+  it("works out a dairy cow's Cost per Litre over her Lactation, from her feed and her litres to Bulk", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     expect(
       await owner.client.costs.ofAnimal({ tagNumber: world.cow.tagNumber })
     ).toMatchObject({
       side: "dairy",
-      feedBdt: 600,
-      litresToBulk: 10,
-      costPerLitreBdt: 60,
+      // Everything she ate, heifer days included — but a litre is costed over her Lactation alone.
+      feedBdt: 1200,
       marginBdt: null,
+      // Her six litres poured away under the Withdrawal are not litres to Bulk.
+      lactation: expect.objectContaining({
+        feedBdt: 600,
+        litresToBulk: 10,
+        costPerLitreBdt: 60,
+      }),
     });
   });
 
   it("adds a period up by Side", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     const report = await owner.client.costs.bySide(PERIOD);
+    // The period's Dairy side: everything its animals ate in it, over what it sent to Bulk in it.
     expect(report.dairy).toMatchObject({
-      feedBdt: 600,
+      feedBdt: 1200,
       unpricedKg: 0,
       medicineBdt: 0,
       uncostedDoses: 0,
       litresToBulk: 10,
-      costPerLitreBdt: 60,
+      costPerLitreBdt: 120,
     });
-    expect(report.fattening).toMatchObject({
+    expect(report.fattening).toEqual({
       feedBdt: 900,
       unpricedKg: 60,
       medicineBdt: 100,
       uncostedDoses: 1,
-      sold: [
-        expect.objectContaining({
-          tagNumber: world.bullA.tagNumber,
-          saleBdt: 60_000,
-          marginBdt: 9450,
-        }),
-      ],
-      marginBdt: 9450,
+      vetBdt: 1000,
     });
+    // The bulls sold in the period, each with a whole life's Margin: a different sum, kept apart.
+    expect(report.soldFattening).toEqual({
+      animals: [
+        {
+          tagNumber: world.bullA.tagNumber,
+          purchaseBdt: 50_000,
+          saleBdt: 60_000,
+          marginBdt: 8950,
+        },
+      ],
+      marginBdt: 8950,
+    });
+    expect(report.unallocated).toEqual({ feedBdt: 300, unpricedKg: 5 });
 
     // A period after the sale sells nobody, whatever the bull's margin was.
     const february = await owner.client.costs.bySide({
       from: "2039-02-01",
       to: "2039-02-28",
     });
-    expect(february.fattening).toMatchObject({ sold: [], marginBdt: 0 });
+    expect(february.soldFattening).toEqual({ animals: [], marginBdt: 0 });
+    expect(february.unallocated).toEqual({ feedBdt: 0, unpricedKg: 0 });
   });
 
   it("is the Owner's and the Manager's, and never Barn Staff's or the Vet's", async () => {
