@@ -5,6 +5,7 @@ import { alertsRouter } from "./alerts";
 import { animalsRouter } from "./animals";
 import { auditRouter } from "./audit";
 import { backupsRouter } from "./backups";
+import { breedingRouter } from "./breeding";
 import { devicesRouter } from "./devices";
 import { diagnosesRouter } from "./diagnoses";
 import { drugsRouter } from "./drugs";
@@ -57,6 +58,7 @@ export const appRouter = {
   prescriptions: prescriptionsRouter,
   push: pushRouter,
   ready: readyRouter,
+  breeding: breedingRouter,
   review: reviewRouter,
   sale: saleRouter,
   sops: sopsRouter,

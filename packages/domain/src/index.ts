@@ -22,6 +22,8 @@ export {
 } from "./lifecycle";
 export type {
   CalfOutcome,
+  FailedBecause,
+  RepeatBreederDecision,
   CalfSex,
   CalvingEase,
   CalvingLead,
@@ -34,6 +36,7 @@ export {
   CALVING_EASES,
   CALVING_LEADS,
   CALVING_RECORDERS,
+  REPEAT_BREEDER_DECISIONS,
   MAY_CALVE_FROM,
   HEAT,
   PREGNANCY_CHECK_RESULTS,
@@ -43,11 +46,14 @@ export {
   aiWindow,
   attemptOf,
   attemptsThatBegin,
+  attemptsThatFailed,
   calvingWorkDue,
   expectedCalvingFrom,
   failedAttempts,
   heatsThatBegin,
   isCalvingLead,
+  isRepeatBreeder,
+  sinceSheLastCalved,
   isPregnancyCheckResult,
   isServiceMethod,
 } from "./breeding";

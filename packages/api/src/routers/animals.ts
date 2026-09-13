@@ -564,6 +564,17 @@ export const animalsRouter = {
             },
           },
           retags: { orderBy: { retaggedAt: "desc", id: "desc" }, limit: 20 },
+          // Every pregnancy she lost before calving, as the Vet recorded it.
+          abortions: {
+            orderBy: { abortedAt: "desc", id: "desc" },
+            columns: {
+              id: true,
+              abortedAt: true,
+              stageMonths: true,
+              note: true,
+              expectedCalvingAt: true,
+            },
+          },
           // Her mother, for a calf born here: a calf's page names who she came from.
           dam: { columns: { tagNumber: true } },
           // Every time she has calved, newest first, with what was born — a stillborn calf

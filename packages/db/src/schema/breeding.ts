@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { farm } from "./farm";
+import { ROLES, farm } from "./farm";
 import { animal } from "./herd";
 import { stepCompletion } from "./instance";
 import { observation } from "./observation";
@@ -18,6 +18,11 @@ import { observation } from "./observation";
 export const SERVICE_METHODS = ["ai", "natural"] as const;
 export const PREGNANCY_CHECK_RESULTS = ["positive", "negative"] as const;
 export const CALVING_EASES = ["unassisted", "assisted", "vet"] as const;
+export const REPEAT_BREEDER_DECISIONS = [
+  "serve_again",
+  "treat",
+  "cull",
+] as const;
 
 /**
  * A cow served: how, by which sire, by whom, and in answer to which Heat.
@@ -132,5 +137,69 @@ export const calving = pgTable(
   (table) => [
     uniqueIndex("calving_completion_uidx").on(table.completionId),
     index("calving_dam_idx").on(table.damId, table.calvedAt),
+  ]
+);
+
+/**
+ * A pregnancy lost before she calved, as the Vet recorded it: when, how far along, and what the Vet
+ * made of it.
+ *
+ * It clears her Expected Calving, and it keeps what was expected and the service it came from, so
+ * the record still says which pregnancy was lost after her page has moved on. The Vet's act, from the
+ * Vet's own account.
+ */
+export const abortion = pgTable(
+  "abortion",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    abortedAt: timestamp("aborted_at").notNull(),
+    /** How far along she was, in months, as the Vet judged it. */
+    stageMonths: integer("stage_months").notNull(),
+    note: text("note").notNull(),
+    /** The first service of the attempt lost, when this farm served her. */
+    serviceId: text("service_id").references(() => service.id),
+    /** When she had been expected to calve. */
+    expectedCalvingAt: timestamp("expected_calving_at").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [index("abortion_animal_idx").on(table.animalId, table.abortedAt)]
+);
+
+/**
+ * Somebody's answer to a Repeat Breeder: serve her again, treat her, or cull her — and why.
+ *
+ * Kept, every one, rather than overwritten: the farm raises her again when she fails again after an
+ * answer, and whoever answers next should see what was decided last time. How many failures she had
+ * when this was decided is what "failed again since" is measured against.
+ */
+export const repeatBreederAnswer = pgTable(
+  "repeat_breeder_answer",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    decision: text("decision", { enum: REPEAT_BREEDER_DECISIONS }).notNull(),
+    note: text("note").notNull(),
+    failedAttempts: integer("failed_attempts").notNull(),
+    answeredBy: text("answered_by").references(() => user.id),
+    answeredByRole: text("answered_by_role", { enum: ROLES }).notNull(),
+    answeredAt: timestamp("answered_at").notNull(),
+  },
+  (table) => [
+    index("repeat_breeder_answer_animal_idx").on(
+      table.animalId,
+      table.answeredAt
+    ),
   ]
 );

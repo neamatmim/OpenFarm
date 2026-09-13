@@ -28,6 +28,7 @@ import { TwoProjections } from "@/components/gain";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 const PHOTO_MAX_BYTES = 1_500_000;
@@ -52,6 +53,7 @@ const AnimalPage = () => {
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const me = useQuery(orpc.people.me.queryOptions());
+  const isVet = me.data?.roles.includes("vet") ?? false;
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
@@ -133,18 +135,7 @@ const AnimalPage = () => {
               {t("animals.officialTag")}: {detail.officialTag}
             </p>
           ) : null}
-          {detail.dam ? (
-            <p className="text-muted-foreground text-sm">
-              {t("calving.dam")}:{" "}
-              <Link
-                className="underline"
-                params={{ tagNumber: detail.dam.tagNumber }}
-                to="/animals/$tagNumber"
-              >
-                {detail.dam.tagNumber}
-              </Link>
-            </p>
-          ) : null}
+          <HerMother dam={detail.dam} />
         </div>
       </header>
 
@@ -157,6 +148,12 @@ const AnimalPage = () => {
         failedAttempts={detail.failedAttempts}
       />
       <HerCalvings calvings={detail.calvings} />
+      <HerAbortions
+        abortions={detail.abortions}
+        mayRecord={isVet && detail.expectedCalvingAt !== null}
+        onRecorded={refresh}
+        tagNumber={detail.tagNumber}
+      />
 
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
@@ -182,11 +179,7 @@ const AnimalPage = () => {
         onRecorded={refresh}
       />
 
-      <Withdrawals
-        detail={detail}
-        isVet={me.data?.roles.includes("vet") ?? false}
-        onShortened={refresh}
-      />
+      <Withdrawals detail={detail} isVet={isVet} onShortened={refresh} />
 
       <section className="space-y-2 rounded-lg border p-4">
         <Label htmlFor="photo">{t("animals.photoTake")}</Label>
@@ -726,6 +719,131 @@ const HerCalvings = ({
           </li>
         ))}
       </ul>
+    </section>
+  );
+};
+
+/** Her mother, for a calf born on this farm: a calf's page says who she came from. */
+const HerMother = ({ dam }: { dam: { tagNumber: string } | null }) => {
+  const { t } = useLanguage();
+  if (!dam) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground text-sm">
+      {t("calving.dam")}:{" "}
+      <Link
+        className="underline"
+        params={{ tagNumber: dam.tagNumber }}
+        to="/animals/$tagNumber"
+      >
+        {dam.tagNumber}
+      </Link>
+    </p>
+  );
+};
+
+/**
+ * The pregnancies she lost before calving, and — for the Vet, while she is carrying — the form to
+ * record one. The Vet's act from the Vet's own phone; nobody else is offered it.
+ */
+const HerAbortions = ({
+  abortions,
+  mayRecord,
+  onRecorded,
+  tagNumber,
+}: {
+  abortions: {
+    id: string;
+    abortedAt: Date;
+    stageMonths: number;
+    note: string;
+  }[];
+  mayRecord: boolean;
+  onRecorded: () => void;
+  tagNumber: string;
+}) => {
+  const { t, language } = useLanguage();
+  const [abortedAt, setAbortedAt] = useState("");
+  const [stageMonths, setStageMonths] = useState("");
+  const [note, setNote] = useState("");
+  const record = useMutation(
+    orpc.breeding.recordAbortion.mutationOptions({
+      onSuccess: () => {
+        setNote("");
+        toast.success(t("abortion.recorded"));
+        onRecorded();
+      },
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
+  );
+  if (abortions.length === 0 && !mayRecord) {
+    return null;
+  }
+  return (
+    <section className="space-y-2 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("abortion.title")}</h2>
+      <ul className="space-y-1">
+        {abortions.map((one) => (
+          <li key={one.id}>
+            {formatDate(one.abortedAt, language)} ·{" "}
+            {t("abortion.stage", { months: one.stageMonths })} · {one.note}
+          </li>
+        ))}
+      </ul>
+      {mayRecord ? (
+        <form
+          className="space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            record.mutate({
+              tagNumber,
+              abortedAt: abortedAt ? new Date(abortedAt) : new Date(),
+              stageMonths: Number(stageMonths),
+              note,
+            });
+          }}
+        >
+          <div className="space-y-1">
+            <Label htmlFor="abortion-when">{t("abortion.when")}</Label>
+            <Input
+              id="abortion-when"
+              onChange={(event) => setAbortedAt(event.target.value)}
+              type="datetime-local"
+              value={abortedAt}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="abortion-stage">{t("abortion.stageMonths")}</Label>
+            <Input
+              id="abortion-stage"
+              max={9}
+              min={1}
+              onChange={(event) => setStageMonths(event.target.value)}
+              type="number"
+              value={stageMonths}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="abortion-note">{t("abortion.note")}</Label>
+            <Input
+              id="abortion-note"
+              onChange={(event) => setNote(event.target.value)}
+              value={note}
+            />
+          </div>
+          <Button
+            disabled={!(note.trim() && stageMonths)}
+            type="submit"
+            variant="outline"
+          >
+            {t("abortion.record")}
+          </Button>
+        </form>
+      ) : null}
     </section>
   );
 };

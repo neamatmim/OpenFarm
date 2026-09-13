@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import type { Course as CourseOfTreatment } from "@/components/course";
 import { CourseLine, DoseLine } from "@/components/course";
+import { RepeatBreeder } from "@/components/repeat-breeder";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { refusalMessage } from "@/lib/correction-refusal";
@@ -73,6 +74,8 @@ const VetPage = () => {
 
       <OnItsOwn onRecorded={refresh} />
 
+      <RepeatBreeders />
+
       <section className="space-y-3">
         <h2 className="font-medium">{t("vet.mine")}</h2>
         {mine.data?.length ? (
@@ -86,6 +89,27 @@ const VetPage = () => {
         )}
       </section>
     </div>
+  );
+};
+
+/** The cows that will not settle, for the Vet to decide on as well as the Manager. */
+const RepeatBreeders = () => {
+  const t = useT();
+  const rows = useQuery(orpc.breeding.repeatBreeders.queryOptions());
+  if (!rows.data?.length) {
+    return null;
+  }
+  return (
+    <section className="space-y-3">
+      <h2 className="font-medium">{t("repeatBreeder.title")}</h2>
+      <ul className="space-y-2">
+        {rows.data.map((row) => (
+          <li className="rounded-lg border p-2 text-sm" key={row.animalId}>
+            <RepeatBreeder mayAnswer row={row} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 

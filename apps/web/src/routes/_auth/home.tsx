@@ -5,6 +5,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
+import { RepeatBreeder } from "@/components/repeat-breeder";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -23,6 +24,11 @@ const ManagerHome = () => {
   const sweep = useMutation(orpc.alerts.sweep.mutationOptions({}));
   const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
   const home = useQuery(orpc.home.manager.queryOptions());
+  const me = useQuery(orpc.people.me.queryOptions());
+  // The Owner reads the queue; answering a Repeat Breeder is the Manager's or the Vet's.
+  const mayAnswer =
+    me.data?.roles.some((role) => role === "manager" || role === "vet") ??
+    false;
 
   // The Manager often opens this before anybody has opened Today, and the day's work is
   // raised by whoever opens the app first. Without this the screen would say the farm had
@@ -66,7 +72,8 @@ const ManagerHome = () => {
     queue.signOff.length +
     queue.needsReview.length +
     queue.withdrawal.length +
-    queue.meatWithdrawal.length;
+    queue.meatWithdrawal.length +
+    queue.repeatBreeders.length;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -129,6 +136,17 @@ const ManagerHome = () => {
               >
                 {row.sopBn} · {row.pen}
               </Link>
+            </QueueRow>
+          ))}
+        </QueueBlock>
+
+        <QueueBlock
+          count={queue.repeatBreeders.length}
+          label={t("repeatBreeder.title")}
+        >
+          {queue.repeatBreeders.map((row) => (
+            <QueueRow key={row.animalId}>
+              <RepeatBreeder mayAnswer={mayAnswer} row={row} />
             </QueueRow>
           ))}
         </QueueBlock>

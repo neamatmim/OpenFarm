@@ -60,6 +60,8 @@ const parameters = z
     /** How long before her Expected Calving a cow is dried off, and walked to the calving pen. */
     dryOffLeadDays: z.number().int().min(30).max(90).optional(),
     calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
+    /** How many attempts that did not take raise a Repeat Breeder. */
+    repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -304,6 +306,7 @@ export const farmRouter = {
                 gestationDays: true,
                 dryOffLeadDays: true,
                 calvingPrepLeadDays: true,
+                repeatBreederThreshold: true,
               },
             })) ?? null,
           after: () => Promise.resolve({ ...changes, ...retimed }),

@@ -82,6 +82,8 @@ export interface Context {
     /** How long before Expected Calving a cow is dried off, and walked to the calving pen. */
     dryOffLeadDays: number;
     calvingPrepLeadDays: number;
+    /** How many attempts that did not take raise a Repeat Breeder. */
+    repeatBreederThreshold: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;
