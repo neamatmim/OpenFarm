@@ -4,9 +4,11 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Smartphone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -49,11 +51,11 @@ const DevicesPage = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-6 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("device.title")}</h1>
+    <Page width="default" className="max-w-4xl">
+      <PageHeader title={t("device.title")} />
 
       <form
-        className="flex items-end gap-3 rounded-lg border p-4"
+        className="surface flex items-end gap-3 p-4"
         onSubmit={(event) => {
           event.preventDefault();
           enrol.mutate({ name });
@@ -89,7 +91,7 @@ const DevicesPage = () => {
           {phones.data.map((phone) => (
             <li
               key={phone.id}
-              className="flex items-center justify-between rounded-lg border p-3"
+              className="surface flex items-center justify-between p-4"
             >
               <div>
                 <p className="font-medium">{phone.name}</p>
@@ -119,9 +121,9 @@ const DevicesPage = () => {
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground text-sm">{t("device.none")}</p>
+        <EmptyState icon={Smartphone} title={t("device.none")} />
       )}
-    </div>
+    </Page>
   );
 };
 

@@ -9,6 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader, Section } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -69,17 +70,16 @@ const PeoplePage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-8 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("people.title")}</h1>
+    <Page width="default" className="max-w-4xl">
+      <PageHeader title={t("people.title")} />
 
-      <section className="space-y-3">
-        <h2 className="font-medium">{t("people.pending")}</h2>
+      <Section title={t("people.pending")}>
         {list.data?.pendingInvites.length ? (
           <ul className="space-y-2">
             {list.data.pendingInvites.map((inv) => (
               <li
                 key={inv.id}
-                className="flex items-center justify-between rounded-lg border p-3"
+                className="flex items-center justify-between rounded-lg border p-4"
               >
                 <div>
                   <p className="font-medium">{inv.name}</p>
@@ -107,10 +107,9 @@ const PeoplePage = () => {
             {t("people.noPending")}
           </p>
         )}
-      </section>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="font-medium">{t("people.roles")}</h2>
+      <Section title={t("people.roles")}>
         <ul className="space-y-2">
           {list.data?.people.map((person) => (
             <PersonRow
@@ -125,11 +124,10 @@ const PeoplePage = () => {
             />
           ))}
         </ul>
-      </section>
+      </Section>
 
       {list.data?.awaitingSignup.length ? (
-        <section className="space-y-2">
-          <h2 className="font-medium">{t("people.awaitingSignup")}</h2>
+        <Section title={t("people.awaitingSignup")}>
           <ul className="space-y-1 text-sm">
             {list.data.awaitingSignup.map((inv) => (
               <li key={inv.id} className="text-muted-foreground">
@@ -138,11 +136,11 @@ const PeoplePage = () => {
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ) : null}
 
       <InviteForm ownerCanPickRoles={isOwner} onSent={refresh} />
-    </div>
+    </Page>
   );
 };
 
@@ -206,7 +204,7 @@ const PersonRow = ({
   const disabled = person.disabledAt !== null;
 
   return (
-    <li className="space-y-2 rounded-lg border p-3">
+    <li className="space-y-2 rounded-lg border p-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-medium">{person.name}</p>
@@ -322,13 +320,13 @@ const InviteForm = ({
 
   return (
     <form
-      className="space-y-3 rounded-lg border p-4"
+      className="surface space-y-3 p-4"
       onSubmit={(event) => {
         event.preventDefault();
         invite.mutate({ name, email, roles });
       }}
     >
-      <h2 className="font-medium">{t("people.invite")}</h2>
+      <h2 className="text-lg font-semibold">{t("people.invite")}</h2>
       <div className="space-y-1">
         <Label htmlFor="invite-name">{t("people.name")}</Label>
         <Input

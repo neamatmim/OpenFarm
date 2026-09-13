@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import type { Course as CourseOfTreatment } from "@/components/course";
 import { CourseLine, DoseLine } from "@/components/course";
+import { Page, PageHeader, Section } from "@/components/page";
 import { RepeatBreeder } from "@/components/repeat-breeder";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -49,11 +50,10 @@ const VetPage = () => {
     queryClient.invalidateQueries({ queryKey: orpc.diagnoses.key() });
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("vet.title")}</h1>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader title={t("vet.title")} />
 
-      <section className="space-y-3">
-        <h2 className="font-medium">{t("vet.waiting")}</h2>
+      <Section title={t("vet.waiting")}>
         {/* Every choice a round offers is written down, the ones that say she is well
             included, and nothing in an SOP says which of them wants a Vet. So the Vet
             narrows the list by the word the farm used. */}
@@ -70,7 +70,7 @@ const VetPage = () => {
             {t("vet.nothingWaiting")}
           </p>
         )}
-      </section>
+      </Section>
 
       <OnItsOwn onRecorded={refresh} />
 
@@ -78,8 +78,7 @@ const VetPage = () => {
 
       <VisitFee />
 
-      <section className="space-y-3">
-        <h2 className="font-medium">{t("vet.mine")}</h2>
+      <Section title={t("vet.mine")}>
         {mine.data?.length ? (
           <ul className="space-y-2">
             {mine.data.map((one) => (
@@ -89,8 +88,8 @@ const VetPage = () => {
         ) : (
           <p className="text-muted-foreground text-sm">{t("vet.noneMine")}</p>
         )}
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 };
 
@@ -123,10 +122,9 @@ const VisitFee = () => {
     })
   );
   return (
-    <section className="space-y-2">
-      <h2 className="font-medium">{t("vetFee.title")}</h2>
+    <Section title={t("vetFee.title")}>
       <form
-        className="space-y-2 rounded-lg border p-3"
+        className="space-y-2"
         onSubmit={(event) => {
           event.preventDefault();
           record.mutate({
@@ -186,7 +184,7 @@ const VisitFee = () => {
       {fees.data?.length ? (
         <ul className="space-y-1 text-sm">
           {fees.data.map((fee) => (
-            <li className="rounded-lg border p-2" key={fee.id}>
+            <li className="bg-card rounded-lg border p-3" key={fee.id}>
               {formatDate(fee.visitedOn, language)} · ৳
               {formatNumber(fee.amountBdt, language)}
               {fee.tagNumbers.length > 0
@@ -197,7 +195,7 @@ const VisitFee = () => {
           ))}
         </ul>
       ) : null}
-    </section>
+    </Section>
   );
 };
 
@@ -209,16 +207,18 @@ const RepeatBreeders = () => {
     return null;
   }
   return (
-    <section className="space-y-3">
-      <h2 className="font-medium">{t("repeatBreeder.title")}</h2>
+    <Section title={t("repeatBreeder.title")}>
       <ul className="space-y-2">
         {rows.data.map((row) => (
-          <li className="rounded-lg border p-2 text-sm" key={row.animalId}>
+          <li
+            className="bg-card rounded-lg border p-3 text-sm"
+            key={row.animalId}
+          >
             <RepeatBreeder mayAnswer row={row} />
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
   );
 };
 
@@ -320,7 +320,7 @@ const Unanswered = ({
   );
 
   return (
-    <li className="space-y-2 rounded-lg border p-3 text-sm">
+    <li className="space-y-2 rounded-lg border p-4 text-sm">
       <div className="flex items-baseline justify-between gap-2">
         <Link
           className="font-medium underline"
@@ -382,8 +382,8 @@ const OnItsOwn = ({ onRecorded }: { onRecorded: () => void }) => {
   );
 
   return (
-    <section className="space-y-2 rounded-lg border p-4">
-      <h2 className="font-medium">{t("vet.onItsOwn")}</h2>
+    <section className="surface space-y-2 p-4">
+      <h2 className="text-lg font-semibold">{t("vet.onItsOwn")}</h2>
       <form
         className="space-y-2"
         onSubmit={(event) => {
@@ -479,7 +479,7 @@ const Prescribe = ({
           {t("prescribe.product")}
         </Label>
         <select
-          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           id={`product-${diagnosisId}`}
           onChange={(event) => setProductId(event.target.value)}
           value={productId}
@@ -503,7 +503,7 @@ const Prescribe = ({
       <div className="space-y-1">
         <Label htmlFor={`route-${diagnosisId}`}>{t("prescribe.route")}</Label>
         <select
-          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           id={`route-${diagnosisId}`}
           onChange={(event) => setRoute(event.target.value as DoseRoute)}
           value={route}
@@ -584,7 +584,7 @@ const Concluded = ({
   );
 
   return (
-    <li className="space-y-2 rounded-lg border p-3 text-sm">
+    <li className="space-y-2 rounded-lg border p-4 text-sm">
       <div className="flex items-baseline justify-between gap-2">
         <Link
           className="font-medium underline"
@@ -608,7 +608,10 @@ const Concluded = ({
       {made.prescriptions.length > 0 ? (
         <ul className="space-y-2">
           {made.prescriptions.map((course) => (
-            <li className="space-y-1 rounded-lg border p-2" key={course.id}>
+            <li
+              className="bg-card space-y-1 rounded-lg border p-3"
+              key={course.id}
+            >
               <p>
                 <CourseLine course={course} />
               </p>

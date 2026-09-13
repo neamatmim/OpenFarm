@@ -4,11 +4,23 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { FileDown, Milk, Printer, Truck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  EmptyState,
+  Page,
+  PageHeader,
+  PeriodFilter,
+  RecordList,
+  RecordRow,
+  Section,
+  StatTile,
+} from "@/components/page";
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
@@ -28,6 +40,22 @@ const NOTHING_TYPED = {
   snf: "",
   note: "",
 };
+
+const DISPATCH_FIELDS = [
+  ["dispatchedAt", "dispatch.when", "datetime-local"],
+  ["litres", "dispatch.litresField", "number"],
+  ["buyerName", "dispatch.buyer", "text"],
+  ["buyerPhone", "dispatch.buyerPhone", "tel"],
+  ["buyerAddress", "dispatch.buyerAddress", "text"],
+  ["challan", "dispatch.challan", "text"],
+  ["price", "dispatch.price", "number"],
+  ["fat", "dispatch.fat", "number"],
+  ["snf", "dispatch.snf", "number"],
+  ["note", "dispatch.note", "text"],
+] as const;
+
+/** The boxes that read better across the whole form than in half of it. */
+const WIDE_FIELDS = new Set(["buyerAddress", "note"]);
 
 /** Words typed into a box, or nothing when the box was left empty. */
 const written = (value: string): string | undefined =>
@@ -96,157 +124,186 @@ const MilkPage = () => {
     form.buyerName.trim() !== "";
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("dispatch.title")}</h1>
-
-      <section className="space-y-2">
-        <div className="space-y-1">
-          <Label htmlFor="milk-day">{t("dispatch.day")}</Label>
-          <Input
-            id="milk-day"
-            onChange={(event) => setDay(event.target.value)}
-            type="date"
-            value={day}
-          />
-        </div>
-        {today.data ? (
-          <div className="space-y-1 text-sm">
-            <p>
-              {t("dispatch.toBulk", {
-                litres: formatNumber(today.data.toBulkLitres, language),
-              })}{" "}
-              ·{" "}
-              {t("dispatch.dispatched", {
-                litres: formatNumber(today.data.dispatchedLitres, language),
-              })}
-            </p>
-            <ul className="space-y-1">
-              {today.data.dispatches.map((one) => (
-                <li className="rounded-lg border p-2" key={one.id}>
-                  {formatDate(one.dispatchedAt, language, "dateTime")} ·{" "}
-                  {formatNumber(one.litres, language)} {t("dispatch.litres")} ·{" "}
-                  {one.buyerName}
-                  {one.challan ? ` · ${one.challan}` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
-
-      {mayRecord ? (
-        <form
-          className="space-y-2 rounded-lg border p-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            record.mutate({
-              // Left empty, the milk is leaving now.
-              dispatchedAt: form.dispatchedAt
-                ? new Date(form.dispatchedAt)
-                : new Date(),
-              litres: Number(form.litres),
-              buyer: {
-                name: form.buyerName,
-                address: written(form.buyerAddress),
-                phone: written(form.buyerPhone),
-              },
-              challan: written(form.challan),
-              pricePerLitreBdt: Number(form.price),
-              fatPercent: typed(form.fat),
-              snfPercent: typed(form.snf),
-              note: written(form.note),
-              paymentMethod,
-            });
-          }}
-        >
-          <h2 className="font-medium">{t("dispatch.record")}</h2>
-          {(
-            [
-              ["dispatchedAt", "dispatch.when", "datetime-local"],
-              ["litres", "dispatch.litresField", "number"],
-              ["buyerName", "dispatch.buyer", "text"],
-              ["buyerAddress", "dispatch.buyerAddress", "text"],
-              ["buyerPhone", "dispatch.buyerPhone", "tel"],
-              ["challan", "dispatch.challan", "text"],
-              ["price", "dispatch.price", "number"],
-              ["fat", "dispatch.fat", "number"],
-              ["snf", "dispatch.snf", "number"],
-              ["note", "dispatch.note", "text"],
-            ] as const
-          ).map(([key, label, type]) => (
-            <div className="space-y-1" key={key}>
-              <Label htmlFor={`dispatch-${key}`}>{t(label)}</Label>
-              <Input
-                id={`dispatch-${key}`}
-                onChange={(event) => set(key)(event.target.value)}
-                step={type === "number" ? "0.01" : undefined}
-                type={type}
-                value={form[key]}
-              />
-            </div>
-          ))}
-          <PaymentMethodField
-            id="dispatch-paid-by"
-            onChange={setPaymentMethod}
-            value={paymentMethod}
-          />
-          <Button
-            disabled={!complete || record.isPending}
-            type="submit"
-            variant="outline"
+    <Page>
+      <PageHeader
+        actions={
+          <label
+            className="flex flex-col gap-1.5 text-sm font-medium"
+            htmlFor="milk-day"
           >
-            {t("dispatch.save")}
-          </Button>
-        </form>
-      ) : null}
+            {t("dispatch.day")}
+            <Input
+              className="w-44"
+              id="milk-day"
+              onChange={(event) => setDay(event.target.value)}
+              type="date"
+              value={day}
+            />
+          </label>
+        }
+        description={t("dispatch.subtitle")}
+        title={t("dispatch.title")}
+      />
 
-      <section className="space-y-2">
-        <h2 className="font-medium">{t("dispatch.reports")}</h2>
-        <div className="flex flex-wrap gap-2">
-          <Input
-            aria-label={t("dispatch.from")}
-            className="w-40"
-            onChange={(event) => setFrom(event.target.value)}
-            type="date"
-            value={from}
-          />
-          <Input
-            aria-label={t("dispatch.to")}
-            className="w-40"
-            onChange={(event) => setTo(event.target.value)}
-            type="date"
-            value={to}
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatTile
+          icon={Milk}
+          label={t("dispatch.intoTank")}
+          value={
+            today.data ? (
+              `${formatNumber(today.data.toBulkLitres, language)} ${t("dispatch.litres")}`
+            ) : (
+              <Skeleton className="h-9 w-32" />
+            )
+          }
+        />
+        <StatTile
+          icon={Truck}
+          label={t("dispatch.handedOver")}
+          tone="success"
+          value={
+            today.data ? (
+              `${formatNumber(today.data.dispatchedLitres, language)} ${t("dispatch.litres")}`
+            ) : (
+              <Skeleton className="h-9 w-32" />
+            )
+          }
+        />
+      </div>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <Section title={t("dispatch.thatDay")}>
+          {today.data && today.data.dispatches.length > 0 ? (
+            <RecordList>
+              {today.data.dispatches.map((one) => (
+                <RecordRow
+                  key={one.id}
+                  meta={
+                    <>
+                      <span>
+                        {formatDate(one.dispatchedAt, language, "dateTime")}
+                      </span>
+                      {one.challan ? <span>{one.challan}</span> : null}
+                    </>
+                  }
+                  title={one.buyerName}
+                  trailing={
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(one.litres, language)}{" "}
+                      {t("dispatch.litres")}
+                    </span>
+                  }
+                />
+              ))}
+            </RecordList>
+          ) : (
+            <EmptyState icon={Truck} title={t("dispatch.noneThatDay")} />
+          )}
+        </Section>
+
+        {mayRecord ? (
+          <Section title={t("dispatch.record")}>
+            <form
+              className="grid gap-4 sm:grid-cols-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                record.mutate({
+                  // Left empty, the milk is leaving now.
+                  dispatchedAt: form.dispatchedAt
+                    ? new Date(form.dispatchedAt)
+                    : new Date(),
+                  litres: Number(form.litres),
+                  buyer: {
+                    name: form.buyerName,
+                    address: written(form.buyerAddress),
+                    phone: written(form.buyerPhone),
+                  },
+                  challan: written(form.challan),
+                  pricePerLitreBdt: Number(form.price),
+                  fatPercent: typed(form.fat),
+                  snfPercent: typed(form.snf),
+                  note: written(form.note),
+                  paymentMethod,
+                });
+              }}
+            >
+              {DISPATCH_FIELDS.map(([key, label, type]) => (
+                <div
+                  className={
+                    WIDE_FIELDS.has(key)
+                      ? "space-y-1 sm:col-span-2"
+                      : "space-y-1"
+                  }
+                  key={key}
+                >
+                  <Label htmlFor={`dispatch-${key}`}>{t(label)}</Label>
+                  <Input
+                    id={`dispatch-${key}`}
+                    inputMode={type === "number" ? "decimal" : undefined}
+                    onChange={(event) => set(key)(event.target.value)}
+                    step={type === "number" ? "0.01" : undefined}
+                    type={type}
+                    value={form[key]}
+                  />
+                </div>
+              ))}
+              <div className="sm:col-span-2">
+                <PaymentMethodField
+                  id="dispatch-paid-by"
+                  onChange={setPaymentMethod}
+                  value={paymentMethod}
+                />
+              </div>
+              <Button
+                className="w-full sm:col-span-2 sm:w-auto sm:justify-self-start"
+                disabled={!complete || record.isPending}
+                type="submit"
+              >
+                {t("dispatch.save")}
+              </Button>
+            </form>
+          </Section>
+        ) : null}
+      </div>
+
+      <Section title={t("dispatch.reports")}>
+        <PeriodFilter
+          from={from}
+          fromLabel={t("dispatch.from")}
+          label={t("dispatch.reports")}
+          onFrom={setFrom}
+          onTo={setTo}
+          to={to}
+          toLabel={t("dispatch.to")}
+        >
           <Button
             disabled={dispatchRecord.isPending}
             onClick={() => dispatchRecord.mutate({ from, to, format: "paper" })}
-            size="sm"
             variant="outline"
           >
+            <Printer aria-hidden />
             {t("dispatch.recordPaper")}
           </Button>
           <Button
             disabled={dispatchCsv.isPending}
             onClick={() => dispatchCsv.mutate({ from, to, format: "csv" })}
-            size="sm"
             variant="outline"
           >
+            <FileDown aria-hidden />
             {t("dispatch.recordCsv")}
           </Button>
           <Button
             disabled={production.isPending}
             onClick={() => production.mutate({ from, to })}
-            size="sm"
             variant="outline"
           >
+            <FileDown aria-hidden />
             {t("dispatch.productionCsv")}
           </Button>
-        </div>
+        </PeriodFilter>
         {paper ? <Paper id="milk-dispatch-record" text={paper} /> : null}
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 };
 

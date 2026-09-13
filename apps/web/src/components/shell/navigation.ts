@@ -322,7 +322,7 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
 };
 
 /** Where each Role lands when it opens the app. */
-export const LANDING: Record<Role, string> = {
+export const LANDING: Record<Role, "/farm" | "/home" | "/vet" | "/today"> = {
   owner: "/farm",
   manager: "/home",
   vet: "/vet",

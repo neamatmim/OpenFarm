@@ -1,24 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { useT } from "@/i18n/language-provider";
-import { orpc } from "@/utils/orpc";
+import { LANDING, primaryRole } from "@/components/shell/navigation";
 
-const RouteComponent = () => {
-  const { session } = Route.useRouteContext();
-  const t = useT();
-
-  const privateData = useQuery(orpc.privateData.queryOptions());
-
-  return (
-    <div>
-      <h1>{t("dashboard.title")}</h1>
-      <p>{t("dashboard.welcome", { name: session?.user.name ?? "" })}</p>
-      <p>{t("dashboard.api", { message: privateData.data?.message ?? "" })}</p>
-    </div>
-  );
-};
-
+/**
+ * Where signing in, and every screen a person may not open, sends them: not a page of its own but the one their
+ * Role starts the day on — the Owner's overview, the Manager's day, the vet's list, a milker's jobs.
+ */
 export const Route = createFileRoute("/_auth/dashboard")({
-  component: RouteComponent,
+  beforeLoad: ({ context }) => {
+    throw redirect({ to: LANDING[primaryRole(context.me.roles)] });
+  },
 });

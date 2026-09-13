@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -47,8 +48,8 @@ const HerdPage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-8 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("herd.title")}</h1>
+    <Page width="default" className="max-w-4xl">
+      <PageHeader title={t("herd.title")} />
 
       <form
         className="flex items-end gap-3"
@@ -74,8 +75,8 @@ const HerdPage = () => {
       {sheds.data?.length ? (
         <ul className="space-y-3">
           {sheds.data.map((shed) => (
-            <li key={shed.id} className="space-y-2 rounded-lg border p-4">
-              <h2 className="font-medium">{shed.name}</h2>
+            <li key={shed.id} className="surface space-y-2 p-4">
+              <h2 className="text-lg font-semibold">{shed.name}</h2>
               <ul className="flex flex-wrap gap-2 text-sm">
                 {shed.pens.map((pen) => (
                   <li key={pen.id} className="bg-muted rounded-full px-3 py-1">
@@ -115,13 +116,13 @@ const HerdPage = () => {
       )}
 
       <form
-        className="space-y-2 rounded-lg border p-4"
+        className="surface space-y-2 p-4"
         onSubmit={(event) => {
           event.preventDefault();
           importRegister.mutate({ csv });
         }}
       >
-        <h2 className="font-medium">{t("herd.import")}</h2>
+        <h2 className="text-lg font-semibold">{t("herd.import")}</h2>
         <Label htmlFor="csv">{t("herd.importHelp")}</Label>
         <Textarea
           id="csv"
@@ -150,7 +151,7 @@ const HerdPage = () => {
           </div>
         ) : null}
       </form>
-    </div>
+    </Page>
   );
 };
 

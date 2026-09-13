@@ -2,6 +2,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
+import { EmptyState, Page, PageHeader, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
@@ -26,18 +27,18 @@ const HeldList = ({
 }) => {
   const { t } = useLanguage();
   if (rows.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t(emptyKey)}</p>;
+    return <EmptyState title={t(emptyKey)} />;
   }
   return (
     <ul className="space-y-3">
       {rows.map(({ entry, reason }) => (
-        <li className="bg-card rounded-2xl border p-4" key={entry.id}>
-          <p className="font-bold">{reason}</p>
+        <li className="rounded-lg border p-4" key={entry.id}>
+          <p className="font-semibold">{reason}</p>
           <p className="text-muted-foreground text-sm">
             {t("outbox.entered")}: {entered(entry) || entry.kind}
           </p>
           <Button
-            className="mt-3 w-full"
+            className="mt-3 w-full sm:w-auto"
             onClick={() => onDiscard(entry.id)}
             variant="outline"
           >
@@ -78,24 +79,23 @@ const OutboxPage = () => {
   });
 
   return (
-    <div className="container mx-auto max-w-xl space-y-8 px-4 py-6">
-      <section className="space-y-3">
-        <h1 className="text-2xl font-bold">{t("outbox.heldTitle")}</h1>
+    <Page width="narrow">
+      <PageHeader title={t("outbox.heldTitle")} />
+      <Section>
         <HeldList
           emptyKey="outbox.heldNone"
           onDiscard={(id) => discard.mutate(id)}
           rows={held.data?.rejected ?? []}
         />
-      </section>
-      <section className="space-y-3">
-        <h2 className="text-xl font-bold">{t("outbox.reviewedTitle")}</h2>
+      </Section>
+      <Section title={t("outbox.reviewedTitle")}>
         <HeldList
           emptyKey="outbox.reviewedNone"
           onDiscard={(id) => discard.mutate(id)}
           rows={held.data?.reviewed ?? []}
         />
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 };
 

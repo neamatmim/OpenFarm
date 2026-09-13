@@ -270,11 +270,11 @@ export const Categories = () => {
 
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{t("byHand.categories")}</h2>
+      <h2 className="text-lg font-semibold">{t("byHand.categories")}</h2>
       <ul className="space-y-1 text-sm">
         {(categories.data ?? []).map((one) => (
           <li
-            className="flex items-center justify-between gap-2 rounded-lg border p-2"
+            className="bg-card flex items-center justify-between gap-2 rounded-lg border p-3"
             key={one.id}
           >
             <span
@@ -320,7 +320,7 @@ export const Categories = () => {
         </div>
         <select
           aria-label={t("byHand.direction")}
-          className="bg-background h-9 rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
           onChange={(event) =>
             setDirection(event.target.value === "in" ? "in" : "out")
           }
@@ -402,7 +402,7 @@ export const CorrectEntered = ({
   }
   return (
     <form
-      className="mt-2 space-y-2 rounded-lg border p-2"
+      className="bg-card mt-2 space-y-2 rounded-lg border p-3"
       onSubmit={(event) => {
         event.preventDefault();
         correct.mutate({

@@ -57,13 +57,15 @@ const SignOffPage = () => {
     setReasonFor((current) => ({ ...current, [id]: value }));
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-8 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
       <section className="space-y-3">
-        <h1 className="text-2xl font-bold">{t("signOff.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+          {t("signOff.title")}
+        </h1>
         {queue.data?.length ? (
           <ul className="space-y-3">
             {queue.data.map((row) => (
-              <li className="bg-card rounded-2xl border p-4" key={row.id}>
+              <li className="surface p-4" key={row.id}>
                 <Link
                   className="block"
                   params={{ instanceId: row.id }}
@@ -113,7 +115,7 @@ const SignOffPage = () => {
       <NeedsReview />
 
       <section className="space-y-3">
-        <h2 className="text-xl font-bold">{t("work.overdueTitle")}</h2>
+        <h2 className="text-xl font-semibold">{t("work.overdueTitle")}</h2>
         {late.data?.length ? (
           <ul className="space-y-3">
             {late.data.map((row) => (

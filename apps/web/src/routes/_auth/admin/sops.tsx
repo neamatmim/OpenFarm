@@ -25,6 +25,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
@@ -151,9 +152,11 @@ const SopsPage = () => {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-6 px-4 py-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("sop.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+          {t("sop.title")}
+        </h1>
         {isOwner ? (
           <Button
             onClick={() =>
@@ -174,7 +177,7 @@ const SopsPage = () => {
             return (
               <li
                 key={sop.id}
-                className="flex items-center justify-between rounded-lg border p-3"
+                className="surface flex items-center justify-between p-4"
               >
                 <div>
                   <p className="font-medium">{content?.name.bn ?? "—"}</p>
@@ -213,12 +216,11 @@ const SopsPage = () => {
         <p className="text-muted-foreground text-sm">{t("sop.none")}</p>
       )}
 
-      <section className="space-y-2">
-        <h2 className="font-medium">{t("sop.proposals")}</h2>
+      <Section title={t("sop.proposals")}>
         {proposals.data?.length ? (
           <ul className="space-y-2">
             {proposals.data.map((proposal) => (
-              <li key={proposal.id} className="space-y-2 rounded-lg border p-3">
+              <li key={proposal.id} className="space-y-2 rounded-lg border p-4">
                 <p className="text-sm">
                   {(proposal.content as SopContent).name.bn} ·{" "}
                   {t("sop.proposalBy", { name: proposal.proposer?.name ?? "" })}
@@ -258,7 +260,7 @@ const SopsPage = () => {
             {t("sop.noProposals")}
           </p>
         )}
-      </section>
+      </Section>
     </div>
   );
 };
@@ -333,7 +335,7 @@ const TriggerFields = ({
         >
           <select
             aria-label={t("sop.triggers")}
-            className="bg-background h-9 rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
             onChange={(e) =>
               replace(index, ofKind(e.target.value as TriggerKind, happening))
             }
@@ -357,7 +359,7 @@ const TriggerFields = ({
           {happening.kind === "before_calving" ? (
             <select
               aria-label={t("sop.trigger.beforeCalving")}
-              className="bg-background h-9 rounded-md border px-2 text-sm"
+              className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
               onChange={(e) =>
                 replace(index, { ...happening, lead: e.target.value as never })
               }
@@ -386,7 +388,7 @@ const TriggerFields = ({
           {happening.kind === "event" ? (
             <select
               aria-label={t("sop.trigger.event")}
-              className="bg-background h-9 rounded-md border px-2 text-sm"
+              className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
               onChange={(e) =>
                 replace(index, { ...happening, event: e.target.value as never })
               }
@@ -402,7 +404,7 @@ const TriggerFields = ({
           {happening.kind === "state" ? (
             <select
               aria-label={t("sop.trigger.state")}
-              className="bg-background h-9 rounded-md border px-2 text-sm"
+              className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
               onChange={(e) =>
                 replace(index, { ...happening, state: e.target.value as never })
               }
@@ -495,7 +497,7 @@ const SopEditor = ({
 
   return (
     <form
-      className="container mx-auto max-w-3xl space-y-5 px-4 py-6"
+      className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8"
       onSubmit={(event) => {
         event.preventDefault();
         onSave();
@@ -564,7 +566,7 @@ const SopEditor = ({
                 assignedRole: e.target.value as SopContent["assignedRole"],
               })
             }
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           >
             {ROLES.map((role) => (
               <option key={role} value={role}>
@@ -585,7 +587,7 @@ const SopEditor = ({
                   null) as SopContent["checkerRole"],
               })
             }
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           >
             <option value="">{t("sop.checkerNone")}</option>
             {ROLES.map((role) => (
@@ -611,7 +613,7 @@ const SopEditor = ({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium">{t("sop.steps")}</h2>
+          <h2 className="text-lg font-semibold">{t("sop.steps")}</h2>
           <Button
             type="button"
             size="sm"
@@ -647,7 +649,7 @@ const SopEditor = ({
       </section>
 
       {blockers.length > 0 ? (
-        <div className="border-warning/40 rounded-lg border p-3 text-sm">
+        <div className="border-warning/40 surface p-4 text-sm">
           <p className="text-warning font-medium">{t("sop.cannotPublish")}</p>
           <ul className="text-muted-foreground">
             {blockers.map((blocker) => (
@@ -690,7 +692,7 @@ const StepEditor = ({
   };
 
   return (
-    <div className="space-y-2 rounded-lg border p-3">
+    <div className="surface space-y-2 p-4">
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1">
           <Label
@@ -712,7 +714,7 @@ const StepEditor = ({
       <div className="space-y-1">
         <Label htmlFor={`${step.id}-effect`}>{t("sop.effect")}</Label>
         <select
-          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           id={`${step.id}-effect`}
           onChange={(e) =>
             onChange(
@@ -742,7 +744,7 @@ const StepEditor = ({
             {t("sop.effect.product")}
           </Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id={`${step.id}-product`}
             onChange={(e) =>
               onChange(
@@ -794,7 +796,7 @@ const StepEditor = ({
                 ],
               })
             }
-            className="bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-60"
+            className="bg-card border-input h-11 rounded-md border px-3 text-base disabled:opacity-60 md:h-9 md:text-sm"
           >
             {EVIDENCE_TYPES.map((type) => (
               <option key={type} value={type}>

@@ -3,9 +3,11 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { CircleCheck, Sprout } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -33,38 +35,55 @@ const SetupPage = () => {
 
   if (current.data) {
     return (
-      <div className="space-y-4 p-6">
-        <p>{t("setup.done")}</p>
-        <Button onClick={() => navigate({ to: "/dashboard" })}>
-          {t("setup.goOn")}
-        </Button>
-      </div>
+      <Page width="narrow">
+        <div className="surface mx-auto mt-8 flex w-full max-w-md flex-col items-center gap-4 p-8 text-center">
+          <span className="bg-success-surface text-success grid size-14 place-items-center rounded-2xl">
+            <CircleCheck aria-hidden className="size-7" />
+          </span>
+          <p className="text-lg font-semibold">{t("setup.done")}</p>
+          <Button
+            className="w-full"
+            onClick={() => navigate({ to: "/dashboard" })}
+          >
+            {t("setup.goOn")}
+          </Button>
+        </div>
+      </Page>
     );
   }
 
   return (
-    <form
-      className="mx-auto mt-10 w-full max-w-md space-y-4 p-6"
-      onSubmit={(event) => {
-        event.preventDefault();
-        bootstrap.mutate({ name });
-      }}
-    >
-      <h1 className="text-2xl font-bold">{t("setup.title")}</h1>
-      <p className="text-muted-foreground">{t("setup.intro")}</p>
-      <div className="space-y-1">
-        <Label htmlFor="farm-name">{t("setup.farmName")}</Label>
-        <Input
-          id="farm-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
-      <Button type="submit" disabled={bootstrap.isPending}>
-        {t("setup.create")}
-      </Button>
-    </form>
+    <Page width="narrow">
+      <form
+        className="surface mx-auto mt-8 flex w-full max-w-md flex-col gap-5 p-6 sm:p-8"
+        onSubmit={(event) => {
+          event.preventDefault();
+          bootstrap.mutate({ name });
+        }}
+      >
+        <span className="bg-primary text-primary-foreground grid size-12 place-items-center rounded-xl">
+          <Sprout aria-hidden className="size-6" />
+        </span>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("setup.title")}
+          </h1>
+          <p className="text-muted-foreground text-sm">{t("setup.intro")}</p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="farm-name">{t("setup.farmName")}</Label>
+          <Input
+            id="farm-name"
+            onChange={(e) => setName(e.target.value)}
+            required
+            value={name}
+          />
+        </div>
+        <Button disabled={bootstrap.isPending} type="submit">
+          {t("setup.create")}
+        </Button>
+      </form>
+    </Page>
   );
 };
 

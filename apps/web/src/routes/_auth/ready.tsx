@@ -2,12 +2,15 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { Beef } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { GainColumn } from "@/components/gain";
+import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -70,21 +73,31 @@ const ReadyPage = () => {
 
   if (!suggestions.data) {
     return (
-      <p className="p-6">
-        {suggestions.isError ? t("common.error") : t("common.loading")}
-      </p>
+      <Page className="max-w-4xl">
+        <PageHeader title={t("state.ready_for_sale")} />
+        {suggestions.isError ? (
+          <Notice title={t("common.error")} tone="danger" />
+        ) : (
+          <Skeleton className="h-40 rounded-xl" />
+        )}
+      </Page>
     );
   }
   if (suggestions.data.length === 0) {
-    return <p className="p-6">{t("ready.none")}</p>;
+    return (
+      <Page className="max-w-4xl">
+        <PageHeader title={t("state.ready_for_sale")} />
+        <EmptyState icon={Beef} title={t("ready.none")} />
+      </Page>
+    );
   }
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("state.ready_for_sale")}</h1>
+    <Page width="default" className="max-w-4xl">
+      <PageHeader title={t("state.ready_for_sale")} />
       <ul className="space-y-3">
         {suggestions.data.map((row) => (
-          <li className="space-y-2 rounded-xl border p-4" key={row.id}>
+          <li className="surface space-y-2 p-4" key={row.id}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <Link
                 className="text-lg font-bold underline"
@@ -179,7 +192,7 @@ const ReadyPage = () => {
           </li>
         ))}
       </ul>
-    </div>
+    </Page>
   );
 };
 

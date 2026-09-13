@@ -20,14 +20,14 @@ export const GainColumn = ({
   const { t, language } = useLanguage();
   if (!basis) {
     return (
-      <div className="space-y-1 rounded-lg border p-3">
+      <div className="surface space-y-1 p-4">
         <p className="text-muted-foreground text-sm">{label}</p>
         <p className="text-muted-foreground text-sm">{t("gain.needsTwo")}</p>
       </div>
     );
   }
   return (
-    <div className="space-y-1 rounded-lg border p-3">
+    <div className="surface space-y-1 p-4">
       <p className="text-muted-foreground text-sm">{label}</p>
       <p className="text-lg font-medium">
         {t("gain.perDay", { kg: formatNumber(basis.dailyGainKg, language) })}
@@ -52,8 +52,8 @@ export const GainColumn = ({
 export const TwoProjections = ({ view }: { view: FatteningView }) => {
   const { t, language } = useLanguage();
   return (
-    <section className="space-y-2 rounded-lg border p-4">
-      <h2 className="font-medium">{t("gain.title")}</h2>
+    <section className="surface space-y-2 p-4">
+      <h2 className="text-lg font-semibold">{t("gain.title")}</h2>
       <p className="text-muted-foreground text-sm">
         {/* Each of these is left out rather than shown blank: an animal born here has no
             arrival to count days from and nobody has said what it is being fed towards. */}

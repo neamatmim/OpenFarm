@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Certificate } from "@/components/certificate";
+import { Page, PageHeader } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -73,9 +74,8 @@ const IdentityPage = () => {
   const expiresOn = farm.registrationExpiresOn;
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("identity.title")}</h1>
-      <p className="text-muted-foreground text-sm">{t("identity.why")}</p>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader description={t("identity.why")} title={t("identity.title")} />
 
       {/* What the farm should be told before an inspector tells it. */}
       {farm.registrationMissing ? (
@@ -191,7 +191,7 @@ const IdentityPage = () => {
       </form>
 
       <Certificate updatedAt={farm.certificateUpdatedAt} />
-    </div>
+    </Page>
   );
 };
 

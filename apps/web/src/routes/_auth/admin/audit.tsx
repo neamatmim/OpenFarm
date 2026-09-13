@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -42,14 +43,14 @@ const AuditPage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-6 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("audit.title")}</h1>
+    <Page width="default" className="max-w-5xl">
+      <PageHeader title={t("audit.title")} />
       {seesAll ? null : (
         <p className="text-muted-foreground text-sm">{t("audit.ownOnly")}</p>
       )}
 
       <form
-        className="flex flex-wrap items-end gap-3 rounded-lg border p-3"
+        className="surface flex flex-wrap items-end gap-3 p-4"
         onSubmit={(event) => {
           event.preventDefault();
           // Days are passed through untouched; the API owns the farm-local day boundaries.
@@ -66,7 +67,7 @@ const AuditPage = () => {
             id="audit-entity"
             value={entity}
             onChange={(e) => setEntity(e.target.value)}
-            className="bg-background h-9 rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
           >
             <option value="">{t("audit.all")}</option>
             {ENTITIES.map((e) => (
@@ -104,7 +105,7 @@ const AuditPage = () => {
           {log.data.map((event) => {
             const entityKey = entityLabelKey(event.entity);
             return (
-              <li key={event.id} className="rounded-lg border p-3 text-sm">
+              <li key={event.id} className="surface p-4 text-sm">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium">
                     {t(`audit.action.${event.action}`)} ·{" "}
@@ -147,7 +148,7 @@ const AuditPage = () => {
       ) : (
         <p className="text-muted-foreground text-sm">{t("audit.empty")}</p>
       )}
-    </div>
+    </Page>
   );
 };
 

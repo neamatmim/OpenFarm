@@ -81,8 +81,8 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const orDash = (amount: number | null) =>
     amount === null ? "—" : taka(amount);
   return (
-    <section className="space-y-1 rounded-lg border p-3 text-sm">
-      <h2 className="font-medium">{t("costs.title")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("costs.title")}</h2>
       <WhatWasSpent costs={her} />
       {her.side === "fattening" ? (
         <>
@@ -126,8 +126,8 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
   const { dairy, fattening, soldFattening, unallocated } = report.data;
   return (
     <section className="space-y-3">
-      <h2 className="font-medium">{t("costs.bySide")}</h2>
-      <div className="space-y-1 rounded-lg border p-3 text-sm">
+      <h2 className="text-lg font-semibold">{t("costs.bySide")}</h2>
+      <div className="surface space-y-1 p-4 text-sm">
         <h3 className="font-medium">{t("animals.side.dairy")}</h3>
         <WhatWasSpent costs={dairy} />
         <Line label={t("costs.litres")}>
@@ -137,11 +137,11 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
           {dairy.costPerLitreBdt === null ? "—" : taka(dairy.costPerLitreBdt)}
         </Line>
       </div>
-      <div className="space-y-1 rounded-lg border p-3 text-sm">
+      <div className="surface space-y-1 p-4 text-sm">
         <h3 className="font-medium">{t("animals.side.fattening")}</h3>
         <WhatWasSpent costs={fattening} />
       </div>
-      <div className="space-y-1 rounded-lg border p-3 text-sm">
+      <div className="surface space-y-1 p-4 text-sm">
         <h3 className="font-medium">{t("costs.soldInPeriod")}</h3>
         {soldFattening.animals.map((one) => (
           <Line key={one.tagNumber} label={one.tagNumber}>

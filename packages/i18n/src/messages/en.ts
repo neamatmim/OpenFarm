@@ -8,6 +8,7 @@ export const en = {
   "language.en": "English",
   "language.switch": "Change language",
   "home.apiStatus": "API status",
+  "home.shedPhone": "Open on a Shed Phone",
   "home.checking": "Checking…",
   "home.connected": "Connected",
   "home.disconnected": "Disconnected",
@@ -369,6 +370,12 @@ export const en = {
   "nav.feed": "Feed",
   "nav.milk": "Milk",
   "dispatch.title": "Milk leaving the farm",
+  "dispatch.subtitle":
+    "The day's tank beside what went out of the gate, and the records a processor or BFSA asks for.",
+  "dispatch.intoTank": "Into the tank",
+  "dispatch.handedOver": "Handed over",
+  "dispatch.thatDay": "Handed over that day",
+  "dispatch.noneThatDay": "No milk handed over that day",
   "dispatch.day": "Day",
   "dispatch.toBulk": "{litres} litres into the tank",
   "dispatch.dispatched": "{litres} litres handed over",
@@ -410,7 +417,8 @@ export const en = {
   "money.col.amount": "Amount",
   "byHand.hint": "For money no other record makes: wages, dung sold, repairs.",
   "money.partialTotals": "These totals cover only the entries shown",
-  "money.partialHint": "The period has more entries than one page. Narrow the period, or use the accountant's report for complete totals.",
+  "money.partialHint":
+    "The period has more entries than one page. Narrow the period, or use the accountant's report for complete totals.",
   "money.shownOnly": "Entries shown only",
   "money.title": "Money",
   "money.paidBy": "Paid by",
@@ -617,6 +625,11 @@ export const en = {
   "owner.discardToday": "Discarded today",
   "owner.average": "{litres} litres on an average day",
   "owner.noNote": "No reason given",
+  "owner.subtitle":
+    "What only you can decide, then how the farm is doing today.",
+  "owner.waitingCount": "{count} waiting for you",
+  "owner.allFineHint":
+    "No approvals, proposals or late work are waiting. Anything new that needs you appears here.",
   "owner.title": "How the farm stands",
   "owner.needsYou": "Needs you",
   "owner.allFine": "All fine",
@@ -1091,6 +1104,14 @@ export const en = {
   "sale.note": "Note",
   "sale.noteWhy": "Why she is going — a culled animal's reason belongs here",
   "sale.record": "Record the sale",
+  "sale.subtitle":
+    "Pick a Ready animal, name the buyer, and hand over the receipt and the transport card.",
+  "sale.groupAnimal": "The animal",
+  "sale.groupBuyer": "The buyer",
+  "sale.groupPrice": "Price and weight",
+  "sale.groupTransport": "The lorry",
+  "sale.todayHint":
+    "Print a receipt once the buyer has finished — it covers everything he took today.",
   "sale.done": "{tag} is sold",
   "sale.again": "Use the last buyer and lorry again",
   "sale.noneReady": "Nothing is ready for sale",

@@ -7,6 +7,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -95,8 +96,8 @@ const IntakePage = () => {
     setFields({ ...fields, ...patch });
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("nav.intake")}</h1>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader title={t("nav.intake")} />
 
       <form
         className="space-y-4"
@@ -124,7 +125,7 @@ const IntakePage = () => {
         <div className="space-y-1">
           <Label htmlFor="intake-pen">{t("intake.pen")}</Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id="intake-pen"
             onChange={(e) => edit({ penId: e.target.value })}
             required
@@ -143,7 +144,7 @@ const IntakePage = () => {
           <div className="space-y-1">
             <Label htmlFor="intake-sex">{t("animals.sex")}</Label>
             <select
-              className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+              className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
               id="intake-sex"
               onChange={(e) => edit({ sex: e.target.value })}
               value={fields.sex}
@@ -300,7 +301,7 @@ const IntakePage = () => {
           {t("intake.record")}
         </Button>
       </form>
-    </div>
+    </Page>
   );
 };
 

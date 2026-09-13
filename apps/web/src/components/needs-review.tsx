@@ -45,13 +45,13 @@ export const NeedsReview = () => {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-xl font-bold">{t("review.title")}</h2>
+      <h2 className="text-xl font-semibold">{t("review.title")}</h2>
       {queue.data?.length ? (
         <ul className="space-y-3">
           {queue.data.map((row) => {
             const key = messageFor(row.reason);
             return (
-              <li className="bg-card rounded-2xl border p-4" key={row.id}>
+              <li className="surface p-4" key={row.id}>
                 <p className="font-bold">{key ? t(key) : row.reason}</p>
                 <p className="text-muted-foreground text-sm">
                   {formatDate(new Date(row.raisedAt), language, "dateTime")}

@@ -5,9 +5,20 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  EmptyState,
+  Page,
+  PageHeader,
+  RecordList,
+  RecordRow,
+  Section,
+  StickyAction,
+  TagChip,
+} from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
@@ -107,50 +118,46 @@ const TodaysSales = () => {
 
   if (!sold.data || sold.data.length === 0) {
     return (
-      <section className="space-y-2">
-        <h2 className="font-medium">{t("sale.today")}</h2>
-        <p className="text-muted-foreground text-sm">{t("sale.noneToday")}</p>
-      </section>
+      <Section title={t("sale.today")}>
+        <EmptyState icon={ReceiptText} title={t("sale.noneToday")} />
+      </Section>
     );
   }
 
   return (
-    <section className="space-y-2">
-      <h2 className="no-print font-medium">{t("sale.today")}</h2>
-      <ul className="no-print space-y-2">
+    <Section description={t("sale.todayHint")} title={t("sale.today")}>
+      <RecordList className="no-print">
         {sold.data.map((row) => (
-          <li
-            className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border p-3 text-sm"
+          <RecordRow
             key={row.id}
-          >
-            <span className="font-medium">{row.tagNumber}</span>
-            <span className="text-muted-foreground">{row.buyerName}</span>
-            <span>
-              {t("intake.taka", {
-                taka: formatNumber(row.priceBdt, language),
-              })}
-            </span>
-            <span className="flex gap-2">
-              <Button
-                onClick={() => receipt.mutate({ saleId: row.id })}
-                size="sm"
-                variant="outline"
-              >
-                {t("sale.receipt")}
-              </Button>
-              <Button
-                onClick={() => card.mutate({ saleId: row.id })}
-                size="sm"
-                variant="outline"
-              >
-                {t("sale.transportCard")}
-              </Button>
-            </span>
-          </li>
+            leading={<TagChip>{row.tagNumber}</TagChip>}
+            meta={row.buyerName}
+            title={t("intake.taka", {
+              taka: formatNumber(row.priceBdt, language),
+            })}
+            trailing={
+              <span className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  onClick={() => receipt.mutate({ saleId: row.id })}
+                  size="sm"
+                  variant="outline"
+                >
+                  {t("sale.receipt")}
+                </Button>
+                <Button
+                  onClick={() => card.mutate({ saleId: row.id })}
+                  size="sm"
+                  variant="outline"
+                >
+                  {t("sale.transportCard")}
+                </Button>
+              </span>
+            }
+          />
         ))}
-      </ul>
+      </RecordList>
       {paper ? <Paper id={paper.id} text={paper.text} /> : null}
-    </section>
+    </Section>
   );
 };
 
@@ -204,13 +211,15 @@ const SalePage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("sale.title")}</h1>
-
-      <LastBuyerOfTheDay onUse={edit} sale={last.data ?? null} />
+    <Page width="narrow">
+      <PageHeader
+        actions={<LastBuyerOfTheDay onUse={edit} sale={last.data ?? null} />}
+        description={t("sale.subtitle")}
+        title={t("sale.title")}
+      />
 
       <form
-        className="space-y-4"
+        className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           record.mutate({
@@ -230,167 +239,181 @@ const SalePage = () => {
           });
         }}
       >
-        <div className="space-y-1">
-          <Label htmlFor="sale-animal">{t("sale.animal")}</Label>
-          {byTag || ready.length === 0 ? (
-            <Input
-              id="sale-animal"
-              maxLength={32}
-              onChange={(e) => edit({ tagNumber: e.target.value })}
-              placeholder="F-0001"
-              required
-              value={fields.tagNumber}
-            />
-          ) : (
-            <select
-              className="bg-background h-9 w-full rounded-md border px-2 text-sm"
-              id="sale-animal"
-              onChange={(e) => edit({ tagNumber: e.target.value })}
-              required
-              value={fields.tagNumber}
-            >
-              <option value="">—</option>
-              {ready.map((row) => (
-                <option key={row.id} value={row.tagNumber}>
-                  {row.tagNumber} · {row.penName}
-                </option>
-              ))}
-            </select>
-          )}
-          {ready.length === 0 ? (
-            <p className="text-muted-foreground text-xs">
-              {t("sale.noneReady")}
-            </p>
-          ) : (
-            <Button
-              className="px-0"
-              onClick={() => {
-                setByTag(!byTag);
-                edit({ tagNumber: "" });
-              }}
-              type="button"
-              variant="link"
-            >
-              {t(byTag ? "sale.fromList" : "sale.otherAnimal")}
-            </Button>
-          )}
-        </div>
+        <Section title={t("sale.groupAnimal")}>
+          <div className="space-y-1">
+            <Label htmlFor="sale-animal">{t("sale.animal")}</Label>
+            {byTag || ready.length === 0 ? (
+              <Input
+                id="sale-animal"
+                maxLength={32}
+                onChange={(e) => edit({ tagNumber: e.target.value })}
+                placeholder="F-0001"
+                required
+                value={fields.tagNumber}
+              />
+            ) : (
+              <select
+                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+                id="sale-animal"
+                onChange={(e) => edit({ tagNumber: e.target.value })}
+                required
+                value={fields.tagNumber}
+              >
+                <option value="">—</option>
+                {ready.map((row) => (
+                  <option key={row.id} value={row.tagNumber}>
+                    {row.tagNumber} · {row.penName}
+                  </option>
+                ))}
+              </select>
+            )}
+            {ready.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {t("sale.noneReady")}
+              </p>
+            ) : (
+              <Button
+                className="px-0"
+                onClick={() => {
+                  setByTag(!byTag);
+                  edit({ tagNumber: "" });
+                }}
+                type="button"
+                variant="link"
+              >
+                {t(byTag ? "sale.fromList" : "sale.otherAnimal")}
+              </Button>
+            )}
+          </div>
+        </Section>
 
-        <div className="space-y-1">
-          <Label htmlFor="sale-buyer">{t("sale.buyerName")}</Label>
-          <Input
-            id="sale-buyer"
-            maxLength={120}
-            onChange={(e) => edit({ buyerName: e.target.value })}
-            required
-            value={fields.buyerName}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
+        <Section title={t("sale.groupBuyer")}>
           <div className="space-y-1">
-            <Label htmlFor="sale-address">{t("sale.buyerAddress")}</Label>
+            <Label htmlFor="sale-buyer">{t("sale.buyerName")}</Label>
             <Input
-              id="sale-address"
-              maxLength={200}
-              onChange={(e) => edit({ buyerAddress: e.target.value })}
-              value={fields.buyerAddress}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="sale-phone">{t("sale.buyerPhone")}</Label>
-            <Input
-              id="sale-phone"
-              inputMode="tel"
-              maxLength={20}
-              onChange={(e) => edit({ buyerPhone: e.target.value })}
-              value={fields.buyerPhone}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="sale-price">{t("sale.price")}</Label>
-            <Input
-              id="sale-price"
-              inputMode="numeric"
-              onChange={(e) => edit({ priceBdt: e.target.value })}
-              required
-              type="number"
-              value={fields.priceBdt}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="sale-weight">{t("sale.weight")}</Label>
-            <Input
-              id="sale-weight"
-              inputMode="decimal"
-              onChange={(e) => edit({ weightKg: e.target.value })}
-              required
-              step="0.1"
-              type="number"
-              value={fields.weightKg}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="sale-destination">{t("sale.destination")}</Label>
-          <Input
-            id="sale-destination"
-            maxLength={200}
-            onChange={(e) => edit({ destination: e.target.value })}
-            required
-            value={fields.destination}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="sale-vehicle">{t("sale.vehicle")}</Label>
-            <Input
-              id="sale-vehicle"
-              maxLength={60}
-              onChange={(e) => edit({ vehicle: e.target.value })}
-              required
-              value={fields.vehicle}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="sale-driver">{t("sale.driver")}</Label>
-            <Input
-              id="sale-driver"
+              id="sale-buyer"
               maxLength={120}
-              onChange={(e) => edit({ driver: e.target.value })}
+              onChange={(e) => edit({ buyerName: e.target.value })}
               required
-              value={fields.driver}
+              value={fields.buyerName}
             />
           </div>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="sale-address">{t("sale.buyerAddress")}</Label>
+              <Input
+                id="sale-address"
+                maxLength={200}
+                onChange={(e) => edit({ buyerAddress: e.target.value })}
+                value={fields.buyerAddress}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sale-phone">{t("sale.buyerPhone")}</Label>
+              <Input
+                id="sale-phone"
+                inputMode="tel"
+                maxLength={20}
+                onChange={(e) => edit({ buyerPhone: e.target.value })}
+                value={fields.buyerPhone}
+              />
+            </div>
+          </div>
+        </Section>
 
-        <div className="space-y-1">
-          <Label htmlFor="sale-note">{t("sale.note")}</Label>
-          <Input
-            id="sale-note"
-            maxLength={300}
-            onChange={(e) => edit({ note: e.target.value })}
-            value={fields.note}
+        <Section title={t("sale.groupPrice")}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="sale-price">{t("sale.price")}</Label>
+              <Input
+                id="sale-price"
+                inputMode="numeric"
+                onChange={(e) => edit({ priceBdt: e.target.value })}
+                required
+                type="number"
+                value={fields.priceBdt}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sale-weight">{t("sale.weight")}</Label>
+              <Input
+                id="sale-weight"
+                inputMode="decimal"
+                onChange={(e) => edit({ weightKg: e.target.value })}
+                required
+                step="0.1"
+                type="number"
+                value={fields.weightKg}
+              />
+            </div>
+          </div>
+          <PaymentMethodField
+            id="sale-paid-by"
+            onChange={(paymentMethod) => edit({ paymentMethod })}
+            value={fields.paymentMethod}
           />
-          <p className="text-muted-foreground text-xs">{t("sale.noteWhy")}</p>
-        </div>
+        </Section>
 
-        <PaymentMethodField
-          id="sale-paid-by"
-          onChange={(paymentMethod) => edit({ paymentMethod })}
-          value={fields.paymentMethod}
-        />
+        <Section title={t("sale.groupTransport")}>
+          <div className="space-y-1">
+            <Label htmlFor="sale-destination">{t("sale.destination")}</Label>
+            <Input
+              id="sale-destination"
+              maxLength={200}
+              onChange={(e) => edit({ destination: e.target.value })}
+              required
+              value={fields.destination}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="sale-vehicle">{t("sale.vehicle")}</Label>
+              <Input
+                id="sale-vehicle"
+                maxLength={60}
+                onChange={(e) => edit({ vehicle: e.target.value })}
+                required
+                value={fields.vehicle}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sale-driver">{t("sale.driver")}</Label>
+              <Input
+                id="sale-driver"
+                maxLength={120}
+                onChange={(e) => edit({ driver: e.target.value })}
+                required
+                value={fields.driver}
+              />
+            </div>
+          </div>
 
-        <Button disabled={record.isPending || ready.length === 0} type="submit">
-          {t("sale.record")}
-        </Button>
+          <div className="space-y-1">
+            <Label htmlFor="sale-note">{t("sale.note")}</Label>
+            <Input
+              id="sale-note"
+              maxLength={300}
+              onChange={(e) => edit({ note: e.target.value })}
+              value={fields.note}
+            />
+            <p className="text-muted-foreground text-sm">{t("sale.noteWhy")}</p>
+          </div>
+        </Section>
+
+        <StickyAction>
+          <Button
+            className="w-full sm:w-auto"
+            disabled={record.isPending || ready.length === 0}
+            size="lg"
+            type="submit"
+          >
+            {t("sale.record")}
+          </Button>
+        </StickyAction>
       </form>
 
       <TodaysSales />
-    </div>
+    </Page>
   );
 };
 

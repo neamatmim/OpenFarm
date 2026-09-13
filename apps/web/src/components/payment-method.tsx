@@ -26,7 +26,7 @@ export const PaymentMethodField = ({
     <div className="space-y-1">
       <Label htmlFor={id}>{t("money.paidBy")}</Label>
       <select
-        className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+        className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
         id={id}
         onChange={(event) =>
           onChange(
