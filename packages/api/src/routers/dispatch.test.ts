@@ -109,7 +109,8 @@ const setup = async () => {
   // rather than trusting whichever file ran first to have written it down. As the Manager, and only
   // when it is missing: the identity file reads the farm's trail for the Manager's write.
   const manager = await createTestClient(appRouter, { as: "manager", clock });
-  if ((await manager.client.farm.identity()).registrationMissing) {
+  const identity = await manager.client.farm.identity();
+  if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
 
@@ -316,26 +317,28 @@ describe("the milk dispatch", () => {
       `2036-02-01,08:30,11.80,${buyer.name},"${buyer.address}",CH-0412,4.10,8.40,`
     );
 
-    // Each Export its own event on the trail, the format among what it says.
-    const events = await scratchDb().query.auditEvent.findMany({
+    // Each Export its own event on the trail, the format among what it says. This file's own: another
+    // file's Exports on a later clock are newer than these whichever order the files ran in.
+    const exports = await scratchDb().query.auditEvent.findMany({
       where: { entity: "report", action: "export" },
-      orderBy: { receivedAt: "desc", id: "desc" },
-      limit: 2,
     });
-    expect(events.map((event) => event.after)).toEqual([
-      expect.objectContaining({
-        report: "milk_dispatch_record",
-        format: "csv",
-        registrationNumber: REGISTRATION,
-        ...period,
-      }),
-      expect.objectContaining({
-        report: "milk_dispatch_record",
-        format: "paper",
-        ...period,
-      }),
-    ]);
-    expect(events[0]?.entityId).not.toBe(events[1]?.entityId);
+    const ours = exports.filter((event) => {
+      const after = event.after as Record<string, unknown> | null;
+      return (
+        after?.report === "milk_dispatch_record" && after.from === period.from
+      );
+    });
+    expect(ours.map((event) => event.after)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          format: "csv",
+          registrationNumber: REGISTRATION,
+          ...period,
+        }),
+        expect.objectContaining({ format: "paper", ...period }),
+      ])
+    );
+    expect(new Set(ours.map((event) => event.entityId)).size).toBe(ours.length);
   });
 
   it("refuses a dispatch record to a farm without its registration number, and a period that runs backwards", async () => {

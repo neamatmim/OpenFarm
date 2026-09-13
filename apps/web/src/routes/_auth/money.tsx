@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { AccountantExport } from "@/components/accountant-export";
 import { CostsBySide } from "@/components/costs";
 import { categoryName, useApproveMoney } from "@/components/money";
 import {
@@ -141,6 +142,7 @@ const MoneyPage = () => {
       {money.data?.more ? (
         <p className="text-muted-foreground text-sm">{t("money.more")}</p>
       ) : null}
+      <AccountantExport from={from} to={to} />
       <CostsBySide from={from} to={to} />
       <Categories />
     </div>

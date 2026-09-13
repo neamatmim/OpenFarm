@@ -468,6 +468,9 @@ export const bn: Record<MessageKey, string> = {
   "costs.costOfGain": "প্রতি কেজি বৃদ্ধির খরচ",
   "costs.thisLactation": "এই দুধের মৌসুম",
   "costs.soldInPeriod": "এই সময়ে বিক্রি হওয়া মোটাতাজা পশু, প্রত্যেকের পুরো সময়ের হিসাব",
+  "accountant.title": "হিসাবরক্ষকের জন্য",
+  "accountant.summary": "আয় ও ব্যয়",
+  "accountant.csv": "সব টাকার হিসাব (CSV)",
   "refusal.periodBackwards": "শেষের তারিখ শুরুর তারিখের আগে হতে পারে না",
   "refusal.farmIdentityIncomplete":
     "খামারের নিবন্ধন নম্বর লেখা নেই; আগে খামারের তথ্যে লিখুন",

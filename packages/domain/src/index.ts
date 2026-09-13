@@ -92,6 +92,7 @@ export type {
   AnimalPassport,
   DispatchLine,
   MilkDispatchRecord,
+  AccountantSummary,
   DoseGiven,
   PenSpell,
   ShortenedHold,
@@ -101,6 +102,7 @@ export type {
   WithdrawalSummary,
 } from "./papers";
 export {
+  accountantSummary,
   animalPassport,
   milkDispatchRecord,
   saleReceipt,
@@ -265,3 +267,10 @@ export {
   roundedCosts,
   sidesOverTime,
 } from "./costs";
+export type {
+  InAndOut,
+  MoneySummary,
+  MoneyToSummarise,
+  SideShare,
+} from "./money-summary";
+export { summariseMoney } from "./money-summary";

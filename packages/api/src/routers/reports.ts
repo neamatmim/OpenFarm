@@ -1,10 +1,13 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import type { MoneySummary } from "@OpenFarm/domain";
 import {
+  accountantSummary,
   farmDayOf,
   farmTimeOf,
   milkDispatchRecord,
   roundLitres,
   startOfFarmDay,
+  summariseMoney,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
@@ -16,6 +19,8 @@ import { toCsv } from "../csv";
 import { dispatchesBetween, litresDispatched } from "../dispatch-store";
 import type { DispatchRow } from "../dispatch-store";
 import { protectedProcedure } from "../index";
+import type { ExportedMoney } from "../money-export-store";
+import { moneyForTheAccountant } from "../money-export-store";
 import { periodInput, periodOf } from "../period";
 import { languageOf } from "../reader-language";
 import { requirePersonalSession, requireRole } from "../roles";
@@ -29,7 +34,7 @@ type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
  */
 const recordExport = (
   context: FarmContext,
-  report: "milk_dispatch_record" | "milk_production",
+  report: "milk_dispatch_record" | "milk_production" | "accountant_export",
   period: { from: string; to: string },
   extra: Record<string, unknown>
 ) =>
@@ -47,6 +52,77 @@ const recordExport = (
       },
     },
     () => Promise.resolve()
+  );
+
+/** A paper the farm hands to somebody outside it carries the Registration number; a farm that has not written
+ *  it down is told what is missing rather than handed a paper with a hole in it. */
+const assertRegistered = (
+  farm: { registrationNumber: string | null },
+  paper: string
+) => {
+  if (!farm.registrationNumber?.trim()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The farm's DLS registration number is not recorded, and ${paper} cannot be written without it`,
+      data: {
+        refusal: "farm_identity_incomplete",
+        missing: "registrationNumber",
+      },
+    });
+  }
+};
+
+/** The accountant's summary as a paper, in the language of whoever is producing it. */
+const accountantPaper = async (
+  context: FarmContext & { actor: { id: string; name: string } },
+  period: { from: string; to: string },
+  summary: MoneySummary
+) => {
+  const language = await languageOf(context.db, context.actor.id);
+  return accountantSummary({
+    farm: context.farm,
+    from: formatDate(startOfFarmDay(period.from), language),
+    to: formatDate(startOfFarmDay(period.to), language),
+    summary,
+    taka: (amount) => `৳${formatNumber(amount, language)}`,
+    producedBy: context.actor.name,
+    producedAt: formatDate(context.clock.now(), language, "dateTime"),
+  });
+};
+
+/** The accountant's CSV: every Money Event of the period, with the record behind it and whether the Owner
+ *  has approved it. Plain digits and plain words for whoever opens it in a spreadsheet. */
+const accountantCsv = (money: readonly ExportedMoney[]) =>
+  toCsv(
+    [
+      "date",
+      "direction",
+      "amount_bdt",
+      "category",
+      "category_en",
+      "counterparty",
+      "payment_method",
+      "side",
+      "record",
+      "record_id",
+      "reference",
+      "approval",
+      "note",
+    ],
+    money.map((one) => [
+      farmDayOf(one.occurredAt),
+      one.direction,
+      one.amountBdt.toFixed(2),
+      one.categoryBn,
+      one.categoryEn,
+      one.counterpartyName,
+      one.paymentMethod,
+      one.sides.map((share) => share.side ?? "whole_farm").join("+"),
+      one.source,
+      one.sourceId,
+      one.reference,
+      one.approval === "awaiting" ? "awaiting_approval" : one.approval,
+      one.note,
+    ])
   );
 
 /** The dispatch record as a paper, in the language of whoever is producing it. */
@@ -119,16 +195,7 @@ export const reportsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ ...periodInput, format: z.enum(["paper", "csv"]) }))
     .handler(async ({ context, input }) => {
-      if (!context.farm.registrationNumber?.trim()) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "The farm's DLS registration number is not recorded, and a dispatch record cannot be written without it",
-          data: {
-            refusal: "farm_identity_incomplete",
-            missing: "registrationNumber",
-          },
-        });
-      }
+      assertRegistered(context.farm, "a dispatch record");
       const dispatches = await dispatchesBetween(
         context.db,
         context.farm.id,
@@ -218,5 +285,40 @@ export const reportsRouter = {
         sessions: sessions.length,
       });
       return { csv };
+    }),
+
+  /**
+   * R15, the accountant's export: every Money Event of a period as a CSV, or a summary of income against
+   * expense by Category, by Counterparty and by Side as a paper headed by the farm. Money the Owner has not
+   * approved is in both, and marked. The farm does not keep books; its accountant keeps them from this.
+   *
+   * The Owner's and the Manager's, from their own phones (roles matrix: finance reports — R; export).
+   */
+  accountantExport: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ ...periodInput, format: z.enum(["paper", "csv"]) }))
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "the accountant's export");
+      const money = await moneyForTheAccountant(
+        context.db,
+        context.farm.id,
+        periodOf(input)
+      );
+      const summary = summariseMoney(money);
+      const result =
+        input.format === "paper"
+          ? {
+              summary,
+              text: await accountantPaper(context, input, summary),
+            }
+          : { csv: accountantCsv(money) };
+      await recordExport(context, "accountant_export", input, {
+        format: input.format,
+        moneyEvents: money.length,
+        incomeBdt: summary.incomeBdt,
+        expenseBdt: summary.expenseBdt,
+      });
+      return result;
     }),
 };
