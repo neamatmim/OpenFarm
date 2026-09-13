@@ -153,12 +153,22 @@ const PREGNANCY_CHECK_RESULT: Evidence = {
   ],
 };
 
+/** The effects done once whose record is a written note: the reference a letter went under, a Campaign's Lot
+ *  Number. */
+const ONCE_WITH_A_NOTE: ReadonlySet<StepEffect["kind"]> = new Set<
+  StepEffect["kind"]
+>(["dls_report", "lot_number"]);
+
+/** A campaign dose's own Lot Number, for a dose from another vial than the rest of its Campaign: asked at every
+ *  vaccine dose, never required. */
+const OWN_LOT_NUMBER: Evidence = { type: "note", required: false };
+
 /** What Evidence an effect needs before it can write anything. */
 const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "move" || kind === "observation") {
     return "choice";
   }
-  if (kind === "dls_report") {
+  if (ONCE_WITH_A_NOTE.has(kind)) {
     return "note";
   }
   return kind === "treatment" || kind === "dry_off" ? "tick" : "number";
@@ -192,9 +202,9 @@ const fittedEvidence = (
     // how much is the Prescription's or the campaign's to say, not the milker's.
     return { type: "tick", required: true };
   }
-  if (kind === "dls_report") {
-    // The reference the office files the letter under. Required, because a report that cannot
-    // be evidenced is a report that was not made.
+  if (ONCE_WITH_A_NOTE.has(kind)) {
+    // The reference the office files the letter under, or the number off the vial. Required: a report that
+    // cannot be evidenced was not made, and a vaccination nobody can trace is not one.
     return { type: "note", required: true };
   }
   return { type: "number", required: true, unit: current?.unit };
@@ -260,7 +270,9 @@ export const withEffect = (
   // Step starts as a prescribed dose — the shape that is complete without anything else being
   // chosen — and naming a product turns it into a campaign over the Pen.
   const perAnimal =
-    kind !== "bulk_total" && kind !== "treatment" && kind !== "dls_report";
+    kind !== "bulk_total" &&
+    kind !== "treatment" &&
+    !ONCE_WITH_A_NOTE.has(kind);
   if (first?.type === wants) {
     return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
   }
@@ -277,17 +289,29 @@ export const withEffect = (
  * Which product a campaign's Step gives, or none — and none means the other shape of a dose
  * Step: the farm's Treatment procedure, whose doses a Prescription names one at a time.
  */
-export const withProduct = (step: Step, productId: string): Step => {
+export const withProduct = (
+  step: Step,
+  product: { id: string; vaccine: boolean } | null
+): Step => {
   if (step.effect?.kind !== "treatment") {
     return step;
   }
-  return productId
-    ? {
-        ...step,
-        repeatPerAnimal: true,
-        effect: { kind: "treatment", productId },
-      }
-    : { ...step, repeatPerAnimal: false, effect: { kind: "treatment" } };
+  // The dose is ticked; a vaccine's dose also has room for her own Lot Number.
+  const [given = { type: "tick", required: true }] = step.evidence;
+  if (!product) {
+    return {
+      ...step,
+      repeatPerAnimal: false,
+      effect: { kind: "treatment" },
+      evidence: [given],
+    };
+  }
+  return {
+    ...step,
+    repeatPerAnimal: true,
+    effect: { kind: "treatment", productId: product.id },
+    evidence: product.vaccine ? [given, OWN_LOT_NUMBER] : [given],
+  };
 };
 
 export const splitList = (value: string): string[] =>

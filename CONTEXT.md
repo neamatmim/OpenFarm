@@ -98,6 +98,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Campaign**: A vaccination or a deworming run over a Pen as one piece of work with a per-Animal Step, so every Animal ends up with the Treatment in her own history. The Version names the product; the Manager decides the day. _Avoid_: Programme, batch treatment, mass medication
 
+**Vaccine**: A product on the Drug List the Vet has marked as one. Its doses go on the vaccination register, and each must be traceable to a Lot Number. _Avoid_: Jab, shot
+
+**Lot Number**: The manufacturer's number on a vaccine vial, which traces a dose back to what was in it. A Campaign asks for it once for the Pen, and every dose of that Campaign without one of its own came from it; a dose from another vial carries its own. _Avoid_: Batch (a Batch is an Outbox send), batch number, vial number
+
 **Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
 
 **Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. Never a word for a Sale — an Animal sold is Sold, and "disposal" is what happened to a body. _Avoid_: Removal, destruction
@@ -150,7 +154,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **AI Window**: The hours after a Heat is seen within which a service takes — by default twelve to eighteen. A Farm Parameter, because how soon a technician reaches the farm is this farm's fact and not a fact about cattle. _Avoid_: Service window, breeding window
 
-**Service**: A recorded insemination — AI (semen straw) or natural (bull) — with date, sire, and who did it. Recorded by the Manager alone, as the Step of the AI work its Heat raised, so the service *is* that work done rather than something closed beside it. A natural service names a bull standing on this farm. The ones that did not take are kept: a run of them is what makes a Repeat Breeder. _Avoid_: Breeding (the whole area), mating, insemination (AI only)
+**Service**: A recorded insemination — AI (semen straw) or natural (bull) — with date, sire, and who did it. Recorded by the Manager alone, as the Step of the AI work its Heat raised, so the service _is_ that work done rather than something closed beside it. A natural service names a bull standing on this farm. The ones that did not take are kept: a run of them is what makes a Repeat Breeder. _Avoid_: Breeding (the whole area), mating, insemination (AI only)
 
 **Attempt**: The services of one heat — one, or two when she is served again a few hours later. The Pregnancy Check is of an Attempt and counts from its first service, and one that did not take is one failure however many times she was served. An Attempt followed by another before anybody found her carrying did not take: she came back into heat. _Avoid_: Cycle, try, breeding
 

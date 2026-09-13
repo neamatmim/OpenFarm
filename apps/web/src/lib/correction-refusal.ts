@@ -68,6 +68,7 @@ const WORDED_REFUSALS = {
   farm_identity_incomplete: "refusal.farmIdentityIncomplete",
   feed_retired: "refusal.feedRetired",
   harvest_has_no_price: "refusal.harvestHasNoPrice",
+  lot_number_missing: "refusal.lotNumberMissing",
   manager_only: "refusal.managerOnly",
   month_is_for_wages: "refusal.monthIsForWages",
   no_calving_expected: "refusal.noCalvingExpected",

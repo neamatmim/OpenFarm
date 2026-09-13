@@ -329,6 +329,13 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     giver: r.one.user({ from: r.treatment.givenBy, to: r.user.id }),
   },
+  campaignLotNumber: {
+    instance: r.one.sopInstance({
+      from: r.campaignLotNumber.instanceId,
+      to: r.sopInstance.id,
+      optional: false,
+    }),
+  },
   notifiableDisease: {
     /** Who put it on the list — the list is evidence, so its author is part of it. */
     addedByPerson: r.one.user({
@@ -432,6 +439,11 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   sopInstance: {
+    /** The Lot Number a vaccination Campaign was given from. */
+    campaignLotNumber: r.one.campaignLotNumber({
+      from: r.sopInstance.id,
+      to: r.campaignLotNumber.instanceId,
+    }),
     /** The report this work is about, when a notifiable Diagnosis raised it. */
     report: r.one.dlsReport({
       from: r.sopInstance.id,

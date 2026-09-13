@@ -69,7 +69,7 @@ const SopsPage = () => {
   const drugs = useQuery(orpc.drugs.list.queryOptions());
   const products = (drugs.data ?? [])
     .filter((one) => one.prescribable)
-    .map((one) => ({ id: one.id, name: one.nameBn }));
+    .map((one) => ({ id: one.id, name: one.nameBn, vaccine: one.vaccine }));
   const sops = useQuery(orpc.sops.list.queryOptions());
   const proposals = useQuery(orpc.sops.proposals.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
@@ -481,7 +481,7 @@ const SopEditor = ({
   canPublish: boolean;
   pens: { id: string; name: string }[];
   /** What a campaign may give: the Drug List's products whose withdrawal days are known. */
-  products: { id: string; name: string }[];
+  products: { id: string; name: string; vaccine: boolean }[];
   onChange: (content: SopContent) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -679,7 +679,7 @@ const StepEditor = ({
   step: Step;
   /** The Pens a moving Step may walk an animal to — the farm's own, never typed. */
   pens: { id: string; name: string }[];
-  products: { id: string; name: string }[];
+  products: { id: string; name: string; vaccine: boolean }[];
   onChange: (step: Step) => void;
   onRemove: () => void;
 }) => {
@@ -744,7 +744,15 @@ const StepEditor = ({
           <select
             className="bg-background h-9 w-full rounded-md border px-2 text-sm"
             id={`${step.id}-product`}
-            onChange={(e) => onChange(withProduct(step, e.target.value))}
+            onChange={(e) =>
+              onChange(
+                withProduct(
+                  step,
+                  products.find((product) => product.id === e.target.value) ??
+                    null
+                )
+              )
+            }
             value={step.effect.productId ?? ""}
           >
             {/* Blank is the farm's one Treatment procedure, whose doses a Prescription names

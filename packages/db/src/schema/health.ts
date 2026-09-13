@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -42,6 +43,9 @@ export const drugProduct = pgTable(
     /** Who last said what the days are, and when. The days are evidence, so their author is. */
     daysSetBy: text("days_set_by").references(() => user.id),
     daysSetAt: timestamp("days_set_at"),
+    /** The Vet's word that this is a vaccine: its doses go on the vaccination register, and each carries the Lot
+     *  Number it came from. */
+    vaccine: boolean("vaccine").notNull().default(false),
     /** Retired, never removed: a Treatment given last March still names its product. */
     retiredAt: timestamp("retired_at"),
     addedBy: text("added_by").references(() => user.id),
@@ -214,6 +218,10 @@ export const treatment = pgTable(
     }),
     givenBy: text("given_by").references(() => user.id),
     givenAt: timestamp("given_at"),
+    /** This dose's own Lot Number, when it came from a different vial than the rest of its Campaign. Null for a
+     *  dose from the Campaign's Lot Number, which is read from the Campaign so a Correction to it reaches every
+     *  dose. */
+    lotNumber: text("lot_number"),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
@@ -224,6 +232,37 @@ export const treatment = pgTable(
     /** The withdrawal question: what has this animal been given, and when was the last one. */
     index("treatment_animal_idx").on(table.animalId, table.givenAt),
     index("treatment_prescription_idx").on(table.prescriptionId, table.number),
+  ]
+);
+
+/**
+ * The Lot Number a Campaign's Instance was vaccinated from, asked of the vaccinator once for the Pen rather than
+ * at every animal (the Owner's decision, 2026-09-13). Every dose of the Campaign without a Lot Number of its own
+ * came from it.
+ *
+ * Written by the Step that asks for it and rewritten by a Correction to that Step, so putting the Campaign's Lot
+ * Number right puts every one of its doses right with it.
+ */
+export const campaignLotNumber = pgTable(
+  "campaign_lot_number",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    instanceId: text("instance_id")
+      .notNull()
+      .references(() => sopInstance.id, { onDelete: "cascade" }),
+    lotNumber: text("lot_number").notNull(),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    /** One Lot Number to a Campaign: asked once. */
+    uniqueIndex("campaign_lot_number_instance_uidx").on(table.instanceId),
   ]
 );
 

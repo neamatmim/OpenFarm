@@ -265,6 +265,7 @@ const Product = ({
     daysSetByName: string | null;
     daysSetAt: Date | null;
     retiredAt: Date | null;
+    vaccine: boolean;
     prescribable: boolean;
     whyNot: NotPrescribable | null;
   };
@@ -290,6 +291,12 @@ const Product = ({
       onError: (error) => toast.error(error.message),
     })
   );
+  const markVaccine = useMutation(
+    orpc.drugs.markVaccine.mutationOptions({
+      onSuccess: onChanged,
+      onError: (error) => toast.error(error.message),
+    })
+  );
 
   return (
     <li className="space-y-2 rounded-lg border p-3">
@@ -298,6 +305,7 @@ const Product = ({
           {language === "en" && product.nameEn
             ? product.nameEn
             : product.nameBn}
+          {product.vaccine ? ` · ${t("drugs.vaccine")}` : ""}
           {product.retiredAt ? ` · ${t("drugs.retired")}` : ""}
         </span>
         {product.retiredAt ? null : (
@@ -372,6 +380,16 @@ const Product = ({
           </div>
           <Button disabled={milk === "" || meat === ""} type="submit">
             {t("drugs.save")}
+          </Button>
+          <Button
+            disabled={markVaccine.isPending}
+            onClick={() =>
+              markVaccine.mutate({ id: product.id, vaccine: !product.vaccine })
+            }
+            type="button"
+            variant="outline"
+          >
+            {t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine")}
           </Button>
         </form>
       ) : (

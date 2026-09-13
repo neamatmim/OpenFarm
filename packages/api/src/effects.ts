@@ -4,7 +4,11 @@ import { pregnancyCheck, service } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { feeding } from "@OpenFarm/db/schema/feed";
-import { dlsReport, treatment } from "@OpenFarm/db/schema/health";
+import {
+  campaignLotNumber,
+  dlsReport,
+  treatment,
+} from "@OpenFarm/db/schema/health";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
@@ -93,6 +97,11 @@ export type EffectResult =
       saw: string;
       /** True when this replaced one a Correction withdrew. */
       supersedes: boolean;
+    }
+  | {
+      kind: "lot_number";
+      /** The Lot Number the Campaign was given from. */
+      lotNumber: string;
     }
   | {
       kind: "dls_report";
@@ -184,6 +193,10 @@ const noteIn = (step: Step, evidence: unknown[]): string | null => {
   const written = typeof value === "string" ? value.trim() : "";
   return written === "" ? null : written;
 };
+
+/** The note a Step recorded, or nothing when the Step was skipped. */
+const writtenNote = (input: EffectInput): string | null =>
+  input.skipped ? null : noteIn(input.step, input.evidence);
 
 /** What was chosen at one position, as the Version declares it there — or null when nothing was.
  *  A value the Version never offered at that position is refused, not ignored. */
@@ -395,7 +408,7 @@ const applyReportEffect = async (
   // The reference is required evidence, so whether it was given at all is settled before the
   // effect runs — by the Version (publishing refuses a Step that lets it be blank) and by the
   // Completion (a required slot with nothing in it is not complete).
-  const reference = input.skipped ? null : noteIn(input.step, input.evidence);
+  const reference = writtenNote(input);
   await tx
     .update(dlsReport)
     .set(
@@ -452,6 +465,28 @@ const doseShape = (input: EffectInput) => {
 };
 
 /**
+ * A vaccine dose has to be traceable to the vial it came from: from her own Lot Number, written at her dose, or
+ * from the Campaign's, asked once for the Pen. With neither, the dose is refused rather than recorded as a
+ * vaccination nobody can trace.
+ */
+const assertCampaignHasLotNumber = async (
+  tx: Tx,
+  instanceId: string,
+  productName: string
+): Promise<void> => {
+  const recorded = await tx.query.campaignLotNumber.findFirst({
+    where: { instanceId },
+    columns: { id: true },
+  });
+  if (!recorded) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `${productName} is a vaccine: write the Campaign's Lot Number first, or this dose's own`,
+      data: { refusal: "lot_number_missing" },
+    });
+  }
+};
+
+/**
  * The dose a campaign gives her now. Nothing was owed beforehand, so the row is written by the
  * Step that gives it — and written again over itself if two phones send the same dose at once,
  * which the unique index on the work and the animal is there to catch.
@@ -475,15 +510,22 @@ const recordCampaignDose = async (
       nameBn: true,
       milkWithdrawalDays: true,
       meatWithdrawalDays: true,
+      vaccine: true,
     },
   });
-  if (!product || product.milkWithdrawalDays === null) {
+  // Only a dose being given needs its days: a Correction back to a skip takes nothing into her.
+  if (!product || (product.milkWithdrawalDays === null && !input.skipped)) {
     throw new ORPCError("BAD_REQUEST", {
       message: product
         ? `${product.nameBn} has no withdrawal days written down, so it cannot be given`
         : "That product is no longer on the farm's drug list",
       data: { refusal: "no_withdrawal_days" },
     });
+  }
+  // A note at a vaccine's dose is her own Lot Number; at any other product's it is only a note.
+  const lotNumber = product.vaccine ? writtenNote(input) : null;
+  if (product.vaccine && !input.skipped && lotNumber === null) {
+    await assertCampaignHasLotNumber(tx, input.instance.id, product.nameBn);
   }
   const id = uuidv7(input.now);
   await tx
@@ -498,11 +540,12 @@ const recordCampaignDose = async (
       number: 1,
       dueAt: input.instance.dueAt,
       createdAt: input.now,
+      lotNumber,
       ...given,
     })
     .onConflictDoUpdate({
       target: [treatment.instanceId, treatment.animalId],
-      set: given,
+      set: { ...given, lotNumber },
     });
   return { id, number: 1, prescriptionId: null, animalId };
 };
@@ -558,14 +601,15 @@ const applyTreatmentEffect = async (
       };
 
   let dose = owed;
-  if (owed) {
-    await tx.update(treatment).set(given).where(eq(treatment.id, owed.id));
-  } else if (shape.campaign) {
+  if (shape.campaign) {
+    // Written over itself on a replay or a Correction, so a lot put right at her dose lands with it.
     dose = await recordCampaignDose(tx, input, {
       productId: shape.productId,
       animalId: shape.animalId,
       given,
     });
+  } else if (owed) {
+    await tx.update(treatment).set(given).where(eq(treatment.id, owed.id));
   }
   // From the doses she has actually had, every time — a dose corrected back to a skip has to
   // shorten the hold again, and the farm's milk gate reads the answer.
@@ -581,6 +625,42 @@ const applyTreatmentEffect = async (
     given: !input.skipped,
     milkWithdrawalUntil: milkUntil,
   };
+};
+
+/**
+ * The Lot Number a Campaign was given from, asked once for the Pen. Every vaccine dose of the Campaign without a
+ * Lot Number of its own reads it from here, so a Correction to this Step puts all of them right at once.
+ *
+ * It is never taken back: a Step done once cannot be skipped, and its note is required, so a vaccination given
+ * from this vial cannot be made untraceable after the fact.
+ */
+const applyLotNumberEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  const lotNumber = writtenNote(input);
+  if (lotNumber === null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This step records the Lot Number off the vial, and none was written",
+    });
+  }
+  const written = {
+    lotNumber,
+    completionId: input.completionId,
+    recordedBy: input.recordedBy,
+    recordedAt: input.recordedAt,
+  };
+  await tx
+    .insert(campaignLotNumber)
+    .values({
+      id: uuidv7(input.now),
+      farmId: input.instance.farmId,
+      instanceId: input.instance.id,
+      ...written,
+    })
+    .onConflictDoUpdate({ target: campaignLotNumber.instanceId, set: written });
+  return { kind: "lot_number", lotNumber };
 };
 
 /**
@@ -1421,6 +1501,7 @@ const RECORDING_EFFECTS: Partial<
   calving: applyCalvingEffect,
   stock_count: applyStockCountEffect,
   registration_renewal: applyRenewalEffect,
+  lot_number: applyLotNumberEffect,
 };
 
 /**
