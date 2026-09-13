@@ -483,8 +483,24 @@ export interface RegistrationRecord {
 }
 
 /** The registers the Inspector View prints, by the name the trail records each under. */
-export const INSPECTOR_REGISTERS = ["registration", "herd_summary"] as const;
+export const INSPECTOR_REGISTERS = [
+  "registration",
+  "herd_summary",
+  "treatment_register",
+  "disease_history",
+] as const;
 export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
+
+/** The registers an inspector may also take away as a CSV (the report set: R4 as PDF and CSV). */
+export const REGISTERS_WITH_CSV: readonly InspectorRegister[] = [
+  "treatment_register",
+];
+
+/** The health registers, which cover a period: thirty days of treatments, six months of diagnoses. */
+export type HealthRegister = Extract<
+  InspectorRegister,
+  "treatment_register" | "disease_history"
+>;
 
 const STANDING_LABEL: Record<RegistrationStanding, string> = {
   valid: "বৈধ / Valid",
@@ -560,3 +576,106 @@ export const herdSummary = (summary: HerdSummary): string =>
     "",
     `${summary.producedAt} · ${summary.producedBy}`,
   ].join("\n");
+
+/** One dose on the printed treatment register, its days and route already written out for the reader. */
+export interface TreatmentRegisterLine {
+  givenOn: string;
+  tagNumber: string;
+  diagnosis: string | null;
+  drug: string;
+  dose: string | null;
+  route: string | null;
+  course: string | null;
+  givenBy: string | null;
+  prescribedBy: string | null;
+  milkClearOn: string | null;
+  meatClearOn: string | null;
+}
+
+export interface TreatmentRegister {
+  farm: FarmIdentity;
+  from: string;
+  to: string;
+  doses: TreatmentRegisterLine[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * R4, the treatment register: every dose in a period, a line to each field in the DLS guideline's column order as
+ * the CSV has it — the date, the
+ * animal, the diagnosis, the drug, the dose and route, which dose of the course, who gave it, the prescribing
+ * Vet, and when the milk and the meat were clear. What an inspector and a slaughter vet ask for first.
+ */
+export const treatmentRegister = (register: TreatmentRegister): string =>
+  [
+    ...farmOfOriginLines(register.farm),
+    "",
+    "চিকিৎসার রেজিস্টার / Treatment register",
+    field("সময়কাল", "Period", `${register.from} — ${register.to}`),
+    "",
+    ...(register.doses.length === 0
+      ? ["এই সময়ে কোনো চিকিৎসা হয়নি / No treatments in this period"]
+      : register.doses.flatMap((one) => [
+          `${one.givenOn} · ${one.tagNumber}`,
+          `  ${field("রোগ", "Diagnosis", one.diagnosis ?? "—")}`,
+          `  ${field("ওষুধ", "Drug", one.drug)}`,
+          `  ${field("ডোজ", "Dose", one.dose ?? "—")}`,
+          `  ${field("পথ", "Route", one.route ?? "—")}`,
+          `  ${field("কোর্স", "Course", one.course ?? "—")}`,
+          `  ${field("যিনি দিয়েছেন", "Given by", one.givenBy ?? "—")}`,
+          `  ${field("প্রেসক্রিপশন", "Prescribed by", one.prescribedBy ?? "—")}`,
+          `  ${field("দুধ মুক্ত", "Milk clear", one.milkClearOn ?? "—")}`,
+          `  ${field("মাংস মুক্ত", "Meat clear", one.meatClearOn ?? "—")}`,
+        ])),
+    "",
+    `${register.producedAt} · ${register.producedBy}`,
+  ].join("\n");
+
+/** One diagnosis on the printed disease history. */
+export interface DiseaseHistoryLine {
+  diagnosedOn: string;
+  tagNumber: string;
+  disease: string;
+  diagnosedBy: string;
+  notifiable: boolean;
+  reportReference: string | null;
+  /** What became of the animal, already written out. */
+  outcome: string;
+}
+
+export interface DiseaseHistory {
+  farm: FarmIdentity;
+  from: string;
+  to: string;
+  diagnoses: DiseaseHistoryLine[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * R5, the disease history: every diagnosis in a period by date and animal, the notifiable ones marked with the
+ * reference their letter to the office was delivered under, and what became of the animal since.
+ */
+export const diseaseHistory = (history: DiseaseHistory): string =>
+  [
+    ...farmOfOriginLines(history.farm),
+    "",
+    "রোগের ইতিহাস / Disease history",
+    field("সময়কাল", "Period", `${history.from} — ${history.to}`),
+    "",
+    ...(history.diagnoses.length === 0
+      ? ["এই সময়ে কোনো রোগ নির্ণয় হয়নি / No diagnoses in this period"]
+      : history.diagnoses.flatMap((one) => [
+          `${one.diagnosedOn} · ${one.tagNumber} · ${one.disease}${one.notifiable ? " · জ্ঞাপনযোগ্য / Notifiable" : ""}`,
+          `  ${field("ভেট", "Vet", one.diagnosedBy)}`,
+          one.notifiable
+            ? `  ${field("ডিএলএস রেফারেন্স", "DLS reference", one.reportReference ?? "এখনো দেওয়া হয়নি / not yet delivered")}`
+            : null,
+          `  ${field("পরিণতি", "Outcome", one.outcome)}`,
+        ])),
+    "",
+    `${history.producedAt} · ${history.producedBy}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");

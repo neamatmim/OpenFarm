@@ -79,6 +79,7 @@ const WORDED_REFUSALS = {
   period_too_long: "refusal.periodTooLong",
   purchase_needs_price_and_seller: "refusal.purchaseNeedsPriceAndSeller",
   received_in_the_future: "refusal.receivedInTheFuture",
+  register_has_no_csv: "refusal.registerHasNoCsv",
   renewal_needs_certificate: "refusal.renewalNeedsCertificate",
   renewal_needs_expiry: "refusal.renewalNeedsExpiry",
   renewal_not_later: "refusal.renewalNotLater",

@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { HealthRegisters } from "@/components/health-registers";
 import { Paper } from "@/components/paper";
 import type { PaperId } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
@@ -22,6 +23,8 @@ import { orpc } from "@/utils/orpc";
 const PAPER_OF: Record<InspectorRegister, PaperId> = {
   registration: "registration-record",
   herd_summary: "herd-summary",
+  treatment_register: "treatment-register",
+  disease_history: "disease-history",
 };
 
 const SIDE_WORD = {
@@ -75,7 +78,8 @@ const InspectorPage = () => {
   } | null>(null);
   const print = useMutation(
     orpc.inspector.print.mutationOptions({
-      onSuccess: ({ text }, { report }) => setPaper({ report, text }),
+      onSuccess: ({ text }, { report }) =>
+        setPaper(text ? { report, text } : null),
       onError: (error) =>
         toast.error(
           wordedRefusal(error, t) ?? (error.message || t("common.error"))
@@ -172,6 +176,11 @@ const InspectorPage = () => {
           </Line>
         ))}
       </section>
+
+      <HealthRegisters
+        onPrint={(report, asked) => print.mutate({ report, ...asked })}
+        printing={print.isPending}
+      />
 
       {paper ? (
         <Paper
