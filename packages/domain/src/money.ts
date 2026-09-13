@@ -5,34 +5,49 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export type MoneyApproval = "not_needed" | "awaiting" | "approved";
 
+/** What an approval approves: how much, to or from whom, and under what Category. */
+export interface ApprovedTerms {
+  amountBdt: number;
+  counterpartyId: string | null;
+  categoryId: string;
+}
+
+const sameTerms = (a: ApprovedTerms, b: ApprovedTerms): boolean =>
+  a.amountBdt === b.amountBdt &&
+  a.counterpartyId === b.counterpartyId &&
+  a.categoryId === b.categoryId;
+
 /**
- * Where a Money Event stands with the Owner once its amount is known.
+ * Where a Money Event stands with the Owner once its terms are known.
  *
  * Over the Approval Threshold, money the Owner did not enter waits for the Owner; at or under it, or
- * entered by the Owner, it waits for nobody. An approval is of an
- * amount: a Money Event the Owner approved keeps its approval while its amount stays what was
- * approved, and waits again when a Correction changes it.
+ * entered by the Owner, it waits for nobody. An approval is of the terms the Owner read — the amount, who
+ * it went to or came from, and its Category — so a Money Event the Owner approved keeps its approval while
+ * those stay as they were, and waits again when a Correction changes any of them.
  */
 export const approvalOf = ({
-  amountBdt,
+  terms,
   thresholdBdt,
   enteredByTheOwner,
   before,
 }: {
-  amountBdt: number;
+  terms: ApprovedTerms;
   thresholdBdt: number;
   /** The Owner is not asked to approve their own money. */
   enteredByTheOwner: boolean;
   /** The Money Event as it stood, for one being corrected. */
-  before?: { amountBdt: number; approval: MoneyApproval };
+  before?: { terms: ApprovedTerms; approval: MoneyApproval };
 }): MoneyApproval => {
-  if (enteredByTheOwner || amountBdt <= thresholdBdt) {
+  if (enteredByTheOwner || terms.amountBdt <= thresholdBdt) {
     return "not_needed";
   }
-  return before?.approval === "approved" && before.amountBdt === amountBdt
+  return before?.approval === "approved" && sameTerms(before.terms, terms)
     ? "approved"
     : "awaiting";
 };
+
+/** Whether a correction left the Money Event's terms as they were. */
+export const termsUnchanged = sameTerms;
 
 /** Taka to the poisha, as money is kept. */
 export const roundTaka = (amount: number): number =>

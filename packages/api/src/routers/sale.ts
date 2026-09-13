@@ -35,6 +35,7 @@ const readSale = async (tx: Tx, id: string) => {
   const row = await tx.query.sale.findFirst({
     where: { id },
     columns: {
+      farmId: true,
       priceBdt: true,
       weightKg: true,
       destination: true,
@@ -45,7 +46,11 @@ const readSale = async (tx: Tx, id: string) => {
     },
     with: { buyer: { columns: { name: true } } },
   });
-  return row ? { ...row, money: await moneySnapshotOf(tx, "sale", id) } : null;
+  if (!row) {
+    return null;
+  }
+  const { farmId, ...sold } = row;
+  return { ...sold, money: await moneySnapshotOf(tx, farmId, "sale", id) };
 };
 
 /** The buyer as a Sale names them. */
@@ -78,7 +83,7 @@ const bookSaleMoney = async (
     return;
   }
   const priceBdt = Number(row.priceBdt);
-  if (priceBdt > 0 || (await moneySnapshotOf(tx, "sale", row.id))) {
+  if (priceBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
     await bookMoney(tx, booking, {
       source: "sale",
       sourceId: row.id,

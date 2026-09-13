@@ -15,9 +15,18 @@ export const categoryName = (
     ? category.categoryBn
     : (category.categoryEn ?? category.categoryBn);
 
-/** The Owner approving a Money Event at the amount they read, wherever they read it. */
-export const useApproveMoney = () => {
+/** Shows a refused money write in the reader's words where the farm has them. */
+export const useRefusalToast = () => {
   const { t } = useLanguage();
+  return (error: Error) =>
+    toast.error(
+      wordedRefusal(error, t) ?? (error.message || t("common.error"))
+    );
+};
+
+/** The Owner approving a Money Event at the terms they read, wherever they read it. */
+export const useApproveMoney = () => {
+  const onRefused = useRefusalToast();
   const queryClient = useQueryClient();
   return useMutation(
     orpc.money.approve.mutationOptions({
@@ -28,9 +37,7 @@ export const useApproveMoney = () => {
           )
         ),
       onError: async (error) => {
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        );
+        onRefused(error);
         // Corrected or approved since it was read: show what it says now.
         await queryClient.invalidateQueries({ queryKey: orpc.home.key() });
       },

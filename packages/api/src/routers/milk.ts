@@ -75,7 +75,7 @@ const dispatchFields = {
 const readDispatch = async (tx: Tx, id: string) => {
   const row = await tx.query.dispatch.findFirst({ where: { id } });
   return row
-    ? { ...row, money: await moneySnapshotOf(tx, "dispatch", id) }
+    ? { ...row, money: await moneySnapshotOf(tx, row.farmId, "dispatch", id) }
     : null;
 };
 

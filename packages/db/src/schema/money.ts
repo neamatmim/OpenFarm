@@ -13,10 +13,11 @@ import { user } from "./auth";
 import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { drugProduct } from "./health";
-import { animal } from "./herd";
+import { SIDES, animal } from "./herd";
 
 /** Which way money went: into the farm, or out of it. */
 export const MONEY_DIRECTIONS = ["in", "out"] as const;
+export type MoneyDirection = (typeof MONEY_DIRECTIONS)[number];
 
 /** How money changed hands. Cash at the gate, bKash on a phone, or through a bank. */
 export const PAYMENT_METHODS = ["cash", "bkash", "bank"] as const;
@@ -26,7 +27,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
  * The farm records that make money on their own. A Money Event made by one of these names it, and one
  * record makes one Money Event: a Correction to the record corrects its money rather than adding more.
  */
-export const MONEY_SOURCES = [
+export const RECORD_SOURCES = [
   "dispatch",
   "intake",
   "sale",
@@ -34,7 +35,27 @@ export const MONEY_SOURCES = [
   "medicine_purchase",
   "vet_fee",
 ] as const;
+export type RecordSource = (typeof RECORD_SOURCES)[number];
+
+/** Where a Money Event came from: one of the records, or entered by hand by the Manager — wages, and
+ *  everything no record catches, where the Money Event is the whole of it. */
+export const MONEY_SOURCES = [...RECORD_SOURCES, "by_hand"] as const;
 export type MoneySource = (typeof MONEY_SOURCES)[number];
+
+/**
+ * The standard Categories every farm starts with: one for each record that makes money, and the ones a
+ * dairy farm's month is otherwise made of. Keyed, so the records and the wage rule can find them; the
+ * farm's own Categories carry no key.
+ */
+export const CATEGORY_KEYS = [
+  ...RECORD_SOURCES,
+  "wages",
+  "utilities",
+  "repairs",
+  "transport",
+  "manure_sales",
+] as const;
+export type CategoryKey = (typeof CATEGORY_KEYS)[number];
 
 /**
  * Where a Money Event stands with the Owner. Under the Approval Threshold it needs nobody; over it, it
@@ -45,8 +66,8 @@ export const MONEY_APPROVALS = ["not_needed", "awaiting", "approved"] as const;
 export type MoneyApproval = (typeof MONEY_APPROVALS)[number];
 
 /**
- * A Category a Money Event falls under. The Categories the farm's own records use carry a key and are
- * made the first time a record needs one; the farm's own list of Categories grows from these.
+ * A Category a Money Event falls under. The standard ones carry a key; the farm's own carry none. Retired,
+ * never removed.
  */
 export const moneyCategory = pgTable(
   "money_category",
@@ -55,11 +76,13 @@ export const moneyCategory = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    /** The record that uses this Category, for the ones the records make; null for the farm's own. */
-    key: text("key", { enum: MONEY_SOURCES }),
+    /** Which standard Category this is; null for one the farm added. */
+    key: text("key", { enum: CATEGORY_KEYS }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
+    /** Retired, never removed: a Money Event entered under it last year still names it. */
+    retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
@@ -93,6 +116,12 @@ export const moneyEvent = pgTable(
     /** The record that made it, and that record's id. */
     source: text("source", { enum: MONEY_SOURCES }).notNull(),
     sourceId: text("source_id").notNull(),
+    /** What the Manager wrote about money entered by hand. */
+    note: text("note"),
+    /** The month a wage pays for, "YYYY-MM". One wage per person per month. */
+    wageMonth: text("wage_month"),
+    /** The Side money entered by hand belongs to, when it belongs to one; null for the whole farm. */
+    side: text("side", { enum: SIDES }),
     approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at"),
@@ -104,8 +133,28 @@ export const moneyEvent = pgTable(
     uniqueIndex("money_event_source_uidx").on(table.source, table.sourceId),
     index("money_event_day_idx").on(table.farmId, table.occurredAt),
     index("money_event_approval_idx").on(table.farmId, table.approval),
+    // One wage per person per month. Entries that are not wages carry no month, and do not collide.
+    uniqueIndex("money_event_wage_uidx").on(
+      table.farmId,
+      table.counterpartyId,
+      table.wageMonth
+    ),
   ]
 );
+
+/** The photo of a Money Event's receipt, when somebody took one. One per Money Event. */
+export const moneyReceipt = pgTable("money_receipt", {
+  moneyEventId: text("money_event_id")
+    .primaryKey()
+    .references(() => moneyEvent.id, { onDelete: "cascade" }),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
 
 /**
  * Medicine bought for the Drug List: which product, how much of it in the words on the box, what it

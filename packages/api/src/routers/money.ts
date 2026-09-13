@@ -15,6 +15,7 @@ import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf, settleMoneyNotices } from "../money-store";
 import { periodInput, periodOf } from "../period";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+import { moneyEntryProcedures } from "./money-entries";
 
 /** As much of a period as one screen reads; a busy period says there is more rather than dropping
  *  it quietly, and the accountant's export is where all of it goes. */
@@ -57,6 +58,8 @@ const VET_ONLY = {
 } as const;
 
 export const moneyRouter = {
+  ...moneyEntryProcedures,
+
   /**
    * The farm's Money Events in a period, newest first: how much, which way, under what Category, with
    * whom, how it was paid, the record it came from, and where it stands with the Owner.
@@ -79,6 +82,7 @@ export const moneyRouter = {
           category: { columns: { key: true, nameBn: true, nameEn: true } },
           counterparty: { columns: { name: true } },
           approver: { columns: { name: true } },
+          receipt: { columns: { moneyEventId: true } },
         },
         orderBy: { occurredAt: "desc", id: "desc" },
         limit: LISTED + 1,
@@ -98,6 +102,10 @@ export const moneyRouter = {
         approval: row.approval,
         approvedByName: row.approver?.name ?? null,
         approvedAt: row.approvedAt,
+        note: row.note,
+        wageMonth: row.wageMonth,
+        side: row.side,
+        hasReceipt: row.receipt !== null,
       }));
       return { events, more: rows.length > LISTED };
     }),
@@ -163,10 +171,7 @@ export const moneyRouter = {
           if (approved.length === 0) {
             throw notWaiting();
           }
-          await settleMoneyNotices(tx, context.farm.id, waiting.id, {
-            stillWaitingAt: null,
-            now,
-          });
+          await settleMoneyNotices(tx, context.farm.id, waiting.id, now);
         }
       );
       return { id: waiting.id };

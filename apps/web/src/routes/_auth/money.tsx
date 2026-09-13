@@ -8,6 +8,12 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { categoryName, useApproveMoney } from "@/components/money";
+import {
+  Categories,
+  CorrectEntered,
+  EnterMoney,
+  ReceiptLink,
+} from "@/components/money-entry";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -24,6 +30,7 @@ const SOURCE_WORD = {
   feed_in: "money.from.feedIn",
   medicine_purchase: "money.from.medicinePurchase",
   vet_fee: "money.from.vetFee",
+  by_hand: "money.from.byHand",
 } as const satisfies Record<string, MessageKey>;
 
 /**
@@ -38,12 +45,14 @@ const MoneyPage = () => {
   const [to, setTo] = useState(() => farmDayOf(new Date()));
   const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
   const isOwner = me.data?.roles.includes("owner") ?? false;
+  const entersMoney = me.data?.roles.includes("manager") ?? false;
   const approve = useApproveMoney();
   const rows = money.data?.events ?? [];
 
   return (
     <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
       <h1 className="text-lg font-medium">{t("money.title")}</h1>
+      {entersMoney ? <EnterMoney /> : null}
       <div className="flex flex-wrap gap-2">
         <Input
           aria-label={t("dispatch.from")}
@@ -92,6 +101,25 @@ const MoneyPage = () => {
                     ? ` · ${t("money.approvedBy", { name: row.approvedByName ?? "" })}`
                     : ""}
                 </p>
+                {row.note || row.wageMonth ? (
+                  <p className="text-muted-foreground text-xs">
+                    {row.wageMonth
+                      ? t("byHand.wageFor", { month: row.wageMonth })
+                      : ""}
+                    {row.wageMonth && row.note ? " · " : ""}
+                    {row.note ?? ""}
+                  </p>
+                ) : null}
+                {entersMoney && row.source === "by_hand" ? (
+                  <div className="text-xs">
+                    <CorrectEntered entered={row} />
+                  </div>
+                ) : null}
+                {row.hasReceipt ? (
+                  <div className="text-xs">
+                    <ReceiptLink id={row.id} />
+                  </div>
+                ) : null}
               </div>
               {isOwner && row.approval === "awaiting" ? (
                 <Button
@@ -112,6 +140,7 @@ const MoneyPage = () => {
       {money.data?.more ? (
         <p className="text-muted-foreground text-sm">{t("money.more")}</p>
       ) : null}
+      <Categories />
     </div>
   );
 };

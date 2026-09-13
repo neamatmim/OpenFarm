@@ -35,7 +35,7 @@ const priceInput = z.number().positive().max(100_000_000);
 const readArrival = async (tx: Tx, id: string) => {
   const row = await tx.query.feedIn.findFirst({ where: { id } });
   return row
-    ? { ...row, money: await moneySnapshotOf(tx, "feed_in", id) }
+    ? { ...row, money: await moneySnapshotOf(tx, row.farmId, "feed_in", id) }
     : null;
 };
 
