@@ -202,3 +202,34 @@ export const stockLedger = (
     averagePriceBdt: price === null ? null : roundTaka(price),
   };
 };
+
+/**
+ * When the store last fell below a level: the moment a movement took it from at or above the level to
+ * under it. What a low-stock notice is about — once each time the store runs low, whether it was
+ * brought back up by a lorry or by a count that found more than was thought. Null when it has never
+ * been at the level and then fallen from it: a store that starts below it fell the moment it started.
+ */
+export const lastFellBelow = (
+  movements: readonly StockMovement[],
+  level: number
+): Date | null => {
+  const inOrder = movements.toSorted(
+    (a, b) =>
+      a.at.getTime() - b.at.getTime() ||
+      MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
+  );
+  let onHand = 0;
+  let fell: Date | null = null;
+  for (const one of inOrder) {
+    const before = onHand;
+    if (one.kind === "count") {
+      onHand = one.counted;
+    } else {
+      onHand += one.kind === "in" ? one.quantity : -one.quantity;
+    }
+    if (onHand < level && (before >= level || fell === null)) {
+      fell = one.at;
+    }
+  }
+  return onHand < level ? fell : null;
+};

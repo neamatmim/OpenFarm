@@ -73,13 +73,27 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  const { eq } = await import("@OpenFarm/db/operators");
+  const { and, eq, inArray } = await import("@OpenFarm/db/operators");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
-  await scratchDb()
+  const { sopInstance } = await import("@OpenFarm/db/schema/instance");
+  const db = scratchDb();
+  await db
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
     .where(eq(sopDefinition.id, world.sop.definitionId));
+  // Nothing this file raised is left open for a later file's clock to find late.
+  await db
+    .update(sopInstance)
+    .set({ state: "missed" })
+    .where(
+      and(
+        eq(sopInstance.definitionId, world.sop.definitionId),
+        inArray(sopInstance.state, ["due", "in_progress"])
+      )
+    );
 });
+
+type Manager = Awaited<ReturnType<typeof createTestClient<typeof appRouter>>>;
 
 const managerAt = (at: string) =>
   createTestClient(appRouter, { as: "manager", clock: new FakeClock(at) });
@@ -90,7 +104,7 @@ const lineFor = async (at: string, feedItemId: string) => {
   return stock.find((line) => line.feedItemId === feedItemId);
 };
 
-/** This week's count, raised by hand on `day` and claimed by the Manager. */
+/** This week's count, raised by hand on `day`, claimed by the Manager unless asked not to. */
 const countWork = async (day: string, { claim = true } = {}) => {
   const manager = await managerAt(`${day}T04:00:00.000Z`);
   await manager.client.instances.raiseNow({
@@ -107,6 +121,58 @@ const countWork = async (day: string, { claim = true } = {}) => {
   return { id: work?.id ?? "", manager };
 };
 
+/**
+ * The count lines for everything on the board. Other test files keep Feed Items on this shared farm
+ * too, and a count counts every one: theirs are counted at what the store holds, which changes nothing
+ * and needs no reason — or, for one a file left below nothing, at nothing, which is what a store below
+ * nothing really holds, with the reason that says so. A Correction repeats what the count said about
+ * them.
+ */
+const countLines = async (
+  manager: Manager,
+  workId: string,
+  mine: Record<string, { counted: number; reason?: string }>
+) => {
+  const board = await manager.client.instances.get({ id: workId });
+  const stock = await manager.client.stock.onHand();
+  return (board.stockCount?.items ?? []).map((item) => {
+    const onHand =
+      stock.find((line) => line.feedItemId === item.feedItemId)?.onHand ?? 0;
+    // A Correction says again what the count said about everything it is not putting right.
+    const before = board.stockCount?.counted.find(
+      (line) => line.feedItemId === item.feedItemId
+    );
+    const counted = before?.counted ?? Math.max(0, onHand);
+    const theirs =
+      before?.reason || onHand < 0
+        ? {
+            counted,
+            reason: before?.reason ?? "খাতায় যা লেখা হয়নি তা খাওয়ানো হয়েছিল",
+          }
+        : { counted };
+    return {
+      feedItemId: item.feedItemId,
+      ...(mine[item.feedItemId] ?? theirs),
+    };
+  });
+};
+
+/** Raises, counts and finishes a count on `day`. */
+const countOn = async (
+  day: string,
+  mine: Record<string, { counted: number; reason?: string }>
+) => {
+  const { id, manager } = await countWork(day);
+  await manager.client.instances.completeStep({
+    instanceId: id,
+    stepId: "count",
+    evidence: [true],
+    counts: await countLines(manager, id, mine),
+  });
+  await manager.client.instances.complete({ id });
+  return id;
+};
+
 describe("the stock count", () => {
   it("wins over what the store was thought to hold, and every difference has a reason", async () => {
     const { id, manager } = await countWork("2035-01-08");
@@ -119,35 +185,57 @@ describe("the stock count", () => {
     );
     expect(board.stockCount?.items[0]).not.toHaveProperty("onHand");
 
-    // Fifty kilos short, and nobody says why: refused.
+    // A count that leaves the straw out has a hole the store would read straight through: refused.
     await expect(
       manager.client.instances.completeStep({
         instanceId: id,
         stepId: "count",
         evidence: [true],
         counts: [
-          { feedItemId: world.concentrate.id, counted: 950 },
-          { feedItemId: world.grass.id, counted: 500 },
+          {
+            feedItemId: world.concentrate.id,
+            counted: 950,
+            reason: "ইঁদুরে কেটেছে",
+          },
         ],
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
-      data: { refusal: "difference_needs_reason" },
+      data: {
+        refusal: "count_incomplete",
+        feedItemIds: expect.arrayContaining([world.grass.id]),
+      },
+    });
+
+    // Fifty kilos short, and nobody says why: refused, naming it.
+    await expect(
+      manager.client.instances.completeStep({
+        instanceId: id,
+        stepId: "count",
+        evidence: [true],
+        counts: await countLines(manager, id, {
+          [world.concentrate.id]: { counted: 950 },
+          [world.grass.id]: { counted: 500 },
+        }),
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: {
+        refusal: "difference_needs_reason",
+        feedItemIds: [world.concentrate.id],
+      },
     });
 
     await manager.client.instances.completeStep({
       instanceId: id,
       stepId: "count",
       evidence: [true],
-      counts: [
-        {
-          feedItemId: world.concentrate.id,
-          counted: 950,
-          reason: "ইঁদুরে কেটেছে",
-        },
-        { feedItemId: world.grass.id, counted: 500 },
-      ],
+      counts: await countLines(manager, id, {
+        [world.concentrate.id]: { counted: 950, reason: "ইঁদুরে কেটেছে" },
+        [world.grass.id]: { counted: 500 },
+      }),
     });
+    await manager.client.instances.complete({ id });
 
     const concentrate = await lineFor(
       "2035-01-08T05:00:00.000Z",
@@ -159,13 +247,46 @@ describe("the stock count", () => {
       feedItemId: world.concentrate.id,
     });
     expect(adjustments).toMatchObject([
-      { expected: 1000, counted: 950, difference: -50, reason: "ইঁদুরে কেটেছে" },
+      {
+        expected: 1000,
+        counted: 950,
+        difference: -50,
+        reason: "ইঁদুরে কেটেছে",
+        countedByName: expect.any(String),
+      },
     ]);
     // A line that matched is no adjustment at all.
     const grassAdjustments = await manager.client.stock.adjustments({
       feedItemId: world.grass.id,
     });
     expect(grassAdjustments).toEqual([]);
+  });
+
+  it("reads its difference again when something dated before it is written up late", async () => {
+    // Fifty kilos of the farm's own maize went into the store on the 7th, and nobody wrote it down
+    // until the 9th. The count on the 8th was not fifty short, then: it was a hundred.
+    const manager = await managerAt("2035-01-09T03:00:00.000Z");
+    await manager.client.stock.receive({
+      feedItemId: world.concentrate.id,
+      kind: "harvest",
+      quantity: 50,
+      receivedOn: "2035-01-07",
+    });
+    const [adjustment] = await manager.client.stock.adjustments({
+      feedItemId: world.concentrate.id,
+    });
+    expect(adjustment).toMatchObject({
+      expected: 1050,
+      expectedWhenCounted: 1000,
+      counted: 950,
+      difference: -100,
+    });
+    // And the store still reads the count: what was there on the 8th was 950.
+    const concentrate = await lineFor(
+      "2035-01-09T03:30:00.000Z",
+      world.concentrate.id
+    );
+    expect(concentrate?.onHand).toBe(950);
   });
 
   it("is where the store is counted from afterwards, and a corrected count books its difference once", async () => {
@@ -188,17 +309,20 @@ describe("the stock count", () => {
     const [booked] = await manager.client.stock.adjustments({
       feedItemId: world.concentrate.id,
     });
+    const countedOn = await scratchDb().query.stepCompletion.findFirst({
+      where: { id: booked?.completionId ?? "" },
+      columns: { instanceId: true },
+    });
     await manager.client.instances.correctStep({
       completionId: booked?.completionId ?? "",
       evidence: [true],
-      counts: [
-        {
-          feedItemId: world.concentrate.id,
+      counts: await countLines(manager, countedOn?.instanceId ?? "", {
+        [world.concentrate.id]: {
           counted: 900,
           reason: "ইঁদুরে কেটেছে, আবার গোনা",
         },
-        { feedItemId: world.grass.id, counted: 500 },
-      ],
+        [world.grass.id]: { counted: 500 },
+      }),
       reason: "গোনায় ভুল ছিল",
     });
     const recounted = await lineFor(
@@ -209,12 +333,13 @@ describe("the stock count", () => {
     const adjustments = await manager.client.stock.adjustments({
       feedItemId: world.concentrate.id,
     });
-    expect(adjustments).toMatchObject([{ counted: 900, difference: -100 }]);
+    // One adjustment, against the store as it now reads for the 8th: 1050 expected, 900 counted.
+    expect(adjustments).toMatchObject([{ counted: 900, difference: -150 }]);
   });
 
   it("is the Manager's to make", async () => {
     // Unclaimed, so nothing but the count's own rule stands between the Owner and the Step.
-    const { id } = await countWork("2035-01-10", { claim: false });
+    const { id, manager } = await countWork("2035-01-10", { claim: false });
     const owner = await createTestClient(appRouter, {
       as: "owner",
       clock: new FakeClock("2035-01-10T04:30:00.000Z"),
@@ -224,7 +349,7 @@ describe("the stock count", () => {
         instanceId: id,
         stepId: "count",
         evidence: [true],
-        counts: [{ feedItemId: world.grass.id, counted: 500 }],
+        counts: await countLines(manager, id, {}),
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
@@ -234,13 +359,31 @@ describe("the stock count", () => {
 });
 
 describe("running low", () => {
-  it("puts a Feed Item below its threshold in front of the Manager and the Owner, until more comes in", async () => {
+  it("puts a Feed Item below its level in front of the Manager and the Owner, and tells the Manager each time it runs low", async () => {
     const manager = await managerAt("2035-01-11T04:00:00.000Z");
     // Concentrate at 1000 kg, and the farm wants to hear below 1200.
     await manager.client.feed.setLowStock({
       feedItemId: world.concentrate.id,
       threshold: 1200,
     });
+    // Swept on a clock earlier than anything else on this shared farm: the sweep also tells everybody
+    // about every piece of work late by then, and a sweep dated 2035 would fill the Manager's inbox with
+    // the rest of the suite's work.
+    const early = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2020-01-01T00:00:00.000Z"),
+    });
+    const toldAbout = async () => {
+      const told = await scratchDb().query.alert.findMany({
+        where: { kind: "low_stock", userId: "test-manager" },
+        columns: { params: true },
+      });
+      return told.filter(
+        (one) =>
+          (one.params as { feedItemId?: string }).feedItemId ===
+          world.concentrate.id
+      ).length;
+    };
     try {
       const home = await manager.client.home.manager();
       expect(home.queue.lowStock).toEqual(
@@ -261,52 +404,45 @@ describe("running low", () => {
         ownersHome.needsYou.lowStock.map((line) => line.feedItemId)
       ).toContain(world.concentrate.id);
 
-      // The Manager is told, in the digest and not by a buzz. Swept on a clock earlier than anything
-      // else on this shared farm: the sweep also tells everybody about every piece of work late by
-      // then, and a sweep dated 2035 would fill the Manager's inbox with the rest of the suite's work.
-      const early = await createTestClient(appRouter, {
-        as: "manager",
-        clock: new FakeClock("2020-01-01T00:00:00.000Z"),
+      // The Manager is told, in the digest and not by a buzz — and a second sweep tells nobody twice.
+      await early.client.alerts.sweep();
+      expect(await toldAbout()).toBe(1);
+      await early.client.alerts.sweep();
+      expect(await toldAbout()).toBe(1);
+
+      // A count finds more than was thought and lifts it above the level; a later count finds it back
+      // below. No lorry came in between, and it has run low again: a new thing to tell.
+      await countOn("2035-01-12", {
+        [world.concentrate.id]: { counted: 1300, reason: "আগের গোনা ভুল" },
+      });
+      await countOn("2035-01-13", {
+        [world.concentrate.id]: { counted: 900, reason: "বেশি খাওয়ানো হয়েছে" },
       });
       await early.client.alerts.sweep();
-      const told = await scratchDb().query.alert.findMany({
-        where: { kind: "low_stock", userId: "test-manager" },
-        columns: { entityId: true, params: true },
-      });
-      expect(
-        told.filter((one) => one.entityId.startsWith(world.concentrate.id))
-      ).toHaveLength(1);
-      // A second sweep tells nobody twice.
-      await early.client.alerts.sweep();
-      const again = await scratchDb().query.alert.findMany({
-        where: { kind: "low_stock", userId: "test-manager" },
-        columns: { entityId: true },
-      });
-      expect(
-        again.filter((one) => one.entityId.startsWith(world.concentrate.id))
-      ).toHaveLength(1);
-      // The Manager's inbox is every test file's: what this test raised in it goes at once, rather
-      // than sitting at the top of a list another file is reading.
+      expect(await toldAbout()).toBe(2);
+      // The Manager's inbox is every test file's: what this test raised in it goes at once, rather than
+      // sitting at the top of a list another file is reading.
       await scratchDb()
         .delete(alert)
         .where(like(alert.entityId, `${world.concentrate.id}%`));
 
-      // A lorry comes: above the threshold, off the queue.
-      await manager.client.stock.receive({
+      // A lorry comes: above the level, off the queue.
+      const restocking = await managerAt("2035-01-14T04:00:00.000Z");
+      await restocking.client.stock.receive({
         feedItemId: world.concentrate.id,
         kind: "purchase",
         quantity: 500,
         priceBdt: 20_000,
         seller: { name: `রহমান ফিডস ${suffix}` },
-        receivedOn: "2035-01-11",
+        receivedOn: "2035-01-14",
       });
-      const restocked = await manager.client.home.manager();
+      const restocked = await restocking.client.home.manager();
       expect(
         restocked.queue.lowStock.map((line) => line.feedItemId)
       ).not.toContain(world.concentrate.id);
     } finally {
-      // Every test file shares this farm and its Manager's digest: the threshold goes, and so do any
-      // notices another file's sweep raised about it meanwhile.
+      // Every test file shares this farm and its Manager's digest: the level goes, and so do any notices
+      // another file's sweep raised about it meanwhile.
       await manager.client.feed.setLowStock({
         feedItemId: world.concentrate.id,
         threshold: null,

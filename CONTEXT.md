@@ -180,7 +180,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Stock on Hand**: Current quantity of a Feed Item: Feed Purchases and Harvests in, minus Feeding, corrected by the latest Stock Count. Worked out, never typed, and shown below nothing when the pens were fed from feed nobody wrote down arriving. _Avoid_: Inventory (the whole area), balance
 
-**Stock Count**: The weekly physical count of each Feed Item. Differences are booked as adjustments with a reason. _Avoid_: Stocktake, audit
+**Stock Count**: The weekly physical count of each Feed Item — every one the Farm keeps, counted without seeing what the store is thought to hold. The count wins: Stock on Hand reads from it afterwards. Each difference is an adjustment with a reason, read against the store as it now stands, so something written up late but dated before the count shows in it rather than as a loss. _Avoid_: Stocktake, audit
+
+**Running Low**: A Feed Item holding less than the level the Manager set for it. It waits on the Manager's queue and the Owner's exception list, and is told once in the Manager's Digest each time it falls below the level — never as a push. _Avoid_: Shortage, out of stock (that is nothing left), reorder point
 
 ## Money
 

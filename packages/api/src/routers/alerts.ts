@@ -22,7 +22,7 @@ import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 import { textTheSafetyAlerts } from "../sms-send";
 import {
-  anyLowStockUntold,
+  lowStockToTell,
   raiseLowStockAlerts,
   runningLow,
 } from "../stock-store";
@@ -69,15 +69,15 @@ const tellAboutWithdrawals = async (context: Sweeping, now: Date) => {
 };
 
 /**
- * A third half of the sweep: Feed Items running low. Keyed on the Feed Item, because the store, not
- * any work, is what the notice is about.
+ * The other part of the sweep with nothing to do with late work: Feed Items running low. Keyed on the
+ * first Feed Item it tells about, with the rest named in the event, because the store — not any work —
+ * is what the notice is about.
  */
 const tellAboutLowStock = async (context: Sweeping, now: Date) => {
   const low = await runningLow(context.db, context.farm.id);
-  const [lowest] = low;
-  if (
-    !(lowest && (await anyLowStockUntold(context.db, context.farm.id, low)))
-  ) {
+  const toTell = await lowStockToTell(context.db, context.farm.id, low);
+  const [lowest] = toTell.untold;
+  if (!lowest) {
     return;
   }
   await audited(context).write(
@@ -86,9 +86,11 @@ const tellAboutLowStock = async (context: Sweeping, now: Date) => {
       entityId: lowest.feedItemId,
       action: "update",
       after: () =>
-        Promise.resolve({ runningLow: low.map((line) => line.feedItemId) }),
+        Promise.resolve({
+          toldRunningLow: toTell.untold.map((line) => line.feedItemId),
+        }),
     },
-    (tx) => raiseLowStockAlerts(tx, context.farm.id, low, now)
+    (tx) => raiseLowStockAlerts(tx, context.farm.id, toTell, now)
   );
 };
 
@@ -102,9 +104,9 @@ export const alertsRouter = {
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
       const now = context.clock.now();
-      // Two halves that have nothing to do with each other: work that went late, and cows
-      // coming off a Withdrawal. Told about first, because late work having nothing to say is
-      // the steady state and must not silence the other half.
+      // Three things that have nothing to do with each other: work that went late, cows coming off a
+      // Withdrawal, and feed running low. The other two are told about first, because late work
+      // having nothing to say is the steady state and must not silence them.
       await tellAboutWithdrawals(context, now);
       await tellAboutLowStock(context, now);
       const pending = await findPendingNotices(context.db, context.farm, now);

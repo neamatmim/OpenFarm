@@ -624,8 +624,6 @@ const ClosingAction = ({
   );
 };
 
-/** What this Pen is owed, and what actually went out. Prefilled from the Ration, because a
- *  normal day is confirming figures and a sick pen is the one where somebody changes them. */
 /**
  * What a Step that counts the store is being told: the box for each Feed Item and why it differs,
  * starting from what was counted before for a Correction and blank for a new count; whether every item
@@ -734,6 +732,8 @@ const StockCountFields = ({
   );
 };
 
+/** What this Pen is owed, and what actually went out. Prefilled from the Ration, because a
+ *  normal day is confirming figures and a sick pen is the one where somebody changes them. */
 const FeedingFields = ({
   rows,
   cannotFeed,

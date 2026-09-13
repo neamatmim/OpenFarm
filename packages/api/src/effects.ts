@@ -64,7 +64,7 @@ import {
 } from "./milk-store";
 import { raiseNeedsReview } from "./review-store";
 import { forbidden } from "./roles";
-import type { StockCountLine } from "./stock-store";
+import type { StockAdjustment, StockCountLine } from "./stock-store";
 import { recordStockCount } from "./stock-store";
 
 /**
@@ -139,7 +139,7 @@ export type EffectResult =
   | {
       kind: "stock_count";
       /** The Feed Items whose count differed from what the store was thought to hold. */
-      adjustments: { feedItemId: string; difference: number }[];
+      adjustments: StockAdjustment[];
     }
   | {
       kind: "dry_off";
@@ -1346,7 +1346,8 @@ const applyStockCountEffect = async (
   const adjustments = await recordStockCount(tx, {
     farmId: input.instance.farmId,
     completionId: input.completionId,
-    counts: input.skipped ? [] : input.counts,
+    counts: input.counts,
+    skipped: input.skipped,
     countedAt: input.recordedAt,
     countedBy: input.recordedBy,
     now: input.now,

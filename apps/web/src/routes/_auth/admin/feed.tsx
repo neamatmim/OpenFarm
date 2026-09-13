@@ -478,10 +478,7 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
             ) : null}
             <span
               className={
-                line.onHand < 0 ||
-                (line.lowStockAt !== null && line.onHand < line.lowStockAt)
-                  ? "text-destructive"
-                  : ""
+                line.onHand < 0 || line.runningLow ? "text-destructive" : ""
               }
             >
               {formatNumber(line.onHand, language)} {line.unit}
@@ -502,16 +499,13 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
           <ul className="space-y-1 text-sm">
             {adjustments.data.map((one) => (
               <li key={one.id}>
-                {formatDate(one.countedAt, language)} ·{" "}
-                {(stock.data ?? []).find(
-                  (line) => line.feedItemId === one.feedItemId
-                )?.nameBn ?? ""}{" "}
-                ·{" "}
+                {formatDate(one.countedAt, language)} · {one.nameBn} ·{" "}
                 {t("stock.adjustment", {
                   expected: formatNumber(one.expected, language),
                   counted: formatNumber(one.counted, language),
                 })}{" "}
                 · {one.reason}
+                {one.countedByName ? ` · ${one.countedByName}` : ""}
               </li>
             ))}
           </ul>
@@ -555,8 +549,12 @@ const LowStockAt = ({
   );
   const save = useMutation(
     orpc.feed.setLowStock.mutationOptions({
+      // The level decides what is on the home queues as well as this screen.
       onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
+        Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
+          queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
+        ]),
       onError: (error) => toast.error(error.message || t("common.error")),
     })
   );
@@ -574,7 +572,8 @@ const LowStockAt = ({
       <Input
         aria-label={t("stock.lowAt")}
         className="h-8 w-20"
-        min={0}
+        min={0.1}
+        step="0.1"
         onChange={(event) => setValue(event.target.value)}
         placeholder={t("stock.lowAt")}
         type="number"

@@ -12,7 +12,7 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
-import { stockOnHand } from "../stock-store";
+import { adjustmentsOf, stockOnHand } from "../stock-store";
 
 const sellerInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -114,37 +114,15 @@ export const stockRouter = {
     }),
 
   /**
-   * The differences the Stock Counts booked, newest first: what the store was thought to hold, what was
-   * counted, and why. A count that agreed is no adjustment, and is not listed.
+   * The differences the Stock Counts booked, newest first, as they read now — so a late entry dated
+   * before a count shows in it — with who counted and why. A count that agreed is not listed.
    */
   adjustments: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ feedItemId: z.string().optional() }).default({}))
-    .handler(async ({ context, input }) => {
-      const rows = await context.db.query.stockCount.findMany({
-        where: {
-          farmId: context.farm.id,
-          reason: { isNotNull: true },
-          ...(input.feedItemId ? { feedItemId: input.feedItemId } : {}),
-        },
-        orderBy: { countedAt: "desc", id: "desc" },
-        limit: 200,
-      });
-      return rows.map((row) => {
-        const expected = Number(row.expected);
-        const counted = Number(row.counted);
-        return {
-          id: row.id,
-          feedItemId: row.feedItemId,
-          completionId: row.completionId,
-          countedAt: row.countedAt,
-          expected,
-          counted,
-          difference: Math.round((counted - expected) * 10) / 10,
-          reason: row.reason,
-        };
-      });
-    }),
+    .handler(({ context, input }) =>
+      adjustmentsOf(context.db, context.farm.id, input.feedItemId)
+    ),
 
   /**
    * Feed coming into the store: a Purchase — how much, what the lot cost, and who sold it — or a
