@@ -1019,6 +1019,12 @@ export const bn: Record<MessageKey, string> = {
   "intake.targetWeightNote": "খালি রাখলে খামারের নির্ধারিত লক্ষ্য ওজন ধরা হবে।",
   "intake.photoLater": "ছবিটি যায়নি — পশুর পাতা থেকে আবার তুলুন।",
   "intake.record": "তোলা হলো",
+  "intake.subtitle":
+    "কেনা পশু খামারে এল: কোথায় রাখা হবে, কে বিক্রি করল, দাম কত, আর যাওয়ার সময় ওজন কত হওয়া উচিত।",
+  "intake.groupAnimal": "পশু",
+  "intake.groupSeller": "বিক্রেতা",
+  "intake.groupPrice": "দাম, ওজন ও বয়স",
+  "intake.groupTarget": "লক্ষ্য",
   "intake.recorded": "{tag} খামারে তোলা হয়েছে",
   "nav.fattening": "মোটাতাজাকরণ",
   "gain.title": "ওজন বৃদ্ধি ও প্রক্ষেপণ",

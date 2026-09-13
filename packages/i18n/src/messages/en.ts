@@ -1054,6 +1054,12 @@ export const en = {
   "intake.photoLater":
     "The photo did not go up — take it again from the animal's page.",
   "intake.record": "Take it in",
+  "intake.subtitle":
+    "A bought animal comes in: where it goes, who sold it, what it cost, and what it should weigh when it leaves.",
+  "intake.groupAnimal": "The animal",
+  "intake.groupSeller": "The seller",
+  "intake.groupPrice": "Price, weight and age",
+  "intake.groupTarget": "Target",
   "intake.recorded": "{tag} is on the farm",
   "nav.fattening": "Fattening",
   "gain.title": "Gain and projection",

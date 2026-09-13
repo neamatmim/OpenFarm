@@ -122,7 +122,7 @@ const OwnerHome = () => {
         title={t("owner.title")}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Section id="needs-you" title={t("owner.needsYou")}>
           {waiting === 0 ? (
             <EmptyState

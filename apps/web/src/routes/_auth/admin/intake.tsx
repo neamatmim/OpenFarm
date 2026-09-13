@@ -7,7 +7,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Page, PageHeader } from "@/components/page";
+import { Page, PageHeader, Section, StickyAction } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -97,10 +97,10 @@ const IntakePage = () => {
 
   return (
     <Page width="narrow" className="max-w-3xl">
-      <PageHeader title={t("nav.intake")} />
+      <PageHeader description={t("intake.subtitle")} title={t("nav.intake")} />
 
       <form
-        className="space-y-4"
+        className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           record.mutate({
@@ -122,184 +122,199 @@ const IntakePage = () => {
           });
         }}
       >
-        <div className="space-y-1">
-          <Label htmlFor="intake-pen">{t("intake.pen")}</Label>
-          <select
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            id="intake-pen"
-            onChange={(e) => edit({ penId: e.target.value })}
-            required
-            value={fields.penId}
-          >
-            <option value="">—</option>
-            {pens.map((pen) => (
-              <option key={pen.id} value={pen.id}>
-                {pen.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
+        <Section title={t("intake.groupAnimal")}>
           <div className="space-y-1">
-            <Label htmlFor="intake-sex">{t("animals.sex")}</Label>
+            <Label htmlFor="intake-pen">{t("intake.pen")}</Label>
             <select
               className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-              id="intake-sex"
-              onChange={(e) => edit({ sex: e.target.value })}
-              value={fields.sex}
+              id="intake-pen"
+              onChange={(e) => edit({ penId: e.target.value })}
+              required
+              value={fields.penId}
             >
-              <option value="male">{t("animals.sex.male")}</option>
-              <option value="female">{t("animals.sex.female")}</option>
+              <option value="">—</option>
+              {pens.map((pen) => (
+                <option key={pen.id} value={pen.id}>
+                  {pen.name}
+                </option>
+              ))}
             </select>
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="intake-sex">{t("animals.sex")}</Label>
+              <select
+                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+                id="intake-sex"
+                onChange={(e) => edit({ sex: e.target.value })}
+                value={fields.sex}
+              >
+                <option value="male">{t("animals.sex.male")}</option>
+                <option value="female">{t("animals.sex.female")}</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="intake-breed">{t("animals.breed")}</Label>
+              <Input
+                id="intake-breed"
+                maxLength={60}
+                onChange={(e) => edit({ breed: e.target.value })}
+                value={fields.breed}
+              />
+            </div>
+          </div>
+
           <div className="space-y-1">
-            <Label htmlFor="intake-breed">{t("animals.breed")}</Label>
-            <Input
-              id="intake-breed"
-              maxLength={60}
-              onChange={(e) => edit({ breed: e.target.value })}
-              value={fields.breed}
+            <Label htmlFor="intake-photo">{t("animals.photoTake")}</Label>
+            <input
+              accept="image/*"
+              capture="environment"
+              className="file:bg-secondary file:text-secondary-foreground text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-2 file:font-medium"
+              id="intake-photo"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (file && file.size > PHOTO_MAX_BYTES) {
+                  toast.error(t("common.error"));
+                  return;
+                }
+                setPhoto(file);
+              }}
+              type="file"
             />
           </div>
-        </div>
+        </Section>
 
-        <div className="space-y-1">
-          <Label htmlFor="intake-seller">{t("intake.sellerName")}</Label>
-          <Input
-            id="intake-seller"
-            maxLength={120}
-            onChange={(e) => edit({ sellerName: e.target.value })}
-            required
-            value={fields.sellerName}
+        <Section title={t("intake.groupSeller")}>
+          <div className="space-y-1">
+            <Label htmlFor="intake-seller">{t("intake.sellerName")}</Label>
+            <Input
+              id="intake-seller"
+              maxLength={120}
+              onChange={(e) => edit({ sellerName: e.target.value })}
+              required
+              value={fields.sellerName}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="intake-place">{t("intake.sellerPlace")}</Label>
+              <Input
+                id="intake-place"
+                maxLength={200}
+                onChange={(e) => edit({ sellerPlace: e.target.value })}
+                value={fields.sellerPlace}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="intake-phone">{t("intake.sellerPhone")}</Label>
+              <Input
+                id="intake-phone"
+                inputMode="tel"
+                maxLength={20}
+                onChange={(e) => edit({ sellerPhone: e.target.value })}
+                value={fields.sellerPhone}
+              />
+            </div>
+          </div>
+        </Section>
+
+        <Section title={t("intake.groupPrice")}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="intake-price">{t("intake.price")}</Label>
+              <Input
+                id="intake-price"
+                inputMode="numeric"
+                onChange={(e) => edit({ purchasePriceBdt: e.target.value })}
+                required
+                type="number"
+                value={fields.purchasePriceBdt}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="intake-weight">{t("intake.weight")}</Label>
+              <Input
+                id="intake-weight"
+                inputMode="decimal"
+                onChange={(e) => edit({ weightKg: e.target.value })}
+                required
+                step="0.1"
+                type="number"
+                value={fields.weightKg}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="intake-age">{t("intake.age")}</Label>
+              <Input
+                id="intake-age"
+                inputMode="numeric"
+                onChange={(e) => edit({ estimatedAgeMonths: e.target.value })}
+                required
+                type="number"
+                value={fields.estimatedAgeMonths}
+              />
+            </div>
+          </div>
+
+          <PaymentMethodField
+            id="intake-paid-by"
+            onChange={(paymentMethod) => edit({ paymentMethod })}
+            value={fields.paymentMethod}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="intake-place">{t("intake.sellerPlace")}</Label>
-            <Input
-              id="intake-place"
-              maxLength={200}
-              onChange={(e) => edit({ sellerPlace: e.target.value })}
-              value={fields.sellerPlace}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="intake-phone">{t("intake.sellerPhone")}</Label>
-            <Input
-              id="intake-phone"
-              inputMode="tel"
-              maxLength={20}
-              onChange={(e) => edit({ sellerPhone: e.target.value })}
-              value={fields.sellerPhone}
-            />
-          </div>
-        </div>
+        </Section>
 
-        <div className="grid grid-cols-3 gap-2">
+        <Section title={t("intake.groupTarget")}>
           <div className="space-y-1">
-            <Label htmlFor="intake-price">{t("intake.price")}</Label>
+            <Label htmlFor="intake-target">{t("intake.targetWeight")}</Label>
             <Input
-              id="intake-price"
-              inputMode="numeric"
-              onChange={(e) => edit({ purchasePriceBdt: e.target.value })}
-              required
-              type="number"
-              value={fields.purchasePriceBdt}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="intake-weight">{t("intake.weight")}</Label>
-            <Input
-              id="intake-weight"
+              id="intake-target"
               inputMode="decimal"
-              onChange={(e) => edit({ weightKg: e.target.value })}
-              required
+              onChange={(e) => edit({ targetWeightKg: e.target.value })}
               step="0.1"
               type="number"
-              value={fields.weightKg}
+              value={fields.targetWeightKg}
             />
+            <p className="text-muted-foreground text-sm">
+              {t("intake.targetWeightNote")}
+            </p>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="intake-age">{t("intake.age")}</Label>
-            <Input
-              id="intake-age"
-              inputMode="numeric"
-              onChange={(e) => edit({ estimatedAgeMonths: e.target.value })}
-              required
-              type="number"
-              value={fields.estimatedAgeMonths}
-            />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="intake-from">{t("intake.windowStart")}</Label>
+              <Input
+                id="intake-from"
+                onChange={(e) => edit({ targetWindowStart: e.target.value })}
+                type="date"
+                value={fields.targetWindowStart}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="intake-to">{t("intake.windowEnd")}</Label>
+              <Input
+                id="intake-to"
+                onChange={(e) => edit({ targetWindowEnd: e.target.value })}
+                type="date"
+                value={fields.targetWindowEnd}
+              />
+            </div>
           </div>
-        </div>
-
-        <PaymentMethodField
-          id="intake-paid-by"
-          onChange={(paymentMethod) => edit({ paymentMethod })}
-          value={fields.paymentMethod}
-        />
-
-        <div className="space-y-1">
-          <Label htmlFor="intake-photo">{t("animals.photoTake")}</Label>
-          <input
-            accept="image/*"
-            capture="environment"
-            className="text-sm"
-            id="intake-photo"
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              if (file && file.size > PHOTO_MAX_BYTES) {
-                toast.error(t("common.error"));
-                return;
-              }
-              setPhoto(file);
-            }}
-            type="file"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="intake-target">{t("intake.targetWeight")}</Label>
-          <Input
-            id="intake-target"
-            inputMode="decimal"
-            onChange={(e) => edit({ targetWeightKg: e.target.value })}
-            step="0.1"
-            type="number"
-            value={fields.targetWeightKg}
-          />
-          <p className="text-muted-foreground text-xs">
-            {t("intake.targetWeightNote")}
+          <p className="text-muted-foreground text-sm">
+            {t("intake.windowNote")}
           </p>
-        </div>
+        </Section>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="intake-from">{t("intake.windowStart")}</Label>
-            <Input
-              id="intake-from"
-              onChange={(e) => edit({ targetWindowStart: e.target.value })}
-              type="date"
-              value={fields.targetWindowStart}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="intake-to">{t("intake.windowEnd")}</Label>
-            <Input
-              id="intake-to"
-              onChange={(e) => edit({ targetWindowEnd: e.target.value })}
-              type="date"
-              value={fields.targetWindowEnd}
-            />
-          </div>
-        </div>
-        <p className="text-muted-foreground text-xs">
-          {t("intake.windowNote")}
-        </p>
-
-        <Button disabled={record.isPending} type="submit">
-          {t("intake.record")}
-        </Button>
+        <StickyAction>
+          <Button
+            className="w-full sm:w-auto"
+            disabled={record.isPending}
+            size="lg"
+            type="submit"
+          >
+            {t("intake.record")}
+          </Button>
+        </StickyAction>
       </form>
     </Page>
   );

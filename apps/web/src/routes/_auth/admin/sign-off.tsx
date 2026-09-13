@@ -1,13 +1,21 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ClipboardCheck, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { NeedsReview } from "@/components/needs-review";
+import {
+  EmptyState,
+  Page,
+  PageHeader,
+  Section,
+  StatusBadge,
+} from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { hoursLate } from "@/lib/lateness";
 import { placeOfWork } from "@/lib/work-place";
@@ -57,21 +65,19 @@ const SignOffPage = () => {
     setReasonFor((current) => ({ ...current, [id]: value }));
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
-      <section className="space-y-3">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {t("signOff.title")}
-        </h1>
+    <Page className="max-w-3xl" width="narrow">
+      <PageHeader title={t("signOff.title")} />
+      <Section>
         {queue.data?.length ? (
           <ul className="space-y-3">
             {queue.data.map((row) => (
-              <li className="surface p-4" key={row.id}>
+              <li className="rounded-lg border p-4" key={row.id}>
                 <Link
                   className="block"
                   params={{ instanceId: row.id }}
                   to="/work/$instanceId"
                 >
-                  <p className="text-lg font-bold">
+                  <p className="text-lg font-semibold hover:underline">
                     {titleOf(row, language === "bn")}
                   </p>
                   <p className="text-muted-foreground text-sm">
@@ -108,31 +114,46 @@ const SignOffPage = () => {
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">{t("signOff.none")}</p>
+          <EmptyState icon={ClipboardCheck} title={t("signOff.none")} />
         )}
-      </section>
+      </Section>
 
       <NeedsReview />
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">{t("work.overdueTitle")}</h2>
+      <Section
+        action={
+          late.data?.length ? (
+            <StatusBadge icon={Clock} tone="warning">
+              {formatNumber(late.data.length, language)}
+            </StatusBadge>
+          ) : null
+        }
+        title={t("work.overdueTitle")}
+      >
         {late.data?.length ? (
           <ul className="space-y-3">
             {late.data.map((row) => (
-              <li className="bg-warning-surface rounded-2xl p-4" key={row.id}>
+              <li
+                className="border-warning/40 rounded-lg border p-4"
+                key={row.id}
+              >
                 <Link
                   className="block"
                   params={{ instanceId: row.id }}
                   to="/work/$instanceId"
                 >
-                  <p className="text-lg font-bold">
-                    {titleOf(row, language === "bn")}
-                  </p>
-                  <p className="text-warning text-sm">
-                    {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
-                    {t("work.lateFor", {
-                      hours: hoursLate(row.minutesOverdue),
-                    })}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-lg font-semibold hover:underline">
+                      {titleOf(row, language === "bn")}
+                    </p>
+                    <StatusBadge icon={Clock} tone="warning">
+                      {t("work.lateFor", {
+                        hours: hoursLate(row.minutesOverdue),
+                      })}
+                    </StatusBadge>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {placeOfWork(row.pen, t("work.wholeFarm"))}
                   </p>
                 </Link>
                 <div className="mt-3 space-y-2">
@@ -143,7 +164,7 @@ const SignOffPage = () => {
                     value={reason(row.id)}
                   />
                   <Button
-                    className="w-full"
+                    className="w-full sm:w-auto"
                     disabled={!reason(row.id).trim()}
                     onClick={() =>
                       closeAsMissed.mutate({
@@ -160,12 +181,10 @@ const SignOffPage = () => {
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">
-            {t("work.overdueNone")}
-          </p>
+          <EmptyState title={t("work.overdueNone")} />
         )}
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 };
 

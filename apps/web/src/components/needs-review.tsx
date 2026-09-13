@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -44,14 +45,13 @@ export const NeedsReview = () => {
   const note = (id: string) => notes[id] ?? "";
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold">{t("review.title")}</h2>
+    <Section title={t("review.title")}>
       {queue.data?.length ? (
         <ul className="space-y-3">
           {queue.data.map((row) => {
             const key = messageFor(row.reason);
             return (
-              <li className="surface p-4" key={row.id}>
+              <li className="rounded-lg border p-4" key={row.id}>
                 <p className="font-bold">{key ? t(key) : row.reason}</p>
                 <p className="text-muted-foreground text-sm">
                   {formatDate(new Date(row.raisedAt), language, "dateTime")}
@@ -88,8 +88,8 @@ export const NeedsReview = () => {
           })}
         </ul>
       ) : (
-        <p className="text-muted-foreground text-sm">{t("review.none")}</p>
+        <EmptyState title={t("review.none")} />
       )}
-    </section>
+    </Section>
   );
 };
