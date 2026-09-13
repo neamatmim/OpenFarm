@@ -17,7 +17,12 @@ describe("language", () => {
 
     await client.language.set({ language: "en" });
 
-    expect(await client.language.get()).toEqual({ language: "en" });
+    try {
+      expect(await client.language.get()).toEqual({ language: "en" });
+    } finally {
+      // The Manager is every file's Manager: papers and notices elsewhere are asserted in Bangla.
+      await client.language.set({ language: "bn" });
+    }
   });
 
   it("refuses a language the app does not speak", async () => {
