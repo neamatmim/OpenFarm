@@ -83,6 +83,10 @@ export const farm = pgTable("farm", {
    *  to the calving pen. Every cow the same, so nobody counts days. */
   dryOffLeadDays: integer("dry_off_lead_days").notNull().default(60),
   calvingPrepLeadDays: integer("calving_prep_lead_days").notNull().default(7),
+  /** How many attempts that did not take make a cow a Repeat Breeder somebody has to decide about. */
+  repeatBreederThreshold: integer("repeat_breeder_threshold")
+    .notNull()
+    .default(3),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

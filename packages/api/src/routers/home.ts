@@ -9,6 +9,7 @@ import {
   underMilkWithdrawal,
 } from "@OpenFarm/domain";
 
+import { repeatBreedersOn } from "../breeding-store";
 import { protectedProcedure } from "../index";
 import {
   alertParams,
@@ -58,49 +59,64 @@ export const homeRouter = {
       const now = context.clock.now();
       const farmId = context.farm.id;
 
-      const [late, awaitingSignOff, review, completions, animals, herd, today] =
-        await Promise.all([
-          findLate(
-            context.db,
+      const [
+        late,
+        awaitingSignOff,
+        review,
+        completions,
+        animals,
+        herd,
+        today,
+        repeatBreeders,
+      ] = await Promise.all([
+        findLate(
+          context.db,
+          farmId,
+          now,
+          new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
+        ),
+        context.db.query.sopInstance.findMany({
+          where: {
             farmId,
-            now,
-            new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
-          ),
-          context.db.query.sopInstance.findMany({
-            where: {
-              farmId,
-              state: AWAITING_SIGN_OFF,
-              checkerRole: { in: context.roles },
+            state: AWAITING_SIGN_OFF,
+            checkerRole: { in: context.roles },
+          },
+          with: {
+            version: { columns: { content: true } },
+            pen: {
+              columns: { name: true },
+              with: { shed: { columns: { name: true } } },
             },
-            with: {
-              version: { columns: { content: true } },
-              pen: {
-                columns: { name: true },
-                with: { shed: { columns: { name: true } } },
-              },
-            },
-            orderBy: { completedAt: "asc" },
-            limit: QUEUE_LIMIT,
-          }),
-          openReviews(context.db, farmId, QUEUE_LIMIT),
-          // The work each of those entries belongs to, so the row reaches it rather than
-          // dropping somebody on a list to search.
-          context.db.query.stepCompletion.findMany({
-            where: { farmId },
-            columns: { id: true, instanceId: true },
-            orderBy: { receivedAt: "desc" },
-            limit: QUEUE_LIMIT * 4,
-          }),
-          heldByWithdrawal(context.db, farmId, now),
-          // The animals standing in each Pen, for the line that says how big the job is.
-          context.db.query.animal.findMany({
-            where: { farmId },
-            columns: { penId: true, state: true },
-          }),
-          // The day's work, asked the one way it is asked everywhere, so the Manager's
-          // screen and the milker's cannot disagree about what was raised.
-          daysWork(context.db, farmId, now),
-        ]);
+          },
+          orderBy: { completedAt: "asc" },
+          limit: QUEUE_LIMIT,
+        }),
+        openReviews(context.db, farmId, QUEUE_LIMIT),
+        // The work each of those entries belongs to, so the row reaches it rather than
+        // dropping somebody on a list to search.
+        context.db.query.stepCompletion.findMany({
+          where: { farmId },
+          columns: { id: true, instanceId: true },
+          orderBy: { receivedAt: "desc" },
+          limit: QUEUE_LIMIT * 4,
+        }),
+        heldByWithdrawal(context.db, farmId, now),
+        // The animals standing in each Pen, for the line that says how big the job is.
+        context.db.query.animal.findMany({
+          where: { farmId },
+          columns: { penId: true, state: true },
+        }),
+        // The day's work, asked the one way it is asked everywhere, so the Manager's
+        // screen and the milker's cannot disagree about what was raised.
+        daysWork(context.db, farmId, now),
+        // Cows somebody has to decide about. Listed and never pushed: a cull-or-treat decision
+        // waits for somebody sitting down with it (the Owner, 2026-09-13).
+        repeatBreedersOn(
+          context.db,
+          farmId,
+          context.farm.repeatBreederThreshold
+        ),
+      ]);
 
       const underWithdrawal = animals;
       const pens = new Map<
@@ -149,6 +165,7 @@ export const homeRouter = {
           ).length,
         },
         queue: {
+          repeatBreeders: repeatBreeders.slice(0, QUEUE_LIMIT),
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.

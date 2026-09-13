@@ -41,6 +41,7 @@ export const refusalMessage = (
  * at the animal and the server's English is not for them.
  */
 const WORDED_REFUSALS = {
+  abortion_of_a_cow_not_carrying: "refusal.abortionOfACowNotCarrying",
   calved_in_the_future: "refusal.calvedInTheFuture",
   calving_is_derived: "refusal.calvingIsDerived",
 

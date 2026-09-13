@@ -160,9 +160,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Calving**: The recorded birth event: when, how it went (unassisted, assisted, with the vet), and each calf's sex and whether it was born alive. Recorded by Barn Staff as a Step, or by the Manager. Starts the dam's next Lactation and ends her Expected Calving; every calf becomes an Animal with the next dairy Tag Number in her mother's Pen. Twins are one Calving with two calves, and a stillborn calf is created and leaves as Died in the same act. _Avoid_: Birth, parturition, delivery
 
-**Abortion**: The recorded loss of a pregnancy before Calving: date, stage, Vet note. Clears the pregnancy. _Avoid_: Miscarriage, loss
+**Abortion**: The recorded loss of a pregnancy before Calving: date, stage, Vet note. The Vet's alone. Clears the pregnancy and its Expected Calving, closes the calving work still owed, and puts a Pregnant Heifer back on heat watch. Not a failed Attempt: she took, and lost it. _Avoid_: Miscarriage, loss
 
-**Repeat Breeder**: A flag the system raises on a cow after a threshold of failed Services (default 3), counted by Attempt — two services in one heat that did not take are one failure. A prompt for a human decision, never an automatic State change. _Avoid_: Infertile, cull candidate
+**Repeat Breeder**: A flag the system raises on a cow after a threshold of failed Services (default 3), counted by Attempt — two services in one heat that did not take are one failure. Waits on the Manager's queue and buzzes nobody's phone, until somebody answers — serve her again, treat her, or cull her — and comes back if she fails again after the answer. A prompt for a human decision, never an automatic State change. _Avoid_: Infertile, cull candidate
 
 ## Feed
 

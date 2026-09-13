@@ -158,23 +158,26 @@ export const attemptOf = <
 };
 
 /**
- * How many of her attempts did not take — what a Repeat Breeder is counted from.
+ * Her attempts that did not take — what a Repeat Breeder is counted from, and what the Manager is
+ * shown when she is raised as one.
  *
  * An attempt failed when the Vet's latest word on it is negative, or when nobody found her carrying
  * from it and she was served again: a cow back in heat three weeks later has answered the question
  * before the Vet was due to ask it. One attempt is one failure however many times she was served in
  * that heat. An attempt still waiting for its check has not failed yet.
  */
-export const failedAttempts = (
+export const attemptsThatFailed = <
+  Served extends { id: string; animalId: string; servedAt: Date },
+>(
   /** One cow's services, the ones that did not take included. */
-  services: { id: string; animalId: string; servedAt: Date }[],
+  services: Served[],
   checks: {
     id: string;
     serviceId: string;
     result: PregnancyCheckResult;
     checkedAt: Date;
   }[]
-): number => {
+): Served[] => {
   const attempts = attemptsThatBegin(services);
   const latestWord = new Map<string, PregnancyCheckResult>();
   const newestFirst = checks.toSorted(
@@ -191,8 +194,47 @@ export const failedAttempts = (
     const word = latestWord.get(attempt.id);
     const servedAgain = index < attempts.length - 1;
     return word === "negative" || (word === undefined && servedAgain);
-  }).length;
+  });
 };
+
+/** How many of her attempts did not take. */
+export const failedAttempts = (
+  services: { id: string; animalId: string; servedAt: Date }[],
+  checks: Parameters<typeof attemptsThatFailed>[1]
+): number => attemptsThatFailed(services, checks).length;
+
+/**
+ * What the person answering a Repeat Breeder decided: to serve her again, to treat her first, or to
+ * cull her. Recorded as a decision and nothing more — a cull decided here is still a Sale or a
+ * Mortality somebody records when she goes.
+ */
+export const REPEAT_BREEDER_DECISIONS = [
+  "serve_again",
+  "treat",
+  "cull",
+] as const;
+export type RepeatBreederDecision = (typeof REPEAT_BREEDER_DECISIONS)[number];
+
+/**
+ * Whether a cow should be on the Manager's queue as a Repeat Breeder: failed at least the farm's
+ * threshold of attempts, and failed again since anybody last answered for her. A cow found carrying
+ * again is not a question any more.
+ */
+export const isRepeatBreeder = ({
+  failed,
+  threshold,
+  answeredAtFailures,
+  carrying,
+}: {
+  failed: number;
+  threshold: number;
+  /** How many failures she had when somebody last answered, or null if nobody has. */
+  answeredAtFailures: number | null;
+  carrying: boolean;
+}): boolean =>
+  !carrying &&
+  failed >= threshold &&
+  (answeredAtFailures === null || failed > answeredAtFailures);
 
 const DAY_MS = 24 * HOUR_MS;
 

@@ -45,6 +45,13 @@ export const relations = defineRelations(schema, (r) => ({
     weighIns: r.many.weighIn({ from: r.animal.id, to: r.weighIn.animalId }),
     /** Every time she has been served, the ones that did not take included. */
     services: r.many.service({ from: r.animal.id, to: r.service.animalId }),
+    /** Every pregnancy she lost before calving. */
+    abortions: r.many.abortion({ from: r.animal.id, to: r.abortion.animalId }),
+    /** Every answer somebody gave when she was raised as a Repeat Breeder. */
+    repeatBreederAnswers: r.many.repeatBreederAnswer({
+      from: r.animal.id,
+      to: r.repeatBreederAnswer.animalId,
+    }),
     /** Every time she has calved. */
     calvings: r.many.calving({ from: r.animal.id, to: r.calving.damId }),
     /** Her mother, for a calf born on this farm. */

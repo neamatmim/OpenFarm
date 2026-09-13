@@ -1,3 +1,4 @@
+import type { Database } from "@OpenFarm/db";
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
@@ -5,6 +6,8 @@ import type { CalvingLead } from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
   attemptOf,
+  attemptsThatFailed,
+  isRepeatBreeder,
   attemptsThatBegin,
   calvingWorkDue,
   expectedCalvingFrom,
@@ -291,12 +294,19 @@ export const rederivePregnancy = async (
     undoingPositive,
   }: { times: PregnancyTimes; at: Date; now: Date; undoingPositive: boolean }
 ): Promise<CalvingWorkFollowed> => {
-  const [positive] = await tx.query.pregnancyCheck.findMany({
+  // A pregnancy the Vet recorded as lost is not one a positive check can bring back: her latest
+  // positive of a pregnancy she still carries decides.
+  const positives = await tx.query.pregnancyCheck.findMany({
     where: { animalId, result: "positive" },
     columns: { serviceId: true },
     orderBy: { checkedAt: "desc", id: "desc" },
-    limit: 1,
   });
+  const lost = await tx.query.abortion.findMany({
+    where: { animalId, serviceId: { isNotNull: true } },
+    columns: { serviceId: true },
+  });
+  const lostAttempts = new Set(lost.map((one) => one.serviceId));
+  const positive = positives.find((one) => !lostAttempts.has(one.serviceId));
   if (!(positive || undoingPositive)) {
     return nothingFollowed();
   }
@@ -348,4 +358,73 @@ export const rederivePregnancy = async (
         her.expectedCalvingAt === null && expectedCalvingAt !== null,
     }
   );
+};
+
+/**
+ * The cows the Manager has to decide about: failed the farm's threshold of attempts, and failed again
+ * since anybody last answered for her. With what she has failed at — the first service of each
+ * attempt that did not take — and what was decided last time.
+ *
+ * On the Manager's queue and on nobody's phone (the Owner, 2026-09-13): a cull-or-treat decision
+ * deserves somebody sitting down with it. Worked out afresh each time it is read, so an answered
+ * flag stays answered and one nobody has answered stays until somebody does.
+ */
+export const repeatBreedersOn = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  threshold: number
+) => {
+  const served = await db.query.animal.findMany({
+    where: {
+      farmId,
+      sex: "female",
+      side: "dairy",
+      state: { in: ["heifer", "pregnant_heifer", "milking", "dry"] },
+    },
+    columns: { id: true, tagNumber: true, expectedCalvingAt: true },
+    with: {
+      services: {
+        columns: { id: true, animalId: true, servedAt: true },
+        orderBy: { servedAt: "asc", id: "asc" },
+      },
+      pregnancyChecks: {
+        columns: { id: true, serviceId: true, result: true, checkedAt: true },
+      },
+      repeatBreederAnswers: {
+        columns: {
+          decision: true,
+          note: true,
+          failedAttempts: true,
+          answeredAt: true,
+        },
+        orderBy: { answeredAt: "desc", id: "desc" },
+        limit: 1,
+      },
+    },
+    orderBy: { tagNumber: "asc" },
+  });
+  return served.flatMap((her) => {
+    const failures = attemptsThatFailed(her.services, her.pregnancyChecks);
+    const [lastAnswer] = her.repeatBreederAnswers;
+    const flagged = isRepeatBreeder({
+      failed: failures.length,
+      threshold,
+      answeredAtFailures: lastAnswer?.failedAttempts ?? null,
+      carrying: her.expectedCalvingAt !== null,
+    });
+    return flagged
+      ? [
+          {
+            animalId: her.id,
+            tagNumber: her.tagNumber,
+            failedAttempts: failures.length,
+            failures: failures.map((one) => ({
+              serviceId: one.id,
+              servedAt: one.servedAt,
+            })),
+            lastAnswer: lastAnswer ?? null,
+          },
+        ]
+      : [];
+  });
 };
