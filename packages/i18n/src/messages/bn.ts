@@ -68,6 +68,7 @@ export const bn: Record<MessageKey, string> = {
   "setup.farmName": "খামারের নাম",
   "setup.create": "খামার তৈরি করুন",
   "setup.done": "খামার প্রস্তুত",
+  "setup.goOn": "খামারে যান",
   "common.error": "কিছু একটা ভুল হয়েছে",
   "nav.audit": "অডিট লগ",
   "audit.title": "অডিট লগ",

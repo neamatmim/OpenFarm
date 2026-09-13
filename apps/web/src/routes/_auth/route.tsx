@@ -50,11 +50,15 @@ export const Route = createFileRoute("/_auth")({
     if (!session) {
       throw redirect({ to: "/login" });
     }
-    const me: NonNullable<typeof known> =
-      known ??
-      (await context.queryClient.ensureQueryData(
-        context.orpc.people.me.queryOptions()
-      ));
+    // A remembered answer is trusted for a person with a farm — that is what keeps a milker working through a
+    // dropped signal. One that says there is no farm yet is asked again: the farm may have been set up since,
+    // and trusting it would hold the new Owner on the setup screen for ever.
+    const me: NonNullable<typeof known> = known?.farm
+      ? known
+      : await context.queryClient.fetchQuery({
+          ...context.orpc.people.me.queryOptions(),
+          staleTime: 0,
+        });
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });
     }
