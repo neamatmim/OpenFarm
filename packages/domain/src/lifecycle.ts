@@ -111,4 +111,8 @@ export type Disposal = (typeof DISPOSALS)[number];
 
 /** Why she left the herd: she died, or the farm culled her. */
 export const MORTALITY_KINDS = ["died", "culled"] as const;
+
+/** The cause a calving writes for a calf born dead: a word the farm's papers put into the reader's language,
+ *  rather than whatever words the person at the calving would have used. */
+export const STILLBIRTH = "stillbirth";
 export type MortalityKind = (typeof MORTALITY_KINDS)[number];

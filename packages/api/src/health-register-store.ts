@@ -1,9 +1,11 @@
 import type { Database } from "@OpenFarm/db";
 import type {
+  Disposal,
   DiseaseHistoryLine,
   DoseRoute,
   ExitState,
   HealthRegister,
+  MortalityKind,
   TreatmentRegisterLine,
   VaccinationRegisterLine,
 } from "@OpenFarm/domain";
@@ -25,23 +27,77 @@ const dayMoved = (day: string, { months = 0, days = 0 }) => {
 };
 
 /** How far back each register looks unless asked, the last day counted: a year of vaccinations, since FMD and
- *  anthrax come round yearly; thirty days of treatments, as an inspector asks; six months of diagnoses, as a
- *  slaughter vet asks. */
-const VACCINATION_LOOK_BACK_MONTHS = 12;
+ *  anthrax come round yearly, and of deaths and movements; thirty days of treatments, as an inspector asks; six months of
+ *  diagnoses, as a slaughter vet asks. */
+/** A year, for the registers of things that come round or add up yearly: vaccinations and deaths. */
+const YEAR_MONTHS = 12;
 const TREATMENT_LOOK_BACK_DAYS = 30;
 const DISEASE_LOOK_BACK_MONTHS = 6;
 
 /** Back by whole months lands on the same date, so the day after it is the first of the period; back by days
  *  counts today as the first of them. */
-const LOOK_BACK: Record<HealthRegister, { months: number; days: number }> = {
-  vaccination_register: { months: -VACCINATION_LOOK_BACK_MONTHS, days: 1 },
+/** Every report an inspector asks for by period: the health registers, and the movement log. */
+export type PeriodReport = HealthRegister | "movement_log";
+
+const LOOK_BACK: Record<PeriodReport, { months: number; days: number }> = {
+  vaccination_register: { months: -YEAR_MONTHS, days: 1 },
   treatment_register: { months: 0, days: 1 - TREATMENT_LOOK_BACK_DAYS },
   disease_history: { months: -DISEASE_LOOK_BACK_MONTHS, days: 1 },
+  mortality_register: { months: -YEAR_MONTHS, days: 1 },
+  movement_log: { months: -YEAR_MONTHS, days: 1 },
 };
 
 /** The first day a register covers when nobody names one, for a period ending on a given farm day. */
-export const lookBackFrom = (register: HealthRegister, to: string): string =>
+export const lookBackFrom = (register: PeriodReport, to: string): string =>
   dayMoved(to, LOOK_BACK[register]);
+
+/** One death on the mortality register, its day a farm day and its disposal null while it is awaited. */
+export interface DeathLine {
+  id: string;
+  tagNumber: string;
+  diedOn: string;
+  kind: MortalityKind;
+  cause: string;
+  disposal: Disposal | null;
+  disposalNote: string | null;
+  reportReference: string | null;
+}
+
+/**
+ * Every death and cull in a period, oldest first: the animal, the day, the cause, how the carcass went — nothing
+ * yet for a stillborn calf the Manager has still to say of — and the reference the office filed the report
+ * under, for a death attributed to a notifiable Diagnosis whose report was delivered and still stands.
+ */
+export const deathsBetween = async (
+  db: Db,
+  farmId: string,
+  { from, until }: { from: Date; until: Date }
+): Promise<DeathLine[]> => {
+  const rows = await db.query.mortality.findMany({
+    where: { farmId, happenedAt: { gte: from, lt: until } },
+    with: {
+      animal: { columns: { tagNumber: true } },
+      diagnosis: {
+        columns: {},
+        with: { report: { columns: { reference: true, withdrawnAt: true } } },
+      },
+    },
+    orderBy: { happenedAt: "asc", id: "asc" },
+  });
+  return rows.map((row) => {
+    const report = row.diagnosis?.report;
+    return {
+      id: row.id,
+      tagNumber: row.animal.tagNumber,
+      diedOn: farmDayOf(row.happenedAt),
+      kind: row.kind,
+      cause: row.cause,
+      disposal: row.disposal,
+      disposalNote: row.disposalNote,
+      reportReference: report?.withdrawnAt ? null : (report?.reference ?? null),
+    };
+  });
+};
 
 /** One vaccine dose on the vaccination register, its day a farm day. */
 export type VaccinationLine = VaccinationRegisterLine & { id: string };

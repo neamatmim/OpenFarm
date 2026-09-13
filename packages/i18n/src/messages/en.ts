@@ -523,6 +523,11 @@ export const en = {
   "inspector.vaccinatedBy": "Given by {giver}",
   "refusal.lotNumberMissing":
     "This is a vaccine: write the Campaign's Lot Number first, or this dose's own",
+  "inspector.mortalities": "Mortality register",
+  "inspector.noMortalities": "No deaths in this period",
+  "inspector.movementLog": "Movement log (CSV)",
+  "refusal.disposalAlreadyRecorded":
+    "Her disposal is already written down; put it right with a Correction",
   "inspector.treatments": "Treatment register",
   "inspector.diseases": "Disease history",
   "inspector.clear": "Milk clear {milk} · meat clear {meat}",
@@ -577,6 +582,9 @@ export const en = {
   "mortality.culled": "Culled",
   "mortality.cause": "Cause, as far as the farm knows",
   "mortality.disposal": "What was done with the carcass",
+  "mortality.stillbirth": "Stillbirth",
+  "mortality.awaitingDisposal": "Awaiting",
+  "mortality.recordDisposal": "Write the disposal",
   "mortality.buried": "Buried (six feet)",
   "mortality.burned": "Burned",
   "mortality.disposalNote": "Where, and how",

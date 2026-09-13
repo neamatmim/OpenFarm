@@ -1,17 +1,16 @@
-import type {
-  HealthRegister,
-  InspectorRegister,
-  LiveState,
-} from "@OpenFarm/domain";
+import type { InspectorRegister, LiveState } from "@OpenFarm/domain";
 import {
   INSPECTOR_REGISTERS,
   LIVE_STATES,
   REGISTERS_WITH_CSV,
   SIDES,
+  STILLBIRTH,
   diseaseHistory,
   farmDayOf,
+  farmTimeOf,
   herdSummary,
   identityView,
+  mortalityRegister,
   isLiveState,
   registrationRecord,
   registrationStanding,
@@ -28,17 +27,22 @@ import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { assertRegistered, recordExport } from "../export-store";
 import type {
+  DeathLine,
   DiagnosisLine,
+  PeriodReport,
   TreatmentLine,
   VaccinationLine,
 } from "../health-register-store";
 import {
+  deathsBetween,
   diagnosesBetween,
   lookBackFrom,
   treatmentsBetween,
   vaccinationsBetween,
 } from "../health-register-store";
 import { protectedProcedure } from "../index";
+import type { MovementLine } from "../movement-log-store";
+import { movementsBetween } from "../movement-log-store";
 import { periodInput, periodOf } from "../period";
 import { languageOf } from "../reader-language";
 import { certificatesOf } from "../registration-store";
@@ -155,7 +159,7 @@ type AskedPeriod = z.infer<typeof askedPeriodInput>;
 /** The period a health register covers: the one asked for, a missing first day its look-back from the last, a
  *  missing last day today — refused when it runs backwards or past a year. */
 const registerPeriod = (
-  register: HealthRegister,
+  register: PeriodReport,
   asked: AskedPeriod,
   now: Date
 ) => {
@@ -179,6 +183,57 @@ const outcomeSaid = (
   const gone = bothLanguages(`state.${outcome.kind}`);
   return outcome.on ? `${gone} ${daySaid(outcome.on, language)}` : gone;
 };
+
+/** How a death is written on the paper: a stillbirth in the reader's words, any other cause as it was written. */
+const causeSaid = (cause: string) =>
+  cause === STILLBIRTH ? bothLanguages("mortality.stillbirth") : cause;
+
+/** How the carcass went, with where and how beside it — or that the farm is still to say. */
+const disposalSaid = (death: DeathLine) => {
+  if (!death.disposal) {
+    return bothLanguages("mortality.awaitingDisposal");
+  }
+  const said = bothLanguages(`mortality.${death.disposal}`);
+  return death.disposalNote ? `${said} — ${death.disposalNote}` : said;
+};
+
+/** The mortality register as a CSV, in the report set's order: plain words and farm days for a spreadsheet, a
+ *  disposal still awaited written as such. */
+const mortalityCsv = (deaths: readonly DeathLine[]) =>
+  toCsv(
+    [
+      "tag",
+      "date",
+      "kind",
+      "cause",
+      "disposal",
+      "disposal_note",
+      "dls_reference",
+    ],
+    deaths.map((one) => [
+      one.tagNumber,
+      one.diedOn,
+      one.kind,
+      one.cause,
+      one.disposal ?? "awaiting",
+      one.disposalNote,
+      one.reportReference,
+    ])
+  );
+
+/** The movement log as a CSV: the farm's own date and time, and the Pens by name. */
+const movementCsv = (lines: readonly MovementLine[]) =>
+  toCsv(
+    ["when", "tag", "kind", "from", "to", "recorded_by"],
+    lines.map((one) => [
+      `${farmDayOf(one.at)} ${farmTimeOf(one.at)}`,
+      one.tagNumber,
+      one.kind,
+      one.from,
+      one.to,
+      one.recordedBy,
+    ])
+  );
 
 /** The vaccination register as a CSV, in the report set's order: plain words and farm days for a spreadsheet. */
 const vaccinationCsv = (doses: readonly VaccinationLine[]) =>
@@ -305,6 +360,40 @@ const PAPERS: Record<
       said: { animals: herd.total, pens: herd.byPen.length },
     };
   },
+  mortality_register: async (context, language, asked) => {
+    const period = registerPeriod(
+      "mortality_register",
+      asked,
+      context.clock.now()
+    );
+    const deaths = await deathsBetween(
+      context.db,
+      context.farm.id,
+      period.range
+    );
+    return {
+      text: mortalityRegister({
+        farm: context.farm,
+        from: daySaid(period.from, language),
+        to: daySaid(period.to, language),
+        deaths: deaths.map((one) => ({
+          tagNumber: one.tagNumber,
+          diedOn: daySaid(one.diedOn, language),
+          cause: causeSaid(one.cause),
+          disposal: disposalSaid(one),
+          reportReference: one.reportReference,
+        })),
+        producedBy: context.actor.name,
+        producedAt: formatDate(context.clock.now(), language, "dateTime"),
+      }),
+      csv: mortalityCsv(deaths),
+      period,
+      said: {
+        deaths: deaths.length,
+        awaitingDisposal: deaths.filter((one) => one.disposal === null).length,
+      },
+    };
+  },
   vaccination_register: async (context, language, asked) => {
     const period = registerPeriod(
       "vaccination_register",
@@ -415,6 +504,53 @@ export const inspectorRouter = {
       registration: await registrationOf(context),
       herd: await herdOf(context),
     })),
+
+  /**
+   * R6, the mortality register: every death and cull in a period — a year back from today unless asked — with
+   * the cause, how the carcass was disposed of or that it is awaited, and the DLS reference when it was
+   * notifiable. The Owner's and the Manager's, from their own phones.
+   */
+  mortalities: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(askedPeriodInput)
+    .handler(async ({ context, input }) => {
+      const period = registerPeriod(
+        "mortality_register",
+        input,
+        context.clock.now()
+      );
+      return {
+        from: period.from,
+        to: period.to,
+        rows: await deathsBetween(context.db, context.farm.id, period.range),
+      };
+    }),
+
+  /**
+   * R11, the movement log: every Move, Side change, arrival, sale and death in a period, in time order, as the
+   * CSV an inspector takes away. An Export like every register, refused to a farm without its Registration
+   * number. The Owner's and the Manager's, from their own phones.
+   */
+  movementLog: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(askedPeriodInput)
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "the movement log");
+      const period = registerPeriod("movement_log", input, context.clock.now());
+      const lines = await movementsBetween(
+        context.db,
+        context.farm.id,
+        period.range
+      );
+      const shown = { from: period.from, to: period.to };
+      await recordExport(context, "movement_log", shown, {
+        format: "csv",
+        movements: lines.length,
+      });
+      return { csv: movementCsv(lines), period: shown };
+    }),
 
   /**
    * R3, the vaccination register: every vaccine dose in a period — a year back from today unless asked — per

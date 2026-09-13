@@ -58,6 +58,7 @@ const WORDED_REFUSALS = {
   count_incomplete: "refusal.countIncomplete",
   difference_needs_reason: "refusal.differenceNeedsReason",
   dispatched_in_the_future: "refusal.dispatchedInTheFuture",
+  disposal_already_recorded: "refusal.disposalAlreadyRecorded",
   drug_retired: "refusal.drugRetired",
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
   entered_in_the_future: "refusal.enteredInTheFuture",

@@ -8,6 +8,7 @@ import type {
 import {
   DISPOSALS,
   MORTALITY_KINDS,
+  STILLBIRTH,
   allowedNextStates,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -403,6 +404,73 @@ const AnimalPage = () => {
   );
 };
 
+/** What was done with a stillborn calf's carcass, written afterwards by the Owner or the Manager: her calving
+ *  recorded her death, and nobody at the calving could say. */
+const DisposalAfterwards = ({
+  tagNumber,
+  onDone,
+}: {
+  tagNumber: string;
+  onDone: () => void;
+}) => {
+  const { t } = useLanguage();
+  const [disposal, setDisposal] = useState<Disposal>("buried");
+  const [note, setNote] = useState("");
+  const record = useMutation(
+    orpc.animals.recordDisposal.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("mortality.recorded"));
+        onDone();
+      },
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
+  );
+
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        record.mutate({
+          tagNumber,
+          disposal,
+          ...(note.trim() ? { disposalNote: note.trim() } : {}),
+        });
+      }}
+    >
+      <div className="space-y-1">
+        <Label htmlFor="afterwards-disposal">{t("mortality.disposal")}</Label>
+        <select
+          className="bg-background h-9 rounded-md border px-2 text-sm"
+          id="afterwards-disposal"
+          onChange={(event) => setDisposal(event.target.value as Disposal)}
+          value={disposal}
+        >
+          {DISPOSALS.map((one) => (
+            <option key={one} value={one}>
+              {t(`mortality.${one}`)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="afterwards-note">{t("mortality.disposalNote")}</Label>
+        <Input
+          id="afterwards-note"
+          onChange={(event) => setNote(event.target.value)}
+          value={note}
+        />
+      </div>
+      <Button disabled={record.isPending} type="submit" variant="outline">
+        {t("mortality.recordDisposal")}
+      </Button>
+    </form>
+  );
+};
+
 /** Putting a mortality right: what the farm learned afterwards, or a hurried entry corrected. */
 const PutItRight = ({
   detail,
@@ -410,14 +478,20 @@ const PutItRight = ({
 }: {
   detail: {
     tagNumber: string;
-    mortality: { kind: MortalityKind; cause: string; disposal: Disposal };
+    mortality: {
+      kind: MortalityKind;
+      cause: string;
+      disposal: Disposal | null;
+    };
   };
   onDone: () => void;
 }) => {
   const { t } = useLanguage();
   const [kind, setKind] = useState<MortalityKind>(detail.mortality.kind);
   const [cause, setCause] = useState(detail.mortality.cause);
-  const [disposal, setDisposal] = useState<Disposal>(detail.mortality.disposal);
+  const [disposal, setDisposal] = useState<Disposal>(
+    detail.mortality.disposal ?? "buried"
+  );
   const [reason, setReason] = useState("");
   const correct = useMutation(
     orpc.animals.correctMortality.mutationOptions({
@@ -1087,7 +1161,7 @@ const HowSheWent = ({
       kind: MortalityKind;
       happenedAt: Date;
       cause: string;
-      disposal: Disposal;
+      disposal: Disposal | null;
       disposalNote: string | null;
       recordedByName: string | null;
     } | null;
@@ -1119,13 +1193,25 @@ const HowSheWent = ({
         <p className="font-medium">{t(`mortality.${gone.kind}`)}</p>
         <p className="text-muted-foreground">
           {formatDate(new Date(gone.happenedAt), language, "dateTime")} ·{" "}
-          {gone.cause}
+          {gone.cause === STILLBIRTH ? t("mortality.stillbirth") : gone.cause}
         </p>
-        <p className="text-muted-foreground">
-          {t(`mortality.${gone.disposal}`)}
-          {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
-          {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
-        </p>
+        {gone.disposal ? (
+          <p className="text-muted-foreground">
+            {t(`mortality.${gone.disposal}`)}
+            {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
+            {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
+          </p>
+        ) : (
+          <p className="text-amber-500">
+            {t("mortality.disposal")}: {t("mortality.awaitingDisposal")}
+          </p>
+        )}
+        {mayRecord && !gone.disposal ? (
+          <DisposalAfterwards
+            onDone={onRecorded}
+            tagNumber={detail.tagNumber}
+          />
+        ) : null}
         {mayRecord ? (
           <PutItRight
             detail={{ tagNumber: detail.tagNumber, mortality: gone }}

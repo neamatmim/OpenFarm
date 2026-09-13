@@ -1,0 +1,1 @@
+ALTER TABLE "mortality" ALTER COLUMN "disposal" DROP NOT NULL;

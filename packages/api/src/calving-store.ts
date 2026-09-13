@@ -1,9 +1,9 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
-import { animal } from "@OpenFarm/db/schema/herd";
+import { animal, mortality } from "@OpenFarm/db/schema/herd";
 import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
-import { MAY_CALVE_FROM, isExitState } from "@OpenFarm/domain";
+import { MAY_CALVE_FROM, STILLBIRTH, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -37,6 +37,43 @@ export interface CalvingEntry {
   times: PregnancyTimes;
   now: Date;
 }
+
+/**
+ * A calf born dead leaves as Died in the act that created her, and her death is on the mortality register like
+ * any other: the cause is a stillbirth, and what was done with her waits for the Manager, who is not at every
+ * calving (the Owner's decision, 2026-09-13).
+ */
+const recordStillbirth = async (
+  tx: Tx,
+  entry: CalvingEntry,
+  calfId: string,
+  at: Date
+): Promise<void> => {
+  await recordExit(
+    tx,
+    entry.farmId,
+    { id: calfId },
+    {
+      state: "died",
+      at,
+      now: entry.now,
+    }
+  );
+  await tx
+    .insert(mortality)
+    .values({
+      id: uuidv7(entry.now),
+      farmId: entry.farmId,
+      animalId: calfId,
+      kind: "died",
+      happenedAt: at,
+      cause: STILLBIRTH,
+      disposal: null,
+      recordedBy: entry.recordedBy,
+      recordedAt: entry.now,
+    })
+    .onConflictDoNothing({ target: mortality.animalId });
+};
 
 /** Whether a calf was alive when she was born, as her calving recorded it. */
 const asRecorded = (calf: { calfOutcome: CalfOutcome | null }): CalfOutcome =>
@@ -135,16 +172,16 @@ const putRight = async (
       .where(eq(animal.id, calf.id));
     if (becomesStillborn) {
       // oxlint-disable-next-line no-await-in-loop
-      await recordExit(
-        tx,
-        entry.farmId,
-        { id: calf.id },
-        {
-          state: "died",
-          at: calved.at,
-          now: entry.now,
-        }
-      );
+      await recordStillbirth(tx, entry, calf.id, calved.at);
+    } else if (asRecorded(calf) === "stillborn") {
+      // Her death moves with the hour she was born dead in.
+      // oxlint-disable-next-line no-await-in-loop
+      await tx
+        .update(mortality)
+        .set({ happenedAt: calved.at })
+        .where(
+          and(eq(mortality.animalId, calf.id), eq(mortality.cause, STILLBIRTH))
+        );
     }
   }
   return {
@@ -292,16 +329,7 @@ export const recordCalving = async (
     });
     if (calf.outcome === "stillborn") {
       // oxlint-disable-next-line no-await-in-loop
-      await recordExit(
-        tx,
-        entry.farmId,
-        { id: calfId },
-        {
-          state: "died",
-          at,
-          now: entry.now,
-        }
-      );
+      await recordStillbirth(tx, entry, calfId, at);
     }
     born.push({ tagNumber, ...calf });
   }
