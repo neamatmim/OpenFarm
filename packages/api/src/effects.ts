@@ -4,7 +4,7 @@ import { pregnancyCheck, service } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { feeding } from "@OpenFarm/db/schema/feed";
-import { dlsReport, treatment } from "@OpenFarm/db/schema/health";
+import { campaignLot, dlsReport, treatment } from "@OpenFarm/db/schema/health";
 import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
@@ -93,6 +93,11 @@ export type EffectResult =
       saw: string;
       /** True when this replaced one a Correction withdrew. */
       supersedes: boolean;
+    }
+  | {
+      kind: "vaccine_lot";
+      /** The lot the run was given from. Null when a Correction took the step back. */
+      lotNumber: string | null;
     }
   | {
       kind: "dls_report";
@@ -452,6 +457,28 @@ const doseShape = (input: EffectInput) => {
 };
 
 /**
+ * A vaccine dose has to be traceable to the vial it came from: from her own Lot Number, written at her dose, or
+ * from the run's, asked once for the Pen. With neither, the dose is refused rather than recorded as a vaccination
+ * nobody can trace.
+ */
+const assertRunHasLot = async (
+  tx: Tx,
+  instanceId: string,
+  vaccine: string
+): Promise<void> => {
+  const lot = await tx.query.campaignLot.findFirst({
+    where: { instanceId },
+    columns: { id: true },
+  });
+  if (!lot) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `${vaccine} is a vaccine: write the run's Lot Number first, or this dose's own`,
+      data: { refusal: "lot_number_missing" },
+    });
+  }
+};
+
+/**
  * The dose a campaign gives her now. Nothing was owed beforehand, so the row is written by the
  * Step that gives it — and written again over itself if two phones send the same dose at once,
  * which the unique index on the work and the animal is there to catch.
@@ -475,6 +502,7 @@ const recordCampaignDose = async (
       nameBn: true,
       milkWithdrawalDays: true,
       meatWithdrawalDays: true,
+      vaccine: true,
     },
   });
   if (!product || product.milkWithdrawalDays === null) {
@@ -484,6 +512,10 @@ const recordCampaignDose = async (
         : "That product is no longer on the farm's drug list",
       data: { refusal: "no_withdrawal_days" },
     });
+  }
+  const lotNumber = input.skipped ? null : noteIn(input.step, input.evidence);
+  if (product.vaccine && !input.skipped && lotNumber === null) {
+    await assertRunHasLot(tx, input.instance.id, product.nameBn);
   }
   const id = uuidv7(input.now);
   await tx
@@ -498,11 +530,12 @@ const recordCampaignDose = async (
       number: 1,
       dueAt: input.instance.dueAt,
       createdAt: input.now,
+      lotNumber,
       ...given,
     })
     .onConflictDoUpdate({
       target: [treatment.instanceId, treatment.animalId],
-      set: given,
+      set: { ...given, lotNumber },
     });
   return { id, number: 1, prescriptionId: null, animalId };
 };
@@ -558,14 +591,15 @@ const applyTreatmentEffect = async (
       };
 
   let dose = owed;
-  if (owed) {
-    await tx.update(treatment).set(given).where(eq(treatment.id, owed.id));
-  } else if (shape.campaign) {
+  if (shape.campaign) {
+    // Written over itself on a replay or a Correction, so a lot put right at her dose lands with it.
     dose = await recordCampaignDose(tx, input, {
       productId: shape.productId,
       animalId: shape.animalId,
       given,
     });
+  } else if (owed) {
+    await tx.update(treatment).set(given).where(eq(treatment.id, owed.id));
   }
   // From the doses she has actually had, every time — a dose corrected back to a skip has to
   // shorten the hold again, and the farm's milk gate reads the answer.
@@ -581,6 +615,40 @@ const applyTreatmentEffect = async (
     given: !input.skipped,
     milkWithdrawalUntil: milkUntil,
   };
+};
+
+/**
+ * The Lot Number a campaign's run was given from, asked once for the Pen. Every dose of the run without a lot of
+ * its own reads it from here, so a Correction to this Step puts all of them right at once; skipped, the run has
+ * no lot and its vaccine doses wait for one.
+ */
+const applyLotEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  const lotNumber = input.skipped ? null : noteIn(input.step, input.evidence);
+  if (lotNumber === null) {
+    await tx
+      .delete(campaignLot)
+      .where(eq(campaignLot.instanceId, input.instance.id));
+    return { kind: "vaccine_lot", lotNumber };
+  }
+  const written = {
+    lotNumber,
+    completionId: input.completionId,
+    recordedBy: input.recordedBy,
+    recordedAt: input.recordedAt,
+  };
+  await tx
+    .insert(campaignLot)
+    .values({
+      id: uuidv7(input.now),
+      farmId: input.instance.farmId,
+      instanceId: input.instance.id,
+      ...written,
+    })
+    .onConflictDoUpdate({ target: campaignLot.instanceId, set: written });
+  return { kind: "vaccine_lot", lotNumber };
 };
 
 /**
@@ -1421,6 +1489,7 @@ const RECORDING_EFFECTS: Partial<
   calving: applyCalvingEffect,
   stock_count: applyStockCountEffect,
   registration_renewal: applyRenewalEffect,
+  vaccine_lot: applyLotEffect,
 };
 
 /**

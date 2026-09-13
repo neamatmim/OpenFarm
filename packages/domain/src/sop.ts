@@ -90,7 +90,9 @@ export type StepEffect =
   /** The store counted: what is really there of each Feed Item, and why it differs. */
   | { kind: "stock_count" }
   /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
-  | { kind: "registration_renewal" };
+  | { kind: "registration_renewal" }
+  /** The Lot Number a vaccination campaign's run was given from, asked once for the Pen. */
+  | { kind: "vaccine_lot" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -107,6 +109,7 @@ export const STEP_EFFECT_KINDS = [
   "calving",
   "stock_count",
   "registration_renewal",
+  "vaccine_lot",
 ] as const;
 
 export interface Step {
@@ -506,6 +509,19 @@ const renewalStepProblems = (step: Step, path: string): string[] =>
     ? [`${path}.effect: the Registration is renewed once, not once per animal`]
     : [];
 
+/** What a Step that records a run's Lot Number has to ask for: the number off the vial, written and required,
+ *  once for the Pen — a lot asked at every animal is the round the Owner decided not to make. */
+const lotStepProblems = (step: Step, path: string): string[] => [
+  ...(step.evidence.some((item) => item.type === "note" && item.required)
+    ? []
+    : [
+        `${path}.evidence: this step records the Lot Number off the vial, and it has to be asked for and required`,
+      ]),
+  ...(step.repeatPerAnimal
+    ? [`${path}.effect: a run's Lot Number is asked once, not once per animal`]
+    : []),
+];
+
 const SHAPED_STEPS: Partial<
   Record<StepEffect["kind"], (step: Step, path: string) => string[]>
 > = {
@@ -516,6 +532,7 @@ const SHAPED_STEPS: Partial<
   calving: calvingStepProblems,
   stock_count: stockCountStepProblems,
   registration_renewal: renewalStepProblems,
+  vaccine_lot: lotStepProblems,
 };
 
 const effectProblems = (step: Step, stepIndex: number): string[] => {

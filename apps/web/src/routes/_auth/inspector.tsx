@@ -23,6 +23,7 @@ import { orpc } from "@/utils/orpc";
 const PAPER_OF: Record<InspectorRegister, PaperId> = {
   registration: "registration-record",
   herd_summary: "herd-summary",
+  vaccination_register: "vaccination-register",
   treatment_register: "treatment-register",
   disease_history: "disease-history",
 };

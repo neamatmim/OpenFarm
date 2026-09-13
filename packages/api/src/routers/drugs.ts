@@ -40,6 +40,7 @@ const readProduct = async (tx: Tx, id: string) => {
       nameBn: true,
       milkWithdrawalDays: true,
       meatWithdrawalDays: true,
+      vaccine: true,
       retiredAt: true,
     },
   });
@@ -342,6 +343,31 @@ export const drugsRouter = {
           .returning({ id: drugProduct.id })
       );
       return { id: input.id };
+    }),
+
+  /**
+   * The Vet says whether a product is a vaccine: its doses then go on the vaccination register, and a campaign
+   * giving it asks which lot it came from. The Vet's, from their own phone, as the withdrawal days are — it is
+   * the prescriber's statement of what the product is.
+   */
+  markVaccine: protectedProcedure
+    .use(requireOnly("vet", VET_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), vaccine: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await changeProduct(context, input.id, (tx) =>
+        tx
+          .update(drugProduct)
+          .set({ vaccine: input.vaccine })
+          .where(
+            and(
+              eq(drugProduct.id, input.id),
+              eq(drugProduct.farmId, context.farm.id)
+            )
+          )
+          .returning({ id: drugProduct.id })
+      );
+      return { id: input.id, vaccine: input.vaccine };
     }),
 
   /** Retired, never removed: a Treatment given last March still names its product. Taking

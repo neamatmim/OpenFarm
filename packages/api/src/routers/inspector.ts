@@ -17,6 +17,7 @@ import {
   registrationStanding,
   startOfFarmDay,
   treatmentRegister,
+  vaccinationRegister,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
@@ -26,11 +27,16 @@ import { z } from "zod";
 import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { assertRegistered, recordExport } from "../export-store";
-import type { DiagnosisLine, TreatmentLine } from "../health-register-store";
+import type {
+  DiagnosisLine,
+  TreatmentLine,
+  VaccinationLine,
+} from "../health-register-store";
 import {
-  lookBackFrom,
   diagnosesBetween,
+  lookBackFrom,
   treatmentsBetween,
+  vaccinationsBetween,
 } from "../health-register-store";
 import { protectedProcedure } from "../index";
 import { periodInput, periodOf } from "../period";
@@ -174,6 +180,19 @@ const outcomeSaid = (
   return outcome.on ? `${gone} ${daySaid(outcome.on, language)}` : gone;
 };
 
+/** The vaccination register as a CSV, in the report set's order: plain words and farm days for a spreadsheet. */
+const vaccinationCsv = (doses: readonly VaccinationLine[]) =>
+  toCsv(
+    ["tag", "vaccine", "date", "lot_number", "given_by"],
+    doses.map((one) => [
+      one.tagNumber,
+      one.vaccine,
+      one.givenOn,
+      one.lotNumber,
+      one.givenBy,
+    ])
+  );
+
 /** The treatment register as a CSV, in the DLS template's order: plain words and farm days for a spreadsheet. */
 const treatmentCsv = (doses: readonly TreatmentLine[]) =>
   toCsv(
@@ -286,6 +305,37 @@ const PAPERS: Record<
       said: { animals: herd.total, pens: herd.byPen.length },
     };
   },
+  vaccination_register: async (context, language, asked) => {
+    const period = registerPeriod(
+      "vaccination_register",
+      asked,
+      context.clock.now()
+    );
+    const doses = await vaccinationsBetween(
+      context.db,
+      context.farm.id,
+      period.range
+    );
+    return {
+      text: vaccinationRegister({
+        farm: context.farm,
+        from: daySaid(period.from, language),
+        to: daySaid(period.to, language),
+        doses: doses.map((one) => ({
+          ...one,
+          givenOn: daySaid(one.givenOn, language),
+        })),
+        producedBy: context.actor.name,
+        producedAt: formatDate(context.clock.now(), language, "dateTime"),
+      }),
+      csv: vaccinationCsv(doses),
+      period,
+      said: {
+        doses: doses.length,
+        withoutLot: doses.filter((one) => one.lotNumber === null).length,
+      },
+    };
+  },
   treatment_register: async (context, language, asked) => {
     const period = registerPeriod(
       "treatment_register",
@@ -365,6 +415,32 @@ export const inspectorRouter = {
       registration: await registrationOf(context),
       herd: await herdOf(context),
     })),
+
+  /**
+   * R3, the vaccination register: every vaccine dose in a period — a year back from today unless asked — per
+   * animal, with the vaccine, the day, the Lot Number it came from, and who gave it. The Owner's and the
+   * Manager's, from their own phones.
+   */
+  vaccinations: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(askedPeriodInput)
+    .handler(async ({ context, input }) => {
+      const period = registerPeriod(
+        "vaccination_register",
+        input,
+        context.clock.now()
+      );
+      return {
+        from: period.from,
+        to: period.to,
+        rows: await vaccinationsBetween(
+          context.db,
+          context.farm.id,
+          period.range
+        ),
+      };
+    }),
 
   /**
    * R4, the treatment register: every dose in a period — thirty days back from today unless asked — with the

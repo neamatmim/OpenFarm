@@ -5,17 +5,11 @@ import type {
   ExitState,
   HealthRegister,
   TreatmentRegisterLine,
+  VaccinationRegisterLine,
 } from "@OpenFarm/domain";
 import { farmDayOf, isExitState, withdrawalEndsAt } from "@OpenFarm/domain";
 
 type Db = Pick<Database, "query">;
-
-/** How far back the treatment register looks unless asked: thirty days, the last one included, as an inspector
- *  asks. */
-const TREATMENT_LOOK_BACK_DAYS = 30;
-
-/** How far back the disease history looks unless asked: six months, as a slaughter vet asks. */
-const DISEASE_LOOK_BACK_MONTHS = 6;
 
 /** A farm day moved by calendar months, then days — the 10th of April six months back and a day on is the 11th
  *  of October. A month too short for the day ends it: the 31st of August six months back is the 29th of
@@ -30,12 +24,65 @@ const dayMoved = (day: string, { months = 0, days = 0 }) => {
   return moved.toISOString().slice(0, "YYYY-MM-DD".length);
 };
 
-/** The first day a register covers when nobody names one, for a period ending on a given farm day: thirty days
- *  of treatments, six months of diagnoses, the last day counted in both. */
+/** How far back each register looks unless asked, the last day counted: a year of vaccinations, since FMD and
+ *  anthrax come round yearly; thirty days of treatments, as an inspector asks; six months of diagnoses, as a
+ *  slaughter vet asks. */
+const LOOK_BACK: Record<HealthRegister, { months: number; days: number }> = {
+  vaccination_register: { months: -12, days: 1 },
+  treatment_register: { months: 0, days: -29 },
+  disease_history: { months: -6, days: 1 },
+};
+
+/** The first day a register covers when nobody names one, for a period ending on a given farm day. */
 export const lookBackFrom = (register: HealthRegister, to: string): string =>
-  register === "treatment_register"
-    ? dayMoved(to, { days: 1 - TREATMENT_LOOK_BACK_DAYS })
-    : dayMoved(to, { months: -DISEASE_LOOK_BACK_MONTHS, days: 1 });
+  dayMoved(to, LOOK_BACK[register]);
+
+/** One vaccine dose on the vaccination register, its day a farm day. */
+export type VaccinationLine = VaccinationRegisterLine & { id: string };
+
+/**
+ * Every dose of a product the Vet has marked a vaccine, given in a period, oldest first: the animal, the vaccine,
+ * the day, the Lot Number — the dose's own, or else its campaign run's — and who gave it. A product marked a
+ * vaccine after it was given still puts its doses here, with no lot if nobody wrote one.
+ */
+export const vaccinationsBetween = async (
+  db: Db,
+  farmId: string,
+  { from, until }: { from: Date; until: Date }
+): Promise<VaccinationLine[]> => {
+  const doses = await db.query.treatment.findMany({
+    where: {
+      farmId,
+      givenAt: { gte: from, lt: until },
+      product: { vaccine: true },
+    },
+    columns: { id: true, givenAt: true, lotNumber: true },
+    with: {
+      animal: { columns: { tagNumber: true } },
+      product: { columns: { nameBn: true } },
+      giver: { columns: { name: true } },
+      instance: {
+        columns: {},
+        with: { lot: { columns: { lotNumber: true } } },
+      },
+    },
+    orderBy: { givenAt: "asc", id: "asc" },
+  });
+  return doses.flatMap((one) =>
+    one.givenAt
+      ? [
+          {
+            id: one.id,
+            tagNumber: one.animal.tagNumber,
+            vaccine: one.product.nameBn,
+            givenOn: farmDayOf(one.givenAt),
+            lotNumber: one.lotNumber ?? one.instance.lot?.lotNumber ?? null,
+            givenBy: one.giver?.name ?? null,
+          },
+        ]
+      : []
+  );
+};
 
 /** One dose on the treatment register, in the DLS template's order: the printed line before it is written out,
  *  its days as farm days and its route the word the Vet chose. */

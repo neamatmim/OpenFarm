@@ -158,7 +158,7 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (kind === "move" || kind === "observation") {
     return "choice";
   }
-  if (kind === "dls_report") {
+  if (kind === "dls_report" || kind === "vaccine_lot") {
     return "note";
   }
   return kind === "treatment" || kind === "dry_off" ? "tick" : "number";
@@ -191,6 +191,10 @@ const fittedEvidence = (
     // Giving a dose is a thing somebody did or did not do. There is no figure to write down:
     // how much is the Prescription's or the campaign's to say, not the milker's.
     return { type: "tick", required: true };
+  }
+  if (kind === "vaccine_lot") {
+    // The number off the vial, once for the run. Required: a vaccination nobody can trace is not one.
+    return { type: "note", required: true };
   }
   if (kind === "dls_report") {
     // The reference the office files the letter under. Required, because a report that cannot
@@ -260,7 +264,10 @@ export const withEffect = (
   // Step starts as a prescribed dose — the shape that is complete without anything else being
   // chosen — and naming a product turns it into a campaign over the Pen.
   const perAnimal =
-    kind !== "bulk_total" && kind !== "treatment" && kind !== "dls_report";
+    kind !== "bulk_total" &&
+    kind !== "treatment" &&
+    kind !== "dls_report" &&
+    kind !== "vaccine_lot";
   if (first?.type === wants) {
     return { ...step, repeatPerAnimal: perAnimal, effect: { kind } };
   }

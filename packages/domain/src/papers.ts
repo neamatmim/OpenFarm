@@ -486,6 +486,7 @@ export interface RegistrationRecord {
 export const INSPECTOR_REGISTERS = [
   "registration",
   "herd_summary",
+  "vaccination_register",
   "treatment_register",
   "disease_history",
 ] as const;
@@ -493,13 +494,15 @@ export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
 
 /** The registers an inspector may also take away as a CSV (the report set: R4 as PDF and CSV). */
 export const REGISTERS_WITH_CSV: readonly InspectorRegister[] = [
+  "vaccination_register",
   "treatment_register",
 ];
 
-/** The health registers, which cover a period: thirty days of treatments, six months of diagnoses. */
+/** The health registers, which cover a period: a year of vaccinations, thirty days of treatments, six months of
+ *  diagnoses. */
 export type HealthRegister = Extract<
   InspectorRegister,
-  "treatment_register" | "disease_history"
+  "vaccination_register" | "treatment_register" | "disease_history"
 >;
 
 const STANDING_LABEL: Record<RegistrationStanding, string> = {
@@ -575,6 +578,50 @@ export const herdSummary = (summary: HerdSummary): string =>
     ]),
     "",
     `${summary.producedAt} · ${summary.producedBy}`,
+  ].join("\n");
+
+/** One vaccine dose on the printed vaccination register, its day already written out for the reader. */
+export interface VaccinationRegisterLine {
+  tagNumber: string;
+  vaccine: string;
+  givenOn: string;
+  /** The vial's Lot Number: the dose's own, or its campaign run's. Null for a dose recorded before the product
+   *  was marked a vaccine. */
+  lotNumber: string | null;
+  givenBy: string | null;
+}
+
+export interface VaccinationRegister {
+  farm: FarmIdentity;
+  from: string;
+  to: string;
+  doses: VaccinationRegisterLine[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * R3, the vaccination register: every vaccine dose in a period, per animal — the vaccine, the date, the Lot
+ * Number, and who gave it, a line to each in the CSV's order. What an inspector reads for FMD and anthrax.
+ */
+export const vaccinationRegister = (register: VaccinationRegister): string =>
+  [
+    ...farmOfOriginLines(register.farm),
+    "",
+    "টিকার রেজিস্টার / Vaccination register",
+    field("সময়কাল", "Period", `${register.from} — ${register.to}`),
+    "",
+    ...(register.doses.length === 0
+      ? ["এই সময়ে কোনো টিকা দেওয়া হয়নি / No vaccinations in this period"]
+      : register.doses.flatMap((one) => [
+          one.tagNumber,
+          `  ${field("টিকা", "Vaccine", one.vaccine)}`,
+          `  ${field("তারিখ", "Date", one.givenOn)}`,
+          `  ${field("লট নম্বর", "Lot number", one.lotNumber ?? "—")}`,
+          `  ${field("যিনি দিয়েছেন", "Given by", one.givenBy ?? "—")}`,
+        ])),
+    "",
+    `${register.producedAt} · ${register.producedBy}`,
   ].join("\n");
 
 /** One dose on the printed treatment register, its days and route already written out for the reader. */

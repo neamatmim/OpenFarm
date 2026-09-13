@@ -25,9 +25,10 @@ const OUTCOME_WORD = {
 } as const satisfies Record<string, MessageKey>;
 
 /**
- * The treatment register (R4) and the disease history (R5) on the Inspector View: every dose in the period
- * with what was behind it, every diagnosis with the notifiable ones marked — each printed, and the treatment
- * register also given as a CSV. Thirty days and six months back unless a period is set.
+ * The vaccination register (R3), the treatment register (R4) and the disease history (R5) on the Inspector View:
+ * every vaccination with its Lot Number, every dose with what was behind it, every diagnosis with the notifiable
+ * ones marked — each printed, and the two dose registers also given as a CSV. A year, thirty days and six months
+ * back unless a period is set.
  */
 export const HealthRegisters = ({
   onPrint,
@@ -43,6 +44,9 @@ export const HealthRegisters = ({
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
   };
+  const vaccinations = useQuery(
+    orpc.inspector.vaccinations.queryOptions({ input: asked })
+  );
   const treatments = useQuery(
     orpc.inspector.treatments.queryOptions({ input: asked })
   );
@@ -51,11 +55,16 @@ export const HealthRegisters = ({
   );
   const sheet = useMutation(
     orpc.inspector.print.mutationOptions({
-      onSuccess: ({ csv }) =>
+      onSuccess: ({ csv }, { report }) => {
+        const period =
+          report === "vaccination_register"
+            ? vaccinations.data
+            : treatments.data;
         saveCsv(
-          `treatment-register-${treatments.data?.from}-${treatments.data?.to}.csv`,
+          `${report.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
           csv ?? ""
-        ),
+        );
+      },
       onError: (error) =>
         toast.error(
           wordedRefusal(error, t) ?? (error.message || t("common.error"))
@@ -86,6 +95,58 @@ export const HealthRegisters = ({
           {wordedRefusal(treatments.error, t) ?? t("common.error")}
         </p>
       ) : null}
+
+      <section className="space-y-2 rounded-lg border p-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-medium">
+            {t("inspector.vaccinations")}
+            {vaccinations.data
+              ? ` · ${vaccinations.data.from} — ${vaccinations.data.to}`
+              : ""}
+          </h2>
+          <div className="flex gap-2">
+            <Button
+              disabled={printing}
+              onClick={() => onPrint("vaccination_register", asked)}
+              size="sm"
+              variant="outline"
+            >
+              {t("common.print")}
+            </Button>
+            <Button
+              disabled={sheet.isPending}
+              onClick={() =>
+                sheet.mutate({
+                  report: "vaccination_register",
+                  format: "csv",
+                  ...asked,
+                })
+              }
+              size="sm"
+              variant="outline"
+            >
+              {t("inspector.csv")}
+            </Button>
+          </div>
+        </div>
+        {vaccinations.data?.rows.length ? (
+          <ul className="space-y-1">
+            {vaccinations.data.rows.map((row) => (
+              <li className="rounded border p-2" key={row.id}>
+                {row.givenOn} · {row.tagNumber} · {row.vaccine}
+                <span className="text-muted-foreground block text-xs">
+                  {t("inspector.lot", { lot: row.lotNumber ?? "—" })} ·{" "}
+                  {t("inspector.givenByOnly", { giver: row.givenBy ?? "—" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">
+            {t("inspector.noVaccinations")}
+          </p>
+        )}
+      </section>
 
       <section className="space-y-2 rounded-lg border p-3 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
