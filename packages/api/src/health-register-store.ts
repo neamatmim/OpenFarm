@@ -1,49 +1,51 @@
 import type { Database } from "@OpenFarm/db";
-import type { DoseRoute, TreatmentRegisterLine } from "@OpenFarm/domain";
+import type {
+  DiseaseHistoryLine,
+  DoseRoute,
+  ExitState,
+  HealthRegister,
+  TreatmentRegisterLine,
+} from "@OpenFarm/domain";
 import { farmDayOf, isExitState, withdrawalEndsAt } from "@OpenFarm/domain";
 
 type Db = Pick<Database, "query">;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** How far back the treatment register looks unless asked: thirty days, as an inspector asks. */
+/** How far back the treatment register looks unless asked: thirty days, the last one included, as an inspector
+ *  asks. */
 const TREATMENT_LOOK_BACK_DAYS = 30;
 
 /** How far back the disease history looks unless asked: six months, as a slaughter vet asks. */
 const DISEASE_LOOK_BACK_MONTHS = 6;
 
-/** The farm day this many calendar months before another — the 10th of April back to the 10th of October. */
-const monthsBefore = (day: string, months: number): string => {
+/** A farm day moved by calendar months, then days — the 10th of April six months back and a day on is the 11th
+ *  of October. A month too short for the day ends it: the 31st of August six months back is the 29th of
+ *  February, never March. */
+const dayMoved = (day: string, { months = 0, days = 0 }) => {
   const [year = 0, month = 1, date = 1] = day.split("-").map(Number);
-  const back = new Date(Date.UTC(year, month - 1 - months, date));
-  return back.toISOString().slice(0, "YYYY-MM-DD".length);
+  const monthIndex = month - 1 + months;
+  const lastOfMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  const moved = new Date(
+    Date.UTC(year, monthIndex, Math.min(date, lastOfMonth) + days)
+  );
+  return moved.toISOString().slice(0, "YYYY-MM-DD".length);
 };
 
-/** The window a register covers when nobody names one, ending today: thirty days for treatments, six months
- *  for diseases. */
-export const defaultWindow = (
-  register: "treatment_register" | "disease_history",
-  now: Date
-): { from: string; to: string } => {
-  const today = farmDayOf(now);
-  return register === "treatment_register"
-    ? {
-        from: farmDayOf(
-          new Date(now.getTime() - TREATMENT_LOOK_BACK_DAYS * DAY_MS)
-        ),
-        to: today,
-      }
-    : { from: monthsBefore(today, DISEASE_LOOK_BACK_MONTHS), to: today };
-};
+/** The first day a register covers when nobody names one, for a period ending on a given farm day: thirty days
+ *  of treatments, six months of diagnoses, the last day counted in both. */
+export const lookBackFrom = (register: HealthRegister, to: string): string =>
+  register === "treatment_register"
+    ? dayMoved(to, { days: 1 - TREATMENT_LOOK_BACK_DAYS })
+    : dayMoved(to, { months: -DISEASE_LOOK_BACK_MONTHS, days: 1 });
 
 /** One dose on the treatment register, in the DLS template's order: the printed line before it is written out,
  *  its days as farm days and its route the word the Vet chose. */
 export type TreatmentLine = Omit<TreatmentRegisterLine, "route"> & {
+  id: string;
   route: DoseRoute | null;
 };
 
 /**
- * Every dose given in a window, oldest first: the animal, what was wrong with her, the drug, dose and route,
+ * Every dose given in a period, oldest first: the animal, what was wrong with her, the drug, dose and route,
  * which dose of the course it was, who gave it, the Vet who prescribed it, and when her milk and meat were
  * clear of it. A campaign's dose, which nobody prescribed, carries no diagnosis, dose, route or prescriber.
  */
@@ -54,7 +56,7 @@ export const treatmentsBetween = async (
 ): Promise<TreatmentLine[]> => {
   const doses = await db.query.treatment.findMany({
     where: { farmId, givenAt: { gte: from, lt: until } },
-    columns: { givenAt: true, number: true },
+    columns: { id: true, givenAt: true, number: true },
     with: {
       animal: { columns: { tagNumber: true } },
       product: {
@@ -84,6 +86,7 @@ export const treatmentsBetween = async (
       days === null ? null : farmDayOf(withdrawalEndsAt(givenAt, days));
     return [
       {
+        id: one.id,
         givenOn: farmDayOf(givenAt),
         tagNumber: one.animal.tagNumber,
         diagnosis: prescription?.diagnosis?.disease ?? null,
@@ -102,27 +105,20 @@ export const treatmentsBetween = async (
   });
 };
 
-/** What became of an animal since she was diagnosed: still on the farm in a State, or gone and when. */
+/** What became of an animal since she was diagnosed: still on the farm, or gone and when. */
 export interface Outcome {
-  kind: "on_the_farm" | "sold" | "died" | "culled";
-  state: string;
+  kind: ExitState | "on_the_farm";
   on: string | null;
 }
 
-/** One diagnosis on the disease history. */
-export interface DiagnosisLine {
-  diagnosedOn: string;
-  tagNumber: string;
-  disease: string;
-  diagnosedBy: string;
-  notifiable: boolean;
-  /** The office's reference the letter was delivered under; null until it was. */
-  reportReference: string | null;
+/** One diagnosis on the disease history: the printed line before it is written out, its outcome still facts. */
+export type DiagnosisLine = Omit<DiseaseHistoryLine, "outcome"> & {
+  id: string;
   outcome: Outcome;
-}
+};
 
 /**
- * Every diagnosis in a window, oldest first: the animal, the disease in the Vet's words, the Vet, whether the
+ * Every diagnosis in a period, oldest first: the animal, the disease in the Vet's words, the Vet, whether the
  * farm's list made it notifiable and the reference its letter was delivered under, and what became of the
  * animal since. A report withdrawn because the disease came off the list is not notifiable.
  */
@@ -133,7 +129,7 @@ export const diagnosesBetween = async (
 ): Promise<DiagnosisLine[]> => {
   const rows = await db.query.diagnosis.findMany({
     where: { farmId, diagnosedAt: { gte: from, lt: until } },
-    columns: { diagnosedAt: true, disease: true },
+    columns: { id: true, diagnosedAt: true, disease: true },
     with: {
       animal: {
         columns: { tagNumber: true, state: true, stateChangedAt: true },
@@ -148,6 +144,7 @@ export const diagnosesBetween = async (
     const kind: Outcome["kind"] = isExitState(state) ? state : "on_the_farm";
     const report = row.report?.withdrawnAt ? null : row.report;
     return {
+      id: row.id,
       diagnosedOn: farmDayOf(row.diagnosedAt),
       tagNumber: row.animal.tagNumber,
       disease: row.disease,
@@ -156,7 +153,6 @@ export const diagnosesBetween = async (
       reportReference: report?.reference ?? null,
       outcome: {
         kind,
-        state,
         on:
           kind === "on_the_farm" ? null : farmDayOf(row.animal.stateChangedAt),
       },

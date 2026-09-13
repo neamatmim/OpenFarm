@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// The Inspector View's health registers: the treatment register (R4), every dose in a window with the
+// The Inspector View's health registers: the treatment register (R4), every dose in a period with the
 // prescription and withdrawal behind it, and the disease history (R5), every diagnosis with the notifiable
 // ones marked and what became of the animal.
 
@@ -253,11 +253,12 @@ const ours = (tag: string) =>
   tag === world.mastitisCow.tagNumber || tag === world.anthraxCow.tagNumber;
 
 describe("the health registers", () => {
-  it("lists every dose in the window with its prescription and withdrawal, a campaign's without either", async () => {
+  it("lists every dose in the period with its prescription and withdrawal, a campaign's without either", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
     const march = await manager.client.inspector.treatments(MARCH);
     expect(march.rows.filter((row) => ours(row.tagNumber))).toEqual([
       {
+        id: expect.any(String),
         givenOn: "2044-03-01",
         tagNumber: world.mastitisCow.tagNumber,
         diagnosis: "ওলান প্রদাহ",
@@ -271,6 +272,7 @@ describe("the health registers", () => {
         meatClearOn: "2044-03-22",
       },
       {
+        id: expect.any(String),
         givenOn: "2044-03-20",
         tagNumber: world.mastitisCow.tagNumber,
         diagnosis: null,
@@ -285,18 +287,26 @@ describe("the health registers", () => {
       },
     ]);
 
-    // Thirty days back from today unless asked: the dose of 1 March is past it, the campaign is not.
+    // Thirty days to today unless asked, today counted: the dose of 1 March is past it, the campaign is not.
     const lately = await manager.client.inspector.treatments({});
-    expect(lately).toMatchObject({ from: "2044-03-11", to: "2044-04-10" });
+    expect(lately).toMatchObject({ from: "2044-03-12", to: "2044-04-10" });
+    // Asked only where to end, the thirty days end there (2044 is a leap year).
+    const back = await manager.client.inspector.treatments({
+      to: "2044-03-01",
+    });
+    expect(back).toMatchObject({ from: "2044-02-01", to: "2044-03-01" });
+    expect(
+      back.rows.filter((row) => ours(row.tagNumber)).map((row) => row.givenOn)
+    ).toEqual(["2044-03-01"]);
     expect(
       lately.rows.filter((row) => ours(row.tagNumber)).map((row) => row.givenOn)
     ).toEqual(["2044-03-20"]);
   });
 
-  it("takes an asked window's first and last days whole, and refuses one that runs backwards", async () => {
+  it("takes an asked period's first and last days whole, and refuses one that runs backwards", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
-    const givenOn = async (window: { from: string; to: string }) => {
-      const register = await manager.client.inspector.treatments(window);
+    const givenOn = async (period: { from: string; to: string }) => {
+      const register = await manager.client.inspector.treatments(period);
       return register.rows
         .filter((row) => ours(row.tagNumber))
         .map((row) => row.givenOn);
@@ -309,8 +319,8 @@ describe("the health registers", () => {
     ]);
     expect(await givenOn({ from: "2044-03-02", to: "2044-03-19" })).toEqual([]);
 
-    const diagnosedOn = async (window: { from: string; to: string }) => {
-      const history = await manager.client.inspector.diseases(window);
+    const diagnosedOn = async (period: { from: string; to: string }) => {
+      const history = await manager.client.inspector.diseases(period);
       return history.rows
         .filter((row) => ours(row.tagNumber))
         .map((row) => row.diagnosedOn);
@@ -339,15 +349,19 @@ describe("the health registers", () => {
     expect(paper.text).toContain("চিকিৎসার রেজিস্টার / Treatment register");
     // Days and the route written out for the reader; the course and both clear days beside the dose.
     expect(paper.text).toContain("সময়কাল / Period: ১ মার্চ, ২০৪৪ — ৩১ মার্চ, ২০৪৪");
+    // A line to each field, in the order the CSV has them.
     expect(paper.text).toContain(
-      `১ মার্চ, ২০৪৪ · ${world.mastitisCow.tagNumber} · অক্সিটেট্রাসাইক্লিন ${suffix}`
+      [
+        `১ মার্চ, ২০৪৪ · ${world.mastitisCow.tagNumber}`,
+        "  রোগ / Diagnosis: ওলান প্রদাহ",
+        `  ওষুধ / Drug: অক্সিটেট্রাসাইক্লিন ${suffix}`,
+        "  ডোজ / Dose: ১০ মিলি",
+        "  পথ / Route: মাংসে ইনজেকশন / Intramuscular",
+        "  কোর্স / Course: 1/4",
+      ].join("\n")
     );
     expect(paper.text).toContain(
-      "ডোজ ও পথ / Dose and route: ১০ মিলি · মাংসে ইনজেকশন / Intramuscular"
-    );
-    expect(paper.text).toContain("কোর্স / Course: 1/4");
-    expect(paper.text).toContain(
-      "দুধ মুক্ত / Milk clear: ৫ মার্চ, ২০৪৪ · মাংস মুক্ত / Meat clear: ২২ মার্চ, ২০৪৪"
+      "  দুধ মুক্ত / Milk clear: ৫ মার্চ, ২০৪৪\n  মাংস মুক্ত / Meat clear: ২২ মার্চ, ২০৪৪"
     );
 
     const sheet = await manager.client.inspector.print({
@@ -396,34 +410,40 @@ describe("the health registers", () => {
     const owner = await as("owner", "2044-04-10T04:00:00.000Z");
     const history = await owner.client.inspector.diseases({});
     // Six months back from today unless asked.
-    expect(history).toMatchObject({ from: "2043-10-10", to: "2044-04-10" });
+    expect(history).toMatchObject({ from: "2043-10-11", to: "2044-04-10" });
+    // A month too short for the day ends it: six months before the 31st of August is the end of February.
+    const summer = await owner.client.inspector.diseases({ to: "2044-08-31" });
+    expect(summer).toMatchObject({ from: "2044-03-01", to: "2044-08-31" });
     expect(history.rows.filter((row) => ours(row.tagNumber))).toEqual([
       {
+        id: expect.any(String),
         diagnosedOn: "2044-03-01",
         tagNumber: world.mastitisCow.tagNumber,
         disease: "ওলান প্রদাহ",
         diagnosedBy: expect.any(String),
         notifiable: false,
         reportReference: null,
-        outcome: { kind: "on_the_farm", state: "heifer", on: null },
+        outcome: { kind: "on_the_farm", on: null },
       },
       {
+        id: expect.any(String),
         diagnosedOn: "2044-03-10",
         tagNumber: world.anthraxCow.tagNumber,
         disease: world.disease,
         diagnosedBy: expect.any(String),
         notifiable: true,
         reportReference: "ULO/2044/০০৭",
-        outcome: { kind: "died", state: "died", on: "2044-03-12" },
+        outcome: { kind: "died", on: "2044-03-12" },
       },
       {
+        id: expect.any(String),
         diagnosedOn: "2044-03-15",
         tagNumber: world.mastitisCow.tagNumber,
         disease: "জ্বর, কারণ অজানা",
         diagnosedBy: expect.any(String),
         notifiable: false,
         reportReference: null,
-        outcome: { kind: "on_the_farm", state: "heifer", on: null },
+        outcome: { kind: "on_the_farm", on: null },
       },
     ]);
 
@@ -445,6 +465,25 @@ describe("the health registers", () => {
     await expect(
       owner.client.inspector.print({ report: "disease_history", format: "csv" })
     ).rejects.toMatchObject({ data: { refusal: "register_has_no_csv" } });
+
+    // The print is an Export keeping its period; the refused CSV is not one.
+    const exports = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "report", action: "export" },
+    });
+    expect(
+      exports
+        .map((event) => event.after as Record<string, unknown> | null)
+        .filter(
+          (after) =>
+            after?.report === "disease_history" && after.from === "2043-10-11"
+        )
+    ).toEqual([
+      expect.objectContaining({
+        format: "paper",
+        from: "2043-10-11",
+        to: "2044-04-10",
+      }),
+    ]);
   });
 
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {

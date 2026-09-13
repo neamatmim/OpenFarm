@@ -520,8 +520,10 @@ export const en = {
   "inspector.treatments": "Treatment register",
   "inspector.diseases": "Disease history",
   "inspector.clear": "Milk clear {milk} · meat clear {meat}",
-  "inspector.noTreatments": "No treatments in this window",
-  "inspector.noDiseases": "No diagnoses in this window",
+  "inspector.csv": "CSV",
+  "inspector.givenBy": "Given by {giver} · prescribed by {vet}",
+  "inspector.noTreatments": "No treatments in this period",
+  "inspector.noDiseases": "No diagnoses in this period",
   "inspector.notifiable": "notifiable · DLS reference {reference}",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":

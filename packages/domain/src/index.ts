@@ -105,6 +105,7 @@ export type {
   DiseaseHistory,
   DiseaseHistoryLine,
   DoseGiven,
+  HealthRegister,
   InspectorRegister,
   HerdSummary,
   HerdSummaryLine,

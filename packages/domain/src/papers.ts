@@ -489,12 +489,18 @@ export const INSPECTOR_REGISTERS = [
   "treatment_register",
   "disease_history",
 ] as const;
+export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
 
 /** The registers an inspector may also take away as a CSV (the report set: R4 as PDF and CSV). */
 export const REGISTERS_WITH_CSV: readonly InspectorRegister[] = [
   "treatment_register",
 ];
-export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
+
+/** The health registers, which cover a period: thirty days of treatments, six months of diagnoses. */
+export type HealthRegister = Extract<
+  InspectorRegister,
+  "treatment_register" | "disease_history"
+>;
 
 const STANDING_LABEL: Record<RegistrationStanding, string> = {
   valid: "বৈধ / Valid",
@@ -596,7 +602,8 @@ export interface TreatmentRegister {
 }
 
 /**
- * R4, the treatment register: every dose in a window, in the DLS guideline's column order — the date, the
+ * R4, the treatment register: every dose in a period, a line to each field in the DLS guideline's column order as
+ * the CSV has it — the date, the
  * animal, the diagnosis, the drug, the dose and route, which dose of the course, who gave it, the prescribing
  * Vet, and when the milk and the meat were clear. What an inspector and a slaughter vet ask for first.
  */
@@ -610,13 +617,16 @@ export const treatmentRegister = (register: TreatmentRegister): string =>
     ...(register.doses.length === 0
       ? ["এই সময়ে কোনো চিকিৎসা হয়নি / No treatments in this period"]
       : register.doses.flatMap((one) => [
-          `${one.givenOn} · ${one.tagNumber} · ${one.drug}`,
+          `${one.givenOn} · ${one.tagNumber}`,
           `  ${field("রোগ", "Diagnosis", one.diagnosis ?? "—")}`,
-          `  ${field("ডোজ ও পথ", "Dose and route", `${one.dose ?? "—"} · ${one.route ?? "—"}`)}`,
+          `  ${field("ওষুধ", "Drug", one.drug)}`,
+          `  ${field("ডোজ", "Dose", one.dose ?? "—")}`,
+          `  ${field("পথ", "Route", one.route ?? "—")}`,
           `  ${field("কোর্স", "Course", one.course ?? "—")}`,
           `  ${field("যিনি দিয়েছেন", "Given by", one.givenBy ?? "—")}`,
           `  ${field("প্রেসক্রিপশন", "Prescribed by", one.prescribedBy ?? "—")}`,
-          `  ${field("দুধ মুক্ত", "Milk clear", one.milkClearOn ?? "—")} · ${field("মাংস মুক্ত", "Meat clear", one.meatClearOn ?? "—")}`,
+          `  ${field("দুধ মুক্ত", "Milk clear", one.milkClearOn ?? "—")}`,
+          `  ${field("মাংস মুক্ত", "Meat clear", one.meatClearOn ?? "—")}`,
         ])),
     "",
     `${register.producedAt} · ${register.producedBy}`,
@@ -644,7 +654,7 @@ export interface DiseaseHistory {
 }
 
 /**
- * R5, the disease history: every diagnosis in a window by date and animal, the notifiable ones marked with the
+ * R5, the disease history: every diagnosis in a period by date and animal, the notifiable ones marked with the
  * reference their letter to the office was delivered under, and what became of the animal since.
  */
 export const diseaseHistory = (history: DiseaseHistory): string =>

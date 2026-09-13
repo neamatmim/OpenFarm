@@ -506,6 +506,8 @@ export const bn: Record<MessageKey, string> = {
   "inspector.treatments": "চিকিৎসার রেজিস্টার",
   "inspector.diseases": "রোগের ইতিহাস",
   "inspector.clear": "দুধ মুক্ত {milk} · মাংস মুক্ত {meat}",
+  "inspector.csv": "CSV",
+  "inspector.givenBy": "দিয়েছেন {giver} · প্রেসক্রিপশন {vet}",
   "inspector.noTreatments": "এই সময়ে কোনো চিকিৎসা নেই",
   "inspector.noDiseases": "এই সময়ে কোনো রোগ নির্ণয় নেই",
   "inspector.notifiable": "জ্ঞাপনযোগ্য · ডিএলএস রেফারেন্স {reference}",

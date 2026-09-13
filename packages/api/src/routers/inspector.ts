@@ -1,10 +1,15 @@
-import type { InspectorRegister, LiveState } from "@OpenFarm/domain";
+import type {
+  HealthRegister,
+  InspectorRegister,
+  LiveState,
+} from "@OpenFarm/domain";
 import {
   INSPECTOR_REGISTERS,
   LIVE_STATES,
   REGISTERS_WITH_CSV,
   SIDES,
   diseaseHistory,
+  farmDayOf,
   herdSummary,
   identityView,
   isLiveState,
@@ -21,15 +26,14 @@ import { z } from "zod";
 import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { assertRegistered, recordExport } from "../export-store";
-import { farmDay } from "../farm-clock";
 import type { DiagnosisLine, TreatmentLine } from "../health-register-store";
 import {
-  defaultWindow,
+  lookBackFrom,
   diagnosesBetween,
   treatmentsBetween,
 } from "../health-register-store";
 import { protectedProcedure } from "../index";
-import { periodOf } from "../period";
+import { periodInput, periodOf } from "../period";
 import { languageOf } from "../reader-language";
 import { certificatesOf } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
@@ -135,31 +139,23 @@ const statesSaid = (byState: ByState, language: Language) =>
       : [];
   }).join(" · ");
 
-/** A window a register was asked for. */
-interface Asked {
-  from?: string;
-  to?: string;
-}
-
-/** A window as asked for over the wire: either day may be left out for the register's own look-back. */
-const windowInput = z.object({
-  from: farmDay.optional(),
-  to: farmDay.optional(),
+/** A period as a register is asked for it: either day may be left out for the register's own look-back. */
+const askedPeriodInput = z.object({
+  from: periodInput.from.optional(),
+  to: periodInput.to.optional(),
 });
+type AskedPeriod = z.infer<typeof askedPeriodInput>;
 
-/** The window a health register covers: the one asked for, or its look-back, refused when it runs backwards or
- *  past a year. */
-const windowOf = (
-  register: "treatment_register" | "disease_history",
-  asked: Asked,
+/** The period a health register covers: the one asked for, a missing first day its look-back from the last, a
+ *  missing last day today — refused when it runs backwards or past a year. */
+const registerPeriod = (
+  register: HealthRegister,
+  asked: AskedPeriod,
   now: Date
 ) => {
-  const standard = defaultWindow(register, now);
-  const window = {
-    from: asked.from ?? standard.from,
-    to: asked.to ?? standard.to,
-  };
-  return { ...window, range: periodOf(window) };
+  const to = asked.to ?? farmDayOf(now);
+  const period = { from: asked.from ?? lookBackFrom(register, to), to };
+  return { ...period, range: periodOf(period) };
 };
 
 /** A farm day as a paper writes it, in the reader's language. */
@@ -209,17 +205,25 @@ const treatmentCsv = (doses: readonly TreatmentLine[]) =>
     ])
   );
 
+/** A register as made: the paper, the CSV when it has one, the period it covers when it covers one, and what
+ *  it said for the trail to keep. */
+interface Made {
+  text: string;
+  csv?: string;
+  period?: { from: string; to: string };
+  said: Record<string, unknown>;
+}
+
 /**
  * The Inspector View's registers as papers, each in the language of whoever is producing it, with what the paper
- * said for the trail to keep: the Registration it showed, the herd it counted, or the window and how many doses
+ * said for the trail to keep: the Registration it showed, the herd it counted, or how many doses
  * or diagnoses it listed. The treatment register is also given as a CSV.
  */
-const PAPERS = {
-  registration: async (
-    context: Producing,
-    language: Language,
-    _asked: Asked
-  ) => {
+const PAPERS: Record<
+  InspectorRegister,
+  (context: Producing, language: Language, asked: AskedPeriod) => Promise<Made>
+> = {
+  registration: async (context, language) => {
     const registration = await registrationOf(context);
     const day = (at: Date | null) =>
       at ? formatDate(at, language, "date") : null;
@@ -241,11 +245,7 @@ const PAPERS = {
       },
     };
   },
-  herd_summary: async (
-    context: Producing,
-    language: Language,
-    _asked: Asked
-  ) => {
+  herd_summary: async (context, language) => {
     const herd = await herdOf(context);
     const count = (n: number) => formatNumber(n, language);
     return {
@@ -286,22 +286,22 @@ const PAPERS = {
       said: { animals: herd.total, pens: herd.byPen.length },
     };
   },
-  treatment_register: async (
-    context: Producing,
-    language: Language,
-    asked: Asked
-  ) => {
-    const window = windowOf("treatment_register", asked, context.clock.now());
+  treatment_register: async (context, language, asked) => {
+    const period = registerPeriod(
+      "treatment_register",
+      asked,
+      context.clock.now()
+    );
     const doses = await treatmentsBetween(
       context.db,
       context.farm.id,
-      window.range
+      period.range
     );
     return {
       text: treatmentRegister({
         farm: context.farm,
-        from: daySaid(window.from, language),
-        to: daySaid(window.to, language),
+        from: daySaid(period.from, language),
+        to: daySaid(period.to, language),
         doses: doses.map((one) => ({
           ...one,
           givenOn: daySaid(one.givenOn, language),
@@ -313,25 +313,26 @@ const PAPERS = {
         producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
       csv: treatmentCsv(doses),
-      said: { from: window.from, to: window.to, doses: doses.length },
+      period,
+      said: { doses: doses.length },
     };
   },
-  disease_history: async (
-    context: Producing,
-    language: Language,
-    asked: Asked
-  ) => {
-    const window = windowOf("disease_history", asked, context.clock.now());
+  disease_history: async (context, language, asked) => {
+    const period = registerPeriod(
+      "disease_history",
+      asked,
+      context.clock.now()
+    );
     const diagnoses = await diagnosesBetween(
       context.db,
       context.farm.id,
-      window.range
+      period.range
     );
     return {
       text: diseaseHistory({
         farm: context.farm,
-        from: daySaid(window.from, language),
-        to: daySaid(window.to, language),
+        from: daySaid(period.from, language),
+        to: daySaid(period.to, language),
         diagnoses: diagnoses.map((one) => ({
           ...one,
           diagnosedOn: daySaid(one.diagnosedOn, language),
@@ -340,22 +341,14 @@ const PAPERS = {
         producedBy: context.actor.name,
         producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
+      period,
       said: {
-        from: window.from,
-        to: window.to,
         diagnoses: diagnoses.length,
         notifiable: diagnoses.filter((one) => one.notifiable).length,
       },
     };
   },
-} satisfies Record<
-  InspectorRegister,
-  (
-    context: Producing,
-    language: Language,
-    asked: Asked
-  ) => Promise<{ text: string; csv?: string; said: Record<string, unknown> }>
->;
+};
 
 export const inspectorRouter = {
   /**
@@ -374,41 +367,49 @@ export const inspectorRouter = {
     })),
 
   /**
-   * R4, the treatment register: every dose in a window — thirty days back from today unless asked — with the
+   * R4, the treatment register: every dose in a period — thirty days back from today unless asked — with the
    * diagnosis, drug, dose and route, the course, who gave it, the prescribing Vet, and when the milk and meat
    * were clear. The Owner's and the Manager's, from their own phones.
    */
   treatments: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
-    .input(windowInput)
+    .input(askedPeriodInput)
     .handler(async ({ context, input }) => {
-      const window = windowOf("treatment_register", input, context.clock.now());
+      const period = registerPeriod(
+        "treatment_register",
+        input,
+        context.clock.now()
+      );
       return {
-        from: window.from,
-        to: window.to,
+        from: period.from,
+        to: period.to,
         rows: await treatmentsBetween(
           context.db,
           context.farm.id,
-          window.range
+          period.range
         ),
       };
     }),
 
   /**
-   * R5, the disease history: every diagnosis in a window — six months back from today unless asked — with the
+   * R5, the disease history: every diagnosis in a period — six months back from today unless asked — with the
    * notifiable ones marked and their reference, and what became of the animal since.
    */
   diseases: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
-    .input(windowInput)
+    .input(askedPeriodInput)
     .handler(async ({ context, input }) => {
-      const window = windowOf("disease_history", input, context.clock.now());
+      const period = registerPeriod(
+        "disease_history",
+        input,
+        context.clock.now()
+      );
       return {
-        from: window.from,
-        to: window.to,
-        rows: await diagnosesBetween(context.db, context.farm.id, window.range),
+        from: period.from,
+        to: period.to,
+        rows: await diagnosesBetween(context.db, context.farm.id, period.range),
       };
     }),
 
@@ -421,7 +422,7 @@ export const inspectorRouter = {
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(
-      windowInput.extend({
+      askedPeriodInput.extend({
         report: z.enum(INSPECTOR_REGISTERS),
         format: z.enum(["paper", "csv"]).default("paper"),
       })
@@ -439,12 +440,10 @@ export const inspectorRouter = {
       assertRegistered(context.farm, "a register for an inspector");
       const language = await languageOf(context.db, context.actor.id);
       const made = await PAPERS[input.report](context, language, input);
-      await recordExport(context, input.report, null, {
+      await recordExport(context, input.report, made.period ?? null, {
         format: input.format,
         ...made.said,
       });
-      return input.format === "csv" && "csv" in made
-        ? { csv: made.csv }
-        : { text: made.text };
+      return input.format === "csv" ? { csv: made.csv } : { text: made.text };
     }),
 };

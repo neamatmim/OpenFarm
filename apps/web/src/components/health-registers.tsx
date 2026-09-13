@@ -1,3 +1,4 @@
+import type { HealthRegister } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -10,11 +11,8 @@ import { wordedRefusal } from "@/lib/correction-refusal";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
-/** The health registers an inspector reads. */
-export type HealthRegister = "treatment_register" | "disease_history";
-
-/** A window as the registers are asked for it: a day left empty is the register's own look-back. */
-interface Asked {
+/** A period as the registers are asked for it: a day left empty is the register's own look-back. */
+interface AskedPeriod {
   from?: string;
   to?: string;
 }
@@ -27,21 +25,21 @@ const OUTCOME_WORD = {
 } as const satisfies Record<string, MessageKey>;
 
 /**
- * The treatment register (R4) and the disease history (R5) on the Inspector View: every dose in the window
+ * The treatment register (R4) and the disease history (R5) on the Inspector View: every dose in the period
  * with what was behind it, every diagnosis with the notifiable ones marked — each printed, and the treatment
- * register also given as a CSV. Thirty days and six months back unless a window is set.
+ * register also given as a CSV. Thirty days and six months back unless a period is set.
  */
 export const HealthRegisters = ({
   onPrint,
   printing,
 }: {
-  onPrint: (report: HealthRegister, asked: Asked) => void;
+  onPrint: (report: HealthRegister, asked: AskedPeriod) => void;
   printing: boolean;
 }) => {
   const { t } = useLanguage();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const asked: Asked = {
+  const asked: AskedPeriod = {
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
   };
@@ -118,21 +116,25 @@ export const HealthRegisters = ({
               size="sm"
               variant="outline"
             >
-              CSV
+              {t("inspector.csv")}
             </Button>
           </div>
         </div>
         {treatments.data?.rows.length ? (
           <ul className="space-y-1">
-            {treatments.data.rows.map((row, index) => (
-              <li
-                className="rounded border p-2"
-                key={`${row.givenOn}-${row.tagNumber}-${index}`}
-              >
-                {row.givenOn} · {row.tagNumber} · {row.drug}
-                {row.diagnosis ? ` · ${row.diagnosis}` : ""}
+            {treatments.data.rows.map((row) => (
+              <li className="rounded border p-2" key={row.id}>
+                {row.givenOn} · {row.tagNumber}
+                {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
                 {row.dose ? ` · ${row.dose}` : ""}
+                {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
                 {row.course ? ` · ${row.course}` : ""}
+                <span className="text-muted-foreground block text-xs">
+                  {t("inspector.givenBy", {
+                    giver: row.givenBy ?? "—",
+                    vet: row.prescribedBy ?? "—",
+                  })}
+                </span>
                 <span className="text-muted-foreground block text-xs">
                   {t("inspector.clear", {
                     milk: row.milkClearOn ?? "—",
@@ -166,11 +168,8 @@ export const HealthRegisters = ({
         </div>
         {diseases.data?.rows.length ? (
           <ul className="space-y-1">
-            {diseases.data.rows.map((row, index) => (
-              <li
-                className="rounded border p-2"
-                key={`${row.diagnosedOn}-${row.tagNumber}-${index}`}
-              >
+            {diseases.data.rows.map((row) => (
+              <li className="rounded border p-2" key={row.id}>
                 {row.diagnosedOn} · {row.tagNumber} · {row.disease}
                 {row.notifiable ? (
                   <span className="ml-1 text-amber-400">
