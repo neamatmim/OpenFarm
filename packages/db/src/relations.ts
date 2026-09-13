@@ -84,7 +84,8 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.feedItem.id,
       optional: false,
     }),
-    supplier: r.one.counterparty({
+    /** Who the farm bought it from — the seller, as on an Intake. Null for a Harvest. */
+    seller: r.one.counterparty({
       from: r.feedIn.counterpartyId,
       to: r.counterparty.id,
     }),

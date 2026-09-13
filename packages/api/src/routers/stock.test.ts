@@ -149,7 +149,7 @@ describe("feed stock", () => {
       kind: "purchase",
       quantity: 500,
       priceBdt: 20_000,
-      supplier: { name: `রহমান ফিডস ${suffix}`, phone: "01711000000" },
+      seller: { name: `রহমান ফিডস ${suffix}`, phone: "01711000000" },
       receivedOn: "2034-01-02",
     });
     await manager.client.stock.receive({
@@ -157,7 +157,7 @@ describe("feed stock", () => {
       kind: "purchase",
       quantity: 500,
       priceBdt: 25_000,
-      supplier: { name: `রহমান ফিডস ${suffix}` },
+      seller: { name: `রহমান ফিডস ${suffix}` },
       receivedOn: "2034-01-02",
     });
     // Grass cut from the farm's own field, at no price and from nobody.
@@ -182,9 +182,11 @@ describe("feed stock", () => {
     expect(grass).toMatchObject({ onHand: 1000, averagePriceBdt: null });
   });
 
-  it("does not let a harvest at no price cheapen what was bought", async () => {
+  it("adds a harvest at no cost, so what the pens are charged is what was paid", async () => {
     const manager = await managerAt("2034-01-03T04:00:00.000Z");
-    // Some of the farm's own concentrate — the maize it grew — goes into the same store.
+    // Some of the farm's own concentrate — the maize it grew — goes into the same store. It cost nothing,
+    // so 1200 kg now stand the farm the ৳45,000 it paid: ৳37.50 a kilo, and no more is charged than
+    // was spent.
     await manager.client.stock.receive({
       feedItemId: world.concentrate.id,
       kind: "harvest",
@@ -195,7 +197,7 @@ describe("feed stock", () => {
       "2034-01-03T05:00:00.000Z",
       world.concentrate.id
     );
-    expect(concentrate).toMatchObject({ onHand: 1200, averagePriceBdt: 45 });
+    expect(concentrate).toMatchObject({ onHand: 1200, averagePriceBdt: 37.5 });
   });
 
   it("falls with every Feeding, and shows it when it falls below nothing", async () => {
@@ -210,6 +212,85 @@ describe("feed stock", () => {
     // short by what somebody forgot to write down coming in.
     const grass = await lineFor("2034-01-05T05:00:00.000Z", world.grass.id);
     expect(grass?.onHand).toBe(-200);
+    // Feeding takes feed out at the price of the moment and leaves the price where it was.
+    expect(concentrate?.averagePriceBdt).toBe(37.5);
+  });
+
+  it("averages a new purchase with what is still in the store, not with every purchase ever made", async () => {
+    // Concentrate has gone up: 100 kg at ৳60. The 900 kg on hand stood at ৳37.50; the new lot is
+    // averaged with those, not with the 1000 kg bought in the new year and long since fed.
+    const manager = await managerAt("2034-01-06T04:00:00.000Z");
+    const bought = await manager.client.stock.receive({
+      feedItemId: world.concentrate.id,
+      kind: "purchase",
+      quantity: 100,
+      priceBdt: 6000,
+      seller: { name: `রহমান ফিডস ${suffix}` },
+      receivedOn: "2034-01-06",
+    });
+    const concentrate = await lineFor(
+      "2034-01-06T05:00:00.000Z",
+      world.concentrate.id
+    );
+    expect(concentrate).toMatchObject({ onHand: 1000, averagePriceBdt: 39.75 });
+
+    // A second tap on the same form is the same lorry.
+    await manager.client.stock.receive({
+      id: bought.id,
+      feedItemId: world.concentrate.id,
+      kind: "purchase",
+      quantity: 100,
+      priceBdt: 6000,
+      seller: { name: `রহমান ফিডস ${suffix}` },
+      receivedOn: "2034-01-06",
+    });
+    const once = await lineFor(
+      "2034-01-06T05:00:00.000Z",
+      world.concentrate.id
+    );
+    expect(once?.onHand).toBe(1000);
+  });
+
+  it("lets a lot typed wrong be put right, and the store and the price follow", async () => {
+    const manager = await managerAt("2034-01-07T04:00:00.000Z");
+    // 5000 kg typed for 500: the store swells, and the price sinks with it.
+    const typo = await manager.client.stock.receive({
+      feedItemId: world.concentrate.id,
+      kind: "purchase",
+      quantity: 5000,
+      priceBdt: 25_000,
+      seller: { name: `রহমান ফিডস ${suffix}` },
+      receivedOn: "2034-01-07",
+    });
+    const wrong = await lineFor(
+      "2034-01-07T05:00:00.000Z",
+      world.concentrate.id
+    );
+    expect(wrong?.onHand).toBe(6000);
+
+    await manager.client.stock.correct({
+      id: typo.id,
+      quantity: 500,
+      reason: "একটা শূন্য বেশি লেখা হয়েছিল",
+    });
+    const right = await lineFor(
+      "2034-01-07T05:00:00.000Z",
+      world.concentrate.id
+    );
+    // 1000 kg at ৳39.75 and 500 kg for ৳25,000: ৳64,750 for 1500 kg.
+    expect(right).toMatchObject({ onHand: 1500, averagePriceBdt: 43.17 });
+
+    // And the list of what came in says it, in maunds too.
+    const arrivals = await manager.client.stock.arrivals({
+      feedItemId: world.concentrate.id,
+    });
+    expect(arrivals[0]).toMatchObject({
+      id: typo.id,
+      quantity: 500,
+      maunds: 13.4,
+      priceBdt: 25_000,
+      sellerName: `রহমান ফিডস ${suffix}`,
+    });
   });
 
   it("is the Manager's to record and the Owner's to read, and nobody else's", async () => {
@@ -235,24 +316,51 @@ describe("feed stock", () => {
         code: "FORBIDDEN",
       });
     }
-    // A purchase names its price and its supplier; a harvest has neither.
-    const manager = await managerAt("2034-01-06T04:00:00.000Z");
+    // A purchase names its price and its seller; a harvest has neither.
+    const manager = await managerAt("2034-01-08T04:00:00.000Z");
     await expect(
       manager.client.stock.receive({
         feedItemId: world.concentrate.id,
         kind: "purchase",
         quantity: 10,
-        receivedOn: "2034-01-06",
+        receivedOn: "2034-01-08",
       })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "purchase_needs_price_and_seller" },
+    });
     await expect(
       manager.client.stock.receive({
         feedItemId: world.grass.id,
         kind: "harvest",
         quantity: 10,
         priceBdt: 500,
-        receivedOn: "2034-01-06",
+        receivedOn: "2034-01-08",
       })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "harvest_has_no_price" },
+    });
+    // Nor does feed come in on a day that has not come yet, or into a retired Feed Item.
+    await expect(
+      manager.client.stock.receive({
+        feedItemId: world.grass.id,
+        kind: "harvest",
+        quantity: 10,
+        receivedOn: "2034-02-01",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "received_in_the_future" } });
+    const old = await manager.client.feed.addItem({
+      name: { bn: `পুরনো খাদ্য ${suffix}` },
+    });
+    await manager.client.feed.retireItem({ id: old.id });
+    await expect(
+      manager.client.stock.receive({
+        feedItemId: old.id,
+        kind: "harvest",
+        quantity: 10,
+        receivedOn: "2034-01-08",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "feed_retired" } });
   });
 });

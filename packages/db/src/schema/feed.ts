@@ -176,7 +176,7 @@ export const feedIn = pgTable(
     quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
     /** What the whole lot cost, in taka. Null for a harvest. */
     priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }),
-    /** Who the farm bought it from. Null for a harvest. */
+    /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The farm's day it came in. */
     receivedOn: timestamp("received_on").notNull(),

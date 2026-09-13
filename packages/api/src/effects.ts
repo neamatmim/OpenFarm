@@ -270,7 +270,7 @@ const applyFeedingEffect = async (
   // A whole-Pen Step cannot be skipped today — a meal that did not happen is the Manager
   // closing the work as Missed — so this is the guard for the day that rule changes, not a
   // path the farm can reach. A Feeding left standing beside a skip would be a meal the farm
-  // believes it served, and Stock will be drawn from these in increment 6.
+  // believes it served, and feed the store believes it gave.
   if (input.skipped) {
     await tx
       .delete(feeding)

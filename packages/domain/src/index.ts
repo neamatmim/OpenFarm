@@ -160,7 +160,12 @@ export {
   isOverdue,
   minutesOverdue,
 } from "./work";
-export type { FeedingEntryLine, FeedingLine, RationLine } from "./feed";
+export type {
+  FeedingEntryLine,
+  FeedingLine,
+  RationLine,
+  StockMovement,
+} from "./feed";
 export {
   KG_DECIMALS,
   MAUND_KG,
@@ -171,7 +176,7 @@ export {
   perSessionKg,
   roundKg,
   shortfallPercent,
-  weightedAveragePrice,
+  stockLedger,
 } from "./feed";
 export type {
   DoseRoute,
