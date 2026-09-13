@@ -63,6 +63,8 @@ const Header = () => {
           { to: "/admin/people", label: t("nav.people") },
           { to: "/admin/audit", label: t("nav.audit") },
           { to: "/admin/backups", label: t("nav.backups") },
+          // The one screen shown to a DLS inspector.
+          { to: "/inspector", label: t("nav.inspector") },
           // What the farm is, as every paper leaving it prints it.
           { to: "/admin/farm", label: t("nav.identity") },
         ]

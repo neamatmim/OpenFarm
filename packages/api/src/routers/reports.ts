@@ -1,4 +1,3 @@
-import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import type { MoneySummary } from "@OpenFarm/domain";
 import {
   accountantSummary,
@@ -10,14 +9,13 @@ import {
   summariseMoney,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { audited } from "../audit";
 import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { dispatchesBetween, litresDispatched } from "../dispatch-store";
 import type { DispatchRow } from "../dispatch-store";
+import { assertRegistered, recordExport } from "../export-store";
 import { protectedProcedure } from "../index";
 import type { ExportedMoney } from "../money-export-store";
 import { moneyForTheAccountant } from "../money-export-store";
@@ -26,50 +24,6 @@ import { languageOf } from "../reader-language";
 import { requirePersonalSession, requireRole } from "../roles";
 
 type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
-
-/**
- * Every Export is an Audit Event, stamped with the report, the period and the Registration number
- * (CONTEXT: Export). Nothing changes, so the write is the event alone; each Export is its own entity, so
- * the same period handed over twice is two Exports on the trail, not one Export seen twice.
- */
-const recordExport = (
-  context: FarmContext,
-  report: "milk_dispatch_record" | "milk_production" | "accountant_export",
-  period: { from: string; to: string },
-  extra: Record<string, unknown>
-) =>
-  audited(context).write(
-    {
-      entity: "report",
-      entityId: newId(context.clock.now()),
-      action: "export",
-      after: {
-        report,
-        from: period.from,
-        to: period.to,
-        registrationNumber: context.farm.registrationNumber,
-        ...extra,
-      },
-    },
-    () => Promise.resolve()
-  );
-
-/** A paper the farm hands to somebody outside it carries the Registration number; a farm that has not written
- *  it down is told what is missing rather than handed a paper with a hole in it. */
-const assertRegistered = (
-  farm: { registrationNumber: string | null },
-  paper: string
-) => {
-  if (!farm.registrationNumber?.trim()) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `The farm's DLS registration number is not recorded, and ${paper} cannot be written without it`,
-      data: {
-        refusal: "farm_identity_incomplete",
-        missing: "registrationNumber",
-      },
-    });
-  }
-};
 
 /** The accountant's summary as a paper, in the language of whoever is producing it. */
 const accountantPaper = async (

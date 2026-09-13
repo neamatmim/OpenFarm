@@ -12,6 +12,8 @@ export type PaperId =
   | "dls-letter"
   | "milk-dispatch-record"
   | "accountant-summary"
+  | "registration-record"
+  | "herd-summary"
   | "sop-card";
 
 /**
@@ -21,7 +23,16 @@ export type PaperId =
  * to produce again years later, and they should read the same every time. The print rules are
  * the DLS letter's — one page, and only the paper on it.
  */
-export const Paper = ({ id, text }: { id: PaperId; text: string }) => {
+export const Paper = ({
+  id,
+  text,
+  image,
+}: {
+  id: PaperId;
+  text: string;
+  /** A photograph printed under the text, for a paper that shows one — the Registration's certificate. */
+  image?: { contentType: string; data: string; alt: string };
+}) => {
   const { t } = useLanguage();
   return (
     <section className="space-y-2 rounded-xl border p-3 text-sm" id={id}>
@@ -36,6 +47,13 @@ export const Paper = ({ id, text }: { id: PaperId; text: string }) => {
       <pre className="overflow-x-auto font-sans text-sm whitespace-pre-wrap">
         {text}
       </pre>
+      {image ? (
+        <img
+          alt={image.alt}
+          className="max-h-[140mm] rounded-lg"
+          src={`data:${image.contentType};base64,${image.data}`}
+        />
+      ) : null}
       <Button
         className="no-print"
         onClick={() => window.print()}

@@ -99,6 +99,9 @@ export type {
   MilkDispatchRecord,
   AccountantSummary,
   DoseGiven,
+  HerdSummary,
+  HerdSummaryLine,
+  RegistrationRecord,
   PenSpell,
   ShortenedHold,
   SaleReceipt,
@@ -109,6 +112,8 @@ export type {
 export {
   accountantSummary,
   animalPassport,
+  herdSummary,
+  registrationRecord,
   milkDispatchRecord,
   saleReceipt,
   transportCard,
