@@ -98,6 +98,40 @@ const SERVICE_STEP_EVIDENCE: Evidence[] = [
   { type: "datetime", required: true },
 ];
 
+/** The six things a Calving Step asks, in the order the record reads them (CALVING_EVIDENCE): when,
+ *  how it went, and a first calf and an optional second — its sex and whether it was born alive. */
+const choiceOf = (
+  values: [string, string, string][],
+  required: boolean
+): Evidence => ({
+  type: "choice",
+  required,
+  choices: values.map(([value, bn, en]) => ({ value, label: { bn, en } })),
+});
+const CALF_SEX: [string, string, string][] = [
+  ["female", "বকনা", "Heifer calf"],
+  ["male", "এঁড়ে", "Bull calf"],
+];
+const BORN: [string, string, string][] = [
+  ["alive", "জীবিত", "Alive"],
+  ["stillborn", "মৃত", "Stillborn"],
+];
+const CALVING_STEP_EVIDENCE: Evidence[] = [
+  { type: "datetime", required: true },
+  choiceOf(
+    [
+      ["unassisted", "নিজে নিজে", "Unassisted"],
+      ["assisted", "সাহায্য লেগেছে", "Assisted"],
+      ["vet", "ভেট লেগেছে", "With the vet"],
+    ],
+    true
+  ),
+  choiceOf(CALF_SEX, true),
+  choiceOf(BORN, true),
+  choiceOf(CALF_SEX, false),
+  choiceOf(BORN, false),
+];
+
 /** What a Pregnancy Check Step asks first: what the Vet found. The labels are the farm's words; the
  *  values are what Breeding reads back. */
 const PREGNANCY_CHECK_RESULT: Evidence = {
@@ -187,6 +221,18 @@ export const withEffect = (
       evidence: [
         ...SERVICE_STEP_EVIDENCE,
         ...step.evidence.slice(SERVICE_STEP_EVIDENCE.length),
+      ],
+    };
+  }
+  if (kind === "calving") {
+    // Walked cow by cow on a round of the calving pen: she has calved, or she is skipped.
+    return {
+      ...step,
+      repeatPerAnimal: true,
+      effect: { kind },
+      evidence: [
+        ...CALVING_STEP_EVIDENCE,
+        ...step.evidence.slice(CALVING_STEP_EVIDENCE.length),
       ],
     };
   }

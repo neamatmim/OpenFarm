@@ -111,6 +111,11 @@ export const animal = pgTable(
      *  put right by hand; one worked out from a check is put right by correcting what it came from.
      *  No foreign key: the herd schema is read by the breeding one, not the other way about. */
     expectedCalvingServiceId: text("expected_calving_service_id"),
+    /** Her mother and the Calving she was born in, for a calf born on this farm. Null for an animal
+     *  that arrived. No foreign keys: the herd schema is read by the breeding one, not the other way
+     *  about, and a calf and her mother are both rows of this table. */
+    damId: text("dam_id"),
+    calvingId: text("calving_id"),
     /** While this is in the future, the cow's milk may not go to Bulk. Written from the last
      *  Treatment given, on the product's own days. */
     milkWithdrawalUntil: timestamp("milk_withdrawal_until"),

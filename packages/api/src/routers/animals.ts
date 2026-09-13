@@ -162,6 +162,9 @@ const saleView = (
       }
     : null;
 
+/** More calvings than any cow has in her working life. */
+const CALVINGS_SHOWN = 20;
+
 /** Every service a breeding cow is likely to have had in her working life, and then some. */
 const SERVICES_SHOWN = 60;
 
@@ -561,6 +564,26 @@ export const animalsRouter = {
             },
           },
           retags: { orderBy: { retaggedAt: "desc", id: "desc" }, limit: 20 },
+          /** Her mother, for a calf born here: a calf's page names who she came from. */
+          dam: { columns: { tagNumber: true } },
+          /** Every time she has calved, newest first, with what was born — a stillborn calf
+           *  included, because a calving history with a gap in it is not one. */
+          calvings: {
+            orderBy: { calvedAt: "desc", id: "desc" },
+            limit: CALVINGS_SHOWN,
+            columns: {
+              id: true,
+              calvedAt: true,
+              ease: true,
+              lactationNumber: true,
+            },
+            with: {
+              calves: {
+                columns: { tagNumber: true, sex: true, state: true },
+                orderBy: { id: "asc" },
+              },
+            },
+          },
           // What people have seen of her lately, withdrawn ones included: an Observation
           // that was corrected is still something somebody said on the round.
           observations: {

@@ -41,7 +41,10 @@ export const refusalMessage = (
  * at the animal and the server's English is not for them.
  */
 const WORDED_REFUSALS = {
+  calved_in_the_future: "refusal.calvedInTheFuture",
   calving_is_derived: "refusal.calvingIsDerived",
+  calving_not_yours: "refusal.calvingNotYours",
+  calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
   check_without_a_service: "refusal.checkWithoutAService",
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
   expected_calving_needed: "refusal.expectedCalvingNeeded",

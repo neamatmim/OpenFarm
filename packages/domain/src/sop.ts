@@ -1,5 +1,8 @@
 import type { CalvingLead } from "./breeding";
 import {
+  BIRTH_OUTCOMES,
+  CALF_SEXES,
+  CALVING_EASES,
   HEAT,
   PREGNANCY_CHECK_RESULTS,
   SERVICE,
@@ -80,7 +83,9 @@ export type StepEffect =
   /** What the Vet found: positive or negative, of the attempt the Service began. */
   | { kind: "pregnancy_check" }
   /** She was dried off: a milking cow is Dry from this Step. */
-  | { kind: "dry_off" };
+  | { kind: "dry_off" }
+  /** She calved: when, how it went, and each calf — her next Lactation, and a new animal per calf. */
+  | { kind: "calving" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -94,6 +99,7 @@ export const STEP_EFFECT_KINDS = [
   "service",
   "pregnancy_check",
   "dry_off",
+  "calving",
 ] as const;
 
 export interface Step {
@@ -394,6 +400,72 @@ const pregnancyCheckProcedureProblems = (content: SopContent): string[] => {
   return problems;
 };
 
+/** Where each fact sits in a Calving Step's Evidence, read by the same positions it is validated
+ *  by. Two calves, because twins are one calving; a second calf's slots are left empty for one. */
+export const CALVING_EVIDENCE = {
+  calvedAt: 0,
+  ease: 1,
+  calves: [
+    { sex: 2, outcome: 3 },
+    { sex: 4, outcome: 5 },
+  ],
+} as const;
+
+/** Whether a choice slot offers exactly these values. */
+const offersExactly = (
+  evidence: Evidence | undefined,
+  values: readonly string[]
+): boolean => {
+  const offered = evidence?.choices?.map((one) => one.value) ?? [];
+  return (
+    evidence?.type === "choice" &&
+    offered.length === values.length &&
+    values.every((one) => offered.includes(one))
+  );
+};
+
+/**
+ * What a Calving Step has to ask, in order: when she calved, as a required date and time; how it
+ * went, offering `unassisted`, `assisted` and `vet`; and for a first calf and an optional second its
+ * sex (`female`, `male`) and whether it was born `alive` or `stillborn`. The first calf is required —
+ * a calving with no calf is an abortion, recorded as one — and the second is not.
+ */
+const calvingStepProblems = (step: Step, path: string): string[] => {
+  const problems: string[] = [];
+  const at = step.evidence[CALVING_EVIDENCE.calvedAt];
+  if (at?.type !== "datetime" || !at.required) {
+    problems.push(
+      `${path}.evidence[0]: a calving step first asks when she calved, as a required date and time`
+    );
+  }
+  const ease = step.evidence[CALVING_EVIDENCE.ease];
+  if (!(offersExactly(ease, CALVING_EASES) && ease?.required)) {
+    problems.push(
+      `${path}.evidence[1]: a calving step then asks how it went, offering "unassisted", "assisted" and "vet"`
+    );
+  }
+  for (const [calf, slots] of CALVING_EVIDENCE.calves.entries()) {
+    const sex = step.evidence[slots.sex];
+    const outcome = step.evidence[slots.outcome];
+    const requiredAsItShouldBe =
+      calf === 0
+        ? Boolean(sex?.required && outcome?.required)
+        : !(sex?.required || outcome?.required);
+    if (
+      !(
+        offersExactly(sex, CALF_SEXES) &&
+        offersExactly(outcome, BIRTH_OUTCOMES) &&
+        requiredAsItShouldBe
+      )
+    ) {
+      problems.push(
+        `${path}.evidence[${slots.sex}]: a calving step asks each calf's sex ("female", "male") and whether it was born "alive" or "stillborn" — the first calf required, a second not`
+      );
+    }
+  }
+  return problems;
+};
+
 /**
  * A dry-off Step is walked cow by cow: which cow went Dry is the whole of what it records, so the
  * Step has to be about one.
@@ -412,6 +484,7 @@ const SHAPED_STEPS: Partial<
   service: serviceStepProblems,
   pregnancy_check: pregnancyCheckStepProblems,
   dry_off: dryOffStepProblems,
+  calving: calvingStepProblems,
 };
 
 const effectProblems = (step: Step, stepIndex: number): string[] => {
@@ -703,6 +776,17 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   ) {
     problems.push(
       "assignedRole: a procedure that records a service is the Manager's"
+    );
+  }
+  // A Calving is recorded by Barn Staff as a Step, or by the Manager (roles matrix: Breeding —
+  // Calving is `C R U` to the Manager and `C` to Staff as an SOP step). The Owner reads it and the Vet
+  // records the Pregnancy Check and the Abortion, not the birth.
+  if (
+    content.steps.some((step) => step.effect?.kind === "calving") &&
+    !["staff", "manager"].includes(content.assignedRole)
+  ) {
+    problems.push(
+      "assignedRole: a procedure that records a calving is Barn Staff's or the Manager's"
     );
   }
   problems.push(...pregnancyCheckProcedureProblems(content));
