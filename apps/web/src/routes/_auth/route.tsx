@@ -1,14 +1,14 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { SyncBanner } from "@/components/sync-banner";
+import { AppShell } from "@/components/shell/app-shell";
 import { getUser } from "@/functions/get-user";
 import { installShell, keepStorage } from "@/lib/install";
 
 /**
- * Every screen behind a sign-in carries the banner: what this phone is still holding, and
- * how long the farm has been without it. The question in the barn is always that one, so it
- * is never more than a glance away.
+ * Every screen behind a sign-in sits in the app shell: the farm's menu, and — in its top bar — what this phone is
+ * still holding and how long the farm has been without it. The question in the barn is always that one, so it is
+ * never more than a glance away.
  */
 const AuthLayout = () => {
   useEffect(() => {
@@ -22,10 +22,9 @@ const AuthLayout = () => {
   }, []);
 
   return (
-    <>
-      <SyncBanner />
+    <AppShell>
       <Outlet />
-    </>
+    </AppShell>
   );
 };
 

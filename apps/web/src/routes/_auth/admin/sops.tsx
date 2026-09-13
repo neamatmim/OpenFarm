@@ -647,8 +647,8 @@ const SopEditor = ({
       </section>
 
       {blockers.length > 0 ? (
-        <div className="rounded-lg border border-amber-500 p-3 text-sm">
-          <p className="font-medium text-amber-400">{t("sop.cannotPublish")}</p>
+        <div className="border-warning/40 rounded-lg border p-3 text-sm">
+          <p className="text-warning font-medium">{t("sop.cannotPublish")}</p>
           <ul className="text-muted-foreground">
             {blockers.map((blocker) => (
               <li key={blocker}>{blocker}</li>

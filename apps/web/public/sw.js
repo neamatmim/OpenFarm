@@ -9,8 +9,8 @@
  * and every write goes through the Outbox; a service worker quietly replaying a POST would
  * be a second write path, which ADR 0002 rules out.
  */
-const SHELL = "openfarm-shell-v2";
-const ASSETS = "openfarm-assets-v2";
+const SHELL = "openfarm-shell-v3";
+const ASSETS = "openfarm-assets-v3";
 const KEEP = new Set([SHELL, ASSETS]);
 const SHELL_FILES = ["/", "/today", "/manifest.webmanifest", "/icon.svg"];
 
@@ -50,9 +50,17 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/** Files the development server serves under names that stay the same while their contents change. Cached first,
+ *  they would show yesterday's styles and scripts for ever; they are left to the network. */
+const isDevelopmentFile = (url) =>
+  url.pathname.startsWith("/src/") ||
+  url.pathname.startsWith("/@") ||
+  url.pathname.startsWith("/node_modules/");
+
 /** The app's own built files: hashed, so what is cached under a URL never changes meaning. */
 const isBuildAsset = (url) =>
   url.origin === self.location.origin &&
+  !isDevelopmentFile(url) &&
   (url.pathname.startsWith("/_build/") ||
     url.pathname.startsWith("/assets/") ||
     /\.(?:js|css|woff2?|svg|png|webp)$/u.test(url.pathname));

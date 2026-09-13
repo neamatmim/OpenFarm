@@ -58,7 +58,7 @@ const FatteningPage = () => {
               </span>
               <span
                 className={
-                  row.onTrack === false ? "text-amber-400" : "text-emerald-400"
+                  row.onTrack === false ? "text-warning" : "text-success"
                 }
               >
                 {row.onTrack === null
@@ -97,7 +97,7 @@ const FatteningPage = () => {
             {row.recent &&
             row.sinceIntake &&
             row.recent.dailyGainKg < row.sinceIntake.dailyGainKg ? (
-              <p className="text-sm text-amber-400">{t("gain.slowing")}</p>
+              <p className="text-warning text-sm">{t("gain.slowing")}</p>
             ) : null}
           </li>
         ))}

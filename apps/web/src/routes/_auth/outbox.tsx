@@ -31,7 +31,7 @@ const HeldList = ({
   return (
     <ul className="space-y-3">
       {rows.map(({ entry, reason }) => (
-        <li className="rounded-2xl bg-neutral-900 p-4" key={entry.id}>
+        <li className="bg-card rounded-2xl border p-4" key={entry.id}>
           <p className="font-bold">{reason}</p>
           <p className="text-muted-foreground text-sm">
             {t("outbox.entered")}: {entered(entry) || entry.kind}

@@ -79,7 +79,7 @@ const IdentityPage = () => {
 
       {/* What the farm should be told before an inspector tells it. */}
       {farm.registrationMissing ? (
-        <p className="rounded-xl bg-amber-950 p-4 text-amber-100">
+        <p className="bg-warning-surface text-warning rounded-xl p-4">
           {t("identity.missing")}
         </p>
       ) : null}
@@ -89,7 +89,7 @@ const IdentityPage = () => {
           className={`rounded-xl p-4 ${
             farm.registrationExpired
               ? "bg-destructive/10 text-destructive"
-              : "bg-amber-950 text-amber-100"
+              : "bg-warning-surface text-warning"
           }`}
         >
           {t(

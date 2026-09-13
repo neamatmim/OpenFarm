@@ -95,7 +95,7 @@ const OwnerHome = () => {
       <section className="space-y-3">
         <h2 className="font-medium">{t("owner.needsYou")}</h2>
         {waiting === 0 ? (
-          <p className="rounded-xl bg-emerald-950 p-4 text-center text-emerald-100">
+          <p className="bg-success-surface text-success rounded-xl p-4 text-center">
             {t("owner.allFine")}
           </p>
         ) : null}
@@ -111,7 +111,7 @@ const OwnerHome = () => {
                 {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
               {row.escalated ? (
-                <span className="ml-2 text-amber-400">
+                <span className="text-warning ml-2">
                   {t("owner.escalated")}
                 </span>
               ) : null}
@@ -356,7 +356,7 @@ const Bars = ({ days }: { days: { day: string; litres: number }[] }) => {
       {days.map((one) => (
         <span
           aria-label={`${one.day}: ${formatNumber(one.litres, language)}`}
-          className="w-full rounded-sm bg-sky-700"
+          className="bg-info-surface w-full rounded-sm"
           key={one.day}
           style={{ height: `${Math.max((one.litres / most) * 100, 4)}%` }}
         />

@@ -63,7 +63,7 @@ const SignOffPage = () => {
         {queue.data?.length ? (
           <ul className="space-y-3">
             {queue.data.map((row) => (
-              <li className="rounded-2xl bg-neutral-900 p-4" key={row.id}>
+              <li className="bg-card rounded-2xl border p-4" key={row.id}>
                 <Link
                   className="block"
                   params={{ instanceId: row.id }}
@@ -117,7 +117,7 @@ const SignOffPage = () => {
         {late.data?.length ? (
           <ul className="space-y-3">
             {late.data.map((row) => (
-              <li className="rounded-2xl bg-amber-950 p-4" key={row.id}>
+              <li className="bg-warning-surface rounded-2xl p-4" key={row.id}>
                 <Link
                   className="block"
                   params={{ instanceId: row.id }}
@@ -126,7 +126,7 @@ const SignOffPage = () => {
                   <p className="text-lg font-bold">
                     {titleOf(row, language === "bn")}
                   </p>
-                  <p className="text-sm text-amber-200">
+                  <p className="text-warning text-sm">
                     {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
                     {t("work.lateFor", {
                       hours: hoursLate(row.minutesOverdue),

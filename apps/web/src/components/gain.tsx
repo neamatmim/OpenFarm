@@ -38,11 +38,7 @@ export const GainColumn = ({
         })}
       </p>
       {basis.projectedKg === null ? null : (
-        <p
-          className={
-            basis.reachesTarget ? "text-emerald-400" : "text-amber-400"
-          }
-        >
+        <p className={basis.reachesTarget ? "text-success" : "text-warning"}>
           {t("gain.projected", {
             kg: formatNumber(basis.projectedKg, language),
           })}

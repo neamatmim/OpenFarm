@@ -96,7 +96,7 @@ const ReadyPage = () => {
               <span className="text-muted-foreground text-sm">
                 {row.penName}
               </span>
-              <span className="text-emerald-400">
+              <span className="text-success">
                 {row.grounds
                   .map((ground) => t(`ready.because.${ground}`))
                   .join(" · ")}

@@ -101,12 +101,12 @@ const SettingsPage = () => {
           {already ? t("push.stop") : t("push.enable")}
         </Button>
       ) : (
-        <p className="rounded-xl bg-neutral-800 p-3 text-sm">
+        <p className="bg-muted rounded-xl p-3 text-sm">
           {t("push.unavailable")}
         </p>
       )}
       {said ? (
-        <p className="rounded-xl bg-amber-950 p-3 text-sm text-amber-100">
+        <p className="bg-warning-surface text-warning rounded-xl p-3 text-sm">
           {said}
         </p>
       ) : null}

@@ -74,7 +74,7 @@ const DevicesPage = () => {
       </form>
 
       {code ? (
-        <div className="rounded-lg border-2 border-emerald-500 p-4 text-center">
+        <div className="border-success/40 rounded-lg border-2 p-4 text-center">
           <p className="font-mono text-4xl font-bold tracking-widest">
             {code.code}
           </p>

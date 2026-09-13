@@ -1027,7 +1027,7 @@ const TheScale = ({
               </span>
             ) : null}
             {reading.flagged ? (
-              <span className="text-xs text-amber-400">
+              <span className="text-warning text-xs">
                 {t("weighIn.flagged")}
                 {reading.flaggedNote ? ` · ${reading.flaggedNote}` : ""}
               </span>
@@ -1201,9 +1201,7 @@ const HowSheWent = ({
           {formatDate(new Date(gone.happenedAt), language, "dateTime")} ·{" "}
           {causeWord(gone.cause, t)}
         </p>
-        <p
-          className={gone.disposal ? "text-muted-foreground" : "text-amber-500"}
-        >
+        <p className={gone.disposal ? "text-muted-foreground" : "text-warning"}>
           {t("mortality.disposal")}: {disposalWord(gone.disposal, t)}
           {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
           {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
@@ -1379,7 +1377,7 @@ const Withdrawals = ({
       ) : null}
       {detail.shortened ? (
         <>
-          <p className="text-amber-400">
+          <p className="text-warning">
             {t("animals.withdrawalShortened", {
               reason: detail.shortened.reason ?? "",
             })}

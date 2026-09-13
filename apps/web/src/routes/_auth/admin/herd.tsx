@@ -78,10 +78,7 @@ const HerdPage = () => {
               <h2 className="font-medium">{shed.name}</h2>
               <ul className="flex flex-wrap gap-2 text-sm">
                 {shed.pens.map((pen) => (
-                  <li
-                    key={pen.id}
-                    className="rounded-full bg-neutral-800 px-3 py-1"
-                  >
+                  <li key={pen.id} className="bg-muted rounded-full px-3 py-1">
                     {pen.name}
                   </li>
                 ))}
@@ -138,7 +135,7 @@ const HerdPage = () => {
         </Button>
         {importRegister.data?.failed.length ? (
           <div className="space-y-1 text-sm">
-            <p className="text-amber-400">
+            <p className="text-warning">
               {t("herd.failedRows", {
                 count: importRegister.data.failed.length,
               })}

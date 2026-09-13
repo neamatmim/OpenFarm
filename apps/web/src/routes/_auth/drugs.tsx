@@ -337,7 +337,7 @@ const Product = ({
         </p>
       )}
       {product.whyNot ? (
-        <p className="text-sm text-amber-500">{t(WHY_NOT[product.whyNot])}</p>
+        <p className="text-warning text-sm">{t(WHY_NOT[product.whyNot])}</p>
       ) : null}
 
       {isVet ? (

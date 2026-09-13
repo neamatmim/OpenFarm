@@ -1,10 +1,22 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { farmDayOf } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import {
+  AlarmClock,
+  ChevronRight,
+  CircleCheck,
+  ClipboardList,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import { useEffect } from "react";
 
 import { AlertList } from "@/components/alert-list";
+import { EmptyState, Page, PageHeader, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
@@ -27,6 +39,16 @@ const useStatusLabel = () => {
     return t("work.claim");
   };
 };
+
+/** When work is due: the time alone for today's work, the date as well for anything older. */
+const dueWhen = (due: Date, language: "bn" | "en") =>
+  farmDayOf(due) === farmDayOf(new Date())
+    ? new Intl.DateTimeFormat(language === "bn" ? "bn-BD" : "en-GB", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "Asia/Dhaka",
+      }).format(due)
+    : formatDate(due, language, "dateTime");
 
 /** What is due now, for the Pens this person works. */
 const TodayPage = () => {
@@ -65,51 +87,122 @@ const TodayPage = () => {
     void run();
   }, [raise, tell, carry, queryClient]);
 
+  const items = work.data ?? [];
+  const late = items.filter((instance) => instance.overdue).length;
+
   return (
-    <div className="container mx-auto max-w-xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("work.title")}</h1>
+    <Page>
+      <PageHeader
+        description={t("work.subtitle")}
+        eyebrow={formatDate(new Date(), language, "date")}
+        meta={
+          items.length > 0 ? (
+            <>
+              <StatusBadge tone="neutral">
+                {t("work.count", {
+                  count: formatNumber(items.length, language),
+                })}
+              </StatusBadge>
+              {late > 0 ? (
+                <StatusBadge tone="danger">
+                  {t("work.lateCount", { count: formatNumber(late, language) })}
+                </StatusBadge>
+              ) : null}
+            </>
+          ) : null
+        }
+        title={t("work.title")}
+      />
       <AlertList />
-      {work.data?.length ? (
-        <ul className="space-y-2">
-          {work.data.map((instance) => {
+      {work.isPending && !work.data ? (
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2].map((n) => (
+            <Skeleton className="h-24 rounded-xl" key={n} />
+          ))}
+        </div>
+      ) : null}
+      {items.length ? (
+        <ul className="grid gap-3 lg:grid-cols-2">
+          {items.map((instance) => {
             const content = instance.version.content as SopContent;
+            const status = statusOf(instance);
+            const free = status === t("work.claim");
             return (
               <li key={instance.id}>
                 <Link
-                  to="/work/$instanceId"
+                  className={cn(
+                    "group bg-card hover:border-primary/40 focus-visible:ring-ring flex min-h-24 items-center gap-4 rounded-xl border p-4 shadow-[0_1px_2px_0_oklch(0.2_0.02_160/0.05)] transition-[border-color,box-shadow] duration-150 outline-none hover:shadow-md focus-visible:ring-2",
+                    instance.overdue && "border-danger/35"
+                  )}
                   params={{ instanceId: instance.id }}
-                  className="flex items-center justify-between rounded-2xl bg-neutral-900 p-4 hover:bg-neutral-800"
+                  to="/work/$instanceId"
                 >
-                  <div>
-                    <p className="text-lg font-bold">{content.name.bn}</p>
-                    <p className="text-muted-foreground text-sm">
-                      {placeOfWork(instance.pen, t("work.wholeFarm"))} ·{" "}
-                      {t("work.due", {
-                        time: formatDate(
-                          new Date(instance.dueAt),
-                          language,
-                          "dateTime"
-                        ),
-                      })}
-                    </p>
-                  </div>
-                  <span className="flex items-center gap-2 text-sm">
+                  <span
+                    className={cn(
+                      "grid size-12 shrink-0 place-items-center rounded-xl",
+                      instance.overdue
+                        ? "bg-danger-surface text-danger"
+                        : "bg-secondary text-secondary-foreground"
+                    )}
+                  >
                     {instance.overdue ? (
-                      <span className="rounded-full bg-amber-900 px-2 py-0.5 text-xs text-amber-200">
-                        {t("work.overdue")}
+                      <AlarmClock aria-hidden className="size-6" />
+                    ) : (
+                      <ClipboardList aria-hidden className="size-6" />
+                    )}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <p className="line-clamp-2 text-lg font-semibold">
+                      {content.name.bn}
+                    </p>
+                    <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm">
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin aria-hidden className="size-3.5" />
+                        {placeOfWork(instance.pen, t("work.wholeFarm"))}
                       </span>
-                    ) : null}
-                    {statusOf(instance)}
+                      <span className="inline-flex items-center gap-1 tabular-nums">
+                        <Clock aria-hidden className="size-3.5" />
+                        {t("work.due", {
+                          time: dueWhen(new Date(instance.dueAt), language),
+                        })}
+                      </span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {instance.overdue ? (
+                        <StatusBadge tone="danger">
+                          {t("work.overdue")}
+                        </StatusBadge>
+                      ) : null}
+                      {free ? null : (
+                        <StatusBadge tone="warning">{status}</StatusBadge>
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      "inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-3 text-sm font-medium",
+                      free
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    )}
+                  >
+                    {free ? status : t("work.open")}
+                    <ChevronRight aria-hidden className="size-4" />
                   </span>
                 </Link>
               </li>
             );
           })}
         </ul>
-      ) : (
-        <p className="text-muted-foreground text-sm">{t("work.none")}</p>
-      )}
-    </div>
+      ) : null}
+      {work.data && items.length === 0 ? (
+        <EmptyState
+          description={t("work.noneHint")}
+          icon={CircleCheck}
+          title={t("work.none")}
+        />
+      ) : null}
+    </Page>
   );
 };
 

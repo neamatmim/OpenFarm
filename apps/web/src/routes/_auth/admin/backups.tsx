@@ -45,7 +45,7 @@ const BackupsPage = () => {
       {state ? (
         <p
           className={`rounded-xl p-3 ${
-            worrying ? "bg-amber-900 text-amber-100" : "bg-neutral-800"
+            worrying ? "bg-warning-surface text-warning" : "bg-muted"
           }`}
         >
           {howItStands()}
@@ -55,7 +55,7 @@ const BackupsPage = () => {
         <ul className="space-y-2">
           {state.runs.map((run) => (
             <li
-              className="flex items-center justify-between rounded-xl bg-neutral-900 p-3 text-sm"
+              className="bg-card flex items-center justify-between rounded-xl border p-3 text-sm"
               key={run.id}
             >
               <span>
@@ -63,9 +63,7 @@ const BackupsPage = () => {
                 {run.kind}
               </span>
               <span
-                className={
-                  run.ok === "yes" ? "text-emerald-400" : "text-amber-300"
-                }
+                className={run.ok === "yes" ? "text-success" : "text-warning"}
               >
                 {run.ok === "yes" ? t("backups.ok") : t("backups.failed")}
                 {run.detail ? ` · ${run.detail}` : ""}

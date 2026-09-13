@@ -2,9 +2,25 @@ import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@OpenFarm/ui/components/table";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Hourglass,
+  Scale,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 
 import { AccountantExport } from "@/components/accountant-export";
@@ -16,6 +32,16 @@ import {
   EnterMoney,
   ReceiptLink,
 } from "@/components/money-entry";
+import {
+  EmptyState,
+  Notice,
+  Page,
+  PageHeader,
+  PeriodFilter,
+  Section,
+  StatTile,
+  StatusBadge,
+} from "@/components/page";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -51,101 +77,263 @@ const MoneyPage = () => {
   const approve = useApproveMoney();
   const rows = money.data?.events ?? [];
 
+  const taka = (n: number) => `৳${formatNumber(n, language)}`;
+  const moneyIn = rows
+    .filter((row) => row.direction === "in")
+    .reduce((sum, row) => sum + row.amountBdt, 0);
+  const moneyOut = rows
+    .filter((row) => row.direction === "out")
+    .reduce((sum, row) => sum + row.amountBdt, 0);
+  const awaiting = rows.filter((row) => row.approval === "awaiting").length;
+  // Totals from a list the server cut short are the shown rows' totals, and say so on every figure.
+  const partial = money.data?.more ? t("money.shownOnly") : undefined;
+
   return (
-    <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("money.title")}</h1>
-      {entersMoney ? <EnterMoney /> : null}
-      <div className="flex flex-wrap gap-2">
-        <Input
-          aria-label={t("dispatch.from")}
-          className="w-40"
-          onChange={(event) => setFrom(event.target.value)}
-          type="date"
-          value={from}
-        />
-        <Input
-          aria-label={t("dispatch.to")}
-          className="w-40"
-          onChange={(event) => setTo(event.target.value)}
-          type="date"
-          value={to}
-        />
-      </div>
-      {money.isError ? (
-        <p className="text-sm text-red-400">
-          {wordedRefusal(money.error, t) ?? t("common.error")}
-        </p>
-      ) : null}
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("money.none")}</p>
+    <Page width="wide">
+      <PageHeader
+        description={t("money.subtitle")}
+        eyebrow={t("nav.group.money")}
+        title={t("money.title")}
+      />
+
+      <PeriodFilter
+        from={from}
+        fromLabel={t("dispatch.from")}
+        label={t("money.period")}
+        onFrom={setFrom}
+        onTo={setTo}
+        to={to}
+        toLabel={t("dispatch.to")}
+      />
+
+      {money.data ? (
+        <div className="flex flex-col gap-2">
+          {money.data.more ? (
+            <Notice title={t("money.partialTotals")} tone="info">
+              {t("money.partialHint")}
+            </Notice>
+          ) : null}
+          <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+            <StatTile
+              hint={partial}
+              icon={ArrowDownLeft}
+              label={t("money.totalIn")}
+              tone="success"
+              value={taka(moneyIn)}
+            />
+            <StatTile
+              hint={partial}
+              icon={ArrowUpRight}
+              label={t("money.totalOut")}
+              value={taka(moneyOut)}
+            />
+            <StatTile
+              hint={partial}
+              icon={Scale}
+              label={t("money.net")}
+              tone={moneyIn - moneyOut < 0 ? "danger" : "neutral"}
+              value={`${moneyIn - moneyOut < 0 ? "−" : ""}${taka(Math.abs(moneyIn - moneyOut))}`}
+            />
+            <StatTile
+              hint={partial}
+              icon={Hourglass}
+              label={t("money.awaitingCount")}
+              tone={awaiting > 0 ? "warning" : "neutral"}
+              value={formatNumber(awaiting, language)}
+            />
+          </div>
+        </div>
       ) : (
-        <ul className="space-y-2">
-          {rows.map((row) => (
-            <li
-              className="flex items-start justify-between gap-2 rounded-lg border p-2 text-sm"
-              key={row.id}
-            >
-              <div>
-                <p>
-                  {row.direction === "in" ? "+" : "−"}৳
-                  {formatNumber(row.amountBdt, language)} ·{" "}
-                  {categoryName(row, language)}
-                  {row.counterpartyName ? ` · ${row.counterpartyName}` : ""}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {formatDate(row.occurredAt, language)} ·{" "}
-                  {t(SOURCE_WORD[row.source])} ·{" "}
-                  {t(PAYMENT_METHOD_WORD[row.paymentMethod])}
-                  {row.approval === "awaiting"
-                    ? ` · ${t("money.awaiting")}`
-                    : ""}
-                  {row.approval === "approved"
-                    ? ` · ${t("money.approvedBy", { name: row.approvedByName ?? "" })}`
-                    : ""}
-                </p>
-                {row.note || row.wageMonth ? (
-                  <p className="text-muted-foreground text-xs">
-                    {row.wageMonth
-                      ? t("byHand.wageFor", { month: row.wageMonth })
-                      : ""}
-                    {row.wageMonth && row.note ? " · " : ""}
-                    {row.note ?? ""}
-                  </p>
-                ) : null}
-                {entersMoney && row.source === "by_hand" ? (
-                  <div className="text-xs">
-                    <CorrectEntered entered={row} />
-                  </div>
-                ) : null}
-                {row.hasReceipt ? (
-                  <div className="text-xs">
-                    <ReceiptLink id={row.id} />
-                  </div>
-                ) : null}
-              </div>
-              {isOwner && row.approval === "awaiting" ? (
-                <Button
-                  disabled={approve.isPending}
-                  onClick={() =>
-                    approve.mutate({ id: row.id, amountBdt: row.amountBdt })
-                  }
-                  size="sm"
-                  variant="outline"
-                >
-                  {t("money.approve")}
-                </Button>
-              ) : null}
-            </li>
+        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((n) => (
+            <Skeleton className="h-32 rounded-xl" key={n} />
           ))}
-        </ul>
+        </div>
       )}
-      {money.data?.more ? (
-        <p className="text-muted-foreground text-sm">{t("money.more")}</p>
+
+      {money.isError ? (
+        <Notice
+          title={wordedRefusal(money.error, t) ?? t("common.error")}
+          tone="danger"
+        />
       ) : null}
+
+      <div
+        className={cn(
+          "grid gap-6",
+          entersMoney && "xl:grid-cols-[minmax(0,1fr)_24rem]"
+        )}
+      >
+        <Section className="min-w-0" id="register" title={t("money.register")}>
+          {rows.length === 0 ? (
+            <EmptyState icon={Wallet} title={t("money.none")} />
+          ) : (
+            <>
+              <ul className="divide-border flex flex-col divide-y md:hidden">
+                {rows.map((row) => (
+                  <li
+                    className="flex items-start justify-between gap-3 py-3"
+                    key={row.id}
+                  >
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="font-medium">
+                        {categoryName(row, language)}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {formatDate(row.occurredAt, language)}
+                        {row.counterpartyName
+                          ? ` · ${row.counterpartyName}`
+                          : ""}
+                      </span>
+                      {row.approval === "awaiting" ? (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <StatusBadge tone="warning">
+                            {t("money.awaiting")}
+                          </StatusBadge>
+                          {isOwner ? (
+                            <Button
+                              disabled={approve.isPending}
+                              onClick={() =>
+                                approve.mutate({
+                                  id: row.id,
+                                  amountBdt: row.amountBdt,
+                                })
+                              }
+                              size="sm"
+                            >
+                              {t("money.approve")}
+                            </Button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 text-right font-semibold whitespace-nowrap tabular-nums",
+                        row.direction === "in"
+                          ? "text-success"
+                          : "text-foreground"
+                      )}
+                    >
+                      {row.direction === "in" ? "+" : "−"}
+                      {taka(row.amountBdt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="-mx-4 hidden overflow-x-auto md:-mx-5 md:block">
+                <Table className="min-w-[44rem]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-4 md:pl-5">
+                        {t("money.col.date")}
+                      </TableHead>
+                      <TableHead>{t("money.col.what")}</TableHead>
+                      <TableHead>{t("money.col.with")}</TableHead>
+                      <TableHead>{t("money.col.status")}</TableHead>
+                      <TableHead className="pr-4 text-right md:pr-5">
+                        {t("money.col.amount")}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow className="align-top" key={row.id}>
+                        <TableCell className="text-muted-foreground pl-4 whitespace-nowrap tabular-nums md:pl-5">
+                          {formatDate(row.occurredAt, language)}
+                        </TableCell>
+                        <TableCell className="min-w-56">
+                          <div className="font-medium">
+                            {categoryName(row, language)}
+                          </div>
+                          <div className="text-muted-foreground text-xs">
+                            {t(SOURCE_WORD[row.source])} ·{" "}
+                            {t(PAYMENT_METHOD_WORD[row.paymentMethod])}
+                          </div>
+                          {row.note || row.wageMonth ? (
+                            <div className="text-muted-foreground text-xs">
+                              {row.wageMonth
+                                ? t("byHand.wageFor", { month: row.wageMonth })
+                                : ""}
+                              {row.wageMonth && row.note ? " · " : ""}
+                              {row.note ?? ""}
+                            </div>
+                          ) : null}
+                          {(entersMoney && row.source === "by_hand") ||
+                          row.hasReceipt ? (
+                            <div className="flex flex-wrap gap-3 pt-1 text-xs">
+                              {entersMoney && row.source === "by_hand" ? (
+                                <CorrectEntered entered={row} />
+                              ) : null}
+                              {row.hasReceipt ? (
+                                <ReceiptLink id={row.id} />
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {row.counterpartyName ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          {row.approval === "awaiting" ? (
+                            <div className="flex flex-col items-start gap-2">
+                              <StatusBadge tone="warning">
+                                {t("money.awaiting")}
+                              </StatusBadge>
+                              {isOwner ? (
+                                <Button
+                                  disabled={approve.isPending}
+                                  onClick={() =>
+                                    approve.mutate({
+                                      id: row.id,
+                                      amountBdt: row.amountBdt,
+                                    })
+                                  }
+                                  size="sm"
+                                >
+                                  {t("money.approve")}
+                                </Button>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {row.approval === "approved" ? (
+                            <StatusBadge tone="success">
+                              {t("money.approvedBy", {
+                                name: row.approvedByName ?? "",
+                              })}
+                            </StatusBadge>
+                          ) : null}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "pr-4 text-right font-semibold whitespace-nowrap tabular-nums md:pr-5",
+                            row.direction === "in"
+                              ? "text-success"
+                              : "text-foreground"
+                          )}
+                        >
+                          {row.direction === "in" ? "+" : "−"}
+                          {taka(row.amountBdt)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </Section>
+        {entersMoney ? (
+          <div className="flex flex-col gap-6">
+            <EnterMoney />
+          </div>
+        ) : null}
+      </div>
+
       <AccountantExport from={from} to={to} />
       <CostsBySide from={from} to={to} />
       <Categories />
-    </div>
+    </Page>
   );
 };
 

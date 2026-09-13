@@ -69,10 +69,13 @@ export default function SignUpForm({
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">
-        {t("auth.createAccount")}
-      </h1>
+    <div className="bg-card flex flex-col gap-6 rounded-2xl border p-6 shadow-sm sm:p-8">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("auth.createAccount")}
+        </h1>
+        <p className="text-muted-foreground text-sm">{t("auth.formHint")}</p>
+      </div>
 
       <form
         onSubmit={(e) => {
@@ -80,12 +83,12 @@ export default function SignUpForm({
           e.stopPropagation();
           form.handleSubmit();
         }}
-        className="space-y-4"
+        className="flex flex-col gap-4"
       >
         <div>
           <form.Field name="name">
             {(field) => (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor={field.name}>{t("auth.name")}</Label>
                 <Input
                   id={field.name}
@@ -95,7 +98,7 @@ export default function SignUpForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} className="text-danger text-sm">
                     {error?.message}
                   </p>
                 ))}
@@ -107,7 +110,7 @@ export default function SignUpForm({
         <div>
           <form.Field name="email">
             {(field) => (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor={field.name}>{t("auth.email")}</Label>
                 <Input
                   id={field.name}
@@ -118,7 +121,7 @@ export default function SignUpForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} className="text-danger text-sm">
                     {error?.message}
                   </p>
                 ))}
@@ -130,7 +133,7 @@ export default function SignUpForm({
         <div>
           <form.Field name="password">
             {(field) => (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor={field.name}>{t("auth.password")}</Label>
                 <Input
                   id={field.name}
@@ -141,7 +144,7 @@ export default function SignUpForm({
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} className="text-danger text-sm">
                     {error?.message}
                   </p>
                 ))}
@@ -159,7 +162,7 @@ export default function SignUpForm({
           {({ canSubmit, isSubmitting }) => (
             <Button
               type="submit"
-              className="w-full"
+              className="mt-1 w-full"
               disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting ? t("auth.submitting") : t("auth.signUp")}
@@ -168,12 +171,8 @@ export default function SignUpForm({
         </form.Subscribe>
       </form>
 
-      <div className="mt-4 text-center">
-        <Button
-          variant="link"
-          onClick={onSwitchToSignIn}
-          className="text-indigo-600 hover:text-indigo-800"
-        >
+      <div className="text-center">
+        <Button variant="link" onClick={onSwitchToSignIn}>
           {t("auth.haveAccount")}
         </Button>
       </div>

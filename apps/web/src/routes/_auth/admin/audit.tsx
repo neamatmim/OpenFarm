@@ -132,10 +132,10 @@ const AuditPage = () => {
                     {t("audit.what")}
                   </summary>
                   <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                    <pre className="overflow-x-auto rounded bg-neutral-900 p-2 text-xs">
+                    <pre className="bg-card overflow-x-auto rounded border p-2 text-xs">
                       {`${t("audit.before")}\n${pretty(event.before)}`}
                     </pre>
-                    <pre className="overflow-x-auto rounded bg-neutral-900 p-2 text-xs">
+                    <pre className="bg-card overflow-x-auto rounded border p-2 text-xs">
                       {`${t("audit.after")}\n${pretty(event.after)}`}
                     </pre>
                   </div>

@@ -51,7 +51,7 @@ export const NeedsReview = () => {
           {queue.data.map((row) => {
             const key = messageFor(row.reason);
             return (
-              <li className="rounded-2xl bg-neutral-900 p-4" key={row.id}>
+              <li className="bg-card rounded-2xl border p-4" key={row.id}>
                 <p className="font-bold">{key ? t(key) : row.reason}</p>
                 <p className="text-muted-foreground text-sm">
                   {formatDate(new Date(row.raisedAt), language, "dateTime")}

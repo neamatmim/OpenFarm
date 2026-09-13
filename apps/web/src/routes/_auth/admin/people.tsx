@@ -213,7 +213,7 @@ const PersonRow = ({
           <p className="text-muted-foreground text-sm">{person.email}</p>
         </div>
         <span
-          className={`text-sm ${disabled ? "text-red-500" : "text-green-600"}`}
+          className={`text-sm ${disabled ? "text-danger" : "text-success"}`}
         >
           {disabled ? t("people.disabled") : t("people.active")}
         </span>
