@@ -112,7 +112,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Bulk**: The saleable milk pooled from a Milking Session. Its recorded total is reconciled against the per-cow Milk Records. _Avoid_: Tank, total milk
 
-**Dispatch**: The recorded hand-over of Bulk milk to a buyer: litres, buyer, challan/receipt, and optional fat %, SNF %, note. _Avoid_: Sale (finance's word for the money side), delivery, supply
+**Dispatch**: The recorded hand-over of Bulk milk to a buyer: when, litres, the buyer (a Counterparty, whose name and address make it the farm's milk-buyer record under the Safe Food Act), the challan when the collector writes one, the price per litre, and optional fat %, SNF %, note. The Manager's to record. Read beside the litres the day's Milk Records sent to Bulk, so milk into the tank and milk out of the gate are not two stories. _Avoid_: Sale (finance's word for the money side), delivery, supply
 
 **Lactation**: One cow's milking period from a calving to the following Dry-off. Numbered per cow; days-in-milk and totals are derived from Milk Records. _Avoid_: Milking cycle, production period
 

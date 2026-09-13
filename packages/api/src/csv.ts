@@ -89,3 +89,19 @@ export const parseCsvRecords = (text: string): CsvRecord[] => {
     ),
   }));
 };
+
+/** One field as RFC 4180 writes it: quoted when it holds a comma, a quote or a line break. */
+const csvField = (value: string | number | null): string => {
+  const text = value === null ? "" : String(value);
+  return /[",\r\n]/u.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+
+/**
+ * A CSV an accountant's or a processor's spreadsheet opens: a header row, one row per record, plain
+ * digits whatever language the person producing it reads in, and a line break after every row.
+ */
+export const toCsv = (
+  header: readonly string[],
+  rows: readonly (readonly (string | number | null)[])[]
+): string =>
+  `${[header, ...rows].map((row) => row.map(csvField).join(",")).join("\n")}\n`;

@@ -1,7 +1,20 @@
-import { lactationView, roundLitres } from "@OpenFarm/domain";
+import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
+import { dispatch } from "@OpenFarm/db/schema/milk";
+import { lactationView, mayCorrect, roundLitres } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { Tx } from "../audit";
+import { audited } from "../audit";
+import { correctionWindows, reasonInput, refusalData } from "../corrections";
+import { counterpartyNamed } from "../counterparty-store";
+import {
+  dispatchesBetween,
+  farmDaysBetween,
+  litresToBulkBetween,
+} from "../dispatch-store";
+import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { litresOf } from "../milk-store";
 import { requireRole } from "../roles";
@@ -30,7 +43,214 @@ const sessionShape = {
   },
 } as const;
 
+const buyerInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  address: z.string().trim().max(300).optional(),
+  phone: z.string().trim().max(40).optional(),
+});
+
+const dispatchFields = {
+  dispatchedAt: z.coerce.date(),
+  litres: z.number().positive().max(100_000),
+  challan: z.string().trim().min(1).max(60).optional(),
+  pricePerLitreBdt: z.number().positive().max(10_000),
+  fatPercent: z.number().min(0).max(20).optional(),
+  snfPercent: z.number().min(0).max(20).optional(),
+  note: z.string().trim().max(300).optional(),
+};
+
+/** The Dispatch as the trail records it either side of a change. */
+const readDispatch = async (tx: Tx, id: string) =>
+  (await tx.query.dispatch.findFirst({ where: { id } })) ?? null;
+
+/** Milk has not left before now. */
+const assertNotLater = (dispatchedAt: Date, now: Date) => {
+  if (dispatchedAt > now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Milk cannot have left later than now",
+      data: { refusal: "dispatched_in_the_future" },
+    });
+  }
+};
+
+/** A figure as the record keeps it: two decimals, as text. */
+const twoPlaces = (value: number | undefined) =>
+  value === undefined ? null : value.toFixed(2);
+
 export const milkRouter = {
+  /**
+   * Milk handed over to a buyer: when, how many litres, to whom, the challan, the price, and the fat
+   * and SNF if the processor measured them.
+   *
+   * The Manager's to record (roles matrix: Dispatch — Manager C R U, Owner R). The buyer is a
+   * Counterparty found by name, whose address is what makes this the farm's milk-buyer record.
+   */
+  dispatch: protectedProcedure
+    .use(requireRole("manager"))
+    .input(z.object({ ...dispatchFields, buyer: buyerInput }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const recordedByRole = context.roleUsed;
+      if (!recordedByRole) {
+        throw new ORPCError("FORBIDDEN");
+      }
+      assertNotLater(input.dispatchedAt, now);
+      const id = newId(now);
+      await audited(context).write(
+        {
+          entity: "dispatch",
+          entityId: id,
+          action: "create",
+          after: (tx) => readDispatch(tx, id),
+        },
+        async (tx) => {
+          await tx.insert(dispatch).values({
+            id,
+            farmId: context.farm.id,
+            dispatchedAt: input.dispatchedAt,
+            litres: input.litres.toFixed(2),
+            buyerId: await counterpartyNamed(
+              tx,
+              context.farm.id,
+              input.buyer,
+              now
+            ),
+            challan: input.challan ?? null,
+            pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2),
+            fatPercent: twoPlaces(input.fatPercent),
+            snfPercent: twoPlaces(input.snfPercent),
+            note: input.note ?? null,
+            recordedBy: context.actor.id,
+            recordedByRole,
+            recordedAt: now,
+          });
+        }
+      );
+      return { id };
+    }),
+
+  /**
+   * Puts a Dispatch right: the litres, the time, the buyer, the challan, the price, the fat or SNF. A
+   * Correction like any other — a reason, the Role's Correction Window, the trail holding what it said.
+   */
+  correctDispatch: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        id: z.string(),
+        dispatchedAt: dispatchFields.dispatchedAt.optional(),
+        litres: dispatchFields.litres.optional(),
+        buyer: buyerInput.optional(),
+        challan: dispatchFields.challan,
+        pricePerLitreBdt: dispatchFields.pricePerLitreBdt.optional(),
+        fatPercent: dispatchFields.fatPercent,
+        snfPercent: dispatchFields.snfPercent,
+        note: dispatchFields.note,
+        reason: reasonInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const existing = await context.db.query.dispatch.findFirst({
+        where: { id: input.id, farmId: context.farm.id },
+        columns: { id: true, recordedBy: true, recordedAt: true },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such dispatch" });
+      }
+      const verdict = mayCorrect({
+        roles: context.roles,
+        isOwnEntry: existing.recordedBy === context.actor.id,
+        recordedAt: existing.recordedAt,
+        now,
+        windows: correctionWindows(context.farm),
+      });
+      if (!verdict.allowed) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "The correction window for that entry has closed",
+          data: { refusal: refusalData(verdict.refusal) },
+        });
+      }
+      if (input.dispatchedAt) {
+        assertNotLater(input.dispatchedAt, now);
+      }
+      const audit = audited(context);
+      const previous = await audit.latestEventFor(
+        context.db,
+        "dispatch",
+        existing.id
+      );
+      await audit.write(
+        {
+          entity: "dispatch",
+          entityId: existing.id,
+          action: "correct",
+          reason: input.reason,
+          roleUsed: verdict.role,
+          supersedesId: previous?.id,
+          before: (tx) => readDispatch(tx, existing.id),
+          after: (tx) => readDispatch(tx, existing.id),
+        },
+        async (tx) => {
+          await tx
+            .update(dispatch)
+            .set({
+              ...(input.dispatchedAt
+                ? { dispatchedAt: input.dispatchedAt }
+                : {}),
+              ...(input.litres ? { litres: input.litres.toFixed(2) } : {}),
+              ...(input.challan ? { challan: input.challan } : {}),
+              ...(input.pricePerLitreBdt
+                ? { pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2) }
+                : {}),
+              ...(input.fatPercent === undefined
+                ? {}
+                : { fatPercent: twoPlaces(input.fatPercent) }),
+              ...(input.snfPercent === undefined
+                ? {}
+                : { snfPercent: twoPlaces(input.snfPercent) }),
+              ...(input.note ? { note: input.note } : {}),
+              ...(input.buyer
+                ? {
+                    buyerId: await counterpartyNamed(
+                      tx,
+                      context.farm.id,
+                      input.buyer,
+                      now
+                    ),
+                  }
+                : {}),
+            })
+            .where(eq(dispatch.id, existing.id));
+        }
+      );
+      return { id: existing.id };
+    }),
+
+  /**
+   * One farm day of milk leaving: what the day's Milk Records sent to Bulk, what the Dispatches handed
+   * over, and each Dispatch — side by side, so milk that went into the tank and milk that left the
+   * farm are not two stories nobody lines up.
+   */
+  day: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ day: farmDay }))
+    .handler(async ({ context, input }) => {
+      const range = farmDaysBetween(input.day, input.day);
+      const [toBulkLitres, dispatches] = await Promise.all([
+        litresToBulkBetween(context.db, context.farm.id, range),
+        dispatchesBetween(context.db, context.farm.id, range),
+      ]);
+      return {
+        day: input.day,
+        toBulkLitres,
+        dispatchedLitres: roundLitres(
+          dispatches.reduce((sum, one) => sum + one.litres, 0)
+        ),
+        dispatches,
+      };
+    }),
+
   /** One Milking Session as the Manager reads it: the tank reading, what the cows account
    *  for, and every cow's litres with where they went. */
   session: protectedProcedure

@@ -19,3 +19,10 @@ export const farmDayOf = (at: Date): string =>
   new Date(at.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS)
     .toISOString()
     .slice(0, 10);
+
+/** The farm's own time of day an instant falls at, as "HH:MM" — the session a milking belongs to, as
+ *  the shed names it. */
+export const farmTimeOf = (at: Date): string =>
+  new Date(at.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS)
+    .toISOString()
+    .slice("YYYY-MM-DDT".length, "YYYY-MM-DDTHH:MM".length);
