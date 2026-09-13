@@ -1,8 +1,61 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
-@import "@fontsource-variable/noto-sans-bengali";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+/*
+ * Noto Sans Bengali, declared here rather than imported, for one change: where its line sits. As shipped, the font
+ * keeps room below the baseline for descenders that Bangla seldom uses, so a word's body (headline to baseline) rides
+ * about 0.1em above the middle of its line — beside an icon, every label looks lifted. The overrides move the same
+ * total height from below the baseline to above it, which centres the body; the line itself is no taller or shorter.
+ * Measured against the sidebar's icons: 1.5–3px high before, within half a pixel after.
+ */
+@font-face {
+  font-family: "Noto Sans Bengali Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../../node_modules/@fontsource-variable/noto-sans-bengali/files/noto-sans-bengali-bengali-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8,
+    U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC,
+    U+A8F1;
+  ascent-override: 101%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Noto Sans Bengali Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../../node_modules/@fontsource-variable/noto-sans-bengali/files/noto-sans-bengali-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  ascent-override: 101%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}
+/* The Latin part too: in Bangla it is the font the line's baseline is set by. */
+@font-face {
+  font-family: "Noto Sans Bengali Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../../node_modules/@fontsource-variable/noto-sans-bengali/files/noto-sans-bengali-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+  ascent-override: 101%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
@@ -114,8 +167,12 @@
 }
 
 @theme inline {
-  --font-sans: "Inter Variable", "Noto Sans Bengali Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-bangla: "Noto Sans Bengali Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    "Inter Variable", "Noto Sans Bengali Variable", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-bangla:
+    "Noto Sans Bengali Variable", "Inter Variable", ui-sans-serif, system-ui,
+    sans-serif;
   --color-success: var(--success);
   --color-success-surface: var(--success-surface);
   --color-warning: var(--warning);
@@ -223,7 +280,8 @@ html:lang(bn) .text-sm {
 html:lang(bn) .text-base {
   line-height: 1.65;
 }
-html:lang(bn) :is(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl) {
+html:lang(bn)
+  :is(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl) {
   line-height: 1.4;
 }
 html:lang(bn) :is(.leading-none, .leading-tight, .leading-snug) {
