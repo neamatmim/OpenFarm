@@ -508,6 +508,13 @@ export const en = {
   "refusal.workInNoPen":
     "This step records a Pen's work, and this work is in no Pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
+  "nav.inspector": "Inspector View",
+  "inspector.title": "Inspector View",
+  "inspector.registration": "Registration",
+  "inspector.herd": "Herd summary",
+  "inspector.animals": "Animals on the farm",
+  "inspector.byPen": "By Pen",
+  "inspector.asOf": "As of",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":
     "The farm's registration number is not recorded; write it in the farm details first",

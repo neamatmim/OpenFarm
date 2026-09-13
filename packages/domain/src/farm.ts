@@ -60,6 +60,29 @@ export const renewalOpensAt = (
 ): Date =>
   new Date(goodUntilOf(expiresOn).getTime() - renewalLeadDays * DAY_MS);
 
+/** Where a Registration stands, as an inspector reads it first. */
+export type RegistrationStanding =
+  | "valid"
+  | "ending_soon"
+  | "expired"
+  | "unknown";
+
+/** Where the farm's Registration stands, from the identity view's answers: run out, about to, still good, or
+ *  with no expiry written down at all. */
+export const registrationStanding = (view: {
+  registrationExpiresOn: Date | null;
+  registrationExpired: boolean;
+  registrationEndingSoon: boolean;
+}): RegistrationStanding => {
+  if (view.registrationExpiresOn === null) {
+    return "unknown";
+  }
+  if (view.registrationExpired) {
+    return "expired";
+  }
+  return view.registrationEndingSoon ? "ending_soon" : "valid";
+};
+
 /**
  * The farm of origin as every document leaving the farm heads itself: name, address, phone and
  * Registration number, leaving out whatever the farm has not written down.

@@ -248,7 +248,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Registration**: The Farm's DLS registration: number, office, issue and expiry dates, certificate photo. Renewed annually by 31 March; the renewal SOP is raised for the Owner the renewal lead (90 days) before, falls due on the day it runs out, and its closing Step records the new expiry and the renewed certificate. _Avoid_: Licence, permit
 
-**Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd count, vaccination register, 30-day treatment register, 6-month disease history, mortality — each exportable to PDF. _Avoid_: Audit page, compliance dashboard
+**Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd summary (the animals on the farm by Side and State and by Pen), vaccination register, 30-day treatment register, 6-month disease history, mortality — each printed as a paper and handed over; the inspector never touches the phone. _Avoid_: Audit page, compliance dashboard
 
 **Animal Passport**: The per-animal paper: identity, Pen history, treatments with their withdrawals, weigh-ins, and how she left if she has. Given to a buyer or slaughter vet on request — including after she has gone, which is when they ask. _Avoid_: Animal record (that's the live data), certificate
 

@@ -1,4 +1,4 @@
-import type { FarmIdentity } from "./farm";
+import type { FarmIdentity, RegistrationStanding } from "./farm";
 import { farmOfOriginLines } from "./farm";
 import type { Side } from "./lifecycle";
 import type { MoneySummary } from "./money-summary";
@@ -466,3 +466,97 @@ export const accountantSummary = (paper: AccountantSummary): string => {
     .filter((line) => line !== null)
     .join("\n");
 };
+
+/** The Registration register (R1) as it is written: the farm, its registration, and who produced it when.
+ *  Dates arrive formatted for the reader. */
+export interface RegistrationRecord {
+  farm: FarmIdentity;
+  office: string | null;
+  issuedOn: string | null;
+  expiresOn: string | null;
+  /** Whether it has run out, or is about to: the first thing an inspector reads. */
+  standing: RegistrationStanding;
+  /** When the certificate was last photographed; null for a farm that has not. */
+  certificateTakenOn: string | null;
+  producedBy: string;
+  producedAt: string;
+}
+
+/** The registers the Inspector View prints, by the name the trail records each under. */
+export const INSPECTOR_REGISTERS = ["registration", "herd_summary"] as const;
+export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
+
+const STANDING_LABEL: Record<RegistrationStanding, string> = {
+  valid: "বৈধ / Valid",
+  ending_soon: "মেয়াদ শেষ হতে চলেছে / Ending soon",
+  expired: "মেয়াদ শেষ / Expired",
+  unknown: "মেয়াদ লেখা নেই / No expiry recorded",
+};
+
+/**
+ * R1, the Registration: the farm's DLS registration as an inspector reads it first — number, office, when it
+ * was issued and when it runs out, whether it still stands, and that the certificate has been photographed.
+ */
+export const registrationRecord = (record: RegistrationRecord): string =>
+  [
+    ...farmOfOriginLines(record.farm),
+    "",
+    // The number is already in the farm's own lines above.
+    "নিবন্ধন / Registration",
+    field("ইস্যুকারী দপ্তর", "Issuing office", record.office ?? "—"),
+    field("ইস্যুর তারিখ", "Issued", record.issuedOn ?? "—"),
+    field("মেয়াদ শেষ", "Expires", record.expiresOn ?? "—"),
+    field("অবস্থা", "Standing", STANDING_LABEL[record.standing]),
+    field(
+      "সনদের ছবি",
+      "Certificate photographed",
+      record.certificateTakenOn ?? "—"
+    ),
+    "",
+    `${record.producedAt} · ${record.producedBy}`,
+  ].join("\n");
+
+/** One Side's herd, one Pen's, as the summary prints them — labels already in both languages. */
+export interface HerdSummaryLine {
+  label: string;
+  animals: string;
+  /** Each State with its count, already written out. */
+  states: string;
+}
+
+export interface HerdSummary {
+  farm: FarmIdentity;
+  asOf: string;
+  total: string;
+  bySide: HerdSummaryLine[];
+  byPen: HerdSummaryLine[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * R2, the herd summary: every animal on the farm on the day, by Side and State and by Pen — the count an
+ * inspector checks against the sheds.
+ */
+export const herdSummary = (summary: HerdSummary): string =>
+  [
+    ...farmOfOriginLines(summary.farm),
+    "",
+    "পশুর সারসংক্ষেপ / Herd summary",
+    field("তারিখ", "As of", summary.asOf),
+    field("মোট পশু", "Animals", summary.total),
+    "",
+    "দিক ও অবস্থা অনুযায়ী / By Side and State",
+    ...summary.bySide.flatMap((line) => [
+      `  ${line.label}: ${line.animals}`,
+      `    ${line.states}`,
+    ]),
+    "",
+    "পেন অনুযায়ী / By Pen",
+    ...summary.byPen.flatMap((line) => [
+      `  ${line.label}: ${line.animals}`,
+      `    ${line.states}`,
+    ]),
+    "",
+    `${summary.producedAt} · ${summary.producedBy}`,
+  ].join("\n");

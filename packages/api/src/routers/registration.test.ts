@@ -114,33 +114,30 @@ const renewalWork = async (instant: string) => {
 
 describe("the Registration and its renewal", () => {
   it("keeps a photograph of the certificate, replaced by a newer one", async () => {
+    // Other files photograph the certificate on the shared farm too, so this file reads its own by id.
     const manager = await as("manager", "2040-12-02T04:00:00.000Z");
-    await manager.client.farm.setCertificate({
+    const first = await manager.client.farm.setCertificate({
       contentType: "image/jpeg",
       data: "AAAA",
     });
     const later = await as("manager", "2040-12-03T04:00:00.000Z");
-    await later.client.farm.setCertificate({
+    const second = await later.client.farm.setCertificate({
       contentType: "image/png",
       data: "BBBB",
     });
-    expect(await later.client.farm.certificate()).toEqual({
+    expect(await later.client.farm.certificate({ id: second.id })).toEqual({
       contentType: "image/png",
       data: "BBBB",
     });
-    const identity = await later.client.farm.identity();
-    expect(identity.certificateUpdatedAt).toEqual(
-      new Date("2040-12-03T04:00:00.000Z")
-    );
-    // The photograph it replaced is still the farm's, and still readable.
-    const kept = await later.client.farm.certificates();
-    const earlier = kept.find(
-      (one) => one.takenAt.getTime() === Date.parse("2040-12-02T04:00:00.000Z")
-    );
-    expect(await later.client.farm.certificate({ id: earlier?.id })).toEqual({
+    // The photograph it replaced is still the farm's, and still readable, and both are listed.
+    expect(await later.client.farm.certificate({ id: first.id })).toEqual({
       contentType: "image/jpeg",
       data: "AAAA",
     });
+    const kept = await later.client.farm.certificates();
+    expect(kept.map((one) => one.id)).toEqual(
+      expect.arrayContaining([first.id, second.id])
+    );
     const trail = await later.client.audit.list({
       entity: "registration_certificate",
     });
@@ -314,10 +311,14 @@ describe("the Registration and its renewal", () => {
     expect(identity.registrationIssuedOn).toEqual(
       new Date("2041-02-09T18:00:00.000Z")
     );
-    expect(await after.client.farm.certificate()).toEqual({
-      contentType: "image/jpeg",
-      data: "DDDD",
-    });
+    // The renewed certificate is kept among the farm's photographs, taken when the Step was.
+    const certificates = await after.client.farm.certificates();
+    const renewedPhoto = certificates.find(
+      (one) => one.takenAt.getTime() === Date.parse("2041-02-10T04:00:00.000Z")
+    );
+    expect(
+      await after.client.farm.certificate({ id: renewedPhoto?.id })
+    ).toEqual({ contentType: "image/jpeg", data: "DDDD" });
     // On the trail: the Step that renewed it, with the expiry it replaced and the new one.
     const trail = await after.client.audit.list({ entity: "step_completion" });
     expect(trail).toEqual(

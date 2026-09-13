@@ -15,6 +15,7 @@ import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
 import { herdRouter } from "./herd";
 import { homeRouter } from "./home";
+import { inspectorRouter } from "./inspector";
 import { instancesRouter } from "./instances";
 import { intakeRouter } from "./intake";
 import { languageRouter } from "./language";
@@ -63,6 +64,7 @@ export const appRouter = {
   push: pushRouter,
   ready: readyRouter,
   costs: costsRouter,
+  inspector: inspectorRouter,
   money: moneyRouter,
   reports: reportsRouter,
   breeding: breedingRouter,

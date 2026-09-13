@@ -494,6 +494,13 @@ export const bn: Record<MessageKey, string> = {
   "refusal.renewalSuperseded": "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
   "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
   "renewal.issuedOn": "নবায়িত সনদ ইস্যুর তারিখ",
+  "nav.inspector": "পরিদর্শন",
+  "inspector.title": "পরিদর্শনের পাতা",
+  "inspector.registration": "নিবন্ধন",
+  "inspector.herd": "পশুর সারসংক্ষেপ",
+  "inspector.animals": "খামারে পশু",
+  "inspector.byPen": "পেন অনুযায়ী",
+  "inspector.asOf": "তারিখ",
   "refusal.periodBackwards": "শেষের তারিখ শুরুর তারিখের আগে হতে পারে না",
   "refusal.farmIdentityIncomplete":
     "খামারের নিবন্ধন নম্বর লেখা নেই; আগে খামারের তথ্যে লিখুন",
