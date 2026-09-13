@@ -80,6 +80,8 @@ export const en = {
   "setup.goOn": "Go to the farm",
   "common.error": "Something went wrong",
   "common.loadFailed": "Could not load this — check the connection",
+  "common.refreshFailed":
+    "Could not refresh — showing what this phone last had",
   "nav.audit": "Audit log",
   "audit.title": "Audit log",
   "audit.when": "When",

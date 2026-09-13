@@ -31,6 +31,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { useInFlight } from "@/lib/in-flight";
 import { orpc } from "@/utils/orpc";
 
 const roleKey = (role: RoleName) => `role.${role}` as const;
@@ -45,9 +46,22 @@ const PeoplePage = () => {
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.people.list.key() });
   const onError = () => toast.error(t("common.error"));
+  const inFlight = useInFlight();
+  /** A person's action waits from the moment it is asked until the farm answers that one. */
+  const trackUser = (kind: string) => ({
+    onMutate: ({ userId }: { userId: string }) =>
+      inFlight.start(`${kind}:${userId}`),
+    onSettled: (
+      _data: unknown,
+      _error: unknown,
+      { userId }: { userId: string }
+    ) => inFlight.end(`${kind}:${userId}`),
+  });
 
   const approve = useMutation(
     orpc.people.approveInvite.mutationOptions({
+      onMutate: ({ id }) => inFlight.start(`approve:${id}`),
+      onSettled: (_data, _error, { id }) => inFlight.end(`approve:${id}`),
       onSuccess: () => {
         toast.success(t("people.approved"));
         refresh();
@@ -57,6 +71,7 @@ const PeoplePage = () => {
   );
   const disable = useMutation(
     orpc.people.disable.mutationOptions({
+      ...trackUser("access"),
       onSuccess: () => {
         toast.success(t("people.accessRemoved"));
         refresh();
@@ -66,6 +81,7 @@ const PeoplePage = () => {
   );
   const enable = useMutation(
     orpc.people.enable.mutationOptions({
+      ...trackUser("access"),
       onSuccess: () => {
         toast.success(t("people.accessRestored"));
         refresh();
@@ -75,12 +91,14 @@ const PeoplePage = () => {
   );
   const setPin = useMutation(
     orpc.people.setPin.mutationOptions({
+      ...trackUser("pin"),
       onSuccess: () => toast.success(t("people.pinSet")),
       onError,
     })
   );
   const assign = useMutation(
     orpc.people.assignRoles.mutationOptions({
+      ...trackUser("roles"),
       onSuccess: () => {
         toast.success(t("people.rolesSaved"));
         refresh();
@@ -114,14 +132,10 @@ const PeoplePage = () => {
                   </div>
                   {isOwner ? (
                     <Button
-                      disabled={
-                        approve.isPending && approve.variables?.id === inv.id
-                      }
+                      disabled={inFlight.has(`approve:${inv.id}`)}
                       onClick={() => approve.mutate({ id: inv.id })}
                     >
-                      {approve.isPending && approve.variables?.id === inv.id ? (
-                        <Spinner />
-                      ) : null}
+                      {inFlight.has(`approve:${inv.id}`) ? <Spinner /> : null}
                       {t("people.approve")}
                     </Button>
                   ) : null}
@@ -150,15 +164,9 @@ const PeoplePage = () => {
                 onDisable={() => disable.mutate({ userId: person.id })}
                 onEnable={() => enable.mutate({ userId: person.id })}
                 saving={{
-                  roles:
-                    assign.isPending && assign.variables?.userId === person.id,
-                  pin:
-                    setPin.isPending && setPin.variables?.userId === person.id,
-                  access:
-                    (disable.isPending &&
-                      disable.variables?.userId === person.id) ||
-                    (enable.isPending &&
-                      enable.variables?.userId === person.id),
+                  roles: inFlight.has(`roles:${person.id}`),
+                  pin: inFlight.has(`pin:${person.id}`),
+                  access: inFlight.has(`access:${person.id}`),
                 }}
               />
             ))}

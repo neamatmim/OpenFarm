@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { EmptyState, Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useInFlight } from "@/lib/in-flight";
 import { orpc } from "@/utils/orpc";
 
 /** Every reason has something to say, typed by the reason rather than by string, so a new
@@ -32,8 +33,11 @@ export const NeedsReview = () => {
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const queue = useQuery(orpc.review.open.queryOptions());
+  const inFlight = useInFlight();
   const resolve = useMutation(
     orpc.review.resolve.mutationOptions({
+      onMutate: ({ id }) => inFlight.start(id),
+      onSettled: (_data, _error, { id }) => inFlight.end(id),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: orpc.review.key() });
         void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
@@ -44,8 +48,7 @@ export const NeedsReview = () => {
   );
 
   const note = (id: string) => notes[id] ?? "";
-  const resolving = (id: string) =>
-    resolve.isPending && resolve.variables?.id === id;
+  const resolving = inFlight.has;
 
   return (
     <Section title={t("review.title")}>

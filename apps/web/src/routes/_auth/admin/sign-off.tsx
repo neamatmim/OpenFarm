@@ -19,6 +19,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useInFlight } from "@/lib/in-flight";
 import { hoursLate } from "@/lib/lateness";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
@@ -49,25 +50,37 @@ const SignOffPage = () => {
   };
   const onError = (error: Error) =>
     toast.error(error.message || t("common.error"));
+  const inFlight = useInFlight();
+  const tracked = {
+    onMutate: ({ id }: { id: string }) => inFlight.start(id),
+    onSettled: (_data: unknown, _error: unknown, { id }: { id: string }) =>
+      inFlight.end(id),
+  };
   const approve = useMutation(
-    orpc.instances.approve.mutationOptions({ onSuccess: refresh, onError })
+    orpc.instances.approve.mutationOptions({
+      onSuccess: refresh,
+      onError,
+      ...tracked,
+    })
   );
   const sendBack = useMutation(
-    orpc.instances.sendBack.mutationOptions({ onSuccess: refresh, onError })
+    orpc.instances.sendBack.mutationOptions({
+      onSuccess: refresh,
+      onError,
+      ...tracked,
+    })
   );
   const closeAsMissed = useMutation(
     orpc.instances.closeAsMissed.mutationOptions({
       onSuccess: refresh,
       onError,
+      ...tracked,
     })
   );
 
   const reason = (id: string) => reasonFor[id] ?? "";
   // One row's buttons wait for that row's answer; the rest of the queue stays usable.
-  const busy = (id: string) =>
-    [approve, sendBack, closeAsMissed].some(
-      (action) => action.isPending && action.variables?.id === id
-    );
+  const busy = inFlight.has;
   const setReason = (id: string, value: string) =>
     setReasonFor((current) => ({ ...current, [id]: value }));
 

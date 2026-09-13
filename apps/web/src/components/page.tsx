@@ -381,24 +381,35 @@ export const Loaded = ({
   skeleton?: ReactNode;
 }) => {
   const t = useT();
-  if (query.data !== undefined) {
-    return children;
-  }
-  if (query.isError) {
+  const retry = (
+    <Button onClick={() => query.refetch()} size="sm" variant="outline">
+      <RotateCw aria-hidden />
+      {t("outbox.retry")}
+    </Button>
+  );
+  if (query.data === undefined && query.isError) {
     return (
-      <Notice
-        action={
-          <Button onClick={() => query.refetch()} size="sm" variant="outline">
-            <RotateCw aria-hidden />
-            {t("outbox.retry")}
-          </Button>
-        }
-        title={t("common.loadFailed")}
-        tone="danger"
-      />
+      <Notice action={retry} title={t("common.loadFailed")} tone="danger" />
     );
   }
-  return skeleton ?? <Skeleton className="h-20 rounded-lg" />;
+  if (query.data === undefined) {
+    return skeleton ?? <Skeleton className="h-20 rounded-lg" />;
+  }
+  if (query.isError) {
+    // What this phone last had stays on screen — a barn with no signal still works from it — but it is not passed
+    // off as the farm's answer today.
+    return (
+      <>
+        <Notice
+          action={retry}
+          title={t("common.refreshFailed")}
+          tone="warning"
+        />
+        {children}
+      </>
+    );
+  }
+  return children;
 };
 
 /**

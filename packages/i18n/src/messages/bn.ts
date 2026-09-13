@@ -84,6 +84,7 @@ export const bn: Record<MessageKey, string> = {
   "setup.goOn": "খামারে যান",
   "common.error": "কিছু একটা ভুল হয়েছে",
   "common.loadFailed": "এটি আনা যায়নি — সংযোগ দেখুন",
+  "common.refreshFailed": "হালনাগাদ করা যায়নি — এই ফোনে শেষবার যা ছিল তা দেখানো হচ্ছে",
   "nav.audit": "অডিট লগ",
   "audit.title": "অডিট লগ",
   "audit.when": "কখন",
