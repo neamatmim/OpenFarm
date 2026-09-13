@@ -31,6 +31,10 @@ const AuthLayout = () => {
 
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
+  // Drawn in the browser alone. Everything behind sign-in works from what this phone has kept (the query cache on
+  // the device), which the server has never seen: a page it rendered never matches the one the browser draws, so
+  // React throws it away and cancels the requests it had begun. The public pages are still rendered on the server.
+  ssr: false,
   beforeLoad: async ({ context, location }) => {
     const known = context.queryClient.getQueryData(
       context.orpc.people.me.queryKey()
