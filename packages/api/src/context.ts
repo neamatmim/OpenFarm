@@ -185,8 +185,6 @@ const grantPendingApprovals = async (
   return roles;
 };
 
-/** The one place a Context is assembled — production and tests both go through it.
- *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 /** The Farm this request acts on: the phone's own Farm, or the single Farm that exists. */
 const resolveFarm = (db: Database, device: DeviceSession | null) =>
   device
@@ -208,6 +206,17 @@ const resolvePerson = (db: Database, userId: string, farmId: string) =>
       penAssignments: { where: { farmId }, columns: { penId: true } },
     },
   });
+
+/**
+ * The first person on a new install signs up before there is a Farm to belong to. They are still themselves — with
+ * no Farm and no Roles — so they can be told there is no farm yet and name it (farm.bootstrap). A Shed Phone always
+ * belongs to a Farm, so this is a personal session's case alone.
+ */
+const firstPersonOf = (
+  session: Session | null,
+  device: DeviceSession | null
+): { id: string; name: string } | null =>
+  session && !device ? { id: session.user.id, name: session.user.name } : null;
 
 /** The one place a Context is assembled — production and tests both go through it.
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
@@ -258,7 +267,10 @@ export const buildContext = async ({
   // A phone with nobody PIN-switched in still needs its Farm, so it can fetch the roster
   // it checks PINs against.
   const farm = (await resolveFarm(db, device)) ?? null;
-  if (!(actingUserId && farm)) {
+  if (!farm) {
+    return { ...empty, actor: firstPersonOf(session, device) };
+  }
+  if (!actingUserId) {
     return { ...empty, farm };
   }
 
