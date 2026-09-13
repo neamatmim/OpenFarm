@@ -14,6 +14,8 @@ export type PaperId =
   | "accountant-summary"
   | "registration-record"
   | "herd-summary"
+  | "treatment-register"
+  | "disease-history"
   | "sop-card";
 
 /**
