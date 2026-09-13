@@ -1,5 +1,10 @@
 import { user } from "@OpenFarm/db/schema/auth";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  createTestPrincipal,
+  scratchDb,
+} from "@OpenFarm/test-harness";
+import { createRouterClient } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
@@ -131,6 +136,37 @@ describe("access", () => {
     await owner.client.people.enable({ userId: "test-vet" });
     const restored = await vet.client.people.me();
     expect(restored.roles).toEqual(["vet"]);
+  });
+
+  it("a person signed in before the farm exists is told so, and can do nothing else", async () => {
+    // The first person to sign up on a new install: a real session, and a database with no Farm in it yet.
+    const principal = await createTestPrincipal("newcomer", new Date());
+    const db = scratchDb();
+    const noFarmYet = new Proxy(db, {
+      get: (target, key) =>
+        key === "query"
+          ? {
+              ...target.query,
+              farm: { ...target.query.farm, findFirst: async () => {} },
+            }
+          : Reflect.get(target, key),
+    });
+    const context = await buildContext({
+      session: { user: principal.user, session: principal.session },
+      clock: new FakeClock(),
+      db: noFarmYet,
+    });
+    const client = createRouterClient(appRouter, { context });
+
+    // Who they are, and that there is no farm: the screen sends them to set it up.
+    expect(await client.people.me()).toMatchObject({
+      id: principal.user.id,
+      farm: null,
+      roles: [],
+    });
+    await expect(client.people.list()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 
   it("the farm cannot be bootstrapped twice", async () => {
