@@ -48,13 +48,11 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
           </p>
           <ul className="flex flex-col gap-4">
             {promises.map(({ icon: Icon, text }) => (
-              <li className="flex items-start gap-3" key={text}>
+              <li className="flex items-center gap-3" key={text}>
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/10 ring-1 ring-white/15">
                   <Icon aria-hidden className="size-5" />
                 </span>
-                <span className="pt-1.5 text-base/relaxed opacity-90">
-                  {text}
-                </span>
+                <span className="text-base/relaxed opacity-90">{text}</span>
               </li>
             ))}
           </ul>

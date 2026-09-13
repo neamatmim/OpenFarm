@@ -10,7 +10,6 @@ const LanguageToggle = () => {
   return (
     <Button
       variant="ghost"
-      size="sm"
       aria-label={t("language.switch")}
       title={t("language.switch")}
       onClick={() => setLanguage(next)}
