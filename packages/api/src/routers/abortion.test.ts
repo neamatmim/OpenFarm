@@ -267,7 +267,7 @@ describe("the abortion", () => {
       as: "vet",
       clock: new FakeClock("2033-03-01T04:00:00.000Z"),
     });
-    await vet.client.breeding.recordAbortion({
+    const recorded = await vet.client.breeding.recordAbortion({
       tagNumber: world.carrying,
       abortedAt: new Date("2033-03-01T02:00:00.000Z"),
       stageMonths: 6,
@@ -285,6 +285,24 @@ describe("the abortion", () => {
     ]);
     const closed = await manager.client.instances.get({ id: prep?.id ?? "" });
     expect(closed.state).toBe("missed");
+
+    // The Vet puts the stage right, with a reason; the Manager may not.
+    await expect(
+      manager.client.breeding.correctAbortion({
+        id: recorded.id,
+        stageMonths: 5,
+        reason: "ভুল লেখা",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await vet.client.breeding.correctAbortion({
+      id: recorded.id,
+      stageMonths: 5,
+      reason: "আবার দেখে পাঁচ মাস মনে হয়েছে",
+    });
+    const corrected = await manager.client.animals.byTag({
+      tagNumber: world.carrying,
+    });
+    expect(corrected.abortions[0]).toMatchObject({ stageMonths: 5 });
 
     // A cow who is not carrying has nothing to lose.
     await expect(
@@ -323,6 +341,13 @@ describe("the repeat breeder", () => {
       "2033-01-24T12:00:00.000Z",
       "2033-02-14T12:00:00.000Z",
     ]);
+    // How each went, and why it counts: she came back into heat before anybody checked her.
+    expect(flag?.failures[0]).toMatchObject({
+      method: "ai",
+      sire: "HF-2231-BD",
+      servedBy: "রহিম",
+      why: "back_in_heat",
+    });
     // Never a State change.
     const her = await three.manager.client.animals.byTag({
       tagNumber: world.hardToSettle,
@@ -335,6 +360,14 @@ describe("the repeat breeder", () => {
     expect(
       weekOn.rows.filter((row) => row.tagNumber === world.hardToSettle)
     ).toHaveLength(1);
+
+    // The Vet reads the same question, and may decide it too.
+    const vet = await createTestClient(appRouter, {
+      as: "vet",
+      clock: new FakeClock("2033-03-15T05:00:00.000Z"),
+    });
+    const vetsList = await vet.client.breeding.repeatBreeders();
+    expect(vetsList.map((row) => row.tagNumber)).toContain(world.hardToSettle);
 
     // The Owner may read the queue but does not answer it.
     const owner = await createTestClient(appRouter, {
@@ -353,6 +386,17 @@ describe("the repeat breeder", () => {
       tagNumber: world.hardToSettle,
       decision: "serve_again",
       note: "ভেট দেখেছেন, আরেকবার দেখি",
+    });
+    // Answered once is answered: a second tap finds nothing waiting.
+    await expect(
+      weekOn.manager.client.breeding.answerRepeatBreeder({
+        tagNumber: world.hardToSettle,
+        decision: "cull",
+        note: "দুবার চাপা",
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "not_a_repeat_breeder" },
     });
     const answered = await repeatBreedersAt("2033-03-16T04:00:00.000Z");
     expect(

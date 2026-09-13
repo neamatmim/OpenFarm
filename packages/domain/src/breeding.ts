@@ -177,7 +177,7 @@ export const attemptsThatFailed = <
     result: PregnancyCheckResult;
     checkedAt: Date;
   }[]
-): Served[] => {
+): (Served & { why: FailedBecause })[] => {
   const attempts = attemptsThatBegin(services);
   const latestWord = new Map<string, PregnancyCheckResult>();
   const newestFirst = checks.toSorted(
@@ -190,12 +190,40 @@ export const attemptsThatFailed = <
       latestWord.set(attempt.id, check.result);
     }
   }
-  return attempts.filter((attempt, index) => {
-    const word = latestWord.get(attempt.id);
-    const servedAgain = index < attempts.length - 1;
-    return word === "negative" || (word === undefined && servedAgain);
-  });
+  return attempts.flatMap(
+    (
+      attempt,
+      index
+    ): (Served & {
+      why: FailedBecause;
+    })[] => {
+      const word = latestWord.get(attempt.id);
+      const servedAgain = index < attempts.length - 1;
+      if (word === "negative") {
+        return [{ ...attempt, why: "checked_negative" }];
+      }
+      return word === undefined && servedAgain
+        ? [{ ...attempt, why: "back_in_heat" }]
+        : [];
+    }
+  );
 };
+
+/** Why an attempt counts as one that did not take: the Vet found her empty, or she came back into
+ *  heat and was served again before anybody found her carrying. */
+export type FailedBecause = "checked_negative" | "back_in_heat";
+
+/**
+ * The services that count towards a Repeat Breeder: the ones since she last calved. A cow who
+ * struggled to settle three years ago and has calved twice since is not the question she was then.
+ */
+export const sinceSheLastCalved = <Served extends { servedAt: Date }>(
+  services: Served[],
+  lastCalvedAt: Date | null
+): Served[] =>
+  lastCalvedAt
+    ? services.filter((one) => one.servedAt > lastCalvedAt)
+    : services;
 
 /** How many of her attempts did not take. */
 export const failedAttempts = (
@@ -217,8 +245,8 @@ export type RepeatBreederDecision = (typeof REPEAT_BREEDER_DECISIONS)[number];
 
 /**
  * Whether a cow should be on the Manager's queue as a Repeat Breeder: failed at least the farm's
- * threshold of attempts, and failed again since anybody last answered for her. A cow found carrying
- * again is not a question any more.
+ * threshold of attempts since she last calved, and failed again since anybody last answered for her. A
+ * cow found carrying again is not a question any more.
  */
 export const isRepeatBreeder = ({
   failed,

@@ -42,6 +42,8 @@ export const refusalMessage = (
  */
 const WORDED_REFUSALS = {
   abortion_of_a_cow_not_carrying: "refusal.abortionOfACowNotCarrying",
+  aborted_before_she_was_served: "refusal.abortedBeforeSheWasServed",
+  aborted_in_the_future: "refusal.abortedInTheFuture",
   calved_in_the_future: "refusal.calvedInTheFuture",
   calving_is_derived: "refusal.calvingIsDerived",
 
@@ -54,6 +56,7 @@ const WORDED_REFUSALS = {
   expected_calving_without_pregnancy: "refusal.expectedCalvingWithoutPregnancy",
   manager_only: "refusal.managerOnly",
   no_calving_expected: "refusal.noCalvingExpected",
+  not_a_repeat_breeder: "refusal.notARepeatBreeder",
   no_such_bull: "refusal.noSuchBull",
   service_needs_technician: "refusal.serviceNeedsTechnician",
   service_already_checked: "refusal.serviceAlreadyChecked",

@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { farm } from "./farm";
+import { ROLES, farm } from "./farm";
 import { animal } from "./herd";
 import { stepCompletion } from "./instance";
 import { observation } from "./observation";
@@ -193,7 +193,7 @@ export const repeatBreederAnswer = pgTable(
     note: text("note").notNull(),
     failedAttempts: integer("failed_attempts").notNull(),
     answeredBy: text("answered_by").references(() => user.id),
-    answeredByRole: text("answered_by_role").notNull(),
+    answeredByRole: text("answered_by_role", { enum: ROLES }).notNull(),
     answeredAt: timestamp("answered_at").notNull(),
   },
   (table) => [

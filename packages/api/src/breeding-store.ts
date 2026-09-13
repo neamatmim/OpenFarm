@@ -2,12 +2,18 @@ import type { Database } from "@OpenFarm/db";
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { CalvingLead } from "@OpenFarm/domain";
+import type {
+  CalvingLead,
+  PregnancyCheckResult,
+  RepeatBreederDecision,
+  ServiceMethod,
+} from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
   attemptOf,
   attemptsThatFailed,
   isRepeatBreeder,
+  sinceSheLastCalved,
   attemptsThatBegin,
   calvingWorkDue,
   expectedCalvingFrom,
@@ -273,6 +279,37 @@ export const closeWorkOfAttemptsNoLongerStanding = async (
 };
 
 /**
+ * The pregnancy her latest positive check found, while it is still hers to carry — or null.
+ *
+ * One the Vet recorded as lost is not brought back, and one she has already calved from is behind
+ * her. Falling back to an older positive would set a calving that happened long ago.
+ */
+const pregnancyStillCarried = async (
+  tx: Tx,
+  animalId: string,
+  lastCalvedAt: Date | null
+): Promise<Served | null> => {
+  const [latest] = await tx.query.pregnancyCheck.findMany({
+    where: { animalId, result: "positive" },
+    columns: { serviceId: true },
+    orderBy: { checkedAt: "desc", id: "desc" },
+    limit: 1,
+  });
+  const attempt = latest
+    ? attemptOf(await everyServiceOf(tx, animalId), latest.serviceId)
+    : null;
+  if (!attempt) {
+    return null;
+  }
+  const lost = await tx.query.abortion.findFirst({
+    where: { animalId, serviceId: attempt.id },
+    columns: { id: true },
+  });
+  const calvedSince = lastCalvedAt !== null && attempt.servedAt <= lastCalvedAt;
+  return lost || calvedSince ? null : attempt;
+};
+
+/**
  * Works out, again, what her Pregnancy Checks say about her: when she is expected to calve, and
  * whether a heifer is carrying.
  *
@@ -294,28 +331,13 @@ export const rederivePregnancy = async (
     undoingPositive,
   }: { times: PregnancyTimes; at: Date; now: Date; undoingPositive: boolean }
 ): Promise<CalvingWorkFollowed> => {
-  // A pregnancy the Vet recorded as lost is not one a positive check can bring back: her latest
-  // positive of a pregnancy she still carries decides.
-  const positives = await tx.query.pregnancyCheck.findMany({
-    where: { animalId, result: "positive" },
-    columns: { serviceId: true },
-    orderBy: { checkedAt: "desc", id: "desc" },
-  });
-  const lost = await tx.query.abortion.findMany({
-    where: { animalId, serviceId: { isNotNull: true } },
-    columns: { serviceId: true },
-  });
-  const lostAttempts = new Set(lost.map((one) => one.serviceId));
-  const positive = positives.find((one) => !lostAttempts.has(one.serviceId));
-  if (!(positive || undoingPositive)) {
-    return nothingFollowed();
-  }
   const her = await tx.query.animal.findFirst({
     where: { id: animalId },
     columns: {
       farmId: true,
       state: true,
       lactationNumber: true,
+      lactationStartedAt: true,
       expectedCalvingAt: true,
       expectedCalvingServiceId: true,
     },
@@ -323,23 +345,31 @@ export const rederivePregnancy = async (
   if (!her) {
     return nothingFollowed();
   }
-  const attempt = positive
-    ? attemptOf(await everyServiceOf(tx, animalId), positive.serviceId)
-    : null;
-  const expectedCalvingAt = attempt
-    ? expectedCalvingFrom(attempt.servedAt, times.gestationDays)
+  const carrying = await pregnancyStillCarried(
+    tx,
+    animalId,
+    her.lactationStartedAt
+  );
+  // A date given at intake is somebody's word, not a check's: only undoing a positive, or a derived
+  // date whose pregnancy no longer stands, clears anything.
+  const derived = her.expectedCalvingServiceId !== null;
+  if (!(carrying || undoingPositive || derived)) {
+    return nothingFollowed();
+  }
+  const expectedCalvingAt = carrying
+    ? expectedCalvingFrom(carrying.servedAt, times.gestationDays)
     : null;
   let { state } = her;
-  if (attempt && state === "heifer") {
+  if (carrying && state === "heifer") {
     state = "pregnant_heifer";
-  } else if (!attempt && state === "pregnant_heifer") {
+  } else if (!carrying && state === "pregnant_heifer") {
     state = "heifer";
   }
   await tx
     .update(animal)
     .set({
       expectedCalvingAt,
-      expectedCalvingServiceId: attempt?.id ?? null,
+      expectedCalvingServiceId: carrying?.id ?? null,
       ...(state === her.state ? {} : { state, stateChangedAt: at }),
       updatedAt: now,
     })
@@ -360,71 +390,146 @@ export const rederivePregnancy = async (
   );
 };
 
+/** One cow as the Repeat Breeder question reads her: her services since she last calved, her checks,
+ *  and the last answer anybody gave. */
+interface BreedingHistory {
+  id: string;
+  tagNumber: string;
+  expectedCalvingAt: Date | null;
+  lactationStartedAt: Date | null;
+  services: {
+    id: string;
+    animalId: string;
+    servedAt: Date;
+    method: ServiceMethod;
+    sireStraw: string | null;
+    servedBy: string | null;
+    sire: { tagNumber: string } | null;
+  }[];
+  pregnancyChecks: {
+    id: string;
+    serviceId: string;
+    result: PregnancyCheckResult;
+    checkedAt: Date;
+  }[];
+  repeatBreederAnswers: {
+    decision: RepeatBreederDecision;
+    note: string;
+    failedAttempts: number;
+    answeredAt: Date;
+  }[];
+}
+
+/** What a cow's history reads for a Repeat Breeder and the columns to read it with. */
+const historyColumns = {
+  columns: {
+    id: true,
+    tagNumber: true,
+    expectedCalvingAt: true,
+    lactationStartedAt: true,
+  },
+  with: {
+    services: {
+      columns: {
+        id: true,
+        animalId: true,
+        servedAt: true,
+        method: true,
+        sireStraw: true,
+        servedBy: true,
+      },
+      with: { sire: { columns: { tagNumber: true } } },
+      orderBy: { servedAt: "asc", id: "asc" },
+    },
+    pregnancyChecks: {
+      columns: { id: true, serviceId: true, result: true, checkedAt: true },
+    },
+    repeatBreederAnswers: {
+      columns: {
+        decision: true,
+        note: true,
+        failedAttempts: true,
+        answeredAt: true,
+      },
+      orderBy: { answeredAt: "desc", id: "desc" },
+      limit: 1,
+    },
+  },
+} as const;
+
 /**
- * The cows the Manager has to decide about: failed the farm's threshold of attempts, and failed again
- * since anybody last answered for her. With what she has failed at — the first service of each
- * attempt that did not take — and what was decided last time.
+ * The Repeat Breeder question about one cow: the attempts since she last calved that did not take —
+ * how she was served, by what sire and whom, and whether the Vet found her empty or she came back into
+ * heat — and whether that makes her one somebody has to decide about.
+ */
+const repeatBreederOf = (her: BreedingHistory, threshold: number) => {
+  const failures = attemptsThatFailed(
+    sinceSheLastCalved(her.services, her.lactationStartedAt),
+    her.pregnancyChecks
+  );
+  const [lastAnswer] = her.repeatBreederAnswers;
+  return {
+    flagged: isRepeatBreeder({
+      failed: failures.length,
+      threshold,
+      answeredAtFailures: lastAnswer?.failedAttempts ?? null,
+      carrying: her.expectedCalvingAt !== null,
+    }),
+    animalId: her.id,
+    tagNumber: her.tagNumber,
+    failedAttempts: failures.length,
+    failures: failures.map((one) => ({
+      serviceId: one.id,
+      servedAt: one.servedAt,
+      method: one.method,
+      sire: one.sire?.tagNumber ?? one.sireStraw,
+      servedBy: one.servedBy,
+      why: one.why,
+    })),
+    lastAnswer: lastAnswer ?? null,
+  };
+};
+
+/**
+ * The cows the Manager has to decide about: failed the farm's threshold of attempts since she last
+ * calved, and failed again since anybody last answered for her.
  *
  * On the Manager's queue and on nobody's phone (the Owner, 2026-09-13): a cull-or-treat decision
  * deserves somebody sitting down with it. Worked out afresh each time it is read, so an answered
- * flag stays answered and one nobody has answered stays until somebody does.
+ * flag stays answered and one nobody has answered stays until somebody does. A cow with fewer
+ * services than the threshold cannot have failed that many, and is not worked through.
  */
 export const repeatBreedersOn = async (
   db: Pick<Database, "query">,
   farmId: string,
   threshold: number
 ) => {
-  const served = await db.query.animal.findMany({
+  const cows = await db.query.animal.findMany({
     where: {
       farmId,
       sex: "female",
       side: "dairy",
       state: { in: ["heifer", "pregnant_heifer", "milking", "dry"] },
     },
-    columns: { id: true, tagNumber: true, expectedCalvingAt: true },
-    with: {
-      services: {
-        columns: { id: true, animalId: true, servedAt: true },
-        orderBy: { servedAt: "asc", id: "asc" },
-      },
-      pregnancyChecks: {
-        columns: { id: true, serviceId: true, result: true, checkedAt: true },
-      },
-      repeatBreederAnswers: {
-        columns: {
-          decision: true,
-          note: true,
-          failedAttempts: true,
-          answeredAt: true,
-        },
-        orderBy: { answeredAt: "desc", id: "desc" },
-        limit: 1,
-      },
-    },
+    ...historyColumns,
     orderBy: { tagNumber: "asc" },
   });
-  return served.flatMap((her) => {
-    const failures = attemptsThatFailed(her.services, her.pregnancyChecks);
-    const [lastAnswer] = her.repeatBreederAnswers;
-    const flagged = isRepeatBreeder({
-      failed: failures.length,
-      threshold,
-      answeredAtFailures: lastAnswer?.failedAttempts ?? null,
-      carrying: her.expectedCalvingAt !== null,
-    });
-    return flagged
-      ? [
-          {
-            animalId: her.id,
-            tagNumber: her.tagNumber,
-            failedAttempts: failures.length,
-            failures: failures.map((one) => ({
-              serviceId: one.id,
-              servedAt: one.servedAt,
-            })),
-            lastAnswer: lastAnswer ?? null,
-          },
-        ]
-      : [];
+  return cows
+    .filter((her) => her.services.length >= threshold)
+    .map((her) => repeatBreederOf(her, threshold))
+    .filter((question) => question.flagged)
+    .map(({ flagged: _flagged, ...row }) => row);
+};
+
+/** The Repeat Breeder question about one cow, read inside the transaction that answers it. */
+export const repeatBreederFor = async (
+  tx: Tx,
+  animalId: string,
+  threshold: number
+) => {
+  const her = await tx.query.animal.findFirst({
+    where: { id: animalId },
+    ...historyColumns,
   });
+  return her ? repeatBreederOf(her, threshold) : null;
 };

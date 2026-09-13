@@ -22,6 +22,7 @@ export {
 } from "./lifecycle";
 export type {
   CalfOutcome,
+  FailedBecause,
   RepeatBreederDecision,
   CalfSex,
   CalvingEase,
@@ -52,6 +53,7 @@ export {
   heatsThatBegin,
   isCalvingLead,
   isRepeatBreeder,
+  sinceSheLastCalved,
   isPregnancyCheckResult,
   isServiceMethod,
 } from "./breeding";
