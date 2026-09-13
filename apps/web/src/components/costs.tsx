@@ -7,9 +7,9 @@ import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="flex justify-between gap-2">
+  <div className="border-border/60 flex justify-between gap-2 border-b py-2 last:border-b-0">
     <span className="text-muted-foreground">{label}</span>
-    <span>{children}</span>
+    <span className="font-medium tabular-nums">{children}</span>
   </div>
 );
 
@@ -81,8 +81,10 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const orDash = (amount: number | null) =>
     amount === null ? "—" : taka(amount);
   return (
-    <section className="surface space-y-1 p-4 text-sm">
-      <h2 className="text-lg font-semibold">{t("costs.title")}</h2>
+    <section className="surface flex flex-col p-4 text-sm md:p-5">
+      <h2 className="mb-2 text-base font-semibold tracking-tight md:text-lg">
+        {t("costs.title")}
+      </h2>
       <WhatWasSpent costs={her} />
       {her.side === "fattening" ? (
         <>
@@ -96,7 +98,9 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
       ) : null}
       {her.lactation ? (
         <>
-          <h3 className="pt-2 font-medium">{t("costs.thisLactation")}</h3>
+          <h3 className="pt-4 pb-1 font-semibold">
+            {t("costs.thisLactation")}
+          </h3>
           <WhatWasSpent costs={her.lactation} />
           <Line label={t("costs.litres")}>
             {formatNumber(her.lactation.litresToBulk, language)}

@@ -52,6 +52,9 @@ export const en = {
   "people.disabled": "Disabled",
   "people.disable": "Remove access",
   "people.enable": "Restore access",
+  "people.disableTitle": "Remove {name}'s access?",
+  "people.disableWhy":
+    "They are signed out at once and cannot sign in again until access is restored. Their records stay.",
   "people.saveRoles": "Save roles",
   "people.pending": "Waiting for the Owner's approval",
   "people.approve": "Approve",
@@ -76,6 +79,7 @@ export const en = {
   "setup.done": "The farm is ready",
   "setup.goOn": "Go to the farm",
   "common.error": "Something went wrong",
+  "common.loadFailed": "Could not load this — check the connection",
   "nav.audit": "Audit log",
   "audit.title": "Audit log",
   "audit.when": "When",
@@ -638,6 +642,7 @@ export const en = {
   "owner.bulkToday": "To the tank today",
   "owner.week": "The last seven milkings",
   "owner.litres": "{litres} litres",
+  "owner.noRecord": "nothing recorded",
   "owner.later": "Stock and registration come in later increments",
   "mortality.happenedAt": "When she went",
   "mortality.correct": "Correct it",
@@ -1054,6 +1059,7 @@ export const en = {
   "intake.photoLater":
     "The photo did not go up — take it again from the animal's page.",
   "intake.record": "Take it in",
+  "intake.noPhoto": "No photo yet",
   "intake.subtitle":
     "A bought animal comes in: where it goes, who sold it, what it cost, and what it should weigh when it leaves.",
   "intake.groupAnimal": "The animal",

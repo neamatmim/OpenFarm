@@ -78,7 +78,7 @@ const DrugsPage = () => {
             ))}
           </ul>
         ) : (
-          <EmptyState icon={Pill} title={t("drugs.none")} />
+          <EmptyState bare icon={Pill} title={t("drugs.none")} />
         )}
 
         <form

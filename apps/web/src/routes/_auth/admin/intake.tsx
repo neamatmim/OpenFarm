@@ -4,6 +4,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Camera } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -165,12 +166,23 @@ const IntakePage = () => {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="intake-photo">{t("animals.photoTake")}</Label>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">{t("animals.photo")}</span>
+            {/* The browser's own file button speaks the browser's language; this one speaks the farm's. */}
+            <label
+              className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-[3px] md:min-h-9"
+              htmlFor="intake-photo"
+            >
+              <Camera aria-hidden className="size-4" />
+              {t("animals.photoTake")}
+            </label>
+            <p className="text-muted-foreground truncate text-sm">
+              {photo ? photo.name : t("intake.noPhoto")}
+            </p>
             <input
               accept="image/*"
               capture="environment"
-              className="file:bg-secondary file:text-secondary-foreground text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-2 file:font-medium"
+              className="sr-only"
               id="intake-photo"
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;

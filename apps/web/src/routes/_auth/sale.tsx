@@ -119,7 +119,7 @@ const TodaysSales = () => {
   if (!sold.data || sold.data.length === 0) {
     return (
       <Section title={t("sale.today")}>
-        <EmptyState icon={ReceiptText} title={t("sale.noneToday")} />
+        <EmptyState bare icon={ReceiptText} title={t("sale.noneToday")} />
       </Section>
     );
   }

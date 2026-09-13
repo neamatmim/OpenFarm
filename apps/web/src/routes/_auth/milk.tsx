@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import {
   EmptyState,
+  Loaded,
   Page,
   PageHeader,
   PeriodFilter,
@@ -118,6 +119,8 @@ const MilkPage = () => {
   );
   const set = (key: keyof typeof NOTHING_TYPED) => (value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+  // A figure the farm has not given yet: a placeholder while it is asked, a dash once asking has failed.
+  const notYet = today.isError ? "—" : <Skeleton className="h-9 w-32" />;
   const complete =
     Number(form.litres) > 0 &&
     Number(form.price) > 0 &&
@@ -150,55 +153,52 @@ const MilkPage = () => {
           icon={Milk}
           label={t("dispatch.intoTank")}
           value={
-            today.data ? (
-              `${formatNumber(today.data.toBulkLitres, language)} ${t("dispatch.litres")}`
-            ) : (
-              <Skeleton className="h-9 w-32" />
-            )
+            today.data
+              ? `${formatNumber(today.data.toBulkLitres, language)} ${t("dispatch.litres")}`
+              : notYet
           }
         />
         <StatTile
           icon={Truck}
           label={t("dispatch.handedOver")}
-          tone="success"
           value={
-            today.data ? (
-              `${formatNumber(today.data.dispatchedLitres, language)} ${t("dispatch.litres")}`
-            ) : (
-              <Skeleton className="h-9 w-32" />
-            )
+            today.data
+              ? `${formatNumber(today.data.dispatchedLitres, language)} ${t("dispatch.litres")}`
+              : notYet
           }
         />
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <Section title={t("dispatch.thatDay")}>
-          {today.data && today.data.dispatches.length > 0 ? (
-            <RecordList>
-              {today.data.dispatches.map((one) => (
-                <RecordRow
-                  key={one.id}
-                  meta={
-                    <>
-                      <span>
-                        {formatDate(one.dispatchedAt, language, "dateTime")}
+          <Loaded query={today}>
+            {today.data?.dispatches.length ? (
+              <RecordList>
+                {today.data.dispatches.map((one) => (
+                  <RecordRow
+                    key={one.id}
+                    meta={
+                      <>
+                        <span>
+                          {formatDate(one.dispatchedAt, language, "dateTime")}
+                        </span>
+                        {one.challan ? <span>{one.challan}</span> : null}
+                      </>
+                    }
+                    title={one.buyerName}
+                    trailing={
+                      <span className="font-semibold tabular-nums">
+                        {formatNumber(one.litres, language)}{" "}
+                        {t("dispatch.litres")}
                       </span>
-                      {one.challan ? <span>{one.challan}</span> : null}
-                    </>
-                  }
-                  title={one.buyerName}
-                  trailing={
-                    <span className="font-semibold tabular-nums">
-                      {formatNumber(one.litres, language)}{" "}
-                      {t("dispatch.litres")}
-                    </span>
-                  }
-                />
-              ))}
-            </RecordList>
-          ) : (
-            <EmptyState icon={Truck} title={t("dispatch.noneThatDay")} />
-          )}
+                    }
+                  />
+                ))}
+              </RecordList>
+            ) : (
+              <EmptyState bare icon={Truck} title={t("dispatch.noneThatDay")} />
+            )}
+          </Loaded>
         </Section>
 
         {mayRecord ? (

@@ -27,7 +27,7 @@ const HeldList = ({
 }) => {
   const { t } = useLanguage();
   if (rows.length === 0) {
-    return <EmptyState title={t(emptyKey)} />;
+    return <EmptyState bare title={t(emptyKey)} />;
   }
   return (
     <ul className="space-y-3">

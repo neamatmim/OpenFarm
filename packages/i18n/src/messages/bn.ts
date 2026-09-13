@@ -56,6 +56,9 @@ export const bn: Record<MessageKey, string> = {
   "people.disabled": "বন্ধ",
   "people.disable": "অ্যাক্সেস বন্ধ করুন",
   "people.enable": "অ্যাক্সেস ফেরান",
+  "people.disableTitle": "{name}-এর অ্যাক্সেস সরাবেন?",
+  "people.disableWhy":
+    "তিনি সঙ্গে সঙ্গে সাইন আউট হবেন এবং অ্যাক্সেস ফেরানো পর্যন্ত আর সাইন ইন করতে পারবেন না। তাঁর রেকর্ড থেকে যাবে।",
   "people.saveRoles": "ভূমিকা সংরক্ষণ",
   "people.pending": "মালিকের অনুমোদনের অপেক্ষায়",
   "people.approve": "অনুমোদন",
@@ -80,6 +83,7 @@ export const bn: Record<MessageKey, string> = {
   "setup.done": "খামার প্রস্তুত",
   "setup.goOn": "খামারে যান",
   "common.error": "কিছু একটা ভুল হয়েছে",
+  "common.loadFailed": "এটি আনা যায়নি — সংযোগ দেখুন",
   "nav.audit": "অডিট লগ",
   "audit.title": "অডিট লগ",
   "audit.when": "কখন",
@@ -620,6 +624,7 @@ export const bn: Record<MessageKey, string> = {
   "owner.bulkToday": "আজ ট্যাংকে",
   "owner.week": "গত সাত বেলা",
   "owner.litres": "{litres} লিটার",
+  "owner.noRecord": "কিছু লেখা হয়নি",
   "owner.later": "মজুত ও নিবন্ধন পরের ধাপে",
   "mortality.happenedAt": "কখন গেল",
   "mortality.correct": "সংশোধন",
@@ -1019,6 +1024,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.targetWeightNote": "খালি রাখলে খামারের নির্ধারিত লক্ষ্য ওজন ধরা হবে।",
   "intake.photoLater": "ছবিটি যায়নি — পশুর পাতা থেকে আবার তুলুন।",
   "intake.record": "তোলা হলো",
+  "intake.noPhoto": "এখনো ছবি নেই",
   "intake.subtitle":
     "কেনা পশু খামারে এল: কোথায় রাখা হবে, কে বিক্রি করল, দাম কত, আর যাওয়ার সময় ওজন কত হওয়া উচিত।",
   "intake.groupAnimal": "পশু",

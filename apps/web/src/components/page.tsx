@@ -1,4 +1,5 @@
 import { Badge } from "@OpenFarm/ui/components/badge";
+import { Button } from "@OpenFarm/ui/components/button";
 import {
   Empty,
   EmptyContent,
@@ -7,6 +8,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@OpenFarm/ui/components/empty";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -15,10 +17,13 @@ import {
   CircleDot,
   Info,
   OctagonX,
+  RotateCw,
   TriangleAlert,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId } from "react";
+
+import { useT } from "@/i18n/language-provider";
 
 /** How loud a thing is: the farm's semantic colours, always with a word and an icon beside them. */
 export type Tone = "neutral" | "success" | "warning" | "danger" | "info";
@@ -228,21 +233,31 @@ export const StatusBadge = ({
   );
 };
 
-/** Nothing here yet — said plainly, with what can be done about it. */
+/** Nothing here yet — said plainly, with what can be done about it. `bare` inside a Section, whose card already frames
+ *  it: a box drawn inside a box only pushes the work below the fold. */
 export const EmptyState = ({
   icon: Icon = CircleCheck,
   title,
   description,
   action,
+  bare = false,
   className,
 }: {
   icon?: LucideIcon;
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
+  bare?: boolean;
   className?: string;
 }) => (
-  <Empty className={cn("rounded-xl border border-dashed py-10", className)}>
+  <Empty
+    className={cn(
+      bare
+        ? "p-0 py-4 md:p-0 md:py-5"
+        : "rounded-xl border border-dashed py-10",
+      className
+    )}
+  >
     <EmptyHeader>
       <EmptyMedia variant="icon">
         <Icon aria-hidden />
@@ -350,6 +365,40 @@ export const Notice = ({
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
+};
+
+/**
+ * What a list shows before the farm has answered: a placeholder while it is being asked, a failure with a way to ask
+ * again, and only then the list — so "nothing waiting" is said only when the farm has said it.
+ */
+export const Loaded = ({
+  query,
+  children,
+  skeleton,
+}: {
+  query: { data: unknown; isError: boolean; refetch: () => unknown };
+  children: ReactNode;
+  skeleton?: ReactNode;
+}) => {
+  const t = useT();
+  if (query.data !== undefined) {
+    return children;
+  }
+  if (query.isError) {
+    return (
+      <Notice
+        action={
+          <Button onClick={() => query.refetch()} size="sm" variant="outline">
+            <RotateCw aria-hidden />
+            {t("outbox.retry")}
+          </Button>
+        }
+        title={t("common.loadFailed")}
+        tone="danger"
+      />
+    );
+  }
+  return skeleton ?? <Skeleton className="h-20 rounded-lg" />;
 };
 
 /**
