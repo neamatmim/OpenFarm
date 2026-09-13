@@ -44,9 +44,9 @@ export const sopInstance = pgTable(
     versionId: text("version_id")
       .notNull()
       .references(() => sopVersion.id),
-    penId: text("pen_id")
-      .notNull()
-      .references(() => pen.id, { onDelete: "cascade" }),
+    /** The Pen the work is in; null for work that concerns the whole farm rather than any Pen of it —
+     *  the Registration's renewal, say. */
+    penId: text("pen_id").references(() => pen.id, { onDelete: "cascade" }),
     state: text("state", { enum: INSTANCE_STATES }).notNull().default("due"),
     dueAt: timestamp("due_at").notNull(),
     graceMinutes: integer("grace_minutes").notNull(),

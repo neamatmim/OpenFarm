@@ -15,7 +15,9 @@ import type { CalvingWorkFollowed } from "../breeding-store";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import { photoInput } from "../photo-input";
+import { certificatesOf, keepCertificate } from "../registration-store";
+import { requirePersonalSession, requireRole } from "../roles";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -202,13 +204,87 @@ export const farmRouter = {
    */
   identity: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
-    .handler(({ context }) =>
-      identityView(
-        context.farm,
-        context.clock.now(),
-        context.farm.registrationRenewalLeadDays
-      )
-    ),
+    .handler(async ({ context }) => {
+      const [latest] = await certificatesOf(context.db, context.farm.id);
+      return {
+        ...identityView(
+          context.farm,
+          context.clock.now(),
+          context.farm.registrationRenewalLeadDays
+        ),
+        /** When the certificate was last photographed; null for a farm that has not. */
+        certificateUpdatedAt: latest?.takenAt ?? null,
+      };
+    }),
+
+  /**
+   * Every photograph of the Registration certificate the farm has kept, newest first: when, and by whom.
+   * The first is the certificate the farm holds now; the rest are what it held before.
+   */
+  certificates: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const kept = await certificatesOf(context.db, context.farm.id);
+      return kept.map(({ id, takenAt }) => ({ id, takenAt }));
+    }),
+
+  /**
+   * A photograph of the Registration certificate — the one the farm holds now, or an earlier one by its id.
+   * The first thing an inspector asks to see.
+   */
+  certificate: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ id: z.string().optional() }).default({}))
+    .handler(async ({ context, input }) => {
+      const row = await context.db.query.registrationCertificate.findFirst({
+        where: {
+          farmId: context.farm.id,
+          ...(input.id ? { id: input.id } : {}),
+        },
+        columns: { contentType: true, data: true },
+        orderBy: { takenAt: "desc", id: "desc" },
+      });
+      if (!row) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "No certificate has been photographed",
+        });
+      }
+      return row;
+    }),
+
+  /**
+   * Photographs the Registration certificate. The newer photograph is the certificate now, and the one before
+   * it is kept. The Owner's or the Manager's, as the identity is, from their own phones.
+   */
+  setCertificate: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(photoInput)
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const farmId = context.farm.id;
+      let kept = "";
+      await audited(context).write(
+        {
+          entity: "registration_certificate",
+          entityId: () => kept,
+          action: "create",
+          after: () =>
+            Promise.resolve({
+              id: kept,
+              contentType: input.contentType,
+              takenAt: now.toISOString(),
+            }),
+        },
+        async (tx) => {
+          kept = await keepCertificate(tx, farmId, input, {
+            by: context.actor.id,
+            now,
+          });
+        }
+      );
+      return { id: kept, certificateUpdatedAt: now };
+    }),
 
   /**
    * Writes the farm down. The Owner or the Manager (roles matrix: farm parameters are both

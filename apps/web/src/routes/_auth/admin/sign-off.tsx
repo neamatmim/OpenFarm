@@ -10,11 +10,12 @@ import { toast } from "sonner";
 import { NeedsReview } from "@/components/needs-review";
 import { useLanguage } from "@/i18n/language-provider";
 import { hoursLate } from "@/lib/lateness";
+import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
 interface Queued {
   version: { content: unknown };
-  pen: { name: string; shed: { name: string } };
+  pen: { name: string; shed: { name: string } } | null;
 }
 
 /** SOP content is jsonb, so it arrives untyped; the Version's own shape is the promise. */
@@ -22,7 +23,6 @@ const titleOf = (row: Queued, bangla: boolean) => {
   const { name } = row.version.content as SopContent;
   return bangla ? name.bn : (name.en ?? name.bn);
 };
-const whereOf = (row: Queued) => `${row.pen.shed.name} · ${row.pen.name}`;
 
 /** The Manager's two queues: work waiting to be checked, and work that has gone late. */
 const SignOffPage = () => {
@@ -73,7 +73,7 @@ const SignOffPage = () => {
                     {titleOf(row, language === "bn")}
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    {whereOf(row)} ·{" "}
+                    {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
                     {formatDate(new Date(row.dueAt), language, "dateTime")}
                   </p>
                 </Link>
@@ -127,7 +127,7 @@ const SignOffPage = () => {
                     {titleOf(row, language === "bn")}
                   </p>
                   <p className="text-sm text-amber-200">
-                    {whereOf(row)} ·{" "}
+                    {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
                     {t("work.lateFor", {
                       hours: hoursLate(row.minutesOverdue),
                     })}

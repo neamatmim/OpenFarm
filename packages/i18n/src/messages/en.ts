@@ -152,6 +152,7 @@ export const en = {
   "animals.fromCampaign": "campaign",
   "animals.observations": "What was seen",
   "animals.observationWithdrawn": "Withdrawn",
+  "sop.effect.registration_renewal": "Renews the Registration",
   "sop.effect.observation": "What was seen (health, heat)",
   "sop.choices": "What may be chosen",
   "sop.choicesHelp": "Comma separated, in Bangla",
@@ -480,6 +481,33 @@ export const en = {
   "accountant.title": "For the accountant",
   "accountant.summary": "Income and expense",
   "accountant.csv": "Every money event (CSV)",
+  "work.wholeFarm": "The whole farm",
+  "renewal.runsOut": "The Registration runs out on {date}",
+  "renewal.newExpiry": "The renewed certificate runs out on",
+  "renewal.certificate": "Photograph of the renewed certificate",
+  "renewal.taken": "Photograph taken",
+  "refusal.renewalNotLater":
+    "A renewed Registration runs out after the one it replaces",
+  "refusal.renewalNeedsCertificate":
+    "A renewal keeps a photograph of the renewed certificate",
+  "refusal.renewalNeedsExpiry":
+    "A renewal says when the renewed certificate runs out",
+  "certificate.title": "Registration certificate",
+  "certificate.taken": "Certificate photographed",
+  "certificate.takenOn": "Photographed {date}",
+  "certificate.none": "No photograph of the certificate yet",
+  "certificate.take": "Photograph the certificate",
+  "owner.registrationRenewal": "Registration renewal",
+  "owner.registrationEnding": "The Registration runs out on {date}: renew it",
+  "owner.registrationExpired": "The Registration ran out on {date}",
+  "digest.registrationRenewal": "The Registration is due for renewal",
+  "alerts.registrationRenewal":
+    "The Registration runs out on {date}: its renewal is on your list",
+  "refusal.renewalSuperseded":
+    "The Registration has moved on since this renewal; put the newer one right instead",
+  "refusal.workInNoPen":
+    "This step records a Pen's work, and this work is in no Pen",
+  "renewal.issuedOn": "The renewed certificate was issued on",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":
     "The farm's registration number is not recorded; write it in the farm details first",
@@ -822,6 +850,7 @@ export const en = {
     "A calving is recorded by Barn Staff or the Manager",
   "refusal.calvingOfACowNotInCalf": "She is not a cow who calves",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",
+  "sop.trigger.registrationRenewal": "the Registration coming up for renewal",
   "sop.trigger.beforeCalving": "Before a cow's Expected Calving",
   "sop.trigger.farmTimed": "The farm's days, set once for every cow",
   "calvingLead.dry_off": "Dry-off lead",

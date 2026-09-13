@@ -41,7 +41,8 @@ export const peopleOnTheWork = async (
   tx: Tx,
   farmId: string,
   instance: {
-    penId: string;
+    /** Null for work about the whole farm, which is everybody's in the Role. */
+    penId: string | null;
     assignedRole: RoleName;
     assignedTo: string | null;
     claimedBy: string | null;
@@ -52,7 +53,7 @@ export const peopleOnTheWork = async (
     return [named];
   }
   const holders = await holdersOf(tx, farmId, [instance.assignedRole]);
-  if (instance.assignedRole !== "staff") {
+  if (instance.assignedRole !== "staff" || instance.penId === null) {
     return holders;
   }
   const assignments = await tx.query.penAssignment.findMany({
@@ -112,7 +113,7 @@ export const doersOf = async (
   farmId: string,
   instance: {
     id: string;
-    penId: string;
+    penId: string | null;
     assignedRole: RoleName;
     assignedTo: string | null;
     claimedBy: string | null;

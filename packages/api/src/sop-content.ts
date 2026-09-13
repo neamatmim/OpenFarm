@@ -81,6 +81,7 @@ const trigger = z.discriminatedUnion("kind", [
     kind: z.literal("before_calving"),
     lead: z.string().trim().min(1).max(40),
   }),
+  z.object({ kind: z.literal("registration_renewal") }),
 ]);
 
 /** Which animals the SOP concerns; absent means the whole herd. */

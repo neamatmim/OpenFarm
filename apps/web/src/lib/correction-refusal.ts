@@ -79,6 +79,10 @@ const WORDED_REFUSALS = {
   period_too_long: "refusal.periodTooLong",
   purchase_needs_price_and_seller: "refusal.purchaseNeedsPriceAndSeller",
   received_in_the_future: "refusal.receivedInTheFuture",
+  renewal_needs_certificate: "refusal.renewalNeedsCertificate",
+  renewal_needs_expiry: "refusal.renewalNeedsExpiry",
+  renewal_not_later: "refusal.renewalNotLater",
+  renewal_superseded: "refusal.renewalSuperseded",
   service_already_checked: "refusal.serviceAlreadyChecked",
   service_needs_technician: "refusal.serviceNeedsTechnician",
   service_of_a_male: "refusal.serviceOfAMale",
@@ -87,6 +91,7 @@ const WORDED_REFUSALS = {
   visited_in_the_future: "refusal.visitedInTheFuture",
   wage_already_entered: "refusal.wageAlreadyEntered",
   wage_needs_month: "refusal.wageNeedsMonth",
+  work_in_no_pen: "refusal.workInNoPen",
 } as const satisfies Record<string, MessageKey>;
 
 /** A worded refusal in the reader's language, or nothing when the error was about something else. */

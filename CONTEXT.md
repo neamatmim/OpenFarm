@@ -50,7 +50,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **SOP Version**: An immutable snapshot of an SOP Definition. Every change creates a new one; history shows which Version was followed. _Avoid_: Revision, edit
 
-**SOP Instance**: One occurrence of an SOP falling due — e.g. morning milking on a given day. Assigned to a role, claimable by a person, reviewed by the checker. _Avoid_: Task (too generic), job, run
+**SOP Instance**: One occurrence of an SOP falling due — e.g. morning milking on a given day. Assigned to a role, claimable by a person, reviewed by the checker. Most are in a Pen; work about the whole farm, like the Registration's renewal, is in none. _Avoid_: Task (too generic), job, run
 
 **Step**: One ordered item inside an SOP. May repeat per animal in the Instance's group. Requires Evidence; may write a farm record or change an animal's state. _Avoid_: Checkpoint, action
 
@@ -246,7 +246,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Farm Identity**: What the Farm is, as every document leaving it prints: name, address, phone and Registration number. Written down once by the Owner or the Manager; not a Farm Parameter, which is a number to tune. _Avoid_: Farm details, farm profile, company information
 
-**Registration**: The Farm's DLS registration: number, office, issue and expiry dates, certificate photo. Renewed annually by 31 March; the renewal SOP is raised 90 days before. _Avoid_: Licence, permit
+**Registration**: The Farm's DLS registration: number, office, issue and expiry dates, certificate photo. Renewed annually by 31 March; the renewal SOP is raised for the Owner the renewal lead (90 days) before, falls due on the day it runs out, and its closing Step records the new expiry and the renewed certificate. _Avoid_: Licence, permit
 
 **Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd count, vaccination register, 30-day treatment register, 6-month disease history, mortality — each exportable to PDF. _Avoid_: Audit page, compliance dashboard
 

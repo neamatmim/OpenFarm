@@ -21,6 +21,7 @@ import {
   requirePen,
 } from "./herd-store";
 import { animalsForInstance, isOnTheFarm } from "./instances-store";
+import type { RenewalEntry } from "./registration-store";
 import { contentOf } from "./sop-content";
 import type { StockCountLine } from "./stock-store";
 
@@ -55,6 +56,8 @@ export interface CompletionEntry {
   /** What was counted of each Feed Item, for a Step that counts the store — and why it differs from
    *  what the store was thought to hold. The Items are the farm's, not the Version's. */
   counts?: StockCountLine[];
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  renewal?: RenewalEntry;
   outOfRange?: string;
   skipReason?: string;
   photos?: {
@@ -98,7 +101,8 @@ export const resolveStepAnimal = async (
   tx: Tx,
   farmId: string,
   step: Step,
-  instancePenId: string,
+  /** Null for work about the whole farm, whose animals stand wherever they stand. */
+  instancePenId: string | null,
   animalTag: string | undefined
 ): Promise<string | null> => {
   if (!step.repeatPerAnimal) {
@@ -128,7 +132,10 @@ export const resolveStepAnimal = async (
   // An animal that has left keeps its Pen, so the Pen alone does not prove she is here —
   // and a Step that writes a farm record would otherwise book litres to a sold cow. Both of
   // these are the world moving under an entry that was true when it was written.
-  if (beast.penId !== instancePenId || !isOnTheFarm(beast)) {
+  if (
+    (instancePenId !== null && beast.penId !== instancePenId) ||
+    !isOnTheFarm(beast)
+  ) {
     throw lateEntry("That animal is not in this pen");
   }
   return beast.id;
@@ -144,7 +151,7 @@ export const assertMayWork = (
     device: unknown;
   },
   instance: {
-    penId: string;
+    penId: string | null;
     assignedTo: string | null;
     claimedBy: string | null;
     assignedRole: string;
@@ -165,8 +172,10 @@ export const assertMayWork = (
       message: "This can only be done from your own phone, not a shed phone",
     });
   }
+  // Work about the whole farm is in no Pen, and so in nobody's Pens to keep them from it.
   if (
     context.roleUsed === "staff" &&
+    instance.penId !== null &&
     !context.penIds.includes(instance.penId)
   ) {
     throw new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
@@ -346,6 +355,7 @@ const photoSlots = (input: CompletionEntry): ((slot: number) => boolean) => {
 const linesOf = (input: CompletionEntry) => ({
   feeding: input.feeding ?? [],
   counts: input.counts ?? [],
+  renewal: input.renewal,
 });
 
 /**

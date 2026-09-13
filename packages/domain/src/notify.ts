@@ -56,6 +56,9 @@ export const DELIVERY: Record<
   // Money waiting for the Owner has already moved — the milk left, the bull arrived — so it is the
   // evening's reading, not a buzz (notification channels: Money Event awaiting approval → Owner, digest).
   money_awaiting_approval: { when: "digest" },
+  // Ninety days is time enough: the Owner reads it with the evening's post (notification channels: DLS
+  // renewal due → Owner, digest).
+  registration_renewal_due: { when: "digest" },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

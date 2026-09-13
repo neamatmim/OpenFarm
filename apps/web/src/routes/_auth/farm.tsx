@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -9,6 +9,42 @@ import { toast } from "sonner";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
+
+/** The Registration's renewal on the Owner's list: to the renewal work when it has been raised, and to the farm
+ *  page when it has not. */
+const RenewalRow = ({
+  renewal,
+}: {
+  renewal: {
+    expiresOn: Date | null;
+    expired: boolean;
+    instanceId: string | null;
+  };
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const said = t(
+    renewal.expired ? "owner.registrationExpired" : "owner.registrationEnding",
+    {
+      date: renewal.expiresOn
+        ? formatDate(renewal.expiresOn, language, "date")
+        : "—",
+    }
+  );
+  return renewal.instanceId ? (
+    <Link
+      className="underline"
+      params={{ instanceId: renewal.instanceId }}
+      to="/work/$instanceId"
+    >
+      {said}
+    </Link>
+  ) : (
+    <Link className="underline" to="/admin/farm">
+      {said}
+    </Link>
+  );
+};
 
 /**
  * The Owner's home: an exception list, and the farm's own figures under it.
@@ -49,7 +85,8 @@ const OwnerHome = () => {
     needsYou.needsReview.length +
     needsYou.endingWithdrawal.length +
     needsYou.lowStock.length +
-    needsYou.moneyAwaiting.length;
+    needsYou.moneyAwaiting.length +
+    (needsYou.registrationRenewal ? 1 : 0);
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -71,7 +108,7 @@ const OwnerHome = () => {
                 params={{ instanceId: row.id }}
                 to="/work/$instanceId"
               >
-                {row.sopBn} · {row.pen}
+                {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
               {row.escalated ? (
                 <span className="ml-2 text-amber-400">
@@ -93,7 +130,7 @@ const OwnerHome = () => {
                 params={{ instanceId: row.id }}
                 to="/work/$instanceId"
               >
-                {row.sopBn} · {row.pen}
+                {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
             </li>
           ))}
@@ -122,6 +159,14 @@ const OwnerHome = () => {
             </li>
           ))}
         </Exceptions>
+
+        {needsYou.registrationRenewal ? (
+          <Exceptions count={1} label={t("owner.registrationRenewal")}>
+            <li className="rounded-lg border p-2 text-sm">
+              <RenewalRow renewal={needsYou.registrationRenewal} />
+            </li>
+          </Exceptions>
+        ) : null}
 
         <Exceptions
           count={needsYou.moneyAwaiting.length}

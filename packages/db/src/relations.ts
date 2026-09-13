@@ -450,7 +450,6 @@ export const relations = defineRelations(schema, (r) => ({
     pen: r.one.pen({
       from: r.sopInstance.penId,
       to: r.pen.id,
-      optional: false,
     }),
     completions: r.many.stepCompletion({
       from: r.sopInstance.id,

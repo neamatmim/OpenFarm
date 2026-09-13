@@ -30,10 +30,12 @@ import {
   isEscalated,
   isOverdue,
   minutesOverdue,
+  renewalOpensAt,
 } from "@OpenFarm/domain";
 
 import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
+import { renewalCause } from "./registration-store";
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -68,7 +70,8 @@ export const farmDayRange = (now: Date): { from: Date; to: Date } => {
 export interface DueSlot {
   definitionId: string;
   versionId: string;
-  penId: string;
+  /** Null for work about the whole farm. */
+  penId: string | null;
   dueAt: Date;
   graceMinutes: number;
   assignedRole: SopContent["assignedRole"];
@@ -162,6 +165,43 @@ export interface Happening {
   side: Side;
   state: AnimalState;
 }
+
+/**
+ * The renewal of the farm's DLS Registration, once it has come within the farm's renewal lead of running
+ * out: one piece of work for the whole farm, in no Pen, for each SOP that renews it. Raised when the lead
+ * begins and due when the Registration runs out, so it is on the Owner's list for the whole of the lead and
+ * late only once the farm is unregistered. Keyed on the expiry, so it is raised once for each certificate
+ * however often the farm is opened — and again, a year on, for the renewed one.
+ */
+export const renewalSlotsFor = (
+  now: Date,
+  sops: { definitionId: string; versionId: string; content: SopContent }[],
+  registration: { expiresOn: Date | null; renewalLeadDays: number }
+): DueSlot[] => {
+  const { expiresOn } = registration;
+  if (
+    expiresOn === null ||
+    now < renewalOpensAt(expiresOn, registration.renewalLeadDays)
+  ) {
+    return [];
+  }
+  return sops
+    .filter((sop) =>
+      sop.content.triggers.some(
+        (trigger) => trigger.kind === "registration_renewal"
+      )
+    )
+    .map((sop) => ({
+      definitionId: sop.definitionId,
+      versionId: sop.versionId,
+      penId: null,
+      dueAt: expiresOn,
+      graceMinutes: sop.content.graceMinutes,
+      assignedRole: sop.content.assignedRole,
+      checkerRole: sop.content.checkerRole,
+      cause: renewalCause(expiresOn),
+    }));
+};
 
 /**
  * Every Instance a schedule-triggered SOP should have for the farm's day containing `now`:
@@ -327,7 +367,11 @@ export const happeningSlotsFor = (
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
   for (const sop of sops) {
     for (const trigger of sop.content.triggers) {
-      if (trigger.kind === "schedule") {
+      // The clock's work, and the farm's own Registration's, are raised elsewhere.
+      if (
+        trigger.kind === "schedule" ||
+        trigger.kind === "registration_renewal"
+      ) {
         continue;
       }
       // Raised by the act itself, inside the transaction that records it. Nothing that happens
@@ -567,6 +611,11 @@ export const raiseDueInstances = async (
   if (slots.length === 0) {
     return [];
   }
+  // Scheduled work is kept unique by its Pen and its time, and a Pen that is null is unique from every other
+  // null: work about the whole farm has only its cause to stop it being raised twice.
+  if (slots.some((slot) => slot.penId === null && !slot.cause)) {
+    throw new Error("Work about the whole farm is raised by a cause");
+  }
   const created = await tx
     .insert(sopInstance)
     .values(
@@ -594,18 +643,27 @@ export const raiseDueInstances = async (
   return created;
 };
 
+/** The animals in a piece of work's Pen, or none for work in no Pen. */
+const penOfWork = (penId: string | null) => (penId === null ? null : { penId });
+
 /** The animals a per-animal Step covers in this Instance's Pen, right now. */
 export const animalsForInstance = async (
   db: Pick<Database, "query">,
   farmId: string,
-  penId: string,
+  /** Null for work about the whole farm: only the animal it was raised about, if any. */
+  penId: string | null,
   content: SopContent,
   /** Work raised by something that happened to one animal is about her, not about everything
    *  standing in the Pen she happens to be in. */
   animalId?: string | null
 ) => {
+  const standingIn = animalId ? { id: animalId } : penOfWork(penId);
+  // Work about the whole farm stands in no Pen: it is about the animal it was raised about, or about none.
+  if (standingIn === null) {
+    return [];
+  }
   const rows = await db.query.animal.findMany({
-    where: animalId ? { farmId, id: animalId } : { farmId, penId },
+    where: { farmId, ...standingIn },
     columns: {
       id: true,
       tagNumber: true,
@@ -625,18 +683,24 @@ export const animalsForInstance = async (
   );
 };
 
+/** Where a piece of work is, as a notice or a list says it: the shed and the Pen, or nothing for work
+ *  about the whole farm. */
+export const penLabel = (
+  pen: { name: string; shed: { name: string } } | null
+): string | null => (pen ? `${pen.shed.name} / ${pen.name}` : null);
+
 /** What an Alert about a piece of work carries, snapshotted at the moment it is raised so it
  *  still reads the same after the SOP is renamed or the Pen is moved. */
 export const alertParams = (instance: {
   version: { content: unknown };
-  pen: { name: string; shed: { name: string } };
+  pen: { name: string; shed: { name: string } } | null;
   dueAt: Date;
 }) => {
   const content = instance.version.content as SopContent;
   return {
     sopBn: content.name.bn,
     sopEn: content.name.en ?? content.name.bn,
-    pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
+    pen: penLabel(instance.pen),
     dueAt: instance.dueAt.toISOString(),
   };
 };

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -159,4 +160,56 @@ export const invite = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]
+);
+
+/**
+ * A photograph of the farm's DLS Registration certificate: what an inspector asks to see first. Kept for
+ * ever, one row per photograph, the newest being the certificate the farm holds now — a replaced photograph
+ * is still the farm's evidence of what it held before.
+ */
+export const registrationCertificate = pgTable(
+  "registration_certificate",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    /** Downscaled on the device before upload, base64. */
+    data: text("data").notNull(),
+    /** The renewal Step that took it, when a renewal did; null for one taken on the farm page. A corrected
+     *  renewal replaces its own photograph rather than adding another. */
+    completionId: text("completion_id"),
+    takenBy: text("taken_by").references(() => user.id),
+    takenAt: timestamp("taken_at").notNull(),
+  },
+  (table) => [
+    index("registration_certificate_farm_idx").on(table.farmId, table.takenAt),
+    uniqueIndex("registration_certificate_completion_uidx")
+      .on(table.completionId)
+      .where(sql`${table.completionId} is not null`),
+  ]
+);
+
+/**
+ * One renewal of the Registration, as the renewal SOP's closing Step recorded it: the expiry it replaced and
+ * the new one. Keyed on the Completion, so a corrected renewal puts the same renewal right rather than
+ * renewing twice, and knows what the expiry was before it.
+ */
+export const registrationRenewal = pgTable(
+  "registration_renewal",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    completionId: text("completion_id").notNull(),
+    previousExpiresOn: timestamp("previous_expires_on"),
+    expiresOn: timestamp("expires_on").notNull(),
+    renewedBy: text("renewed_by").references(() => user.id),
+    renewedAt: timestamp("renewed_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("registration_renewal_completion_uidx").on(table.completionId),
+  ]
 );

@@ -21,7 +21,9 @@ import {
   isFinished,
   isOnTheFarm,
   openReviews,
+  penLabel,
 } from "../instances-store";
+import { renewalDue } from "../registration-store";
 import { requireRole } from "../roles";
 import { runningLow } from "../stock-store";
 
@@ -129,6 +131,10 @@ export const homeRouter = {
         { raised: number; done: number; missed: number }
       >();
       for (const instance of today) {
+        // Work about the whole farm is in no Pen, and no Pen's progress.
+        if (instance.penId === null) {
+          continue;
+        }
         const tally = pens.get(instance.penId) ?? {
           raised: 0,
           done: 0,
@@ -193,7 +199,7 @@ export const homeRouter = {
             id: instance.id,
             penId: instance.penId,
             sopBn: contentOf(instance.version).name.bn,
-            pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
+            pen: penLabel(instance.pen),
             // When it was finished, which is how long it has been waiting for them — not
             // when it fell due, which is the Alert's question rather than this queue's.
             completedAt: instance.completedAt,
@@ -410,7 +416,7 @@ export const homeRouter = {
           approvals: approvals.map((instance) => ({
             id: instance.id,
             sopBn: contentOf(instance.version).name.bn,
-            pen: `${instance.pen.shed.name} / ${instance.pen.name}`,
+            pen: penLabel(instance.pen),
             completedAt: instance.completedAt,
           })),
           proposals,
@@ -442,8 +448,8 @@ export const homeRouter = {
             source: row.source,
             occurredAt: row.occurredAt,
           })),
-          /** The DLS renewal arrives in increment 7. A row faked now would be a row the Owner
-           *  learns to distrust. */
+          /** The Registration coming up for renewal, or run out, and the work raised for it. */
+          registrationRenewal: await renewalDue(context.db, context.farm, now),
         },
         tiles: {
           bulkToday: todaysMilk.bulk,
