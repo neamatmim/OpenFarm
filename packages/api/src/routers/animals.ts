@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
 import {
   ANIMAL_SOURCES,
   SEXES,
@@ -311,6 +311,24 @@ const readMortality = async (tx: Tx, id: string) => {
     },
   });
   return row ?? null;
+};
+
+/** An animal and the mortality recorded of her, for putting it right or finishing it; refused when she has none. */
+const mortalityOf = async (
+  context: { db: Database; farm: { id: string } },
+  tagNumber: string
+) => {
+  const target = await requireAnimal(context.db, context.farm.id, tagNumber);
+  const existing = await context.db.query.mortality.findFirst({
+    where: { animalId: target.id, farmId: context.farm.id },
+    columns: { id: true, recordedBy: true, recordedAt: true },
+  });
+  if (!existing) {
+    throw new ORPCError("NOT_FOUND", {
+      message: `${tagNumber} has no death or cull recorded`,
+    });
+  }
+  return { target, existing };
 };
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
@@ -950,6 +968,56 @@ export const animalsRouter = {
     }),
 
   /**
+   * What was done with a carcass whose death was written before anybody could say: a stillborn calf, whose calving
+   * recorded her death and left the disposal for the Manager (the Owner's decision, 2026-09-13). Written once; a
+   * disposal already written is put right by a Correction, with its reason.
+   */
+  recordDisposal: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        tagNumber: tagInput,
+        disposal: z.enum(DISPOSALS),
+        disposalNote: z.string().trim().max(300).optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const tagNumber = input.tagNumber.toUpperCase();
+      const { existing } = await mortalityOf(context, tagNumber);
+      await audited(context).write(
+        {
+          entity: "mortality",
+          entityId: existing.id,
+          action: "update",
+          before: (tx) => readMortality(tx, existing.id),
+          after: (tx) => readMortality(tx, existing.id),
+        },
+        async (tx) => {
+          // Only while it is still awaited, asked inside the transaction: two phones writing it at once write it
+          // once, and the second is told it is there.
+          const [written] = await tx
+            .update(mortality)
+            .set({
+              disposal: input.disposal,
+              disposalNote: input.disposalNote ?? null,
+            })
+            .where(
+              and(eq(mortality.id, existing.id), isNull(mortality.disposal))
+            )
+            .returning({ id: mortality.id });
+          if (!written) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "Her disposal is already written down; put it right with a Correction",
+              data: { refusal: "disposal_already_recorded" },
+            });
+          }
+        }
+      );
+      return { tagNumber, disposal: input.disposal };
+    }),
+
+  /**
    * Puts a mortality right: the cause the farm learned afterwards, the disposal written down
    * wrong, the morning it actually happened.
    *
@@ -976,20 +1044,7 @@ export const animalsRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
-      const existing = await context.db.query.mortality.findFirst({
-        where: { animalId: target.id, farmId: context.farm.id },
-        columns: { id: true, recordedBy: true, recordedAt: true },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", {
-          message: `${tagNumber} has no death or cull recorded`,
-        });
-      }
+      const { target, existing } = await mortalityOf(context, tagNumber);
       if (input.happenedAt && input.happenedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have died in the future",

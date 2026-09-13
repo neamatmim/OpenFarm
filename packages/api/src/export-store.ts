@@ -12,6 +12,7 @@ export type ExportedReport =
   | "milk_dispatch_record"
   | "milk_production"
   | "accountant_export"
+  | "movement_log"
   | InspectorRegister;
 
 /**

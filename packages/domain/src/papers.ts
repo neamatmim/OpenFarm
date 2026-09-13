@@ -489,20 +489,25 @@ export const INSPECTOR_REGISTERS = [
   "vaccination_register",
   "treatment_register",
   "disease_history",
+  "mortality_register",
 ] as const;
 export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
 
-/** The registers an inspector may also take away as a CSV (the report set: R3 and R4 as PDF and CSV). */
+/** The registers an inspector may also take away as a CSV (the report set: R3, R4 and R6 as PDF and CSV). */
 export const REGISTERS_WITH_CSV: readonly InspectorRegister[] = [
   "vaccination_register",
   "treatment_register",
+  "mortality_register",
 ];
 
 /** The health registers, which cover a period: a year of vaccinations, thirty days of treatments, six months of
- *  diagnoses. */
+ *  diagnoses, a year of deaths. */
 export type HealthRegister = Extract<
   InspectorRegister,
-  "vaccination_register" | "treatment_register" | "disease_history"
+  | "vaccination_register"
+  | "treatment_register"
+  | "disease_history"
+  | "mortality_register"
 >;
 
 const STANDING_LABEL: Record<RegistrationStanding, string> = {
@@ -578,6 +583,54 @@ export const herdSummary = (summary: HerdSummary): string =>
     ]),
     "",
     `${summary.producedAt} · ${summary.producedBy}`,
+  ].join("\n");
+
+/** One death on the printed mortality register, its day, cause and disposal already written out for the reader. */
+export interface MortalityRegisterLine {
+  tagNumber: string;
+  diedOn: string;
+  cause: string;
+  /** How the carcass went, with the detail beside it; the words for awaiting while a stillborn calf's waits. */
+  disposal: string;
+  /** The office's reference, for a death the farm attributes to a notifiable disease reported under one. */
+  reportReference: string | null;
+}
+
+export interface MortalityRegister {
+  farm: FarmIdentity;
+  from: string;
+  to: string;
+  deaths: MortalityRegisterLine[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * R6, the mortality register: every death and cull in a period — the animal, the day, the cause, how the carcass
+ * was disposed of, and the DLS reference when it was notifiable — a line to each in the CSV's order.
+ */
+export const mortalityRegister = (register: MortalityRegister): string =>
+  [
+    ...farmOfOriginLines(register.farm),
+    "",
+    "মৃত্যুর রেজিস্টার / Mortality register",
+    field("সময়কাল", "Period", `${register.from} — ${register.to}`),
+    "",
+    ...(register.deaths.length === 0
+      ? ["এই সময়ে কোনো মৃত্যু হয়নি / No deaths in this period"]
+      : register.deaths.flatMap((one) => [
+          one.tagNumber,
+          `  ${field("তারিখ", "Date", one.diedOn)}`,
+          `  ${field("কারণ", "Cause", one.cause)}`,
+          `  ${field("নিষ্পত্তি", "Disposal", one.disposal)}`,
+          ...(one.reportReference
+            ? [
+                `  ${field("ডিএলএস রেফারেন্স", "DLS reference", one.reportReference)}`,
+              ]
+            : []),
+        ])),
+    "",
+    `${register.producedAt} · ${register.producedBy}`,
   ].join("\n");
 
 /** One vaccine dose on the printed vaccination register, its day already written out for the reader. */

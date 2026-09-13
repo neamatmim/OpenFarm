@@ -117,6 +117,7 @@ export const insertAnimal = async (
     now,
     reason,
     extra = {},
+    arrivedAt = now,
   }: {
     /** Made by the caller, because the Audit Event naming the new Animal is written around
      *  this and has to know what it is naming before the row exists. */
@@ -128,6 +129,9 @@ export const insertAnimal = async (
     reason: string;
     /** Columns only one kind of arrival sets, such as an opening register's Lactation. */
     extra?: Partial<typeof animal.$inferInsert>;
+    /** When she came into the Pen, if not when she was written down: a calf is in it from the hour she was
+     *  born, and the movement log dates her by it. */
+    arrivedAt?: Date;
   }
 ): Promise<{ tagNumber: string }> => {
   await requirePen(tx, farmId, input.penId);
@@ -160,7 +164,7 @@ export const insertAnimal = async (
     toSide: input.side,
     reason,
     movedBy: actorId,
-    movedAt: now,
+    movedAt: arrivedAt,
   });
   return { tagNumber };
 };

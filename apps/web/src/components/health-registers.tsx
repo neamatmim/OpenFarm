@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -85,10 +86,10 @@ const RegisterSection = ({
 };
 
 /**
- * The vaccination register (R3), the treatment register (R4) and the disease history (R5) on the Inspector View:
- * every vaccination with its Lot Number, every dose with what was behind it, every diagnosis with the notifiable
- * ones marked — each printed, and the two dose registers also given as a CSV. A year, thirty days and six months
- * back unless a period is set.
+ * The health registers on the Inspector View — vaccinations (R3), treatments (R4), the disease history (R5) and
+ * deaths (R6) — each printed, all but the disease history also given as a CSV; and the movement log (R11), a CSV
+ * alone. A year of vaccinations, deaths and movements, thirty days of treatments and six months of diagnoses back
+ * unless a period is set.
  */
 export const HealthRegisters = ({
   onPrint,
@@ -112,6 +113,19 @@ export const HealthRegisters = ({
   );
   const diseases = useQuery(
     orpc.inspector.diseases.queryOptions({ input: asked })
+  );
+  const mortalities = useQuery(
+    orpc.inspector.mortalities.queryOptions({ input: asked })
+  );
+  const movementLog = useMutation(
+    orpc.inspector.movementLog.mutationOptions({
+      onSuccess: ({ csv, period }) =>
+        saveCsv(`movement-log-${period.from}-${period.to}.csv`, csv),
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
   );
   const sheet = useMutation(
     orpc.inspector.print.mutationOptions({
@@ -153,6 +167,16 @@ export const HealthRegisters = ({
           value={to}
         />
       </div>
+      <div>
+        <Button
+          disabled={movementLog.isPending}
+          onClick={() => movementLog.mutate(asked)}
+          size="sm"
+          variant="outline"
+        >
+          {t("inspector.movementLog")}
+        </Button>
+      </div>
       {treatments.error ? (
         <p className="text-destructive text-sm">
           {wordedRefusal(treatments.error, t) ?? t("common.error")}
@@ -172,8 +196,8 @@ export const HealthRegisters = ({
             <span className="text-muted-foreground block text-xs">
               {t("inspector.lotNumber", {
                 lotNumber: row.lotNumber ?? "—",
-              })} ·{" "}
-              {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
+              })}{" "}
+              · {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
             </span>
           </li>
         ))}
@@ -228,6 +252,30 @@ export const HealthRegisters = ({
             <span className="text-muted-foreground block text-xs">
               {t(OUTCOME_WORD[row.outcome.kind])}
               {row.outcome.on ? ` ${row.outcome.on}` : ""}
+            </span>
+          </li>
+        ))}
+      </RegisterSection>
+
+      <RegisterSection
+        empty="inspector.noMortalities"
+        period={mortalities.data}
+        title="inspector.mortalities"
+        {...printed("mortality_register")}
+        {...saved("mortality_register")}
+      >
+        {mortalities.data?.rows.map((row) => (
+          <li className="rounded border p-2" key={row.id}>
+            {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
+            {causeWord(row.cause, t)}
+            <span
+              className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-amber-500"}`}
+            >
+              {disposalWord(row.disposal, t)}
+              {row.disposalNote ? ` · ${row.disposalNote}` : ""}
+              {row.reportReference
+                ? ` · ${t("inspector.notifiable", { reference: row.reportReference })}`
+                : ""}
             </span>
           </li>
         ))}

@@ -283,7 +283,9 @@ export const mortality = pgTable(
      *  through the Diagnosis that named it, rather than through a flag somebody has to remember
      *  to tick. */
     diagnosisId: text("diagnosis_id"),
-    disposal: text("disposal", { enum: DISPOSALS }).notNull(),
+    /** Null while a stillborn calf's carcass waits for the Manager to say what was done with it: her calving
+     *  writes her death, and the disposal comes afterwards (the Owner's decision, 2026-09-13). */
+    disposal: text("disposal", { enum: DISPOSALS }),
     /** Where, how deep, who took her — the detail the rule does not name but an inspector
      *  asks about. */
     disposalNote: text("disposal_note"),

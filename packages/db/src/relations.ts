@@ -244,6 +244,7 @@ export const relations = defineRelations(schema, (r) => ({
       optional: false,
     }),
     fromPen: r.one.pen({ from: r.animalMove.fromPenId, to: r.pen.id }),
+    mover: r.one.user({ from: r.animalMove.movedBy, to: r.user.id }),
   },
   penRation: {
     pen: r.one.pen({ from: r.penRation.penId, to: r.pen.id, optional: false }),

@@ -17,6 +17,7 @@ export type PaperId =
   | "vaccination-register"
   | "treatment-register"
   | "disease-history"
+  | "mortality-register"
   | "sop-card";
 
 /**

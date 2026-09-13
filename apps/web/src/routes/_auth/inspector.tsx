@@ -26,6 +26,7 @@ const PAPER_OF: Record<InspectorRegister, PaperId> = {
   vaccination_register: "vaccination-register",
   treatment_register: "treatment-register",
   disease_history: "disease-history",
+  mortality_register: "mortality-register",
 };
 
 const SIDE_WORD = {

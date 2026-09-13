@@ -102,7 +102,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Lot Number**: The manufacturer's number on a vaccine vial, which traces a dose back to what was in it. A Campaign asks for it once for the Pen, and every dose of that Campaign without one of its own came from it; a dose from another vial carries its own. _Avoid_: Batch (a Batch is an Outbox send), batch number, vial number
 
-**Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
+**Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's — except a stillborn calf's, which her Calving records with the cause stillbirth, leaving the disposal awaiting until the Manager writes it. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
 
 **Disposal**: What was done with a carcass: buried (the rule is six feet) or burned. Evidence, because an inspector may ask. Never a word for a Sale — an Animal sold is Sold, and "disposal" is what happened to a body. _Avoid_: Removal, destruction
 
@@ -252,7 +252,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Registration**: The Farm's DLS registration: number, office, issue and expiry dates, certificate photo. Renewed annually by 31 March; the renewal SOP is raised for the Owner the renewal lead (90 days) before, falls due on the day it runs out, and its closing Step records the new expiry and the renewed certificate. _Avoid_: Licence, permit
 
-**Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd summary (the animals on the farm by Side and State and by Pen), vaccination register, 30-day treatment register, 6-month disease history, mortality — each printed as a paper and handed over; the inspector never touches the phone. _Avoid_: Audit page, compliance dashboard
+**Inspector View**: The single screen the Manager shows a DLS inspector: Registration, herd summary (the animals on the farm by Side and State and by Pen), vaccination register, 30-day treatment register, 6-month disease history, mortality — each printed as a paper and handed over, with the movement log (every Move, Intake, Sale and death in a period) as a CSV; the inspector never touches the phone. _Avoid_: Audit page, compliance dashboard
 
 **Animal Passport**: The per-animal paper: identity, Pen history, treatments with their withdrawals, weigh-ins, and how she left if she has. Given to a buyer or slaughter vet on request — including after she has gone, which is when they ask. _Avoid_: Animal record (that's the live data), certificate
 
