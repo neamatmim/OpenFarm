@@ -88,7 +88,9 @@ export type StepEffect =
   /** She calved: when, how it went, and each calf — her next Lactation, and a new animal per calf. */
   | { kind: "calving" }
   /** The store counted: what is really there of each Feed Item, and why it differs. */
-  | { kind: "stock_count" };
+  | { kind: "stock_count" }
+  /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
+  | { kind: "registration_renewal" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -104,6 +106,7 @@ export const STEP_EFFECT_KINDS = [
   "dry_off",
   "calving",
   "stock_count",
+  "registration_renewal",
 ] as const;
 
 export interface Step {
@@ -124,6 +127,7 @@ export const TRIGGER_KINDS = [
   "prescription",
   "notifiable_disease",
   "before_calving",
+  "registration_renewal",
 ] as const;
 export type TriggerKind = (typeof TRIGGER_KINDS)[number];
 
@@ -179,7 +183,11 @@ export type Trigger =
   /** Some days before an animal's Expected Calving — the farm's days for the lead named, so every
    *  cow is dried off and prepared the same number of days out. Counted backwards from a date the
    *  farm worked out, and moved with it when that date moves. */
-  | { kind: "before_calving"; lead: CalvingLead };
+  | { kind: "before_calving"; lead: CalvingLead }
+  /** The farm's DLS Registration comes within the renewal lead of running out: the farm's Registration
+   *  renewal lead, not a number here, so the queue and the work say "renew" on the same day. Raised once
+   *  for each expiry. */
+  | { kind: "registration_renewal" };
 
 /** Which animals an SOP concerns. A schedule-triggered SOP raises one Instance per Pen
  *  holding at least one matching animal, and its per-animal Steps cover those animals.
@@ -492,6 +500,12 @@ const stockCountStepProblems = (step: Step, path: string): string[] =>
     ? [`${path}.effect: the store is counted once, not once per animal`]
     : [];
 
+/** The Registration is renewed once, for the farm: no animal is renewed. */
+const renewalStepProblems = (step: Step, path: string): string[] =>
+  step.repeatPerAnimal
+    ? [`${path}.effect: the Registration is renewed once, not once per animal`]
+    : [];
+
 const SHAPED_STEPS: Partial<
   Record<StepEffect["kind"], (step: Step, path: string) => string[]>
 > = {
@@ -501,6 +515,7 @@ const SHAPED_STEPS: Partial<
   dry_off: dryOffStepProblems,
   calving: calvingStepProblems,
   stock_count: stockCountStepProblems,
+  registration_renewal: renewalStepProblems,
 };
 
 const effectProblems = (step: Step, stepIndex: number): string[] => {
@@ -567,6 +582,20 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
   return problems;
 };
 
+/** Triggers that carry nothing an author can get wrong: a Prescription says when its own doses fall due, a
+ *  notifiable Diagnosis is due the moment it is made, and a Registration's renewal falls due by the farm's
+ *  own renewal lead. */
+const TIMED_BY_THEMSELVES: ReadonlySet<Trigger["kind"]> = new Set<
+  Trigger["kind"]
+>(["prescription", "notifiable_disease", "registration_renewal"]);
+
+const isTimedByItself = (
+  trigger: Trigger
+): trigger is Extract<
+  Trigger,
+  { kind: "prescription" | "notifiable_disease" | "registration_renewal" }
+> => TIMED_BY_THEMSELVES.has(trigger.kind);
+
 /** What is wrong with one Trigger, in the Owner's terms rather than the parser's. */
 const triggerProblems = (trigger: Trigger, index: number): string[] => {
   const problems: string[] = [];
@@ -582,12 +611,7 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
     }
     return problems;
   }
-  // A Prescription says when its own doses fall due, and a notifiable Diagnosis is due the
-  // moment it is made, so there is nothing in either to be wrong.
-  if (
-    trigger.kind === "prescription" ||
-    trigger.kind === "notifiable_disease"
-  ) {
+  if (isTimedByItself(trigger)) {
     return problems;
   }
   if (trigger.kind === "before_calving") {
@@ -742,6 +766,46 @@ const reportRoleProblems = (content: SopContent): string[] => {
     : [];
 };
 
+/**
+ * The Steps only certain Roles may be assigned, because the work is completed by whoever it is assigned to
+ * and the record it writes belongs to them:
+ *
+ * - a Service is the Manager's to record (roles matrix: Breeding — Service `C R U` to the Manager and to
+ *   nobody else who records), or parentage goes to the wrong person the day the Version is published;
+ * - a Stock Count is the Manager's (Feed stock, Purchases, Stock Count — Manager `C R U`, Barn Staff
+ *   nothing), because the count moves what the farm's feed is worth;
+ * - the Registration's renewal is the Owner's (the registration decision: SOP 26, assigned to the Owner);
+ * - a Calving is recorded by Barn Staff as a Step, or by the Manager (Breeding — Calving `C R U` to the
+ *   Manager and `C` to Staff as a Step); the Owner reads it, and the Vet records the check, not the birth.
+ */
+const WHOSE_STEPS: readonly {
+  effect: StepEffect["kind"];
+  roles: readonly string[];
+  problem: string;
+}[] = [
+  {
+    effect: "service",
+    roles: ["manager"],
+    problem: "a procedure that records a service is the Manager's",
+  },
+  {
+    effect: "stock_count",
+    roles: ["manager"],
+    problem: "a procedure that counts the store is the Manager's",
+  },
+  {
+    effect: "registration_renewal",
+    roles: ["owner"],
+    problem: "a procedure that renews the Registration is the Owner's",
+  },
+  {
+    effect: "calving",
+    roles: CALVING_RECORDERS,
+    problem:
+      "a procedure that records a calving is Barn Staff's or the Manager's",
+  },
+];
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
@@ -782,38 +846,13 @@ export const findStructuralProblems = (content: SopContent): string[] => {
     }
     problems.push(...effectProblems(step, stepIndex));
   }
-  // A Service is the Manager's to record (roles matrix: Breeding — Service is `C R U` to the
-  // Manager and to nobody else who records). The work is completed by whoever it is assigned to,
-  // so a procedure recording a Service and assigned to anybody else would hand parentage to the
-  // wrong person the day it was published.
-  if (
-    content.steps.some((step) => step.effect?.kind === "service") &&
-    content.assignedRole !== "manager"
-  ) {
-    problems.push(
-      "assignedRole: a procedure that records a service is the Manager's"
-    );
-  }
-  // A Stock Count is the Manager's (roles matrix: Feed stock, Purchases, Stock Count — Manager C R U,
-  // Barn Staff nothing): the count moves what the farm's feed is worth.
-  if (
-    content.steps.some((step) => step.effect?.kind === "stock_count") &&
-    content.assignedRole !== "manager"
-  ) {
-    problems.push(
-      "assignedRole: a procedure that counts the store is the Manager's"
-    );
-  }
-  // A Calving is recorded by Barn Staff as a Step, or by the Manager (roles matrix: Breeding —
-  // Calving is `C R U` to the Manager and `C` to Staff as an SOP step). The Owner reads it and the Vet
-  // records the Pregnancy Check and the Abortion, not the birth.
-  if (
-    content.steps.some((step) => step.effect?.kind === "calving") &&
-    !(CALVING_RECORDERS as readonly string[]).includes(content.assignedRole)
-  ) {
-    problems.push(
-      "assignedRole: a procedure that records a calving is Barn Staff's or the Manager's"
-    );
+  for (const rule of WHOSE_STEPS) {
+    if (
+      content.steps.some((step) => step.effect?.kind === rule.effect) &&
+      !rule.roles.includes(content.assignedRole)
+    ) {
+      problems.push(`assignedRole: ${rule.problem}`);
+    }
   }
   problems.push(...pregnancyCheckProcedureProblems(content));
   return problems;

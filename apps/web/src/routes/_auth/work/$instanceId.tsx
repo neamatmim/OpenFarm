@@ -7,9 +7,10 @@ import type {
 } from "@OpenFarm/domain";
 import { MILK_DESTINATIONS, isClosingStep } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDigits } from "@OpenFarm/i18n";
+import { formatDate, formatDayField, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Camera, Check, Lock, SprayCan } from "lucide-react";
@@ -20,8 +21,13 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import { useLanguage } from "@/i18n/language-provider";
 import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
+import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
-import type { StepRecord, StockCountEntry } from "@/lib/record-offline";
+import type {
+  RenewalEntry,
+  StepRecord,
+  StockCountEntry,
+} from "@/lib/record-offline";
 import {
   claimInstance,
   finishInstance,
@@ -233,6 +239,7 @@ const WorkPage = () => {
     feeding,
     fed,
     stockCount,
+    renewal,
     changed,
     runningOn,
   } = instance.data as unknown as {
@@ -253,6 +260,8 @@ const WorkPage = () => {
     fed: { shortfallPercent: number; flaggedAt: string | null } | null;
     /** What to count, for a Playbook entry that counts the store — never what it is thought to hold. */
     stockCount: StockCountBoard | null;
+    /** When the Registration runs out now, for the Step that renews it. */
+    renewal: { expiresOn: string | null } | null;
     /** What changed in the Version this work runs on, until they have done it once. */
     changed: Changed | null;
     /** The Version number this work runs on, when the Playbook has since moved on. */
@@ -319,6 +328,7 @@ const WorkPage = () => {
         destination: payload.destination,
         feeding: payload.feeding,
         counts: payload.counts,
+        renewal: payload.renewal,
         evidence: payload.evidence,
         outOfRange: payload.outOfRange,
         reason: payload.reason,
@@ -361,6 +371,7 @@ const WorkPage = () => {
         correcting={Boolean(existing)}
         feeding={feeding}
         stockCount={stockCount}
+        renewal={renewal}
         onCancel={() => setOpenStep(null)}
         onRecord={(payload) => send(openStep, existing, payload)}
         step={openStep}
@@ -677,6 +688,103 @@ interface StockCountBoard {
  * expects. The expected figure is never shown: a count that can see the answer copies it. The farm
  * refuses a difference without a reason, and says which.
  */
+/** The farm day a year after the Registration runs out now: where a renewed certificate usually lands. */
+const aYearOn = (expiresOn: string | null): string => {
+  if (!expiresOn) {
+    return "";
+  }
+  const day = formatDayField(new Date(expiresOn));
+  const [year, ...rest] = day.split("-");
+  return [String(Number(year) + 1), ...rest].join("-");
+};
+
+/**
+ * What the renewal's closing Step is filling in: the day the renewed certificate runs out — starting a year
+ * on from the day it runs out now, which is how a certificate is usually renewed — and its photograph. Ready
+ * once both are given; a Correction may keep the photograph it already sent.
+ */
+const useRenewal = (
+  step: Step,
+  board: { expiresOn: string | null } | null | undefined,
+  correcting: boolean
+) => {
+  const renews = step.effect?.kind === "registration_renewal";
+  const runsOutOn = board?.expiresOn ?? null;
+  const [expiresOn, setExpiresOn] = useState(() => aYearOn(runsOutOn));
+  const [certificate, setCertificate] = useState<Photo | null>(null);
+  return {
+    renews,
+    runsOutOn,
+    expiresOn,
+    setExpiresOn,
+    certificate,
+    setCertificate,
+    ready:
+      !renews || (expiresOn !== "" && (certificate !== null || correcting)),
+    entry: (): RenewalEntry | undefined =>
+      renews ? { expiresOn, certificate: certificate ?? undefined } : undefined,
+  };
+};
+
+/** The renewal's closing Step's own fields, for that Step and no other. */
+const RenewalFields = ({
+  renewing,
+}: {
+  renewing: ReturnType<typeof useRenewal>;
+}) => {
+  const { t, language } = useLanguage();
+  if (!renewing.renews) {
+    return null;
+  }
+  const {
+    runsOutOn,
+    expiresOn,
+    certificate,
+    setExpiresOn: onExpiresOn,
+    setCertificate: onCertificate,
+  } = renewing;
+  const certificateTaken = certificate !== null;
+  return (
+    <div className="space-y-3">
+      {runsOutOn ? (
+        <p className="text-muted-foreground text-sm">
+          {t("renewal.runsOut", {
+            date: formatDate(new Date(runsOutOn), language, "date"),
+          })}
+        </p>
+      ) : null}
+      <div className="space-y-1">
+        <Label htmlFor="renewal-expires">{t("renewal.newExpiry")}</Label>
+        <Input
+          id="renewal-expires"
+          onChange={(event) => onExpiresOn(event.target.value)}
+          type="date"
+          value={expiresOn}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="renewal-certificate">{t("renewal.certificate")}</Label>
+        <input
+          accept="image/*"
+          capture="environment"
+          className="text-sm"
+          id="renewal-certificate"
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (file) {
+              onCertificate(await shrink(file));
+            }
+          }}
+          type="file"
+        />
+        {certificateTaken ? (
+          <p className="text-sm text-emerald-400">{t("renewal.taken")}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const StockCountFields = ({
   items,
   counted,
@@ -956,6 +1064,8 @@ interface RecordPayload {
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   /** What a Step that counts the store found, per Feed Item. */
   counts?: StockCountEntry[];
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  renewal?: RenewalEntry;
   /** One per Evidence slot that asked for a picture. */
   photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
   /** Set when the entry already exists: changing a recorded fact is a Correction, and a
@@ -971,6 +1081,7 @@ const EvidenceSheet = ({
   correcting,
   feeding,
   stockCount,
+  renewal,
   onCancel,
   onRecord,
 }: {
@@ -989,6 +1100,8 @@ const EvidenceSheet = ({
   } | null;
   /** What to count, for a Step that counts the store. */
   stockCount?: StockCountBoard | null;
+  /** When the Registration runs out now, for the Step that renews it. */
+  renewal?: { expiresOn: string | null } | null;
   onCancel: () => void;
   onRecord: (payload: RecordPayload) => void;
 }) => {
@@ -1017,6 +1130,7 @@ const EvidenceSheet = ({
   const [given, setGiven] = useState<Typed>({});
   const [leftover, setLeftover] = useState<Typed>({});
   const count = useStockCount(step, stockCount);
+  const renewing = useRenewal(step, renewal, correcting);
 
   const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
 
@@ -1033,7 +1147,10 @@ const EvidenceSheet = ({
   });
 
   const firstOutOfRange = () => outsideItsRange(step, values);
-  const ready = everythingAsked(step, values, photos);
+  // Everything the Evidence asks, and whatever the Step's own fields ask on top.
+  const ready = [everythingAsked(step, values, photos), renewing.ready].every(
+    Boolean
+  );
 
   const submit = (force: boolean) => {
     const outside = firstOutOfRange();
@@ -1051,6 +1168,7 @@ const EvidenceSheet = ({
         ? whatWentOut(feedingRows, given, leftover)
         : undefined,
       counts: count.lines(),
+      renewal: renewing.entry(),
       photos: Object.entries(photos).map(([slot, taken]) => ({
         slot: Number(slot),
         ...taken,
@@ -1113,6 +1231,8 @@ const EvidenceSheet = ({
           onChange={setDestination}
         />
       ) : null}
+
+      <RenewalFields renewing={renewing} />
 
       <StockCountFields
         counted={count.counted}

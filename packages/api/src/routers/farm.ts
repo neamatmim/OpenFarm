@@ -3,6 +3,7 @@ import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
 import {
   MAX_GRACE_MINUTES,
+  PHOTO_MAX_BYTES,
   identityView,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -15,7 +16,8 @@ import type { CalvingWorkFollowed } from "../breeding-store";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import { keepCertificate } from "../registration-store";
+import { requirePersonalSession, requireRole } from "../roles";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -202,13 +204,75 @@ export const farmRouter = {
    */
   identity: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
-    .handler(({ context }) =>
-      identityView(
-        context.farm,
-        context.clock.now(),
-        context.farm.registrationRenewalLeadDays
-      )
-    ),
+    .handler(async ({ context }) => {
+      const certificate = await context.db.query.farmCertificate.findFirst({
+        where: { farmId: context.farm.id },
+        columns: { updatedAt: true },
+      });
+      return {
+        ...identityView(
+          context.farm,
+          context.clock.now(),
+          context.farm.registrationRenewalLeadDays
+        ),
+        /** When the certificate was last photographed; null for a farm that has not. */
+        certificateUpdatedAt: certificate?.updatedAt ?? null,
+      };
+    }),
+
+  /**
+   * The photograph of the Registration certificate, for whoever may read the Farm Identity. The first thing
+   * an inspector asks to see.
+   */
+  certificate: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const row = await context.db.query.farmCertificate.findFirst({
+        where: { farmId: context.farm.id },
+        columns: { contentType: true, data: true },
+      });
+      if (!row) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "No certificate has been photographed",
+        });
+      }
+      return row;
+    }),
+
+  /**
+   * Photographs the Registration certificate, replacing the photograph kept before. The Owner's or the
+   * Manager's, as the identity is, from their own phones; the trail keeps who took each and when.
+   */
+  setCertificate: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        data: z.string().min(1).max(PHOTO_MAX_BYTES),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const farmId = context.farm.id;
+      const readTaken = async (tx: Tx) =>
+        (await tx.query.farmCertificate.findFirst({
+          where: { farmId },
+          columns: { contentType: true, updatedBy: true, updatedAt: true },
+        })) ?? null;
+      await audited(context).write(
+        {
+          entity: "farm_certificate",
+          entityId: farmId,
+          action: "update",
+          before: readTaken,
+          after: readTaken,
+        },
+        (tx) =>
+          keepCertificate(tx, farmId, input, { by: context.actor.id, now })
+      );
+      return { certificateUpdatedAt: now };
+    }),
 
   /**
    * Writes the farm down. The Owner or the Manager (roles matrix: farm parameters are both

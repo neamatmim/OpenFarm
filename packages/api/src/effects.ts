@@ -62,6 +62,8 @@ import {
   removeMilkRecord,
   writeMilkRecord,
 } from "./milk-store";
+import type { RenewalEntry } from "./registration-store";
+import { renewRegistration } from "./registration-store";
 import { raiseNeedsReview } from "./review-store";
 import { forbidden } from "./roles";
 import type { StockAdjustment, StockCountLine } from "./stock-store";
@@ -74,6 +76,11 @@ import { recordStockCount } from "./stock-store";
  */
 export type EffectResult =
   | { kind: "milk_record"; destination: MilkDestination; forced: boolean }
+  | {
+      kind: "registration_renewal";
+      expiresOn: Date;
+      previousExpiresOn: Date | null;
+    }
   | {
       kind: "feeding";
       /** What the Pen was owed, and how far under it the session came. */
@@ -223,7 +230,8 @@ export interface EffectInput {
   instance: {
     id: string;
     farmId: string;
-    penId: string;
+    /** Null for work about the whole farm. */
+    penId: string | null;
     /** The animal this work is about, for work raised about one — a dose of a Prescription is
      *  hers alone. Null for work about the whole Pen. */
     animalId: string | null;
@@ -254,6 +262,8 @@ export interface EffectInput {
   feeding: FeedingEntryLine[];
   /** What was counted of each Feed Item, for a Step that counts the store. */
   counts: StockCountLine[];
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  renewal?: RenewalEntry;
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
    *  more than one feeding routine divides by the one that raised this work. */
   sessionsPerDay: number;
@@ -261,6 +271,17 @@ export interface EffectInput {
   recordedAt: Date;
   now: Date;
 }
+
+/** The Pen a Pen's Step records into. Feeding a Pen and milking one are about a Pen, and work about the whole
+ *  farm cannot carry them. */
+const penOf = (input: EffectInput): string => {
+  if (input.instance.penId === null) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Step records a Pen's work, and this work is in no Pen",
+    });
+  }
+  return input.instance.penId;
+};
 
 /**
  * Records what a Pen was actually given against what its Ration owed it.
@@ -289,7 +310,7 @@ const applyFeedingEffect = async (
   const owed = await feedingTargetForPen(
     tx,
     input.instance.farmId,
-    input.instance.penId,
+    penOf(input),
     // When the work was raised, not when it fell due: an Instance raised this morning for
     // tonight is fed on the Ration the farm had this morning, whatever is published between.
     input.instance.raisedAt,
@@ -325,7 +346,7 @@ const applyFeedingEffect = async (
       farmId: input.instance.farmId,
       instanceId: input.instance.id,
       completionId: input.completionId,
-      penId: input.instance.penId,
+      penId: penOf(input),
       rationVersionId: owed.rationVersionId,
       animals: owed.animals,
       sessionsPerDay: owed.sessionsPerDay,
@@ -1355,6 +1376,30 @@ const applyStockCountEffect = async (
   return { kind: "stock_count", adjustments };
 };
 
+/**
+ * Renews the farm's DLS Registration: the Owner's, as the renewal SOP is (the registration decision). The
+ * new expiry and certificate replace the old, and the renewal is kept against the expiry it replaced.
+ */
+const applyRenewalEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.roles.includes("owner")) {
+    throw forbidden({
+      message: "Renewing the Registration is the Owner's",
+      reason: "owner_only",
+    });
+  }
+  const renewed = await renewRegistration(tx, {
+    farmId: input.instance.farmId,
+    completionId: input.completionId,
+    renewal: input.renewal,
+    by: input.recordedBy,
+    now: input.now,
+  });
+  return { kind: "registration_renewal", ...renewed };
+};
+
 /** Every effect that writes its own record, by kind. The milk effects are not here: they share a
  *  Milking Session, which only they may open. */
 const RECORDING_EFFECTS: Partial<
@@ -1374,6 +1419,7 @@ const RECORDING_EFFECTS: Partial<
   dry_off: applyDryOffEffect,
   calving: applyCalvingEffect,
   stock_count: applyStockCountEffect,
+  registration_renewal: applyRenewalEffect,
 };
 
 /**
@@ -1403,7 +1449,11 @@ export const runStepEffect = async (
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.
-  const sessionId = await ensureSession(tx, input.instance, input.now);
+  const sessionId = await ensureSession(
+    tx,
+    { ...input.instance, penId: penOf(input) },
+    input.now
+  );
 
   if (effect.kind === "milk_record") {
     if (input.skipped || !input.animalId) {

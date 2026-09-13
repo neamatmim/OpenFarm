@@ -20,6 +20,13 @@ export interface StockCountEntry {
   reason?: string;
 }
 
+/** What the Step that renews the Registration records: the farm day it now runs out, and the renewed
+ *  certificate's photograph. */
+export interface RenewalEntry {
+  expiresOn: string;
+  certificate?: { contentType: "image/jpeg"; data: string };
+}
+
 export interface StepRecord {
   instanceId: string;
   stepId: string;
@@ -31,6 +38,8 @@ export interface StepRecord {
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   /** What a Step that counts the store found, per Feed Item, and why it differs. */
   counts?: StockCountEntry[];
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  renewal?: RenewalEntry;
   outOfRange?: string;
   skipReason?: string;
   /** Taken in the shed. Queued as its own entry against the slot it answers, so a megabyte

@@ -67,6 +67,7 @@ const setup = async () => {
   });
   await createTestClient(appRouter, { as: "staff" });
   for (const pen of [from, to]) {
+    // oxlint-disable-next-line no-await-in-loop
     await scratchDb()
       .insert(penAssignment)
       .values({
@@ -160,7 +161,7 @@ describe("work that starts because something happened", () => {
         .filter(
           (row) =>
             row.definitionId === world.sop.definitionId &&
-            mineOnly.has(row.penId)
+            mineOnly.has(row.penId ?? "")
         )
         .map((row) => [row.id, row.dueAt.toISOString()])
     );
@@ -184,6 +185,7 @@ describe("work that starts because an animal reached a State", () => {
       aliases: [],
     });
     for (const state of ["pregnant_heifer", "milking"] as const) {
+      // oxlint-disable-next-line no-await-in-loop
       await owner.client.animals.setState({ tagNumber: cow.tagNumber, state });
     }
     return { owner, cow };

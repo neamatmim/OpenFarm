@@ -160,3 +160,39 @@ export const invite = pgTable(
   },
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]
 );
+
+/** The photograph of the farm's DLS Registration certificate: what an inspector asks to see first. One per
+ *  Farm, replaced by the renewed certificate's; the trail keeps when each was taken and by whom. */
+export const farmCertificate = pgTable("farm_certificate", {
+  farmId: text("farm_id")
+    .primaryKey()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedBy: text("updated_by").references(() => user.id),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+/**
+ * One renewal of the Registration, as the renewal SOP's closing Step recorded it: the expiry it replaced and
+ * the new one. Keyed on the Completion, so a corrected renewal puts the same renewal right rather than
+ * renewing twice, and knows what the expiry was before it.
+ */
+export const registrationRenewal = pgTable(
+  "registration_renewal",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    completionId: text("completion_id").notNull(),
+    previousExpiresOn: timestamp("previous_expires_on"),
+    expiresOn: timestamp("expires_on").notNull(),
+    renewedBy: text("renewed_by").references(() => user.id),
+    renewedAt: timestamp("renewed_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("registration_renewal_completion_uidx").on(table.completionId),
+  ]
+);

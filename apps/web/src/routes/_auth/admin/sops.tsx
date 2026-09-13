@@ -284,6 +284,9 @@ const ofKind = (
   if (kind === "before_calving") {
     return { kind: "before_calving", lead: "dry_off" };
   }
+  if (kind === "registration_renewal") {
+    return { kind: "registration_renewal" };
+  }
   const offsetDays =
     "offsetDays" in happening ? happening.offsetDays : undefined;
   return kind === "event"
@@ -346,6 +349,9 @@ const TriggerFields = ({
             </option>
             <option value="before_calving">
               {t("sop.trigger.beforeCalving")}
+            </option>
+            <option value="registration_renewal">
+              {t("sop.trigger.registrationRenewal")}
             </option>
           </select>
           {happening.kind === "before_calving" ? (

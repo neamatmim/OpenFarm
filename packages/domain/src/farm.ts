@@ -45,6 +45,13 @@ export const identityView = (
 };
 
 /**
+ * When the Registration's renewal falls due: the renewal lead before the certificate runs out — the same
+ * moment the farm starts saying the registration is ending soon, so the work and the warning agree.
+ */
+export const renewalDueAt = (expiresOn: Date, renewalLeadDays: number): Date =>
+  new Date(expiresOn.getTime() + DAY_MS - renewalLeadDays * DAY_MS);
+
+/**
  * The farm of origin as every document leaving the farm heads itself: name, address, phone and
  * Registration number, leaving out whatever the farm has not written down.
  *

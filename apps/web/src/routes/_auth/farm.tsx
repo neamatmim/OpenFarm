@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -49,7 +49,8 @@ const OwnerHome = () => {
     needsYou.needsReview.length +
     needsYou.endingWithdrawal.length +
     needsYou.lowStock.length +
-    needsYou.moneyAwaiting.length;
+    needsYou.moneyAwaiting.length +
+    (needsYou.registrationRenewal ? 1 : 0);
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -122,6 +123,50 @@ const OwnerHome = () => {
             </li>
           ))}
         </Exceptions>
+
+        {needsYou.registrationRenewal ? (
+          <Exceptions count={1} label={t("owner.registrationRenewal")}>
+            <li className="rounded-lg border p-2 text-sm">
+              {needsYou.registrationRenewal.instanceId ? (
+                <Link
+                  className="underline"
+                  params={{
+                    instanceId: needsYou.registrationRenewal.instanceId,
+                  }}
+                  to="/work/$instanceId"
+                >
+                  {t(
+                    needsYou.registrationRenewal.expired
+                      ? "owner.registrationExpired"
+                      : "owner.registrationEnding",
+                    {
+                      date: formatDate(
+                        needsYou.registrationRenewal.expiresOn,
+                        language,
+                        "date"
+                      ),
+                    }
+                  )}
+                </Link>
+              ) : (
+                <Link className="underline" to="/admin/farm">
+                  {t(
+                    needsYou.registrationRenewal.expired
+                      ? "owner.registrationExpired"
+                      : "owner.registrationEnding",
+                    {
+                      date: formatDate(
+                        needsYou.registrationRenewal.expiresOn,
+                        language,
+                        "date"
+                      ),
+                    }
+                  )}
+                </Link>
+              )}
+            </li>
+          </Exceptions>
+        ) : null}
 
         <Exceptions
           count={needsYou.moneyAwaiting.length}

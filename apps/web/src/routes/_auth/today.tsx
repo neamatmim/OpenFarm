@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { AlertList } from "@/components/alert-list";
 import { useLanguage } from "@/i18n/language-provider";
+import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
 /** What the tap will actually do: start it, or say who has it. */
@@ -82,7 +83,7 @@ const TodayPage = () => {
                   <div>
                     <p className="text-lg font-bold">{content.name.bn}</p>
                     <p className="text-muted-foreground text-sm">
-                      {instance.pen.shed.name} · {instance.pen.name} ·{" "}
+                      {placeOfWork(instance.pen, t("work.wholeFarm"))} ·{" "}
                       {t("work.due", {
                         time: formatDate(
                           new Date(instance.dueAt),

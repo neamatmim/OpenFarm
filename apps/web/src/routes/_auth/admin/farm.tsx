@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Certificate } from "@/components/certificate";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -188,6 +189,8 @@ const IdentityPage = () => {
           {t("identity.save")}
         </Button>
       </form>
+
+      <Certificate updatedAt={farm.certificateUpdatedAt} />
     </div>
   );
 };

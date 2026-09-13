@@ -32,6 +32,7 @@ import type { Recorded } from "../completion-store";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
+import { farmDay } from "../farm-clock";
 import { feedingTargetForPen } from "../feed-store";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -42,6 +43,7 @@ import {
   dueSlotsFor,
   farmDayOf,
   happeningSlotsFor,
+  renewalSlotsFor,
   farmDayRange,
   findLate,
   raiseDueInstances,
@@ -76,6 +78,17 @@ const countLine = z.object({
   reason: z.string().trim().max(200).optional(),
 });
 
+/** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+const renewalInput = z.object({
+  expiresOn: farmDay,
+  certificate: z
+    .object({
+      contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+      data: z.string().min(1).max(PHOTO_MAX_BYTES),
+    })
+    .optional(),
+});
+
 const completionInput = z.object({
   instanceId: z.string(),
   stepId: z.string().trim().min(1),
@@ -92,6 +105,8 @@ const completionInput = z.object({
   feeding: z.array(feedingLine).optional(),
   /** What was counted, per Feed Item, for a Step that counts the store. */
   counts: z.array(countLine).optional(),
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  renewal: renewalInput.optional(),
   /** Set when the person was warned a number was outside its range and went ahead. */
   outOfRange: z.string().trim().max(120).optional(),
   skipReason: z.string().trim().max(120).optional(),
@@ -305,6 +320,11 @@ export const instancesRouter = {
           await recentHappenings(context.db, context.farm.id, now, breeding),
           breeding
         ),
+        // Work about the whole farm: its Registration coming up for renewal.
+        ...renewalSlotsFor(now, sops, {
+          expiresOn: context.farm.registrationExpiresOn,
+          renewalLeadDays: context.farm.registrationRenewalLeadDays,
+        }),
       ];
       if (slots.length === 0) {
         return { raised: 0 };
@@ -511,15 +531,16 @@ export const instancesRouter = {
       const feeds = content.steps.some(
         (step) => step.effect?.kind === "feeding"
       );
-      const feeding = feeds
-        ? await feedingTargetForPen(
-            context.db,
-            context.farm.id,
-            instance.penId,
-            instance.createdAt,
-            sessionsPerDayOf(content)
-          )
-        : null;
+      const feeding =
+        feeds && instance.penId !== null
+          ? await feedingTargetForPen(
+              context.db,
+              context.farm.id,
+              instance.penId,
+              instance.createdAt,
+              sessionsPerDayOf(content)
+            )
+          : null;
       const fed = feeds
         ? await context.db.query.feeding.findFirst({
             where: { instanceId: instance.id },
@@ -569,6 +590,12 @@ export const instancesRouter = {
         milkingSession: milkingSession ?? null,
         feeding,
         fed: fed ?? null,
+        // What the Registration runs out on now, for the Step that renews it to a later day.
+        renewal: content.steps.some(
+          (step) => step.effect?.kind === "registration_renewal"
+        )
+          ? { expiresOn: context.farm.registrationExpiresOn }
+          : null,
         stockCount: stockCount && {
           items: stockCount.items.map(({ id, ...item }) => ({
             feedItemId: id,
@@ -731,7 +758,9 @@ export const instancesRouter = {
       const now = context.clock.now();
       const late = await findLate(context.db, context.farm.id, now);
       const mine = scoped
-        ? late.filter((row) => context.penIds.includes(row.penId))
+        ? late.filter(
+            (row) => row.penId === null || context.penIds.includes(row.penId)
+          )
         : late;
       return mine
         .map((row) => ({
@@ -909,6 +938,7 @@ export const instancesRouter = {
         destination: z.enum(MILK_DESTINATIONS).optional(),
         feeding: z.array(feedingLine).optional(),
         counts: z.array(countLine).optional(),
+        renewal: renewalInput.optional(),
         outOfRange: z.string().trim().max(120).optional(),
         skipReason: z.string().trim().max(120).optional(),
         reason: reasonInput,
@@ -1035,6 +1065,7 @@ export const instancesRouter = {
             destination: input.destination,
             feeding: input.feeding ?? [],
             counts: input.counts ?? [],
+            renewal: input.renewal,
             feedTolerancePercent: context.farm.feedTolerancePercent,
             sessionsPerDay: sessionsPerDayOf(content),
             skipped: skipping,
