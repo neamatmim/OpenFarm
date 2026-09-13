@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { useInTheBrowser } from "@/lib/in-the-browser";
 import { orpc } from "@/utils/orpc";
 
 import LanguageToggle from "./language-toggle";
@@ -10,12 +11,16 @@ import UserMenu from "./user-menu";
 
 const Header = () => {
   const t = useT();
-  const { data: session } = authClient.useSession();
+  // The server does not know who is signed in; the browser often already does. The links a person's Roles give
+  // are drawn once the page is in the browser, so the page the server sent is the page the browser takes over.
+  const { data: signedIn } = authClient.useSession();
+  const session = useInTheBrowser() ? signedIn : null;
   const me = useQuery({
     ...orpc.people.me.queryOptions(),
     enabled: Boolean(session),
   });
-  const roles = me.data?.roles ?? [];
+  // What this phone has kept of their Roles is there before the page is taken over, whether or not anyone asked.
+  const roles = session ? (me.data?.roles ?? []) : [];
   const runsTheFarm = roles.includes("owner") || roles.includes("manager");
   /** The Vet keeps the Drug List, and is off-site more often than on it. */
   const isVet = roles.includes("vet");

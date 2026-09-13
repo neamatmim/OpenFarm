@@ -13,13 +13,15 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { useInTheBrowser } from "@/lib/in-the-browser";
 
 export default function UserMenu() {
   const navigate = useNavigate();
   const t = useT();
   const { data: session, isPending } = authClient.useSession();
+  const inTheBrowser = useInTheBrowser();
 
-  if (isPending) {
+  if (!inTheBrowser || isPending) {
     return <Skeleton className="h-9 w-24" />;
   }
 

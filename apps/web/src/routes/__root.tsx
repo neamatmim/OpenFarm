@@ -68,7 +68,9 @@ function RootDocument() {
       <head>
         <HeadContent />
       </head>
-      <body>
+      {/* Browser extensions (a grammar checker, a password manager) write attributes onto the body before React
+          arrives; they are not the page's, and must not make React throw the page away. */}
+      <body suppressHydrationWarning>
         <LanguageProvider>
           <div className="grid h-svh grid-rows-[auto_1fr]">
             <Header />

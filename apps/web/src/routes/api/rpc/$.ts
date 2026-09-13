@@ -42,7 +42,20 @@ const apiHandler = new OpenAPIHandler(appRouter, {
   ],
 });
 
+/** Answers a request; one the browser gave up on — a page moving on before its reply came — is not an error. */
 const handle = async ({ request }: { request: Request }) => {
+  try {
+    return await answer(request);
+  } catch (error) {
+    if (request.signal.aborted) {
+      // Nobody is waiting for this reply. 499 is what servers say for a client that closed the request.
+      return new Response(null, { status: 499 });
+    }
+    throw error;
+  }
+};
+
+const answer = async (request: Request) => {
   const context = await createContext({ req: request });
   const rpcResult = await rpcHandler.handle(request, {
     prefix: "/api/rpc",
