@@ -53,6 +53,9 @@ export const DELIVERY: Record<
   // Running low is worth knowing today, not worth waking anybody for: it waits for the digest
   // (notification channels: low feed stock → Manager, digest).
   low_stock: { when: "digest" },
+  // Money waiting for the Owner has already moved — the milk left, the bull arrived — so it is the
+  // evening's reading, not a buzz (notification channels: Money Event awaiting approval → Owner, digest).
+  money_awaiting_approval: { when: "digest" },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

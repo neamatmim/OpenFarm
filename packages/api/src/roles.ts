@@ -22,6 +22,7 @@ export const pickRoleUsed = (
 export type RefusalReason =
   | "vet_only"
   | "manager_only"
+  | "owner_only"
   | "staff_or_manager_only";
 
 /** Why a Role gate refused, for the gates whose answer a person needs to understand. */

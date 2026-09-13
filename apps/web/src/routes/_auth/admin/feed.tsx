@@ -1,3 +1,4 @@
+import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf, maundsOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -8,6 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -597,6 +599,7 @@ const ReceiveFeed = ({ items }: { items: FeedRow[] }) => {
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [seller, setSeller] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [receivedOn, setReceivedOn] = useState(() => farmDayOf(new Date()));
   // One id per filling-in of the form: a second tap is the same lorry, not another.
   const [entryId, setEntryId] = useState(() => crypto.randomUUID());
@@ -637,7 +640,11 @@ const ReceiveFeed = ({ items }: { items: FeedRow[] }) => {
           quantity: amount,
           receivedOn,
           ...(kind === "purchase"
-            ? { priceBdt: Number(price), seller: { name: seller } }
+            ? {
+                priceBdt: Number(price),
+                seller: { name: seller },
+                paymentMethod,
+              }
             : {}),
         });
       }}
@@ -708,6 +715,11 @@ const ReceiveFeed = ({ items }: { items: FeedRow[] }) => {
               value={seller}
             />
           </div>
+          <PaymentMethodField
+            id="stock-paid-by"
+            onChange={setPaymentMethod}
+            value={paymentMethod}
+          />
         </>
       ) : null}
       <div className="space-y-1">

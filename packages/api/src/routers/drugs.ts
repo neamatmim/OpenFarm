@@ -1,9 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { drugProduct } from "@OpenFarm/db/schema/health";
+import { medicinePurchase } from "@OpenFarm/db/schema/money";
 import {
   MAX_WITHDRAWAL_DAYS,
   mayBePrescribed,
+  startOfFarmDay,
   whyNotPrescribable,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -11,7 +13,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { counterpartyNamed } from "../counterparty-store";
+import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { amountInput, paymentMethodInput } from "../money-inputs";
+import { bookMoney, bookingOf } from "../money-store";
 import {
   forbidden,
   requireOnly,
@@ -108,6 +114,120 @@ export const drugsRouter = {
         /** Why not — the same answer the refusal will give, because it is the same
          *  question. A reason rather than a sentence: the words belong to the reader. */
         whyNot: whyNotPrescribable(row),
+      }));
+    }),
+
+  /**
+   * Medicine bought for a product on the Drug List: how much in the words on the box, roughly how many
+   * doses that is, what it cost, and who sold it. It becomes the Money Event for the medicine, and the
+   * doses are what a dose given is later costed from (the Owner's decision, 2026-09-13).
+   *
+   * The Manager's to record (roles matrix: Drug List — Manager adds products; Money Events — Manager C).
+   * A retired product is not bought.
+   */
+  purchase: protectedProcedure
+    .use(requireRole("manager"))
+    .input(
+      z.object({
+        drugProductId: z.string(),
+        quantity: z.string().trim().min(1).max(60),
+        doses: z.number().int().positive().max(100_000),
+        priceBdt: amountInput,
+        seller: z.object({
+          name: z.string().trim().min(1).max(120),
+          address: z.string().trim().max(300).optional(),
+          phone: z.string().trim().max(40).optional(),
+        }),
+        purchasedOn: farmDay,
+        paymentMethod: paymentMethodInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const purchasedOn = startOfFarmDay(input.purchasedOn);
+      if (purchasedOn > now) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Medicine cannot have been bought on a day that has not come yet",
+          data: { refusal: "bought_in_the_future" },
+        });
+      }
+      const product = await context.db.query.drugProduct.findFirst({
+        where: { id: input.drugProductId, farmId: context.farm.id },
+        columns: { id: true, retiredAt: true },
+      });
+      if (!product) {
+        throw new ORPCError("NOT_FOUND", { message: "No such product" });
+      }
+      if (product.retiredAt) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "That product is retired; the Vet brings it back before more is bought",
+          data: { refusal: "drug_retired" },
+        });
+      }
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "medicine_purchase",
+          entityId: id,
+          action: "create",
+          after: async (tx) =>
+            (await tx.query.medicinePurchase.findFirst({ where: { id } })) ??
+            null,
+        },
+        async (tx) => {
+          const sellerId = await counterpartyNamed(
+            tx,
+            context.farm.id,
+            input.seller,
+            now
+          );
+          await tx.insert(medicinePurchase).values({
+            id,
+            farmId: context.farm.id,
+            drugProductId: product.id,
+            quantity: input.quantity,
+            doses: input.doses,
+            priceBdt: input.priceBdt.toFixed(2),
+            counterpartyId: sellerId,
+            purchasedOn,
+            recordedBy: context.actor.id,
+            recordedByRole: context.roleUsed,
+            recordedAt: now,
+          });
+          await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
+            source: "medicine_purchase",
+            sourceId: id,
+            amountBdt: input.priceBdt,
+            occurredAt: purchasedOn,
+            counterpartyId: sellerId,
+            paymentMethod: input.paymentMethod,
+          });
+        }
+      );
+      return { id };
+    }),
+
+  /** What the farm has bought of a product, newest first. The Owner's and the Manager's: it carries
+   *  prices, and money is not the Vet's or Barn Staff's. */
+  purchases: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ drugProductId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.medicinePurchase.findMany({
+        where: { farmId: context.farm.id, drugProductId: input.drugProductId },
+        with: { seller: { columns: { name: true } } },
+        orderBy: { purchasedOn: "desc", id: "desc" },
+        limit: 100,
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        quantity: row.quantity,
+        doses: row.doses,
+        priceBdt: Number(row.priceBdt),
+        sellerName: row.seller.name,
+        purchasedOn: row.purchasedOn,
       }));
     }),
 

@@ -87,6 +87,10 @@ export const farm = pgTable("farm", {
   repeatBreederThreshold: integer("repeat_breeder_threshold")
     .notNull()
     .default(3),
+  /** The taka above which a Money Event the Owner did not enter waits for the Owner's approval. */
+  approvalThresholdBdt: integer("approval_threshold_bdt")
+    .notNull()
+    .default(20_000),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

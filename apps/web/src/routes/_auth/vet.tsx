@@ -1,7 +1,7 @@
 import type { DoseRoute } from "@OpenFarm/domain";
-import { MAX_COURSE_DAYS, ROUTES } from "@OpenFarm/domain";
+import { MAX_COURSE_DAYS, ROUTES, farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -15,7 +15,7 @@ import { CourseLine, DoseLine } from "@/components/course";
 import { RepeatBreeder } from "@/components/repeat-breeder";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { refusalMessage } from "@/lib/correction-refusal";
+import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 /** What the Vet types either way: the disease, and what they found. */
@@ -76,6 +76,8 @@ const VetPage = () => {
 
       <RepeatBreeders />
 
+      <VisitFee />
+
       <section className="space-y-3">
         <h2 className="font-medium">{t("vet.mine")}</h2>
         {mine.data?.length ? (
@@ -89,6 +91,113 @@ const VetPage = () => {
         )}
       </section>
     </div>
+  );
+};
+
+/**
+ * The Vet's own fee for a visit: how much, the day, and the animals seen. The only money the Vet enters,
+ * and the only money the Vet sees.
+ */
+const VisitFee = () => {
+  const t = useT();
+  const { language } = useLanguage();
+  const queryClient = useQueryClient();
+  const [amount, setAmount] = useState("");
+  const [visitedOn, setVisitedOn] = useState(() => farmDayOf(new Date()));
+  const [tags, setTags] = useState("");
+  const [note, setNote] = useState("");
+  const fees = useQuery(orpc.money.myFees.queryOptions());
+  const record = useMutation(
+    orpc.money.vetFee.mutationOptions({
+      onSuccess: async () => {
+        setAmount("");
+        setTags("");
+        setNote("");
+        toast.success(t("vetFee.recorded"));
+        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
+      },
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
+  );
+  return (
+    <section className="space-y-2">
+      <h2 className="font-medium">{t("vetFee.title")}</h2>
+      <form
+        className="space-y-2 rounded-lg border p-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          record.mutate({
+            amountBdt: Number(amount),
+            visitedOn,
+            // Tags as the Vet types them: separated by commas or spaces.
+            animalTags: tags.split(/[\s,]+/u).filter(Boolean),
+            note: note.trim() || undefined,
+          });
+        }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="fee-amount">{t("vetFee.amount")}</Label>
+          <Input
+            id="fee-amount"
+            min={0}
+            onChange={(event) => setAmount(event.target.value)}
+            type="number"
+            value={amount}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="fee-on">{t("vetFee.visitedOn")}</Label>
+          <Input
+            id="fee-on"
+            onChange={(event) => setVisitedOn(event.target.value)}
+            type="date"
+            value={visitedOn}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="fee-tags">{t("vetFee.animals")}</Label>
+          <Input
+            id="fee-tags"
+            onChange={(event) => setTags(event.target.value)}
+            placeholder="D-0001, F-0002"
+            value={tags}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="fee-note">{t("vetFee.note")}</Label>
+          <Input
+            id="fee-note"
+            maxLength={300}
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
+          />
+        </div>
+        <Button
+          disabled={!(Number(amount) > 0) || record.isPending}
+          type="submit"
+          variant="outline"
+        >
+          {t("vetFee.record")}
+        </Button>
+      </form>
+      {fees.data?.length ? (
+        <ul className="space-y-1 text-sm">
+          {fees.data.map((fee) => (
+            <li className="rounded-lg border p-2" key={fee.id}>
+              {formatDate(fee.visitedOn, language)} · ৳
+              {formatNumber(fee.amountBdt, language)}
+              {fee.tagNumbers.length > 0
+                ? ` · ${fee.tagNumbers.join(", ")}`
+                : ""}
+              {fee.note ? ` · ${fee.note}` : ""}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 };
 

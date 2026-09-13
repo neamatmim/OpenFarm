@@ -278,6 +278,7 @@ export const homeRouter = {
         approvals,
         week,
         lowStock,
+        moneyAwaiting,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -352,6 +353,17 @@ export const homeRouter = {
         }),
         // Feed running low, which the Owner's exception list names too (spec: "low stock").
         runningLow(context.db, farmId),
+        // Money the Owner has to approve, oldest first: the longer it has waited, the longer somebody
+        // has been paid, or not, without the Owner's say.
+        context.db.query.moneyEvent.findMany({
+          where: { farmId, approval: "awaiting" },
+          with: {
+            category: { columns: { nameBn: true, nameEn: true } },
+            counterparty: { columns: { name: true } },
+          },
+          orderBy: { recordedAt: "asc", id: "asc" },
+          limit: QUEUE_LIMIT,
+        }),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -420,9 +432,18 @@ export const homeRouter = {
               tagNumber: beast.tagNumber,
               until: beast.milkWithdrawalUntil,
             })),
-          /** Money Events awaiting approval arrive with Finance in increment 6, low stock
-           *  with Feed stock in the same one, and the DLS renewal in increment 7. A row
-           *  faked now would be a row the Owner learns to distrust. */
+          moneyAwaiting: moneyAwaiting.map((row) => ({
+            id: row.id,
+            amountBdt: Number(row.amountBdt),
+            direction: row.direction,
+            categoryBn: row.category.nameBn,
+            categoryEn: row.category.nameEn,
+            counterpartyName: row.counterparty?.name ?? null,
+            source: row.source,
+            occurredAt: row.occurredAt,
+          })),
+          /** The DLS renewal arrives in increment 7. A row faked now would be a row the Owner
+           *  learns to distrust. */
         },
         tiles: {
           bulkToday: todaysMilk.bulk,

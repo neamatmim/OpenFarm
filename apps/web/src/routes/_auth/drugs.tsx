@@ -1,4 +1,5 @@
-import type { NotPrescribable } from "@OpenFarm/domain";
+import type { NotPrescribable, PaymentMethod } from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -9,7 +10,9 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 /** Why a product may not be prescribed, in the reader's words. Typed by the reason, so a
@@ -35,6 +38,7 @@ const DrugsPage = () => {
   const drugs = useQuery(orpc.drugs.list.queryOptions());
   const [name, setName] = useState("");
   const isVet = me.data?.roles.includes("vet") ?? false;
+  const buys = me.data?.roles.includes("manager") ?? false;
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
@@ -93,7 +97,155 @@ const DrugsPage = () => {
         </div>
         <Button type="submit">{t("drugs.add")}</Button>
       </form>
+
+      {buys && drugs.data ? (
+        <BuyMedicine
+          products={drugs.data.filter((product) => !product.retiredAt)}
+        />
+      ) : null}
     </div>
+  );
+};
+
+const NOTHING_BOUGHT = {
+  quantity: "",
+  doses: "",
+  price: "",
+  seller: "",
+};
+
+/**
+ * Medicine bought for the Drug List: how much as the box says it, roughly how many doses that is, what
+ * it cost and who sold it. The Manager's, and the farm's money for the medicine comes from it.
+ */
+const BuyMedicine = ({
+  products,
+}: {
+  products: { id: string; nameBn: string }[];
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const queryClient = useQueryClient();
+  const [productId, setProductId] = useState("");
+  const [typed, setTyped] = useState(NOTHING_BOUGHT);
+  const [purchasedOn, setPurchasedOn] = useState(() => farmDayOf(new Date()));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const chosen = products.find(
+    (product) => product.id === (productId || products[0]?.id)
+  );
+  const bought = useQuery({
+    ...orpc.drugs.purchases.queryOptions({
+      input: { drugProductId: chosen?.id ?? "" },
+    }),
+    enabled: chosen !== undefined,
+  });
+  const buy = useMutation(
+    orpc.drugs.purchase.mutationOptions({
+      onSuccess: async () => {
+        setTyped(NOTHING_BOUGHT);
+        toast.success(t("drugs.bought"));
+        await queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
+      },
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
+  );
+  if (!chosen) {
+    return null;
+  }
+  const set = (key: keyof typeof NOTHING_BOUGHT) => (value: string) =>
+    setTyped((current) => ({ ...current, [key]: value }));
+  const complete =
+    typed.quantity.trim() !== "" &&
+    Number(typed.doses) > 0 &&
+    Number(typed.price) > 0 &&
+    typed.seller.trim() !== "";
+  return (
+    <section className="space-y-2">
+      <h2 className="font-medium">{t("drugs.buy")}</h2>
+      <form
+        className="space-y-2 rounded-lg border p-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          buy.mutate({
+            drugProductId: chosen.id,
+            quantity: typed.quantity.trim(),
+            doses: Number(typed.doses),
+            priceBdt: Number(typed.price),
+            seller: { name: typed.seller.trim() },
+            purchasedOn,
+            paymentMethod,
+          });
+        }}
+      >
+        <select
+          aria-label={t("drugs.title")}
+          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          onChange={(event) => setProductId(event.target.value)}
+          value={chosen.id}
+        >
+          {products.map((product) => (
+            <option key={product.id} value={product.id}>
+              {product.nameBn}
+            </option>
+          ))}
+        </select>
+        {(
+          [
+            ["quantity", "drugs.quantity", "text"],
+            ["doses", "drugs.doses", "number"],
+            ["price", "drugs.price", "number"],
+            ["seller", "drugs.seller", "text"],
+          ] as const
+        ).map(([key, label, type]) => (
+          <div className="space-y-1" key={key}>
+            <Label htmlFor={`buy-${key}`}>{t(label)}</Label>
+            <Input
+              id={`buy-${key}`}
+              onChange={(event) => set(key)(event.target.value)}
+              type={type}
+              value={typed[key]}
+            />
+          </div>
+        ))}
+        <div className="space-y-1">
+          <Label htmlFor="buy-on">{t("drugs.boughtOn")}</Label>
+          <Input
+            id="buy-on"
+            onChange={(event) => setPurchasedOn(event.target.value)}
+            type="date"
+            value={purchasedOn}
+          />
+        </div>
+        <PaymentMethodField
+          id="buy-paid-by"
+          onChange={setPaymentMethod}
+          value={paymentMethod}
+        />
+        <Button
+          disabled={!complete || buy.isPending}
+          type="submit"
+          variant="outline"
+        >
+          {t("drugs.recordPurchase")}
+        </Button>
+      </form>
+      {bought.data?.length ? (
+        <ul className="space-y-1 text-sm">
+          {bought.data.map((one) => (
+            <li className="rounded-lg border p-2" key={one.id}>
+              {formatDate(one.purchasedOn, language)} · {one.quantity} ·{" "}
+              {t("drugs.dosesHeld", {
+                doses: formatNumber(one.doses, language),
+              })}{" "}
+              · ৳{formatNumber(one.priceBdt, language)} · {one.sellerName}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 };
 

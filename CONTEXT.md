@@ -186,7 +186,11 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Money
 
-**Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. _Avoid_: Transaction, journal entry, payment (one kind)
+**Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. A Dispatch, an Intake, a Sale, a Feed Purchase, a Medicine Purchase and a Vet Fee each make one on their own, and a Correction to the record puts the same one right. _Avoid_: Transaction, journal entry, payment (one kind)
+
+**Medicine Purchase**: Medicine bought for a product on the Drug List: how much, as the box or the shop says it; roughly how many doses that holds; what it cost; and who sold it. What a dose given is costed from. _Avoid_: Drug order, pharmacy bill
+
+**Vet Fee**: What the Vet charges the Farm for a visit, entered by the Vet: the amount, the day, and the Animals seen when the Vet names them. The only money the Vet enters or sees. _Avoid_: Consultation charge, visit bill
 
 **Receipt**: The paper a buyer leaves with: every Animal they took on one day, with weights, prices and the total, headed by the farm of origin. One per buyer per day, however many beasts — five sheets is how one of them gets lost. _Avoid_: Invoice (the farm is not billing anybody), bill, challan (that is milk's word, on a Dispatch)
 
@@ -198,7 +202,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. _Avoid_: Account, head, GL code
 
-**Approval Threshold**: The BDT amount above which a Money Event entered by the Manager needs the Owner's approval. _Avoid_: Limit, sign-off amount
+**Approval Threshold**: The BDT amount above which a Money Event the Owner did not enter waits, unapproved, for the Owner's approval. Only the money waits: the record that made it — the milk gone, the bull bought — is never held back. An approval is of an amount, so a Correction that changes the amount asks again. _Avoid_: Limit, sign-off amount
 
 ## Access
 

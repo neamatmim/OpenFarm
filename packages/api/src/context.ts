@@ -84,6 +84,8 @@ export interface Context {
     calvingPrepLeadDays: number;
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: number;
+    /** The taka above which a Money Event waits for the Owner. */
+    approvalThresholdBdt: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;
