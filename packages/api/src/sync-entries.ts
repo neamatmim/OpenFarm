@@ -42,6 +42,16 @@ export const entryInput = z.discriminatedUnion("kind", [
         })
       )
       .optional(),
+    /** What a Step that counts the store found, per Feed Item. */
+    counts: z
+      .array(
+        z.object({
+          feedItemId: z.string(),
+          counted: z.number().min(0).max(10_000_000),
+          reason: z.string().trim().max(200).optional(),
+        })
+      )
+      .optional(),
     outOfRange: z.string().trim().max(120).optional(),
     skipReason: z.string().trim().max(120).optional(),
     /** The Evidence slots this entry has photos for. The images themselves follow as their

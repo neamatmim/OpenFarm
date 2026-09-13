@@ -453,6 +453,9 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
   const me = useQuery(orpc.people.me.queryOptions());
   const stock = useQuery(orpc.stock.onHand.queryOptions());
   const arrivals = useQuery(orpc.stock.arrivals.queryOptions({ input: {} }));
+  const adjustments = useQuery(
+    orpc.stock.adjustments.queryOptions({ input: {} })
+  );
   const mayRecord = me.data?.roles.includes("manager") ?? false;
   return (
     <section className="space-y-3">
@@ -467,7 +470,20 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
               {line.nameBn}
               {line.retiredAt ? ` · ${t("feed.retired")}` : ""}
             </span>
-            <span className={line.onHand < 0 ? "text-destructive" : ""}>
+            {mayRecord && !line.retiredAt ? (
+              <LowStockAt
+                feedItemId={line.feedItemId}
+                threshold={line.lowStockAt}
+              />
+            ) : null}
+            <span
+              className={
+                line.onHand < 0 ||
+                (line.lowStockAt !== null && line.onHand < line.lowStockAt)
+                  ? "text-destructive"
+                  : ""
+              }
+            >
               {formatNumber(line.onHand, language)} {line.unit}
               {line.averagePriceBdt === null
                 ? ""
@@ -480,6 +496,27 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
         ))}
       </ul>
       {mayRecord ? <ReceiveFeed items={items} /> : null}
+      {adjustments.data?.length ? (
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium">{t("stock.adjustments")}</h3>
+          <ul className="space-y-1 text-sm">
+            {adjustments.data.map((one) => (
+              <li key={one.id}>
+                {formatDate(one.countedAt, language)} ·{" "}
+                {(stock.data ?? []).find(
+                  (line) => line.feedItemId === one.feedItemId
+                )?.nameBn ?? ""}{" "}
+                ·{" "}
+                {t("stock.adjustment", {
+                  expected: formatNumber(one.expected, language),
+                  counted: formatNumber(one.counted, language),
+                })}{" "}
+                · {one.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {arrivals.data?.length ? (
         <div className="space-y-1">
           <h3 className="text-sm font-medium">{t("stock.arrivals")}</h3>
@@ -500,6 +537,53 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
         </div>
       ) : null}
     </section>
+  );
+};
+
+/** How low a Feed Item may run before the Manager is told; blank for one nobody watches. */
+const LowStockAt = ({
+  feedItemId,
+  threshold,
+}: {
+  feedItemId: string;
+  threshold: number | null;
+}) => {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const [value, setValue] = useState(
+    threshold === null ? "" : String(threshold)
+  );
+  const save = useMutation(
+    orpc.feed.setLowStock.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
+      onError: (error) => toast.error(error.message || t("common.error")),
+    })
+  );
+  return (
+    <form
+      className="flex items-center gap-1"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save.mutate({
+          feedItemId,
+          threshold: value.trim() === "" ? null : Number(value),
+        });
+      }}
+    >
+      <Input
+        aria-label={t("stock.lowAt")}
+        className="h-8 w-20"
+        min={0}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder={t("stock.lowAt")}
+        type="number"
+        value={value}
+      />
+      <Button disabled={save.isPending} size="sm" type="submit" variant="ghost">
+        {t("stock.setLow")}
+      </Button>
+    </form>
   );
 };
 

@@ -21,6 +21,7 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   notifiable_diagnosis: "alerts.notifiableDiagnosis",
   entry_rejected: "alerts.entryRejected",
   withdrawal_changed: "alerts.withdrawalChanged",
+  low_stock: "alerts.lowStock",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
@@ -41,6 +42,10 @@ const paramsOf = (
     disease: String(raw.disease ?? ""),
     /** How many, for the notice about entries the farm would not take. */
     count: Number(raw.count ?? 0),
+    /** The Feed Item, how much is left and in what, for the notice about running low. */
+    feed: String(raw.nameBn ?? ""),
+    onHand: Number(raw.onHand ?? 0),
+    unit: String(raw.unit ?? ""),
   };
 };
 

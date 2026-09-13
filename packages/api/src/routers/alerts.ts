@@ -21,6 +21,11 @@ import {
 import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 import { textTheSafetyAlerts } from "../sms-send";
+import {
+  anyLowStockUntold,
+  raiseLowStockAlerts,
+  runningLow,
+} from "../stock-store";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
  *  problem the farm has. */
@@ -63,6 +68,30 @@ const tellAboutWithdrawals = async (context: Sweeping, now: Date) => {
   await textTheSafetyAlerts(context, raised);
 };
 
+/**
+ * A third half of the sweep: Feed Items running low. Keyed on the Feed Item, because the store, not
+ * any work, is what the notice is about.
+ */
+const tellAboutLowStock = async (context: Sweeping, now: Date) => {
+  const low = await runningLow(context.db, context.farm.id);
+  const [lowest] = low;
+  if (
+    !(lowest && (await anyLowStockUntold(context.db, context.farm.id, low)))
+  ) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "feed_item",
+      entityId: lowest.feedItemId,
+      action: "update",
+      after: () =>
+        Promise.resolve({ runningLow: low.map((line) => line.feedItemId) }),
+    },
+    (tx) => raiseLowStockAlerts(tx, context.farm.id, low, now)
+  );
+};
+
 export const alertsRouter = {
   /**
    * Raises the Alerts the clock has earned. Idempotent, so the phone and the office can both
@@ -77,6 +106,7 @@ export const alertsRouter = {
       // coming off a Withdrawal. Told about first, because late work having nothing to say is
       // the steady state and must not silence the other half.
       await tellAboutWithdrawals(context, now);
+      await tellAboutLowStock(context, now);
       const pending = await findPendingNotices(context.db, context.farm, now);
       // A sweep with nothing to say is not an event, and opens no transaction: everyone
       // calls this on opening the app, and in steady state there is nothing new to say.

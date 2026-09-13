@@ -114,6 +114,39 @@ export const stockRouter = {
     }),
 
   /**
+   * The differences the Stock Counts booked, newest first: what the store was thought to hold, what was
+   * counted, and why. A count that agreed is no adjustment, and is not listed.
+   */
+  adjustments: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ feedItemId: z.string().optional() }).default({}))
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.stockCount.findMany({
+        where: {
+          farmId: context.farm.id,
+          reason: { isNotNull: true },
+          ...(input.feedItemId ? { feedItemId: input.feedItemId } : {}),
+        },
+        orderBy: { countedAt: "desc", id: "desc" },
+        limit: 200,
+      });
+      return rows.map((row) => {
+        const expected = Number(row.expected);
+        const counted = Number(row.counted);
+        return {
+          id: row.id,
+          feedItemId: row.feedItemId,
+          completionId: row.completionId,
+          countedAt: row.countedAt,
+          expected,
+          counted,
+          difference: Math.round((counted - expected) * 10) / 10,
+          reason: row.reason,
+        };
+      });
+    }),
+
+  /**
    * Feed coming into the store: a Purchase — how much, what the lot cost, and who sold it — or a
    * Harvest from the farm's own fields.
    *

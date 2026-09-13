@@ -126,11 +126,17 @@ export type StockMovement =
       /** What the lot cost; null for a Harvest from the farm's own fields. */
       priceBdt: number | null;
     }
-  | { kind: "out"; at: Date; quantity: number };
+  | { kind: "out"; at: Date; quantity: number }
+  /** A Stock Count: what was really there. It wins over whatever the store was thought to hold. */
+  | { kind: "count"; at: Date; counted: number };
 
-/** Where a movement sorts among others at the same instant: what came in before what went out. */
-const inBeforeOut = (movement: StockMovement): number =>
-  movement.kind === "in" ? 0 : 1;
+/** Where a movement sorts among others at the same instant: what came in, then what went out, then
+ *  the count that says what was left. */
+const MOVEMENT_ORDER: Record<StockMovement["kind"], number> = {
+  in: 0,
+  out: 1,
+  count: 2,
+};
 
 /**
  * What is in the store, and what a unit of it cost: a moving weighted average, recomputed on each
@@ -139,7 +145,8 @@ const inBeforeOut = (movement: StockMovement): number =>
  * Replayed in the order things happened. A Purchase adds its quantity and what it cost; a Harvest adds
  * its quantity at no cost, so fodder from the farm's own fields contributes nothing to what the feed
  * it is mixed with is charged at; a Feeding takes quantity out at the price of the moment and leaves the
- * price where it was. What the pens are charged for, over time, is what the farm paid.
+ * price where it was; a Stock Count sets what is there and leaves the price alone. What the pens are
+ * charged for, over time, is what the farm paid.
  *
  * `asOf` reads the store as it stood then — what a Feeding that day was charged at. The price is null
  * for feed never bought; with the store empty or below nothing it is the last price it had, because a
@@ -155,12 +162,19 @@ export const stockLedger = (
       (a, b) =>
         a.at.getTime() - b.at.getTime() ||
         // Feed that came in on a day is in the store before that day's Feedings take from it.
-        inBeforeOut(a) - inBeforeOut(b)
+        MOVEMENT_ORDER[a.kind] - MOVEMENT_ORDER[b.kind]
     );
   let onHand = 0;
   let value = 0;
   let price: number | null = null;
   for (const one of inOrder) {
+    if (one.kind === "count") {
+      // The count is what is there. What it cost a unit does not change because somebody counted:
+      // the store is worth what was counted, at the price it already had.
+      onHand = one.counted;
+      value = price === null ? 0 : one.counted * price;
+      continue;
+    }
     if (one.kind === "out") {
       const unitPrice = price ?? 0;
       onHand -= one.quantity;
