@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "17c511ab-5b97-456a-b4a9-7570c257fb10",
+  "id": "73dca0a9-5d5b-45c6-848c-9ef54e7a4a3d",
   "prevIds": [
     "080e5358-2d66-40b6-8554-5d646c04d266"
   ],
@@ -7879,6 +7879,19 @@
       "generated": null,
       "identity": null,
       "name": "wage_month",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "money_event"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "side",
       "entityType": "columns",
       "schema": "public",
       "table": "money_event"

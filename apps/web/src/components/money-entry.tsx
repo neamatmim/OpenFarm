@@ -1,5 +1,6 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -7,13 +8,87 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { categoryName } from "@/components/money";
+import { categoryName, useRefusalToast } from "@/components/money";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
 import { orpc } from "@/utils/orpc";
+
+const SIDE_WORD = {
+  "": "byHand.wholeFarm",
+  dairy: "animals.side.dairy",
+  fattening: "animals.side.fattening",
+} as const satisfies Record<string, MessageKey>;
+
+type SideChoice = keyof typeof SIDE_WORD;
+
+/** Which Side money entered by hand belongs to, or the whole farm. */
+const SideField = ({
+  id,
+  onChange,
+  value,
+}: {
+  id: string;
+  onChange: (side: SideChoice) => void;
+  value: SideChoice;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id}>{t("byHand.side")}</Label>
+      <select
+        className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+        id={id}
+        onChange={(event) =>
+          onChange(
+            (Object.keys(SIDE_WORD) as SideChoice[]).find(
+              (side) => side === event.target.value
+            ) ?? ""
+          )
+        }
+        value={value}
+      >
+        {(Object.keys(SIDE_WORD) as SideChoice[]).map((side) => (
+          <option key={side} value={side}>
+            {t(SIDE_WORD[side])}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+/** Takes a receipt photo, shrunk on the phone before it goes. */
+const ReceiptField = ({
+  id,
+  onChange,
+}: {
+  id: string;
+  onChange: (receipt: Photo | null) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id}>{t("byHand.receipt")}</Label>
+      <input
+        accept="image/*"
+        capture="environment"
+        className="text-sm"
+        id={id}
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          try {
+            onChange(file ? await shrink(file) : null);
+          } catch {
+            toast.error(t("common.error"));
+          }
+        }}
+        type="file"
+      />
+    </div>
+  );
+};
 
 const NOTHING_TYPED = {
   categoryId: "",
@@ -21,15 +96,6 @@ const NOTHING_TYPED = {
   counterparty: "",
   wageMonth: "",
   note: "",
-};
-
-/** The error a refused write shows, in the reader's words where the farm has them. */
-const useRefusalToast = () => {
-  const { t } = useLanguage();
-  return (error: Error) =>
-    toast.error(
-      wordedRefusal(error, t) ?? (error.message || t("common.error"))
-    );
 };
 
 /**
@@ -45,8 +111,9 @@ export const EnterMoney = () => {
   const [occurredOn, setOccurredOn] = useState(() => farmDayOf(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [receipt, setReceipt] = useState<Photo | null>(null);
+  const [side, setSide] = useState<SideChoice>("");
   const usable = (categories.data ?? []).filter(
-    (one) => !(one.retiredAt || one.keptByRecords)
+    (one) => one.enterable && !one.retiredAt
   );
   const chosen = usable.find(
     (one) => one.id === (typed.categoryId || usable[0]?.id)
@@ -57,7 +124,7 @@ export const EnterMoney = () => {
       onSuccess: async () => {
         setTyped({ ...NOTHING_TYPED, categoryId: typed.categoryId });
         setReceipt(null);
-        toast.success(t("entry.entered"));
+        toast.success(t("byHand.entered"));
         await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
       onError,
@@ -75,7 +142,7 @@ export const EnterMoney = () => {
 
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{t("entry.title")}</h2>
+      <h2 className="font-medium">{t("byHand.title")}</h2>
       <form
         className="space-y-2 rounded-lg border p-3"
         onSubmit={(event) => {
@@ -88,12 +155,13 @@ export const EnterMoney = () => {
             paymentMethod,
             note: typed.note.trim() || undefined,
             wageMonth: isWage ? typed.wageMonth : undefined,
+            side: side || undefined,
             receipt: receipt ?? undefined,
           });
         }}
       >
         <select
-          aria-label={t("entry.category")}
+          aria-label={t("byHand.category")}
           className="bg-background h-9 w-full rounded-md border px-2 text-sm"
           onChange={(event) => set("categoryId")(event.target.value)}
           value={chosen.id}
@@ -104,12 +172,12 @@ export const EnterMoney = () => {
                 { categoryBn: one.nameBn, categoryEn: one.nameEn },
                 language
               )}{" "}
-              ({t(one.direction === "in" ? "entry.in" : "entry.out")})
+              ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
             </option>
           ))}
         </select>
         <div className="space-y-1">
-          <Label htmlFor="entry-amount">{t("entry.amount")}</Label>
+          <Label htmlFor="entry-amount">{t("byHand.amount")}</Label>
           <Input
             id="entry-amount"
             min={0}
@@ -119,7 +187,7 @@ export const EnterMoney = () => {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="entry-on">{t("entry.on")}</Label>
+          <Label htmlFor="entry-on">{t("byHand.on")}</Label>
           <Input
             id="entry-on"
             onChange={(event) => setOccurredOn(event.target.value)}
@@ -129,7 +197,7 @@ export const EnterMoney = () => {
         </div>
         <div className="space-y-1">
           <Label htmlFor="entry-who">
-            {t(isWage ? "entry.worker" : "entry.counterparty")}
+            {t(isWage ? "byHand.wagePerson" : "byHand.counterparty")}
           </Label>
           <Input
             id="entry-who"
@@ -139,7 +207,7 @@ export const EnterMoney = () => {
         </div>
         {isWage ? (
           <div className="space-y-1">
-            <Label htmlFor="entry-month">{t("entry.wageMonth")}</Label>
+            <Label htmlFor="entry-month">{t("byHand.wageMonth")}</Label>
             <Input
               id="entry-month"
               onChange={(event) => set("wageMonth")(event.target.value)}
@@ -154,7 +222,7 @@ export const EnterMoney = () => {
           value={paymentMethod}
         />
         <div className="space-y-1">
-          <Label htmlFor="entry-note">{t("entry.note")}</Label>
+          <Label htmlFor="entry-note">{t("byHand.note")}</Label>
           <Input
             id="entry-note"
             maxLength={300}
@@ -162,30 +230,14 @@ export const EnterMoney = () => {
             value={typed.note}
           />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="entry-receipt">{t("entry.receipt")}</Label>
-          <input
-            accept="image/*"
-            capture="environment"
-            className="text-sm"
-            id="entry-receipt"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              try {
-                setReceipt(file ? await shrink(file) : null);
-              } catch {
-                toast.error(t("common.error"));
-              }
-            }}
-            type="file"
-          />
-        </div>
+        <SideField id="entry-side" onChange={setSide} value={side} />
+        <ReceiptField id="entry-receipt" onChange={setReceipt} />
         <Button
           disabled={!complete || enter.isPending}
           type="submit"
           variant="outline"
         >
-          {t("entry.save")}
+          {t("byHand.save")}
         </Button>
       </form>
     </section>
@@ -218,7 +270,7 @@ export const Categories = () => {
 
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{t("entry.categories")}</h2>
+      <h2 className="font-medium">{t("byHand.categories")}</h2>
       <ul className="space-y-1 text-sm">
         {(categories.data ?? []).map((one) => (
           <li
@@ -234,16 +286,16 @@ export const Categories = () => {
                 { categoryBn: one.nameBn, categoryEn: one.nameEn },
                 language
               )}{" "}
-              ({t(one.direction === "in" ? "entry.in" : "entry.out")})
+              ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
             </span>
-            {one.retiredAt || one.keptByRecords ? null : (
+            {one.retiredAt || !one.retirable ? null : (
               <Button
                 disabled={retire.isPending}
                 onClick={() => retire.mutate({ id: one.id })}
                 size="sm"
                 variant="outline"
               >
-                {t("entry.retire")}
+                {t("byHand.retire")}
               </Button>
             )}
           </li>
@@ -259,7 +311,7 @@ export const Categories = () => {
         }}
       >
         <div className="flex-1 space-y-1">
-          <Label htmlFor="category-name">{t("entry.newCategory")}</Label>
+          <Label htmlFor="category-name">{t("byHand.newCategory")}</Label>
           <Input
             id="category-name"
             onChange={(event) => setNameBn(event.target.value)}
@@ -267,18 +319,18 @@ export const Categories = () => {
           />
         </div>
         <select
-          aria-label={t("entry.direction")}
+          aria-label={t("byHand.direction")}
           className="bg-background h-9 rounded-md border px-2 text-sm"
           onChange={(event) =>
             setDirection(event.target.value === "in" ? "in" : "out")
           }
           value={direction}
         >
-          <option value="out">{t("entry.out")}</option>
-          <option value="in">{t("entry.in")}</option>
+          <option value="out">{t("byHand.out")}</option>
+          <option value="in">{t("byHand.in")}</option>
         </select>
         <Button disabled={add.isPending} type="submit" variant="outline">
-          {t("entry.addCategory")}
+          {t("byHand.addCategory")}
         </Button>
       </form>
     </section>
@@ -300,15 +352,115 @@ export const ReceiptLink = ({ id }: { id: string }) => {
         onClick={() => setOpen((shown) => !shown)}
         type="button"
       >
-        {t("entry.showReceipt")}
+        {t("byHand.showReceipt")}
       </button>
       {open && receipt.data ? (
         <img
-          alt={t("entry.receipt")}
+          alt={t("byHand.receipt")}
           className="mt-2 max-h-96 rounded-lg"
           src={`data:${receipt.data.contentType};base64,${receipt.data.data}`}
         />
       ) : null}
     </span>
+  );
+};
+
+/**
+ * Puts right money entered by hand: the amount, the note, a receipt that came later — with the reason, as
+ * any Correction. What it went to or came from, and its Category, stay; entering it again says that.
+ */
+export const CorrectEntered = ({
+  entered,
+}: {
+  entered: { id: string; amountBdt: number; note: string | null };
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const onError = useRefusalToast();
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState(String(entered.amountBdt));
+  const [note, setNote] = useState(entered.note ?? "");
+  const [receipt, setReceipt] = useState<Photo | null>(null);
+  const [reason, setReason] = useState("");
+  const correct = useMutation(
+    orpc.money.correctEntered.mutationOptions({
+      onSuccess: async () => {
+        setOpen(false);
+        setReason("");
+        toast.success(t("byHand.corrected"));
+        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
+      },
+      onError,
+    })
+  );
+  if (!open) {
+    return (
+      <button className="underline" onClick={() => setOpen(true)} type="button">
+        {t("byHand.correct")}
+      </button>
+    );
+  }
+  return (
+    <form
+      className="mt-2 space-y-2 rounded-lg border p-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        correct.mutate({
+          id: entered.id,
+          ...(Number(amount) === entered.amountBdt
+            ? {}
+            : { amountBdt: Number(amount) }),
+          ...(note.trim() === (entered.note ?? "")
+            ? {}
+            : { note: note.trim() || null }),
+          receipt: receipt ?? undefined,
+          reason,
+        });
+      }}
+    >
+      <div className="space-y-1">
+        <Label htmlFor={`correct-amount-${entered.id}`}>
+          {t("byHand.amount")}
+        </Label>
+        <Input
+          id={`correct-amount-${entered.id}`}
+          min={0}
+          onChange={(event) => setAmount(event.target.value)}
+          type="number"
+          value={amount}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`correct-note-${entered.id}`}>{t("byHand.note")}</Label>
+        <Input
+          id={`correct-note-${entered.id}`}
+          maxLength={300}
+          onChange={(event) => setNote(event.target.value)}
+          value={note}
+        />
+      </div>
+      <ReceiptField
+        id={`correct-receipt-${entered.id}`}
+        onChange={setReceipt}
+      />
+      <div className="space-y-1">
+        <Label htmlFor={`correct-reason-${entered.id}`}>
+          {t("byHand.reason")}
+        </Label>
+        <Input
+          id={`correct-reason-${entered.id}`}
+          onChange={(event) => setReason(event.target.value)}
+          value={reason}
+        />
+      </div>
+      <Button
+        disabled={!(Number(amount) > 0) || !reason.trim() || correct.isPending}
+        size="sm"
+        type="submit"
+        variant="outline"
+      >
+        {t("byHand.correct")}
+      </Button>
+    </form>
   );
 };

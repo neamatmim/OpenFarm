@@ -39,7 +39,12 @@ const readArrival = async (tx: Tx, animalId: string) => {
     ? {
         ...row,
         money: row.intake
-          ? await moneySnapshotOf(tx, "intake", row.intake.id)
+          ? await moneySnapshotOf(
+              tx,
+              row.intake.farmId,
+              "intake",
+              row.intake.id
+            )
           : null,
       }
     : null;
@@ -73,7 +78,10 @@ const bookIntakeMoney = async (
     return;
   }
   const priceBdt = Number(row.purchasePriceBdt);
-  if (priceBdt > 0 || (await moneySnapshotOf(tx, "intake", row.id))) {
+  if (
+    priceBdt > 0 ||
+    (await moneySnapshotOf(tx, row.farmId, "intake", row.id))
+  ) {
     await bookMoney(tx, booking, {
       source: "intake",
       sourceId: row.id,

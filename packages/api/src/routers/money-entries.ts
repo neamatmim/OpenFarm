@@ -1,5 +1,6 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
+import { SIDES } from "@OpenFarm/db/schema/herd";
 import {
   MONEY_DIRECTIONS,
   moneyCategory,
@@ -18,22 +19,19 @@ import { protectedProcedure } from "../index";
 import {
   amountInput,
   correctedPaymentMethodInput,
+  counterpartyInput,
   paymentMethodInput,
 } from "../money-inputs";
 import {
   addStandardCategories,
   bookMoney,
   bookingOf,
-  isKeptByRecords,
+  isStandardName,
+  mayBeEnteredByHand,
+  mayBeRetired,
   missingStandardCategories,
 } from "../money-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
-
-const counterpartyInput = z.object({
-  name: z.string().trim().min(1).max(120),
-  address: z.string().trim().max(300).optional(),
-  phone: z.string().trim().max(40).optional(),
-});
 
 /** A calendar month, as a wage pays for one. */
 const monthInput = z.string().regex(/^\d{4}-(?:0[1-9]|1[0-2])$/u);
@@ -45,6 +43,18 @@ const receiptInput = z.object({
 
 const noteInput = z.string().trim().min(1).max(300);
 
+/** The Side money entered by hand belongs to; left out, the whole farm. */
+const sideInput = z.enum(SIDES);
+
+/** Thrown inside the standard Categories' write when another request gave them first, so that no Audit
+ *  Event says they were given twice. */
+class NothingToGiveError extends Error {
+  constructor() {
+    super("The standard Categories were already given");
+    this.name = "NothingToGiveError";
+  }
+}
+
 const MANAGER_ONLY = {
   message: "Entering money is the Manager's; the Owner reads and approves it",
   reason: "manager_only",
@@ -55,13 +65,14 @@ const refused = (message: string, refusal: string) =>
   new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 /** The Category as the trail records it either side of a change. */
-const readCategory = async (tx: Tx, id: string) =>
-  (await tx.query.moneyCategory.findFirst({ where: { id } })) ?? null;
+const readCategory = async (tx: Tx, farmId: string, id: string) =>
+  (await tx.query.moneyCategory.findFirst({ where: { id, farmId } })) ?? null;
 
-/** An entry as the trail records it: the Money Event, and whether a receipt was kept — not the photo. */
-const readEntry = async (tx: Tx, id: string) => {
+/** Money entered by hand as the trail records it: the Money Event, and when a receipt was kept — not the
+ *  photo. */
+const readEntered = async (tx: Tx, farmId: string, id: string) => {
   const row = await tx.query.moneyEvent.findFirst({
-    where: { id },
+    where: { id, farmId },
     with: { receipt: { columns: { updatedAt: true } } },
   });
   if (!row) {
@@ -71,13 +82,19 @@ const readEntry = async (tx: Tx, id: string) => {
   return { ...entry, receiptKeptAt: receipt?.updatedAt ?? null };
 };
 
-/** The Category an entry is going under: this farm's, not retired, and a wage's month given exactly when
- *  it is a wage. */
-const categoryForEntry = async (
+/**
+ * The Category money entered by hand goes under: this farm's, one a record does not book, and a wage's
+ * month given exactly when it is a wage. A retired Category takes nothing new — but money already under
+ * it stays correctable where it is.
+ */
+const categoryForEntered = async (
   db: Pick<Tx, "query">,
   farmId: string,
   categoryId: string,
-  wageMonth: string | null
+  {
+    wageMonth,
+    alreadyUnderIt,
+  }: { wageMonth: string | null; alreadyUnderIt: boolean }
 ) => {
   const category = await db.query.moneyCategory.findFirst({
     where: { id: categoryId, farmId },
@@ -86,10 +103,10 @@ const categoryForEntry = async (
   if (!category) {
     throw new ORPCError("NOT_FOUND", { message: "No such Category" });
   }
-  if (category.retiredAt) {
+  if (category.retiredAt && !alreadyUnderIt) {
     throw refused("That Category is retired", "category_retired");
   }
-  if (isKeptByRecords(category.key)) {
+  if (!mayBeEnteredByHand(category.key)) {
     // Milk sold is booked by its Dispatch, a bull bought by its Intake: entering it by hand as well is
     // the same money twice.
     throw refused(
@@ -176,15 +193,34 @@ export const moneyEntryProcedures = {
         context.farm.id
       );
       if (missing.length > 0) {
-        await audited(context).write(
-          {
-            entity: "money_category",
-            entityId: context.farm.id,
-            action: "create",
-            after: () => Promise.resolve({ standard: missing }),
-          },
-          (tx) => addStandardCategories(tx, context.farm.id, missing, now)
-        );
+        // Given once, and recorded as what was actually given: a second request that finds them already
+        // there writes nothing, and says nothing.
+        let added: string[] = [];
+        await audited(context)
+          .write(
+            {
+              entity: "money_category",
+              entityId: context.farm.id,
+              action: "create",
+              after: () => Promise.resolve({ standard: added }),
+            },
+            async (tx) => {
+              added = await addStandardCategories(
+                tx,
+                context.farm.id,
+                missing,
+                now
+              );
+              if (added.length === 0) {
+                throw new NothingToGiveError();
+              }
+            }
+          )
+          .catch((error: unknown) => {
+            if (!(error instanceof NothingToGiveError)) {
+              throw error;
+            }
+          });
       }
       const rows = await context.db.query.moneyCategory.findMany({
         where: { farmId: context.farm.id },
@@ -197,8 +233,9 @@ export const moneyEntryProcedures = {
         nameEn: row.nameEn,
         direction: row.direction,
         retiredAt: row.retiredAt,
-        /** A record books under it, so it is not entered by hand nor retired. */
-        keptByRecords: isKeptByRecords(row.key),
+        /** Whether money may be entered by hand under it, and whether the farm may retire it. */
+        enterable: mayBeEnteredByHand(row.key),
+        retirable: mayBeRetired(row.key),
       }));
     }),
 
@@ -215,22 +252,27 @@ export const moneyEntryProcedures = {
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const taken = await context.db.query.moneyCategory.findFirst({
-        where: { farmId: context.farm.id, nameBn: input.nameBn },
-        columns: { id: true },
-      });
-      if (taken) {
-        throw refused("The farm already has that Category", "category_exists");
-      }
       const id = newId(now);
       await audited(context).write(
         {
           entity: "money_category",
           entityId: id,
           action: "create",
-          after: (tx) => readCategory(tx, id),
+          after: (tx) => readCategory(tx, context.farm.id, id),
         },
         async (tx) => {
+          // A standard Category's name is kept for it, even before the farm has been given it: a farm's
+          // own "milk sales" would leave the Dispatches nowhere to book.
+          const taken = await tx.query.moneyCategory.findFirst({
+            where: { farmId: context.farm.id, nameBn: input.nameBn },
+            columns: { id: true },
+          });
+          if (taken || isStandardName(input.nameBn)) {
+            throw refused(
+              "The farm already has that Category",
+              "category_exists"
+            );
+          }
           await tx.insert(moneyCategory).values({
             id,
             farmId: context.farm.id,
@@ -247,7 +289,8 @@ export const moneyEntryProcedures = {
 
   /**
    * Retires a Category: nothing new goes under it, and everything entered under it keeps it. Never
-   * removed. A Category a record books under is not the farm's to retire.
+   * removed. A Category a record books under is not the farm's to retire, and nor is Wages, which the
+   * one-wage-a-month rule is kept by.
    */
   retireCategory: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -262,11 +305,16 @@ export const moneyEntryProcedures = {
       if (!category) {
         throw new ORPCError("NOT_FOUND", { message: "No such Category" });
       }
-      if (isKeptByRecords(category.key)) {
-        throw refused(
-          "A record's money is booked under that Category",
-          "category_kept_by_records"
-        );
+      if (!mayBeRetired(category.key)) {
+        throw category.key === "wages"
+          ? refused(
+              "Wages are kept: a wage is one per person per month under them",
+              "category_kept_for_wages"
+            )
+          : refused(
+              "A record's money is booked under that Category",
+              "category_kept_by_records"
+            );
       }
       if (category.retiredAt) {
         return { id: category.id };
@@ -276,8 +324,8 @@ export const moneyEntryProcedures = {
           entity: "money_category",
           entityId: category.id,
           action: "update",
-          before: (tx) => readCategory(tx, category.id),
-          after: (tx) => readCategory(tx, category.id),
+          before: (tx) => readCategory(tx, context.farm.id, category.id),
+          after: (tx) => readCategory(tx, context.farm.id, category.id),
         },
         async (tx) => {
           await tx
@@ -309,6 +357,7 @@ export const moneyEntryProcedures = {
         paymentMethod: paymentMethodInput,
         note: noteInput.optional(),
         wageMonth: monthInput.optional(),
+        side: sideInput.optional(),
         receipt: receiptInput.optional(),
       })
     )
@@ -316,11 +365,11 @@ export const moneyEntryProcedures = {
       const now = context.clock.now();
       const occurredAt = enteredOn(input.occurredOn, now);
       const wageMonth = input.wageMonth ?? null;
-      const category = await categoryForEntry(
+      const category = await categoryForEntered(
         context.db,
         context.farm.id,
         input.categoryId,
-        wageMonth
+        { wageMonth, alreadyUnderIt: false }
       );
       const id = newId(now);
       await audited(context).write(
@@ -328,7 +377,7 @@ export const moneyEntryProcedures = {
           entity: "money_event",
           entityId: id,
           action: "create",
-          after: (tx) => readEntry(tx, id),
+          after: (tx) => readEntered(tx, context.farm.id, id),
         },
         async (tx) => {
           const counterpartyId = await counterpartyNamed(
@@ -346,14 +395,20 @@ export const moneyEntryProcedures = {
             tx,
             bookingOf(context, context.roleUsed, now),
             {
-              source: "entry",
+              source: "by_hand",
               sourceId: id,
               amountBdt: input.amountBdt,
               occurredAt,
               counterpartyId,
               paymentMethod: input.paymentMethod,
             },
-            { id, category, note: input.note ?? null, wageMonth }
+            {
+              id,
+              category,
+              note: input.note ?? null,
+              wageMonth,
+              side: input.side ?? null,
+            }
           );
           if (input.receipt) {
             await keepReceipt(tx, context.farm.id, id, input.receipt, now);
@@ -364,11 +419,11 @@ export const moneyEntryProcedures = {
     }),
 
   /**
-   * Puts right an entry made by hand — a Correction like any other: a reason, the Role's Correction
+   * Puts right money entered by hand — a Correction like any other: a reason, the Role's Correction
    * Window, and the trail holding what it said. A note sent as nothing is cleared. A record's own money
    * is put right on the record, never here.
    */
-  correctEntry: protectedProcedure
+  correctEntered: protectedProcedure
     .use(requireOnly("manager", MANAGER_ONLY))
     .use(requirePersonalSession())
     .input(
@@ -381,6 +436,7 @@ export const moneyEntryProcedures = {
         paymentMethod: correctedPaymentMethodInput,
         note: noteInput.nullable().optional(),
         wageMonth: monthInput.nullable().optional(),
+        side: sideInput.nullable().optional(),
         receipt: receiptInput.optional(),
         reason: reasonInput,
       })
@@ -393,7 +449,7 @@ export const moneyEntryProcedures = {
       if (!existing) {
         throw new ORPCError("NOT_FOUND", { message: "No such money entry" });
       }
-      if (existing.source !== "entry") {
+      if (existing.source !== "by_hand") {
         throw refused(
           "That money comes from a record; put the record right",
           "correct_the_record"
@@ -414,11 +470,12 @@ export const moneyEntryProcedures = {
       }
       const wageMonth =
         input.wageMonth === undefined ? existing.wageMonth : input.wageMonth;
-      const category = await categoryForEntry(
+      const categoryId = input.categoryId ?? existing.categoryId;
+      const category = await categoryForEntered(
         context.db,
         context.farm.id,
-        input.categoryId ?? existing.categoryId,
-        wageMonth
+        categoryId,
+        { wageMonth, alreadyUnderIt: categoryId === existing.categoryId }
       );
       const occurredAt =
         input.occurredOn === undefined
@@ -438,8 +495,8 @@ export const moneyEntryProcedures = {
           reason: input.reason,
           roleUsed: verdict.role,
           supersedesId: previous?.id,
-          before: (tx) => readEntry(tx, existing.id),
-          after: (tx) => readEntry(tx, existing.id),
+          before: (tx) => readEntered(tx, context.farm.id, existing.id),
+          after: (tx) => readEntered(tx, context.farm.id, existing.id),
         },
         async (tx) => {
           const counterpartyId =
@@ -462,7 +519,7 @@ export const moneyEntryProcedures = {
             tx,
             bookingOf(context, verdict.role, now),
             {
-              source: "entry",
+              source: "by_hand",
               sourceId: existing.id,
               amountBdt: input.amountBdt ?? Number(existing.amountBdt),
               occurredAt,
@@ -474,6 +531,7 @@ export const moneyEntryProcedures = {
               category,
               note: input.note === undefined ? existing.note : input.note,
               wageMonth,
+              side: input.side === undefined ? existing.side : input.side,
             }
           );
           if (input.receipt) {

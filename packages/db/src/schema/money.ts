@@ -13,10 +13,11 @@ import { user } from "./auth";
 import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { drugProduct } from "./health";
-import { animal } from "./herd";
+import { SIDES, animal } from "./herd";
 
 /** Which way money went: into the farm, or out of it. */
 export const MONEY_DIRECTIONS = ["in", "out"] as const;
+export type MoneyDirection = (typeof MONEY_DIRECTIONS)[number];
 
 /** How money changed hands. Cash at the gate, bKash on a phone, or through a bank. */
 export const PAYMENT_METHODS = ["cash", "bkash", "bank"] as const;
@@ -26,16 +27,19 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
  * The farm records that make money on their own. A Money Event made by one of these names it, and one
  * record makes one Money Event: a Correction to the record corrects its money rather than adding more.
  */
-export const MONEY_SOURCES = [
+export const RECORD_SOURCES = [
   "dispatch",
   "intake",
   "sale",
   "feed_in",
   "medicine_purchase",
   "vet_fee",
-  /** Entered by hand: wages, and everything no other record catches. The entry is the Money Event. */
-  "entry",
 ] as const;
+export type RecordSource = (typeof RECORD_SOURCES)[number];
+
+/** Where a Money Event came from: one of the records, or entered by hand by the Manager — wages, and
+ *  everything no record catches, where the Money Event is the whole of it. */
+export const MONEY_SOURCES = [...RECORD_SOURCES, "by_hand"] as const;
 export type MoneySource = (typeof MONEY_SOURCES)[number];
 
 /**
@@ -44,12 +48,7 @@ export type MoneySource = (typeof MONEY_SOURCES)[number];
  * farm's own Categories carry no key.
  */
 export const CATEGORY_KEYS = [
-  "dispatch",
-  "intake",
-  "sale",
-  "feed_in",
-  "medicine_purchase",
-  "vet_fee",
+  ...RECORD_SOURCES,
   "wages",
   "utilities",
   "repairs",
@@ -67,8 +66,8 @@ export const MONEY_APPROVALS = ["not_needed", "awaiting", "approved"] as const;
 export type MoneyApproval = (typeof MONEY_APPROVALS)[number];
 
 /**
- * A Category a Money Event falls under. The Categories the farm's own records use carry a key and are
- * made the first time a record needs one; the farm's own list of Categories grows from these.
+ * A Category a Money Event falls under. The standard ones carry a key; the farm's own carry none. Retired,
+ * never removed.
  */
 export const moneyCategory = pgTable(
   "money_category",
@@ -117,10 +116,12 @@ export const moneyEvent = pgTable(
     /** The record that made it, and that record's id. */
     source: text("source", { enum: MONEY_SOURCES }).notNull(),
     sourceId: text("source_id").notNull(),
-    /** What the Manager wrote about an entry made by hand. */
+    /** What the Manager wrote about money entered by hand. */
     note: text("note"),
-    /** The month a wage pays for, "YYYY-MM". A wage is one entry per person per month. */
+    /** The month a wage pays for, "YYYY-MM". One wage per person per month. */
     wageMonth: text("wage_month"),
+    /** The Side money entered by hand belongs to, when it belongs to one; null for the whole farm. */
+    side: text("side", { enum: SIDES }),
     approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at"),

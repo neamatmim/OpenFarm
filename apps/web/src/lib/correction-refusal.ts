@@ -51,6 +51,7 @@ const WORDED_REFUSALS = {
   calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
   category_exists: "refusal.categoryExists",
   category_kept_by_records: "refusal.categoryKeptByRecords",
+  category_kept_for_wages: "refusal.categoryKeptForWages",
   category_retired: "refusal.categoryRetired",
   check_without_a_service: "refusal.checkWithoutAService",
   correct_the_record: "refusal.correctTheRecord",

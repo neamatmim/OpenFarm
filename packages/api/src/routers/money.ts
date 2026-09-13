@@ -92,7 +92,6 @@ export const moneyRouter = {
         occurredAt: row.occurredAt,
         direction: row.direction,
         amountBdt: Number(row.amountBdt),
-        categoryId: row.categoryId,
         categoryKey: row.category.key,
         categoryBn: row.category.nameBn,
         categoryEn: row.category.nameEn,
@@ -105,6 +104,7 @@ export const moneyRouter = {
         approvedAt: row.approvedAt,
         note: row.note,
         wageMonth: row.wageMonth,
+        side: row.side,
         hasReceipt: row.receipt !== null,
       }));
       return { events, more: rows.length > LISTED };
@@ -171,10 +171,7 @@ export const moneyRouter = {
           if (approved.length === 0) {
             throw notWaiting();
           }
-          await settleMoneyNotices(tx, context.farm.id, waiting.id, {
-            stillWaitingAt: null,
-            now,
-          });
+          await settleMoneyNotices(tx, context.farm.id, waiting.id, now);
         }
       );
       return { id: waiting.id };

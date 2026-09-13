@@ -191,7 +191,16 @@ export const alertsRouter = {
 
   mine: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .input(z.object({ entityId: z.string().optional() }).default({}))
+    .input(
+      z
+        .object({
+          entityId: z.string().optional(),
+          /** Every notice about one thing that is told about more than once, as a Money Event is each
+           *  time it starts waiting. */
+          about: z.string().min(1).optional(),
+        })
+        .default({})
+    )
     .handler(({ context, input }) =>
       context.db.query.alert.findMany({
         where: {
@@ -199,6 +208,7 @@ export const alertsRouter = {
           userId: context.actor.id,
           dismissedAt: { isNull: true },
           ...(input.entityId ? { entityId: input.entityId } : {}),
+          ...(input.about ? { entityId: { like: `${input.about}:%` } } : {}),
         },
         orderBy: { createdAt: "desc", id: "desc" },
         limit: INBOX_LIMIT,

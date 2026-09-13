@@ -237,9 +237,9 @@ describe("money from the farm's records", () => {
         expect.objectContaining({ id, amountBdt: 85_000, source: "intake" }),
       ])
     );
-    expect(
-      await owner.client.alerts.mine({ entityId: `${id}:85000.00` })
-    ).toEqual([expect.objectContaining({ kind: "money_awaiting_approval" })]);
+    expect(await owner.client.alerts.mine({ about: id })).toEqual([
+      expect.objectContaining({ kind: "money_awaiting_approval" }),
+    ]);
 
     // The Owner's alone.
     for (const role of ["manager", "vet", "staff"] as const) {
@@ -269,9 +269,7 @@ describe("money from the farm's records", () => {
       owner.client.money.approve({ id, amountBdt: 85_000 })
     ).rejects.toMatchObject({ data: { refusal: "not_awaiting_approval" } });
     // Approved, the notice about it is taken down.
-    expect(
-      await owner.client.alerts.mine({ entityId: `${id}:85000.00` })
-    ).toEqual([]);
+    expect(await owner.client.alerts.mine({ about: id })).toEqual([]);
     const after = await owner.client.home.owner();
     expect(after.needsYou.moneyAwaiting.map((one) => one.id)).not.toContain(id);
   });
@@ -310,9 +308,12 @@ describe("money from the farm's records", () => {
       approval: "awaiting",
     });
     // The Owner is told about the new amount, and only the new amount.
-    expect(
-      await owner.client.alerts.mine({ entityId: `${id}:26000.00` })
-    ).toEqual([expect.objectContaining({ kind: "money_awaiting_approval" })]);
+    expect(await owner.client.alerts.mine({ about: id })).toEqual([
+      expect.objectContaining({
+        kind: "money_awaiting_approval",
+        params: expect.objectContaining({ amountBdt: 26_000 }),
+      }),
+    ]);
 
     // Under the threshold again, it waits for nobody and the notice comes down.
     await manager.client.milk.correctDispatch({
@@ -322,9 +323,7 @@ describe("money from the farm's records", () => {
     });
     const [under] = await moneyOf(recorded.id);
     expect(under).toMatchObject({ amountBdt: 15_000, approval: "not_needed" });
-    expect(
-      await owner.client.alerts.mine({ entityId: `${id}:26000.00` })
-    ).toEqual([]);
+    expect(await owner.client.alerts.mine({ about: id })).toEqual([]);
   });
 
   it("books medicine bought for the Drug List, with the doses it holds", async () => {

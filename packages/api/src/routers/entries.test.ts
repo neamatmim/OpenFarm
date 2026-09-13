@@ -72,16 +72,18 @@ describe("money entered by hand", () => {
       counterparty: { name: `পল্লী বিদ্যুৎ ${suffix}` },
       paymentMethod: "bank",
       note: "জানুয়ারির বিল",
+      side: "dairy",
       receipt: { contentType: "image/jpeg", data: "AAAA" },
     });
     expect(await eventOf(bill.id)).toMatchObject({
-      source: "entry",
+      source: "by_hand",
       direction: "out",
       amountBdt: 3500,
       categoryKey: "utilities",
       counterpartyName: `পল্লী বিদ্যুৎ ${suffix}`,
       paymentMethod: "bank",
       note: "জানুয়ারির বিল",
+      side: "dairy",
       hasReceipt: true,
       approval: "not_needed",
     });
@@ -100,8 +102,27 @@ describe("money entered by hand", () => {
       direction: "in",
       amountBdt: 2000,
       paymentMethod: "cash",
+      side: null,
       hasReceipt: false,
     });
+
+    // The receipt came later: kept by a Correction, which says why.
+    await manager.client.money.correctEntered({
+      id: dung.id,
+      receipt: { contentType: "image/png", data: "BBBB" },
+      reason: "রসিদ পরে পাওয়া গেল",
+    });
+    expect(await eventOf(dung.id)).toMatchObject({ hasReceipt: true });
+
+    // A visiting vet with no login is paid all the same, by hand under Vet fees.
+    const vetFees = await categoryKeyed("vet_fee");
+    const visit = await manager.client.money.enter({
+      categoryId: vetFees.id,
+      amountBdt: 1000,
+      occurredOn: "2038-01-10",
+      counterparty: { name: `ডাঃ রহমান ${suffix}` },
+    });
+    expect(await eventOf(visit.id)).toMatchObject({ categoryKey: "vet_fee" });
   });
 
   it("takes one wage per person per month, naming the person", async () => {
@@ -180,15 +201,26 @@ describe("money entered by hand", () => {
       counterparty: { name: `সাধারণ বীমা ${suffix}` },
     });
 
+    // A farm's own Category may not take a standard one's name, which the records book under.
+    await expect(
+      manager.client.money.addCategory({ nameBn: "দুধ বিক্রি", direction: "in" })
+    ).rejects.toMatchObject({ data: { refusal: "category_exists" } });
+
     const owner = await as("owner", "2038-03-02T04:00:00.000Z");
     await owner.client.money.retireCategory({ id: insurance.id });
     const listed = await manager.client.money.categories();
     expect(listed.find((one) => one.id === insurance.id)).toMatchObject({
       retiredAt: expect.any(Date),
     });
-    // What was entered under it keeps it.
+    // What was entered under it keeps it, and can still be put right where it is.
+    await manager.client.money.correctEntered({
+      id: premium.id,
+      amountBdt: 4200,
+      reason: "প্রিমিয়াম বেড়েছে",
+    });
     expect(await eventOf(premium.id)).toMatchObject({
       categoryBn: `পশু বীমা ${suffix}`,
+      amountBdt: 4200,
     });
     await expect(
       manager.client.money.enter({
@@ -213,6 +245,11 @@ describe("money entered by hand", () => {
     await expect(
       owner.client.money.retireCategory({ id: milkSales.id })
     ).rejects.toMatchObject({ data: { refusal: "category_kept_by_records" } });
+    // Nor Wages, which the one-wage-a-month rule is kept by.
+    const wages = await categoryKeyed("wages");
+    await expect(
+      owner.client.money.retireCategory({ id: wages.id })
+    ).rejects.toMatchObject({ data: { refusal: "category_kept_for_wages" } });
   });
 
   it("holds an entry over the threshold for the Owner, and corrects one as a Correction", async () => {
@@ -229,14 +266,32 @@ describe("money entered by hand", () => {
     const owner = await as("owner", "2038-04-01T05:00:00.000Z");
     await owner.client.money.approve({ id: pump.id, amountBdt: 30_000 });
 
+    // Approved for the mechanic; paid to somebody else, it is a new thing to approve.
+    await manager.client.money.correctEntered({
+      id: pump.id,
+      counterparty: { name: `অন্য মেকানিক ${suffix}` },
+      reason: "অন্য লোক কাজটা করেছে",
+    });
+    expect(await eventOf(pump.id)).toMatchObject({ approval: "awaiting" });
+    // A note while it waits changes nothing the Owner is being asked: the same notice stands.
+    const [asked] = await owner.client.alerts.mine({ about: pump.id });
+    await manager.client.money.correctEntered({
+      id: pump.id,
+      note: "মোটর বদলানো হয়েছে",
+      reason: "কী মেরামত হয়েছে লেখা",
+    });
+    const told = await owner.client.alerts.mine({ about: pump.id });
+    expect(told.map((notice) => notice.id)).toEqual([asked?.id]);
+    await owner.client.money.approve({ id: pump.id, amountBdt: 30_000 });
+
     await expect(
-      manager.client.money.correctEntry({
+      manager.client.money.correctEntered({
         id: pump.id,
         amountBdt: 3000,
         reason: " ",
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    await manager.client.money.correctEntry({
+    await manager.client.money.correctEntered({
       id: pump.id,
       amountBdt: 3000,
       note: null,
@@ -264,7 +319,7 @@ describe("money entered by hand", () => {
     const year = await owner.client.money.list(YEAR);
     const fromTheRecord = year.events.find((one) => one.sourceId === milk.id);
     await expect(
-      manager.client.money.correctEntry({
+      manager.client.money.correctEntered({
         id: fromTheRecord?.id ?? "",
         amountBdt: 1,
         reason: "ভুল",

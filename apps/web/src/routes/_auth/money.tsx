@@ -8,7 +8,12 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { categoryName, useApproveMoney } from "@/components/money";
-import { Categories, EnterMoney, ReceiptLink } from "@/components/money-entry";
+import {
+  Categories,
+  CorrectEntered,
+  EnterMoney,
+  ReceiptLink,
+} from "@/components/money-entry";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -25,7 +30,7 @@ const SOURCE_WORD = {
   feed_in: "money.from.feedIn",
   medicine_purchase: "money.from.medicinePurchase",
   vet_fee: "money.from.vetFee",
-  entry: "money.from.entry",
+  by_hand: "money.from.byHand",
 } as const satisfies Record<string, MessageKey>;
 
 /**
@@ -99,11 +104,16 @@ const MoneyPage = () => {
                 {row.note || row.wageMonth ? (
                   <p className="text-muted-foreground text-xs">
                     {row.wageMonth
-                      ? t("entry.wageFor", { month: row.wageMonth })
+                      ? t("byHand.wageFor", { month: row.wageMonth })
                       : ""}
                     {row.wageMonth && row.note ? " · " : ""}
                     {row.note ?? ""}
                   </p>
+                ) : null}
+                {entersMoney && row.source === "by_hand" ? (
+                  <div className="text-xs">
+                    <CorrectEntered entered={row} />
+                  </div>
                 ) : null}
                 {row.hasReceipt ? (
                   <div className="text-xs">
