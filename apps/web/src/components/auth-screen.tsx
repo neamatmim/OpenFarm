@@ -1,4 +1,5 @@
-import { BookOpenCheck, ShieldCheck, WifiOff } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookOpenCheck, ShieldCheck, Sprout, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { PublicHeader } from "@/components/public-header";
@@ -18,7 +19,7 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.05fr_1fr]">
       <aside
-        className="relative hidden overflow-hidden bg-[oklch(0.27_0.045_162)] p-10 text-[oklch(0.95_0.015_150)] lg:flex lg:flex-col lg:justify-between"
+        className="relative hidden overflow-hidden bg-[oklch(0.27_0.045_162)] px-10 text-[oklch(0.95_0.015_150)] lg:flex lg:flex-col xl:px-14"
         data-app-chrome
       >
         <div
@@ -29,13 +30,22 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
           aria-hidden
           className="pointer-events-none absolute inset-0 [background-image:linear-gradient(oklch(1_0_0)_1px,transparent_1px),linear-gradient(90deg,oklch(1_0_0)_1px,transparent_1px)] [background-size:44px_44px] opacity-[0.07]"
         />
-        <p className="relative text-sm font-medium tracking-wide opacity-80">
-          {t("app.name")}
-        </p>
-        <div className="relative flex max-w-lg flex-col gap-8">
-          <h1 className="text-4xl leading-tight font-semibold tracking-tight">
+        {/* The same height as the bar across the form, so the name and the bar sit on one line. */}
+        <Link
+          className="relative flex h-16 w-fit items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          to="/"
+        >
+          <span className="grid size-9 place-items-center rounded-lg bg-white/10 ring-1 ring-white/20">
+            <Sprout aria-hidden className="size-5" />
+          </span>
+          <span className="text-lg font-semibold tracking-tight">
+            {t("app.name")}
+          </span>
+        </Link>
+        <div className="relative flex max-w-xl flex-1 flex-col justify-center gap-8 py-10">
+          <p className="text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-[2.75rem]">
             {t("auth.promise.title")}
-          </h1>
+          </p>
           <ul className="flex flex-col gap-4">
             {promises.map(({ icon: Icon, text }) => (
               <li className="flex items-start gap-3" key={text}>
@@ -49,12 +59,15 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
             ))}
           </ul>
         </div>
-        <p className="relative text-sm opacity-60">{t("app.tagline")}</p>
+        <p className="relative flex h-16 items-center text-sm opacity-60">
+          {t("app.tagline")}
+        </p>
       </aside>
       <div className="flex flex-col">
-        <PublicHeader />
+        <PublicHeader brandOnPhoneOnly />
+        {/* Held off the bottom by the header's own height, so the form is centred on the same line as the promise. */}
         <main
-          className="flex flex-1 items-center justify-center px-4 pb-12"
+          className="flex flex-1 items-center justify-center px-4 pb-16"
           id="main"
         >
           <div className="w-full max-w-md">{children}</div>
