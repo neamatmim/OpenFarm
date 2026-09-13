@@ -25,6 +25,7 @@ import { peopleRouter } from "./people";
 import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { readyRouter } from "./ready";
+import { reportsRouter } from "./reports";
 import { reviewRouter } from "./review";
 import { saleRouter } from "./sale";
 import { sopsRouter } from "./sops";
@@ -59,6 +60,7 @@ export const appRouter = {
   prescriptions: prescriptionsRouter,
   push: pushRouter,
   ready: readyRouter,
+  reports: reportsRouter,
   breeding: breedingRouter,
   stock: stockRouter,
   review: reviewRouter,

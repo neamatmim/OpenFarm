@@ -54,6 +54,8 @@ const Header = () => {
           { to: "/ready", label: t("nav.ready") },
           // Eid morning: the one gate that stops a farm selling meat it cannot say is safe.
           { to: "/sale", label: t("nav.sale") },
+          // Milk leaving the farm, and the records a processor or BFSA asks for.
+          { to: "/milk", label: t("nav.milk") },
           { to: "/admin/feed", label: t("nav.feed") },
           { to: "/admin/devices", label: t("nav.devices") },
           { to: "/admin/people", label: t("nav.people") },

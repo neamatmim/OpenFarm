@@ -62,6 +62,8 @@ export { farmOfOriginLines, identityView } from "./farm";
 export {
   FARM_UTC_OFFSET_MINUTES,
   farmDayOf,
+  farmDaysBetween,
+  farmTimeOf,
   startOfFarmDay,
 } from "./farm-clock";
 export type {
@@ -88,6 +90,8 @@ export {
 } from "./ready";
 export type {
   AnimalPassport,
+  DispatchLine,
+  MilkDispatchRecord,
   DoseGiven,
   PenSpell,
   ShortenedHold,
@@ -98,6 +102,7 @@ export type {
 } from "./papers";
 export {
   animalPassport,
+  milkDispatchRecord,
   saleReceipt,
   transportCard,
   withdrawalSummary,

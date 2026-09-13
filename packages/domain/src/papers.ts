@@ -340,3 +340,57 @@ export const withdrawalSummary = (summary: WithdrawalSummary): string =>
   ]
     .filter((line) => line !== null)
     .join("\n");
+
+/** One Dispatch on the milk dispatch record, formatted for the reader. */
+export interface DispatchLine {
+  /** When the milk left, formatted for the reader. */
+  at: string;
+  litres: string;
+  buyerName: string;
+  buyerAddress: string | null;
+  challan: string | null;
+  fatPercent: string | null;
+  snfPercent: string | null;
+}
+
+export interface MilkDispatchRecord {
+  farm: FarmIdentity;
+  from: string;
+  to: string;
+  dispatches: DispatchLine[];
+  totalLitres: string;
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * The milk dispatch record: every Dispatch in a period, with the buyer's name and address and the
+ * challan — what the Safe Food Act (s.38) asks a producer to be able to show about who took its milk —
+ * headed by the farm and stamped with who produced it and when.
+ */
+export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
+  [
+    ...farmOfOriginLines(record.farm),
+    "",
+    "দুধ হস্তান্তরের রেকর্ড / Milk dispatch record",
+    field("সময়কাল", "Period", `${record.from} — ${record.to}`),
+    "",
+    ...(record.dispatches.length === 0
+      ? ["এই সময়ে কোনো দুধ হস্তান্তর হয়নি / No milk was dispatched in this period"]
+      : record.dispatches.flatMap((one) => [
+          `${one.at} · ${one.litres} লিটার / litres · ${one.buyerName}`,
+          one.buyerAddress?.trim()
+            ? `  ${field("ঠিকানা", "Address", one.buyerAddress)}`
+            : null,
+          one.challan ? `  ${field("চালান", "Challan", one.challan)}` : null,
+          one.fatPercent !== null || one.snfPercent !== null
+            ? `  ${field("ফ্যাট / এসএনএফ", "Fat / SNF", `${one.fatPercent ?? "—"}% / ${one.snfPercent ?? "—"}%`)}`
+            : null,
+        ])),
+    "",
+    field("মোট", "Total", `${record.totalLitres} লিটার / litres`),
+    "",
+    `${record.producedAt} · ${record.producedBy}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");

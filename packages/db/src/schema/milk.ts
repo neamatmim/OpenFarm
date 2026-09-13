@@ -10,7 +10,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { farm } from "./farm";
+import { ROLES, farm } from "./farm";
+import { counterparty } from "./fattening";
 import { animal, pen } from "./herd";
 import { sopInstance, stepCompletion } from "./instance";
 import { MILK_DESTINATIONS } from "./milk-destinations";
@@ -90,4 +91,43 @@ export const milkRecord = pgTable(
     ),
     index("milk_record_session_idx").on(table.sessionId),
   ]
+);
+
+/**
+ * Bulk milk handed over to a buyer: when, how many litres, to whom, the challan the buyer's collector
+ * wrote, the price, and the fat and SNF if the processor measured them.
+ *
+ * The farm's milk-buyer record under the Safe Food Act (s.38) — the buyer's name and address come from
+ * the Counterparty — and what the milk sale's money is worked out from. The Manager's to record.
+ */
+export const dispatch = pgTable(
+  "dispatch",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    dispatchedAt: timestamp("dispatched_at").notNull(),
+    litres: numeric("litres", { precision: 10, scale: 2 }).notNull(),
+    buyerId: text("buyer_id")
+      .notNull()
+      .references(() => counterparty.id),
+    /** The buyer's name and address as they stood when the milk left. The dispatch record reprints
+     *  what the farm could show that day, not wherever the buyer has moved to since. */
+    buyerName: text("buyer_name").notNull(),
+    buyerAddress: text("buyer_address"),
+    /** The collector's slip number, when the buyer gives one. A buyer at the gate may not. */
+    challan: text("challan"),
+    pricePerLitreBdt: numeric("price_per_litre_bdt", {
+      precision: 8,
+      scale: 2,
+    }).notNull(),
+    fatPercent: numeric("fat_percent", { precision: 4, scale: 2 }),
+    snfPercent: numeric("snf_percent", { precision: 4, scale: 2 }),
+    note: text("note"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [index("dispatch_farm_idx").on(table.farmId, table.dispatchedAt)]
 );

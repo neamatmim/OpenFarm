@@ -10,6 +10,7 @@ export type PaperId =
   | "animal-passport"
   | "withdrawal-summary"
   | "dls-letter"
+  | "milk-dispatch-record"
   | "sop-card";
 
 /**

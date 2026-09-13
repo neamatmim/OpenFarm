@@ -89,3 +89,31 @@ export const parseCsvRecords = (text: string): CsvRecord[] => {
     ),
   }));
 };
+
+/** A field a spreadsheet would read as a formula: a buyer named "=HYPERLINK(...)" is a buyer name
+ *  somebody should not be able to run on the accountant's computer. */
+const LOOKS_LIKE_A_FORMULA = /^[=+\-@\t\r]/u;
+
+/** One field as RFC 4180 writes it: quoted when it holds a comma, a quote or a line break, and made
+ *  inert when a spreadsheet would take it for a formula. */
+const csvField = (value: string | number | null): string => {
+  if (value === null) {
+    return "";
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
+  const inert = LOOKS_LIKE_A_FORMULA.test(value) ? `'${value}` : value;
+  return /[",\r\n]/u.test(inert) ? `"${inert.replaceAll('"', '""')}"` : inert;
+};
+
+/**
+ * A CSV an accountant's or a processor's spreadsheet opens: a byte-order mark so Bangla opens as Bangla
+ * rather than as noise, a header row, one row per record ending in CRLF as RFC 4180 has it, and plain
+ * digits whatever language the person producing it reads in.
+ */
+export const toCsv = (
+  header: readonly string[],
+  rows: readonly (readonly (string | number | null)[])[]
+): string =>
+  `\uFEFF${[header, ...rows].map((row) => row.map(csvField).join(",")).join("\r\n")}\r\n`;
