@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 6, user story 74; [Feed and inventory](../../openfarm-release-1/issues/12-feed-and-inventory.md); `CONTEXT.md` — **Feed Item**, **Feeding**, **Stock on Hand**, **Counterparty**.
 

@@ -6,7 +6,7 @@ The Owner decided on 2026-09-13 that a Repeat Breeder goes **on the Manager's qu
 
 **Blocked by:** 44
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 5, user story 71; [Breeding and reproduction](../../openfarm-release-1/issues/11-breeding-and-reproduction.md) (Failures).
 
