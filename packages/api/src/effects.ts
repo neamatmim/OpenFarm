@@ -17,6 +17,11 @@ import type {
   Step,
 } from "@OpenFarm/domain";
 import {
+  CALF_OUTCOMES,
+  CALF_SEXES,
+  CALVING_EASES,
+  CALVING_EVIDENCE,
+  CALVING_RECORDERS,
   HEAT,
   KG_DECIMALS,
   SERVICE_EVIDENCE,
@@ -37,6 +42,8 @@ import {
   closeWorkOfAttemptsNoLongerStanding,
   rederivePregnancy,
 } from "./breeding-store";
+import type { CalvingRecorded } from "./calving-store";
+import { recordCalving } from "./calving-store";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
@@ -126,6 +133,7 @@ export type EffectResult =
       kind: "pregnancy_check";
       result: PregnancyCheckResult | null;
     } & CalvingWorkFollowed)
+  | ({ kind: "calving" } & CalvingRecorded)
   | {
       kind: "dry_off";
       /** False when she was already Dry: a phone replaying the entry dries nobody twice. */
@@ -163,6 +171,28 @@ const noteIn = (step: Step, evidence: unknown[]): string | null => {
   return written === "" ? null : written;
 };
 
+/** What was chosen at one position, as the Version declares it there — or null when nothing was.
+ *  A value the Version never offered at that position is refused, not ignored. */
+const declaredChoiceAt = (
+  step: Step,
+  evidence: unknown[],
+  position: number
+): Choice | null => {
+  const value = evidence[position];
+  if (typeof value !== "string" || value === "") {
+    return null;
+  }
+  const declared = step.evidence[position]?.choices?.find(
+    (choice) => choice.value === value
+  );
+  if (!declared) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That is not one of the things this step offers",
+    });
+  }
+  return declared;
+};
+
 /**
  * What the person chose, as the Version declares it — the value, and the Bangla they were
  * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
@@ -174,19 +204,11 @@ const choiceIn = (
   nothingChosen: string
 ): Choice => {
   const index = step.evidence.findIndex((item) => item.type === "choice");
-  const value = index === -1 ? undefined : evidence[index];
-  if (typeof value !== "string" || value === "") {
+  const chosen = index === -1 ? null : declaredChoiceAt(step, evidence, index);
+  if (!chosen) {
     throw new ORPCError("BAD_REQUEST", { message: nothingChosen });
   }
-  const declared = step.evidence[index]?.choices?.find(
-    (choice) => choice.value === value
-  );
-  if (!declared) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That is not one of the things this step offers",
-    });
-  }
-  return declared;
+  return chosen;
 };
 
 export interface EffectInput {
@@ -1192,6 +1214,112 @@ const applyDryOffEffect = async (
 };
 
 /**
+ * What was chosen at one position of the Evidence, as one of the fixed words the record reads back —
+ * or null when that slot was left empty.
+ */
+const choiceAt = <Value extends string>(
+  step: Step,
+  evidence: unknown[],
+  position: number,
+  allowed: readonly Value[]
+): Value | null => {
+  const value = declaredChoiceAt(step, evidence, position)?.value ?? null;
+  if (value !== null && !(allowed as readonly string[]).includes(value)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That is not one of the things this step offers",
+    });
+  }
+  return value as Value | null;
+};
+
+/** The calving a Step's Evidence describes, read by the positions the Step was validated by. */
+const calvingIn = (input: EffectInput) => {
+  const at = new Date(String(input.evidence[CALVING_EVIDENCE.calvedAt]));
+  if (Number.isNaN(at.getTime())) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calving says when she calved",
+    });
+  }
+  if (at.getTime() > input.now.getTime()) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calving cannot have happened later than now",
+      data: { refusal: "calved_in_the_future" },
+    });
+  }
+  const ease = choiceAt(
+    input.step,
+    input.evidence,
+    CALVING_EVIDENCE.ease,
+    CALVING_EASES
+  );
+  if (!ease) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calving says how it went",
+    });
+  }
+  const calves = [];
+  for (const slots of CALVING_EVIDENCE.calves) {
+    const sex = choiceAt(input.step, input.evidence, slots.sex, CALF_SEXES);
+    const outcome = choiceAt(
+      input.step,
+      input.evidence,
+      slots.outcome,
+      CALF_OUTCOMES
+    );
+    // A calf is its sex and whether it lived, both or neither: half a calf is not one to create.
+    if (Boolean(sex) !== Boolean(outcome)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Each calf needs its sex and whether it was born alive",
+      });
+    }
+    if (sex && outcome) {
+      calves.push({ sex, outcome });
+    }
+  }
+  if (calves.length === 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A calving has a calf; one without is an abortion",
+    });
+  }
+  return { at, ease, calves };
+};
+
+/**
+ * Records that she calved — Barn Staff's to record on the round, or the Manager's.
+ *
+ * The roles matrix gives Calving `C R U` to the Manager and `C` to Barn Staff as an SOP step, and only
+ * read to the Owner; the Owner may step into any shift, so the effect asks.
+ */
+const applyCalvingEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!CALVING_RECORDERS.some((role) => input.roles.includes(role))) {
+    throw forbidden({
+      message: "A calving is recorded by Barn Staff or the Manager",
+      reason: "staff_or_manager_only",
+    });
+  }
+  const damId = input.animalId ?? input.instance.animalId;
+  if (!damId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "A calving is recorded about one cow, and this entry is about none",
+    });
+  }
+  const recorded = await recordCalving(tx, {
+    farmId: input.instance.farmId,
+    damId,
+    completionId: input.completionId,
+    calved: input.skipped ? null : calvingIn(input),
+    recordedBy: input.recordedBy,
+    times: input.pregnancyTimes,
+    now: input.now,
+  });
+  return recorded ? { kind: "calving", ...recorded } : null;
+};
+
+/**
  * Runs the effect a Step declares, inside the Completion's own transaction: if the effect
  * fails, the Completion and its Audit Event fail with it. Every effect is keyed on the
  * Completion, so a phone that replays an entry — or a Manager who corrects one — replaces
@@ -1238,6 +1366,9 @@ export const runStepEffect = async (
   }
   if (effect.kind === "dry_off") {
     return await applyDryOffEffect(tx, input);
+  }
+  if (effect.kind === "calving") {
+    return await applyCalvingEffect(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

@@ -21,12 +21,20 @@ export {
   stateAfterSideChange,
 } from "./lifecycle";
 export type {
+  CalfOutcome,
+  CalfSex,
+  CalvingEase,
   CalvingLead,
   PregnancyCheckResult,
   ServiceMethod,
 } from "./breeding";
 export {
+  CALF_OUTCOMES,
+  CALF_SEXES,
+  CALVING_EASES,
   CALVING_LEADS,
+  CALVING_RECORDERS,
+  MAY_CALVE_FROM,
   HEAT,
   PREGNANCY_CHECK_RESULTS,
   SAME_HEAT_WITHIN_HOURS,
@@ -196,6 +204,7 @@ export {
   FARM_EVENTS,
   MAX_TRIGGER_OFFSET_DAYS,
   PHOTO_MAX_BYTES,
+  CALVING_EVIDENCE,
   SERVICE_EVIDENCE,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,

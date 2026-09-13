@@ -197,6 +197,25 @@ export const failedAttempts = (
 const DAY_MS = 24 * HOUR_MS;
 
 /**
+ * How a calving went, what each calf was, and whether it was born alive. Fixed words, like a Heat's:
+ * the Step's labels are the farm's to write, but the calving history is read back seasons later.
+ */
+export const CALVING_EASES = ["unassisted", "assisted", "vet"] as const;
+export type CalvingEase = (typeof CALVING_EASES)[number];
+export const CALF_SEXES = ["female", "male"] as const;
+export type CalfSex = (typeof CALF_SEXES)[number];
+export const CALF_OUTCOMES = ["alive", "stillborn"] as const;
+export type CalfOutcome = (typeof CALF_OUTCOMES)[number];
+
+/** Who records a Calving (roles matrix: Breeding — Calving is `C R U` to the Manager and `C` to Barn
+ *  Staff as an SOP step). */
+export const CALVING_RECORDERS = ["staff", "manager"] as const;
+
+/** The States a cow who calves may be in: carrying her first, dried off for this one, or — a dry-off
+ *  that never happened — still in milk. */
+export const MAY_CALVE_FROM = ["pregnant_heifer", "dry", "milking"] as const;
+
+/**
  * The work Expected Calving pulls towards it, each named for the Farm Parameter that says how long
  * before her Expected Calving: drying her off, and walking her to the calving pen. The days are the farm's,
  * set once for every cow, so a procedure names which lead it keeps rather than a number of its own.

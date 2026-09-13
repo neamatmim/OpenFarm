@@ -1,4 +1,5 @@
 import type {
+  CalvingEase,
   Disposal,
   MortalityKind,
   PregnancyCheckResult,
@@ -132,6 +133,18 @@ const AnimalPage = () => {
               {t("animals.officialTag")}: {detail.officialTag}
             </p>
           ) : null}
+          {detail.dam ? (
+            <p className="text-muted-foreground text-sm">
+              {t("calving.dam")}:{" "}
+              <Link
+                className="underline"
+                params={{ tagNumber: detail.dam.tagNumber }}
+                to="/animals/$tagNumber"
+              >
+                {detail.dam.tagNumber}
+              </Link>
+            </p>
+          ) : null}
         </div>
       </header>
 
@@ -143,6 +156,7 @@ const AnimalPage = () => {
         expectedCalvingAt={detail.expectedCalvingAt}
         failedAttempts={detail.failedAttempts}
       />
+      <HerCalvings calvings={detail.calvings} />
 
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
@@ -649,6 +663,66 @@ const HerPregnancyChecks = ({
                 when: formatDate(check.firstServedAt, language, "dateTime"),
               })}
             </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
+/**
+ * Every time she has calved, newest first, and what was born: each calf by its own number, a stillborn
+ * one included, so a cow's page says what she has produced.
+ */
+const HerCalvings = ({
+  calvings,
+}: {
+  calvings: {
+    id: string;
+    calvedAt: Date;
+    ease: CalvingEase;
+    lactationNumber: number;
+    calves: {
+      tagNumber: string;
+      sex: "female" | "male";
+      calfOutcome: "alive" | "stillborn" | null;
+    }[];
+  }[];
+}) => {
+  const { t, language } = useLanguage();
+  if (calvings.length === 0) {
+    return null;
+  }
+  return (
+    <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <h2 className="font-medium">{t("calving.title")}</h2>
+      <ul className="space-y-2">
+        {calvings.map((one) => (
+          <li className="space-y-0.5" key={one.id}>
+            <p>
+              {formatDate(one.calvedAt, language, "dateTime")} ·{" "}
+              {t(`calving.ease.${one.ease}`)} ·{" "}
+              {t("calving.lactation", { number: one.lactationNumber })}
+            </p>
+            <ul className="flex flex-wrap gap-3">
+              {one.calves.map((calf) => (
+                <li key={calf.tagNumber}>
+                  <Link
+                    className="underline"
+                    params={{ tagNumber: calf.tagNumber }}
+                    to="/animals/$tagNumber"
+                  >
+                    {calf.tagNumber}
+                  </Link>{" "}
+                  <span className="text-muted-foreground">
+                    {t(`animals.sex.${calf.sex}`)}
+                    {calf.calfOutcome === "stillborn"
+                      ? ` · ${t("calving.stillborn")}`
+                      : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </li>
         ))}
       </ul>

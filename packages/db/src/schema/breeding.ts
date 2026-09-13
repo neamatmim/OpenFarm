@@ -1,5 +1,6 @@
 import {
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -16,6 +17,7 @@ import { observation } from "./observation";
  *  nothing, and the domain keeps the rules that read it. */
 export const SERVICE_METHODS = ["ai", "natural"] as const;
 export const PREGNANCY_CHECK_RESULTS = ["positive", "negative"] as const;
+export const CALVING_EASES = ["unassisted", "assisted", "vet"] as const;
 
 /**
  * A cow served: how, by which sire, by whom, and in answer to which Heat.
@@ -95,5 +97,40 @@ export const pregnancyCheck = pgTable(
   (table) => [
     uniqueIndex("pregnancy_check_completion_uidx").on(table.completionId),
     index("pregnancy_check_animal_idx").on(table.animalId, table.checkedAt),
+  ]
+);
+
+/**
+ * She calved: when, how it went, and the service it came from.
+ *
+ * The calves are animals of their own, each pointing back at this row, so twins are one Calving with
+ * two calves and a stillborn calf is on the record like any other. The Lactation it began is kept on
+ * it, because her Lactation number moves on with the next calving and this one's must still read back.
+ * Keyed on the Step Completion that recorded it, so a replay or a Correction replaces rather than adds.
+ */
+export const calving = pgTable(
+  "calving",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    damId: text("dam_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    completionId: text("completion_id")
+      .notNull()
+      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+    calvedAt: timestamp("calved_at").notNull(),
+    ease: text("ease", { enum: CALVING_EASES }).notNull(),
+    /** The first service of the attempt she calved from, when this farm served her. */
+    serviceId: text("service_id").references(() => service.id),
+    lactationNumber: integer("lactation_number").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("calving_completion_uidx").on(table.completionId),
+    index("calving_dam_idx").on(table.damId, table.calvedAt),
   ]
 );
