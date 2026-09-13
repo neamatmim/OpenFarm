@@ -22,6 +22,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import { WhatSheCost } from "@/components/costs";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { TwoProjections } from "@/components/gain";
@@ -160,6 +161,8 @@ const AnimalPage = () => {
       <HowSheArrived intake={detail.intake} />
 
       <HowSheLeft sale={detail.sale} />
+
+      <WhatSheCost tagNumber={detail.tagNumber} />
 
       {/* Barn Staff give the doses and record what they see; what the farm tells the outside
           world about an animal is not theirs to hand over, so they are not offered it. */}

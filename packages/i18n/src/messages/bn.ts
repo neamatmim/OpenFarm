@@ -449,6 +449,24 @@ export const bn: Record<MessageKey, string> = {
   "byHand.corrected": "সংশোধন হয়েছে",
   "refusal.categoryKeptForWages":
     "মজুরির খাত রাখা হয়: প্রতি মাসে একজনের একটি মজুরি এর অধীনে",
+  "costs.title": "এর খরচ",
+  "costs.feed": "খাদ্য",
+  "costs.unpriced": "নিজের জমির ঘাস, দাম ছাড়া",
+  "costs.kg": "{kg} কেজি",
+  "costs.medicine": "ওষুধ",
+  "costs.uncosted": "না-কেনা ওষুধের ডোজ, খরচ ধরা হয়নি",
+  "costs.bought": "কেনা দাম",
+  "costs.sold": "বিক্রি দাম",
+  "costs.margin": "লাভ",
+  "costs.notSold": "এখনো বিক্রি হয়নি",
+  "costs.litres": "ট্যাংকে দুধ (লিটার)",
+  "costs.perLitre": "লিটার প্রতি খাদ্য ও ওষুধ",
+  "costs.bySide": "দিক অনুযায়ী খরচ",
+  "costs.unpricedNote":
+    "{amount} কেজি নিজের জমির ঘাস দাম ছাড়া খাওয়ানো হয়েছে, এখানে এর খরচ নেই",
+  "costs.uncostedNote": "{amount}টি ডোজ খামারে না-কেনা ওষুধের, খরচ ধরা হয়নি",
+  "costs.unallocatedNote":
+    "৳{amount} খাদ্য এমন পেনে গেছে যেখানে কোনো পশু লেখা নেই, কারো খরচে ধরা হয়নি",
   "refusal.periodBackwards": "শেষের তারিখ শুরুর তারিখের আগে হতে পারে না",
   "refusal.farmIdentityIncomplete":
     "খামারের নিবন্ধন নম্বর লেখা নেই; আগে খামারের তথ্যে লিখুন",

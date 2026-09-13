@@ -172,7 +172,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Feeding Target**: What one session of feeding calls for in one Pen — the Ration in force, times the animals standing there, divided by how often they are fed. Worked out, never typed. Not a **Target Window**, which is Fattening's date range. _Avoid_: Quota, allowance, plan
 
-**Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, plus any leftover note. Consumes Stock. _Avoid_: Feed log, feed entry
+**Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, plus any leftover note. Consumes Stock. Its cost — each Feed Item's price at the time, times what was given — is charged evenly to the Animals standing in the Pen when it was fed; fodder at no price costs nothing. _Avoid_: Feed log, feed entry
 
 **Feed Purchase**: Feed bought and brought into the store: the Feed Item, how much, what the lot cost, and the Counterparty who sold it — the **seller**, as on an Intake. What a Feed Item's price is worked out from. Not the finance side of buying anything else, which is a Money Event. _Avoid_: Order, delivery, procurement, supplier
 
@@ -201,6 +201,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Counterparty**: A person or business the Farm buys from, sells to, or pays: name, address, phone. Recorded once per name and shared across Sale, Dispatch, Intake, Purchase and Money Events — the trader who sells the Farm a bull is often the man who buys one back at Eid. Called the **seller** on an Intake and the **buyer** on a Sale, which is the side he stands on rather than a second kind of record. _Avoid_: Customer, vendor, contact, party
 
 **Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. Every farm starts with the standard ones; the farm adds its own, and retires one rather than removing it. A Category a record books under — milk sales from a Dispatch, say — is not retired, nor entered by hand, which would be the same money twice; the one exception is a vet's fee, which a visiting vet with no login is paid all the same. Wages are not retired either: the one-wage-a-month rule is kept by them. _Avoid_: Account, head, GL code
+
+**Margin**: What a fattening Animal made: her Sale price less her purchase price, the feed charged to her and her doses. Worked out, never stored, and only once she is sold. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Profit, return
+
+**Cost per Litre**: What a litre of a dairy cow's milk cost the farm: the feed charged to her and her doses, over the litres she sent to Bulk. Worked out, never stored. _Avoid_: Production cost, unit cost
 
 **Approval Threshold**: The BDT amount above which a Money Event the Owner did not enter waits, unapproved, for the Owner's approval. Only the money waits: the record that made it — the milk gone, the bull bought — is never held back. An approval is of what the Owner read — the amount, who it went to or came from, and its Category — so a Correction that changes any of those asks again. _Avoid_: Limit, sign-off amount
 

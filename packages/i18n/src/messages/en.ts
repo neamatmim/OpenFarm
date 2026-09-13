@@ -456,6 +456,25 @@ export const en = {
   "byHand.corrected": "Corrected",
   "refusal.categoryKeptForWages":
     "Wages are kept: a wage is one per person per month under them",
+  "costs.title": "What she has cost",
+  "costs.feed": "Feed",
+  "costs.unpriced": "Home-grown fodder, at no price",
+  "costs.kg": "{kg} kg",
+  "costs.medicine": "Medicine",
+  "costs.uncosted": "Doses of medicine never bought, not costed",
+  "costs.bought": "Bought for",
+  "costs.sold": "Sold for",
+  "costs.margin": "Margin",
+  "costs.notSold": "not sold yet",
+  "costs.litres": "Litres to the tank",
+  "costs.perLitre": "Feed and medicine per litre",
+  "costs.bySide": "Costs by Side",
+  "costs.unpricedNote":
+    "{amount} kg of home-grown fodder was fed at no price, and costs nothing here",
+  "costs.uncostedNote":
+    "{amount} doses were of medicine the farm had not bought, and are not costed",
+  "costs.unallocatedNote":
+    "৳{amount} of feed went to Pens with no animals recorded in them, and is charged to nobody",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":
     "The farm's registration number is not recorded; write it in the farm details first",
