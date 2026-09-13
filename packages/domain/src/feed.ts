@@ -105,3 +105,86 @@ export const shortfallPercent = (lines: FeedingLine[]): number => {
 /** Was this session short enough to be worth saying out loud? */
 export const isShortFed = (lines: FeedingLine[], tolerancePercent: number) =>
   shortfallPercent(lines) > tolerancePercent;
+
+/** A maund — the mon a Bangladeshi feed trader weighs in — in kilograms. Shown beside kg on a feed
+ *  purchase only, because that is the one place the farm is handed a number in maunds. */
+export const MAUND_KG = 37.324;
+
+/** Kilograms as maunds, to the kilo's own precision: what the trader's slip will say. */
+export const maundsOf = (kg: number): number => roundKg(kg / MAUND_KG);
+
+const PAISA_IN_A_TAKA = 100;
+const roundTaka = (value: number): number =>
+  Math.round(value * PAISA_IN_A_TAKA) / PAISA_IN_A_TAKA;
+
+/** Something that moved feed in or out of the store, as the store's price is worked out from it. */
+export type StockMovement =
+  | {
+      kind: "in";
+      at: Date;
+      quantity: number;
+      /** What the lot cost; null for a Harvest from the farm's own fields. */
+      priceBdt: number | null;
+    }
+  | { kind: "out"; at: Date; quantity: number };
+
+/** Where a movement sorts among others at the same instant: what came in before what went out. */
+const inBeforeOut = (movement: StockMovement): number =>
+  movement.kind === "in" ? 0 : 1;
+
+/**
+ * What is in the store, and what a unit of it cost: a moving weighted average, recomputed on each
+ * Purchase over what is already there (the feed decision, 2026-09-10: no FIFO).
+ *
+ * Replayed in the order things happened. A Purchase adds its quantity and what it cost; a Harvest adds
+ * its quantity at no cost, so fodder from the farm's own fields contributes nothing to what the feed
+ * it is mixed with is charged at; a Feeding takes quantity out at the price of the moment and leaves the
+ * price where it was. What the pens are charged for, over time, is what the farm paid.
+ *
+ * `asOf` reads the store as it stood then — what a Feeding that day was charged at. The price is null
+ * for feed never bought; with the store empty or below nothing it is the last price it had, because a
+ * price of nothing would say the next Feeding cost nothing.
+ */
+export const stockLedger = (
+  movements: readonly StockMovement[],
+  asOf?: Date
+): { onHand: number; averagePriceBdt: number | null } => {
+  const inOrder = movements
+    .filter((one) => !asOf || one.at <= asOf)
+    .toSorted(
+      (a, b) =>
+        a.at.getTime() - b.at.getTime() ||
+        // Feed that came in on a day is in the store before that day's Feedings take from it.
+        inBeforeOut(a) - inBeforeOut(b)
+    );
+  let onHand = 0;
+  let value = 0;
+  let price: number | null = null;
+  for (const one of inOrder) {
+    if (one.kind === "out") {
+      const unitPrice = price ?? 0;
+      onHand -= one.quantity;
+      value = onHand > 0 ? Math.max(0, value - unitPrice * one.quantity) : 0;
+      continue;
+    }
+    const cost = one.priceBdt ?? 0;
+    // A store at or below nothing starts again from what came in: there is nothing left to average the
+    // new lot with, and what the pens already ate of it before it was written down was charged when
+    // they ate it — so only the part still standing carries its share of the cost.
+    if (onHand <= 0) {
+      const standing = Math.max(0, one.quantity + onHand);
+      onHand += one.quantity;
+      value = one.quantity > 0 ? (cost * standing) / one.quantity : 0;
+    } else {
+      onHand += one.quantity;
+      value += cost;
+    }
+    if (one.priceBdt !== null || price !== null) {
+      price = onHand > 0 ? value / onHand : price;
+    }
+  }
+  return {
+    onHand: roundKg(onHand),
+    averagePriceBdt: price === null ? null : roundTaka(price),
+  };
+};
