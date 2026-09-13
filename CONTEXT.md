@@ -186,7 +186,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Money
 
-**Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. A Dispatch, an Intake, a Sale, a Feed Purchase, a Medicine Purchase and a Vet Fee each make one on their own, and a Correction to the record puts the same one right. _Avoid_: Transaction, journal entry, payment (one kind)
+**Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. A Dispatch, an Intake, a Sale, a Feed Purchase, a Medicine Purchase and a Vet Fee each make one on their own, and a Correction to the record puts the same one right. Everything else — wages, electricity, repairs, manure sold — the Manager enters by hand, with a note and a photo of the receipt; a wage names the person and the month it pays for, once per person per month. _Avoid_: Transaction, journal entry, payment (one kind)
 
 **Medicine Purchase**: Medicine bought for a product on the Drug List: how much, as the box or the shop says it; roughly how many doses that holds; what it cost; and who sold it. What a dose given is costed from. _Avoid_: Drug order, pharmacy bill
 
@@ -200,7 +200,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Counterparty**: A person or business the Farm buys from, sells to, or pays: name, address, phone. Recorded once per name and shared across Sale, Dispatch, Intake, Purchase and Money Events — the trader who sells the Farm a bull is often the man who buys one back at Eid. Called the **seller** on an Intake and the **buyer** on a Sale, which is the side he stands on rather than a second kind of record. _Avoid_: Customer, vendor, contact, party
 
-**Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. _Avoid_: Account, head, GL code
+**Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. Every farm starts with the standard ones; the farm adds its own, and retires one rather than removing it. A Category a record books under — milk sales from a Dispatch, say — is not entered by hand nor retired: that would be the same money twice, or money with nowhere to go. _Avoid_: Account, head, GL code
 
 **Approval Threshold**: The BDT amount above which a Money Event the Owner did not enter waits, unapproved, for the Owner's approval. Only the money waits: the record that made it — the milk gone, the bull bought — is never held back. An approval is of an amount, so a Correction that changes the amount asks again. _Avoid_: Limit, sign-off amount
 

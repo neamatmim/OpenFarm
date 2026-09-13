@@ -33,8 +33,30 @@ export const MONEY_SOURCES = [
   "feed_in",
   "medicine_purchase",
   "vet_fee",
+  /** Entered by hand: wages, and everything no other record catches. The entry is the Money Event. */
+  "entry",
 ] as const;
 export type MoneySource = (typeof MONEY_SOURCES)[number];
+
+/**
+ * The standard Categories every farm starts with: one for each record that makes money, and the ones a
+ * dairy farm's month is otherwise made of. Keyed, so the records and the wage rule can find them; the
+ * farm's own Categories carry no key.
+ */
+export const CATEGORY_KEYS = [
+  "dispatch",
+  "intake",
+  "sale",
+  "feed_in",
+  "medicine_purchase",
+  "vet_fee",
+  "wages",
+  "utilities",
+  "repairs",
+  "transport",
+  "manure_sales",
+] as const;
+export type CategoryKey = (typeof CATEGORY_KEYS)[number];
 
 /**
  * Where a Money Event stands with the Owner. Under the Approval Threshold it needs nobody; over it, it
@@ -55,11 +77,13 @@ export const moneyCategory = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    /** The record that uses this Category, for the ones the records make; null for the farm's own. */
-    key: text("key", { enum: MONEY_SOURCES }),
+    /** Which standard Category this is; null for one the farm added. */
+    key: text("key", { enum: CATEGORY_KEYS }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
+    /** Retired, never removed: a Money Event entered under it last year still names it. */
+    retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
@@ -93,6 +117,10 @@ export const moneyEvent = pgTable(
     /** The record that made it, and that record's id. */
     source: text("source", { enum: MONEY_SOURCES }).notNull(),
     sourceId: text("source_id").notNull(),
+    /** What the Manager wrote about an entry made by hand. */
+    note: text("note"),
+    /** The month a wage pays for, "YYYY-MM". A wage is one entry per person per month. */
+    wageMonth: text("wage_month"),
     approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at"),
@@ -104,8 +132,28 @@ export const moneyEvent = pgTable(
     uniqueIndex("money_event_source_uidx").on(table.source, table.sourceId),
     index("money_event_day_idx").on(table.farmId, table.occurredAt),
     index("money_event_approval_idx").on(table.farmId, table.approval),
+    // One wage per person per month. Entries that are not wages carry no month, and do not collide.
+    uniqueIndex("money_event_wage_uidx").on(
+      table.farmId,
+      table.counterpartyId,
+      table.wageMonth
+    ),
   ]
 );
+
+/** The photo of a Money Event's receipt, when somebody took one. One per Money Event. */
+export const moneyReceipt = pgTable("money_receipt", {
+  moneyEventId: text("money_event_id")
+    .primaryKey()
+    .references(() => moneyEvent.id, { onDelete: "cascade" }),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
 
 /**
  * Medicine bought for the Drug List: which product, how much of it in the words on the box, what it

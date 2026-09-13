@@ -89,6 +89,10 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.counterparty.id,
     }),
     approver: r.one.user({ from: r.moneyEvent.approvedBy, to: r.user.id }),
+    receipt: r.one.moneyReceipt({
+      from: r.moneyEvent.id,
+      to: r.moneyReceipt.moneyEventId,
+    }),
   },
   medicinePurchase: {
     product: r.one.drugProduct({
