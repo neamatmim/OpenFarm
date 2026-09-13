@@ -342,6 +342,8 @@ describe("the health registers", () => {
 
   it("prints the treatment register and gives it as a CSV in the DLS template's order, each an Export", async () => {
     const manager = await as("manager", "2044-04-10T04:00:00.000Z");
+    // A paper is in its producer's language, and other files choose the Manager's: this one says Bangla.
+    await manager.client.language.set({ language: "bn" });
     const paper = await manager.client.inspector.print({
       report: "treatment_register",
       ...MARCH,
@@ -447,6 +449,8 @@ describe("the health registers", () => {
       },
     ]);
 
+    // Other files choose the Owner's language too.
+    await owner.client.language.set({ language: "bn" });
     const paper = await owner.client.inspector.print({
       report: "disease_history",
     });
