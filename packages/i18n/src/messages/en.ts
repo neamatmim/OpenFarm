@@ -64,6 +64,7 @@ export const en = {
   "setup.farmName": "Farm name",
   "setup.create": "Create the farm",
   "setup.done": "The farm is ready",
+  "setup.goOn": "Go to the farm",
   "common.error": "Something went wrong",
   "nav.audit": "Audit log",
   "audit.title": "Audit log",
