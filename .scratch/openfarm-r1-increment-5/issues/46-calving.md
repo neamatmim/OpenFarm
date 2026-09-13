@@ -111,6 +111,7 @@ The rest:
 
 ## Questions for the Owner
 
+- **Answered 2026-09-13:** a stillbirth goes on the mortality register, with the disposal added later by the Manager (ticket 59).
 - **Does a stillbirth go on the mortality register, and who records how it was disposed of?** The
   register needs a cause and a disposal method, which nobody knows at the moment of calving. For now
   the stillborn calf is Died with no mortality record; her calving says she was stillborn.
