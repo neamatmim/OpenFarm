@@ -9,8 +9,7 @@ import {
   transportCard,
   withdrawalSummary,
 } from "@OpenFarm/domain";
-import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber, resolveLanguage } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -25,16 +24,8 @@ import {
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { languageOf } from "../reader-language";
 import { requireRole } from "../roles";
-
-/** The language of whoever is making the paper, Bangla when they have never said. */
-const languageOf = async (db: Database, userId: string): Promise<Language> => {
-  const row = await db.query.user.findFirst({
-    where: { id: userId },
-    columns: { language: true },
-  });
-  return resolveLanguage(row);
-};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

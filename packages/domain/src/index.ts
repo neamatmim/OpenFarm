@@ -62,6 +62,7 @@ export { farmOfOriginLines, identityView } from "./farm";
 export {
   FARM_UTC_OFFSET_MINUTES,
   farmDayOf,
+  farmDaysBetween,
   farmTimeOf,
   startOfFarmDay,
 } from "./farm-clock";

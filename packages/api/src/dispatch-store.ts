@@ -1,32 +1,36 @@
 import type { Database } from "@OpenFarm/db";
-import { roundLitres, startOfFarmDay } from "@OpenFarm/domain";
+import { roundLitres } from "@OpenFarm/domain";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** One Dispatch as the day, the record and the reports read it. */
+export interface DispatchRow {
+  id: string;
+  dispatchedAt: Date;
+  litres: number;
+  buyerName: string;
+  buyerAddress: string | null;
+  challan: string | null;
+  pricePerLitreBdt: number;
+  fatPercent: number | null;
+  snfPercent: number | null;
+  note: string | null;
+}
 
-/** The farm days from `from` to `to`, both included, as the instants that bound them. */
-export const farmDaysBetween = (from: string, to: string) => ({
-  from: startOfFarmDay(from),
-  until: new Date(startOfFarmDay(to).getTime() + DAY_MS),
-});
-
-/** Every Dispatch in a stretch of farm days, oldest first, with the buyer it went to. */
+/** Every Dispatch in a stretch of time, oldest first, with the buyer as the farm had them that day. */
 export const dispatchesBetween = async (
   db: Pick<Database, "query">,
   farmId: string,
   { from, until }: { from: Date; until: Date }
-) => {
+): Promise<DispatchRow[]> => {
   const rows = await db.query.dispatch.findMany({
     where: { farmId, dispatchedAt: { gte: from, lt: until } },
-    with: { buyer: { columns: { name: true, address: true, phone: true } } },
     orderBy: { dispatchedAt: "asc", id: "asc" },
   });
-  return rows.map(({ buyer, ...row }) => ({
+  return rows.map((row) => ({
     id: row.id,
     dispatchedAt: row.dispatchedAt,
     litres: Number(row.litres),
-    buyerName: buyer.name,
-    buyerAddress: buyer.address,
-    buyerPhone: buyer.phone,
+    buyerName: row.buyerName,
+    buyerAddress: row.buyerAddress,
     challan: row.challan,
     pricePerLitreBdt: Number(row.pricePerLitreBdt),
     fatPercent: row.fatPercent === null ? null : Number(row.fatPercent),
@@ -35,7 +39,17 @@ export const dispatchesBetween = async (
   }));
 };
 
-/** The litres the farm's Milk Records sent to Bulk in a stretch of time, by the Session they belong to. */
+/** Everything these Dispatches handed over, in litres. */
+export const litresDispatched = (dispatches: readonly DispatchRow[]): number =>
+  roundLitres(dispatches.reduce((sum, one) => sum + one.litres, 0));
+
+/**
+ * The litres the farm's Milk Records sent to Bulk in the Milking Sessions due in a stretch of time.
+ *
+ * By the Session, where a Dispatch goes by when the milk left: an evening's milk collected the next
+ * morning is in the tank one day and out of the gate the next, and a day that shows both figures says
+ * so rather than pretending they are the same milk.
+ */
 export const litresToBulkBetween = async (
   db: Pick<Database, "query">,
   farmId: string,

@@ -1,7 +1,12 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { dispatch } from "@OpenFarm/db/schema/milk";
-import { lactationView, mayCorrect, roundLitres } from "@OpenFarm/domain";
+import {
+  farmDaysBetween,
+  lactationView,
+  mayCorrect,
+  roundLitres,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -11,7 +16,7 @@ import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { counterpartyNamed } from "../counterparty-store";
 import {
   dispatchesBetween,
-  farmDaysBetween,
+  litresDispatched,
   litresToBulkBetween,
 } from "../dispatch-store";
 import { farmDay } from "../farm-clock";
@@ -52,11 +57,11 @@ const buyerInput = z.object({
 const dispatchFields = {
   dispatchedAt: z.coerce.date(),
   litres: z.number().positive().max(100_000),
-  challan: z.string().trim().min(1).max(60).optional(),
+  challan: z.string().trim().min(1).max(60),
   pricePerLitreBdt: z.number().positive().max(10_000),
-  fatPercent: z.number().min(0).max(20).optional(),
-  snfPercent: z.number().min(0).max(20).optional(),
-  note: z.string().trim().max(300).optional(),
+  fatPercent: z.number().min(0).max(20),
+  snfPercent: z.number().min(0).max(20),
+  note: z.string().trim().min(1).max(300),
 };
 
 /** The Dispatch as the trail records it either side of a change. */
@@ -74,8 +79,56 @@ const assertNotLater = (dispatchedAt: Date, now: Date) => {
 };
 
 /** A figure as the record keeps it: two decimals, as text. */
-const twoPlaces = (value: number | undefined) =>
-  value === undefined ? null : value.toFixed(2);
+const twoPlaces = (value: number | null | undefined) =>
+  value === undefined || value === null ? null : value.toFixed(2);
+
+/** The buyer as the Dispatch keeps them: the Counterparty, and their name and address as the farm has
+ *  them on the day the milk left. */
+const buyerOnTheDay = async (
+  tx: Tx,
+  farmId: string,
+  said: z.infer<typeof buyerInput>,
+  now: Date
+) => {
+  const buyerId = await counterpartyNamed(tx, farmId, said, now);
+  const buyer = await tx.query.counterparty.findFirst({
+    where: { id: buyerId },
+    columns: { name: true, address: true },
+  });
+  return {
+    buyerId,
+    buyerName: buyer?.name ?? said.name,
+    buyerAddress: buyer?.address ?? null,
+  };
+};
+
+/** Only the fields a Correction names: a field left out stays as it was, a field sent as nothing is
+ *  cleared. */
+const correctedFields = (input: {
+  dispatchedAt?: Date;
+  litres?: number;
+  challan?: string | null;
+  pricePerLitreBdt?: number;
+  fatPercent?: number | null;
+  snfPercent?: number | null;
+  note?: string | null;
+}) => ({
+  ...(input.dispatchedAt === undefined
+    ? {}
+    : { dispatchedAt: input.dispatchedAt }),
+  ...(input.litres === undefined ? {} : { litres: input.litres.toFixed(2) }),
+  ...(input.challan === undefined ? {} : { challan: input.challan }),
+  ...(input.pricePerLitreBdt === undefined
+    ? {}
+    : { pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2) }),
+  ...(input.fatPercent === undefined
+    ? {}
+    : { fatPercent: twoPlaces(input.fatPercent) }),
+  ...(input.snfPercent === undefined
+    ? {}
+    : { snfPercent: twoPlaces(input.snfPercent) }),
+  ...(input.note === undefined ? {} : { note: input.note }),
+});
 
 export const milkRouter = {
   /**
@@ -87,7 +140,16 @@ export const milkRouter = {
    */
   dispatch: protectedProcedure
     .use(requireRole("manager"))
-    .input(z.object({ ...dispatchFields, buyer: buyerInput }))
+    .input(
+      z.object({
+        ...dispatchFields,
+        challan: dispatchFields.challan.optional(),
+        fatPercent: dispatchFields.fatPercent.optional(),
+        snfPercent: dispatchFields.snfPercent.optional(),
+        note: dispatchFields.note.optional(),
+        buyer: buyerInput,
+      })
+    )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const recordedByRole = context.roleUsed;
@@ -109,12 +171,7 @@ export const milkRouter = {
             farmId: context.farm.id,
             dispatchedAt: input.dispatchedAt,
             litres: input.litres.toFixed(2),
-            buyerId: await counterpartyNamed(
-              tx,
-              context.farm.id,
-              input.buyer,
-              now
-            ),
+            ...(await buyerOnTheDay(tx, context.farm.id, input.buyer, now)),
             challan: input.challan ?? null,
             pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
@@ -132,20 +189,24 @@ export const milkRouter = {
   /**
    * Puts a Dispatch right: the litres, the time, the buyer, the challan, the price, the fat or SNF. A
    * Correction like any other — a reason, the Role's Correction Window, the trail holding what it said.
+   * A challan, a note, a fat or an SNF sent as nothing is cleared: a figure written against the wrong
+   * lorry is put right by taking it away.
+   *
+   * The Manager's, as recording is (roles matrix: Dispatch — Manager C R U, Owner R).
    */
   correctDispatch: protectedProcedure
-    .use(requireRole("owner", "manager"))
+    .use(requireRole("manager"))
     .input(
       z.object({
         id: z.string(),
         dispatchedAt: dispatchFields.dispatchedAt.optional(),
         litres: dispatchFields.litres.optional(),
         buyer: buyerInput.optional(),
-        challan: dispatchFields.challan,
+        challan: dispatchFields.challan.nullable().optional(),
         pricePerLitreBdt: dispatchFields.pricePerLitreBdt.optional(),
-        fatPercent: dispatchFields.fatPercent,
-        snfPercent: dispatchFields.snfPercent,
-        note: dispatchFields.note,
+        fatPercent: dispatchFields.fatPercent.nullable().optional(),
+        snfPercent: dispatchFields.snfPercent.nullable().optional(),
+        note: dispatchFields.note.nullable().optional(),
         reason: reasonInput,
       })
     )
@@ -171,7 +232,7 @@ export const milkRouter = {
           data: { refusal: refusalData(verdict.refusal) },
         });
       }
-      if (input.dispatchedAt) {
+      if (input.dispatchedAt !== undefined) {
         assertNotLater(input.dispatchedAt, now);
       }
       const audit = audited(context);
@@ -195,31 +256,10 @@ export const milkRouter = {
           await tx
             .update(dispatch)
             .set({
-              ...(input.dispatchedAt
-                ? { dispatchedAt: input.dispatchedAt }
-                : {}),
-              ...(input.litres ? { litres: input.litres.toFixed(2) } : {}),
-              ...(input.challan ? { challan: input.challan } : {}),
-              ...(input.pricePerLitreBdt
-                ? { pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2) }
-                : {}),
-              ...(input.fatPercent === undefined
+              ...correctedFields(input),
+              ...(input.buyer === undefined
                 ? {}
-                : { fatPercent: twoPlaces(input.fatPercent) }),
-              ...(input.snfPercent === undefined
-                ? {}
-                : { snfPercent: twoPlaces(input.snfPercent) }),
-              ...(input.note ? { note: input.note } : {}),
-              ...(input.buyer
-                ? {
-                    buyerId: await counterpartyNamed(
-                      tx,
-                      context.farm.id,
-                      input.buyer,
-                      now
-                    ),
-                  }
-                : {}),
+                : await buyerOnTheDay(tx, context.farm.id, input.buyer, now)),
             })
             .where(eq(dispatch.id, existing.id));
         }
@@ -231,6 +271,9 @@ export const milkRouter = {
    * One farm day of milk leaving: what the day's Milk Records sent to Bulk, what the Dispatches handed
    * over, and each Dispatch — side by side, so milk that went into the tank and milk that left the
    * farm are not two stories nobody lines up.
+   *
+   * The tank counts the Sessions due that day and the Dispatches count the milk that left that day, so
+   * last evening's milk collected this morning is in yesterday's tank and today's Dispatch.
    */
   day: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -244,9 +287,7 @@ export const milkRouter = {
       return {
         day: input.day,
         toBulkLitres,
-        dispatchedLitres: roundLitres(
-          dispatches.reduce((sum, one) => sum + one.litres, 0)
-        ),
+        dispatchedLitres: litresDispatched(dispatches),
         dispatches,
       };
     }),

@@ -1,5 +1,7 @@
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { animal, penAssignment } from "@OpenFarm/db/schema/herd";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -12,6 +14,7 @@ import { appRouter } from "./index";
 // it and from the Milk Records.
 
 const suffix = `${Date.now()}`;
+const REGISTRATION = "DLS/SAV/2026/০৪২";
 
 const milkingSop = (): SopContent => ({
   name: { bn: `দোহন ${suffix}`, en: "Milking" },
@@ -102,6 +105,13 @@ const setup = async () => {
     })
     .onConflictDoNothing();
   const sop = await owner.client.sops.create({ content: milkingSop() });
+  // The dispatch record is refused to a farm without its registration number, so make sure of it
+  // rather than trusting whichever file ran first to have written it down. As the Manager, and only
+  // when it is missing: the identity file reads the farm's trail for the Manager's write.
+  const manager = await createTestClient(appRouter, { as: "manager", clock });
+  if ((await manager.client.farm.identity()).registrationMissing) {
+    await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
+  }
 
   // The morning milking of 1 February: 12 litres to the tank, 8 poured away under the Withdrawal.
   const morning = new FakeClock("2036-02-01T00:30:00.000Z");
@@ -135,7 +145,7 @@ const setup = async () => {
     evidence: [12],
   });
   await staff.client.instances.complete({ id: work?.id ?? "" });
-  return { pen, sop };
+  return { pen, sop, held };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -145,10 +155,11 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  const { and, inArray } = await import("@OpenFarm/db/operators");
-  const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
-  const { sopInstance } = await import("@OpenFarm/db/schema/instance");
   const db = scratchDb();
+  await db
+    .update(animal)
+    .set({ milkWithdrawalUntil: null })
+    .where(eq(animal.tagNumber, world.held.tagNumber));
   await db
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
@@ -223,41 +234,180 @@ describe("the milk dispatch", () => {
       reason: "মাপার সময় ভুল পড়া হয়েছিল",
     });
     const day = await manager.client.milk.day({ day: "2036-02-01" });
-    expect(day.dispatches.find((one) => one.id === dispatchId)?.litres).toBe(
-      11.8
-    );
+    expect(day.dispatches.find((one) => one.id === dispatchId)).toMatchObject({
+      litres: 11.8,
+      challan: "CH-0412",
+      fatPercent: 4.1,
+    });
+
+    // The Owner reads Dispatches; putting one right is the Manager's.
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2036-02-01T05:00:00.000Z"),
+    });
+    await expect(
+      owner.client.milk.correctDispatch({
+        id: dispatchId,
+        litres: 12,
+        reason: "মালিকের হিসাব",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("produces the dispatch record with the buyer's name and address, and says it did", async () => {
+  it("clears a figure written against the wrong lorry, and keeps the buyer as they stood that day", async () => {
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2036-02-05T03:00:00.000Z"),
+    });
+    const wrong = await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2036-02-05T02:00:00.000Z"),
+      litres: 9,
+      buyer: { name: `ঘোষ ${suffix}`, address: "উল্লাপাড়া" },
+      challan: "CH-0999",
+      pricePerLitreBdt: 52,
+      snfPercent: 8.2,
+      note: "অন্য গাড়ির",
+    });
+    await manager.client.milk.correctDispatch({
+      id: wrong.id,
+      challan: null,
+      snfPercent: null,
+      note: null,
+      reason: "অন্য গাড়ির চালান লেখা হয়েছিল",
+    });
+    const day = await manager.client.milk.day({ day: "2036-02-05" });
+    expect(day.dispatches.find((one) => one.id === wrong.id)).toMatchObject({
+      litres: 9,
+      challan: null,
+      snfPercent: null,
+      note: null,
+      buyerName: `ঘোষ ${suffix}`,
+      buyerAddress: "উল্লাপাড়া",
+    });
+  });
+
+  it("produces the dispatch record with the buyer's name and address, and says it did each time", async () => {
     const owner = await createTestClient(appRouter, {
       as: "owner",
       clock: new FakeClock("2036-02-02T04:00:00.000Z"),
     });
-    const record = await owner.client.reports.milkDispatchRecord({
-      from: "2036-02-01",
-      to: "2036-02-01",
+    const period = { from: "2036-02-01", to: "2036-02-01" };
+    const paper = await owner.client.reports.milkDispatchRecord({
+      ...period,
+      format: "paper",
     });
-    expect(record.text).toContain(buyer.name);
-    expect(record.text).toContain(buyer.address);
-    expect(record.text).toContain("CH-0412");
-    const [header, ...rows] = record.csv.trim().split("\n");
+    expect(paper.text).toContain(buyer.name);
+    expect(paper.text).toContain(buyer.address);
+    expect(paper.text).toContain("CH-0412");
+    expect(paper.text).toContain(REGISTRATION);
+    expect(paper.csv).toBeUndefined();
+
+    const sheet = await owner.client.reports.milkDispatchRecord({
+      ...period,
+      format: "csv",
+    });
+    // A byte-order mark so a spreadsheet opens the Bangla as Bangla, and CRLF line ends.
+    expect(sheet.csv?.startsWith("\uFEFF")).toBe(true);
+    const [header, ...rows] = (sheet.csv ?? "").slice(1).split("\r\n");
     expect(header).toBe(
-      "date,litres,buyer,buyer_address,challan,fat_percent,snf_percent,note"
+      "date,time,litres,buyer,buyer_address,challan,fat_percent,snf_percent,note"
     );
     expect(rows.find((row) => row.includes("CH-0412"))).toBe(
-      `2036-02-01,11.8,${buyer.name},"${buyer.address}",CH-0412,4.1,8.4,`
+      `2036-02-01,08:30,11.80,${buyer.name},"${buyer.address}",CH-0412,4.10,8.40,`
     );
 
-    const [event] = await scratchDb().query.auditEvent.findMany({
+    // Each Export its own event on the trail, the format among what it says.
+    const events = await scratchDb().query.auditEvent.findMany({
       where: { entity: "report", action: "export" },
       orderBy: { receivedAt: "desc", id: "desc" },
-      limit: 1,
+      limit: 2,
     });
-    expect(event?.after).toMatchObject({
-      report: "milk_dispatch_record",
-      from: "2036-02-01",
-      to: "2036-02-01",
+    expect(events.map((event) => event.after)).toEqual([
+      expect.objectContaining({
+        report: "milk_dispatch_record",
+        format: "csv",
+        registrationNumber: REGISTRATION,
+        ...period,
+      }),
+      expect.objectContaining({
+        report: "milk_dispatch_record",
+        format: "paper",
+        ...period,
+      }),
+    ]);
+    expect(events[0]?.entityId).not.toBe(events[1]?.entityId);
+  });
+
+  it("refuses a dispatch record to a farm without its registration number, and a period that runs backwards", async () => {
+    // As the Manager, as the transport card's refusal does: another file reads the farm's trail for the
+    // Manager's write of this number.
+    const writer = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2036-02-02T04:00:00.000Z"),
     });
+    await writer.client.farm.setIdentity({ registrationNumber: null });
+    try {
+      // A fresh client, because a Context carries the Farm as it stood when the request began.
+      const owner = await createTestClient(appRouter, {
+        as: "owner",
+        clock: new FakeClock("2036-02-02T04:00:00.000Z"),
+      });
+      await expect(
+        owner.client.reports.milkDispatchRecord({
+          from: "2036-02-01",
+          to: "2036-02-01",
+          format: "paper",
+        })
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        data: {
+          refusal: "farm_identity_incomplete",
+          missing: "registrationNumber",
+        },
+      });
+    } finally {
+      await writer.client.farm.setIdentity({
+        registrationNumber: REGISTRATION,
+      });
+    }
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2036-02-02T04:00:00.000Z"),
+    });
+    await expect(
+      manager.client.reports.milkProduction({
+        from: "2036-02-02",
+        to: "2036-02-01",
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "period_backwards" },
+    });
+  });
+
+  it("writes a buyer a spreadsheet would take for a formula as plain words", async () => {
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2036-02-06T04:00:00.000Z"),
+    });
+    await manager.client.milk.dispatch({
+      dispatchedAt: new Date("2036-02-06T02:00:00.000Z"),
+      litres: 7,
+      buyer: { name: `=HYPERLINK("x") ${suffix}` },
+      challan: "-2+3",
+      pricePerLitreBdt: 50,
+    });
+    const sheet = await manager.client.reports.milkDispatchRecord({
+      from: "2036-02-06",
+      to: "2036-02-06",
+      format: "csv",
+    });
+    const row = sheet.csv
+      ?.split("\r\n")
+      .find((line) => line.includes(suffix) && line.includes("HYPERLINK"));
+    expect(row).toBe(
+      `2036-02-06,08:00,7.00,"'=HYPERLINK(""x"") ${suffix}",,'-2+3,,,`
+    );
   });
 
   it("produces the production report by day, session, Pen and Destination, with the withheld milk shown", async () => {
@@ -269,14 +419,14 @@ describe("the milk dispatch", () => {
       from: "2036-02-01",
       to: "2036-02-01",
     });
-    const [header, ...rows] = report.csv.trim().split("\n");
+    const [header, ...rows] = report.csv.slice(1).trim().split("\r\n");
     expect(header).toBe(
       "date,session,shed,pen,destination,litres,under_withdrawal"
     );
     const mine = rows.filter((row) => row.includes(`দোহনের ঘর ${suffix}`));
     expect(mine.toSorted()).toEqual([
-      `2036-02-01,05:00,dp-${suffix},দোহনের ঘর ${suffix},bulk,12,no`,
-      `2036-02-01,05:00,dp-${suffix},দোহনের ঘর ${suffix},discard,8,yes`,
+      `2036-02-01,05:00,dp-${suffix},দোহনের ঘর ${suffix},bulk,12.00,no`,
+      `2036-02-01,05:00,dp-${suffix},দোহনের ঘর ${suffix},discard,8.00,yes`,
     ]);
   });
 
@@ -304,10 +454,23 @@ describe("the milk dispatch", () => {
         other.client.reports.milkDispatchRecord({
           from: "2036-02-01",
           to: "2036-02-01",
+          format: "csv",
         })
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
-    // Milk cannot leave before it is dispatched.
+    // Nor from a Shed Phone: an Export is office work.
+    const onShedPhone = await createTestClient(appRouter, {
+      as: "manager",
+      clock: at,
+      onShedPhone: true,
+    });
+    await expect(
+      onShedPhone.client.reports.milkProduction({
+        from: "2036-02-01",
+        to: "2036-02-01",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // Milk cannot leave later than now.
     const manager = await createTestClient(appRouter, {
       as: "manager",
       clock: at,
@@ -319,6 +482,17 @@ describe("the milk dispatch", () => {
       })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
+      data: { refusal: "dispatched_in_the_future" },
+    });
+    // Nor be put right to a later time either.
+    const later = await manager.client.milk.dispatch(dispatchIt);
+    await expect(
+      manager.client.milk.correctDispatch({
+        id: later.id,
+        dispatchedAt: new Date("2036-02-04T02:00:00.000Z"),
+        reason: "সময় ভুল",
+      })
+    ).rejects.toMatchObject({
       data: { refusal: "dispatched_in_the_future" },
     });
   });

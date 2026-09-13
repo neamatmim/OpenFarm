@@ -112,6 +112,10 @@ export const dispatch = pgTable(
     buyerId: text("buyer_id")
       .notNull()
       .references(() => counterparty.id),
+    /** The buyer's name and address as they stood when the milk left. The dispatch record reprints
+     *  what the farm could show that day, not wherever the buyer has moved to since. */
+    buyerName: text("buyer_name").notNull(),
+    buyerAddress: text("buyer_address"),
     /** The collector's slip number, when the buyer gives one. A buyer at the gate may not. */
     challan: text("challan"),
     pricePerLitreBdt: numeric("price_per_litre_bdt", {

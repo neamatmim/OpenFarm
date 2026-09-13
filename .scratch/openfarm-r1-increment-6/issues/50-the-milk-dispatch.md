@@ -58,10 +58,73 @@ The Dispatch entry in the glossary is widened.
 Mutation-checked, each red: withheld milk not shown; no quoting; the address left off the paper; no export
 event; a future dispatch accepted; a correction ignoring the litres.
 
+## What the review changed
+
+The Standards and Spec reviews ran in parallel. Changed:
+
+- **The form has a time field** (empty means now), plus the buyer's phone and a note. It used to stamp
+  every Dispatch with the moment Save was pressed.
+- **Correcting a Dispatch is the Manager's only.** The roles table gives the Owner read access, and
+  `correctDispatch` had let the Owner in.
+- **A Correction can clear a field.** A challan, note, fat or SNF sent as nothing is cleared; a field left
+  out stays as it was. Before, it was silently kept.
+- **A Correction to a later time is refused**, as recording one is.
+- **The buyer's name and address are kept on the Dispatch** as they stood that day. A reprinted record
+  says what the farm could have shown then, not the Counterparty's address today.
+- **The dispatch record is refused** to a farm without its Registration number
+  (`farm_identity_incomplete`, as the transport card is). A period that ends before it begins is refused
+  as `period_backwards`, where before it failed validation with no word for the screen.
+- **Both reports come only from a person's own phone**, not a Shed Phone.
+- **Each call is one Export.** The dispatch record takes a `format` (`paper` or `csv`), and each Export
+  is its own entity on the trail. One call used to build both formats and log one event, and the same
+  period exported twice shared an entity id.
+- **The CSVs are safer to open:**
+  - a byte-order mark, so Excel opens Bangla as Bangla;
+  - CRLF line ends;
+  - figures at two places;
+  - a field a spreadsheet would run as a formula (`=`, `+`, `-`, `@`) written as words;
+  - the dispatch record gains a `time` column.
+- **হস্তান্তর replaces সরবরাহ** on the paper and the buttons.
+- **Duplicated helpers are now shared:**
+  - the farm-day range, as `farmDaysBetween` in the farm clock;
+  - the reader's language, shared with the papers router;
+  - the dispatched total.
+  - The paper's period dates now come from the farm clock rather than a hard-coded `+06:00`.
+- **The paper shows a fat or SNF of 0**, which a truthiness check had hidden.
+- **The web page:** the report buttons wait while a report is being made, the CSV's download link is let go
+  a moment later rather than at once, and the new refusals are worded in both languages.
+- **The test file cleans up:** the held cow's Withdrawal is lifted afterwards, and the farm's Registration
+  number is set rather than assumed. It is set as the Manager and only when missing. The first version wrote
+  it as the Owner, and in two full runs of three the identity file, which looks in the farm's trail for the
+  Manager's write of that number, found the Owner's instead.
+
+**Eight tests now.** New:
+
+- a correction clearing the challan, SNF and note, with the buyer's address kept on the Dispatch;
+- the Owner refused a correction;
+- the paper and the CSV as two Exports, each with the Registration number;
+- the Registration refusal and a backwards period;
+- a formula-like buyer and challan written as words;
+- a Shed Phone refused;
+- a correction to a later time refused.
+
+Mutation-checked, each red:
+
+- a cleared challan kept;
+- the Owner allowed to correct;
+- the Shed Phone guard removed;
+- the Registration refusal removed;
+- a backwards period accepted;
+- no formula guard;
+- no byte-order mark;
+- one entity per period;
+- a correction to a later time accepted.
+
 ## Left open
 
 - **The page has no correction form.** The route exists; the screen records and reads.
-- **The dispatch record's paper is not stamped with the Registration number** where the farm has not
-  entered one; the Export event records it either way. The paper uses the farm-of-origin lines every other
-  paper uses.
+- **The buyer's address on a Dispatch is the Counterparty's**, which keeps the first address the farm
+  was given. One said differently at the gate later is not what the record shows.
+- **No test changes the Counterparty after a Dispatch.** Nothing yet edits a Counterparty's address, so
+  the snapshot is not yet proven against one that moved.
 - **R12 and R13 cover a year at most** per export.

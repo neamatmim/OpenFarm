@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "2a822221-aeb0-4376-a82c-7974bed7fb53",
+  "id": "22c05819-a3c9-4b05-939d-77f6f8c0ad9c",
   "prevIds": [
     "1e2afb16-cb91-4cf0-b0b9-aa2d817f120f"
   ],
@@ -7011,6 +7011,32 @@
       "generated": null,
       "identity": null,
       "name": "buyer_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "dispatch"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "buyer_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "dispatch"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "buyer_address",
       "entityType": "columns",
       "schema": "public",
       "table": "dispatch"

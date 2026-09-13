@@ -1,35 +1,43 @@
-import type { Database } from "@OpenFarm/db";
+import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import {
   farmDayOf,
+  farmDaysBetween,
   farmTimeOf,
   milkDispatchRecord,
   roundLitres,
+  startOfFarmDay,
 } from "@OpenFarm/domain";
-import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber, resolveLanguage } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
 import type { Context } from "../context";
 import { toCsv } from "../csv";
-import { dispatchesBetween, farmDaysBetween } from "../dispatch-store";
+import { dispatchesBetween, litresDispatched } from "../dispatch-store";
+import type { DispatchRow } from "../dispatch-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import { languageOf } from "../reader-language";
+import { requirePersonalSession, requireRole } from "../roles";
 
 /** The longest stretch one report covers. A year is what a processor or an inspector asks for. */
 const LONGEST_PERIOD_DAYS = 366;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const periodInput = z
-  .object({ from: farmDay, to: farmDay })
-  .refine((period) => period.from <= period.to, {
-    message: "A period ends after it begins",
-  });
+const periodInput = { from: farmDay, to: farmDay };
 
-/** The farm days a report covers, refused when the period is longer than one report carries. */
+type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
+
+/** The farm days a report covers, refused when the period runs backwards or is longer than one report
+ *  carries. */
 const periodOf = (period: { from: string; to: string }) => {
+  if (period.to < period.from) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A period ends after it begins",
+      data: { refusal: "period_backwards" },
+    });
+  }
   const range = farmDaysBetween(period.from, period.to);
   if (
     range.until.getTime() - range.from.getTime() >
@@ -43,21 +51,13 @@ const periodOf = (period: { from: string; to: string }) => {
   return range;
 };
 
-/** The language of whoever is producing the report, Bangla when they have never said. */
-const languageOf = async (db: Database, userId: string): Promise<Language> => {
-  const row = await db.query.user.findFirst({
-    where: { id: userId },
-    columns: { language: true },
-  });
-  return resolveLanguage(row);
-};
-
 /**
  * Every Export is an Audit Event, stamped with the report, the period and the Registration number
- * (CONTEXT: Export). Nothing changes, so the write is the event alone.
+ * (CONTEXT: Export). Nothing changes, so the write is the event alone; each Export is its own entity, so
+ * the same period handed over twice is two Exports on the trail, not one Export seen twice.
  */
 const recordExport = (
-  context: Context & { farm: NonNullable<Context["farm"]> },
+  context: FarmContext,
   report: "milk_dispatch_record" | "milk_production",
   period: { from: string; to: string },
   extra: Record<string, unknown>
@@ -65,7 +65,7 @@ const recordExport = (
   audited(context).write(
     {
       entity: "report",
-      entityId: `${report}:${period.from}:${period.to}`,
+      entityId: newId(context.clock.now()),
       action: "export",
       after: {
         report,
@@ -78,75 +78,102 @@ const recordExport = (
     () => Promise.resolve()
   );
 
+/** The dispatch record as a paper, in the language of whoever is producing it. */
+const dispatchPaper = async (
+  context: FarmContext & { actor: { id: string; name: string } },
+  period: { from: string; to: string },
+  dispatches: readonly DispatchRow[]
+) => {
+  const language = await languageOf(context.db, context.actor.id);
+  const figure = (value: number | null) =>
+    value === null ? null : formatNumber(value, language);
+  return milkDispatchRecord({
+    farm: context.farm,
+    from: formatDate(startOfFarmDay(period.from), language),
+    to: formatDate(startOfFarmDay(period.to), language),
+    dispatches: dispatches.map((one) => ({
+      at: formatDate(one.dispatchedAt, language, "dateTime"),
+      litres: formatNumber(one.litres, language),
+      buyerName: one.buyerName,
+      buyerAddress: one.buyerAddress,
+      challan: one.challan,
+      fatPercent: figure(one.fatPercent),
+      snfPercent: figure(one.snfPercent),
+    })),
+    totalLitres: formatNumber(litresDispatched(dispatches), language),
+    producedBy: context.actor.name,
+    producedAt: formatDate(context.clock.now(), language, "dateTime"),
+  });
+};
+
+/** The dispatch record as a CSV: plain digits for whoever opens it in a spreadsheet. */
+const dispatchCsv = (dispatches: readonly DispatchRow[]) =>
+  toCsv(
+    [
+      "date",
+      "time",
+      "litres",
+      "buyer",
+      "buyer_address",
+      "challan",
+      "fat_percent",
+      "snf_percent",
+      "note",
+    ],
+    dispatches.map((one) => [
+      farmDayOf(one.dispatchedAt),
+      farmTimeOf(one.dispatchedAt),
+      one.litres.toFixed(2),
+      one.buyerName,
+      one.buyerAddress,
+      one.challan,
+      one.fatPercent?.toFixed(2) ?? null,
+      one.snfPercent?.toFixed(2) ?? null,
+      one.note,
+    ])
+  );
+
 export const reportsRouter = {
   /**
    * R12, the milk dispatch record: every Dispatch in a period with the buyer's name and address, the
    * challan, and the fat and SNF where the processor gave them — the paper a processor or BFSA asks for
-   * (Safe Food Act s.38), and the same as a CSV.
+   * (Safe Food Act s.38), or the same as a CSV.
    *
-   * The Owner's and the Manager's (roles matrix: compliance reports — R; export). The paper reads in the
-   * language of whoever produces it; the CSV is plain digits for whoever opens it in a spreadsheet.
+   * The Owner's and the Manager's, from their own phones (roles matrix: compliance reports — R; export).
+   * A farm that has not written its Registration number down is told so, as the transport card tells
+   * it: a record handed to an inspector without it is a record with a hole in it.
    */
   milkDispatchRecord: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .input(periodInput)
+    .use(requirePersonalSession())
+    .input(z.object({ ...periodInput, format: z.enum(["paper", "csv"]) }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const language = await languageOf(context.db, context.actor.id);
+      if (!context.farm.registrationNumber?.trim()) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "The farm's DLS registration number is not recorded, and a dispatch record cannot be written without it",
+          data: {
+            refusal: "farm_identity_incomplete",
+            missing: "registrationNumber",
+          },
+        });
+      }
       const dispatches = await dispatchesBetween(
         context.db,
         context.farm.id,
         periodOf(input)
       );
-      const totalLitres = roundLitres(
-        dispatches.reduce((sum, one) => sum + one.litres, 0)
-      );
-      const percent = (value: number | null) =>
-        value === null ? null : formatNumber(value, language);
-      const text = milkDispatchRecord({
-        farm: context.farm,
-        from: formatDate(new Date(`${input.from}T12:00:00+06:00`), language),
-        to: formatDate(new Date(`${input.to}T12:00:00+06:00`), language),
-        dispatches: dispatches.map((one) => ({
-          day: formatDate(one.dispatchedAt, language, "dateTime"),
-          litres: formatNumber(one.litres, language),
-          buyerName: one.buyerName,
-          buyerAddress: one.buyerAddress,
-          challan: one.challan,
-          fatPercent: percent(one.fatPercent),
-          snfPercent: percent(one.snfPercent),
-        })),
-        totalLitres: formatNumber(totalLitres, language),
-        producedBy: context.actor.name,
-        producedAt: formatDate(now, language, "dateTime"),
-      });
-      const csv = toCsv(
-        [
-          "date",
-          "litres",
-          "buyer",
-          "buyer_address",
-          "challan",
-          "fat_percent",
-          "snf_percent",
-          "note",
-        ],
-        dispatches.map((one) => [
-          farmDayOf(one.dispatchedAt),
-          one.litres,
-          one.buyerName,
-          one.buyerAddress,
-          one.challan,
-          one.fatPercent,
-          one.snfPercent,
-          one.note,
-        ])
-      );
+      const totalLitres = litresDispatched(dispatches);
+      const result =
+        input.format === "paper"
+          ? { text: await dispatchPaper(context, input, dispatches) }
+          : { csv: dispatchCsv(dispatches) };
       await recordExport(context, "milk_dispatch_record", input, {
+        format: input.format,
         dispatches: dispatches.length,
         totalLitres,
       });
-      return { text, csv, totalLitres };
+      return { ...result, totalLitres };
     }),
 
   /**
@@ -156,7 +183,8 @@ export const reportsRouter = {
    */
   milkProduction: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .input(periodInput)
+    .use(requirePersonalSession())
+    .input(z.object(periodInput))
     .handler(async ({ context, input }) => {
       const { from, until } = periodOf(input);
       const sessions = await context.db.query.milkingSession.findMany({
@@ -177,7 +205,7 @@ export const reportsRouter = {
       // Withdrawal is not the same fact as poured away by judgement.
       const lines = new Map<
         string,
-        { key: (string | number)[]; underWithdrawal: string; litres: number }
+        { key: string[]; underWithdrawal: string; litres: number }
       >();
       for (const session of sessions) {
         for (const record of session.records) {
@@ -210,11 +238,12 @@ export const reportsRouter = {
         ],
         [...lines.values()].map((line) => [
           ...line.key,
-          roundLitres(line.litres),
+          roundLitres(line.litres).toFixed(2),
           line.underWithdrawal,
         ])
       );
       await recordExport(context, "milk_production", input, {
+        format: "csv",
         sessions: sessions.length,
       });
       return { csv };

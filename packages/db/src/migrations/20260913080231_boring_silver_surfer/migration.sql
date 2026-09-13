@@ -4,6 +4,8 @@ CREATE TABLE "dispatch" (
 	"dispatched_at" timestamp NOT NULL,
 	"litres" numeric(10,2) NOT NULL,
 	"buyer_id" text NOT NULL,
+	"buyer_name" text NOT NULL,
+	"buyer_address" text,
 	"challan" text,
 	"price_per_litre_bdt" numeric(8,2) NOT NULL,
 	"fat_percent" numeric(4,2),

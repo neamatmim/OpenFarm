@@ -84,7 +84,6 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.counterparty.id,
       optional: false,
     }),
-    recorder: r.one.user({ from: r.dispatch.recordedBy, to: r.user.id }),
   },
   stockCount: {
     feedItem: r.one.feedItem({

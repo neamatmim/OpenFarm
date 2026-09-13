@@ -13,16 +13,27 @@ const MINUTE_MS = 60_000;
 export const startOfFarmDay = (day: string): Date =>
   new Date(`${day}T00:00:00${FARM_UTC_OFFSET}`);
 
+/** An instant on the farm's own clock, as an ISO string: what the day and the time of day read off. */
+const onTheFarmClock = (at: Date): string =>
+  new Date(at.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS).toISOString();
+
 /** The farm's own day an instant falls on. Four in the morning UTC is already today in Savar,
  *  and a farm that reads its calendar in UTC buys an animal on the wrong day twice a year. */
 export const farmDayOf = (at: Date): string =>
-  new Date(at.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS)
-    .toISOString()
-    .slice(0, 10);
+  onTheFarmClock(at).slice(0, "YYYY-MM-DD".length);
 
 /** The farm's own time of day an instant falls at, as "HH:MM" — the session a milking belongs to, as
  *  the shed names it. */
 export const farmTimeOf = (at: Date): string =>
-  new Date(at.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS)
-    .toISOString()
-    .slice("YYYY-MM-DDT".length, "YYYY-MM-DDTHH:MM".length);
+  onTheFarmClock(at).slice("YYYY-MM-DDT".length, "YYYY-MM-DDTHH:MM".length);
+
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+/** The farm days from `from` to `to`, both included, as the instants that bound them. */
+export const farmDaysBetween = (
+  from: string,
+  to: string
+): { from: Date; until: Date } => ({
+  from: startOfFarmDay(from),
+  until: new Date(startOfFarmDay(to).getTime() + DAY_MS),
+});

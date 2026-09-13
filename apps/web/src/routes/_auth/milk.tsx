@@ -14,14 +14,21 @@ import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 const NOTHING_TYPED = {
+  dispatchedAt: "",
   litres: "",
   buyerName: "",
   buyerAddress: "",
+  buyerPhone: "",
   challan: "",
   price: "",
   fat: "",
   snf: "",
+  note: "",
 };
+
+/** Words typed into a box, or nothing when the box was left empty. */
+const written = (value: string): string | undefined =>
+  value.trim() || undefined;
 
 /** A figure typed into a box, or nothing when the box was left empty. */
 const typed = (value: string): number | undefined =>
@@ -34,7 +41,8 @@ const saveCsv = (name: string, csv: string) => {
   link.href = url;
   link.download = name;
   link.click();
-  URL.revokeObjectURL(url);
+  // Some browsers start the download after the click has returned; let go of the file a moment later.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 /**
@@ -70,13 +78,14 @@ const MilkPage = () => {
   );
   const dispatchRecord = useMutation(
     orpc.reports.milkDispatchRecord.mutationOptions({
-      onSuccess: ({ text }) => setPaper(text),
+      onSuccess: ({ text }) => setPaper(text ?? null),
       onError,
     })
   );
   const dispatchCsv = useMutation(
     orpc.reports.milkDispatchRecord.mutationOptions({
-      onSuccess: ({ csv }) => saveCsv(`milk-dispatch-${from}-${to}.csv`, csv),
+      onSuccess: ({ csv }) =>
+        saveCsv(`milk-dispatch-${from}-${to}.csv`, csv ?? ""),
       onError,
     })
   );
@@ -138,29 +147,37 @@ const MilkPage = () => {
           onSubmit={(event) => {
             event.preventDefault();
             record.mutate({
-              dispatchedAt: new Date(),
+              // Left empty, the milk is leaving now.
+              dispatchedAt: form.dispatchedAt
+                ? new Date(form.dispatchedAt)
+                : new Date(),
               litres: Number(form.litres),
               buyer: {
                 name: form.buyerName,
-                address: form.buyerAddress.trim() || undefined,
+                address: written(form.buyerAddress),
+                phone: written(form.buyerPhone),
               },
-              challan: form.challan.trim() || undefined,
+              challan: written(form.challan),
               pricePerLitreBdt: Number(form.price),
               fatPercent: typed(form.fat),
               snfPercent: typed(form.snf),
+              note: written(form.note),
             });
           }}
         >
           <h2 className="font-medium">{t("dispatch.record")}</h2>
           {(
             [
+              ["dispatchedAt", "dispatch.when", "datetime-local"],
               ["litres", "dispatch.litresField", "number"],
               ["buyerName", "dispatch.buyer", "text"],
               ["buyerAddress", "dispatch.buyerAddress", "text"],
+              ["buyerPhone", "dispatch.buyerPhone", "tel"],
               ["challan", "dispatch.challan", "text"],
               ["price", "dispatch.price", "number"],
               ["fat", "dispatch.fat", "number"],
               ["snf", "dispatch.snf", "number"],
+              ["note", "dispatch.note", "text"],
             ] as const
           ).map(([key, label, type]) => (
             <div className="space-y-1" key={key}>
@@ -204,20 +221,23 @@ const MilkPage = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => dispatchRecord.mutate({ from, to })}
+            disabled={dispatchRecord.isPending}
+            onClick={() => dispatchRecord.mutate({ from, to, format: "paper" })}
             size="sm"
             variant="outline"
           >
             {t("dispatch.recordPaper")}
           </Button>
           <Button
-            onClick={() => dispatchCsv.mutate({ from, to })}
+            disabled={dispatchCsv.isPending}
+            onClick={() => dispatchCsv.mutate({ from, to, format: "csv" })}
             size="sm"
             variant="outline"
           >
             {t("dispatch.recordCsv")}
           </Button>
           <Button
+            disabled={production.isPending}
             onClick={() => production.mutate({ from, to })}
             size="sm"
             variant="outline"
