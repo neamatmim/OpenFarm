@@ -93,8 +93,12 @@ The Standards and Spec reviews ran in parallel. Changed:
 ## Left open
 
 - **Every cost figure loads the farm's whole history,** for a single animal too. Proportionate for 100–500 head over the first years, but it will slow as the years pile up. A stored allocation, or one bounded to the Pens she stood in, is the next step when it matters.
-- **"Recent purchases" is taken as the last three.** No spec gives the number. A dose given before its product was ever bought stays uncosted even after the farm buys it.
-- **A dairy-born calf moved to Fattening carries his rearing costs into his Margin,** at a purchase price of nothing. That is his whole-life economics, but the Owner may want the rearing apart.
+- **A dose given before its product was ever bought stays uncosted,** even after the farm buys it.
+
+## Decided afterwards
+
+- **A dose is costed over its product's last three purchases.** The Owner confirmed this on 2026-09-13.
+- **A dairy-born calf moved to Fattening carries his rearing costs into his Margin,** at a purchase price of nothing. The Owner confirmed this on 2026-09-13: it is his whole-life economics.
 - **A Vet Fee naming no animals,** including one entered by hand, is charged to nobody and not reported as unallocated.
 - **Price lookups at the exact moment of a Purchase are not tested.** A Purchase arrives at the farm day's midnight, and no Feeding is recorded then.
 - **The by-Side report is on screen only.** Its CSV belongs with the accountant export, ticket 54.

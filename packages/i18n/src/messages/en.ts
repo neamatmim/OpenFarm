@@ -477,6 +477,9 @@ export const en = {
   "costs.thisLactation": "This lactation",
   "costs.soldInPeriod":
     "Fattening animals sold in this period, each over her whole life",
+  "accountant.title": "For the accountant",
+  "accountant.summary": "Income and expense",
+  "accountant.csv": "Every money event (CSV)",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":
     "The farm's registration number is not recorded; write it in the farm details first",

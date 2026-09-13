@@ -10,6 +10,7 @@ import { useState } from "react";
 import { CostsBySide } from "@/components/costs";
 import { categoryName, useApproveMoney } from "@/components/money";
 import {
+  AccountantExport,
   Categories,
   CorrectEntered,
   EnterMoney,
@@ -141,6 +142,7 @@ const MoneyPage = () => {
       {money.data?.more ? (
         <p className="text-muted-foreground text-sm">{t("money.more")}</p>
       ) : null}
+      <AccountantExport from={from} to={to} />
       <CostsBySide from={from} to={to} />
       <Categories />
     </div>

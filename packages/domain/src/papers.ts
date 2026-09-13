@@ -1,5 +1,7 @@
+import type { MoneySummary } from "./accounts";
 import type { FarmIdentity } from "./farm";
 import { farmOfOriginLines } from "./farm";
+import type { Side } from "./lifecycle";
 
 /**
  * The papers the farm hands somebody: the receipt for what a buyer bought, the card the lorry
@@ -394,3 +396,70 @@ export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
   ]
     .filter((line) => line !== null)
     .join("\n");
+
+export interface AccountantSummary {
+  farm: FarmIdentity;
+  from: string;
+  to: string;
+  summary: MoneySummary;
+  /** Taka as the reader reads it. */
+  taka: (amount: number) => string;
+  producedBy: string;
+  producedAt: string;
+}
+
+const SIDE_LABEL: Record<Side, [string, string]> = {
+  dairy: ["ডেইরি", "Dairy"],
+  fattening: ["মোটাতাজাকরণ", "Fattening"],
+};
+
+/**
+ * The accountant's summary: a period's income against expense, and the same by Category, by Counterparty
+ * and by Side, with the money the Owner has not approved said apart. The farm does not keep books; its
+ * accountant keeps them from this and the CSV that goes with it.
+ */
+export const accountantSummary = (paper: AccountantSummary): string => {
+  const { summary, taka } = paper;
+  const inAndOut = (line: { inBdt: number; outBdt: number }) =>
+    `আয় / in ${taka(line.inBdt)} · ব্যয় / out ${taka(line.outBdt)}`;
+  return [
+    ...farmOfOriginLines(paper.farm),
+    "",
+    "আয় ও ব্যয় / Income and expense",
+    field("সময়কাল", "Period", `${paper.from} — ${paper.to}`),
+    "",
+    field("মোট আয়", "Income", taka(summary.incomeBdt)),
+    field("মোট ব্যয়", "Expense", taka(summary.expenseBdt)),
+    field("বাকি", "Net", taka(summary.netBdt)),
+    summary.awaiting.count > 0
+      ? field(
+          "মালিকের অনুমোদনের অপেক্ষায়",
+          "Awaiting the Owner's approval",
+          `${summary.awaiting.count} · ${taka(summary.awaiting.amountBdt)}`
+        )
+      : null,
+    "",
+    "খাত অনুযায়ী / By Category",
+    ...summary.byCategory.map(
+      (line) =>
+        `  ${line.nameBn}${line.nameEn ? ` / ${line.nameEn}` : ""}: ${inAndOut(line)}`
+    ),
+    "",
+    "যার সাথে লেনদেন / By Counterparty",
+    ...summary.byCounterparty.map(
+      (line) => `  ${line.name ?? "—"}: ${inAndOut(line)}`
+    ),
+    "",
+    "দিক অনুযায়ী / By Side",
+    ...summary.bySide.map((line) => {
+      const [bn, en] = line.side
+        ? SIDE_LABEL[line.side]
+        : ["পুরো খামার", "Whole farm"];
+      return `  ${bn} / ${en}: ${inAndOut(line)}`;
+    }),
+    "",
+    `${paper.producedAt} · ${paper.producedBy}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+};

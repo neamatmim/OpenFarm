@@ -11,6 +11,7 @@ export type PaperId =
   | "withdrawal-summary"
   | "dls-letter"
   | "milk-dispatch-record"
+  | "accountant-summary"
   | "sop-card";
 
 /**

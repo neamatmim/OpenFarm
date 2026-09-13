@@ -13,6 +13,7 @@ import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
 const NOTHING_TYPED = {
@@ -35,17 +36,6 @@ const written = (value: string): string | undefined =>
 /** A figure typed into a box, or nothing when the box was left empty. */
 const typed = (value: string): number | undefined =>
   value.trim() === "" ? undefined : Number(value);
-
-/** Hands a CSV to the person's own computer, named for what it is and the period it covers. */
-const saveCsv = (name: string, csv: string) => {
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = name;
-  link.click();
-  // Some browsers start the download after the click has returned; let go of the file a moment later.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
 
 /**
  * The milk leaving the farm: one day's tank beside what was handed over, the Dispatch as the Manager
