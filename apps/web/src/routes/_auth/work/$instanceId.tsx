@@ -23,11 +23,7 @@ import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
-import type {
-  RenewalEntry,
-  StepRecord,
-  StockCountEntry,
-} from "@/lib/record-offline";
+import type { StepRecord, StockCountEntry } from "@/lib/record-offline";
 import {
   claimInstance,
   finishInstance,
@@ -204,6 +200,15 @@ const WorkPage = () => {
     },
     onError,
   });
+  const renew = useMutation(
+    orpc.instances.completeStep.mutationOptions({
+      onSuccess: async () => {
+        setOpenStep(null);
+        await queryClient.invalidateQueries({ queryKey: instanceKey });
+      },
+      onError,
+    })
+  );
   const correct = useMutation(
     orpc.instances.correctStep.mutationOptions({
       onSuccess: ({ effect, needsReview }) => {
@@ -336,9 +341,20 @@ const WorkPage = () => {
       });
       return;
     }
+    // The renewal is sent as it is taken: a certificate's photograph is not something to hold in a shed
+    // phone's queue, and the renewal is the Owner's own act on their own phone.
+    if (payload.renewal) {
+      renew.mutate({
+        instanceId,
+        stepId: step.id,
+        evidence: payload.evidence,
+        renewal: payload.renewal,
+      });
+      return;
+    }
     // The reason belongs to a Correction, which took the branch above; recording a new
     // entry has nothing to explain.
-    const { reason: _forCorrections, ...rest } = payload;
+    const { reason: _forCorrections, renewal: _online, ...rest } = payload;
     record.mutate({
       instanceId,
       stepId: step.id,
@@ -683,11 +699,6 @@ interface StockCountBoard {
   counted: { feedItemId: string; counted: number; reason: string | null }[];
 }
 
-/**
- * One box per Feed Item for what is really in the store, and one for why, if it is not what the farm
- * expects. The expected figure is never shown: a count that can see the answer copies it. The farm
- * refuses a difference without a reason, and says which.
- */
 /** The farm day a year after the Registration runs out now: where a renewed certificate usually lands. */
 const aYearOn = (expiresOn: string | null): string => {
   if (!expiresOn) {
@@ -711,18 +722,28 @@ const useRenewal = (
   const renews = step.effect?.kind === "registration_renewal";
   const runsOutOn = board?.expiresOn ?? null;
   const [expiresOn, setExpiresOn] = useState(() => aYearOn(runsOutOn));
+  const [issuedOn, setIssuedOn] = useState("");
   const [certificate, setCertificate] = useState<Photo | null>(null);
+  const given = expiresOn !== "" && (certificate !== null || correcting);
   return {
     renews,
     runsOutOn,
     expiresOn,
     setExpiresOn,
+    issuedOn,
+    setIssuedOn,
     certificate,
     setCertificate,
-    ready:
-      !renews || (expiresOn !== "" && (certificate !== null || correcting)),
-    entry: (): RenewalEntry | undefined =>
-      renews ? { expiresOn, certificate: certificate ?? undefined } : undefined,
+    /** Ready when everything else the Step asks is, and — for a renewal — its own fields are too. */
+    readyWith: (restIsReady: boolean) => restIsReady && (!renews || given),
+    entry: () =>
+      renews
+        ? {
+            expiresOn,
+            issuedOn: issuedOn || undefined,
+            certificate: certificate ?? undefined,
+          }
+        : undefined,
   };
 };
 
@@ -739,8 +760,10 @@ const RenewalFields = ({
   const {
     runsOutOn,
     expiresOn,
+    issuedOn,
     certificate,
     setExpiresOn: onExpiresOn,
+    setIssuedOn: onIssuedOn,
     setCertificate: onCertificate,
   } = renewing;
   const certificateTaken = certificate !== null;
@@ -760,6 +783,15 @@ const RenewalFields = ({
           onChange={(event) => onExpiresOn(event.target.value)}
           type="date"
           value={expiresOn}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="renewal-issued">{t("renewal.issuedOn")}</Label>
+        <Input
+          id="renewal-issued"
+          onChange={(event) => onIssuedOn(event.target.value)}
+          type="date"
+          value={issuedOn}
         />
       </div>
       <div className="space-y-1">
@@ -785,6 +817,11 @@ const RenewalFields = ({
   );
 };
 
+/**
+ * One box per Feed Item for what is really in the store, and one for why, if it is not what the farm
+ * expects. The expected figure is never shown: a count that can see the answer copies it. The farm
+ * refuses a difference without a reason, and says which.
+ */
 const StockCountFields = ({
   items,
   counted,
@@ -1064,8 +1101,9 @@ interface RecordPayload {
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
   /** What a Step that counts the store found, per Feed Item. */
   counts?: StockCountEntry[];
-  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
-  renewal?: RenewalEntry;
+  /** The new expiry, issue date and renewed certificate, for the Step that renews the Registration. Sent
+   *  online, never through the Outbox: the certificate is the Owner's to give from their own phone. */
+  renewal?: ReturnType<ReturnType<typeof useRenewal>["entry"]>;
   /** One per Evidence slot that asked for a picture. */
   photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
   /** Set when the entry already exists: changing a recorded fact is a Correction, and a
@@ -1147,10 +1185,7 @@ const EvidenceSheet = ({
   });
 
   const firstOutOfRange = () => outsideItsRange(step, values);
-  // Everything the Evidence asks, and whatever the Step's own fields ask on top.
-  const ready = [everythingAsked(step, values, photos), renewing.ready].every(
-    Boolean
-  );
+  const ready = renewing.readyWith(everythingAsked(step, values, photos));
 
   const submit = (force: boolean) => {
     const outside = firstOutOfRange();

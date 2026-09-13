@@ -12,6 +12,14 @@ export interface FarmIdentity {
 }
 
 /**
+ * The moment a Registration has run out. A certificate that says it expires on the 31st is good all of the
+ * 31st, so the registration has run out only once that whole day is behind the farm; the expiry is the
+ * start of that day, which is how the farm's own clock writes a date down.
+ */
+export const goodUntilOf = (expiresOn: Date): Date =>
+  new Date(expiresOn.getTime() + DAY_MS);
+
+/**
  * The farm's identity as a screen reads it, with the two things about a registration anybody
  * actually asks: has it run out, and is it about to.
  *
@@ -27,10 +35,8 @@ export const identityView = (
   renewalLeadDays: number
 ) => {
   const expiresOn = farm.registrationExpiresOn;
-  // A certificate that says it expires on the 31st is good all of the 31st, so the registration
-  // has run out only once that whole day is behind the farm. `registrationExpiresOn` is the
-  // start of that day, which is how the farm's own clock writes a date down.
-  const goodUntil = expiresOn === null ? null : expiresOn.getTime() + DAY_MS;
+  const goodUntil =
+    expiresOn === null ? null : goodUntilOf(expiresOn).getTime();
   const expired = goodUntil !== null && goodUntil <= now.getTime();
   return {
     ...farm,
@@ -45,11 +51,14 @@ export const identityView = (
 };
 
 /**
- * When the Registration's renewal falls due: the renewal lead before the certificate runs out — the same
- * moment the farm starts saying the registration is ending soon, so the work and the warning agree.
+ * When the Registration's renewal opens: the renewal lead before the certificate runs out — the same moment
+ * the farm starts saying the registration is ending soon, so the work and the warning begin together.
  */
-export const renewalDueAt = (expiresOn: Date, renewalLeadDays: number): Date =>
-  new Date(expiresOn.getTime() + DAY_MS - renewalLeadDays * DAY_MS);
+export const renewalOpensAt = (
+  expiresOn: Date,
+  renewalLeadDays: number
+): Date =>
+  new Date(goodUntilOf(expiresOn).getTime() - renewalLeadDays * DAY_MS);
 
 /**
  * The farm of origin as every document leaving the farm heads itself: name, address, phone and

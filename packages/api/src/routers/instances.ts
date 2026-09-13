@@ -51,7 +51,9 @@ import {
   recentHappenings,
   whatChangedFor,
 } from "../instances-store";
+import { photoInput } from "../photo-input";
 import { pushRaised } from "../push-send";
+import { tellOfRenewals } from "../registration-store";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
@@ -78,15 +80,12 @@ const countLine = z.object({
   reason: z.string().trim().max(200).optional(),
 });
 
-/** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+/** The new expiry, when the renewed certificate was issued, and its photograph, for the Step that renews the
+ *  Registration. */
 const renewalInput = z.object({
   expiresOn: farmDay,
-  certificate: z
-    .object({
-      contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-      data: z.string().min(1).max(PHOTO_MAX_BYTES),
-    })
-    .optional(),
+  issuedOn: farmDay.optional(),
+  certificate: photoInput.optional(),
 });
 
 const completionInput = z.object({
@@ -345,6 +344,8 @@ export const instancesRouter = {
             now
           );
           raised = instances.length;
+          // The Owner hears of a renewal in the evening's post, the day its work is raised.
+          await tellOfRenewals(tx, context.farm, instances, now);
           await flagHeatsThatArrivedTooLate(
             tx,
             context.farm.id,
@@ -758,8 +759,11 @@ export const instancesRouter = {
       const now = context.clock.now();
       const late = await findLate(context.db, context.farm.id, now);
       const mine = scoped
-        ? late.filter(
-            (row) => row.penId === null || context.penIds.includes(row.penId)
+        ? late.filter((row) =>
+            // Work about the whole farm is in nobody's Pens: Barn Staff see it only when it is theirs.
+            row.penId === null
+              ? row.assignedRole === "staff"
+              : context.penIds.includes(row.penId)
           )
         : late;
       return mine

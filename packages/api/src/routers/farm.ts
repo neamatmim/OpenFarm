@@ -3,7 +3,6 @@ import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
 import {
   MAX_GRACE_MINUTES,
-  PHOTO_MAX_BYTES,
   identityView,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -16,7 +15,8 @@ import type { CalvingWorkFollowed } from "../breeding-store";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { keepCertificate } from "../registration-store";
+import { photoInput } from "../photo-input";
+import { certificatesOf, keepCertificate } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
@@ -205,10 +205,7 @@ export const farmRouter = {
   identity: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
     .handler(async ({ context }) => {
-      const certificate = await context.db.query.farmCertificate.findFirst({
-        where: { farmId: context.farm.id },
-        columns: { updatedAt: true },
-      });
+      const [latest] = await certificatesOf(context.db, context.farm.id);
       return {
         ...identityView(
           context.farm,
@@ -216,20 +213,36 @@ export const farmRouter = {
           context.farm.registrationRenewalLeadDays
         ),
         /** When the certificate was last photographed; null for a farm that has not. */
-        certificateUpdatedAt: certificate?.updatedAt ?? null,
+        certificateUpdatedAt: latest?.takenAt ?? null,
       };
     }),
 
   /**
-   * The photograph of the Registration certificate, for whoever may read the Farm Identity. The first thing
-   * an inspector asks to see.
+   * Every photograph of the Registration certificate the farm has kept, newest first: when, and by whom.
+   * The first is the certificate the farm holds now; the rest are what it held before.
+   */
+  certificates: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const kept = await certificatesOf(context.db, context.farm.id);
+      return kept.map(({ id, takenAt }) => ({ id, takenAt }));
+    }),
+
+  /**
+   * A photograph of the Registration certificate — the one the farm holds now, or an earlier one by its id.
+   * The first thing an inspector asks to see.
    */
   certificate: protectedProcedure
     .use(requireRole("owner", "manager", "vet"))
-    .handler(async ({ context }) => {
-      const row = await context.db.query.farmCertificate.findFirst({
-        where: { farmId: context.farm.id },
+    .input(z.object({ id: z.string().optional() }).default({}))
+    .handler(async ({ context, input }) => {
+      const row = await context.db.query.registrationCertificate.findFirst({
+        where: {
+          farmId: context.farm.id,
+          ...(input.id ? { id: input.id } : {}),
+        },
         columns: { contentType: true, data: true },
+        orderBy: { takenAt: "desc", id: "desc" },
       });
       if (!row) {
         throw new ORPCError("NOT_FOUND", {
@@ -240,38 +253,37 @@ export const farmRouter = {
     }),
 
   /**
-   * Photographs the Registration certificate, replacing the photograph kept before. The Owner's or the
-   * Manager's, as the identity is, from their own phones; the trail keeps who took each and when.
+   * Photographs the Registration certificate. The newer photograph is the certificate now, and the one before
+   * it is kept. The Owner's or the Manager's, as the identity is, from their own phones.
    */
   setCertificate: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
-    .input(
-      z.object({
-        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        data: z.string().min(1).max(PHOTO_MAX_BYTES),
-      })
-    )
+    .input(photoInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const farmId = context.farm.id;
-      const readTaken = async (tx: Tx) =>
-        (await tx.query.farmCertificate.findFirst({
-          where: { farmId },
-          columns: { contentType: true, updatedBy: true, updatedAt: true },
-        })) ?? null;
+      let kept = "";
       await audited(context).write(
         {
-          entity: "farm_certificate",
-          entityId: farmId,
-          action: "update",
-          before: readTaken,
-          after: readTaken,
+          entity: "registration_certificate",
+          entityId: () => kept,
+          action: "create",
+          after: () =>
+            Promise.resolve({
+              id: kept,
+              contentType: input.contentType,
+              takenAt: now.toISOString(),
+            }),
         },
-        (tx) =>
-          keepCertificate(tx, farmId, input, { by: context.actor.id, now })
+        async (tx) => {
+          kept = await keepCertificate(tx, farmId, input, {
+            by: context.actor.id,
+            now,
+          });
+        }
       );
-      return { certificateUpdatedAt: now };
+      return { id: kept, certificateUpdatedAt: now };
     }),
 
   /**

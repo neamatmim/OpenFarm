@@ -2,8 +2,6 @@ import type { EntryOutcome } from "@OpenFarm/db/schema/sync";
 import { PHOTO_MAX_BYTES } from "@OpenFarm/domain";
 import { z } from "zod";
 
-import { farmDay } from "./farm-clock";
-
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
 /** Every entry carries what the phone knew: its own id for the record, where in its own
@@ -53,18 +51,6 @@ export const entryInput = z.discriminatedUnion("kind", [
           reason: z.string().trim().max(200).optional(),
         })
       )
-      .optional(),
-    /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
-    renewal: z
-      .object({
-        expiresOn: farmDay,
-        certificate: z
-          .object({
-            contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-            data: z.string().min(1).max(PHOTO_MAX_BYTES),
-          })
-          .optional(),
-      })
       .optional(),
     outOfRange: z.string().trim().max(120).optional(),
     skipReason: z.string().trim().max(120).optional(),

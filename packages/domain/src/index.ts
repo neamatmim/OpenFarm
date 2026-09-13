@@ -58,7 +58,12 @@ export {
   isServiceMethod,
 } from "./breeding";
 export type { FarmIdentity } from "./farm";
-export { farmOfOriginLines, identityView, renewalDueAt } from "./farm";
+export {
+  farmOfOriginLines,
+  goodUntilOf,
+  identityView,
+  renewalOpensAt,
+} from "./farm";
 export {
   FARM_UTC_OFFSET_MINUTES,
   farmDayOf,

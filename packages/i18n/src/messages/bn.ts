@@ -488,6 +488,12 @@ export const bn: Record<MessageKey, string> = {
   "owner.registrationRenewal": "নিবন্ধন নবায়ন",
   "owner.registrationEnding": "নিবন্ধনের মেয়াদ শেষ {date}: নবায়ন করুন",
   "owner.registrationExpired": "নিবন্ধনের মেয়াদ শেষ হয়ে গেছে {date}",
+  "digest.registrationRenewal": "নিবন্ধন নবায়নের সময় হয়েছে",
+  "alerts.registrationRenewal":
+    "নিবন্ধনের মেয়াদ শেষ {date}: নবায়নের কাজ আপনার তালিকায়",
+  "refusal.renewalSuperseded": "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
+  "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
+  "renewal.issuedOn": "নবায়িত সনদ ইস্যুর তারিখ",
   "refusal.periodBackwards": "শেষের তারিখ শুরুর তারিখের আগে হতে পারে না",
   "refusal.farmIdentityIncomplete":
     "খামারের নিবন্ধন নম্বর লেখা নেই; আগে খামারের তথ্যে লিখুন",

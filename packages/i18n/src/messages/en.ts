@@ -500,6 +500,14 @@ export const en = {
   "owner.registrationRenewal": "Registration renewal",
   "owner.registrationEnding": "The Registration runs out on {date}: renew it",
   "owner.registrationExpired": "The Registration ran out on {date}",
+  "digest.registrationRenewal": "The Registration is due for renewal",
+  "alerts.registrationRenewal":
+    "The Registration runs out on {date}: its renewal is on your list",
+  "refusal.renewalSuperseded":
+    "The Registration has moved on since this renewal; put the newer one right instead",
+  "refusal.workInNoPen":
+    "This step records a Pen's work, and this work is in no Pen",
+  "renewal.issuedOn": "The renewed certificate was issued on",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":
     "The farm's registration number is not recorded; write it in the farm details first",

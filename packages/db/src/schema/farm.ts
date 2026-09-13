@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -161,18 +162,34 @@ export const invite = pgTable(
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]
 );
 
-/** The photograph of the farm's DLS Registration certificate: what an inspector asks to see first. One per
- *  Farm, replaced by the renewed certificate's; the trail keeps when each was taken and by whom. */
-export const farmCertificate = pgTable("farm_certificate", {
-  farmId: text("farm_id")
-    .primaryKey()
-    .references(() => farm.id, { onDelete: "cascade" }),
-  contentType: text("content_type").notNull(),
-  /** Downscaled on the device before upload, base64. */
-  data: text("data").notNull(),
-  updatedBy: text("updated_by").references(() => user.id),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+/**
+ * A photograph of the farm's DLS Registration certificate: what an inspector asks to see first. Kept for
+ * ever, one row per photograph, the newest being the certificate the farm holds now — a replaced photograph
+ * is still the farm's evidence of what it held before.
+ */
+export const registrationCertificate = pgTable(
+  "registration_certificate",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    /** Downscaled on the device before upload, base64. */
+    data: text("data").notNull(),
+    /** The renewal Step that took it, when a renewal did; null for one taken on the farm page. A corrected
+     *  renewal replaces its own photograph rather than adding another. */
+    completionId: text("completion_id"),
+    takenBy: text("taken_by").references(() => user.id),
+    takenAt: timestamp("taken_at").notNull(),
+  },
+  (table) => [
+    index("registration_certificate_farm_idx").on(table.farmId, table.takenAt),
+    uniqueIndex("registration_certificate_completion_uidx")
+      .on(table.completionId)
+      .where(sql`${table.completionId} is not null`),
+  ]
+);
 
 /**
  * One renewal of the Registration, as the renewal SOP's closing Step recorded it: the expiry it replaced and

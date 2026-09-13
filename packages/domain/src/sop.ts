@@ -583,18 +583,20 @@ const effectProblems = (step: Step, stepIndex: number): string[] => {
 };
 
 /** Triggers that carry nothing an author can get wrong: a Prescription says when its own doses fall due, a
- *  notifiable Diagnosis is due the moment it is made, and a Registration's renewal falls due by the farm's
+ *  notifiable Diagnosis is due the moment it is made, and a Registration's renewal opens by the farm's
  *  own renewal lead. */
-const TIMED_BY_THEMSELVES: ReadonlySet<Trigger["kind"]> = new Set<
-  Trigger["kind"]
->(["prescription", "notifiable_disease", "registration_renewal"]);
+const TIMED_BY_THEMSELVES = [
+  "prescription",
+  "notifiable_disease",
+  "registration_renewal",
+] as const;
 
 const isTimedByItself = (
   trigger: Trigger
 ): trigger is Extract<
   Trigger,
-  { kind: "prescription" | "notifiable_disease" | "registration_renewal" }
-> => TIMED_BY_THEMSELVES.has(trigger.kind);
+  { kind: (typeof TIMED_BY_THEMSELVES)[number] }
+> => (TIMED_BY_THEMSELVES as readonly string[]).includes(trigger.kind);
 
 /** What is wrong with one Trigger, in the Owner's terms rather than the parser's. */
 const triggerProblems = (trigger: Trigger, index: number): string[] => {
@@ -806,6 +808,35 @@ const WHOSE_STEPS: readonly {
   },
 ];
 
+/** The Step effects work about the whole farm may carry: nothing that needs a Pen or an animal. */
+const FARM_WORK_EFFECTS: ReadonlySet<StepEffect["kind"]> = new Set<
+  StepEffect["kind"]
+>(["registration_renewal"]);
+
+/**
+ * Work about the whole farm — the Registration's renewal — is in no Pen and about no animal, so its Steps
+ * are walked once, and nothing in them may write a Pen's record or an animal's.
+ */
+const farmWorkProblems = (content: SopContent): string[] => {
+  if (
+    !content.triggers.some((trigger) => trigger.kind === "registration_renewal")
+  ) {
+    return [];
+  }
+  return content.steps.flatMap((step, index) => [
+    ...(step.repeatPerAnimal
+      ? [
+          `steps[${index}]: work about the whole farm is about no animal, so the step is walked once`,
+        ]
+      : []),
+    ...(step.effect && !FARM_WORK_EFFECTS.has(step.effect.kind)
+      ? [
+          `steps[${index}].effect: work about the whole farm is in no Pen, and cannot write a Pen's or an animal's record`,
+        ]
+      : []),
+  ]);
+};
+
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
  *  a number with no range, a choice with nothing to choose. */
 export const findStructuralProblems = (content: SopContent): string[] => {
@@ -854,7 +885,10 @@ export const findStructuralProblems = (content: SopContent): string[] => {
       problems.push(`assignedRole: ${rule.problem}`);
     }
   }
-  problems.push(...pregnancyCheckProcedureProblems(content));
+  problems.push(
+    ...pregnancyCheckProcedureProblems(content),
+    ...farmWorkProblems(content)
+  );
   return problems;
 };
 

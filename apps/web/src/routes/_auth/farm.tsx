@@ -10,6 +10,42 @@ import { categoryName, useApproveMoney } from "@/components/money";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
+/** The Registration's renewal on the Owner's list: to the renewal work when it has been raised, and to the farm
+ *  page when it has not. */
+const RenewalRow = ({
+  renewal,
+}: {
+  renewal: {
+    expiresOn: Date | null;
+    expired: boolean;
+    instanceId: string | null;
+  };
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const said = t(
+    renewal.expired ? "owner.registrationExpired" : "owner.registrationEnding",
+    {
+      date: renewal.expiresOn
+        ? formatDate(renewal.expiresOn, language, "date")
+        : "—",
+    }
+  );
+  return renewal.instanceId ? (
+    <Link
+      className="underline"
+      params={{ instanceId: renewal.instanceId }}
+      to="/work/$instanceId"
+    >
+      {said}
+    </Link>
+  ) : (
+    <Link className="underline" to="/admin/farm">
+      {said}
+    </Link>
+  );
+};
+
 /**
  * The Owner's home: an exception list, and the farm's own figures under it.
  *
@@ -72,7 +108,7 @@ const OwnerHome = () => {
                 params={{ instanceId: row.id }}
                 to="/work/$instanceId"
               >
-                {row.sopBn} · {row.pen}
+                {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
               {row.escalated ? (
                 <span className="ml-2 text-amber-400">
@@ -94,7 +130,7 @@ const OwnerHome = () => {
                 params={{ instanceId: row.id }}
                 to="/work/$instanceId"
               >
-                {row.sopBn} · {row.pen}
+                {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
             </li>
           ))}
@@ -127,43 +163,7 @@ const OwnerHome = () => {
         {needsYou.registrationRenewal ? (
           <Exceptions count={1} label={t("owner.registrationRenewal")}>
             <li className="rounded-lg border p-2 text-sm">
-              {needsYou.registrationRenewal.instanceId ? (
-                <Link
-                  className="underline"
-                  params={{
-                    instanceId: needsYou.registrationRenewal.instanceId,
-                  }}
-                  to="/work/$instanceId"
-                >
-                  {t(
-                    needsYou.registrationRenewal.expired
-                      ? "owner.registrationExpired"
-                      : "owner.registrationEnding",
-                    {
-                      date: formatDate(
-                        needsYou.registrationRenewal.expiresOn,
-                        language,
-                        "date"
-                      ),
-                    }
-                  )}
-                </Link>
-              ) : (
-                <Link className="underline" to="/admin/farm">
-                  {t(
-                    needsYou.registrationRenewal.expired
-                      ? "owner.registrationExpired"
-                      : "owner.registrationEnding",
-                    {
-                      date: formatDate(
-                        needsYou.registrationRenewal.expiresOn,
-                        language,
-                        "date"
-                      ),
-                    }
-                  )}
-                </Link>
-              )}
+              <RenewalRow renewal={needsYou.registrationRenewal} />
             </li>
           </Exceptions>
         ) : null}

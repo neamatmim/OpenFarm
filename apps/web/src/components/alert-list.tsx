@@ -1,5 +1,6 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
@@ -23,18 +24,27 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   withdrawal_changed: "alerts.withdrawalChanged",
   low_stock: "alerts.lowStock",
   money_awaiting_approval: "alerts.moneyAwaiting",
+  registration_renewal_due: "alerts.registrationRenewal",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
  *  rather than the type system's; read defensively and in the reader's language. */
 const paramsOf = (
   params: unknown,
-  bangla: boolean
+  {
+    language,
+    wholeFarm,
+  }: {
+    language: Language;
+    /** Where work about the whole farm is, which has no Pen to name. */
+    wholeFarm: string;
+  }
 ): Record<string, string | number> => {
   const raw = (params ?? {}) as Record<string, unknown>;
+  const bangla = language === "bn";
   return {
     sop: String((bangla ? raw.sopBn : raw.sopEn) ?? raw.sopBn ?? ""),
-    pen: String(raw.pen ?? ""),
+    pen: typeof raw.pen === "string" ? raw.pen : wholeFarm,
     reason: String(raw.reason ?? ""),
     hours: hoursLate(Number(raw.minutesOverdue ?? 0)),
     /** A cow, for the notices that are about one rather than about a piece of work. */
@@ -52,6 +62,11 @@ const paramsOf = (
     category: String(
       (bangla ? raw.categoryBn : raw.categoryEn) ?? raw.categoryBn ?? ""
     ),
+    /** When the Registration runs out, for the notice about its renewal. */
+    date:
+      typeof raw.expiresOn === "string"
+        ? formatDate(new Date(raw.expiresOn), language, "date")
+        : "",
   };
 };
 
@@ -89,7 +104,13 @@ export const AlertList = () => {
             <AlertTriangle className="mt-0.5 shrink-0" size={18} />
             <p className="flex-1 text-sm">
               {key
-                ? t(key, paramsOf(notice.params, language === "bn"))
+                ? t(
+                    key,
+                    paramsOf(notice.params, {
+                      language,
+                      wholeFarm: t("work.wholeFarm"),
+                    })
+                  )
                 : notice.kind}
             </p>
             <Button

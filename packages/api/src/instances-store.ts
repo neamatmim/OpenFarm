@@ -30,7 +30,7 @@ import {
   isEscalated,
   isOverdue,
   minutesOverdue,
-  renewalDueAt,
+  renewalOpensAt,
 } from "@OpenFarm/domain";
 
 import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
@@ -181,7 +181,7 @@ export const renewalSlotsFor = (
   const { expiresOn } = registration;
   if (
     expiresOn === null ||
-    now < renewalDueAt(expiresOn, registration.renewalLeadDays)
+    now < renewalOpensAt(expiresOn, registration.renewalLeadDays)
   ) {
     return [];
   }
@@ -611,6 +611,11 @@ export const raiseDueInstances = async (
   if (slots.length === 0) {
     return [];
   }
+  // Scheduled work is kept unique by its Pen and its time, and a Pen that is null is unique from every other
+  // null: work about the whole farm has only its cause to stop it being raised twice.
+  if (slots.some((slot) => slot.penId === null && !slot.cause)) {
+    throw new Error("Work about the whole farm is raised by a cause");
+  }
   const created = await tx
     .insert(sopInstance)
     .values(
@@ -638,6 +643,9 @@ export const raiseDueInstances = async (
   return created;
 };
 
+/** The animals in a piece of work's Pen, or none for work in no Pen. */
+const penOfWork = (penId: string | null) => (penId === null ? null : { penId });
+
 /** The animals a per-animal Step covers in this Instance's Pen, right now. */
 export const animalsForInstance = async (
   db: Pick<Database, "query">,
@@ -649,8 +657,13 @@ export const animalsForInstance = async (
    *  standing in the Pen she happens to be in. */
   animalId?: string | null
 ) => {
+  const standingIn = animalId ? { id: animalId } : penOfWork(penId);
+  // Work about the whole farm stands in no Pen: it is about the animal it was raised about, or about none.
+  if (standingIn === null) {
+    return [];
+  }
   const rows = await db.query.animal.findMany({
-    where: animalId ? { farmId, id: animalId } : { farmId, penId: penId ?? "" },
+    where: { farmId, ...standingIn },
     columns: {
       id: true,
       tagNumber: true,

@@ -1,7 +1,8 @@
-import { inArray } from "@OpenFarm/db/operators";
+import { eq, inArray } from "@OpenFarm/db/operators";
+import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -51,7 +52,25 @@ const setup = async () => {
   });
   const owner = await as("owner", "2040-12-01T04:00:00.000Z");
   const sop = await owner.client.sops.create({ content: renewalSop() });
-  return { sop, before };
+  // Barn Staff with a Pen of their own, so what they are shown of late work is scoped rather than empty.
+  const shed = await owner.client.herd.createShed({
+    name: `reg-${Date.now()}`,
+  });
+  const pen = await owner.client.herd.createPen({
+    shedId: shed.id,
+    name: "নিবন্ধন পেন",
+  });
+  await createTestClient(appRouter, { as: "staff" });
+  await scratchDb()
+    .insert(penAssignment)
+    .values({
+      id: `pa-registration-${pen.id}`,
+      farmId: TEST_FARM.id,
+      userId: "test-staff",
+      penId: pen.id,
+    })
+    .onConflictDoNothing();
+  return { sop, before, pen };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -61,6 +80,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await scratchDb()
+    .delete(penAssignment)
+    .where(eq(penAssignment.id, `pa-registration-${world.pen.id}`));
   await scratchDb()
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
@@ -110,7 +132,18 @@ describe("the Registration and its renewal", () => {
     expect(identity.certificateUpdatedAt).toEqual(
       new Date("2040-12-03T04:00:00.000Z")
     );
-    const trail = await later.client.audit.list({ entity: "farm_certificate" });
+    // The photograph it replaced is still the farm's, and still readable.
+    const kept = await later.client.farm.certificates();
+    const earlier = kept.find(
+      (one) => one.takenAt.getTime() === Date.parse("2040-12-02T04:00:00.000Z")
+    );
+    expect(await later.client.farm.certificate({ id: earlier?.id })).toEqual({
+      contentType: "image/jpeg",
+      data: "AAAA",
+    });
+    const trail = await later.client.audit.list({
+      entity: "registration_certificate",
+    });
     expect(
       trail.filter((event) => event.receivedAt.getUTCFullYear() === 2040)
     ).toHaveLength(2);
@@ -134,15 +167,44 @@ describe("the Registration and its renewal", () => {
         ]),
       },
     });
+    // Work about the whole farm is about no animal and in no Pen.
+    const content = renewalSop();
+    await expect(
+      owner.client.sops.create({
+        content: {
+          ...content,
+          steps: [
+            ...content.steps,
+            {
+              id: "weigh",
+              text: { bn: "ওজন নিন" },
+              repeatPerAnimal: true,
+              evidence: [
+                { type: "number", required: true, unit: { bn: "কেজি" } },
+              ],
+              skipReasons: [],
+              effect: { kind: "weigh_in" },
+            },
+          ],
+        },
+      })
+    ).rejects.toMatchObject({
+      data: {
+        blockers: expect.arrayContaining([
+          "steps[2]: work about the whole farm is about no animal, so the step is walked once",
+        ]),
+      },
+    });
   });
 
   it("raises the renewal for the Owner once the expiry is within the lead, and only once", async () => {
-    expect(await renewalWork("2040-12-30T04:00:00.000Z")).toEqual([]);
-    const owner = await as("owner", "2040-12-30T04:00:00.000Z");
+    // The lead opens at midnight on 1 January, the farm's clock: a minute before, nothing.
+    expect(await renewalWork("2040-12-31T17:59:00.000Z")).toEqual([]);
+    const owner = await as("owner", "2040-12-31T17:59:00.000Z");
     const early = await owner.client.home.owner();
     expect(early.needsYou.registrationRenewal).toBeNull();
 
-    const raised = await renewalWork("2041-01-02T04:00:00.000Z");
+    const raised = await renewalWork("2040-12-31T18:00:00.000Z");
     // In no Pen, the Owner's, and due when the Registration runs out: late only once it has.
     expect(raised).toEqual([
       expect.objectContaining({
@@ -159,6 +221,29 @@ describe("the Registration and its renewal", () => {
       expiresOn: new Date("2041-03-30T18:00:00.000Z"),
     });
     expect(await renewalWork("2041-01-03T04:00:00.000Z")).toHaveLength(1);
+    // The Manager putting a typed expiry right within the year raises nothing more.
+    const manager = await as("manager", "2041-01-03T04:00:00.000Z");
+    await manager.client.farm.setIdentity({
+      registrationExpiresOn: "2041-03-30",
+    });
+    expect(await renewalWork("2041-01-03T05:00:00.000Z")).toHaveLength(1);
+    await manager.client.farm.setIdentity({
+      registrationExpiresOn: "2041-03-31",
+    });
+
+    // The Owner hears of it in the digest, once.
+    const told = await owner.client.alerts.mine({ entityId: raised[0]?.id });
+    expect(told).toEqual([
+      expect.objectContaining({ kind: "registration_renewal_due" }),
+    ]);
+
+    // Late only once the Registration has run out — and the Owner's to be late with, not Barn Staff's.
+    const staff = await as("staff", "2041-04-02T04:00:00.000Z");
+    const staffLate = await staff.client.instances.overdue();
+    expect(staffLate.map((row) => row.id)).not.toContain(raised[0]?.id);
+    const lateOwner = await as("owner", "2041-04-02T04:00:00.000Z");
+    const ownerLate = await lateOwner.client.instances.overdue();
+    expect(ownerLate.map((row) => row.id)).toContain(raised[0]?.id);
 
     const due = await as("owner", "2041-01-03T04:00:00.000Z");
     const home = await due.client.home.owner();
@@ -208,8 +293,15 @@ describe("the Registration and its renewal", () => {
       evidence: [true],
       renewal: {
         expiresOn: "2042-03-31",
+        issuedOn: "2041-02-10",
         certificate: { contentType: "image/jpeg", data: "DDDD" },
       },
+    });
+    // Still on the Owner's list until the renewal is done.
+    const midway = await as("owner", "2041-02-10T04:30:00.000Z");
+    const beforeDone = await midway.client.home.owner();
+    expect(beforeDone.needsYou.registrationRenewal).toMatchObject({
+      instanceId: work?.id,
     });
     await owner.client.instances.complete({ id: work?.id ?? "" });
 
@@ -218,6 +310,9 @@ describe("the Registration and its renewal", () => {
     const identity = await after.client.farm.identity();
     expect(identity.registrationExpiresOn).toEqual(
       new Date("2042-03-30T18:00:00.000Z")
+    );
+    expect(identity.registrationIssuedOn).toEqual(
+      new Date("2041-02-09T18:00:00.000Z")
     );
     expect(await after.client.farm.certificate()).toEqual({
       contentType: "image/jpeg",
@@ -246,5 +341,22 @@ describe("the Registration and its renewal", () => {
     expect(midYear.filter((row) => row.state === "due")).toEqual([]);
     const next = await renewalWork("2042-01-02T04:00:00.000Z");
     expect(next.filter((row) => row.state === "due")).toHaveLength(1);
+
+    // Once the Registration has moved on — by hand, here — the old renewal is not put right under it.
+    const manager = await as("manager", "2042-01-03T04:00:00.000Z");
+    await manager.client.farm.setIdentity({
+      registrationExpiresOn: "2043-03-31",
+    });
+    const board = await as("owner", "2042-01-03T05:00:00.000Z");
+    const done = await board.client.instances.get({ id: work?.id ?? "" });
+    const renewed = done.completions.find((one) => one.stepId === "renewed");
+    await expect(
+      board.client.instances.correctStep({
+        completionId: renewed?.id ?? "",
+        evidence: [true],
+        renewal: { expiresOn: "2042-04-30" },
+        reason: "তারিখ ভুল লেখা হয়েছিল",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "renewal_superseded" } });
   });
 });

@@ -278,6 +278,7 @@ const penOf = (input: EffectInput): string => {
   if (input.instance.penId === null) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This Step records a Pen's work, and this work is in no Pen",
+      data: { refusal: "work_in_no_pen" },
     });
   }
   return input.instance.penId;

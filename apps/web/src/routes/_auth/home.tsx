@@ -121,7 +121,7 @@ const ManagerHome = () => {
                 params={{ instanceId: row.id }}
                 to="/work/$instanceId"
               >
-                {row.sopBn} · {row.pen}
+                {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
             </QueueRow>
           ))}
@@ -135,7 +135,7 @@ const ManagerHome = () => {
                 params={{ instanceId: row.id }}
                 to="/work/$instanceId"
               >
-                {row.sopBn} · {row.pen}
+                {row.sopBn} · {row.pen ?? t("work.wholeFarm")}
               </Link>
             </QueueRow>
           ))}
