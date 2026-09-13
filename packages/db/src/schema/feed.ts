@@ -28,6 +28,8 @@ export const feedItem = pgTable(
     /** What it is measured in. Kilos unless the farm says otherwise — straw comes in bales
      *  and molasses in litres, and a Ration line means whatever this says. */
     unit: text("unit").notNull().default("kg"),
+    /** Below this much on hand, the Manager is told. Null for a Feed Item nobody watches. */
+    lowStockAt: numeric("low_stock_at", { precision: 12, scale: 1 }),
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
@@ -189,6 +191,47 @@ export const feedIn = pgTable(
       table.farmId,
       table.feedItemId,
       table.receivedOn
+    ),
+  ]
+);
+
+/**
+ * One Feed Item as a Stock Count found it: what the store was thought to hold at that moment, what was
+ * really there, and — when they differ — why.
+ *
+ * The count wins: Stock on Hand reads from it afterwards. A difference is an adjustment with its
+ * reason, never quietly absorbed. Written by the Step that counted, keyed on its Completion and the
+ * Feed Item, so a corrected count re-books its difference rather than adding another.
+ */
+export const stockCount = pgTable(
+  "stock_count",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    feedItemId: text("feed_item_id")
+      .notNull()
+      .references(() => feedItem.id),
+    completionId: text("completion_id").notNull(),
+    countedAt: timestamp("counted_at").notNull(),
+    /** What the store was thought to hold, just before this count. */
+    expected: numeric("expected", { precision: 12, scale: 1 }).notNull(),
+    counted: numeric("counted", { precision: 12, scale: 1 }).notNull(),
+    /** Why what was counted is not what was expected. Null when they match. */
+    reason: text("reason"),
+    countedBy: text("counted_by").references(() => user.id),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("stock_count_line_uidx").on(
+      table.completionId,
+      table.feedItemId
+    ),
+    index("stock_count_item_idx").on(
+      table.farmId,
+      table.feedItemId,
+      table.countedAt
     ),
   ]
 );

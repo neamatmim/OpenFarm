@@ -73,7 +73,8 @@ const ManagerHome = () => {
     queue.needsReview.length +
     queue.withdrawal.length +
     queue.meatWithdrawal.length +
-    queue.repeatBreeders.length;
+    queue.repeatBreeders.length +
+    queue.lowStock.length;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -135,6 +136,21 @@ const ManagerHome = () => {
                 to="/work/$instanceId"
               >
                 {row.sopBn} · {row.pen}
+              </Link>
+            </QueueRow>
+          ))}
+        </QueueBlock>
+
+        <QueueBlock count={queue.lowStock.length} label={t("home.lowStock")}>
+          {queue.lowStock.map((line) => (
+            <QueueRow key={line.feedItemId}>
+              <Link className="underline" to="/admin/feed">
+                {t("home.lowStockLine", {
+                  feed: line.nameBn,
+                  onHand: formatNumber(line.onHand, language),
+                  unit: line.unit,
+                  threshold: formatNumber(line.threshold, language),
+                })}
               </Link>
             </QueueRow>
           ))}

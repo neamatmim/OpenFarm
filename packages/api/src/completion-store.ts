@@ -22,6 +22,7 @@ import {
 } from "./herd-store";
 import { animalsForInstance, isOnTheFarm } from "./instances-store";
 import { contentOf } from "./sop-content";
+import type { StockCountLine } from "./stock-store";
 
 /**
  * An entry that was true when it was written and is not true now: the animal has been sold,
@@ -51,6 +52,9 @@ export interface CompletionEntry {
    *  Items come from the Pen's Ration rather than from the Version, so they travel here
    *  rather than as Evidence slots. */
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
+  /** What was counted of each Feed Item, for a Step that counts the store — and why it differs from
+   *  what the store was thought to hold. The Items are the farm's, not the Version's. */
+  counts?: StockCountLine[];
   outOfRange?: string;
   skipReason?: string;
   photos?: {
@@ -337,6 +341,13 @@ const photoSlots = (input: CompletionEntry): ((slot: number) => boolean) => {
   return (slot) => here.has(slot) || promised.has(slot);
 };
 
+/** The lines a Step carries beside its Evidence — what a Pen was fed, what the store was counted at —
+ *  or none, for the Steps that carry neither. */
+const linesOf = (input: CompletionEntry) => ({
+  feeding: input.feeding ?? [],
+  counts: input.counts ?? [],
+});
+
 /**
  * Records one Step, with whatever its effect writes into the farm's records, on the caller's
  * transaction. Throwing rolls the caller back — which is what both callers want: a single
@@ -431,7 +442,7 @@ export const applyCompletion = async (
     completionId: saved.id,
     animalId,
     evidence: input.evidence,
-    feeding: input.feeding ?? [],
+    ...linesOf(input),
     feedTolerancePercent: context.farm.feedTolerancePercent,
     // The Audit Event this Completion is written under, so an effect that has to put something
     // in front of the Manager can do it in the same transaction.

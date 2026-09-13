@@ -48,6 +48,8 @@ const WORDED_REFUSALS = {
   calving_is_derived: "refusal.calvingIsDerived",
   calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
   check_without_a_service: "refusal.checkWithoutAService",
+  count_incomplete: "refusal.countIncomplete",
+  difference_needs_reason: "refusal.differenceNeedsReason",
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
   expected_calving_needed: "refusal.expectedCalvingNeeded",
   expected_calving_passed: "refusal.expectedCalvingPassed",

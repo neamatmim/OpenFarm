@@ -23,6 +23,7 @@ import {
   openReviews,
 } from "../instances-store";
 import { requireRole } from "../roles";
+import { runningLow } from "../stock-store";
 
 /** Enough of each queue to work from. A Manager with more than this waiting has a problem
  *  the list is not going to solve. */
@@ -68,6 +69,7 @@ export const homeRouter = {
         herd,
         today,
         repeatBreeders,
+        lowStock,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -116,6 +118,9 @@ export const homeRouter = {
           farmId,
           context.farm.repeatBreederThreshold
         ),
+        // Feed running low: on the Manager's queue as well as in their digest, because a queue is
+        // where somebody deciding what to buy looks.
+        runningLow(context.db, farmId),
       ]);
 
       const underWithdrawal = animals;
@@ -166,6 +171,7 @@ export const homeRouter = {
         },
         queue: {
           repeatBreeders: repeatBreeders.slice(0, QUEUE_LIMIT),
+          lowStock,
           // Latest first and bounded, the way the Overdue screen itself reads: a Manager
           // opening this in a shed is handed the work that has waited longest, not a year
           // of it in whatever order the database found it.
@@ -271,6 +277,7 @@ export const homeRouter = {
         mortalities,
         approvals,
         week,
+        lowStock,
       ] = await Promise.all([
         findLate(
           context.db,
@@ -343,6 +350,8 @@ export const homeRouter = {
             records: { columns: { litres: true, destination: true } },
           },
         }),
+        // Feed running low, which the Owner's exception list names too (spec: "low stock").
+        runningLow(context.db, farmId),
       ]);
 
       // A day of the farm's milk is every Pen's Sessions on that day added together, which
@@ -399,6 +408,7 @@ export const homeRouter = {
               completions.find((one) => one.id === row.entityId)?.instanceId ??
               null,
           })),
+          lowStock,
           endingWithdrawal: held
             .filter(
               (beast) =>

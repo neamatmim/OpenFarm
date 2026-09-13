@@ -45,7 +45,8 @@ const OwnerHome = () => {
     needsYou.approvals.length +
     needsYou.proposals.length +
     needsYou.needsReview.length +
-    needsYou.endingWithdrawal.length;
+    needsYou.endingWithdrawal.length +
+    needsYou.lowStock.length;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -115,6 +116,21 @@ const OwnerHome = () => {
               >
                 {t("sop.approve")}
               </Button>
+            </li>
+          ))}
+        </Exceptions>
+
+        <Exceptions count={needsYou.lowStock.length} label={t("home.lowStock")}>
+          {needsYou.lowStock.map((line) => (
+            <li className="rounded-lg border p-2 text-sm" key={line.feedItemId}>
+              <Link className="underline" to="/admin/feed">
+                {t("home.lowStockLine", {
+                  feed: line.nameBn,
+                  onHand: formatNumber(line.onHand, language),
+                  unit: line.unit,
+                  threshold: formatNumber(line.threshold, language),
+                })}
+              </Link>
             </li>
           ))}
         </Exceptions>

@@ -172,6 +172,7 @@ export {
   MAX_KG_PER_ANIMAL_PER_DAY,
   findRationProblems,
   isShortFed,
+  lastFellBelow,
   maundsOf,
   perSessionKg,
   roundKg,

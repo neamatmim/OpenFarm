@@ -21,6 +21,11 @@ import {
 import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
 import { textTheSafetyAlerts } from "../sms-send";
+import {
+  lowStockToTell,
+  raiseLowStockAlerts,
+  runningLow,
+} from "../stock-store";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
  *  problem the farm has. */
@@ -63,6 +68,32 @@ const tellAboutWithdrawals = async (context: Sweeping, now: Date) => {
   await textTheSafetyAlerts(context, raised);
 };
 
+/**
+ * The other part of the sweep with nothing to do with late work: Feed Items running low. Keyed on the
+ * first Feed Item it tells about, with the rest named in the event, because the store — not any work —
+ * is what the notice is about.
+ */
+const tellAboutLowStock = async (context: Sweeping, now: Date) => {
+  const low = await runningLow(context.db, context.farm.id);
+  const toTell = await lowStockToTell(context.db, context.farm.id, low);
+  const [lowest] = toTell.untold;
+  if (!lowest) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "feed_item",
+      entityId: lowest.feedItemId,
+      action: "update",
+      after: () =>
+        Promise.resolve({
+          toldRunningLow: toTell.untold.map((line) => line.feedItemId),
+        }),
+    },
+    (tx) => raiseLowStockAlerts(tx, context.farm.id, toTell, now)
+  );
+};
+
 export const alertsRouter = {
   /**
    * Raises the Alerts the clock has earned. Idempotent, so the phone and the office can both
@@ -73,10 +104,11 @@ export const alertsRouter = {
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
       const now = context.clock.now();
-      // Two halves that have nothing to do with each other: work that went late, and cows
-      // coming off a Withdrawal. Told about first, because late work having nothing to say is
-      // the steady state and must not silence the other half.
+      // Three things that have nothing to do with each other: work that went late, cows coming off a
+      // Withdrawal, and feed running low. The other two are told about first, because late work
+      // having nothing to say is the steady state and must not silence them.
       await tellAboutWithdrawals(context, now);
+      await tellAboutLowStock(context, now);
       const pending = await findPendingNotices(context.db, context.farm, now);
       // A sweep with nothing to say is not an event, and opens no transaction: everyone
       // calls this on opening the app, and in steady state there is nothing new to say.

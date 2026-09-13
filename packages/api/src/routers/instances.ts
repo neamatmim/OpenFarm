@@ -69,6 +69,13 @@ const feedingLine = z.object({
   leftoverKg: z.number().min(0).optional(),
 });
 
+/** What one Feed Item was counted at, for a Step that counts the store, and why it differs. */
+const countLine = z.object({
+  feedItemId: z.string(),
+  counted: z.number().min(0).max(10_000_000),
+  reason: z.string().trim().max(200).optional(),
+});
+
 const completionInput = z.object({
   instanceId: z.string(),
   stepId: z.string().trim().min(1),
@@ -83,6 +90,8 @@ const completionInput = z.object({
    *  Items come from the Pen's Ration rather than from the Version, so they travel beside
    *  the Evidence rather than as slots in it. */
   feeding: z.array(feedingLine).optional(),
+  /** What was counted, per Feed Item, for a Step that counts the store. */
+  counts: z.array(countLine).optional(),
   /** Set when the person was warned a number was outside its range and went ahead. */
   outOfRange: z.string().trim().max(120).optional(),
   skipReason: z.string().trim().max(120).optional(),
@@ -522,6 +531,31 @@ export const instancesRouter = {
             },
           })
         : null;
+      // What to count, for a Playbook entry that counts the store: every Feed Item the farm keeps,
+      // and nothing about what the store is thought to hold — a count that can see the answer is a
+      // count that copies it. What this work already counted comes back, so a Correction starts
+      // from it.
+      const counts = content.steps.some(
+        (step) => step.effect?.kind === "stock_count"
+      );
+      const stockCount = counts
+        ? {
+            items: await context.db.query.feedItem.findMany({
+              where: { farmId: context.farm.id, retiredAt: { isNull: true } },
+              columns: { id: true, nameBn: true, nameEn: true, unit: true },
+              orderBy: { nameBn: "asc", id: "asc" },
+            }),
+            counted: await context.db.query.stockCount.findMany({
+              where: {
+                farmId: context.farm.id,
+                completionId: {
+                  in: instance.completions.map((completion) => completion.id),
+                },
+              },
+              columns: { feedItemId: true, counted: true, reason: true },
+            }),
+          }
+        : null;
       const supersededBy =
         instance.definition.currentVersionId === instance.versionId
           ? null
@@ -535,6 +569,16 @@ export const instancesRouter = {
         milkingSession: milkingSession ?? null,
         feeding,
         fed: fed ?? null,
+        stockCount: stockCount && {
+          items: stockCount.items.map(({ id, ...item }) => ({
+            feedItemId: id,
+            ...item,
+          })),
+          counted: stockCount.counted.map((line) => ({
+            ...line,
+            counted: Number(line.counted),
+          })),
+        },
         // The gate the tile renders: the phone re-checks it offline from this, and the
         // server checks it again when the entry lands.
         animals: animals.map((beast) => ({
@@ -864,6 +908,7 @@ export const instancesRouter = {
         evidence: z.array(evidenceValue).default([]),
         destination: z.enum(MILK_DESTINATIONS).optional(),
         feeding: z.array(feedingLine).optional(),
+        counts: z.array(countLine).optional(),
         outOfRange: z.string().trim().max(120).optional(),
         skipReason: z.string().trim().max(120).optional(),
         reason: reasonInput,
@@ -989,6 +1034,7 @@ export const instancesRouter = {
             evidence: input.evidence,
             destination: input.destination,
             feeding: input.feeding ?? [],
+            counts: input.counts ?? [],
             feedTolerancePercent: context.farm.feedTolerancePercent,
             sessionsPerDay: sessionsPerDayOf(content),
             skipped: skipping,

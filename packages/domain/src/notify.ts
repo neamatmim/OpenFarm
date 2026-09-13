@@ -50,6 +50,9 @@ export const DELIVERY: Record<
   // told at once — but it is not one of the two that cost money the moment they are missed, so
   // it waits for the farm to wake.
   withdrawal_changed: { when: "immediate" },
+  // Running low is worth knowing today, not worth waking anybody for: it waits for the digest
+  // (notification channels: low feed stock → Manager, digest).
+  low_stock: { when: "digest" },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>

@@ -64,6 +64,8 @@ import {
 } from "./milk-store";
 import { raiseNeedsReview } from "./review-store";
 import { forbidden } from "./roles";
+import type { StockAdjustment, StockCountLine } from "./stock-store";
+import { recordStockCount } from "./stock-store";
 
 /**
  * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
@@ -134,6 +136,11 @@ export type EffectResult =
       result: PregnancyCheckResult | null;
     } & CalvingWorkFollowed)
   | ({ kind: "calving" } & CalvingRecorded)
+  | {
+      kind: "stock_count";
+      /** The Feed Items whose count differed from what the store was thought to hold. */
+      adjustments: StockAdjustment[];
+    }
   | {
       kind: "dry_off";
       /** False when she was already Dry: a phone replaying the entry dries nobody twice. */
@@ -245,6 +252,8 @@ export interface EffectInput {
   pregnancyTimes: PregnancyTimes;
   /** What was actually put in front of the Pen, per Feed Item. */
   feeding: FeedingEntryLine[];
+  /** What was counted of each Feed Item, for a Step that counts the store. */
+  counts: StockCountLine[];
   /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
    *  more than one feeding routine divides by the one that raised this work. */
   sessionsPerDay: number;
@@ -1320,6 +1329,54 @@ const applyCalvingEffect = async (
 };
 
 /**
+ * Counts the store: what is really there of each Feed Item, and why it differs. The Manager's alone
+ * (roles matrix: Stock Count — Manager C R U): the Owner steps into shifts, and a count moves what the
+ * farm's feed is worth.
+ */
+const applyStockCountEffect = async (
+  tx: Tx,
+  input: EffectInput
+): Promise<EffectResult> => {
+  if (!input.roles.includes("manager")) {
+    throw forbidden({
+      message: "Counting the store is the Manager's",
+      reason: "manager_only",
+    });
+  }
+  const adjustments = await recordStockCount(tx, {
+    farmId: input.instance.farmId,
+    completionId: input.completionId,
+    counts: input.counts,
+    skipped: input.skipped,
+    countedAt: input.recordedAt,
+    countedBy: input.recordedBy,
+    now: input.now,
+  });
+  return { kind: "stock_count", adjustments };
+};
+
+/** Every effect that writes its own record, by kind. The milk effects are not here: they share a
+ *  Milking Session, which only they may open. */
+const RECORDING_EFFECTS: Partial<
+  Record<
+    NonNullable<Step["effect"]>["kind"],
+    (tx: Tx, input: EffectInput) => Promise<EffectResult>
+  >
+> = {
+  move: applyMoveEffect,
+  observation: applyObservationEffect,
+  feeding: applyFeedingEffect,
+  treatment: applyTreatmentEffect,
+  dls_report: applyReportEffect,
+  weigh_in: applyWeighInEffect,
+  service: applyServiceEffect,
+  pregnancy_check: applyPregnancyCheckEffect,
+  dry_off: applyDryOffEffect,
+  calving: applyCalvingEffect,
+  stock_count: applyStockCountEffect,
+};
+
+/**
  * Runs the effect a Step declares, inside the Completion's own transaction: if the effect
  * fails, the Completion and its Audit Event fail with it. Every effect is keyed on the
  * Completion, so a phone that replays an entry — or a Manager who corrects one — replaces
@@ -1340,35 +1397,9 @@ export const runStepEffect = async (
   if (!effect) {
     return null;
   }
-  if (effect.kind === "move") {
-    return await applyMoveEffect(tx, input);
-  }
-  if (effect.kind === "observation") {
-    return await applyObservationEffect(tx, input);
-  }
-  if (effect.kind === "feeding") {
-    return await applyFeedingEffect(tx, input);
-  }
-  if (effect.kind === "treatment") {
-    return await applyTreatmentEffect(tx, input);
-  }
-  if (effect.kind === "dls_report") {
-    return await applyReportEffect(tx, input);
-  }
-  if (effect.kind === "weigh_in") {
-    return await applyWeighInEffect(tx, input);
-  }
-  if (effect.kind === "service") {
-    return await applyServiceEffect(tx, input);
-  }
-  if (effect.kind === "pregnancy_check") {
-    return await applyPregnancyCheckEffect(tx, input);
-  }
-  if (effect.kind === "dry_off") {
-    return await applyDryOffEffect(tx, input);
-  }
-  if (effect.kind === "calving") {
-    return await applyCalvingEffect(tx, input);
+  const apply = RECORDING_EFFECTS[effect.kind];
+  if (apply) {
+    return await apply(tx, input);
   }
   // Only the milk effects belong to a Milking Session, and only they may open one: a Step
   // that walks a cow to another Pen has no business creating a session nobody milked into.

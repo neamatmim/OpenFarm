@@ -94,6 +94,45 @@ export const feedRouter = {
       return { id, name: input.name, unit: input.unit };
     }),
 
+  /**
+   * How low a Feed Item may run before the Manager is told — or null, for one nobody watches. The
+   * Manager's to set, as the store is theirs to keep.
+   */
+  setLowStock: protectedProcedure
+    .use(requireRole("manager"))
+    .input(
+      z.object({
+        feedItemId: z.string(),
+        threshold: z.number().min(0.1).max(10_000_000).nullable(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const existing = await context.db.query.feedItem.findFirst({
+        where: { id: input.feedItemId, farmId: context.farm.id },
+        columns: { id: true, nameBn: true, lowStockAt: true },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such feed" });
+      }
+      const lowStockAt =
+        input.threshold === null ? null : input.threshold.toFixed(1);
+      await audited(context).write(
+        {
+          entity: "feed_item",
+          entityId: existing.id,
+          action: "update",
+          before: { nameBn: existing.nameBn, lowStockAt: existing.lowStockAt },
+          after: { nameBn: existing.nameBn, lowStockAt },
+        },
+        (tx) =>
+          tx
+            .update(feedItem)
+            .set({ lowStockAt })
+            .where(eq(feedItem.id, existing.id))
+      );
+      return { feedItemId: existing.id, threshold: input.threshold };
+    }),
+
   /** Retired, never removed: what a Pen was fed in March still names it. */
   retireItem: protectedProcedure
     .use(requireRole("owner", "manager"))

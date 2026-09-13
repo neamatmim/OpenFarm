@@ -12,7 +12,7 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
-import { stockOnHand } from "../stock-store";
+import { adjustmentsOf, stockOnHand } from "../stock-store";
 
 const sellerInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -112,6 +112,17 @@ export const stockRouter = {
         };
       });
     }),
+
+  /**
+   * The differences the Stock Counts booked, newest first, as they read now — so a late entry dated
+   * before a count shows in it — with who counted and why. A count that agreed is not listed.
+   */
+  adjustments: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ feedItemId: z.string().optional() }).default({}))
+    .handler(({ context, input }) =>
+      adjustmentsOf(context.db, context.farm.id, input.feedItemId)
+    ),
 
   /**
    * Feed coming into the store: a Purchase — how much, what the lot cost, and who sold it — or a

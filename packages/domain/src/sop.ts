@@ -86,7 +86,9 @@ export type StepEffect =
   /** She was dried off: a milking cow is Dry from this Step. */
   | { kind: "dry_off" }
   /** She calved: when, how it went, and each calf — her next Lactation, and a new animal per calf. */
-  | { kind: "calving" };
+  | { kind: "calving" }
+  /** The store counted: what is really there of each Feed Item, and why it differs. */
+  | { kind: "stock_count" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -101,6 +103,7 @@ export const STEP_EFFECT_KINDS = [
   "pregnancy_check",
   "dry_off",
   "calving",
+  "stock_count",
 ] as const;
 
 export interface Step {
@@ -480,6 +483,15 @@ const dryOffStepProblems = (step: Step, path: string): string[] =>
         `${path}: drying off is done cow by cow, so the step is walked animal by animal`,
       ];
 
+/**
+ * The store is counted once, whole: what is counted is every Feed Item the farm keeps, which come from
+ * the farm and not from the Version, so this Step asks nothing of its own.
+ */
+const stockCountStepProblems = (step: Step, path: string): string[] =>
+  step.repeatPerAnimal
+    ? [`${path}.effect: the store is counted once, not once per animal`]
+    : [];
+
 const SHAPED_STEPS: Partial<
   Record<StepEffect["kind"], (step: Step, path: string) => string[]>
 > = {
@@ -488,6 +500,7 @@ const SHAPED_STEPS: Partial<
   pregnancy_check: pregnancyCheckStepProblems,
   dry_off: dryOffStepProblems,
   calving: calvingStepProblems,
+  stock_count: stockCountStepProblems,
 };
 
 const effectProblems = (step: Step, stepIndex: number): string[] => {
@@ -779,6 +792,16 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   ) {
     problems.push(
       "assignedRole: a procedure that records a service is the Manager's"
+    );
+  }
+  // A Stock Count is the Manager's (roles matrix: Feed stock, Purchases, Stock Count — Manager C R U,
+  // Barn Staff nothing): the count moves what the farm's feed is worth.
+  if (
+    content.steps.some((step) => step.effect?.kind === "stock_count") &&
+    content.assignedRole !== "manager"
+  ) {
+    problems.push(
+      "assignedRole: a procedure that counts the store is the Manager's"
     );
   }
   // A Calving is recorded by Barn Staff as a Step, or by the Manager (roles matrix: Breeding —

@@ -13,6 +13,13 @@ interface OptimisticCompletion {
   destination: string | null;
 }
 
+/** One Feed Item as a count found it. */
+export interface StockCountEntry {
+  feedItemId: string;
+  counted: number;
+  reason?: string;
+}
+
 export interface StepRecord {
   instanceId: string;
   stepId: string;
@@ -22,6 +29,8 @@ export interface StepRecord {
   destination?: "bulk" | "calves" | "discard";
   /** What a Step that feeds a Pen actually put out, per Feed Item. */
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
+  /** What a Step that counts the store found, per Feed Item, and why it differs. */
+  counts?: StockCountEntry[];
   outOfRange?: string;
   skipReason?: string;
   /** Taken in the shed. Queued as its own entry against the slot it answers, so a megabyte

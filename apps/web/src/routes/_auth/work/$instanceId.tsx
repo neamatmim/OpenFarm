@@ -21,7 +21,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import { shrink } from "@/lib/photo";
-import type { StepRecord } from "@/lib/record-offline";
+import type { StepRecord, StockCountEntry } from "@/lib/record-offline";
 import {
   claimInstance,
   finishInstance,
@@ -232,6 +232,7 @@ const WorkPage = () => {
     state,
     feeding,
     fed,
+    stockCount,
     changed,
     runningOn,
   } = instance.data as unknown as {
@@ -250,6 +251,8 @@ const WorkPage = () => {
     } | null;
     /** What the Pen was actually given, once somebody has recorded it. */
     fed: { shortfallPercent: number; flaggedAt: string | null } | null;
+    /** What to count, for a Playbook entry that counts the store — never what it is thought to hold. */
+    stockCount: StockCountBoard | null;
     /** What changed in the Version this work runs on, until they have done it once. */
     changed: Changed | null;
     /** The Version number this work runs on, when the Playbook has since moved on. */
@@ -315,6 +318,7 @@ const WorkPage = () => {
         completionId: existing.id,
         destination: payload.destination,
         feeding: payload.feeding,
+        counts: payload.counts,
         evidence: payload.evidence,
         outOfRange: payload.outOfRange,
         reason: payload.reason,
@@ -356,6 +360,7 @@ const WorkPage = () => {
       <EvidenceSheet
         correcting={Boolean(existing)}
         feeding={feeding}
+        stockCount={stockCount}
         onCancel={() => setOpenStep(null)}
         onRecord={(payload) => send(openStep, existing, payload)}
         step={openStep}
@@ -619,6 +624,114 @@ const ClosingAction = ({
   );
 };
 
+/**
+ * What a Step that counts the store is being told: the box for each Feed Item and why it differs,
+ * starting from what was counted before for a Correction and blank for a new count; whether every item
+ * has been counted; and the lines to send. Nothing at all for any other Step.
+ */
+const useStockCount = (
+  step: Step,
+  board: StockCountBoard | null | undefined
+) => {
+  const counts = step.effect?.kind === "stock_count";
+  const before = board?.counted ?? [];
+  const [counted, setCounted] = useState<Typed>(() =>
+    Object.fromEntries(
+      before.map((line) => [line.feedItemId, String(line.counted)])
+    )
+  );
+  const [reasons, setReasons] = useState<Typed>(() =>
+    Object.fromEntries(
+      before.map((line) => [line.feedItemId, line.reason ?? ""])
+    )
+  );
+  const items = counts ? (board?.items ?? []) : [];
+  return {
+    items,
+    counted,
+    handleCounted: setCounted,
+    reasons,
+    handleReason: setReasons,
+    complete: items.every(
+      (item) => (counted[item.feedItemId] ?? "").trim() !== ""
+    ),
+    lines: (): StockCountEntry[] | undefined =>
+      counts
+        ? items.map((item) => ({
+            feedItemId: item.feedItemId,
+            counted: Number(counted[item.feedItemId]),
+            reason: reasons[item.feedItemId]?.trim() || undefined,
+          }))
+        : undefined,
+  };
+};
+
+/** What a Step that counts the store is handed: the Feed Items, and what it counted before. */
+interface StockCountBoard {
+  items: { feedItemId: string; nameBn: string; unit: string }[];
+  counted: { feedItemId: string; counted: number; reason: string | null }[];
+}
+
+/**
+ * One box per Feed Item for what is really in the store, and one for why, if it is not what the farm
+ * expects. The expected figure is never shown: a count that can see the answer copies it. The farm
+ * refuses a difference without a reason, and says which.
+ */
+const StockCountFields = ({
+  items,
+  counted,
+  reasons,
+  onCounted,
+  onReason,
+}: {
+  items: StockCountBoard["items"];
+  counted: Typed;
+  reasons: Typed;
+  onCounted: (next: (current: Typed) => Typed) => void;
+  onReason: (next: (current: Typed) => Typed) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {items.map((item) => (
+        <div className="space-y-2" key={item.feedItemId}>
+          <p className="text-sm">
+            {item.nameBn} ({item.unit})
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              aria-label={`${item.nameBn} ${t("work.counted")}`}
+              className="h-14 text-lg"
+              inputMode="decimal"
+              onChange={(event) =>
+                onCounted((current) => ({
+                  ...current,
+                  [item.feedItemId]: event.target.value,
+                }))
+              }
+              placeholder={t("work.counted")}
+              type="number"
+              value={counted[item.feedItemId] ?? ""}
+            />
+            <Input
+              aria-label={`${item.nameBn} ${t("work.countReason")}`}
+              className="h-14"
+              onChange={(event) =>
+                onReason((current) => ({
+                  ...current,
+                  [item.feedItemId]: event.target.value,
+                }))
+              }
+              placeholder={t("work.countReason")}
+              value={reasons[item.feedItemId] ?? ""}
+            />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+};
+
 /** What this Pen is owed, and what actually went out. Prefilled from the Ration, because a
  *  normal day is confirming figures and a sick pen is the one where somebody changes them. */
 const FeedingFields = ({
@@ -841,6 +954,8 @@ interface RecordPayload {
   destination?: MilkDestination;
   /** What a Step that feeds a Pen actually put out, per Feed Item. */
   feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
+  /** What a Step that counts the store found, per Feed Item. */
+  counts?: StockCountEntry[];
   /** One per Evidence slot that asked for a picture. */
   photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
   /** Set when the entry already exists: changing a recorded fact is a Correction, and a
@@ -855,6 +970,7 @@ const EvidenceSheet = ({
   animal,
   correcting,
   feeding,
+  stockCount,
   onCancel,
   onRecord,
 }: {
@@ -871,6 +987,8 @@ const EvidenceSheet = ({
       quantity: number;
     }[];
   } | null;
+  /** What to count, for a Step that counts the store. */
+  stockCount?: StockCountBoard | null;
   onCancel: () => void;
   onRecord: (payload: RecordPayload) => void;
 }) => {
@@ -898,6 +1016,7 @@ const EvidenceSheet = ({
   const feedsThePen = step.effect?.kind === "feeding";
   const [given, setGiven] = useState<Typed>({});
   const [leftover, setLeftover] = useState<Typed>({});
+  const count = useStockCount(step, stockCount);
 
   const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
 
@@ -931,6 +1050,7 @@ const EvidenceSheet = ({
       feeding: feedsThePen
         ? whatWentOut(feedingRows, given, leftover)
         : undefined,
+      counts: count.lines(),
       photos: Object.entries(photos).map(([slot, taken]) => ({
         slot: Number(slot),
         ...taken,
@@ -994,6 +1114,14 @@ const EvidenceSheet = ({
         />
       ) : null}
 
+      <StockCountFields
+        counted={count.counted}
+        items={count.items}
+        onCounted={count.handleCounted}
+        onReason={count.handleReason}
+        reasons={count.reasons}
+      />
+
       <FeedingFields
         cannotFeed={cannotFeed}
         given={given}
@@ -1040,7 +1168,11 @@ const EvidenceSheet = ({
         ) : null}
         <Button
           className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
-          disabled={cannotFeed || !(ready && (!correcting || reason.trim()))}
+          disabled={
+            cannotFeed ||
+            !count.complete ||
+            !(ready && (!correcting || reason.trim()))
+          }
           onClick={() => submit(false)}
         >
           {correcting ? t("correct.save") : t("work.confirm")}
