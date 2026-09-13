@@ -36,7 +36,7 @@ export const AccountantExport = ({
   );
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{t("accountant.title")}</h2>
+      <h2 className="text-lg font-semibold">{t("accountant.title")}</h2>
       <div className="flex flex-wrap gap-2">
         <Button
           disabled={summary.isPending}

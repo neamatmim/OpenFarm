@@ -7,13 +7,24 @@ import type {
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ImageOff, Printer } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { HealthRegisters } from "@/components/health-registers";
+import {
+  Notice,
+  Page,
+  PageHeader,
+  Section,
+  StatusBadge,
+  TagChip,
+} from "@/components/page";
+import type { Tone } from "@/components/page";
 import { Paper } from "@/components/paper";
 import type { PaperId } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
@@ -54,11 +65,19 @@ const STANDING_WORD: Record<RegistrationStanding, MessageKey | null> = {
 };
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="flex justify-between gap-2">
-    <span className="text-muted-foreground">{label}</span>
-    <span>{children}</span>
+  <div className="flex items-baseline justify-between gap-4 py-2.5">
+    <dt className="text-muted-foreground text-sm">{label}</dt>
+    <dd className="text-right font-medium tabular-nums">{children}</dd>
   </div>
 );
+
+/** Where the Registration stands, as a status the inspector can read across the room. */
+const STANDING_TONE: Record<RegistrationStanding, Tone> = {
+  valid: "success",
+  ending_soon: "warning",
+  expired: "danger",
+  unknown: "neutral",
+};
 
 /**
  * The Inspector View: the one screen the Manager opens for a DLS inspector. Every register on it is shown here
@@ -91,9 +110,20 @@ const InspectorPage = () => {
 
   if (!view.data) {
     return (
-      <p className="p-6">
-        {view.isError ? t("common.error") : t("common.loading")}
-      </p>
+      <Page>
+        <PageHeader
+          eyebrow={t("nav.group.compliance")}
+          title={t("inspector.title")}
+        />
+        {view.isError ? (
+          <Notice title={t("common.error")} tone="danger" />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-72 rounded-xl" />
+            <Skeleton className="h-72 rounded-xl" />
+          </div>
+        )}
+      </Page>
     );
   }
   const { registration, herd } = view.data;
@@ -113,71 +143,114 @@ const InspectorPage = () => {
       size="sm"
       variant="outline"
     >
+      <Printer data-icon="inline-start" />
       {t("common.print")}
     </Button>
   );
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("inspector.title")}</h1>
+    <Page>
+      <PageHeader
+        actions={
+          <StatusBadge tone={STANDING_TONE[registration.standing]}>
+            {standingWord
+              ? t(standingWord, { when: day(registration.expiresOn) })
+              : t(
+                  registration.standing === "valid"
+                    ? "inspector.standing.valid"
+                    : "inspector.standing.unknown"
+                )}
+          </StatusBadge>
+        }
+        description={t("inspector.subtitle")}
+        eyebrow={t("nav.group.compliance")}
+        title={t("inspector.title")}
+      />
 
-      <section className="space-y-2 rounded-lg border p-3 text-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">{t("inspector.registration")}</h2>
-          {printButton("registration")}
-        </div>
-        <Line label={t("identity.registrationNumber")}>
-          {registration.number ?? "—"}
-        </Line>
-        <Line label={t("identity.registrationOffice")}>
-          {registration.office ?? "—"}
-        </Line>
-        <Line label={t("identity.registrationIssuedOn")}>
-          {day(registration.issuedOn)}
-        </Line>
-        <Line label={t("identity.registrationExpiresOn")}>
-          {day(registration.expiresOn)}
-          {standingWord ? (
-            <span className="block text-amber-400">
-              {t(standingWord, { when: day(registration.expiresOn) })}
+      {registration.number === null ? (
+        <Notice title={t("inspector.noNumber")} tone="warning">
+          {t("inspector.noNumberHint")}
+        </Notice>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section
+          action={printButton("registration")}
+          id="registration"
+          title={t("inspector.registration")}
+        >
+          <dl className="divide-border flex flex-col divide-y">
+            <Line label={t("identity.registrationNumber")}>
+              {registration.number ? (
+                <TagChip>{registration.number}</TagChip>
+              ) : (
+                "—"
+              )}
+            </Line>
+            <Line label={t("identity.registrationOffice")}>
+              {registration.office ?? "—"}
+            </Line>
+            <Line label={t("identity.registrationIssuedOn")}>
+              {day(registration.issuedOn)}
+            </Line>
+            <Line label={t("identity.registrationExpiresOn")}>
+              {day(registration.expiresOn)}
+            </Line>
+          </dl>
+          {certificate.data ? (
+            <img
+              alt={t("certificate.title")}
+              className="max-h-80 w-full rounded-lg border object-contain"
+              src={`data:${certificate.data.contentType};base64,${certificate.data.data}`}
+            />
+          ) : (
+            <p className="text-muted-foreground bg-muted/60 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm">
+              <ImageOff aria-hidden className="size-4 shrink-0" />
+              {t("certificate.none")}
+            </p>
+          )}
+        </Section>
+
+        <Section
+          action={printButton("herd_summary")}
+          description={t("inspector.asOfLine", { date: day(herd.asOf) })}
+          id="herd"
+          title={t("inspector.herd")}
+        >
+          <div className="flex items-end gap-3">
+            <span className="text-5xl leading-none font-semibold tracking-tight tabular-nums">
+              {formatNumber(herd.total, language)}
             </span>
+            <span className="text-muted-foreground pb-1 text-sm">
+              {t("inspector.animals")}
+            </span>
+          </div>
+          {herd.bySideAndState.length ? (
+            <dl className="divide-border flex flex-col divide-y">
+              {herd.bySideAndState.map((line) => (
+                <Line
+                  key={`${line.side}-${line.state}`}
+                  label={`${t(SIDE_WORD[line.side])} · ${t(STATE_WORD[line.state])}`}
+                >
+                  {formatNumber(line.animals, language)}
+                </Line>
+              ))}
+            </dl>
           ) : null}
-        </Line>
-        {certificate.data ? (
-          <img
-            alt={t("certificate.title")}
-            className="max-h-96 rounded-lg"
-            src={`data:${certificate.data.contentType};base64,${certificate.data.data}`}
-          />
-        ) : (
-          <p className="text-muted-foreground">{t("certificate.none")}</p>
-        )}
-      </section>
-
-      <section className="space-y-2 rounded-lg border p-3 text-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">{t("inspector.herd")}</h2>
-          {printButton("herd_summary")}
-        </div>
-        <Line label={t("inspector.asOf")}>{day(herd.asOf)}</Line>
-        <Line label={t("inspector.animals")}>
-          {formatNumber(herd.total, language)}
-        </Line>
-        {herd.bySideAndState.map((line) => (
-          <Line
-            key={`${line.side}-${line.state}`}
-            label={`${t(SIDE_WORD[line.side])} · ${t(STATE_WORD[line.state])}`}
-          >
-            {formatNumber(line.animals, language)}
-          </Line>
-        ))}
-        <h3 className="pt-2 font-medium">{t("inspector.byPen")}</h3>
-        {herd.byPen.map((line) => (
-          <Line key={line.penId} label={`${line.shed} · ${line.pen}`}>
-            {formatNumber(line.animals, language)}
-          </Line>
-        ))}
-      </section>
+          {herd.byPen.length ? (
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold">{t("inspector.byPen")}</h3>
+              <dl className="divide-border flex flex-col divide-y">
+                {herd.byPen.map((line) => (
+                  <Line key={line.penId} label={`${line.shed} · ${line.pen}`}>
+                    {formatNumber(line.animals, language)}
+                  </Line>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+        </Section>
+      </div>
 
       <HealthRegisters
         onPrint={(report, asked) => print.mutate({ report, ...asked })}
@@ -195,7 +268,7 @@ const InspectorPage = () => {
           text={paper.text}
         />
       ) : null}
-    </div>
+    </Page>
   );
 };
 

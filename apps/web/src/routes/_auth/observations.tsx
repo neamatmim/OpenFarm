@@ -1,8 +1,10 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { Eye } from "lucide-react";
 import { useState } from "react";
 
+import { EmptyState, Page, PageHeader } from "@/components/page";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -25,18 +27,18 @@ const ObservationsPage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-4 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("observations.title")}</h1>
-      <p className="text-muted-foreground text-sm">
-        {t("observations.days", { days: WINDOW_DAYS })}
-      </p>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader
+        description={t("observations.days", { days: WINDOW_DAYS })}
+        title={t("observations.title")}
+      />
 
       <SawFilter chosen={saw} kinds={kinds.data ?? []} onChoose={setSaw} />
 
       {seen.data?.length ? (
         <ul className="space-y-2">
           {seen.data.map((row) => (
-            <li className="rounded-lg border p-3 text-sm" key={row.id}>
+            <li className="surface p-4 text-sm" key={row.id}>
               <div className="flex items-baseline justify-between gap-2">
                 <Link
                   className="font-medium underline"
@@ -63,11 +65,9 @@ const ObservationsPage = () => {
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground text-sm">
-          {t("observations.none")}
-        </p>
+        <EmptyState icon={Eye} title={t("observations.none")} />
       )}
-    </div>
+    </Page>
   );
 };
 

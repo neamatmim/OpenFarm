@@ -3,10 +3,12 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { FileSpreadsheet, Printer } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -49,19 +51,16 @@ const RegisterSection = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <section className="space-y-2 rounded-lg border p-3 text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-medium">
-          {t(title)}
-          {period ? ` · ${period.from} — ${period.to}` : ""}
-        </h2>
-        <div className="flex gap-2">
+    <Section
+      action={
+        <>
           <Button
             disabled={printing}
             onClick={onPrint}
             size="sm"
             variant="outline"
           >
+            <Printer data-icon="inline-start" />
             {t("common.print")}
           </Button>
           {onCsv ? (
@@ -71,17 +70,23 @@ const RegisterSection = ({
               size="sm"
               variant="outline"
             >
+              <FileSpreadsheet data-icon="inline-start" />
               {t("inspector.csv")}
             </Button>
           ) : null}
-        </div>
-      </div>
+        </>
+      }
+      description={period ? `${period.from} — ${period.to}` : undefined}
+      title={t(title)}
+    >
       {children?.length ? (
-        <ul className="space-y-1">{children}</ul>
+        <ul className="divide-border flex flex-col divide-y">{children}</ul>
       ) : (
-        <p className="text-muted-foreground">{t(empty)}</p>
+        <p className="text-muted-foreground bg-muted/50 rounded-lg px-3 py-4 text-center text-sm">
+          {t(empty)}
+        </p>
       )}
-    </section>
+    </Section>
   );
 };
 
@@ -151,29 +156,33 @@ export const HealthRegisters = ({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
-        <Input
-          aria-label={t("dispatch.from")}
-          className="w-40"
-          onChange={(event) => setFrom(event.target.value)}
-          type="date"
-          value={from}
-        />
-        <Input
-          aria-label={t("dispatch.to")}
-          className="w-40"
-          onChange={(event) => setTo(event.target.value)}
-          type="date"
-          value={to}
-        />
-      </div>
-      <div>
+      <div className="bg-card flex flex-wrap items-end gap-3 rounded-xl border p-4">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">{t("inspector.period")}</span>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              aria-label={t("dispatch.from")}
+              className="w-44"
+              onChange={(event) => setFrom(event.target.value)}
+              type="date"
+              value={from}
+            />
+            <Input
+              aria-label={t("dispatch.to")}
+              className="w-44"
+              onChange={(event) => setTo(event.target.value)}
+              type="date"
+              value={to}
+            />
+          </div>
+        </div>
         <Button
+          className="ml-auto"
           disabled={movementLog.isPending}
           onClick={() => movementLog.mutate(asked)}
-          size="sm"
           variant="outline"
         >
+          <FileSpreadsheet data-icon="inline-start" />
           {t("inspector.movementLog")}
         </Button>
       </div>
@@ -191,7 +200,7 @@ export const HealthRegisters = ({
         {...saved("vaccination_register")}
       >
         {vaccinations.data?.rows.map((row) => (
-          <li className="rounded border p-2" key={row.id}>
+          <li className="py-3 text-sm" key={row.id}>
             {row.givenOn} · {row.tagNumber} · {row.vaccine}
             <span className="text-muted-foreground block text-xs">
               {t("inspector.lotNumber", {
@@ -211,7 +220,7 @@ export const HealthRegisters = ({
         {...saved("treatment_register")}
       >
         {treatments.data?.rows.map((row) => (
-          <li className="rounded border p-2" key={row.id}>
+          <li className="py-3 text-sm" key={row.id}>
             {row.givenOn} · {row.tagNumber}
             {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
             {row.dose ? ` · ${row.dose}` : ""}
@@ -240,10 +249,10 @@ export const HealthRegisters = ({
         {...printed("disease_history")}
       >
         {diseases.data?.rows.map((row) => (
-          <li className="rounded border p-2" key={row.id}>
+          <li className="py-3 text-sm" key={row.id}>
             {row.diagnosedOn} · {row.tagNumber} · {row.disease}
             {row.notifiable ? (
-              <span className="ml-1 text-amber-400">
+              <span className="text-warning ml-1">
                 {t("inspector.notifiable", {
                   reference: row.reportReference ?? "—",
                 })}
@@ -265,11 +274,11 @@ export const HealthRegisters = ({
         {...saved("mortality_register")}
       >
         {mortalities.data?.rows.map((row) => (
-          <li className="rounded border p-2" key={row.id}>
+          <li className="py-3 text-sm" key={row.id}>
             {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
             {causeWord(row.cause, t)}
             <span
-              className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-amber-500"}`}
+              className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-warning"}`}
             >
               {disposalWord(row.disposal, t)}
               {row.disposalNote ? ` · ${row.disposalNote}` : ""}

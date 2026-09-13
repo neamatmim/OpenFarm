@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { PublicHeader } from "@/components/public-header";
 import { useT } from "@/i18n/language-provider";
 import type { RosterEntry } from "@/lib/device";
 import {
@@ -152,15 +153,17 @@ const DevicePage = () => {
   if (!token) {
     return (
       <form
-        className="mx-auto mt-10 w-full max-w-sm space-y-4 p-6"
+        className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8"
         onSubmit={(event) => {
           event.preventDefault();
           claim.mutate({ code });
         }}
       >
-        <h1 className="text-2xl font-bold">{t("device.setup")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+          {t("device.setup")}
+        </h1>
         <p className="text-muted-foreground">{t("device.setupHelp")}</p>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="code">{t("device.code")}</Label>
           <Input
             id="code"
@@ -182,8 +185,8 @@ const DevicePage = () => {
 
   if (!locked && active) {
     return (
-      <div className="mx-auto mt-10 w-full max-w-sm space-y-4 p-6 text-center">
-        <p className="text-2xl font-bold">
+      <div className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 text-center sm:p-8">
+        <p className="text-2xl font-semibold">
           {t("device.workingAs", { name: active.name })}
         </p>
         <p className="text-muted-foreground text-sm">
@@ -205,8 +208,10 @@ const DevicePage = () => {
 
   if (chosen) {
     return (
-      <div className="mx-auto mt-10 w-full max-w-sm space-y-4 p-6">
-        <h1 className="text-xl font-bold">{chosen.name}</h1>
+      <div className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+          {chosen.name}
+        </h1>
         <Label htmlFor="pin">{t("device.enterPin")}</Label>
         <Input
           id="pin"
@@ -241,8 +246,10 @@ const DevicePage = () => {
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-sm space-y-4 p-6">
-      <h1 className="text-xl font-bold">{t("device.whoAreYou")}</h1>
+    <div className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8">
+      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+        {t("device.whoAreYou")}
+      </h1>
       {roster.isError ? (
         <p className="text-muted-foreground text-sm">
           {t("device.offlineRoster")}
@@ -251,14 +258,17 @@ const DevicePage = () => {
       {people.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("device.noRoster")}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="flex flex-col gap-2">
           {people.map((person) => (
             <li key={person.userId}>
               <Button
                 variant="outline"
-                className="h-14 w-full justify-start text-lg"
+                className="h-16 w-full justify-start gap-3 text-lg"
                 onClick={() => setChosen(person)}
               >
+                <span className="bg-primary text-primary-foreground grid size-10 shrink-0 place-items-center rounded-full text-base font-semibold">
+                  {person.name.slice(0, 1)}
+                </span>
                 {person.name}
               </Button>
             </li>
@@ -269,6 +279,19 @@ const DevicePage = () => {
   );
 };
 
+/** The Shed Phone's own door: the farm's name at the top, and the one card that asks who is working. */
+const DeviceScreen = () => (
+  <div className="flex min-h-svh flex-col">
+    <PublicHeader />
+    <main
+      className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 sm:items-center sm:pt-0"
+      id="main"
+    >
+      <DevicePage />
+    </main>
+  </div>
+);
+
 export const Route = createFileRoute("/device")({
-  component: DevicePage,
+  component: DeviceScreen,
 });

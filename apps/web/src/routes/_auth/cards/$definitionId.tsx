@@ -156,7 +156,7 @@ const TrainedOn = ({
   );
 
   return (
-    <section className="no-print space-y-2 rounded-lg border p-3">
+    <section className="no-print surface space-y-2 p-4">
       <h2 className="text-sm font-medium">{t("training.title")}</h2>
       {trained.data?.length ? (
         <ul className="space-y-1 text-sm">

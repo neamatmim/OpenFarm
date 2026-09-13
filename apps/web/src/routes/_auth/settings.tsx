@@ -7,6 +7,7 @@ import { BellOff, BellRing } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import {
   askToBeTold,
@@ -87,35 +88,36 @@ const SettingsPage = () => {
   const already = Boolean(listening.data);
 
   return (
-    <div className="container mx-auto max-w-xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("push.title")}</h1>
-      <p className="text-muted-foreground text-sm">{t("push.why")}</p>
-      {possible ? (
-        <Button
-          className="h-14 w-full text-lg"
-          disabled={agree.isPending || refuse.isPending}
-          onClick={() => (already ? refuse.mutate() : agree.mutate())}
-          variant={already ? "outline" : "default"}
-        >
-          {already ? <BellOff size={18} /> : <BellRing size={18} />}
-          {already ? t("push.stop") : t("push.enable")}
-        </Button>
-      ) : (
-        <p className="rounded-xl bg-neutral-800 p-3 text-sm">
-          {t("push.unavailable")}
-        </p>
-      )}
-      {said ? (
-        <p className="rounded-xl bg-amber-950 p-3 text-sm text-amber-100">
-          {said}
-        </p>
-      ) : null}
-      {already ? (
-        <p className="text-muted-foreground text-sm">{t("push.enabled")}</p>
-      ) : null}
+    <Page width="narrow">
+      <PageHeader title={t("nav.settings")} />
+      <Section description={t("push.why")} title={t("push.title")}>
+        {possible ? (
+          <Button
+            className="h-12 w-full text-base sm:w-auto"
+            disabled={agree.isPending || refuse.isPending}
+            onClick={() => (already ? refuse.mutate() : agree.mutate())}
+            variant={already ? "outline" : "default"}
+          >
+            {already ? <BellOff size={18} /> : <BellRing size={18} />}
+            {already ? t("push.stop") : t("push.enable")}
+          </Button>
+        ) : (
+          <p className="bg-muted rounded-xl p-3 text-sm">
+            {t("push.unavailable")}
+          </p>
+        )}
+        {said ? (
+          <p className="bg-warning-surface text-warning rounded-xl p-3 text-sm">
+            {said}
+          </p>
+        ) : null}
+        {already ? (
+          <p className="text-muted-foreground text-sm">{t("push.enabled")}</p>
+        ) : null}
+      </Section>
 
       <MyNumber />
-    </div>
+    </Page>
   );
 };
 
@@ -143,25 +145,29 @@ const MyNumber = () => {
   const mine = phone ?? me.data?.phone ?? "";
 
   return (
-    <form
-      className="space-y-2 border-t pt-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        save.mutate({ phone: mine.trim() || null });
-      }}
-    >
-      <Label htmlFor="my-phone">{t("sms.myNumber")}</Label>
-      <p className="text-muted-foreground text-sm">{t("sms.why")}</p>
-      <Input
-        id="my-phone"
-        inputMode="tel"
-        onChange={(event) => setPhone(event.target.value)}
-        value={mine}
-      />
-      <Button type="submit" variant="outline">
-        {t("sms.save")}
-      </Button>
-    </form>
+    <Section description={t("sms.why")} title={t("sms.myNumber")}>
+      <form
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate({ phone: mine.trim() || null });
+        }}
+      >
+        <Label className="sr-only" htmlFor="my-phone">
+          {t("sms.myNumber")}
+        </Label>
+        <Input
+          className="sm:max-w-xs"
+          id="my-phone"
+          inputMode="tel"
+          onChange={(event) => setPhone(event.target.value)}
+          value={mine}
+        />
+        <Button type="submit" variant="outline">
+          {t("sms.save")}
+        </Button>
+      </form>
+    </Section>
   );
 };
 

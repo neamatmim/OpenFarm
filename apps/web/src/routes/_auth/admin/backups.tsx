@@ -1,7 +1,9 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { DatabaseBackup } from "lucide-react";
 
+import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -40,22 +42,16 @@ const BackupsPage = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("backups.title")}</h1>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader title={t("backups.title")} />
       {state ? (
-        <p
-          className={`rounded-xl p-3 ${
-            worrying ? "bg-amber-900 text-amber-100" : "bg-neutral-800"
-          }`}
-        >
-          {howItStands()}
-        </p>
+        <Notice title={howItStands()} tone={worrying ? "warning" : "success"} />
       ) : null}
       {state?.runs.length ? (
         <ul className="space-y-2">
           {state.runs.map((run) => (
             <li
-              className="flex items-center justify-between rounded-xl bg-neutral-900 p-3 text-sm"
+              className="bg-card surface flex items-center justify-between p-4 text-sm"
               key={run.id}
             >
               <span>
@@ -63,9 +59,7 @@ const BackupsPage = () => {
                 {run.kind}
               </span>
               <span
-                className={
-                  run.ok === "yes" ? "text-emerald-400" : "text-amber-300"
-                }
+                className={run.ok === "yes" ? "text-success" : "text-warning"}
               >
                 {run.ok === "yes" ? t("backups.ok") : t("backups.failed")}
                 {run.detail ? ` · ${run.detail}` : ""}
@@ -74,9 +68,9 @@ const BackupsPage = () => {
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground text-sm">{t("backups.none")}</p>
+        <EmptyState icon={DatabaseBackup} title={t("backups.none")} />
       )}
-    </div>
+    </Page>
   );
 };
 

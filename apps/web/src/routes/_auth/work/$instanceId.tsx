@@ -11,13 +11,30 @@ import { formatDate, formatDayField, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Camera, Check, Lock, SprayCan } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  Camera,
+  Check,
+  ChevronLeft,
+  CircleDashed,
+  ChevronRight,
+  Lock,
+  SkipForward,
+  SprayCan,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import {
+  Notice,
+  Page,
+  StatusBadge,
+  StickyAction,
+  TagChip,
+} from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
@@ -308,12 +325,27 @@ const WorkPage = () => {
 
   if (state === "due") {
     return (
-      <div className="mx-auto mt-10 w-full max-w-sm space-y-4 p-6 text-center">
-        <h1 className="text-2xl font-bold">{content.name.bn}</h1>
-        <Button className="h-14 w-full text-lg" onClick={() => claim.mutate()}>
-          {t("work.claim")}
-        </Button>
-      </div>
+      <Page width="narrow">
+        <div className="bg-card mx-auto mt-6 flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border p-8 text-center shadow-sm">
+          <span className="bg-secondary text-secondary-foreground grid size-16 place-items-center rounded-2xl">
+            <SprayCan aria-hidden className="size-8" />
+          </span>
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+              {content.name.bn}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {t("work.claimHint")}
+            </p>
+          </div>
+          <Button
+            className="h-14 w-full text-lg"
+            onClick={() => claim.mutate()}
+          >
+            {t("work.claim")}
+          </Button>
+        </div>
+      </Page>
     );
   }
 
@@ -395,19 +427,11 @@ const WorkPage = () => {
     );
   }
 
+  const { tally, nextAnimal } = roundOf(animals, perAnimalStep, doneFor);
+
   return (
-    <div className="container mx-auto max-w-xl space-y-4 px-3 py-4">
-      <header>
-        <h1 className="text-xl font-bold">{content.name.bn}</h1>
-        <p className="text-muted-foreground text-sm">
-          {t("work.progress", {
-            done: animals.filter(
-              (b) => perAnimalStep && doneFor(perAnimalStep.id, b.id)
-            ).length,
-            total: animals.length,
-          })}
-        </p>
-      </header>
+    <Page className="max-w-4xl pb-2">
+      <WorkHeader name={content.name.bn} tally={tally} />
 
       {instance.data.report ? (
         <TheLetter report={instance.data.report} />
@@ -415,89 +439,317 @@ const WorkPage = () => {
 
       {changed ? <WhatChanged changed={changed} /> : null}
 
-      {runningOn ? (
-        <p className="rounded-xl bg-neutral-800 p-3 text-sm text-neutral-200">
-          {t("changed.onOlder", { number: runningOn })}
-        </p>
-      ) : null}
+      <WorkNotices runningOn={runningOn} shortFed={shortFed} />
 
-      {shortFed ? (
-        <p className="rounded-xl bg-amber-900 p-3 text-sm text-amber-100">
-          {t("work.shortFed", { percent: shortFed.shortfallPercent })}
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap gap-2">
-        {chipSteps.map((step) => {
-          const done = Boolean(doneFor(step.id));
-          return (
-            <button
+      {chipSteps.length ? (
+        <div className="flex flex-col gap-2">
+          {chipSteps.map((step) => (
+            <StepRow
+              done={Boolean(doneFor(step.id))}
               key={step.id}
-              type="button"
-              onClick={() => setOpenStep(step)}
-              className={`flex items-center gap-1 rounded-full px-3 py-2 text-sm ${
-                done ? "bg-emerald-700" : "bg-neutral-800"
-              }`}
-            >
-              {done ? <Check size={14} /> : <SprayCan size={14} />}{" "}
-              {step.text.bn}
-            </button>
-          );
-        })}
-      </div>
+              onOpen={() => setOpenStep(step)}
+              step={step}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {perAnimalStep ? (
-        <ul className="grid grid-cols-3 gap-3">
-          {animals.map((beast) => {
-            const completion = doneFor(perAnimalStep.id, beast.id);
-            return (
-              <li key={beast.id}>
-                <button
-                  type="button"
-                  onClick={() => setOpenAnimal(beast)}
-                  className={`relative flex w-full flex-col items-center gap-1 rounded-2xl p-3 ${
-                    completion ? "bg-neutral-900 opacity-70" : "bg-neutral-800"
-                  }`}
-                >
-                  <AnimalPhoto
-                    tagNumber={beast.tagNumber}
-                    photoUpdatedAt={beast.photoUpdatedAt}
-                  />
-                  <span className="font-bold">{beast.tagNumber}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {completion?.status === "skipped"
-                      ? completion.skipReason
-                      : ""}
-                  </span>
-                  {beast.underMilkWithdrawal ? (
-                    <span className="flex items-center gap-1 rounded-full bg-amber-900 px-2 py-0.5 text-xs text-amber-200">
-                      <Lock size={12} /> {t("milk.withdrawalShort")}
-                    </span>
-                  ) : null}
-                  {completion ? (
-                    <Check
-                      size={16}
-                      className="absolute top-2 left-2 text-emerald-400"
-                    />
-                  ) : null}
-                </button>
-              </li>
-            );
-          })}
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {animals.map((beast) => (
+            <li key={beast.id}>
+              <AnimalTile
+                animal={beast}
+                completion={doneFor(perAnimalStep.id, beast.id)}
+                onOpen={() => setOpenAnimal(beast)}
+              />
+            </li>
+          ))}
         </ul>
       ) : null}
 
       {outcome ? <BulkOutcomeBanner outcome={outcome} /> : null}
 
-      <ClosingAction
-        ready={readyToClose}
-        closingStep={closingStep}
-        done={Boolean(closingStep && doneFor(closingStep.id))}
-        pending={finish.isPending}
-        onOpen={(step) => setOpenStep(step)}
-        onFinish={() => finish.mutate()}
-      />
-    </div>
+      <StickyAction>
+        {nextAnimal ? (
+          <NextAnimal
+            animal={nextAnimal}
+            onOpen={() => setOpenAnimal(nextAnimal)}
+          />
+        ) : (
+          <ClosingAction
+            closingStep={closingStep}
+            done={Boolean(closingStep && doneFor(closingStep.id))}
+            onFinish={() => finish.mutate()}
+            onOpen={(step) => setOpenStep(step)}
+            pending={finish.isPending}
+            ready={readyToClose}
+          />
+        )}
+      </StickyAction>
+    </Page>
+  );
+};
+
+/** The one action that takes a person to the next animal still to do. */
+const NextAnimal = ({
+  animal,
+  onOpen,
+}: {
+  animal: Animal;
+  onOpen: () => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <Button className="h-14 w-full text-lg" onClick={onOpen}>
+      {t("work.nextAnimal", { tag: animal.tagNumber })}
+      <ChevronRight data-icon="inline-end" />
+    </Button>
+  );
+};
+
+/** What the person should know before working: an older Version still running, or the Pen fed short. */
+const WorkNotices = ({
+  runningOn,
+  shortFed,
+}: {
+  runningOn: number | null | undefined;
+  shortFed: { shortfallPercent: number } | null | undefined;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {runningOn ? (
+        <Notice
+          title={t("changed.onOlder", { number: runningOn })}
+          tone="info"
+        />
+      ) : null}
+
+      {shortFed ? (
+        <Notice
+          title={t("work.shortFed", { percent: shortFed.shortfallPercent })}
+          tone="warning"
+        />
+      ) : null}
+    </>
+  );
+};
+
+/** Where one animal stands in a round: recorded, skipped, or still to do. */
+type Standing = "done" | "skipped" | "left";
+
+const standingOf = (completion: Completion | undefined): Standing => {
+  if (!completion) {
+    return "left";
+  }
+  return completion.status === "skipped" ? "skipped" : "done";
+};
+
+/** How each standing looks on its tile: its word, its icon, and its colour — never the colour alone. */
+const TILE_LOOK = {
+  done: {
+    icon: Check,
+    label: "work.tileDone",
+    tile: "border-success/35 bg-success-surface/50",
+    text: "text-success",
+  },
+  skipped: {
+    icon: SkipForward,
+    label: "work.tileSkipped",
+    tile: "bg-muted/60",
+    text: "text-muted-foreground",
+  },
+  left: {
+    icon: CircleDashed,
+    label: "work.tileLeft",
+    tile: "",
+    text: "text-foreground",
+  },
+} as const satisfies Record<
+  Standing,
+  { icon: unknown; label: MessageKey; tile: string; text: string }
+>;
+
+/** A Pen's round so far — how many animals are done, skipped and left — and the next animal still to do. */
+const roundOf = (
+  animals: Animal[],
+  perAnimalStep: Step | undefined,
+  doneFor: (stepId: string, animalId: string | null) => Completion | undefined
+) => {
+  if (!perAnimalStep) {
+    return { tally: null, nextAnimal: undefined };
+  }
+  const tally = { done: 0, skipped: 0, left: 0 };
+  let nextAnimal: Animal | undefined;
+  for (const beast of animals) {
+    const standing = standingOf(doneFor(perAnimalStep.id, beast.id));
+    tally[standing] += 1;
+    if (standing === "left" && !nextAnimal) {
+      nextAnimal = beast;
+    }
+  }
+  return { tally, nextAnimal };
+};
+
+/** How far round the Pen this work has got: done, skipped and still to do, each counted and each its own colour. */
+const WorkHeader = ({
+  name,
+  tally,
+}: {
+  name: string;
+  tally: { done: number; skipped: number; left: number } | null;
+}) => {
+  const { t, language } = useLanguage();
+  const count = (n: number) => formatDigits(n, language);
+  const total = tally ? tally.done + tally.skipped + tally.left : 0;
+  const share = (n: number) => `${total === 0 ? 0 : (n / total) * 100}%`;
+  return (
+    <header className="flex flex-col gap-3">
+      <Link
+        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
+        search={{}}
+        to="/today"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+        {t("nav.today")}
+      </Link>
+      <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
+      {tally && total > 0 ? (
+        <div className="flex flex-col gap-2">
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <span className="text-success inline-flex items-center gap-1.5 font-medium">
+              <Check aria-hidden className="size-4" />
+              {t("work.tallyDone", { count: count(tally.done) })}
+            </span>
+            <span className="text-muted-foreground inline-flex items-center gap-1.5 font-medium">
+              <SkipForward aria-hidden className="size-4" />
+              {t("work.tallySkipped", { count: count(tally.skipped) })}
+            </span>
+            <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
+              <CircleDashed aria-hidden className="size-4" />
+              {t("work.tallyLeft", { count: count(tally.left) })}
+            </span>
+          </p>
+          <div
+            aria-hidden
+            className="bg-muted flex h-2.5 w-full overflow-hidden rounded-full"
+          >
+            <div
+              className="bg-success h-full transition-[width] duration-300"
+              style={{ width: share(tally.done) }}
+            />
+            <div
+              className="bg-muted-foreground/35 h-full transition-[width] duration-300"
+              style={{ width: share(tally.skipped) }}
+            />
+          </div>
+        </div>
+      ) : null}
+    </header>
+  );
+};
+
+/** A once-only Step of the work: what it asks, and whether it has been done. */
+const StepRow = ({
+  step,
+  done,
+  onOpen,
+}: {
+  step: Step;
+  done: boolean;
+  onOpen: () => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <button
+      className={cn(
+        "bg-card hover:border-primary/40 focus-visible:ring-ring flex min-h-14 w-full items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,box-shadow] duration-150 outline-none focus-visible:ring-2",
+        done && "border-success/30 bg-success-surface/60"
+      )}
+      onClick={onOpen}
+      type="button"
+    >
+      <span
+        className={cn(
+          "grid size-10 shrink-0 place-items-center rounded-full",
+          done
+            ? "bg-success text-white"
+            : "bg-secondary text-secondary-foreground"
+        )}
+      >
+        {done ? (
+          <Check aria-hidden className="size-5" />
+        ) : (
+          <SprayCan aria-hidden className="size-5" />
+        )}
+      </span>
+      <span className="flex-1 text-base font-medium">{step.text.bn}</span>
+      {done ? (
+        <StatusBadge tone="success">{t("work.stepDone")}</StatusBadge>
+      ) : (
+        <ChevronRight aria-hidden className="text-muted-foreground size-5" />
+      )}
+    </button>
+  );
+};
+
+/** One animal of a Pen's round: her number first, then — in words, not only colour — whether she is done, skipped
+ *  and why, or still to do, and whether a Withdrawal holds her milk. */
+const AnimalTile = ({
+  animal,
+  completion,
+  onOpen,
+}: {
+  animal: Animal;
+  completion: Completion | undefined;
+  onOpen: () => void;
+}) => {
+  const { t } = useLanguage();
+  const standing = standingOf(completion);
+  const { icon: StateIcon, label, tile, text } = TILE_LOOK[standing];
+  const held = animal.underMilkWithdrawal && standing === "left";
+  return (
+    <button
+      aria-label={`${animal.tagNumber} — ${t(label)}`}
+      className={cn(
+        "bg-card hover:border-primary/40 focus-visible:ring-ring flex min-h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-[border-color,box-shadow] duration-150 outline-none hover:shadow-md focus-visible:ring-2",
+        tile,
+        held && "border-warning/40"
+      )}
+      onClick={onOpen}
+      type="button"
+    >
+      {animal.photoUpdatedAt ? (
+        <AnimalPhoto
+          photoUpdatedAt={animal.photoUpdatedAt}
+          size={64}
+          tagNumber={animal.tagNumber}
+        />
+      ) : null}
+      <span className="font-mono text-lg font-bold tabular-nums">
+        {animal.tagNumber}
+      </span>
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 text-sm font-medium",
+          text
+        )}
+      >
+        <StateIcon aria-hidden className="size-4" />
+        {t(label)}
+      </span>
+      {standing === "skipped" && completion?.skipReason ? (
+        <span className="text-muted-foreground line-clamp-2 text-xs">
+          {completion.skipReason}
+        </span>
+      ) : null}
+      {animal.underMilkWithdrawal ? (
+        <StatusBadge icon={Lock} tone="warning">
+          {t("milk.withdrawalShort")}
+        </StatusBadge>
+      ) : null}
+    </button>
   );
 };
 
@@ -563,9 +815,9 @@ const WhatChanged = ({ changed }: { changed: Changed }) => {
     };
   };
   return (
-    <section className="space-y-1 rounded-xl bg-sky-900 p-3 text-sky-50">
+    <section className="bg-info-surface text-info space-y-1 rounded-xl p-3">
       <p className="font-medium">{t("changed.title")}</p>
-      <p className="text-sm text-sky-200">
+      <p className="text-info text-sm">
         {t("changed.versions", { from: changed.from, to: changed.to })}
       </p>
       <ul className="space-y-1 text-sm">
@@ -588,18 +840,16 @@ const BulkOutcomeBanner = ({ outcome }: { outcome: BulkOutcome }) => {
     language === "bn" ? "bn-BD" : "en-GB"
   ).format(Math.abs(outcome.differenceLitres));
   return (
-    <div
-      className={`rounded-xl p-3 text-sm ${
-        outcome.flagged ? "bg-amber-900 text-amber-100" : "bg-neutral-800"
-      }`}
-    >
-      <p>
-        {outcome.differenceLitres === 0
+    <Notice
+      title={
+        outcome.differenceLitres === 0
           ? t("milk.matched")
-          : t("milk.difference", { litres })}
-      </p>
-      {outcome.flagged ? <p>{t("milk.flagged")}</p> : null}
-    </div>
+          : t("milk.difference", { litres })
+      }
+      tone={outcome.flagged ? "warning" : "success"}
+    >
+      {outcome.flagged ? t("milk.flagged") : null}
+    </Notice>
   );
 };
 
@@ -622,7 +872,7 @@ const ClosingAction = ({
   const { t } = useLanguage();
   if (!ready) {
     return (
-      <p className="text-muted-foreground text-center text-sm">
+      <p className="text-muted-foreground bg-muted/60 rounded-xl px-4 py-3 text-center text-sm">
         {t("work.notFinished")}
       </p>
     );
@@ -810,7 +1060,7 @@ const RenewalFields = ({
           type="file"
         />
         {certificateTaken ? (
-          <p className="text-sm text-emerald-400">{t("renewal.taken")}</p>
+          <p className="text-success text-sm">{t("renewal.taken")}</p>
         ) : null}
       </div>
     </div>
@@ -903,7 +1153,7 @@ const FeedingFields = ({
   const { t } = useLanguage();
   if (cannotFeed) {
     return (
-      <p className="rounded-xl bg-amber-900 p-3 text-amber-100">
+      <p className="bg-warning-surface text-warning rounded-xl p-3">
         {t("work.noRation")}
       </p>
     );
@@ -1226,21 +1476,32 @@ const EvidenceSheet = ({
   }
 
   return (
-    <div className="mx-auto mt-6 w-full max-w-sm space-y-4 p-4">
-      <header className="flex items-center gap-3">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 pt-6 pb-2">
+      <button
+        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
+        onClick={onCancel}
+        type="button"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+        {t("work.back")}
+      </button>
+      <header className="bg-card flex items-center gap-4 rounded-xl border p-4">
         {animal ? (
           <AnimalPhoto
-            tagNumber={animal.tagNumber}
             photoUpdatedAt={animal.photoUpdatedAt}
-            size={64}
+            size={80}
+            tagNumber={animal.tagNumber}
           />
-        ) : null}
-        <div>
-          <p className="text-2xl font-bold">
-            {animal?.tagNumber ?? step.text.bn}
-          </p>
-          {animal ? (
-            <p className="text-muted-foreground">{step.text.bn}</p>
+        ) : (
+          <span className="bg-secondary text-secondary-foreground grid size-14 shrink-0 place-items-center rounded-xl">
+            <SprayCan aria-hidden className="size-7" />
+          </span>
+        )}
+        <div className="flex min-w-0 flex-col gap-1.5">
+          {animal ? <TagChip>{animal.tagNumber}</TagChip> : null}
+          <p className="text-xl leading-snug font-semibold">{step.text.bn}</p>
+          {correcting ? (
+            <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
           ) : null}
         </div>
       </header>
@@ -1287,8 +1548,8 @@ const EvidenceSheet = ({
       />
 
       {correcting ? (
-        <div className="space-y-2">
-          <p className="text-muted-foreground text-sm">{t("correct.why")}</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">{t("correct.why")}</p>
           <Input
             aria-label={t("correct.why")}
             onChange={(event) => setReason(event.target.value)}
@@ -1298,41 +1559,44 @@ const EvidenceSheet = ({
       ) : null}
 
       {warning ? (
-        <div className="space-y-2 rounded-xl border-2 border-amber-500 p-3">
-          <p className="flex items-center gap-2 text-amber-300">
-            <Lock size={16} /> {t("work.outOfRange")}
-          </p>
-          <Button className="w-full" onClick={() => submit(true)}>
+        <Notice title={t("work.outOfRange")} tone="warning">
+          <Button
+            className="mt-2 w-full"
+            onClick={() => submit(true)}
+            variant="outline"
+          >
             {t("work.keepAnyway")}
           </Button>
-        </div>
+        </Notice>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-2">
-        <Button variant="ghost" className="h-14" onClick={onCancel}>
-          {t("work.back")}
-        </Button>
-        {step.repeatPerAnimal ? (
-          <Button
-            variant="outline"
-            className="h-14"
-            onClick={() => setSkipping(true)}
-          >
-            {t("work.skip")}
+      <StickyAction>
+        <div className="grid grid-cols-3 gap-2">
+          <Button variant="ghost" className="h-14" onClick={onCancel}>
+            {t("work.back")}
           </Button>
-        ) : null}
-        <Button
-          className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
-          disabled={
-            cannotFeed ||
-            !count.complete ||
-            !(ready && (!correcting || reason.trim()))
-          }
-          onClick={() => submit(false)}
-        >
-          {correcting ? t("correct.save") : t("work.confirm")}
-        </Button>
-      </div>
+          {step.repeatPerAnimal ? (
+            <Button
+              variant="outline"
+              className="h-14"
+              onClick={() => setSkipping(true)}
+            >
+              {t("work.skip")}
+            </Button>
+          ) : null}
+          <Button
+            className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
+            disabled={
+              cannotFeed ||
+              !count.complete ||
+              !(ready && (!correcting || reason.trim()))
+            }
+            onClick={() => submit(false)}
+          >
+            {correcting ? t("correct.save") : t("work.confirm")}
+          </Button>
+        </div>
+      </StickyAction>
     </div>
   );
 };
@@ -1351,14 +1615,14 @@ const DestinationChoice = ({
   const { t } = useLanguage();
   if (locked) {
     return (
-      <p className="flex items-center gap-2 rounded-xl bg-amber-900 p-3 text-amber-100">
-        <Lock size={16} /> {t("milk.withdrawal")}
-      </p>
+      <Notice icon={Lock} title={t("work.blockedWithdrawal")} tone="danger">
+        {t("milk.withdrawal")}
+      </Notice>
     );
   }
   return (
-    <div className="space-y-2">
-      <p className="text-muted-foreground text-sm">{t("milk.destination")}</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-medium">{t("milk.destination")}</p>
       <div className="grid grid-cols-3 gap-2">
         {MILK_DESTINATIONS.map((option) => (
           <Button
@@ -1486,7 +1750,7 @@ const EvidenceControl = ({
   }
 
   return (
-    <label className="flex items-center gap-2 rounded-xl bg-neutral-800 p-3 text-base">
+    <label className="bg-muted flex items-center gap-2 rounded-xl p-3 text-base">
       <Camera size={20} /> {hasPhoto ? t("work.saved") : t("work.photo")}
       <input
         accept="image/*"
@@ -1512,5 +1776,6 @@ const EvidenceControl = ({
 };
 
 export const Route = createFileRoute("/_auth/work/$instanceId")({
+  staticData: { focusedWork: true },
   component: WorkPage,
 });

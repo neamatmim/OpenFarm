@@ -4,9 +4,11 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState, Page, PageHeader } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -50,16 +52,13 @@ const NotifiablePage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("notifiable.title")}</h1>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader title={t("notifiable.title")} />
 
       {list.data?.length ? (
         <ul className="space-y-2">
           {list.data.map((disease) => (
-            <li
-              className="space-y-1 rounded-lg border p-3 text-sm"
-              key={disease.id}
-            >
+            <li className="surface space-y-1 p-4 text-sm" key={disease.id}>
               <div className="flex items-baseline justify-between gap-2">
                 <span
                   className={disease.retiredAt ? "text-muted-foreground" : ""}
@@ -118,11 +117,11 @@ const NotifiablePage = () => {
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground text-sm">{t("notifiable.none")}</p>
+        <EmptyState icon={ShieldAlert} title={t("notifiable.none")} />
       )}
 
       <form
-        className="space-y-2"
+        className="surface flex flex-col gap-4 p-4 md:p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (name.trim()) {
@@ -166,7 +165,7 @@ const NotifiablePage = () => {
           {t("notifiable.add")}
         </Button>
       </form>
-    </div>
+    </Page>
   );
 };
 

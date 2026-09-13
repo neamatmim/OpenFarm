@@ -31,7 +31,7 @@ export const AnimalPhoto = ({
         alt={tagNumber}
         width={size}
         height={size}
-        className="shrink-0 rounded-full border-2 border-white/20 object-cover"
+        className="ring-border shrink-0 rounded-xl object-cover ring-1"
         style={{ width: size, height: size }}
       />
     );
@@ -39,7 +39,7 @@ export const AnimalPhoto = ({
   return (
     <div
       aria-hidden="true"
-      className="flex shrink-0 items-center justify-center rounded-full border-2 border-white/20 bg-neutral-700 font-bold"
+      className="bg-secondary text-secondary-foreground ring-border flex shrink-0 items-center justify-center rounded-xl font-semibold tabular-nums ring-1"
       style={{ width: size, height: size, fontSize: size / 4 }}
     >
       {tagNumber.slice(2)}

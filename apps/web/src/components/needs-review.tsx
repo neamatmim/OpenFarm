@@ -3,11 +3,14 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState, Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useInFlight } from "@/lib/in-flight";
 import { orpc } from "@/utils/orpc";
 
 /** Every reason has something to say, typed by the reason rather than by string, so a new
@@ -30,8 +33,11 @@ export const NeedsReview = () => {
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const queue = useQuery(orpc.review.open.queryOptions());
+  const inFlight = useInFlight();
   const resolve = useMutation(
     orpc.review.resolve.mutationOptions({
+      onMutate: ({ id }) => inFlight.start(id),
+      onSettled: (_data, _error, { id }) => inFlight.end(id),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: orpc.review.key() });
         void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
@@ -42,54 +48,57 @@ export const NeedsReview = () => {
   );
 
   const note = (id: string) => notes[id] ?? "";
+  const resolving = inFlight.has;
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-bold">{t("review.title")}</h2>
-      {queue.data?.length ? (
-        <ul className="space-y-3">
-          {queue.data.map((row) => {
-            const key = messageFor(row.reason);
-            return (
-              <li className="rounded-2xl bg-neutral-900 p-4" key={row.id}>
-                <p className="font-bold">{key ? t(key) : row.reason}</p>
-                <p className="text-muted-foreground text-sm">
-                  {formatDate(new Date(row.raisedAt), language, "dateTime")}
-                  {row.raisedBy.reason ? ` · ${row.raisedBy.reason}` : ""}
-                </p>
-                <div className="mt-3 space-y-2">
-                  <Input
-                    aria-label={t("review.resolution")}
-                    onChange={(event) =>
-                      setNotes((current) => ({
-                        ...current,
-                        [row.id]: event.target.value,
-                      }))
-                    }
-                    placeholder={t("review.resolution")}
-                    value={note(row.id)}
-                  />
-                  <Button
-                    className="w-full"
-                    disabled={!note(row.id).trim()}
-                    onClick={() =>
-                      resolve.mutate({
-                        id: row.id,
-                        resolution: note(row.id).trim(),
-                      })
-                    }
-                    variant="outline"
-                  >
-                    {t("review.resolve")}
-                  </Button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground text-sm">{t("review.none")}</p>
-      )}
-    </section>
+    <Section title={t("review.title")}>
+      <Loaded query={queue}>
+        {queue.data?.length ? (
+          <ul className="space-y-3">
+            {queue.data.map((row) => {
+              const key = messageFor(row.reason);
+              return (
+                <li className="rounded-lg border p-4" key={row.id}>
+                  <p className="font-semibold">{key ? t(key) : row.reason}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {formatDate(new Date(row.raisedAt), language, "dateTime")}
+                    {row.raisedBy.reason ? ` · ${row.raisedBy.reason}` : ""}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    <Input
+                      aria-label={t("review.resolution")}
+                      onChange={(event) =>
+                        setNotes((current) => ({
+                          ...current,
+                          [row.id]: event.target.value,
+                        }))
+                      }
+                      placeholder={t("review.resolution")}
+                      value={note(row.id)}
+                    />
+                    <Button
+                      className="w-full sm:w-auto"
+                      disabled={!note(row.id).trim() || resolving(row.id)}
+                      onClick={() =>
+                        resolve.mutate({
+                          id: row.id,
+                          resolution: note(row.id).trim(),
+                        })
+                      }
+                      variant="outline"
+                    >
+                      {resolving(row.id) ? <Spinner /> : null}
+                      {t("review.resolve")}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <EmptyState bare title={t("review.none")} />
+        )}
+      </Loaded>
+    </Section>
   );
 };

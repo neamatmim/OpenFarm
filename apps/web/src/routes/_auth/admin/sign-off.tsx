@@ -1,14 +1,25 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ClipboardCheck, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { NeedsReview } from "@/components/needs-review";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  Section,
+  StatusBadge,
+} from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useInFlight } from "@/lib/in-flight";
 import { hoursLate } from "@/lib/lateness";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
@@ -39,131 +50,174 @@ const SignOffPage = () => {
   };
   const onError = (error: Error) =>
     toast.error(error.message || t("common.error"));
+  const inFlight = useInFlight();
+  const tracked = {
+    onMutate: ({ id }: { id: string }) => inFlight.start(id),
+    onSettled: (_data: unknown, _error: unknown, { id }: { id: string }) =>
+      inFlight.end(id),
+  };
   const approve = useMutation(
-    orpc.instances.approve.mutationOptions({ onSuccess: refresh, onError })
+    orpc.instances.approve.mutationOptions({
+      onSuccess: refresh,
+      onError,
+      ...tracked,
+    })
   );
   const sendBack = useMutation(
-    orpc.instances.sendBack.mutationOptions({ onSuccess: refresh, onError })
+    orpc.instances.sendBack.mutationOptions({
+      onSuccess: refresh,
+      onError,
+      ...tracked,
+    })
   );
   const closeAsMissed = useMutation(
     orpc.instances.closeAsMissed.mutationOptions({
       onSuccess: refresh,
       onError,
+      ...tracked,
     })
   );
 
   const reason = (id: string) => reasonFor[id] ?? "";
+  // One row's buttons wait for that row's answer; the rest of the queue stays usable.
+  const busy = inFlight.has;
   const setReason = (id: string, value: string) =>
     setReasonFor((current) => ({ ...current, [id]: value }));
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-8 px-4 py-6">
-      <section className="space-y-3">
-        <h1 className="text-2xl font-bold">{t("signOff.title")}</h1>
-        {queue.data?.length ? (
-          <ul className="space-y-3">
-            {queue.data.map((row) => (
-              <li className="rounded-2xl bg-neutral-900 p-4" key={row.id}>
-                <Link
-                  className="block"
-                  params={{ instanceId: row.id }}
-                  to="/work/$instanceId"
+    <Page className="max-w-3xl" width="narrow">
+      <PageHeader title={t("signOff.title")} />
+      <Section>
+        <Loaded query={queue}>
+          {queue.data?.length ? (
+            <ul className="space-y-3">
+              {queue.data.map((row) => (
+                <li className="rounded-lg border p-4" key={row.id}>
+                  <Link
+                    className="block"
+                    params={{ instanceId: row.id }}
+                    to="/work/$instanceId"
+                  >
+                    <p className="text-lg font-semibold hover:underline">
+                      {titleOf(row, language === "bn")}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
+                      {formatDate(new Date(row.dueAt), language, "dateTime")}
+                    </p>
+                  </Link>
+                  <div className="mt-3 space-y-2">
+                    <Input
+                      aria-label={t("signOff.reason")}
+                      onChange={(event) =>
+                        setReason(row.id, event.target.value)
+                      }
+                      placeholder={t("signOff.reason")}
+                      value={reason(row.id)}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        disabled={!reason(row.id).trim() || busy(row.id)}
+                        onClick={() =>
+                          sendBack.mutate({
+                            id: row.id,
+                            reason: reason(row.id).trim(),
+                          })
+                        }
+                        variant="outline"
+                      >
+                        {t("signOff.sendBack")}
+                      </Button>
+                      <Button
+                        disabled={busy(row.id)}
+                        onClick={() => approve.mutate({ id: row.id })}
+                      >
+                        {busy(row.id) ? <Spinner /> : null}
+                        {t("signOff.approve")}
+                      </Button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState bare icon={ClipboardCheck} title={t("signOff.none")} />
+          )}
+        </Loaded>
+      </Section>
+
+      <NeedsReview />
+
+      <Section
+        action={
+          late.data?.length ? (
+            <StatusBadge icon={Clock} tone="warning">
+              {formatNumber(late.data.length, language)}
+            </StatusBadge>
+          ) : null
+        }
+        title={t("work.overdueTitle")}
+      >
+        <Loaded query={late}>
+          {late.data?.length ? (
+            <ul className="space-y-3">
+              {late.data.map((row) => (
+                <li
+                  className="border-warning/40 rounded-lg border p-4"
+                  key={row.id}
                 >
-                  <p className="text-lg font-bold">
-                    {titleOf(row, language === "bn")}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
-                    {formatDate(new Date(row.dueAt), language, "dateTime")}
-                  </p>
-                </Link>
-                <div className="mt-3 space-y-2">
-                  <Input
-                    aria-label={t("signOff.reason")}
-                    onChange={(event) => setReason(row.id, event.target.value)}
-                    placeholder={t("signOff.reason")}
-                    value={reason(row.id)}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    className="block"
+                    params={{ instanceId: row.id }}
+                    to="/work/$instanceId"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-lg font-semibold hover:underline">
+                        {titleOf(row, language === "bn")}
+                      </p>
+                      <StatusBadge icon={Clock} tone="warning">
+                        {t("work.lateFor", {
+                          hours: hoursLate(row.minutesOverdue),
+                        })}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      {placeOfWork(row.pen, t("work.wholeFarm"))}
+                    </p>
+                  </Link>
+                  <div className="mt-3 space-y-2">
+                    <Input
+                      aria-label={t("signOff.missedWhy")}
+                      onChange={(event) =>
+                        setReason(row.id, event.target.value)
+                      }
+                      placeholder={t("signOff.missedWhy")}
+                      value={reason(row.id)}
+                    />
                     <Button
-                      disabled={!reason(row.id).trim()}
+                      className="w-full sm:w-auto"
+                      disabled={!reason(row.id).trim() || busy(row.id)}
                       onClick={() =>
-                        sendBack.mutate({
+                        closeAsMissed.mutate({
                           id: row.id,
                           reason: reason(row.id).trim(),
                         })
                       }
                       variant="outline"
                     >
-                      {t("signOff.sendBack")}
-                    </Button>
-                    <Button onClick={() => approve.mutate({ id: row.id })}>
-                      {t("signOff.approve")}
+                      {busy(row.id) ? <Spinner /> : null}
+                      {t("signOff.missed")}
                     </Button>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground text-sm">{t("signOff.none")}</p>
-        )}
-      </section>
-
-      <NeedsReview />
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-bold">{t("work.overdueTitle")}</h2>
-        {late.data?.length ? (
-          <ul className="space-y-3">
-            {late.data.map((row) => (
-              <li className="rounded-2xl bg-amber-950 p-4" key={row.id}>
-                <Link
-                  className="block"
-                  params={{ instanceId: row.id }}
-                  to="/work/$instanceId"
-                >
-                  <p className="text-lg font-bold">
-                    {titleOf(row, language === "bn")}
-                  </p>
-                  <p className="text-sm text-amber-200">
-                    {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
-                    {t("work.lateFor", {
-                      hours: hoursLate(row.minutesOverdue),
-                    })}
-                  </p>
-                </Link>
-                <div className="mt-3 space-y-2">
-                  <Input
-                    aria-label={t("signOff.missedWhy")}
-                    onChange={(event) => setReason(row.id, event.target.value)}
-                    placeholder={t("signOff.missedWhy")}
-                    value={reason(row.id)}
-                  />
-                  <Button
-                    className="w-full"
-                    disabled={!reason(row.id).trim()}
-                    onClick={() =>
-                      closeAsMissed.mutate({
-                        id: row.id,
-                        reason: reason(row.id).trim(),
-                      })
-                    }
-                    variant="outline"
-                  >
-                    {t("signOff.missed")}
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            {t("work.overdueNone")}
-          </p>
-        )}
-      </section>
-    </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState bare title={t("work.overdueNone")} />
+          )}
+        </Loaded>
+      </Section>
+    </Page>
   );
 };
 

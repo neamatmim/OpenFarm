@@ -9,6 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { categoryName, useRefusalToast } from "@/components/money";
+import { Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
@@ -35,10 +36,10 @@ const SideField = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{t("byHand.side")}</Label>
       <select
-        className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+        className="bg-card h-9 w-full rounded-md border px-3 text-sm"
         id={id}
         onChange={(event) =>
           onChange(
@@ -69,7 +70,7 @@ const ReceiptField = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{t("byHand.receipt")}</Label>
       <input
         accept="image/*"
@@ -141,10 +142,9 @@ export const EnterMoney = () => {
     (!isWage || typed.wageMonth !== "");
 
   return (
-    <section className="space-y-2">
-      <h2 className="font-medium">{t("byHand.title")}</h2>
+    <Section description={t("byHand.hint")} title={t("byHand.title")}>
       <form
-        className="space-y-2 rounded-lg border p-3"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 [&>*]:min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           enter.mutate({
@@ -162,7 +162,7 @@ export const EnterMoney = () => {
       >
         <select
           aria-label={t("byHand.category")}
-          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          className="bg-card h-10 w-full rounded-md border px-3 text-sm sm:col-span-2 xl:col-span-1"
           onChange={(event) => set("categoryId")(event.target.value)}
           value={chosen.id}
         >
@@ -176,7 +176,7 @@ export const EnterMoney = () => {
             </option>
           ))}
         </select>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="entry-amount">{t("byHand.amount")}</Label>
           <Input
             id="entry-amount"
@@ -186,7 +186,7 @@ export const EnterMoney = () => {
             value={typed.amount}
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="entry-on">{t("byHand.on")}</Label>
           <Input
             id="entry-on"
@@ -195,7 +195,7 @@ export const EnterMoney = () => {
             value={occurredOn}
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="entry-who">
             {t(isWage ? "byHand.wagePerson" : "byHand.counterparty")}
           </Label>
@@ -206,7 +206,7 @@ export const EnterMoney = () => {
           />
         </div>
         {isWage ? (
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="entry-month">{t("byHand.wageMonth")}</Label>
             <Input
               id="entry-month"
@@ -221,7 +221,7 @@ export const EnterMoney = () => {
           onChange={setPaymentMethod}
           value={paymentMethod}
         />
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="entry-note">{t("byHand.note")}</Label>
           <Input
             id="entry-note"
@@ -233,14 +233,14 @@ export const EnterMoney = () => {
         <SideField id="entry-side" onChange={setSide} value={side} />
         <ReceiptField id="entry-receipt" onChange={setReceipt} />
         <Button
+          className="h-10 sm:col-span-2 xl:col-span-1"
           disabled={!complete || enter.isPending}
           type="submit"
-          variant="outline"
         >
           {t("byHand.save")}
         </Button>
       </form>
-    </section>
+    </Section>
   );
 };
 
@@ -270,11 +270,11 @@ export const Categories = () => {
 
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{t("byHand.categories")}</h2>
+      <h2 className="text-lg font-semibold">{t("byHand.categories")}</h2>
       <ul className="space-y-1 text-sm">
         {(categories.data ?? []).map((one) => (
           <li
-            className="flex items-center justify-between gap-2 rounded-lg border p-2"
+            className="bg-card flex items-center justify-between gap-2 rounded-lg border p-3"
             key={one.id}
           >
             <span
@@ -320,7 +320,7 @@ export const Categories = () => {
         </div>
         <select
           aria-label={t("byHand.direction")}
-          className="bg-background h-9 rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
           onChange={(event) =>
             setDirection(event.target.value === "in" ? "in" : "out")
           }
@@ -402,7 +402,7 @@ export const CorrectEntered = ({
   }
   return (
     <form
-      className="mt-2 space-y-2 rounded-lg border p-2"
+      className="bg-card mt-2 space-y-2 rounded-lg border p-3"
       onSubmit={(event) => {
         event.preventDefault();
         correct.mutate({
@@ -418,7 +418,7 @@ export const CorrectEntered = ({
         });
       }}
     >
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor={`correct-amount-${entered.id}`}>
           {t("byHand.amount")}
         </Label>
@@ -430,7 +430,7 @@ export const CorrectEntered = ({
           value={amount}
         />
       </div>
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor={`correct-note-${entered.id}`}>{t("byHand.note")}</Label>
         <Input
           id={`correct-note-${entered.id}`}
@@ -443,7 +443,7 @@ export const CorrectEntered = ({
         id={`correct-receipt-${entered.id}`}
         onChange={setReceipt}
       />
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor={`correct-reason-${entered.id}`}>
           {t("byHand.reason")}
         </Label>

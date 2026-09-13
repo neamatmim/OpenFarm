@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { GainColumn } from "@/components/gain";
+import { Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -40,11 +41,11 @@ const FatteningPage = () => {
   const rows = board.data.toSorted((a, b) => rank(a.onTrack) - rank(b.onTrack));
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-4 px-4 py-6">
-      <h1 className="text-2xl font-bold">{t("nav.fattening")}</h1>
+    <Page width="default" className="max-w-4xl">
+      <PageHeader title={t("nav.fattening")} />
       <ul className="space-y-3">
         {rows.map((row) => (
-          <li className="space-y-2 rounded-xl border p-4" key={row.id}>
+          <li className="surface space-y-2 p-4" key={row.id}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <Link
                 className="text-lg font-bold underline"
@@ -58,7 +59,7 @@ const FatteningPage = () => {
               </span>
               <span
                 className={
-                  row.onTrack === false ? "text-amber-400" : "text-emerald-400"
+                  row.onTrack === false ? "text-warning" : "text-success"
                 }
               >
                 {row.onTrack === null
@@ -97,12 +98,12 @@ const FatteningPage = () => {
             {row.recent &&
             row.sinceIntake &&
             row.recent.dailyGainKg < row.sinceIntake.dailyGainKg ? (
-              <p className="text-sm text-amber-400">{t("gain.slowing")}</p>
+              <p className="text-warning text-sm">{t("gain.slowing")}</p>
             ) : null}
           </li>
         ))}
       </ul>
-    </div>
+    </Page>
   );
 };
 

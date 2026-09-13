@@ -9,6 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -70,19 +71,18 @@ const FeedPage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("feed.title")}</h1>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader title={t("feed.title")} />
 
       <FeedItems items={(items.data ?? []) as FeedRow[]} onChanged={refresh} />
 
       <FeedStock items={(items.data ?? []) as FeedRow[]} />
 
-      <section className="space-y-2">
-        <h2 className="font-medium">{t("feed.target")}</h2>
+      <Section title={t("feed.target")}>
         <div className="space-y-1">
           <Label htmlFor="feed-pen">{t("feed.pen")}</Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id="feed-pen"
             onChange={(e) => setPenId(e.target.value)}
             value={chosen}
@@ -101,12 +101,11 @@ const FeedPage = () => {
             {t("feed.noRation")}
           </p>
         )}
-      </section>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="font-medium">{t("feed.rations")}</h2>
+      <Section title={t("feed.rations")}>
         {(rations.data ?? []).map((row) => (
-          <article className="space-y-2 rounded-lg border p-3" key={row.id}>
+          <article className="surface space-y-2 p-4" key={row.id}>
             <header className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-sm font-medium">{row.name.bn}</span>
               <span className="text-muted-foreground text-xs">
@@ -171,8 +170,8 @@ const FeedPage = () => {
             {t("feed.newRation")}
           </Button>
         )}
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 };
 
@@ -197,7 +196,7 @@ const TargetPanel = ({
   const t = useT();
   const { language } = useLanguage();
   return (
-    <div className="space-y-2 rounded-lg border p-3">
+    <div className="surface space-y-2 p-4">
       <p className="text-sm font-medium">
         {target.ration?.name.bn}
         {target.ration
@@ -256,8 +255,7 @@ const FeedItems = ({
   );
 
   return (
-    <section className="space-y-2">
-      <h2 className="font-medium">{t("feed.items")}</h2>
+    <Section title={t("feed.items")}>
       <ul className="space-y-1 text-sm">
         {items.map((item) => (
           <li className="flex items-center justify-between gap-2" key={item.id}>
@@ -320,7 +318,7 @@ const FeedItems = ({
         </div>
         <Button type="submit">{t("feed.addItem")}</Button>
       </form>
-    </section>
+    </Section>
   );
 };
 
@@ -460,8 +458,7 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
   );
   const mayRecord = me.data?.roles.includes("manager") ?? false;
   return (
-    <section className="space-y-3">
-      <h2 className="font-medium">{t("stock.title")}</h2>
+    <Section title={t("stock.title")}>
       <ul className="space-y-1 text-sm">
         {(stock.data ?? []).map((line) => (
           <li
@@ -532,7 +529,7 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
           </ul>
         </div>
       ) : null}
-    </section>
+    </Section>
   );
 };
 
@@ -630,7 +627,7 @@ const ReceiveFeed = ({ items }: { items: FeedRow[] }) => {
     (kind === "harvest" || (Number(price) > 0 && seller.trim() !== ""));
   return (
     <form
-      className="space-y-2 rounded-lg border p-3"
+      className="surface space-y-2 p-4"
       onSubmit={(event) => {
         event.preventDefault();
         receive.mutate({
@@ -652,7 +649,7 @@ const ReceiveFeed = ({ items }: { items: FeedRow[] }) => {
       <div className="flex flex-wrap gap-2">
         <select
           aria-label={t("feed.items")}
-          className="bg-background h-9 rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
           onChange={(event) => setFeedItemId(event.target.value)}
           value={chosenItem.id}
         >
@@ -664,7 +661,7 @@ const ReceiveFeed = ({ items }: { items: FeedRow[] }) => {
         </select>
         <select
           aria-label={t("stock.kind")}
-          className="bg-background h-9 rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
           onChange={(event) =>
             setKind(event.target.value === "harvest" ? "harvest" : "purchase")
           }

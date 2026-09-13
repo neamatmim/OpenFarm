@@ -10,7 +10,7 @@ const Chip = ({
   onChoose: () => void;
 }) => (
   <button
-    className={`rounded-md border px-3 py-1 text-sm ${chosen ? "bg-neutral-800 text-neutral-100" : ""}`}
+    className={`rounded-md border px-3 py-1 text-sm ${chosen ? "bg-muted text-foreground" : ""}`}
     onClick={onChoose}
     type="button"
   >

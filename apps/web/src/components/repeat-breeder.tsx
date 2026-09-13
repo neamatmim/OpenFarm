@@ -110,7 +110,7 @@ export const RepeatBreeder = ({
         >
           <select
             aria-label={t("repeatBreeder.decision")}
-            className="bg-background h-9 rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
             onChange={(event) => {
               const chosen = event.target.value;
               if (isDecision(chosen)) {

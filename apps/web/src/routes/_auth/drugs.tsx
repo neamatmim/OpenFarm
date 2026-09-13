@@ -7,9 +7,11 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { Pill, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EmptyState, Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -59,51 +61,56 @@ const DrugsPage = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
-      <h1 className="text-lg font-medium">{t("drugs.title")}</h1>
+    <Page width="narrow" className="max-w-3xl">
+      <PageHeader title={t("drugs.title")} />
 
-      {drugs.data?.length ? (
-        <ul className="space-y-2">
-          {drugs.data.map((product) => (
-            <Product
-              isVet={isVet}
-              key={product.id}
-              onChanged={refresh}
-              onRetire={() => retire.mutate({ id: product.id })}
-              product={product}
+      <Section>
+        {drugs.data?.length ? (
+          <ul className="space-y-2">
+            {drugs.data.map((product) => (
+              <Product
+                isVet={isVet}
+                key={product.id}
+                onChanged={refresh}
+                onRetire={() => retire.mutate({ id: product.id })}
+                product={product}
+              />
+            ))}
+          </ul>
+        ) : (
+          <EmptyState bare icon={Pill} title={t("drugs.none")} />
+        )}
+
+        <form
+          className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (name.trim()) {
+              add.mutate({ name: { bn: name.trim() } });
+            }
+          }}
+        >
+          <div className="flex-1 space-y-1">
+            <Label htmlFor="drug-name">{t("drugs.name")}</Label>
+            <Input
+              id="drug-name"
+              onChange={(event) => setName(event.target.value)}
+              value={name}
             />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground text-sm">{t("drugs.none")}</p>
-      )}
-
-      <form
-        className="flex items-end gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (name.trim()) {
-            add.mutate({ name: { bn: name.trim() } });
-          }
-        }}
-      >
-        <div className="flex-1 space-y-1">
-          <Label htmlFor="drug-name">{t("drugs.name")}</Label>
-          <Input
-            id="drug-name"
-            onChange={(event) => setName(event.target.value)}
-            value={name}
-          />
-        </div>
-        <Button type="submit">{t("drugs.add")}</Button>
-      </form>
+          </div>
+          <Button type="submit">
+            <Plus aria-hidden />
+            {t("drugs.add")}
+          </Button>
+        </form>
+      </Section>
 
       {buys && drugs.data ? (
         <BuyMedicine
           products={drugs.data.filter((product) => !product.retiredAt)}
         />
       ) : null}
-    </div>
+    </Page>
   );
 };
 
@@ -163,10 +170,9 @@ const BuyMedicine = ({
     Number(typed.price) > 0 &&
     typed.seller.trim() !== "";
   return (
-    <section className="space-y-2">
-      <h2 className="font-medium">{t("drugs.buy")}</h2>
+    <Section title={t("drugs.buy")}>
       <form
-        className="space-y-2 rounded-lg border p-3"
+        className="space-y-2"
         onSubmit={(event) => {
           event.preventDefault();
           buy.mutate({
@@ -182,7 +188,7 @@ const BuyMedicine = ({
       >
         <select
           aria-label={t("drugs.title")}
-          className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
           onChange={(event) => setProductId(event.target.value)}
           value={chosen.id}
         >
@@ -235,7 +241,7 @@ const BuyMedicine = ({
       {bought.data?.length ? (
         <ul className="space-y-1 text-sm">
           {bought.data.map((one) => (
-            <li className="rounded-lg border p-2" key={one.id}>
+            <li className="bg-card rounded-lg border p-3" key={one.id}>
               {formatDate(one.purchasedOn, language)} · {one.quantity} ·{" "}
               {t("drugs.dosesHeld", {
                 doses: formatNumber(one.doses, language),
@@ -245,7 +251,7 @@ const BuyMedicine = ({
           ))}
         </ul>
       ) : null}
-    </section>
+    </Section>
   );
 };
 
@@ -299,7 +305,7 @@ const Product = ({
   );
 
   return (
-    <li className="space-y-2 rounded-lg border p-3">
+    <li className="surface space-y-2 p-4">
       <div className="flex items-baseline justify-between gap-2">
         <span className={product.retiredAt ? "text-muted-foreground" : ""}>
           {language === "en" && product.nameEn
@@ -337,7 +343,7 @@ const Product = ({
         </p>
       )}
       {product.whyNot ? (
-        <p className="text-sm text-amber-500">{t(WHY_NOT[product.whyNot])}</p>
+        <p className="text-warning text-sm">{t(WHY_NOT[product.whyNot])}</p>
       ) : null}
 
       {isVet ? (

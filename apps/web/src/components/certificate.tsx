@@ -33,7 +33,7 @@ export const Certificate = ({ updatedAt }: { updatedAt: Date | null }) => {
   );
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{t("certificate.title")}</h2>
+      <h2 className="text-lg font-semibold">{t("certificate.title")}</h2>
       {updatedAt && photo.data ? (
         <>
           <img

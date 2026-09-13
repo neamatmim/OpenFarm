@@ -39,7 +39,7 @@ export const Paper = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <section className="space-y-2 rounded-xl border p-3 text-sm" id={id}>
+    <section className="surface space-y-2 p-4 text-sm" id={id}>
       <style>{`@page { size: A4; margin: 20mm }
         @media print {
           body * { visibility: hidden }

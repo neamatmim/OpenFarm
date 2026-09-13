@@ -15,8 +15,10 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { Beef, ChevronLeft, Lock, MapPin, Milk, SearchX } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +28,7 @@ import { WhatSheCost } from "@/components/costs";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { TwoProjections } from "@/components/gain";
+import { EmptyState, Page, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
@@ -41,6 +44,69 @@ const readAsBase64 = async (file: File): Promise<string> => {
     ""
   );
   return btoa(binary);
+};
+
+type AnimalDetail = NonNullable<
+  Awaited<ReturnType<typeof orpc.animals.byTag.call>>
+>;
+
+const AnimalHeader = ({ detail }: { detail: AnimalDetail }) => {
+  const { t } = useLanguage();
+  const hasAliases = detail.aliases.length !== 0;
+  return (
+    <header className="surface flex flex-col gap-4 p-4 sm:flex-row sm:items-center md:p-6">
+      <AnimalPhoto
+        photoUpdatedAt={detail.photoUpdatedAt}
+        size={96}
+        tagNumber={detail.tagNumber}
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="font-mono text-3xl font-bold tabular-nums md:text-4xl">
+            {detail.tagNumber}
+          </h1>
+          <StatusBadge tone="neutral">{t(`state.${detail.state}`)}</StatusBadge>
+          {detail.underMilkWithdrawal ? (
+            <StatusBadge icon={Lock} tone="warning">
+              {t("animals.milkHeld")}
+            </StatusBadge>
+          ) : null}
+          {detail.underMeatWithdrawal ? (
+            <StatusBadge icon={Lock} tone="warning">
+              {t("animals.meatHeld")}
+            </StatusBadge>
+          ) : null}
+        </div>
+        <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="inline-flex items-center gap-1">
+            {detail.side === "dairy" ? (
+              <Milk aria-hidden className="size-4" />
+            ) : (
+              <Beef aria-hidden className="size-4" />
+            )}
+            {t(`animals.side.${detail.side}`)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin aria-hidden className="size-4" />
+            {detail.pen.shed.name} / {detail.pen.name}
+          </span>
+          {detail.breed ? <span>{detail.breed}</span> : null}
+        </p>
+        {hasAliases || detail.officialTag ? (
+          <p className="text-muted-foreground text-sm">
+            {detail.officialTag
+              ? `${t("animals.officialTag")}: ${detail.officialTag}`
+              : ""}
+            {detail.officialTag && hasAliases ? " · " : ""}
+            {hasAliases
+              ? `${t("animals.aliases")}: ${detail.aliases.join(", ")}`
+              : ""}
+          </p>
+        ) : null}
+        <HerMother dam={detail.dam} />
+      </div>
+    </header>
+  );
 };
 
 const AnimalPage = () => {
@@ -101,10 +167,27 @@ const AnimalPage = () => {
   );
 
   if (animal.isError) {
-    return <p className="p-6">{t("animals.notFound")}</p>;
+    return (
+      <Page>
+        <EmptyState
+          action={
+            <Button render={<Link to="/animals" />} variant="outline">
+              {t("nav.animals")}
+            </Button>
+          }
+          icon={SearchX}
+          title={t("animals.notFound")}
+        />
+      </Page>
+    );
   }
   if (!animal.data) {
-    return <p className="p-6">{t("common.loading")}</p>;
+    return (
+      <Page>
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </Page>
+    );
   }
 
   const detail = animal.data;
@@ -114,32 +197,15 @@ const AnimalPage = () => {
     ) ?? [];
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <header className="flex items-center gap-4">
-        <AnimalPhoto
-          tagNumber={detail.tagNumber}
-          photoUpdatedAt={detail.photoUpdatedAt}
-          size={80}
-        />
-        <div>
-          <h1 className="text-3xl font-bold">{detail.tagNumber}</h1>
-          <p className="text-muted-foreground">
-            {t(`animals.side.${detail.side}`)} · {t(`state.${detail.state}`)} ·{" "}
-            {detail.pen.shed.name} / {detail.pen.name}
-          </p>
-          {detail.aliases.length > 0 ? (
-            <p className="text-muted-foreground text-sm">
-              {t("animals.aliases")}: {detail.aliases.join(", ")}
-            </p>
-          ) : null}
-          {detail.officialTag ? (
-            <p className="text-muted-foreground text-sm">
-              {t("animals.officialTag")}: {detail.officialTag}
-            </p>
-          ) : null}
-          <HerMother dam={detail.dam} />
-        </div>
-      </header>
+    <Page width="default" className="max-w-4xl">
+      <Link
+        className="text-muted-foreground hover:text-foreground -mb-2 inline-flex w-fit items-center gap-1 text-sm"
+        to="/animals"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+        {t("nav.animals")}
+      </Link>
+      <AnimalHeader detail={detail} />
 
       <HerHeats heats={detail.heats} />
 
@@ -185,7 +251,7 @@ const AnimalPage = () => {
 
       <Withdrawals detail={detail} isVet={isVet} onShortened={refresh} />
 
-      <section className="space-y-2 rounded-lg border p-4">
+      <section className="surface space-y-2 p-4">
         <Label htmlFor="photo">{t("animals.photoTake")}</Label>
         <input
           id="photo"
@@ -212,7 +278,7 @@ const AnimalPage = () => {
 
       <section className="grid gap-4 sm:grid-cols-2">
         <form
-          className="space-y-2 rounded-lg border p-4"
+          className="surface space-y-2 p-4"
           onSubmit={(event) => {
             event.preventDefault();
             move.mutate({
@@ -227,7 +293,7 @@ const AnimalPage = () => {
             id="pen"
             value={toPenId}
             onChange={(e) => setToPenId(e.target.value)}
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             required
           >
             <option value="">—</option>
@@ -243,7 +309,7 @@ const AnimalPage = () => {
         </form>
 
         <form
-          className="space-y-2 rounded-lg border p-4"
+          className="surface space-y-2 p-4"
           onSubmit={(event) => {
             event.preventDefault();
             setState.mutate({
@@ -260,7 +326,7 @@ const AnimalPage = () => {
             id="state"
             value={nextState}
             onChange={(e) => setNextState(e.target.value)}
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             required
           >
             <option value="">—</option>
@@ -277,7 +343,7 @@ const AnimalPage = () => {
       </section>
 
       <form
-        className="space-y-2 rounded-lg border p-4"
+        className="surface space-y-2 p-4"
         onSubmit={(event) => {
           event.preventDefault();
           retag.mutate({ tagNumber: detail.tagNumber, reason });
@@ -296,7 +362,7 @@ const AnimalPage = () => {
 
       {detail.observations.length > 0 || detail.diagnoses.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="font-medium">{t("animals.healthChain")}</h2>
+          <h2 className="text-lg font-semibold">{t("animals.healthChain")}</h2>
           {/* One chain, not two lists: what the round saw, and under it what the Vet made of
               it. A Diagnosis that answers no Observation stands on its own at the end. */}
           <ul className="space-y-1 text-sm">
@@ -341,7 +407,7 @@ const AnimalPage = () => {
 
       {detail.treatments.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="font-medium">{t("animals.treatments")}</h2>
+          <h2 className="text-lg font-semibold">{t("animals.treatments")}</h2>
           {/* Per animal, not per campaign: this is the list a slaughter vet asks for, and it
               holds what a course gave her and what a round of the Pen gave her alike. */}
           <ul className="space-y-1 text-sm">
@@ -363,7 +429,7 @@ const AnimalPage = () => {
       ) : null}
 
       <section className="space-y-2">
-        <h2 className="font-medium">{t("animals.movesHistory")}</h2>
+        <h2 className="text-lg font-semibold">{t("animals.movesHistory")}</h2>
         <ul className="space-y-1 text-sm">
           {detail.moves.map((m) => (
             <li className="text-muted-foreground" key={m.id}>
@@ -388,7 +454,9 @@ const AnimalPage = () => {
         </ul>
         {detail.retags.length > 0 ? (
           <>
-            <h2 className="font-medium">{t("animals.retagsHistory")}</h2>
+            <h2 className="text-lg font-semibold">
+              {t("animals.retagsHistory")}
+            </h2>
             <ul className="space-y-1 text-sm">
               {detail.retags.map((r) => (
                 <li key={r.id} className="text-muted-foreground">
@@ -400,7 +468,7 @@ const AnimalPage = () => {
           </>
         ) : null}
       </section>
-    </div>
+    </Page>
   );
 };
 
@@ -444,7 +512,7 @@ const DisposalAfterwards = ({
       <div className="space-y-1">
         <Label htmlFor="afterwards-disposal">{t("mortality.disposal")}</Label>
         <select
-          className="bg-background h-9 rounded-md border px-2 text-sm"
+          className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
           id="afterwards-disposal"
           onChange={(event) => setDisposal(event.target.value as Disposal)}
           value={disposal}
@@ -524,7 +592,7 @@ const PutItRight = ({
         <div className="space-y-1">
           <Label htmlFor="fix-kind">{t("mortality.kind")}</Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id="fix-kind"
             onChange={(event) => setKind(event.target.value as MortalityKind)}
             value={kind}
@@ -547,7 +615,7 @@ const PutItRight = ({
         <div className="space-y-1">
           <Label htmlFor="fix-disposal">{t("mortality.disposal")}</Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id="fix-disposal"
             onChange={(event) =>
               setDisposal(event.target.value as Disposal | "")
@@ -601,8 +669,8 @@ const HerHeats = ({
     return null;
   }
   return (
-    <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("heat.title")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("heat.title")}</h2>
       <ul className="space-y-1">
         {heats.map((heat) => (
           <li className="flex flex-wrap gap-2" key={heat.id}>
@@ -654,8 +722,8 @@ const HerServices = ({
   }
   const heatSeen = new Map(heats.map((heat) => [heat.id, heat.seenAt]));
   return (
-    <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("service.title")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("service.title")}</h2>
       <ul className="space-y-2">
         {services.map((one) => {
           const answered = one.heatId ? heatSeen.get(one.heatId) : undefined;
@@ -709,8 +777,8 @@ const HerPregnancyChecks = ({
     return null;
   }
   return (
-    <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("pregnancy.title")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("pregnancy.title")}</h2>
       {expectedCalvingAt ? (
         <p>
           {t("pregnancy.expectedCalving", {
@@ -770,8 +838,8 @@ const HerCalvings = ({
     return null;
   }
   return (
-    <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("calving.title")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("calving.title")}</h2>
       <ul className="space-y-2">
         {calvings.map((one) => (
           <li className="space-y-0.5" key={one.id}>
@@ -867,8 +935,8 @@ const HerAbortions = ({
     return null;
   }
   return (
-    <section className="space-y-2 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("abortion.title")}</h2>
+    <section className="surface space-y-2 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("abortion.title")}</h2>
       <ul className="space-y-1">
         {abortions.map((one) => (
           <li key={one.id}>
@@ -1008,8 +1076,8 @@ const TheScale = ({
     return null;
   }
   return (
-    <section className="space-y-2 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("weighIn.title")}</h2>
+    <section className="surface space-y-2 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("weighIn.title")}</h2>
       <ul className="space-y-1">
         {readings.map((reading) => (
           <li className="flex flex-wrap items-baseline gap-2" key={reading.id}>
@@ -1027,7 +1095,7 @@ const TheScale = ({
               </span>
             ) : null}
             {reading.flagged ? (
-              <span className="text-xs text-amber-400">
+              <span className="text-warning text-xs">
                 {t("weighIn.flagged")}
                 {reading.flaggedNote ? ` · ${reading.flaggedNote}` : ""}
               </span>
@@ -1063,8 +1131,8 @@ const HowSheLeft = ({
     return null;
   }
   return (
-    <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("sale.howSheLeft")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("sale.howSheLeft")}</h2>
       <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
       <Fact label={t("sale.price")}>
         {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
@@ -1109,8 +1177,8 @@ const HowSheArrived = ({
   const kg = (value: number) =>
     t("intake.kg", { kg: formatNumber(value, language) });
   return (
-    <section className="space-y-1 rounded-lg border p-4 text-sm">
-      <h2 className="font-medium">{t("intake.title")}</h2>
+    <section className="surface space-y-1 p-4 text-sm">
+      <h2 className="text-lg font-semibold">{t("intake.title")}</h2>
       <Fact label={t("intake.seller")}>
         {[intake.sellerName, intake.sellerAddress]
           .filter(Boolean)
@@ -1195,15 +1263,13 @@ const HowSheWent = ({
   if (detail.mortality) {
     const gone = detail.mortality;
     return (
-      <section className="space-y-1 rounded-lg border p-4 text-sm">
+      <section className="surface space-y-1 p-4 text-sm">
         <p className="font-medium">{t(`mortality.${gone.kind}`)}</p>
         <p className="text-muted-foreground">
           {formatDate(new Date(gone.happenedAt), language, "dateTime")} ·{" "}
           {causeWord(gone.cause, t)}
         </p>
-        <p
-          className={gone.disposal ? "text-muted-foreground" : "text-amber-500"}
-        >
+        <p className={gone.disposal ? "text-muted-foreground" : "text-warning"}>
           {t("mortality.disposal")}: {disposalWord(gone.disposal, t)}
           {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
           {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
@@ -1228,7 +1294,7 @@ const HowSheWent = ({
   }
 
   return (
-    <details className="rounded-lg border p-4 text-sm">
+    <details className="surface p-4 text-sm">
       <summary className="cursor-pointer">{t("mortality.record")}</summary>
       <form
         className="mt-2 space-y-2"
@@ -1249,7 +1315,7 @@ const HowSheWent = ({
         <div className="space-y-1">
           <Label htmlFor="mortality-kind">{t("mortality.kind")}</Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id="mortality-kind"
             onChange={(event) => setKind(event.target.value as MortalityKind)}
             value={kind}
@@ -1272,7 +1338,7 @@ const HowSheWent = ({
         <div className="space-y-1">
           <Label htmlFor="mortality-disposal">{t("mortality.disposal")}</Label>
           <select
-            className="bg-background h-9 w-full rounded-md border px-2 text-sm"
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
             id="mortality-disposal"
             onChange={(event) => setDisposal(event.target.value as Disposal)}
             value={disposal}
@@ -1354,7 +1420,7 @@ const Withdrawals = ({
   }
 
   return (
-    <section className="space-y-2 rounded-lg border p-4 text-sm">
+    <section className="surface space-y-2 p-4 text-sm">
       {detail.milkWithdrawalUntil ? (
         <p>
           {t("animals.milkHeldUntil", {
@@ -1379,7 +1445,7 @@ const Withdrawals = ({
       ) : null}
       {detail.shortened ? (
         <>
-          <p className="text-amber-400">
+          <p className="text-warning">
             {t("animals.withdrawalShortened", {
               reason: detail.shortened.reason ?? "",
             })}
