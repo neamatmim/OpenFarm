@@ -291,7 +291,7 @@ const Product = ({
       onError: (error) => toast.error(error.message),
     })
   );
-  const mark = useMutation(
+  const markVaccine = useMutation(
     orpc.drugs.markVaccine.mutationOptions({
       onSuccess: onChanged,
       onError: (error) => toast.error(error.message),
@@ -382,9 +382,9 @@ const Product = ({
             {t("drugs.save")}
           </Button>
           <Button
-            disabled={mark.isPending}
+            disabled={markVaccine.isPending}
             onClick={() =>
-              mark.mutate({ id: product.id, vaccine: !product.vaccine })
+              markVaccine.mutate({ id: product.id, vaccine: !product.vaccine })
             }
             type="button"
             variant="outline"

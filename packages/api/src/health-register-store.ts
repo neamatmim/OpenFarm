@@ -27,10 +27,16 @@ const dayMoved = (day: string, { months = 0, days = 0 }) => {
 /** How far back each register looks unless asked, the last day counted: a year of vaccinations, since FMD and
  *  anthrax come round yearly; thirty days of treatments, as an inspector asks; six months of diagnoses, as a
  *  slaughter vet asks. */
+const VACCINATION_LOOK_BACK_MONTHS = 12;
+const TREATMENT_LOOK_BACK_DAYS = 30;
+const DISEASE_LOOK_BACK_MONTHS = 6;
+
+/** Back by whole months lands on the same date, so the day after it is the first of the period; back by days
+ *  counts today as the first of them. */
 const LOOK_BACK: Record<HealthRegister, { months: number; days: number }> = {
-  vaccination_register: { months: -12, days: 1 },
-  treatment_register: { months: 0, days: -29 },
-  disease_history: { months: -6, days: 1 },
+  vaccination_register: { months: -VACCINATION_LOOK_BACK_MONTHS, days: 1 },
+  treatment_register: { months: 0, days: 1 - TREATMENT_LOOK_BACK_DAYS },
+  disease_history: { months: -DISEASE_LOOK_BACK_MONTHS, days: 1 },
 };
 
 /** The first day a register covers when nobody names one, for a period ending on a given farm day. */
@@ -42,7 +48,7 @@ export type VaccinationLine = VaccinationRegisterLine & { id: string };
 
 /**
  * Every dose of a product the Vet has marked a vaccine, given in a period, oldest first: the animal, the vaccine,
- * the day, the Lot Number — the dose's own, or else its campaign run's — and who gave it. A product marked a
+ * the day, the Lot Number — the dose's own, or else its Campaign's — and who gave it. A product marked a
  * vaccine after it was given still puts its doses here, with no lot if nobody wrote one.
  */
 export const vaccinationsBetween = async (
@@ -63,7 +69,7 @@ export const vaccinationsBetween = async (
       giver: { columns: { name: true } },
       instance: {
         columns: {},
-        with: { lot: { columns: { lotNumber: true } } },
+        with: { campaignLotNumber: { columns: { lotNumber: true } } },
       },
     },
     orderBy: { givenAt: "asc", id: "asc" },
@@ -76,7 +82,10 @@ export const vaccinationsBetween = async (
             tagNumber: one.animal.tagNumber,
             vaccine: one.product.nameBn,
             givenOn: farmDayOf(one.givenAt),
-            lotNumber: one.lotNumber ?? one.instance.lot?.lotNumber ?? null,
+            lotNumber:
+              one.lotNumber ??
+              one.instance.campaignLotNumber?.lotNumber ??
+              null,
             givenBy: one.giver?.name ?? null,
           },
         ]

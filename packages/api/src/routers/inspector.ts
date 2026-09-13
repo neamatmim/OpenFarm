@@ -520,6 +520,9 @@ export const inspectorRouter = {
         format: input.format,
         ...made.said,
       });
-      return input.format === "csv" ? { csv: made.csv } : { text: made.text };
+      // A CSV carries its period, so the file it is saved as can say what it covers.
+      return input.format === "csv"
+        ? { csv: made.csv, period: made.period }
+        : { text: made.text };
     }),
 };

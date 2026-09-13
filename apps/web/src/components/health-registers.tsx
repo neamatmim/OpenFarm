@@ -3,6 +3,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +24,65 @@ const OUTCOME_WORD = {
   died: "state.died",
   culled: "state.culled",
 } as const satisfies Record<string, MessageKey>;
+
+/** One register on the screen: its name and the period it covers, Print — and CSV when it is given as one — and
+ *  its rows, or the words for having none. */
+const RegisterSection = ({
+  title,
+  period,
+  empty,
+  printing,
+  onPrint,
+  saving,
+  onCsv,
+  children,
+}: {
+  title: MessageKey;
+  period: { from: string; to: string } | undefined;
+  empty: MessageKey;
+  printing: boolean;
+  onPrint: () => void;
+  saving?: boolean;
+  onCsv?: () => void;
+  children: ReactNode[] | undefined;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <section className="space-y-2 rounded-lg border p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-medium">
+          {t(title)}
+          {period ? ` · ${period.from} — ${period.to}` : ""}
+        </h2>
+        <div className="flex gap-2">
+          <Button
+            disabled={printing}
+            onClick={onPrint}
+            size="sm"
+            variant="outline"
+          >
+            {t("common.print")}
+          </Button>
+          {onCsv ? (
+            <Button
+              disabled={saving}
+              onClick={onCsv}
+              size="sm"
+              variant="outline"
+            >
+              {t("inspector.csv")}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      {children?.length ? (
+        <ul className="space-y-1">{children}</ul>
+      ) : (
+        <p className="text-muted-foreground">{t(empty)}</p>
+      )}
+    </section>
+  );
+};
 
 /**
  * The vaccination register (R3), the treatment register (R4) and the disease history (R5) on the Inspector View:
@@ -55,22 +115,25 @@ export const HealthRegisters = ({
   );
   const sheet = useMutation(
     orpc.inspector.print.mutationOptions({
-      onSuccess: ({ csv }, { report }) => {
-        const period =
-          report === "vaccination_register"
-            ? vaccinations.data
-            : treatments.data;
+      onSuccess: ({ csv, period }, { report }) =>
         saveCsv(
           `${report.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
           csv ?? ""
-        );
-      },
+        ),
       onError: (error) =>
         toast.error(
           wordedRefusal(error, t) ?? (error.message || t("common.error"))
         ),
     })
   );
+  const printed = (report: HealthRegister) => ({
+    printing,
+    onPrint: () => onPrint(report, asked),
+  });
+  const saved = (report: HealthRegister) => ({
+    saving: sheet.isPending,
+    onCsv: () => sheet.mutate({ report, format: "csv", ...asked }),
+  });
 
   return (
     <>
@@ -96,160 +159,79 @@ export const HealthRegisters = ({
         </p>
       ) : null}
 
-      <section className="space-y-2 rounded-lg border p-3 text-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-medium">
-            {t("inspector.vaccinations")}
-            {vaccinations.data
-              ? ` · ${vaccinations.data.from} — ${vaccinations.data.to}`
-              : ""}
-          </h2>
-          <div className="flex gap-2">
-            <Button
-              disabled={printing}
-              onClick={() => onPrint("vaccination_register", asked)}
-              size="sm"
-              variant="outline"
-            >
-              {t("common.print")}
-            </Button>
-            <Button
-              disabled={sheet.isPending}
-              onClick={() =>
-                sheet.mutate({
-                  report: "vaccination_register",
-                  format: "csv",
-                  ...asked,
-                })
-              }
-              size="sm"
-              variant="outline"
-            >
-              {t("inspector.csv")}
-            </Button>
-          </div>
-        </div>
-        {vaccinations.data?.rows.length ? (
-          <ul className="space-y-1">
-            {vaccinations.data.rows.map((row) => (
-              <li className="rounded border p-2" key={row.id}>
-                {row.givenOn} · {row.tagNumber} · {row.vaccine}
-                <span className="text-muted-foreground block text-xs">
-                  {t("inspector.lot", { lot: row.lotNumber ?? "—" })} ·{" "}
-                  {t("inspector.givenByOnly", { giver: row.givenBy ?? "—" })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground">
-            {t("inspector.noVaccinations")}
-          </p>
-        )}
-      </section>
+      <RegisterSection
+        empty="inspector.noVaccinations"
+        period={vaccinations.data}
+        title="inspector.vaccinations"
+        {...printed("vaccination_register")}
+        {...saved("vaccination_register")}
+      >
+        {vaccinations.data?.rows.map((row) => (
+          <li className="rounded border p-2" key={row.id}>
+            {row.givenOn} · {row.tagNumber} · {row.vaccine}
+            <span className="text-muted-foreground block text-xs">
+              {t("inspector.lotNumber", {
+                lotNumber: row.lotNumber ?? "—",
+              })} ·{" "}
+              {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
+            </span>
+          </li>
+        ))}
+      </RegisterSection>
 
-      <section className="space-y-2 rounded-lg border p-3 text-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-medium">
-            {t("inspector.treatments")}
-            {treatments.data
-              ? ` · ${treatments.data.from} — ${treatments.data.to}`
-              : ""}
-          </h2>
-          <div className="flex gap-2">
-            <Button
-              disabled={printing}
-              onClick={() => onPrint("treatment_register", asked)}
-              size="sm"
-              variant="outline"
-            >
-              {t("common.print")}
-            </Button>
-            <Button
-              disabled={sheet.isPending}
-              onClick={() =>
-                sheet.mutate({
-                  report: "treatment_register",
-                  format: "csv",
-                  ...asked,
-                })
-              }
-              size="sm"
-              variant="outline"
-            >
-              {t("inspector.csv")}
-            </Button>
-          </div>
-        </div>
-        {treatments.data?.rows.length ? (
-          <ul className="space-y-1">
-            {treatments.data.rows.map((row) => (
-              <li className="rounded border p-2" key={row.id}>
-                {row.givenOn} · {row.tagNumber}
-                {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
-                {row.dose ? ` · ${row.dose}` : ""}
-                {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
-                {row.course ? ` · ${row.course}` : ""}
-                <span className="text-muted-foreground block text-xs">
-                  {t("inspector.givenBy", {
-                    giver: row.givenBy ?? "—",
-                    vet: row.prescribedBy ?? "—",
-                  })}
-                </span>
-                <span className="text-muted-foreground block text-xs">
-                  {t("inspector.clear", {
-                    milk: row.milkClearOn ?? "—",
-                    meat: row.meatClearOn ?? "—",
-                  })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground">{t("inspector.noTreatments")}</p>
-        )}
-      </section>
+      <RegisterSection
+        empty="inspector.noTreatments"
+        period={treatments.data}
+        title="inspector.treatments"
+        {...printed("treatment_register")}
+        {...saved("treatment_register")}
+      >
+        {treatments.data?.rows.map((row) => (
+          <li className="rounded border p-2" key={row.id}>
+            {row.givenOn} · {row.tagNumber}
+            {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
+            {row.dose ? ` · ${row.dose}` : ""}
+            {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
+            {row.course ? ` · ${row.course}` : ""}
+            <span className="text-muted-foreground block text-xs">
+              {t("inspector.givenBy", {
+                giver: row.givenBy ?? "—",
+                vet: row.prescribedBy ?? "—",
+              })}
+            </span>
+            <span className="text-muted-foreground block text-xs">
+              {t("inspector.clear", {
+                milk: row.milkClearOn ?? "—",
+                meat: row.meatClearOn ?? "—",
+              })}
+            </span>
+          </li>
+        ))}
+      </RegisterSection>
 
-      <section className="space-y-2 rounded-lg border p-3 text-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">
-            {t("inspector.diseases")}
-            {diseases.data
-              ? ` · ${diseases.data.from} — ${diseases.data.to}`
-              : ""}
-          </h2>
-          <Button
-            disabled={printing}
-            onClick={() => onPrint("disease_history", asked)}
-            size="sm"
-            variant="outline"
-          >
-            {t("common.print")}
-          </Button>
-        </div>
-        {diseases.data?.rows.length ? (
-          <ul className="space-y-1">
-            {diseases.data.rows.map((row) => (
-              <li className="rounded border p-2" key={row.id}>
-                {row.diagnosedOn} · {row.tagNumber} · {row.disease}
-                {row.notifiable ? (
-                  <span className="ml-1 text-amber-400">
-                    {t("inspector.notifiable", {
-                      reference: row.reportReference ?? "—",
-                    })}
-                  </span>
-                ) : null}
-                <span className="text-muted-foreground block text-xs">
-                  {t(OUTCOME_WORD[row.outcome.kind])}
-                  {row.outcome.on ? ` ${row.outcome.on}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground">{t("inspector.noDiseases")}</p>
-        )}
-      </section>
+      <RegisterSection
+        empty="inspector.noDiseases"
+        period={diseases.data}
+        title="inspector.diseases"
+        {...printed("disease_history")}
+      >
+        {diseases.data?.rows.map((row) => (
+          <li className="rounded border p-2" key={row.id}>
+            {row.diagnosedOn} · {row.tagNumber} · {row.disease}
+            {row.notifiable ? (
+              <span className="ml-1 text-amber-400">
+                {t("inspector.notifiable", {
+                  reference: row.reportReference ?? "—",
+                })}
+              </span>
+            ) : null}
+            <span className="text-muted-foreground block text-xs">
+              {t(OUTCOME_WORD[row.outcome.kind])}
+              {row.outcome.on ? ` ${row.outcome.on}` : ""}
+            </span>
+          </li>
+        ))}
+      </RegisterSection>
     </>
   );
 };

@@ -329,9 +329,9 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     giver: r.one.user({ from: r.treatment.givenBy, to: r.user.id }),
   },
-  campaignLot: {
+  campaignLotNumber: {
     instance: r.one.sopInstance({
-      from: r.campaignLot.instanceId,
+      from: r.campaignLotNumber.instanceId,
       to: r.sopInstance.id,
       optional: false,
     }),
@@ -439,10 +439,10 @@ export const relations = defineRelations(schema, (r) => ({
     }),
   },
   sopInstance: {
-    /** The Lot Number a vaccination campaign's run was given from. */
-    lot: r.one.campaignLot({
+    /** The Lot Number a vaccination Campaign was given from. */
+    campaignLotNumber: r.one.campaignLotNumber({
       from: r.sopInstance.id,
-      to: r.campaignLot.instanceId,
+      to: r.campaignLotNumber.instanceId,
     }),
     /** The report this work is about, when a notifiable Diagnosis raised it. */
     report: r.one.dlsReport({

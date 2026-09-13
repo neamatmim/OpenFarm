@@ -218,8 +218,9 @@ export const treatment = pgTable(
     }),
     givenBy: text("given_by").references(() => user.id),
     givenAt: timestamp("given_at"),
-    /** This dose's own Lot Number, when it came from a different vial than the rest of its campaign's run. Null
-     *  for a dose from the run's lot, which is read from the run so a Correction to it reaches every dose. */
+    /** This dose's own Lot Number, when it came from a different vial than the rest of its Campaign. Null for a
+     *  dose from the Campaign's Lot Number, which is read from the Campaign so a Correction to it reaches every
+     *  dose. */
     lotNumber: text("lot_number"),
     createdAt: timestamp("created_at").notNull(),
   },
@@ -235,14 +236,15 @@ export const treatment = pgTable(
 );
 
 /**
- * The Lot Number a campaign's run was vaccinated from, asked of the vaccinator once for the Pen rather than at
- * every animal (the Owner's decision, 2026-09-13). Every dose of the run without a lot of its own came from it.
+ * The Lot Number a Campaign's Instance was vaccinated from, asked of the vaccinator once for the Pen rather than
+ * at every animal (the Owner's decision, 2026-09-13). Every dose of the Campaign without a Lot Number of its own
+ * came from it.
  *
- * Written by the Step that asks for it and rewritten by a Correction to that Step, so putting the run's lot right
- * puts every one of its doses right with it.
+ * Written by the Step that asks for it and rewritten by a Correction to that Step, so putting the Campaign's Lot
+ * Number right puts every one of its doses right with it.
  */
-export const campaignLot = pgTable(
-  "campaign_lot",
+export const campaignLotNumber = pgTable(
+  "campaign_lot_number",
   {
     id: text("id").primaryKey(),
     farmId: text("farm_id")
@@ -259,8 +261,8 @@ export const campaignLot = pgTable(
     recordedAt: timestamp("recorded_at").notNull(),
   },
   (table) => [
-    /** One lot to a run: asked once. */
-    uniqueIndex("campaign_lot_instance_uidx").on(table.instanceId),
+    /** One Lot Number to a Campaign: asked once. */
+    uniqueIndex("campaign_lot_number_instance_uidx").on(table.instanceId),
   ]
 );
 

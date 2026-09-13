@@ -91,8 +91,8 @@ export type StepEffect =
   | { kind: "stock_count" }
   /** The farm's DLS Registration renewed: the new expiry, and the renewed certificate's photo. */
   | { kind: "registration_renewal" }
-  /** The Lot Number a vaccination campaign's run was given from, asked once for the Pen. */
-  | { kind: "vaccine_lot" };
+  /** The Lot Number a vaccination Campaign was given from, asked once for the Pen. */
+  | { kind: "lot_number" };
 
 export const STEP_EFFECT_KINDS = [
   "milk_record",
@@ -109,7 +109,7 @@ export const STEP_EFFECT_KINDS = [
   "calving",
   "stock_count",
   "registration_renewal",
-  "vaccine_lot",
+  "lot_number",
 ] as const;
 
 export interface Step {
@@ -254,26 +254,33 @@ export const findMissingBangla = (content: SopContent): string[] => {
   return missing;
 };
 
-/** A Step that writes a farm record must be able to: it needs the figure it writes, and it
- *  must run at the level the record is kept at — litres are per cow, a tank reading is per
- *  Session. A Version that breaks this would raise work nobody can finish. */
-/** What a Step that records delivering the letter has to ask for. The reference the office
- *  files it under is what the farm keeps, and it is written rather than counted — required,
- *  because a report that cannot be evidenced is a report that was not made. */
-const reportStepProblems = (step: Step, path: string): string[] => {
+/** A Step done once whose record is a written note: the note has to be asked for and required, and the Step not
+ *  repeated per animal. */
+const onceWithRequiredNoteProblems = (
+  step: Step,
+  path: string,
+  said: { note: string; once: string }
+): string[] => {
   const problems: string[] = [];
   if (!step.evidence.some((item) => item.type === "note" && item.required)) {
     problems.push(
-      `${path}.evidence: this step records the reference the report was delivered under, and it has to be asked for and required`
+      `${path}.evidence: ${said.note}, and it has to be asked for and required`
     );
   }
   if (step.repeatPerAnimal) {
-    problems.push(
-      `${path}.effect: one letter reports one animal, so this step runs once`
-    );
+    problems.push(`${path}.effect: ${said.once}`);
   }
   return problems;
 };
+
+/** What a Step that records delivering the letter has to ask for. The reference the office
+ *  files it under is what the farm keeps, and it is written rather than counted — required,
+ *  because a report that cannot be evidenced is a report that was not made. */
+const reportStepProblems = (step: Step, path: string): string[] =>
+  onceWithRequiredNoteProblems(step, path, {
+    note: "this step records the reference the report was delivered under",
+    once: "one letter reports one animal, so this step runs once",
+  });
 
 /** The two shapes of a dose Step. A campaign goes round the Pen animal by animal and this
  *  Version says what each of them gets; a Prescription's dose is about the one animal it names,
@@ -509,18 +516,13 @@ const renewalStepProblems = (step: Step, path: string): string[] =>
     ? [`${path}.effect: the Registration is renewed once, not once per animal`]
     : [];
 
-/** What a Step that records a run's Lot Number has to ask for: the number off the vial, written and required,
- *  once for the Pen — a lot asked at every animal is the round the Owner decided not to make. */
-const lotStepProblems = (step: Step, path: string): string[] => [
-  ...(step.evidence.some((item) => item.type === "note" && item.required)
-    ? []
-    : [
-        `${path}.evidence: this step records the Lot Number off the vial, and it has to be asked for and required`,
-      ]),
-  ...(step.repeatPerAnimal
-    ? [`${path}.effect: a run's Lot Number is asked once, not once per animal`]
-    : []),
-];
+/** What a Step that records a Campaign's Lot Number has to ask for: the number off the vial, written and
+ *  required, once for the Pen — a Lot Number asked at every animal is the round the Owner decided not to make. */
+const lotNumberStepProblems = (step: Step, path: string): string[] =>
+  onceWithRequiredNoteProblems(step, path, {
+    note: "this step records the Lot Number off the vial",
+    once: "a Campaign's Lot Number is asked once, not once per animal",
+  });
 
 const SHAPED_STEPS: Partial<
   Record<StepEffect["kind"], (step: Step, path: string) => string[]>
@@ -532,9 +534,12 @@ const SHAPED_STEPS: Partial<
   calving: calvingStepProblems,
   stock_count: stockCountStepProblems,
   registration_renewal: renewalStepProblems,
-  vaccine_lot: lotStepProblems,
+  lot_number: lotNumberStepProblems,
 };
 
+/** A Step that writes a farm record must be able to: it needs the figure it writes, and it
+ *  must run at the level the record is kept at — litres are per cow, a tank reading is per
+ *  Session. A Version that breaks this would raise work nobody can finish. */
 const effectProblems = (step: Step, stepIndex: number): string[] => {
   const { effect } = step;
   if (!effect) {
@@ -748,24 +753,50 @@ const pairProblems = (content: SopContent): string[] => {
 };
 
 /**
- * A procedure gives one dose, and reports one disease. Two of either in one Version would write
- * over each other's record of what was done.
+ * A procedure gives one dose, reports one disease, and asks a Campaign's Lot Number once. Two of any in one
+ * Version would write over each other's record of what was done.
  */
-const oneOfEachProblems = (content: SopContent): string[] => {
-  const problems: string[] = [];
-  for (const effect of ["treatment", "dls_report"] as const) {
-    const count = content.steps.filter(
-      (step) => step.effect?.kind === effect
-    ).length;
-    if (count > 1) {
-      problems.push(
-        effect === "treatment"
-          ? "steps: a procedure gives one dose, and this one gives more than one"
-          : "steps: a procedure reports one disease, and this one reports more than one"
-      );
-    }
+const ONE_OF_EACH = {
+  treatment:
+    "steps: a procedure gives one dose, and this one gives more than one",
+  dls_report:
+    "steps: a procedure reports one disease, and this one reports more than one",
+  lot_number:
+    "steps: a Campaign asks for its Lot Number once, and this one asks more than once",
+} as const;
+
+const oneOfEachProblems = (content: SopContent): string[] =>
+  Object.entries(ONE_OF_EACH).flatMap(([effect, problem]) =>
+    content.steps.filter((step) => step.effect?.kind === effect).length > 1
+      ? [problem]
+      : []
+  );
+
+/**
+ * A Lot Number is the Campaign's, asked before its first dose: after the doses, every vaccine dose would be refused
+ * for want of it and the work could never be finished. A Step asking for one in a Version that doses nobody has
+ * nothing to number.
+ */
+const lotNumberPlaceProblems = (content: SopContent): string[] => {
+  const lotAt = content.steps.findIndex(
+    (step) => step.effect?.kind === "lot_number"
+  );
+  if (lotAt === -1) {
+    return [];
   }
-  return problems;
+  const doseAt = content.steps.findIndex(
+    (step) => step.effect?.kind === "treatment" && step.effect.productId
+  );
+  if (doseAt === -1) {
+    return [
+      `steps[${lotAt}].effect: a Lot Number belongs to a Campaign, and this procedure doses no Pen`,
+    ];
+  }
+  return lotAt < doseAt
+    ? []
+    : [
+        `steps[${lotAt}].effect: the Campaign's Lot Number is asked before the doses it numbers`,
+      ];
 };
 
 /**
@@ -860,6 +891,7 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   const problems: string[] = [
     ...pairProblems(content),
     ...oneOfEachProblems(content),
+    ...lotNumberPlaceProblems(content),
     ...reportRoleProblems(content),
   ];
   if (content.steps.length === 0) {

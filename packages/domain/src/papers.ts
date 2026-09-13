@@ -492,7 +492,7 @@ export const INSPECTOR_REGISTERS = [
 ] as const;
 export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
 
-/** The registers an inspector may also take away as a CSV (the report set: R4 as PDF and CSV). */
+/** The registers an inspector may also take away as a CSV (the report set: R3 and R4 as PDF and CSV). */
 export const REGISTERS_WITH_CSV: readonly InspectorRegister[] = [
   "vaccination_register",
   "treatment_register",
@@ -585,7 +585,7 @@ export interface VaccinationRegisterLine {
   tagNumber: string;
   vaccine: string;
   givenOn: string;
-  /** The vial's Lot Number: the dose's own, or its campaign run's. Null for a dose recorded before the product
+  /** The vial's Lot Number: the dose's own, or its Campaign's. Null for a dose recorded before the product
    *  was marked a vaccine. */
   lotNumber: string | null;
   givenBy: string | null;

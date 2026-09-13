@@ -9,7 +9,7 @@ import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // The vaccination register (R3): every dose of a product the Vet has marked a vaccine, with the Lot Number it
-// came from — the run's, asked once for the Pen, or the animal's own — and who gave it.
+// came from — the Campaign's, asked once for the Pen, or the animal's own — and who gave it.
 
 const suffix = `${Date.now()}`;
 const REGISTRATION = "DLS/SAV/2026/০৪২";
@@ -40,7 +40,7 @@ const campaignSop = (
             repeatPerAnimal: false,
             evidence: [{ type: "note" as const, required: true }],
             skipReasons: [],
-            effect: { kind: "vaccine_lot" as const },
+            effect: { kind: "lot_number" as const },
           },
         ]
       : []),
@@ -109,7 +109,7 @@ let world: Awaited<ReturnType<typeof setup>>;
 const sops: string[] = [];
 
 /** Raises a campaign over the Pen and hands back its Instance, claimed by Barn Staff. */
-const run = async (definitionId: string, instant: string) => {
+const raiseCampaign = async (definitionId: string, instant: string) => {
   const manager = await as("manager", instant);
   await manager.client.instances.raiseNow({
     definitionId,
@@ -165,7 +165,7 @@ describe("the vaccination register", () => {
     );
   });
 
-  it("asks for the run's Lot Number once and gives it to every dose without one of its own, and a Correction puts it right", async () => {
+  it("asks for the Campaign's Lot Number once and gives it to every dose without one of its own, and a Correction puts it right", async () => {
     const vaccination = await world.owner.client.sops.create({
       content: campaignSop("এফএমডি টিকা", world.fmd.id, true),
     });
@@ -176,7 +176,10 @@ describe("the vaccination register", () => {
     const [first, second, third] = world.cows;
 
     // 3 May: the FMD round. No lot yet, and she has none of her own: a vaccine dose nobody can trace is refused.
-    const fmd = await run(vaccination.definitionId, "2045-05-03T04:00:00.000Z");
+    const fmd = await raiseCampaign(
+      vaccination.definitionId,
+      "2045-05-03T04:00:00.000Z"
+    );
     await expect(
       fmd.staff.client.instances.completeStep({
         instanceId: fmd.id,
@@ -202,7 +205,7 @@ describe("the vaccination register", () => {
     await dose(second, "FMD-2045-B");
     await dose(third, "");
 
-    // The vaccinator misread the vial: the run's lot put right, and the third cow's dose was from another vial.
+    // The vaccinator misread the vial: the Campaign's Lot Number put right, and the third cow's dose was from another vial.
     const board = await fmd.manager.client.instances.get({ id: fmd.id });
     const completionOf = (stepId: string, animalId: string | null) =>
       board.completions.find(
@@ -213,6 +216,14 @@ describe("the vaccination register", () => {
       evidence: ["FMD-2045-A2"],
       reason: "ভায়ালের নম্বর ভুল পড়েছিলাম",
     });
+    // Taken back altogether, the doses given from it would be untraceable: a Step done once is not skipped.
+    await expect(
+      fmd.staff.client.instances.correctStep({
+        completionId: completionOf("lot", null),
+        skipReason: "ভায়াল দেখা হয়নি",
+        reason: "লট নম্বর লেখা হয়নি",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await fmd.staff.client.instances.correctStep({
       completionId: completionOf("dose", third.id),
       evidence: [true, "FMD-2045-C"],
@@ -220,7 +231,10 @@ describe("the vaccination register", () => {
     });
 
     // 10 May: the first cow wormed. Not a vaccine, so not on the register.
-    const worm = await run(worming.definitionId, "2045-05-10T04:00:00.000Z");
+    const worm = await raiseCampaign(
+      worming.definitionId,
+      "2045-05-10T04:00:00.000Z"
+    );
     await worm.staff.client.instances.completeStep({
       instanceId: worm.id,
       stepId: "dose",
@@ -309,18 +323,19 @@ describe("the vaccination register", () => {
     ).toEqual(["csv", "paper"]);
   });
 
-  it("will not publish a lot step that runs once per animal", async () => {
+  it("will not publish a Lot Number step asked per animal, after the doses, or twice", async () => {
     const content = campaignSop("ভুল টিকা", world.fmd.id, true);
-    await expect(
-      world.owner.client.sops.create({
-        content: {
-          ...content,
-          steps: content.steps.map((step) =>
-            step.id === "lot" ? { ...step, repeatPerAnimal: true } : step
-          ),
-        },
-      })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const [lot, dose] = content.steps;
+    const refused = (steps: SopContent["steps"]) =>
+      expect(
+        world.owner.client.sops.create({ content: { ...content, steps } })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    if (!(lot && dose)) {
+      throw new Error("the campaign has a Lot Number step and a dose step");
+    }
+    await refused([{ ...lot, repeatPerAnimal: true }, dose]);
+    await refused([dose, lot]);
+    await refused([lot, { ...lot, id: "lot-again" }, dose]);
   });
 
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
