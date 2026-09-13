@@ -61,6 +61,11 @@ export const ENTRY_STATES = [
 
 /** Every State an Animal still on the farm can be in. */
 export const LIVE_STATES = [...DAIRY_STATES, ...FATTENING_STATES] as const;
+export type LiveState = (typeof LIVE_STATES)[number];
+
+/** Whether an Animal in this State is still on the farm. */
+export const isLiveState = (state: AnimalState): state is LiveState =>
+  (LIVE_STATES as readonly AnimalState[]).includes(state);
 
 const TRANSITIONS: Record<AnimalState, readonly AnimalState[]> = {
   calf: ["heifer", "fattening"],

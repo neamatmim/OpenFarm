@@ -1,3 +1,9 @@
+import type {
+  InspectorRegister,
+  LiveState,
+  RegistrationStanding,
+  Side,
+} from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -13,11 +19,33 @@ import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
-type Report = "registration" | "herd_summary";
-
-const PAPER_OF: Record<Report, PaperId> = {
+const PAPER_OF: Record<InspectorRegister, PaperId> = {
   registration: "registration-record",
   herd_summary: "herd-summary",
+};
+
+const SIDE_WORD = {
+  dairy: "animals.side.dairy",
+  fattening: "animals.side.fattening",
+} as const satisfies Record<Side, MessageKey>;
+
+const STATE_WORD = {
+  calf: "state.calf",
+  heifer: "state.heifer",
+  pregnant_heifer: "state.pregnant_heifer",
+  milking: "state.milking",
+  dry: "state.dry",
+  quarantine: "state.quarantine",
+  fattening: "state.fattening",
+  ready_for_sale: "state.ready_for_sale",
+} as const satisfies Record<LiveState, MessageKey>;
+
+/** Where the Registration stands, said beside its expiry — nothing when it is simply good. */
+const STANDING_WORD: Record<RegistrationStanding, MessageKey | null> = {
+  valid: null,
+  ending_soon: "identity.endingSoon",
+  expired: "identity.expired",
+  unknown: null,
 };
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -35,13 +63,16 @@ const Line = ({ label, children }: { label: string; children: ReactNode }) => (
 const InspectorPage = () => {
   const { t, language } = useLanguage();
   const view = useQuery(orpc.inspector.view.queryOptions());
+  // The very photograph the view named, so the printed Registration shows the certificate the screen does.
+  const certificateId = view.data?.registration.certificate?.id;
   const certificate = useQuery({
-    ...orpc.farm.certificate.queryOptions({ input: {} }),
-    enabled: Boolean(view.data?.registration.certificate),
+    ...orpc.farm.certificate.queryOptions({ input: { id: certificateId } }),
+    enabled: certificateId !== undefined,
   });
-  const [paper, setPaper] = useState<{ report: Report; text: string } | null>(
-    null
-  );
+  const [paper, setPaper] = useState<{
+    report: InspectorRegister;
+    text: string;
+  } | null>(null);
   const print = useMutation(
     orpc.inspector.print.mutationOptions({
       onSuccess: ({ text }, { report }) => setPaper({ report, text }),
@@ -60,16 +91,23 @@ const InspectorPage = () => {
     );
   }
   const { registration, herd } = view.data;
+  const standingWord = STANDING_WORD[registration.standing];
   const day = (at: Date | null) =>
     at ? formatDate(at, language, "date") : "—";
-  const printButton = (report: Report) => (
+  const printButton = (report: InspectorRegister) => (
     <Button
-      disabled={print.isPending}
+      // The Registration waits for its certificate, so the paper is not printed without the photograph.
+      disabled={
+        print.isPending ||
+        (report === "registration" &&
+          certificateId !== undefined &&
+          !certificate.data)
+      }
       onClick={() => print.mutate({ report })}
       size="sm"
       variant="outline"
     >
-      {t("inspector.print")}
+      {t("common.print")}
     </Button>
   );
 
@@ -93,8 +131,11 @@ const InspectorPage = () => {
         </Line>
         <Line label={t("identity.registrationExpiresOn")}>
           {day(registration.expiresOn)}
-          {registration.expired ? ` · ${t("inspector.expired")}` : ""}
-          {registration.endingSoon ? ` · ${t("inspector.endingSoon")}` : ""}
+          {standingWord ? (
+            <span className="block text-amber-400">
+              {t(standingWord, { when: day(registration.expiresOn) })}
+            </span>
+          ) : null}
         </Line>
         {certificate.data ? (
           <img
@@ -112,13 +153,14 @@ const InspectorPage = () => {
           <h2 className="font-medium">{t("inspector.herd")}</h2>
           {printButton("herd_summary")}
         </div>
+        <Line label={t("inspector.asOf")}>{day(herd.asOf)}</Line>
         <Line label={t("inspector.animals")}>
           {formatNumber(herd.total, language)}
         </Line>
         {herd.bySideAndState.map((line) => (
           <Line
             key={`${line.side}-${line.state}`}
-            label={`${t(`animals.side.${line.side}` as MessageKey)} · ${t(`state.${line.state}` as MessageKey)}`}
+            label={`${t(SIDE_WORD[line.side])} · ${t(STATE_WORD[line.state])}`}
           >
             {formatNumber(line.animals, language)}
           </Line>

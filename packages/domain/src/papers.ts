@@ -1,4 +1,4 @@
-import type { FarmIdentity } from "./farm";
+import type { FarmIdentity, RegistrationStanding } from "./farm";
 import { farmOfOriginLines } from "./farm";
 import type { Side } from "./lifecycle";
 import type { MoneySummary } from "./money-summary";
@@ -475,14 +475,18 @@ export interface RegistrationRecord {
   issuedOn: string | null;
   expiresOn: string | null;
   /** Whether it has run out, or is about to: the first thing an inspector reads. */
-  standing: "valid" | "ending_soon" | "expired" | "unknown";
+  standing: RegistrationStanding;
   /** When the certificate was last photographed; null for a farm that has not. */
   certificateTakenOn: string | null;
   producedBy: string;
   producedAt: string;
 }
 
-const STANDING_LABEL: Record<RegistrationRecord["standing"], string> = {
+/** The registers the Inspector View prints, by the name the trail records each under. */
+export const INSPECTOR_REGISTERS = ["registration", "herd_summary"] as const;
+export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
+
+const STANDING_LABEL: Record<RegistrationStanding, string> = {
   valid: "বৈধ / Valid",
   ending_soon: "মেয়াদ শেষ হতে চলেছে / Ending soon",
   expired: "মেয়াদ শেষ / Expired",
@@ -497,12 +501,8 @@ export const registrationRecord = (record: RegistrationRecord): string =>
   [
     ...farmOfOriginLines(record.farm),
     "",
+    // The number is already in the farm's own lines above.
     "নিবন্ধন / Registration",
-    field(
-      "নিবন্ধন নম্বর",
-      "Registration number",
-      record.farm.registrationNumber ?? "—"
-    ),
     field("ইস্যুকারী দপ্তর", "Issuing office", record.office ?? "—"),
     field("ইস্যুর তারিখ", "Issued", record.issuedOn ?? "—"),
     field("মেয়াদ শেষ", "Expires", record.expiresOn ?? "—"),

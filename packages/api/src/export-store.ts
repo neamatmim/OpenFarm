@@ -1,4 +1,5 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import type { InspectorRegister } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
@@ -11,8 +12,7 @@ export type ExportedReport =
   | "milk_dispatch_record"
   | "milk_production"
   | "accountant_export"
-  | "registration"
-  | "herd_summary";
+  | InspectorRegister;
 
 /**
  * Every Export is an Audit Event, stamped with the report, the period it covers when it covers one, and the

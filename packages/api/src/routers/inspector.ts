@@ -1,11 +1,13 @@
-import type { Side } from "@OpenFarm/domain";
+import type { LiveState } from "@OpenFarm/domain";
 import {
+  INSPECTOR_REGISTERS,
   LIVE_STATES,
-  farmDayOf,
+  SIDES,
   herdSummary,
   identityView,
-  isExitState,
+  isLiveState,
   registrationRecord,
+  registrationStanding,
 } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
@@ -18,18 +20,17 @@ import { languageOf } from "../reader-language";
 import { certificatesOf } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
-type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
-
-type State = (typeof LIVE_STATES)[number];
-
-const SIDES: readonly Side[] = ["dairy", "fattening"];
+/** The request a register is produced under: on a farm, by a person. */
+type Producing = Context & {
+  farm: NonNullable<Context["farm"]>;
+  actor: { id: string; name: string };
+};
 
 /** The farm's Registration as the Inspector View shows it: the record, where it stands, and its certificate. */
-const registrationOf = async (context: FarmContext) => {
-  const now = context.clock.now();
+const registrationOf = async (context: Producing) => {
   const view = identityView(
     context.farm,
-    now,
+    context.clock.now(),
     context.farm.registrationRenewalLeadDays
   );
   const [certificate] = await certificatesOf(context.db, context.farm.id);
@@ -38,21 +39,23 @@ const registrationOf = async (context: FarmContext) => {
     office: view.registrationOffice,
     issuedOn: view.registrationIssuedOn,
     expiresOn: view.registrationExpiresOn,
-    expired: view.registrationExpired,
-    endingSoon: view.registrationEndingSoon,
+    standing: registrationStanding(view),
     certificate: certificate
       ? { id: certificate.id, takenAt: certificate.takenAt }
       : null,
   };
 };
 
+/** Each State's count in one Pen. */
+type ByState = Partial<Record<LiveState, number>>;
+
 /**
  * Every animal on the farm today, counted by Side and State and by Pen. Animals that have gone keep the Pen
- * they were last in, so they are left out by their State, not by where they were.
+ * they were last in, so they are left out by their State, in the query, not by where they were.
  */
-const herdOf = async (context: FarmContext) => {
-  const animals = await context.db.query.animal.findMany({
-    where: { farmId: context.farm.id },
+const herdOf = async (context: Producing) => {
+  const here = await context.db.query.animal.findMany({
+    where: { farmId: context.farm.id, state: { in: [...LIVE_STATES] } },
     columns: { side: true, state: true, penId: true },
     with: {
       pen: {
@@ -61,7 +64,6 @@ const herdOf = async (context: FarmContext) => {
       },
     },
   });
-  const here = animals.filter((one) => !isExitState(one.state));
   const bySideAndState = SIDES.flatMap((side) =>
     LIVE_STATES.flatMap((state) => {
       const count = here.filter(
@@ -72,22 +74,19 @@ const herdOf = async (context: FarmContext) => {
   );
   const pens = new Map<
     string,
-    {
-      penId: string;
-      shed: string;
-      pen: string;
-      byState: Partial<Record<State, number>>;
-    }
+    { penId: string; shed: string; pen: string; byState: ByState }
   >();
   for (const one of here) {
+    if (!isLiveState(one.state)) {
+      continue;
+    }
     const line = pens.get(one.penId) ?? {
       penId: one.penId,
       shed: one.pen.shed.name,
       pen: one.pen.name,
       byState: {},
     };
-    const state = one.state as State;
-    line.byState[state] = (line.byState[state] ?? 0) + 1;
+    line.byState[one.state] = (line.byState[one.state] ?? 0) + 1;
     pens.set(one.penId, line);
   }
   const byPen = [...pens.values()]
@@ -114,10 +113,7 @@ const bothLanguages = (key: Parameters<typeof translate>[1]) =>
   `${translate("bn", key)} / ${translate("en", key)}`;
 
 /** Each State with its count, in both languages and the reader's digits. */
-const statesSaid = (
-  byState: Partial<Record<State, number>>,
-  language: Language
-) =>
+const statesSaid = (byState: ByState, language: Language) =>
   LIVE_STATES.flatMap((state) => {
     const count = byState[state];
     return count
@@ -125,70 +121,73 @@ const statesSaid = (
       : [];
   }).join(" · ");
 
-/** The two registers' papers, each in the language of whoever is producing it. */
+/**
+ * The two registers as papers, each in the language of whoever is producing it, with what the paper said for
+ * the trail to keep: the Registration it showed, or the herd it counted.
+ */
 const PAPERS = {
-  registration: async (
-    context: FarmContext & { actor: { name: string } },
-    language: Language
-  ) => {
+  registration: async (context: Producing, language: Language) => {
     const registration = await registrationOf(context);
     const day = (at: Date | null) =>
       at ? formatDate(at, language, "date") : null;
-    let standing: "valid" | "ending_soon" | "expired" | "unknown" = "valid";
-    if (registration.expiresOn === null) {
-      standing = "unknown";
-    } else if (registration.expired) {
-      standing = "expired";
-    } else if (registration.endingSoon) {
-      standing = "ending_soon";
-    }
-    return registrationRecord({
-      farm: context.farm,
-      office: registration.office,
-      issuedOn: day(registration.issuedOn),
-      expiresOn: day(registration.expiresOn),
-      standing,
-      certificateTakenOn: day(registration.certificate?.takenAt ?? null),
-      producedBy: context.actor.name,
-      producedAt: formatDate(context.clock.now(), language, "dateTime"),
-    });
+    return {
+      text: registrationRecord({
+        farm: context.farm,
+        office: registration.office,
+        issuedOn: day(registration.issuedOn),
+        expiresOn: day(registration.expiresOn),
+        standing: registration.standing,
+        certificateTakenOn: day(registration.certificate?.takenAt ?? null),
+        producedBy: context.actor.name,
+        producedAt: formatDate(context.clock.now(), language, "dateTime"),
+      }),
+      said: {
+        expiresOn: registration.expiresOn?.toISOString() ?? null,
+        standing: registration.standing,
+        certificateId: registration.certificate?.id ?? null,
+      },
+    };
   },
-  herd_summary: async (
-    context: FarmContext & { actor: { name: string } },
-    language: Language
-  ) => {
+  herd_summary: async (context: Producing, language: Language) => {
     const herd = await herdOf(context);
     const count = (n: number) => formatNumber(n, language);
-    return herdSummary({
-      farm: context.farm,
-      asOf: formatDate(herd.asOf, language, "date"),
-      total: count(herd.total),
-      bySide: SIDES.flatMap((side) => {
-        const lines = herd.bySideAndState.filter((line) => line.side === side);
-        if (lines.length === 0) {
-          return [];
-        }
-        return [
-          {
-            label: bothLanguages(`animals.side.${side}`),
-            animals: count(lines.reduce((sum, line) => sum + line.animals, 0)),
-            states: statesSaid(
-              Object.fromEntries(
-                lines.map((line) => [line.state, line.animals])
+    return {
+      text: herdSummary({
+        farm: context.farm,
+        asOf: formatDate(herd.asOf, language, "date"),
+        total: count(herd.total),
+        bySide: SIDES.flatMap((side) => {
+          const lines = herd.bySideAndState.filter(
+            (line) => line.side === side
+          );
+          if (lines.length === 0) {
+            return [];
+          }
+          return [
+            {
+              label: bothLanguages(`animals.side.${side}`),
+              animals: count(
+                lines.reduce((sum, line) => sum + line.animals, 0)
               ),
-              language
-            ),
-          },
-        ];
+              states: statesSaid(
+                Object.fromEntries(
+                  lines.map((line) => [line.state, line.animals])
+                ),
+                language
+              ),
+            },
+          ];
+        }),
+        byPen: herd.byPen.map((line) => ({
+          label: `${line.shed} / ${line.pen}`,
+          animals: count(line.animals),
+          states: statesSaid(line.byState, language),
+        })),
+        producedBy: context.actor.name,
+        producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
-      byPen: herd.byPen.map((line) => ({
-        label: `${line.shed} / ${line.pen}`,
-        animals: count(line.animals),
-        states: statesSaid(line.byState, language),
-      })),
-      producedBy: context.actor.name,
-      producedAt: formatDate(context.clock.now(), language, "dateTime"),
-    });
+      said: { animals: herd.total, pens: herd.byPen.length },
+    };
   },
 } as const;
 
@@ -206,24 +205,22 @@ export const inspectorRouter = {
     .handler(async ({ context }) => ({
       registration: await registrationOf(context),
       herd: await herdOf(context),
-      today: farmDayOf(context.clock.now()),
     })),
 
   /**
    * One of the Inspector View's registers as a paper, headed by the farm and stamped with who produced it and
-   * when. Every print is an Export; a farm without its Registration number is told so instead.
+   * when. Every print is an Export that keeps what the paper said; a farm without its Registration number is
+   * told so instead.
    */
   print: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
-    .input(z.object({ report: z.enum(["registration", "herd_summary"]) }))
+    .input(z.object({ report: z.enum(INSPECTOR_REGISTERS) }))
     .handler(async ({ context, input }) => {
       assertRegistered(context.farm, "a register for an inspector");
       const language = await languageOf(context.db, context.actor.id);
-      const text = await PAPERS[input.report](context, language);
-      await recordExport(context, input.report, null, {
-        day: farmDayOf(context.clock.now()),
-      });
+      const { text, said } = await PAPERS[input.report](context, language);
+      await recordExport(context, input.report, null, said);
       return { text };
     }),
 };

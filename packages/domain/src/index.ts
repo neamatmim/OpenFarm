@@ -2,6 +2,7 @@ export type {
   AnimalState,
   Disposal,
   ExitState,
+  LiveState,
   MortalityKind,
   Side,
 } from "./lifecycle";
@@ -17,6 +18,7 @@ export {
   allowedNextStates,
   canTransition,
   isExitState,
+  isLiveState,
   sideOfState,
   stateAfterSideChange,
 } from "./lifecycle";
@@ -58,10 +60,12 @@ export {
   isServiceMethod,
 } from "./breeding";
 export type { FarmIdentity } from "./farm";
+export type { RegistrationStanding } from "./farm";
 export {
   farmOfOriginLines,
   goodUntilOf,
   identityView,
+  registrationStanding,
   renewalOpensAt,
 } from "./farm";
 export {
@@ -99,6 +103,7 @@ export type {
   MilkDispatchRecord,
   AccountantSummary,
   DoseGiven,
+  InspectorRegister,
   HerdSummary,
   HerdSummaryLine,
   RegistrationRecord,
@@ -110,6 +115,7 @@ export type {
   WithdrawalSummary,
 } from "./papers";
 export {
+  INSPECTOR_REGISTERS,
   accountantSummary,
   animalPassport,
   herdSummary,

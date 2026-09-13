@@ -27,7 +27,7 @@ const setup = async () => {
   if (identity.registrationMissing) {
     await manager.client.farm.setIdentity({ registrationNumber: REGISTRATION });
   }
-  await manager.client.farm.setCertificate({
+  const certificate = await manager.client.farm.setCertificate({
     contentType: "image/jpeg",
     data: "AAAA",
   });
@@ -93,7 +93,7 @@ const setup = async () => {
     disposal: "buried",
     happenedAt: new Date("2043-05-01T03:00:00.000Z"),
   });
-  return { milkingPen, bullPen };
+  return { milkingPen, bullPen, certificate };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -106,11 +106,10 @@ describe("the Inspector View", () => {
   it("shows the Registration with its certificate, and prints it headed by the farm", async () => {
     const manager = await as("manager", "2043-05-02T04:00:00.000Z");
     const view = await manager.client.inspector.view();
+    // No file photographs the certificate on a later clock, so this file's is the farm's newest.
     expect(view.registration).toMatchObject({
       number: REGISTRATION,
-      certificate: expect.objectContaining({
-        takenAt: new Date("2043-05-01T04:00:00.000Z"),
-      }),
+      certificate: { id: world.certificate.id, takenAt: expect.any(Date) },
     });
 
     const { text } = await manager.client.inspector.print({
@@ -118,6 +117,21 @@ describe("the Inspector View", () => {
     });
     expect(text).toContain("নিবন্ধন / Registration");
     expect(text).toContain(REGISTRATION);
+
+    // On the trail: the Registration it showed, and the certificate photograph it named.
+    const exports = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "report", action: "export" },
+    });
+    expect(
+      exports
+        .map((event) => event.after as Record<string, unknown> | null)
+        .filter((after) => after?.certificateId === world.certificate.id)
+    ).toEqual([
+      expect.objectContaining({
+        report: "registration",
+        registrationNumber: REGISTRATION,
+      }),
+    ]);
   });
 
   it("counts the herd on the farm today by Side and State and by Pen, the animals that have gone left out", async () => {
@@ -132,15 +146,13 @@ describe("the Inspector View", () => {
       animals: 1,
       byState: { quarantine: 1 },
     });
-    // Every Pen's animals add up to the farm's, Side by State.
-    const farmTotal = view.herd.bySideAndState.reduce(
-      (sum, line) => sum + line.animals,
-      0
+    // The farm's Side-and-State lines include this file's milking cows and its bull.
+    expect(view.herd.bySideAndState).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ side: "dairy", state: "milking" }),
+        expect.objectContaining({ side: "fattening", state: "quarantine" }),
+      ])
     );
-    expect(view.herd.byPen.reduce((sum, one) => sum + one.animals, 0)).toBe(
-      farmTotal
-    );
-    expect(view.herd.total).toBe(farmTotal);
 
     const { text } = await owner.client.inspector.print({
       report: "herd_summary",
@@ -159,7 +171,10 @@ describe("the Inspector View", () => {
           after?.report === "herd_summary"
       );
     expect(ours).toEqual([
-      expect.objectContaining({ registrationNumber: REGISTRATION }),
+      expect.objectContaining({
+        registrationNumber: REGISTRATION,
+        animals: view.herd.total,
+      }),
     ]);
   });
 
@@ -171,6 +186,10 @@ describe("the Inspector View", () => {
       await expect(other.client.inspector.view()).rejects.toMatchObject({
         code: "FORBIDDEN",
       });
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        other.client.inspector.print({ report: "registration" })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
     const onShedPhone = await as("manager", "2043-05-03T04:00:00.000Z", true);
     await expect(onShedPhone.client.inspector.view()).rejects.toMatchObject({
@@ -182,11 +201,14 @@ describe("the Inspector View", () => {
     await writer.client.farm.setIdentity({ registrationNumber: null });
     try {
       const unregistered = await as("owner", "2043-05-03T04:00:00.000Z");
-      await expect(
-        unregistered.client.inspector.print({ report: "herd_summary" })
-      ).rejects.toMatchObject({
-        data: { refusal: "farm_identity_incomplete" },
-      });
+      for (const report of ["registration", "herd_summary"] as const) {
+        // oxlint-disable-next-line no-await-in-loop
+        await expect(
+          unregistered.client.inspector.print({ report })
+        ).rejects.toMatchObject({
+          data: { refusal: "farm_identity_incomplete" },
+        });
+      }
     } finally {
       await writer.client.farm.setIdentity({
         registrationNumber: REGISTRATION,
