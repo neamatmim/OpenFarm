@@ -18,6 +18,7 @@ import { instancesRouter } from "./instances";
 import { intakeRouter } from "./intake";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
+import { moneyRouter } from "./money";
 import { notifiableRouter } from "./notifiable";
 import { observationsRouter } from "./observations";
 import { papersRouter } from "./papers";
@@ -60,6 +61,7 @@ export const appRouter = {
   prescriptions: prescriptionsRouter,
   push: pushRouter,
   ready: readyRouter,
+  money: moneyRouter,
   reports: reportsRouter,
   breeding: breedingRouter,
   stock: stockRouter,

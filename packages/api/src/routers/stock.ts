@@ -1,6 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { FEED_IN_KINDS, feedIn } from "@OpenFarm/db/schema/feed";
+import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import { mayCorrect, maundsOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -11,8 +12,10 @@ import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { bookMoney, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
 import { adjustmentsOf, stockOnHand } from "../stock-store";
+import { paymentMethodInput } from "./money";
 
 const sellerInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -143,6 +146,8 @@ export const stockRouter = {
         priceBdt: priceInput.optional(),
         seller: sellerInput.optional(),
         receivedOn: farmDay,
+        /** How the seller was paid, for a purchase. */
+        paymentMethod: paymentMethodInput,
       })
     )
     .handler(async ({ context, input }) => {
@@ -186,6 +191,9 @@ export const stockRouter = {
           after: (tx) => readArrival(tx, id),
         },
         async (tx) => {
+          const sellerId = input.seller
+            ? await counterpartyNamed(tx, context.farm.id, input.seller, now)
+            : null;
           await tx.insert(feedIn).values({
             id,
             farmId: context.farm.id,
@@ -193,14 +201,23 @@ export const stockRouter = {
             kind: input.kind,
             quantity: input.quantity.toFixed(1),
             priceBdt: input.priceBdt?.toFixed(2) ?? null,
-            counterpartyId: input.seller
-              ? await counterpartyNamed(tx, context.farm.id, input.seller, now)
-              : null,
+            counterpartyId: sellerId,
             receivedOn,
             recordedBy: context.actor.id,
             recordedByRole,
             recordedAt: now,
           });
+          // A harvest from the farm's own fields is feed and not money.
+          if (input.priceBdt !== undefined) {
+            await bookMoney(tx, bookingOf(context, recordedByRole, now), {
+              source: "feed_in",
+              sourceId: id,
+              amountBdt: input.priceBdt,
+              occurredAt: receivedOn,
+              counterpartyId: sellerId,
+              paymentMethod: input.paymentMethod,
+            });
+          }
         }
       );
       return { id };
@@ -220,6 +237,7 @@ export const stockRouter = {
         priceBdt: priceInput.optional(),
         seller: sellerInput.optional(),
         receivedOn: farmDay.optional(),
+        paymentMethod: z.enum(PAYMENT_METHODS).optional(),
         reason: reasonInput,
       })
     )
@@ -292,6 +310,19 @@ export const stockRouter = {
                 : {}),
             })
             .where(eq(feedIn.id, existing.id));
+          const corrected = await tx.query.feedIn.findFirst({
+            where: { id: existing.id },
+          });
+          if (corrected?.priceBdt) {
+            await bookMoney(tx, bookingOf(context, verdict.role, now), {
+              source: "feed_in",
+              sourceId: corrected.id,
+              amountBdt: Number(corrected.priceBdt),
+              occurredAt: corrected.receivedOn,
+              counterpartyId: corrected.counterpartyId,
+              paymentMethod: input.paymentMethod,
+            });
+          }
         }
       );
       return { id: existing.id };

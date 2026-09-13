@@ -22,6 +22,7 @@ const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
   entry_rejected: "alerts.entryRejected",
   withdrawal_changed: "alerts.withdrawalChanged",
   low_stock: "alerts.lowStock",
+  money_awaiting_approval: "alerts.moneyAwaiting",
 };
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
@@ -46,6 +47,11 @@ const paramsOf = (
     feed: String(raw.nameBn ?? ""),
     onHand: Number(raw.onHand ?? 0),
     unit: String(raw.unit ?? ""),
+    /** How much and under what heading, for the notice about money waiting for the Owner. */
+    amount: Number(raw.amountBdt ?? 0),
+    category: String(
+      (bangla ? raw.categoryBn : raw.categoryEn) ?? raw.categoryBn ?? ""
+    ),
   };
 };
 

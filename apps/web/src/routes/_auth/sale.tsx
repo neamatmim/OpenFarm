@@ -1,3 +1,4 @@
+import type { PaymentMethod } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -9,6 +10,7 @@ import { toast } from "sonner";
 
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -23,6 +25,7 @@ const NOTHING_TYPED = {
   vehicle: "",
   driver: "",
   note: "",
+  paymentMethod: "cash" as PaymentMethod,
 };
 
 /** The day she is fit, when the farm refused the sale because she is still inside her days. */
@@ -223,6 +226,7 @@ const SalePage = () => {
             vehicle: fields.vehicle,
             driver: fields.driver,
             note: fields.note || undefined,
+            paymentMethod: fields.paymentMethod,
           });
         }}
       >
@@ -373,6 +377,12 @@ const SalePage = () => {
           />
           <p className="text-muted-foreground text-xs">{t("sale.noteWhy")}</p>
         </div>
+
+        <PaymentMethodField
+          id="sale-paid-by"
+          onChange={(paymentMethod) => edit({ paymentMethod })}
+          value={fields.paymentMethod}
+        />
 
         <Button disabled={record.isPending || ready.length === 0} type="submit">
           {t("sale.record")}

@@ -1,0 +1,182 @@
+import {
+  index,
+  integer,
+  numeric,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+import { user } from "./auth";
+import { ROLES, farm } from "./farm";
+import { counterparty } from "./fattening";
+import { drugProduct } from "./health";
+import { animal } from "./herd";
+
+/** Which way money went: into the farm, or out of it. */
+export const MONEY_DIRECTIONS = ["in", "out"] as const;
+
+/** How money changed hands. Cash at the gate, bKash on a phone, or through a bank. */
+export const PAYMENT_METHODS = ["cash", "bkash", "bank"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/**
+ * The farm records that make money on their own. A Money Event made by one of these names it, and one
+ * record makes one Money Event: a Correction to the record corrects its money rather than adding more.
+ */
+export const MONEY_SOURCES = [
+  "dispatch",
+  "intake",
+  "sale",
+  "feed_in",
+  "medicine_purchase",
+  "vet_fee",
+] as const;
+export type MoneySource = (typeof MONEY_SOURCES)[number];
+
+/**
+ * Where a Money Event stands with the Owner. Under the Approval Threshold it needs nobody; over it, it
+ * waits until the Owner approves it. The record that made it is never held back — only the money is
+ * (the Owner's decision, 2026-09-13).
+ */
+export const MONEY_APPROVALS = ["not_needed", "awaiting", "approved"] as const;
+export type MoneyApproval = (typeof MONEY_APPROVALS)[number];
+
+/**
+ * A heading a Money Event falls under. The headings the farm's own records use carry a key and are made
+ * the first time a record needs one; the farm's own list of headings grows from these.
+ */
+export const moneyCategory = pgTable(
+  "money_category",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** The record that uses this heading, for the ones the records make; null for the farm's own. */
+    key: text("key", { enum: MONEY_SOURCES }),
+    nameBn: text("name_bn").notNull(),
+    nameEn: text("name_en"),
+    direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("money_category_key_uidx").on(table.farmId, table.key),
+    uniqueIndex("money_category_name_uidx").on(table.farmId, table.nameBn),
+  ]
+);
+
+/**
+ * One flow of money in or out of the Farm: how much, when, which way, under what heading, with whom, how
+ * it was paid, and the record that caused it.
+ *
+ * Not a ledger: an income and expense record the accountant keeps the books from.
+ */
+export const moneyEvent = pgTable(
+  "money_event",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
+    amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** When the money moved, as the record that caused it says. */
+    occurredAt: timestamp("occurred_at").notNull(),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => moneyCategory.id),
+    counterpartyId: text("counterparty_id").references(() => counterparty.id),
+    paymentMethod: text("payment_method", { enum: PAYMENT_METHODS }).notNull(),
+    /** The record that made it, and that record's id. */
+    source: text("source", { enum: MONEY_SOURCES }).notNull(),
+    sourceId: text("source_id").notNull(),
+    approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
+    approvedBy: text("approved_by").references(() => user.id),
+    approvedAt: timestamp("approved_at"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("money_event_source_uidx").on(table.source, table.sourceId),
+    index("money_event_day_idx").on(table.farmId, table.occurredAt),
+    index("money_event_approval_idx").on(table.farmId, table.approval),
+  ]
+);
+
+/**
+ * Medicine bought for the Drug List: which product, how much of it in the words on the box, what it
+ * cost, who sold it, and roughly how many doses it holds — which is what a dose given is costed from
+ * (the Owner's decision, 2026-09-13).
+ */
+export const medicinePurchase = pgTable(
+  "medicine_purchase",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    drugProductId: text("drug_product_id")
+      .notNull()
+      .references(() => drugProduct.id),
+    /** How much, as the box or the shop says it: "10 vials", "500 ml". */
+    quantity: text("quantity").notNull(),
+    doses: integer("doses").notNull(),
+    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }).notNull(),
+    counterpartyId: text("counterparty_id")
+      .notNull()
+      .references(() => counterparty.id),
+    /** The farm's day it was bought. */
+    purchasedOn: timestamp("purchased_on").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("medicine_purchase_product_idx").on(
+      table.farmId,
+      table.drugProductId,
+      table.purchasedOn
+    ),
+  ]
+);
+
+/**
+ * The Vet's own fee for a visit, entered by the Vet: how much, the day, and the animals seen when the
+ * Vet names them — which is what the fee is charged to.
+ */
+export const vetFee = pgTable(
+  "vet_fee",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    vetId: text("vet_id")
+      .notNull()
+      .references(() => user.id),
+    amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** The farm's day of the visit. */
+    visitedOn: timestamp("visited_on").notNull(),
+    note: text("note"),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [index("vet_fee_vet_idx").on(table.farmId, table.vetId)]
+);
+
+/** An animal the Vet saw on a visit they charged for. */
+export const vetFeeAnimal = pgTable(
+  "vet_fee_animal",
+  {
+    vetFeeId: text("vet_fee_id")
+      .notNull()
+      .references(() => vetFee.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id),
+  },
+  (table) => [primaryKey({ columns: [table.vetFeeId, table.animalId] })]
+);

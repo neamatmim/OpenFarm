@@ -44,6 +44,7 @@ const WORDED_REFUSALS = {
   aborted_before_she_was_served: "refusal.abortedBeforeSheWasServed",
   aborted_in_the_future: "refusal.abortedInTheFuture",
   abortion_of_a_cow_not_carrying: "refusal.abortionOfACowNotCarrying",
+  bought_in_the_future: "refusal.boughtInTheFuture",
   calved_in_the_future: "refusal.calvedInTheFuture",
   calving_is_derived: "refusal.calvingIsDerived",
   calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
@@ -51,6 +52,7 @@ const WORDED_REFUSALS = {
   count_incomplete: "refusal.countIncomplete",
   difference_needs_reason: "refusal.differenceNeedsReason",
   dispatched_in_the_future: "refusal.dispatchedInTheFuture",
+  drug_retired: "refusal.drugRetired",
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
   expected_calving_needed: "refusal.expectedCalvingNeeded",
   expected_calving_passed: "refusal.expectedCalvingPassed",
@@ -62,7 +64,9 @@ const WORDED_REFUSALS = {
   manager_only: "refusal.managerOnly",
   no_calving_expected: "refusal.noCalvingExpected",
   no_such_bull: "refusal.noSuchBull",
+  not_awaiting_approval: "refusal.notAwaitingApproval",
   not_a_repeat_breeder: "refusal.notARepeatBreeder",
+  owner_only: "refusal.ownerOnly",
   period_backwards: "refusal.periodBackwards",
   period_too_long: "refusal.periodTooLong",
   purchase_needs_price_and_seller: "refusal.purchaseNeedsPriceAndSeller",
@@ -72,6 +76,7 @@ const WORDED_REFUSALS = {
   service_of_a_male: "refusal.serviceOfAMale",
   staff_or_manager_only: "refusal.staffOrManagerOnly",
   vet_only: "refusal.vetOnly",
+  visited_in_the_future: "refusal.visitedInTheFuture",
 } as const satisfies Record<string, MessageKey>;
 
 /** A worded refusal in the reader's language, or nothing when the error was about something else. */

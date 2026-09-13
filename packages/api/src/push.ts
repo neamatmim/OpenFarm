@@ -139,5 +139,6 @@ export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
   entry_rejected: "digest.entryRejected",
   withdrawal_changed: "digest.withdrawalChanged",
   low_stock: "digest.lowStock",
+  money_awaiting_approval: "digest.moneyAwaiting",
   sop_proposed: "digest.sopProposed",
 };

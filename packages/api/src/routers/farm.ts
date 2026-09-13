@@ -15,7 +15,7 @@ import type { CalvingWorkFollowed } from "../breeding-store";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import { forbidden, requireRole } from "../roles";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -62,6 +62,8 @@ const parameters = z
     calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
+    /** The taka above which a Money Event waits for the Owner. The Owner's alone to move. */
+    approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -268,6 +270,16 @@ export const farmRouter = {
           message: "The AI window cannot be longer than a day",
         });
       }
+      if (
+        input.approvalThresholdBdt !== undefined &&
+        !context.roles.includes("owner")
+      ) {
+        // The bar the Manager's spending is held to is not the Manager's to move.
+        throw forbidden({
+          message: "The Approval Threshold is the Owner's to set",
+          reason: "owner_only",
+        });
+      }
       const quietFrom = input.quietFrom ?? context.farm.quietFrom;
       const quietUntil = input.quietUntil ?? context.farm.quietUntil;
       if (quietFrom === quietUntil) {
@@ -307,6 +319,7 @@ export const farmRouter = {
                 dryOffLeadDays: true,
                 calvingPrepLeadDays: true,
                 repeatBreederThreshold: true,
+                approvalThresholdBdt: true,
               },
             })) ?? null,
           after: () => Promise.resolve({ ...changes, ...retimed }),

@@ -11,7 +11,9 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { bookMoney, bookingOf } from "../money-store";
 import { requireOnly, requireRole } from "../roles";
+import { paymentMethodInput } from "./money";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
 const readArrival = async (tx: Tx, animalId: string) => {
@@ -61,6 +63,8 @@ const recordInput = z
     targetWindowEnd: farmDay.optional(),
     /** When it came off the lorry, for an arrival written up the next morning. */
     arrivedAt: z.coerce.date().optional(),
+    /** How the seller was paid. */
+    paymentMethod: paymentMethodInput,
   })
   .refine(
     (value) =>
@@ -135,6 +139,7 @@ export const intakeRouter = {
         });
       }
       const id = newId(now);
+      const intakeId = newId(now);
       let tagNumber = "";
       await audited(context).write(
         {
@@ -161,16 +166,17 @@ export const intakeRouter = {
             reason: "intake",
           });
           ({ tagNumber } = made);
+          const sellerId = await counterpartyNamed(
+            tx,
+            context.farm.id,
+            input.seller,
+            now
+          );
           await tx.insert(intake).values({
-            id: newId(now),
+            id: intakeId,
             farmId: context.farm.id,
             animalId: id,
-            counterpartyId: await counterpartyNamed(
-              tx,
-              context.farm.id,
-              input.seller,
-              now
-            ),
+            counterpartyId: sellerId,
             purchasePriceBdt: input.purchasePriceBdt.toFixed(2),
             weightKg: input.weightKg.toFixed(2),
             estimatedAgeMonths: input.estimatedAgeMonths,
@@ -183,10 +189,22 @@ export const intakeRouter = {
             recordedBy: context.actor.id,
             createdAt: now,
           });
+          // A bull given to the farm costs nothing, and nothing is booked for him.
+          if (input.purchasePriceBdt > 0) {
+            await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
+              source: "intake",
+              sourceId: intakeId,
+              amountBdt: input.purchasePriceBdt,
+              occurredAt: arrivedAt,
+              counterpartyId: sellerId,
+              paymentMethod: input.paymentMethod,
+            });
+          }
         }
       );
       return {
         id,
+        intakeId,
         tagNumber,
         state: "quarantine" as const,
         targetWindow: window,

@@ -1,3 +1,4 @@
+import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -9,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Paper } from "@/components/paper";
+import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -56,6 +58,7 @@ const MilkPage = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   const [day, setDay] = useState(() => farmDayOf(new Date()));
   const [form, setForm] = useState(NOTHING_TYPED);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [from, setFrom] = useState(() => farmDayOf(new Date()));
   const [to, setTo] = useState(() => farmDayOf(new Date()));
   const [paper, setPaper] = useState<string | null>(null);
@@ -162,6 +165,7 @@ const MilkPage = () => {
               fatPercent: typed(form.fat),
               snfPercent: typed(form.snf),
               note: written(form.note),
+              paymentMethod,
             });
           }}
         >
@@ -191,6 +195,11 @@ const MilkPage = () => {
               />
             </div>
           ))}
+          <PaymentMethodField
+            id="dispatch-paid-by"
+            onChange={setPaymentMethod}
+            value={paymentMethod}
+          />
           <Button
             disabled={!complete || record.isPending}
             type="submit"

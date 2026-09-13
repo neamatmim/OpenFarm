@@ -1,3 +1,4 @@
+import type { PaymentMethod } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -6,6 +7,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PaymentMethodField } from "@/components/payment-method";
 import { useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -34,6 +36,7 @@ const EMPTY = {
   targetWeightKg: "",
   targetWindowStart: "",
   targetWindowEnd: "",
+  paymentMethod: "cash" as PaymentMethod,
 };
 
 /**
@@ -114,6 +117,7 @@ const IntakePage = () => {
             targetWeightKg: orNothing(fields.targetWeightKg),
             targetWindowStart: fields.targetWindowStart || undefined,
             targetWindowEnd: fields.targetWindowEnd || undefined,
+            paymentMethod: fields.paymentMethod,
           });
         }}
       >
@@ -227,6 +231,12 @@ const IntakePage = () => {
             />
           </div>
         </div>
+
+        <PaymentMethodField
+          id="intake-paid-by"
+          onChange={(paymentMethod) => edit({ paymentMethod })}
+          value={fields.paymentMethod}
+        />
 
         <div className="space-y-1">
           <Label htmlFor="intake-photo">{t("animals.photoTake")}</Label>

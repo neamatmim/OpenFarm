@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -28,6 +29,20 @@ const OwnerHome = () => {
       onError: (error) => toast.error(error.message),
     })
   );
+  const approveMoney = useMutation(
+    orpc.money.approve.mutationOptions({
+      onSuccess: () =>
+        Promise.all(
+          [orpc.home.key(), orpc.money.key()].map((key) =>
+            queryClient.invalidateQueries({ queryKey: key })
+          )
+        ),
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
+  );
 
   // Cached first, error second. A phone with no signal has the farm as it last knew it,
   // and a screen that throws that away to show the word "error" has taken away the only
@@ -46,7 +61,8 @@ const OwnerHome = () => {
     needsYou.proposals.length +
     needsYou.needsReview.length +
     needsYou.endingWithdrawal.length +
-    needsYou.lowStock.length;
+    needsYou.lowStock.length +
+    needsYou.moneyAwaiting.length;
 
   return (
     <div className="container mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -115,6 +131,34 @@ const OwnerHome = () => {
                 variant="outline"
               >
                 {t("sop.approve")}
+              </Button>
+            </li>
+          ))}
+        </Exceptions>
+
+        <Exceptions
+          count={needsYou.moneyAwaiting.length}
+          label={t("owner.moneyAwaiting")}
+        >
+          {needsYou.moneyAwaiting.map((row) => (
+            <li
+              className="flex items-center justify-between gap-2 rounded-lg border p-2 text-sm"
+              key={row.id}
+            >
+              <Link className="underline" to="/money">
+                {language === "bn"
+                  ? row.categoryBn
+                  : (row.categoryEn ?? row.categoryBn)}{" "}
+                · ৳{formatNumber(row.amountBdt, language)}
+                {row.counterpartyName ? ` · ${row.counterpartyName}` : ""}
+              </Link>
+              <Button
+                disabled={approveMoney.isPending}
+                onClick={() => approveMoney.mutate({ id: row.id })}
+                size="sm"
+                variant="outline"
+              >
+                {t("money.approve")}
               </Button>
             </li>
           ))}

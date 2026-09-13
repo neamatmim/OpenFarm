@@ -13,8 +13,10 @@ import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { loadLiveAnimal, recordExit } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { bookMoney, bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
 import { requireOnly, requireRole } from "../roles";
+import { paymentMethodInput } from "./money";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -118,6 +120,8 @@ export const saleRouter = {
         note: z.string().trim().max(300).optional(),
         /** When she left, for a sale written up that evening. */
         soldAt: z.coerce.date().optional(),
+        /** How the buyer paid. */
+        paymentMethod: paymentMethodInput,
       })
     )
     .handler(async ({ context, input }) => {
@@ -165,16 +169,17 @@ export const saleRouter = {
               },
             });
           }
+          const buyerId = await counterpartyNamed(
+            tx,
+            context.farm.id,
+            input.buyer,
+            now
+          );
           await tx.insert(sale).values({
             id,
             farmId: context.farm.id,
             animalId: her.id,
-            counterpartyId: await counterpartyNamed(
-              tx,
-              context.farm.id,
-              input.buyer,
-              now
-            ),
+            counterpartyId: buyerId,
             priceBdt: input.priceBdt.toFixed(2),
             weightKg: input.weightKg.toFixed(2),
             destination: input.destination,
@@ -186,6 +191,17 @@ export const saleRouter = {
             recordedByRole: context.roleUsed,
             createdAt: now,
           });
+          // A beast given away fetches nothing, and nothing is booked for her.
+          if (input.priceBdt > 0) {
+            await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
+              source: "sale",
+              sourceId: id,
+              amountBdt: input.priceBdt,
+              occurredAt: soldAt,
+              counterpartyId: buyerId,
+              paymentMethod: input.paymentMethod,
+            });
+          }
           ({ workClosed: closed } = await recordExit(tx, context.farm.id, her, {
             state: "sold",
             at: soldAt,

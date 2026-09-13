@@ -78,6 +78,43 @@ export const relations = defineRelations(schema, (r) => ({
     /** The farm's own bull, for a natural service. */
     sire: r.one.animal({ from: r.service.sireAnimalId, to: r.animal.id }),
   },
+  moneyEvent: {
+    category: r.one.moneyCategory({
+      from: r.moneyEvent.categoryId,
+      to: r.moneyCategory.id,
+      optional: false,
+    }),
+    counterparty: r.one.counterparty({
+      from: r.moneyEvent.counterpartyId,
+      to: r.counterparty.id,
+    }),
+    approver: r.one.user({ from: r.moneyEvent.approvedBy, to: r.user.id }),
+  },
+  medicinePurchase: {
+    product: r.one.drugProduct({
+      from: r.medicinePurchase.drugProductId,
+      to: r.drugProduct.id,
+      optional: false,
+    }),
+    seller: r.one.counterparty({
+      from: r.medicinePurchase.counterpartyId,
+      to: r.counterparty.id,
+      optional: false,
+    }),
+  },
+  vetFee: {
+    animals: r.many.vetFeeAnimal({
+      from: r.vetFee.id,
+      to: r.vetFeeAnimal.vetFeeId,
+    }),
+  },
+  vetFeeAnimal: {
+    animal: r.one.animal({
+      from: r.vetFeeAnimal.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+  },
   dispatch: {
     buyer: r.one.counterparty({
       from: r.dispatch.buyerId,

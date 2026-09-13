@@ -1,6 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { dispatch } from "@OpenFarm/db/schema/milk";
+import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
   farmDaysBetween,
   lactationView,
@@ -22,7 +23,9 @@ import {
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { litresOf } from "../milk-store";
+import { bookMoney, bookingOf } from "../money-store";
 import { requireRole } from "../roles";
+import { paymentMethodInput } from "./money";
 
 /** How many of a cow's recent milkings to hand back; enough for a fortnight of two-a-day
  *  sessions, which is as far as a phone screen usefully goes. */
@@ -148,6 +151,7 @@ export const milkRouter = {
         snfPercent: dispatchFields.snfPercent.optional(),
         note: dispatchFields.note.optional(),
         buyer: buyerInput,
+        paymentMethod: paymentMethodInput,
       })
     )
     .handler(async ({ context, input }) => {
@@ -166,12 +170,18 @@ export const milkRouter = {
           after: (tx) => readDispatch(tx, id),
         },
         async (tx) => {
+          const buyer = await buyerOnTheDay(
+            tx,
+            context.farm.id,
+            input.buyer,
+            now
+          );
           await tx.insert(dispatch).values({
             id,
             farmId: context.farm.id,
             dispatchedAt: input.dispatchedAt,
             litres: input.litres.toFixed(2),
-            ...(await buyerOnTheDay(tx, context.farm.id, input.buyer, now)),
+            ...buyer,
             challan: input.challan ?? null,
             pricePerLitreBdt: input.pricePerLitreBdt.toFixed(2),
             fatPercent: twoPlaces(input.fatPercent),
@@ -180,6 +190,14 @@ export const milkRouter = {
             recordedBy: context.actor.id,
             recordedByRole,
             recordedAt: now,
+          });
+          await bookMoney(tx, bookingOf(context, recordedByRole, now), {
+            source: "dispatch",
+            sourceId: id,
+            amountBdt: input.litres * input.pricePerLitreBdt,
+            occurredAt: input.dispatchedAt,
+            counterpartyId: buyer.buyerId,
+            paymentMethod: input.paymentMethod,
           });
         }
       );
@@ -207,6 +225,7 @@ export const milkRouter = {
         fatPercent: dispatchFields.fatPercent.nullable().optional(),
         snfPercent: dispatchFields.snfPercent.nullable().optional(),
         note: dispatchFields.note.nullable().optional(),
+        paymentMethod: z.enum(PAYMENT_METHODS).optional(),
         reason: reasonInput,
       })
     )
@@ -262,6 +281,20 @@ export const milkRouter = {
                 : await buyerOnTheDay(tx, context.farm.id, input.buyer, now)),
             })
             .where(eq(dispatch.id, existing.id));
+          const corrected = await tx.query.dispatch.findFirst({
+            where: { id: existing.id },
+          });
+          if (corrected) {
+            await bookMoney(tx, bookingOf(context, verdict.role, now), {
+              source: "dispatch",
+              sourceId: corrected.id,
+              amountBdt:
+                Number(corrected.litres) * Number(corrected.pricePerLitreBdt),
+              occurredAt: corrected.dispatchedAt,
+              counterpartyId: corrected.buyerId,
+              paymentMethod: input.paymentMethod,
+            });
+          }
         }
       );
       return { id: existing.id };

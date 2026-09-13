@@ -1,7 +1,6 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import {
   farmDayOf,
-  farmDaysBetween,
   farmTimeOf,
   milkDispatchRecord,
   roundLitres,
@@ -16,40 +15,12 @@ import type { Context } from "../context";
 import { toCsv } from "../csv";
 import { dispatchesBetween, litresDispatched } from "../dispatch-store";
 import type { DispatchRow } from "../dispatch-store";
-import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { periodInput, periodOf } from "../period";
 import { languageOf } from "../reader-language";
 import { requirePersonalSession, requireRole } from "../roles";
 
-/** The longest stretch one report covers. A year is what a processor or an inspector asks for. */
-const LONGEST_PERIOD_DAYS = 366;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-const periodInput = { from: farmDay, to: farmDay };
-
 type FarmContext = Context & { farm: NonNullable<Context["farm"]> };
-
-/** The farm days a report covers, refused when the period runs backwards or is longer than one report
- *  carries. */
-const periodOf = (period: { from: string; to: string }) => {
-  if (period.to < period.from) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A period ends after it begins",
-      data: { refusal: "period_backwards" },
-    });
-  }
-  const range = farmDaysBetween(period.from, period.to);
-  if (
-    range.until.getTime() - range.from.getTime() >
-    LONGEST_PERIOD_DAYS * DAY_MS
-  ) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "One report covers a year at most",
-      data: { refusal: "period_too_long" },
-    });
-  }
-  return range;
-};
 
 /**
  * Every Export is an Audit Event, stamped with the report, the period and the Registration number

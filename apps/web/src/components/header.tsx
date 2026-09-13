@@ -56,6 +56,8 @@ const Header = () => {
           { to: "/sale", label: t("nav.sale") },
           // Milk leaving the farm, and the records a processor or BFSA asks for.
           { to: "/milk", label: t("nav.milk") },
+          // The farm's money, from its own records, and what waits for the Owner.
+          { to: "/money", label: t("nav.money") },
           { to: "/admin/feed", label: t("nav.feed") },
           { to: "/admin/devices", label: t("nav.devices") },
           { to: "/admin/people", label: t("nav.people") },
