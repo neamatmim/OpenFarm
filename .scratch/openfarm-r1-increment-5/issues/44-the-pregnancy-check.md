@@ -15,7 +15,7 @@ Three Owner decisions from 2026-09-13, after ticket 43's review, each change thi
 
 **Blocked by:** 43
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 5, user story 68; [Breeding and reproduction](../../openfarm-release-1/issues/11-breeding-and-reproduction.md) (step 3).
 

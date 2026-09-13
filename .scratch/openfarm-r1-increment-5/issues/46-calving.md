@@ -4,7 +4,7 @@
 
 **Blocked by:** 45
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 5, user story 70; [Breeding and reproduction](../../openfarm-release-1/issues/11-breeding-and-reproduction.md) (step 6); [Animal lifecycle and groups](../../openfarm-release-1/issues/04-animal-lifecycle-and-groups.md); [Milk recording](../../openfarm-release-1/issues/09-milk-recording.md) (Lactation numbering).
 

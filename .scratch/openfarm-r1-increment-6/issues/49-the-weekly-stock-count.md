@@ -4,7 +4,7 @@
 
 **Blocked by:** 48
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 6, user stories 74 and 75; [Feed and inventory](../../openfarm-release-1/issues/12-feed-and-inventory.md) (SOP 23); [Notification channels](../../openfarm-release-1/issues/23-notification-channels.md) (low feed stock → Manager, digest); `CONTEXT.md` — **Stock Count**, **Stock on Hand**.
 

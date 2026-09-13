@@ -6,7 +6,7 @@ Two decisions from the Owner, 2026-09-13. **If the date moves, the work moves wi
 
 **Blocked by:** 44
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — increment 5, user stories 69 and 70; [Breeding and reproduction](../../openfarm-release-1/issues/11-breeding-and-reproduction.md) (steps 4 and 5, and the Consequences note on event-relative triggers).
 

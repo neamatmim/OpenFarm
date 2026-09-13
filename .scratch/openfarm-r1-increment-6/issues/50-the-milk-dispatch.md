@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [OpenFarm Release 1 spec](../../openfarm-release-1/spec.md) — the Milk data model (`Dispatch`); [Report set](../../openfarm-release-1/assets/report-set.md) — R12 milk dispatch record, R13 milk production; roles matrix — Dispatch; `CONTEXT.md` — **Dispatch**, **Counterparty**.
 
