@@ -267,5 +267,10 @@ export {
   roundedCosts,
   sidesOverTime,
 } from "./costs";
-export type { MoneySummary, MoneyToSummarise } from "./accounts";
-export { summariseMoney } from "./accounts";
+export type {
+  InAndOut,
+  MoneySummary,
+  MoneyToSummarise,
+  SideShare,
+} from "./money-summary";
+export { summariseMoney } from "./money-summary";

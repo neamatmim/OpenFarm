@@ -71,6 +71,24 @@ const assertRegistered = (
   }
 };
 
+/** The accountant's summary as a paper, in the language of whoever is producing it. */
+const accountantPaper = async (
+  context: FarmContext & { actor: { id: string; name: string } },
+  period: { from: string; to: string },
+  summary: MoneySummary
+) => {
+  const language = await languageOf(context.db, context.actor.id);
+  return accountantSummary({
+    farm: context.farm,
+    from: formatDate(startOfFarmDay(period.from), language),
+    to: formatDate(startOfFarmDay(period.to), language),
+    summary,
+    taka: (amount) => `৳${formatNumber(amount, language)}`,
+    producedBy: context.actor.name,
+    producedAt: formatDate(context.clock.now(), language, "dateTime"),
+  });
+};
+
 /** The accountant's CSV: every Money Event of the period, with the record behind it and whether the Owner
  *  has approved it. Plain digits and plain words for whoever opens it in a spreadsheet. */
 const accountantCsv = (money: readonly ExportedMoney[]) =>
@@ -80,6 +98,7 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
       "direction",
       "amount_bdt",
       "category",
+      "category_en",
       "counterparty",
       "payment_method",
       "side",
@@ -94,9 +113,10 @@ const accountantCsv = (money: readonly ExportedMoney[]) =>
       one.direction,
       one.amountBdt.toFixed(2),
       one.categoryBn,
+      one.categoryEn,
       one.counterpartyName,
       one.paymentMethod,
-      one.side,
+      one.sides.map((share) => share.side ?? "whole_farm").join("+"),
       one.source,
       one.sourceId,
       one.reference,
@@ -286,24 +306,13 @@ export const reportsRouter = {
         periodOf(input)
       );
       const summary = summariseMoney(money);
-      let result: { text?: string; csv?: string; summary?: MoneySummary };
-      if (input.format === "paper") {
-        const language = await languageOf(context.db, context.actor.id);
-        result = {
-          summary,
-          text: accountantSummary({
-            farm: context.farm,
-            from: formatDate(startOfFarmDay(input.from), language),
-            to: formatDate(startOfFarmDay(input.to), language),
-            summary,
-            taka: (amount) => `৳${formatNumber(amount, language)}`,
-            producedBy: context.actor.name,
-            producedAt: formatDate(context.clock.now(), language, "dateTime"),
-          }),
-        };
-      } else {
-        result = { csv: accountantCsv(money) };
-      }
+      const result =
+        input.format === "paper"
+          ? {
+              summary,
+              text: await accountantPaper(context, input, summary),
+            }
+          : { csv: accountantCsv(money) };
       await recordExport(context, "accountant_export", input, {
         format: input.format,
         moneyEvents: money.length,

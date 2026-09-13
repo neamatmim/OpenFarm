@@ -1,5 +1,5 @@
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
@@ -74,13 +74,62 @@ const setup = async () => {
     counterparty: { name: `রহিম ${suffix}` },
     wageMonth: "2040-02",
   });
-  return { milk, bull, power, wage };
+  // A cow in the Dairy side's Pen, and the Vet seeing her and the bull on one visit for 2,000: 1,000 each
+  // Side.
+  const dairyPen = await manager.client.herd.createPen({
+    shedId: shed.id,
+    name: `হিসাব দুধ ${suffix}`,
+  });
+  const cow = await manager.client.animals.register({
+    sex: "female",
+    side: "dairy",
+    state: "heifer",
+    penId: dairyPen.id,
+    source: "born",
+    aliases: [],
+  });
+  const vet = await as("vet", "2040-03-06T08:00:00.000Z");
+  const visit = await vet.client.money.vetFee({
+    amountBdt: 2000,
+    visitedOn: "2040-03-06",
+    animalTags: [bull.tagNumber, cow.tagNumber],
+  });
+  // Concentrate for the store: the whole farm's.
+  const feed = await manager.client.feed.addItem({
+    name: { bn: `হিসাবের দানাদার ${suffix}` },
+  });
+  const lorry = await manager.client.stock.receive({
+    feedItemId: feed.id,
+    kind: "purchase",
+    quantity: 100,
+    priceBdt: 4000,
+    seller: { name: `দোকান ${suffix}` },
+    receivedOn: "2040-03-05",
+  });
+  // The bull sold at 35,000: over the threshold too.
+  const seller = await as("manager", "2040-03-20T04:00:00.000Z");
+  const sold = await seller.client.sale.record({
+    tagNumber: bull.tagNumber,
+    buyer: { name: `কসাই ${suffix}` },
+    priceBdt: 35_000,
+    weightKg: 260,
+    destination: "গাবতলী",
+    vehicle: "ঢাকা মেট্রো ট ১১",
+    driver: "করিম",
+  });
+  return { milk, bull, power, wage, visit, lorry, sold, feed };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
 
 beforeAll(async () => {
   world = await setup();
+});
+
+afterAll(async () => {
+  // Retired, so a Stock Count on another file's clock does not find a lorry from 2040 in the store.
+  const manager = await as("manager", "2040-04-01T04:00:00.000Z");
+  await manager.client.feed.retireItem({ id: world.feed.id });
 });
 
 describe("the accountant's export", () => {
@@ -92,20 +141,26 @@ describe("the accountant's export", () => {
     });
     const [header, ...rows] = (csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe(
-      "date,direction,amount_bdt,category,counterparty,payment_method,side,record,record_id,reference,approval,note"
+      "date,direction,amount_bdt,category,category_en,counterparty,payment_method,side,record,record_id,reference,approval,note"
     );
     const mine = (id: string) => rows.find((row) => row.includes(id));
     expect(mine(world.milk.id)).toBe(
-      `2040-03-05,in,5000.00,দুধ বিক্রি,মিল্ক ভিটা ${suffix},bank,dairy,dispatch,${world.milk.id},CH-2040,not_needed,`
+      `2040-03-05,in,5000.00,দুধ বিক্রি,Milk sales,মিল্ক ভিটা ${suffix},bank,dairy,dispatch,${world.milk.id},CH-2040,not_needed,`
     );
     expect(mine(world.bull.intakeId)).toBe(
-      `2040-03-05,out,30000.00,গরু কেনা,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},awaiting_approval,`
+      `2040-03-05,out,30000.00,গরু কেনা,Cattle purchases,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},awaiting_approval,`
     );
     expect(mine(world.power.id)).toBe(
-      `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,পল্লী বিদ্যুৎ ${suffix},bkash,dairy,by_hand,${world.power.id},,not_needed,ফেব্রুয়ারির বিল`
+      `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,Utilities,পল্লী বিদ্যুৎ ${suffix},bkash,dairy,by_hand,${world.power.id},,not_needed,ফেব্রুয়ারির বিল`
     );
     expect(mine(world.wage.id)).toBe(
-      `2040-03-05,out,12000.00,মজুরি,রহিম ${suffix},cash,,by_hand,${world.wage.id},2040-02,not_needed,`
+      `2040-03-05,out,12000.00,মজুরি,Wages,রহিম ${suffix},cash,whole_farm,by_hand,${world.wage.id},2040-02,not_needed,`
+    );
+    // A Vet visit to animals on both Sides is both Sides'; feed bought for the store is the whole farm's.
+    expect(mine(world.visit.id)).toContain(",dairy+fattening,vet_fee,");
+    expect(mine(world.lorry.id)).toContain(",whole_farm,feed_in,");
+    expect(mine(world.sold.id)).toContain(
+      `,fattening,sale,${world.sold.id},${world.bull.tagNumber},awaiting_approval,`
     );
   });
 
@@ -115,11 +170,12 @@ describe("the accountant's export", () => {
       ...MARCH,
       format: "paper",
     });
+    // March 2040 is this file's alone on the shared farm, so the farm's month is this file's work.
     expect(summary).toMatchObject({
-      incomeBdt: 5000,
-      expenseBdt: 45_000,
-      netBdt: -40_000,
-      awaiting: { count: 1, amountBdt: 30_000 },
+      incomeBdt: 40_000,
+      expenseBdt: 51_000,
+      netBdt: -11_000,
+      awaiting: { count: 2, inBdt: 35_000, outBdt: 30_000 },
     });
     expect(summary?.byCategory).toEqual(
       expect.arrayContaining([
@@ -134,26 +190,34 @@ describe("the accountant's export", () => {
       ])
     );
     expect(summary?.bySide).toEqual([
-      { side: "dairy", inBdt: 5000, outBdt: 3000 },
-      { side: "fattening", inBdt: 0, outBdt: 30_000 },
-      { side: null, inBdt: 0, outBdt: 12_000 },
+      { side: "dairy", inBdt: 5000, outBdt: 4000 },
+      { side: "fattening", inBdt: 35_000, outBdt: 31_000 },
+      { side: null, inBdt: 0, outBdt: 16_000 },
     ]);
     expect(text).toContain(REGISTRATION);
     expect(text).toContain("আয় ও ব্যয় / Income and expense");
     expect(text).toContain(`গাবতলী ${suffix}`);
 
-    // Each Export on the trail, naming the report and the period.
-    const [event] = await scratchDb().query.auditEvent.findMany({
+    // Each Export on the trail, naming the report, the format and the period: this file's own.
+    const exports = await scratchDb().query.auditEvent.findMany({
       where: { entity: "report", action: "export" },
-      orderBy: { receivedAt: "desc", id: "desc" },
-      limit: 1,
     });
-    expect(event?.after).toMatchObject({
-      report: "accountant_export",
-      format: "paper",
-      ...MARCH,
-      registrationNumber: REGISTRATION,
-    });
+    const ours = exports
+      .map((one) => one.after as Record<string, unknown> | null)
+      .filter(
+        (after) =>
+          after?.report === "accountant_export" && after.from === MARCH.from
+      );
+    expect(ours).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          format: "paper",
+          ...MARCH,
+          registrationNumber: REGISTRATION,
+        }),
+        expect.objectContaining({ format: "csv", ...MARCH }),
+      ])
+    );
   });
 
   it("is the Owner's and the Manager's, from their own phones", async () => {

@@ -1,47 +1,54 @@
 import type { Database } from "@OpenFarm/db";
 import type { MoneySource } from "@OpenFarm/db/schema/money";
-import type { MoneyToSummarise } from "@OpenFarm/domain";
+import type {
+  MoneyApproval,
+  MoneyToSummarise,
+  PaymentMethod,
+  Side,
+  SideShare,
+} from "@OpenFarm/domain";
+import { penHistoryOf, sidesOverTime } from "@OpenFarm/domain";
 
 type Db = Pick<Database, "query">;
-type Side = "dairy" | "fattening";
 
 /** One Money Event as the accountant's CSV lists it and the summary adds it up. */
 export interface ExportedMoney extends MoneyToSummarise {
   id: string;
   occurredAt: Date;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   source: MoneySource;
   sourceId: string;
   /** What the accountant can find the record by: a tag, a challan, a Feed Item, a product, a wage's month. */
   reference: string | null;
-  approval: "not_needed" | "awaiting" | "approved";
+  approval: MoneyApproval;
   note: string | null;
 }
 
-/** What a record is known by, and the Side its money belongs to. */
+/** What a record is known by, and the Sides its money belongs to as fractions of it. */
 interface RecordFacts {
   reference: string | null;
-  side: Side | null;
+  sides: readonly { side: Side | null; part: number }[];
 }
+
+const WHOLE_FARM: RecordFacts["sides"] = [{ side: null, part: 1 }];
 
 const idsOf = (
   events: readonly { source: MoneySource; sourceId: string }[],
   source: MoneySource
 ) => events.filter((one) => one.source === source).map((one) => one.sourceId);
 
-/** The one Side all these animals share, or null when they are on both or there are none. */
-const sharedSide = (sides: readonly Side[]): Side | null => {
-  const [first] = sides;
-  return first !== undefined && sides.every((side) => side === first)
-    ? first
-    : null;
-};
+/** An even split of something across these Sides, one part for each. */
+const splitAcross = (sides: readonly Side[]): RecordFacts["sides"] =>
+  sides.length === 0
+    ? WHOLE_FARM
+    : sides.map((side) => ({ side, part: 1 / sides.length }));
 
 /**
- * What each record behind these Money Events is known by and which Side it belongs to. Milk is the Dairy
- * side's; a bought or sold animal's money is her Side's; a Vet Fee is the Side of the animals the Vet
- * named, when they share one; feed and medicine bought for the store belong to the whole farm; money
- * entered by hand says its own Side.
+ * What each record behind these Money Events is known by and which Side its money belongs to, on the day
+ * the money moved. Milk is the Dairy side's, and a bought animal the Fattening side's, as an Intake always
+ * is. A sold animal's money is the Side she stood on when she went, and a Vet Fee is split across the
+ * Sides the animals the Vet named stood on that day — as their costs are. Feed and medicine bought for the
+ * store belong to the whole farm; money entered by hand says its own Side.
  */
 const recordFactsOf = async (
   db: Db,
@@ -57,12 +64,14 @@ const recordFactsOf = async (
       db.query.intake.findMany({
         where: { farmId, id: { in: idsOf(events, "intake") } },
         columns: { id: true },
-        with: { animal: { columns: { tagNumber: true, side: true } } },
+        with: { animal: { columns: { tagNumber: true } } },
       }),
       db.query.sale.findMany({
         where: { farmId, id: { in: idsOf(events, "sale") } },
-        columns: { id: true },
-        with: { animal: { columns: { tagNumber: true, side: true } } },
+        columns: { id: true, soldAt: true },
+        with: {
+          animal: { columns: { id: true, tagNumber: true, side: true } },
+        },
       }),
       db.query.feedIn.findMany({
         where: { farmId, id: { in: idsOf(events, "feed_in") } },
@@ -76,30 +85,69 @@ const recordFactsOf = async (
       }),
       db.query.vetFee.findMany({
         where: { farmId, id: { in: idsOf(events, "vet_fee") } },
-        columns: { id: true },
+        columns: { id: true, visitedOn: true },
         with: {
           animals: {
-            with: { animal: { columns: { tagNumber: true, side: true } } },
+            with: {
+              animal: { columns: { id: true, tagNumber: true, side: true } },
+            },
           },
         },
       }),
     ]);
+  const animalIds = [
+    ...sales.map((one) => one.animal.id),
+    ...fees.flatMap((one) => one.animals.map((line) => line.animal.id)),
+  ];
+  const moves = await db.query.animalMove.findMany({
+    where: { farmId, animalId: { in: animalIds } },
+    columns: {
+      id: true,
+      animalId: true,
+      toPenId: true,
+      toSide: true,
+      movedAt: true,
+    },
+  });
+  const sideOf = sidesOverTime(penHistoryOf(moves, new Map()));
   return new Map<string, RecordFacts>([
     ...dispatches.map(
-      (one) => [one.id, { reference: one.challan, side: "dairy" }] as const
-    ),
-    ...[...intakes, ...sales].map(
       (one) =>
         [
           one.id,
-          { reference: one.animal.tagNumber, side: one.animal.side },
+          {
+            reference: one.challan,
+            sides: [{ side: "dairy" as const, part: 1 }],
+          },
+        ] as const
+    ),
+    ...intakes.map(
+      (one) =>
+        [
+          one.id,
+          {
+            reference: one.animal.tagNumber,
+            sides: [{ side: "fattening" as const, part: 1 }],
+          },
+        ] as const
+    ),
+    ...sales.map(
+      (one) =>
+        [
+          one.id,
+          {
+            reference: one.animal.tagNumber,
+            sides: [{ side: sideOf(one.animal, one.soldAt), part: 1 }],
+          },
         ] as const
     ),
     ...feedIns.map(
-      (one) => [one.id, { reference: one.feedItem.nameBn, side: null }] as const
+      (one) =>
+        [one.id, { reference: one.feedItem.nameBn, sides: WHOLE_FARM }] as const
     ),
     ...medicines.map(
-      (one) => [one.id, { reference: one.product.nameBn, side: null }] as const
+      (one) =>
+        [one.id, { reference: one.product.nameBn, sides: WHOLE_FARM }] as const
     ),
     ...fees.map((one) => {
       const seen = one.animals.map((line) => line.animal);
@@ -111,11 +159,31 @@ const recordFactsOf = async (
               .map((animal) => animal.tagNumber)
               .toSorted()
               .join(" ") || null,
-          side: sharedSide(seen.map((animal) => animal.side)),
+          sides: splitAcross(
+            seen.map((animal) => sideOf(animal, one.visitedOn))
+          ),
         },
       ] as const;
     }),
   ]);
+};
+
+/** The order Sides are written in: the Dairy side, the Fattening side, the whole farm. */
+const SIDE_ORDER: readonly (Side | null)[] = ["dairy", "fattening", null];
+
+/** The Sides a Money Event's amount falls to, the same Side's parts added together, in their order. */
+const sharesOf = (
+  amountBdt: number,
+  sides: RecordFacts["sides"]
+): SideShare[] => {
+  const bySide = new Map<Side | null, number>();
+  for (const { side, part } of sides) {
+    bySide.set(side, (bySide.get(side) ?? 0) + part * amountBdt);
+  }
+  return SIDE_ORDER.flatMap((side) => {
+    const share = bySide.get(side);
+    return share === undefined ? [] : [{ side, amountBdt: share }];
+  });
 };
 
 /** Every Money Event of a period, oldest first, as the accountant receives them. */
@@ -136,18 +204,22 @@ export const moneyForTheAccountant = async (
   return events.map((one) => {
     const fact = facts.get(one.sourceId);
     const byHand = one.source === "by_hand";
+    const amountBdt = Number(one.amountBdt);
     return {
       id: one.id,
       occurredAt: one.occurredAt,
       direction: one.direction,
-      amountBdt: Number(one.amountBdt),
+      amountBdt,
       categoryBn: one.category.nameBn,
       categoryEn: one.category.nameEn,
       counterpartyName: one.counterparty?.name ?? null,
       paymentMethod: one.paymentMethod,
       source: one.source,
       sourceId: one.sourceId,
-      side: byHand ? one.side : (fact?.side ?? null),
+      sides: sharesOf(
+        amountBdt,
+        byHand ? [{ side: one.side, part: 1 }] : (fact?.sides ?? WHOLE_FARM)
+      ),
       reference: byHand ? one.wageMonth : (fact?.reference ?? null),
       approval: one.approval,
       awaitingApproval: one.approval === "awaiting",

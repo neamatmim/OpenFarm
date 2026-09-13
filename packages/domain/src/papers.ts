@@ -1,11 +1,12 @@
-import type { MoneySummary } from "./accounts";
 import type { FarmIdentity } from "./farm";
 import { farmOfOriginLines } from "./farm";
 import type { Side } from "./lifecycle";
+import type { MoneySummary } from "./money-summary";
 
 /**
  * The papers the farm hands somebody: the receipt for what a buyer bought, the card the lorry
- * carries, an animal's passport, and the one-page answer about her withdrawal.
+ * carries, an animal's passport, the one-page answer about her withdrawal, the milk dispatch record, and
+ * the accountant's summary of the farm's money.
  *
  * Written out as strings rather than assembled on a screen, for the same reason the DLS letter
  * is: they are documents the farm may have to produce again years later, and they should read
@@ -397,6 +398,8 @@ export const milkDispatchRecord = (record: MilkDispatchRecord): string =>
     .filter((line) => line !== null)
     .join("\n");
 
+/** The accountant's summary as it is written: the farm, the period, its money added up, and who asked for it
+ *  when. */
 export interface AccountantSummary {
   farm: FarmIdentity;
   from: string;
@@ -409,7 +412,7 @@ export interface AccountantSummary {
 }
 
 const SIDE_LABEL: Record<Side, [string, string]> = {
-  dairy: ["ডেইরি", "Dairy"],
+  dairy: ["দুগ্ধ", "Dairy"],
   fattening: ["মোটাতাজাকরণ", "Fattening"],
 };
 
@@ -435,7 +438,7 @@ export const accountantSummary = (paper: AccountantSummary): string => {
       ? field(
           "মালিকের অনুমোদনের অপেক্ষায়",
           "Awaiting the Owner's approval",
-          `${summary.awaiting.count} · ${taka(summary.awaiting.amountBdt)}`
+          `${summary.awaiting.count} · ${inAndOut(summary.awaiting)}`
         )
       : null,
     "",
