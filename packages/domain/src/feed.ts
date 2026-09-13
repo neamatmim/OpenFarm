@@ -105,3 +105,28 @@ export const shortfallPercent = (lines: FeedingLine[]): number => {
 /** Was this session short enough to be worth saying out loud? */
 export const isShortFed = (lines: FeedingLine[], tolerancePercent: number) =>
   shortfallPercent(lines) > tolerancePercent;
+
+/** A maund — the mon a Bangladeshi feed trader weighs in — in kilograms. Shown beside kg on a feed
+ *  purchase only, because that is the one place the farm is handed a number in maunds. */
+export const MAUND_KG = 37.324;
+
+/** Kilograms as maunds, to one decimal: what the trader's slip will say. */
+export const maundsOf = (kg: number): number =>
+  Math.round((kg / MAUND_KG) * 10) / 10;
+
+/**
+ * What a unit of a Feed Item cost the farm: everything paid for it divided by everything bought,
+ * weighted by how much each purchase was. Null when the farm has never bought it — fodder cut from
+ * its own fields has no price, and a harvest is left out rather than averaged in at nothing, which
+ * would cheapen what was actually paid for.
+ */
+export const weightedAveragePrice = (
+  purchases: readonly { quantity: number; priceBdt: number }[]
+): number | null => {
+  const quantity = purchases.reduce((sum, one) => sum + one.quantity, 0);
+  if (quantity <= 0) {
+    return null;
+  }
+  const paid = purchases.reduce((sum, one) => sum + one.priceBdt, 0);
+  return Math.round((paid / quantity) * 100) / 100;
+};

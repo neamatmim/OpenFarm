@@ -163,12 +163,15 @@ export {
 export type { FeedingEntryLine, FeedingLine, RationLine } from "./feed";
 export {
   KG_DECIMALS,
+  MAUND_KG,
   MAX_KG_PER_ANIMAL_PER_DAY,
   findRationProblems,
   isShortFed,
+  maundsOf,
   perSessionKg,
   roundKg,
   shortfallPercent,
+  weightedAveragePrice,
 } from "./feed";
 export type {
   DoseRoute,

@@ -2,6 +2,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -10,6 +11,7 @@ import {
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { counterparty } from "./fattening";
 import { pen } from "./herd";
 
 /** Something the Farm feeds, in kilos. Home-grown fodder is a Feed Item too. Retired rather
@@ -109,8 +111,9 @@ export const rationVersion = pgTable(
  * actually given, and anything left in the trough from last time. Written by the Step that
  * did it, in the Completion's own transaction.
  *
- * Increment 6 takes Stock off the back of these. Until then a Feeding is the farm's record
- * that the animals were fed, and the first place a pen off its feed shows up.
+ * Stock on Hand is taken off the back of these: what was given is what left the store. A Feeding
+ * is also the farm's record that the animals were fed, and the first place a pen off its feed
+ * shows up.
  */
 export const feeding = pgTable(
   "feeding",
@@ -145,5 +148,47 @@ export const feeding = pgTable(
     index("feeding_pen_idx").on(table.farmId, table.penId, table.fedAt),
     /** One Feeding per Completion: a replayed entry is the same meal. */
     uniqueIndex("feeding_completion_uidx").on(table.completionId),
+  ]
+);
+
+/** How feed reaches the store: bought from somebody, or cut from the farm's own fields. */
+export const FEED_IN_KINDS = ["purchase", "harvest"] as const;
+
+/**
+ * Feed coming into the store: a Purchase from a supplier at a price, or a Harvest from the farm's own
+ * fields at none.
+ *
+ * With the Feedings that take it back out, this is what Stock on Hand is worked out from — it is never
+ * typed — and a purchase's price is what the Feed Item's weighted-average price is worked out from.
+ */
+export const feedIn = pgTable(
+  "feed_in",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    feedItemId: text("feed_item_id")
+      .notNull()
+      .references(() => feedItem.id),
+    kind: text("kind", { enum: FEED_IN_KINDS }).notNull(),
+    /** In the Feed Item's own unit. */
+    quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
+    /** What the whole lot cost, in taka. Null for a harvest. */
+    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }),
+    /** Who the farm bought it from. Null for a harvest. */
+    counterpartyId: text("counterparty_id").references(() => counterparty.id),
+    /** The farm's day it came in. */
+    receivedOn: timestamp("received_on").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    recordedAt: timestamp("recorded_at").notNull(),
+  },
+  (table) => [
+    index("feed_in_item_idx").on(
+      table.farmId,
+      table.feedItemId,
+      table.receivedOn
+    ),
   ]
 );

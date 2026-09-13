@@ -174,7 +174,11 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, plus any leftover note. Consumes Stock. _Avoid_: Feed log, feed entry
 
-**Stock on Hand**: Current quantity of a Feed Item: purchases and harvests in, minus Feeding, corrected by the latest Stock Count. _Avoid_: Inventory (the whole area), balance
+**Purchase**: Feed bought and brought into the store: the Feed Item, how much, what the lot cost, and the Counterparty it came from. What a Feed Item's weighted-average price is worked out from. _Avoid_: Order, delivery, procurement
+
+**Harvest**: Feed cut from the farm's own fields and brought into the store, at no price and from nobody. It adds to Stock on Hand and leaves the price alone. _Avoid_: Home stock, own production
+
+**Stock on Hand**: Current quantity of a Feed Item: Purchases and Harvests in, minus Feeding, corrected by the latest Stock Count. Worked out, never typed, and shown below nothing when the pens were fed from feed nobody wrote down arriving. _Avoid_: Inventory (the whole area), balance
 
 **Stock Count**: The weekly physical count of each Feed Item. Differences are booked as adjustments with a reason. _Avoid_: Stocktake, audit
 

@@ -28,6 +28,7 @@ import { readyRouter } from "./ready";
 import { reviewRouter } from "./review";
 import { saleRouter } from "./sale";
 import { sopsRouter } from "./sops";
+import { stockRouter } from "./stock";
 import { syncRouter } from "./sync";
 import { withdrawalsRouter } from "./withdrawals";
 
@@ -59,6 +60,7 @@ export const appRouter = {
   push: pushRouter,
   ready: readyRouter,
   breeding: breedingRouter,
+  stock: stockRouter,
   review: reviewRouter,
   sale: saleRouter,
   sops: sopsRouter,

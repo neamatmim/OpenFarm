@@ -1,4 +1,5 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { maundsOf } from "@OpenFarm/domain";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -8,6 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 interface RationRow {
@@ -70,6 +72,8 @@ const FeedPage = () => {
       <h1 className="text-lg font-medium">{t("feed.title")}</h1>
 
       <FeedItems items={(items.data ?? []) as FeedRow[]} onChanged={refresh} />
+
+      <FeedStock items={(items.data ?? []) as FeedRow[]} />
 
       <section className="space-y-2">
         <h2 className="font-medium">{t("feed.target")}</h2>
@@ -435,6 +439,186 @@ const RationForm = ({
         {t("feed.setRation")}
       </Button>
     </form>
+  );
+};
+
+/** Today on the farm's clock, as a day field holds it. */
+const todayOnTheFarm = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(
+    new Date()
+  );
+
+/**
+ * What is in the store, and feed coming into it. What is on hand is worked out from what came in and
+ * what the pens were given — nobody types it — and a line below nothing says feed arrived that nobody
+ * wrote down. Recording feed coming in is the Manager's; the Owner reads.
+ */
+const FeedStock = ({ items }: { items: FeedRow[] }) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const queryClient = useQueryClient();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const stock = useQuery(orpc.stock.onHand.queryOptions());
+  const mayRecord = me.data?.roles.includes("manager") ?? false;
+  const live = items.filter((item) => !item.retiredAt);
+  const [feedItemId, setFeedItemId] = useState("");
+  const [kind, setKind] = useState<"purchase" | "harvest">("purchase");
+  const [quantity, setQuantity] = useState("");
+  const [price, setPrice] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [receivedOn, setReceivedOn] = useState(todayOnTheFarm());
+  const chosenItem = live.find(
+    (item) => item.id === (feedItemId || live[0]?.id)
+  );
+  const receive = useMutation(
+    orpc.stock.receive.mutationOptions({
+      onSuccess: async () => {
+        setQuantity("");
+        setPrice("");
+        toast.success(t("stock.received"));
+        await queryClient.invalidateQueries({ queryKey: orpc.stock.key() });
+      },
+      onError: (error) =>
+        toast.error(
+          wordedRefusal(error, t) ?? (error.message || t("common.error"))
+        ),
+    })
+  );
+  const kg = Number(quantity);
+  return (
+    <section className="space-y-3">
+      <h2 className="font-medium">{t("stock.title")}</h2>
+      <ul className="space-y-1 text-sm">
+        {(stock.data ?? []).map((line) => (
+          <li
+            className="flex flex-wrap justify-between gap-2"
+            key={line.feedItemId}
+          >
+            <span>{line.nameBn}</span>
+            <span className={line.onHand < 0 ? "text-destructive" : ""}>
+              {formatNumber(line.onHand, language)} {line.unit}
+              {line.averagePriceBdt === null
+                ? ""
+                : ` · ${t("stock.averagePrice", {
+                    taka: formatNumber(line.averagePriceBdt, language),
+                    unit: line.unit,
+                  })}`}
+              {line.lastInOn
+                ? ` · ${t("stock.lastIn", { when: formatDate(line.lastInOn, language) })}`
+                : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {mayRecord && chosenItem ? (
+        <form
+          className="space-y-2 rounded-lg border p-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            receive.mutate({
+              feedItemId: chosenItem.id,
+              kind,
+              quantity: kg,
+              receivedOn,
+              ...(kind === "purchase"
+                ? { priceBdt: Number(price), supplier: { name: supplier } }
+                : {}),
+            });
+          }}
+        >
+          <div className="flex flex-wrap gap-2">
+            <select
+              aria-label={t("feed.items")}
+              className="bg-background h-9 rounded-md border px-2 text-sm"
+              onChange={(event) => setFeedItemId(event.target.value)}
+              value={chosenItem.id}
+            >
+              {live.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nameBn}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label={t("stock.kind")}
+              className="bg-background h-9 rounded-md border px-2 text-sm"
+              onChange={(event) =>
+                setKind(
+                  event.target.value === "harvest" ? "harvest" : "purchase"
+                )
+              }
+              value={kind}
+            >
+              <option value="purchase">{t("stock.purchase")}</option>
+              <option value="harvest">{t("stock.harvest")}</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="stock-quantity">
+              {t("stock.quantity", { unit: chosenItem.unit })}
+            </Label>
+            <Input
+              id="stock-quantity"
+              min={0}
+              onChange={(event) => setQuantity(event.target.value)}
+              type="number"
+              value={quantity}
+            />
+            {/* A trader's slip is in maunds: shown alongside kg on a purchase, and nowhere else. */}
+            {kind === "purchase" && chosenItem.unit === "kg" && kg > 0 ? (
+              <p className="text-muted-foreground text-xs">
+                {t("stock.maunds", {
+                  maunds: formatNumber(maundsOf(kg), language),
+                })}
+              </p>
+            ) : null}
+          </div>
+          {kind === "purchase" ? (
+            <>
+              <div className="space-y-1">
+                <Label htmlFor="stock-price">{t("stock.price")}</Label>
+                <Input
+                  id="stock-price"
+                  min={0}
+                  onChange={(event) => setPrice(event.target.value)}
+                  type="number"
+                  value={price}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="stock-supplier">{t("stock.supplier")}</Label>
+                <Input
+                  id="stock-supplier"
+                  onChange={(event) => setSupplier(event.target.value)}
+                  value={supplier}
+                />
+              </div>
+            </>
+          ) : null}
+          <div className="space-y-1">
+            <Label htmlFor="stock-on">{t("stock.receivedOn")}</Label>
+            <Input
+              id="stock-on"
+              onChange={(event) => setReceivedOn(event.target.value)}
+              type="date"
+              value={receivedOn}
+            />
+          </div>
+          <Button
+            disabled={
+              !(
+                kg > 0 &&
+                (kind === "harvest" || (Number(price) > 0 && supplier.trim()))
+              )
+            }
+            type="submit"
+            variant="outline"
+          >
+            {t("stock.record")}
+          </Button>
+        </form>
+      ) : null}
+    </section>
   );
 };
 
