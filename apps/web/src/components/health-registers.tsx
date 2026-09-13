@@ -1,5 +1,4 @@
 import type { HealthRegister } from "@OpenFarm/domain";
-import { STILLBIRTH } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -267,13 +267,11 @@ export const HealthRegisters = ({
         {mortalities.data?.rows.map((row) => (
           <li className="rounded border p-2" key={row.id}>
             {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
-            {row.cause === STILLBIRTH ? t("mortality.stillbirth") : row.cause}
+            {causeWord(row.cause, t)}
             <span
               className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-amber-500"}`}
             >
-              {row.disposal
-                ? t(`mortality.${row.disposal}`)
-                : t("mortality.awaitingDisposal")}
+              {disposalWord(row.disposal, t)}
               {row.disposalNote ? ` · ${row.disposalNote}` : ""}
               {row.reportReference
                 ? ` · ${t("inspector.notifiable", { reference: row.reportReference })}`

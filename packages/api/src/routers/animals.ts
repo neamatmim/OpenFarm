@@ -313,6 +313,24 @@ const readMortality = async (tx: Tx, id: string) => {
   return row ?? null;
 };
 
+/** An animal and the mortality recorded of her, for putting it right or finishing it; refused when she has none. */
+const mortalityOf = async (
+  context: { db: Database; farm: { id: string } },
+  tagNumber: string
+) => {
+  const target = await requireAnimal(context.db, context.farm.id, tagNumber);
+  const existing = await context.db.query.mortality.findFirst({
+    where: { animalId: target.id, farmId: context.farm.id },
+    columns: { id: true, recordedBy: true, recordedAt: true },
+  });
+  if (!existing) {
+    throw new ORPCError("NOT_FOUND", {
+      message: `${tagNumber} has no death or cull recorded`,
+    });
+  }
+  return { target, existing };
+};
+
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
 const penScope = (assigned: string[] | null, requested: string | undefined) => {
   if (assigned) {
@@ -965,20 +983,7 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
-      const existing = await context.db.query.mortality.findFirst({
-        where: { animalId: target.id, farmId: context.farm.id },
-        columns: { id: true },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", {
-          message: `${tagNumber} has no death or cull recorded`,
-        });
-      }
+      const { existing } = await mortalityOf(context, tagNumber);
       await audited(context).write(
         {
           entity: "mortality",
@@ -1039,20 +1044,7 @@ export const animalsRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
-      const existing = await context.db.query.mortality.findFirst({
-        where: { animalId: target.id, farmId: context.farm.id },
-        columns: { id: true, recordedBy: true, recordedAt: true },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", {
-          message: `${tagNumber} has no death or cull recorded`,
-        });
-      }
+      const { target, existing } = await mortalityOf(context, tagNumber);
       if (input.happenedAt && input.happenedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have died in the future",

@@ -8,7 +8,6 @@ import type {
 import {
   DISPOSALS,
   MORTALITY_KINDS,
-  STILLBIRTH,
   allowedNextStates,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -31,6 +30,7 @@ import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { orpc } from "@/utils/orpc";
 
 const PHOTO_MAX_BYTES = 1_500_000;
@@ -489,8 +489,9 @@ const PutItRight = ({
   const { t } = useLanguage();
   const [kind, setKind] = useState<MortalityKind>(detail.mortality.kind);
   const [cause, setCause] = useState(detail.mortality.cause);
-  const [disposal, setDisposal] = useState<Disposal>(
-    detail.mortality.disposal ?? "buried"
+  // Left as it is unless somebody chooses: a Correction to a stillborn calf's cause writes no disposal nobody said.
+  const [disposal, setDisposal] = useState<Disposal | "">(
+    detail.mortality.disposal ?? ""
   );
   const [reason, setReason] = useState("");
   const correct = useMutation(
@@ -515,7 +516,7 @@ const PutItRight = ({
             tagNumber: detail.tagNumber,
             kind,
             cause: cause.trim(),
-            disposal,
+            ...(disposal ? { disposal } : {}),
             reason: reason.trim(),
           });
         }}
@@ -548,9 +549,14 @@ const PutItRight = ({
           <select
             className="bg-background h-9 w-full rounded-md border px-2 text-sm"
             id="fix-disposal"
-            onChange={(event) => setDisposal(event.target.value as Disposal)}
+            onChange={(event) =>
+              setDisposal(event.target.value as Disposal | "")
+            }
             value={disposal}
           >
+            {detail.mortality.disposal ? null : (
+              <option value="">{t("mortality.awaitingDisposal")}</option>
+            )}
             {DISPOSALS.map((one) => (
               <option key={one} value={one}>
                 {t(`mortality.${one}`)}
@@ -1193,19 +1199,15 @@ const HowSheWent = ({
         <p className="font-medium">{t(`mortality.${gone.kind}`)}</p>
         <p className="text-muted-foreground">
           {formatDate(new Date(gone.happenedAt), language, "dateTime")} ·{" "}
-          {gone.cause === STILLBIRTH ? t("mortality.stillbirth") : gone.cause}
+          {causeWord(gone.cause, t)}
         </p>
-        {gone.disposal ? (
-          <p className="text-muted-foreground">
-            {t(`mortality.${gone.disposal}`)}
-            {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
-            {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
-          </p>
-        ) : (
-          <p className="text-amber-500">
-            {t("mortality.disposal")}: {t("mortality.awaitingDisposal")}
-          </p>
-        )}
+        <p
+          className={gone.disposal ? "text-muted-foreground" : "text-amber-500"}
+        >
+          {t("mortality.disposal")}: {disposalWord(gone.disposal, t)}
+          {gone.disposalNote ? ` · ${gone.disposalNote}` : ""}
+          {gone.recordedByName ? ` · ${gone.recordedByName}` : ""}
+        </p>
         {mayRecord && !gone.disposal ? (
           <DisposalAfterwards
             onDone={onRecorded}

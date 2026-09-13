@@ -26,19 +26,19 @@ const dayMoved = (day: string, { months = 0, days = 0 }) => {
   return moved.toISOString().slice(0, "YYYY-MM-DD".length);
 };
 
-/** How far back each register looks unless asked, the last day counted: a year of vaccinations, since FMD and
- *  anthrax come round yearly, and of deaths and movements; thirty days of treatments, as an inspector asks; six months of
- *  diagnoses, as a slaughter vet asks. */
-/** A year, for the registers of things that come round or add up yearly: vaccinations and deaths. */
+/** A year, for what comes round or adds up yearly: vaccinations, since FMD and anthrax come round yearly, deaths
+ *  and movements. */
 const YEAR_MONTHS = 12;
+/** Thirty days of treatments, as an inspector asks. */
 const TREATMENT_LOOK_BACK_DAYS = 30;
+/** Six months of diagnoses, as a slaughter vet asks. */
 const DISEASE_LOOK_BACK_MONTHS = 6;
 
-/** Back by whole months lands on the same date, so the day after it is the first of the period; back by days
- *  counts today as the first of them. */
 /** Every report an inspector asks for by period: the health registers, and the movement log. */
 export type PeriodReport = HealthRegister | "movement_log";
 
+/** How far back each report looks unless asked, the last day counted. Back by whole months lands on the same
+ *  date, so the day after it is the first of the period; back by days counts today as the first of them. */
 const LOOK_BACK: Record<PeriodReport, { months: number; days: number }> = {
   vaccination_register: { months: -YEAR_MONTHS, days: 1 },
   treatment_register: { months: 0, days: 1 - TREATMENT_LOOK_BACK_DAYS },

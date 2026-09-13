@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
-import { animal, mortality } from "@OpenFarm/db/schema/herd";
+import { animal, animalMove, mortality } from "@OpenFarm/db/schema/herd";
 import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
 import { MAY_CALVE_FROM, STILLBIRTH, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -94,13 +94,15 @@ const putRight = async (
       sex: CalfSex;
       state: string;
       calfOutcome: CalfOutcome | null;
+      /** A Move she has made since she was born, if any: one is enough to say she was alive to make it. */
+      moves: { id: string }[];
     }[];
   }
 ): Promise<CalvingRecorded> => {
   const { calved } = entry;
   // What a correction may not do from here, because the farm has already acted on it: take the
   // calving back, change how many calves there were, bring a stillborn calf back, or find stillborn
-  // a calf who has since left the farm another way.
+  // a calf who has since left the farm another way or been walked to another Pen.
   const cannot =
     !calved ||
     calved.calves.length !== standing.calves.length ||
@@ -111,7 +113,8 @@ const putRight = async (
         (wasStillborn && now?.outcome === "alive") ||
         (!wasStillborn &&
           now?.outcome === "stillborn" &&
-          isExitState(calf.state as never))
+          // She has since left, or been walked on: born dead is no longer something the farm can say of her.
+          (isExitState(calf.state as never) || calf.moves.length > 0))
       );
     });
   if (cannot) {
@@ -170,18 +173,24 @@ const putRight = async (
         updatedAt: entry.now,
       })
       .where(eq(animal.id, calf.id));
+    // She came into the Pen the hour she was born, so her arrival moves with it.
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(animalMove)
+      .set({ movedAt: calved.at })
+      .where(
+        and(eq(animalMove.animalId, calf.id), isNull(animalMove.fromPenId))
+      );
     if (becomesStillborn) {
       // oxlint-disable-next-line no-await-in-loop
       await recordStillbirth(tx, entry, calf.id, calved.at);
     } else if (asRecorded(calf) === "stillborn") {
-      // Her death moves with the hour she was born dead in.
+      // Her death moves with the hour she was born dead in, whatever cause the farm has since written for it.
       // oxlint-disable-next-line no-await-in-loop
       await tx
         .update(mortality)
         .set({ happenedAt: calved.at })
-        .where(
-          and(eq(mortality.animalId, calf.id), eq(mortality.cause, STILLBIRTH))
-        );
+        .where(eq(mortality.animalId, calf.id));
     }
   }
   return {
@@ -224,6 +233,13 @@ export const recordCalving = async (
           sex: true,
           state: true,
           calfOutcome: true,
+        },
+        with: {
+          moves: {
+            where: { fromPenId: { isNotNull: true } },
+            columns: { id: true },
+            limit: 1,
+          },
         },
         orderBy: { calfPosition: "asc", id: "asc" },
       },
@@ -319,6 +335,7 @@ export const recordCalving = async (
         aliases: [],
       },
       now: entry.now,
+      arrivedAt: at,
       reason: "born",
       extra: {
         damId: dam.id,

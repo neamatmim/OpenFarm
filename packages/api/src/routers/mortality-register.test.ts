@@ -205,6 +205,15 @@ beforeAll(async () => {
     happenedAt: new Date("2046-02-07T02:00:00.000Z"),
   });
 
+  // 8 February: the bull calf, not thriving, culled.
+  const eighth = await as("manager", "2046-02-08T04:00:00.000Z");
+  await eighth.client.animals.recordMortality({
+    tagNumber: world.bull.tagNumber,
+    kind: "culled",
+    cause: "বাড়ছে না",
+    disposal: "buried",
+  });
+
   // 10 February: the pregnant heifer calves a stillborn bull calf on the morning round.
   const clock = new FakeClock("2046-02-10T01:00:00.000Z");
   const roundManager = await createTestClient(appRouter, {
@@ -234,6 +243,25 @@ beforeAll(async () => {
       "",
       "",
     ],
+  });
+  // The hour was written wrong: she calved at ten past six. Her calf's arrival and her death move with it.
+  const board = await roundManager.client.instances.get({
+    id: round?.id ?? "",
+  });
+  await staff.client.instances.correctStep({
+    completionId:
+      board.completions.find((row) => row.stepId === "calved")?.id ?? "",
+    evidence: [
+      "2046-02-10T00:10:00.000Z",
+      "assisted",
+      "male",
+      "stillborn",
+      "",
+      "",
+      "",
+      "",
+    ],
+    reason: "সময় ভুল লেখা হয়েছিল",
   });
   const dam = await roundManager.client.animals.byTag({
     tagNumber: world.dam.tagNumber,
@@ -282,6 +310,16 @@ describe("the mortality register", () => {
         disposal: "burned",
         disposalNote: "খামারের পেছনে, পশু হাসপাতালের লোক",
         reportReference: "ULO/2046/০১২",
+      },
+      {
+        id: expect.any(String),
+        tagNumber: world.bull.tagNumber,
+        diedOn: "2046-02-08",
+        kind: "culled",
+        cause: "বাড়ছে না",
+        disposal: "buried",
+        disposalNote: null,
+        reportReference: null,
       },
       {
         id: expect.any(String),
@@ -398,7 +436,7 @@ describe("the mortality register", () => {
 });
 
 describe("the movement log", () => {
-  it("lists every Move, Side change, arrival, sale and death in time order, as a CSV and an Export", async () => {
+  it("lists every Move, Side change, calving, intake, sale, death and cull in time order, as a CSV and an Export", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
     const log = await manager.client.inspector.movementLog(FEBRUARY);
     const [header, ...rows] = log.csv.slice(1).trim().split("\r\n");
@@ -410,14 +448,14 @@ describe("the movement log", () => {
         .filter(([, tag]) => ours(tag ?? ""))
         .map(([when, tag, kind, from, to]) => [when, tag, kind, from, to])
     ).toEqual([
-      ["2046-02-01 10:00", tags.heifer, "arrival", "", pen("গাভীর ঘর")],
+      // Registering the heifer on 1 February moved her nowhere.
       ["2046-02-02 10:00", tags.heifer, "move", pen("গাভীর ঘর"), pen("বাচ্চার ঘর")],
       [
         "2046-02-03 10:00",
         world.bull.tagNumber,
         "side_change",
-        pen("গাভীর ঘর"),
-        pen("মোটাতাজা"),
+        `${pen("গাভীর ঘর")} (dairy)`,
+        `${pen("মোটাতাজা")} (fattening)`,
       ],
       [
         "2046-02-04 10:00",
@@ -428,8 +466,9 @@ describe("the movement log", () => {
       ],
       ["2046-02-05 10:00", tags.bought, "sale", pen("মোটাতাজা"), "গাবতলী পশুর হাট"],
       ["2046-02-07 08:00", tags.heifer, "died", pen("বাচ্চার ঘর"), ""],
-      ["2046-02-10 06:30", tags.stillborn, "birth", "", pen("বাচ্চার ঘর")],
-      ["2046-02-10 06:30", tags.stillborn, "died", pen("বাচ্চার ঘর"), ""],
+      ["2046-02-08 10:00", world.bull.tagNumber, "culled", pen("মোটাতাজা"), ""],
+      ["2046-02-10 06:10", tags.stillborn, "calving", "", pen("বাচ্চার ঘর")],
+      ["2046-02-10 06:10", tags.stillborn, "died", pen("বাচ্চার ঘর"), ""],
     ]);
     expect(log.period).toEqual(FEBRUARY);
 
