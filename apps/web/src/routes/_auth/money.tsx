@@ -3,11 +3,12 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 
+import { categoryName, useApproveMoney } from "@/components/money";
+import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -25,43 +26,20 @@ const SOURCE_WORD = {
   vet_fee: "money.from.vetFee",
 } as const satisfies Record<string, MessageKey>;
 
-const METHOD_WORD = {
-  cash: "money.method.cash",
-  bkash: "money.method.bkash",
-  bank: "money.method.bank",
-} as const satisfies Record<string, MessageKey>;
-
 /**
- * The farm's money in a period, as its own records made it: what came in, what went out, under what
- * heading, with whom and how it was paid — and, for the Owner, what is waiting for their approval.
+ * The farm's money in a period, newest first, as its own records made it: which way, under what
+ * Category, with whom and how it was paid — and, for the Owner, what is waiting for their approval. The
+ * period's totals are the accountant's report, not this list's.
  */
 const MoneyPage = () => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const me = useQuery(orpc.people.me.queryOptions());
   const [from, setFrom] = useState(firstOfTheMonth);
   const [to, setTo] = useState(() => farmDayOf(new Date()));
   const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
   const isOwner = me.data?.roles.includes("owner") ?? false;
-  const approve = useMutation(
-    orpc.money.approve.mutationOptions({
-      onSuccess: () =>
-        Promise.all(
-          [orpc.money.key(), orpc.home.key()].map((key) =>
-            queryClient.invalidateQueries({ queryKey: key })
-          )
-        ),
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
-    })
-  );
-  const rows = money.data ?? [];
-  const total = (direction: "in" | "out") =>
-    rows
-      .filter((row) => row.direction === direction)
-      .reduce((sum, row) => sum + row.amountBdt, 0);
+  const approve = useApproveMoney();
+  const rows = money.data?.events ?? [];
 
   return (
     <div className="container mx-auto max-w-2xl space-y-5 px-4 py-6">
@@ -87,17 +65,11 @@ const MoneyPage = () => {
           {wordedRefusal(money.error, t) ?? t("common.error")}
         </p>
       ) : null}
-      <p className="text-sm">
-        {t("money.totals", {
-          in: formatNumber(total("in"), language),
-          out: formatNumber(total("out"), language),
-        })}
-      </p>
       {rows.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("money.none")}</p>
       ) : (
         <ul className="space-y-2">
-          {rows.toReversed().map((row) => (
+          {rows.map((row) => (
             <li
               className="flex items-start justify-between gap-2 rounded-lg border p-2 text-sm"
               key={row.id}
@@ -106,15 +78,13 @@ const MoneyPage = () => {
                 <p>
                   {row.direction === "in" ? "+" : "−"}৳
                   {formatNumber(row.amountBdt, language)} ·{" "}
-                  {language === "bn"
-                    ? row.categoryBn
-                    : (row.categoryEn ?? row.categoryBn)}
+                  {categoryName(row, language)}
                   {row.counterpartyName ? ` · ${row.counterpartyName}` : ""}
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {formatDate(row.occurredAt, language)} ·{" "}
                   {t(SOURCE_WORD[row.source])} ·{" "}
-                  {t(METHOD_WORD[row.paymentMethod])}
+                  {t(PAYMENT_METHOD_WORD[row.paymentMethod])}
                   {row.approval === "awaiting"
                     ? ` · ${t("money.awaiting")}`
                     : ""}
@@ -126,7 +96,9 @@ const MoneyPage = () => {
               {isOwner && row.approval === "awaiting" ? (
                 <Button
                   disabled={approve.isPending}
-                  onClick={() => approve.mutate({ id: row.id })}
+                  onClick={() =>
+                    approve.mutate({ id: row.id, amountBdt: row.amountBdt })
+                  }
                   size="sm"
                   variant="outline"
                 >
@@ -137,6 +109,9 @@ const MoneyPage = () => {
           ))}
         </ul>
       )}
+      {money.data?.more ? (
+        <p className="text-muted-foreground text-sm">{t("money.more")}</p>
+      ) : null}
     </div>
   );
 };

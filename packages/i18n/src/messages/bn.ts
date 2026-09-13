@@ -382,7 +382,6 @@ export const bn: Record<MessageKey, string> = {
   "money.approve": "অনুমোদন",
   "money.awaiting": "অনুমোদনের অপেক্ষায়",
   "money.approvedBy": "{name} অনুমোদন করেছেন",
-  "money.totals": "আয় ৳{in} · ব্যয় ৳{out}",
   "money.none": "এই সময়ে কোনো টাকার হিসাব নেই",
   "money.from.dispatch": "দুধ হস্তান্তর",
   "money.from.intake": "গরু আনা",
@@ -412,6 +411,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.visitedInTheFuture": "যে দিন আসেনি সেদিন ভিজিট হতে পারে না",
   "refusal.boughtInTheFuture": "যে দিন আসেনি সেদিন ওষুধ কেনা হতে পারে না",
   "refusal.drugRetired": "এই ওষুধ বাদ দেওয়া হয়েছে; আবার কেনার আগে ভেট ফিরিয়ে আনবেন",
+  "money.more": "এই সময়ে এক পাতায় যত দেখা যায় তার বেশি আছে; তারিখ ছোট করুন",
+  "refusal.amountChanged": "আপনি দেখার পর টাকার অঙ্ক সংশোধন হয়েছে; আবার দেখুন",
   "refusal.periodBackwards": "শেষের তারিখ শুরুর তারিখের আগে হতে পারে না",
   "refusal.farmIdentityIncomplete":
     "খামারের নিবন্ধন নম্বর লেখা নেই; আগে খামারের তথ্যে লিখুন",

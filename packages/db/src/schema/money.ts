@@ -45,8 +45,8 @@ export const MONEY_APPROVALS = ["not_needed", "awaiting", "approved"] as const;
 export type MoneyApproval = (typeof MONEY_APPROVALS)[number];
 
 /**
- * A heading a Money Event falls under. The headings the farm's own records use carry a key and are made
- * the first time a record needs one; the farm's own list of headings grows from these.
+ * A Category a Money Event falls under. The Categories the farm's own records use carry a key and are
+ * made the first time a record needs one; the farm's own list of Categories grows from these.
  */
 export const moneyCategory = pgTable(
   "money_category",
@@ -55,7 +55,7 @@ export const moneyCategory = pgTable(
     farmId: text("farm_id")
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
-    /** The record that uses this heading, for the ones the records make; null for the farm's own. */
+    /** The record that uses this Category, for the ones the records make; null for the farm's own. */
     key: text("key", { enum: MONEY_SOURCES }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
@@ -69,7 +69,7 @@ export const moneyCategory = pgTable(
 );
 
 /**
- * One flow of money in or out of the Farm: how much, when, which way, under what heading, with whom, how
+ * One flow of money in or out of the Farm: how much, when, which way, under what Category, with whom, how
  * it was paid, and the record that caused it.
  *
  * Not a ledger: an income and expense record the accountant keeps the books from.

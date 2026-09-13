@@ -1,19 +1,26 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
 import { intake } from "@OpenFarm/db/schema/fattening";
 import { SEXES } from "@OpenFarm/db/schema/herd";
-import { farmDayOf, nextEidWindow } from "@OpenFarm/domain";
+import type { PaymentMethod } from "@OpenFarm/db/schema/money";
+import { farmDayOf, mayCorrect, nextEidWindow } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { bookMoney, bookingOf } from "../money-store";
+import {
+  correctedPaymentMethodInput,
+  paymentMethodInput,
+} from "../money-inputs";
+import type { Booking } from "../money-store";
+import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
 import { requireOnly, requireRole } from "../roles";
-import { paymentMethodInput } from "./money";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
 const readArrival = async (tx: Tx, animalId: string) => {
@@ -28,7 +35,54 @@ const readArrival = async (tx: Tx, animalId: string) => {
     },
     with: { intake: true },
   });
-  return row ?? null;
+  return row
+    ? {
+        ...row,
+        money: row.intake
+          ? await moneySnapshotOf(tx, "intake", row.intake.id)
+          : null,
+      }
+    : null;
+};
+
+/** The seller as an Intake names them. */
+const sellerInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  address: z.string().trim().max(200).optional(),
+  phone: z.string().trim().max(20).optional(),
+});
+
+const MANAGER_ONLY = {
+  message:
+    "Taking an animal in is the Manager's to record; the Owner approves what it cost",
+  reason: "manager_only",
+} as const;
+
+/**
+ * Books what the farm paid for an animal as the Intake now says it. A bull given to the farm costs
+ * nothing and books nothing — unless he was booked at a price before, which a Correction then puts right.
+ */
+const bookIntakeMoney = async (
+  tx: Tx,
+  booking: Booking,
+  intakeId: string,
+  paymentMethod: PaymentMethod | undefined
+) => {
+  const row = await tx.query.intake.findFirst({ where: { id: intakeId } });
+  if (!row) {
+    return;
+  }
+  const priceBdt = Number(row.purchasePriceBdt);
+  if (priceBdt > 0 || (await moneySnapshotOf(tx, "intake", row.id))) {
+    await bookMoney(tx, booking, {
+      source: "intake",
+      sourceId: row.id,
+      amountBdt: priceBdt,
+      occurredAt: row.arrivedAt,
+      counterpartyId: row.counterpartyId,
+      paymentMethod,
+    });
+  }
 };
 
 /** Enough that the Manager recognises the man; not so many that a shed phone fetches a ledger. */
@@ -44,11 +98,7 @@ const recordInput = z
     penId: z.string(),
     sex: z.enum(SEXES),
     /** Who the farm bought it from. A name is enough; the rest is what anyone remembers. */
-    seller: z.object({
-      name: z.string().trim().min(1).max(120),
-      address: z.string().trim().max(200).optional(),
-      phone: z.string().trim().max(20).optional(),
-    }),
+    seller: sellerInput,
     purchasePriceBdt: price,
     weightKg: weight,
     /** Months, as the seller says and the Manager judges. Asked for, not optional: a bull with
@@ -110,13 +160,7 @@ export const intakeRouter = {
    * no account of where it came from is the thing a half-finished arrival would leave behind.
    */
   record: protectedProcedure
-    .use(
-      requireOnly("manager", {
-        message:
-          "Taking an animal in is the Manager's to record; the Owner approves what it cost",
-        reason: "manager_only",
-      })
-    )
+    .use(requireOnly("manager", MANAGER_ONLY))
     .input(recordInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
@@ -189,17 +233,12 @@ export const intakeRouter = {
             recordedBy: context.actor.id,
             createdAt: now,
           });
-          // A bull given to the farm costs nothing, and nothing is booked for him.
-          if (input.purchasePriceBdt > 0) {
-            await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-              source: "intake",
-              sourceId: intakeId,
-              amountBdt: input.purchasePriceBdt,
-              occurredAt: arrivedAt,
-              counterpartyId: sellerId,
-              paymentMethod: input.paymentMethod,
-            });
-          }
+          await bookIntakeMoney(
+            tx,
+            bookingOf(context, context.roleUsed, now),
+            intakeId,
+            input.paymentMethod
+          );
         }
       );
       return {
@@ -209,5 +248,97 @@ export const intakeRouter = {
         state: "quarantine" as const,
         targetWindow: window,
       };
+    }),
+
+  /**
+   * Puts right what an Intake says the farm paid, who sold the animal, or how he was paid — and with it
+   * the Money Event, rather than a second one. A Correction like any other: a reason, the Role's
+   * Correction Window, and the trail holding what it said before.
+   *
+   * The Manager's, as recording is (roles matrix: Intake / Sale — Manager C R U, Owner R).
+   */
+  correct: protectedProcedure
+    .use(requireOnly("manager", MANAGER_ONLY))
+    .input(
+      z.object({
+        intakeId: z.string(),
+        purchasePriceBdt: price.optional(),
+        seller: sellerInput.optional(),
+        paymentMethod: correctedPaymentMethodInput,
+        reason: reasonInput,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const existing = await context.db.query.intake.findFirst({
+        where: { id: input.intakeId, farmId: context.farm.id },
+        columns: {
+          id: true,
+          animalId: true,
+          recordedBy: true,
+          createdAt: true,
+        },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such intake" });
+      }
+      const verdict = mayCorrect({
+        roles: context.roles,
+        isOwnEntry: existing.recordedBy === context.actor.id,
+        recordedAt: existing.createdAt,
+        now,
+        windows: correctionWindows(context.farm),
+      });
+      if (!verdict.allowed) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "The correction window for that entry has closed",
+          data: { refusal: refusalData(verdict.refusal) },
+        });
+      }
+      const audit = audited(context);
+      const previous = await audit.latestEventFor(
+        context.db,
+        "animal",
+        existing.animalId
+      );
+      await audit.write(
+        {
+          entity: "animal",
+          entityId: existing.animalId,
+          action: "correct",
+          reason: input.reason,
+          roleUsed: verdict.role,
+          supersedesId: previous?.id,
+          before: (tx) => readArrival(tx, existing.animalId),
+          after: (tx) => readArrival(tx, existing.animalId),
+        },
+        async (tx) => {
+          await tx
+            .update(intake)
+            .set({
+              ...(input.purchasePriceBdt === undefined
+                ? {}
+                : { purchasePriceBdt: input.purchasePriceBdt.toFixed(2) }),
+              ...(input.seller === undefined
+                ? {}
+                : {
+                    counterpartyId: await counterpartyNamed(
+                      tx,
+                      context.farm.id,
+                      input.seller,
+                      now
+                    ),
+                  }),
+            })
+            .where(eq(intake.id, existing.id));
+          await bookIntakeMoney(
+            tx,
+            bookingOf(context, verdict.role, now),
+            existing.id,
+            input.paymentMethod
+          );
+        }
+      );
+      return { intakeId: existing.id };
     }),
 };

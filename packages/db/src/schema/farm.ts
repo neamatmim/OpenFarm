@@ -87,8 +87,7 @@ export const farm = pgTable("farm", {
   repeatBreederThreshold: integer("repeat_breeder_threshold")
     .notNull()
     .default(3),
-  /** The taka above which a Money Event waits for the Owner's approval. The Owner's to set: the bar the
-   *  Manager's spending is held to is not the Manager's to move. */
+  /** The taka above which a Money Event the Owner did not enter waits for the Owner's approval. */
   approvalThresholdBdt: integer("approval_threshold_bdt")
     .notNull()
     .default(20_000),

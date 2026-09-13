@@ -15,7 +15,7 @@ import type { CalvingWorkFollowed } from "../breeding-store";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { forbidden, requireRole } from "../roles";
+import { requireRole } from "../roles";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -62,7 +62,7 @@ const parameters = z
     calvingPrepLeadDays: z.number().int().min(1).max(30).optional(),
     /** How many attempts that did not take raise a Repeat Breeder. */
     repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
-    /** The taka above which a Money Event waits for the Owner. The Owner's alone to move. */
+    /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
   })
   .refine(
@@ -181,7 +181,19 @@ export const farmRouter = {
       );
       return { id: farmId, name: input.name };
     }),
-  current: protectedProcedure.handler(({ context }) => context.farm),
+  current: protectedProcedure.handler(({ context }) => {
+    if (!context.farm) {
+      return null;
+    }
+    // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see.
+    const { approvalThresholdBdt, ...withoutMoney } = context.farm;
+    const readsMoney = context.roles.some(
+      (role) => role === "owner" || role === "manager"
+    );
+    return readsMoney
+      ? { ...withoutMoney, approvalThresholdBdt }
+      : withoutMoney;
+  }),
 
   /**
    * The Farm Identity. Whoever the roles matrix lets read the Farm Parameters: the Owner, the
@@ -268,16 +280,6 @@ export const farmRouter = {
         // go late without anybody being told.
         throw new ORPCError("BAD_REQUEST", {
           message: "The AI window cannot be longer than a day",
-        });
-      }
-      if (
-        input.approvalThresholdBdt !== undefined &&
-        !context.roles.includes("owner")
-      ) {
-        // The bar the Manager's spending is held to is not the Manager's to move.
-        throw forbidden({
-          message: "The Approval Threshold is the Owner's to set",
-          reason: "owner_only",
         });
       }
       const quietFrom = input.quietFrom ?? context.farm.quietFrom;

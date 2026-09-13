@@ -1,5 +1,6 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq, isNull, like, ne } from "@OpenFarm/db/operators";
+import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { MoneySource, PaymentMethod } from "@OpenFarm/db/schema/money";
 import { moneyCategory, moneyEvent } from "@OpenFarm/db/schema/money";
@@ -8,8 +9,8 @@ import { approvalOf, roundTaka } from "@OpenFarm/domain";
 import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 
-/** The heading each record's money falls under, and which way it goes. */
-const HEADINGS: Record<
+/** The Category each record's money falls under, and which way it goes. */
+const CATEGORIES: Record<
   MoneySource,
   { nameBn: string; nameEn: string; direction: "in" | "out" }
 > = {
@@ -44,7 +45,7 @@ const categoryFor = async (
     id,
     farmId,
     key: source,
-    ...HEADINGS[source],
+    ...CATEGORIES[source],
     createdAt: now,
   });
   return id;
@@ -62,31 +63,90 @@ export interface MoneyOfARecord {
   paymentMethod?: PaymentMethod;
 }
 
-/** The booking for a record written under this Role, now. */
+/** Who is writing the record, and the farm it is on. */
+export interface Booking {
+  farm: { id: string; approvalThresholdBdt: number };
+  actorId: string;
+  /** The Role the record is written under, which the Money Event is recorded under too. */
+  role: RoleName;
+  /** Whether the person writing it holds the Owner's Role: the Owner is not asked to approve their
+   *  own money. */
+  byTheOwner: boolean;
+  now: Date;
+}
+
+/** The booking for a record this request is writing, now. */
 export const bookingOf = (
   context: {
     farm: { id: string; approvalThresholdBdt: number };
     actor: { id: string };
+    roles: readonly string[];
   },
   role: RoleName,
   now: Date
-): Booking => ({ farm: context.farm, actorId: context.actor.id, role, now });
+): Booking => ({
+  farm: context.farm,
+  actorId: context.actor.id,
+  role,
+  byTheOwner: context.roles.includes("owner"),
+  now,
+});
 
-/** Who wrote the record, and the farm it is on. */
-export interface Booking {
-  farm: { id: string; approvalThresholdBdt: number };
-  actorId: string;
-  role: RoleName;
-  now: Date;
-}
+/** The notice about a Money Event waiting at this amount: a corrected amount is a new thing to approve. */
+const noticeIdOf = (id: string, amountBdt: number) =>
+  `${id}:${amountBdt.toFixed(2)}`;
+
+/**
+ * Takes down the Owner's notices about a Money Event that no longer waits at the amount they name —
+ * approved, brought under the threshold, or corrected to another amount. A notice about money that is
+ * not waiting is a notice that teaches the Owner to stop reading them.
+ */
+export const settleMoneyNotices = async (
+  tx: Tx,
+  farmId: string,
+  moneyEventId: string,
+  { stillWaitingAt, now }: { stillWaitingAt: number | null; now: Date }
+): Promise<void> => {
+  await tx
+    .update(alert)
+    .set({ dismissedAt: now })
+    .where(
+      and(
+        eq(alert.farmId, farmId),
+        eq(alert.kind, "money_awaiting_approval"),
+        like(alert.entityId, `${moneyEventId}:%`),
+        isNull(alert.dismissedAt),
+        ...(stillWaitingAt === null
+          ? []
+          : [ne(alert.entityId, noticeIdOf(moneyEventId, stillWaitingAt))])
+      )
+    );
+};
+
+/** A Money Event as a record's trail shows it either side of a change, or null for a record with none. */
+export const moneySnapshotOf = async (
+  tx: Tx,
+  source: MoneySource,
+  sourceId: string
+) =>
+  (await tx.query.moneyEvent.findFirst({
+    where: { source, sourceId },
+    columns: {
+      amountBdt: true,
+      paymentMethod: true,
+      approval: true,
+      approvedBy: true,
+      approvedAt: true,
+    },
+  })) ?? null;
 
 /**
  * Books a record's money as its Money Event, in the record's own transaction: the first time the record
  * is written, a Money Event; every time it is corrected, the same Money Event put right.
  *
- * Over the Approval Threshold it waits for the Owner, who hears about it in the digest; the record
- * itself is never held back (the Owner's decision, 2026-09-13). An approval is of an amount, so a
- * Correction that changes the amount asks again, and one that does not keeps it.
+ * Over the Approval Threshold, money the Owner did not enter waits for the Owner, who hears about it in
+ * the digest; the record itself is never held back (the Owner's decision, 2026-09-13). An approval is of
+ * an amount, so a Correction that changes the amount asks again, and one that does not keeps it.
  */
 export const bookMoney = async (
   tx: Tx,
@@ -96,7 +156,11 @@ export const bookMoney = async (
   const { farm, now } = booking;
   const amountBdt = roundTaka(money.amountBdt);
   const existing = await tx.query.moneyEvent.findFirst({
-    where: { source: money.source, sourceId: money.sourceId },
+    where: {
+      farmId: farm.id,
+      source: money.source,
+      sourceId: money.sourceId,
+    },
     columns: { id: true, amountBdt: true, approval: true },
   });
   const before = existing
@@ -105,6 +169,7 @@ export const bookMoney = async (
   const approval = approvalOf({
     amountBdt,
     thresholdBdt: farm.approvalThresholdBdt,
+    enteredByTheOwner: booking.byTheOwner,
     before,
   });
   const fields = {
@@ -123,7 +188,7 @@ export const bookMoney = async (
     : tx.insert(moneyEvent).values({
         id,
         farmId: farm.id,
-        direction: HEADINGS[money.source].direction,
+        direction: CATEGORIES[money.source].direction,
         categoryId: await categoryFor(tx, farm.id, money.source, now),
         source: money.source,
         sourceId: money.sourceId,
@@ -133,10 +198,15 @@ export const bookMoney = async (
         paymentMethod: "cash",
         ...fields,
       }));
-  const newlyWaiting =
-    approval === "awaiting" &&
-    (before?.approval !== "awaiting" || before.amountBdt !== amountBdt);
-  if (newlyWaiting) {
+  const waiting = approval === "awaiting";
+  if (existing) {
+    await settleMoneyNotices(tx, farm.id, id, {
+      stillWaitingAt: waiting ? amountBdt : null,
+      now,
+    });
+  }
+  if (waiting) {
+    // Raised once per amount: the unique index leaves a notice already standing where it is.
     await raiseAlerts(
       tx,
       farm.id,
@@ -144,13 +214,12 @@ export const bookMoney = async (
       {
         kind: "money_awaiting_approval",
         entity: "money_event",
-        // The amount waiting, not the row: a corrected amount is a new thing to approve.
-        entityId: `${id}:${amountBdt.toFixed(2)}`,
+        entityId: noticeIdOf(id, amountBdt),
         params: {
           moneyEventId: id,
           amountBdt,
-          categoryBn: HEADINGS[money.source].nameBn,
-          categoryEn: HEADINGS[money.source].nameEn,
+          categoryBn: CATEGORIES[money.source].nameBn,
+          categoryEn: CATEGORIES[money.source].nameEn,
         },
       },
       now

@@ -4,7 +4,8 @@ import { Label } from "@OpenFarm/ui/components/label";
 
 import { useLanguage } from "@/i18n/language-provider";
 
-const WORD_FOR = {
+/** How each way of paying is said to the reader. */
+export const PAYMENT_METHOD_WORD = {
   cash: "money.method.cash",
   bkash: "money.method.bkash",
   bank: "money.method.bank",
@@ -37,7 +38,7 @@ export const PaymentMethodField = ({
       >
         {PAYMENT_METHODS.map((method) => (
           <option key={method} value={method}>
-            {t(WORD_FOR[method])}
+            {t(PAYMENT_METHOD_WORD[method])}
           </option>
         ))}
       </select>

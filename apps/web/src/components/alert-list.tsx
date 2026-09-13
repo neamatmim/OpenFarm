@@ -47,7 +47,7 @@ const paramsOf = (
     feed: String(raw.nameBn ?? ""),
     onHand: Number(raw.onHand ?? 0),
     unit: String(raw.unit ?? ""),
-    /** How much and under what heading, for the notice about money waiting for the Owner. */
+    /** How much and under what Category, for the notice about money waiting for the Owner. */
     amount: Number(raw.amountBdt ?? 0),
     category: String(
       (bangla ? raw.categoryBn : raw.categoryEn) ?? raw.categoryBn ?? ""

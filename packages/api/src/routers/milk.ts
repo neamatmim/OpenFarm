@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { dispatch } from "@OpenFarm/db/schema/milk";
-import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
+import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import {
   farmDaysBetween,
   lactationView,
@@ -23,9 +23,13 @@ import {
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { litresOf } from "../milk-store";
-import { bookMoney, bookingOf } from "../money-store";
+import {
+  correctedPaymentMethodInput,
+  paymentMethodInput,
+} from "../money-inputs";
+import type { Booking } from "../money-store";
+import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
 import { requireRole } from "../roles";
-import { paymentMethodInput } from "./money";
 
 /** How many of a cow's recent milkings to hand back; enough for a fortnight of two-a-day
  *  sessions, which is as far as a phone screen usefully goes. */
@@ -68,8 +72,32 @@ const dispatchFields = {
 };
 
 /** The Dispatch as the trail records it either side of a change. */
-const readDispatch = async (tx: Tx, id: string) =>
-  (await tx.query.dispatch.findFirst({ where: { id } })) ?? null;
+const readDispatch = async (tx: Tx, id: string) => {
+  const row = await tx.query.dispatch.findFirst({ where: { id } });
+  return row
+    ? { ...row, money: await moneySnapshotOf(tx, "dispatch", id) }
+    : null;
+};
+
+/** Books a Dispatch's milk sale as it now stands: its litres at its price, to its buyer. */
+const bookDispatchMoney = async (
+  tx: Tx,
+  booking: Booking,
+  id: string,
+  paymentMethod: PaymentMethod | undefined
+) => {
+  const row = await tx.query.dispatch.findFirst({ where: { id } });
+  if (row) {
+    await bookMoney(tx, booking, {
+      source: "dispatch",
+      sourceId: row.id,
+      amountBdt: Number(row.litres) * Number(row.pricePerLitreBdt),
+      occurredAt: row.dispatchedAt,
+      counterpartyId: row.buyerId,
+      paymentMethod,
+    });
+  }
+};
 
 /** Milk has not left before now. */
 const assertNotLater = (dispatchedAt: Date, now: Date) => {
@@ -191,14 +219,12 @@ export const milkRouter = {
             recordedByRole,
             recordedAt: now,
           });
-          await bookMoney(tx, bookingOf(context, recordedByRole, now), {
-            source: "dispatch",
-            sourceId: id,
-            amountBdt: input.litres * input.pricePerLitreBdt,
-            occurredAt: input.dispatchedAt,
-            counterpartyId: buyer.buyerId,
-            paymentMethod: input.paymentMethod,
-          });
+          await bookDispatchMoney(
+            tx,
+            bookingOf(context, recordedByRole, now),
+            id,
+            input.paymentMethod
+          );
         }
       );
       return { id };
@@ -225,7 +251,7 @@ export const milkRouter = {
         fatPercent: dispatchFields.fatPercent.nullable().optional(),
         snfPercent: dispatchFields.snfPercent.nullable().optional(),
         note: dispatchFields.note.nullable().optional(),
-        paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+        paymentMethod: correctedPaymentMethodInput,
         reason: reasonInput,
       })
     )
@@ -281,20 +307,12 @@ export const milkRouter = {
                 : await buyerOnTheDay(tx, context.farm.id, input.buyer, now)),
             })
             .where(eq(dispatch.id, existing.id));
-          const corrected = await tx.query.dispatch.findFirst({
-            where: { id: existing.id },
-          });
-          if (corrected) {
-            await bookMoney(tx, bookingOf(context, verdict.role, now), {
-              source: "dispatch",
-              sourceId: corrected.id,
-              amountBdt:
-                Number(corrected.litres) * Number(corrected.pricePerLitreBdt),
-              occurredAt: corrected.dispatchedAt,
-              counterpartyId: corrected.buyerId,
-              paymentMethod: input.paymentMethod,
-            });
-          }
+          await bookDispatchMoney(
+            tx,
+            bookingOf(context, verdict.role, now),
+            existing.id,
+            input.paymentMethod
+          );
         }
       );
       return { id: existing.id };

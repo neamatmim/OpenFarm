@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { FEED_IN_KINDS, feedIn } from "@OpenFarm/db/schema/feed";
-import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
+import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { mayCorrect, maundsOf, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -12,10 +12,14 @@ import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { bookMoney, bookingOf } from "../money-store";
+import {
+  correctedPaymentMethodInput,
+  paymentMethodInput,
+} from "../money-inputs";
+import type { Booking } from "../money-store";
+import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
 import { requireRole } from "../roles";
 import { adjustmentsOf, stockOnHand } from "../stock-store";
-import { paymentMethodInput } from "./money";
 
 const sellerInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -28,8 +32,33 @@ const quantityInput = z.number().min(0.1).max(1_000_000);
 const priceInput = z.number().positive().max(100_000_000);
 
 /** What came in, as the trail records it either side of a change. */
-const readArrival = async (tx: Tx, id: string) =>
-  (await tx.query.feedIn.findFirst({ where: { id } })) ?? null;
+const readArrival = async (tx: Tx, id: string) => {
+  const row = await tx.query.feedIn.findFirst({ where: { id } });
+  return row
+    ? { ...row, money: await moneySnapshotOf(tx, "feed_in", id) }
+    : null;
+};
+
+/** Books a feed Purchase's money as it now stands. A harvest from the farm's own fields is feed and not
+ *  money, and books nothing. */
+const bookPurchaseMoney = async (
+  tx: Tx,
+  booking: Booking,
+  id: string,
+  paymentMethod: PaymentMethod | undefined
+) => {
+  const row = await tx.query.feedIn.findFirst({ where: { id } });
+  if (row?.priceBdt) {
+    await bookMoney(tx, booking, {
+      source: "feed_in",
+      sourceId: row.id,
+      amountBdt: Number(row.priceBdt),
+      occurredAt: row.receivedOn,
+      counterpartyId: row.counterpartyId,
+      paymentMethod,
+    });
+  }
+};
 
 /**
  * A Purchase names what the lot cost and the seller it came from; a Harvest from the farm's own
@@ -207,17 +236,12 @@ export const stockRouter = {
             recordedByRole,
             recordedAt: now,
           });
-          // A harvest from the farm's own fields is feed and not money.
-          if (input.priceBdt !== undefined) {
-            await bookMoney(tx, bookingOf(context, recordedByRole, now), {
-              source: "feed_in",
-              sourceId: id,
-              amountBdt: input.priceBdt,
-              occurredAt: receivedOn,
-              counterpartyId: sellerId,
-              paymentMethod: input.paymentMethod,
-            });
-          }
+          await bookPurchaseMoney(
+            tx,
+            bookingOf(context, recordedByRole, now),
+            id,
+            input.paymentMethod
+          );
         }
       );
       return { id };
@@ -237,7 +261,7 @@ export const stockRouter = {
         priceBdt: priceInput.optional(),
         seller: sellerInput.optional(),
         receivedOn: farmDay.optional(),
-        paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+        paymentMethod: correctedPaymentMethodInput,
         reason: reasonInput,
       })
     )
@@ -310,19 +334,12 @@ export const stockRouter = {
                 : {}),
             })
             .where(eq(feedIn.id, existing.id));
-          const corrected = await tx.query.feedIn.findFirst({
-            where: { id: existing.id },
-          });
-          if (corrected?.priceBdt) {
-            await bookMoney(tx, bookingOf(context, verdict.role, now), {
-              source: "feed_in",
-              sourceId: corrected.id,
-              amountBdt: Number(corrected.priceBdt),
-              occurredAt: corrected.receivedOn,
-              counterpartyId: corrected.counterpartyId,
-              paymentMethod: input.paymentMethod,
-            });
-          }
+          await bookPurchaseMoney(
+            tx,
+            bookingOf(context, verdict.role, now),
+            existing.id,
+            input.paymentMethod
+          );
         }
       );
       return { id: existing.id };

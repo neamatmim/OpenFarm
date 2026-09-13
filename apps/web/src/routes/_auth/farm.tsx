@@ -6,8 +6,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
+import { categoryName, useApproveMoney } from "@/components/money";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -29,20 +29,7 @@ const OwnerHome = () => {
       onError: (error) => toast.error(error.message),
     })
   );
-  const approveMoney = useMutation(
-    orpc.money.approve.mutationOptions({
-      onSuccess: () =>
-        Promise.all(
-          [orpc.home.key(), orpc.money.key()].map((key) =>
-            queryClient.invalidateQueries({ queryKey: key })
-          )
-        ),
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
-    })
-  );
+  const approveMoney = useApproveMoney();
 
   // Cached first, error second. A phone with no signal has the farm as it last knew it,
   // and a screen that throws that away to show the word "error" has taken away the only
@@ -146,15 +133,15 @@ const OwnerHome = () => {
               key={row.id}
             >
               <Link className="underline" to="/money">
-                {language === "bn"
-                  ? row.categoryBn
-                  : (row.categoryEn ?? row.categoryBn)}{" "}
-                · ৳{formatNumber(row.amountBdt, language)}
+                {categoryName(row, language)} · ৳
+                {formatNumber(row.amountBdt, language)}
                 {row.counterpartyName ? ` · ${row.counterpartyName}` : ""}
               </Link>
               <Button
                 disabled={approveMoney.isPending}
-                onClick={() => approveMoney.mutate({ id: row.id })}
+                onClick={() =>
+                  approveMoney.mutate({ id: row.id, amountBdt: row.amountBdt })
+                }
                 size="sm"
                 variant="outline"
               >

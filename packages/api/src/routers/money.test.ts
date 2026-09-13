@@ -1,4 +1,4 @@
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -35,7 +35,7 @@ beforeAll(async () => {
 const moneyOf = async (sourceId: string) => {
   const owner = await as("owner", "2037-12-31T12:00:00.000Z");
   const all = await owner.client.money.list(YEAR);
-  return all.filter((one) => one.sourceId === sourceId);
+  return all.events.filter((one) => one.sourceId === sourceId);
 };
 
 /** A bull taken in, for a sale or a fee. */
@@ -84,6 +84,18 @@ describe("money from the farm's records", () => {
     const [money, ...more] = await moneyOf(recorded.id);
     expect(more).toEqual([]);
     expect(money?.amountBdt).toBe(6600);
+    // The trail shows the money either side of the correction, not only the litres.
+    const trail = await manager.client.audit.list({
+      entity: "dispatch",
+      entityId: recorded.id,
+    });
+    const corrected = trail.find((event) => event.action === "correct");
+    expect(corrected?.before).toMatchObject({
+      money: expect.objectContaining({ amountBdt: "5500.00" }),
+    });
+    expect(corrected?.after).toMatchObject({
+      money: expect.objectContaining({ amountBdt: "6600.00" }),
+    });
   });
 
   it("books an Intake, a Sale and a feed Purchase, and nothing for fodder the farm grew", async () => {
@@ -100,6 +112,16 @@ describe("money from the farm's records", () => {
     });
 
     const manager = await as("manager", "2037-02-20T04:00:00.000Z");
+    // The Manager put the price in wrong: the same Money Event is put right, not a second one booked.
+    await manager.client.intake.correct({
+      intakeId: bull.intakeId,
+      purchasePriceBdt: 18_500,
+      reason: "হাটের রসিদে ১৮,৫০০",
+    });
+    expect(await moneyOf(bull.intakeId)).toEqual([
+      expect.objectContaining({ amountBdt: 18_500, paymentMethod: "bank" }),
+    ]);
+
     const sold = await manager.client.sale.record({
       tagNumber: bull.tagNumber,
       buyer: { name: `কসাই ${suffix}` },
@@ -117,6 +139,15 @@ describe("money from the farm's records", () => {
         // Nobody said, and the farm's gate is cash unless somebody says otherwise.
         paymentMethod: "cash",
       }),
+    ]);
+    await manager.client.sale.correct({
+      id: sold.id,
+      priceBdt: 19_000,
+      paymentMethod: "bkash",
+      reason: "বিকাশে দিয়েছেন, ৫০০ কম",
+    });
+    expect(await moneyOf(sold.id)).toEqual([
+      expect.objectContaining({ amountBdt: 19_000, paymentMethod: "bkash" }),
     ]);
 
     const feed = await manager.client.feed.addItem({
@@ -153,6 +184,20 @@ describe("money from the farm's records", () => {
       receivedOn: "2037-02-20",
     });
     expect(await moneyOf(harvest.id)).toEqual([]);
+
+    // The Owner is not asked to approve the Owner's own say: over the threshold, it waits for nobody.
+    const owner = await as("owner", "2037-02-21T04:00:00.000Z");
+    await owner.client.stock.correct({
+      id: lorry.id,
+      priceBdt: 25_000,
+      reason: "মালিক নিজে দাম দিয়েছেন",
+    });
+    expect(await moneyOf(lorry.id)).toEqual([
+      expect.objectContaining({ amountBdt: 25_000, approval: "not_needed" }),
+    ]);
+
+    // Retired, so a Stock Count on another file's clock does not find a lorry from 2037 in the store.
+    await manager.client.feed.retireItem({ id: feed.id });
   });
 
   it("holds the money over the threshold and never the Sale, until the Owner approves it", async () => {
@@ -166,6 +211,23 @@ describe("money from the farm's records", () => {
     const [waiting] = await moneyOf(bull.intakeId);
     expect(waiting).toMatchObject({ amountBdt: 85_000, approval: "awaiting" });
     const id = waiting?.id ?? "";
+
+    // And a Sale over the threshold: she leaves, sold, and only the money waits.
+    const sold = await manager.client.sale.record({
+      tagNumber: bull.tagNumber,
+      buyer: { name: `ঈদের ক্রেতা ${suffix}` },
+      priceBdt: 140_000,
+      weightKg: 260,
+      destination: "গাবতলী",
+      vehicle: "ঢাকা মেট্রো ন ২২-৩৩৪৪",
+      driver: "রহিম",
+    });
+    expect(sold.state).toBe("sold");
+    const [soldMoney] = await moneyOf(sold.id);
+    expect(soldMoney).toMatchObject({
+      amountBdt: 140_000,
+      approval: "awaiting",
+    });
 
     // On the Owner's queue, and in the Owner's digest.
     const owner = await as("owner", "2037-03-01T06:00:00.000Z");
@@ -184,11 +246,15 @@ describe("money from the farm's records", () => {
       // oxlint-disable-next-line no-await-in-loop
       const other = await as(role, "2037-03-01T06:00:00.000Z");
       // oxlint-disable-next-line no-await-in-loop
-      await expect(other.client.money.approve({ id })).rejects.toMatchObject({
-        code: "FORBIDDEN",
-      });
+      await expect(
+        other.client.money.approve({ id, amountBdt: 85_000 })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
-    await owner.client.money.approve({ id });
+    // An amount the Owner did not read is not approved.
+    await expect(
+      owner.client.money.approve({ id, amountBdt: 58_000 })
+    ).rejects.toMatchObject({ data: { refusal: "amount_changed" } });
+    await owner.client.money.approve({ id, amountBdt: 85_000 });
     const [approved] = await moneyOf(bull.intakeId);
     expect(approved).toMatchObject({ approval: "approved" });
     expect(approved?.approvedByName).toBeTruthy();
@@ -199,9 +265,13 @@ describe("money from the farm's records", () => {
     expect(trail).toEqual([
       expect.objectContaining({ action: "update", roleUsed: "owner" }),
     ]);
-    await expect(owner.client.money.approve({ id })).rejects.toMatchObject({
-      data: { refusal: "not_awaiting_approval" },
-    });
+    await expect(
+      owner.client.money.approve({ id, amountBdt: 85_000 })
+    ).rejects.toMatchObject({ data: { refusal: "not_awaiting_approval" } });
+    // Approved, the notice about it is taken down.
+    expect(
+      await owner.client.alerts.mine({ entityId: `${id}:85000.00` })
+    ).toEqual([]);
     const after = await owner.client.home.owner();
     expect(after.needsYou.moneyAwaiting.map((one) => one.id)).not.toContain(id);
   });
@@ -217,7 +287,8 @@ describe("money from the farm's records", () => {
     const [waiting] = await moneyOf(recorded.id);
     expect(waiting).toMatchObject({ amountBdt: 25_000, approval: "awaiting" });
     const owner = await as("owner", "2037-04-01T05:00:00.000Z");
-    await owner.client.money.approve({ id: waiting?.id ?? "" });
+    const id = waiting?.id ?? "";
+    await owner.client.money.approve({ id, amountBdt: 25_000 });
 
     // A note changes nothing the Owner approved.
     await manager.client.milk.correctDispatch({
@@ -238,6 +309,22 @@ describe("money from the farm's records", () => {
       amountBdt: 26_000,
       approval: "awaiting",
     });
+    // The Owner is told about the new amount, and only the new amount.
+    expect(
+      await owner.client.alerts.mine({ entityId: `${id}:26000.00` })
+    ).toEqual([expect.objectContaining({ kind: "money_awaiting_approval" })]);
+
+    // Under the threshold again, it waits for nobody and the notice comes down.
+    await manager.client.milk.correctDispatch({
+      id: recorded.id,
+      litres: 300,
+      reason: "দুটো গাড়ির দুধ এক সাথে লেখা হয়েছিল",
+    });
+    const [under] = await moneyOf(recorded.id);
+    expect(under).toMatchObject({ amountBdt: 15_000, approval: "not_needed" });
+    expect(
+      await owner.client.alerts.mine({ entityId: `${id}:26000.00` })
+    ).toEqual([]);
   });
 
   it("books medicine bought for the Drug List, with the doses it holds", async () => {
@@ -316,7 +403,7 @@ describe("money from the farm's records", () => {
     ).rejects.toMatchObject({ data: { refusal: "visited_in_the_future" } });
   });
 
-  it("shows Barn Staff no money anywhere, and leaves the threshold to the Owner", async () => {
+  it("shows Barn Staff no money anywhere", async () => {
     const staff = await as("staff", "2037-07-01T04:00:00.000Z");
     await expect(staff.client.money.list(YEAR)).rejects.toMatchObject({
       code: "FORBIDDEN",
@@ -328,21 +415,16 @@ describe("money from the farm's records", () => {
       staff.client.drugs.purchases({ drugProductId: "x" })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
+    // Nor the Approval Threshold, which is a money figure: not Barn Staff's, and not the Vet's.
+    const farmToStaff = await staff.client.farm.current();
+    expect(farmToStaff).not.toHaveProperty("approvalThresholdBdt");
+    const vet = await as("vet", "2037-07-01T04:00:00.000Z");
+    expect(await vet.client.farm.current()).not.toHaveProperty(
+      "approvalThresholdBdt"
+    );
     const manager = await as("manager", "2037-07-01T04:00:00.000Z");
-    await expect(
-      manager.client.farm.setParameters({ approvalThresholdBdt: 1_000_000 })
-    ).rejects.toMatchObject({ data: { refusal: "owner_only" } });
-
-    const owner = await as("owner", "2037-07-01T04:00:00.000Z");
-    await owner.client.farm.setParameters({ approvalThresholdBdt: 30_000 });
-    try {
-      const farm = await scratchDb().query.farm.findFirst({
-        columns: { approvalThresholdBdt: true },
-      });
-      expect(farm?.approvalThresholdBdt).toBe(30_000);
-    } finally {
-      // The Farm is the whole run's: put the threshold back for every file after this one.
-      await owner.client.farm.setParameters({ approvalThresholdBdt: 20_000 });
-    }
+    expect(await manager.client.farm.current()).toHaveProperty(
+      "approvalThresholdBdt"
+    );
   });
 });

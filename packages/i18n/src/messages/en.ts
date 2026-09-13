@@ -381,7 +381,6 @@ export const en = {
   "money.approve": "Approve",
   "money.awaiting": "awaiting approval",
   "money.approvedBy": "approved by {name}",
-  "money.totals": "In ৳{in} · out ৳{out}",
   "money.none": "No money recorded in this period",
   "money.from.dispatch": "Dispatch",
   "money.from.intake": "Intake",
@@ -414,6 +413,9 @@ export const en = {
     "Medicine cannot be bought on a day that has not come yet",
   "refusal.drugRetired":
     "That product is retired; the Vet brings it back before more is bought",
+  "money.more": "More in this period than one screen shows; narrow the dates",
+  "refusal.amountChanged":
+    "The amount was corrected since you read it; read it again",
   "refusal.periodBackwards": "A period ends after it begins",
   "refusal.farmIdentityIncomplete":
     "The farm's registration number is not recorded; write it in the farm details first",
@@ -500,7 +502,7 @@ export const en = {
   "alerts.withdrawalChanged": "{tag} — her withdrawal has changed",
   "digest.withdrawalChanged": "{count} withdrawals changed",
   "digest.lowStock": "{count} feeds running low",
-  "digest.moneyAwaiting": "{count} money entries awaiting your approval",
+  "digest.moneyAwaiting": "{count} Money Events awaiting your approval",
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
   "push.withdrawalChangedTitle": "A withdrawal has changed",

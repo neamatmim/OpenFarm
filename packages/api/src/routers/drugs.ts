@@ -16,6 +16,7 @@ import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import {
   forbidden,
@@ -23,7 +24,6 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
-import { amountInput, paymentMethodInput } from "./money";
 
 const name = z.object({
   bn: z.string().trim().min(1).max(120),
