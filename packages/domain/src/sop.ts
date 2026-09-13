@@ -1,8 +1,9 @@
 import type { CalvingLead } from "./breeding";
 import {
-  BIRTH_OUTCOMES,
+  CALF_OUTCOMES,
   CALF_SEXES,
   CALVING_EASES,
+  CALVING_RECORDERS,
   HEAT,
   PREGNANCY_CHECK_RESULTS,
   SERVICE,
@@ -401,13 +402,15 @@ const pregnancyCheckProcedureProblems = (content: SopContent): string[] => {
 };
 
 /** Where each fact sits in a Calving Step's Evidence, read by the same positions it is validated
- *  by. Two calves, because twins are one calving; a second calf's slots are left empty for one. */
+ *  by. Room for three calves, because twins — and, rarely, triplets — are one calving; the slots of a
+ *  calf not born are left empty. */
 export const CALVING_EVIDENCE = {
   calvedAt: 0,
   ease: 1,
   calves: [
     { sex: 2, outcome: 3 },
     { sex: 4, outcome: 5 },
+    { sex: 6, outcome: 7 },
   ],
 } as const;
 
@@ -426,9 +429,9 @@ const offersExactly = (
 
 /**
  * What a Calving Step has to ask, in order: when she calved, as a required date and time; how it
- * went, offering `unassisted`, `assisted` and `vet`; and for a first calf and an optional second its
- * sex (`female`, `male`) and whether it was born `alive` or `stillborn`. The first calf is required —
- * a calving with no calf is an abortion, recorded as one — and the second is not.
+ * went, offering `unassisted`, `assisted` and `vet`; and for a first calf and up to two more its sex
+ * (`female`, `male`) and whether it was `alive` or `stillborn`. The first calf is required — a calving
+ * with no calf is an abortion, recorded as one — and the others are not.
  */
 const calvingStepProblems = (step: Step, path: string): string[] => {
   const problems: string[] = [];
@@ -454,12 +457,12 @@ const calvingStepProblems = (step: Step, path: string): string[] => {
     if (
       !(
         offersExactly(sex, CALF_SEXES) &&
-        offersExactly(outcome, BIRTH_OUTCOMES) &&
+        offersExactly(outcome, CALF_OUTCOMES) &&
         requiredAsItShouldBe
       )
     ) {
       problems.push(
-        `${path}.evidence[${slots.sex}]: a calving step asks each calf's sex ("female", "male") and whether it was born "alive" or "stillborn" — the first calf required, a second not`
+        `${path}.evidence[${slots.sex}]: a calving step asks each calf's sex ("female", "male") and whether it was born "alive" or "stillborn" — the first calf required, the others not`
       );
     }
   }
@@ -783,7 +786,7 @@ export const findStructuralProblems = (content: SopContent): string[] => {
   // records the Pregnancy Check and the Abortion, not the birth.
   if (
     content.steps.some((step) => step.effect?.kind === "calving") &&
-    !["staff", "manager"].includes(content.assignedRole)
+    !(CALVING_RECORDERS as readonly string[]).includes(content.assignedRole)
   ) {
     problems.push(
       "assignedRole: a procedure that records a calving is Barn Staff's or the Manager's"

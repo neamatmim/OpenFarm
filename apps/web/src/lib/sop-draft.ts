@@ -98,38 +98,47 @@ const SERVICE_STEP_EVIDENCE: Evidence[] = [
   { type: "datetime", required: true },
 ];
 
-/** The six things a Calving Step asks, in the order the record reads them (CALVING_EVIDENCE): when,
- *  how it went, and a first calf and an optional second — its sex and whether it was born alive. */
-const choiceOf = (
-  values: [string, string, string][],
-  required: boolean
-): Evidence => ({
+/** A choice the Step offers: the fixed word the record reads, and the farm's words for it. */
+interface Offered {
+  value: string;
+  bn: string;
+  en: string;
+}
+
+const choiceOf = (values: Offered[], required: boolean): Evidence => ({
   type: "choice",
   required,
-  choices: values.map(([value, bn, en]) => ({ value, label: { bn, en } })),
+  choices: values.map(({ value, bn, en }) => ({ value, label: { bn, en } })),
 });
-const CALF_SEX: [string, string, string][] = [
-  ["female", "বকনা", "Heifer calf"],
-  ["male", "এঁড়ে", "Bull calf"],
+
+const CALF_SEX: Offered[] = [
+  { value: "female", bn: "বকনা", en: "Heifer calf" },
+  { value: "male", bn: "এঁড়ে", en: "Bull calf" },
 ];
-const BORN: [string, string, string][] = [
-  ["alive", "জীবিত", "Alive"],
-  ["stillborn", "মৃত", "Stillborn"],
+
+const CALF_OUTCOME: Offered[] = [
+  { value: "alive", bn: "জীবিত", en: "Alive" },
+  { value: "stillborn", bn: "মৃত", en: "Stillborn" },
 ];
+
+/** The things a Calving Step asks, in the order the record reads them (CALVING_EVIDENCE): when, how
+ *  it went, and a first calf and up to two more — each one's sex and whether it was alive. */
 const CALVING_STEP_EVIDENCE: Evidence[] = [
   { type: "datetime", required: true },
   choiceOf(
     [
-      ["unassisted", "নিজে নিজে", "Unassisted"],
-      ["assisted", "সাহায্য লেগেছে", "Assisted"],
-      ["vet", "ভেট লেগেছে", "With the vet"],
+      { value: "unassisted", bn: "নিজে নিজে", en: "Unassisted" },
+      { value: "assisted", bn: "সাহায্য লেগেছে", en: "Assisted" },
+      { value: "vet", bn: "ভেট লেগেছে", en: "With the vet" },
     ],
     true
   ),
   choiceOf(CALF_SEX, true),
-  choiceOf(BORN, true),
+  choiceOf(CALF_OUTCOME, true),
   choiceOf(CALF_SEX, false),
-  choiceOf(BORN, false),
+  choiceOf(CALF_OUTCOME, false),
+  choiceOf(CALF_SEX, false),
+  choiceOf(CALF_OUTCOME, false),
 ];
 
 /** What a Pregnancy Check Step asks first: what the Vet found. The labels are the farm's words; the

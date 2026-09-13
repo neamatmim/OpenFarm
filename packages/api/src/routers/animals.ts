@@ -564,10 +564,10 @@ export const animalsRouter = {
             },
           },
           retags: { orderBy: { retaggedAt: "desc", id: "desc" }, limit: 20 },
-          /** Her mother, for a calf born here: a calf's page names who she came from. */
+          // Her mother, for a calf born here: a calf's page names who she came from.
           dam: { columns: { tagNumber: true } },
-          /** Every time she has calved, newest first, with what was born — a stillborn calf
-           *  included, because a calving history with a gap in it is not one. */
+          // Every time she has calved, newest first, with what was born — a stillborn calf
+          // included, because a calving history with a gap in it is not one.
           calvings: {
             orderBy: { calvedAt: "desc", id: "desc" },
             limit: CALVINGS_SHOWN,
@@ -579,8 +579,13 @@ export const animalsRouter = {
             },
             with: {
               calves: {
-                columns: { tagNumber: true, sex: true, state: true },
-                orderBy: { id: "asc" },
+                columns: {
+                  tagNumber: true,
+                  sex: true,
+                  state: true,
+                  calfOutcome: true,
+                },
+                orderBy: { calfPosition: "asc", id: "asc" },
               },
             },
           },

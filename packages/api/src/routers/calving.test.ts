@@ -38,6 +38,8 @@ const calvingRoundSop = (): SopContent => ({
         choice(["alive", "stillborn"], true),
         choice(["female", "male"], false),
         choice(["alive", "stillborn"], false),
+        choice(["female", "male"], false),
+        choice(["alive", "stillborn"], false),
       ],
       skipReasons: [{ bn: "এখনো বাচ্চা দেয়নি" }],
       effect: { kind: "calving" },
@@ -237,6 +239,24 @@ describe("the calving", () => {
       ["male", "calf"],
       ["female", "calf"],
     ]);
+
+    // The bull calf dies a week later. He was born alive, and his mother's calving still says so.
+    const [bullCalf] = dam.calvings[0]?.calves ?? [];
+    const weekOn = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock("2032-03-21T04:00:00.000Z"),
+    });
+    await weekOn.client.animals.recordMortality({
+      tagNumber: bullCalf?.tagNumber ?? "",
+      kind: "died",
+      cause: "ডায়রিয়া",
+      disposal: "buried",
+    });
+    const after = await weekOn.client.animals.byTag({ tagNumber: world.twins });
+    expect(after.calvings[0]?.calves.map((calf) => calf.calfOutcome)).toEqual([
+      "alive",
+      "alive",
+    ]);
   });
 
   it("creates a stillborn calf and lets it go as Died in the same act", async () => {
@@ -286,7 +306,7 @@ describe("the calving", () => {
       })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      data: { refusal: "calving_not_yours" },
+      data: { refusal: "staff_or_manager_only" },
     });
 
     // An open heifer walks the round with the rest, and nothing she does is a calving.

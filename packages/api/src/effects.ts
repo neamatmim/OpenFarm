@@ -17,10 +17,11 @@ import type {
   Step,
 } from "@OpenFarm/domain";
 import {
-  BIRTH_OUTCOMES,
+  CALF_OUTCOMES,
   CALF_SEXES,
   CALVING_EASES,
   CALVING_EVIDENCE,
+  CALVING_RECORDERS,
   HEAT,
   KG_DECIMALS,
   SERVICE_EVIDENCE,
@@ -170,6 +171,28 @@ const noteIn = (step: Step, evidence: unknown[]): string | null => {
   return written === "" ? null : written;
 };
 
+/** What was chosen at one position, as the Version declares it there — or null when nothing was.
+ *  A value the Version never offered at that position is refused, not ignored. */
+const declaredChoiceAt = (
+  step: Step,
+  evidence: unknown[],
+  position: number
+): Choice | null => {
+  const value = evidence[position];
+  if (typeof value !== "string" || value === "") {
+    return null;
+  }
+  const declared = step.evidence[position]?.choices?.find(
+    (choice) => choice.value === value
+  );
+  if (!declared) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That is not one of the things this step offers",
+    });
+  }
+  return declared;
+};
+
 /**
  * What the person chose, as the Version declares it — the value, and the Bangla they were
  * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
@@ -181,19 +204,11 @@ const choiceIn = (
   nothingChosen: string
 ): Choice => {
   const index = step.evidence.findIndex((item) => item.type === "choice");
-  const value = index === -1 ? undefined : evidence[index];
-  if (typeof value !== "string" || value === "") {
+  const chosen = index === -1 ? null : declaredChoiceAt(step, evidence, index);
+  if (!chosen) {
     throw new ORPCError("BAD_REQUEST", { message: nothingChosen });
   }
-  const declared = step.evidence[index]?.choices?.find(
-    (choice) => choice.value === value
-  );
-  if (!declared) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That is not one of the things this step offers",
-    });
-  }
-  return declared;
+  return chosen;
 };
 
 export interface EffectInput {
@@ -1199,7 +1214,7 @@ const applyDryOffEffect = async (
 };
 
 /**
- * What was chosen at one position of the Evidence, checked against what the Version offered there —
+ * What was chosen at one position of the Evidence, as one of the fixed words the record reads back —
  * or null when that slot was left empty.
  */
 const choiceAt = <Value extends string>(
@@ -1208,19 +1223,13 @@ const choiceAt = <Value extends string>(
   position: number,
   allowed: readonly Value[]
 ): Value | null => {
-  const value = evidence[position];
-  if (typeof value !== "string" || value === "") {
-    return null;
-  }
-  const offered = step.evidence[position]?.choices?.some(
-    (choice) => choice.value === value
-  );
-  if (!(offered && (allowed as readonly string[]).includes(value))) {
+  const value = declaredChoiceAt(step, evidence, position)?.value ?? null;
+  if (value !== null && !(allowed as readonly string[]).includes(value)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "That is not one of the things this step offers",
     });
   }
-  return value as Value;
+  return value as Value | null;
 };
 
 /** The calving a Step's Evidence describes, read by the positions the Step was validated by. */
@@ -1255,7 +1264,7 @@ const calvingIn = (input: EffectInput) => {
       input.step,
       input.evidence,
       slots.outcome,
-      BIRTH_OUTCOMES
+      CALF_OUTCOMES
     );
     // A calf is its sex and whether it lived, both or neither: half a calf is not one to create.
     if (Boolean(sex) !== Boolean(outcome)) {
@@ -1285,10 +1294,10 @@ const applyCalvingEffect = async (
   tx: Tx,
   input: EffectInput
 ): Promise<EffectResult> => {
-  if (!(input.roles.includes("staff") || input.roles.includes("manager"))) {
+  if (!CALVING_RECORDERS.some((role) => input.roles.includes(role))) {
     throw forbidden({
       message: "A calving is recorded by Barn Staff or the Manager",
-      reason: "calving_not_yours",
+      reason: "staff_or_manager_only",
     });
   }
   const damId = input.animalId ?? input.instance.animalId;

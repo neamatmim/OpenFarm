@@ -2,34 +2,29 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
 import { animal } from "@OpenFarm/db/schema/herd";
-import type { BirthOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
-import { MAY_CALVE_FROM } from "@OpenFarm/domain";
+import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
+import { MAY_CALVE_FROM, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
-import { followExpectedCalving } from "./breeding-store";
+import { followExpectedCalving, nothingFollowed } from "./breeding-store";
 import { insertAnimal, recordExit } from "./herd-store";
 
 export interface Calf {
   sex: CalfSex;
-  outcome: BirthOutcome;
+  outcome: CalfOutcome;
 }
 
 /** What a Calving did, for the phone and for the trail. */
 export type CalvingRecorded = {
   calvingId: string;
-  calves: { tagNumber: string; sex: CalfSex; outcome: BirthOutcome }[];
+  calves: { tagNumber: string; sex: CalfSex; outcome: CalfOutcome }[];
   /** Corrected in a way the farm cannot undo from here — a calving taken back, a calf added or taken
-   *  away, a stillborn calf put back among the living. Nothing was changed, and a person is asked. */
+   *  away, a stillborn calf put back among the living, a calf who has since left found stillborn.
+   *  Nothing was changed, and a person is asked. */
   cannotUndo: boolean;
 } & CalvingWorkFollowed;
-
-const NOTHING_FOLLOWED: CalvingWorkFollowed = {
-  workMoved: [],
-  workClosed: [],
-  workReopened: [],
-};
 
 /** One calving as a Step recorded it. */
 export interface CalvingEntry {
@@ -43,6 +38,10 @@ export interface CalvingEntry {
   now: Date;
 }
 
+/** Whether a calf was alive when she was born, as her calving recorded it. */
+const asRecorded = (calf: { calfOutcome: CalfOutcome | null }): CalfOutcome =>
+  calf.calfOutcome ?? "alive";
+
 /** A calving recorded again: what can be put right is, and what cannot changes nothing. */
 const putRight = async (
   tx: Tx,
@@ -50,44 +49,67 @@ const putRight = async (
   standing: {
     id: string;
     damId: string;
+    calvedAt: Date;
     lactationNumber: number;
-    calves: { id: string; tagNumber: string; sex: CalfSex; state: string }[];
+    calves: {
+      id: string;
+      tagNumber: string;
+      sex: CalfSex;
+      state: string;
+      calfOutcome: CalfOutcome | null;
+    }[];
   }
 ): Promise<CalvingRecorded> => {
-  const asItStands: CalvingRecorded = {
-    calvingId: standing.id,
-    calves: standing.calves.map((calf) => ({
-      tagNumber: calf.tagNumber,
-      sex: calf.sex,
-      outcome: calf.state === "died" ? "stillborn" : "alive",
-    })),
-    cannotUndo: true,
-    ...NOTHING_FOLLOWED,
-  };
   const { calved } = entry;
+  // What a correction may not do from here, because the farm has already acted on it: take the
+  // calving back, change how many calves there were, bring a stillborn calf back, or find stillborn
+  // a calf who has since left the farm another way.
   const cannot =
     !calved ||
     calved.calves.length !== standing.calves.length ||
-    standing.calves.some(
-      (calf, index) =>
-        calf.state === "died" && calved.calves[index]?.outcome === "alive"
-    );
+    standing.calves.some((calf, index) => {
+      const now = calved.calves[index];
+      const wasStillborn = asRecorded(calf) === "stillborn";
+      return (
+        (wasStillborn && now?.outcome === "alive") ||
+        (!wasStillborn &&
+          now?.outcome === "stillborn" &&
+          isExitState(calf.state as never))
+      );
+    });
   if (cannot) {
-    return asItStands;
+    return {
+      calvingId: standing.id,
+      calves: standing.calves.map((calf) => ({
+        tagNumber: calf.tagNumber,
+        sex: calf.sex,
+        outcome: asRecorded(calf),
+      })),
+      cannotUndo: true,
+      ...nothingFollowed(),
+    };
   }
   await tx
     .update(calving)
     .set({ calvedAt: calved.at, ease: calved.ease })
     .where(eq(calving.id, standing.id));
-  // Her Lactation is dated from this calving while it is still the one she is in.
+  // Everything the calving dated moves with its hour: her Lactation and the moment she reached
+  // Milking, while this is still the calving she is in milk from.
   const dam = await tx.query.animal.findFirst({
     where: { id: standing.damId },
-    columns: { lactationNumber: true },
+    columns: { lactationNumber: true, state: true, stateChangedAt: true },
   });
   if (dam?.lactationNumber === standing.lactationNumber) {
+    const stillFromThisCalving =
+      dam.state === "milking" &&
+      dam.stateChangedAt.getTime() === standing.calvedAt.getTime();
     await tx
       .update(animal)
-      .set({ lactationStartedAt: calved.at, updatedAt: entry.now })
+      .set({
+        lactationStartedAt: calved.at,
+        ...(stillFromThisCalving ? { stateChangedAt: calved.at } : {}),
+        updatedAt: entry.now,
+      })
       .where(eq(animal.id, standing.damId));
   }
   for (const [index, calf] of standing.calves.entries()) {
@@ -95,12 +117,23 @@ const putRight = async (
     if (!now) {
       continue;
     }
+    const becomesStillborn =
+      now.outcome === "stillborn" && asRecorded(calf) !== "stillborn";
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(animal)
-      .set({ sex: now.sex, birthDate: calved.at, updatedAt: entry.now })
+      .set({
+        sex: now.sex,
+        birthDate: calved.at,
+        calfOutcome: now.outcome,
+        // A stillborn calf left when she was born, so her exit moves with the hour too.
+        ...(asRecorded(calf) === "stillborn"
+          ? { stateChangedAt: calved.at }
+          : {}),
+        updatedAt: entry.now,
+      })
       .where(eq(animal.id, calf.id));
-    if (now.outcome === "stillborn" && calf.state !== "died") {
+    if (becomesStillborn) {
       // oxlint-disable-next-line no-await-in-loop
       await recordExit(
         tx,
@@ -119,10 +152,10 @@ const putRight = async (
     calves: standing.calves.map((calf, index) => ({
       tagNumber: calf.tagNumber,
       sex: calved.calves[index]?.sex ?? calf.sex,
-      outcome: calved.calves[index]?.outcome ?? "alive",
+      outcome: calved.calves[index]?.outcome ?? asRecorded(calf),
     })),
     cannotUndo: false,
-    ...NOTHING_FOLLOWED,
+    ...nothingFollowed(),
   };
 };
 
@@ -148,8 +181,14 @@ export const recordCalving = async (
     where: { completionId: entry.completionId },
     with: {
       calves: {
-        columns: { id: true, tagNumber: true, sex: true, state: true },
-        orderBy: { id: "asc" },
+        columns: {
+          id: true,
+          tagNumber: true,
+          sex: true,
+          state: true,
+          calfOutcome: true,
+        },
+        orderBy: { calfPosition: "asc", id: "asc" },
       },
     },
   });
@@ -225,7 +264,7 @@ export const recordCalving = async (
   );
 
   const born: CalvingRecorded["calves"] = [];
-  for (const calf of calves) {
+  for (const [position, calf] of calves.entries()) {
     const calfId = uuidv7(entry.now);
     // Sequential: each calf takes the next Tag Number, twins in the order they were written.
     // oxlint-disable-next-line no-await-in-loop
@@ -244,7 +283,12 @@ export const recordCalving = async (
       },
       now: entry.now,
       reason: "born",
-      extra: { damId: dam.id, calvingId },
+      extra: {
+        damId: dam.id,
+        calvingId,
+        calfPosition: position + 1,
+        calfOutcome: calf.outcome,
+      },
     });
     if (calf.outcome === "stillborn") {
       // oxlint-disable-next-line no-await-in-loop

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "7092a0dd-f8c8-43f8-b341-4104b8e4782d",
+  "id": "d462ddbd-7799-436d-97da-3088fe7f3521",
   "prevIds": [
     "528e548c-0e4f-472f-93b4-e8b34a0f6369"
   ],
@@ -5044,6 +5044,32 @@
       "generated": null,
       "identity": null,
       "name": "calving_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "animal"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "calf_position",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "animal"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "calf_outcome",
       "entityType": "columns",
       "schema": "public",
       "table": "animal"

@@ -624,7 +624,7 @@ export const en = {
   "calving.ease.unassisted": "Unassisted",
   "calving.ease.assisted": "Assisted",
   "calving.ease.vet": "With the vet",
-  "refusal.calvingNotYours":
+  "refusal.staffOrManagerOnly":
     "A calving is recorded by Barn Staff or the Manager",
   "refusal.calvingOfACowNotInCalf": "She is not a cow who calves",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",

@@ -682,7 +682,11 @@ const HerCalvings = ({
     calvedAt: Date;
     ease: CalvingEase;
     lactationNumber: number;
-    calves: { tagNumber: string; sex: "female" | "male"; state: string }[];
+    calves: {
+      tagNumber: string;
+      sex: "female" | "male";
+      calfOutcome: "alive" | "stillborn" | null;
+    }[];
   }[];
 }) => {
   const { t, language } = useLanguage();
@@ -712,7 +716,7 @@ const HerCalvings = ({
                   </Link>{" "}
                   <span className="text-muted-foreground">
                     {t(`animals.sex.${calf.sex}`)}
-                    {calf.state === "died"
+                    {calf.calfOutcome === "stillborn"
                       ? ` · ${t("calving.stillborn")}`
                       : ""}
                   </span>

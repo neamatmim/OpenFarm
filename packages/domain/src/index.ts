@@ -21,7 +21,7 @@ export {
   stateAfterSideChange,
 } from "./lifecycle";
 export type {
-  BirthOutcome,
+  CalfOutcome,
   CalfSex,
   CalvingEase,
   CalvingLead,
@@ -29,10 +29,11 @@ export type {
   ServiceMethod,
 } from "./breeding";
 export {
-  BIRTH_OUTCOMES,
+  CALF_OUTCOMES,
   CALF_SEXES,
   CALVING_EASES,
   CALVING_LEADS,
+  CALVING_RECORDERS,
   MAY_CALVE_FROM,
   HEAT,
   PREGNANCY_CHECK_RESULTS,

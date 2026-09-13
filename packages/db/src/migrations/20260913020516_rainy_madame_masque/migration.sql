@@ -13,6 +13,8 @@ CREATE TABLE "calving" (
 --> statement-breakpoint
 ALTER TABLE "animal" ADD COLUMN "dam_id" text;--> statement-breakpoint
 ALTER TABLE "animal" ADD COLUMN "calving_id" text;--> statement-breakpoint
+ALTER TABLE "animal" ADD COLUMN "calf_position" integer;--> statement-breakpoint
+ALTER TABLE "animal" ADD COLUMN "calf_outcome" text;--> statement-breakpoint
 CREATE UNIQUE INDEX "calving_completion_uidx" ON "calving" ("completion_id");--> statement-breakpoint
 CREATE INDEX "calving_dam_idx" ON "calving" ("dam_id","calved_at");--> statement-breakpoint
 ALTER TABLE "calving" ADD CONSTRAINT "calving_farm_id_farm_id_fkey" FOREIGN KEY ("farm_id") REFERENCES "farm"("id") ON DELETE CASCADE;--> statement-breakpoint

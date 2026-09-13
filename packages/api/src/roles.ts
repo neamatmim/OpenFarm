@@ -19,7 +19,10 @@ export const pickRoleUsed = (
 /** The reasons a Role gate gives. A word, not a sentence: the screen says it in the
  *  reader's own language, so a new one is a decision taken here and there rather than a
  *  blank line on somebody's phone. */
-export type RefusalReason = "vet_only" | "manager_only" | "calving_not_yours";
+export type RefusalReason =
+  | "vet_only"
+  | "manager_only"
+  | "staff_or_manager_only";
 
 /** Why a Role gate refused, for the gates whose answer a person needs to understand. */
 export interface Refusal {

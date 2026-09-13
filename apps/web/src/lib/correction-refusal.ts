@@ -43,7 +43,7 @@ export const refusalMessage = (
 const WORDED_REFUSALS = {
   calved_in_the_future: "refusal.calvedInTheFuture",
   calving_is_derived: "refusal.calvingIsDerived",
-  calving_not_yours: "refusal.calvingNotYours",
+
   calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
   check_without_a_service: "refusal.checkWithoutAService",
   dry_off_of_a_cow_not_in_milk: "refusal.dryOffOfACowNotInMilk",
@@ -57,6 +57,7 @@ const WORDED_REFUSALS = {
   service_needs_technician: "refusal.serviceNeedsTechnician",
   service_already_checked: "refusal.serviceAlreadyChecked",
   service_of_a_male: "refusal.serviceOfAMale",
+  staff_or_manager_only: "refusal.staffOrManagerOnly",
   vet_only: "refusal.vetOnly",
 } as const satisfies Record<string, MessageKey>;
 

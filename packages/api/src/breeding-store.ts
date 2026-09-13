@@ -47,7 +47,8 @@ export interface CalvingWorkFollowed {
   workReopened: string[];
 }
 
-const nothingFollowed = (): CalvingWorkFollowed => ({
+/** Nothing followed: no calving work moved, closed or came back. */
+export const nothingFollowed = (): CalvingWorkFollowed => ({
   workMoved: [],
   workClosed: [],
   workReopened: [],
