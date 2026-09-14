@@ -16,6 +16,7 @@ import {
   SegmentedControl,
   StatusBadge,
 } from "@/components/page";
+import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -37,6 +38,7 @@ const AnimalsPage = () => {
   const navigate = useNavigate({ from: Route.fullPath });
   const { q = "", side = "" } = Route.useSearch();
   const [shownCount, setShownCount] = useState(PAGE);
+  const me = useQuery(orpc.people.me.queryOptions());
   const animals = useQuery(
     orpc.animals.list.queryOptions({
       input: {
@@ -68,10 +70,14 @@ const AnimalsPage = () => {
         };
       },
     });
+  const runsTheFarm = (me.data?.roles ?? []).some(
+    (role) => role === "owner" || role === "manager"
+  );
 
   return (
     <Page>
       <PageHeader
+        actions={runsTheFarm ? <RegisterAnimal /> : null}
         description={t("animals.subtitle")}
         meta={
           animals.data ? (

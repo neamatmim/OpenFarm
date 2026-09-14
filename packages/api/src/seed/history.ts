@@ -69,7 +69,13 @@ const milking =
       return { evidence: [true] };
     }
     if (step.id === "tank") {
-      const reading = tally.bulkLitres * farm.random.between(0.985, 1.015);
+      // Now and then the tank is read wrong or a bucket goes in uncounted, and the Manager's queue has something in it.
+      const misread = farm.random.chance(0.02);
+      const reading =
+        tally.bulkLitres *
+        (misread
+          ? farm.random.between(1.08, 1.12)
+          : farm.random.between(0.985, 1.015));
       return { evidence: [round1(reading)] };
     }
     const cow = beast ? herd.cows.get(beast.tagNumber) : undefined;

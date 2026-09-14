@@ -27,6 +27,7 @@ import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 const NOTHING_TYPED = {
@@ -471,5 +472,6 @@ const SalePage = () => {
 };
 
 export const Route = createFileRoute("/_auth/sale")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: SalePage,
 });

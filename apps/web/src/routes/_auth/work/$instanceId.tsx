@@ -11,6 +11,7 @@ import { formatDate, formatDayField, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -28,6 +29,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import { AssignWork } from "@/components/assign-work";
 import {
   Notice,
   Page,
@@ -159,6 +161,39 @@ const outOfRangeOf = (
   return null;
 };
 
+/** A Playbook entry's name in the language the page is showing, Bangla where it has no English. */
+const SopName = ({ name }: { name: { bn: string; en?: string } }) => {
+  const { language } = useLanguage();
+  return <span>{language === "en" && name.en ? name.en : name.bn}</span>;
+};
+
+/** The work before it arrives: its outline while loading, and a way back to the day's list when it cannot come. */
+const WorkNotShown = ({ error }: { error: Error | null }) => {
+  const { t } = useLanguage();
+  if (!error) {
+    return (
+      <Page width="narrow">
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </Page>
+    );
+  }
+  const missing = (error as { code?: unknown }).code === "NOT_FOUND";
+  return (
+    <Page width="narrow">
+      <Notice
+        action={
+          <Button render={<Link to="/today" />} variant="outline">
+            {t("nav.today")}
+          </Button>
+        }
+        title={missing ? t("common.notFound") : t("common.loadFailed")}
+        tone="danger"
+      />
+    </Page>
+  );
+};
+
 /** The pen board: chips for the Steps that happen once, the Pen's animals as photo tiles in
  *  any order, and the closing Step only when everything else is done. */
 const WorkPage = () => {
@@ -250,7 +285,7 @@ const WorkPage = () => {
   });
 
   if (!instance.data) {
-    return <p className="p-6">{t("common.loading")}</p>;
+    return <WorkNotShown error={instance.error} />;
   }
 
   const {
@@ -332,7 +367,7 @@ const WorkPage = () => {
           </span>
           <div className="flex flex-col gap-1.5">
             <h1 className="text-2xl leading-tight font-semibold tracking-tight">
-              {content.name.bn}
+              <SopName name={content.name} />
             </h1>
             <p className="text-muted-foreground text-sm">
               {t("work.claimHint")}
@@ -345,6 +380,13 @@ const WorkPage = () => {
             {t("work.claim")}
           </Button>
         </div>
+        <AssignWork
+          className="mx-auto w-full max-w-md"
+          assignedRole={instance.data.assignedRole}
+          assignedTo={instance.data.assignedTo}
+          instanceId={instanceId}
+          state={state}
+        />
       </Page>
     );
   }
@@ -431,7 +473,13 @@ const WorkPage = () => {
 
   return (
     <Page className="max-w-4xl pb-2">
-      <WorkHeader name={content.name.bn} tally={tally} />
+      <WorkHeader name={content.name} tally={tally} />
+      <AssignWork
+        assignedRole={instance.data.assignedRole}
+        assignedTo={instance.data.assignedTo}
+        instanceId={instanceId}
+        state={state}
+      />
 
       {instance.data.report ? (
         <TheLetter report={instance.data.report} />
@@ -597,7 +645,7 @@ const WorkHeader = ({
   name,
   tally,
 }: {
-  name: string;
+  name: { bn: string; en?: string };
   tally: { done: number; skipped: number; left: number } | null;
 }) => {
   const { t, language } = useLanguage();
@@ -614,7 +662,9 @@ const WorkHeader = ({
         <ChevronLeft aria-hidden className="size-4" />
         {t("nav.today")}
       </Link>
-      <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
+      <h1 className="text-2xl font-semibold md:text-3xl">
+        <SopName name={name} />
+      </h1>
       {tally && total > 0 ? (
         <div className="flex flex-col gap-2">
           <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">

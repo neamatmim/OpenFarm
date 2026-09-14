@@ -15,6 +15,7 @@ import {
   CorrectionDialog,
   CorrectionField,
 } from "@/components/correction-dialog";
+import { MilkMismatches } from "@/components/milk-mismatches";
 import {
   EmptyState,
   Loaded,
@@ -30,6 +31,7 @@ import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { onlyFor } from "@/lib/guard";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -248,6 +250,8 @@ const MilkPage = () => {
         />
       </div>
 
+      <MilkMismatches />
+
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <Section title={t("dispatch.thatDay")}>
           <Loaded query={today}>
@@ -392,5 +396,6 @@ const MilkPage = () => {
 };
 
 export const Route = createFileRoute("/_auth/milk")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: MilkPage,
 });

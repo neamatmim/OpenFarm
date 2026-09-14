@@ -7,6 +7,7 @@ import { useState } from "react";
 import { EmptyState, Page, PageHeader } from "@/components/page";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 const WINDOW_DAYS = 7;
@@ -72,5 +73,6 @@ const ObservationsPage = () => {
 };
 
 export const Route = createFileRoute("/_auth/observations")({
+  beforeLoad: onlyFor("vetOrRunsTheFarm"),
   component: ObservationsPage,
 });

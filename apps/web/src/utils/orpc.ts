@@ -1,6 +1,8 @@
 import { createContext } from "@OpenFarm/api/context";
 import { DEVICE_TOKEN_HEADER, SWITCH_TOKEN_HEADER } from "@OpenFarm/api/device";
 import { appRouter } from "@OpenFarm/api/routers/index";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { DEFAULT_LANGUAGE, isLanguage, translate } from "@OpenFarm/i18n";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createRouterClient } from "@orpc/server";
@@ -13,17 +15,42 @@ import { toast } from "sonner";
 
 import { getDeviceToken, getSwitchToken } from "@/lib/device";
 
+/** What a failed read says, in the language the page is showing: a code the person can act on, never the server's
+ *  English. A read their Role may not make is not worth retrying. */
+const sayFailure = (error: Error): { key: MessageKey; retry: boolean } => {
+  const { code } = error as { code?: unknown };
+  if (code === "FORBIDDEN") {
+    return { key: "common.forbidden", retry: false };
+  }
+  if (code === "UNAUTHORIZED") {
+    return { key: "common.signedOut", retry: false };
+  }
+  return { key: "common.loadFailed", retry: true };
+};
+
+const pageLanguage = () => {
+  const lang =
+    typeof document === "undefined" ? null : document.documentElement.lang;
+  return isLanguage(lang) ? lang : DEFAULT_LANGUAGE;
+};
+
 export const createQueryClient = () =>
   new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
-        toast.error(`Error: ${error.message}`, {
-          action: {
-            label: "retry",
-            onClick: () => {
-              query.invalidate();
-            },
-          },
+        const language = pageLanguage();
+        const { key, retry } = sayFailure(error);
+        toast.error(translate(language, key), {
+          // One toast per kind of failure, not one per query that met it.
+          id: key,
+          action: retry
+            ? {
+                label: translate(language, "common.retry"),
+                onClick: () => {
+                  query.invalidate();
+                },
+              }
+            : undefined,
         });
       },
     }),

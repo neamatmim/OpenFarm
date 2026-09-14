@@ -11,7 +11,47 @@ import { Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
-const ENTITIES = ["user", "invite", "farm"] as const;
+const ENTITIES = [
+  "user",
+  "invite",
+  "farm",
+  "sop_instance",
+  "animal",
+  "step_completion",
+  "report",
+  "money_event",
+  "sale",
+  "mortality",
+  "sync_entry",
+  "sync_batch",
+  "sop_proposal",
+  "shed_phone",
+  "feed_item",
+  "diagnosis",
+  "alert",
+  "sop",
+  "sop_version",
+  "push_subscription",
+  "pen",
+  "shed",
+  "money_category",
+  "drug_product",
+  "dispatch",
+  "sop_training",
+  "registration_certificate",
+  "notifiable_disease",
+  "feed_in",
+  "dls_report",
+  "abortion",
+  "withdrawal",
+  "weigh_in",
+  "vet_fee",
+  "ration",
+  "prescription",
+  "medicine_purchase",
+  "repeat_breeder_answer",
+  "ready_set_aside",
+] as const;
 type KnownEntity = (typeof ENTITIES)[number];
 const PAGE_SIZE = 100;
 

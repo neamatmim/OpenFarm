@@ -32,6 +32,7 @@ import {
 import type { Tone } from "@/components/page";
 import { RepeatBreeder } from "@/components/repeat-breeder";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -472,5 +473,6 @@ const PenProgress = ({
 };
 
 export const Route = createFileRoute("/_auth/home")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: ManagerHome,
 });

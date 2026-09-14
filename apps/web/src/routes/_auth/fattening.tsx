@@ -29,6 +29,7 @@ import {
   TagChip,
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 /** Short of the target first, then the ones with no rate to judge, then the rest: a screen that
@@ -311,5 +312,6 @@ const FatteningPage = () => {
 };
 
 export const Route = createFileRoute("/_auth/fattening")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: FatteningPage,
 });

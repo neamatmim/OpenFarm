@@ -32,7 +32,7 @@ import {
 export type Role = "owner" | "manager" | "staff" | "vet";
 
 /** Who a destination is for. */
-type Audience =
+export type Audience =
   | "anyone"
   | "owner"
   | "runsTheFarm"
@@ -225,7 +225,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 /** Whether a destination is for somebody holding these Roles. */
-const isFor = (audience: Audience, roles: readonly Role[]): boolean => {
+export const isFor = (audience: Audience, roles: readonly Role[]): boolean => {
   const runsTheFarm = roles.includes("owner") || roles.includes("manager");
   const isVet = roles.includes("vet");
   switch (audience) {

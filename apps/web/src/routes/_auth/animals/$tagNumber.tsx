@@ -17,9 +17,18 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Beef, ChevronLeft, Lock, MapPin, Milk, SearchX } from "lucide-react";
+import {
+  Beef,
+  Camera,
+  ChevronLeft,
+  Lock,
+  MapPin,
+  Milk,
+  SearchX,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -39,6 +48,7 @@ import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
+import { queueMove } from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
 
 const PHOTO_MAX_BYTES = 1_500_000;
@@ -114,6 +124,21 @@ const AnimalHeader = ({ detail }: { detail: AnimalDetail }) => {
   );
 };
 
+/** What somebody holding these Roles may do on her page. */
+const powersOf = (roles: readonly string[] = []) => {
+  const isManager = roles.includes("manager");
+  const runsTheFarm = isManager || roles.includes("owner");
+  return {
+    isVet: roles.includes("vet"),
+    isManager,
+    runsTheFarm,
+    mayHandle: runsTheFarm || roles.includes("staff"),
+    // Barn Staff give the doses and record what they see; what the farm tells the outside world about an animal is
+    // not theirs to hand over, so they are not offered it.
+    seesPapers: roles.some((role) => role !== "staff"),
+  };
+};
+
 const AnimalPage = () => {
   const { tagNumber } = Route.useParams();
   const { t, language } = useLanguage();
@@ -123,10 +148,9 @@ const AnimalPage = () => {
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const me = useQuery(orpc.people.me.queryOptions());
-  const isVet = me.data?.roles.includes("vet") ?? false;
-  const isManager = me.data?.roles.includes("manager") ?? false;
-  const runsTheFarm = isManager || (me.data?.roles.includes("owner") ?? false);
-  const mayHandle = runsTheFarm || (me.data?.roles.includes("staff") ?? false);
+  const { isVet, isManager, runsTheFarm, mayHandle, seesPapers } = powersOf(
+    me.data?.roles
+  );
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
@@ -198,21 +222,13 @@ const AnimalPage = () => {
 
       <WhatSheCost tagNumber={detail.tagNumber} />
 
-      {/* Barn Staff give the doses and record what they see; what the farm tells the outside
-          world about an animal is not theirs to hand over, so they are not offered it. */}
-      {me.data?.roles.some((role) => role !== "staff") ? (
-        <HerPapers tagNumber={detail.tagNumber} />
-      ) : null}
+      {seesPapers ? <HerPapers tagNumber={detail.tagNumber} /> : null}
 
       <TheScale readings={detail.weighIns} />
 
       <HowSheWent
         detail={detail}
-        mayRecord={
-          me.data?.roles.some(
-            (role) => role === "owner" || role === "manager"
-          ) ?? false
-        }
+        mayRecord={runsTheFarm}
         onRecorded={refresh}
       />
 
@@ -653,6 +669,7 @@ const ManageHer = ({
     orpc.animals.move.mutationOptions({
       onSuccess: () => {
         toast.success(t("animals.moved"));
+        setToPenId("");
         refresh();
       },
       onError,
@@ -687,26 +704,34 @@ const ManageHer = ({
     })
   );
 
-
   if (!(mayHandle || isVet)) {
     return null;
   }
   return (
-      <Section
-      description={t("animals.manageHint")}
-      title={t("animals.manage")}
-    >
+    <Section description={t("animals.manageHint")} title={t("animals.manage")}>
       {/* What each Role may do to her, and nothing it may not: offering a control the farm will refuse is a
           dead end in the barn. */}
       {mayHandle ? (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="photo">{t("animals.photoTake")}</Label>
+          {/* The phone's own file picker speaks the phone's language, not the farm's: the words are on the button,
+              and the picker behind it only opens the camera. */}
+          <label
+            className="border-input bg-card hover:bg-muted focus-within:ring-ring/50 inline-flex h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-4 text-sm font-medium focus-within:ring-[3px] md:h-9"
+            htmlFor="photo"
+          >
+            {setPhoto.isPending ? (
+              <Spinner />
+            ) : (
+              <Camera aria-hidden className="size-4" />
+            )}
+            {t("animals.photoTake")}
+          </label>
           <input
             id="photo"
             type="file"
             accept="image/*"
             capture="environment"
-            className="text-sm"
+            className="sr-only"
             onChange={async (event) => {
               const file = event.target.files?.[0];
               if (!file) {
@@ -733,13 +758,25 @@ const ManageHer = ({
           {runsTheFarm ? (
             <form
               className="flex flex-col gap-2 rounded-lg border p-4"
-              onSubmit={(event) => {
+              onSubmit={async (event) => {
                 event.preventDefault();
-                move.mutate({
+                const wanted = {
                   tagNumber: detail.tagNumber,
                   toPenId,
                   reason: reason || undefined,
-                });
+                };
+                // With signal the farm answers now; without it the move waits on the phone rather than being lost.
+                if (navigator.onLine) {
+                  move.mutate(wanted);
+                  return;
+                }
+                try {
+                  await queueMove(wanted);
+                  toast.success(t("animals.moveQueued"));
+                  setToPenId("");
+                } catch (error) {
+                  onError(error as Error);
+                }
               }}
             >
               <Label htmlFor="pen">{t("animals.moveTo")}</Label>
@@ -757,7 +794,12 @@ const ManageHer = ({
                   </option>
                 ))}
               </select>
-              <Button type="submit" variant="outline" disabled={!toPenId}>
+              <Button
+                disabled={!toPenId || move.isPending}
+                type="submit"
+                variant="outline"
+              >
+                {move.isPending ? <Spinner /> : null}
                 {t("animals.move")}
               </Button>
             </form>

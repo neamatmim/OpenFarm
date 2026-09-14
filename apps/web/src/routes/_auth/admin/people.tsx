@@ -23,6 +23,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  CorrectionDialog,
+  CorrectionField,
+} from "@/components/correction-dialog";
+import {
   EmptyState,
   Loaded,
   Notice,
@@ -290,6 +294,32 @@ const RoleChoice = ({
   );
 };
 
+/** The Owner putting a person's name right — a misspelling at sign-up, a name the farm knows them by. The old name stays
+ *  in the trail beside the reason. */
+const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const [value, setValue] = useState(name);
+  const correct = useMutation(orpc.people.correctName.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({ userId, name: value.trim(), reason });
+        await queryClient.invalidateQueries({ queryKey: orpc.people.key() });
+      }}
+      ready={value.trim() !== "" && value.trim() !== name}
+      title={t("people.correctName")}
+      trigger={t("people.correctName")}
+    >
+      <CorrectionField
+        label={t("people.name")}
+        onChange={setValue}
+        value={value}
+      />
+    </CorrectionDialog>
+  );
+};
+
 const toggled = (roles: RoleName[], role: RoleName) =>
   roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role];
 
@@ -346,13 +376,18 @@ const PersonRow = ({
             {person.email}
           </p>
         </div>
-        {disabled ? (
-          <StatusBadge icon={UserX} tone="danger">
-            {t("people.disabled")}
-          </StatusBadge>
-        ) : (
-          <StatusBadge tone="success">{t("people.active")}</StatusBadge>
-        )}
+        <div className="flex items-center gap-1">
+          {isOwner ? (
+            <CorrectName name={person.name} userId={person.id} />
+          ) : null}
+          {disabled ? (
+            <StatusBadge icon={UserX} tone="danger">
+              {t("people.disabled")}
+            </StatusBadge>
+          ) : (
+            <StatusBadge tone="success">{t("people.active")}</StatusBadge>
+          )}
+        </div>
       </div>
       <TrainedOn userId={person.id} />
       {disabled ? null : (

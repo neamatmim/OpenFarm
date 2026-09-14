@@ -19,6 +19,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 /** The Registration's renewal on the Owner's list: to the renewal work when it has been raised, and to the farm
@@ -484,5 +485,6 @@ const Bars = ({ days }: { days: { day: string; litres: number }[] }) => {
 };
 
 export const Route = createFileRoute("/_auth/farm")({
+  beforeLoad: onlyFor("owner"),
   component: OwnerHome,
 });

@@ -59,6 +59,12 @@ const DrugsPage = () => {
       onError: (error) => toast.error(error.message),
     })
   );
+  const bringBack = useMutation(
+    orpc.drugs.bringBack.mutationOptions({
+      onSuccess: refresh,
+      onError: (error) => toast.error(error.message),
+    })
+  );
 
   return (
     <Page width="narrow" className="max-w-3xl">
@@ -72,6 +78,7 @@ const DrugsPage = () => {
                 isVet={isVet}
                 key={product.id}
                 onChanged={refresh}
+                onBringBack={() => bringBack.mutate({ id: product.id })}
                 onRetire={() => retire.mutate({ id: product.id })}
                 product={product}
               />
@@ -261,6 +268,7 @@ const Product = ({
   isVet,
   onChanged,
   onRetire,
+  onBringBack,
 }: {
   product: {
     id: string;
@@ -278,6 +286,7 @@ const Product = ({
   isVet: boolean;
   onChanged: () => void;
   onRetire: () => void;
+  onBringBack: () => void;
 }) => {
   const t = useT();
   const { language } = useLanguage();
@@ -314,11 +323,16 @@ const Product = ({
           {product.vaccine ? ` · ${t("drugs.vaccine")}` : ""}
           {product.retiredAt ? ` · ${t("drugs.retired")}` : ""}
         </span>
-        {product.retiredAt ? null : (
-          <Button onClick={onRetire} size="sm" type="button" variant="ghost">
-            {t("drugs.retire")}
+        {isVet ? (
+          <Button
+            onClick={product.retiredAt ? onBringBack : onRetire}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {product.retiredAt ? t("drugs.bringBack") : t("drugs.retire")}
           </Button>
-        )}
+        ) : null}
       </div>
 
       {product.milkWithdrawalDays === null ||

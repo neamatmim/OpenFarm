@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Certificate } from "@/components/certificate";
+import { FarmParameters } from "@/components/farm-parameters";
 import { Page, PageHeader } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -191,6 +192,8 @@ const IdentityPage = () => {
       </form>
 
       <Certificate updatedAt={farm.certificateUpdatedAt} />
+
+      <FarmParameters />
     </Page>
   );
 };
