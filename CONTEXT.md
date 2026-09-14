@@ -54,7 +54,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Step**: One ordered item inside an SOP. May repeat per animal in the Instance's group. Requires Evidence; may write a farm record or change an animal's state. _Avoid_: Checkpoint, action
 
-**Step Completion**: The recorded act of doing one Step (once per animal if the Step repeats): who, when, and the Evidence. _Avoid_: Tick, entry, log
+**Step Completion**: The recorded act of doing one Step (once per animal if the Step repeats): who, when, and the Evidence. _Avoid_: Tick, log, entry (the general word — a Step Completion is one kind of **Entry**)
 
 **Evidence**: What a Step requires to count as done: a tick, a number with unit, a choice from a list, a photo, or a note. Required or optional per Step. _Avoid_: Proof, data, field
 
@@ -223,6 +223,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Visiting Scope**: A Vet account limited to animals with an open case they are on, granted per visit and time-limited. _Avoid_: Guest access, temporary account
 
 ## Offline
+
+**Entry**: One thing a person recorded that the farm takes the same way however it arrives — at once, or held in an Outbox and sent in a Batch: a claim, a Step Completion, a Step photo, a finish, a Move, an Observation. Recorded under the Role it was done in and dated when it was done, with when the farm received it kept beside; when the world has moved since — the animal has left, someone else took the work — it is kept for a person rather than refused. _Avoid_: Write, mutation, record (a record is what an Entry leaves in the farm's books)
 
 **Batch**: One send from an Outbox: the entries a phone has been holding, with one key for the lot, applied with their Audit Events in a single transaction. _Avoid_: Sync, upload, push
 

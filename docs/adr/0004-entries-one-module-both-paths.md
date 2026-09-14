@@ -1,0 +1,14 @@
+---
+status: accepted
+date: 2026-09-14
+---
+
+# An Entry is one module that both its oRPC procedure and the Batch call; the farm record is dated by when it was done
+
+Barn work reaches the farm two ways: an oRPC procedure called with signal, and the same work held in a phone's Outbox and sent in a Batch (ADR 0002). Each way had grown its own input shape, its own list of Roles, its own Role choice and its own Audit Event, and the copies drifted — an offline Stock Count lost its counts between the two schemas, a Move sent offline was recorded under a different Role and with a different trail row than the same Move online, and an animal sold while the phone was in the shed made a Step late but a Move wrong. We decided that each kind of **Entry** (a claim, a Step Completion, a Step photo, a finish, a Move, an Observation) is one module in `packages/api/src/entries/` owning its input shape, the Roles that may do it, how it applies on a transaction, how it sorts its refusals into late, wrong and not-theirs, and its Audit Event — and that the procedure and the Batch are two thin callers of it, held to the same result by a parity test per kind.
+
+We rejected making every online write a Batch of one entry, though it would leave a single path: online callers would lose typed errors the screen words for the reader, lose what the write decided (a Milk Record forced to Discard, shown at once), and a live write by somebody standing at the animal would be treated as possibly late and kept for review.
+
+We also decided that the farm record an Entry makes is dated by when it was done — the phone's `recordedAt` for an Entry from a Batch, the server's now online — with the time the farm received it kept beside it. ADR 0002's rule that the server never trusts a client timestamp for **audit order** stands: the trail is still ordered by receipt, and a phone whose clock is out is still flagged once per Batch. Dating the record by receipt was rejected because the record's time is read as a fact about the animal: a Move made at 05:00 in a shed and sent at 11:00 would print at 11:00 on the movement log an inspector reads, and charge the 06:00 Feeding of her new Pen to the Pen she had already left. Who wins a claim is still decided by arrival, whatever its timestamp says.
+
+**Consequences**: a new offline-capable Entry is a module, its procedure, its `SYNC_KINDS` member and a parity case, and the client's Outbox entry is typed from the same shape; the Role an Entry is recorded under is chosen per entry against its kind's Roles by the same function online and offline, so a person holding Staff and Vet is Staff on both paths; "the animal has left the farm" is late for every Entry; correcting a Step stays online-only and keeps its Correction policy outside the Entry, which only applies the replacement.

@@ -453,3 +453,35 @@ describe("running low", () => {
     }
   });
 });
+
+describe("a count from a phone's Outbox", () => {
+  // The pen board sends every new Step through the Outbox, signal or none, so this is how a count
+  // actually reaches the farm.
+  it("is taken with its lines, as it is when sent on its own", async () => {
+    const { id, manager } = await countWork("2035-01-20");
+    const counts = await countLines(manager, id, {});
+
+    const sent = await manager.client.sync.batch({
+      key: `stock-count-${suffix}`,
+      entries: [
+        {
+          id: `stock-count-entry-${suffix}`,
+          seq: 1,
+          kind: "step_completion",
+          instanceId: id,
+          stepId: "count",
+          evidence: [true],
+          counts,
+          recordedAt: new Date("2035-01-20T04:10:00.000Z"),
+        },
+      ],
+    });
+
+    expect(sent.results).toMatchObject([{ outcome: "applied" }]);
+    const board = await manager.client.instances.get({ id });
+    expect(
+      board.stockCount?.counted.map((line) => line.feedItemId).toSorted()
+    ).toEqual(counts.map((line) => line.feedItemId).toSorted());
+    await manager.client.instances.complete({ id });
+  });
+});
