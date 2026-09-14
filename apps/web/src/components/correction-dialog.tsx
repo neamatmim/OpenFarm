@@ -1,0 +1,137 @@
+import { Button } from "@OpenFarm/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@OpenFarm/ui/components/dialog";
+import { Input } from "@OpenFarm/ui/components/input";
+import { Label } from "@OpenFarm/ui/components/label";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { PencilLine } from "lucide-react";
+import type { ReactNode } from "react";
+import { useId, useState } from "react";
+import { toast } from "sonner";
+
+import { useT } from "@/i18n/language-provider";
+
+/**
+ * Putting a record right: what to change, and why. The original stays readable in the trail beside the correction,
+ * so the reason is asked for every time — a correction nobody can explain is a record nobody can trust.
+ */
+export const CorrectionDialog = ({
+  title,
+  description,
+  trigger,
+  children,
+  onSave,
+  ready = true,
+}: {
+  title: string;
+  description?: string;
+  /** The button's words; "Correct" by default. */
+  trigger?: string;
+  children: ReactNode;
+  /** Resolves when the farm has taken the correction; the dialog closes then, and stays open on a refusal. */
+  onSave: (reason: string) => Promise<unknown>;
+  ready?: boolean;
+}) => {
+  const t = useT();
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(reason.trim());
+      setSaving(false);
+      toast.success(t("correct.saved"));
+      setReason("");
+      setOpen(false);
+    } catch (error) {
+      setSaving(false);
+      toast.error((error as Error).message || t("common.error"));
+    }
+  };
+
+  return (
+    <Dialog onOpenChange={setOpen} open={open}>
+      <DialogTrigger
+        render={
+          <Button size="sm" variant="ghost">
+            <PencilLine aria-hidden />
+            {trigger ?? t("correct.open")}
+          </Button>
+        }
+      />
+      <DialogContent closeLabel={t("common.close")}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {description ?? t("correct.hint")}
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save();
+          }}
+        >
+          {children}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${id}-why`}>{t("correct.why")}</Label>
+            <Input
+              id={`${id}-why`}
+              maxLength={300}
+              onChange={(event) => setReason(event.target.value)}
+              required
+              value={reason}
+            />
+          </div>
+          <DialogFooter>
+            <Button disabled={saving || !ready || !reason.trim()} type="submit">
+              {saving ? <Spinner /> : null}
+              {t("correct.save")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** A labelled box inside a correction, filled with what the record says now. */
+export const CorrectionField = ({
+  label,
+  value,
+  onChange,
+  type = "text",
+  inputMode,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: "text" | "number" | "date" | "tel";
+  inputMode?: "decimal" | "numeric" | "tel";
+}) => {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        inputMode={inputMode}
+        onChange={(event) => onChange(event.target.value)}
+        step={type === "number" ? "any" : undefined}
+        type={type}
+        value={value}
+      />
+    </div>
+  );
+};

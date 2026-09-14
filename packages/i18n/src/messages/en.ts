@@ -886,6 +886,26 @@ export const en = {
   "signOff.missedWhy": "Why was it not done?",
   "correct.why": "Why is it being changed?",
   "correct.save": "Save correction",
+  "correct.open": "Correct",
+  "correct.saved": "Corrected — the original stays in the trail",
+  "correct.hint":
+    "Change what is wrong. The original stays readable in the audit trail beside this correction.",
+  "correct.sale": "Correct this sale",
+  "correct.dispatch": "Correct this dispatch",
+  "correct.arrival": "Correct this arrival",
+  "correct.intake": "Correct what she cost",
+  "correct.calving": "Correct the expected calving",
+  "correct.side": "Move to the other side",
+  "correct.sideHint":
+    "A bull calf to fattening, or an animal wrongly put on a side. She keeps her Tag Number.",
+  "correct.toSide": "To which side",
+  "correct.toPen": "Into which Pen",
+  "correct.buyer": "Buyer's name",
+  "animals.manage": "Look after her record",
+  "animals.manageHint":
+    "Her photo, where she stands, her State and her tag — each change in the audit trail.",
+  "pregnancy.expectedOn": "Expected to calve on",
+  "correct.seller": "Seller's name",
   "correct.windowOwn":
     "A {role} may put their own entry right for {span} after making it",
   "correct.windowAny":
@@ -960,10 +980,12 @@ export const en = {
   "push.why":
     "Late work and escalations reach you here, even when the app is closed.",
   "backups.title": "Copies of the farm",
-  "backups.subtitle": "Whether the farm's records are being copied off this machine, and whether its own clock is running.",
+  "backups.subtitle":
+    "Whether the farm's records are being copied off this machine, and whether its own clock is running.",
   "schedule.lastRan": "The farm's schedule last ran at {when}",
   "schedule.notYet": "The farm's schedule has not run since the server started",
-  "schedule.what": "Every five minutes the server raises the day's work, tells people about late work and ending withdrawals, and carries the digest.",
+  "schedule.what":
+    "Every five minutes the server raises the day's work, tells people about late work and ending withdrawals, and carries the digest.",
   "backups.lastGood": "Last good copy {when}",
   "backups.never": "No copy has ever worked",
   "backups.stale": "No copy for {nights} nights",
