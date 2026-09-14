@@ -139,6 +139,9 @@ afterAll(async () => {
 
 const tagOf = (index: number) => world.cows[index]?.tagNumber ?? "";
 
+/** How many rounds this file's own phone has sent. */
+let heldSeq = 0;
+
 /** One heat-watch round in this file's Pen, recording what was seen of one cow. `recordedAt` is
  *  the phone's own clock, for a sighting that reaches the farm later than it was made. */
 const watchRound = async (
@@ -164,13 +167,37 @@ const watchRound = async (
   }
   const staff = await createTestClient(appRouter, { as: "staff", clock });
   await staff.client.instances.claim({ id: round.id });
-  await staff.client.instances.completeStep({
+  const step = {
     instanceId: round.id,
     stepId: "look",
     animalTag: tagNumber,
     evidence: [saw],
-    ...(recordedAt ? { recordedAt: new Date(recordedAt) } : {}),
-  });
+  };
+  if (recordedAt) {
+    // Held on a phone until it found signal: only a phone's Outbox can say the round was walked earlier than the farm
+    // heard of it.
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-heat", name: "গরম দেখার শেড ফোন" },
+    });
+    heldSeq += 1;
+    await phone.client.sync.batch({
+      key: `heat-${round.id}`,
+      entries: [
+        {
+          id: `heat-${round.id}`,
+          seq: heldSeq,
+          kind: "step_completion" as const,
+          recordedAt: new Date(recordedAt),
+          ...step,
+        },
+      ],
+    });
+  } else {
+    await staff.client.instances.completeStep(step);
+  }
   return { clock, manager, staff, roundId: round.id };
 };
 

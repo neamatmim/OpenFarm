@@ -1,10 +1,8 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
-import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
   AWAITING_SIGN_OFF,
-  MILK_DESTINATIONS,
-  PHOTO_MAX_BYTES,
   isEscalated,
   isOpen,
   isOverdue,
@@ -21,19 +19,20 @@ import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
-import {
-  applyClaim,
-  applyComplete,
-  applyCompletion,
-  assertEvidenceComplete,
-  stepOf,
-} from "../completion-store";
-import type { Recorded } from "../completion-store";
+import { stepOf } from "../completion-store";
 import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import type { EffectResult } from "../effects";
-import { runStepEffect } from "../effects";
-import { farmDay } from "../farm-clock";
+import { claimEntry } from "../entries/claim";
+import { recordNow } from "../entries/entry";
+import { finishEntry } from "../entries/finish";
+import {
+  readCompletion,
+  replaceStep,
+  stepCompletionEntry,
+  stepCompletionInput,
+} from "../entries/step-completion";
+import { stepPhotoEntry, stepPhotoInput } from "../entries/step-photo";
 import { feedingTargetForPen } from "../feed-store";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -52,7 +51,6 @@ import {
   recentHappenings,
   whatChangedFor,
 } from "../instances-store";
-import { photoInput } from "../photo-input";
 import { pushRaised } from "../push-send";
 import { tellOfRenewals } from "../registration-store";
 import { raiseNeedsReview } from "../review-store";
@@ -65,86 +63,6 @@ const MINUTE_MS = 60_000;
 
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
-
-const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
-
-/** What one Feed Item was actually given, for a Step that feeds a Pen. */
-const feedingLine = z.object({
-  feedItemId: z.string(),
-  givenKg: z.number().min(0),
-  leftoverKg: z.number().min(0).optional(),
-});
-
-/** What one Feed Item was counted at, for a Step that counts the store, and why it differs. */
-const countLine = z.object({
-  feedItemId: z.string(),
-  counted: z.number().min(0).max(10_000_000),
-  reason: z.string().trim().max(200).optional(),
-});
-
-/** The new expiry, when the renewed certificate was issued, and its photograph, for the Step that renews the
- *  Registration. */
-const renewalInput = z.object({
-  expiresOn: farmDay,
-  issuedOn: farmDay.optional(),
-  certificate: photoInput.optional(),
-});
-
-const completionInput = z.object({
-  instanceId: z.string(),
-  stepId: z.string().trim().min(1),
-  animalTag: z.string().trim().optional(),
-  /** One value per Evidence on the Step, in order. */
-  evidence: z.array(evidenceValue).default([]),
-  /** Where the milk went. Only for a Step whose effect writes a Milk Record; the server
-   *  decides the final answer, because a cow under Withdrawal goes to Discard whatever the
-   *  phone worked out from its last sync. */
-  destination: z.enum(MILK_DESTINATIONS).optional(),
-  /** What was actually put in front of the Pen, per Feed Item, for a Step that feeds. The
-   *  Items come from the Pen's Ration rather than from the Version, so they travel beside
-   *  the Evidence rather than as slots in it. */
-  feeding: z.array(feedingLine).optional(),
-  /** What was counted, per Feed Item, for a Step that counts the store. */
-  counts: z.array(countLine).optional(),
-  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
-  renewal: renewalInput.optional(),
-  /** Set when the person was warned a number was outside its range and went ahead. */
-  outOfRange: z.string().trim().max(120).optional(),
-  skipReason: z.string().trim().max(120).optional(),
-  /** One per Evidence slot that asked for a picture. A Step may ask for more than one — the
-   *  udder and the tag, say — and a photo that could not say which it answered would be a
-   *  photo nobody can read back. */
-  photos: z
-    .array(
-      z.object({
-        slot: z.number().int().min(0),
-        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        data: z.string().min(1).max(PHOTO_MAX_BYTES),
-      })
-    )
-    .max(8)
-    .optional(),
-  /** The phone's clock, for work captured offline. */
-  recordedAt: z.coerce.date().optional(),
-});
-
-/** The Completion as the trail records it, so a Correction's before and after are the whole
- *  entry rather than the fields that happened to change. */
-const readCompletion = async (tx: Tx, id: string) => {
-  const row = await tx.query.stepCompletion.findFirst({
-    where: { id },
-    columns: {
-      stepId: true,
-      animalId: true,
-      status: true,
-      skipReason: true,
-      evidence: true,
-      outOfRange: true,
-      destination: true,
-    },
-  });
-  return row ? { ...row } : null;
-};
 
 /** The state an Instance was in, for a trail that cannot be argued with. */
 const readInstanceState = async (tx: Tx, farmId: string, id: string) => {
@@ -630,19 +548,10 @@ export const instancesRouter = {
 
   /** Claiming is exclusive: the first person to take it is the one working it. */
   claim: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole(...claimEntry.roles))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "sop_instance",
-          entityId: input.id,
-          action: "update",
-          after: { claimedBy: context.actor.id },
-        },
-        (tx) => applyClaim(tx, context, input.id, now)
-      );
+      await recordNow(context, claimEntry, { instanceId: input.id });
       return { id: input.id, claimed: true };
     }),
 
@@ -715,48 +624,23 @@ export const instancesRouter = {
       return { id: input.id, assignedTo: input.userId };
     }),
 
-  /** Records one Step — once per animal where the Step repeats. Recording again corrects it. */
+  /** Records one Step — once per animal where the Step repeats. The same answer again changes nothing; a different
+   *  one is a Correction. */
   completeStep: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
-    .input(completionInput)
+    .use(requireRole(...stepCompletionEntry.roles))
+    .input(stepCompletionInput)
     .handler(async ({ context, input }) => {
-      const receivedAt = context.clock.now();
-      // Held aside as well as returned, because the Audit Event's snapshots are read after
-      // `apply` has run and cannot see what it returned.
-      let recorded: Recorded | null = null;
-      const applied = await audited(context).write(
-        {
-          // The Completion is its own thing in the trail, so a Correction has something
-          // precise to supersede and an entry's history reads back on its own.
-          entity: "step_completion",
-          entityId: () => recorded?.completionId ?? "",
-          action: "update",
-          // Read after the write, so the trail records what the effect actually decided —
-          // a Destination forced to Discard reads as Discard, not as what was asked for.
-          after: () =>
-            Promise.resolve({
-              instanceId: input.instanceId,
-              stepId: input.stepId,
-              animalTag: input.animalTag ?? null,
-              effect: recorded?.effect ?? null,
-            }),
-        },
-        async (tx, eventId) => {
-          recorded = await applyCompletion(
-            tx,
-            context,
-            input,
-            receivedAt,
-            eventId
-          );
-          return recorded;
-        }
-      );
-      return {
-        instanceId: input.instanceId,
-        stepId: input.stepId,
-        effect: applied.effect,
-      };
+      const { effect } = await recordNow(context, stepCompletionEntry, input);
+      return { instanceId: input.instanceId, stepId: input.stepId, effect };
+    }),
+
+  /** A photograph a Step asked for, against the slot it answers — sent after the Step, as a phone's Outbox sends it. */
+  attachPhoto: protectedProcedure
+    .use(requireRole(...stepPhotoEntry.roles))
+    .input(stepPhotoInput)
+    .handler(async ({ context, input }) => {
+      await recordNow(context, stepPhotoEntry, input);
+      return { completionId: input.completionId, slot: input.slot };
     }),
 
   /** Work that has gone late and is still open, whatever day it was due — the list the
@@ -950,13 +834,15 @@ export const instancesRouter = {
     .input(
       z.object({
         completionId: z.string(),
-        evidence: z.array(evidenceValue).default([]),
-        destination: z.enum(MILK_DESTINATIONS).optional(),
-        feeding: z.array(feedingLine).optional(),
-        counts: z.array(countLine).optional(),
-        renewal: renewalInput.optional(),
-        outOfRange: z.string().trim().max(120).optional(),
-        skipReason: z.string().trim().max(120).optional(),
+        ...stepCompletionInput.pick({
+          evidence: true,
+          destination: true,
+          feeding: true,
+          counts: true,
+          renewal: true,
+          outOfRange: true,
+          skipReason: true,
+        }).shape,
         reason: reasonInput,
       })
     )
@@ -1045,51 +931,12 @@ export const instancesRouter = {
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
           }
-          const content = contentOf(instance.version);
-          const step = stepOf(content, existing.stepId);
-          const skipping = Boolean(input.skipReason);
-          assertEvidenceComplete(step, input.evidence, skipping, (slot) =>
-            photos.some((row) => row.slot === slot)
-          );
-          await tx
-            .update(stepCompletion)
-            .set({
-              status: skipping ? "skipped" : "done",
-              skipReason: input.skipReason ?? null,
-              evidence: input.evidence,
-              outOfRange: input.outOfRange ?? null,
-              destination: input.destination ?? null,
-            })
-            .where(eq(stepCompletion.id, existing.id));
-          // Keyed on the same Completion, so the record it wrote is replaced rather than
-          // added to, and the Session's reconciliation is worked out afresh.
-          effect = await runStepEffect(tx, {
-            step,
+          effect = await replaceStep(tx, context, {
+            completion: existing,
+            work: instance,
+            answer: input,
+            hasPhotoAt: (slot) => photos.some((row) => row.slot === slot),
             eventId,
-            roles: context.roles,
-            instance: {
-              id: instance.id,
-              farmId: context.farm.id,
-              penId: instance.penId,
-              animalId: instance.animalId,
-              dueAt: instance.dueAt,
-              raisedAt: instance.createdAt,
-              cause: instance.cause,
-            },
-            completionId: existing.id,
-            animalId: existing.animalId,
-            evidence: input.evidence,
-            destination: input.destination,
-            feeding: input.feeding ?? [],
-            counts: input.counts ?? [],
-            renewal: input.renewal,
-            feedTolerancePercent: context.farm.feedTolerancePercent,
-            sessionsPerDay: sessionsPerDayOf(content),
-            skipped: skipping,
-            tolerancePercent: context.farm.milkTolerancePercent,
-            pregnancyTimes: pregnancyTimesOf(context.farm),
-            recordedBy: existing.recordedBy,
-            recordedAt: existing.recordedAt,
             now,
           });
           // She has been walked on since, so putting her back where this entry now says
@@ -1159,29 +1006,10 @@ export const instancesRouter = {
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal
    *  Step — is neither done nor skipped. */
   complete: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole(...finishEntry.roles))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      // Read first: work already finished needs no second telling, and an Audit Event for a
-      // transition that did not happen is a trail that lies.
-      const already = await context.db.query.sopInstance.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: { state: true },
-      });
-      if (already?.state === "completed" || already?.state === "approved") {
-        return { id: input.id, state: "completed" } as const;
-      }
-      await audited(context).write(
-        {
-          entity: "sop_instance",
-          entityId: input.id,
-          action: "update",
-          before: { state: "in_progress" },
-          after: { state: "completed" },
-        },
-        (tx) => applyComplete(tx, context, input.id, now)
-      );
+      await recordNow(context, finishEntry, { instanceId: input.id });
       return { id: input.id, state: "completed" } as const;
     }),
 };

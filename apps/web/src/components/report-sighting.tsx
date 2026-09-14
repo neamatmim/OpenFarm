@@ -1,4 +1,7 @@
-import { SIGHTINGS, SIGHTING_NEEDING_A_NOTE } from "@OpenFarm/domain";
+import {
+  OBSERVATION_WORDS,
+  OBSERVATION_WORD_NEEDING_A_NOTE,
+} from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -18,7 +21,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { queueSighting } from "@/lib/record-offline";
+import { queueObservation } from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -45,7 +48,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
       onError: (error) => toast.error(error.message || t("common.error")),
     })
   );
-  const needsNote = saw === SIGHTING_NEEDING_A_NOTE;
+  const needsNote = saw === OBSERVATION_WORD_NEEDING_A_NOTE;
   const ready = saw !== "" && (!needsNote || note.trim() !== "");
 
   return (
@@ -75,7 +78,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
               return;
             }
             try {
-              await queueSighting(input);
+              await queueObservation(input);
               await done(t("sighting.queued"));
             } catch (error) {
               toast.error((error as Error).message || t("common.error"));
@@ -87,7 +90,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
               {t("sighting.what")}
             </legend>
             <div className="grid grid-cols-2 gap-2">
-              {SIGHTINGS.map((sighting) => (
+              {OBSERVATION_WORDS.map((sighting) => (
                 <Button
                   aria-pressed={saw === sighting.value}
                   className="h-auto min-h-11 justify-start py-2 text-start whitespace-normal"

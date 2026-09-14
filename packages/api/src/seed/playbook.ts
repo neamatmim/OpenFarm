@@ -95,7 +95,7 @@ const feeding = (): SopContent => ({
 });
 
 /** What the round may see of an animal worth writing down. `heat` is the one the breeding chain listens for. */
-export const SIGHTINGS = {
+export const ROUND_WORDS = {
   heat: HEAT,
   lame: "lame",
   offFeed: "off_feed",
@@ -120,11 +120,11 @@ const healthRound = (): SopContent => ({
       repeatPerAnimal: true,
       evidence: [
         choice(true, [
-          [SIGHTINGS.heat, "গরম হয়েছে", "In heat"],
-          [SIGHTINGS.lame, "খোঁড়াচ্ছে", "Lame"],
-          [SIGHTINGS.offFeed, "খাবারে অরুচি", "Off feed"],
-          [SIGHTINGS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
-          [SIGHTINGS.cough, "কাশি", "Coughing"],
+          [ROUND_WORDS.heat, "গরম হয়েছে", "In heat"],
+          [ROUND_WORDS.lame, "খোঁড়াচ্ছে", "Lame"],
+          [ROUND_WORDS.offFeed, "খাবারে অরুচি", "Off feed"],
+          [ROUND_WORDS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
+          [ROUND_WORDS.cough, "কাশি", "Coughing"],
         ]),
       ],
       // A well animal is passed with nothing written against her: the round's record is what was worth seeing,

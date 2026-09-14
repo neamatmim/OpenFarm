@@ -381,7 +381,7 @@ describe("what a correction does", () => {
       entityId: completionId,
     });
     const correction = history.find((row) => row.action === "correct");
-    const original = history.find((row) => row.action === "update");
+    const original = history.find((row) => row.action === "create");
     expect(correction).toMatchObject({
       reason: "ভুল লিখেছিলাম",
       roleUsed: "staff",

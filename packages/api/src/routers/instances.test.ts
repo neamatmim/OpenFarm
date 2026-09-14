@@ -56,6 +56,15 @@ const milkingSop = (): SopContent => ({
   ],
 });
 
+/** How many Audit Events a piece of work has. */
+const trailOf = async (instanceId: string) => {
+  const events = await scratchDb().query.auditEvent.findMany({
+    where: { entity: "sop_instance", entityId: instanceId },
+    columns: { id: true },
+  });
+  return events.length;
+};
+
 /** A milking pen with two cows, a fattening pen with one, and a Staff member on the first. */
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
@@ -199,6 +208,10 @@ describe("claiming", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     await staff.client.instances.claim({ id: instance.id });
+    // Claiming their own work again is the same fact, and the trail says it once.
+    const claimed = await trailOf(instance.id);
+    await staff.client.instances.claim({ id: instance.id });
+    expect(await trailOf(instance.id)).toBe(claimed);
 
     // Not a question of permission: somebody else is holding this work, which is the same
     // answer a phone gets when it claimed with no signal and arrived second.
@@ -558,14 +571,28 @@ describe("review findings", () => {
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    await worker.client.instances.completeStep({
+    // The Step says the photo for its slot is coming, and the photo follows on its own.
+    const recorded = await worker.client.instances.completeStep({
       instanceId: mine.id,
       stepId: "evidence",
       evidence: ["note", 12],
-      photos: [{ slot: 2, contentType: "image/jpeg", data: "AAAA" }],
+      photoSlots: [2],
     });
     const loaded = await worker.client.instances.get({ id: mine.id });
     expect(loaded.completions).toHaveLength(1);
+    const completionId = loaded.completions[0]?.id ?? "";
+    await worker.client.instances.attachPhoto({
+      completionId,
+      slot: 2,
+      contentType: "image/jpeg",
+      data: "AAAA",
+    });
+    const photos = await scratchDb().query.completionPhoto.findMany({
+      where: { completionId },
+      columns: { slot: true },
+    });
+    expect(photos).toEqual([{ slot: 2 }]);
+    expect(recorded.stepId).toBe("evidence");
   });
 
   it("work that is for the Vet cannot be done by Staff, nor from a shed phone", async () => {
@@ -647,10 +674,13 @@ describe("review findings", () => {
     await staff.client.instances.complete({ id: instance.id });
 
     // Finishing again changes nothing rather than refusing: a phone replaying its outbox
-    // sends what it sent, and the second telling is the same fact (ADR 0002).
+    // sends what it sent, and the second telling is the same fact (ADR 0002) — with nothing
+    // in the trail for a transition that did not happen.
+    const finished = await trailOf(instance.id);
     await staff.client.instances.complete({ id: instance.id });
     const after = await staff.client.instances.get({ id: instance.id });
     expect(after.state).toBe("completed");
+    expect(await trailOf(instance.id)).toBe(finished);
 
     await expect(
       manager.client.instances.assign({ id: instance.id, userId: "test-staff" })

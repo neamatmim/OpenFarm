@@ -1,22 +1,22 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
+import type { SyncKind } from "@OpenFarm/db/schema/sync";
 import { ORPCError } from "@orpc/server";
 
 import { raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
-import {
-  applyClaim,
-  applyComplete,
-  applyCompletion,
-  applyMove,
-  applyPhoto,
-  isLate,
-} from "./completion-store";
+import { claimEntry } from "./entries/claim";
+import type { EntryKind, EntryRefusal } from "./entries/entry";
+import { recordHeld, refusalOf } from "./entries/entry";
+import { finishEntry } from "./entries/finish";
+import { moveEntry } from "./entries/move";
+import { observationEntry } from "./entries/observation";
+import { stepCompletionEntry } from "./entries/step-completion";
+import { stepPhotoEntry } from "./entries/step-photo";
 import type { RaisedAlert } from "./instances-store";
 import { raiseNeedsReview } from "./review-store";
-import { recordSighting } from "./sighting-store";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
   clockIsOut,
@@ -35,8 +35,18 @@ const message = (error: unknown): string =>
     ? error.message
     : ((error as Error)?.message ?? "could not be recorded");
 
-/** One entry, applied on the transaction the caller holds. */
-const applyEntry = async (
+/** Each kind a phone can send, and the Entry that records it (ADR 0004). */
+const ENTRIES = {
+  instance_claim: claimEntry,
+  instance_complete: finishEntry,
+  step_completion: stepCompletionEntry,
+  completion_photo: stepPhotoEntry,
+  animal_move: moveEntry,
+  observation: observationEntry,
+} as const satisfies Record<SyncKind, unknown>;
+
+/** One entry, recorded by its Entry on the transaction the caller holds, with its Audit Event. */
+const applyEntry = (
   tx: Tx,
   context: Recorder,
   entry: Entry,
@@ -44,82 +54,20 @@ const applyEntry = async (
   /** Made before the entry is applied, because an effect may have to hang a Needs Review on
    *  it inside this same transaction. The Audit Event is then written under the same id. */
   eventId: string
-): Promise<{ entity: string; entityId: string; changed?: boolean }> => {
-  if (entry.kind === "instance_claim") {
-    await applyClaim(tx, context, entry.instanceId, receivedAt);
-    return { entity: "sop_instance", entityId: entry.instanceId };
-  }
-  if (entry.kind === "instance_complete") {
-    const { changed } = await applyComplete(
-      tx,
-      context,
-      entry.instanceId,
-      receivedAt
-    );
-    return {
-      entity: "sop_instance",
-      entityId: entry.instanceId,
-      changed,
-    };
-  }
-  if (entry.kind === "step_completion") {
-    const recorded = await applyCompletion(
-      tx,
-      context,
-      {
-        instanceId: entry.instanceId,
-        stepId: entry.stepId,
-        animalTag: entry.animalTag,
-        evidence: entry.evidence,
-        destination: entry.destination,
-        feeding: entry.feeding,
-        counts: entry.counts,
-        outOfRange: entry.outOfRange,
-        skipReason: entry.skipReason,
-        photoSlots: entry.photoSlots,
-        recordedAt: entry.recordedAt,
-      },
+): Promise<unknown> =>
+  recordHeld(
+    tx,
+    context,
+    ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
+    entry,
+    {
+      recordedAt: entry.recordedAt,
       receivedAt,
+      id: entry.id,
       eventId,
-      entry.id
-    );
-    return { entity: "step_completion", entityId: recorded.completionId };
-  }
-  if (entry.kind === "completion_photo") {
-    await applyPhoto(
-      tx,
-      context,
-      {
-        completionId: entry.completionId,
-        slot: entry.slot,
-        contentType: entry.contentType,
-        data: entry.data,
-      },
-      receivedAt
-    );
-    return { entity: "step_completion", entityId: entry.completionId };
-  }
-  if (entry.kind === "animal_move") {
-    // Moving animals is the Owner's, the Manager's and Barn Staff's (roles matrix); a phone's queue is no way round it.
-    if (
-      !(["owner", "manager", "staff"] as const).some((role) =>
-        context.roles.includes(role)
-      )
-    ) {
-      throw new ORPCError("FORBIDDEN", {
-        message: "Moving animals is not this person's to do",
-      });
+      device: { id: context.device?.id ?? null, seq: entry.seq },
     }
-    const moved = await applyMove(tx, context, entry, receivedAt, entry.id);
-    return { entity: "animal", entityId: moved };
-  }
-  // What somebody saw with no signal and no round asking: when they saw it is when they wrote it down.
-  const seen = await recordSighting(tx, context, entry, {
-    seenAt: entry.recordedAt,
-    now: receivedAt,
-  });
-  return { entity: "observation", entityId: seen.id };
-};
+  );
 
 /** What the phone sent, as the trail and a held entry record it. The photo is left out: it
  *  is a row of its own where the entry was taken, and a megabyte of base64 in an Audit Event
@@ -309,45 +257,27 @@ const applyEntries = async (
         seq: entry.seq,
         outcome: "rejected",
         reason: `sequence ${entry.seq} is already used by another entry`,
+        refusal: { category: "wrong" },
       });
       continue;
     }
 
     let outcome: EntryResult["outcome"] = "applied";
     let reason: string | null = null;
+    let refusal: EntryRefusal | null = null;
     const eventId = uuidv7(receivedAt);
     try {
       // oxlint-disable-next-line no-await-in-loop
       const recorder = await recorderFor(entry);
+      // An Entry that changed nothing — a claim already theirs, work already finished — writes nothing down; the
+      // entry is still read, which is what stops it being offered for ever.
       // oxlint-disable-next-line no-await-in-loop
-      await tx.transaction(async (entryTx) => {
-        const target = await applyEntry(
-          entryTx,
-          recorder,
-          entry,
-          receivedAt,
-          eventId
-        );
-        if (target.changed === false) {
-          // Nothing happened, so there is nothing to write down. The entry is still read,
-          // which is what stops it being offered for ever.
-          return;
-        }
-        await audited(recorder).recordEvent(
-          entryTx,
-          {
-            entity: target.entity,
-            entityId: target.entityId,
-            action: "create",
-            recordedAt: entry.recordedAt,
-            device: { id: context.device?.id ?? null, seq: entry.seq },
-            after: entryAfter(entry),
-          },
-          { eventId, receivedAt }
-        );
-      });
+      await tx.transaction((entryTx) =>
+        applyEntry(entryTx, recorder, entry, receivedAt, eventId)
+      );
     } catch (error) {
-      outcome = isLate(error) ? "kept" : "rejected";
+      refusal = refusalOf(error);
+      outcome = refusal.category === "late" ? "kept" : "rejected";
       reason = message(error);
     }
     if (outcome === "applied" && skewed) {
@@ -367,6 +297,7 @@ const applyEntries = async (
       seq: entry.seq,
       outcome,
       ...(reason ? { reason } : {}),
+      ...(refusal ? { refusal } : {}),
     });
   }
 

@@ -1110,6 +1110,10 @@ export const en = {
   "outbox.reviewedNone": "Nothing waiting",
   "outbox.discard": "Done with this",
   "outbox.entered": "What was entered",
+  "outbox.late":
+    "The farm had moved on before this arrived, so the Manager will look at it",
+  "outbox.wrong": "The farm could not take this as it was written",
+  "outbox.notYours": "This was not yours to record",
   "outbox.open": "See them",
   "digest.overdue": "{count} late",
   "digest.escalated": "{count} escalated",

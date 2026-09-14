@@ -498,10 +498,7 @@ describe("reconciling the tank", () => {
 
 describe("review findings", () => {
   it("asks the Withdrawal gate at whichever clock still holds it shut", async () => {
-    const { instance, staff, clock } = await session(
-      "2026-10-14",
-      world.sickPen.id
-    );
+    const { instance, clock } = await session("2026-10-14", world.sickPen.id);
     await scratchDb()
       .update(animal)
       .set({ milkWithdrawalUntil: new Date(clock.now().getTime() + 2 * DAY) })
@@ -509,19 +506,36 @@ describe("review findings", () => {
 
     // A phone whose clock runs a week fast — or one sending a made-up time — would walk
     // this cow's milk into the tank if the gate believed it.
-    const recorded = await staff.client.instances.completeStep({
-      instanceId: instance.id,
-      stepId: "milk",
-      animalTag: world.sickCow.tagNumber,
-      evidence: [9],
-      destination: "bulk",
-      recordedAt: new Date(clock.now().getTime() + 7 * DAY),
+    const phone = await createTestClient(appRouter, {
+      as: "staff",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-milk-clock", name: "দোহনের শেড ফোন" },
+    });
+    const entryId = `milk-fast-clock-${instance.id}`;
+    const sent = await phone.client.sync.batch({
+      key: entryId,
+      entries: [
+        {
+          id: entryId,
+          seq: 1,
+          kind: "step_completion" as const,
+          instanceId: instance.id,
+          stepId: "milk",
+          animalTag: world.sickCow.tagNumber,
+          evidence: [9],
+          destination: "bulk",
+          recordedAt: new Date(clock.now().getTime() + 7 * DAY),
+        },
+      ],
     });
 
-    expect(recorded.effect).toMatchObject({
-      destination: "discard",
-      forced: true,
+    expect(sent.results).toMatchObject([{ outcome: "applied" }]);
+    const record = await scratchDb().query.milkRecord.findFirst({
+      where: { completionId: entryId },
+      columns: { destination: true, forced: true },
     });
+    expect(record).toEqual({ destination: "discard", forced: true });
 
     await scratchDb()
       .update(animal)

@@ -1,3 +1,4 @@
+import type { EntryInput } from "@OpenFarm/api/sync-entries";
 import {
   DefaultRetryPolicy,
   IndexedDBAdapter,
@@ -18,9 +19,8 @@ import type { Transport } from "./outbox";
 import { Outbox } from "./outbox";
 import { proveHeldSwitches } from "./shed-phone";
 
-/** The farm, as the Outbox speaks to it. Typed against the procedure rather than cast at it:
- *  this is the one seam where a field the server does not recognise would quietly lose a
- *  morning's work. */
+/** The farm, as the Outbox speaks to it. Typed against the farm's own entry shapes rather than cast at them: this is
+ *  the one seam where a field the server does not recognise would quietly lose a morning's work. */
 const farm: Transport = {
   send: async (batch) => {
     // Work recorded under a PIN entered with no signal goes under that person's name only once the farm has seen
@@ -28,7 +28,7 @@ const farm: Transport = {
     if (getDeviceToken()) {
       await proveHeldSwitches();
     }
-    const entries: Record<string, unknown>[] = [];
+    const entries: EntryInput[] = [];
     for (const { proof, ...entry } of batch.entries) {
       if (typeof proof !== "string") {
         entries.push(entry);
@@ -44,7 +44,7 @@ const farm: Transport = {
     return client.sync.batch({
       key: batch.key,
       sentAt: new Date(batch.sentAt),
-      entries: entries as Parameters<typeof client.sync.batch>[0]["entries"],
+      entries,
     });
   },
 };

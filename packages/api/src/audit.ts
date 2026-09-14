@@ -12,7 +12,7 @@ export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /** A snapshot is a JSON-able value, or a function that reads it inside the same
  *  transaction — the only way to get a `before` that cannot lie. */
-type SnapshotValue = Record<string, unknown> | null;
+export type SnapshotValue = Record<string, unknown> | null;
 type SnapshotReader = (tx: Tx) => Promise<SnapshotValue>;
 type Snapshot = SnapshotValue | SnapshotReader;
 
@@ -42,7 +42,8 @@ export interface AuditedWrite {
   roleUsed?: RoleName;
 }
 
-const resolve = (
+/** A snapshot as it stands on this transaction: read now if it is a reader. */
+export const readSnapshot = (
   tx: Tx,
   snapshot: Snapshot | undefined
 ): Promise<SnapshotValue> =>
@@ -91,8 +92,8 @@ export const audited = (
     // them around `apply`; here there is nothing to read around, so whatever the event
     // carries is what happened — and dropping it would leave a trail entry that records
     // that something occurred without recording what.
-    const said = before ?? (await resolve(tx, event.before));
-    const happened = after ?? (await resolve(tx, event.after));
+    const said = before ?? (await readSnapshot(tx, event.before));
+    const happened = after ?? (await readSnapshot(tx, event.after));
     await tx.insert(auditEvent).values({
       id,
       farmId,
@@ -131,9 +132,9 @@ export const audited = (
     const receivedAt = context.clock.now();
     const eventId = uuidv7(receivedAt);
     return context.db.transaction(async (tx) => {
-      const before = await resolve(tx, event.before);
+      const before = await readSnapshot(tx, event.before);
       const result = await apply(tx, eventId);
-      const after = await resolve(tx, event.after);
+      const after = await readSnapshot(tx, event.after);
       await recordEvent(tx, event, { before, after, eventId, receivedAt });
       return result;
     });

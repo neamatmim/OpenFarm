@@ -6,7 +6,7 @@
 import type { Cow, Herd } from "./herd";
 import { takeInBulls } from "./herd";
 import type { Happening } from "./history";
-import { SIGHTINGS } from "./playbook";
+import { ROUND_WORDS } from "./playbook";
 import type { ApiClient } from "./runtime";
 import { DAY, addDays, onFarm } from "./runtime";
 import type { FeedSeller } from "./shared";
@@ -550,7 +550,7 @@ const organiseThePeople = ({ farm, on }: Script) => {
 };
 
 /** The round's Observation of this animal on this day, which the Vet's Diagnosis answers. */
-const sightingOf = async (f: Farm, tag: string, day: string) => {
+const observationsOf = async (f: Farm, tag: string, day: string) => {
   const seen = await f.db.query.observation.findMany({
     where: {
       farmId: f.farmId,
@@ -605,7 +605,7 @@ const nurseTheSick = ({ farm, herd, cows, on }: Script) => {
     {
       offset: 6,
       tag: () => pickFrom(milkingIn("milking1"), 2)?.tag,
-      sighting: SIGHTINGS.mastitis,
+      sighting: ROUND_WORDS.mastitis,
       disease: mastitis,
       note: "সামনের ডান বাঁট শক্ত ও গরম, দুধে ছানা। সিএমটি +++",
       course: [
@@ -622,7 +622,7 @@ const nurseTheSick = ({ farm, herd, cows, on }: Script) => {
     {
       offset: 19,
       tag: () => pickFrom(milkingIn("milking2"), 4)?.tag,
-      sighting: SIGHTINGS.lame,
+      sighting: ROUND_WORDS.lame,
       disease: { bn: "খুরের পচা ঘা (ফুট রট)", en: "Foot rot" },
       note: "পেছনের বাম পায়ের খুরের ফাঁকে দুর্গন্ধযুক্ত ঘা। খুর পরিষ্কার করে কপার সালফেট দেওয়া হয়েছে",
       course: [
@@ -639,7 +639,7 @@ const nurseTheSick = ({ farm, herd, cows, on }: Script) => {
       offset: 33,
       tag: () =>
         [...herd.bulls.values()].find((bull) => bull.pen === "bullsA")?.tag,
-      sighting: SIGHTINGS.cough,
+      sighting: ROUND_WORDS.cough,
       disease: { bn: "নিউমোনিয়া", en: "Pneumonia" },
       note: "জ্বর ১০৪.৫°F, দ্রুত শ্বাস, নাক দিয়ে পানি। আলাদা করে রাখুন",
       course: [
@@ -658,7 +658,7 @@ const nurseTheSick = ({ farm, herd, cows, on }: Script) => {
       tag: () =>
         [...herd.bulls.values()].find((bull) => bull.arrivedOn === lumpyLorry)
           ?.tag,
-      sighting: SIGHTINGS.offFeed,
+      sighting: ROUND_WORDS.offFeed,
       disease: { bn: "লাম্পি স্কিন ডিজিজ", en: "Lumpy skin disease" },
       note: "সারা গায়ে শক্ত গুটি, জ্বর ১০৫°F, খাবারে অরুচি। আলাদা পেনে রাখুন, মশা-মাছি নিয়ন্ত্রণ করুন। উপজেলা অফিসে জানানো হবে",
       course: [
@@ -675,7 +675,7 @@ const nurseTheSick = ({ farm, herd, cows, on }: Script) => {
     {
       offset: daysBetween(start, today) - 2,
       tag: () => pickFrom(milkingIn("milking2"), 7)?.tag,
-      sighting: SIGHTINGS.mastitis,
+      sighting: ROUND_WORDS.mastitis,
       disease: mastitis,
       note: "পেছনের বাম বাঁট ফোলা, দুধ পানির মতো। সিএমটি ++",
       course: [{ ...tube, times: [...tube.times] }],
@@ -708,7 +708,7 @@ const nurseTheSick = ({ farm, herd, cows, on }: Script) => {
       }
       const diagnosis = await f.as.vet.diagnoses.record({
         animalTag: tag,
-        answers: await sightingOf(f, tag, day),
+        answers: await observationsOf(f, tag, day),
         disease: sick.disease,
         note: sick.note,
       });
@@ -737,7 +737,7 @@ const loseACalf = ({ farm, cows, on }: Script) => {
       (cow) => cow.state === "calf" && cow.pen === "calves"
     )?.tag;
     if (calfTag) {
-      see(sick, calfTag, SIGHTINGS.offFeed);
+      see(sick, calfTag, ROUND_WORDS.offFeed);
     }
     return Promise.resolve();
   });
@@ -747,7 +747,7 @@ const loseACalf = ({ farm, cows, on }: Script) => {
     }
     const diagnosis = await f.as.vet.diagnoses.record({
       animalTag: calfTag,
-      answers: await sightingOf(f, calfTag, sick),
+      answers: await observationsOf(f, calfTag, sick),
       disease: { bn: "বাছুরের ডায়রিয়া", en: "Calf scours" },
       note: "পাতলা পায়খানা, পানিশূন্যতা। স্যালাইন খাওয়াতে থাকুন",
     });

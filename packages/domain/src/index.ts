@@ -306,5 +306,9 @@ export type {
   SideShare,
 } from "./money-summary";
 export { summariseMoney } from "./money-summary";
-export type { Sighting } from "./sightings";
-export { SIGHTINGS, SIGHTING_NEEDING_A_NOTE, sightingOf } from "./sightings";
+export type { ObservationWord } from "./observation-words";
+export {
+  OBSERVATION_WORDS,
+  OBSERVATION_WORD_NEEDING_A_NOTE,
+  observationWordOf,
+} from "./observation-words";

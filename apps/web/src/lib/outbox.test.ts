@@ -252,6 +252,11 @@ describe("when the farm answers", () => {
         seq: Number(entry.seq),
         outcome: index === 0 ? ("rejected" as const) : ("applied" as const),
         reason: index === 0 ? "no animal with tag D-0001" : undefined,
+        ...(index === 0
+          ? {
+              refusal: { category: "wrong" as const, word: "count_incomplete" },
+            }
+          : {}),
       })),
     }));
 
@@ -261,6 +266,11 @@ describe("when the farm answers", () => {
     expect(state).toMatchObject({ pending: 0, rejected: 1 });
     const held = await outbox.rejected();
     expect(held[0]?.reason).toContain("D-0001");
+    // And why, in the words the screen puts into the reader's language.
+    expect(held[0]?.refusal).toEqual({
+      category: "wrong",
+      word: "count_incomplete",
+    });
     // The figures the person typed are still there to put right.
     expect(held[0]?.entry.body).toMatchObject({ evidence: [11] });
 
@@ -307,17 +317,21 @@ describe("when the farm answers", () => {
   });
 });
 
+/** A shed photo of a megabyte and a half, against a Step. */
+const photo = (completionId: string) => ({
+  completionId,
+  slot: 0,
+  contentType: "image/jpeg" as const,
+  data: "x".repeat(1_500_000),
+});
+
 describe("what one send carries", () => {
   it("splits a heavy queue rather than sending a request no phone will finish", async () => {
     const outbox = outboxOn();
     // Three shed photos of a megabyte and a half: two fit the budget for one send.
-    const photo = {
-      contentType: "image/jpeg" as const,
-      data: "x".repeat(1_500_000),
-    };
-    await outbox.add("step_completion", { ...milk(11), photo }, "a");
-    await outbox.add("step_completion", { ...milk(9), photo }, "b");
-    await outbox.add("step_completion", { ...milk(7), photo }, "c");
+    await outbox.add("completion_photo", photo("milk-a"), "a");
+    await outbox.add("completion_photo", photo("milk-b"), "b");
+    await outbox.add("completion_photo", photo("milk-c"), "c");
 
     await outbox.flush();
 
