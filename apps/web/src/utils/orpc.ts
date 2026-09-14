@@ -17,8 +17,14 @@ import { getDeviceToken, getSwitchToken } from "@/lib/device";
 
 /** What a failed read says, in the language the page is showing: a code the person can act on, never the server's
  *  English. A read their Role may not make is not worth retrying. */
-const sayFailure = (error: Error): { key: MessageKey; retry: boolean } => {
+const sayFailure = (
+  error: Error
+): { key: MessageKey; retry: boolean } | null => {
   const { code } = error as { code?: unknown };
+  // Nothing there is the page's to say — "no such animal" in its own words — not a failed connection.
+  if (code === "NOT_FOUND") {
+    return null;
+  }
   if (code === "FORBIDDEN") {
     return { key: "common.forbidden", retry: false };
   }
@@ -39,7 +45,11 @@ export const createQueryClient = () =>
     queryCache: new QueryCache({
       onError: (error, query) => {
         const language = pageLanguage();
-        const { key, retry } = sayFailure(error);
+        const failure = sayFailure(error);
+        if (!failure) {
+          return;
+        }
+        const { key, retry } = failure;
         toast.error(translate(language, key), {
           // One toast per kind of failure, not one per query that met it.
           id: key,

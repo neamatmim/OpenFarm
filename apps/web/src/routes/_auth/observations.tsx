@@ -78,6 +78,6 @@ const ObservationsPage = () => {
 };
 
 export const Route = createFileRoute("/_auth/observations")({
-  beforeLoad: onlyFor("vetOrRunsTheFarm"),
+  beforeLoad: onlyFor("vetOrRunsTheFarm", { visitors: false }),
   component: ObservationsPage,
 });

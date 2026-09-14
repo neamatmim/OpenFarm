@@ -155,10 +155,13 @@ const SeenWhere = ({
 
 /** The farm's Pens to move her to, once it is known the reader may see them: a visiting Vet moves nobody, and does
  *  not see the farm's layout. */
-const usePens = (me: { visiting: boolean } | undefined) => {
+const usePens = (me: { visiting: boolean; roles: string[] } | undefined) => {
+  // Only a visitor alone is kept from them: a visiting Vet who also works the barn or runs the farm moves animals.
+  const onlyVisiting =
+    me?.visiting === true && me.roles.every((role) => role === "vet");
   const sheds = useQuery({
     ...orpc.herd.list.queryOptions(),
-    enabled: me !== undefined && !me.visiting,
+    enabled: me !== undefined && !onlyVisiting,
   });
   return (
     sheds.data?.flatMap((shed) =>

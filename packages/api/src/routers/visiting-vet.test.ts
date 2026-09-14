@@ -245,5 +245,17 @@ describe("a visiting Vet who also works the barn", () => {
     const me = await both.people.me();
     expect(me.roles.toSorted()).toEqual(["staff", "vet"]);
     await expect(both.sops.list()).resolves.toBeDefined();
+
+    // Called in about a cow outside any Pen of theirs: they see her with their Pens, and read her clinical record.
+    await owner.vetCases.open({
+      tagNumber: world.onCase,
+      vetId: id,
+      reason: "দুই কাজের মানুষ দেখবেন",
+    });
+    const withCase = await calling(id, DURING);
+    const herd = await withCase.animals.list({});
+    expect(herd.map((beast) => beast.tagNumber)).toContain(world.onCase);
+    const her = await withCase.animals.byTag({ tagNumber: world.onCase });
+    expect(her.diagnoses.length + her.observations.length).toBeGreaterThan(0);
   });
 });
