@@ -1204,6 +1204,7 @@ export const en = {
   "refusal.staffOrManagerOnly":
     "A calving is recorded by Barn Staff or the Manager",
   "refusal.calvingOfACowNotInCalf": "She is not a cow who calves",
+  "refusal.calvingOfAMale": "A bull does not calve",
   "refusal.calvedInTheFuture": "A calving cannot be later than now",
   "sop.trigger.registrationRenewal": "the Registration coming up for renewal",
   "sop.trigger.beforeCalving": "Before a cow's Expected Calving",

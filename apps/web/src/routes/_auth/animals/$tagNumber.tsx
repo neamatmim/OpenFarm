@@ -945,9 +945,13 @@ const ChangeSide = ({
         onSave={async (reason) => {
           const across = { tagNumber, toSide, toPenId, reason };
           // With signal the farm answers now; without it the Move waits on the phone rather than being lost.
-          await (navigator.onLine
-            ? move.mutateAsync(across)
-            : queueMove(across));
+          if (navigator.onLine) {
+            await move.mutateAsync(across);
+          } else {
+            await queueMove(across);
+            // Said as well as saved: it goes to the farm when the phone finds signal, not now.
+            toast.info(t("animals.moveQueued"));
+          }
           await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         }}
         ready={Boolean(toPenId)}

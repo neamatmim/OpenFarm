@@ -1,7 +1,6 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { abortion, repeatBreederAnswer } from "@OpenFarm/db/schema/breeding";
-import { animal } from "@OpenFarm/db/schema/herd";
 import { REPEAT_BREEDER_DECISIONS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -13,9 +12,12 @@ import {
   repeatBreederFor,
   repeatBreedersOn,
 } from "../breeding-store";
-import { followExpectedCalving } from "../calving-work";
 import { reasonInput } from "../corrections";
-import { entersState, loadLiveAnimal } from "../herd-store";
+import {
+  entersState,
+  forgetExpectedCalving,
+  loadLiveAnimal,
+} from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 import { assertOnTheirCases } from "../visiting-store";
@@ -124,14 +126,11 @@ export const breedingRouter = {
             recordedBy: context.actor.id,
             recordedAt: now,
           });
-          await tx
-            .update(animal)
-            .set({
-              expectedCalvingAt: null,
-              expectedCalvingServiceId: null,
-              updatedAt: now,
-            })
-            .where(eq(animal.id, her.id));
+          // The calving she was expected to have is not coming, and the work before it goes with it.
+          await forgetExpectedCalving(tx, context.farm.id, her, {
+            now,
+            calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+          });
           // A heifer who lost her first calf is back on heat watch; a cow is where her Lactation leaves her.
           if (her.state === "pregnant_heifer") {
             await entersState(tx, context.farm.id, her, {
@@ -140,12 +139,6 @@ export const breedingRouter = {
               now,
             });
           }
-          await followExpectedCalving(
-            tx,
-            { ...her, expectedCalvingAt: null },
-            pregnancyTimesOf(context.farm).calvingLeadDays,
-            { expectedAgain: false }
-          );
         }
       );
       return { tagNumber, id };

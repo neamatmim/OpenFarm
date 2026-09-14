@@ -16,6 +16,7 @@ import {
   walkByStep,
   walkTo,
 } from "./herd-store";
+import { calvingCauseOf, calvingKeyOf } from "./instances-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
@@ -116,8 +117,12 @@ afterAll(async () => {
     );
 });
 
-/** Where she is and what she is, and what has become of the work about her. */
-const standing = async (animalId: string, workId: string) => {
+/** Where she is and what she is, and what has become of the work about her and the calving work she was raised. */
+const standing = async (
+  animalId: string,
+  workId: string,
+  calvingWorkId = ""
+) => {
   const db = scratchDb();
   const row = await db.query.animal.findFirst({
     where: { id: animalId },
@@ -135,25 +140,30 @@ const standing = async (animalId: string, workId: string) => {
     where: { id: workId },
     columns: { penId: true, state: true },
   });
+  const calvingWork = await db.query.sopInstance.findFirst({
+    where: { id: calvingWorkId },
+    columns: { state: true },
+  });
   const moves = await db.query.animalMove.findMany({
     where: { animalId },
     columns: { fromPenId: true, toPenId: true, fromSide: true, toSide: true },
     orderBy: { movedAt: "asc", id: "asc" },
   });
-  return { row, work, moves };
+  return { row, work, calvingWork, moves };
 };
 
-/** An animal standing in the first dairy Pen, carrying, with a piece of work raised about her — or, `inMilk`, one who
- *  has since calved. */
-const her = async ({ inMilk = false } = {}) => {
+/** An animal standing in the first dairy Pen, carrying, with a piece of work raised about her and the Dry-off her
+ *  Expected Calving raised — or, `inMilk`, one who has since calved, or, `open`, a heifer nobody has found in calf. */
+const her = async ({ inMilk = false, open = false } = {}) => {
   const { tagNumber, id } = await world.owner.animals.register({
     sex: "female",
     side: "dairy",
-    state: "pregnant_heifer",
     penId: world.dairyPen,
     source: "born",
     aliases: [],
-    expectedCalvingOn: "2034-05-01",
+    ...(open
+      ? { state: "heifer" as const }
+      : { state: "pregnant_heifer" as const, expectedCalvingOn: "2034-05-01" }),
   });
   if (inMilk) {
     await world.owner.animals.setState({
@@ -179,7 +189,37 @@ const her = async ({ inMilk = false } = {}) => {
       cause: `lifecycle-test:${id}`,
       createdAt: new Date(AT),
     });
-  return { tagNumber, id, workId, before: await standing(id, workId) };
+  const registered = await scratchDb().query.animal.findFirst({
+    where: { id },
+    columns: { lactationNumber: true },
+  });
+  const calvingWorkId = uuidv7(new Date(AT));
+  await scratchDb()
+    .insert(sopInstance)
+    .values({
+      id: calvingWorkId,
+      farmId: TEST_FARM.id,
+      definitionId: world.work.definitionId,
+      versionId: world.work.versionId,
+      penId: world.dairyPen,
+      animalId: id,
+      state: "due",
+      dueAt: new Date("2034-03-02T04:00:00.000Z"),
+      graceMinutes: 24 * 60,
+      assignedRole: "staff",
+      cause: calvingCauseOf(
+        calvingKeyOf({ id, lactationNumber: registered?.lactationNumber ?? 0 }),
+        "dry_off"
+      ),
+      createdAt: new Date(AT),
+    });
+  return {
+    tagNumber,
+    id,
+    workId,
+    calvingWorkId,
+    before: await standing(id, workId, calvingWorkId),
+  };
 };
 
 interface Followed {
@@ -192,6 +232,8 @@ interface Followed {
   /** The work about her: gone with her to her new Pen, closed because she is gone, or left where it was. */
   work: "follows" | "closed" | "stays";
   expectedCalving: "kept" | "cleared";
+  /** The Dry-off her Expected Calving raised: still owed, or gone with the calving it prepared for. */
+  calvingWork: "open" | "closed";
 }
 
 /** Where the work about her went, against where it was. */
@@ -208,7 +250,11 @@ const workAfter = (
 const followed = async (
   subject: Awaited<ReturnType<typeof her>>
 ): Promise<Followed> => {
-  const { row, work, moves } = await standing(subject.id, subject.workId);
+  const { row, work, calvingWork, moves } = await standing(
+    subject.id,
+    subject.workId,
+    subject.calvingWorkId
+  );
   const before = subject.before.row;
   const move = moves.slice(subject.before.moves.length).at(-1);
   return {
@@ -225,6 +271,7 @@ const followed = async (
       row?.stateChangedAt?.getTime() !== before?.stateChangedAt?.getTime(),
     work: workAfter(subject.before.work, work),
     expectedCalving: row?.expectedCalvingAt ? "kept" : "cleared",
+    calvingWork: calvingWork?.state === "missed" ? "closed" : "open",
   };
 };
 
@@ -278,6 +325,7 @@ describe("what follows from what happens to her", () => {
       stateChanged: false,
       work: "follows",
       expectedCalving: "kept",
+      calvingWork: "open",
     });
   });
 
@@ -298,6 +346,7 @@ describe("what follows from what happens to her", () => {
       stateChanged: true,
       work: "follows",
       expectedCalving: "cleared",
+      calvingWork: "closed",
     });
   });
 
@@ -331,6 +380,7 @@ describe("what follows from what happens to her", () => {
       stateChanged: true,
       work: "stays",
       expectedCalving: "cleared",
+      calvingWork: "closed",
     });
   });
 
@@ -346,6 +396,53 @@ describe("what follows from what happens to her", () => {
       stateChanged: true,
       work: "stays",
       expectedCalving: "cleared",
+      calvingWork: "open",
+    });
+  });
+
+  it("is found in calf: a Pregnant Heifer, and nothing else moves", async () => {
+    const subject = await her({ open: true });
+    await onHer(subject.id, (tx, beast) =>
+      entersState(tx, TEST_FARM.id, beast, {
+        state: "pregnant_heifer",
+        ...later,
+      })
+    );
+    expect(await followed(subject)).toEqual({
+      move: null,
+      side: "dairy",
+      state: "pregnant_heifer",
+      stateChanged: true,
+      work: "stays",
+      expectedCalving: "cleared",
+      calvingWork: "open",
+    });
+  });
+
+  it("is confirmed ready for sale on Fattening: Ready for Sale, where the crossing left her", async () => {
+    const subject = await her();
+    await walked(subject.id, {
+      toPenId: world.fatteningPen,
+      toSide: "fattening",
+    });
+    await onHer(subject.id, (tx, beast) =>
+      entersState(tx, TEST_FARM.id, beast, {
+        state: "ready_for_sale",
+        ...later,
+      })
+    );
+    expect(await followed(subject)).toEqual({
+      move: {
+        toPenId: world.fatteningPen,
+        fromSide: "dairy",
+        toSide: "fattening",
+      },
+      side: "fattening",
+      state: "ready_for_sale",
+      stateChanged: true,
+      work: "follows",
+      expectedCalving: "cleared",
+      calvingWork: "closed",
     });
   });
 
@@ -361,6 +458,7 @@ describe("what follows from what happens to her", () => {
       stateChanged: true,
       work: "stays",
       expectedCalving: "kept",
+      calvingWork: "open",
     });
   });
 
@@ -403,12 +501,17 @@ describe("what follows from what happens to her", () => {
         stateChanged: true,
         work: "closed",
         expectedCalving: "cleared",
+        calvingWork: "closed",
       });
       await expect(
         world.later.owner.animals.move({
           tagNumber: subject.tagNumber,
           toPenId: world.otherDairyPen,
         })
+      ).rejects.toMatchObject({ data: { late: true } });
+      // The herd itself says so, whoever asks it.
+      await expect(
+        walked(subject.id, { toPenId: world.otherDairyPen })
       ).rejects.toMatchObject({ data: { late: true } });
       // And she leaves once: a second exit over the first would lose which one the farm stands behind.
       await expect(

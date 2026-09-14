@@ -16,6 +16,7 @@ import {
   sinceSheLastCalved,
   attemptsThatBegin,
   expectedCalvingFrom,
+  isExitState,
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
@@ -247,7 +248,9 @@ export const rederivePregnancy = async (
       expectedCalvingServiceId: true,
     },
   });
-  if (!her) {
+  // Her Pregnancy Checks go on saying what they say; a date to prepare for is only worked out for a cow on the Dairy
+  // side who is still here. Crossed to Fattening or gone, the forecast went with her and does not come back.
+  if (!her || her.side !== "dairy" || isExitState(her.state)) {
     return nothingFollowed();
   }
   const carrying = await pregnancyStillCarried(

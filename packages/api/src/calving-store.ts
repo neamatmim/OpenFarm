@@ -235,8 +235,8 @@ export const recordCalving = async (
   }
   if (dam.sex !== "female") {
     throw new ORPCError("BAD_REQUEST", {
-      message: `A ${dam.state.replace("_", " ")} does not calve`,
-      data: { refusal: "calving_of_a_cow_not_in_calf" },
+      message: "A bull does not calve",
+      data: { refusal: "calving_of_a_male" },
     });
   }
 

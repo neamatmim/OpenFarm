@@ -265,6 +265,55 @@ const moveOpenWorkWith = (
       )
     );
 
+/** Nothing she has left may move her: a Move of her is the world having moved under it, so it is late (ADR 0004). */
+const refuseOnceSheHasLeft = (her: { state: AnimalState }) => {
+  if (isExitState(her.state)) {
+    throw lateEntry(`This animal has left the farm (${her.state})`);
+  }
+};
+
+/** No Expected Calving: what a calved, aborted, crossed or departed cow's row says about the calving that no longer
+ *  applies. */
+const NO_EXPECTED_CALVING = {
+  expectedCalvingAt: null,
+  expectedCalvingServiceId: null,
+} as const;
+
+/**
+ * The calving the farm expected no longer applies to her — she calved, lost it, or is on a Side with no calving to
+ * prepare for — so the date goes, and the calving work still owed goes with it. Whether she was carrying stays in her
+ * Pregnancy Checks; working out a new date, when there is one, is breeding's.
+ */
+export const forgetExpectedCalving = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string; lactationNumber: number },
+  {
+    now,
+    calvingLeadDays,
+  }: {
+    now: Date;
+    /** How far before her Expected Calving each piece of calving work falls, for the work to close by. */
+    calvingLeadDays: Record<CalvingLead, number>;
+  }
+): Promise<CalvingWorkFollowed> => {
+  await tx
+    .update(animal)
+    .set({ ...NO_EXPECTED_CALVING, updatedAt: now })
+    .where(and(eq(animal.id, her.id), eq(animal.farmId, farmId)));
+  return followExpectedCalving(
+    tx,
+    {
+      id: her.id,
+      farmId,
+      lactationNumber: her.lactationNumber,
+      expectedCalvingAt: null,
+    },
+    calvingLeadDays,
+    { expectedAgain: false }
+  );
+};
+
 /**
  * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
  * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
@@ -307,6 +356,7 @@ export const walkTo = async (
   }
 ): Promise<void> => {
   const { beast } = entry;
+  refuseOnceSheHasLeft(beast);
   // Somebody walked her somewhere after this Move was made — a phone held it out of signal, or the Step was recorded
   // late. Walking her now would put her back where she has since left, so it is late, and a person decides.
   if (
@@ -339,9 +389,6 @@ export const walkTo = async (
       side: toSide,
       state,
       ...(state === beast.state ? {} : { stateChangedAt: entry.movedAt }),
-      ...(forecastGoes
-        ? { expectedCalvingAt: null, expectedCalvingServiceId: null }
-        : {}),
       updatedAt: entry.now,
     })
     .where(and(eq(animal.farmId, entry.farmId), eq(animal.id, beast.id)));
@@ -363,12 +410,7 @@ export const walkTo = async (
     .onConflictDoNothing();
   await moveOpenWorkWith(tx, entry.farmId, beast.id, entry.toPenId);
   if (forecastGoes) {
-    await followExpectedCalving(
-      tx,
-      { ...beast, farmId: entry.farmId, expectedCalvingAt: null },
-      entry.calvingLeadDays,
-      { expectedAgain: false }
-    );
+    await forgetExpectedCalving(tx, entry.farmId, beast, entry);
   }
 };
 
@@ -504,8 +546,6 @@ export const calves = async (
       stateChangedAt: at,
       lactationNumber,
       lactationStartedAt: at,
-      expectedCalvingAt: null,
-      expectedCalvingServiceId: null,
       updatedAt: now,
     })
     .where(stillIn(farmId, her))
@@ -515,11 +555,11 @@ export const calves = async (
       message: "This animal is no longer where this was decided on",
     });
   }
-  const calvingWork = await followExpectedCalving(
+  const calvingWork = await forgetExpectedCalving(
     tx,
-    { id: her.id, farmId, lactationNumber, expectedCalvingAt: null },
-    calvingLeadDays,
-    { expectedAgain: false }
+    farmId,
+    { id: her.id, lactationNumber },
+    { now, calvingLeadDays }
   );
   return { lactationNumber, calvingWork };
 };
@@ -549,8 +589,7 @@ export const leaves = async (
     .set({
       state,
       stateChangedAt: at,
-      expectedCalvingAt: null,
-      expectedCalvingServiceId: null,
+      ...NO_EXPECTED_CALVING,
       updatedAt: now,
     })
     .where(
@@ -608,6 +647,7 @@ export const walkByStep = async (
   }
 ): Promise<WalkedByStep | null> => {
   const { beast, completionId } = entry;
+  refuseOnceSheHasLeft(beast);
   const already = await tx.query.animalMove.findFirst({
     where: { completionId },
     columns: { id: true, fromPenId: true, toPenId: true },

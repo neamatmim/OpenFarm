@@ -1170,6 +1170,7 @@ export const bn: Record<MessageKey, string> = {
   "calving.ease.vet": "ভেট লেগেছে",
   "refusal.staffOrManagerOnly": "বাচ্চা দেওয়ার রেকর্ড খামারকর্মী বা ম্যানেজার রাখেন",
   "refusal.calvingOfACowNotInCalf": "এই পশু বাচ্চা দেওয়ার মতো অবস্থায় নেই",
+  "refusal.calvingOfAMale": "ষাঁড় বাচ্চা দেয় না",
   "refusal.calvedInTheFuture": "বাচ্চা দেওয়ার সময় এখনের পরে হতে পারে না",
   "sop.trigger.registrationRenewal": "নিবন্ধন নবায়নের সময় হলে",
   "sop.trigger.beforeCalving": "গাভীর বাচ্চা দেওয়ার আগে",
