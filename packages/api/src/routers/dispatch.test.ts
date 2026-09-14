@@ -241,18 +241,28 @@ describe("the milk dispatch", () => {
       fatPercent: 4.1,
     });
 
-    // The Owner reads Dispatches; putting one right is the Manager's.
+    // The Owner may put it right too, and long after the Manager's window has closed.
     const owner = await createTestClient(appRouter, {
       as: "owner",
-      clock: new FakeClock("2036-02-01T05:00:00.000Z"),
+      clock: new FakeClock("2037-02-01T05:00:00.000Z"),
     });
-    await expect(
-      owner.client.milk.correctDispatch({
-        id: dispatchId,
-        litres: 12,
-        reason: "মালিকের হিসাব",
-      })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await owner.client.milk.correctDispatch({
+      id: dispatchId,
+      litres: 11.9,
+      reason: "মালিকের হিসাবে ১১.৯",
+    });
+    const later = await owner.client.milk.day({ day: "2036-02-01" });
+    expect(later.dispatches.find((one) => one.id === dispatchId)).toMatchObject(
+      {
+        litres: 11.9,
+      }
+    );
+    // And back, as the challan says — the records the next test reads are the Manager's figure.
+    await owner.client.milk.correctDispatch({
+      id: dispatchId,
+      litres: 11.8,
+      reason: "চালানে ১১.৮ লেখা",
+    });
   });
 
   it("clears a figure written against the wrong lorry, and keeps the buyer as they stood that day", async () => {

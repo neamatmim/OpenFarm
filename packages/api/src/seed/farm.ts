@@ -17,6 +17,7 @@ import {
   stockTheFarm,
   writeThePlaybook,
 } from "./standing";
+import { VISITING_VET, callInAVisitingVet } from "./visit";
 
 /** How far back the farm's life goes before today. */
 export const HISTORY_DAYS = Number(process.env.SEED_DAYS ?? 90);
@@ -50,9 +51,14 @@ export const seedFarm = async (db: Database) => {
   await liveTheDays(farm, herd, scriptTheDays(farm, herd), (line) =>
     step(line)
   );
+  step("a visiting vet called in about a lame cow");
+  await callInAVisitingVet(farm, db, clock, today);
 
   return {
     password: SEED_PASSWORD,
-    people: PEOPLE.map(({ role, name, email }) => ({ role, name, email })),
+    people: [
+      ...PEOPLE.map(({ role, name, email }) => ({ role, name, email })),
+      VISITING_VET,
+    ],
   };
 };

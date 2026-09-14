@@ -103,6 +103,9 @@ export interface Context {
   roles: RoleName[];
   /** Pens a Staff person is assigned to; used for scoping. */
   penIds: string[];
+  /** A Vet called in for a visit, who reaches only the animals on their open Cases — and, for them, those animals. */
+  visiting: boolean;
+  caseAnimalIds: string[];
   /** Set by requireRole: the Role this request acts under. Null for role-free procedures. */
   roleUsed: RoleName | null;
   /** How a notice leaves the farm. Injected so the tests can watch it and development can
@@ -161,7 +164,10 @@ const resolvePerson = (db: Database, userId: string, farmId: string) =>
       disabledAt: true,
     },
     with: {
-      roles: { where: { farmId, ...ACTIVE_ROLE }, columns: { role: true } },
+      roles: {
+        where: { farmId, ...ACTIVE_ROLE },
+        columns: { role: true, scope: true, expiresAt: true },
+      },
       penAssignments: {
         where: { farmId, ...ACTIVE_ASSIGNMENT },
         columns: { penId: true },
@@ -224,6 +230,8 @@ export const buildContext = async ({
     person: null,
     roles: [],
     penIds: [],
+    visiting: false,
+    caseAnimalIds: [],
   };
 
   // A phone with nobody PIN-switched in still needs its Farm, so it can fetch the roster
@@ -251,7 +259,19 @@ export const buildContext = async ({
 
   // Roles come from an invite only when the person takes it up with its code (people.acceptInvite): an email
   // matching an invite proves nothing about who signed up with it.
-  const roles = row.roles.map((r) => r.role);
+  // A visit's access ends on its day, whether or not the schedule has got round to revoking it yet.
+  const now = clock.now();
+  const standing = row.roles.filter((r) => !r.expiresAt || r.expiresAt > now);
+  const roles = standing.map((r) => r.role);
+  const visiting = standing.some(
+    (r) => r.role === "vet" && r.scope === "visiting"
+  );
+  const cases = visiting
+    ? await db.query.vetCase.findMany({
+        where: { farmId: farm.id, vetId: row.id, closedAt: { isNull: true } },
+        columns: { animalId: true },
+      })
+    : [];
 
   return {
     ...base,
@@ -261,6 +281,8 @@ export const buildContext = async ({
     person,
     roles,
     penIds: row.penAssignments.map((p) => p.penId),
+    visiting,
+    caseAnimalIds: cases.map((c) => c.animalId),
   };
 };
 

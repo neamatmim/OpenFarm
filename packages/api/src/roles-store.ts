@@ -32,8 +32,18 @@ export const grantRoles = async (
   roles: readonly RoleName[],
   granter: Granter,
   now: Date,
-  { reactivate = false }: { reactivate?: boolean } = {}
+  {
+    reactivate = false,
+    visitUntil,
+  }: {
+    reactivate?: boolean;
+    /** A Vet granted for a visit: sees only their Cases, and only until then. */
+    visitUntil?: Date;
+  } = {}
 ): Promise<void> => {
+  const visit = visitUntil
+    ? { scope: "visiting" as const, expiresAt: visitUntil }
+    : { scope: null, expiresAt: null };
   const held = await activeRolesFor(tx, farmId, userId);
   const missing = roles.filter((role) => !held.includes(role));
   if (missing.length === 0) {
@@ -48,6 +58,7 @@ export const grantRoles = async (
       grantedBy: granter.id,
       grantedByRole: granter.role,
       createdAt: now,
+      ...(role === "vet" ? visit : {}),
     }))
   );
   await (reactivate
@@ -61,6 +72,7 @@ export const grantRoles = async (
           revokedAt: null,
           grantedBy: granter.id,
           grantedByRole: granter.role,
+          ...visit,
         },
       })
     : insert.onConflictDoNothing());

@@ -26,6 +26,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { languageOf } from "../reader-language";
 import { requireRole } from "../roles";
+import { assertOnTheirCases } from "../visiting-store";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -146,6 +147,7 @@ export const papersRouter = {
         context.farm.id,
         input.tagNumber
       );
+      assertOnTheirCases(context, her.id);
       const text = animalPassport({
         farm: context.farm,
         tagNumber: her.tagNumber,
@@ -202,6 +204,7 @@ export const papersRouter = {
         context.farm.id,
         input.tagNumber
       );
+      assertOnTheirCases(context, her.id);
       // Thirty farm days, not thirty times twenty-four hours: the rule is "the thirty days
       // before slaughter", and a regulator counts them on a calendar.
       const since = new Date(

@@ -39,7 +39,9 @@ const DrugsPage = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   const drugs = useQuery(orpc.drugs.list.queryOptions());
   const [name, setName] = useState("");
-  const isVet = me.data?.roles.includes("vet") ?? false;
+  // A vet called in for a visit reads the Drug List to prescribe from; keeping it is the farm's own Vet's.
+  const visiting = me.data?.visiting ?? false;
+  const isVet = (me.data?.roles.includes("vet") ?? false) && !visiting;
   const buys = me.data?.roles.includes("manager") ?? false;
 
   const refresh = () =>
@@ -88,28 +90,30 @@ const DrugsPage = () => {
           <EmptyState bare icon={Pill} title={t("drugs.none")} />
         )}
 
-        <form
-          className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (name.trim()) {
-              add.mutate({ name: { bn: name.trim() } });
-            }
-          }}
-        >
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="drug-name">{t("drugs.name")}</Label>
-            <Input
-              id="drug-name"
-              onChange={(event) => setName(event.target.value)}
-              value={name}
-            />
-          </div>
-          <Button type="submit">
-            <Plus aria-hidden />
-            {t("drugs.add")}
-          </Button>
-        </form>
+        {visiting ? null : (
+          <form
+            className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (name.trim()) {
+                add.mutate({ name: { bn: name.trim() } });
+              }
+            }}
+          >
+            <div className="flex-1 space-y-1">
+              <Label htmlFor="drug-name">{t("drugs.name")}</Label>
+              <Input
+                id="drug-name"
+                onChange={(event) => setName(event.target.value)}
+                value={name}
+              />
+            </div>
+            <Button type="submit">
+              <Plus aria-hidden />
+              {t("drugs.add")}
+            </Button>
+          </form>
+        )}
       </Section>
 
       {buys && drugs.data ? (

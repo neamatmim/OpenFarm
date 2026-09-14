@@ -362,6 +362,18 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     deliverer: r.one.user({ from: r.dlsReport.deliveredBy, to: r.user.id }),
   },
+  roleAssignment: {
+    user: r.one.user({ from: r.roleAssignment.userId, to: r.user.id }),
+  },
+  vetCase: {
+    animal: r.one.animal({
+      from: r.vetCase.animalId,
+      to: r.animal.id,
+      optional: false,
+    }),
+    vet: r.one.user({ from: r.vetCase.vetId, to: r.user.id, optional: false }),
+    opener: r.one.user({ from: r.vetCase.openedBy, to: r.user.id }),
+  },
   diagnosis: {
     animal: r.one.animal({
       from: r.diagnosis.animalId,
@@ -477,11 +489,10 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.animal.id,
       optional: false,
     }),
-    /** The Step that recorded what was seen. */
+    /** The Step that recorded what was seen, when a round did. */
     completion: r.one.stepCompletion({
       from: r.observation.completionId,
       to: r.stepCompletion.id,
-      optional: false,
     }),
     /** The person who saw it. */
     observer: r.one.user({ from: r.observation.seenBy, to: r.user.id }),

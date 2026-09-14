@@ -257,10 +257,11 @@ export const saleRouter = {
    * rather than a second one. A Correction like any other: a reason, the Role's Correction Window, and
    * the trail holding what it said before. She stays sold: the way she left is not what is corrected.
    *
-   * The Manager's, as recording is (roles matrix: Intake / Sale — Manager C R U, Owner R).
+   * The Manager's, as recording is, and the Owner's — whose Correction Window never closes (Owner, 2026-09-14: the
+   * spec's "Owner always" over the matrix's read-only Owner).
    */
   correct: protectedProcedure
-    .use(requireOnly("manager", MANAGER_ONLY))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         id: z.string(),

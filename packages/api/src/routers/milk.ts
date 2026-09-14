@@ -30,6 +30,7 @@ import {
 import type { Booking } from "../money-store";
 import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
 import { requireRole } from "../roles";
+import { assertOnTheirCases } from "../visiting-store";
 
 /** How many of a cow's recent milkings to hand back; enough for a fortnight of two-a-day
  *  sessions, which is as far as a phone screen usefully goes. */
@@ -236,10 +237,11 @@ export const milkRouter = {
    * A challan, a note, a fat or an SNF sent as nothing is cleared: a figure written against the wrong
    * lorry is put right by taking it away.
    *
-   * The Manager's, as recording is (roles matrix: Dispatch — Manager C R U, Owner R).
+   * The Manager's, as recording is, and the Owner's — whose Correction Window never closes (Owner, 2026-09-14: the
+   * spec's "Owner always" over the matrix's read-only Owner).
    */
   correctDispatch: protectedProcedure
-    .use(requireRole("manager"))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         id: z.string(),
@@ -422,6 +424,7 @@ export const milkRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
+      assertOnTheirCases(context, beast.id);
       // Only what she gave in the Lactation she is in: an earlier one is a different curve,
       // and a total spanning both would be a number that means nothing.
       const records = beast.milkRecords.filter(

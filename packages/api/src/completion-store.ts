@@ -24,6 +24,7 @@ import { animalsForInstance, isOnTheFarm } from "./instances-store";
 import type { RenewalEntry } from "./registration-store";
 import { contentOf } from "./sop-content";
 import type { StockCountLine } from "./stock-store";
+import { assertOnTheirCases } from "./visiting-store";
 
 /**
  * An entry that was true when it was written and is not true now: the animal has been sold,
@@ -149,14 +150,19 @@ export const assertMayWork = (
     actor: { id: string };
     roles: string[];
     device: unknown;
+    visiting: boolean;
+    caseAnimalIds: string[];
   },
   instance: {
     penId: string | null;
     assignedTo: string | null;
     claimedBy: string | null;
     assignedRole: string;
+    animalId: string | null;
   }
 ) => {
+  // A visiting Vet works only on the animals they were called in for.
+  assertOnTheirCases(context, instance.animalId);
   // The Instance says who does this work; holding some other Role is not enough. The Owner
   // and the Manager may always step in — someone has to be able to unstick a shift.
   const runsTheFarm =
@@ -542,6 +548,7 @@ export const applyClaim = async (
       claimedBy: true,
       state: true,
       assignedRole: true,
+      animalId: true,
     },
   });
   if (!instance) {

@@ -72,6 +72,7 @@ Every account shares the password `OpenFarm@2026`:
 | Manager | `manager@openfarm.test` |
 | Vet     | `vet@openfarm.test`     |
 | Staff   | `staff@openfarm.test`, `staff2@openfarm.test`, `staff3@openfarm.test` |
+| Visiting vet | `visitingvet@openfarm.test` — sees only the lame cow the Manager opened a case on, for a fortnight |
 
 The Shed Phone PINs are `1357`, `2468` and `3690` for the three Staff members.
 

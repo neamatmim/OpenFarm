@@ -59,6 +59,7 @@ import {
 import { protectedProcedure } from "../index";
 import { causeOf, heatKeyOf } from "../instances-store";
 import { requireRole } from "../roles";
+import { assertOnTheirCases, onTheirCases } from "../visiting-store";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */
@@ -537,13 +538,31 @@ export const animalsRouter = {
     )
     .handler(({ context, input }) => {
       const scoped = context.roleUsed === "staff";
-      if (scoped && context.penIds.length === 0) {
+      // Barn Staff who are also a visiting Vet see their Pens and their Cases together.
+      const alsoCases =
+        scoped && context.visiting && context.caseAnimalIds.length > 0;
+      if (scoped && context.penIds.length === 0 && !alsoCases) {
         return [];
       }
+      const theirs = alsoCases
+        ? {
+            OR: [
+              penScope(context.penIds, input.penId),
+              {
+                id: { in: context.caseAnimalIds },
+                ...(input.penId ? { penId: input.penId } : {}),
+              },
+            ],
+          }
+        : penScope(scoped ? context.penIds : null, input.penId);
       return context.db.query.animal.findMany({
         where: {
           farmId: context.farm.id,
-          ...penScope(scoped ? context.penIds : null, input.penId),
+          ...theirs,
+          // A visiting Vet's herd is their Cases.
+          ...(onTheirCases(context)
+            ? { id: { in: context.caseAnimalIds } }
+            : {}),
           ...(input.side ? { side: input.side } : {}),
           ...(input.includeExited
             ? {}
@@ -694,10 +713,15 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
+      assertOnTheirCases(context, row.id);
       // Barn Staff record what they see and give the doses they are told to give; the
       // conclusions drawn from them are not theirs to read (roles matrix: Staff read
       // treatment instances only). They still see the round's own Observations.
-      const readsTheClinicalRecord = context.roleUsed !== "staff";
+      // Barn Staff who are also the visiting Vet on her Case read what a Vet would.
+      const onTheirCase =
+        context.visiting && context.caseAnimalIds.includes(row.id);
+      const readsTheClinicalRecord =
+        context.roleUsed !== "staff" || onTheirCase;
       // A separate question from the clinical one, and a separate row of the matrix: money is
       // the Owner's and the Manager's whoever else may read her history.
       const readsWhatSheCost =
@@ -713,7 +737,7 @@ export const animalsRouter = {
         observations: row.observations.map(
           ({ completion, observer, diagnoses, ...seen }) => ({
             ...seen,
-            instanceId: completion.instanceId,
+            instanceId: completion?.instanceId ?? null,
             seenByName: observer?.name ?? null,
             withdrawn: seen.withdrawnAt !== null,
             diagnoses: readsTheClinicalRecord
@@ -1396,6 +1420,7 @@ export const animalsRouter = {
         context.farm.id,
         input.tagNumber.toUpperCase()
       );
+      assertOnTheirCases(context, target.id);
       const photo = await context.db.query.animalPhoto.findFirst({
         where: { animalId: target.id },
       });

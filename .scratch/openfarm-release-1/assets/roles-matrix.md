@@ -18,10 +18,10 @@ Legend: **C** create · **R** read · **U** update/correct · **X** special acti
 | **SOP Instances** | R all; reassign; close as missed | R all; **pin/reassign**; **close as missed** | R (own pens); **claim**; complete steps; skip animal with reason | R (health SOPs); complete Vet steps | complete steps on own cases |
 | **Sign-off** | approve / send back (any) | approve / send back (as checker) | — | approve / send back (as checker on health SOPs) | — |
 | **Milk Records & Bulk reconciliation** | R | R U | C (own pen); U own | R | — |
-| **Dispatch** (milk to buyer) | R; approve above threshold | C R U | — | — | — |
+| **Dispatch** (milk to buyer) | R U; approve above threshold | C R U | — | — | — |
 | **Weigh-ins** | R | R U | C (own pen); U own | R | — |
 | **Ready for Sale** | confirm | **confirm** | — | — | — |
-| **Intake / Sale** | R; approve above threshold | C R U | — | — | — |
+| **Intake / Sale** | R U; approve above threshold | C R U | — | — | — |
 | **Health — Observation** | C R | C R U | C (own pens); U own | C R | C (open cases) |
 | **Health — Diagnosis, Prescription** | R | R | R (treatment instances only) | **C U** | **C U** (own cases) |
 | **Health — Treatment doses** | R | R | C (as SOP step); U own | C R U | C (own cases) |
@@ -47,4 +47,5 @@ Legend: **C** create · **R** read · **U** update/correct · **X** special acti
 - **Staff**: full access to animals and open instances in the pens they are assigned to; read-only lookup of any animal by Tag Number; never money; never other people's completions or performance.
 - **Vet (visiting)**: only animals with an open case they are on, plus herd health summaries; access granted per visit by the Manager (Owner approves), time-limited.
 - **Correction window**: Staff may correct their own entries within the window; after it, Manager only; corrections always keep the original (Audit trail ticket).
+- **Owner corrections** (Owner, 2026-09-14): the Owner may correct Intakes, Sales and Dispatches at any age, as the spec's "Owner always" Correction Window says; recording them stays the Manager's.
 - **External parties** (accountant, buyers, auditors): no roles here — decided in External-party access.

@@ -45,6 +45,8 @@ import { TwoProjections } from "@/components/gain";
 import { EmptyState, Page, Section, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import { ReportSighting } from "@/components/report-sighting";
+import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -124,12 +126,58 @@ const AnimalHeader = ({ detail }: { detail: AnimalDetail }) => {
   );
 };
 
+/** Where a sighting came from: the round's work, or somebody reporting it — with what they said. */
+const SeenWhere = ({
+  instanceId,
+  note,
+}: {
+  instanceId: string | null;
+  note: string | null;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {instanceId ? (
+        <Link
+          className="underline"
+          params={{ instanceId }}
+          to="/work/$instanceId"
+        >
+          {t("animals.moveFromWork")}
+        </Link>
+      ) : (
+        t("sighting.reported")
+      )}
+      {note ? ` · “${note}”` : ""}
+    </>
+  );
+};
+
+/** The farm's Pens to move her to, once it is known the reader may see them: a visiting Vet moves nobody, and does
+ *  not see the farm's layout. */
+const usePens = (me: { visiting: boolean; roles: string[] } | undefined) => {
+  // Only a visitor alone is kept from them: a visiting Vet who also works the barn or runs the farm moves animals.
+  const onlyVisiting =
+    me?.visiting === true && me.roles.every((role) => role === "vet");
+  const sheds = useQuery({
+    ...orpc.herd.list.queryOptions(),
+    enabled: me !== undefined && !onlyVisiting,
+  });
+  return (
+    sheds.data?.flatMap((shed) =>
+      shed.pens.map((pen) => ({ ...pen, shedName: shed.name }))
+    ) ?? []
+  );
+};
+
 /** What somebody holding these Roles may do on her page. */
-const powersOf = (roles: readonly string[] = []) => {
+const powersOf = (roles: readonly string[] = [], visiting = false) => {
   const isManager = roles.includes("manager");
   const runsTheFarm = isManager || roles.includes("owner");
   return {
     isVet: roles.includes("vet"),
+    // A vet called in for a visit treats her, and does not change her State or cut short a Withdrawal.
+    fullVet: roles.includes("vet") && !visiting,
     isManager,
     runsTheFarm,
     mayHandle: runsTheFarm || roles.includes("staff"),
@@ -148,10 +196,11 @@ const AnimalPage = () => {
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const me = useQuery(orpc.people.me.queryOptions());
-  const { isVet, isManager, runsTheFarm, mayHandle, seesPapers } = powersOf(
-    me.data?.roles
+  const { isVet, fullVet, runsTheFarm, mayHandle, seesPapers } = powersOf(
+    me.data?.roles,
+    me.data?.visiting
   );
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const pens = usePens(me.data);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
 
@@ -180,10 +229,6 @@ const AnimalPage = () => {
   }
 
   const detail = animal.data;
-  const pens =
-    sheds.data?.flatMap((s) =>
-      s.pens.map((p) => ({ ...p, shedName: s.name }))
-    ) ?? [];
 
   return (
     <Page width="default" className="max-w-4xl">
@@ -216,9 +261,9 @@ const AnimalPage = () => {
 
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
-      <HowSheArrived intake={detail.intake} mayCorrect={isManager} />
+      <HowSheArrived intake={detail.intake} mayCorrect={runsTheFarm} />
 
-      <HowSheLeft mayCorrect={isManager} sale={detail.sale} />
+      <HowSheLeft mayCorrect={runsTheFarm} sale={detail.sale} />
 
       <WhatSheCost tagNumber={detail.tagNumber} />
 
@@ -232,11 +277,14 @@ const AnimalPage = () => {
         onRecorded={refresh}
       />
 
-      <Withdrawals detail={detail} isVet={isVet} onShortened={refresh} />
+      <Withdrawals detail={detail} isVet={fullVet} onShortened={refresh} />
+
+      <VetCases mayCall={runsTheFarm} tagNumber={detail.tagNumber} />
 
       <ManageHer
         detail={detail}
         isVet={isVet}
+        mayChangeState={runsTheFarm || fullVet}
         mayMove={
           runsTheFarm ||
           (mayHandle && (me.data?.penIds ?? []).includes(detail.penId))
@@ -271,13 +319,7 @@ const AnimalPage = () => {
                 {seen.sawLabel}
                 {seen.seenByName ? ` · ${seen.seenByName}` : ""}
                 {" · "}
-                <Link
-                  className="underline"
-                  params={{ instanceId: seen.instanceId }}
-                  to="/work/$instanceId"
-                >
-                  {t("animals.moveFromWork")}
-                </Link>
+                <SeenWhere instanceId={seen.instanceId} note={seen.note} />
                 {seen.withdrawn
                   ? ` · ${t("animals.observationWithdrawn")}`
                   : ""}
@@ -657,6 +699,7 @@ const ManageHer = ({
   movePens,
   mayMove,
   isVet,
+  mayChangeState,
   mayHandle,
   runsTheFarm,
   onChanged,
@@ -667,6 +710,8 @@ const ManageHer = ({
   movePens: { id: string; name: string; shedName: string }[];
   mayMove: boolean;
   isVet: boolean;
+  /** Owner, Manager or a full Vet: a visiting vet does not change her State. */
+  mayChangeState: boolean;
   mayHandle: boolean;
   runsTheFarm: boolean;
   onChanged: () => unknown;
@@ -723,6 +768,7 @@ const ManageHer = ({
   }
   return (
     <Section description={t("animals.manageHint")} title={t("animals.manage")}>
+      <ReportSighting tagNumber={detail.tagNumber} />
       {/* What each Role may do to her, and nothing it may not: offering a control the farm will refuse is a
           dead end in the barn. */}
       {mayHandle ? (
@@ -767,7 +813,7 @@ const ManageHer = ({
           />
         </div>
       ) : null}
-      {mayMove || isVet ? (
+      {mayMove || mayChangeState ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {mayMove ? (
             <form
@@ -818,7 +864,7 @@ const ManageHer = ({
               </Button>
             </form>
           ) : null}
-          {runsTheFarm || isVet ? (
+          {mayChangeState ? (
             <form
               className="flex flex-col gap-2 rounded-lg border p-4"
               onSubmit={(event) => {

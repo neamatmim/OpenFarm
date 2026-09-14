@@ -264,7 +264,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     // The round looked at the wrong cow; the Observation is withdrawn and another stands in
     // its place.
     await owner.client.instances.correctStep({
-      completionId: seen.completionId,
+      completionId: seen.completionId ?? "",
       evidence: ["well"],
       reason: "ভুল পশু দেখা হয়েছিল",
     });

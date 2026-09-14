@@ -170,3 +170,13 @@ export const queueMove = async (move: {
 }): Promise<void> => {
   await held().add("animal_move", move, newId());
 };
+
+/** What somebody saw, into the Outbox for a phone out of signal: it is seen when it was written down, and reaches the
+ *  Vet when the phone is back in range. */
+export const queueSighting = async (sighting: {
+  tagNumber: string;
+  saw: string;
+  note?: string;
+}): Promise<void> => {
+  await held().add("observation", sighting, newId());
+};

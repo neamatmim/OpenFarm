@@ -18,6 +18,7 @@ import { reasonInput } from "../corrections";
 import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+import { assertOnTheirCases } from "../visiting-store";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -98,6 +99,7 @@ export const breedingRouter = {
         },
         async (tx) => {
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
+          assertOnTheirCases(context, her.id);
           if (!her.expectedCalvingAt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `${tagNumber} is not carrying, so there is no pregnancy to lose`,
@@ -173,11 +175,12 @@ export const breedingRouter = {
       const now = context.clock.now();
       const standing = await context.db.query.abortion.findFirst({
         where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, serviceId: true },
+        columns: { id: true, serviceId: true, animalId: true },
       });
       if (!standing) {
         throw new ORPCError("NOT_FOUND", { message: "No such abortion" });
       }
+      assertOnTheirCases(context, standing.animalId);
       await audited(context).write(
         {
           entity: "abortion",

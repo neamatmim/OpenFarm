@@ -6,6 +6,7 @@ import { buildContext } from "./context";
 import type { PushTransport } from "./push";
 import { carryTheDigest, sweepTheAlerts } from "./routers/alerts";
 import { raiseTheDaysWork } from "./routers/instances";
+import { endExpiredVisits } from "./routers/vet-cases";
 import type { SmsTransport } from "./sms";
 
 /** How often the server looks at the farm's clock: often enough that nothing waits long for its notice. */
@@ -17,7 +18,11 @@ export interface ScheduleStatus {
   lastError: string | null;
 }
 
-const status: ScheduleStatus = { lastRanAt: null, lastOkAt: null, lastError: null };
+const status: ScheduleStatus = {
+  lastRanAt: null,
+  lastOkAt: null,
+  lastError: null,
+};
 
 /** When the schedule last ran, last ran cleanly, and what went wrong if it did not — for the Owner's systems page. */
 export const scheduleStatus = (): Readonly<ScheduleStatus> => ({ ...status });
@@ -46,6 +51,7 @@ export const runTheSchedule = async ({
       return { ok: true };
     }
     const onTheFarm = { ...context, farm };
+    await endExpiredVisits(onTheFarm);
     await raiseTheDaysWork(onTheFarm);
     await sweepTheAlerts(onTheFarm);
     await carryTheDigest(onTheFarm);

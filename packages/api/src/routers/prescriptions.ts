@@ -22,6 +22,7 @@ import { protectedProcedure } from "../index";
 import { raiseDueInstances } from "../instances-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 import { contentOf, publishedContent } from "../sop-content";
+import { assertOnTheirCases } from "../visiting-store";
 
 /** A Prescription is the Vet's act in law, like the Diagnosis it answers (BVC Act 2019). */
 const VET_ONLY = {
@@ -195,6 +196,7 @@ export const prescriptionsRouter = {
             context.farm.id,
             input.animalTag.toUpperCase()
           );
+          assertOnTheirCases(context, her.id);
           const answers = await tx.query.diagnosis.findFirst({
             where: { id: input.diagnosisId, farmId: context.farm.id },
             columns: { animalId: true },
@@ -271,6 +273,7 @@ export const prescriptionsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
+      assertOnTheirCases(context, her.id);
       const rows = await context.db.query.prescription.findMany({
         where: { farmId: context.farm.id, animalId: her.id },
         orderBy: { prescribedAt: "desc" },

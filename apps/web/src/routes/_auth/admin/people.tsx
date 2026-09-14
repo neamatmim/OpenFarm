@@ -1,6 +1,6 @@
 import type { RoleName } from "@OpenFarm/api/roles";
 import { ROLES } from "@OpenFarm/api/roles";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatDayField } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import {
@@ -18,7 +18,7 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { KeyRound, MailCheck, UserX } from "lucide-react";
+import { CalendarClock, KeyRound, MailCheck, UserX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -320,6 +320,87 @@ const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
   );
 };
 
+/** A visiting Vet's visit: when it ends, a later day from the Owner, or an end today from either who runs the farm. */
+const VisitControls = ({
+  userId,
+  until,
+  isOwner,
+}: {
+  userId: string;
+  until: Date;
+  isOwner: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  const queryClient = useQueryClient();
+  // The visit's last farm day: it runs to the close of that day.
+  const lastDay = formatDayField(new Date(new Date(until).getTime() - 60_000));
+  const [day, setDay] = useState(lastDay);
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: orpc.people.key() });
+  const onError = (error: Error) =>
+    toast.error(error.message || t("common.error"));
+  const extend = useMutation(
+    orpc.vetCases.setVisitUntil.mutationOptions({
+      onSuccess: async () => {
+        toast.success(t("visit.changed"));
+        await refresh();
+      },
+      onError,
+    })
+  );
+  const end = useMutation(
+    orpc.vetCases.endVisit.mutationOptions({
+      onSuccess: async () => {
+        toast.success(t("visit.ended"));
+        await refresh();
+      },
+      onError,
+    })
+  );
+  return (
+    <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+      <StatusBadge icon={CalendarClock} tone="warning">
+        {t("visit.until", {
+          // The last day it lasts, not the midnight it ends at.
+          date: formatDate(
+            new Date(new Date(until).getTime() - 60_000),
+            language,
+            "date"
+          ),
+        })}
+      </StatusBadge>
+      {isOwner ? (
+        <span className="flex items-center gap-2">
+          <Input
+            aria-label={t("visit.lastDay")}
+            className="w-40"
+            onChange={(event) => setDay(event.target.value)}
+            type="date"
+            value={day}
+          />
+          <Button
+            disabled={extend.isPending || !day || day === lastDay}
+            onClick={() => extend.mutate({ userId, visitUntil: day })}
+            size="sm"
+            variant="outline"
+          >
+            {t("visit.change")}
+          </Button>
+        </span>
+      ) : null}
+      <Button
+        className="ms-auto"
+        disabled={end.isPending}
+        onClick={() => end.mutate({ userId })}
+        size="sm"
+        variant="ghost"
+      >
+        {t("visit.end")}
+      </Button>
+    </div>
+  );
+};
+
 const toggled = (roles: RoleName[], role: RoleName) =>
   roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role];
 
@@ -342,6 +423,7 @@ const PersonRow = ({
     roles: RoleName[];
     penIds: string[];
     disabledAt: Date | null;
+    visitUntil: Date | null;
   };
   pens: { id: string; name: string; shed: string }[];
   onSavePens: (add: string[], remove: string[]) => void;
@@ -389,8 +471,16 @@ const PersonRow = ({
           )}
         </div>
       </div>
+      {person.visitUntil && !disabled ? (
+        <VisitControls
+          isOwner={isOwner}
+          until={person.visitUntil}
+          userId={person.id}
+        />
+      ) : null}
       <TrainedOn userId={person.id} />
-      {disabled ? null : (
+      {/* A visiting Vet works Cases, not Pens. */}
+      {disabled || person.visitUntil ? null : (
         <PenPicker
           held={person.penIds}
           onSave={onSavePens}
@@ -610,6 +700,81 @@ const InviteCode = ({
   );
 };
 
+/** Which Roles an invite gives: the Owner picks; a Manager invites Barn Staff. */
+const InviteRoles = ({
+  ownerCanPickRoles,
+  roles,
+  onToggle,
+}: {
+  ownerCanPickRoles: boolean;
+  roles: RoleName[];
+  onToggle: (role: RoleName) => void;
+}) => {
+  const t = useT();
+  if (!ownerCanPickRoles) {
+    return (
+      <p className="text-muted-foreground text-sm sm:col-span-2">
+        {t("role.staff")}
+      </p>
+    );
+  }
+  return (
+    <fieldset className="flex flex-wrap gap-x-5 gap-y-1 sm:col-span-2">
+      <legend className="mb-1 text-sm font-medium">{t("people.roles")}</legend>
+      {ROLES.map((role) => (
+        <RoleChoice
+          checked={roles.includes(role)}
+          key={role}
+          onToggle={() => onToggle(role)}
+          role={role}
+        />
+      ))}
+    </fieldset>
+  );
+};
+
+/** Whether the person invited is a vet called in for a visit, and the last day it lasts. */
+const VisitChoice = ({
+  visiting,
+  onVisiting,
+  until,
+  onUntil,
+}: {
+  visiting: boolean;
+  onVisiting: (visiting: boolean) => void;
+  until: string;
+  onUntil: (day: string) => void;
+}) => {
+  const t = useT();
+  return (
+    <div className="flex flex-col gap-2 sm:col-span-2">
+      <label className="inline-flex items-center gap-2 text-sm font-medium">
+        <Checkbox
+          checked={visiting}
+          onCheckedChange={(checked) => onVisiting(Boolean(checked))}
+        />
+        {t("visit.invite")}
+      </label>
+      {visiting ? (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="invite-visit-until">{t("visit.lastDay")}</Label>
+          <Input
+            className="w-44"
+            id="invite-visit-until"
+            onChange={(event) => onUntil(event.target.value)}
+            required
+            type="date"
+            value={until}
+          />
+          <p className="text-muted-foreground text-xs">
+            {t("visit.inviteHint")}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const InviteForm = ({
   ownerCanPickRoles,
   onSent,
@@ -621,6 +786,9 @@ const InviteForm = ({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [roles, setRoles] = useState<RoleName[]>(["staff"]);
+  // A vet called in for a visit: invited as a Vet, until a day.
+  const [visiting, setVisiting] = useState(false);
+  const [visitUntil, setVisitUntil] = useState("");
   const [handOver, setHandOver] = useState<{
     name: string;
     email: string;
@@ -646,7 +814,11 @@ const InviteForm = ({
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault();
-          invite.mutate({ name, email, roles });
+          invite.mutate(
+            visiting
+              ? { name, email, roles: ["vet"], visitUntil }
+              : { name, email, roles }
+          );
         }}
       >
         <div className="space-y-1">
@@ -668,28 +840,24 @@ const InviteForm = ({
             value={email}
           />
         </div>
-        {ownerCanPickRoles ? (
-          <fieldset className="flex flex-wrap gap-x-5 gap-y-1 sm:col-span-2">
-            <legend className="mb-1 text-sm font-medium">
-              {t("people.roles")}
-            </legend>
-            {ROLES.map((role) => (
-              <RoleChoice
-                checked={roles.includes(role)}
-                key={role}
-                onToggle={() => setRoles((current) => toggled(current, role))}
-                role={role}
-              />
-            ))}
-          </fieldset>
-        ) : (
-          <p className="text-muted-foreground text-sm sm:col-span-2">
-            {t("role.staff")}
-          </p>
+        <VisitChoice
+          onUntil={setVisitUntil}
+          onVisiting={setVisiting}
+          until={visitUntil}
+          visiting={visiting}
+        />
+        {visiting ? null : (
+          <InviteRoles
+            onToggle={(role) => setRoles((current) => toggled(current, role))}
+            ownerCanPickRoles={ownerCanPickRoles}
+            roles={roles}
+          />
         )}
         <Button
           className="w-full sm:w-auto sm:justify-self-start"
-          disabled={invite.isPending || roles.length === 0}
+          disabled={
+            invite.isPending || (visiting ? !visitUntil : roles.length === 0)
+          }
           type="submit"
         >
           {invite.isPending ? <Spinner /> : null}
