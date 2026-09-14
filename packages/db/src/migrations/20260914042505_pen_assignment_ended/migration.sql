@@ -1,0 +1,1 @@
+ALTER TABLE "pen_assignment" ADD COLUMN "ended_at" timestamp;

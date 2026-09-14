@@ -4,6 +4,13 @@ import { shedPhone } from "@OpenFarm/db/schema/device";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import {
+  CODE_ATTEMPTS,
+  PIN_ATTEMPTS,
+  countFailure,
+  forgetFailures,
+  lockedOut,
+} from "../attempts";
 import { audited } from "../audit";
 import {
   checkPin,
@@ -97,6 +104,12 @@ export const devicesRouter = {
     .input(z.object({ code: z.string().trim().min(4).max(16) }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
+      // Enrolment codes are long and short-lived; this stops a script walking through them anyway.
+      if (lockedOut("claim", now, CODE_ATTEMPTS)) {
+        throw new ORPCError("TOO_MANY_REQUESTS", {
+          message: "Too many wrong codes — wait fifteen minutes",
+        });
+      }
       const phone = await context.db.query.shedPhone.findFirst({
         where: { enrolmentCode: input.code },
       });
@@ -106,6 +119,7 @@ export const devicesRouter = {
         !phone.enrolmentExpiresAt ||
         phone.enrolmentExpiresAt <= now
       ) {
+        countFailure("claim", now, CODE_ATTEMPTS);
         throw new ORPCError("NOT_FOUND", { message: "That code is not valid" });
       }
       const token = randomToken();
@@ -200,6 +214,13 @@ export const devicesRouter = {
     .handler(async ({ context, input }) => {
       const device = requireDevice(context.device);
       const now = context.clock.now();
+      const guesses = `pin:${device.id}:${input.userId}`;
+      if (lockedOut(guesses, now, PIN_ATTEMPTS)) {
+        throw new ORPCError("TOO_MANY_REQUESTS", {
+          message:
+            "Too many wrong PINs — wait fifteen minutes, or ask the Manager",
+        });
+      }
       const correct = await checkPin(
         context.db,
         device.farmId,
@@ -207,10 +228,12 @@ export const devicesRouter = {
         input.pin
       );
       if (!correct) {
+        countFailure(guesses, now, PIN_ATTEMPTS);
         throw new ORPCError("UNAUTHORIZED", {
           message: "That PIN is not right",
         });
       }
+      forgetFailures(guesses);
       const person = await context.db.query.user.findFirst({
         where: { id: input.userId },
         columns: { id: true, name: true, disabledAt: true },

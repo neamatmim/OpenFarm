@@ -1,16 +1,18 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray } from "@OpenFarm/db/operators";
+import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
-import { penAssignment } from "@OpenFarm/db/schema/herd";
+import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
 import { derivePinHash, isPin, randomPinSalt } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { CODE_ATTEMPTS, countFailure, lockedOut } from "../attempts";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { hashToken } from "../device";
 import { protectedProcedure, publicProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
 import { activeRolesFor, grantRoles, revokeRoles } from "../roles-store";
@@ -25,22 +27,18 @@ const personSnapshot = async (tx: Tx, userId: string) => {
   return row ? { name: row.name, disabledAt: row.disabledAt } : null;
 };
 
-/** Grants an approved invite's Roles to the person with that email, if they have signed up. */
-const grantInvite = async (
-  tx: Tx,
-  farmId: string,
-  email: string,
-  roles: readonly (typeof ROLES)[number][],
-  granter: { id: string; role: (typeof ROLES)[number] },
-  now: Date
-) => {
-  const person = await tx.query.user.findFirst({
-    where: { email },
-    columns: { id: true },
-  });
-  if (person) {
-    await grantRoles(tx, farmId, person.id, roles, granter, now);
-  }
+/** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 8;
+
+/** A fresh invitation code, and what the farm keeps of it. */
+const newInviteCode = async (): Promise<{ code: string; codeHash: string }> => {
+  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
+  const code = Array.from(
+    bytes,
+    (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]
+  ).join("");
+  return { code, codeHash: await hashToken(code) };
 };
 
 /** One teaching, as a person's row shows it. */
@@ -157,6 +155,7 @@ export const peopleRouter = {
         name: true,
         roles: true,
         invitedByRole: true,
+        acceptedAt: true,
         createdAt: true,
       } as const;
       const [people, pending, approved] = await Promise.all([
@@ -181,9 +180,8 @@ export const peopleRouter = {
           orderBy: { createdAt: "asc" },
         }),
       ]);
-      const knownEmails = new Set(people.map((p) => p.email));
       const assignments = await context.db.query.penAssignment.findMany({
-        where: { farmId },
+        where: { farmId, ...ACTIVE_ASSIGNMENT },
         columns: { userId: true, penId: true },
       });
       // What everybody has been taught, in one question rather than one per person.
@@ -216,7 +214,7 @@ export const peopleRouter = {
         })),
         pendingInvites: pending,
         /** Approved, but the person has not signed up yet — Roles are granted when they do. */
-        awaitingSignup: approved.filter((i) => !knownEmails.has(i.email)),
+        awaitingSignup: approved.filter((i) => !i.acceptedAt),
       };
     }),
 
@@ -291,6 +289,7 @@ export const peopleRouter = {
       const approvedNow = actor.role === "owner";
       const status = approvedNow ? "approved" : "pending";
       const id = uuidv7(now);
+      const { code, codeHash } = await newInviteCode();
       await audited(context).write(
         {
           entity: "invite",
@@ -315,14 +314,118 @@ export const peopleRouter = {
             invitedByRole: actor.role,
             approvedBy: approvedNow ? actor.id : null,
             approvedAt: approvedNow ? now : null,
+            codeHash,
             createdAt: now,
           });
-          if (approvedNow) {
-            await grantInvite(tx, farmId, input.email, input.roles, actor, now);
+        }
+      );
+      // The code is shown once, to whoever invited them, to hand over in person; the farm keeps only its hash.
+      return { id, status, code } as const;
+    }),
+
+  /**
+   * A new code for an invite not yet taken up — the first one lost, or never written down. The old code stops
+   * working at once.
+   */
+  reissueInviteCode: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      const { code, codeHash } = await newInviteCode();
+      await audited(context).write(
+        {
+          entity: "invite",
+          entityId: input.id,
+          action: "update",
+          after: { code: "reissued" },
+        },
+        async (tx) => {
+          const [row] = await tx
+            .update(invite)
+            .set({ codeHash })
+            .where(
+              and(
+                eq(invite.id, input.id),
+                eq(invite.farmId, farmId),
+                isNull(invite.acceptedAt)
+              )
+            )
+            .returning({ id: invite.id });
+          if (!row) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "No invite waiting to be taken up",
+            });
           }
         }
       );
-      return { id, status } as const;
+      return { id: input.id, code };
+    }),
+
+  /**
+   * Taking up an invite: the person signed in with the email they were invited under enters the code they were
+   * handed, and receives the invite's Roles. The code works once, only once the Owner has approved the invite, and
+   * only for that email — so somebody who signs up first with another person's address gets nothing.
+   */
+  acceptInvite: protectedProcedure
+    .use(requirePersonalSession())
+    .input(z.object({ code: z.string().trim().min(4).max(32) }))
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm?.id;
+      const email = context.session?.user.email.toLowerCase();
+      if (!(farmId && email)) {
+        throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+      }
+      const now = context.clock.now();
+      const guesses = `invite:${context.actor.id}`;
+      if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
+        throw new ORPCError("TOO_MANY_REQUESTS", {
+          message: "Too many wrong codes — wait fifteen minutes",
+        });
+      }
+      const codeHash = await hashToken(input.code.toUpperCase());
+      let roles: (typeof ROLES)[number][] = [];
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: context.actor.id,
+          action: "update",
+          after: () => Promise.resolve({ roles, source: "invite accepted" }),
+        },
+        async (tx) => {
+          const [row] = await tx
+            .update(invite)
+            .set({ codeHash: null, acceptedAt: now })
+            .where(
+              and(
+                eq(invite.farmId, farmId),
+                eq(invite.codeHash, codeHash),
+                eq(invite.email, email),
+                eq(invite.status, "approved"),
+                isNull(invite.acceptedAt)
+              )
+            )
+            .returning({ roles: invite.roles, approvedBy: invite.approvedBy });
+          if (!row) {
+            countFailure(guesses, now, CODE_ATTEMPTS);
+            throw new ORPCError("NOT_FOUND", {
+              message: "That code is not right",
+            });
+          }
+          roles = [...row.roles];
+          await grantRoles(
+            tx,
+            farmId,
+            context.actor.id,
+            roles,
+            { id: row.approvedBy ?? context.actor.id, role: "owner" },
+            now,
+            { reactivate: true }
+          );
+        }
+      );
+      return { roles };
     }),
 
   approveInvite: protectedProcedure
@@ -364,7 +467,6 @@ export const peopleRouter = {
           if (!row) {
             throw new ORPCError("NOT_FOUND");
           }
-          await grantInvite(tx, farmId, row.email, row.roles, actor, now);
         }
       );
       return { id: input.id, status: "approved" } as const;
@@ -398,11 +500,13 @@ export const peopleRouter = {
           })
         : [];
       if (pens.length !== named.length) {
-        throw new ORPCError("NOT_FOUND", { message: "No such Pen on this farm" });
+        throw new ORPCError("NOT_FOUND", {
+          message: "No such Pen on this farm",
+        });
       }
       const penIdsOf = async (tx: Tx) => {
         const rows = await tx.query.penAssignment.findMany({
-          where: { farmId, userId: input.userId },
+          where: { farmId, userId: input.userId, ...ACTIVE_ASSIGNMENT },
           columns: { penId: true },
         });
         return rows.map((row) => row.penId).toSorted();
@@ -421,36 +525,49 @@ export const peopleRouter = {
             columns: { id: true },
           });
           if (!person) {
-            throw new ORPCError("NOT_FOUND", { message: "Nobody on this farm by that name" });
+            throw new ORPCError("NOT_FOUND", {
+              message: "Nobody on this farm by that name",
+            });
           }
           const held = new Set(await penIdsOf(tx));
-          const adding = [...new Set(input.add)].filter((penId) => !held.has(penId));
+          const adding = [...new Set(input.add)].filter(
+            (penId) => !held.has(penId)
+          );
           if (adding.length > 0) {
-            await tx.insert(penAssignment).values(
-              adding.map((penId) => ({
-                id: uuidv7(now),
-                farmId,
-                userId: input.userId,
-                penId,
-                createdAt: now,
-              }))
-            );
+            // A Pen handed back reopens the old assignment rather than starting a second one.
+            await tx
+              .insert(penAssignment)
+              .values(
+                adding.map((penId) => ({
+                  id: uuidv7(now),
+                  farmId,
+                  userId: input.userId,
+                  penId,
+                  createdAt: now,
+                }))
+              )
+              .onConflictDoUpdate({
+                target: [penAssignment.userId, penAssignment.penId],
+                set: { endedAt: null },
+              });
           }
           if (input.remove.length > 0) {
             await tx
-              .delete(penAssignment)
+              .update(penAssignment)
+              .set({ endedAt: now })
               .where(
                 and(
                   eq(penAssignment.farmId, farmId),
                   eq(penAssignment.userId, input.userId),
-                  inArray(penAssignment.penId, input.remove)
+                  inArray(penAssignment.penId, input.remove),
+                  isNull(penAssignment.endedAt)
                 )
               );
           }
         }
       );
       const assigned = await context.db.query.penAssignment.findMany({
-        where: { farmId, userId: input.userId },
+        where: { farmId, userId: input.userId, ...ACTIVE_ASSIGNMENT },
         columns: { penId: true },
       });
       return { userId: input.userId, penIds: assigned.map((row) => row.penId) };

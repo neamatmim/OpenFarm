@@ -1,10 +1,9 @@
 import { auth } from "@OpenFarm/auth";
 import type { Database } from "@OpenFarm/db";
 import { createDb } from "@OpenFarm/db";
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { auditEvent } from "@OpenFarm/db/schema/audit";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ROLE, roleAssignment } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 import { env } from "@OpenFarm/env/server";
 
 import type { Clock } from "./clock";
@@ -145,54 +144,6 @@ export const productionWiring = () => ({
   sms: defaultSms(),
 });
 
-/** A person who was invited before they signed up: grant the approved invites' Roles the
- *  first time we see them. Idempotent; audited as a system action. */
-const grantPendingApprovals = async (
-  db: Database,
-  farmId: string,
-  person: { id: string; email: string },
-  now: Date
-): Promise<RoleName[]> => {
-  const approved = await db.query.invite.findMany({
-    where: { farmId, email: person.email, status: "approved" },
-    columns: { roles: true },
-  });
-  const roles = [...new Set(approved.flatMap((i) => i.roles))];
-  if (roles.length === 0) {
-    return [];
-  }
-  await db.transaction(async (tx) => {
-    await tx
-      .insert(roleAssignment)
-      .values(
-        roles.map((role) => ({
-          id: uuidv7(now),
-          farmId,
-          userId: person.id,
-          role,
-          grantedBy: null,
-          grantedByRole: null,
-          createdAt: now,
-        }))
-      )
-      .onConflictDoNothing();
-    await tx.insert(auditEvent).values({
-      id: uuidv7(now),
-      farmId,
-      entity: "user",
-      entityId: person.id,
-      action: "update",
-      actorId: null,
-      roleUsed: null,
-      recordedAt: now,
-      receivedAt: now,
-      before: { roles: [] },
-      after: { roles, source: "approved invite" },
-    });
-  });
-  return roles;
-};
-
 /** The Farm this request acts on: the phone's own Farm, or the single Farm that exists. */
 const resolveFarm = (db: Database, device: DeviceSession | null) =>
   device
@@ -211,7 +162,10 @@ const resolvePerson = (db: Database, userId: string, farmId: string) =>
     },
     with: {
       roles: { where: { farmId, ...ACTIVE_ROLE }, columns: { role: true } },
-      penAssignments: { where: { farmId }, columns: { penId: true } },
+      penAssignments: {
+        where: { farmId, ...ACTIVE_ASSIGNMENT },
+        columns: { penId: true },
+      },
     },
   });
 
@@ -295,16 +249,9 @@ export const buildContext = async ({
     return { ...empty, farm, person };
   }
 
-  let roles = row.roles.map((r) => r.role);
-  if (roles.length === 0) {
-    const everGranted = await db.query.roleAssignment.findFirst({
-      where: { farmId: farm.id, userId: row.id },
-      columns: { id: true },
-    });
-    if (!everGranted) {
-      roles = await grantPendingApprovals(db, farm.id, row, clock.now());
-    }
-  }
+  // Roles come from an invite only when the person takes it up with its code (people.acceptInvite): an email
+  // matching an invite proves nothing about who signed up with it.
+  const roles = row.roles.map((r) => r.role);
 
   return {
     ...base,

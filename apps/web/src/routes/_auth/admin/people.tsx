@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import {
   EmptyState,
   Loaded,
+  Notice,
   Page,
   PageHeader,
   Section,
@@ -93,6 +94,26 @@ const PeoplePage = () => {
     orpc.people.setPin.mutationOptions({
       ...trackUser("pin"),
       onSuccess: () => toast.success(t("people.pinSet")),
+      onError,
+    })
+  );
+  const [reissued, setReissued] = useState<{
+    name: string;
+    email: string;
+    code: string;
+  } | null>(null);
+  const reissue = useMutation(
+    orpc.people.reissueInviteCode.mutationOptions({
+      onMutate: ({ id }) => inFlight.start(`code:${id}`),
+      onSettled: (_data, _error, { id }) => inFlight.end(`code:${id}`),
+      onSuccess: ({ id, code }) => {
+        const waiting = list.data?.awaitingSignup.find((inv) => inv.id === id);
+        setReissued({
+          name: waiting?.name ?? "",
+          email: waiting?.email ?? "",
+          code,
+        });
+      },
       onError,
     })
   );
@@ -195,11 +216,25 @@ const PeoplePage = () => {
 
       {list.data?.awaitingSignup.length ? (
         <Section title={t("people.awaitingSignup")}>
-          <ul className="space-y-1 text-sm">
+          {reissued ? <InviteCode {...reissued} /> : null}
+          <ul className="divide-border flex flex-col divide-y text-sm">
             {list.data.awaitingSignup.map((inv) => (
-              <li key={inv.id} className="text-muted-foreground">
-                {inv.name} · {inv.email} ·{" "}
-                {inv.roles.map((r) => t(roleKey(r))).join(", ")}
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+                key={inv.id}
+              >
+                <span className="text-muted-foreground">
+                  {inv.name} · {inv.email} ·{" "}
+                  {inv.roles.map((r) => t(roleKey(r))).join(", ")}
+                </span>
+                <Button
+                  disabled={inFlight.has(`code:${inv.id}`)}
+                  onClick={() => reissue.mutate({ id: inv.id })}
+                  size="sm"
+                  variant="outline"
+                >
+                  {t("people.newCode")}
+                </Button>
               </li>
             ))}
           </ul>
@@ -515,6 +550,31 @@ const AccessButton = ({
   );
 };
 
+/** The code to hand the invited person, shown once: they sign up with their email and enter it. */
+const InviteCode = ({
+  name,
+  email,
+  code,
+}: {
+  name: string;
+  email: string;
+  code: string;
+}) => {
+  const t = useT();
+  return (
+    <Notice
+      icon={KeyRound}
+      title={t("people.handOverTitle", { name })}
+      tone="info"
+    >
+      <p>{t("people.handOverHow", { email })}</p>
+      <p className="text-foreground mt-2 font-mono text-2xl font-semibold tracking-[0.3em]">
+        {code}
+      </p>
+    </Notice>
+  );
+};
+
 const InviteForm = ({
   ownerCanPickRoles,
   onSent,
@@ -526,10 +586,16 @@ const InviteForm = ({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [roles, setRoles] = useState<RoleName[]>(["staff"]);
+  const [handOver, setHandOver] = useState<{
+    name: string;
+    email: string;
+    code: string;
+  } | null>(null);
   const invite = useMutation(
     orpc.people.invite.mutationOptions({
-      onSuccess: () => {
+      onSuccess: ({ code }) => {
         toast.success(t("people.inviteSent"));
+        setHandOver({ name, email, code });
         setName("");
         setEmail("");
         onSent();
@@ -540,6 +606,7 @@ const InviteForm = ({
 
   return (
     <Section title={t("people.invite")}>
+      {handOver ? <InviteCode {...handOver} /> : null}
       <form
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(event) => {

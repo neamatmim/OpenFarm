@@ -132,12 +132,16 @@ export const openTheFarm = async (
   const farmId = founded?.id ?? "";
 
   for (const person of PEOPLE.slice(1)) {
-    await owner.people.invite({
+    const { code } = await owner.people.invite({
       email: person.email,
       name: person.name,
       roles: [person.role],
     });
-    accounts[person.key] = await openAccount(db, person);
+    const account = await openAccount(db, person);
+    // They take the invite up with the code the Owner handed them, as a real newcomer does.
+    const newcomer = await clientOf(db, account, clock);
+    await newcomer.people.acceptInvite({ code });
+    accounts[person.key] = account;
   }
 
   await owner.farm.setIdentity({

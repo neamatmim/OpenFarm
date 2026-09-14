@@ -238,11 +238,16 @@ export const penAssignment = pgTable(
       .notNull()
       .references(() => pen.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    /** Assignments are never deleted; one taken away is ended, and handing the Pen back reopens it. */
+    endedAt: timestamp("ended_at"),
   },
   (table) => [
     uniqueIndex("pen_assignment_user_pen_uidx").on(table.userId, table.penId),
   ]
 );
+
+/** The one definition of "a Pen a person still looks after": not ended. Use in relational `where`s. */
+export const ACTIVE_ASSIGNMENT = { endedAt: { isNull: true } } as const;
 
 /** How a carcass left the farm. The burial rule is six feet, and an inspector may ask which
  *  of these it was — so these are the two the rule names, and the note carries the rest. */

@@ -66,6 +66,18 @@ export const bn: Record<MessageKey, string> = {
   "people.invite": "নতুন কাউকে আমন্ত্রণ",
   "people.inviteSend": "আমন্ত্রণ পাঠান",
   "people.inviteSent": "আমন্ত্রণ নথিভুক্ত হয়েছে",
+  "people.handOverTitle": "{name}-কে এই কোডটি দিন",
+  "people.handOverHow":
+    "তিনি {email} দিয়ে সাইন আপ করে কোডটি দেবেন। কোডটি একবারই কাজ করবে, শুধু ওই ইমেইলের জন্য। এটি শুধু এখনই দেখানো হচ্ছে।",
+  "people.newCode": "নতুন কোড",
+  "join.title": "খামারে যোগ দিন",
+  "join.subtitle":
+    "যিনি আপনাকে আমন্ত্রণ জানিয়েছেন তিনি একটি কোড দিয়েছেন। কাজ শুরু করতে কোডটি লিখুন।",
+  "join.code": "আমন্ত্রণ কোড",
+  "join.submit": "যোগ দিন",
+  "join.joined": "স্বাগতম — কাজ শুরু করতে পারেন",
+  "join.wrongEmail":
+    "{email} হিসেবে সাইন ইন করেছেন। কোডটি শুধু যে ইমেইলে আমন্ত্রণ পাঠানো হয়েছে সেটির জন্য কাজ করে।",
   "people.rolesSaved": "ভূমিকা সংরক্ষিত",
   "people.accessRemoved": "অ্যাক্সেস বন্ধ হয়েছে",
   "people.accessRestored": "অ্যাক্সেস ফিরেছে",

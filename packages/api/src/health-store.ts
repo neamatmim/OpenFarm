@@ -4,7 +4,7 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { dlsReport } from "@OpenFarm/db/schema/health";
-import { animal } from "@OpenFarm/db/schema/herd";
+import { ACTIVE_ASSIGNMENT, animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { DoseRoute } from "@OpenFarm/domain";
 import { withdrawalEndsAt } from "@OpenFarm/domain";
@@ -386,7 +386,11 @@ export const raiseWithdrawalAlerts = async (
   }
   const managers = await holdersOf(tx, farmId, ["manager"]);
   const milkers = await tx.query.penAssignment.findMany({
-    where: { farmId, penId: { in: ending.map((beast) => beast.penId) } },
+    where: {
+      farmId,
+      penId: { in: ending.map((beast) => beast.penId) },
+      ...ACTIVE_ASSIGNMENT,
+    },
     columns: { penId: true, userId: true },
   });
   const raised: RaisedAlert[] = [];

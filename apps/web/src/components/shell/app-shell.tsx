@@ -57,7 +57,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {children}
         </main>
       </SidebarInset>
-      {focused ? null : <BottomBar role={primaryRole(roles)} />}
+      {focused || roles.length === 0 ? null : (
+        <BottomBar role={primaryRole(roles)} />
+      )}
     </SidebarProvider>
   );
 };

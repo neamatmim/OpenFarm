@@ -2,9 +2,9 @@ import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
+import { appRouter } from "./routers/index";
 import { runTheSchedule, scheduleStatus } from "./scheduler";
 import { createTestClient } from "./test/client";
-import { appRouter } from "./routers/index";
 
 const suffix = `${Date.now()}`;
 
@@ -28,9 +28,14 @@ const roundSop = (): SopContent => ({
 
 describe("the farm's schedule, on the server", () => {
   it("raises the day's work with nobody opening the app, and says when it last ran", async () => {
-    const { client: owner } = await createTestClient(appRouter, { as: "owner" });
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+    });
     const shed = await owner.herd.createShed({ name: `schedule-${suffix}` });
-    const pen = await owner.herd.createPen({ shedId: shed.id, name: `পেন ${suffix}` });
+    const pen = await owner.herd.createPen({
+      shedId: shed.id,
+      name: `পেন ${suffix}`,
+    });
     await owner.animals.register({
       sex: "female",
       side: "dairy",
@@ -41,14 +46,22 @@ describe("the farm's schedule, on the server", () => {
     });
     const sop = await owner.sops.create({ content: roundSop() });
 
-    // Six in the morning in Dhaka on a day nobody has touched.
-    const clock = new FakeClock("2033-05-10T00:00:00.000Z");
+    // Six in the morning in Dhaka on a day nobody has touched — and before every other test file's days, so the
+    // sweep that comes with it makes nobody else's work late on the shared farm.
+    const clock = new FakeClock("2021-05-10T00:00:00.000Z");
     const ran = await runTheSchedule({ db: scratchDb(), clock });
 
     expect(ran.ok).toBe(true);
-    const { client: manager } = await createTestClient(appRouter, { as: "manager", clock });
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
     const today = await manager.instances.today({ penId: pen.id });
-    expect(today.some((row) => row.definitionId === sop.definitionId)).toBe(true);
-    expect(scheduleStatus().lastRanAt?.toISOString()).toBe(clock.now().toISOString());
+    expect(today.some((row) => row.definitionId === sop.definitionId)).toBe(
+      true
+    );
+    expect(scheduleStatus().lastRanAt?.toISOString()).toBe(
+      clock.now().toISOString()
+    );
   });
 });

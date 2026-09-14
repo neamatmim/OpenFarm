@@ -94,6 +94,11 @@ export const Route = createFileRoute("/_auth")({
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });
     }
+    // On a farm that exists, a person holding no Role has an invite to take up with its code — or none, and nothing
+    // here to do until somebody gives them one.
+    if (me.farm && me.roles.length === 0 && location.pathname !== "/join") {
+      throw redirect({ to: "/join" });
+    }
     setSignedInPerson(me.id);
     return { session, me };
   },

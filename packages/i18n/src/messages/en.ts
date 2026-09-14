@@ -62,6 +62,18 @@ export const en = {
   "people.invite": "Invite a person",
   "people.inviteSend": "Send invite",
   "people.inviteSent": "Invite recorded",
+  "people.handOverTitle": "Give {name} this code",
+  "people.handOverHow":
+    "They sign up with {email} and enter the code. It works once, and only for that email. It is shown only now.",
+  "people.newCode": "New code",
+  "join.title": "Join the farm",
+  "join.subtitle":
+    "You were given a code by whoever invited you. Enter it to start work.",
+  "join.code": "Invitation code",
+  "join.submit": "Join",
+  "join.joined": "Welcome — you can start work",
+  "join.wrongEmail":
+    "Signed in as {email}. The code only works for the email you were invited under.",
   "people.rolesSaved": "Roles saved",
   "people.accessRemoved": "Access removed",
   "people.accessRestored": "Access restored",
