@@ -25,7 +25,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Section } from "@/components/page";
+import { Page, PageHeader, Section } from "@/components/page";
+import { RaiseWork } from "@/components/raise-work";
 import { useT } from "@/i18n/language-provider";
 import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
@@ -152,21 +153,22 @@ const SopsPage = () => {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {t("sop.title")}
-        </h1>
-        {isOwner ? (
-          <Button
-            onClick={() =>
-              setDraft({ content: emptySop(), definitionId: null })
-            }
-          >
-            {t("sop.new")}
-          </Button>
-        ) : null}
-      </div>
+    <Page className="max-w-4xl">
+      <PageHeader
+        actions={
+          isOwner ? (
+            <Button
+              onClick={() =>
+                setDraft({ content: emptySop(), definitionId: null })
+              }
+            >
+              {t("sop.new")}
+            </Button>
+          ) : null
+        }
+        description={t("sop.subtitle")}
+        title={t("sop.title")}
+      />
 
       {sops.data?.length ? (
         <ul className="space-y-2">
@@ -177,9 +179,9 @@ const SopsPage = () => {
             return (
               <li
                 key={sop.id}
-                className="surface flex items-center justify-between p-4"
+                className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium">{content?.name.bn ?? "—"}</p>
                   <p className="text-muted-foreground text-sm">
                     {t("sop.version", {
@@ -189,19 +191,23 @@ const SopsPage = () => {
                   </p>
                 </div>
                 {content ? (
-                  <div className="flex items-center gap-2">
-                    <Link
-                      className="text-sm underline"
-                      params={{ definitionId: sop.id }}
-                      to="/cards/$definitionId"
+                  <div className="flex flex-wrap items-center gap-2">
+                    <RaiseWork definitionId={sop.id} />
+                    <Button
+                      render={
+                        <Link
+                          params={{ definitionId: sop.id }}
+                          to="/cards/$definitionId"
+                        />
+                      }
+                      variant="ghost"
                     >
                       {t("nav.card")}
-                    </Link>
+                    </Button>
                     <Button
                       onClick={() =>
                         setDraft({ content, definitionId: sop.id })
                       }
-                      size="sm"
                       variant="outline"
                     >
                       {isOwner ? t("sop.edit") : t("sop.propose")}
@@ -261,7 +267,7 @@ const SopsPage = () => {
           </p>
         )}
       </Section>
-    </div>
+    </Page>
   );
 };
 

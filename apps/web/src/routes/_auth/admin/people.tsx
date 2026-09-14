@@ -96,6 +96,20 @@ const PeoplePage = () => {
       onError,
     })
   );
+  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const pens = (sheds.data ?? []).flatMap((shed) =>
+    shed.pens.map((one) => ({ id: one.id, name: one.name, shed: shed.name }))
+  );
+  const assignPens = useMutation(
+    orpc.people.assignPens.mutationOptions({
+      ...trackUser("pens"),
+      onSuccess: () => {
+        toast.success(t("people.pensSaved"));
+        refresh();
+      },
+      onError,
+    })
+  );
   const assign = useMutation(
     orpc.people.assignRoles.mutationOptions({
       ...trackUser("roles"),
@@ -163,10 +177,15 @@ const PeoplePage = () => {
                 }
                 onDisable={() => disable.mutate({ userId: person.id })}
                 onEnable={() => enable.mutate({ userId: person.id })}
+                pens={pens}
+                onSavePens={(add, remove) =>
+                  assignPens.mutate({ userId: person.id, add, remove })
+                }
                 saving={{
                   roles: inFlight.has(`roles:${person.id}`),
                   pin: inFlight.has(`pin:${person.id}`),
                   access: inFlight.has(`access:${person.id}`),
+                  pens: inFlight.has(`pens:${person.id}`),
                 }}
               />
             ))}
@@ -248,21 +267,26 @@ const PersonRow = ({
   onDisable,
   onEnable,
   saving,
+  pens,
+  onSavePens,
 }: {
   person: {
     id: string;
     name: string;
     email: string;
     roles: RoleName[];
+    penIds: string[];
     disabledAt: Date | null;
   };
+  pens: { id: string; name: string; shed: string }[];
+  onSavePens: (add: string[], remove: string[]) => void;
   isOwner: boolean;
   isSelf: boolean;
   onSave: (roles: RoleName[]) => void;
   onSetPin: (pin: string) => Promise<unknown>;
   onDisable: () => void;
   onEnable: () => void;
-  saving: { roles: boolean; pin: boolean; access: boolean };
+  saving: { roles: boolean; pin: boolean; access: boolean; pens: boolean };
 }) => {
   const t = useT();
   const [roles, setRoles] = useState<RoleName[]>(person.roles);
@@ -296,6 +320,14 @@ const PersonRow = ({
         )}
       </div>
       <TrainedOn userId={person.id} />
+      {disabled ? null : (
+        <PenPicker
+          held={person.penIds}
+          onSave={onSavePens}
+          pens={pens}
+          saving={saving.pens}
+        />
+      )}
       {isOwner ? (
         <>
           <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-1">
@@ -356,6 +388,71 @@ const PersonRow = ({
         </p>
       )}
     </li>
+  );
+};
+
+/** The Pens whose work is this person's, grouped by shed; saved as what was added and what was taken away. */
+const PenPicker = ({
+  held,
+  pens,
+  onSave,
+  saving,
+}: {
+  held: string[];
+  pens: { id: string; name: string; shed: string }[];
+  onSave: (add: string[], remove: string[]) => void;
+  saving: boolean;
+}) => {
+  const t = useT();
+  const [chosen, setChosen] = useState(() => new Set(held));
+  const add = [...chosen].filter((id) => !held.includes(id));
+  const remove = held.filter((id) => !chosen.has(id));
+  const sheds = [...new Set(pens.map((pen) => pen.shed))];
+  return (
+    <fieldset className="flex flex-col gap-2 border-t pt-3">
+      <legend className="mb-1 text-sm font-medium">{t("people.pens")}</legend>
+      {held.length === 0 ? (
+        <p className="text-warning text-sm">{t("people.pensNone")}</p>
+      ) : null}
+      {sheds.map((shed) => (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1" key={shed}>
+          <span className="text-muted-foreground w-full text-sm">{shed}</span>
+          {pens
+            .filter((pen) => pen.shed === shed)
+            .map((pen) => (
+              <Label
+                className="flex min-h-11 cursor-pointer items-center gap-2 font-normal md:min-h-8"
+                key={pen.id}
+              >
+                <Checkbox
+                  checked={chosen.has(pen.id)}
+                  onCheckedChange={() =>
+                    setChosen((current) => {
+                      const next = new Set(current);
+                      if (next.has(pen.id)) {
+                        next.delete(pen.id);
+                      } else {
+                        next.add(pen.id);
+                      }
+                      return next;
+                    })
+                  }
+                />
+                {pen.name}
+              </Label>
+            ))}
+        </div>
+      ))}
+      <Button
+        className="w-fit"
+        disabled={saving || (add.length === 0 && remove.length === 0)}
+        onClick={() => onSave(add, remove)}
+        variant="outline"
+      >
+        {saving ? <Spinner /> : null}
+        {t("people.pensSave")}
+      </Button>
+    </fieldset>
   );
 };
 

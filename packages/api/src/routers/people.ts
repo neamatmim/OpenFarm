@@ -1,8 +1,9 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
+import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { derivePinHash, isPin, randomPinSalt } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -181,6 +182,10 @@ export const peopleRouter = {
         }),
       ]);
       const knownEmails = new Set(people.map((p) => p.email));
+      const assignments = await context.db.query.penAssignment.findMany({
+        where: { farmId },
+        columns: { userId: true, penId: true },
+      });
       // What everybody has been taught, in one question rather than one per person.
       const taught = await context.db.query.sopTraining.findMany({
         where: { farmId },
@@ -203,6 +208,10 @@ export const peopleRouter = {
         people: people.map((p) => ({
           ...p,
           roles: p.roles.map((r) => r.role),
+          /** The Pens whose work is theirs. */
+          penIds: assignments
+            .filter((row) => row.userId === p.id)
+            .map((row) => row.penId),
           training: theirTraining.get(p.id) ?? [],
         })),
         pendingInvites: pending,
@@ -363,6 +372,90 @@ export const peopleRouter = {
 
   /** Owner sets a person's Roles outright. Kept Roles are untouched; revoked ones keep their
    *  history; the farm always keeps at least one other Owner. */
+  /**
+   * Which Pens' work is a person's: the Manager adds and takes away Pens, and the change is in the trail with the
+   * whole list either side of it. A Staff member sees the work, animals and withdrawals of their Pens only, so a
+   * newcomer with no Pens has nothing to do until this is done.
+   */
+  assignPens: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        userId: z.string(),
+        add: z.array(z.string()).max(200),
+        remove: z.array(z.string()).max(200),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      const now = context.clock.now();
+      const named = [...new Set([...input.add, ...input.remove])];
+      const pens = named.length
+        ? await context.db.query.pen.findMany({
+            where: { farmId, id: { in: named } },
+            columns: { id: true },
+          })
+        : [];
+      if (pens.length !== named.length) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Pen on this farm" });
+      }
+      const penIdsOf = async (tx: Tx) => {
+        const rows = await tx.query.penAssignment.findMany({
+          where: { farmId, userId: input.userId },
+          columns: { penId: true },
+        });
+        return rows.map((row) => row.penId).toSorted();
+      };
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: input.userId,
+          action: "update",
+          before: async (tx) => ({ penIds: await penIdsOf(tx) }),
+          after: async (tx) => ({ penIds: await penIdsOf(tx) }),
+        },
+        async (tx) => {
+          const person = await tx.query.user.findFirst({
+            where: { id: input.userId },
+            columns: { id: true },
+          });
+          if (!person) {
+            throw new ORPCError("NOT_FOUND", { message: "Nobody on this farm by that name" });
+          }
+          const held = new Set(await penIdsOf(tx));
+          const adding = [...new Set(input.add)].filter((penId) => !held.has(penId));
+          if (adding.length > 0) {
+            await tx.insert(penAssignment).values(
+              adding.map((penId) => ({
+                id: uuidv7(now),
+                farmId,
+                userId: input.userId,
+                penId,
+                createdAt: now,
+              }))
+            );
+          }
+          if (input.remove.length > 0) {
+            await tx
+              .delete(penAssignment)
+              .where(
+                and(
+                  eq(penAssignment.farmId, farmId),
+                  eq(penAssignment.userId, input.userId),
+                  inArray(penAssignment.penId, input.remove)
+                )
+              );
+          }
+        }
+      );
+      const assigned = await context.db.query.penAssignment.findMany({
+        where: { farmId, userId: input.userId },
+        columns: { penId: true },
+      });
+      return { userId: input.userId, penIds: assigned.map((row) => row.penId) };
+    }),
+
   assignRoles: protectedProcedure
     .use(requireRole("owner"))
     .use(requirePersonalSession())
