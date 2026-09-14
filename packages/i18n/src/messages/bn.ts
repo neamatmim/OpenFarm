@@ -220,6 +220,11 @@ export const bn: Record<MessageKey, string> = {
   "device.wrongPin": "পিন ঠিক নয়",
   "device.locked": "লক করা",
   "device.lock": "লক করুন",
+  "device.onShedPhone": "শেড ফোনে কাজ করছেন",
+  "device.startWork": "কাজ শুরু করুন",
+  "device.switchPerson": "লক / অন্য জন",
+  "device.notProved":
+    "পিন দেওয়ার সময় নেটওয়ার্ক ছিল না — কাজ ফোনে থাকছে, নেটওয়ার্ক এলে যাবে",
   "device.workingAs": "{name} হিসেবে কাজ করছেন",
   "device.noRoster": "এখনো কারো পিন নেই। ম্যানেজারকে বলুন।",
   "device.offlineRoster": "এই ফোনে সংরক্ষিত তালিকা ব্যবহার হচ্ছে",
@@ -775,7 +780,8 @@ export const bn: Record<MessageKey, string> = {
   "work.title": "আজকের কাজ",
   "work.raise": "এখন কাজ তুলুন",
   "work.raiseTitle": "প্লেবুকের একটি কাজ তুলুন",
-  "work.raiseHint": "যে কাজ ঘড়ি ধরে আসে না — ওজন নেওয়া, টিকা দেওয়া, প্রসব পেন, গুদাম গণনা। সেই পেনের আজকের তালিকায় যোগ হবে।",
+  "work.raiseHint":
+    "যে কাজ ঘড়ি ধরে আসে না — ওজন নেওয়া, টিকা দেওয়া, প্রসব পেন, গুদাম গণনা। সেই পেনের আজকের তালিকায় যোগ হবে।",
   "work.raiseSop": "কী করতে হবে",
   "work.raisePen": "কোন পেনের জন্য",
   "work.raiseSubmit": "কাজ তুলুন",

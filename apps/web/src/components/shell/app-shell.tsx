@@ -5,6 +5,7 @@ import { useMatches } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { useT } from "@/i18n/language-provider";
+import { useShedPhoneKeeper } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
 import { AppSidebar } from "./app-sidebar";
@@ -27,6 +28,7 @@ declare module "@tanstack/react-router" {
  */
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const t = useT();
+  useShedPhoneKeeper();
   const me = useQuery(orpc.people.me.queryOptions());
   const focused = useMatches({
     select: (matches) => matches.some((match) => match.staticData?.focusedWork),

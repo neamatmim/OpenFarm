@@ -103,6 +103,27 @@ const milk = (litres: number) => ({
 });
 
 describe("recording with no signal", () => {
+  it("names whoever was working when each entry was recorded, not whoever is working when it is sent", async () => {
+    let working = "staff-a";
+    const outbox = new Outbox({
+      storage,
+      transport: farm.transport,
+      retry: new DefaultRetryPolicy(5, false),
+      now: () => at,
+      actorOf: () => working,
+    });
+    await outbox.add("step_completion", milk(11), "a");
+    working = "staff-b";
+    await outbox.add("step_completion", milk(9), "b");
+
+    await outbox.flush();
+
+    expect(farm.sends[0]?.entries.map((entry) => entry.actorId)).toEqual([
+      "staff-a",
+      "staff-b",
+    ]);
+  });
+
   it("keeps entries in the order they happened, and sends them that way", async () => {
     const outbox = outboxOn();
     await outbox.add("step_completion", milk(11), "a");

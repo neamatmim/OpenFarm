@@ -8,13 +8,19 @@ import {
   DropdownMenuTrigger,
 } from "@OpenFarm/ui/components/dropdown-menu";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, LogOut, Settings } from "lucide-react";
+import { ChevronDown, Lock, LogOut, Settings } from "lucide-react";
 
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { lockThisPhone } from "@/lib/device";
 import { useInTheBrowser } from "@/lib/in-the-browser";
+import {
+  lockOnTheFarm,
+  useActiveWorker,
+  useIsShedPhone,
+} from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
 /** The first letters of a person's first two names, which is how a shared phone tells whose session it is at a glance. */
@@ -53,6 +59,54 @@ const UserMenu = () => {
   const { data: session, isPending } = authClient.useSession();
   const me = useQuery(orpc.people.me.queryOptions());
   const inTheBrowser = useInTheBrowser();
+  const isShedPhone = useIsShedPhone();
+  const worker = useActiveWorker();
+  const queryClient = useQueryClient();
+
+  if (inTheBrowser && isShedPhone) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              aria-label={t("auth.myAccount")}
+              className="gap-2 ps-1.5 pe-2"
+              variant="ghost"
+            />
+          }
+        >
+          <Initials name={worker?.name ?? "?"} />
+          <span className="hidden max-w-32 truncate sm:inline">
+            {worker?.name ?? ""}
+          </span>
+          <ChevronDown aria-hidden className="text-muted-foreground size-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <div className="flex items-center gap-3 px-2 py-2.5">
+            <Initials large name={worker?.name ?? "?"} />
+            <div className="flex min-w-0 flex-col">
+              <p className="truncate font-medium">{worker?.name}</p>
+              <p className="text-muted-foreground truncate text-sm">
+                {t("device.onShedPhone")}
+              </p>
+            </div>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              lockThisPhone();
+              queryClient.clear();
+              void lockOnTheFarm();
+              void navigate({ to: "/device" });
+            }}
+          >
+            <Lock aria-hidden />
+            {t("device.switchPerson")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
   if (!inTheBrowser || isPending) {
     return <Skeleton className="h-9 w-28 rounded-md" />;

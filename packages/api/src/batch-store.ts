@@ -241,9 +241,12 @@ const applyEntries = async (
   tx: Tx,
   context: Recorder,
   input: { key: string; entries: Entry[]; sentAt?: Date },
-  { receivedAt, sourceKey }: { receivedAt: Date; sourceKey: string }
+  {
+    receivedAt,
+    sourceKey,
+    recorderFor,
+  }: { receivedAt: Date; sourceKey: string; recorderFor: RecorderFor }
 ): Promise<EntryResult[]> => {
-  const audit = audited(context);
   // Asked once, of the phone, not of each entry: it is one clock.
   const skewed =
     input.sentAt !== undefined &&
@@ -297,10 +300,12 @@ const applyEntries = async (
     const eventId = uuidv7(receivedAt);
     try {
       // oxlint-disable-next-line no-await-in-loop
+      const recorder = await recorderFor(entry);
+      // oxlint-disable-next-line no-await-in-loop
       await tx.transaction(async (entryTx) => {
         const target = await applyEntry(
           entryTx,
-          context,
+          recorder,
           entry,
           receivedAt,
           eventId
@@ -310,7 +315,7 @@ const applyEntries = async (
           // which is what stops it being offered for ever.
           return;
         }
-        await audit.recordEvent(
+        await audited(recorder).recordEvent(
           entryTx,
           {
             entity: target.entity,
@@ -374,6 +379,9 @@ const applyEntries = async (
   return results;
 };
 
+/** Who an entry is to be written as: the person who recorded it, which on a Shed Phone need not be whoever sent it. */
+export type RecorderFor = (entry: Entry) => Promise<Recorder>;
+
 /**
  * A whole batch, in one transaction. Held here rather than in the router because a router
  * that opens its own transaction is a router that can write without a trail — the rule the
@@ -387,7 +395,13 @@ export const applyBatch = async (
     receivedAt,
     sourceKey,
     requestHash,
-  }: { receivedAt: Date; sourceKey: string; requestHash: string }
+    recorderFor,
+  }: {
+    receivedAt: Date;
+    sourceKey: string;
+    requestHash: string;
+    recorderFor: RecorderFor;
+  }
 ): Promise<{
   results: EntryResult[];
   /** The notice raised for whoever sent the batch, when the farm refused any of it. */
@@ -409,6 +423,7 @@ export const applyBatch = async (
     const applied = await applyEntries(tx, context, input, {
       receivedAt,
       sourceKey,
+      recorderFor,
     });
     await recordBatchResponse(tx, input.key, context.farm.id, {
       results: applied,

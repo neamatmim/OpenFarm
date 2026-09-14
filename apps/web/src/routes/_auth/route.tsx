@@ -3,6 +3,13 @@ import { useEffect } from "react";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { getUser } from "@/functions/get-user";
+import {
+  getActiveUser,
+  getAutoLockMinutes,
+  getDeviceToken,
+  isLocked,
+  setSignedInPerson,
+} from "@/lib/device";
 import { installShell, keepStorage } from "@/lib/install";
 
 /**
@@ -38,6 +45,28 @@ export const Route = createFileRoute("/_auth")({
     const known = context.queryClient.getQueryData(
       context.orpc.people.me.queryKey()
     );
+    // A Shed Phone has no personal sign-in: it works as whoever is PIN-switched in, and a locked phone goes back to
+    // its PIN screen rather than to a login it has no account for (ADR 0003).
+    if (getDeviceToken()) {
+      const active = getActiveUser();
+      if (isLocked(active, getAutoLockMinutes())) {
+        throw redirect({ to: "/device" });
+      }
+      if (known && known.id === active?.userId) {
+        return { session: null, me: known };
+      }
+      try {
+        const me = await context.queryClient.fetchQuery({
+          ...context.orpc.people.me.queryOptions(),
+          staleTime: 0,
+        });
+        return { session: null, me };
+      } catch {
+        // No signal and nothing read for this person yet: the phone still holds their work, but it has no screen
+        // to show until the farm has said who they are.
+        throw redirect({ to: "/device" });
+      }
+    }
     let session: Awaited<ReturnType<typeof getUser>> = null;
     try {
       session = await getUser();
@@ -65,6 +94,7 @@ export const Route = createFileRoute("/_auth")({
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });
     }
+    setSignedInPerson(me.id);
     return { session, me };
   },
 });

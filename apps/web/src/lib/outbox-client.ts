@@ -7,6 +7,7 @@ import {
 
 import { client } from "@/utils/orpc";
 
+import { getActiveUser, getDeviceToken, getSignedInPerson } from "./device";
 import type { Transport } from "./outbox";
 import { Outbox } from "./outbox";
 
@@ -47,6 +48,11 @@ export const phoneOutbox = (): Outbox | null => {
     // twice, under two keys, and the farm would have no way to know they were one thing.
     leader: new WebLocksLeader("openfarm-outbox"),
     online: new WebOnlineDetector(),
+    // A Shed Phone's work is its switched-in person's; anywhere else it is the signed-in person's.
+    actorOf: () =>
+      getDeviceToken()
+        ? (getActiveUser()?.userId ?? null)
+        : getSignedInPerson(),
   });
   return outbox;
 };

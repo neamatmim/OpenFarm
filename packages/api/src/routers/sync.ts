@@ -1,7 +1,11 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { RecorderFor } from "../batch-store";
 import { applyBatch } from "../batch-store";
+import type { Recorder } from "../completion-store";
+import type { Context } from "../context";
+import { buildContext } from "../context";
 import { protectedProcedure } from "../index";
 import { pushRaised } from "../push-send";
 import { requireRole } from "../roles";
@@ -12,6 +16,56 @@ import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
 /** How much one batch may carry. A phone out of signal for a week has plenty to send, but it
  *  sends it in batches: one transaction should stay a size a farm's database can hold. */
 const BATCH_MAX = 200;
+
+/**
+ * Who each entry is written as. Unnamed, or naming the sender, it is the sender's. From a Shed Phone it may name
+ * somebody else who works on that phone — the person switched in when it was recorded, offline, before whoever is
+ * switched in now — provided they hold a PIN on this farm and still have work here. From a person's own phone it
+ * may name nobody but them.
+ */
+const recordersFor = (context: Recorder): RecorderFor => {
+  const known = new Map<string, Promise<Recorder>>();
+  const asSomebodyElse = async (actorId: string): Promise<Recorder> => {
+    if (!context.device) {
+      throw new ORPCError("FORBIDDEN", {
+        message:
+          "This was recorded by somebody else; it can only come from their own phone or a Shed Phone",
+      });
+    }
+    const pin = await context.db.query.staffPin.findFirst({
+      where: { farmId: context.farm.id, userId: actorId },
+      columns: { userId: true },
+    });
+    if (!pin) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Recorded under somebody who does not work on this phone",
+      });
+    }
+    const theirs: Context = await buildContext({
+      session: null,
+      device: { ...context.device, activeUserId: actorId },
+      deviceStatus: "ok",
+      clock: context.clock,
+      db: context.db,
+      push: context.push,
+      sms: context.sms,
+    });
+    if (!(theirs.actor && theirs.farm) || theirs.roles.length === 0) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Recorded under somebody who no longer works on this farm",
+      });
+    }
+    return theirs as Recorder;
+  };
+  return (entry) => {
+    if (!entry.actorId || entry.actorId === context.actor.id) {
+      return Promise.resolve(context);
+    }
+    const found = known.get(entry.actorId) ?? asSomebodyElse(entry.actorId);
+    known.set(entry.actorId, found);
+    return found;
+  };
+};
 
 export const syncRouter = {
   /**
@@ -69,6 +123,7 @@ export const syncRouter = {
         receivedAt,
         sourceKey: sourceKeyFor(context),
         requestHash,
+        recorderFor: recordersFor(context),
       });
       // Outside the transaction, like every other notice: an entry the farm refused is work
       // somebody believes they have done, and they are told at once.

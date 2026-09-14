@@ -219,6 +219,11 @@ export const en = {
   "device.wrongPin": "That PIN is not right",
   "device.locked": "Locked",
   "device.lock": "Lock",
+  "device.onShedPhone": "Working on the Shed Phone",
+  "device.startWork": "Start work",
+  "device.switchPerson": "Lock / switch person",
+  "device.notProved":
+    "No signal when the PIN was entered — work is kept and goes when signal returns",
   "device.workingAs": "Working as {name}",
   "device.noRoster": "Nobody has a PIN yet. Ask the manager.",
   "device.offlineRoster": "Using the list saved on this phone",
@@ -228,7 +233,8 @@ export const en = {
   "people.pinHelp": "Four digits",
   "nav.sops": "Playbook",
   "sop.title": "Playbook",
-  "sop.subtitle": "Everything the farm does, written down — what raises it, who does it, who checks it.",
+  "sop.subtitle":
+    "Everything the farm does, written down — what raises it, who does it, who checks it.",
   "sop.none": "No procedures yet",
   "sop.version": "Version {number}",
   "sop.new": "New procedure",
@@ -795,7 +801,8 @@ export const en = {
   "work.title": "Today's work",
   "work.raise": "Raise work now",
   "work.raiseTitle": "Raise a piece of the Playbook",
-  "work.raiseHint": "For work the clock does not raise — a weigh-in, a vaccination campaign, the calving pen, a stock count. It goes on today's list for that Pen.",
+  "work.raiseHint":
+    "For work the clock does not raise — a weigh-in, a vaccination campaign, the calving pen, a stock count. It goes on today's list for that Pen.",
   "work.raiseSop": "What to do",
   "work.raisePen": "For which Pen",
   "work.raiseSubmit": "Raise it",

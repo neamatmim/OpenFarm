@@ -23,6 +23,8 @@ export interface OutboxEntry {
   body: Record<string, unknown>;
   /** The phone's clock, at the moment the person recorded it. */
   recordedAt: string;
+  /** Who recorded it: on a Shed Phone, whoever was PIN-switched in at that moment. */
+  actorId?: string;
 }
 
 /** An entry the phone is still holding, and what the farm said about it. */
@@ -160,6 +162,8 @@ export interface OutboxOptions {
   now?: () => Date;
   /** The key for a send. Injectable so a test can name them. */
   newKey?: () => string;
+  /** Who is working on this phone right now, so each entry carries the person who recorded it. */
+  actorOf?: () => string | null;
 }
 
 /**
@@ -231,12 +235,14 @@ export class Outbox {
     id: string
   ): Promise<OutboxEntry> {
     const seq = await this.takeSeq();
+    const actorId = this.options.actorOf?.() ?? undefined;
     const entry: OutboxEntry = {
       id,
       seq,
       kind,
       body,
       recordedAt: this.now().toISOString(),
+      ...(actorId ? { actorId } : {}),
     };
     await this.write(entryKey(seq, id), entry);
     return entry;
@@ -379,6 +385,7 @@ export class Outbox {
           seq: entry.seq,
           kind: entry.kind,
           recordedAt: entry.recordedAt,
+          ...(entry.actorId ? { actorId: entry.actorId } : {}),
         })),
       });
       // Written down first. From here the batch is settled business whatever becomes of the

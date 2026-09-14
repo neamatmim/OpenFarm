@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
@@ -14,8 +14,11 @@ import {
   getActiveUser,
   getDeviceToken,
   getRoster,
+  holdUnprovedSwitch,
   isLocked,
+  lockThisPhone,
   setActiveUser,
+  setAutoLockMinutes,
   setDeviceToken,
   setRoster,
   setSwitchToken,
@@ -25,6 +28,7 @@ import {
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
 import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
+import { lockOnTheFarm } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
 const PIN_LENGTH = 4;
@@ -56,6 +60,12 @@ const DevicePage = () => {
   });
   const autoLockMinutes =
     where.data?.autoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES;
+  useEffect(() => {
+    if (where.data?.autoLockMinutes) {
+      setAutoLockMinutes(where.data.autoLockMinutes);
+    }
+  }, [where.data?.autoLockMinutes]);
+  const navigate = useNavigate();
 
   // Refresh the roster whenever there is signal; fall back to what the phone saved.
   const roster = useQuery({
@@ -119,9 +129,12 @@ const DevicePage = () => {
           pin: typed,
         });
         setSwitchToken(proved.token);
+        holdUnprovedSwitch(null);
       } catch {
-        // Offline: work is captured locally and syncs once there is signal.
+        // Offline: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
+        // as soon as the phone finds signal.
         setSwitchToken(null);
+        holdUnprovedSwitch({ userId: entry.userId, pin: typed });
       }
       setActiveUser({
         userId: entry.userId,
@@ -146,8 +159,9 @@ const DevicePage = () => {
         }
       }
       setChosen(null);
+      await navigate({ to: "/today" });
     },
-    [switchUser, listenAgain, queryClient, t]
+    [switchUser, listenAgain, queryClient, t, navigate]
   );
 
   if (!token) {
@@ -193,11 +207,19 @@ const DevicePage = () => {
           {where.data?.device?.name}
         </p>
         <Button
+          className="w-full"
+          onClick={() => navigate({ to: "/today" })}
+          size="lg"
+        >
+          {t("device.startWork")}
+        </Button>
+        <Button
           variant="outline"
           className="w-full"
           onClick={() => {
-            setActiveUser(null);
-            setSwitchToken(null);
+            lockThisPhone();
+            void queryClient.clear();
+            void lockOnTheFarm();
           }}
         >
           {t("device.lock")}
