@@ -127,6 +127,7 @@ const OwnerHome = () => {
         <Section id="needs-you" title={t("owner.needsYou")}>
           {waiting === 0 ? (
             <EmptyState
+              bare
               description={t("owner.allFineHint")}
               icon={CircleCheck}
               title={t("owner.allFine")}

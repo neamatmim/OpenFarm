@@ -394,7 +394,7 @@ const AccessButton = ({
           </Button>
         }
       />
-      <DialogContent>
+      <DialogContent closeLabel={t("common.close")}>
         <DialogHeader>
           <DialogTitle>{t("people.disableTitle", { name })}</DialogTitle>
           <DialogDescription>{t("people.disableWhy")}</DialogDescription>
