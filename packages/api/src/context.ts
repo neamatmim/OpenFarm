@@ -137,6 +137,14 @@ const defaultDb = (): Database => {
   return productionDb;
 };
 
+/** The database and the ways a notice leaves the farm, as the running server has them — for work the server does on
+ *  its own timer rather than for a request. */
+export const productionWiring = () => ({
+  db: defaultDb(),
+  push: defaultPush(),
+  sms: defaultSms(),
+});
+
 /** A person who was invited before they signed up: grant the approved invites' Roles the
  *  first time we see them. Idempotent; audited as a system action. */
 const grantPendingApprovals = async (

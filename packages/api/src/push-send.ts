@@ -24,7 +24,6 @@ import { carryTheDigest, claimTheDigest, pushAlerts } from "./push-store";
 export const pushRaised = async (
   context: Context & {
     farm: NonNullable<Context["farm"]>;
-    actor: NonNullable<Context["actor"]>;
   },
   raised: RaisedAlert[],
   now: Date
@@ -88,7 +87,6 @@ export const pushRaised = async (
 export const carryThePost = async (
   context: Context & {
     farm: NonNullable<Context["farm"]>;
-    actor: NonNullable<Context["actor"]>;
   },
   now: Date,
   upTo: Date

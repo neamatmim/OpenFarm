@@ -960,6 +960,10 @@ export const en = {
   "push.why":
     "Late work and escalations reach you here, even when the app is closed.",
   "backups.title": "Copies of the farm",
+  "backups.subtitle": "Whether the farm's records are being copied off this machine, and whether its own clock is running.",
+  "schedule.lastRan": "The farm's schedule last ran at {when}",
+  "schedule.notYet": "The farm's schedule has not run since the server started",
+  "schedule.what": "Every five minutes the server raises the day's work, tells people about late work and ending withdrawals, and carries the digest.",
   "backups.lastGood": "Last good copy {when}",
   "backups.never": "No copy has ever worked",
   "backups.stale": "No copy for {nights} nights",
