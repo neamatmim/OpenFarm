@@ -138,6 +138,7 @@ const ManagerHome = () => {
         >
           {waiting === 0 ? (
             <EmptyState
+              bare
               description={t("home.allClearHint")}
               icon={CircleCheck}
               title={t("home.allClear")}
@@ -337,7 +338,7 @@ const ManagerHome = () => {
           title={t("home.pens")}
         >
           {pens.length === 0 ? (
-            <EmptyState icon={Warehouse} title={t("home.nothingRaised")} />
+            <EmptyState bare icon={Warehouse} title={t("home.nothingRaised")} />
           ) : (
             <RecordList>
               {pens.map((pen) => (

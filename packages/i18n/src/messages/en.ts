@@ -325,6 +325,7 @@ export const en = {
   "digest.sopProposed": "{count} proposals waiting",
   "alerts.sopPublished": "{sopBn} — new version {number}",
   "common.cancel": "Cancel",
+  "common.close": "Close",
   "nav.signOff": "To check",
   "nav.backups": "Backups",
   "nav.settings": "Settings",

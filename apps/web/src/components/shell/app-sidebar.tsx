@@ -45,10 +45,10 @@ export const AppSidebar = ({
   };
 
   return (
-    <Sidebar collapsible="icon" data-app-chrome>
-      <SidebarHeader className="px-3 pt-4 pb-2">
+    <Sidebar collapsible="icon" data-app-chrome mobileTitle={t("nav.menu")}>
+      <SidebarHeader className="px-3 pt-4 pb-2 group-data-[collapsible=icon]:px-2.5">
         <Link
-          className="focus-visible:ring-sidebar-ring flex items-center gap-3 rounded-lg px-1 py-1 outline-none focus-visible:ring-2"
+          className="focus-visible:ring-sidebar-ring flex items-center gap-3 rounded-lg px-1 py-1 outline-none group-data-[collapsible=icon]:px-0 focus-visible:ring-2"
           onClick={close}
           to="/"
         >
@@ -67,7 +67,10 @@ export const AppSidebar = ({
       </SidebarHeader>
       <SidebarContent className="gap-0 pb-2">
         {navFor(roles).map((group) => (
-          <SidebarGroup className="py-1.5" key={group.label}>
+          <SidebarGroup
+            className="py-1.5 group-data-[collapsible=icon]:px-2.5"
+            key={group.label}
+          >
             <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-semibold">
               {t(group.label)}
             </SidebarGroupLabel>
@@ -76,7 +79,7 @@ export const AppSidebar = ({
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
-                      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 text-[0.9rem] data-active:font-medium"
+                      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 text-[0.9rem] group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium"
                       isActive={isHere(item.to, pathname)}
                       render={<Link onClick={close} to={item.to} />}
                       tooltip={t(item.label)}
@@ -91,11 +94,11 @@ export const AppSidebar = ({
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter className="border-sidebar-border border-t p-2">
+      <SidebarFooter className="border-sidebar-border border-t p-2 group-data-[collapsible=icon]:px-2.5">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="h-9"
+              className="h-9 group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center"
               isActive={isHere("/settings", pathname)}
               render={<Link onClick={close} to="/settings" />}
               tooltip={t("nav.settings")}
@@ -106,7 +109,7 @@ export const AppSidebar = ({
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      <SidebarRail />
+      <SidebarRail aria-label={t("nav.menu")} title={t("nav.menu")} />
     </Sidebar>
   );
 };

@@ -166,7 +166,7 @@ const MoneyPage = () => {
       >
         <Section className="min-w-0" id="register" title={t("money.register")}>
           {rows.length === 0 ? (
-            <EmptyState icon={Wallet} title={t("money.none")} />
+            <EmptyState bare icon={Wallet} title={t("money.none")} />
           ) : (
             <>
               <ul className="divide-border flex flex-col divide-y md:hidden">

@@ -326,6 +326,7 @@ export const bn: Record<MessageKey, string> = {
   "digest.sopProposed": "{count}টি প্রস্তাব অপেক্ষায়",
   "alerts.sopPublished": "{sopBn} — নতুন সংস্করণ {number}",
   "common.cancel": "বাতিল",
+  "common.close": "বন্ধ করুন",
   "nav.signOff": "যাচাই",
   "nav.backups": "কপি",
   "nav.settings": "সেটিংস",
