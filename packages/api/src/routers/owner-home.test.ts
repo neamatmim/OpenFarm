@@ -252,5 +252,7 @@ describe("the Owner's home", () => {
     // same number, because they are the same question asked twice.
     expect(todaysBar?.litres).toBe(home.tiles.bulkToday);
     expect(home.tiles.bulkToday).toBeGreaterThanOrEqual(7);
+    // Named by the farm's own day: half past nine in the morning in Dhaka is the 6th, whatever UTC says.
+    expect(todaysBar?.day).toBe("2028-02-06");
   });
 });

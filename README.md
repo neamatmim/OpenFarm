@@ -43,6 +43,38 @@ pnpm run dev
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
 
+### A farm full of data
+
+To look around the app with three months of a real farm's work in it, seed a database of its own:
+
+```bash
+pnpm run db:seed          # builds openfarm_seed next to your database; refuses if it already exists
+pnpm run db:seed --reset  # drops it and builds it again (about three minutes)
+```
+
+The seed never touches the database in `apps/web/.env`. It creates `openfarm_seed` on the same server (or
+`SEED_DATABASE_URL`), migrates it, and runs the farm through the API itself with a clock it walks forward day by day:
+a dairy and fattening farm in Savar with 60-odd dairy animals and three lorries of bulls, a written Playbook, milking
+and feeding twice a day, heats, services, pregnancy checks and calvings, treatments and withdrawals, vaccination
+campaigns, a notifiable disease reported, a death, weigh-ins, sales, milk dispatches, wages and bills, and the
+Owner's approvals — with today's work still to do. Run the app against it with the same connection URL and the
+database renamed:
+
+```bash
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/openfarm_seed pnpm run dev
+```
+
+Every account shares the password `OpenFarm@2026`:
+
+| Role    | Email                   |
+| ------- | ----------------------- |
+| Owner   | `owner@openfarm.test`   |
+| Manager | `manager@openfarm.test` |
+| Vet     | `vet@openfarm.test`     |
+| Staff   | `staff@openfarm.test`, `staff2@openfarm.test`, `staff3@openfarm.test` |
+
+The Shed Phone PINs are `1357`, `2468` and `3690` for the three Staff members.
+
 ## UI Customization
 
 React web apps in this stack share shadcn/ui primitives through `packages/ui`.
@@ -112,6 +144,7 @@ OpenFarm/
 - `pnpm run db:push`: Push schema changes to database
 - `pnpm run db:generate`: Generate database client/types
 - `pnpm run db:migrate`: Run database migrations
+- `pnpm run db:seed`: Build `openfarm_seed`, a farm with three months of data (`--reset` to rebuild it)
 - `pnpm run db:studio`: Open database studio UI
 - `pnpm run check`: Run Vite+ format/lint checks and workspace TypeScript checks
 - `pnpm run lint`: Run Vite+ lint checks

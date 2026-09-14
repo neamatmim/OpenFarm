@@ -1062,7 +1062,11 @@ export const minuteOfFarmDay = (at: Date): number => {
 /** The farm's own day, as a date somebody would write down. Not the UTC one: at half past
  *  midnight in a shed in Dhaka, yesterday's date is the wrong answer. */
 export const farmDayOf = (at: Date): string =>
-  farmDayRange(at).from.toISOString().slice(0, "YYYY-MM-DD".length);
+  // The farm's midnight is an instant on the day before in UTC, so the date is read on the farm's clock, not
+  // off that instant.
+  new Date(farmDayRange(at).from.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS)
+    .toISOString()
+    .slice(0, "YYYY-MM-DD".length);
 
 /**
  * When the farm's post was last due to be carried, as an instant — today's most recent

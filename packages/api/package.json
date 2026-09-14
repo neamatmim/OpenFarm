@@ -11,7 +11,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "seed": "tsx src/seed/index.ts"
   },
   "dependencies": {
     "@OpenFarm/auth": "workspace:*",
@@ -31,6 +32,8 @@
     "@OpenFarm/config": "workspace:*",
     "@OpenFarm/test-harness": "workspace:*",
     "@types/web-push": "^3.6.4",
+    "drizzle-orm": "1.0.0-rc.4",
+    "tsx": "^4.23.13",
     "typescript": "catalog:",
     "vitest": "4.1.11"
   }
