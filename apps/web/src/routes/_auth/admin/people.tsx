@@ -361,7 +361,12 @@ const VisitControls = ({
     <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
       <StatusBadge icon={CalendarClock} tone="warning">
         {t("visit.until", {
-          date: formatDate(new Date(until), language, "date"),
+          // The last day it lasts, not the midnight it ends at.
+          date: formatDate(
+            new Date(new Date(until).getTime() - 60_000),
+            language,
+            "date"
+          ),
         })}
       </StatusBadge>
       {isOwner ? (
@@ -474,7 +479,8 @@ const PersonRow = ({
         />
       ) : null}
       <TrainedOn userId={person.id} />
-      {disabled ? null : (
+      {/* A visiting Vet works Cases, not Pens. */}
+      {disabled || person.visitUntil ? null : (
         <PenPicker
           held={person.penIds}
           onSave={onSavePens}
