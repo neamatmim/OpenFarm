@@ -153,6 +153,20 @@ const SeenWhere = ({
   );
 };
 
+/** The farm's Pens to move her to, once it is known the reader may see them: a visiting Vet moves nobody, and does
+ *  not see the farm's layout. */
+const usePens = (me: { visiting: boolean } | undefined) => {
+  const sheds = useQuery({
+    ...orpc.herd.list.queryOptions(),
+    enabled: me !== undefined && !me.visiting,
+  });
+  return (
+    sheds.data?.flatMap((shed) =>
+      shed.pens.map((pen) => ({ ...pen, shedName: shed.name }))
+    ) ?? []
+  );
+};
+
 /** What somebody holding these Roles may do on her page. */
 const powersOf = (roles: readonly string[] = [], visiting = false) => {
   const isManager = roles.includes("manager");
@@ -183,7 +197,7 @@ const AnimalPage = () => {
     me.data?.roles,
     me.data?.visiting
   );
-  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const pens = usePens(me.data);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
 
@@ -212,10 +226,6 @@ const AnimalPage = () => {
   }
 
   const detail = animal.data;
-  const pens =
-    sheds.data?.flatMap((s) =>
-      s.pens.map((p) => ({ ...p, shedName: s.name }))
-    ) ?? [];
 
   return (
     <Page width="default" className="max-w-4xl">

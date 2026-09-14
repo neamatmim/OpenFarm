@@ -133,6 +133,58 @@ describe("a visiting Vet", () => {
     });
   });
 
+  it("reads none of the farm's settings, layout or notices beyond their cases", async () => {
+    const vet = await calling(world.vetId, DURING);
+    const me = await vet.people.me();
+    expect(Object.keys(me.farm ?? {}).toSorted()).toEqual(["id", "name"]);
+    await expect(vet.herd.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(vet.sops.card({ definitionId: "any" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(vet.alerts.sweep()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("sees a sighting's own words in the inbox, and no conclusion once the case is closed", async () => {
+    const clock = new FakeClock(DURING);
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    await owner.observations.record({
+      tagNumber: world.onCase,
+      saw: "other",
+      note: "চোখ দিয়ে পানি পড়ছে",
+    });
+    const vet = await calling(world.vetId, DURING);
+    const inbox = await vet.diagnoses.waiting({});
+    expect(inbox.find((row) => row.saw === "other")?.note).toBe(
+      "চোখ দিয়ে পানি পড়ছে"
+    );
+    expect(inbox.every((row) => row.tagNumber === world.onCase)).toBe(true);
+
+    const { client: manager } = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+    });
+    const [open] = await manager.vetCases.forAnimal({
+      tagNumber: world.onCase,
+    });
+    await manager.vetCases.close({ id: open?.id ?? "" });
+    const closed = await calling(world.vetId, DURING);
+    expect(await closed.diagnoses.mine({})).toEqual([]);
+    await expect(
+      closed.animals.byTag({ tagNumber: world.onCase })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    // Called in again for the rest of this file.
+    await manager.vetCases.open({
+      tagNumber: world.onCase,
+      vetId: world.vetId,
+      reason: "আবার দেখবেন",
+    });
+  });
+
   it("loses access when the visit ends, and their cases close", async () => {
     const later = await calling(world.vetId, AFTER);
     const after = await later.people.me();
@@ -159,5 +211,39 @@ describe("a visiting Vet", () => {
     expect(
       await manager.vetCases.forAnimal({ tagNumber: world.onCase })
     ).toEqual([]);
+  });
+});
+
+describe("a visiting Vet who also works the barn", () => {
+  it("keeps what their other Role reaches", async () => {
+    const clock = new FakeClock(DURING);
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+    });
+    const email = `both-${suffix}@test.openfarm`;
+    const asStaff = await owner.people.invite({
+      email,
+      name: "দুই কাজ",
+      roles: ["staff"],
+    });
+    const asVet = await owner.people.invite({
+      email,
+      name: "দুই কাজ",
+      roles: ["vet"],
+      visitUntil: "2029-03-03",
+    });
+    const id = `both-${suffix}`;
+    await scratchDb()
+      .insert(user)
+      .values({ id, name: "দুই কাজ", email, emailVerified: false });
+    const first = await calling(id, DURING);
+    await first.people.acceptInvite({ code: asStaff.code });
+    await first.people.acceptInvite({ code: asVet.code });
+
+    const both = await calling(id, DURING);
+    const me = await both.people.me();
+    expect(me.roles.toSorted()).toEqual(["staff", "vet"]);
+    await expect(both.sops.list()).resolves.toBeDefined();
   });
 });

@@ -47,8 +47,6 @@ export const forbidden = (refusal: Refusal) =>
  * theirs to see (roles matrix, Vet (visiting)). The procedures listed still narrow themselves to the Cases.
  */
 export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
-  "alerts.sweep",
-  "alerts.digest",
   "alerts.mine",
   "alerts.dismiss",
   "animals.list",
@@ -62,8 +60,6 @@ export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
   "diagnoses.waiting",
   "diagnoses.mine",
   "drugs.list",
-  "herd.list",
-  "instances.ensureDue",
   "instances.today",
   "instances.get",
   "instances.claim",
@@ -80,9 +76,6 @@ export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
   "push.key",
   "push.listen",
   "push.stopListening",
-  "sops.card",
-  "sops.get",
-  "sops.version",
   "sync.batch",
   "vetCases.close",
   "vetCases.mine",
@@ -97,7 +90,15 @@ const roleGate = (allowed: readonly RoleName[], refusal?: Refusal) =>
   os
     .$context<Context & { actor: Actor }>()
     .middleware(({ context, next, path }) => {
-      const roleUsed = pickRoleUsed(context.roles, allowed);
+      // A visiting Vet who also holds another Role works under that Role wherever it reaches: the visit narrows what
+      // they do as a Vet, not what they could already do (permissions are the union).
+      const roleUsed =
+        (context.visiting
+          ? pickRoleUsed(
+              context.roles.filter((role) => role !== "vet"),
+              allowed
+            )
+          : null) ?? pickRoleUsed(context.roles, allowed);
       if (!roleUsed || !context.farm) {
         throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
       }

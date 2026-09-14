@@ -341,6 +341,7 @@ const Unanswered = ({
   seen: {
     id: string;
     sawLabel: string;
+    note: string | null;
     seenAt: Date;
     tagNumber: string;
     seenByName: string | null;
@@ -381,6 +382,9 @@ const Unanswered = ({
         {seen.sawLabel}
         {seen.seenByName ? ` · ${seen.seenByName}` : ""}
       </p>
+      {seen.note ? (
+        <p className="text-muted-foreground">“{seen.note}”</p>
+      ) : null}
       <form
         className="space-y-2"
         onSubmit={(event) => {

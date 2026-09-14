@@ -154,7 +154,11 @@ export const peopleRouter = {
   me: protectedProcedure.handler(({ context }) => ({
     id: context.actor.id,
     name: context.actor.name,
-    farm: context.farm,
+    // Which farm, by name — not its settings: thresholds and windows are read where a Role may read them
+    // (farm.current, farm.identity), and a visiting Vet or somebody holding no Role yet may not.
+    farm: context.farm
+      ? { id: context.farm.id, name: context.farm.name }
+      : null,
     roles: context.roles,
     penIds: context.penIds,
     /** A Vet called in for a visit, who reaches only their Cases. */

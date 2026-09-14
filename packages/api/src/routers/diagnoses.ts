@@ -393,6 +393,7 @@ export const diagnosesRouter = {
         id: seen.id,
         saw: seen.saw,
         sawLabel: seen.sawLabel,
+        note: seen.note,
         seenAt: seen.seenAt,
         tagNumber: animal.tagNumber,
         seenByName: observer?.name ?? null,
@@ -414,6 +415,10 @@ export const diagnosesRouter = {
           farmId: context.farm.id,
           diagnosedBy: context.actor.id,
           diagnosedAt: seenAt,
+          // A closed Case takes the animal out of a visiting Vet's sight, their own past conclusions included.
+          ...(onTheirCases(context)
+            ? { animalId: { in: context.caseAnimalIds } }
+            : {}),
         },
         orderBy: { diagnosedAt: "desc" },
         limit: MAX_SEEN_ROWS,
