@@ -214,7 +214,7 @@ describe("moves", () => {
     const { tagNumber } = await registerDairyCalf();
     await pens.owner.client.animals.setState({ tagNumber, state: "heifer" });
 
-    await pens.owner.client.animals.changeSide({
+    await pens.owner.client.animals.move({
       tagNumber,
       toPenId: pens.fatteningPen,
       toSide: "fattening",

@@ -2,10 +2,11 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
-import type { SopContent } from "@OpenFarm/domain";
+import type { Side, SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { walkTo } from "./herd-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
@@ -217,13 +218,31 @@ const followed = async (
   };
 };
 
+/** The farm's calving leads as it starts: the Dry-off sixty days before, the calving pen a week. */
+const DEFAULT_LEADS = { dry_off: 60, calving_prep: 7 } as const;
+
+/** The herd walks her, on its own transaction, an hour after she was set up. */
+const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
+  scratchDb().transaction(async (tx) => {
+    const beast = await tx.query.animal.findFirst({ where: { id: animalId } });
+    if (!beast) {
+      throw new Error("no such animal");
+    }
+    await walkTo(tx, {
+      farmId: TEST_FARM.id,
+      beast,
+      ...to,
+      movedBy: null,
+      movedAt: new Date(LATER),
+      now: new Date(LATER),
+      calvingLeadDays: DEFAULT_LEADS,
+    });
+  });
+
 describe("what follows from what happens to her", () => {
   it("walked to another Pen on her Side: a Move, and her work goes with her", async () => {
     const subject = await her();
-    await world.later.owner.animals.move({
-      tagNumber: subject.tagNumber,
-      toPenId: world.otherDairyPen,
-    });
+    await walked(subject.id, { toPenId: world.otherDairyPen });
     expect(await followed(subject)).toEqual({
       move: {
         toPenId: world.otherDairyPen,
@@ -240,8 +259,7 @@ describe("what follows from what happens to her", () => {
 
   it("crosses to Fattening: a Move across, her work with her, and no calving to prepare for", async () => {
     const subject = await her();
-    await world.later.owner.animals.changeSide({
-      tagNumber: subject.tagNumber,
+    await walked(subject.id, {
       toPenId: world.fatteningPen,
       toSide: "fattening",
     });

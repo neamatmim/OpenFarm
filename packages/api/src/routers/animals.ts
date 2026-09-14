@@ -5,7 +5,6 @@ import {
   ANIMAL_SOURCES,
   SEXES,
   animal,
-  animalMove,
   animalPhoto,
   mortality,
   retag,
@@ -29,7 +28,6 @@ import {
   withdrawalView,
   sideOfState,
   startOfFarmDay,
-  stateAfterSideChange,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -57,7 +55,6 @@ import {
   readAnimal,
   recordExit,
   requireAnimal,
-  requirePen,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { causeOf, heatKeyOf } from "../instances-store";
@@ -785,8 +782,8 @@ export const animalsRouter = {
       return createAnimal(context, input, context.clock.now(), "registered");
     }),
 
-  /** The only way an Animal's location changes. A Move changes the Pen; use changeSide to
-   *  cross to the other Side. The Tag Number never changes either way. */
+  /** The only way an Animal's location changes: to another Pen, or across to the other Side into one. The Tag Number
+   *  never changes either way. */
   move: protectedProcedure
     .use(requireRole(...moveEntry.roles))
     .input(moveInput)
@@ -795,72 +792,6 @@ export const animalsRouter = {
       await recordNow(context, moveEntry, input);
       const moved = await requireAnimal(context.db, context.farm.id, tagNumber);
       return { tagNumber, side: moved.side, state: moved.state };
-    }),
-
-  /** Moves an Animal to the other Side; the State the other Side implies comes with it. */
-  changeSide: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(
-      z.object({
-        tagNumber: tagInput,
-        toPenId: z.string(),
-        toSide: z.enum(SIDES),
-        reason: reasonInput.optional(),
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
-      await audited(context).write(
-        {
-          entity: "animal",
-          entityId: target.id,
-          action: "update",
-          before: (tx) => readAnimal(tx, target.id),
-          after: (tx) => readAnimal(tx, target.id),
-          reason: input.reason,
-        },
-        async (tx) => {
-          const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          const nextState = stateAfterSideChange(current.state, input.toSide);
-          if (!nextState) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `An animal in state ${current.state} cannot move to the ${input.toSide} side`,
-            });
-          }
-          await requirePen(tx, context.farm.id, input.toPenId);
-          await tx
-            .update(animal)
-            .set({
-              penId: input.toPenId,
-              side: input.toSide,
-              state: nextState,
-              ...(nextState === current.state ? {} : { stateChangedAt: now }),
-              updatedAt: now,
-            })
-            .where(
-              and(eq(animal.farmId, context.farm.id), eq(animal.id, current.id))
-            );
-          await tx.insert(animalMove).values({
-            id: newId(now),
-            farmId: context.farm.id,
-            animalId: current.id,
-            fromPenId: current.penId,
-            toPenId: input.toPenId,
-            fromSide: current.side,
-            toSide: input.toSide,
-            reason: input.reason ?? null,
-            movedBy: context.actor.id,
-            movedAt: now,
-          });
-        }
-      );
-      return { tagNumber };
     }),
 
   /**

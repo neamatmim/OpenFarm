@@ -3,16 +3,23 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, inArray, like, sql } from "@OpenFarm/db/operators";
 import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { ExitState, Side } from "@OpenFarm/domain";
+import type {
+  AnimalState,
+  CalvingLead,
+  ExitState,
+  Side,
+} from "@OpenFarm/domain";
 import {
   OPEN_INSTANCE_STATES,
   formatTagNumber,
   isExitState,
   prefixForOrigin,
+  stateAfterSideChange,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { followExpectedCalving } from "./breeding-store";
 
 /** What every way of arriving has to say about the Animal it makes. */
 export interface NewAnimalRows {
@@ -204,56 +211,6 @@ export const insertAnimal = async (
   return { tagNumber };
 };
 
-/**
- * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
- * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
- *
- * Open work raised about her follows her. Without that, drying a cow off leaves the checks
- * raised about her standing in the milking pen: the Staff assigned where she now is never
- * see them, and the ones assigned where she was are sent to fetch a cow who is not there.
- */
-export const recordMove = async (
-  tx: Tx,
-  entry: {
-    farmId: string;
-    beast: { id: string; penId: string; side: Side };
-    toPenId: string;
-    reason?: string | null;
-    /** The Step that walked her, when the Playbook was what moved her. */
-    completionId?: string | null;
-    movedBy: string | null;
-    movedAt: Date;
-    /** The client's own id for the Move, so an outbox replay is the same fact rather than a
-     *  second journey. */
-    id?: string;
-    now: Date;
-  }
-): Promise<void> => {
-  await tx
-    .update(animal)
-    .set({ penId: entry.toPenId, updatedAt: entry.now })
-    .where(and(eq(animal.farmId, entry.farmId), eq(animal.id, entry.beast.id)));
-  await tx
-    .insert(animalMove)
-    .values({
-      id: entry.id ?? uuidv7(entry.movedAt),
-      farmId: entry.farmId,
-      animalId: entry.beast.id,
-      fromPenId: entry.beast.penId,
-      toPenId: entry.toPenId,
-      // A Pen belongs to a Shed, not to a Side: crossing to the other Side is its own act,
-      // with its own rules about the State she takes with her.
-      fromSide: entry.beast.side,
-      toSide: entry.beast.side,
-      reason: entry.reason ?? null,
-      completionId: entry.completionId ?? null,
-      movedBy: entry.movedBy,
-      movedAt: entry.movedAt,
-    })
-    .onConflictDoNothing();
-  await moveOpenWorkWith(tx, entry.farmId, entry.beast.id, entry.toPenId);
-};
-
 /** Open work raised about one animal moves with her. */
 export const moveOpenWorkWith = (
   tx: Tx,
@@ -271,6 +228,101 @@ export const moveOpenWorkWith = (
         inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
       )
     );
+
+/**
+ * Walks an animal to a Pen and records the journey — the one place a Move is written, so a
+ * Move the Playbook made and a Move somebody recorded by hand obey the same rules.
+ *
+ * Open work raised about her follows her. Without that, drying a cow off leaves the checks
+ * raised about her standing in the milking pen: the Staff assigned where she now is never
+ * see them, and the ones assigned where she was are sent to fetch a cow who is not there.
+ *
+ * A Pen belongs to a Shed, not to a Side, so the Move says which Side she lands on. Crossing is a
+ * Move like any other (the glossary, and the Owner's lifecycle decision): she takes the State the
+ * other Side gives her, reached when she was walked across, and a Dairy forecast she no longer has
+ * any use for goes — her Expected Calving, and the calving work it had raised.
+ */
+export const walkTo = async (
+  tx: Tx,
+  entry: {
+    farmId: string;
+    beast: {
+      id: string;
+      penId: string;
+      side: Side;
+      state: AnimalState;
+      lactationNumber: number;
+      expectedCalvingAt: Date | null;
+    };
+    toPenId: string;
+    /** The Side she lands on; her own, unless she is crossing. */
+    toSide?: Side;
+    reason?: string | null;
+    /** The Step that walked her, when the Playbook was what moved her. */
+    completionId?: string | null;
+    movedBy: string | null;
+    movedAt: Date;
+    /** The client's own id for the Move, so an outbox replay is the same fact rather than a
+     *  second journey. */
+    id?: string;
+    now: Date;
+    /** How far before her Expected Calving each piece of calving work falls, for the work to close by. */
+    calvingLeadDays: Record<CalvingLead, number>;
+  }
+): Promise<void> => {
+  const { beast } = entry;
+  const toSide = entry.toSide ?? beast.side;
+  const crossing = toSide !== beast.side;
+  const state = crossing
+    ? stateAfterSideChange(beast.state, toSide)
+    : beast.state;
+  if (!state) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `An animal in state ${beast.state} cannot move to the ${toSide} side`,
+    });
+  }
+  // Expected Calving is a forecast of Dairy work, and Fattening has none for her to do.
+  const forecastGoes =
+    toSide === "fattening" && beast.expectedCalvingAt !== null;
+  await tx
+    .update(animal)
+    .set({
+      penId: entry.toPenId,
+      side: toSide,
+      state,
+      ...(state === beast.state ? {} : { stateChangedAt: entry.movedAt }),
+      ...(forecastGoes
+        ? { expectedCalvingAt: null, expectedCalvingServiceId: null }
+        : {}),
+      updatedAt: entry.now,
+    })
+    .where(and(eq(animal.farmId, entry.farmId), eq(animal.id, beast.id)));
+  await tx
+    .insert(animalMove)
+    .values({
+      id: entry.id ?? uuidv7(entry.movedAt),
+      farmId: entry.farmId,
+      animalId: beast.id,
+      fromPenId: beast.penId,
+      toPenId: entry.toPenId,
+      fromSide: beast.side,
+      toSide,
+      reason: entry.reason ?? null,
+      completionId: entry.completionId ?? null,
+      movedBy: entry.movedBy,
+      movedAt: entry.movedAt,
+    })
+    .onConflictDoNothing();
+  await moveOpenWorkWith(tx, entry.farmId, beast.id, entry.toPenId);
+  if (forecastGoes) {
+    await followExpectedCalving(
+      tx,
+      { ...beast, farmId: entry.farmId, expectedCalvingAt: null },
+      entry.calvingLeadDays,
+      { expectedAgain: false }
+    );
+  }
+};
 
 /**
  * Work raised about an animal who has left the herd is work nobody can do: she is not in the
@@ -359,7 +411,8 @@ export const movedSince = async (
   tx: Tx,
   animalId: string,
   recordedAt: Date,
-  completionId: string
+  /** The Step whose own Move this would be, when a Step walked her. */
+  completionId?: string
 ): Promise<boolean> => {
   const later = await tx.query.animalMove.findMany({
     where: { animalId, movedAt: { gt: recordedAt } },

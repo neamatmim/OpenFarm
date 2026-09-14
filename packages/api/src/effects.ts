@@ -55,7 +55,7 @@ import {
   loadLiveAnimal,
   moveOpenWorkWith,
   movedSince,
-  recordMove,
+  walkTo,
   requirePen,
 } from "./herd-store";
 import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
@@ -867,10 +867,11 @@ const applyMoveEffect = async (
       .where(eq(animal.id, live.id));
     await moveOpenWorkWith(tx, input.instance.farmId, live.id, toPenId);
   } else if (fromPenId !== toPenId) {
-    await recordMove(tx, {
+    await walkTo(tx, {
       farmId: input.instance.farmId,
       beast: live,
       toPenId,
+      calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
       completionId: input.completionId,
       movedBy: input.recordedBy,
       movedAt: input.recordedAt,
