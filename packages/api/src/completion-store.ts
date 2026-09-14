@@ -3,8 +3,8 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { Context } from "./context";
-import { lateEntry } from "./entries/entry";
 import { isOnTheFarm } from "./instances-store";
+import { lateEntry } from "./late";
 import { assertOnTheirCases } from "./visiting-store";
 
 /** The context a record needs: who is recording, on which Farm, under which Role. */

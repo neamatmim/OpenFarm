@@ -4,6 +4,7 @@ import {
   and,
   eq,
   inArray,
+  isNull,
   like,
   notInArray,
   sql,
@@ -32,9 +33,10 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
+import { lateEntry } from "./late";
 
 /** What every way of arriving has to say about the Animal it makes. */
-export interface NewAnimalRows {
+interface NewAnimalRows {
   sex: (typeof animal.$inferInsert)["sex"];
   side: Side;
   state: (typeof animal.$inferInsert)["state"];
@@ -48,7 +50,7 @@ export interface NewAnimalRows {
 
 /** Takes the next Tag Number for a prefix. Row-locked inside the caller's transaction, so
  *  two concurrent registrations cannot take the same number, and numbers never rewind. */
-export const nextTagNumber = async (
+const nextTagNumber = async (
   tx: Tx,
   farmId: string,
   origin: Side
@@ -223,8 +225,30 @@ export const insertAnimal = async (
   return { tagNumber };
 };
 
+/**
+ * Has anything moved her since this entry was recorded? A Correction can put her back only
+ * while the farm has learned nothing newer about where she is; once it has, the Correction
+ * is a fact about the past and where she stands is a fact about now.
+ */
+const movedSince = async (
+  tx: Tx,
+  animalId: string,
+  recordedAt: Date,
+  /** The Step whose own Move this would be, when a Step walked her. */
+  completionId?: string
+): Promise<boolean> => {
+  const later = await tx.query.animalMove.findMany({
+    where: { animalId, movedAt: { gt: recordedAt } },
+    columns: { completionId: true },
+  });
+  // Its own Move is not news. The comparison is made here rather than in the query because
+  // a Move nobody recorded through a Step has no Completion at all, and "not this one" in
+  // SQL quietly means "not null and not this one" — which is every manual Move on the farm.
+  return later.some((move) => move.completionId !== completionId);
+};
+
 /** Open work raised about one animal moves with her. */
-export const moveOpenWorkWith = (
+const moveOpenWorkWith = (
   tx: Tx,
   farmId: string,
   animalId: string,
@@ -283,6 +307,18 @@ export const walkTo = async (
   }
 ): Promise<void> => {
   const { beast } = entry;
+  // Somebody walked her somewhere after this Move was made — a phone held it out of signal, or the Step was recorded
+  // late. Walking her now would put her back where she has since left, so it is late, and a person decides.
+  if (
+    await movedSince(
+      tx,
+      beast.id,
+      entry.movedAt,
+      entry.completionId ?? undefined
+    )
+  ) {
+    throw lateEntry("This animal has been moved since");
+  }
   const toSide = entry.toSide ?? beast.side;
   const crossing = toSide !== beast.side;
   const state = crossing
@@ -344,11 +380,7 @@ export const walkTo = async (
  * Closed as missed, which is the farm's word for work that will not happen — settled, but not
  * finished, and the reason is in the Audit Event that closed it.
  */
-export const closeOpenWorkAboutHer = (
-  tx: Tx,
-  farmId: string,
-  animalId: string
-) =>
+const closeOpenWorkAboutHer = (tx: Tx, farmId: string, animalId: string) =>
   tx
     .update(sopInstance)
     .set({ state: "missed" })
@@ -542,6 +574,165 @@ export const leaves = async (
   return { workClosed: settled.length };
 };
 
+/** What walking her as a Step said did: where from and to, whether she went, and whether it could not be put right. */
+export interface WalkedByStep {
+  fromPenId: string | null;
+  toPenId: string;
+  moved: boolean;
+  /** She has been walked on since, so she stays where the farm last saw her and a person is asked. */
+  cannotUndo: boolean;
+}
+
+/**
+ * Walks her as a Step says, keyed on its Step Completion — first time, again, or put right. One Move per Completion:
+ * a replayed entry or a Correction changes where she went rather than sending her on a second journey, and a Step
+ * corrected to a skip takes the journey back.
+ *
+ * What it will not do is rewrite where she is when anything has moved her since the Step was recorded — that is a fact
+ * the farm has and this Step does not, so the Move says what the Step now says and she stays where she was last seen.
+ * Asked of the Moves themselves, not of where she is standing: a cow walked away and back again is standing where the
+ * Step left her, and is still a cow the farm has learned something newer about.
+ */
+export const walkByStep = async (
+  tx: Tx,
+  entry: {
+    farmId: string;
+    beast: Parameters<typeof walkTo>[1]["beast"];
+    completionId: string;
+    /** Where the Step says she went, or nothing for a Step now saying she was not walked. */
+    toPenId: string | null;
+    movedBy: string;
+    movedAt: Date;
+    now: Date;
+    calvingLeadDays: Record<CalvingLead, number>;
+  }
+): Promise<WalkedByStep | null> => {
+  const { beast, completionId } = entry;
+  const already = await tx.query.animalMove.findFirst({
+    where: { completionId },
+    columns: { id: true, fromPenId: true, toPenId: true },
+  });
+  const somethingMovedHer = await movedSince(
+    tx,
+    beast.id,
+    entry.movedAt,
+    completionId
+  );
+
+  if (entry.toPenId === null) {
+    if (!already) {
+      return null;
+    }
+    if (somethingMovedHer) {
+      return {
+        fromPenId: already.fromPenId,
+        toPenId: already.toPenId,
+        moved: false,
+        cannotUndo: true,
+      };
+    }
+    await tx
+      .delete(animalMove)
+      .where(eq(animalMove.completionId, completionId));
+    if (already.fromPenId) {
+      await tx
+        .update(animal)
+        .set({ penId: already.fromPenId, updatedAt: entry.now })
+        .where(eq(animal.id, beast.id));
+      await moveOpenWorkWith(tx, entry.farmId, beast.id, already.fromPenId);
+    }
+    return null;
+  }
+
+  const { toPenId } = entry;
+  const fromPenId = already?.fromPenId ?? beast.penId;
+  if (already) {
+    // What the Step now says, whatever becomes of her.
+    await tx
+      .update(animalMove)
+      .set({ toPenId })
+      .where(eq(animalMove.completionId, completionId));
+  }
+  if (somethingMovedHer) {
+    return { fromPenId, toPenId, moved: false, cannotUndo: true };
+  }
+  if (already) {
+    await tx
+      .update(animal)
+      .set({ penId: toPenId, updatedAt: entry.now })
+      .where(eq(animal.id, beast.id));
+    await moveOpenWorkWith(tx, entry.farmId, beast.id, toPenId);
+  } else if (fromPenId !== toPenId) {
+    await walkTo(tx, {
+      farmId: entry.farmId,
+      beast,
+      toPenId,
+      completionId,
+      movedBy: entry.movedBy,
+      movedAt: entry.movedAt,
+      now: entry.now,
+      calvingLeadDays: entry.calvingLeadDays,
+    });
+  }
+  return {
+    fromPenId,
+    toPenId,
+    moved: fromPenId !== toPenId,
+    cannotUndo: false,
+  };
+};
+
+/**
+ * Puts right the hour a calving happened, for what it dated in the herd: the Lactation it began and the moment she
+ * reached Milking — while that is still the Lactation and the Milking it began — and each calf's birth and her arrival
+ * in the Pen. A stillborn calf's death moves with her hour too, which is the mortality's to put right.
+ */
+export const redateCalving = async (
+  tx: Tx,
+  farmId: string,
+  calving: {
+    damId: string;
+    lactationNumber: number;
+    from: Date;
+    to: Date;
+    calfIds: string[];
+  },
+  now: Date
+): Promise<void> => {
+  const dam = await tx.query.animal.findFirst({
+    where: { id: calving.damId, farmId },
+    columns: { lactationNumber: true, state: true, stateChangedAt: true },
+  });
+  if (dam?.lactationNumber === calving.lactationNumber) {
+    const stillFromThisCalving =
+      dam.state === "milking" &&
+      dam.stateChangedAt.getTime() === calving.from.getTime();
+    await tx
+      .update(animal)
+      .set({
+        lactationStartedAt: calving.to,
+        ...(stillFromThisCalving ? { stateChangedAt: calving.to } : {}),
+        updatedAt: now,
+      })
+      .where(and(eq(animal.id, calving.damId), eq(animal.farmId, farmId)));
+  }
+  for (const calfId of calving.calfIds) {
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(animal)
+      .set({ birthDate: calving.to, updatedAt: now })
+      .where(and(eq(animal.id, calfId), eq(animal.farmId, farmId)));
+    // She came into the Pen the hour she was born, so her arrival moves with it.
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(animalMove)
+      .set({ movedAt: calving.to })
+      .where(
+        and(eq(animalMove.animalId, calfId), isNull(animalMove.fromPenId))
+      );
+  }
+};
+
 /**
  * Puts right how she left: the way she went, or the moment. Only for an animal who has left — an animal still on the
  * farm has no leaving to correct — and never a way back into the herd: whichever State it says, it is an exit State.
@@ -577,36 +768,3 @@ export const correctHowSheLeft = async (
     });
   }
 };
-
-/**
- * Has anything moved her since this entry was recorded? A Correction can put her back only
- * while the farm has learned nothing newer about where she is; once it has, the Correction
- * is a fact about the past and where she stands is a fact about now.
- */
-export const movedSince = async (
-  tx: Tx,
-  animalId: string,
-  recordedAt: Date,
-  /** The Step whose own Move this would be, when a Step walked her. */
-  completionId?: string
-): Promise<boolean> => {
-  const later = await tx.query.animalMove.findMany({
-    where: { animalId, movedAt: { gt: recordedAt } },
-    columns: { completionId: true },
-  });
-  // Its own Move is not news. The comparison is made here rather than in the query because
-  // a Move nobody recorded through a Step has no Completion at all, and "not this one" in
-  // SQL quietly means "not null and not this one" — which is every manual Move on the farm.
-  return later.some((move) => move.completionId !== completionId);
-};
-
-export const touchAnimal = (
-  tx: Tx,
-  farmId: string,
-  animalId: string,
-  now: Date
-) =>
-  tx
-    .update(animal)
-    .set({ updatedAt: now })
-    .where(and(eq(animal.farmId, farmId), eq(animal.id, animalId)));

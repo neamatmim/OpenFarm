@@ -7,7 +7,15 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Tx } from "./audit";
-import { calves, entersState, leaves, walkTo } from "./herd-store";
+import {
+  calves,
+  correctHowSheLeft,
+  entersState,
+  leaves,
+  redateCalving,
+  walkByStep,
+  walkTo,
+} from "./herd-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
@@ -119,6 +127,7 @@ const standing = async (animalId: string, workId: string) => {
       state: true,
       stateChangedAt: true,
       expectedCalvingAt: true,
+      lactationNumber: true,
       lactationStartedAt: true,
     },
   });
@@ -413,4 +422,126 @@ describe("what follows from what happens to her", () => {
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     }
   );
+});
+describe("what follows from putting it right", () => {
+  const step = (
+    animalId: string,
+    completionId: string,
+    toPenId: string | null,
+    at = later.at
+  ) =>
+    onHer(animalId, (tx, beast) =>
+      walkByStep(tx, {
+        farmId: TEST_FARM.id,
+        beast,
+        completionId,
+        toPenId,
+        movedBy: "test-owner",
+        movedAt: at,
+        now: at,
+        calvingLeadDays: DEFAULT_LEADS,
+      })
+    );
+
+  it("a Step's Move put right to another Pen: the one Move says so, and she and her work go there", async () => {
+    const subject = await her();
+    const completionId = `step-move-${subject.id}`;
+    await step(subject.id, completionId, world.otherDairyPen);
+    await step(subject.id, completionId, world.fatteningPen);
+    expect(await followed(subject)).toMatchObject({
+      move: { toPenId: world.fatteningPen, fromSide: "dairy", toSide: "dairy" },
+      side: "dairy",
+      work: "follows",
+    });
+    const journeys = await scratchDb().query.animalMove.findMany({
+      where: { completionId },
+    });
+    expect(journeys).toHaveLength(1);
+  });
+
+  it("a Step's Move taken back: no Move, and she and her work are back where they were", async () => {
+    const subject = await her();
+    const completionId = `step-back-${subject.id}`;
+    await step(subject.id, completionId, world.otherDairyPen);
+    await step(subject.id, completionId, null);
+    expect(await followed(subject)).toMatchObject({
+      move: null,
+      side: "dairy",
+      work: "stays",
+    });
+    const { row } = await standing(subject.id, subject.workId);
+    expect(row?.penId).toBe(world.dairyPen);
+  });
+
+  it("a Step's Move put right after she has been walked on since: the Move says it, and she stays where she was last seen", async () => {
+    const subject = await her();
+    const completionId = `step-since-${subject.id}`;
+    // The Step walked her at half past four; somebody walked her on at five.
+    const stepAt = new Date("2034-02-01T04:30:00.000Z");
+    await step(subject.id, completionId, world.otherDairyPen, stepAt);
+    await walked(subject.id, { toPenId: world.fatteningPen });
+    const since = await standing(subject.id, subject.workId);
+    await step(subject.id, completionId, world.dairyPen, stepAt);
+    const after = await standing(subject.id, subject.workId);
+    expect(after.row?.penId).toBe(since.row?.penId);
+  });
+
+  it("how she left put right: the way she went and when, and she is still gone", async () => {
+    const subject = await her();
+    await onHer(subject.id, (tx, beast) =>
+      leaves(tx, TEST_FARM.id, beast, { state: "died", ...later })
+    );
+    const earlier = new Date("2034-02-01T04:30:00.000Z");
+    await onHer(subject.id, (tx, beast) =>
+      correctHowSheLeft(tx, TEST_FARM.id, beast, {
+        state: "culled",
+        at: earlier,
+        now: later.now,
+      })
+    );
+    const { row } = await standing(subject.id, subject.workId);
+    expect(row).toMatchObject({ state: "culled", stateChangedAt: earlier });
+    // An animal on the farm has no leaving to put right.
+    const other = await her();
+    await expect(
+      onHer(other.id, (tx, beast) =>
+        correctHowSheLeft(tx, TEST_FARM.id, beast, {
+          state: "died",
+          now: later.now,
+        })
+      )
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("a calving's hour put right: her Lactation and her reaching Milking move with it", async () => {
+    const subject = await her();
+    await onHer(subject.id, (tx, beast) =>
+      calves(tx, TEST_FARM.id, beast, {
+        ...later,
+        calvingLeadDays: DEFAULT_LEADS,
+      })
+    );
+    const { row: calved } = await standing(subject.id, subject.workId);
+    const truly = new Date("2034-02-01T03:15:00.000Z");
+    await scratchDb().transaction((tx) =>
+      redateCalving(
+        tx,
+        TEST_FARM.id,
+        {
+          damId: subject.id,
+          lactationNumber: calved?.lactationNumber ?? 0,
+          from: later.at,
+          to: truly,
+          calfIds: [],
+        },
+        later.now
+      )
+    );
+    const { row } = await standing(subject.id, subject.workId);
+    expect(row).toMatchObject({
+      state: "milking",
+      stateChangedAt: truly,
+      lactationStartedAt: truly,
+    });
+  });
 });

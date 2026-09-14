@@ -9,7 +9,6 @@ import {
   dlsReport,
   treatment,
 } from "@OpenFarm/db/schema/health";
-import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
   Choice,
@@ -53,12 +52,10 @@ import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
   closeWorkRaisedBy,
-  loadLiveAnimal,
-  moveOpenWorkWith,
-  movedSince,
   entersState,
-  walkTo,
+  loadLiveAnimal,
   requirePen,
+  walkByStep,
 } from "./herd-store";
 import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
 import {
@@ -794,101 +791,28 @@ const applyMoveEffect = async (
   }
   // An animal that has left the farm cannot be walked anywhere, whoever is asking.
   const live = await loadLiveAnimal(tx, input.instance.farmId, beast.tagNumber);
-  const already = await tx.query.animalMove.findFirst({
-    where: { completionId: input.completionId },
-    columns: { id: true, fromPenId: true, toPenId: true },
-  });
-  // Asked of the Moves themselves, not of where she is standing: a cow walked away and back
-  // again is standing where this entry left her, and is still a cow the farm has learned
-  // something newer about.
-  const somethingMovedHer = await movedSince(
-    tx,
-    live.id,
-    input.recordedAt,
-    input.completionId
-  );
-
-  // Corrected to a skip: the journey is undone if nothing has happened to her since.
-  if (input.skipped) {
-    if (!already) {
-      return null;
-    }
-    if (somethingMovedHer) {
-      return {
-        kind: "move",
-        fromPenId: already.fromPenId,
-        toPenId: already.toPenId,
-        moved: false,
-        cannotUndo: true,
-      };
-    }
-    await tx
-      .delete(animalMove)
-      .where(eq(animalMove.completionId, input.completionId));
-    if (already.fromPenId) {
-      await tx
-        .update(animal)
-        .set({ penId: already.fromPenId, updatedAt: input.now })
-        .where(eq(animal.id, live.id));
-      await moveOpenWorkWith(
-        tx,
-        input.instance.farmId,
-        live.id,
-        already.fromPenId
-      );
-    }
-    return null;
+  const toPenId = input.skipped
+    ? null
+    : choiceIn(
+        input.step,
+        input.evidence,
+        "This step moves an animal, and no pen was chosen"
+      ).value;
+  if (toPenId) {
+    // A Pen that is not this farm's is not somewhere she can be walked to.
+    await requirePen(tx, input.instance.farmId, toPenId);
   }
-
-  const toPenId = choiceIn(
-    input.step,
-    input.evidence,
-    "This step moves an animal, and no pen was chosen"
-  ).value;
-  // A Pen that is not this farm's is not somewhere she can be walked to.
-  await requirePen(tx, input.instance.farmId, toPenId);
-  const fromPenId = already?.fromPenId ?? live.penId;
-
-  if (somethingMovedHer) {
-    // Record what the Step now says, and leave her where the farm last saw her.
-    if (already) {
-      await tx
-        .update(animalMove)
-        .set({ toPenId })
-        .where(eq(animalMove.completionId, input.completionId));
-    }
-    return { kind: "move", fromPenId, toPenId, moved: false, cannotUndo: true };
-  }
-
-  if (already) {
-    await tx
-      .update(animalMove)
-      .set({ toPenId })
-      .where(eq(animalMove.completionId, input.completionId));
-    await tx
-      .update(animal)
-      .set({ penId: toPenId, updatedAt: input.now })
-      .where(eq(animal.id, live.id));
-    await moveOpenWorkWith(tx, input.instance.farmId, live.id, toPenId);
-  } else if (fromPenId !== toPenId) {
-    await walkTo(tx, {
-      farmId: input.instance.farmId,
-      beast: live,
-      toPenId,
-      calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
-      completionId: input.completionId,
-      movedBy: input.recordedBy,
-      movedAt: input.recordedAt,
-      now: input.now,
-    });
-  }
-  return {
-    kind: "move",
-    fromPenId,
+  const walked = await walkByStep(tx, {
+    farmId: input.instance.farmId,
+    beast: live,
+    completionId: input.completionId,
     toPenId,
-    moved: fromPenId !== toPenId,
-    cannotUndo: false,
-  };
+    movedBy: input.recordedBy,
+    movedAt: input.recordedAt,
+    now: input.now,
+    calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
+  });
+  return walked ? { kind: "move", ...walked } : null;
 };
 
 /**

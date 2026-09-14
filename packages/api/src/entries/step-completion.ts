@@ -17,10 +17,10 @@ import {
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { farmDay } from "../farm-clock";
+import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
 import { contentOf } from "../sop-content";
 import type { EntryKind } from "./entry";
-import { lateEntry } from "./entry";
 
 export const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 

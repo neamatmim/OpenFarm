@@ -170,3 +170,21 @@ export const correctMortality = async (
     now,
   });
 };
+
+/** Moves a death to the hour it now happened in — a stillborn calf's, when her calving's hour is put right — whatever
+ *  cause the farm has since written for it. Nothing, for an animal with no death recorded. */
+export const redateDeathOf = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string },
+  happenedAt: Date,
+  now: Date
+): Promise<void> => {
+  const death = await tx.query.mortality.findFirst({
+    where: { animalId: her.id, farmId },
+    columns: { id: true },
+  });
+  if (death) {
+    await correctMortality(tx, farmId, death.id, her, { happenedAt }, now);
+  }
+};

@@ -4,14 +4,13 @@ import { z } from "zod";
 import { pregnancyTimesOf } from "../breeding-store";
 import {
   assertPenIsTheirs,
-  movedSince,
   readAnimal,
   requireAnimal,
   requirePen,
   walkTo,
 } from "../herd-store";
 import type { EntryKind } from "./entry";
-import { lateEntry, requireAnimalStillHere } from "./entry";
+import { requireAnimalStillHere } from "./entry";
 
 /** A Move as whoever walked her says it: which animal, to which Pen, and why if they said. */
 export const moveInput = z.object({
@@ -50,16 +49,13 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
   }),
 
   apply: async (tx, context, input, { doneAt, receivedAt, id }) => {
-    // She was sold, or somebody walked her somewhere else after this Move was made: both are the world moving under it,
-    // and neither is the walker's to fix, so a phone's Batch keeps it for the Manager.
+    // She was sold, or somebody walked her somewhere else after this Move was made (which the herd itself refuses): both
+    // are the world moving under it, and neither is the walker's to fix, so a phone's Batch keeps it for the Manager.
     const beast = await requireAnimalStillHere(
       tx,
       context.farm.id,
       input.tagNumber
     );
-    if (await movedSince(tx, beast.id, doneAt)) {
-      throw lateEntry(`Animal ${beast.tagNumber} has been moved since`);
-    }
     assertPenIsTheirs(context, beast.penId);
     assertPenIsTheirs(context, input.toPenId);
     await requirePen(tx, context.farm.id, input.toPenId);

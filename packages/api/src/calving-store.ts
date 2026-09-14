@@ -1,8 +1,8 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { animal, animalMove, mortality } from "@OpenFarm/db/schema/herd";
+import { animal } from "@OpenFarm/db/schema/herd";
 import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
 import { STILLBIRTH, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -11,8 +11,8 @@ import type { Tx } from "./audit";
 import type { PregnancyTimes } from "./breeding-store";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { nothingFollowed } from "./calving-work";
-import { calves, insertAnimal } from "./herd-store";
-import { recordMortality } from "./mortality-store";
+import { calves, insertAnimal, redateCalving } from "./herd-store";
+import { recordMortality, redateDeathOf } from "./mortality-store";
 
 export interface Calf {
   sex: CalfSex;
@@ -125,25 +125,20 @@ const putRight = async (
     .update(calving)
     .set({ calvedAt: calved.at, ease: calved.ease })
     .where(eq(calving.id, standing.id));
-  // Everything the calving dated moves with its hour: her Lactation and the moment she reached
-  // Milking, while this is still the calving she is in milk from.
-  const dam = await tx.query.animal.findFirst({
-    where: { id: standing.damId },
-    columns: { lactationNumber: true, state: true, stateChangedAt: true },
-  });
-  if (dam?.lactationNumber === standing.lactationNumber) {
-    const stillFromThisCalving =
-      dam.state === "milking" &&
-      dam.stateChangedAt.getTime() === standing.calvedAt.getTime();
-    await tx
-      .update(animal)
-      .set({
-        lactationStartedAt: calved.at,
-        ...(stillFromThisCalving ? { stateChangedAt: calved.at } : {}),
-        updatedAt: entry.now,
-      })
-      .where(eq(animal.id, standing.damId));
-  }
+  // Everything the calving dated moves with its hour: her Lactation and the moment she reached Milking, while this is
+  // still the calving she is in milk from, and each calf's birth and arrival.
+  await redateCalving(
+    tx,
+    entry.farmId,
+    {
+      damId: standing.damId,
+      lactationNumber: standing.lactationNumber,
+      from: standing.calvedAt,
+      to: calved.at,
+      calfIds: standing.calves.map((calf) => calf.id),
+    },
+    entry.now
+  );
   for (const [index, calf] of standing.calves.entries()) {
     const now = calved.calves[index];
     if (!now) {
@@ -154,35 +149,15 @@ const putRight = async (
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(animal)
-      .set({
-        sex: now.sex,
-        birthDate: calved.at,
-        calfOutcome: now.outcome,
-        // A stillborn calf left when she was born, so her exit moves with the hour too.
-        ...(asRecorded(calf) === "stillborn"
-          ? { stateChangedAt: calved.at }
-          : {}),
-        updatedAt: entry.now,
-      })
+      .set({ sex: now.sex, calfOutcome: now.outcome, updatedAt: entry.now })
       .where(eq(animal.id, calf.id));
-    // She came into the Pen the hour she was born, so her arrival moves with it.
-    // oxlint-disable-next-line no-await-in-loop
-    await tx
-      .update(animalMove)
-      .set({ movedAt: calved.at })
-      .where(
-        and(eq(animalMove.animalId, calf.id), isNull(animalMove.fromPenId))
-      );
     if (becomesStillborn) {
       // oxlint-disable-next-line no-await-in-loop
       await recordStillbirth(tx, entry, calf.id, calved.at);
     } else if (asRecorded(calf) === "stillborn") {
-      // Her death moves with the hour she was born dead in, whatever cause the farm has since written for it.
+      // A stillborn calf left when she was born, so her death, and her leaving, move with the hour too.
       // oxlint-disable-next-line no-await-in-loop
-      await tx
-        .update(mortality)
-        .set({ happenedAt: calved.at })
-        .where(eq(mortality.animalId, calf.id));
+      await redateDeathOf(tx, entry.farmId, calf, calved.at, entry.now);
     }
   }
   return {
