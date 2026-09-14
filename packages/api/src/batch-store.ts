@@ -73,6 +73,7 @@ const applyEntry = async (
         evidence: entry.evidence,
         destination: entry.destination,
         feeding: entry.feeding,
+        counts: entry.counts,
         outOfRange: entry.outOfRange,
         skipReason: entry.skipReason,
         photoSlots: entry.photoSlots,
