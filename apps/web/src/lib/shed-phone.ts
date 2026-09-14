@@ -49,7 +49,8 @@ const proveAll = async () => {
     try {
       // oxlint-disable-next-line no-await-in-loop
       const proved = await client.devices.switchUser(proof);
-      markProved(ref, proved.token);
+      // oxlint-disable-next-line no-await-in-loop
+      await markProved(ref, proved.token);
       if (isHeldStint(ref) && getActiveUser()?.userId === proof.userId) {
         setSwitchToken(proved.token);
         clearHeldStint();
@@ -57,7 +58,8 @@ const proveAll = async () => {
     } catch (error) {
       const refused = (error as { code?: unknown }).code;
       if (refused === "UNAUTHORIZED" || refused === "FORBIDDEN") {
-        markProved(ref, null);
+        // oxlint-disable-next-line no-await-in-loop
+        await markProved(ref, null);
       }
       // Anything else — no signal, a server that did not answer — keeps it held for the next try.
     }

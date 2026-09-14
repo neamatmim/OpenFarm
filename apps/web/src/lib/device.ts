@@ -230,23 +230,36 @@ export const touchHeldSwitches = () => {
     });
   }
 };
-/** What the farm said about a held PIN: the token it gave, or null for a PIN it refused. */
-export const markProved = (ref: string, token: string | null) => {
+const SETTLE_LOCK = "openfarm-proof-settle";
+
+/** Reads and settles a stint's proof as one step across every tab on the phone, so no tab decides on what it read
+ *  a moment before another tab changed it. */
+const settling = async <T>(work: () => T | Promise<T>): Promise<T> => {
+  const locks = globalThis.navigator?.locks;
+  if (locks) {
+    return await locks.request(SETTLE_LOCK, work);
+  }
+  return await work();
+};
+
+/** What the farm said about a held PIN: the token it gave, or null for a PIN it refused. The first answer stands — a
+ *  PIN proved after its work was already sent without it proves the person for what they do next, not for what has
+ *  gone — and the PIN's lock is let go only once the answer is written, so no tab takes the gap for a lost PIN. */
+export const markProved = async (ref: string, token: string | null) => {
   unproved.delete(ref);
+  await settling(() => {
+    const record = readProof(ref);
+    if (!record || record.state === "held") {
+      writeProof(
+        ref,
+        token
+          ? { state: "proved", token, at: Date.now() }
+          : { state: "unproved", at: Date.now() }
+      );
+    }
+  });
   letGo.get(ref)?.();
   letGo.delete(ref);
-  const record = readProof(ref);
-  // The first answer stands. A PIN proved after its work was already sent without it proves the person for what
-  // they do next, not for what has gone.
-  if (record && record.state !== "held") {
-    return;
-  }
-  writeProof(
-    ref,
-    token
-      ? { state: "proved", token, at: Date.now() }
-      : { state: "unproved", at: Date.now() }
-  );
 };
 export const isHeldStint = (ref: string) => read(HELD_STINT_KEY) === ref;
 
@@ -254,12 +267,6 @@ export const isHeldStint = (ref: string) => read(HELD_STINT_KEY) === ref;
 export const currentProof = (): string | null =>
   getSwitchToken() ?? read(HELD_STINT_KEY);
 
-/**
- * The switch token an entry's proof stands for, when it is sent. Waiting while its PIN is still to be proved by a tab
- * on this phone; nothing when the farm refused the PIN, or when no tab holds it any more — the phone was restarted
- * before it was proved. Once settled the answer is written down and never changes, so a batch sent again after a
- * lost reply is the same batch the farm already has.
- */
 /** Whether some tab on this phone still holds a stint's PIN. */
 const heldByATab = async (
   ref: string,
@@ -276,24 +283,32 @@ const heldByATab = async (
   return record?.state === "held" && Date.now() - record.seenAt < HELD_FRESH_MS;
 };
 
-export const tokenForProof = async (
+/**
+ * The switch token an entry's proof stands for, when it is sent. Waiting while its PIN is still to be proved by a tab
+ * on this phone; nothing when the farm refused the PIN, or when no tab holds it any more — the phone was restarted
+ * before it was proved. Once settled the answer is written down and never changes, so a batch sent again after a
+ * lost reply is the same batch the farm already has.
+ */
+export const tokenForProof = (
   proof: string
 ): Promise<{ token?: string; waiting: boolean }> => {
   if (!proof.startsWith(HELD)) {
-    return { token: proof, waiting: false };
+    return Promise.resolve({ token: proof, waiting: false });
   }
-  const record = readProof(proof);
-  if (record?.state === "proved") {
-    return { token: record.token, waiting: false };
-  }
-  if (record?.state === "unproved") {
+  return settling(async () => {
+    const record = readProof(proof);
+    if (record?.state === "proved") {
+      return { token: record.token, waiting: false };
+    }
+    if (record?.state === "unproved") {
+      return { waiting: false };
+    }
+    if (await heldByATab(proof, record)) {
+      return { waiting: true };
+    }
+    writeProof(proof, { state: "unproved", at: Date.now() });
     return { waiting: false };
-  }
-  if (await heldByATab(proof, record)) {
-    return { waiting: true };
-  }
-  writeProof(proof, { state: "unproved", at: Date.now() });
-  return { waiting: false };
+  });
 };
 
 /** Locks the phone on the phone: nobody is switched in, and no token names anyone. */
