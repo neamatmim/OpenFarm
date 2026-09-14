@@ -22,8 +22,6 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
 import {
-  applyClaim,
-  applyComplete,
   applyCompletion,
   assertEvidenceComplete,
   stepOf,
@@ -33,6 +31,9 @@ import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
+import { claimEntry } from "../entries/claim";
+import { recordNow } from "../entries/entry";
+import { finishEntry } from "../entries/finish";
 import { farmDay } from "../farm-clock";
 import { feedingTargetForPen } from "../feed-store";
 import { requirePen } from "../herd-store";
@@ -630,19 +631,10 @@ export const instancesRouter = {
 
   /** Claiming is exclusive: the first person to take it is the one working it. */
   claim: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole(...claimEntry.roles))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "sop_instance",
-          entityId: input.id,
-          action: "update",
-          after: { claimedBy: context.actor.id },
-        },
-        (tx) => applyClaim(tx, context, input.id, now)
-      );
+      await recordNow(context, claimEntry, { instanceId: input.id });
       return { id: input.id, claimed: true };
     }),
 
@@ -1159,29 +1151,10 @@ export const instancesRouter = {
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal
    *  Step — is neither done nor skipped. */
   complete: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole(...finishEntry.roles))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      // Read first: work already finished needs no second telling, and an Audit Event for a
-      // transition that did not happen is a trail that lies.
-      const already = await context.db.query.sopInstance.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: { state: true },
-      });
-      if (already?.state === "completed" || already?.state === "approved") {
-        return { id: input.id, state: "completed" } as const;
-      }
-      await audited(context).write(
-        {
-          entity: "sop_instance",
-          entityId: input.id,
-          action: "update",
-          before: { state: "in_progress" },
-          after: { state: "completed" },
-        },
-        (tx) => applyComplete(tx, context, input.id, now)
-      );
+      await recordNow(context, finishEntry, { instanceId: input.id });
       return { id: input.id, state: "completed" } as const;
     }),
 };

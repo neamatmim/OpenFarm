@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import {
   completionPhoto,
   sopInstance,
@@ -15,7 +15,7 @@ import type { Context } from "./context";
 import type { EffectResult } from "./effects";
 import { runStepEffect } from "./effects";
 import { lateEntry } from "./entries/entry";
-import { animalsForInstance, isOnTheFarm } from "./instances-store";
+import { isOnTheFarm } from "./instances-store";
 import type { RenewalEntry } from "./registration-store";
 import { contentOf } from "./sop-content";
 import type { StockCountLine } from "./stock-store";
@@ -472,113 +472,4 @@ export const applyCompletion = async (
       .where(eq(sopInstance.id, input.instanceId));
   }
   return { completionId: saved.id, effect };
-};
-
-/**
- * Takes an Instance for the person recording. Exclusive: only an unclaimed one can be
- * claimed, so two phones cannot both hold a shift. A phone that claimed with no signal and
- * arrives to find someone else already holding it has not done anything wrong — the world
- * moved while it was out of range — so it is told so as a late entry rather than refused.
- */
-export const applyClaim = async (
-  tx: Tx,
-  context: Recorder,
-  instanceId: string,
-  now: Date
-): Promise<string> => {
-  const instance = await tx.query.sopInstance.findFirst({
-    where: { id: instanceId, farmId: context.farm.id },
-    columns: {
-      penId: true,
-      assignedTo: true,
-      claimedBy: true,
-      state: true,
-      assignedRole: true,
-      animalId: true,
-    },
-  });
-  if (!instance) {
-    throw new ORPCError("NOT_FOUND");
-  }
-  assertMayWork(context, instance);
-  const [row] = await tx
-    .update(sopInstance)
-    .set({
-      claimedBy: context.actor.id,
-      claimedAt: now,
-      state: "in_progress",
-    })
-    .where(and(eq(sopInstance.id, instanceId), isNull(sopInstance.claimedBy)))
-    .returning({ id: sopInstance.id });
-  if (!row && instance.claimedBy !== context.actor.id) {
-    throw lateEntry("Someone else took this first");
-  }
-  return instanceId;
-};
-
-/**
- * Finishes an Instance. Refused while any Step — or any animal within a per-animal Step — is
- * neither done nor skipped, which is a thing a phone can be wrong about: it finished on what
- * it could see, and a cow may have joined the Pen since.
- */
-export const applyComplete = async (
-  tx: Tx,
-  context: Recorder,
-  instanceId: string,
-  now: Date
-): Promise<{ changed: boolean }> => {
-  const instance = await tx.query.sopInstance.findFirst({
-    where: { id: instanceId, farmId: context.farm.id },
-    with: { version: { columns: { content: true } }, completions: true },
-  });
-  if (!instance) {
-    throw new ORPCError("NOT_FOUND");
-  }
-  assertMayWork(context, instance);
-  if (instance.state === "completed" || instance.state === "approved") {
-    // Already finished — by this phone's earlier send, or by somebody else. Nothing changes,
-    // and the caller is told so: an Audit Event for a transition that did not happen would
-    // be a trail that lies.
-    return { changed: false };
-  }
-  if (instance.state !== "in_progress" && instance.state !== "sent_back") {
-    throw lateEntry(`This work is ${instance.state}, not in progress`);
-  }
-  const content = contentOf(instance.version);
-  const animals = await animalsForInstance(
-    tx,
-    context.farm.id,
-    instance.penId,
-    content,
-    instance.animalId
-  );
-  const outstanding: string[] = [];
-  for (const step of content.steps) {
-    const done = instance.completions.filter(
-      (completion) => completion.stepId === step.id
-    );
-    if (step.repeatPerAnimal) {
-      const covered = new Set(done.map((completion) => completion.animalId));
-      const missing = animals.filter((beast) => !covered.has(beast.id));
-      if (missing.length > 0) {
-        outstanding.push(
-          `${step.id}: ${missing.map((beast) => beast.tagNumber).join(", ")}`
-        );
-      }
-    } else if (done.length === 0) {
-      outstanding.push(step.id);
-    }
-  }
-  if (outstanding.length > 0) {
-    // A phone finishing on what it could see is not a phone in the wrong; the Pen has
-    // changed under it, and somebody should look.
-    throw lateEntry(`Not finished yet — ${outstanding.join("; ")}`, {
-      outstanding,
-    });
-  }
-  await tx
-    .update(sopInstance)
-    .set({ state: "completed", completedAt: now })
-    .where(eq(sopInstance.id, instanceId));
-  return { changed: true };
 };

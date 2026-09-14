@@ -6,13 +6,10 @@ import { raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
-import {
-  applyClaim,
-  applyComplete,
-  applyCompletion,
-  applyPhoto,
-} from "./completion-store";
+import { applyCompletion, applyPhoto } from "./completion-store";
+import { claimEntry } from "./entries/claim";
 import { isLate, recordHeld } from "./entries/entry";
+import { finishEntry } from "./entries/finish";
 import { moveEntry } from "./entries/move";
 import { observationEntry } from "./entries/observation";
 import type { RaisedAlert } from "./instances-store";
@@ -49,22 +46,21 @@ const applyEntry = async (
   /** An Entry that wrote its own Audit Event (ADR 0004). */
   | { recorded: true }
 > => {
+  // What every Entry needs to know about having been held on a phone.
+  const heldAs = (held: Entry) => ({
+    recordedAt: held.recordedAt,
+    receivedAt,
+    id: held.id,
+    eventId,
+    device: { id: context.device?.id ?? null, seq: held.seq },
+  });
   if (entry.kind === "instance_claim") {
-    await applyClaim(tx, context, entry.instanceId, receivedAt);
-    return { entity: "sop_instance", entityId: entry.instanceId };
+    await recordHeld(tx, context, claimEntry, entry, heldAs(entry));
+    return { recorded: true };
   }
   if (entry.kind === "instance_complete") {
-    const { changed } = await applyComplete(
-      tx,
-      context,
-      entry.instanceId,
-      receivedAt
-    );
-    return {
-      entity: "sop_instance",
-      entityId: entry.instanceId,
-      changed,
-    };
+    await recordHeld(tx, context, finishEntry, entry, heldAs(entry));
+    return { recorded: true };
   }
   if (entry.kind === "step_completion") {
     const recorded = await applyCompletion(
@@ -104,23 +100,11 @@ const applyEntry = async (
     return { entity: "step_completion", entityId: entry.completionId };
   }
   if (entry.kind === "animal_move") {
-    await recordHeld(tx, context, moveEntry, entry, {
-      recordedAt: entry.recordedAt,
-      receivedAt,
-      id: entry.id,
-      eventId,
-      device: { id: context.device?.id ?? null, seq: entry.seq },
-    });
+    await recordHeld(tx, context, moveEntry, entry, heldAs(entry));
     return { recorded: true };
   }
   // What somebody saw with no signal and no round asking: when they saw it is when they wrote it down.
-  await recordHeld(tx, context, observationEntry, entry, {
-    recordedAt: entry.recordedAt,
-    receivedAt,
-    id: entry.id,
-    eventId,
-    device: { id: context.device?.id ?? null, seq: entry.seq },
-  });
+  await recordHeld(tx, context, observationEntry, entry, heldAs(entry));
   return { recorded: true };
 };
 

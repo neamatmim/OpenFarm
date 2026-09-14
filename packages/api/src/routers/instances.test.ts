@@ -57,6 +57,15 @@ const milkingSop = (): SopContent => ({
 });
 
 /** A milking pen with two cows, a fattening pen with one, and a Staff member on the first. */
+/** How many Audit Events a piece of work has. */
+const trailOf = async (instanceId: string) => {
+  const events = await scratchDb().query.auditEvent.findMany({
+    where: { entity: "sop_instance", entityId: instanceId },
+    columns: { id: true },
+  });
+  return events.length;
+};
+
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const shed = await owner.client.herd.createShed({
@@ -199,6 +208,10 @@ describe("claiming", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     await staff.client.instances.claim({ id: instance.id });
+    // Claiming their own work again is the same fact, and the trail says it once.
+    const claimed = await trailOf(instance.id);
+    await staff.client.instances.claim({ id: instance.id });
+    expect(await trailOf(instance.id)).toBe(claimed);
 
     // Not a question of permission: somebody else is holding this work, which is the same
     // answer a phone gets when it claimed with no signal and arrived second.
@@ -647,10 +660,13 @@ describe("review findings", () => {
     await staff.client.instances.complete({ id: instance.id });
 
     // Finishing again changes nothing rather than refusing: a phone replaying its outbox
-    // sends what it sent, and the second telling is the same fact (ADR 0002).
+    // sends what it sent, and the second telling is the same fact (ADR 0002) — with nothing
+    // in the trail for a transition that did not happen.
+    const finished = await trailOf(instance.id);
     await staff.client.instances.complete({ id: instance.id });
     const after = await staff.client.instances.get({ id: instance.id });
     expect(after.state).toBe("completed");
+    expect(await trailOf(instance.id)).toBe(finished);
 
     await expect(
       manager.client.instances.assign({ id: instance.id, userId: "test-staff" })

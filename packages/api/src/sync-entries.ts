@@ -2,6 +2,7 @@ import type { EntryOutcome } from "@OpenFarm/db/schema/sync";
 import { PHOTO_MAX_BYTES } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { workInput } from "./entries/claim";
 import { moveInput } from "./entries/move";
 import { observationInput } from "./entries/observation";
 
@@ -26,12 +27,12 @@ export const entryInput = z.discriminatedUnion("kind", [
   z.object({
     ...entryBase,
     kind: z.literal("instance_claim"),
-    instanceId: z.string().trim().min(1),
+    ...workInput.shape,
   }),
   z.object({
     ...entryBase,
     kind: z.literal("instance_complete"),
-    instanceId: z.string().trim().min(1),
+    ...workInput.shape,
   }),
   z.object({
     ...entryBase,

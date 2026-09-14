@@ -73,21 +73,43 @@ export interface EntryKind<Input, Result> {
       eventId: string;
     }
   ) => Promise<Result>;
+  /** Says an Entry changed nothing — the work was already finished, by this phone's earlier send or by somebody else —
+   *  so no Audit Event is written: a trail entry for a transition that did not happen is a trail that lies. */
+  unchanged?: (result: Result) => boolean;
+}
+
+/** Thrown inside the write to roll back an Entry that changed nothing, taking its Audit Event with it. */
+class NothingChangedError extends Error {
+  override name = "NothingChangedError";
 }
 
 /** Recorded with signal, by its procedure: done now, and heard of now. The procedure's own Role gate has already
  *  chosen the Role, from the same Roles. */
-export const recordNow = <Input, Result>(
+export const recordNow = async <Input, Result>(
   context: Recorder,
   kind: EntryKind<Input, Result>,
   input: Input
 ): Promise<Result> => {
   const now = context.clock.now();
   const times = { id: uuidv7(now), doneAt: now, receivedAt: now };
-  return audited(context).write(
-    kind.trail(context, input, times),
-    (tx, eventId) => kind.apply(tx, context, input, { ...times, eventId })
-  );
+  let result: Result | undefined;
+  try {
+    return await audited(context).write(
+      kind.trail(context, input, times),
+      async (tx, eventId) => {
+        result = await kind.apply(tx, context, input, { ...times, eventId });
+        if (kind.unchanged?.(result)) {
+          throw new NothingChangedError("nothing changed");
+        }
+        return result;
+      }
+    );
+  } catch (error) {
+    if (error instanceof NothingChangedError) {
+      return result as Result;
+    }
+    throw error;
+  }
 };
 
 /**
@@ -132,6 +154,9 @@ export const recordHeld = async <Input, Result>(
     ...times,
     eventId: held.eventId,
   });
+  if (kind.unchanged?.(result)) {
+    return result;
+  }
   const after = await readSnapshot(tx, trail.after);
   await audited(context).recordEvent(tx, trail, {
     before,
