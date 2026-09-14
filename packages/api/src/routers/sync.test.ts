@@ -408,37 +408,6 @@ describe("what the farm makes of it", () => {
       .where(eq(syncEntry.id, sent.results[0]?.id ?? ""));
     expect((held?.payload as { evidence?: unknown[] })?.evidence).toEqual([8]);
   });
-
-  it("records what somebody saw with no signal, as seen when they wrote it down", async () => {
-    const { clock, staff } = await session("2027-01-11");
-    const sawAt = new Date(clock.now().getTime() - 40 * 60_000);
-
-    const sent = await staff.sync.batch({
-      key: key(),
-      entries: [
-        {
-          id: recordId(),
-          seq: seq(),
-          kind: "observation" as const,
-          tagNumber: tagOf(0),
-          saw: "lame",
-          note: "পেছনের বাঁ পা",
-          recordedAt: sawAt,
-        },
-      ],
-    });
-
-    expect(sent.results[0]).toMatchObject({ outcome: "applied" });
-    const her = await staff.animals.byTag({ tagNumber: tagOf(0) });
-    expect(her.observations).toContainEqual(
-      expect.objectContaining({
-        saw: "lame",
-        note: "পেছনের বাঁ পা",
-        instanceId: null,
-        seenAt: sawAt,
-      })
-    );
-  });
 });
 
 describe("review findings", () => {

@@ -3,6 +3,7 @@ import { PHOTO_MAX_BYTES } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { moveInput } from "./entries/move";
+import { observationInput } from "./entries/observation";
 
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
@@ -84,9 +85,7 @@ export const entryInput = z.discriminatedUnion("kind", [
   z.object({
     ...entryBase,
     kind: z.literal("observation"),
-    tagNumber: z.string().trim().min(1).max(32),
-    saw: z.string().trim().min(1).max(40),
-    note: z.string().trim().max(500).optional(),
+    ...observationInput.shape,
   }),
 ]);
 

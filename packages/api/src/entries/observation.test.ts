@@ -2,17 +2,18 @@ import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { appRouter } from "../routers/index";
 import { createTestClient } from "../test/client";
-import { appRouter } from "./index";
 
-// Something seen of an animal with no round asking still starts the health chain.
+// An Observation nobody's round asked for still starts the health chain. Whether it arrives this way or from a phone's
+// Outbox is the parity suite's to say; this is what the Entry itself does.
 
 const suffix = `${Date.now()}`;
 
 let world: { ours: string; theirs: string };
 beforeAll(async () => {
   const { client: owner } = await createTestClient(appRouter, { as: "owner" });
-  const shed = await owner.herd.createShed({ name: `sightings-${suffix}` });
+  const shed = await owner.herd.createShed({ name: `observation-${suffix}` });
   const ourPen = await owner.herd.createPen({
     shedId: shed.id,
     name: `আমাদের ${suffix}`,
@@ -34,7 +35,7 @@ beforeAll(async () => {
   await scratchDb()
     .insert(penAssignment)
     .values({
-      id: `pa-sight-${ourPen.id}`,
+      id: `pa-observation-${ourPen.id}`,
       farmId: TEST_FARM.id,
       userId: "test-staff",
       penId: ourPen.id,
@@ -44,7 +45,7 @@ beforeAll(async () => {
 });
 
 describe("reporting what was seen", () => {
-  it("puts a sighting in front of the Vet, with what the person said", async () => {
+  it("puts an Observation in front of the Vet, with what the person said", async () => {
     const { client: staff } = await createTestClient(appRouter, {
       as: "staff",
     });

@@ -1,10 +1,8 @@
-import { uuidv7 } from "@OpenFarm/db/ids";
-
-import { audited } from "../audit";
+import { recordNow } from "../entries/entry";
+import { observationEntry, observationInput } from "../entries/observation";
 import { MAX_SEEN_ROWS, seenLately, seenLatelyInput } from "../health-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
-import { recordSighting, sightingInput } from "../sighting-store";
 
 /** A week is the Manager's question: which cows were seen bulling since Friday. */
 const MANAGER_WINDOW_DAYS = 7;
@@ -48,22 +46,10 @@ export const observationsRouter = {
    * handles the animals may say so; Barn Staff for the Pens they work.
    */
   record: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
-    .input(sightingInput)
+    .use(requireRole(...observationEntry.roles))
+    .input(observationInput)
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const id = uuidv7(now);
-      await audited(context).write(
-        {
-          entity: "observation",
-          entityId: id,
-          action: "create",
-          after: input,
-        },
-        async (tx) => {
-          await recordSighting(tx, context, input, { seenAt: now, now, id });
-        }
-      );
+      const { id } = await recordNow(context, observationEntry, input);
       return { id };
     }),
 

@@ -11,13 +11,12 @@ import {
   applyComplete,
   applyCompletion,
   applyPhoto,
-  isLate,
 } from "./completion-store";
-import { recordHeld } from "./entries/entry";
+import { isLate, recordHeld } from "./entries/entry";
 import { moveEntry } from "./entries/move";
+import { observationEntry } from "./entries/observation";
 import type { RaisedAlert } from "./instances-store";
 import { raiseNeedsReview } from "./review-store";
-import { recordSighting } from "./sighting-store";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
   clockIsOut,
@@ -115,11 +114,14 @@ const applyEntry = async (
     return { recorded: true };
   }
   // What somebody saw with no signal and no round asking: when they saw it is when they wrote it down.
-  const seen = await recordSighting(tx, context, entry, {
-    seenAt: entry.recordedAt,
-    now: receivedAt,
+  await recordHeld(tx, context, observationEntry, entry, {
+    recordedAt: entry.recordedAt,
+    receivedAt,
+    id: entry.id,
+    eventId,
+    device: { id: context.device?.id ?? null, seq: entry.seq },
   });
-  return { entity: "observation", entityId: seen.id };
+  return { recorded: true };
 };
 
 /** What the phone sent, as the trail and a held entry record it. The photo is left out: it

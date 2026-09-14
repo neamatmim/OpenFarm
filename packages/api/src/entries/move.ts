@@ -1,9 +1,7 @@
 import { and, desc, eq, gt } from "@OpenFarm/db/operators";
 import { animalMove } from "@OpenFarm/db/schema/herd";
-import { isExitState } from "@OpenFarm/domain";
 import { z } from "zod";
 
-import { lateEntry } from "../completion-store";
 import {
   assertPenIsTheirs,
   readAnimal,
@@ -12,6 +10,7 @@ import {
   requirePen,
 } from "../herd-store";
 import type { EntryKind } from "./entry";
+import { lateEntry, requireAnimalStillHere } from "./entry";
 
 /** A Move as whoever walked her says it: which animal, to which Pen, and why if they said. */
 export const moveInput = z.object({
@@ -54,18 +53,13 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
   },
 
   apply: async (tx, context, input, { doneAt, receivedAt, id }) => {
-    const beast = await requireAnimal(
+    // She was sold, or somebody walked her somewhere else after this Move was made: both are the world moving under it,
+    // and neither is the walker's to fix, so a phone's Batch keeps it for the Manager.
+    const beast = await requireAnimalStillHere(
       tx,
       context.farm.id,
-      input.tagNumber.toUpperCase()
+      input.tagNumber
     );
-    // Both are the world moving under a Move that was true when it was made: she was sold, or somebody walked her
-    // somewhere else after it. Neither is the walker's to fix, so a phone's Batch keeps it for the Manager.
-    if (isExitState(beast.state)) {
-      throw lateEntry(
-        `Animal ${beast.tagNumber} has left the farm (${beast.state})`
-      );
-    }
     const [since] = await tx
       .select({ id: animalMove.id })
       .from(animalMove)

@@ -1,20 +1,55 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
+import { isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { AuditedWrite, Tx } from "../audit";
 import { audited, readSnapshot } from "../audit";
 import type { Recorder } from "../completion-store";
+import { requireAnimal } from "../herd-store";
 import { roleFor } from "../roles";
 
-/** When an Entry happened, and when the farm heard of it (ADR 0004). */
+/**
+ * An entry that was true when it was written and is not true now: the animal has been sold,
+ * the work has been signed off, the cow has already been recorded. A phone out of signal
+ * writes these honestly, so they are kept and put in front of a person rather than refused
+ * (ADR 0002). Marked so a batch can tell them from an entry that was never valid at all —
+ * a Step no Version has, an animal the farm has never heard of — which is the client's to
+ * keep and fix.
+ */
+export const lateEntry = (message: string, data: object = {}) =>
+  new ORPCError("CONFLICT", { message, data: { ...data, late: true } });
+
+/** Was this refused because the world moved, rather than because the entry was wrong? */
+export const isLate = (error: unknown): boolean =>
+  error instanceof ORPCError &&
+  (error.data as { late?: boolean } | undefined)?.late === true;
+
+/**
+ * The animal an Entry is about, as long as she is still on the farm. One that has left since the Entry was made is the
+ * world moving under it — she was sold while the phone was in the shed — so it is late, not wrong (ADR 0004).
+ */
+export const requireAnimalStillHere = async (
+  tx: Tx,
+  farmId: string,
+  tagNumber: string
+) => {
+  const beast = await requireAnimal(tx, farmId, tagNumber.toUpperCase());
+  if (isExitState(beast.state)) {
+    throw lateEntry(
+      `Animal ${beast.tagNumber} has left the farm (${beast.state})`
+    );
+  }
+  return beast;
+};
+
+/** Which Entry this is, and when it happened and was heard of (ADR 0004). */
 export interface EntryTimes {
+  /** Its own id — the phone's, for work it held — so a replay is the same fact rather than a second one. */
+  id: string;
   /** When the work was done: now, with signal; the phone's own time, for work it held. */
   doneAt: Date;
   receivedAt: Date;
-  /** The phone's own id for what it recorded, so a replay is the same fact rather than a second one. */
-  id?: string;
-  /** The Audit Event the Entry will be written under, for work that has to point at its own trail. */
-  eventId: string;
 }
 
 /**
@@ -26,14 +61,17 @@ export interface EntryKind<Input, Result> {
   roles: readonly RoleName[];
   /** The Audit Event: what it is about, what it did, and that thing as it stood either side. Readers run on the
    *  Entry's own transaction, before and after it applies. */
-  trail: (context: Recorder, input: Input) => AuditedWrite;
+  trail: (context: Recorder, input: Input, times: EntryTimes) => AuditedWrite;
   /** Writes it. Refuses with `lateEntry` when the world has moved since it was recorded — the animal has left, someone
    *  else took the work — so a phone's Batch keeps it for a person rather than refusing it. */
   apply: (
     tx: Tx,
     context: Recorder,
     input: Input,
-    times: EntryTimes
+    times: EntryTimes & {
+      /** The Audit Event it will be written under, for work that has to point at its own trail. */
+      eventId: string;
+    }
   ) => Promise<Result>;
 }
 
@@ -45,8 +83,10 @@ export const recordNow = <Input, Result>(
   input: Input
 ): Promise<Result> => {
   const now = context.clock.now();
-  return audited(context).write(kind.trail(context, input), (tx, eventId) =>
-    kind.apply(tx, context, input, { doneAt: now, receivedAt: now, eventId })
+  const times = { id: uuidv7(now), doneAt: now, receivedAt: now };
+  return audited(context).write(
+    kind.trail(context, input, times),
+    (tx, eventId) => kind.apply(tx, context, input, { ...times, eventId })
   );
 };
 
@@ -76,18 +116,20 @@ export const recordHeld = async <Input, Result>(
     });
   }
   const context: Recorder = { ...recorder, roleUsed };
-  const doneAt =
-    held.recordedAt > held.receivedAt ? held.receivedAt : held.recordedAt;
+  const times = {
+    id: held.id,
+    doneAt:
+      held.recordedAt > held.receivedAt ? held.receivedAt : held.recordedAt,
+    receivedAt: held.receivedAt,
+  };
   const trail = {
-    ...kind.trail(context, input),
-    recordedAt: doneAt,
+    ...kind.trail(context, input, times),
+    recordedAt: times.doneAt,
     device: held.device,
   };
   const before = await readSnapshot(tx, trail.before);
   const result = await kind.apply(tx, context, input, {
-    doneAt,
-    receivedAt: held.receivedAt,
-    id: held.id,
+    ...times,
     eventId: held.eventId,
   });
   const after = await readSnapshot(tx, trail.after);
