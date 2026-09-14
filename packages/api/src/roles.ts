@@ -86,19 +86,29 @@ const VISITING_VET: Refusal = {
   reason: "visiting_vet",
 };
 
+/**
+ * The Role somebody does a piece of work under, of the Roles that may do it — the same whether they do it with signal
+ * or a phone sends it later, because the Role is what the trail names and what decides whose Pens are checked.
+ *
+ * A visiting Vet who also holds another Role works under that Role wherever it reaches: the visit narrows what they do
+ * as a Vet, not what they could already do (permissions are the union).
+ */
+export const roleFor = (
+  person: { roles: readonly RoleName[]; visiting: boolean },
+  allowed: readonly RoleName[]
+): RoleName | null =>
+  (person.visiting
+    ? pickRoleUsed(
+        person.roles.filter((role) => role !== "vet"),
+        allowed
+      )
+    : null) ?? pickRoleUsed(person.roles, allowed);
+
 const roleGate = (allowed: readonly RoleName[], refusal?: Refusal) =>
   os
     .$context<Context & { actor: Actor }>()
     .middleware(({ context, next, path }) => {
-      // A visiting Vet who also holds another Role works under that Role wherever it reaches: the visit narrows what
-      // they do as a Vet, not what they could already do (permissions are the union).
-      const roleUsed =
-        (context.visiting
-          ? pickRoleUsed(
-              context.roles.filter((role) => role !== "vet"),
-              allowed
-            )
-          : null) ?? pickRoleUsed(context.roles, allowed);
+      const roleUsed = roleFor(context, allowed);
       if (!roleUsed || !context.farm) {
         throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
       }

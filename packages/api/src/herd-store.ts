@@ -66,6 +66,41 @@ export const requireAnimal = async (
   return row;
 };
 
+/** What the trail and the herd's lists say about an Animal. */
+export const animalSummaryColumns = {
+  id: true,
+  tagNumber: true,
+  officialTag: true,
+  aliases: true,
+  sex: true,
+  side: true,
+  state: true,
+  penId: true,
+  source: true,
+  breed: true,
+  birthDate: true,
+  photoUpdatedAt: true,
+  lactationNumber: true,
+  lactationStartedAt: true,
+  expectedCalvingAt: true,
+  milkWithdrawalUntil: true,
+  meatWithdrawalUntil: true,
+  milkWithdrawalFromDoses: true,
+  meatWithdrawalFromDoses: true,
+  withdrawalShortenedAt: true,
+  withdrawalShortenedReason: true,
+} as const;
+
+/** The Animal as the audit trail records it. Every animal-scoped event is keyed on the
+ *  Animal's id — the same key `register` used — so its history reads back whole. */
+export const readAnimal = async (tx: Tx, animalId: string) => {
+  const row = await tx.query.animal.findFirst({
+    where: { id: animalId },
+    columns: animalSummaryColumns,
+  });
+  return row ?? null;
+};
+
 /** Every Animal read for a write: refuses an unknown tag, or one that has already left —
  *  an exited Animal's history stays and nothing may change it further. */
 export const loadLiveAnimal = async (

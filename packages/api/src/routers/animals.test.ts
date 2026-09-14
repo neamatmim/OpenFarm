@@ -176,9 +176,11 @@ describe("the state machine", () => {
       driver: "সোহেল",
     });
 
+    // Late rather than wrong: a Move of her is the world having moved under it, and a phone that queued one before the
+    // sale is kept for the Manager (ADR 0004).
     await expect(
       pens.owner.client.animals.move({ tagNumber, toPenId: pens.fatteningPen })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({ code: "CONFLICT", data: { late: true } });
     await expect(
       pens.owner.client.animals.setState({ tagNumber, state: "milking" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });

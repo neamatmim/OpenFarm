@@ -14,12 +14,6 @@ import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
 import type { EffectResult } from "./effects";
 import { runStepEffect } from "./effects";
-import {
-  assertPenIsTheirs,
-  loadLiveAnimal,
-  recordMove,
-  requirePen,
-} from "./herd-store";
 import { animalsForInstance, isOnTheFarm } from "./instances-store";
 import type { RenewalEntry } from "./registration-store";
 import { contentOf } from "./sop-content";
@@ -493,39 +487,6 @@ export const applyCompletion = async (
       .where(eq(sopInstance.id, input.instanceId));
   }
   return { completionId: saved.id, effect };
-};
-
-/**
- * Moves one Animal to another Pen, on the caller's transaction. The same rules the single
- * procedure applies: the Animal must still be here, and both Pens must be the mover's to
- * touch. Extracted so a batch from a phone that has been out of signal records a Move the
- * same way a phone in signal does (ADR 0002).
- */
-export const applyMove = async (
-  tx: Tx,
-  context: Recorder,
-  input: { tagNumber: string; toPenId: string; reason?: string },
-  movedAt: Date,
-  /** The client's own id for the Move, so an outbox replay is the same fact rather than a
-   *  second journey. */
-  id?: string
-): Promise<string> => {
-  const tagNumber = input.tagNumber.toUpperCase();
-  const current = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-  assertPenIsTheirs(context, current.penId);
-  assertPenIsTheirs(context, input.toPenId);
-  await requirePen(tx, context.farm.id, input.toPenId);
-  await recordMove(tx, {
-    farmId: context.farm.id,
-    beast: current,
-    toPenId: input.toPenId,
-    reason: input.reason,
-    movedBy: context.actor.id,
-    movedAt,
-    id,
-    now: movedAt,
-  });
-  return current.id;
 };
 
 /**

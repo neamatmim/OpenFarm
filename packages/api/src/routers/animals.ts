@@ -38,10 +38,11 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import type { CalvingWorkFollowed } from "../breeding-store";
 import { followExpectedCalving, pregnancyTimesOf } from "../breeding-store";
-import { applyMove } from "../completion-store";
 import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { parseCsvRecords } from "../csv";
+import { recordNow } from "../entries/entry";
+import { moveEntry, moveInput } from "../entries/move";
 import { farmDay } from "../farm-clock";
 import { fatteningOf } from "../fattening-store";
 import {
@@ -49,9 +50,11 @@ import {
   withPrescriptions,
 } from "../health-store";
 import {
+  animalSummaryColumns,
   assertPenIsTheirs,
   insertAnimal,
   loadLiveAnimal,
+  readAnimal,
   recordExit,
   requireAnimal,
   requirePen,
@@ -108,30 +111,6 @@ const DOSES_SHOWN = 40;
 
 /** Two years of fortnights. Long enough to see a whole fattening cycle and the one before it. */
 const WEIGH_INS_SHOWN = 52;
-
-const summaryColumns = {
-  id: true,
-  tagNumber: true,
-  officialTag: true,
-  aliases: true,
-  sex: true,
-  side: true,
-  state: true,
-  penId: true,
-  source: true,
-  breed: true,
-  birthDate: true,
-  photoUpdatedAt: true,
-  lactationNumber: true,
-  lactationStartedAt: true,
-  expectedCalvingAt: true,
-  milkWithdrawalUntil: true,
-  meatWithdrawalUntil: true,
-  milkWithdrawalFromDoses: true,
-  meatWithdrawalFromDoses: true,
-  withdrawalShortenedAt: true,
-  withdrawalShortenedReason: true,
-} as const;
 
 /** How she left, for a page that has to say where a cow went. Money in numeric columns comes
  *  back as strings, and is converted here at the edge like the litres. */
@@ -466,16 +445,6 @@ const assertStateFitsSide = (side: string, state: AnimalState) => {
   }
 };
 
-/** The Animal as the audit trail records it. Every animal-scoped event is keyed on the
- *  Animal's id — the same key `register` used — so its history reads back whole. */
-const readAnimal = async (tx: Tx, animalId: string) => {
-  const row = await tx.query.animal.findFirst({
-    where: { id: animalId },
-    columns: summaryColumns,
-  });
-  return row ?? null;
-};
-
 type FarmContext = Context & {
   farm: { id: string; name: string; gestationDays: number };
   actor: { id: string; name: string };
@@ -568,7 +537,7 @@ export const animalsRouter = {
             ? {}
             : { state: { notIn: [...EXIT_STATES] } }),
         },
-        columns: summaryColumns,
+        columns: animalSummaryColumns,
         orderBy: { tagNumber: "asc" },
       });
     }),
@@ -583,7 +552,7 @@ export const animalsRouter = {
           farmId: context.farm.id,
           tagNumber: input.tagNumber.toUpperCase(),
         },
-        columns: summaryColumns,
+        columns: animalSummaryColumns,
         with: {
           pen: {
             columns: { id: true, name: true },
@@ -819,34 +788,13 @@ export const animalsRouter = {
   /** The only way an Animal's location changes. A Move changes the Pen; use changeSide to
    *  cross to the other Side. The Tag Number never changes either way. */
   move: protectedProcedure
-    .use(requireRole("owner", "manager", "staff"))
-    .input(
-      z.object({
-        tagNumber: tagInput,
-        toPenId: z.string(),
-        reason: reasonInput.optional(),
-      })
-    )
+    .use(requireRole(...moveEntry.roles))
+    .input(moveInput)
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
-      await audited(context).write(
-        {
-          entity: "animal",
-          entityId: target.id,
-          action: "update",
-          before: (tx) => readAnimal(tx, target.id),
-          after: (tx) => readAnimal(tx, target.id),
-          reason: input.reason,
-        },
-        (tx) => applyMove(tx, context, input, now)
-      );
-      return { tagNumber, side: target.side, state: target.state };
+      await recordNow(context, moveEntry, input);
+      const moved = await requireAnimal(context.db, context.farm.id, tagNumber);
+      return { tagNumber, side: moved.side, state: moved.state };
     }),
 
   /** Moves an Animal to the other Side; the State the other Side implies comes with it. */

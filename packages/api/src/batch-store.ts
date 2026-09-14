@@ -10,10 +10,11 @@ import {
   applyClaim,
   applyComplete,
   applyCompletion,
-  applyMove,
   applyPhoto,
   isLate,
 } from "./completion-store";
+import { recordHeld } from "./entries/entry";
+import { moveEntry } from "./entries/move";
 import type { RaisedAlert } from "./instances-store";
 import { raiseNeedsReview } from "./review-store";
 import { recordSighting } from "./sighting-store";
@@ -44,7 +45,11 @@ const applyEntry = async (
   /** Made before the entry is applied, because an effect may have to hang a Needs Review on
    *  it inside this same transaction. The Audit Event is then written under the same id. */
   eventId: string
-): Promise<{ entity: string; entityId: string; changed?: boolean }> => {
+): Promise<
+  | { entity: string; entityId: string; changed?: boolean }
+  /** An Entry that wrote its own Audit Event (ADR 0004). */
+  | { recorded: true }
+> => {
   if (entry.kind === "instance_claim") {
     await applyClaim(tx, context, entry.instanceId, receivedAt);
     return { entity: "sop_instance", entityId: entry.instanceId };
@@ -100,18 +105,14 @@ const applyEntry = async (
     return { entity: "step_completion", entityId: entry.completionId };
   }
   if (entry.kind === "animal_move") {
-    // Moving animals is the Owner's, the Manager's and Barn Staff's (roles matrix); a phone's queue is no way round it.
-    if (
-      !(["owner", "manager", "staff"] as const).some((role) =>
-        context.roles.includes(role)
-      )
-    ) {
-      throw new ORPCError("FORBIDDEN", {
-        message: "Moving animals is not this person's to do",
-      });
-    }
-    const moved = await applyMove(tx, context, entry, receivedAt, entry.id);
-    return { entity: "animal", entityId: moved };
+    await recordHeld(tx, context, moveEntry, entry, {
+      recordedAt: entry.recordedAt,
+      receivedAt,
+      id: entry.id,
+      eventId,
+      device: { id: context.device?.id ?? null, seq: entry.seq },
+    });
+    return { recorded: true };
   }
   // What somebody saw with no signal and no round asking: when they saw it is when they wrote it down.
   const seen = await recordSighting(tx, context, entry, {
@@ -328,6 +329,9 @@ const applyEntries = async (
           receivedAt,
           eventId
         );
+        if ("recorded" in target) {
+          return;
+        }
         if (target.changed === false) {
           // Nothing happened, so there is nothing to write down. The entry is still read,
           // which is what stops it being offered for ever.

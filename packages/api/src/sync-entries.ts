@@ -2,6 +2,8 @@ import type { EntryOutcome } from "@OpenFarm/db/schema/sync";
 import { PHOTO_MAX_BYTES } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { moveInput } from "./entries/move";
+
 const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
 
 /** Every entry carries what the phone knew: its own id for the record, where in its own
@@ -77,9 +79,7 @@ export const entryInput = z.discriminatedUnion("kind", [
   z.object({
     ...entryBase,
     kind: z.literal("animal_move"),
-    tagNumber: z.string().trim().min(1).max(32),
-    toPenId: z.string(),
-    reason: z.string().trim().max(200).optional(),
+    ...moveInput.shape,
   }),
   z.object({
     ...entryBase,
