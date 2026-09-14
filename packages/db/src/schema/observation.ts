@@ -33,16 +33,18 @@ export const observation = pgTable(
     animalId: text("animal_id")
       .notNull()
       .references(() => animal.id, { onDelete: "cascade" }),
-    /** The Step that recorded it. */
-    completionId: text("completion_id")
-      .notNull()
-      .references(() => stepCompletion.id, { onDelete: "cascade" }),
+    /** The Step that recorded it — or nothing, for something somebody saw and reported with no round asking. */
+    completionId: text("completion_id").references(() => stepCompletion.id, {
+      onDelete: "cascade",
+    }),
     /** What was seen, as the Version's own choice value — the stable word Health and
      *  Breeding will match on. */
     saw: text("saw").notNull(),
     /** The Bangla the person actually chose, kept with the record: the Version may be
      *  reworded next season, and what this round said should not change with it. */
     sawLabel: text("saw_label").notNull(),
+    /** What the person said about it, in their own words: always for "something else", and whenever they add one. */
+    note: text("note"),
     seenBy: text("seen_by").references(() => user.id),
     seenAt: timestamp("seen_at").notNull(),
     /** When a Correction withdrew it, and what stands in its place. Nothing is deleted. */

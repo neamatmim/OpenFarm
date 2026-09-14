@@ -85,7 +85,8 @@ export const entryInput = z.discriminatedUnion("kind", [
     ...entryBase,
     kind: z.literal("observation"),
     tagNumber: z.string().trim().min(1).max(32),
-    note: z.string().trim().max(2000),
+    saw: z.string().trim().min(1).max(40),
+    note: z.string().trim().max(500).optional(),
   }),
 ]);
 

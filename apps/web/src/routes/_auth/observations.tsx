@@ -54,13 +54,18 @@ const ObservationsPage = () => {
                 {formatDate(new Date(row.seenAt), language, "dateTime")}
                 {row.seenByName ? ` · ${row.seenByName}` : ""}
                 {" · "}
-                <Link
-                  className="underline"
-                  params={{ instanceId: row.instanceId }}
-                  to="/work/$instanceId"
-                >
-                  {t("animals.moveFromWork")}
-                </Link>
+                {row.instanceId ? (
+                  <Link
+                    className="underline"
+                    params={{ instanceId: row.instanceId }}
+                    to="/work/$instanceId"
+                  >
+                    {t("animals.moveFromWork")}
+                  </Link>
+                ) : (
+                  t("sighting.reported")
+                )}
+                {row.note ? ` · “${row.note}”` : ""}
               </div>
             </li>
           ))}

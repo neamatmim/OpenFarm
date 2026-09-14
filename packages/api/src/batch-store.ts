@@ -16,6 +16,7 @@ import {
 } from "./completion-store";
 import type { RaisedAlert } from "./instances-store";
 import { raiseNeedsReview } from "./review-store";
+import { recordSighting } from "./sighting-store";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
   clockIsOut,
@@ -101,12 +102,12 @@ const applyEntry = async (
     const moved = await applyMove(tx, context, entry, receivedAt, entry.id);
     return { entity: "animal", entityId: moved };
   }
-  // Observations arrive with health, in a later increment. The kind exists so a client
-  // written against this contract does not have to change; refusing it by name is honest
-  // about what the farm can hold today.
-  throw new ORPCError("NOT_IMPLEMENTED", {
-    message: "Observations are not recorded yet",
+  // What somebody saw with no signal and no round asking: when they saw it is when they wrote it down.
+  const seen = await recordSighting(tx, context, entry, {
+    seenAt: entry.recordedAt,
+    now: receivedAt,
   });
+  return { entity: "observation", entityId: seen.id };
 };
 
 /** What the phone sent, as the trail and a held entry record it. The photo is left out: it

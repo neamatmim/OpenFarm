@@ -306,3 +306,5 @@ export type {
   SideShare,
 } from "./money-summary";
 export { summariseMoney } from "./money-summary";
+export type { Sighting } from "./sightings";
+export { SIGHTINGS, SIGHTING_NEEDING_A_NOTE, sightingOf } from "./sightings";

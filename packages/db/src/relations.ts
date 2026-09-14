@@ -477,11 +477,10 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.animal.id,
       optional: false,
     }),
-    /** The Step that recorded what was seen. */
+    /** The Step that recorded what was seen, when a round did. */
     completion: r.one.stepCompletion({
       from: r.observation.completionId,
       to: r.stepCompletion.id,
-      optional: false,
     }),
     /** The person who saw it. */
     observer: r.one.user({ from: r.observation.seenBy, to: r.user.id }),

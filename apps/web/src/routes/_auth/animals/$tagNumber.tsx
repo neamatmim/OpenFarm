@@ -45,6 +45,7 @@ import { TwoProjections } from "@/components/gain";
 import { EmptyState, Page, Section, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
+import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -121,6 +122,33 @@ const AnimalHeader = ({ detail }: { detail: AnimalDetail }) => {
         <HerMother dam={detail.dam} />
       </div>
     </header>
+  );
+};
+
+/** Where a sighting came from: the round's work, or somebody reporting it — with what they said. */
+const SeenWhere = ({
+  instanceId,
+  note,
+}: {
+  instanceId: string | null;
+  note: string | null;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {instanceId ? (
+        <Link
+          className="underline"
+          params={{ instanceId }}
+          to="/work/$instanceId"
+        >
+          {t("animals.moveFromWork")}
+        </Link>
+      ) : (
+        t("sighting.reported")
+      )}
+      {note ? ` · “${note}”` : ""}
+    </>
   );
 };
 
@@ -271,13 +299,7 @@ const AnimalPage = () => {
                 {seen.sawLabel}
                 {seen.seenByName ? ` · ${seen.seenByName}` : ""}
                 {" · "}
-                <Link
-                  className="underline"
-                  params={{ instanceId: seen.instanceId }}
-                  to="/work/$instanceId"
-                >
-                  {t("animals.moveFromWork")}
-                </Link>
+                <SeenWhere instanceId={seen.instanceId} note={seen.note} />
                 {seen.withdrawn
                   ? ` · ${t("animals.observationWithdrawn")}`
                   : ""}
@@ -723,6 +745,7 @@ const ManageHer = ({
   }
   return (
     <Section description={t("animals.manageHint")} title={t("animals.manage")}>
+      <ReportSighting tagNumber={detail.tagNumber} />
       {/* What each Role may do to her, and nothing it may not: offering a control the farm will refuse is a
           dead end in the barn. */}
       {mayHandle ? (

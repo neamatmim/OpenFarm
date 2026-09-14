@@ -713,7 +713,7 @@ export const animalsRouter = {
         observations: row.observations.map(
           ({ completion, observer, diagnoses, ...seen }) => ({
             ...seen,
-            instanceId: completion.instanceId,
+            instanceId: completion?.instanceId ?? null,
             seenByName: observer?.name ?? null,
             withdrawn: seen.withdrawnAt !== null,
             diagnoses: readsTheClinicalRecord
