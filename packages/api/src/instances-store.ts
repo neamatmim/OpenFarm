@@ -27,6 +27,7 @@ import {
   MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
+  scheduleFallsOn,
   isEscalated,
   isOverdue,
   minutesOverdue,
@@ -235,6 +236,9 @@ export const dueSlotsFor = (
     );
     for (const schedule of schedules) {
       if (schedule.kind !== "schedule") {
+        continue;
+      }
+      if (!scheduleFallsOn(schedule, now)) {
         continue;
       }
       for (const time of schedule.times) {
@@ -1064,7 +1068,9 @@ export const minuteOfFarmDay = (at: Date): number => {
 export const farmDayOf = (at: Date): string =>
   // The farm's midnight is an instant on the day before in UTC, so the date is read on the farm's clock, not
   // off that instant.
-  new Date(farmDayRange(at).from.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS)
+  new Date(
+    farmDayRange(at).from.getTime() + FARM_UTC_OFFSET_MINUTES * MINUTE_MS
+  )
     .toISOString()
     .slice(0, "YYYY-MM-DD".length);
 

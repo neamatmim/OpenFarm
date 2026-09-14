@@ -14,9 +14,9 @@ import {
   getActiveUser,
   getDeviceToken,
   getRoster,
+  forgetUnprovedSwitch,
   holdUnprovedSwitch,
   isLocked,
-  lockThisPhone,
   setActiveUser,
   setAutoLockMinutes,
   setDeviceToken,
@@ -27,8 +27,8 @@ import {
 } from "@/lib/device";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
-import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
-import { lockOnTheFarm } from "@/lib/shed-phone";
+import { handOverThisPhone } from "@/lib/query-cache";
+import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
 const PIN_LENGTH = 4;
@@ -129,13 +129,14 @@ const DevicePage = () => {
           pin: typed,
         });
         setSwitchToken(proved.token);
-        holdUnprovedSwitch(null);
+        forgetUnprovedSwitch(entry.userId);
       } catch {
         // Offline: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
         // as soon as the phone finds signal.
         setSwitchToken(null);
         holdUnprovedSwitch({ userId: entry.userId, pin: typed });
       }
+      const leaving = getActiveUser()?.userId;
       setActiveUser({
         userId: entry.userId,
         name: entry.name,
@@ -143,8 +144,9 @@ const DevicePage = () => {
       });
       // Whatever this phone read for the last person is not this person's to see. A Shed
       // Phone is one device several milkers work from, and a cache kept across a PIN Switch
-      // is one milker's work — and Alerts — on the next one's screen (ADR 0003).
-      await forgetWhatThisPhoneRead(queryClient);
+      // is one milker's work — and Alerts — on the next one's screen (ADR 0003). Their own,
+      // put away when they last left the phone, comes back: it is what they work from offline.
+      await handOverThisPhone(queryClient, leaving, entry.userId);
       // Somebody is signed in again, so whatever the Outbox stopped holding back can go.
       await phoneOutbox()?.resume();
       // And this handset now speaks for them: leaving its subscription under whoever last
@@ -217,8 +219,7 @@ const DevicePage = () => {
           variant="outline"
           className="w-full"
           onClick={() => {
-            lockThisPhone();
-            void queryClient.clear();
+            void lockAndPutAway(queryClient);
             void lockOnTheFarm();
           }}
         >

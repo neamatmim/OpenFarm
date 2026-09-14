@@ -1,3 +1,6 @@
+import { and, eq } from "@OpenFarm/db/operators";
+import { auditEvent } from "@OpenFarm/db/schema/audit";
+import { deviceSwitch } from "@OpenFarm/db/schema/device";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
@@ -121,6 +124,20 @@ const morning = async (day: string) => {
   return { instance, clock, staff, manager };
 };
 
+/** That somebody entered their PIN on the shared phone at this moment, as `devices.switchUser` records it. */
+const provedPin = async (userId: string, at: Date) => {
+  await scratchDb()
+    .insert(deviceSwitch)
+    .values({
+      id: `switch-attr-${suffix}-${counted()}`,
+      deviceId: PHONE.id,
+      userId,
+      tokenHash: `switch-attr-${suffix}-${counted()}`,
+      expiresAt: new Date(at.getTime() + 5 * 60_000),
+      createdAt: at,
+    });
+};
+
 const milked = (instanceId: string, actorId: string | undefined, at: Date) => ({
   id: `attr-${suffix}-${counted()}`,
   seq: 10_000 + counted(),
@@ -136,6 +153,7 @@ const milked = (instanceId: string, actorId: string | undefined, at: Date) => ({
 describe("who recorded work on a Shed Phone", () => {
   it("keeps the name of the person who recorded it, whoever is switched in when it is sent", async () => {
     const { instance, clock, staff, manager } = await morning("2031-03-01");
+    await provedPin("test-staff", clock.now());
 
     const sent = await manager.sync.batch({
       key: `attr-${suffix}-${counted()}`,
@@ -148,6 +166,35 @@ describe("who recorded work on a Shed Phone", () => {
       recordedBy: "test-staff",
       deviceId: PHONE.id,
     });
+    // Written under the Role they hold, not the one of whoever sent it: a Staff member's Pens are checked by it.
+    const [event] = await scratchDb()
+      .select({ roleUsed: auditEvent.roleUsed })
+      .from(auditEvent)
+      .where(
+        and(
+          eq(auditEvent.entity, "step_completion"),
+          eq(auditEvent.actorId, "test-staff"),
+          eq(auditEvent.deviceId, PHONE.id)
+        )
+      )
+      .limit(1);
+    expect(event?.roleUsed).toBe("staff");
+  });
+
+  it("refuses work naming somebody with a PIN who did not enter it on this phone", async () => {
+    const { instance, clock, manager } = await morning("2031-03-04");
+    // Their PIN was entered here, but two days before: it proves nothing about this morning.
+    await provedPin(
+      "test-staff",
+      new Date(clock.now().getTime() - 2 * 24 * 60 * 60_000)
+    );
+
+    const sent = await manager.sync.batch({
+      key: `attr-${suffix}-${counted()}`,
+      entries: [milked(instance.id, "test-staff", clock.now())],
+    });
+
+    expect(sent.results[0]?.outcome).toBe("rejected");
   });
 
   it("refuses work naming somebody who has no PIN on this farm", async () => {

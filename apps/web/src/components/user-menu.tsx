@@ -14,9 +14,9 @@ import { ChevronDown, Lock, LogOut, Settings } from "lucide-react";
 
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
-import { lockThisPhone } from "@/lib/device";
 import { useInTheBrowser } from "@/lib/in-the-browser";
 import {
+  lockAndPutAway,
   lockOnTheFarm,
   useActiveWorker,
   useIsShedPhone,
@@ -94,8 +94,7 @@ const UserMenu = () => {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => {
-              lockThisPhone();
-              queryClient.clear();
+              void lockAndPutAway(queryClient);
               void lockOnTheFarm();
               void navigate({ to: "/device" });
             }}

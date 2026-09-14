@@ -136,21 +136,23 @@ export const setAutoLockMinutes = (minutes: number) =>
  * A PIN proved on the phone while it had no signal, held in memory only — never stored — so the switch can be
  * proved to the farm the moment signal comes back, without asking the person again mid-task.
  */
-let unproved: { userId: string; pin: string } | null = null;
-export const holdUnprovedSwitch = (
-  proof: { userId: string; pin: string } | null
-) => {
-  unproved = proof;
+const unproved = new Map<string, string>();
+/** One held per person: somebody who switches in twice with no signal needs proving once, and a second person
+ *  switching in after them does not lose the first person's proof — the work they recorded still needs it. */
+export const holdUnprovedSwitch = (proof: { userId: string; pin: string }) => {
+  unproved.set(proof.userId, proof.pin);
 };
-export const takeUnprovedSwitch = () => {
-  const proof = unproved;
-  unproved = null;
-  return proof;
+export const forgetUnprovedSwitch = (userId: string) => {
+  unproved.delete(userId);
+};
+export const takeUnprovedSwitches = (): { userId: string; pin: string }[] => {
+  const proofs = [...unproved].map(([userId, pin]) => ({ userId, pin }));
+  unproved.clear();
+  return proofs;
 };
 
 /** Locks the phone on the phone: nobody is switched in, and no token names anyone. */
 export const lockThisPhone = () => {
-  unproved = null;
   setActiveUser(null);
   setSwitchToken(null);
 };

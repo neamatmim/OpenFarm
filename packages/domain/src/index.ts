@@ -263,6 +263,7 @@ export {
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
   appliesToAnimal,
+  scheduleFallsOn,
   describeChanges,
   isClinicalStep,
   isClosingStep,

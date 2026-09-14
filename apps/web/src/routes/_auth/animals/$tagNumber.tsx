@@ -237,6 +237,15 @@ const AnimalPage = () => {
       <ManageHer
         detail={detail}
         isVet={isVet}
+        mayMove={
+          runsTheFarm ||
+          (mayHandle && (me.data?.penIds ?? []).includes(detail.penId))
+        }
+        movePens={
+          runsTheFarm
+            ? pens
+            : pens.filter((pen) => (me.data?.penIds ?? []).includes(pen.id))
+        }
         mayHandle={mayHandle}
         onChanged={refresh}
         pens={pens}
@@ -645,6 +654,8 @@ const HerServices = ({
 const ManageHer = ({
   detail,
   pens,
+  movePens,
+  mayMove,
   isVet,
   mayHandle,
   runsTheFarm,
@@ -652,6 +663,9 @@ const ManageHer = ({
 }: {
   detail: AnimalDetail;
   pens: { id: string; name: string; shedName: string }[];
+  /** Where she may be moved by this person: anywhere for those who run the farm, a Staff member's own Pens. */
+  movePens: { id: string; name: string; shedName: string }[];
+  mayMove: boolean;
   isVet: boolean;
   mayHandle: boolean;
   runsTheFarm: boolean;
@@ -753,9 +767,9 @@ const ManageHer = ({
           />
         </div>
       ) : null}
-      {runsTheFarm || isVet ? (
+      {mayMove || isVet ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {runsTheFarm ? (
+          {mayMove ? (
             <form
               className="flex flex-col gap-2 rounded-lg border p-4"
               onSubmit={async (event) => {
@@ -788,7 +802,7 @@ const ManageHer = ({
                 required
               >
                 <option value="">—</option>
-                {pens.map((p) => (
+                {movePens.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.shedName} / {p.name}
                   </option>
@@ -804,38 +818,40 @@ const ManageHer = ({
               </Button>
             </form>
           ) : null}
-          <form
-            className="flex flex-col gap-2 rounded-lg border p-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setState.mutate({
-                tagNumber: detail.tagNumber,
-                state: nextState as Parameters<
-                  typeof setState.mutate
-                >[0]["state"],
-                reason: reason || undefined,
-              });
-            }}
-          >
-            <Label htmlFor="state">{t("animals.setState")}</Label>
-            <select
-              id="state"
-              value={nextState}
-              onChange={(e) => setNextState(e.target.value)}
-              className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-              required
+          {runsTheFarm || isVet ? (
+            <form
+              className="flex flex-col gap-2 rounded-lg border p-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setState.mutate({
+                  tagNumber: detail.tagNumber,
+                  state: nextState as Parameters<
+                    typeof setState.mutate
+                  >[0]["state"],
+                  reason: reason || undefined,
+                });
+              }}
             >
-              <option value="">—</option>
-              {allowedNextStates(detail.state).map((s) => (
-                <option key={s} value={s}>
-                  {t(`state.${s}`)}
-                </option>
-              ))}
-            </select>
-            <Button type="submit" variant="outline" disabled={!nextState}>
-              {t("animals.setState")}
-            </Button>
-          </form>
+              <Label htmlFor="state">{t("animals.setState")}</Label>
+              <select
+                id="state"
+                value={nextState}
+                onChange={(e) => setNextState(e.target.value)}
+                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+                required
+              >
+                <option value="">—</option>
+                {allowedNextStates(detail.state).map((s) => (
+                  <option key={s} value={s}>
+                    {t(`state.${s}`)}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" variant="outline" disabled={!nextState}>
+                {t("animals.setState")}
+              </Button>
+            </form>
+          ) : null}
         </div>
       ) : null}
       {mayHandle ? (

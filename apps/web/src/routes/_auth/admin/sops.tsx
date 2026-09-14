@@ -39,7 +39,11 @@ import {
   toChoices,
   fromBilingualList,
   needsUnit,
+  scheduleEveryOtherWeek,
   scheduleTimes,
+  scheduleWeekdays,
+  withEveryOtherWeek,
+  withScheduleWeekdays,
   splitList,
   toBilingualList,
   withEffect,
@@ -474,6 +478,68 @@ const TriggerFields = ({
   );
 };
 
+/** The days of the week, Sunday first, as the farm's schedule numbers them. */
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+/** Which days the scheduled work falls on — every day when none is ticked — and whether only every other week. */
+const ScheduleDays = ({
+  content,
+  onChange,
+}: {
+  content: SopContent;
+  onChange: (content: SopContent) => void;
+}) => {
+  const t = useT();
+  const days = scheduleWeekdays(content);
+  return (
+    <fieldset className="flex flex-col gap-2 pt-1">
+      <legend className="text-muted-foreground mb-1 text-sm">
+        {t("sop.days")}
+      </legend>
+      <div className="flex flex-wrap gap-1.5">
+        {WEEKDAYS.map((day) => {
+          const on = days.includes(day);
+          return (
+            <Button
+              aria-pressed={on}
+              key={day}
+              onClick={() =>
+                onChange(
+                  withScheduleWeekdays(
+                    content,
+                    on ? days.filter((d) => d !== day) : [...days, day]
+                  )
+                )
+              }
+              size="sm"
+              type="button"
+              variant={on ? "default" : "outline"}
+            >
+              {t(`sop.weekday.${day}`)}
+            </Button>
+          );
+        })}
+      </div>
+      <p className="text-muted-foreground text-xs">
+        {days.length === 0 ? t("sop.everyDay") : t("sop.onTheseDays")}
+      </p>
+      {days.length > 0 ? (
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input
+            checked={scheduleEveryOtherWeek(content)}
+            className="size-4"
+            onChange={(event) =>
+              onChange(withEveryOtherWeek(content, event.target.checked))
+            }
+            type="checkbox"
+          />
+          {t("sop.everyOtherWeek")}
+        </label>
+      ) : null}
+    </fieldset>
+  );
+};
+
 const SopEditor = ({
   content,
   blockers,
@@ -559,6 +625,7 @@ const SopEditor = ({
               onChange(withScheduleTimes(content, splitList(e.target.value)))
             }
           />
+          <ScheduleDays content={content} onChange={onChange} />
         </div>
         <TriggerFields content={content} onChange={onChange} />
         <div className="space-y-1">

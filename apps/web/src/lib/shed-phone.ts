@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useSyncExternalStore } from "react";
@@ -14,9 +15,10 @@ import {
   lockThisPhone,
   setSwitchToken,
   subscribeDevice,
-  takeUnprovedSwitch,
+  takeUnprovedSwitches,
   touchActiveUser,
 } from "./device";
+import { putAwayFor } from "./query-cache";
 
 const LOCK_CHECK_MS = 15_000;
 /** Well inside the farm's shortest lock window, so the farm's side of the switch never runs out under someone. */
@@ -28,6 +30,36 @@ export const lockOnTheFarm = async () => {
     await client.devices.lock();
   } catch {
     // No signal: the farm's side of the switch runs out on its own.
+  }
+};
+
+/** Locks the phone at once, then puts away what was on its screen under the person who was working, so the next
+ *  person sees none of it and the same person finds it again. */
+export const lockAndPutAway = async (queryClient: QueryClient) => {
+  const leaving = getActiveUser()?.userId;
+  lockThisPhone();
+  await putAwayFor(queryClient, leaving);
+};
+
+/**
+ * Proves to the farm every PIN entered on this phone with no signal — the person working now, and anyone who worked
+ * before them — so the work each of them recorded can go under their name. Called when signal returns and before the
+ * Outbox sends. A PIN the farm says is wrong is dropped; one that could not be sent is held for next time.
+ */
+export const proveHeldSwitches = async () => {
+  for (const proof of takeUnprovedSwitches()) {
+    try {
+      // oxlint-disable-next-line no-await-in-loop
+      const proved = await client.devices.switchUser(proof);
+      if (getActiveUser()?.userId === proof.userId && !getSwitchToken()) {
+        setSwitchToken(proved.token);
+      }
+    } catch (error) {
+      const refused = (error as { code?: unknown }).code;
+      if (refused !== "UNAUTHORIZED" && refused !== "FORBIDDEN") {
+        holdUnprovedSwitch(proof);
+      }
+    }
   }
 };
 
@@ -61,8 +93,7 @@ export const useShedPhoneKeeper = () => {
     const lockIfIdle = () => {
       if (isLocked(getActiveUser(), getAutoLockMinutes())) {
         const hadToken = Boolean(getSwitchToken());
-        lockThisPhone();
-        queryClient.clear();
+        void lockAndPutAway(queryClient);
         if (hadToken) {
           void lockOnTheFarm();
         }
@@ -80,21 +111,8 @@ export const useShedPhoneKeeper = () => {
       }
     };
     const proveOnceOnline = async () => {
-      const proof = takeUnprovedSwitch();
-      const active = getActiveUser();
-      if (
-        !(proof && active && proof.userId === active.userId) ||
-        getSwitchToken()
-      ) {
-        return;
-      }
-      try {
-        const proved = await client.devices.switchUser(proof);
-        setSwitchToken(proved.token);
-        await queryClient.invalidateQueries();
-      } catch {
-        holdUnprovedSwitch(proof);
-      }
+      await proveHeldSwitches();
+      await queryClient.invalidateQueries();
     };
     window.addEventListener("pointerdown", onActivity);
     window.addEventListener("keydown", onActivity);

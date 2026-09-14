@@ -10,19 +10,26 @@ import { client } from "@/utils/orpc";
 import { getActiveUser, getDeviceToken, getSignedInPerson } from "./device";
 import type { Transport } from "./outbox";
 import { Outbox } from "./outbox";
+import { proveHeldSwitches } from "./shed-phone";
 
 /** The farm, as the Outbox speaks to it. Typed against the procedure rather than cast at it:
  *  this is the one seam where a field the server does not recognise would quietly lose a
  *  morning's work. */
 const farm: Transport = {
-  send: (batch) =>
-    client.sync.batch({
+  send: async (batch) => {
+    // Work recorded under a PIN entered with no signal goes under that person's name only once the farm has seen
+    // the PIN, so the PINs go first.
+    if (getDeviceToken()) {
+      await proveHeldSwitches();
+    }
+    return client.sync.batch({
       key: batch.key,
       sentAt: new Date(batch.sentAt),
       entries: batch.entries as Parameters<
         typeof client.sync.batch
       >[0]["entries"],
-    }),
+    });
+  },
 };
 
 /** How many times a batch is offered before its entries are handed back to the person. A

@@ -10,6 +10,7 @@ import {
   SERVICE_METHODS,
   isCalvingLead,
 } from "./breeding";
+import { farmDayOf } from "./farm-clock";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
 import type { ROLES, RoleName } from "./roles";
@@ -167,8 +168,14 @@ const FARM_TIMED_EVENTS: Partial<Record<FarmEvent, string>> = {
 export const MAX_TRIGGER_OFFSET_DAYS = 365;
 
 export type Trigger =
-  /** Fixed times of day, as "HH:MM" on the farm's clock. */
-  | { kind: "schedule"; times: string[] }
+  /** Fixed times of day, as "HH:MM" on the farm's clock — every day, or only on some days of the week (0 is
+   *  Sunday), and on those only every other week for work done fortnightly. */
+  | {
+      kind: "schedule";
+      times: string[];
+      weekdays?: number[];
+      everyOtherWeek?: boolean;
+    }
   /** Something happened to an animal, optionally some days before the work is due. */
   | { kind: "event"; event: FarmEvent; offsetDays?: number }
   /** An animal reached a State — quarantine, dry, ready for sale — optionally some days
@@ -620,6 +627,26 @@ const isTimedByItself = (
   { kind: (typeof TIMED_BY_THEMSELVES)[number] }
 > => (TIMED_BY_THEMSELVES as readonly string[]).includes(trigger.kind);
 
+/** What is wrong with the days a schedule names. */
+const scheduleDayProblems = (
+  trigger: { weekdays?: number[]; everyOtherWeek?: boolean },
+  at: string
+): string[] => {
+  const problems: string[] = [];
+  for (const day of trigger.weekdays ?? []) {
+    if (!(Number.isInteger(day) && day >= 0 && day <= 6)) {
+      problems.push(`${at}.weekdays: "${day}" is not a day of the week`);
+    }
+  }
+  if (trigger.everyOtherWeek && !trigger.weekdays?.length) {
+    // Every other week of every day is not a rhythm anybody works to; it needs the day it falls on.
+    problems.push(
+      `${at}.everyOtherWeek: say which day of the week it falls on`
+    );
+  }
+  return problems;
+};
+
 /** What is wrong with one Trigger, in the Owner's terms rather than the parser's. */
 const triggerProblems = (trigger: Trigger, index: number): string[] => {
   const problems: string[] = [];
@@ -633,6 +660,7 @@ const triggerProblems = (trigger: Trigger, index: number): string[] => {
         problems.push(`${at}.times: "${time}" is not a time of day`);
       }
     }
+    problems.push(...scheduleDayProblems(trigger, at));
     return problems;
   }
   if (isTimedByItself(trigger)) {
@@ -966,6 +994,33 @@ export const sessionsPerDayOf = (content: SopContent): number => {
   );
   // Work raised by something that happened is fed as one session when it happens.
   return Math.max(times.length, 1);
+};
+
+const DAY_MS_FOR_WEEKS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether a schedule falls on the farm day an instant is in. Every day unless it names days of the week; and a schedule
+ * kept every other week counts its weeks from a fixed Sunday, so a fortnight is the same fortnight whenever the
+ * work was published.
+ */
+export const scheduleFallsOn = (
+  trigger: { weekdays?: number[]; everyOtherWeek?: boolean },
+  at: Date
+): boolean => {
+  if (!trigger.weekdays?.length) {
+    return true;
+  }
+  const midnight = Date.parse(`${farmDayOf(at)}T00:00:00Z`);
+  const weekday = new Date(midnight).getUTCDay();
+  if (!trigger.weekdays.includes(weekday)) {
+    return false;
+  }
+  if (!trigger.everyOtherWeek) {
+    return true;
+  }
+  // 1970-01-04 was a Sunday: weeks are counted from there.
+  const week = Math.floor((midnight / DAY_MS_FOR_WEEKS - 3) / 7);
+  return week % 2 === 0;
 };
 
 /** Does this SOP concern that animal? */
