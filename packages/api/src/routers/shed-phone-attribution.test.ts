@@ -6,6 +6,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { hashToken } from "../device";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
@@ -124,21 +125,29 @@ const morning = async (day: string) => {
   return { instance, clock, staff, manager };
 };
 
-/** That somebody entered their PIN on the shared phone at this moment, as `devices.switchUser` records it. */
+/** That somebody entered their PIN on the shared phone at this moment, as `devices.switchUser` records it: the
+ *  token the phone was given for it. */
 const provedPin = async (userId: string, at: Date) => {
+  const token = `switch-attr-${suffix}-${counted()}`;
   await scratchDb()
     .insert(deviceSwitch)
     .values({
-      id: `switch-attr-${suffix}-${counted()}`,
+      id: token,
       deviceId: PHONE.id,
       userId,
-      tokenHash: `switch-attr-${suffix}-${counted()}`,
+      tokenHash: await hashToken(token),
       expiresAt: new Date(at.getTime() + 5 * 60_000),
       createdAt: at,
     });
+  return token;
 };
 
-const milked = (instanceId: string, actorId: string | undefined, at: Date) => ({
+const milked = (
+  instanceId: string,
+  actorId: string | undefined,
+  at: Date,
+  switchToken?: string
+) => ({
   id: `attr-${suffix}-${counted()}`,
   seq: 10_000 + counted(),
   kind: "step_completion" as const,
@@ -148,16 +157,17 @@ const milked = (instanceId: string, actorId: string | undefined, at: Date) => ({
   evidence: [12],
   recordedAt: at,
   ...(actorId ? { actorId } : {}),
+  ...(switchToken ? { switchToken } : {}),
 });
 
 describe("who recorded work on a Shed Phone", () => {
   it("keeps the name of the person who recorded it, whoever is switched in when it is sent", async () => {
     const { instance, clock, staff, manager } = await morning("2031-03-01");
-    await provedPin("test-staff", clock.now());
+    const token = await provedPin("test-staff", clock.now());
 
     const sent = await manager.sync.batch({
       key: `attr-${suffix}-${counted()}`,
-      entries: [milked(instance.id, "test-staff", clock.now())],
+      entries: [milked(instance.id, "test-staff", clock.now(), token)],
     });
 
     expect(sent.results[0]?.outcome).toBe("applied");
@@ -181,20 +191,30 @@ describe("who recorded work on a Shed Phone", () => {
     expect(event?.roleUsed).toBe("staff");
   });
 
-  it("refuses work naming somebody with a PIN who did not enter it on this phone", async () => {
+  it("refuses work naming somebody without the token their PIN earned on this phone for it", async () => {
     const { instance, clock, manager } = await morning("2031-03-04");
-    // Their PIN was entered here, but two days before: it proves nothing about this morning.
-    await provedPin(
+    // They did enter their PIN here this morning — but whoever sends cannot just say so.
+    const theirs = await provedPin("test-staff", clock.now());
+    // Nor reuse a token from two days ago for this morning's work.
+    const old = await provedPin(
       "test-staff",
       new Date(clock.now().getTime() - 2 * 24 * 60 * 60_000)
     );
 
     const sent = await manager.sync.batch({
       key: `attr-${suffix}-${counted()}`,
-      entries: [milked(instance.id, "test-staff", clock.now())],
+      entries: [
+        milked(instance.id, "test-staff", clock.now()),
+        milked(instance.id, "test-staff", clock.now(), old),
+        milked(instance.id, "test-staff", clock.now(), `${theirs}-guessed`),
+      ],
     });
 
-    expect(sent.results[0]?.outcome).toBe("rejected");
+    expect(sent.results.map((result) => result.outcome)).toEqual([
+      "rejected",
+      "rejected",
+      "rejected",
+    ]);
   });
 
   it("refuses work naming somebody who has no PIN on this farm", async () => {

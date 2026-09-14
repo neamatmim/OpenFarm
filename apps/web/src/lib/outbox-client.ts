@@ -7,7 +7,13 @@ import {
 
 import { client } from "@/utils/orpc";
 
-import { getActiveUser, getDeviceToken, getSignedInPerson } from "./device";
+import {
+  currentProof,
+  getActiveUser,
+  getDeviceToken,
+  getSignedInPerson,
+  tokenForProof,
+} from "./device";
 import type { Transport } from "./outbox";
 import { Outbox } from "./outbox";
 import { proveHeldSwitches } from "./shed-phone";
@@ -18,16 +24,24 @@ import { proveHeldSwitches } from "./shed-phone";
 const farm: Transport = {
   send: async (batch) => {
     // Work recorded under a PIN entered with no signal goes under that person's name only once the farm has seen
-    // the PIN, so the PINs go first.
+    // the PIN, so the PINs go first — and the batch waits, to be tried again, while one is still unproved.
     if (getDeviceToken()) {
       await proveHeldSwitches();
     }
+    const entries = batch.entries.map(({ proof, ...entry }) => {
+      if (typeof proof !== "string") {
+        return entry;
+      }
+      const { token, waiting } = tokenForProof(proof);
+      if (waiting) {
+        throw new Error("A PIN entered with no signal is still to be proved");
+      }
+      return token ? { ...entry, switchToken: token } : entry;
+    });
     return client.sync.batch({
       key: batch.key,
       sentAt: new Date(batch.sentAt),
-      entries: batch.entries as Parameters<
-        typeof client.sync.batch
-      >[0]["entries"],
+      entries: entries as Parameters<typeof client.sync.batch>[0]["entries"],
     });
   },
 };
@@ -60,6 +74,7 @@ export const phoneOutbox = (): Outbox | null => {
       getDeviceToken()
         ? (getActiveUser()?.userId ?? null)
         : getSignedInPerson(),
+    proofOf: () => (getDeviceToken() ? currentProof() : null),
   });
   return outbox;
 };

@@ -148,8 +148,13 @@ export const handOverThisPhone = async (
   try {
     const raw = await cacheStore().get(shelfOf(to));
     const kept = raw ? readKept(raw) : null;
-    if (kept && Date.now() - kept.timestamp < KEEP_FOR_MS) {
-      hydrate(queryClient, kept.clientState);
+    if (kept) {
+      // Only what was actually read from the farm in the last fortnight: putting a screen away and bringing it back
+      // does not make what is on it any newer.
+      const fresh = kept.clientState.queries.filter(
+        (query) => Date.now() - query.state.dataUpdatedAt < KEEP_FOR_MS
+      );
+      hydrate(queryClient, { ...kept.clientState, queries: fresh });
     }
   } catch {
     // Nothing usable put away for them: the screen fills from the farm.

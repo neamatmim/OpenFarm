@@ -118,7 +118,13 @@ const entryAfter = (entry: Entry): Record<string, unknown> => {
   // it answered, is the part worth keeping.
   const rest =
     entry.kind === "completion_photo" ? { ...entry, data: undefined } : entry;
-  return { ...rest, recordedAt: entry.recordedAt.toISOString() };
+  // Nor the switch token: it proves who recorded it, and a proof written into a record anybody can read is a proof
+  // anybody can use.
+  return {
+    ...rest,
+    switchToken: undefined,
+    recordedAt: entry.recordedAt.toISOString(),
+  };
 };
 
 /** Records that the entry was read, holding what the phone sent whenever the farm could not

@@ -136,23 +136,59 @@ export const setAutoLockMinutes = (minutes: number) =>
  * A PIN proved on the phone while it had no signal, held in memory only — never stored — so the switch can be
  * proved to the farm the moment signal comes back, without asking the person again mid-task.
  */
-const unproved = new Map<string, string>();
-/** One held per person: somebody who switches in twice with no signal needs proving once, and a second person
- *  switching in after them does not lose the first person's proof — the work they recorded still needs it. */
+const HELD = "held:";
+/** Each stint worked on a PIN the farm has not yet seen, by the reference its entries carry. */
+const unproved = new Map<string, { userId: string; pin: string }>();
+/** What the farm gave each such stint once it saw the PIN — or null, when it said the PIN was wrong. */
+const provedTokens = new Map<string, string | null>();
+/** The stint of whoever is switched in now, while it is unproved. */
+let heldRef: string | null = null;
+
+/** Holds a PIN entered with no signal, and starts the stint its work is recorded under. Every stint is its own: a
+ *  second person switching in after the first does not lose the first person's proof — their work still needs it. */
 export const holdUnprovedSwitch = (proof: { userId: string; pin: string }) => {
-  unproved.set(proof.userId, proof.pin);
+  const ref = `${HELD}${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
+  unproved.set(ref, proof);
+  heldRef = ref;
+  return ref;
 };
-export const forgetUnprovedSwitch = (userId: string) => {
-  unproved.delete(userId);
+/** The person switched in has been proved straight away: no stint is held for them. */
+export const clearHeldStint = () => {
+  heldRef = null;
 };
-export const takeUnprovedSwitches = (): { userId: string; pin: string }[] => {
-  const proofs = [...unproved].map(([userId, pin]) => ({ userId, pin }));
-  unproved.clear();
-  return proofs;
+export const heldSwitches = (): [string, { userId: string; pin: string }][] => [
+  ...unproved,
+];
+/** What the farm said about a held PIN: the token it gave, or null for a PIN it refused. */
+export const markProved = (ref: string, token: string | null) => {
+  unproved.delete(ref);
+  provedTokens.set(ref, token);
+};
+export const isHeldStint = (ref: string) => heldRef === ref;
+
+/** What an entry recorded now carries as proof of who recorded it: the switch token, or the held stint's reference. */
+export const currentProof = (): string | null => getSwitchToken() ?? heldRef;
+
+/**
+ * The switch token an entry's proof stands for, when it is sent. Waiting while its PIN is still to be proved; nothing
+ * when the farm refused the PIN or the phone was restarted before it was proved — the farm then decides on the entry
+ * without it, and sends back work that names somebody it cannot prove.
+ */
+export const tokenForProof = (
+  proof: string
+): { token?: string; waiting: boolean } => {
+  if (!proof.startsWith(HELD)) {
+    return { token: proof, waiting: false };
+  }
+  if (unproved.has(proof)) {
+    return { waiting: true };
+  }
+  return { token: provedTokens.get(proof) ?? undefined, waiting: false };
 };
 
 /** Locks the phone on the phone: nobody is switched in, and no token names anyone. */
 export const lockThisPhone = () => {
+  heldRef = null;
   setActiveUser(null);
   setSwitchToken(null);
 };

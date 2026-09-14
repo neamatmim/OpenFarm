@@ -6,6 +6,7 @@ import { applyBatch } from "../batch-store";
 import type { Recorder } from "../completion-store";
 import type { Context } from "../context";
 import { buildContext } from "../context";
+import { hashToken } from "../device";
 import { protectedProcedure } from "../index";
 import { pushRaised } from "../push-send";
 import { pickRoleUsed, requireRole } from "../roles";
@@ -17,41 +18,47 @@ import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
  *  sends it in batches: one transaction should stay a size a farm's database can hold. */
 const BATCH_MAX = 200;
 
-/** How far before the recording a named worker's PIN may have been proved on the phone. A shift, with room: a PIN
- *  entered at dawn covers the morning's milking, and a PIN entered with no signal is proved when signal comes back,
- *  after the work it covers. */
-const PROOF_WINDOW_MS = 24 * 60 * 60 * 1000;
+/** How long before a PIN reached the farm the work it covers may have been recorded: a PIN entered with no signal
+ *  is proved when signal comes back, after the work — within a shift, with room. */
+const PROOF_BEFORE_MS = 24 * 60 * 60 * 1000;
+/** And after the switch ran out, for a phone's clock a little ahead of the farm's. */
+const PROOF_AFTER_MS = 10 * 60 * 1000;
 
 const ANY_ROLE = ["owner", "manager", "staff", "vet"] as const;
 
 /**
  * Who each entry is written as. Unnamed, or naming the sender, it is the sender's. From a Shed Phone it may name
  * somebody else who works on that phone — the person switched in when it was recorded, offline, before whoever is
- * switched in now — provided they proved their PIN on this same phone around that time, and still have work here.
+ * switched in now — provided it carries the switch token the farm gave that person for that stint on this phone,
+ * and was recorded during it. Knowing that somebody has a PIN, or that they once used the phone, is not enough.
  * From a person's own phone it may name nobody but them.
  */
 const recordersFor = (context: Recorder): RecorderFor => {
   const known = new Map<string, Promise<Recorder>>();
-  /** That the named person entered their PIN on this phone no earlier than a shift before the work — whoever is
-   *  switched in now cannot put somebody else's name on an entry by knowing only that they have a PIN. */
-  const provedOnThisPhone = async (entry: {
+  const provedFor = async (entry: {
     actorId?: string;
     recordedAt: Date;
+    switchToken?: string;
   }) => {
-    const proof = await context.db.query.deviceSwitch.findFirst({
-      where: {
-        deviceId: context.device?.id ?? "",
-        userId: entry.actorId ?? "",
-        createdAt: {
-          gte: new Date(entry.recordedAt.getTime() - PROOF_WINDOW_MS),
-        },
-      },
-      columns: { id: true },
-    });
-    if (!proof) {
+    const stint = entry.switchToken
+      ? await context.db.query.deviceSwitch.findFirst({
+          where: {
+            tokenHash: await hashToken(entry.switchToken),
+            deviceId: context.device?.id ?? "",
+            userId: entry.actorId ?? "",
+          },
+          columns: { createdAt: true, expiresAt: true },
+        })
+      : undefined;
+    const at = entry.recordedAt.getTime();
+    const during =
+      stint !== undefined &&
+      at >= stint.createdAt.getTime() - PROOF_BEFORE_MS &&
+      at <= stint.expiresAt.getTime() + PROOF_AFTER_MS;
+    if (!during) {
       throw new ORPCError("FORBIDDEN", {
         message:
-          "Recorded under somebody who did not enter their PIN on this phone",
+          "Recorded under somebody who did not enter their PIN on this phone for it",
       });
     }
   };
@@ -97,7 +104,7 @@ const recordersFor = (context: Recorder): RecorderFor => {
     const found = known.get(entry.actorId) ?? asSomebodyElse(entry.actorId);
     known.set(entry.actorId, found);
     const recorder = await found;
-    await provedOnThisPhone(entry);
+    await provedFor(entry);
     return recorder;
   };
 };

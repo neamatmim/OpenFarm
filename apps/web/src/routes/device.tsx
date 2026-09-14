@@ -14,7 +14,7 @@ import {
   getActiveUser,
   getDeviceToken,
   getRoster,
-  forgetUnprovedSwitch,
+  clearHeldStint,
   holdUnprovedSwitch,
   isLocked,
   setActiveUser,
@@ -129,7 +129,7 @@ const DevicePage = () => {
           pin: typed,
         });
         setSwitchToken(proved.token);
-        forgetUnprovedSwitch(entry.userId);
+        clearHeldStint();
       } catch {
         // Offline: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
         // as soon as the phone finds signal.

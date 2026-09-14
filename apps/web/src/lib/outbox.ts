@@ -25,6 +25,8 @@ export interface OutboxEntry {
   recordedAt: string;
   /** Who recorded it: on a Shed Phone, whoever was PIN-switched in at that moment. */
   actorId?: string;
+  /** Their proof of it: the switch token, or the reference of a PIN still to be proved. */
+  proof?: string;
 }
 
 /** An entry the phone is still holding, and what the farm said about it. */
@@ -164,6 +166,8 @@ export interface OutboxOptions {
   newKey?: () => string;
   /** Who is working on this phone right now, so each entry carries the person who recorded it. */
   actorOf?: () => string | null;
+  /** What proves it was them — on a Shed Phone, the switch token for their stint. */
+  proofOf?: () => string | null;
 }
 
 /**
@@ -236,6 +240,7 @@ export class Outbox {
   ): Promise<OutboxEntry> {
     const seq = await this.takeSeq();
     const actorId = this.options.actorOf?.() ?? undefined;
+    const proof = this.options.proofOf?.() ?? undefined;
     const entry: OutboxEntry = {
       id,
       seq,
@@ -243,6 +248,7 @@ export class Outbox {
       body,
       recordedAt: this.now().toISOString(),
       ...(actorId ? { actorId } : {}),
+      ...(proof ? { proof } : {}),
     };
     await this.write(entryKey(seq, id), entry);
     return entry;
@@ -386,6 +392,7 @@ export class Outbox {
           kind: entry.kind,
           recordedAt: entry.recordedAt,
           ...(entry.actorId ? { actorId: entry.actorId } : {}),
+          ...(entry.proof ? { proof: entry.proof } : {}),
         })),
       });
       // Written down first. From here the batch is settled business whatever becomes of the

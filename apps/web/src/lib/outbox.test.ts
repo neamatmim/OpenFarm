@@ -111,6 +111,7 @@ describe("recording with no signal", () => {
       retry: new DefaultRetryPolicy(5, false),
       now: () => at,
       actorOf: () => working,
+      proofOf: () => `token-of-${working}`,
     });
     await outbox.add("step_completion", milk(11), "a");
     working = "staff-b";
@@ -121,6 +122,11 @@ describe("recording with no signal", () => {
     expect(farm.sends[0]?.entries.map((entry) => entry.actorId)).toEqual([
       "staff-a",
       "staff-b",
+    ]);
+    // And each carries the proof of the stint it was recorded in, for the farm to check it against.
+    expect(farm.sends[0]?.entries.map((entry) => entry.proof)).toEqual([
+      "token-of-staff-a",
+      "token-of-staff-b",
     ]);
   });
 

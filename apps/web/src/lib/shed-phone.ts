@@ -10,12 +10,14 @@ import {
   getAutoLockMinutes,
   getDeviceToken,
   getSwitchToken,
-  holdUnprovedSwitch,
+  clearHeldStint,
+  heldSwitches,
+  isHeldStint,
   isLocked,
   lockThisPhone,
   setSwitchToken,
   subscribeDevice,
-  takeUnprovedSwitches,
+  markProved,
   touchActiveUser,
 } from "./device";
 import { putAwayFor } from "./query-cache";
@@ -41,25 +43,42 @@ export const lockAndPutAway = async (queryClient: QueryClient) => {
   await putAwayFor(queryClient, leaving);
 };
 
-/**
- * Proves to the farm every PIN entered on this phone with no signal — the person working now, and anyone who worked
- * before them — so the work each of them recorded can go under their name. Called when signal returns and before the
- * Outbox sends. A PIN the farm says is wrong is dropped; one that could not be sent is held for next time.
- */
-export const proveHeldSwitches = async () => {
-  for (const proof of takeUnprovedSwitches()) {
+const proveAll = async () => {
+  for (const [ref, proof] of heldSwitches()) {
     try {
       // oxlint-disable-next-line no-await-in-loop
       const proved = await client.devices.switchUser(proof);
-      if (getActiveUser()?.userId === proof.userId && !getSwitchToken()) {
+      markProved(ref, proved.token);
+      if (isHeldStint(ref) && getActiveUser()?.userId === proof.userId) {
         setSwitchToken(proved.token);
+        clearHeldStint();
       }
     } catch (error) {
       const refused = (error as { code?: unknown }).code;
-      if (refused !== "UNAUTHORIZED" && refused !== "FORBIDDEN") {
-        holdUnprovedSwitch(proof);
+      if (refused === "UNAUTHORIZED" || refused === "FORBIDDEN") {
+        markProved(ref, null);
       }
+      // Anything else — no signal, a server that did not answer — keeps it held for the next try.
     }
+  }
+};
+
+let proving: Promise<void> | null = null;
+
+/**
+ * Proves to the farm every PIN entered on this phone with no signal — the person working now, and anyone who worked
+ * before them — so the work each of them recorded can go under their name. Called when signal returns and before the
+ * Outbox sends; the two share one attempt rather than racing each other.
+ */
+export const proveHeldSwitches = async (): Promise<void> => {
+  if (heldSwitches().length === 0) {
+    return;
+  }
+  proving ??= proveAll();
+  try {
+    await proving;
+  } finally {
+    proving = null;
   }
 };
 
