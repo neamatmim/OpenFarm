@@ -179,6 +179,7 @@ const runEffect = (
     // the same transaction.
     eventId,
     roles: context.roles,
+    roleUsed: context.roleUsed,
     recordedBy,
     recordedAt,
     now,

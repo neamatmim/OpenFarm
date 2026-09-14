@@ -1,6 +1,13 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, like, sql } from "@OpenFarm/db/operators";
+import {
+  and,
+  eq,
+  inArray,
+  like,
+  notInArray,
+  sql,
+} from "@OpenFarm/db/operators";
 import { animal, animalMove, tagSequence } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
@@ -10,6 +17,7 @@ import type {
   Side,
 } from "@OpenFarm/domain";
 import {
+  EXIT_STATES,
   OPEN_INSTANCE_STATES,
   formatTagNumber,
   isExitState,
@@ -378,28 +386,87 @@ export const closeWorkRaisedBy = (
 /**
  * Takes an Animal out of the herd: the exit State, when she went, and the work about her shut.
  *
- * One place for both ways out, because they are the same act with different paperwork — a
+ * One place for every way out, because they are the same act with different paperwork — a
  * Mortality has a cause and a disposal, a Sale has a buyer and a lorry, and the herd should not
  * be able to tell the difference in how it lets go of her. Anything that only one of them does
  * belongs in its own procedure, not here.
  *
  * `at` is when she actually went, not when somebody wrote it down: a cow found dead at dawn and
  * recorded at noon reached that State at dawn, and a State-triggered SOP counts from there.
+ *
+ * She leaves once. And a forecast of Dairy work goes with her: her Expected Calving would
+ * otherwise go on being re-timed, and raising calving work, for a cow who is not here.
  */
-export const recordExit = async (
+export const leaves = async (
   tx: Tx,
   farmId: string,
   her: { id: string },
   { state, at, now }: { state: ExitState; at: Date; now: Date }
 ): Promise<{ workClosed: number }> => {
-  await tx
+  const [left] = await tx
     .update(animal)
-    .set({ state, stateChangedAt: at, updatedAt: now })
-    .where(and(eq(animal.id, her.id), eq(animal.farmId, farmId)));
+    .set({
+      state,
+      stateChangedAt: at,
+      expectedCalvingAt: null,
+      expectedCalvingServiceId: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(animal.id, her.id),
+        eq(animal.farmId, farmId),
+        notInArray(animal.state, [...EXIT_STATES])
+      )
+    )
+    .returning({ id: animal.id });
+  if (!left) {
+    // Recording a second exit over the first would lose which one the farm stands behind.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This animal has already left the farm",
+    });
+  }
   // Work about her outlives her otherwise: a dose due tomorrow, a weigh-in raised last week,
-  // both going late and sending somebody to fetch an animal who is not there.
+  // both going late and sending somebody to fetch an animal who is not there. The calving work
+  // her forecast raised is among it.
   const settled = await closeOpenWorkAboutHer(tx, farmId, her.id);
   return { workClosed: settled.length };
+};
+
+/**
+ * Puts right how she left: the way she went, or the moment. Only for an animal who has left — an animal still on the
+ * farm has no leaving to correct — and never a way back into the herd: whichever State it says, it is an exit State.
+ * Whether it may be put right, and why, is the Correction's to settle before it gets here.
+ */
+export const correctHowSheLeft = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string },
+  { state, at, now }: { state?: ExitState; at?: Date; now: Date }
+): Promise<void> => {
+  if (!(state || at)) {
+    return;
+  }
+  const [corrected] = await tx
+    .update(animal)
+    .set({
+      ...(state ? { state } : {}),
+      ...(at ? { stateChangedAt: at } : {}),
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(animal.id, her.id),
+        eq(animal.farmId, farmId),
+        inArray(animal.state, [...EXIT_STATES])
+      )
+    )
+    .returning({ id: animal.id });
+  if (!corrected) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only how an animal left the farm can be put right here",
+    });
+  }
 };
 
 /**

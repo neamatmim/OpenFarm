@@ -6,7 +6,7 @@ import type { Side, SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { walkTo } from "./herd-store";
+import { leaves, walkTo } from "./herd-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
@@ -326,47 +326,20 @@ describe("what follows from what happens to her", () => {
   });
 
   it.each([
-    [
-      "is sold",
-      (tagNumber: string) =>
-        world.later.manager.sale.record({
-          tagNumber,
-          buyer: { name: `ব্যাপারী ${suffix}` },
-          priceBdt: 120_000,
-          weightKg: 300,
-          destination: "হাট",
-          vehicle: "ট ১১-২২৩৩",
-          driver: "সোহেল",
-        }),
-      "sold",
-    ],
-    [
-      "dies",
-      (tagNumber: string) =>
-        world.later.owner.animals.recordMortality({
-          tagNumber,
-          kind: "died",
-          cause: "পরীক্ষা",
-          disposal: "buried",
-        }),
-      "died",
-    ],
-    [
-      "is culled",
-      (tagNumber: string) =>
-        world.later.owner.animals.recordMortality({
-          tagNumber,
-          kind: "culled",
-          cause: "পরীক্ষা",
-          disposal: "burned",
-        }),
-      "culled",
-    ],
+    ["is sold", "sold"],
+    ["dies", "died"],
+    ["is culled", "culled"],
   ] as const)(
     "%s: gone, her work closed, no calving to prepare for, and nothing moves her after",
-    async (_how, leave, state) => {
+    async (_how, state) => {
       const subject = await her();
-      await leave(subject.tagNumber);
+      await scratchDb().transaction((tx) =>
+        leaves(tx, TEST_FARM.id, subject, {
+          state,
+          at: new Date(LATER),
+          now: new Date(LATER),
+        })
+      );
       expect(await followed(subject)).toEqual({
         move: null,
         side: "dairy",
@@ -381,6 +354,16 @@ describe("what follows from what happens to her", () => {
           toPenId: world.otherDairyPen,
         })
       ).rejects.toMatchObject({ data: { late: true } });
+      // And she leaves once: a second exit over the first would lose which one the farm stands behind.
+      await expect(
+        scratchDb().transaction((tx) =>
+          leaves(tx, TEST_FARM.id, subject, {
+            state: "culled",
+            at: new Date(LATER),
+            now: new Date(LATER),
+          })
+        )
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     }
   );
 });

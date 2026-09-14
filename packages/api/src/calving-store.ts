@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { animal, animalMove, mortality } from "@OpenFarm/db/schema/herd";
 import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
 import { MAY_CALVE_FROM, STILLBIRTH, isExitState } from "@OpenFarm/domain";
@@ -9,7 +10,8 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "./audit";
 import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
 import { followExpectedCalving, nothingFollowed } from "./breeding-store";
-import { insertAnimal, recordExit } from "./herd-store";
+import { insertAnimal } from "./herd-store";
+import { recordMortality } from "./mortality-store";
 
 export interface Calf {
   sex: CalfSex;
@@ -34,6 +36,8 @@ export interface CalvingEntry {
   /** Null when the entry is skipped: she has not calved. */
   calved: { at: Date; ease: CalvingEase; calves: Calf[] } | null;
   recordedBy: string;
+  /** The Role the calving was recorded under, which a stillborn calf's death is written under too. */
+  recordedByRole: RoleName | null;
   times: PregnancyTimes;
   now: Date;
 }
@@ -49,30 +53,17 @@ const recordStillbirth = async (
   calfId: string,
   at: Date
 ): Promise<void> => {
-  await recordExit(
+  await recordMortality(
     tx,
-    entry.farmId,
-    { id: calfId },
     {
-      state: "died",
-      at,
-      now: entry.now,
-    }
-  );
-  await tx
-    .insert(mortality)
-    .values({
-      id: uuidv7(entry.now),
       farmId: entry.farmId,
-      animalId: calfId,
-      kind: "died",
-      happenedAt: at,
-      cause: STILLBIRTH,
-      disposal: null,
       recordedBy: entry.recordedBy,
-      recordedAt: entry.now,
-    })
-    .onConflictDoNothing({ target: mortality.animalId });
+      recordedByRole: entry.recordedByRole,
+      now: entry.now,
+    },
+    { id: calfId },
+    { kind: "died", happenedAt: at, cause: STILLBIRTH, disposal: null }
+  );
 };
 
 /** Whether a calf was alive when she was born, as her calving recorded it. */

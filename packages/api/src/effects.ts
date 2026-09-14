@@ -268,6 +268,8 @@ export interface EffectInput {
   /** The Roles the person recording holds. Most effects do not ask — the Step's own gate is
    *  enough — but a Service is the Manager's alone whoever is standing at the Step. */
   roles: readonly RoleName[];
+  /** The Role the Step is being recorded under, for a record an effect writes that names it. */
+  roleUsed: RoleName | null;
   /** How long this farm's cows carry, and how long before calving its work falls — which Expected
    *  Calving, and the work that follows it, are worked out from. */
   pregnancyTimes: PregnancyTimes;
@@ -1425,6 +1427,7 @@ const applyCalvingEffect = async (
     completionId: input.completionId,
     calved: input.skipped ? null : calvingIn(input),
     recordedBy: input.recordedBy,
+    recordedByRole: input.roleUsed,
     times: input.pregnancyTimes,
     now: input.now,
   });

@@ -1,12 +1,11 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
 import {
   ANIMAL_SOURCES,
   SEXES,
   animal,
   animalPhoto,
-  mortality,
   retag,
 } from "@OpenFarm/db/schema/herd";
 import type { AnimalState } from "@OpenFarm/domain";
@@ -32,7 +31,6 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import type { Tx } from "../audit";
 import { audited } from "../audit";
 import type { CalvingWorkFollowed } from "../breeding-store";
 import { followExpectedCalving, pregnancyTimesOf } from "../breeding-store";
@@ -53,11 +51,17 @@ import {
   insertAnimal,
   loadLiveAnimal,
   readAnimal,
-  recordExit,
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { causeOf, heatKeyOf } from "../instances-store";
+import {
+  correctMortality,
+  mortalityOf,
+  readMortality,
+  recordMortality,
+  writeDisposal,
+} from "../mortality-store";
 import { requireRole } from "../roles";
 import { assertOnTheirCases, onTheirCases } from "../visiting-store";
 
@@ -278,39 +282,6 @@ const intakeView = (
         sellerAddress: row.seller?.address ?? null,
       }
     : null;
-
-/** The mortality as the trail records it either side of a Correction. */
-const readMortality = async (tx: Tx, id: string) => {
-  const row = await tx.query.mortality.findFirst({
-    where: { id },
-    columns: {
-      kind: true,
-      happenedAt: true,
-      cause: true,
-      disposal: true,
-      disposalNote: true,
-    },
-  });
-  return row ?? null;
-};
-
-/** An animal and the mortality recorded of her, for putting it right or finishing it; refused when she has none. */
-const mortalityOf = async (
-  context: { db: Database; farm: { id: string } },
-  tagNumber: string
-) => {
-  const target = await requireAnimal(context.db, context.farm.id, tagNumber);
-  const existing = await context.db.query.mortality.findFirst({
-    where: { animalId: target.id, farmId: context.farm.id },
-    columns: { id: true, recordedBy: true, recordedAt: true },
-  });
-  if (!existing) {
-    throw new ORPCError("NOT_FOUND", {
-      message: `${tagNumber} has no death or cull recorded`,
-    });
-  }
-  return { target, existing };
-};
 
 /** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
 const penScope = (assigned: string[] | null, requested: string | undefined) => {
@@ -850,25 +821,25 @@ export const animalsRouter = {
           // Live, because an animal who has already left cannot leave again — and recording a
           // second exit over the first would lose which one the farm stands behind.
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          await tx.insert(mortality).values({
-            id,
-            farmId: context.farm.id,
-            animalId: her.id,
-            kind: input.kind,
-            happenedAt,
-            cause: input.cause,
-            diagnosisId: input.diagnosisId ?? null,
-            disposal: input.disposal,
-            disposalNote: input.disposalNote ?? null,
-            recordedBy: context.actor.id,
-            recordedByRole: context.roleUsed,
-            recordedAt: now,
-          });
-          ({ workClosed: closed } = await recordExit(tx, context.farm.id, her, {
-            state: input.kind,
-            at: happenedAt,
-            now,
-          }));
+          ({ workClosed: closed } = await recordMortality(
+            tx,
+            {
+              farmId: context.farm.id,
+              recordedBy: context.actor.id,
+              recordedByRole: context.roleUsed,
+              now,
+            },
+            her,
+            {
+              id,
+              kind: input.kind,
+              happenedAt,
+              cause: input.cause,
+              diagnosisId: input.diagnosisId,
+              disposal: input.disposal,
+              disposalNote: input.disposalNote,
+            }
+          ));
         }
       );
       return { tagNumber, state: input.kind, workClosed: closed };
@@ -890,7 +861,11 @@ export const animalsRouter = {
     )
     .handler(async ({ context, input }) => {
       const tagNumber = input.tagNumber.toUpperCase();
-      const { existing } = await mortalityOf(context, tagNumber);
+      const { existing } = await mortalityOf(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
       await audited(context).write(
         {
           entity: "mortality",
@@ -899,27 +874,11 @@ export const animalsRouter = {
           before: (tx) => readMortality(tx, existing.id),
           after: (tx) => readMortality(tx, existing.id),
         },
-        async (tx) => {
-          // Only while it is still awaited, asked inside the transaction: two phones writing it at once write it
-          // once, and the second is told it is there.
-          const [written] = await tx
-            .update(mortality)
-            .set({
-              disposal: input.disposal,
-              disposalNote: input.disposalNote ?? null,
-            })
-            .where(
-              and(eq(mortality.id, existing.id), isNull(mortality.disposal))
-            )
-            .returning({ id: mortality.id });
-          if (!written) {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "Her disposal is already written down; put it right with a Correction",
-              data: { refusal: "disposal_already_recorded" },
-            });
-          }
-        }
+        (tx) =>
+          writeDisposal(tx, existing.id, {
+            disposal: input.disposal,
+            disposalNote: input.disposalNote,
+          })
       );
       return { tagNumber, disposal: input.disposal };
     }),
@@ -951,7 +910,11 @@ export const animalsRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const tagNumber = input.tagNumber.toUpperCase();
-      const { target, existing } = await mortalityOf(context, tagNumber);
+      const { her, existing } = await mortalityOf(
+        context.db,
+        context.farm.id,
+        tagNumber
+      );
       if (input.happenedAt && input.happenedAt > now) {
         throw new ORPCError("BAD_REQUEST", {
           message: "An animal cannot have died in the future",
@@ -987,40 +950,21 @@ export const animalsRouter = {
           before: (tx) => readMortality(tx, existing.id),
           after: (tx) => readMortality(tx, existing.id),
         },
-        async (tx) => {
-          await tx
-            .update(mortality)
-            .set({
-              ...(input.kind ? { kind: input.kind } : {}),
-              ...(input.cause ? { cause: input.cause } : {}),
-              ...(input.disposal ? { disposal: input.disposal } : {}),
-              ...(input.disposalNote === undefined
-                ? {}
-                : { disposalNote: input.disposalNote }),
-              ...(input.happenedAt ? { happenedAt: input.happenedAt } : {}),
-            })
-            .where(eq(mortality.id, existing.id));
-          if (input.happenedAt || input.kind) {
-            // Her State is the other half of this record, so the two move together: the
-            // instant she went, and the way she went. Both are in this event's own snapshot,
-            // so the trail says why her State moved with it.
-            await tx
-              .update(animal)
-              .set({
-                ...(input.kind ? { state: input.kind } : {}),
-                ...(input.happenedAt
-                  ? { stateChangedAt: input.happenedAt }
-                  : {}),
-                updatedAt: now,
-              })
-              .where(
-                and(
-                  eq(animal.id, target.id),
-                  eq(animal.farmId, context.farm.id)
-                )
-              );
-          }
-        }
+        (tx) =>
+          correctMortality(
+            tx,
+            context.farm.id,
+            existing.id,
+            her,
+            {
+              kind: input.kind,
+              cause: input.cause,
+              disposal: input.disposal,
+              disposalNote: input.disposalNote,
+              happenedAt: input.happenedAt,
+            },
+            now
+          )
       );
       return { tagNumber };
     }),
