@@ -40,7 +40,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
+import type { PregnancyTimes } from "./breeding-store";
 import {
   attemptThatRaisedWork,
   closeWorkOfAttemptsNoLongerStanding,
@@ -48,6 +48,7 @@ import {
 } from "./breeding-store";
 import type { CalvingRecorded } from "./calving-store";
 import { recordCalving } from "./calving-store";
+import type { CalvingWorkFollowed } from "./calving-work";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
@@ -55,6 +56,7 @@ import {
   loadLiveAnimal,
   moveOpenWorkWith,
   movedSince,
+  entersState,
   walkTo,
   requirePen,
 } from "./herd-store";
@@ -1316,14 +1318,11 @@ const applyDryOffEffect = async (
       data: { refusal: "dry_off_of_a_cow_not_in_milk" },
     });
   }
-  await tx
-    .update(animal)
-    .set({
-      state: "dry",
-      stateChangedAt: input.recordedAt,
-      updatedAt: input.now,
-    })
-    .where(eq(animal.id, live.id));
+  await entersState(tx, input.instance.farmId, live, {
+    state: "dry",
+    at: input.recordedAt,
+    now: input.now,
+  });
   return { kind: "dry_off", dried: true, cannotUndo: false };
 };
 

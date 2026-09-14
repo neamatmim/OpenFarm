@@ -6,7 +6,8 @@ import type { Side, SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { leaves, walkTo } from "./herd-store";
+import type { Tx } from "./audit";
+import { calves, entersState, leaves, walkTo } from "./herd-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
@@ -221,23 +222,37 @@ const followed = async (
 /** The farm's calving leads as it starts: the Dry-off sixty days before, the calving pen a week. */
 const DEFAULT_LEADS = { dry_off: 60, calving_prep: 7 } as const;
 
-/** The herd walks her, on its own transaction, an hour after she was set up. */
-const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
+/** Something the herd does to her, on its own transaction, an hour after she was set up. */
+const onHer = (
+  animalId: string,
+  act: (
+    tx: Tx,
+    beast: NonNullable<Awaited<ReturnType<Tx["query"]["animal"]["findFirst"]>>>
+  ) => Promise<unknown>
+) =>
   scratchDb().transaction(async (tx) => {
     const beast = await tx.query.animal.findFirst({ where: { id: animalId } });
     if (!beast) {
       throw new Error("no such animal");
     }
-    await walkTo(tx, {
+    await act(tx, beast);
+  });
+
+const later = { at: new Date(LATER), now: new Date(LATER) };
+
+/** The herd walks her. */
+const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
+  onHer(animalId, (tx, beast) =>
+    walkTo(tx, {
       farmId: TEST_FARM.id,
       beast,
       ...to,
       movedBy: null,
-      movedAt: new Date(LATER),
-      now: new Date(LATER),
+      movedAt: later.at,
+      now: later.now,
       calvingLeadDays: DEFAULT_LEADS,
-    });
-  });
+    })
+  );
 
 describe("what follows from what happens to her", () => {
   it("walked to another Pen on her Side: a Move, and her work goes with her", async () => {
@@ -294,11 +309,12 @@ describe("what follows from what happens to her", () => {
 
   it("calves: in milk from the calving, the calving behind her, her work where it was", async () => {
     const subject = await her();
-    await world.later.owner.animals.setState({
-      tagNumber: subject.tagNumber,
-      state: "milking",
-      calvedAt: new Date("2034-01-31T22:00:00.000Z"),
-    });
+    await onHer(subject.id, (tx, beast) =>
+      calves(tx, TEST_FARM.id, beast, {
+        ...later,
+        calvingLeadDays: DEFAULT_LEADS,
+      })
+    );
     expect(await followed(subject)).toEqual({
       move: null,
       side: "dairy",
@@ -311,10 +327,9 @@ describe("what follows from what happens to her", () => {
 
   it("is dried off: Dry, and nothing else moves", async () => {
     const subject = await her({ inMilk: true });
-    await world.later.owner.animals.setState({
-      tagNumber: subject.tagNumber,
-      state: "dry",
-    });
+    await onHer(subject.id, (tx, beast) =>
+      entersState(tx, TEST_FARM.id, beast, { state: "dry", ...later })
+    );
     expect(await followed(subject)).toEqual({
       move: null,
       side: "dairy",
@@ -323,6 +338,38 @@ describe("what follows from what happens to her", () => {
       work: "stays",
       expectedCalving: "cleared",
     });
+  });
+
+  it("loses the calf: a Heifer again, and the dates of the pregnancy are breeding's to put right", async () => {
+    const subject = await her();
+    await onHer(subject.id, (tx, beast) =>
+      entersState(tx, TEST_FARM.id, beast, { state: "heifer", ...later })
+    );
+    expect(await followed(subject)).toEqual({
+      move: null,
+      side: "dairy",
+      state: "heifer",
+      stateChanged: true,
+      work: "stays",
+      expectedCalving: "kept",
+    });
+  });
+
+  it("does not reach Milking but by calving, nor anything once she has left", async () => {
+    const subject = await her();
+    await expect(
+      onHer(subject.id, (tx, beast) =>
+        entersState(tx, TEST_FARM.id, beast, { state: "milking", ...later })
+      )
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await onHer(subject.id, (tx, beast) =>
+      leaves(tx, TEST_FARM.id, beast, { state: "died", ...later })
+    );
+    await expect(
+      onHer(subject.id, (tx, beast) =>
+        entersState(tx, TEST_FARM.id, beast, { state: "heifer", ...later })
+      )
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it.each([

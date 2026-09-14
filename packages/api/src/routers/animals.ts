@@ -1,6 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import {
   ANIMAL_SOURCES,
   SEXES,
@@ -19,7 +19,6 @@ import {
   PHOTO_MAX_BYTES,
   SIDES,
   STATES,
-  canTransition,
   failedAttempts,
   farmDayOf,
   lactationView,
@@ -32,8 +31,9 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import type { CalvingWorkFollowed } from "../breeding-store";
-import { followExpectedCalving, pregnancyTimesOf } from "../breeding-store";
+import { pregnancyTimesOf } from "../breeding-store";
+import type { CalvingWorkFollowed } from "../calving-work";
+import { followExpectedCalving } from "../calving-work";
 import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { parseCsvRecords } from "../csv";
@@ -48,6 +48,8 @@ import {
 import {
   animalSummaryColumns,
   assertPenIsTheirs,
+  calves,
+  entersState,
   insertAnimal,
   loadLiveAnimal,
   readAnimal,
@@ -313,27 +315,6 @@ const openingLactation = (state: AnimalState, calvedAt: Date | undefined) =>
   state === "milking"
     ? { lactationNumber: 1, lactationStartedAt: calvedAt ?? null }
     : { lactationNumber: 0, lactationStartedAt: null };
-
-/** A cow reaching Milking has calved, so her next Lactation begins: the number goes up by
- *  one and the clock starts. Nothing else touches these — days-in-milk is derived from the
- *  start date, never entered. Going Dry ends the Lactation without forgetting it, so her
- *  total for it still reads back. */
-const startingLactation = (
-  current: { state: AnimalState; lactationNumber: number },
-  next: AnimalState,
-  calvedAt: Date | undefined,
-  now: Date
-) => {
-  if (next !== "milking" || current.state === "milking") {
-    return {};
-  }
-  assertCalvedInThePast(calvedAt, now);
-  // She reached Milking, so she calved: today unless a date says otherwise.
-  return {
-    lactationNumber: current.lactationNumber + 1,
-    lactationStartedAt: calvedAt ?? now,
-  };
-};
 
 /** The States a cow can be carrying in. */
 const CARRYING_STATES = new Set<AnimalState>([
@@ -1022,40 +1003,26 @@ export const animalsRouter = {
               data: { refusal: "ready_needs_confirming" },
             });
           }
-          if (!canTransition(current.state, input.state)) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `An animal cannot go from ${current.state} to ${input.state}`,
+          // She reaches it when this is recorded — or, for a cow reaching Milking, when she calved, which begins her
+          // next Lactation and puts the calving the farm expected behind her.
+          // Already there is nothing to do: a cow in milk set to Milking again has not calved again.
+          if (input.state === current.state) {
+            return;
+          }
+          if (input.state === "milking") {
+            assertCalvedInThePast(input.calvedAt, now);
+            await calves(tx, context.farm.id, current, {
+              at: input.calvedAt ?? now,
+              now,
+              calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
             });
+            return;
           }
-          const calved =
-            input.state === "milking" && current.state !== "milking";
-          await tx
-            .update(animal)
-            .set({
-              state: input.state,
-              side: sideOfState(input.state) ?? current.side,
-              ...startingLactation(current, input.state, input.calvedAt, now),
-              // She calved, so the calving the farm expected is behind her. Left standing, the date
-              // would read as the next calving, and the work before it would come round again.
-              ...(calved
-                ? { expectedCalvingAt: null, expectedCalvingServiceId: null }
-                : {}),
-              // When she reached it, so a State-triggered SOP can count its days from here
-              // and tell this occasion apart from the last time she was in this State.
-              stateChangedAt: now,
-              updatedAt: now,
-            })
-            .where(
-              and(eq(animal.farmId, context.farm.id), eq(animal.id, current.id))
-            );
-          if (calved) {
-            await followExpectedCalving(
-              tx,
-              { ...current, expectedCalvingAt: null },
-              pregnancyTimesOf(context.farm).calvingLeadDays,
-              { expectedAgain: false }
-            );
-          }
+          await entersState(tx, context.farm.id, current, {
+            state: input.state,
+            at: now,
+            now,
+          });
         }
       );
       return { tagNumber, state: input.state };

@@ -4,13 +4,14 @@ import { calving } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { animal, animalMove, mortality } from "@OpenFarm/db/schema/herd";
 import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
-import { MAY_CALVE_FROM, STILLBIRTH, isExitState } from "@OpenFarm/domain";
+import { STILLBIRTH, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
-import { followExpectedCalving, nothingFollowed } from "./breeding-store";
-import { insertAnimal } from "./herd-store";
+import type { PregnancyTimes } from "./breeding-store";
+import type { CalvingWorkFollowed } from "./calving-work";
+import { nothingFollowed } from "./calving-work";
+import { calves, insertAnimal } from "./herd-store";
 import { recordMortality } from "./mortality-store";
 
 export interface Calf {
@@ -247,6 +248,7 @@ export const recordCalving = async (
     columns: {
       id: true,
       sex: true,
+      side: true,
       state: true,
       penId: true,
       lactationNumber: true,
@@ -256,19 +258,22 @@ export const recordCalving = async (
   if (!dam) {
     throw new ORPCError("NOT_FOUND", { message: "No such animal" });
   }
-  if (
-    dam.sex !== "female" ||
-    !(MAY_CALVE_FROM as readonly string[]).includes(dam.state)
-  ) {
+  if (dam.sex !== "female") {
     throw new ORPCError("BAD_REQUEST", {
       message: `A ${dam.state.replace("_", " ")} does not calve`,
       data: { refusal: "calving_of_a_cow_not_in_calf" },
     });
   }
 
-  const { at, ease, calves } = entry.calved;
+  const { at, ease, calves: calvesBorn } = entry.calved;
   const calvingId = uuidv7(entry.now);
-  const lactationNumber = dam.lactationNumber + 1;
+  // Her State first: whether she may calve at all is the herd's to say, and her Lactation's number is what it begins.
+  const { lactationNumber, calvingWork: followed } = await calves(
+    tx,
+    entry.farmId,
+    dam,
+    { at, now: entry.now, calvingLeadDays: entry.times.calvingLeadDays }
+  );
   await tx.insert(calving).values({
     id: calvingId,
     farmId: entry.farmId,
@@ -281,34 +286,9 @@ export const recordCalving = async (
     recordedBy: entry.recordedBy,
     createdAt: entry.now,
   });
-  await tx
-    .update(animal)
-    .set({
-      state: "milking",
-      // When she calved, not when it was written down: days-in-milk and anything a State raises
-      // count from here.
-      stateChangedAt: at,
-      lactationNumber,
-      lactationStartedAt: at,
-      expectedCalvingAt: null,
-      expectedCalvingServiceId: null,
-      updatedAt: entry.now,
-    })
-    .where(eq(animal.id, dam.id));
-  const followed = await followExpectedCalving(
-    tx,
-    {
-      id: dam.id,
-      farmId: entry.farmId,
-      lactationNumber,
-      expectedCalvingAt: null,
-    },
-    entry.times.calvingLeadDays,
-    { expectedAgain: false }
-  );
 
   const born: CalvingRecorded["calves"] = [];
-  for (const [position, calf] of calves.entries()) {
+  for (const [position, calf] of calvesBorn.entries()) {
     const calfId = uuidv7(entry.now);
     // Sequential: each calf takes the next Tag Number, twins in the order they were written.
     // oxlint-disable-next-line no-await-in-loop

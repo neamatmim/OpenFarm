@@ -1,8 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
 import { READY_REASONS, readySetAside } from "@OpenFarm/db/schema/fattening";
-import { animal } from "@OpenFarm/db/schema/herd";
 import {
   readyGrounds,
   stillWorthSaying,
@@ -14,7 +12,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { requireAnimal } from "../herd-store";
+import { entersState, requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { fatteningRows } from "../ready-store";
 import { requireRole } from "../roles";
@@ -143,14 +141,12 @@ export const readyRouter = {
           }
           // Her State change is what overtakes any set-aside standing against her: the record
           // of what the Manager decided and why stays, and stops being the last word.
-          await tx
-            .update(animal)
-            .set({
-              state: "ready_for_sale",
-              stateChangedAt: now,
-              updatedAt: now,
-            })
-            .where(eq(animal.id, her.id));
+          await entersState(
+            tx,
+            context.farm.id,
+            { id: her.id, side: "fattening", state: now_.state },
+            { state: "ready_for_sale", at: now, now }
+          );
         }
       );
       return { tagNumber, state: "ready_for_sale" as const };

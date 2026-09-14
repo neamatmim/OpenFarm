@@ -18,16 +18,20 @@ import type {
 } from "@OpenFarm/domain";
 import {
   EXIT_STATES,
+  MAY_CALVE_FROM,
   OPEN_INSTANCE_STATES,
   formatTagNumber,
   isExitState,
+  canTransition,
   prefixForOrigin,
+  sideOfState,
   stateAfterSideChange,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import { followExpectedCalving } from "./breeding-store";
+import type { CalvingWorkFollowed } from "./calving-work";
+import { followExpectedCalving } from "./calving-work";
 
 /** What every way of arriving has to say about the Animal it makes. */
 export interface NewAnimalRows {
@@ -382,6 +386,111 @@ export const closeWorkRaisedBy = (
       )
     )
     .returning({ id: sopInstance.id });
+
+/** Only from the State this was decided on: she has not left, and nothing has moved her on meanwhile. */
+const stillIn = (farmId: string, her: { id: string; state: AnimalState }) =>
+  and(
+    eq(animal.id, her.id),
+    eq(animal.farmId, farmId),
+    eq(animal.state, her.state)
+  );
+
+/**
+ * She reaches a State on her own Side because of something the farm recorded: she was found in calf, she was dried
+ * off, she lost the calf, she was confirmed ready for sale. When she reached it is `at`, not when somebody wrote it
+ * down — anything a State raises counts from there. Every date about a pregnancy is breeding's to work out.
+ *
+ * Not calving, which is `calves`; not a way across to the other Side, which is a Move (`walkTo`); not out of the herd,
+ * which is `leaves`. And nothing she has left may enter anything.
+ */
+export const entersState = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string; side: Side; state: AnimalState },
+  { state, at, now }: { state: AnimalState; at: Date; now: Date }
+): Promise<void> => {
+  if (state === her.state) {
+    return;
+  }
+  if (
+    state === "milking" ||
+    isExitState(state) ||
+    sideOfState(state) !== her.side
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `An animal reaches ${state} by a record of it — a calving, a Move, a sale or a death — not by a change of State`,
+    });
+  }
+  if (!canTransition(her.state, state)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `An animal cannot go from ${her.state} to ${state}`,
+    });
+  }
+  const [reached] = await tx
+    .update(animal)
+    .set({ state, stateChangedAt: at, updatedAt: now })
+    .where(stillIn(farmId, her))
+    .returning({ id: animal.id });
+  if (!reached) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This animal is no longer where this was decided on",
+    });
+  }
+};
+
+/**
+ * She calved: in milk from the hour she calved, her next Lactation begun, and the calving the farm expected behind
+ * her — left standing, its date would read as her next calving and the work before it would come round again, so it
+ * goes with the calving work still owed. A cow still in milk may calve again, and that begins a Lactation too.
+ */
+export const calves = async (
+  tx: Tx,
+  farmId: string,
+  her: { id: string; side: Side; state: AnimalState; lactationNumber: number },
+  {
+    at,
+    now,
+    calvingLeadDays,
+  }: {
+    at: Date;
+    now: Date;
+    /** How far before her Expected Calving each piece of calving work falls, for the work to close by. */
+    calvingLeadDays: Record<CalvingLead, number>;
+  }
+): Promise<{ lactationNumber: number; calvingWork: CalvingWorkFollowed }> => {
+  if (!(MAY_CALVE_FROM as readonly string[]).includes(her.state)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `A ${her.state.replace("_", " ")} does not calve`,
+      data: { refusal: "calving_of_a_cow_not_in_calf" },
+    });
+  }
+  const lactationNumber = her.lactationNumber + 1;
+  const [calved] = await tx
+    .update(animal)
+    .set({
+      state: "milking",
+      stateChangedAt: at,
+      lactationNumber,
+      lactationStartedAt: at,
+      expectedCalvingAt: null,
+      expectedCalvingServiceId: null,
+      updatedAt: now,
+    })
+    .where(stillIn(farmId, her))
+    .returning({ id: animal.id });
+  if (!calved) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This animal is no longer where this was decided on",
+    });
+  }
+  const calvingWork = await followExpectedCalving(
+    tx,
+    { id: her.id, farmId, lactationNumber, expectedCalvingAt: null },
+    calvingLeadDays,
+    { expectedAgain: false }
+  );
+  return { lactationNumber, calvingWork };
+};
 
 /**
  * Takes an Animal out of the herd: the exit State, when she went, and the work about her shut.

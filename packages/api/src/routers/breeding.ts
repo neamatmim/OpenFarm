@@ -9,13 +9,13 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import {
-  followExpectedCalving,
   pregnancyTimesOf,
   repeatBreederFor,
   repeatBreedersOn,
 } from "../breeding-store";
+import { followExpectedCalving } from "../calving-work";
 import { reasonInput } from "../corrections";
-import { loadLiveAnimal } from "../herd-store";
+import { entersState, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 import { assertOnTheirCases } from "../visiting-store";
@@ -124,18 +124,22 @@ export const breedingRouter = {
             recordedBy: context.actor.id,
             recordedAt: now,
           });
-          const backToHeatWatch = her.state === "pregnant_heifer";
           await tx
             .update(animal)
             .set({
               expectedCalvingAt: null,
               expectedCalvingServiceId: null,
-              ...(backToHeatWatch
-                ? { state: "heifer" as const, stateChangedAt: input.abortedAt }
-                : {}),
               updatedAt: now,
             })
             .where(eq(animal.id, her.id));
+          // A heifer who lost her first calf is back on heat watch; a cow is where her Lactation leaves her.
+          if (her.state === "pregnant_heifer") {
+            await entersState(tx, context.farm.id, her, {
+              state: "heifer",
+              at: input.abortedAt,
+              now,
+            });
+          }
           await followExpectedCalving(
             tx,
             { ...her, expectedCalvingAt: null },

@@ -147,10 +147,17 @@ describe("the state machine", () => {
     const { tagNumber } = await registerDairyCalf();
 
     await expect(
+      pens.owner.client.animals.setState({ tagNumber, state: "dry" })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringContaining("calf to dry"),
+    });
+    // Reaching Milking is calving, and a calf does not calve: said in a word the phone puts into the reader's language.
+    await expect(
       pens.owner.client.animals.setState({ tagNumber, state: "milking" })
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
-      message: expect.stringContaining("calf to milking"),
+      data: { refusal: "calving_of_a_cow_not_in_calf" },
     });
   });
 
