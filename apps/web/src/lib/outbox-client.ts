@@ -28,16 +28,19 @@ const farm: Transport = {
     if (getDeviceToken()) {
       await proveHeldSwitches();
     }
-    const entries = batch.entries.map(({ proof, ...entry }) => {
+    const entries: Record<string, unknown>[] = [];
+    for (const { proof, ...entry } of batch.entries) {
       if (typeof proof !== "string") {
-        return entry;
+        entries.push(entry);
+        continue;
       }
-      const { token, waiting } = tokenForProof(proof);
+      // oxlint-disable-next-line no-await-in-loop
+      const { token, waiting } = await tokenForProof(proof);
       if (waiting) {
         throw new Error("A PIN entered with no signal is still to be proved");
       }
-      return token ? { ...entry, switchToken: token } : entry;
-    });
+      entries.push(token ? { ...entry, switchToken: token } : entry);
+    }
     return client.sync.batch({
       key: batch.key,
       sentAt: new Date(batch.sentAt),

@@ -143,8 +143,13 @@ export const setAutoLockMinutes = (minutes: number) =>
 const HELD = "held:";
 const PROOF_KEY = "openfarm.device.proof:";
 const HELD_STINT_KEY = "openfarm.device.heldStint";
-/** How long a held PIN counts as still held by some tab on this phone without that tab saying so again. */
+/** Where Web Locks are missing, how long a held PIN counts as still held by some tab without that tab saying so again.
+ *  After that its work is sent and, if it names somebody the farm cannot prove, comes back to the phone with its data
+ *  rather than going under anybody's name. */
 const HELD_FRESH_MS = 2 * 60_000;
+const PIN_LOCK = "openfarm-pin:";
+/** Lets go of the lock that says this tab holds a stint's PIN. */
+const letGo = new Map<string, () => void>();
 /** How long what was said about a stint is kept: as long as the phone keeps work at all. */
 const PROOF_KEPT_MS = 14 * 24 * 60 * 60_000;
 
@@ -188,6 +193,17 @@ export const holdUnprovedSwitch = (proof: { userId: string; pin: string }) => {
   forgetOldProofs();
   const ref = `${HELD}${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
   unproved.set(ref, proof);
+  // A lock held for as long as this tab holds the PIN: the browser lets go of it when the tab is closed or reloaded,
+  // and not while the phone merely sleeps — which is exactly the question another tab needs answered.
+  // A promise nothing else produces: it settles only when this tab lets go of the PIN.
+  // oxlint-disable-next-line promise/avoid-new
+  const released = new Promise<boolean>((resolve) => {
+    letGo.set(ref, () => resolve(true));
+  });
+  void globalThis.navigator?.locks?.request(
+    `${PIN_LOCK}${ref}`,
+    () => released
+  );
   const now = Date.now();
   writeProof(ref, { state: "held", seenAt: now, at: now });
   write(HELD_STINT_KEY, ref);
@@ -202,6 +218,11 @@ export const heldSwitches = (): [string, { userId: string; pin: string }][] => [
 export const touchHeldSwitches = () => {
   for (const ref of unproved.keys()) {
     const record = readProof(ref);
+    // Settled already — by this tab or another — and settled for good: saying it is held again would change what a
+    // batch already sent carries when it is sent again.
+    if (record && record.state !== "held") {
+      continue;
+    }
     writeProof(ref, {
       state: "held",
       seenAt: Date.now(),
@@ -212,6 +233,14 @@ export const touchHeldSwitches = () => {
 /** What the farm said about a held PIN: the token it gave, or null for a PIN it refused. */
 export const markProved = (ref: string, token: string | null) => {
   unproved.delete(ref);
+  letGo.get(ref)?.();
+  letGo.delete(ref);
+  const record = readProof(ref);
+  // The first answer stands. A PIN proved after its work was already sent without it proves the person for what
+  // they do next, not for what has gone.
+  if (record && record.state !== "held") {
+    return;
+  }
   writeProof(
     ref,
     token
@@ -231,9 +260,25 @@ export const currentProof = (): string | null =>
  * before it was proved. Once settled the answer is written down and never changes, so a batch sent again after a
  * lost reply is the same batch the farm already has.
  */
-export const tokenForProof = (
+/** Whether some tab on this phone still holds a stint's PIN. */
+const heldByATab = async (
+  ref: string,
+  record: ProofRecord | null
+): Promise<boolean> => {
+  if (unproved.has(ref)) {
+    return true;
+  }
+  const locks = globalThis.navigator?.locks;
+  if (locks) {
+    const { held = [] } = await locks.query();
+    return held.some((lock) => lock.name === `${PIN_LOCK}${ref}`);
+  }
+  return record?.state === "held" && Date.now() - record.seenAt < HELD_FRESH_MS;
+};
+
+export const tokenForProof = async (
   proof: string
-): { token?: string; waiting: boolean } => {
+): Promise<{ token?: string; waiting: boolean }> => {
   if (!proof.startsWith(HELD)) {
     return { token: proof, waiting: false };
   }
@@ -241,15 +286,13 @@ export const tokenForProof = (
   if (record?.state === "proved") {
     return { token: record.token, waiting: false };
   }
-  const stillHeld =
-    unproved.has(proof) ||
-    (record?.state === "held" && Date.now() - record.seenAt < HELD_FRESH_MS);
-  if (stillHeld) {
+  if (record?.state === "unproved") {
+    return { waiting: false };
+  }
+  if (await heldByATab(proof, record)) {
     return { waiting: true };
   }
-  if (record?.state !== "unproved") {
-    writeProof(proof, { state: "unproved", at: Date.now() });
-  }
+  writeProof(proof, { state: "unproved", at: Date.now() });
   return { waiting: false };
 };
 
