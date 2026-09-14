@@ -28,13 +28,13 @@ export const observationEntry: EntryKind<
 > = {
   roles: ["owner", "manager", "staff", "vet"],
 
-  trail: (_context, _input, { id }) => ({
+  trail: () => ({
     entity: "observation",
-    entityId: id,
     action: "create",
+    entityId: ({ id }) => id,
     // What the farm now holds of it — the word as the farm keeps it, whose it is and when it was seen — rather than what
     // the phone typed.
-    after: async (tx) =>
+    after: async (tx, { id }) =>
       (await tx.query.observation.findFirst({
         where: { id },
         columns: {

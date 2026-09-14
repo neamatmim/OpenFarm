@@ -37,8 +37,8 @@ export const claimEntry: EntryKind<WorkInput, { changed: boolean }> = {
 
   trail: (_context, input) => ({
     entity: "sop_instance",
-    entityId: input.instanceId,
     action: "update",
+    entityId: () => input.instanceId,
     before: (tx) => readWork(tx, input.instanceId),
     after: (tx) => readWork(tx, input.instanceId),
   }),

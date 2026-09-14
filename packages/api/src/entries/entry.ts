@@ -1,10 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import type { AuditAction } from "@OpenFarm/db/schema/audit";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { AuditedWrite, Tx } from "../audit";
-import { audited, readSnapshot } from "../audit";
+import type { SnapshotValue, Tx } from "../audit";
+import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
 import { requireAnimal } from "../herd-store";
 import { roleFor } from "../roles";
@@ -52,6 +53,17 @@ export interface EntryTimes {
   receivedAt: Date;
 }
 
+/** The Audit Event an Entry is written under: what it is about, what it did, and that thing as it stood either side.
+ *  Readers run on the Entry's own transaction; the one after it, and the id, see what the Entry wrote. */
+export interface EntryTrail<Result> {
+  entity: string;
+  action: AuditAction;
+  reason?: string;
+  entityId: (result: Result) => string;
+  before?: (tx: Tx) => Promise<SnapshotValue>;
+  after: (tx: Tx, result: Result) => Promise<SnapshotValue>;
+}
+
 /**
  * One kind of thing a person records, taken the same way however it reaches the farm (ADR 0004): which Roles may
  * record it, how the trail describes it, and what it writes. Its procedure and the Batch are its two callers, and
@@ -59,9 +71,11 @@ export interface EntryTimes {
  */
 export interface EntryKind<Input, Result> {
   roles: readonly RoleName[];
-  /** The Audit Event: what it is about, what it did, and that thing as it stood either side. Readers run on the
-   *  Entry's own transaction, before and after it applies. */
-  trail: (context: Recorder, input: Input, times: EntryTimes) => AuditedWrite;
+  trail: (
+    context: Recorder,
+    input: Input,
+    times: EntryTimes
+  ) => EntryTrail<Result>;
   /** Writes it. Refuses with `lateEntry` when the world has moved since it was recorded — the animal has left, someone
    *  else took the work — so a phone's Batch keeps it for a person rather than refusing it. */
   apply: (
@@ -76,6 +90,9 @@ export interface EntryKind<Input, Result> {
   /** Says an Entry changed nothing — the work was already finished, by this phone's earlier send or by somebody else —
    *  so no Audit Event is written: a trail entry for a transition that did not happen is a trail that lies. */
   unchanged?: (result: Result) => boolean;
+  /** Why this one cannot come from a phone's Outbox at all, when it cannot — the Registration's renewal is the Owner's
+   *  own act on their own phone, with its certificate — or nothing. */
+  heldRefusal?: (input: Input) => string | undefined;
 }
 
 /** Thrown inside the write to roll back an Entry that changed nothing, taking its Audit Event with it. */
@@ -93,9 +110,17 @@ export const recordNow = async <Input, Result>(
   const now = context.clock.now();
   const times = { id: uuidv7(now), doneAt: now, receivedAt: now };
   let result: Result | undefined;
+  const trail = kind.trail(context, input, times);
   try {
     return await audited(context).write(
-      kind.trail(context, input, times),
+      {
+        entity: trail.entity,
+        action: trail.action,
+        reason: trail.reason,
+        entityId: () => trail.entityId(result as Result),
+        before: trail.before,
+        after: (tx) => trail.after(tx, result as Result),
+      },
       async (tx, eventId) => {
         result = await kind.apply(tx, context, input, { ...times, eventId });
         if (kind.unchanged?.(result)) {
@@ -137,6 +162,10 @@ export const recordHeld = async <Input, Result>(
       message: "This is not this person's to record",
     });
   }
+  const refused = kind.heldRefusal?.(input);
+  if (refused) {
+    throw new ORPCError("BAD_REQUEST", { message: refused });
+  }
   const context: Recorder = { ...recorder, roleUsed };
   const times = {
     id: held.id,
@@ -144,12 +173,8 @@ export const recordHeld = async <Input, Result>(
       held.recordedAt > held.receivedAt ? held.receivedAt : held.recordedAt,
     receivedAt: held.receivedAt,
   };
-  const trail = {
-    ...kind.trail(context, input, times),
-    recordedAt: times.doneAt,
-    device: held.device,
-  };
-  const before = await readSnapshot(tx, trail.before);
+  const trail = kind.trail(context, input, times);
+  const before = (await trail.before?.(tx)) ?? null;
   const result = await kind.apply(tx, context, input, {
     ...times,
     eventId: held.eventId,
@@ -157,12 +182,22 @@ export const recordHeld = async <Input, Result>(
   if (kind.unchanged?.(result)) {
     return result;
   }
-  const after = await readSnapshot(tx, trail.after);
-  await audited(context).recordEvent(tx, trail, {
-    before,
-    after,
-    eventId: held.eventId,
-    receivedAt: held.receivedAt,
-  });
+  await audited(context).recordEvent(
+    tx,
+    {
+      entity: trail.entity,
+      entityId: trail.entityId(result),
+      action: trail.action,
+      reason: trail.reason,
+      recordedAt: times.doneAt,
+      device: held.device,
+    },
+    {
+      before,
+      after: await trail.after(tx, result),
+      eventId: held.eventId,
+      receivedAt: held.receivedAt,
+    }
+  );
   return result;
 };

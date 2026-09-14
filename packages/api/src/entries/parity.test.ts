@@ -30,6 +30,11 @@ const SENT = new Date(new Date(DONE).getTime() + 2 * HOUR).toISOString();
  *  anything this file compares. */
 const SETUP = new Date(new Date(DONE).getTime() - 12 * HOUR).toISOString();
 
+/** A minute after the work began, for each thing done after the one before: the trail orders what happened at one
+ *  instant by nothing a test can rely on. */
+const minutesIn = (minutes: number) =>
+  new Date(new Date(DONE).getTime() + minutes * 60_000).toISOString();
+
 /** The kinds this file holds to parity. A kind a phone can send and this file does not name is drift
  *  waiting to happen. */
 const COVERED: readonly SyncKind[] = [
@@ -37,6 +42,7 @@ const COVERED: readonly SyncKind[] = [
   "observation",
   "instance_claim",
   "step_completion",
+  "completion_photo",
   "instance_complete",
 ];
 
@@ -124,20 +130,28 @@ const calling = async (userId: string, at: string) => {
 };
 
 let nextSeq = 0;
-/** One entry, sent on its own in a Batch that finds signal at SENT, as `userId`. */
+/** One entry, sent on its own in a Batch that finds signal as long after the work as SENT is after DONE, as `userId`. */
 const sendLater = async (
   userId: string,
-  entry: Record<string, unknown> & { kind: SyncKind }
+  entry: Record<string, unknown> & { kind: SyncKind },
+  doneAt = DONE
 ) => {
   nextSeq += 1;
-  const phone = await calling(userId, SENT);
+  // Two hours after the work, whichever work it is.
+  const phone = await calling(
+    userId,
+    new Date(
+      new Date(doneAt).getTime() +
+        (new Date(SENT).getTime() - new Date(DONE).getTime())
+    ).toISOString()
+  );
   const sent = await phone.sync.batch({
     key: `parity-${suffix}-${nextSeq}`,
     entries: [
       {
         id: `parity-entry-${suffix}-${nextSeq}`,
         seq: nextSeq,
-        recordedAt: new Date(DONE),
+        recordedAt: new Date(doneAt),
         ...entry,
       } as Entry,
     ],
@@ -265,6 +279,13 @@ const completionOf = async (instanceId: string) => {
       }
     : null;
 };
+
+/** The photographs against a Step Completion, as twins can be compared. */
+const photosOf = (completionId: string) =>
+  scratchDb().query.completionPhoto.findMany({
+    where: { completionId },
+    columns: { slot: true, contentType: true, data: true },
+  });
 
 const setup = async () => {
   await createTestClient(appRouter, { as: "staff" });
@@ -521,18 +542,22 @@ describe("a piece of work", () => {
 
   it("has its Step recorded the same way either way", async () => {
     const [online, offline] = world.work;
-    const now = await calling(world.staff, DONE);
+    const now = await calling(world.staff, minutesIn(1));
     await now.instances.completeStep({
       instanceId: online,
       stepId: "look",
       evidence: [true],
     });
-    const later = await sendLater(world.staff, {
-      kind: "step_completion",
-      instanceId: offline,
-      stepId: "look",
-      evidence: [true],
-    });
+    const later = await sendLater(
+      world.staff,
+      {
+        kind: "step_completion",
+        instanceId: offline,
+        stepId: "look",
+        evidence: [true],
+      },
+      minutesIn(1)
+    );
     const there = await completionOf(online);
     const here = await completionOf(offline);
 
@@ -543,14 +568,44 @@ describe("a piece of work", () => {
     );
   });
 
+  it("has a photograph put against its Step the same way either way", async () => {
+    const [online, offline] = world.work;
+    const there = await completionOf(online);
+    const here = await completionOf(offline);
+    const picture = {
+      slot: 0,
+      contentType: "image/jpeg" as const,
+      data: "AAAA",
+    };
+    const now = await calling(world.staff, minutesIn(2));
+    await now.instances.attachPhoto({
+      completionId: there?.id ?? "",
+      ...picture,
+    });
+    const later = await sendLater(
+      world.staff,
+      { kind: "completion_photo", completionId: here?.id ?? "", ...picture },
+      minutesIn(2)
+    );
+
+    expect(later?.outcome).toBe("applied");
+    expect(await photosOf(here?.id ?? "")).toEqual(
+      await photosOf(there?.id ?? "")
+    );
+    expect(await lastEventAbout("step_completion", here?.id ?? "")).toEqual(
+      await lastEventAbout("step_completion", there?.id ?? "")
+    );
+  });
+
   it("is finished the same way either way, dated when it was finished", async () => {
     const [online, offline] = world.work;
-    const now = await calling(world.staff, DONE);
+    const now = await calling(world.staff, minutesIn(3));
     await now.instances.complete({ id: online });
-    const later = await sendLater(world.staff, {
-      kind: "instance_complete",
-      instanceId: offline,
-    });
+    const later = await sendLater(
+      world.staff,
+      { kind: "instance_complete", instanceId: offline },
+      minutesIn(3)
+    );
 
     expect(later?.outcome).toBe("applied");
     expect(await instanceOf(offline)).toEqual(await instanceOf(online));

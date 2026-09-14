@@ -1,17 +1,20 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
+import type { SyncKind } from "@OpenFarm/db/schema/sync";
 import { ORPCError } from "@orpc/server";
 
 import { raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
-import { applyCompletion, applyPhoto } from "./completion-store";
 import { claimEntry } from "./entries/claim";
+import type { EntryKind } from "./entries/entry";
 import { isLate, recordHeld } from "./entries/entry";
 import { finishEntry } from "./entries/finish";
 import { moveEntry } from "./entries/move";
 import { observationEntry } from "./entries/observation";
+import { stepCompletionEntry } from "./entries/step-completion";
+import { stepPhotoEntry } from "./entries/step-photo";
 import type { RaisedAlert } from "./instances-store";
 import { raiseNeedsReview } from "./review-store";
 import type { Entry, EntryResult } from "./sync-entries";
@@ -32,8 +35,18 @@ const message = (error: unknown): string =>
     ? error.message
     : ((error as Error)?.message ?? "could not be recorded");
 
-/** One entry, applied on the transaction the caller holds. */
-const applyEntry = async (
+/** Each kind a phone can send, and the Entry that records it (ADR 0004). */
+const ENTRIES = {
+  instance_claim: claimEntry,
+  instance_complete: finishEntry,
+  step_completion: stepCompletionEntry,
+  completion_photo: stepPhotoEntry,
+  animal_move: moveEntry,
+  observation: observationEntry,
+} as const satisfies Record<SyncKind, unknown>;
+
+/** One entry, recorded by its Entry on the transaction the caller holds, with its Audit Event. */
+const applyEntry = (
   tx: Tx,
   context: Recorder,
   entry: Entry,
@@ -41,72 +54,20 @@ const applyEntry = async (
   /** Made before the entry is applied, because an effect may have to hang a Needs Review on
    *  it inside this same transaction. The Audit Event is then written under the same id. */
   eventId: string
-): Promise<
-  | { entity: string; entityId: string; changed?: boolean }
-  /** An Entry that wrote its own Audit Event (ADR 0004). */
-  | { recorded: true }
-> => {
-  // What every Entry needs to know about having been held on a phone.
-  const heldAs = (held: Entry) => ({
-    recordedAt: held.recordedAt,
-    receivedAt,
-    id: held.id,
-    eventId,
-    device: { id: context.device?.id ?? null, seq: held.seq },
-  });
-  if (entry.kind === "instance_claim") {
-    await recordHeld(tx, context, claimEntry, entry, heldAs(entry));
-    return { recorded: true };
-  }
-  if (entry.kind === "instance_complete") {
-    await recordHeld(tx, context, finishEntry, entry, heldAs(entry));
-    return { recorded: true };
-  }
-  if (entry.kind === "step_completion") {
-    const recorded = await applyCompletion(
-      tx,
-      context,
-      {
-        instanceId: entry.instanceId,
-        stepId: entry.stepId,
-        animalTag: entry.animalTag,
-        evidence: entry.evidence,
-        destination: entry.destination,
-        feeding: entry.feeding,
-        counts: entry.counts,
-        outOfRange: entry.outOfRange,
-        skipReason: entry.skipReason,
-        photoSlots: entry.photoSlots,
-        recordedAt: entry.recordedAt,
-      },
+): Promise<unknown> =>
+  recordHeld(
+    tx,
+    context,
+    ENTRIES[entry.kind] as EntryKind<Entry, unknown>,
+    entry,
+    {
+      recordedAt: entry.recordedAt,
       receivedAt,
+      id: entry.id,
       eventId,
-      entry.id
-    );
-    return { entity: "step_completion", entityId: recorded.completionId };
-  }
-  if (entry.kind === "completion_photo") {
-    await applyPhoto(
-      tx,
-      context,
-      {
-        completionId: entry.completionId,
-        slot: entry.slot,
-        contentType: entry.contentType,
-        data: entry.data,
-      },
-      receivedAt
-    );
-    return { entity: "step_completion", entityId: entry.completionId };
-  }
-  if (entry.kind === "animal_move") {
-    await recordHeld(tx, context, moveEntry, entry, heldAs(entry));
-    return { recorded: true };
-  }
-  // What somebody saw with no signal and no round asking: when they saw it is when they wrote it down.
-  await recordHeld(tx, context, observationEntry, entry, heldAs(entry));
-  return { recorded: true };
-};
+      device: { id: context.device?.id ?? null, seq: entry.seq },
+    }
+  );
 
 /** What the phone sent, as the trail and a held entry record it. The photo is left out: it
  *  is a row of its own where the entry was taken, and a megabyte of base64 in an Audit Event
@@ -306,36 +267,12 @@ const applyEntries = async (
     try {
       // oxlint-disable-next-line no-await-in-loop
       const recorder = await recorderFor(entry);
+      // An Entry that changed nothing — a claim already theirs, work already finished — writes nothing down; the
+      // entry is still read, which is what stops it being offered for ever.
       // oxlint-disable-next-line no-await-in-loop
-      await tx.transaction(async (entryTx) => {
-        const target = await applyEntry(
-          entryTx,
-          recorder,
-          entry,
-          receivedAt,
-          eventId
-        );
-        if ("recorded" in target) {
-          return;
-        }
-        if (target.changed === false) {
-          // Nothing happened, so there is nothing to write down. The entry is still read,
-          // which is what stops it being offered for ever.
-          return;
-        }
-        await audited(recorder).recordEvent(
-          entryTx,
-          {
-            entity: target.entity,
-            entityId: target.entityId,
-            action: "create",
-            recordedAt: entry.recordedAt,
-            device: { id: context.device?.id ?? null, seq: entry.seq },
-            after: entryAfter(entry),
-          },
-          { eventId, receivedAt }
-        );
-      });
+      await tx.transaction((entryTx) =>
+        applyEntry(entryTx, recorder, entry, receivedAt, eventId)
+      );
     } catch (error) {
       outcome = isLate(error) ? "kept" : "rejected";
       reason = message(error);

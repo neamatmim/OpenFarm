@@ -571,14 +571,28 @@ describe("review findings", () => {
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    await worker.client.instances.completeStep({
+    // The Step says the photo for its slot is coming, and the photo follows on its own.
+    const recorded = await worker.client.instances.completeStep({
       instanceId: mine.id,
       stepId: "evidence",
       evidence: ["note", 12],
-      photos: [{ slot: 2, contentType: "image/jpeg", data: "AAAA" }],
+      photoSlots: [2],
     });
     const loaded = await worker.client.instances.get({ id: mine.id });
     expect(loaded.completions).toHaveLength(1);
+    const completionId = loaded.completions[0]?.id ?? "";
+    await worker.client.instances.attachPhoto({
+      completionId,
+      slot: 2,
+      contentType: "image/jpeg",
+      data: "AAAA",
+    });
+    const photos = await scratchDb().query.completionPhoto.findMany({
+      where: { completionId },
+      columns: { slot: true },
+    });
+    expect(photos).toEqual([{ slot: 2 }]);
+    expect(recorded.stepId).toBe("evidence");
   });
 
   it("work that is for the Vet cannot be done by Staff, nor from a shed phone", async () => {

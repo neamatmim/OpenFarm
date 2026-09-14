@@ -29,28 +29,21 @@ export type MoveInput = z.infer<typeof moveInput>;
 export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
   roles: ["owner", "manager", "staff"],
 
-  trail: (context, input) => {
-    let animalId = "";
-    const her = async (tx: Parameters<typeof readAnimal>[0]) => {
-      if (!animalId) {
-        const found = await requireAnimal(
-          tx,
-          context.farm.id,
-          input.tagNumber.toUpperCase()
-        );
-        animalId = found.id;
-      }
-      return readAnimal(tx, animalId);
-    };
-    return {
-      entity: "animal",
-      entityId: () => animalId,
-      action: "update",
-      before: her,
-      after: her,
-      reason: input.reason || undefined,
-    };
-  },
+  trail: (context, input) => ({
+    entity: "animal",
+    action: "update",
+    reason: input.reason || undefined,
+    entityId: ({ animalId }) => animalId,
+    before: async (tx) => {
+      const her = await requireAnimal(
+        tx,
+        context.farm.id,
+        input.tagNumber.toUpperCase()
+      );
+      return readAnimal(tx, her.id);
+    },
+    after: (tx, { animalId }) => readAnimal(tx, animalId),
+  }),
 
   apply: async (tx, context, input, { doneAt, receivedAt, id }) => {
     // She was sold, or somebody walked her somewhere else after this Move was made: both are the world moving under it,

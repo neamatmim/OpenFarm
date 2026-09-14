@@ -1,62 +1,11 @@
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
-import {
-  completionPhoto,
-  sopInstance,
-  stepCompletion,
-} from "@OpenFarm/db/schema/instance";
-import type { MilkDestination, SopContent, Step } from "@OpenFarm/domain";
-import { sessionsPerDayOf } from "@OpenFarm/domain";
+import type { SopContent, Step } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import { pregnancyTimesOf } from "./breeding-store";
 import type { Context } from "./context";
-import type { EffectResult } from "./effects";
-import { runStepEffect } from "./effects";
 import { lateEntry } from "./entries/entry";
 import { isOnTheFarm } from "./instances-store";
-import type { RenewalEntry } from "./registration-store";
-import { contentOf } from "./sop-content";
-import type { StockCountLine } from "./stock-store";
 import { assertOnTheirCases } from "./visiting-store";
-
-/** What one recorded Step says. The same shape whether it arrived on its own or in a batch
- *  from a phone that has been out of signal (ADR 0002). */
-export interface CompletionEntry {
-  instanceId: string;
-  stepId: string;
-  animalTag?: string;
-  evidence: (boolean | number | string)[];
-  destination?: MilkDestination;
-  /** What was actually put in front of the Pen, per Feed Item, for a Step that feeds. The
-   *  Items come from the Pen's Ration rather than from the Version, so they travel here
-   *  rather than as Evidence slots. */
-  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
-  /** What was counted of each Feed Item, for a Step that counts the store — and why it differs from
-   *  what the store was thought to hold. The Items are the farm's, not the Version's. */
-  counts?: StockCountLine[];
-  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
-  renewal?: RenewalEntry;
-  outOfRange?: string;
-  skipReason?: string;
-  photos?: {
-    slot: number;
-    contentType: "image/jpeg" | "image/png" | "image/webp";
-    data: string;
-  }[];
-  /** The Evidence slots this entry has photos for, when they travel separately — a phone's
-   *  outbox sends the figures and the images as their own entries, so a megabyte of image
-   *  cannot hold up a morning's litres (ADR 0002). */
-  photoSlots?: number[];
-  /** The phone's clock, for work captured offline. */
-  recordedAt?: Date;
-}
-
-export interface Recorded {
-  completionId: string;
-  effect: EffectResult;
-}
 
 /** The context a record needs: who is recording, on which Farm, under which Role. */
 export type Recorder = Context & {
@@ -186,10 +135,6 @@ const maySkip = (step: Step): boolean =>
   step.effect?.kind === "treatment" ||
   step.effect?.kind === "service";
 
-/** A Step is either skipped with a reason — only where a reason means something — or done with
- *  everything the Version marks required. Checked per slot, not by count: a Step with an
- *  optional note and a required number is not satisfied by filling only the note. A photo
- *  arrives in its own field rather than in the evidence array, so it counts for its slot. */
 /** Whether a slot has an answer in it. Spaces are not an answer: a required note filled with
  *  nothing is a required note nobody filled in. */
 const filledIn = (value: unknown): boolean => {
@@ -199,6 +144,10 @@ const filledIn = (value: unknown): boolean => {
   return !(value === undefined || value === null);
 };
 
+/** A Step is either skipped with a reason — only where a reason means something — or done with
+ *  everything the Version marks required. Checked per slot, not by count: a Step with an
+ *  optional note and a required number is not satisfied by filling only the note. A photo
+ *  arrives as a Step photo of its own, so the Step says which slots it answers. */
 export const assertEvidenceComplete = (
   step: Step,
   evidence: unknown[],
@@ -232,244 +181,4 @@ export const assertEvidenceComplete = (
       data: { missing: missing.map(({ index }) => index) },
     });
   }
-};
-
-/** Is this the same entry arriving again — a phone replaying its outbox — or a different
- *  one? Compared on what the entry says, not on when it was sent: the same figures sent
- *  twice are one fact, and a different figure is a Correction whoever sent it. */
-const sameEntry = (
-  existing: {
-    status: string;
-    skipReason: string | null;
-    evidence: unknown;
-    destination: string | null;
-  },
-  input: CompletionEntry,
-  skipping: boolean
-): boolean =>
-  existing.status === (skipping ? "skipped" : "done") &&
-  existing.skipReason === (input.skipReason ?? null) &&
-  existing.destination === (input.destination ?? null) &&
-  JSON.stringify(existing.evidence) === JSON.stringify(input.evidence);
-
-/**
- * Puts one photo against the slot of the Step it answers. Its own write, whether it came
- * with the entry or as an entry of its own, so a phone replaying either is the same picture
- * rather than a second one.
- */
-export const applyPhoto = async (
-  tx: Tx,
-  context: Recorder,
-  photo: {
-    completionId: string;
-    slot: number;
-    contentType: "image/jpeg" | "image/png" | "image/webp";
-    data: string;
-  },
-  now: Date
-): Promise<string> => {
-  const completion = await tx.query.stepCompletion.findFirst({
-    where: { id: photo.completionId, farmId: context.farm.id },
-    columns: { id: true },
-  });
-  if (!completion) {
-    // The entry it belongs to has not arrived, or never will. The photo is not wrong; it is
-    // early or orphaned, and either way somebody should see it rather than lose it.
-    throw lateEntry("The entry this photo belongs to is not here");
-  }
-  const values = {
-    farmId: context.farm.id,
-    contentType: photo.contentType,
-    data: photo.data,
-    createdAt: now,
-  };
-  await tx
-    .insert(completionPhoto)
-    .values({ completionId: photo.completionId, slot: photo.slot, ...values })
-    .onConflictDoUpdate({
-      target: [completionPhoto.completionId, completionPhoto.slot],
-      set: values,
-    });
-  return photo.completionId;
-};
-
-/**
- * An entry that already exists is a recorded fact, and a recorded fact changes only by
- * Correction. The phone may still replay the same entry — that is how an outbox works
- * (ADR 0002) — so an identical one changes nothing and is handed back as it stands; a
- * different one goes to correctStep, which asks why and checks the window.
- */
-const alreadyRecorded = async (
-  tx: Tx,
-  context: Recorder,
-  input: CompletionEntry,
-  animalId: string | null,
-  skipping: boolean
-): Promise<Recorded | null> => {
-  const already = await tx.query.stepCompletion.findFirst({
-    where: {
-      farmId: context.farm.id,
-      instanceId: input.instanceId,
-      stepId: input.stepId,
-      animalKey: animalId ?? "",
-    },
-  });
-  if (!already) {
-    return null;
-  }
-  if (!sameEntry(already, input, skipping)) {
-    throw lateEntry("That is already recorded; correct it instead", {
-      completionId: already.id,
-    });
-  }
-  // Nothing is written: rewriting the row would put a second person's name on the first
-  // person's work, and the record says who did it.
-  return { completionId: already.id, effect: null };
-};
-
-/** Which Evidence slots have a picture: one that came with the entry, or one the phone has
- *  said is on its way as an entry of its own. */
-const photoSlots = (input: CompletionEntry): ((slot: number) => boolean) => {
-  const here = new Set(input.photos?.map((photo) => photo.slot));
-  const promised = new Set(input.photoSlots);
-  return (slot) => here.has(slot) || promised.has(slot);
-};
-
-/** The lines a Step carries beside its Evidence — what a Pen was fed, what the store was counted at —
- *  or none, for the Steps that carry neither. */
-const linesOf = (input: CompletionEntry) => ({
-  feeding: input.feeding ?? [],
-  counts: input.counts ?? [],
-  renewal: input.renewal,
-});
-
-/**
- * Records one Step, with whatever its effect writes into the farm's records, on the caller's
- * transaction. Throwing rolls the caller back — which is what both callers want: a single
- * entry with its Audit Event, or a batch that applies whole or not at all.
- *
- * `id` lets the client name the record it is creating, so an outbox replay is the same fact
- * rather than a second one.
- */
-export const applyCompletion = async (
-  tx: Tx,
-  context: Recorder,
-  input: CompletionEntry,
-  receivedAt: Date,
-  eventId: string,
-  id?: string
-): Promise<Recorded> => {
-  const instance = await tx.query.sopInstance.findFirst({
-    where: { id: input.instanceId, farmId: context.farm.id },
-    with: { version: { columns: { content: true } } },
-  });
-  if (!instance) {
-    throw new ORPCError("NOT_FOUND");
-  }
-  if (instance.state === "completed" || instance.state === "approved") {
-    throw lateEntry("This work is already finished");
-  }
-  assertMayWork(context, instance);
-  const content = contentOf(instance.version);
-  const step = stepOf(content, input.stepId);
-  const animalId = await resolveStepAnimal(
-    tx,
-    context.farm.id,
-    step,
-    instance.penId,
-    input.animalTag
-  );
-  const skipping = Boolean(input.skipReason);
-  // Either the photo is here, or the phone has said it is coming as its own entry.
-  assertEvidenceComplete(step, input.evidence, skipping, photoSlots(input));
-
-  const standing = await alreadyRecorded(
-    tx,
-    context,
-    input,
-    animalId,
-    skipping
-  );
-  if (standing) {
-    return standing;
-  }
-
-  const values = {
-    farmId: context.farm.id,
-    instanceId: input.instanceId,
-    stepId: input.stepId,
-    animalId,
-    animalKey: animalId ?? "",
-    status: skipping ? ("skipped" as const) : ("done" as const),
-    skipReason: input.skipReason ?? null,
-    evidence: input.evidence,
-    outOfRange: input.outOfRange ?? null,
-    recordedBy: context.actor.id,
-    deviceId: context.device?.id ?? null,
-    destination: input.destination ?? null,
-    recordedAt: input.recordedAt ?? receivedAt,
-    receivedAt,
-  };
-  // Never an update: a recorded fact changes only by Correction (ADR 0002). Two phones
-  // racing for the same Step land here, and the second is told so rather than overwriting
-  // the first.
-  const [saved] = await tx
-    .insert(stepCompletion)
-    .values({ id: id ?? uuidv7(receivedAt), ...values })
-    .onConflictDoNothing()
-    .returning({ id: stepCompletion.id });
-  if (!saved) {
-    throw lateEntry("That is already recorded; correct it instead");
-  }
-  // The Step's effect writes the farm's record — the litres, the tank reading — in this
-  // same transaction, keyed on the Completion so a replay cannot double-count.
-  const effect = await runStepEffect(tx, {
-    step,
-    instance: {
-      id: instance.id,
-      farmId: context.farm.id,
-      penId: instance.penId,
-      animalId: instance.animalId,
-      dueAt: instance.dueAt,
-      raisedAt: instance.createdAt,
-      cause: instance.cause,
-    },
-    completionId: saved.id,
-    animalId,
-    evidence: input.evidence,
-    ...linesOf(input),
-    feedTolerancePercent: context.farm.feedTolerancePercent,
-    // The Audit Event this Completion is written under, so an effect that has to put something
-    // in front of the Manager can do it in the same transaction.
-    eventId,
-    roles: context.roles,
-    // From the Version doing the work, so a farm with more than one feeding routine divides
-    // by the schedule that raised this Instance rather than by whichever was written first.
-    sessionsPerDay: sessionsPerDayOf(content),
-    destination: input.destination,
-    skipped: skipping,
-    tolerancePercent: context.farm.milkTolerancePercent,
-    pregnancyTimes: pregnancyTimesOf(context.farm),
-    recordedBy: context.actor.id,
-    recordedAt: values.recordedAt,
-    now: receivedAt,
-  });
-  for (const photo of input.photos ?? []) {
-    // Sequential: a Step asks for two pictures at most in practice, and they go in beside
-    // the entry they answer.
-    // oxlint-disable-next-line no-await-in-loop
-    await applyPhoto(
-      tx,
-      context,
-      { completionId: saved.id, ...photo },
-      receivedAt
-    );
-  }
-  if (instance.state === "due" || instance.state === "sent_back") {
-    await tx
-      .update(sopInstance)
-      .set({ state: "in_progress" })
-      .where(eq(sopInstance.id, input.instanceId));
-  }
-  return { completionId: saved.id, effect };
 };

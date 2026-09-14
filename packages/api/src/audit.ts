@@ -12,7 +12,7 @@ export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /** A snapshot is a JSON-able value, or a function that reads it inside the same
  *  transaction — the only way to get a `before` that cannot lie. */
-type SnapshotValue = Record<string, unknown> | null;
+export type SnapshotValue = Record<string, unknown> | null;
 type SnapshotReader = (tx: Tx) => Promise<SnapshotValue>;
 type Snapshot = SnapshotValue | SnapshotReader;
 

@@ -62,6 +62,7 @@ export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
   "drugs.list",
   "instances.today",
   "instances.get",
+  "instances.attachPhoto",
   "instances.claim",
   "instances.completeStep",
   "instances.correctStep",
