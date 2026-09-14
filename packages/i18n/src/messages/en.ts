@@ -1084,6 +1084,16 @@ export const en = {
   "gain.noneYet": "Not weighed yet",
   "gain.slowing": "Slower than before",
   "gain.empty": "Nothing on the fattening side yet",
+  "gain.subtitle":
+    "Who will make their target weight, and who will not — worked out from intake and weigh-ins, never typed.",
+  "gain.emptyHint":
+    "Animals appear here once they are taken in, or weaned onto the fattening side.",
+  "gain.onSide": "On the fattening side",
+  "gain.noRate": "No rate yet",
+  "gain.noTarget": "No target weight set",
+  "gain.filter": "Show",
+  "gain.all": "All",
+  "gain.noneInFilter": "No animal in this group",
   "nav.ready": "Ready for sale",
   "ready.none": "Nothing is being suggested for sale",
   "ready.because.weight": "Reached its target weight",

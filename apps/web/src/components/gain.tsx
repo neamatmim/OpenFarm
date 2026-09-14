@@ -20,25 +20,31 @@ export const GainColumn = ({
   const { t, language } = useLanguage();
   if (!basis) {
     return (
-      <div className="surface space-y-1 p-4">
+      <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3">
         <p className="text-muted-foreground text-sm">{label}</p>
         <p className="text-muted-foreground text-sm">{t("gain.needsTwo")}</p>
       </div>
     );
   }
   return (
-    <div className="surface space-y-1 p-4">
+    <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3">
       <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="text-lg font-medium">
+      <p className="text-lg font-semibold tabular-nums">
         {t("gain.perDay", { kg: formatNumber(basis.dailyGainKg, language) })}
       </p>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         {t("correct.spanDays", {
           days: formatNumber(basis.overDays, language),
         })}
       </p>
       {basis.projectedKg === null ? null : (
-        <p className={basis.reachesTarget ? "text-success" : "text-warning"}>
+        <p
+          className={
+            basis.reachesTarget
+              ? "text-success text-sm"
+              : "text-warning text-sm"
+          }
+        >
           {t("gain.projected", {
             kg: formatNumber(basis.projectedKg, language),
           })}

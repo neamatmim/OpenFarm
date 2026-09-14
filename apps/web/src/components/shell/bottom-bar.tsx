@@ -9,7 +9,7 @@ import type { Role } from "./navigation";
 import { BOTTOM_BAR } from "./navigation";
 
 const tab =
-  "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[0.72rem] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring";
+  "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * A phone's few daily destinations for the Role a person lands as, and More for everything else — thumb-reach,
