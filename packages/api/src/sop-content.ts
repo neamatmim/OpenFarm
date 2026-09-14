@@ -64,7 +64,12 @@ const step = z.object({
 });
 
 const trigger = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("schedule"), times: z.array(z.string().trim()) }),
+  z.object({
+    kind: z.literal("schedule"),
+    times: z.array(z.string().trim()),
+    weekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+    everyOtherWeek: z.boolean().optional(),
+  }),
   z.object({
     kind: z.literal("event"),
     event: z.string().trim().min(1).max(60),

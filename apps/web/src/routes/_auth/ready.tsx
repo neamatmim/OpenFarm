@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { GainColumn } from "@/components/gain";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 /** The refusal the farm gives for an animal still inside her meat Withdrawal, with the day. */
@@ -197,5 +198,6 @@ const ReadyPage = () => {
 };
 
 export const Route = createFileRoute("/_auth/ready")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: ReadyPage,
 });

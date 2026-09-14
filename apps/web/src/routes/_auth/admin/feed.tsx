@@ -9,6 +9,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CorrectionDialog,
+  CorrectionField,
+} from "@/components/correction-dialog";
 import { Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -442,6 +446,74 @@ const RationForm = ({
   );
 };
 
+/** Feed that came in written up wrong: how much, what it cost, or the day — with the reason. */
+const ArrivalCorrection = ({
+  arrival,
+}: {
+  arrival: {
+    id: string;
+    quantity: number;
+    unit: string;
+    priceBdt: number | null;
+    receivedOn: Date;
+  };
+}) => {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const [quantity, setQuantity] = useState(String(arrival.quantity));
+  const [price, setPrice] = useState(
+    arrival.priceBdt === null ? "" : String(arrival.priceBdt)
+  );
+  const wasReceivedOn = farmDayOf(arrival.receivedOn);
+  const [receivedOn, setReceivedOn] = useState(wasReceivedOn);
+  const correct = useMutation(orpc.stock.correct.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: arrival.id,
+          reason,
+          quantity:
+            Number(quantity) === arrival.quantity
+              ? undefined
+              : Number(quantity),
+          priceBdt:
+            arrival.priceBdt === null || Number(price) === arrival.priceBdt
+              ? undefined
+              : Number(price),
+          receivedOn: receivedOn === wasReceivedOn ? undefined : receivedOn,
+        });
+        await queryClient.invalidateQueries({ queryKey: orpc.stock.key() });
+      }}
+      ready={Number(quantity) > 0}
+      title={t("correct.arrival")}
+    >
+      <CorrectionField
+        inputMode="decimal"
+        label={t("stock.quantity", { unit: arrival.unit })}
+        onChange={setQuantity}
+        type="number"
+        value={quantity}
+      />
+      {arrival.priceBdt === null ? null : (
+        <CorrectionField
+          inputMode="numeric"
+          label={t("stock.price")}
+          onChange={setPrice}
+          type="number"
+          value={price}
+        />
+      )}
+      <CorrectionField
+        label={t("stock.receivedOn")}
+        onChange={setReceivedOn}
+        type="date"
+        value={receivedOn}
+      />
+    </CorrectionDialog>
+  );
+};
+
 /**
  * What is in the store, what came into it, and feed coming in. What is on hand is worked out from what
  * came in and what the pens were given — nobody types it — and a line below nothing says feed arrived
@@ -457,6 +529,7 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
     orpc.stock.adjustments.queryOptions({ input: {} })
   );
   const mayRecord = me.data?.roles.includes("manager") ?? false;
+  const mayCorrect = mayRecord || (me.data?.roles.includes("owner") ?? false);
   return (
     <Section title={t("stock.title")}>
       <ul className="space-y-1 text-sm">
@@ -515,15 +588,21 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
           <h3 className="text-sm font-medium">{t("stock.arrivals")}</h3>
           <ul className="space-y-1 text-sm">
             {arrivals.data.map((one) => (
-              <li key={one.id}>
-                {formatDate(one.receivedOn, language)} · {one.nameBn} ·{" "}
-                {formatNumber(one.quantity, language)} {one.unit}
-                {one.maunds === null
-                  ? ""
-                  : ` (${t("stock.maunds", { maunds: formatNumber(one.maunds, language) })})`}
-                {one.priceBdt === null
-                  ? ` · ${t("stock.harvest")}`
-                  : ` · ৳${formatNumber(one.priceBdt, language)} · ${one.sellerName ?? ""}`}
+              <li
+                className="flex flex-wrap items-center justify-between gap-2"
+                key={one.id}
+              >
+                <span>
+                  {formatDate(one.receivedOn, language)} · {one.nameBn} ·{" "}
+                  {formatNumber(one.quantity, language)} {one.unit}
+                  {one.maunds === null
+                    ? ""
+                    : ` (${t("stock.maunds", { maunds: formatNumber(one.maunds, language) })})`}
+                  {one.priceBdt === null
+                    ? ` · ${t("stock.harvest")}`
+                    : ` · ৳${formatNumber(one.priceBdt, language)} · ${one.sellerName ?? ""}`}
+                </span>
+                {mayCorrect ? <ArrivalCorrection arrival={one} /> : null}
               </li>
             ))}
           </ul>

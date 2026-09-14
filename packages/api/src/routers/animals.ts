@@ -137,6 +137,7 @@ const summaryColumns = {
 const saleView = (
   row:
     | {
+        id: string;
         priceBdt: string;
         weightKg: string;
         destination: string;
@@ -151,6 +152,7 @@ const saleView = (
 ) =>
   row
     ? {
+        id: row.id,
         priceBdt: Number(row.priceBdt),
         weightKg: Number(row.weightKg),
         destination: row.destination,
@@ -270,6 +272,7 @@ const heatsOf = async (db: Database, animalId: string) => {
 const intakeView = (
   row:
     | {
+        id: string;
         purchasePriceBdt: string;
         weightKg: string;
         targetWeightKg: string;
@@ -284,6 +287,7 @@ const intakeView = (
 ) =>
   row
     ? {
+        id: row.id,
         purchasePriceBdt: Number(row.purchasePriceBdt),
         weightKg: Number(row.weightKg),
         targetWeightKg: Number(row.targetWeightKg),

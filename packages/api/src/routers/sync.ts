@@ -1,10 +1,15 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { RecorderFor } from "../batch-store";
 import { applyBatch } from "../batch-store";
+import type { Recorder } from "../completion-store";
+import type { Context } from "../context";
+import { buildContext } from "../context";
+import { hashToken } from "../device";
 import { protectedProcedure } from "../index";
 import { pushRaised } from "../push-send";
-import { requireRole } from "../roles";
+import { pickRoleUsed, requireRole } from "../roles";
 import type { EntryResult } from "../sync-entries";
 import { entryInput } from "../sync-entries";
 import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
@@ -12,6 +17,97 @@ import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
 /** How much one batch may carry. A phone out of signal for a week has plenty to send, but it
  *  sends it in batches: one transaction should stay a size a farm's database can hold. */
 const BATCH_MAX = 200;
+
+/** How long before a PIN reached the farm the work it covers may have been recorded: a PIN entered with no signal
+ *  is proved when signal comes back, after the work — within a shift, with room. */
+const PROOF_BEFORE_MS = 24 * 60 * 60 * 1000;
+/** And after the switch ran out, for a phone's clock a little ahead of the farm's. */
+const PROOF_AFTER_MS = 10 * 60 * 1000;
+
+const ANY_ROLE = ["owner", "manager", "staff", "vet"] as const;
+
+/**
+ * Who each entry is written as. Unnamed, or naming the sender, it is the sender's. From a Shed Phone it may name
+ * somebody else who works on that phone — the person switched in when it was recorded, offline, before whoever is
+ * switched in now — provided it carries the switch token the farm gave that person for that stint on this phone,
+ * and was recorded during it. Knowing that somebody has a PIN, or that they once used the phone, is not enough.
+ * From a person's own phone it may name nobody but them.
+ */
+const recordersFor = (context: Recorder): RecorderFor => {
+  const known = new Map<string, Promise<Recorder>>();
+  const provedFor = async (entry: {
+    actorId?: string;
+    recordedAt: Date;
+    switchToken?: string;
+  }) => {
+    const stint = entry.switchToken
+      ? await context.db.query.deviceSwitch.findFirst({
+          where: {
+            tokenHash: await hashToken(entry.switchToken),
+            deviceId: context.device?.id ?? "",
+            userId: entry.actorId ?? "",
+          },
+          columns: { createdAt: true, expiresAt: true },
+        })
+      : undefined;
+    const at = entry.recordedAt.getTime();
+    const during =
+      stint !== undefined &&
+      at >= stint.createdAt.getTime() - PROOF_BEFORE_MS &&
+      at <= stint.expiresAt.getTime() + PROOF_AFTER_MS;
+    if (!during) {
+      throw new ORPCError("FORBIDDEN", {
+        message:
+          "Recorded under somebody who did not enter their PIN on this phone for it",
+      });
+    }
+  };
+  const asSomebodyElse = async (actorId: string): Promise<Recorder> => {
+    if (!context.device) {
+      throw new ORPCError("FORBIDDEN", {
+        message:
+          "This was recorded by somebody else; it can only come from their own phone or a Shed Phone",
+      });
+    }
+    const pin = await context.db.query.staffPin.findFirst({
+      where: { farmId: context.farm.id, userId: actorId },
+      columns: { userId: true },
+    });
+    if (!pin) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Recorded under somebody who does not work on this phone",
+      });
+    }
+    const theirs: Context = await buildContext({
+      session: null,
+      device: { ...context.device, activeUserId: actorId },
+      deviceStatus: "ok",
+      clock: context.clock,
+      db: context.db,
+      push: context.push,
+      sms: context.sms,
+    });
+    // The Role they act under, chosen the way the batch's own gate chose the sender's: the checks that follow —
+    // a Staff member's Pens, the Role the trail records — depend on it.
+    const roleUsed = pickRoleUsed(theirs.roles, ANY_ROLE);
+    if (!(theirs.actor && theirs.farm && roleUsed)) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Recorded under somebody who no longer works on this farm",
+      });
+    }
+    return { ...theirs, roleUsed } as Recorder;
+  };
+  return async (entry) => {
+    if (!entry.actorId || entry.actorId === context.actor.id) {
+      return context;
+    }
+    const found = known.get(entry.actorId) ?? asSomebodyElse(entry.actorId);
+    known.set(entry.actorId, found);
+    const recorder = await found;
+    await provedFor(entry);
+    return recorder;
+  };
+};
 
 export const syncRouter = {
   /**
@@ -69,6 +165,7 @@ export const syncRouter = {
         receivedAt,
         sourceKey: sourceKeyFor(context),
         requestHash,
+        recorderFor: recordersFor(context),
       });
       // Outside the transaction, like every other notice: an entry the farm refused is work
       // somebody believes they have done, and they are told at once.

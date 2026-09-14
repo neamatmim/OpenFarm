@@ -3,6 +3,7 @@ import type { AlertKind } from "@OpenFarm/db/schema/alert";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 
 import type { Tx } from "./audit";
 
@@ -57,7 +58,12 @@ export const peopleOnTheWork = async (
     return holders;
   }
   const assignments = await tx.query.penAssignment.findMany({
-    where: { farmId, penId: instance.penId, userId: { in: holders } },
+    where: {
+      farmId,
+      penId: instance.penId,
+      userId: { in: holders },
+      ...ACTIVE_ASSIGNMENT,
+    },
     columns: { userId: true },
   });
   return [...new Set(assignments.map((row) => row.userId))];

@@ -35,6 +35,7 @@ import { runStepEffect } from "../effects";
 import { farmDay } from "../farm-clock";
 import { feedingTargetForPen } from "../feed-store";
 import { requirePen } from "../herd-store";
+import type { Context } from "../context";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
@@ -274,6 +275,88 @@ const flagHeatsThatArrivedTooLate = async (
   }
 };
 
+/** The day's work, raised: every schedule slot due by now, and the work things that happened call for. Idempotent — a
+ *  slot already raised is not raised again — so the server's own timer and whoever opens the app can both run it. */
+export const raiseTheDaysWork = async (
+  context: Context & { farm: NonNullable<Context["farm"]> }
+) => {
+  const now = context.clock.now();
+  const definitions = await context.db.query.sopDefinition.findMany({
+    where: { farmId: context.farm.id, retiredAt: { isNull: true } },
+    with: { currentVersion: true },
+  });
+  const sops = definitions
+    .filter((definition) => definition.currentVersion)
+    .map((definition) => ({
+      definitionId: definition.id,
+      versionId: definition.currentVersion?.id ?? "",
+      content: contentOf({ content: definition.currentVersion?.content }),
+      triggersInForceSince:
+        definition.currentVersion?.publishedAt ?? definition.createdAt,
+    }));
+  const animals = await context.db.query.animal.findMany({
+    where: { farmId: context.farm.id },
+    columns: { penId: true, side: true, state: true },
+  });
+  const breeding = {
+    aiWindow: {
+      startHours: context.farm.aiWindowStartHours,
+      endHours: context.farm.aiWindowEndHours,
+    },
+    pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
+    calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+  };
+  const slots = [
+    ...dueSlotsFor(now, sops, animals),
+    // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same
+    // pass, because whatever opened the app wants the whole day's work, not the half
+    // of it a schedule accounts for.
+    ...happeningSlotsFor(
+      now,
+      sops,
+      await recentHappenings(context.db, context.farm.id, now, breeding),
+      breeding
+    ),
+    // Work about the whole farm: its Registration coming up for renewal.
+    ...renewalSlotsFor(now, sops, {
+      expiresOn: context.farm.registrationExpiresOn,
+      renewalLeadDays: context.farm.registrationRenewalLeadDays,
+    }),
+  ];
+  if (slots.length === 0) {
+    return { raised: 0 };
+  }
+  let raised = 0;
+  await audited(context).write(
+    {
+      entity: "sop_instance",
+      entityId: `schedule:${now.toISOString().slice(0, 10)}`,
+      action: "create",
+      after: { slots: slots.length },
+    },
+    async (tx, eventId) => {
+      const instances = await raiseDueInstances(
+        tx,
+        context.farm.id,
+        slots,
+        now
+      );
+      raised = instances.length;
+      // The Owner hears of a renewal in the evening's post, the day its work is raised.
+      await tellOfRenewals(tx, context.farm, instances, now);
+      await flagHeatsThatArrivedTooLate(
+        tx,
+        context.farm.id,
+        instances,
+        slots,
+        eventId,
+        now
+      );
+    }
+  );
+  return { raised };
+};
+
 export const instancesRouter = {
   /**
    * Raises the Instances the farm's day needs. Idempotent, so the phone and the office can
@@ -281,83 +364,7 @@ export const instancesRouter = {
    */
   ensureDue: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(async ({ context }) => {
-      const now = context.clock.now();
-      const definitions = await context.db.query.sopDefinition.findMany({
-        where: { farmId: context.farm.id, retiredAt: { isNull: true } },
-        with: { currentVersion: true },
-      });
-      const sops = definitions
-        .filter((definition) => definition.currentVersion)
-        .map((definition) => ({
-          definitionId: definition.id,
-          versionId: definition.currentVersion?.id ?? "",
-          content: contentOf({ content: definition.currentVersion?.content }),
-          triggersInForceSince:
-            definition.currentVersion?.publishedAt ?? definition.createdAt,
-        }));
-      const animals = await context.db.query.animal.findMany({
-        where: { farmId: context.farm.id },
-        columns: { penId: true, side: true, state: true },
-      });
-      const breeding = {
-        aiWindow: {
-          startHours: context.farm.aiWindowStartHours,
-          endHours: context.farm.aiWindowEndHours,
-        },
-        pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
-        calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
-      };
-      const slots = [
-        ...dueSlotsFor(now, sops, animals),
-        // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same
-        // pass, because whatever opened the app wants the whole day's work, not the half
-        // of it a schedule accounts for.
-        ...happeningSlotsFor(
-          now,
-          sops,
-          await recentHappenings(context.db, context.farm.id, now, breeding),
-          breeding
-        ),
-        // Work about the whole farm: its Registration coming up for renewal.
-        ...renewalSlotsFor(now, sops, {
-          expiresOn: context.farm.registrationExpiresOn,
-          renewalLeadDays: context.farm.registrationRenewalLeadDays,
-        }),
-      ];
-      if (slots.length === 0) {
-        return { raised: 0 };
-      }
-      let raised = 0;
-      await audited(context).write(
-        {
-          entity: "sop_instance",
-          entityId: `schedule:${now.toISOString().slice(0, 10)}`,
-          action: "create",
-          after: { slots: slots.length },
-        },
-        async (tx, eventId) => {
-          const instances = await raiseDueInstances(
-            tx,
-            context.farm.id,
-            slots,
-            now
-          );
-          raised = instances.length;
-          // The Owner hears of a renewal in the evening's post, the day its work is raised.
-          await tellOfRenewals(tx, context.farm, instances, now);
-          await flagHeatsThatArrivedTooLate(
-            tx,
-            context.farm.id,
-            instances,
-            slots,
-            eventId,
-            now
-          );
-        }
-      );
-      return { raised };
-    }),
+    .handler(({ context }) => raiseTheDaysWork(context)),
 
   /**
    * Raises one piece of work now, for one Pen, because somebody has decided to do it today: a

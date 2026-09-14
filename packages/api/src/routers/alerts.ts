@@ -94,6 +94,77 @@ const tellAboutLowStock = async (context: Sweeping, now: Date) => {
   );
 };
 
+export const sweepTheAlerts = async (context: Sweeping) => {
+  const now = context.clock.now();
+  // Three things that have nothing to do with each other: work that went late, cows coming off a
+  // Withdrawal, and feed running low. The other two are told about first, because late work
+  // having nothing to say is the steady state and must not silence them.
+  await tellAboutWithdrawals(context, now);
+  await tellAboutLowStock(context, now);
+  const pending = await findPendingNotices(context.db, context.farm, now);
+  // A sweep with nothing to say is not an event, and opens no transaction: everyone
+  // calls this on opening the app, and in steady state there is nothing new to say.
+  // The watermark stays where it is — a window with nothing in it costs nothing to
+  // look at again.
+  if (pending.overdue.length + pending.escalated.length === 0) {
+    return { overdue: 0, escalated: 0 };
+  }
+  // Audited against each Instance the notice is about, not against the sweep: an
+  // entityId no row carries is a trail entry nothing can find its way back to. Reading
+  // an Instance's history now shows that it went late and who was told.
+  const swept = await audited(context).write(
+    {
+      entity: "sop_instance",
+      entityId: first(pending),
+      action: "update",
+      after: () =>
+        Promise.resolve({
+          overdue: pending.overdue.map((row) => row.id),
+          escalated: pending.escalated.map((row) => row.id),
+        }),
+    },
+    async (tx) => {
+      const raised = await raiseLateAlerts(
+        tx,
+        context.farm.id,
+        pending,
+        now
+      );
+      // Remembered inside the same transaction as the notices: a watermark that moved
+      // on without them would step over work nobody was ever told about.
+      await tx
+        .update(farm)
+        .set({ alertsSweptFrom: pending.sweptFrom })
+        .where(eq(farm.id, context.farm.id));
+      return raised;
+    }
+  );
+  // The tap on the shoulder goes out after the Alerts are safely the farm's record, and
+  // never inside the transaction that made them: a push is a call to somebody else's
+  // server, and a hung one would hold a lock every phone in the shed is waiting on.
+  await pushRaised(context, swept.raised, now);
+  return { overdue: swept.overdue, escalated: swept.escalated };
+};
+
+export const carryTheDigest = async (context: Sweeping) => {
+  const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
+  const now = context.clock.now();
+  const quiet = {
+    from: context.farm.quietFrom,
+    until: context.farm.quietUntil,
+  };
+  // Not only "has a carrying moment passed" but "is the farm awake": somebody opening
+  // the app at half past midnight must not set every phone on the farm buzzing.
+  if (isQuiet(minuteOfFarmDay(now), quiet)) {
+    return nothing;
+  }
+  const upTo = postDueAt(now, context.farm.digestTimes, quiet);
+  if (!upTo) {
+    return nothing;
+  }
+  return await carryThePost(context, now, upTo);
+};
+
 export const alertsRouter = {
   /**
    * Raises the Alerts the clock has earned. Idempotent, so the phone and the office can both
@@ -102,57 +173,7 @@ export const alertsRouter = {
    */
   sweep: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(async ({ context }) => {
-      const now = context.clock.now();
-      // Three things that have nothing to do with each other: work that went late, cows coming off a
-      // Withdrawal, and feed running low. The other two are told about first, because late work
-      // having nothing to say is the steady state and must not silence them.
-      await tellAboutWithdrawals(context, now);
-      await tellAboutLowStock(context, now);
-      const pending = await findPendingNotices(context.db, context.farm, now);
-      // A sweep with nothing to say is not an event, and opens no transaction: everyone
-      // calls this on opening the app, and in steady state there is nothing new to say.
-      // The watermark stays where it is — a window with nothing in it costs nothing to
-      // look at again.
-      if (pending.overdue.length + pending.escalated.length === 0) {
-        return { overdue: 0, escalated: 0 };
-      }
-      // Audited against each Instance the notice is about, not against the sweep: an
-      // entityId no row carries is a trail entry nothing can find its way back to. Reading
-      // an Instance's history now shows that it went late and who was told.
-      const swept = await audited(context).write(
-        {
-          entity: "sop_instance",
-          entityId: first(pending),
-          action: "update",
-          after: () =>
-            Promise.resolve({
-              overdue: pending.overdue.map((row) => row.id),
-              escalated: pending.escalated.map((row) => row.id),
-            }),
-        },
-        async (tx) => {
-          const raised = await raiseLateAlerts(
-            tx,
-            context.farm.id,
-            pending,
-            now
-          );
-          // Remembered inside the same transaction as the notices: a watermark that moved
-          // on without them would step over work nobody was ever told about.
-          await tx
-            .update(farm)
-            .set({ alertsSweptFrom: pending.sweptFrom })
-            .where(eq(farm.id, context.farm.id));
-          return raised;
-        }
-      );
-      // The tap on the shoulder goes out after the Alerts are safely the farm's record, and
-      // never inside the transaction that made them: a push is a call to somebody else's
-      // server, and a hung one would hold a lock every phone in the shed is waiting on.
-      await pushRaised(context, swept.raised, now);
-      return { overdue: swept.overdue, escalated: swept.escalated };
-    }),
+    .handler(({ context }) => sweepTheAlerts(context)),
 
   /**
    * What this person is being told, newest first. Theirs alone — an Alert is personal.
@@ -170,24 +191,7 @@ export const alertsRouter = {
    */
   digest: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(async ({ context }) => {
-      const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
-      const now = context.clock.now();
-      const quiet = {
-        from: context.farm.quietFrom,
-        until: context.farm.quietUntil,
-      };
-      // Not only "has a carrying moment passed" but "is the farm awake": somebody opening
-      // the app at half past midnight must not set every phone on the farm buzzing.
-      if (isQuiet(minuteOfFarmDay(now), quiet)) {
-        return nothing;
-      }
-      const upTo = postDueAt(now, context.farm.digestTimes, quiet);
-      if (!upTo) {
-        return nothing;
-      }
-      return await carryThePost(context, now, upTo);
-    }),
+    .handler(({ context }) => carryTheDigest(context)),
 
   mine: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))

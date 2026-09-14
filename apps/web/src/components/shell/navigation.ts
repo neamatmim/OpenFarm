@@ -32,7 +32,7 @@ import {
 export type Role = "owner" | "manager" | "staff" | "vet";
 
 /** Who a destination is for. */
-type Audience =
+export type Audience =
   | "anyone"
   | "owner"
   | "runsTheFarm"
@@ -225,7 +225,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 /** Whether a destination is for somebody holding these Roles. */
-const isFor = (audience: Audience, roles: readonly Role[]): boolean => {
+export const isFor = (audience: Audience, roles: readonly Role[]): boolean => {
   const runsTheFarm = roles.includes("owner") || roles.includes("manager");
   const isVet = roles.includes("vet");
   switch (audience) {
@@ -250,12 +250,15 @@ const isFor = (audience: Audience, roles: readonly Role[]): boolean => {
   }
 };
 
-/** The groups and destinations a person holding these Roles works from, empty groups left out. */
+/** The groups and destinations a person holding these Roles works from, empty groups left out. Somebody holding no
+ *  Role yet has only the invitation code to enter, so nothing is offered. */
 export const navFor = (roles: readonly Role[]): NavGroup[] =>
-  NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => isFor(item.audience, roles)),
-  })).filter((group) => group.items.length > 0);
+  roles.length === 0
+    ? []
+    : NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => isFor(item.audience, roles)),
+      })).filter((group) => group.items.length > 0);
 
 /** The one Role a person holding several lands as: the widest view of the farm they have. */
 export const primaryRole = (roles: readonly Role[]): Role => {

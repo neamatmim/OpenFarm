@@ -9,6 +9,8 @@ import { orpc } from "@/utils/orpc";
 
 /** Two nights without a copy is a farm one disk away from losing its own records. */
 const NIGHTS_BEFORE_WORRYING = 2;
+/** Three turns of the server's five-minute clock missed. */
+const SCHEDULE_STALE_MS = 15 * 60_000;
 
 /**
  * Whether the farm is being copied off the machine it lives on.
@@ -20,6 +22,15 @@ const NIGHTS_BEFORE_WORRYING = 2;
 const BackupsPage = () => {
   const { t, language } = useLanguage();
   const backups = useQuery(orpc.backups.recent.queryOptions({ input: {} }));
+  const schedule = useQuery({
+    ...orpc.farm.schedule.queryOptions(),
+    refetchInterval: 60_000,
+  });
+  const scheduleWorrying =
+    schedule.data !== undefined &&
+    (schedule.data.lastError !== null ||
+      schedule.data.lastOkAt === null ||
+      Date.now() - new Date(schedule.data.lastOkAt).getTime() > SCHEDULE_STALE_MS);
 
   const state = backups.data;
   const worrying =
@@ -43,7 +54,21 @@ const BackupsPage = () => {
 
   return (
     <Page width="narrow" className="max-w-3xl">
-      <PageHeader title={t("backups.title")} />
+      <PageHeader description={t("backups.subtitle")} title={t("backups.title")} />
+      {schedule.data ? (
+        <Notice
+          title={
+            schedule.data.lastOkAt
+              ? t("schedule.lastRan", {
+                  when: formatDate(new Date(schedule.data.lastOkAt), language, "dateTime"),
+                })
+              : t("schedule.notYet")
+          }
+          tone={scheduleWorrying ? "warning" : "success"}
+        >
+          {schedule.data.lastError ?? t("schedule.what")}
+        </Notice>
+      ) : null}
       {state ? (
         <Notice title={howItStands()} tone={worrying ? "warning" : "success"} />
       ) : null}

@@ -274,6 +274,27 @@ describe("review findings", () => {
     expect(switched.token).toMatch(/^[0-9a-f]{64}$/u);
   });
 
+  it("stops taking PINs for a person after five wrong ones, even the right one", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    await owner.client.people.setPin({ userId: "test-manager", pin: "7314" });
+    const phone = await createTestClient(appRouter, {
+      as: "manager",
+      onShedPhone: true,
+      locked: true,
+      phone: { id: `phone-guess-${Date.now()}`, name: "অনুমানের ফোন" },
+    });
+
+    for (const guess of ["0000", "1111", "2222", "3333", "4444"]) {
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        phone.client.devices.switchUser({ userId: "test-manager", pin: guess })
+      ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    }
+    await expect(
+      phone.client.devices.switchUser({ userId: "test-manager", pin: "7314" })
+    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+  });
+
   it("a Manager may not give an Owner a PIN", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
 

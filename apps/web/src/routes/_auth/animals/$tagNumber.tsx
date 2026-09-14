@@ -9,6 +9,7 @@ import {
   DISPOSALS,
   MORTALITY_KINDS,
   allowedNextStates,
+  farmDayOf,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
@@ -16,24 +17,38 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Beef, ChevronLeft, Lock, MapPin, Milk, SearchX } from "lucide-react";
+import {
+  Beef,
+  Camera,
+  ChevronLeft,
+  Lock,
+  MapPin,
+  Milk,
+  SearchX,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
+import {
+  CorrectionDialog,
+  CorrectionField,
+} from "@/components/correction-dialog";
 import { WhatSheCost } from "@/components/costs";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { TwoProjections } from "@/components/gain";
-import { EmptyState, Page, StatusBadge } from "@/components/page";
+import { EmptyState, Page, Section, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
+import { queueMove } from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
 
 const PHOTO_MAX_BYTES = 1_500_000;
@@ -109,62 +124,36 @@ const AnimalHeader = ({ detail }: { detail: AnimalDetail }) => {
   );
 };
 
+/** What somebody holding these Roles may do on her page. */
+const powersOf = (roles: readonly string[] = []) => {
+  const isManager = roles.includes("manager");
+  const runsTheFarm = isManager || roles.includes("owner");
+  return {
+    isVet: roles.includes("vet"),
+    isManager,
+    runsTheFarm,
+    mayHandle: runsTheFarm || roles.includes("staff"),
+    // Barn Staff give the doses and record what they see; what the farm tells the outside world about an animal is
+    // not theirs to hand over, so they are not offered it.
+    seesPapers: roles.some((role) => role !== "staff"),
+  };
+};
+
 const AnimalPage = () => {
   const { tagNumber } = Route.useParams();
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
-  const [reason, setReason] = useState("");
-  const [toPenId, setToPenId] = useState("");
-  const [nextState, setNextState] = useState("");
 
   const animal = useQuery(
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const me = useQuery(orpc.people.me.queryOptions());
-  const isVet = me.data?.roles.includes("vet") ?? false;
+  const { isVet, isManager, runsTheFarm, mayHandle, seesPapers } = powersOf(
+    me.data?.roles
+  );
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
-
-  const move = useMutation(
-    orpc.animals.move.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.moved"));
-        refresh();
-      },
-      onError,
-    })
-  );
-  const setState = useMutation(
-    orpc.animals.setState.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.stateChanged"));
-        refresh();
-      },
-      onError,
-    })
-  );
-  const retag = useMutation(
-    orpc.animals.retag.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.retagged"));
-        setReason("");
-        refresh();
-      },
-      onError,
-    })
-  );
-  const setPhoto = useMutation(
-    orpc.animals.setPhoto.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.photoSaved"));
-        refresh();
-      },
-      onError,
-    })
-  );
 
   if (animal.isError) {
     return (
@@ -211,6 +200,8 @@ const AnimalPage = () => {
 
       <HerServices heats={detail.heats} services={detail.services} />
       <HerPregnancyChecks
+        mayCorrect={runsTheFarm}
+        tagNumber={detail.tagNumber}
         checks={detail.pregnancyChecks}
         expectedCalvingAt={detail.expectedCalvingAt}
         failedAttempts={detail.failedAttempts}
@@ -225,140 +216,41 @@ const AnimalPage = () => {
 
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
-      <HowSheArrived intake={detail.intake} />
+      <HowSheArrived intake={detail.intake} mayCorrect={isManager} />
 
-      <HowSheLeft sale={detail.sale} />
+      <HowSheLeft mayCorrect={isManager} sale={detail.sale} />
 
       <WhatSheCost tagNumber={detail.tagNumber} />
 
-      {/* Barn Staff give the doses and record what they see; what the farm tells the outside
-          world about an animal is not theirs to hand over, so they are not offered it. */}
-      {me.data?.roles.some((role) => role !== "staff") ? (
-        <HerPapers tagNumber={detail.tagNumber} />
-      ) : null}
+      {seesPapers ? <HerPapers tagNumber={detail.tagNumber} /> : null}
 
       <TheScale readings={detail.weighIns} />
 
       <HowSheWent
         detail={detail}
-        mayRecord={
-          me.data?.roles.some(
-            (role) => role === "owner" || role === "manager"
-          ) ?? false
-        }
+        mayRecord={runsTheFarm}
         onRecorded={refresh}
       />
 
       <Withdrawals detail={detail} isVet={isVet} onShortened={refresh} />
 
-      <section className="surface space-y-2 p-4">
-        <Label htmlFor="photo">{t("animals.photoTake")}</Label>
-        <input
-          id="photo"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="text-sm"
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) {
-              return;
-            }
-            if (file.size > PHOTO_MAX_BYTES) {
-              toast.error(t("common.error"));
-              return;
-            }
-            const data = await readAsBase64(file);
-            const contentType =
-              file.type === "image/png" ? "image/png" : "image/jpeg";
-            setPhoto.mutate({ tagNumber: detail.tagNumber, contentType, data });
-          }}
-        />
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2">
-        <form
-          className="surface space-y-2 p-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            move.mutate({
-              tagNumber: detail.tagNumber,
-              toPenId,
-              reason: reason || undefined,
-            });
-          }}
-        >
-          <Label htmlFor="pen">{t("animals.moveTo")}</Label>
-          <select
-            id="pen"
-            value={toPenId}
-            onChange={(e) => setToPenId(e.target.value)}
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            required
-          >
-            <option value="">—</option>
-            {pens.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.shedName} / {p.name}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" variant="outline" disabled={!toPenId}>
-            {t("animals.move")}
-          </Button>
-        </form>
-
-        <form
-          className="surface space-y-2 p-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setState.mutate({
-              tagNumber: detail.tagNumber,
-              state: nextState as Parameters<
-                typeof setState.mutate
-              >[0]["state"],
-              reason: reason || undefined,
-            });
-          }}
-        >
-          <Label htmlFor="state">{t("animals.setState")}</Label>
-          <select
-            id="state"
-            value={nextState}
-            onChange={(e) => setNextState(e.target.value)}
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            required
-          >
-            <option value="">—</option>
-            {allowedNextStates(detail.state).map((s) => (
-              <option key={s} value={s}>
-                {t(`state.${s}`)}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" variant="outline" disabled={!nextState}>
-            {t("animals.setState")}
-          </Button>
-        </form>
-      </section>
-
-      <form
-        className="surface space-y-2 p-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          retag.mutate({ tagNumber: detail.tagNumber, reason });
-        }}
-      >
-        <Label htmlFor="reason">{t("animals.reason")}</Label>
-        <Input
-          id="reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <Button type="submit" variant="outline" disabled={!reason.trim()}>
-          {t("animals.retag")}
-        </Button>
-      </form>
+      <ManageHer
+        detail={detail}
+        isVet={isVet}
+        mayMove={
+          runsTheFarm ||
+          (mayHandle && (me.data?.penIds ?? []).includes(detail.penId))
+        }
+        movePens={
+          runsTheFarm
+            ? pens
+            : pens.filter((pen) => (me.data?.penIds ?? []).includes(pen.id))
+        }
+        mayHandle={mayHandle}
+        onChanged={refresh}
+        pens={pens}
+        runsTheFarm={runsTheFarm}
+      />
 
       {detail.observations.length > 0 || detail.diagnoses.length > 0 ? (
         <section className="space-y-2">
@@ -758,11 +650,430 @@ const HerServices = ({
  * What the Vet found, newest first, and what follows from it: when she is expected to calve, and how
  * many attempts did not take. Both are worked out from the checks — nothing here is typed.
  */
+/** Her photo, her Pen, her State, her tag and her side — each offered only to a Role the farm lets do it. */
+const ManageHer = ({
+  detail,
+  pens,
+  movePens,
+  mayMove,
+  isVet,
+  mayHandle,
+  runsTheFarm,
+  onChanged,
+}: {
+  detail: AnimalDetail;
+  pens: { id: string; name: string; shedName: string }[];
+  /** Where she may be moved by this person: anywhere for those who run the farm, a Staff member's own Pens. */
+  movePens: { id: string; name: string; shedName: string }[];
+  mayMove: boolean;
+  isVet: boolean;
+  mayHandle: boolean;
+  runsTheFarm: boolean;
+  onChanged: () => unknown;
+}) => {
+  const { t } = useLanguage();
+  const [reason, setReason] = useState("");
+  const [toPenId, setToPenId] = useState("");
+  const [nextState, setNextState] = useState("");
+  const refresh = onChanged;
+  const onError = (error: Error) =>
+    toast.error(error.message || t("common.error"));
+
+  const move = useMutation(
+    orpc.animals.move.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("animals.moved"));
+        setToPenId("");
+        refresh();
+      },
+      onError,
+    })
+  );
+  const setState = useMutation(
+    orpc.animals.setState.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("animals.stateChanged"));
+        refresh();
+      },
+      onError,
+    })
+  );
+  const retag = useMutation(
+    orpc.animals.retag.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("animals.retagged"));
+        setReason("");
+        refresh();
+      },
+      onError,
+    })
+  );
+  const setPhoto = useMutation(
+    orpc.animals.setPhoto.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("animals.photoSaved"));
+        refresh();
+      },
+      onError,
+    })
+  );
+
+  if (!(mayHandle || isVet)) {
+    return null;
+  }
+  return (
+    <Section description={t("animals.manageHint")} title={t("animals.manage")}>
+      {/* What each Role may do to her, and nothing it may not: offering a control the farm will refuse is a
+          dead end in the barn. */}
+      {mayHandle ? (
+        <div className="flex flex-col gap-1.5">
+          {/* The phone's own file picker speaks the phone's language, not the farm's: the words are on the button,
+              and the picker behind it only opens the camera. */}
+          <label
+            className="border-input bg-card hover:bg-muted focus-within:ring-ring/50 inline-flex h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-4 text-sm font-medium focus-within:ring-[3px] md:h-9"
+            htmlFor="photo"
+          >
+            {setPhoto.isPending ? (
+              <Spinner />
+            ) : (
+              <Camera aria-hidden className="size-4" />
+            )}
+            {t("animals.photoTake")}
+          </label>
+          <input
+            id="photo"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) {
+                return;
+              }
+              if (file.size > PHOTO_MAX_BYTES) {
+                toast.error(t("common.error"));
+                return;
+              }
+              const data = await readAsBase64(file);
+              const contentType =
+                file.type === "image/png" ? "image/png" : "image/jpeg";
+              setPhoto.mutate({
+                tagNumber: detail.tagNumber,
+                contentType,
+                data,
+              });
+            }}
+          />
+        </div>
+      ) : null}
+      {mayMove || isVet ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {mayMove ? (
+            <form
+              className="flex flex-col gap-2 rounded-lg border p-4"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const wanted = {
+                  tagNumber: detail.tagNumber,
+                  toPenId,
+                  reason: reason || undefined,
+                };
+                // With signal the farm answers now; without it the move waits on the phone rather than being lost.
+                if (navigator.onLine) {
+                  move.mutate(wanted);
+                  return;
+                }
+                try {
+                  await queueMove(wanted);
+                  toast.success(t("animals.moveQueued"));
+                  setToPenId("");
+                } catch (error) {
+                  onError(error as Error);
+                }
+              }}
+            >
+              <Label htmlFor="pen">{t("animals.moveTo")}</Label>
+              <select
+                id="pen"
+                value={toPenId}
+                onChange={(e) => setToPenId(e.target.value)}
+                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+                required
+              >
+                <option value="">—</option>
+                {movePens.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.shedName} / {p.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                disabled={!toPenId || move.isPending}
+                type="submit"
+                variant="outline"
+              >
+                {move.isPending ? <Spinner /> : null}
+                {t("animals.move")}
+              </Button>
+            </form>
+          ) : null}
+          {runsTheFarm || isVet ? (
+            <form
+              className="flex flex-col gap-2 rounded-lg border p-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setState.mutate({
+                  tagNumber: detail.tagNumber,
+                  state: nextState as Parameters<
+                    typeof setState.mutate
+                  >[0]["state"],
+                  reason: reason || undefined,
+                });
+              }}
+            >
+              <Label htmlFor="state">{t("animals.setState")}</Label>
+              <select
+                id="state"
+                value={nextState}
+                onChange={(e) => setNextState(e.target.value)}
+                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+                required
+              >
+                <option value="">—</option>
+                {allowedNextStates(detail.state).map((s) => (
+                  <option key={s} value={s}>
+                    {t(`state.${s}`)}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" variant="outline" disabled={!nextState}>
+                {t("animals.setState")}
+              </Button>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
+      {mayHandle ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <form
+            className="flex flex-col gap-2 rounded-lg border p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              retag.mutate({ tagNumber: detail.tagNumber, reason });
+            }}
+          >
+            <Label htmlFor="reason">{t("animals.reason")}</Label>
+            <Input
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <Button type="submit" variant="outline" disabled={!reason.trim()}>
+              {t("animals.retag")}
+            </Button>
+          </form>
+          {runsTheFarm ? (
+            <ChangeSide
+              pens={pens}
+              side={detail.side}
+              tagNumber={detail.tagNumber}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </Section>
+  );
+};
+
+/** Across to the other side — a bull calf to fattening, or an animal put on the wrong side — into a Pen there. */
+const ChangeSide = ({
+  tagNumber,
+  side,
+  pens,
+}: {
+  tagNumber: string;
+  side: "dairy" | "fattening";
+  pens: { id: string; name: string; shedName: string }[];
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const toSide = side === "dairy" ? "fattening" : "dairy";
+  const [toPenId, setToPenId] = useState("");
+  const change = useMutation(orpc.animals.changeSide.mutationOptions({}));
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border p-4">
+      <p className="text-sm font-medium">{t("correct.side")}</p>
+      <p className="text-muted-foreground text-sm">{t("correct.sideHint")}</p>
+      <CorrectionDialog
+        description={t("correct.sideHint")}
+        onSave={async (reason) => {
+          await change.mutateAsync({ tagNumber, toSide, toPenId, reason });
+          await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
+        }}
+        ready={Boolean(toPenId)}
+        title={t("correct.side")}
+        trigger={`${t("correct.toSide")}: ${t(`animals.side.${toSide}`)}`}
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`side-pen-${tagNumber}`}>{t("correct.toPen")}</Label>
+          <select
+            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+            id={`side-pen-${tagNumber}`}
+            onChange={(event) => setToPenId(event.target.value)}
+            required
+            value={toPenId}
+          >
+            <option value="">—</option>
+            {pens.map((pen) => (
+              <option key={pen.id} value={pen.id}>
+                {pen.shedName} / {pen.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </CorrectionDialog>
+    </div>
+  );
+};
+
+/** The Manager puts right what a bought-in animal cost, or who sold her. */
+const IntakeCorrection = ({
+  intake,
+}: {
+  intake: { id: string; purchasePriceBdt: number; sellerName: string | null };
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [price, setPrice] = useState(String(intake.purchasePriceBdt));
+  const [seller, setSeller] = useState(intake.sellerName ?? "");
+  const correct = useMutation(orpc.intake.correct.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          intakeId: intake.id,
+          reason,
+          purchasePriceBdt:
+            Number(price) === intake.purchasePriceBdt
+              ? undefined
+              : Number(price),
+          seller:
+            seller.trim() === (intake.sellerName ?? "") || !seller.trim()
+              ? undefined
+              : { name: seller.trim() },
+        });
+        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
+      }}
+      ready={Number(price) > 0}
+      title={t("correct.intake")}
+    >
+      <CorrectionField
+        inputMode="numeric"
+        label={t("intake.price")}
+        onChange={setPrice}
+        type="number"
+        value={price}
+      />
+      <CorrectionField
+        label={t("correct.seller")}
+        onChange={setSeller}
+        value={seller}
+      />
+    </CorrectionDialog>
+  );
+};
+
+/** The Manager puts right what she was sold for, or to whom. */
+const SaleOfHerCorrection = ({
+  sale,
+}: {
+  sale: { id: string; priceBdt: number; buyerName: string };
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [price, setPrice] = useState(String(sale.priceBdt));
+  const [buyer, setBuyer] = useState(sale.buyerName);
+  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: sale.id,
+          reason,
+          priceBdt: Number(price) === sale.priceBdt ? undefined : Number(price),
+          buyer:
+            buyer.trim() === sale.buyerName
+              ? undefined
+              : { name: buyer.trim() },
+        });
+        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
+      }}
+      ready={Number(price) > 0 && buyer.trim() !== ""}
+      title={t("correct.sale")}
+    >
+      <CorrectionField
+        inputMode="numeric"
+        label={t("sale.price")}
+        onChange={setPrice}
+        type="number"
+        value={price}
+      />
+      <CorrectionField
+        label={t("correct.buyer")}
+        onChange={setBuyer}
+        value={buyer}
+      />
+    </CorrectionDialog>
+  );
+};
+
+/** Her Expected Calving put right — a service date written wrong, or a vet's scan that says otherwise. */
+const ExpectedCalvingCorrection = ({
+  tagNumber,
+  expectedCalvingAt,
+}: {
+  tagNumber: string;
+  expectedCalvingAt: Date;
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [day, setDay] = useState(farmDayOf(expectedCalvingAt));
+  const correct = useMutation(
+    orpc.animals.correctExpectedCalving.mutationOptions({})
+  );
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          tagNumber,
+          expectedCalvingOn: day,
+          reason,
+        });
+        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
+      }}
+      ready={Boolean(day)}
+      title={t("correct.calving")}
+    >
+      <CorrectionField
+        label={t("pregnancy.expectedOn")}
+        onChange={setDay}
+        type="date"
+        value={day}
+      />
+    </CorrectionDialog>
+  );
+};
+
 const HerPregnancyChecks = ({
   checks,
   expectedCalvingAt,
   failedAttempts,
+  mayCorrect,
+  tagNumber,
 }: {
+  mayCorrect: boolean;
+  tagNumber: string;
   checks: {
     id: string;
     result: PregnancyCheckResult;
@@ -780,11 +1091,19 @@ const HerPregnancyChecks = ({
     <section className="surface space-y-1 p-4 text-sm">
       <h2 className="text-lg font-semibold">{t("pregnancy.title")}</h2>
       {expectedCalvingAt ? (
-        <p>
-          {t("pregnancy.expectedCalving", {
-            when: formatDate(expectedCalvingAt, language),
-          })}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p>
+            {t("pregnancy.expectedCalving", {
+              when: formatDate(expectedCalvingAt, language),
+            })}
+          </p>
+          {mayCorrect ? (
+            <ExpectedCalvingCorrection
+              expectedCalvingAt={expectedCalvingAt}
+              tagNumber={tagNumber}
+            />
+          ) : null}
+        </div>
       ) : null}
       {failedAttempts > 0 ? (
         <p className="text-muted-foreground text-xs">
@@ -1114,8 +1433,11 @@ const TheScale = ({
  */
 const HowSheLeft = ({
   sale,
+  mayCorrect,
 }: {
+  mayCorrect: boolean;
   sale: {
+    id: string;
     priceBdt: number;
     weightKg: number;
     destination: string;
@@ -1132,7 +1454,10 @@ const HowSheLeft = ({
   }
   return (
     <section className="surface space-y-1 p-4 text-sm">
-      <h2 className="text-lg font-semibold">{t("sale.howSheLeft")}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{t("sale.howSheLeft")}</h2>
+        {mayCorrect ? <SaleOfHerCorrection sale={sale} /> : null}
+      </div>
       <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
       <Fact label={t("sale.price")}>
         {t("intake.taka", { taka: formatNumber(sale.priceBdt, language) })}
@@ -1159,8 +1484,11 @@ const HowSheLeft = ({
  */
 const HowSheArrived = ({
   intake,
+  mayCorrect,
 }: {
+  mayCorrect: boolean;
   intake: {
+    id: string;
     purchasePriceBdt: number;
     weightKg: number;
     targetWeightKg: number;
@@ -1178,7 +1506,10 @@ const HowSheArrived = ({
     t("intake.kg", { kg: formatNumber(value, language) });
   return (
     <section className="surface space-y-1 p-4 text-sm">
-      <h2 className="text-lg font-semibold">{t("intake.title")}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{t("intake.title")}</h2>
+        {mayCorrect ? <IntakeCorrection intake={intake} /> : null}
+      </div>
       <Fact label={t("intake.seller")}>
         {[intake.sellerName, intake.sellerAddress]
           .filter(Boolean)

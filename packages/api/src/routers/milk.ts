@@ -346,7 +346,7 @@ export const milkRouter = {
   /** One Milking Session as the Manager reads it: the tank reading, what the cows account
    *  for, and every cow's litres with where they went. */
   session: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff"))
     .input(z.object({ instanceId: z.string() }))
     .handler(async ({ context, input }) => {
       const session = await context.db.query.milkingSession.findFirst({
@@ -360,7 +360,12 @@ export const milkRouter = {
           },
         },
       });
-      if (!session) {
+      // Barn Staff read the milkings of the Pens they work, as they read those Pens' animals.
+      const outOfTheirPens =
+        context.roleUsed === "staff" &&
+        session !== undefined &&
+        !context.penIds.includes(session.penId);
+      if (!session || outOfTheirPens) {
         throw new ORPCError("NOT_FOUND", {
           message: "Nothing has been milked in this session yet",
         });
@@ -391,6 +396,7 @@ export const milkRouter = {
           tagNumber: input.tagNumber.toUpperCase(),
         },
         columns: {
+          id: true,
           tagNumber: true,
           state: true,
           lactationNumber: true,
@@ -421,11 +427,27 @@ export const milkRouter = {
       const records = beast.milkRecords.filter(
         (record) => record.lactationNumber === beast.lactationNumber
       );
+      // The total is the whole Lactation, not the recent milkings the page lists: three hundred days of
+      // two milkings a day is a few hundred small rows, read as litres alone.
+      const wholeLactation = await context.db.query.milkRecord.findMany({
+        where: {
+          farmId: context.farm.id,
+          animalId: beast.id,
+          lactationNumber:
+            beast.lactationNumber === null
+              ? { isNull: true }
+              : beast.lactationNumber,
+        },
+        columns: { litres: true },
+      });
       return {
         tagNumber: beast.tagNumber,
         ...lactationView(beast, context.clock.now()),
         lactationLitres: roundLitres(
-          records.reduce((total, record) => total + litresOf(record.litres), 0)
+          wholeLactation.reduce(
+            (total, record) => total + litresOf(record.litres),
+            0
+          )
         ),
         records,
       };

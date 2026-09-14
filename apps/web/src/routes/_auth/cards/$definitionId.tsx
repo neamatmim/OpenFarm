@@ -40,9 +40,15 @@ const CardPage = () => {
     return <p className="p-6">{t("common.loading")}</p>;
   }
   const { name, purpose, steps, number, publishedAt, triggers } = card.data;
-  const times = triggers.flatMap((trigger) =>
-    trigger.kind === "schedule" ? trigger.times : []
-  );
+  const schedule = triggers.find((trigger) => trigger.kind === "schedule");
+  const times = schedule?.kind === "schedule" ? schedule.times : [];
+  // "Sat 08:00, every other week" rather than the time alone, for work that is not daily.
+  const days =
+    schedule?.kind === "schedule" && schedule.weekdays?.length
+      ? ` · ${schedule.weekdays.map((day) => t(`sop.weekday.${day}` as "sop.weekday.0")).join(", ")}${
+          schedule.everyOtherWeek ? ` · ${t("sop.everyOtherWeek")}` : ""
+        }`
+      : "";
   const tight = steps.length > STEPS_BEFORE_TIGHTENING;
 
   return (
@@ -89,6 +95,7 @@ const CardPage = () => {
         {times.length > 0 ? (
           <span>
             {t("card.when")}: {times.join(", ")}
+            {days}
           </span>
         ) : null}
       </section>

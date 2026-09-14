@@ -41,6 +41,31 @@ describe("roles", () => {
   });
 });
 
+/** Somebody who has just signed up with an email of their own, as the API sees them. */
+const signedUp = async (email: string, name = "নতুন") => {
+  const userId = `person-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await scratchDb()
+    .insert(user)
+    .values({ id: userId, name, email, emailVerified: false });
+  const row = await scratchDb().query.user.findFirst({ where: { id: userId } });
+  const session = await scratchDb().query.session.findFirst({
+    where: { userId: "test-staff" },
+  });
+  if (!row || !session) {
+    throw new Error("seed failed");
+  }
+  const context = await buildContext({
+    session: { user: row, session: { ...session, userId } },
+    clock: new FakeClock(),
+    db: scratchDb(),
+  });
+  return {
+    userId,
+    context,
+    client: createRouterClient(appRouter, { context }),
+  };
+};
+
 describe("invitations", () => {
   it("a Manager's invite is not usable until the Owner approves it", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
@@ -66,8 +91,9 @@ describe("invitations", () => {
 
     await owner.client.people.approveInvite({ id: invited.id });
 
+    // Approved, but not taken up: the Roles wait for the person to enter the code they were handed.
     const after = await owner.client.people.list();
-    expect(after.people.find((p) => p.id === userId)?.roles).toEqual(["staff"]);
+    expect(after.people.find((p) => p.id === userId)?.roles).toEqual([]);
     expect(after.pendingInvites.some((i) => i.id === invited.id)).toBe(false);
   });
 
@@ -191,39 +217,65 @@ describe("review findings", () => {
     expect(me.roles).toContain("owner");
   });
 
-  it("a person invited before signing up gets their Roles the first time they appear", async () => {
+  it("an invite is taken up with its code, by the person it was addressed to, once", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    const email = `early-${Date.now()}@test.openfarm`;
-    await owner.client.people.invite({
+    const email = `coded-${Date.now()}@test.openfarm`;
+    const { code } = await owner.client.people.invite({
       email,
-      name: "Early",
+      name: "কোড",
       roles: ["staff"],
     });
+    expect(code).toMatch(/^[A-Z0-9]{8}$/u);
+
+    // Signing up with the invited email is not enough on its own.
+    const person = await signedUp(email);
+    expect(person.context.roles).toEqual([]);
     const listed = await owner.client.people.list();
     expect(listed.awaitingSignup.some((i) => i.email === email)).toBe(true);
 
-    const userId = `early-${Date.now()}`;
-    await scratchDb()
-      .insert(user)
-      .values({ id: userId, name: "Early", email, emailVerified: true });
-    const row = await scratchDb().query.user.findFirst({
-      where: { id: userId },
-    });
-    const session = await scratchDb().query.session.findFirst({
-      where: { userId: "test-staff" },
-    });
-    if (!row || !session) {
-      throw new Error("seed failed");
-    }
-    const context = await buildContext({
-      session: { user: row, session: { ...session, userId } },
-      clock: new FakeClock(),
-      db: scratchDb(),
-    });
+    // Somebody else holding the code cannot take it up either.
+    const stranger = await signedUp(`stranger-${Date.now()}@test.openfarm`);
+    await expect(
+      stranger.client.people.acceptInvite({ code })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
 
-    expect(context.roles).toEqual(["staff"]);
+    const taken = await person.client.people.acceptInvite({ code });
+    expect(taken.roles).toEqual(["staff"]);
+    await expect(
+      person.client.people.acceptInvite({ code })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
     const after = await owner.client.people.list();
+    expect(after.people.find((p) => p.id === person.userId)?.roles).toEqual([
+      "staff",
+    ]);
     expect(after.awaitingSignup.some((i) => i.email === email)).toBe(false);
+  });
+
+  it("a Manager's invite cannot be taken up until the Owner approves it, and a new code replaces the old", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const email = `waiting-${Date.now()}@test.openfarm`;
+    const { id, code } = await manager.client.people.invite({
+      email,
+      name: "অপেক্ষা",
+      roles: ["staff"],
+    });
+    const person = await signedUp(email);
+
+    await expect(
+      person.client.people.acceptInvite({ code })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await owner.client.people.approveInvite({ id });
+    const { code: fresh } = await manager.client.people.reissueInviteCode({
+      id,
+    });
+    await expect(
+      person.client.people.acceptInvite({ code })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const taken = await person.client.people.acceptInvite({
+      code: fresh.toLowerCase(),
+    });
+    expect(taken.roles).toEqual(["staff"]);
   });
 
   it("approving an invite is atomic: a second approval finds nothing and writes no audit row", async () => {

@@ -296,7 +296,10 @@ const weighIn = (): SopContent => ({
     bn: "মোটাতাজাকরণের প্রতিটি পশুকে ক্রাশে তুলে ওজন নিন — প্রতি দুই সপ্তাহে",
     en: "Put each fattening animal through the crush and weigh it — every fortnight",
   },
-  triggers: [],
+  // Every other Saturday morning, before the heat.
+  triggers: [
+    { kind: "schedule", times: ["07:00"], weekdays: [6], everyOtherWeek: true },
+  ],
   appliesTo: {
     side: "fattening",
     states: ["quarantine", "fattening", "ready_for_sale"],
@@ -461,11 +464,12 @@ const dlsReport = (): SopContent => ({
 });
 
 const stockCount = (): SopContent => ({
-  name: { bn: "মাসিক গুদাম গণনা", en: "Monthly stock count" },
+  name: { bn: "সাপ্তাহিক গুদাম গণনা", en: "Weekly stock count" },
   purpose: {
     bn: "গুদামে প্রতিটি খাদ্য আসলে কত আছে মেপে লিখুন, হিসাবের সাথে না মিললে কারণ লিখুন",
     en: "Weigh what is really in the store and give a reason where it differs from the book",
   },
+  // Raised by the Manager each Friday for the store's Pen: a schedule raises work per Pen, and the store is one.
   triggers: [],
   assignedRole: "manager",
   checkerRole: null,

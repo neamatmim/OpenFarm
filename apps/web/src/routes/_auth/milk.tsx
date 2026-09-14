@@ -12,6 +12,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  CorrectionDialog,
+  CorrectionField,
+} from "@/components/correction-dialog";
+import { MilkMismatches } from "@/components/milk-mismatches";
+import {
   EmptyState,
   Loaded,
   Page,
@@ -26,6 +31,7 @@ import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { onlyFor } from "@/lib/guard";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -57,6 +63,81 @@ const DISPATCH_FIELDS = [
 
 /** The boxes that read better across the whole form than in half of it. */
 const WIDE_FIELDS = new Set(["buyerAddress", "note"]);
+
+/** The Manager puts a Dispatch right — litres, price, buyer or challan — with the reason. */
+const DispatchCorrection = ({
+  dispatch,
+}: {
+  dispatch: {
+    id: string;
+    litres: number;
+    pricePerLitreBdt: number;
+    buyerName: string;
+    challan: string | null;
+  };
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [litres, setLitres] = useState(String(dispatch.litres));
+  const [price, setPrice] = useState(String(dispatch.pricePerLitreBdt));
+  const [buyer, setBuyer] = useState(dispatch.buyerName);
+  const [challan, setChallan] = useState(dispatch.challan ?? "");
+  const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: dispatch.id,
+          reason,
+          litres:
+            Number(litres) === dispatch.litres ? undefined : Number(litres),
+          pricePerLitreBdt:
+            Number(price) === dispatch.pricePerLitreBdt
+              ? undefined
+              : Number(price),
+          buyer:
+            buyer.trim() === dispatch.buyerName
+              ? undefined
+              : { name: buyer.trim() },
+          challan:
+            (challan.trim() || null) === dispatch.challan
+              ? undefined
+              : challan.trim() || null,
+        });
+        await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
+      }}
+      ready={Number(litres) > 0 && Number(price) > 0 && buyer.trim() !== ""}
+      title={t("correct.dispatch")}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CorrectionField
+          inputMode="decimal"
+          label={t("dispatch.litresField")}
+          onChange={setLitres}
+          type="number"
+          value={litres}
+        />
+        <CorrectionField
+          inputMode="decimal"
+          label={t("dispatch.price")}
+          onChange={setPrice}
+          type="number"
+          value={price}
+        />
+      </div>
+      <CorrectionField
+        label={t("dispatch.buyer")}
+        onChange={setBuyer}
+        value={buyer}
+      />
+      <CorrectionField
+        label={t("dispatch.challan")}
+        onChange={setChallan}
+        value={challan}
+      />
+    </CorrectionDialog>
+  );
+};
 
 /** Words typed into a box, or nothing when the box was left empty. */
 const written = (value: string): string | undefined =>
@@ -169,6 +250,8 @@ const MilkPage = () => {
         />
       </div>
 
+      <MilkMismatches />
+
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <Section title={t("dispatch.thatDay")}>
           <Loaded query={today}>
@@ -187,9 +270,14 @@ const MilkPage = () => {
                     }
                     title={one.buyerName}
                     trailing={
-                      <span className="font-semibold tabular-nums">
-                        {formatNumber(one.litres, language)}{" "}
-                        {t("dispatch.litres")}
+                      <span className="flex items-center gap-2">
+                        <span className="font-semibold tabular-nums">
+                          {formatNumber(one.litres, language)}{" "}
+                          {t("dispatch.litres")}
+                        </span>
+                        {mayRecord ? (
+                          <DispatchCorrection dispatch={one} />
+                        ) : null}
                       </span>
                     }
                   />
@@ -308,5 +396,6 @@ const MilkPage = () => {
 };
 
 export const Route = createFileRoute("/_auth/milk")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: MilkPage,
 });

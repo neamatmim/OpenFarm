@@ -7,6 +7,8 @@ const TOKEN_KEY = "openfarm.device.token";
 const ROSTER_KEY = "openfarm.device.roster";
 const ACTIVE_KEY = "openfarm.device.active";
 const SWITCH_KEY = "openfarm.device.switch";
+const PERSON_KEY = "openfarm.person";
+const LOCK_KEY = "openfarm.device.lockMinutes";
 const CHANGED = "openfarm:device";
 
 export interface RosterEntry {
@@ -70,16 +72,26 @@ export const getRoster = (): RosterEntry[] => {
 export const setRoster = (roster: RosterEntry[]) =>
   write(ROSTER_KEY, JSON.stringify(roster));
 
+/** The last value read, kept while what is stored has not changed: a screen subscribed to the phone's state must be
+ *  handed the same object until it really changes, or it re-renders for ever. */
+let activeRead: { raw: string | null; value: ActiveUser | null } = {
+  raw: null,
+  value: null,
+};
+
 export const getActiveUser = (): ActiveUser | null => {
   const raw = read(ACTIVE_KEY);
-  if (!raw) {
-    return null;
+  if (raw === activeRead.raw) {
+    return activeRead.value;
   }
+  let value: ActiveUser | null = null;
   try {
-    return JSON.parse(raw) as ActiveUser;
+    value = raw ? (JSON.parse(raw) as ActiveUser) : null;
   } catch {
-    return null;
+    value = null;
   }
+  activeRead = { raw, value };
+  return value;
 };
 export const setActiveUser = (active: ActiveUser | null) =>
   write(ACTIVE_KEY, active === null ? null : JSON.stringify(active));
@@ -103,3 +115,205 @@ export const isLocked = (
 export const getSwitchToken = (): string | null => read(SWITCH_KEY);
 export const setSwitchToken = (token: string | null) =>
   write(SWITCH_KEY, token);
+
+/** Who is signed in on a person's own phone, remembered so work recorded offline still carries their name. */
+export const getSignedInPerson = (): string | null => read(PERSON_KEY);
+export const setSignedInPerson = (userId: string | null) =>
+  write(PERSON_KEY, userId);
+
+/** How long this farm lets a Shed Phone sit untouched before it locks, as the farm last said. */
+export const DEFAULT_AUTO_LOCK_MINUTES = 5;
+export const getAutoLockMinutes = (): number => {
+  const saved = Number(read(LOCK_KEY));
+  return Number.isFinite(saved) && saved > 0
+    ? saved
+    : DEFAULT_AUTO_LOCK_MINUTES;
+};
+export const setAutoLockMinutes = (minutes: number) =>
+  write(LOCK_KEY, String(minutes));
+
+/**
+ * A PIN proved on the phone while it had no signal, held in memory only — never stored — so the switch can be
+ * proved to the farm the moment signal comes back, without asking the person again mid-task.
+ *
+ * What is stored is only what the entries need to be sent the same way every time, from any tab and after a reload:
+ * that a stint's PIN is held (and when a tab holding it last said so), the token the farm gave for it, or that it
+ * could not be proved.
+ */
+const HELD = "held:";
+const PROOF_KEY = "openfarm.device.proof:";
+const HELD_STINT_KEY = "openfarm.device.heldStint";
+/** Where Web Locks are missing, how long a held PIN counts as still held by some tab without that tab saying so again.
+ *  After that its work is sent and, if it names somebody the farm cannot prove, comes back to the phone with its data
+ *  rather than going under anybody's name. */
+const HELD_FRESH_MS = 2 * 60_000;
+const PIN_LOCK = "openfarm-pin:";
+/** Lets go of the lock that says this tab holds a stint's PIN. */
+const letGo = new Map<string, () => void>();
+/** How long what was said about a stint is kept: as long as the phone keeps work at all. */
+const PROOF_KEPT_MS = 14 * 24 * 60 * 60_000;
+
+type ProofRecord =
+  | { state: "held"; seenAt: number; at: number }
+  | { state: "proved"; token: string; at: number }
+  | { state: "unproved"; at: number };
+
+/** Each stint worked on a PIN the farm has not yet seen, by the reference its entries carry — this tab's alone. */
+const unproved = new Map<string, { userId: string; pin: string }>();
+
+const readProof = (ref: string): ProofRecord | null => {
+  try {
+    const raw = read(`${PROOF_KEY}${ref}`);
+    return raw ? (JSON.parse(raw) as ProofRecord) : null;
+  } catch {
+    return null;
+  }
+};
+const writeProof = (ref: string, record: ProofRecord) =>
+  write(`${PROOF_KEY}${ref}`, JSON.stringify(record));
+
+const forgetOldProofs = () => {
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith(PROOF_KEY)) {
+        const record = readProof(key.slice(PROOF_KEY.length));
+        if (!record || Date.now() - record.at > PROOF_KEPT_MS) {
+          window.localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch {
+    // storage unavailable; nothing to tidy
+  }
+};
+
+/** Holds a PIN entered with no signal, and starts the stint its work is recorded under. Every stint is its own: a
+ *  second person switching in after the first does not lose the first person's proof — their work still needs it. */
+export const holdUnprovedSwitch = (proof: { userId: string; pin: string }) => {
+  forgetOldProofs();
+  const ref = `${HELD}${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
+  unproved.set(ref, proof);
+  // A lock held for as long as this tab holds the PIN: the browser lets go of it when the tab is closed or reloaded,
+  // and not while the phone merely sleeps — which is exactly the question another tab needs answered.
+  // A promise nothing else produces: it settles only when this tab lets go of the PIN.
+  // oxlint-disable-next-line promise/avoid-new
+  const released = new Promise<boolean>((resolve) => {
+    letGo.set(ref, () => resolve(true));
+  });
+  void globalThis.navigator?.locks?.request(
+    `${PIN_LOCK}${ref}`,
+    () => released
+  );
+  const now = Date.now();
+  writeProof(ref, { state: "held", seenAt: now, at: now });
+  write(HELD_STINT_KEY, ref);
+  return ref;
+};
+/** The person switched in has been proved straight away: no stint is held for them. */
+export const clearHeldStint = () => write(HELD_STINT_KEY, null);
+export const heldSwitches = (): [string, { userId: string; pin: string }][] => [
+  ...unproved,
+];
+/** This tab still holds these PINs: says so, so another tab sending the Outbox waits for them. */
+export const touchHeldSwitches = () => {
+  for (const ref of unproved.keys()) {
+    const record = readProof(ref);
+    // Settled already — by this tab or another — and settled for good: saying it is held again would change what a
+    // batch already sent carries when it is sent again.
+    if (record && record.state !== "held") {
+      continue;
+    }
+    writeProof(ref, {
+      state: "held",
+      seenAt: Date.now(),
+      at: record?.at ?? Date.now(),
+    });
+  }
+};
+const SETTLE_LOCK = "openfarm-proof-settle";
+
+/** Reads and settles a stint's proof as one step across every tab on the phone, so no tab decides on what it read
+ *  a moment before another tab changed it. */
+const settling = async <T>(work: () => T | Promise<T>): Promise<T> => {
+  const locks = globalThis.navigator?.locks;
+  if (locks) {
+    return await locks.request(SETTLE_LOCK, work);
+  }
+  return await work();
+};
+
+/** What the farm said about a held PIN: the token it gave, or null for a PIN it refused. The first answer stands — a
+ *  PIN proved after its work was already sent without it proves the person for what they do next, not for what has
+ *  gone — and the PIN's lock is let go only once the answer is written, so no tab takes the gap for a lost PIN. */
+export const markProved = async (ref: string, token: string | null) => {
+  unproved.delete(ref);
+  await settling(() => {
+    const record = readProof(ref);
+    if (!record || record.state === "held") {
+      writeProof(
+        ref,
+        token
+          ? { state: "proved", token, at: Date.now() }
+          : { state: "unproved", at: Date.now() }
+      );
+    }
+  });
+  letGo.get(ref)?.();
+  letGo.delete(ref);
+};
+export const isHeldStint = (ref: string) => read(HELD_STINT_KEY) === ref;
+
+/** What an entry recorded now carries as proof of who recorded it: the switch token, or the held stint's reference. */
+export const currentProof = (): string | null =>
+  getSwitchToken() ?? read(HELD_STINT_KEY);
+
+/** Whether some tab on this phone still holds a stint's PIN. */
+const heldByATab = async (
+  ref: string,
+  record: ProofRecord | null
+): Promise<boolean> => {
+  if (unproved.has(ref)) {
+    return true;
+  }
+  const locks = globalThis.navigator?.locks;
+  if (locks) {
+    const { held = [] } = await locks.query();
+    return held.some((lock) => lock.name === `${PIN_LOCK}${ref}`);
+  }
+  return record?.state === "held" && Date.now() - record.seenAt < HELD_FRESH_MS;
+};
+
+/**
+ * The switch token an entry's proof stands for, when it is sent. Waiting while its PIN is still to be proved by a tab
+ * on this phone; nothing when the farm refused the PIN, or when no tab holds it any more — the phone was restarted
+ * before it was proved. Once settled the answer is written down and never changes, so a batch sent again after a
+ * lost reply is the same batch the farm already has.
+ */
+export const tokenForProof = (
+  proof: string
+): Promise<{ token?: string; waiting: boolean }> => {
+  if (!proof.startsWith(HELD)) {
+    return Promise.resolve({ token: proof, waiting: false });
+  }
+  return settling(async () => {
+    const record = readProof(proof);
+    if (record?.state === "proved") {
+      return { token: record.token, waiting: false };
+    }
+    if (record?.state === "unproved") {
+      return { waiting: false };
+    }
+    if (await heldByATab(proof, record)) {
+      return { waiting: true };
+    }
+    writeProof(proof, { state: "unproved", at: Date.now() });
+    return { waiting: false };
+  });
+};
+
+/** Locks the phone on the phone: nobody is switched in, and no token names anyone. */
+export const lockThisPhone = () => {
+  clearHeldStint();
+  setActiveUser(null);
+  setSwitchToken(null);
+};

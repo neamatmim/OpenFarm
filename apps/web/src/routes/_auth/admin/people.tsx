@@ -23,8 +23,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  CorrectionDialog,
+  CorrectionField,
+} from "@/components/correction-dialog";
+import {
   EmptyState,
   Loaded,
+  Notice,
   Page,
   PageHeader,
   Section,
@@ -96,6 +101,40 @@ const PeoplePage = () => {
       onError,
     })
   );
+  const [reissued, setReissued] = useState<{
+    name: string;
+    email: string;
+    code: string;
+  } | null>(null);
+  const reissue = useMutation(
+    orpc.people.reissueInviteCode.mutationOptions({
+      onMutate: ({ id }) => inFlight.start(`code:${id}`),
+      onSettled: (_data, _error, { id }) => inFlight.end(`code:${id}`),
+      onSuccess: ({ id, code }) => {
+        const waiting = list.data?.awaitingSignup.find((inv) => inv.id === id);
+        setReissued({
+          name: waiting?.name ?? "",
+          email: waiting?.email ?? "",
+          code,
+        });
+      },
+      onError,
+    })
+  );
+  const sheds = useQuery(orpc.herd.list.queryOptions());
+  const pens = (sheds.data ?? []).flatMap((shed) =>
+    shed.pens.map((one) => ({ id: one.id, name: one.name, shed: shed.name }))
+  );
+  const assignPens = useMutation(
+    orpc.people.assignPens.mutationOptions({
+      ...trackUser("pens"),
+      onSuccess: () => {
+        toast.success(t("people.pensSaved"));
+        refresh();
+      },
+      onError,
+    })
+  );
   const assign = useMutation(
     orpc.people.assignRoles.mutationOptions({
       ...trackUser("roles"),
@@ -163,10 +202,15 @@ const PeoplePage = () => {
                 }
                 onDisable={() => disable.mutate({ userId: person.id })}
                 onEnable={() => enable.mutate({ userId: person.id })}
+                pens={pens}
+                onSavePens={(add, remove) =>
+                  assignPens.mutate({ userId: person.id, add, remove })
+                }
                 saving={{
                   roles: inFlight.has(`roles:${person.id}`),
                   pin: inFlight.has(`pin:${person.id}`),
                   access: inFlight.has(`access:${person.id}`),
+                  pens: inFlight.has(`pens:${person.id}`),
                 }}
               />
             ))}
@@ -176,11 +220,25 @@ const PeoplePage = () => {
 
       {list.data?.awaitingSignup.length ? (
         <Section title={t("people.awaitingSignup")}>
-          <ul className="space-y-1 text-sm">
+          {reissued ? <InviteCode {...reissued} /> : null}
+          <ul className="divide-border flex flex-col divide-y text-sm">
             {list.data.awaitingSignup.map((inv) => (
-              <li key={inv.id} className="text-muted-foreground">
-                {inv.name} · {inv.email} ·{" "}
-                {inv.roles.map((r) => t(roleKey(r))).join(", ")}
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+                key={inv.id}
+              >
+                <span className="text-muted-foreground">
+                  {inv.name} · {inv.email} ·{" "}
+                  {inv.roles.map((r) => t(roleKey(r))).join(", ")}
+                </span>
+                <Button
+                  disabled={inFlight.has(`code:${inv.id}`)}
+                  onClick={() => reissue.mutate({ id: inv.id })}
+                  size="sm"
+                  variant="outline"
+                >
+                  {t("people.newCode")}
+                </Button>
               </li>
             ))}
           </ul>
@@ -236,6 +294,32 @@ const RoleChoice = ({
   );
 };
 
+/** The Owner putting a person's name right — a misspelling at sign-up, a name the farm knows them by. The old name stays
+ *  in the trail beside the reason. */
+const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const [value, setValue] = useState(name);
+  const correct = useMutation(orpc.people.correctName.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({ userId, name: value.trim(), reason });
+        await queryClient.invalidateQueries({ queryKey: orpc.people.key() });
+      }}
+      ready={value.trim() !== "" && value.trim() !== name}
+      title={t("people.correctName")}
+      trigger={t("people.correctName")}
+    >
+      <CorrectionField
+        label={t("people.name")}
+        onChange={setValue}
+        value={value}
+      />
+    </CorrectionDialog>
+  );
+};
+
 const toggled = (roles: RoleName[], role: RoleName) =>
   roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role];
 
@@ -248,21 +332,26 @@ const PersonRow = ({
   onDisable,
   onEnable,
   saving,
+  pens,
+  onSavePens,
 }: {
   person: {
     id: string;
     name: string;
     email: string;
     roles: RoleName[];
+    penIds: string[];
     disabledAt: Date | null;
   };
+  pens: { id: string; name: string; shed: string }[];
+  onSavePens: (add: string[], remove: string[]) => void;
   isOwner: boolean;
   isSelf: boolean;
   onSave: (roles: RoleName[]) => void;
   onSetPin: (pin: string) => Promise<unknown>;
   onDisable: () => void;
   onEnable: () => void;
-  saving: { roles: boolean; pin: boolean; access: boolean };
+  saving: { roles: boolean; pin: boolean; access: boolean; pens: boolean };
 }) => {
   const t = useT();
   const [roles, setRoles] = useState<RoleName[]>(person.roles);
@@ -287,15 +376,28 @@ const PersonRow = ({
             {person.email}
           </p>
         </div>
-        {disabled ? (
-          <StatusBadge icon={UserX} tone="danger">
-            {t("people.disabled")}
-          </StatusBadge>
-        ) : (
-          <StatusBadge tone="success">{t("people.active")}</StatusBadge>
-        )}
+        <div className="flex items-center gap-1">
+          {isOwner ? (
+            <CorrectName name={person.name} userId={person.id} />
+          ) : null}
+          {disabled ? (
+            <StatusBadge icon={UserX} tone="danger">
+              {t("people.disabled")}
+            </StatusBadge>
+          ) : (
+            <StatusBadge tone="success">{t("people.active")}</StatusBadge>
+          )}
+        </div>
       </div>
       <TrainedOn userId={person.id} />
+      {disabled ? null : (
+        <PenPicker
+          held={person.penIds}
+          onSave={onSavePens}
+          pens={pens}
+          saving={saving.pens}
+        />
+      )}
       {isOwner ? (
         <>
           <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-1">
@@ -359,6 +461,71 @@ const PersonRow = ({
   );
 };
 
+/** The Pens whose work is this person's, grouped by shed; saved as what was added and what was taken away. */
+const PenPicker = ({
+  held,
+  pens,
+  onSave,
+  saving,
+}: {
+  held: string[];
+  pens: { id: string; name: string; shed: string }[];
+  onSave: (add: string[], remove: string[]) => void;
+  saving: boolean;
+}) => {
+  const t = useT();
+  const [chosen, setChosen] = useState(() => new Set(held));
+  const add = [...chosen].filter((id) => !held.includes(id));
+  const remove = held.filter((id) => !chosen.has(id));
+  const sheds = [...new Set(pens.map((pen) => pen.shed))];
+  return (
+    <fieldset className="flex flex-col gap-2 border-t pt-3">
+      <legend className="mb-1 text-sm font-medium">{t("people.pens")}</legend>
+      {held.length === 0 ? (
+        <p className="text-warning text-sm">{t("people.pensNone")}</p>
+      ) : null}
+      {sheds.map((shed) => (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1" key={shed}>
+          <span className="text-muted-foreground w-full text-sm">{shed}</span>
+          {pens
+            .filter((pen) => pen.shed === shed)
+            .map((pen) => (
+              <Label
+                className="flex min-h-11 cursor-pointer items-center gap-2 font-normal md:min-h-8"
+                key={pen.id}
+              >
+                <Checkbox
+                  checked={chosen.has(pen.id)}
+                  onCheckedChange={() =>
+                    setChosen((current) => {
+                      const next = new Set(current);
+                      if (next.has(pen.id)) {
+                        next.delete(pen.id);
+                      } else {
+                        next.add(pen.id);
+                      }
+                      return next;
+                    })
+                  }
+                />
+                {pen.name}
+              </Label>
+            ))}
+        </div>
+      ))}
+      <Button
+        className="w-fit"
+        disabled={saving || (add.length === 0 && remove.length === 0)}
+        onClick={() => onSave(add, remove)}
+        variant="outline"
+      >
+        {saving ? <Spinner /> : null}
+        {t("people.pensSave")}
+      </Button>
+    </fieldset>
+  );
+};
+
 /** Restoring access is one press. Removing it names the person first: a phone signed out mid-shift is not undone by
  *  pressing the button again. */
 const AccessButton = ({
@@ -418,6 +585,31 @@ const AccessButton = ({
   );
 };
 
+/** The code to hand the invited person, shown once: they sign up with their email and enter it. */
+const InviteCode = ({
+  name,
+  email,
+  code,
+}: {
+  name: string;
+  email: string;
+  code: string;
+}) => {
+  const t = useT();
+  return (
+    <Notice
+      icon={KeyRound}
+      title={t("people.handOverTitle", { name })}
+      tone="info"
+    >
+      <p>{t("people.handOverHow", { email })}</p>
+      <p className="text-foreground mt-2 font-mono text-2xl font-semibold tracking-[0.3em]">
+        {code}
+      </p>
+    </Notice>
+  );
+};
+
 const InviteForm = ({
   ownerCanPickRoles,
   onSent,
@@ -429,10 +621,16 @@ const InviteForm = ({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [roles, setRoles] = useState<RoleName[]>(["staff"]);
+  const [handOver, setHandOver] = useState<{
+    name: string;
+    email: string;
+    code: string;
+  } | null>(null);
   const invite = useMutation(
     orpc.people.invite.mutationOptions({
-      onSuccess: () => {
+      onSuccess: ({ code }) => {
         toast.success(t("people.inviteSent"));
+        setHandOver({ name, email, code });
         setName("");
         setEmail("");
         onSent();
@@ -443,6 +641,7 @@ const InviteForm = ({
 
   return (
     <Section title={t("people.invite")}>
+      {handOver ? <InviteCode {...handOver} /> : null}
       <form
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(event) => {

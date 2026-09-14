@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
@@ -14,8 +14,11 @@ import {
   getActiveUser,
   getDeviceToken,
   getRoster,
+  clearHeldStint,
+  holdUnprovedSwitch,
   isLocked,
   setActiveUser,
+  setAutoLockMinutes,
   setDeviceToken,
   setRoster,
   setSwitchToken,
@@ -24,7 +27,8 @@ import {
 } from "@/lib/device";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
-import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
+import { handOverThisPhone } from "@/lib/query-cache";
+import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
 const PIN_LENGTH = 4;
@@ -56,6 +60,12 @@ const DevicePage = () => {
   });
   const autoLockMinutes =
     where.data?.autoLockMinutes ?? DEFAULT_AUTO_LOCK_MINUTES;
+  useEffect(() => {
+    if (where.data?.autoLockMinutes) {
+      setAutoLockMinutes(where.data.autoLockMinutes);
+    }
+  }, [where.data?.autoLockMinutes]);
+  const navigate = useNavigate();
 
   // Refresh the roster whenever there is signal; fall back to what the phone saved.
   const roster = useQuery({
@@ -119,10 +129,14 @@ const DevicePage = () => {
           pin: typed,
         });
         setSwitchToken(proved.token);
+        clearHeldStint();
       } catch {
-        // Offline: work is captured locally and syncs once there is signal.
+        // Offline: work is captured locally, and the PIN — held in memory, never stored — is proved to the farm
+        // as soon as the phone finds signal.
         setSwitchToken(null);
+        holdUnprovedSwitch({ userId: entry.userId, pin: typed });
       }
+      const leaving = getActiveUser()?.userId;
       setActiveUser({
         userId: entry.userId,
         name: entry.name,
@@ -130,8 +144,9 @@ const DevicePage = () => {
       });
       // Whatever this phone read for the last person is not this person's to see. A Shed
       // Phone is one device several milkers work from, and a cache kept across a PIN Switch
-      // is one milker's work — and Alerts — on the next one's screen (ADR 0003).
-      await forgetWhatThisPhoneRead(queryClient);
+      // is one milker's work — and Alerts — on the next one's screen (ADR 0003). Their own,
+      // put away when they last left the phone, comes back: it is what they work from offline.
+      await handOverThisPhone(queryClient, leaving, entry.userId);
       // Somebody is signed in again, so whatever the Outbox stopped holding back can go.
       await phoneOutbox()?.resume();
       // And this handset now speaks for them: leaving its subscription under whoever last
@@ -146,8 +161,9 @@ const DevicePage = () => {
         }
       }
       setChosen(null);
+      await navigate({ to: "/today" });
     },
-    [switchUser, listenAgain, queryClient, t]
+    [switchUser, listenAgain, queryClient, t, navigate]
   );
 
   if (!token) {
@@ -193,11 +209,18 @@ const DevicePage = () => {
           {where.data?.device?.name}
         </p>
         <Button
+          className="w-full"
+          onClick={() => navigate({ to: "/today" })}
+          size="lg"
+        >
+          {t("device.startWork")}
+        </Button>
+        <Button
           variant="outline"
           className="w-full"
           onClick={() => {
-            setActiveUser(null);
-            setSwitchToken(null);
+            void lockAndPutAway(queryClient);
+            void lockOnTheFarm();
           }}
         >
           {t("device.lock")}

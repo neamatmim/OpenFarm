@@ -160,3 +160,13 @@ export const finishInstance = async (
       current ? { ...current, state: "completed" } : current
   );
 };
+
+/** Moves an animal into the Outbox, for a phone out of signal: the farm moves her when the phone is back in range,
+ *  and refuses it then — as it would now — if the Pen or the animal is not what the phone thought. */
+export const queueMove = async (move: {
+  tagNumber: string;
+  toPenId: string;
+  reason?: string;
+}): Promise<void> => {
+  await held().add("animal_move", move, newId());
+};

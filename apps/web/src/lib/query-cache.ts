@@ -5,6 +5,7 @@ import type {
 } from "@tanstack/query-persist-client-core";
 import { persistQueryClient } from "@tanstack/query-persist-client-core";
 import type { QueryClient } from "@tanstack/react-query";
+import { dehydrate, hydrate } from "@tanstack/react-query";
 
 /** A fortnight. A phone can be out of signal for days, and what it read before that is the
  *  only picture of the farm it has. */
@@ -101,4 +102,61 @@ export const forgetWhatThisPhoneRead = async (
     return;
   }
   await new IndexedDBAdapter("openfarm-queries", "cache").delete(CACHE_KEY);
+};
+
+/** Where one person's screens are put away on a Shed Phone while somebody else works on it. */
+const shelfOf = (userId: string) => `person:${userId}`;
+
+const cacheStore = () => new IndexedDBAdapter("openfarm-queries", "cache");
+
+/**
+ * Puts away what this phone has read for the person leaving it, under their name alone, then clears the screen for
+ * whoever comes next. What was read as one milker never shows on another milker's screen — but the milker who comes
+ * back to the phone, perhaps in a shed with no signal, finds their own work where they left it.
+ */
+export const putAwayFor = async (
+  queryClient: QueryClient,
+  userId: string | null | undefined
+): Promise<void> => {
+  if (typeof window !== "undefined" && userId) {
+    const kept = {
+      timestamp: Date.now(),
+      buster: "",
+      clientState: dehydrate(queryClient, {
+        shouldDehydrateQuery: (query) => query.state.status === "success",
+      }),
+    };
+    try {
+      await cacheStore().set(shelfOf(userId), writeKept(kept));
+    } catch {
+      // No room on the phone: they start from the farm again, as they would have before.
+    }
+  }
+  await forgetWhatThisPhoneRead(queryClient);
+};
+
+/** Hands the phone from one person to the next: the leaver's screens put away, the arriver's own brought back. */
+export const handOverThisPhone = async (
+  queryClient: QueryClient,
+  from: string | null | undefined,
+  to: string
+): Promise<void> => {
+  await putAwayFor(queryClient, from);
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const raw = await cacheStore().get(shelfOf(to));
+    const kept = raw ? readKept(raw) : null;
+    if (kept) {
+      // Only what was actually read from the farm in the last fortnight: putting a screen away and bringing it back
+      // does not make what is on it any newer.
+      const fresh = kept.clientState.queries.filter(
+        (query) => Date.now() - query.state.dataUpdatedAt < KEEP_FOR_MS
+      );
+      hydrate(queryClient, { ...kept.clientState, queries: fresh });
+    }
+  } catch {
+    // Nothing usable put away for them: the screen fills from the farm.
+  }
 };

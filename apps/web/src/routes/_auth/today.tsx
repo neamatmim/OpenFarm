@@ -17,6 +17,7 @@ import { useEffect } from "react";
 
 import { AlertList } from "@/components/alert-list";
 import { EmptyState, Page, PageHeader, StatusBadge } from "@/components/page";
+import { RaiseWork } from "@/components/raise-work";
 import { useLanguage } from "@/i18n/language-provider";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
@@ -62,6 +63,8 @@ const TodayPage = () => {
     orpc.instances.today.queryOptions({ input: pen ? { penId: pen } : {} })
   );
   const statusOf = useStatusLabel();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const runsTheFarm = (me.data?.roles ?? []).some((role) => role === "owner" || role === "manager");
 
   // Raise whatever the day needs — the work, then the notices about work already late —
   // when someone opens the app. Both are idempotent, so running them on every open is safe,
@@ -93,6 +96,7 @@ const TodayPage = () => {
   return (
     <Page>
       <PageHeader
+        actions={runsTheFarm ? <RaiseWork /> : undefined}
         description={t("work.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
         meta={

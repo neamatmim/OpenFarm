@@ -18,6 +18,7 @@ import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
+import { scheduleStatus } from "../scheduler";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -139,6 +140,12 @@ const TIME_OF_DAY = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
 /** First-run setup: the signed-in person names the Farm and becomes its Owner.
  *  Refused once a Farm exists — after that, people arrive by invitation. */
 export const farmRouter = {
+  /** When the server's own clock last raised the day's work and told people about late work — and whether it is
+   *  failing — so a silent schedule is something the Owner can see rather than discover. */
+  schedule: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(() => scheduleStatus()),
+
   bootstrap: protectedProcedure
     .input(z.object({ name: z.string().trim().min(1) }))
     .handler(async ({ context, input }) => {

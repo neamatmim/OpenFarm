@@ -157,6 +157,12 @@ export const invite = pgTable(
     invitedByRole: text("invited_by_role", { enum: ROLES }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at"),
+    /** The one-time code the invited person enters to take up the invite, hashed. Handed over by whoever invited
+     *  them, so an invite is taken up by the person it was given to — not by whoever signs up first with that email.
+     *  Cleared once used. */
+    codeHash: text("code_hash"),
+    /** When the invited person took it up with the code. */
+    acceptedAt: timestamp("accepted_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]

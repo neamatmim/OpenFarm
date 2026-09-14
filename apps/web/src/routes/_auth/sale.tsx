@@ -10,6 +10,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  CorrectionDialog,
+  CorrectionField,
+} from "@/components/correction-dialog";
+import {
   EmptyState,
   Page,
   PageHeader,
@@ -23,6 +27,7 @@ import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
 const NOTHING_TYPED = {
@@ -90,9 +95,57 @@ const LastBuyerOfTheDay = ({
  * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
  * the man has finished buying, and it covers everything he took that morning.
  */
+/** The Manager puts a sale right: its price or its buyer, with the reason — the Owner sees it among what awaits
+ *  approval. */
+const SaleCorrection = ({
+  sale,
+}: {
+  sale: { id: string; priceBdt: number; buyerName: string };
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [price, setPrice] = useState(String(sale.priceBdt));
+  const [buyer, setBuyer] = useState(sale.buyerName);
+  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
+  return (
+    <CorrectionDialog
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          id: sale.id,
+          reason,
+          ...(Number(price) === sale.priceBdt
+            ? {}
+            : { priceBdt: Number(price) }),
+          ...(buyer.trim() === sale.buyerName
+            ? {}
+            : { buyer: { name: buyer.trim() } }),
+        });
+        await queryClient.invalidateQueries({ queryKey: orpc.papers.key() });
+      }}
+      ready={Number(price) > 0 && buyer.trim() !== ""}
+      title={t("correct.sale")}
+    >
+      <CorrectionField
+        inputMode="numeric"
+        label={t("sale.price")}
+        onChange={setPrice}
+        type="number"
+        value={price}
+      />
+      <CorrectionField
+        label={t("correct.buyer")}
+        onChange={setBuyer}
+        value={buyer}
+      />
+    </CorrectionDialog>
+  );
+};
+
 const TodaysSales = () => {
   const { t, language } = useLanguage();
   const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
+  const me = useQuery(orpc.people.me.queryOptions());
+  const isManager = me.data?.roles.includes("manager") ?? false;
   const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
     null
   );
@@ -151,6 +204,7 @@ const TodaysSales = () => {
                 >
                   {t("sale.transportCard")}
                 </Button>
+                {isManager ? <SaleCorrection sale={row} /> : null}
               </span>
             }
           />
@@ -418,5 +472,6 @@ const SalePage = () => {
 };
 
 export const Route = createFileRoute("/_auth/sale")({
+  beforeLoad: onlyFor("runsTheFarm"),
   component: SalePage,
 });

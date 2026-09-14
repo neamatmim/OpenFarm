@@ -35,16 +35,62 @@ export const scheduleTimes = (content: SopContent): string[] => {
   return schedule?.kind === "schedule" ? schedule.times : [];
 };
 
+const scheduleOf = (content: SopContent) => {
+  const schedule = content.triggers.find(
+    (trigger) => trigger.kind === "schedule"
+  );
+  return schedule?.kind === "schedule" ? schedule : null;
+};
+
+/** The schedule with some of its parts changed, keeping the rest — changing the times keeps the days. */
+const withSchedule = (
+  content: SopContent,
+  change: { times?: string[]; weekdays?: number[]; everyOtherWeek?: boolean }
+): SopContent => {
+  const current = scheduleOf(content);
+  const next = {
+    kind: "schedule" as const,
+    times: change.times ?? current?.times ?? [],
+    weekdays: "weekdays" in change ? change.weekdays : current?.weekdays,
+    everyOtherWeek:
+      "everyOtherWeek" in change
+        ? change.everyOtherWeek
+        : current?.everyOtherWeek,
+  };
+  if (!next.weekdays?.length) {
+    delete next.weekdays;
+    delete next.everyOtherWeek;
+  }
+  if (!next.everyOtherWeek) {
+    delete next.everyOtherWeek;
+  }
+  return {
+    ...content,
+    triggers: [next, ...content.triggers.filter((t) => t.kind !== "schedule")],
+  };
+};
+
 export const withScheduleTimes = (
   content: SopContent,
   times: string[]
-): SopContent => ({
-  ...content,
-  triggers: [
-    { kind: "schedule", times },
-    ...content.triggers.filter((t) => t.kind !== "schedule"),
-  ],
-});
+): SopContent => withSchedule(content, { times });
+
+export const scheduleWeekdays = (content: SopContent): number[] =>
+  scheduleOf(content)?.weekdays ?? [];
+
+export const scheduleEveryOtherWeek = (content: SopContent): boolean =>
+  scheduleOf(content)?.everyOtherWeek ?? false;
+
+export const withScheduleWeekdays = (
+  content: SopContent,
+  weekdays: number[]
+): SopContent =>
+  withSchedule(content, { weekdays: [...weekdays].toSorted((a, b) => a - b) });
+
+export const withEveryOtherWeek = (
+  content: SopContent,
+  everyOtherWeek: boolean
+): SopContent => withSchedule(content, { everyOtherWeek });
 
 /** A Trigger that is not a clock: a Move, an arrival, a State an animal reaches — or a
  *  Prescription, which raises a dose of its own accord. */

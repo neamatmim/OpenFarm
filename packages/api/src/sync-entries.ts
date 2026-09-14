@@ -11,6 +11,12 @@ const entryBase = {
   id: z.string().min(1).max(64),
   seq: z.number().int().min(0),
   recordedAt: z.coerce.date(),
+  /** Who recorded it. A Shed Phone names the person PIN-switched in at the moment of recording, so work entered
+   *  offline stays theirs when somebody else is switched in by the time the phone finds signal. */
+  actorId: z.string().min(1).max(64).optional(),
+  /** The proof that the person named entered their PIN on this phone for this work: the switch token the farm gave
+   *  them for it. Needed whenever the entry names somebody other than whoever is sending. */
+  switchToken: z.string().min(1).max(200).optional(),
 };
 
 export const entryInput = z.discriminatedUnion("kind", [
