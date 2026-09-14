@@ -1,3 +1,5 @@
+import type { EntryRefusal } from "@OpenFarm/api/entries/entry";
+import type { EntryInput, EntryResult } from "@OpenFarm/api/sync-entries";
 import type {
   LeaderElection,
   OnlineDetector,
@@ -5,43 +7,61 @@ import type {
   StorageAdapter,
 } from "@tanstack/offline-transactions";
 
+/** The kinds of Entry a phone can hold (ADR 0004). */
+export type EntryKindName = EntryInput["kind"];
+
+/** What an Entry of one kind says, in the farm's own shape for it — everything but what the Outbox adds to every entry. */
+export type EntryBody<K extends EntryKindName> = Omit<
+  Extract<EntryInput, { kind: K }>,
+  "id" | "seq" | "kind" | "recordedAt" | "actorId" | "switchToken"
+>;
+
+/** A kind of Entry with the body that belongs to it. */
+type EntryDraft = {
+  [K in EntryKindName]: { kind: K; body: EntryBody<K> };
+}[EntryKindName];
+
 /** One thing a phone recorded, waiting to be told to the farm. The shape the batch
  *  procedure takes, plus what the outbox needs to send it in order. */
-export interface OutboxEntry {
-  /** The client's own id for the record. The same entry sent twice is one fact. */
-  id: string;
-  /** Where this sits in the phone's own count, so the farm can see what it never read. */
-  seq: number;
-  kind:
-    | "instance_claim"
-    | "step_completion"
-    | "completion_photo"
-    | "instance_complete"
-    | "animal_move"
-    | "observation";
-  /** The entry as the batch procedure wants it, minus the fields above. */
-  body: Record<string, unknown>;
-  /** The phone's clock, at the moment the person recorded it. */
-  recordedAt: string;
-  /** Who recorded it: on a Shed Phone, whoever was PIN-switched in at that moment. */
-  actorId?: string;
-  /** Their proof of it: the switch token, or the reference of a PIN still to be proved. */
-  proof?: string;
-}
+export type OutboxEntry = {
+  [K in EntryKindName]: {
+    /** The client's own id for the record. The same entry sent twice is one fact. */
+    id: string;
+    /** Where this sits in the phone's own count, so the farm can see what it never read. */
+    seq: number;
+    kind: K;
+    /** The entry as the batch procedure wants it, minus the fields above. */
+    body: EntryBody<K>;
+    /** The phone's clock, at the moment the person recorded it. */
+    recordedAt: string;
+    /** Who recorded it: on a Shed Phone, whoever was PIN-switched in at that moment. */
+    actorId?: string;
+    /** Their proof of it: the switch token, or the reference of a PIN still to be proved. */
+    proof?: string;
+  };
+}[EntryKindName];
+
+/** An entry as the Transport hands it on: the farm's shape, with the proof still to be turned into a switch token. */
+export type OutgoingEntry = EntryInput extends infer Each
+  ? Each extends EntryInput
+    ? Omit<Each, "switchToken"> & { proof?: string }
+    : never
+  : never;
 
 /** An entry the phone is still holding, and what the farm said about it. */
 export interface Held {
   entry: OutboxEntry;
+  /** For whoever reads a log. */
   reason: string;
+  /** Why, in words the screen can put into the reader's language: missing on a batch refused whole. */
+  refusal?: EntryRefusal;
 }
 
 /** What the farm said about one entry. */
-export interface EntryVerdict {
-  id: string;
-  seq: number;
-  outcome: "applied" | "flagged" | "kept" | "rejected";
-  reason?: string;
-}
+export type EntryVerdict = Pick<
+  EntryResult,
+  "id" | "seq" | "outcome" | "reason" | "refusal"
+>;
 
 /** A send in flight: the entries, and the one key they go under. The key is made before the
  *  first attempt and kept for every retry, so a reply lost on the way back cannot become a
@@ -64,7 +84,7 @@ export interface Transport {
     /** This phone's clock, now. Not what the entries say — those are honestly old — but
      *  what the phone believes the time to be as it speaks. */
     sentAt: string;
-    entries: Record<string, unknown>[];
+    entries: OutgoingEntry[];
   }) => Promise<{ results: EntryVerdict[] }>;
 }
 
@@ -104,6 +124,28 @@ const SEQ_WIDTH = 12;
  *  the same number sit beside each other rather than one quietly replacing the other. */
 const entryKey = (seq: number, id: string) =>
   `${ENTRY}${String(seq).padStart(SEQ_WIDTH, "0")}:${id}`;
+
+/** An entry as the farm reads it: its body, with what the Outbox knows about it beside. The body was checked against
+ *  its kind when it was added, and flattening changes nothing about that — TypeScript only cannot follow the kind
+ *  through the spread. */
+const outgoing = ({
+  body,
+  kind,
+  id,
+  seq,
+  recordedAt,
+  actorId,
+  proof,
+}: OutboxEntry) =>
+  ({
+    ...body,
+    id,
+    seq,
+    kind,
+    recordedAt,
+    ...(actorId ? { actorId } : {}),
+    ...(proof ? { proof } : {}),
+  }) as OutgoingEntry;
 
 /** Where an entry the farm did not simply take is kept. */
 const HELD_UNDER: Partial<Record<EntryVerdict["outcome"], string>> = {
@@ -233,19 +275,26 @@ export class Outbox {
   }
 
   /** Records something, durably, before anything on screen says it happened. */
+  async add<K extends EntryKindName>(
+    kind: K,
+    body: EntryBody<K>,
+    id: string
+  ): Promise<OutboxEntry>;
   async add(
-    kind: OutboxEntry["kind"],
-    body: Record<string, unknown>,
+    kind: EntryKindName,
+    body: EntryBody<EntryKindName>,
     id: string
   ): Promise<OutboxEntry> {
     const seq = await this.takeSeq();
     const actorId = this.options.actorOf?.() ?? undefined;
     const proof = this.options.proofOf?.() ?? undefined;
+    // The kind and its body arrive paired by `add`'s own signature; TypeScript cannot carry that pairing through a
+    // generic into the union, so it is said once, here.
+    const recorded = { kind, body } as EntryDraft;
     const entry: OutboxEntry = {
+      ...recorded,
       id,
       seq,
-      kind,
-      body,
       recordedAt: this.now().toISOString(),
       ...(actorId ? { actorId } : {}),
       ...(proof ? { proof } : {}),
@@ -385,15 +434,7 @@ export class Outbox {
       const answer = await this.options.transport.send({
         key: batch.key,
         sentAt: this.now().toISOString(),
-        entries: entries.map((entry) => ({
-          ...entry.body,
-          id: entry.id,
-          seq: entry.seq,
-          kind: entry.kind,
-          recordedAt: entry.recordedAt,
-          ...(entry.actorId ? { actorId: entry.actorId } : {}),
-          ...(entry.proof ? { proof: entry.proof } : {}),
-        })),
+        entries: entries.map(outgoing),
       });
       // Written down first. From here the batch is settled business whatever becomes of the
       // phone; what is left is bookkeeping the next flush can finish.
@@ -453,13 +494,15 @@ export class Outbox {
       }
       const held = HELD_UNDER[verdict.outcome];
       if (held) {
+        const kept: Held = {
+          entry,
+          reason: verdict.reason ?? "",
+          ...(verdict.refusal ? { refusal: verdict.refusal } : {}),
+        };
         // Written first. An entry the farm refused, or took and put in front of somebody,
         // is still the only record on this phone of what a person wrote down.
         // oxlint-disable-next-line no-await-in-loop
-        await this.write(`${held}${entry.id}`, {
-          entry,
-          reason: verdict.reason ?? "",
-        });
+        await this.write(`${held}${entry.id}`, kept);
       }
       // oxlint-disable-next-line no-await-in-loop
       await this.options.storage.delete(entryKey(entry.seq, entry.id));

@@ -8,8 +8,8 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
 import { claimEntry } from "./entries/claim";
-import type { EntryKind } from "./entries/entry";
-import { isLate, recordHeld } from "./entries/entry";
+import type { EntryKind, EntryRefusal } from "./entries/entry";
+import { recordHeld, refusalOf } from "./entries/entry";
 import { finishEntry } from "./entries/finish";
 import { moveEntry } from "./entries/move";
 import { observationEntry } from "./entries/observation";
@@ -257,12 +257,14 @@ const applyEntries = async (
         seq: entry.seq,
         outcome: "rejected",
         reason: `sequence ${entry.seq} is already used by another entry`,
+        refusal: { category: "wrong" },
       });
       continue;
     }
 
     let outcome: EntryResult["outcome"] = "applied";
     let reason: string | null = null;
+    let refusal: EntryRefusal | null = null;
     const eventId = uuidv7(receivedAt);
     try {
       // oxlint-disable-next-line no-await-in-loop
@@ -274,7 +276,8 @@ const applyEntries = async (
         applyEntry(entryTx, recorder, entry, receivedAt, eventId)
       );
     } catch (error) {
-      outcome = isLate(error) ? "kept" : "rejected";
+      refusal = refusalOf(error);
+      outcome = refusal.category === "late" ? "kept" : "rejected";
       reason = message(error);
     }
     if (outcome === "applied" && skewed) {
@@ -294,6 +297,7 @@ const applyEntries = async (
       seq: entry.seq,
       outcome,
       ...(reason ? { reason } : {}),
+      ...(refusal ? { refusal } : {}),
     });
   }
 

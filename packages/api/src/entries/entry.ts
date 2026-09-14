@@ -27,6 +27,29 @@ export const isLate = (error: unknown): boolean =>
   (error.data as { late?: boolean } | undefined)?.late === true;
 
 /**
+ * How the farm sorted an Entry it did not simply take (ADR 0004): late, when the world moved under it; not theirs, when
+ * it was never the person's to record; wrong, when it could never have been taken. With the refusal's own word where
+ * the Entry gave one, so a phone can say it in the reader's language rather than show the server's English.
+ */
+export interface EntryRefusal {
+  category: "late" | "wrong" | "not_yours";
+  word?: string;
+}
+
+export const refusalOf = (error: unknown): EntryRefusal => {
+  const word = (error as { data?: { refusal?: unknown } } | undefined)?.data
+    ?.refusal;
+  const worded = typeof word === "string" ? { word } : {};
+  if (isLate(error)) {
+    return { category: "late", ...worded };
+  }
+  if (error instanceof ORPCError && error.code === "FORBIDDEN") {
+    return { category: "not_yours", ...worded };
+  }
+  return { category: "wrong", ...worded };
+};
+
+/**
  * The animal an Entry is about, as long as she is still on the farm. One that has left since the Entry was made is the
  * world moving under it — she was sold while the phone was in the shed — so it is late, not wrong (ADR 0004).
  */

@@ -18,7 +18,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { queueSighting } from "@/lib/record-offline";
+import { queueObservation } from "@/lib/record-offline";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -75,7 +75,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
               return;
             }
             try {
-              await queueSighting(input);
+              await queueObservation(input);
               await done(t("sighting.queued"));
             } catch (error) {
               toast.error((error as Error).message || t("common.error"));

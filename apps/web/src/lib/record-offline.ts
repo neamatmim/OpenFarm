@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import type { EntryBody } from "./outbox";
 import { phoneOutbox } from "./outbox-client";
 
 /** A Completion as the pen board reads it back, before the farm has seen it. */
@@ -13,30 +14,17 @@ interface OptimisticCompletion {
   destination: string | null;
 }
 
-/** One Feed Item as a count found it. */
-export interface StockCountEntry {
-  feedItemId: string;
-  counted: number;
-  reason?: string;
-}
-
-export interface StepRecord {
-  instanceId: string;
-  stepId: string;
-  animalTag?: string;
+/** A Step as the pen board records it: what the farm takes for a Step, which animal's tile it belongs on, and the
+ *  pictures taken in the shed, which go as Step photos of their own against the slots they answer. */
+export type StepRecord = Omit<EntryBody<"step_completion">, "photoSlots"> & {
   animalId?: string | null;
-  evidence: (boolean | number | string)[];
-  destination?: "bulk" | "calves" | "discard";
-  /** What a Step that feeds a Pen actually put out, per Feed Item. */
-  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
-  /** What a Step that counts the store found, per Feed Item, and why it differs. */
-  counts?: StockCountEntry[];
-  outOfRange?: string;
-  skipReason?: string;
-  /** Taken in the shed. Queued as its own entry against the slot it answers, so a megabyte
-   *  of image cannot hold up a morning's litres. */
-  photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
-}
+  photos?: Omit<EntryBody<"completion_photo">, "completionId">[];
+};
+
+/** One Feed Item as a count found it. */
+export type StockCountEntry = NonNullable<
+  EntryBody<"step_completion">["counts"]
+>[number];
 
 /** The queue, or a refusal. A device with no storage at all cannot be trusted with a
  *  morning's work, and saying so is better than appearing to take it. */
@@ -163,20 +151,16 @@ export const finishInstance = async (
 
 /** Moves an animal into the Outbox, for a phone out of signal: the farm moves her when the phone is back in range,
  *  and refuses it then — as it would now — if the Pen or the animal is not what the phone thought. */
-export const queueMove = async (move: {
-  tagNumber: string;
-  toPenId: string;
-  reason?: string;
-}): Promise<void> => {
+export const queueMove = async (
+  move: EntryBody<"animal_move">
+): Promise<void> => {
   await held().add("animal_move", move, newId());
 };
 
-/** What somebody saw, into the Outbox for a phone out of signal: it is seen when it was written down, and reaches the
+/** What somebody saw, as an Observation into the Outbox for a phone out of signal: it is seen when it was written down, and reaches the
  *  Vet when the phone is back in range. */
-export const queueSighting = async (sighting: {
-  tagNumber: string;
-  saw: string;
-  note?: string;
-}): Promise<void> => {
-  await held().add("observation", sighting, newId());
+export const queueObservation = async (
+  seen: EntryBody<"observation">
+): Promise<void> => {
+  await held().add("observation", seen, newId());
 };

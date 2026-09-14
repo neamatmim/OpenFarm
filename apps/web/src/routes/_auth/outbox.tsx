@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { EmptyState, Page, PageHeader, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { entryRefusalMessage } from "@/lib/correction-refusal";
 import type { Held, OutboxEntry } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
 
@@ -31,9 +32,11 @@ const HeldList = ({
   }
   return (
     <ul className="space-y-3">
-      {rows.map(({ entry, reason }) => (
+      {rows.map(({ entry, reason, refusal }) => (
         <li className="rounded-lg border p-4" key={entry.id}>
-          <p className="font-semibold">{reason}</p>
+          <p className="font-semibold">
+            {entryRefusalMessage(refusal, t) ?? reason}
+          </p>
           <p className="text-muted-foreground text-sm">
             {t("outbox.entered")}: {entered(entry) || entry.kind}
           </p>

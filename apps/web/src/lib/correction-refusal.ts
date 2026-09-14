@@ -1,3 +1,4 @@
+import type { EntryRefusal } from "@OpenFarm/api/entries/entry";
 import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 
 /** What the server says when a Correction Window has closed: which Role's window it was,
@@ -106,4 +107,26 @@ export const wordedRefusal = (
   return typeof word === "string" && word in WORDED_REFUSALS
     ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS])
     : null;
+};
+
+/** What each way of not taking an Entry says, when the Entry gave no word of its own. */
+const ENTRY_REFUSALS = {
+  late: "outbox.late",
+  wrong: "outbox.wrong",
+  not_yours: "outbox.notYours",
+} as const satisfies Record<EntryRefusal["category"], MessageKey>;
+
+/** Why the farm did not simply take an Entry a phone held, in the reader's language: the Entry's own word where it gave
+ *  one, or what its kind of refusal means. Nothing for a batch refused whole, which has only the server's message. */
+export const entryRefusalMessage = (
+  refusal: EntryRefusal | undefined,
+  t: (key: MessageKey, params?: MessageParams) => string
+): string | null => {
+  if (!refusal) {
+    return null;
+  }
+  const { word, category } = refusal;
+  return word && word in WORDED_REFUSALS
+    ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS])
+    : t(ENTRY_REFUSALS[category]);
 };

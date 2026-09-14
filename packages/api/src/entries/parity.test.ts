@@ -458,7 +458,10 @@ describe("a Move", () => {
       toPenId: world.pens.b,
     });
 
-    expect(later?.outcome).toBe("rejected");
+    expect(later).toMatchObject({
+      outcome: "rejected",
+      refusal: { category: "not_yours" },
+    });
     expect(await moveOf(world.notTheirs.id, world.pens.b)).toBeNull();
   });
 
@@ -476,7 +479,10 @@ describe("a Move", () => {
       toPenId: world.pens.b,
     });
 
-    expect(later?.outcome).toBe("kept");
+    expect(later).toMatchObject({
+      outcome: "kept",
+      refusal: { category: "late" },
+    });
   });
 });
 
@@ -518,7 +524,10 @@ describe("an Observation", () => {
       saw: "lame",
     });
 
-    expect(later?.outcome).toBe("kept");
+    expect(later).toMatchObject({
+      outcome: "kept",
+      refusal: { category: "late" },
+    });
   });
 });
 

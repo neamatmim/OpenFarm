@@ -2,6 +2,7 @@ import type { EntryOutcome } from "@OpenFarm/db/schema/sync";
 import { z } from "zod";
 
 import { workInput } from "./entries/claim";
+import type { EntryRefusal } from "./entries/entry";
 import { moveInput } from "./entries/move";
 import { observationInput } from "./entries/observation";
 import { stepCompletionInput } from "./entries/step-completion";
@@ -57,10 +58,15 @@ export const entryInput = z.discriminatedUnion("kind", [
 
 export type Entry = z.infer<typeof entryInput>;
 
+/** An entry as a phone sends it, before the farm has read it. */
+export type EntryInput = z.input<typeof entryInput>;
+
 export interface EntryResult {
   id: string;
   seq: number;
   outcome: EntryOutcome;
-  /** Why it was held or refused, in words the client can show and keep. */
+  /** Why it was held or refused, for whoever reads a log. */
   reason?: string;
+  /** Why, as the phone puts it into the reader's words. */
+  refusal?: EntryRefusal;
 }
