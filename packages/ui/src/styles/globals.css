@@ -230,13 +230,30 @@
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
   }
-  /* Bangla is read larger and looser than Latin: every rem grows with it, and its conjuncts and vowel marks are
-     never clipped by tight line heights or spaced apart by tracking. */
+  /* Bangla is read larger and looser than Latin, so its type scale is its own: metadata never below 14px, body at
+     17px, and line heights that leave room for vowel marks and conjuncts. Only the text grows — the rem does not —
+     so the sidebar, the bars and every button keep their size and nothing moves when the language changes. */
   html:lang(bn) {
     font-family: var(--font-bangla);
-    font-size: 106.25%;
+    --text-xs: 0.875rem;
+    --text-xs--line-height: 1.55;
+    --text-sm: 0.9375rem;
+    --text-sm--line-height: 1.6;
+    --text-base: 1.0625rem;
+    --text-base--line-height: 1.65;
+    --text-lg: 1.1875rem;
+    --text-lg--line-height: 1.45;
+    --text-xl: 1.3125rem;
+    --text-xl--line-height: 1.4;
+    --text-2xl: 1.625rem;
+    --text-2xl--line-height: 1.4;
+    --text-3xl: 2rem;
+    --text-3xl--line-height: 1.35;
+    --text-4xl: 2.375rem;
+    --text-4xl--line-height: 1.3;
   }
   html:lang(bn) body {
+    font-size: var(--text-base);
     line-height: 1.65;
     letter-spacing: normal;
   }
@@ -265,25 +282,9 @@
 }
 
 /*
- * Bangla's own type scale, outside the cascade layers so no component utility quietly undoes it: metadata never
- * below ~14px, body at 17px, and line heights that leave room for vowel marks and conjuncts. Tracking is Latin's;
- * it is taken off Bangla wherever a component sets it.
+ * Bangla's line heights where a component asks for a tight one, and no Latin tracking: outside the cascade layers so
+ * no component utility quietly undoes them. The sizes themselves are the type scale set on the root.
  */
-html:lang(bn) .text-xs {
-  font-size: 0.8125rem;
-  line-height: 1.55;
-}
-html:lang(bn) .text-sm {
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-html:lang(bn) .text-base {
-  line-height: 1.65;
-}
-html:lang(bn)
-  :is(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl) {
-  line-height: 1.4;
-}
 html:lang(bn) :is(.leading-none, .leading-tight, .leading-snug) {
   line-height: 1.35;
 }

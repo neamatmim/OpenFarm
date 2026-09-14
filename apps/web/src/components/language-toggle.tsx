@@ -9,6 +9,8 @@ const LanguageToggle = () => {
 
   return (
     <Button
+      // As wide in one language as the other, so the bar does not shift when it is pressed.
+      className="w-24"
       variant="ghost"
       aria-label={t("language.switch")}
       title={t("language.switch")}

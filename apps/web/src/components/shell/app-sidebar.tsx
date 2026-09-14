@@ -48,7 +48,7 @@ export const AppSidebar = ({
     <Sidebar collapsible="icon" data-app-chrome mobileTitle={t("nav.menu")}>
       <SidebarHeader className="px-3 pt-4 pb-2 group-data-[collapsible=icon]:px-2.5">
         <Link
-          className="focus-visible:ring-sidebar-ring flex items-center gap-3 rounded-lg px-1 py-1 outline-none group-data-[collapsible=icon]:px-0 focus-visible:ring-2"
+          className="focus-visible:ring-sidebar-ring flex h-12 items-center gap-3 rounded-lg px-1 outline-none group-data-[collapsible=icon]:px-0 focus-visible:ring-2"
           onClick={close}
           to="/"
         >
@@ -71,15 +71,15 @@ export const AppSidebar = ({
             className="py-1.5 group-data-[collapsible=icon]:px-2.5"
             key={group.label}
           >
-            <SidebarGroupLabel className="text-sidebar-foreground/70 text-xs font-semibold">
+            <SidebarGroupLabel className="text-sidebar-foreground/70 px-3 text-xs font-semibold">
               {t(group.label)}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
-                      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 text-[0.9rem] group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium"
+                      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium"
                       isActive={isHere(item.to, pathname)}
                       render={<Link onClick={close} to={item.to} />}
                       tooltip={t(item.label)}
@@ -98,7 +98,7 @@ export const AppSidebar = ({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="h-9 group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center"
+              className="h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center"
               isActive={isHere("/settings", pathname)}
               render={<Link onClick={close} to="/settings" />}
               tooltip={t("nav.settings")}
