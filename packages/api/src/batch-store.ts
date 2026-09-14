@@ -99,6 +99,16 @@ const applyEntry = async (
     return { entity: "step_completion", entityId: entry.completionId };
   }
   if (entry.kind === "animal_move") {
+    // Moving animals is the Owner's, the Manager's and Barn Staff's (roles matrix); a phone's queue is no way round it.
+    if (
+      !(["owner", "manager", "staff"] as const).some((role) =>
+        context.roles.includes(role)
+      )
+    ) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Moving animals is not this person's to do",
+      });
+    }
     const moved = await applyMove(tx, context, entry, receivedAt, entry.id);
     return { entity: "animal", entityId: moved };
   }

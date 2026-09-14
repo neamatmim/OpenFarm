@@ -46,6 +46,7 @@ import { EmptyState, Page, Section, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { ReportSighting } from "@/components/report-sighting";
+import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -153,11 +154,13 @@ const SeenWhere = ({
 };
 
 /** What somebody holding these Roles may do on her page. */
-const powersOf = (roles: readonly string[] = []) => {
+const powersOf = (roles: readonly string[] = [], visiting = false) => {
   const isManager = roles.includes("manager");
   const runsTheFarm = isManager || roles.includes("owner");
   return {
     isVet: roles.includes("vet"),
+    // A vet called in for a visit treats her, and does not change her State or cut short a Withdrawal.
+    fullVet: roles.includes("vet") && !visiting,
     isManager,
     runsTheFarm,
     mayHandle: runsTheFarm || roles.includes("staff"),
@@ -176,8 +179,9 @@ const AnimalPage = () => {
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const me = useQuery(orpc.people.me.queryOptions());
-  const { isVet, runsTheFarm, mayHandle, seesPapers } = powersOf(
-    me.data?.roles
+  const { isVet, fullVet, runsTheFarm, mayHandle, seesPapers } = powersOf(
+    me.data?.roles,
+    me.data?.visiting
   );
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const refresh = () =>
@@ -260,11 +264,14 @@ const AnimalPage = () => {
         onRecorded={refresh}
       />
 
-      <Withdrawals detail={detail} isVet={isVet} onShortened={refresh} />
+      <Withdrawals detail={detail} isVet={fullVet} onShortened={refresh} />
+
+      <VetCases mayCall={runsTheFarm} tagNumber={detail.tagNumber} />
 
       <ManageHer
         detail={detail}
         isVet={isVet}
+        mayChangeState={runsTheFarm || fullVet}
         mayMove={
           runsTheFarm ||
           (mayHandle && (me.data?.penIds ?? []).includes(detail.penId))
@@ -679,6 +686,7 @@ const ManageHer = ({
   movePens,
   mayMove,
   isVet,
+  mayChangeState,
   mayHandle,
   runsTheFarm,
   onChanged,
@@ -689,6 +697,8 @@ const ManageHer = ({
   movePens: { id: string; name: string; shedName: string }[];
   mayMove: boolean;
   isVet: boolean;
+  /** Owner, Manager or a full Vet: a visiting vet does not change her State. */
+  mayChangeState: boolean;
   mayHandle: boolean;
   runsTheFarm: boolean;
   onChanged: () => unknown;
@@ -790,7 +800,7 @@ const ManageHer = ({
           />
         </div>
       ) : null}
-      {mayMove || isVet ? (
+      {mayMove || mayChangeState ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {mayMove ? (
             <form
@@ -841,7 +851,7 @@ const ManageHer = ({
               </Button>
             </form>
           ) : null}
-          {runsTheFarm || isVet ? (
+          {mayChangeState ? (
             <form
               className="flex flex-col gap-2 rounded-lg border p-4"
               onSubmit={(event) => {

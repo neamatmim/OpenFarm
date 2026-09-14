@@ -102,6 +102,10 @@ export const farm = pgTable("farm", {
 export const ROLES = ["owner", "manager", "staff", "vet"] as const;
 export type RoleName = (typeof ROLES)[number];
 
+/** How much of the farm a Vet sees: all of it, or — a vet called in for a visit — only the animals on their cases. */
+export const VET_SCOPES = ["full", "visiting"] as const;
+export type VetScope = (typeof VET_SCOPES)[number];
+
 /** One Role held by one person on one Farm. A person may hold several. */
 export const roleAssignment = pgTable(
   "role_assignment",
@@ -120,6 +124,11 @@ export const roleAssignment = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     /** Roles are never deleted; a revoked one keeps its history. */
     revokedAt: timestamp("revoked_at"),
+    /** For the Vet role: "visiting" for a vet called in for a visit, who sees only the animals on their cases. Null
+     *  is a full Vet. */
+    scope: text("scope", { enum: VET_SCOPES }),
+    /** When access granted for a visit ends. Null for a Role that does not run out. */
+    expiresAt: timestamp("expires_at"),
   },
   (table) => [
     uniqueIndex("role_assignment_user_role_uidx").on(
@@ -163,6 +172,9 @@ export const invite = pgTable(
     codeHash: text("code_hash"),
     /** When the invited person took it up with the code. */
     acceptedAt: timestamp("accepted_at"),
+    /** For a Vet invited for a visit: "visiting", and the day their access ends. */
+    vetScope: text("vet_scope", { enum: VET_SCOPES }),
+    accessUntil: timestamp("access_until"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("invite_email_idx").on(table.farmId, table.email)]

@@ -22,12 +22,12 @@ beforeAll(async () => {
     name: `অন্যের ${suffix}`,
   });
   const cow = {
-    sex: "female",
-    side: "dairy",
-    state: "heifer",
-    source: "born",
+    sex: "female" as const,
+    side: "dairy" as const,
+    state: "heifer" as const,
+    source: "born" as const,
     aliases: [],
-  } as const;
+  };
   const ours = await owner.animals.register({ ...cow, penId: ourPen.id });
   const theirs = await owner.animals.register({ ...cow, penId: otherPen.id });
   await createTestClient(appRouter, { as: "staff" });

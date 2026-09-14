@@ -26,6 +26,9 @@ const NotifiablePage = () => {
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   const list = useQuery(orpc.notifiable.list.queryOptions());
+  const me = useQuery(orpc.people.me.queryOptions());
+  // A vet called in for a visit reads the list; keeping it is the farm's own people's.
+  const keeps = me.data !== undefined && !me.data.visiting;
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [note, setNote] = useState("");
@@ -68,7 +71,7 @@ const NotifiablePage = () => {
                     : disease.nameBn}
                   {disease.retiredAt ? ` · ${t("notifiable.retired")}` : ""}
                 </span>
-                {disease.retiredAt ? null : (
+                {disease.retiredAt || !keeps ? null : (
                   <Button
                     onClick={() => setComingOff(disease.id)}
                     size="sm"
@@ -120,51 +123,53 @@ const NotifiablePage = () => {
         <EmptyState icon={ShieldAlert} title={t("notifiable.none")} />
       )}
 
-      <form
-        className="surface flex flex-col gap-4 p-4 md:p-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (name.trim()) {
-            add.mutate({
-              // The English name too, when the farm has one: a Vet who writes "Anthrax" and a
-              // list that only says "তড়কা" would not match, and the farm would not report.
-              name: {
-                bn: name.trim(),
-                ...(nameEn.trim() ? { en: nameEn.trim() } : {}),
-              },
-              ...(note.trim() ? { note: note.trim() } : {}),
-            });
-          }
-        }}
-      >
-        <div className="space-y-1">
-          <Label htmlFor="disease-name">{t("notifiable.name")}</Label>
-          <Input
-            id="disease-name"
-            onChange={(event) => setName(event.target.value)}
-            value={name}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="disease-name-en">{t("notifiable.nameEn")}</Label>
-          <Input
-            id="disease-name-en"
-            onChange={(event) => setNameEn(event.target.value)}
-            value={nameEn}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="disease-note">{t("notifiable.note")}</Label>
-          <Input
-            id="disease-note"
-            onChange={(event) => setNote(event.target.value)}
-            value={note}
-          />
-        </div>
-        <Button disabled={!name.trim()} type="submit">
-          {t("notifiable.add")}
-        </Button>
-      </form>
+      {keeps ? (
+        <form
+          className="surface flex flex-col gap-4 p-4 md:p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (name.trim()) {
+              add.mutate({
+                // The English name too, when the farm has one: a Vet who writes "Anthrax" and a
+                // list that only says "তড়কা" would not match, and the farm would not report.
+                name: {
+                  bn: name.trim(),
+                  ...(nameEn.trim() ? { en: nameEn.trim() } : {}),
+                },
+                ...(note.trim() ? { note: note.trim() } : {}),
+              });
+            }
+          }}
+        >
+          <div className="space-y-1">
+            <Label htmlFor="disease-name">{t("notifiable.name")}</Label>
+            <Input
+              id="disease-name"
+              onChange={(event) => setName(event.target.value)}
+              value={name}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="disease-name-en">{t("notifiable.nameEn")}</Label>
+            <Input
+              id="disease-name-en"
+              onChange={(event) => setNameEn(event.target.value)}
+              value={nameEn}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="disease-note">{t("notifiable.note")}</Label>
+            <Input
+              id="disease-note"
+              onChange={(event) => setNote(event.target.value)}
+              value={note}
+            />
+          </div>
+          <Button disabled={!name.trim()} type="submit">
+            {t("notifiable.add")}
+          </Button>
+        </form>
+      ) : null}
     </Page>
   );
 };

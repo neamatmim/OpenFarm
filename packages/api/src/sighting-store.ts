@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import type { Recorder } from "./completion-store";
 import { assertPenIsTheirs, loadLiveAnimal } from "./herd-store";
+import { assertOnTheirCases } from "./visiting-store";
 
 /** What somebody reports seeing, with no round asking: which animal, what, and in their own words if they add any. */
 export const sightingInput = z.object({
@@ -44,6 +45,7 @@ export const recordSighting = async (
     input.tagNumber.toUpperCase()
   );
   assertPenIsTheirs(context, beast.penId);
+  assertOnTheirCases(context, beast.id);
   await tx.insert(observation).values({
     id,
     farmId: context.farm.id,

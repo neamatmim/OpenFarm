@@ -352,3 +352,40 @@ export const dlsReport = pgTable(
     index("dls_report_farm_idx").on(table.farmId, table.createdAt),
   ]
 );
+
+/**
+ * A **Case**: one animal a visiting Vet has been called in for. Opened by the Owner or the Manager, it is what lets a
+ * visiting Vet see her, diagnose her, prescribe for her and give her doses — and nothing else on the farm. Closed, it
+ * stays: the trail of who looked after her, and when, is the farm's.
+ */
+export const vetCase = pgTable(
+  "vet_case",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    vetId: text("vet_id")
+      .notNull()
+      .references(() => user.id),
+    /** Why the vet was called, in the words of whoever called them. */
+    reason: text("reason").notNull(),
+    openedBy: text("opened_by")
+      .notNull()
+      .references(() => user.id),
+    openedAt: timestamp("opened_at").notNull(),
+    closedBy: text("closed_by").references(() => user.id),
+    closedAt: timestamp("closed_at"),
+  },
+  (table) => [
+    index("vet_case_vet_idx").on(table.farmId, table.vetId),
+    index("vet_case_animal_idx").on(table.animalId),
+    /** One open case per animal per vet: calling the same vet about the same cow twice is one case. */
+    uniqueIndex("vet_case_open_uidx")
+      .on(table.animalId, table.vetId)
+      .where(sql`${table.closedAt} is null`),
+  ]
+);

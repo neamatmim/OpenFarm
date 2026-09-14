@@ -4,7 +4,12 @@ import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
-import { derivePinHash, isPin, randomPinSalt } from "@OpenFarm/domain";
+import {
+  derivePinHash,
+  isPin,
+  randomPinSalt,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -13,6 +18,7 @@ import { CODE_ATTEMPTS, countFailure, lockedOut } from "../attempts";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { hashToken } from "../device";
+import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
 import { activeRolesFor, grantRoles, revokeRoles } from "../roles-store";
@@ -30,6 +36,17 @@ const personSnapshot = async (tx: Tx, userId: string) => {
 /** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 8;
+
+/** The instant a visit's access ends: the close of its last farm day. A visit ending before today is no visit. */
+const endOfVisit = (day: string, now: Date): Date => {
+  const end = new Date(startOfFarmDay(day).getTime() + 24 * 60 * 60 * 1000);
+  if (end <= now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A visit has to last until today at least",
+    });
+  }
+  return end;
+};
 
 /** A fresh invitation code, and what the farm keeps of it. */
 const newInviteCode = async (): Promise<{ code: string; codeHash: string }> => {
@@ -140,6 +157,8 @@ export const peopleRouter = {
     farm: context.farm,
     roles: context.roles,
     penIds: context.penIds,
+    /** A Vet called in for a visit, who reaches only their Cases. */
+    visiting: context.visiting,
     /** The number the farm can text, so a screen can show what is written down. */
     phone: context.person?.phone ?? null,
     disabled: Boolean(context.person?.disabledAt),
@@ -156,6 +175,7 @@ export const peopleRouter = {
         roles: true,
         invitedByRole: true,
         acceptedAt: true,
+        accessUntil: true,
         createdAt: true,
       } as const;
       const [people, pending, approved] = await Promise.all([
@@ -164,7 +184,7 @@ export const peopleRouter = {
           with: {
             roles: {
               where: { farmId, ...ACTIVE_ROLE },
-              columns: { role: true },
+              columns: { role: true, scope: true, expiresAt: true },
             },
           },
           orderBy: { name: "asc" },
@@ -206,6 +226,10 @@ export const peopleRouter = {
         people: people.map((p) => ({
           ...p,
           roles: p.roles.map((r) => r.role),
+          /** When a visiting Vet's access ends; null for everyone else. */
+          visitUntil:
+            p.roles.find((r) => r.role === "vet" && r.scope === "visiting")
+              ?.expiresAt ?? null,
           /** The Pens whose work is theirs. */
           penIds: assignments
             .filter((row) => row.userId === p.id)
@@ -275,15 +299,28 @@ export const peopleRouter = {
         email: z.email().trim().toLowerCase(),
         name: z.string().trim().min(1),
         roles: z.array(roleSchema).min(1),
+        /** For a Vet called in for a visit: the last farm day their access lasts. */
+        visitUntil: farmDay.optional(),
       })
     )
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       const now = context.clock.now();
       const actor = { id: context.actor.id, role: context.roleUsed };
-      if (actor.role === "manager" && input.roles.some((r) => r !== "staff")) {
+      const visiting = input.visitUntil !== undefined;
+      if (visiting && !(input.roles.length === 1 && input.roles[0] === "vet")) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Only a Vet is invited for a visit",
+        });
+      }
+      const accessUntil = visiting
+        ? endOfVisit(input.visitUntil ?? "", now)
+        : null;
+      // A Manager invites Barn Staff and calls in a visiting Vet; the Owner approves either (roles matrix).
+      const managerMay = input.roles.every((r) => r === "staff") || visiting;
+      if (actor.role === "manager" && !managerMay) {
         throw new ORPCError("FORBIDDEN", {
-          message: "A Manager may only invite Staff",
+          message: "A Manager may only invite Staff or a visiting Vet",
         });
       }
       const approvedNow = actor.role === "owner";
@@ -300,6 +337,7 @@ export const peopleRouter = {
             name: input.name,
             roles: input.roles,
             status,
+            visitUntil: input.visitUntil ?? null,
           },
         },
         async (tx) => {
@@ -315,6 +353,8 @@ export const peopleRouter = {
             approvedBy: approvedNow ? actor.id : null,
             approvedAt: approvedNow ? now : null,
             codeHash,
+            vetScope: visiting ? "visiting" : null,
+            accessUntil,
             createdAt: now,
           });
         }
@@ -406,7 +446,11 @@ export const peopleRouter = {
                 isNull(invite.acceptedAt)
               )
             )
-            .returning({ roles: invite.roles, approvedBy: invite.approvedBy });
+            .returning({
+              roles: invite.roles,
+              approvedBy: invite.approvedBy,
+              accessUntil: invite.accessUntil,
+            });
           if (!row) {
             countFailure(guesses, now, CODE_ATTEMPTS);
             throw new ORPCError("NOT_FOUND", {
@@ -421,7 +465,7 @@ export const peopleRouter = {
             roles,
             { id: row.approvedBy ?? context.actor.id, role: "owner" },
             now,
-            { reactivate: true }
+            { reactivate: true, visitUntil: row.accessUntil ?? undefined }
           );
         }
       );

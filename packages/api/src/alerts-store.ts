@@ -23,7 +23,13 @@ export const holdersOf = async (
   roles: readonly RoleName[]
 ): Promise<string[]> => {
   const rows = await tx.query.roleAssignment.findMany({
-    where: { farmId, role: { in: [...roles] }, ...ACTIVE_ROLE },
+    // A visiting Vet hears about their own Cases only, never the farm at large: they hold the Role, not the herd.
+    where: {
+      farmId,
+      role: { in: [...roles] },
+      ...ACTIVE_ROLE,
+      OR: [{ scope: { isNull: true } }, { scope: "full" }],
+    },
     columns: { userId: true },
   });
   return [...new Set(rows.map((row) => row.userId))];

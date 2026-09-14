@@ -29,13 +29,13 @@ import {
   stepOf,
 } from "../completion-store";
 import type { Recorded } from "../completion-store";
+import type { Context } from "../context";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import type { EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
 import { farmDay } from "../farm-clock";
 import { feedingTargetForPen } from "../feed-store";
 import { requirePen } from "../herd-store";
-import type { Context } from "../context";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
@@ -59,6 +59,7 @@ import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
 import { contentOf } from "../sop-content";
+import { assertOnTheirCases, onTheirCases } from "../visiting-store";
 
 const MINUTE_MS = 60_000;
 
@@ -460,6 +461,9 @@ export const instancesRouter = {
           // Both filters must hold: a Staff member asking for one Pen gets that Pen only
           // if it is theirs, rather than silently getting all of theirs.
           ...penFilter(scoped ? context.penIds : null, input.penId),
+          ...(onTheirCases(context)
+            ? { animalId: { in: context.caseAnimalIds } }
+            : {}),
         },
         with: {
           version: { columns: { content: true, number: true } },
@@ -501,6 +505,7 @@ export const instancesRouter = {
       if (!instance) {
         throw new ORPCError("NOT_FOUND");
       }
+      assertOnTheirCases(context, instance.animalId);
       const content = contentOf(instance.version);
       const animals = content.steps.some((step) => step.repeatPerAnimal)
         ? await animalsForInstance(
@@ -968,8 +973,9 @@ export const instancesRouter = {
       const recordedUnder = await context.db.query.sopInstance.findFirst({
         where: { id: existing.instanceId },
         with: { version: { columns: { content: true } } },
-        columns: { id: true },
+        columns: { id: true, animalId: true },
       });
+      assertOnTheirCases(context, recordedUnder?.animalId);
       const clinical =
         recordedUnder !== undefined &&
         isClinicalStep(

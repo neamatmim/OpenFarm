@@ -20,6 +20,7 @@ export const pickRoleUsed = (
  *  reader's own language, so a new one is a decision taken here and there rather than a
  *  blank line on somebody's phone. */
 export type RefusalReason =
+  | "visiting_vet"
   | "vet_only"
   | "manager_only"
   | "owner_only"
@@ -40,14 +41,75 @@ export const forbidden = (refusal: Refusal) =>
     data: { refusal: refusal.reason },
   });
 
+/**
+ * What a visiting Vet can reach: their own cases' animals, what the Vet does for them, the Drug List and the
+ * notifiable-disease list to do it with, and their own notices and trail. Everything else on the farm is not
+ * theirs to see (roles matrix, Vet (visiting)). The procedures listed still narrow themselves to the Cases.
+ */
+export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
+  "alerts.sweep",
+  "alerts.digest",
+  "alerts.mine",
+  "alerts.dismiss",
+  "animals.list",
+  "animals.byTag",
+  "animals.photo",
+  "audit.list",
+  "breeding.recordAbortion",
+  "breeding.correctAbortion",
+  "diagnoses.record",
+  "diagnoses.correct",
+  "diagnoses.waiting",
+  "diagnoses.mine",
+  "drugs.list",
+  "herd.list",
+  "instances.ensureDue",
+  "instances.today",
+  "instances.get",
+  "instances.claim",
+  "instances.completeStep",
+  "instances.correctStep",
+  "instances.complete",
+  "milk.forAnimal",
+  "notifiable.list",
+  "observations.record",
+  "papers.passport",
+  "papers.withdrawalSummary",
+  "prescriptions.prescribe",
+  "prescriptions.forAnimal",
+  "push.key",
+  "push.listen",
+  "push.stopListening",
+  "sops.card",
+  "sops.get",
+  "sops.version",
+  "sync.batch",
+  "vetCases.close",
+  "vetCases.mine",
+]);
+
+const VISITING_VET: Refusal = {
+  message: "A visiting vet sees only the animals on their cases",
+  reason: "visiting_vet",
+};
+
 const roleGate = (allowed: readonly RoleName[], refusal?: Refusal) =>
-  os.$context<Context & { actor: Actor }>().middleware(({ context, next }) => {
-    const roleUsed = pickRoleUsed(context.roles, allowed);
-    if (!roleUsed || !context.farm) {
-      throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
-    }
-    return next({ context: { roleUsed, farm: context.farm } });
-  });
+  os
+    .$context<Context & { actor: Actor }>()
+    .middleware(({ context, next, path }) => {
+      const roleUsed = pickRoleUsed(context.roles, allowed);
+      if (!roleUsed || !context.farm) {
+        throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
+      }
+      if (
+        roleUsed === "vet" &&
+        context.visiting &&
+        !VISITING_VET_REACH.has(path.join("."))
+      ) {
+        throw forbidden(VISITING_VET);
+      }
+      return next({ context: { roleUsed, farm: context.farm } });
+    });
 
 /** Runs after requireAuth (the principal is already known good). Requires any of `allowed`
  *  and narrows the context: the Role used and the Farm are certain from here on. */

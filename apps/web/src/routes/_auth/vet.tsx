@@ -40,7 +40,13 @@ const VetPage = () => {
   const queryClient = useQueryClient();
   const [saw, setSaw] = useState("");
 
-  const kinds = useQuery(orpc.observations.kinds.queryOptions());
+  const me = useQuery(orpc.people.me.queryOptions());
+  // A vet called in for a visit sees their Cases, not the farm's rounds, breeding list or fees.
+  const visiting = me.data?.visiting ?? false;
+  const kinds = useQuery({
+    ...orpc.observations.kinds.queryOptions(),
+    enabled: me.data !== undefined && !visiting,
+  });
   const waiting = useQuery(
     orpc.diagnoses.waiting.queryOptions({ input: saw ? { saw } : {} })
   );
@@ -52,6 +58,8 @@ const VetPage = () => {
   return (
     <Page width="narrow" className="max-w-3xl">
       <PageHeader title={t("vet.title")} />
+
+      {visiting ? <MyCases /> : null}
 
       <Section title={t("vet.waiting")}>
         {/* Every choice a round offers is written down, the ones that say she is well
@@ -74,9 +82,12 @@ const VetPage = () => {
 
       <OnItsOwn onRecorded={refresh} />
 
-      <RepeatBreeders />
-
-      <VisitFee />
+      {visiting ? null : (
+        <>
+          <RepeatBreeders />
+          <VisitFee />
+        </>
+      )}
 
       <Section title={t("vet.mine")}>
         {mine.data?.length ? (
@@ -90,6 +101,39 @@ const VetPage = () => {
         )}
       </Section>
     </Page>
+  );
+};
+
+/** A visiting Vet's open Cases: the animals they were called in for, each a way to her page. */
+const MyCases = () => {
+  const t = useT();
+  const cases = useQuery(orpc.vetCases.mine.queryOptions());
+  return (
+    <Section description={t("cases.mineHint")} title={t("cases.mine")}>
+      {cases.data?.cases.length ? (
+        <ul className="divide-y rounded-lg border">
+          {cases.data.cases.map((row) => (
+            <li
+              className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+              key={row.id}
+            >
+              <Link
+                className="font-medium underline"
+                params={{ tagNumber: row.tagNumber }}
+                to="/animals/$tagNumber"
+              >
+                {row.tagNumber}
+              </Link>
+              <span className="text-muted-foreground min-w-0 truncate">
+                {row.reason}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground text-sm">{t("cases.mineNone")}</p>
+      )}
+    </Section>
   );
 };
 
