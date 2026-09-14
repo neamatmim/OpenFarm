@@ -82,7 +82,8 @@ export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
   "vetCases.mine",
 ]);
 
-const VISITING_VET: Refusal = {
+/** What a visiting Vet is told when something is not on their cases' side of the farm. */
+export const VISITING_VET: Refusal = {
   message: "A visiting vet sees only the animals on their cases",
   reason: "visiting_vet",
 };

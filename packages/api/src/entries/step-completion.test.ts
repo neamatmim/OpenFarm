@@ -45,4 +45,22 @@ describe("a Step a phone held", () => {
     expect(refusal).toMatchObject({ code: "BAD_REQUEST" });
     expect(isLate(refusal)).toBe(false);
   });
+
+  it("is refused from a shared Shed Phone even with signal, when it renews the Registration", async () => {
+    const { client } = await createTestClient(appRouter, {
+      as: "staff",
+      clock: new FakeClock("2033-09-01T04:00:00.000Z"),
+      onShedPhone: true,
+      phone: { id: "test-phone-renewal", name: "নবায়নের শেড ফোন" },
+    });
+
+    await expect(
+      client.instances.completeStep({
+        instanceId: "any-work",
+        stepId: "renew",
+        evidence: [true],
+        renewal: { expiresOn: "2034-03-31" },
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 });

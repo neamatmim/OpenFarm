@@ -18,6 +18,7 @@ import { lateEntry } from "./entry";
  */
 export const finishEntry: EntryKind<WorkInput, { changed: boolean }> = {
   roles: ["owner", "manager", "staff", "vet"],
+  visitingVet: true,
 
   trail: (_context, input) => ({
     entity: "sop_instance",

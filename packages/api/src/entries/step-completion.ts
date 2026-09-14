@@ -209,6 +209,7 @@ const sameAnswer = (
 export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
   {
     roles: ["owner", "manager", "staff", "vet"],
+    visitingVet: true,
 
     trail: () => ({
       entity: "step_completion",
@@ -221,6 +222,8 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         return completion ? { ...completion, effect } : null;
       },
     }),
+
+    needsPersonalSession: (input) => input.renewal !== undefined,
 
     heldRefusal: (input) =>
       input.renewal

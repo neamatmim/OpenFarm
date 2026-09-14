@@ -1,4 +1,7 @@
-import { SIGHTINGS, SIGHTING_NEEDING_A_NOTE } from "@OpenFarm/domain";
+import {
+  OBSERVATION_WORDS,
+  OBSERVATION_WORD_NEEDING_A_NOTE,
+} from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -45,7 +48,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
       onError: (error) => toast.error(error.message || t("common.error")),
     })
   );
-  const needsNote = saw === SIGHTING_NEEDING_A_NOTE;
+  const needsNote = saw === OBSERVATION_WORD_NEEDING_A_NOTE;
   const ready = saw !== "" && (!needsNote || note.trim() !== "");
 
   return (
@@ -87,7 +90,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
               {t("sighting.what")}
             </legend>
             <div className="grid grid-cols-2 gap-2">
-              {SIGHTINGS.map((sighting) => (
+              {OBSERVATION_WORDS.map((sighting) => (
                 <Button
                   aria-pressed={saw === sighting.value}
                   className="h-auto min-h-11 justify-start py-2 text-start whitespace-normal"

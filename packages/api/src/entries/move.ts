@@ -28,6 +28,7 @@ export type MoveInput = z.infer<typeof moveInput>;
  */
 export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
   roles: ["owner", "manager", "staff"],
+  visitingVet: false,
 
   trail: (context, input) => ({
     entity: "animal",

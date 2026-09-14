@@ -34,6 +34,7 @@ export const readWork = async (tx: Tx, instanceId: string) =>
  */
 export const claimEntry: EntryKind<WorkInput, { changed: boolean }> = {
   roles: ["owner", "manager", "staff", "vet"],
+  visitingVet: true,
 
   trail: (_context, input) => ({
     entity: "sop_instance",

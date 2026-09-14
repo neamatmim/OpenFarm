@@ -8,7 +8,7 @@ import type { SnapshotValue, Tx } from "../audit";
 import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
 import { requireAnimal } from "../herd-store";
-import { roleFor } from "../roles";
+import { VISITING_VET, forbidden, roleFor } from "../roles";
 
 /**
  * An entry that was true when it was written and is not true now: the animal has been sold,
@@ -94,6 +94,12 @@ export interface EntryTrail<Result> {
  */
 export interface EntryKind<Input, Result> {
   roles: readonly RoleName[];
+  /** Whether a Vet called in for a visit may record it at all — they still reach only the animals on their cases. Said
+   *  here, so a phone's Batch is held to it as the procedure is. */
+  visitingVet: boolean;
+  /** Whether this one must come from the person's own phone, never a shared Shed Phone (ADR 0003): the Registration's
+   *  renewal is the Owner's own act. */
+  needsPersonalSession?: (input: Input) => boolean;
   trail: (
     context: Recorder,
     input: Input,
@@ -123,6 +129,20 @@ class NothingChangedError extends Error {
   override name = "NothingChangedError";
 }
 
+/** Refuses an Entry that may not come from where it came from: a shared Shed Phone, for one that must come from the
+ *  person's own. The same on both paths. */
+const assertFromTheRightPhone = <Input, Result>(
+  context: Recorder,
+  kind: EntryKind<Input, Result>,
+  input: Input
+) => {
+  if (context.device && kind.needsPersonalSession?.(input)) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "This can only be done from your own phone, not a shed phone",
+    });
+  }
+};
+
 /** Recorded with signal, by its procedure: done now, and heard of now. The procedure's own Role gate has already
  *  chosen the Role, from the same Roles. */
 export const recordNow = async <Input, Result>(
@@ -130,6 +150,7 @@ export const recordNow = async <Input, Result>(
   kind: EntryKind<Input, Result>,
   input: Input
 ): Promise<Result> => {
+  assertFromTheRightPhone(context, kind, input);
   const now = context.clock.now();
   const times = { id: uuidv7(now), doneAt: now, receivedAt: now };
   let result: Result | undefined;
@@ -185,6 +206,12 @@ export const recordHeld = async <Input, Result>(
       message: "This is not this person's to record",
     });
   }
+  // What the procedure's Role gate checks by the procedure's name, checked here by the kind: a phone's queue is no way
+  // round the visit either.
+  if (roleUsed === "vet" && recorder.visiting && !kind.visitingVet) {
+    throw forbidden(VISITING_VET);
+  }
+  assertFromTheRightPhone(recorder, kind, input);
   const refused = kind.heldRefusal?.(input);
   if (refused) {
     throw new ORPCError("BAD_REQUEST", { message: refused });
@@ -212,7 +239,9 @@ export const recordHeld = async <Input, Result>(
       entityId: trail.entityId(result),
       action: trail.action,
       reason: trail.reason,
-      recordedAt: times.doneAt,
+      // The phone's own clock, as it said it, beside the farm's receipt (ADR 0002): the record is dated no later than the
+      // farm heard of it, but the trail keeps what the phone claimed.
+      recordedAt: held.recordedAt,
       device: held.device,
     },
     {

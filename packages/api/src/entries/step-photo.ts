@@ -38,6 +38,7 @@ export const stepPhotoEntry: EntryKind<
   { completionId: string }
 > = {
   roles: ["owner", "manager", "staff", "vet"],
+  visitingVet: true,
 
   trail: (_context, input) => ({
     entity: "step_completion",

@@ -56,7 +56,6 @@ const milkingSop = (): SopContent => ({
   ],
 });
 
-/** A milking pen with two cows, a fattening pen with one, and a Staff member on the first. */
 /** How many Audit Events a piece of work has. */
 const trailOf = async (instanceId: string) => {
   const events = await scratchDb().query.auditEvent.findMany({
@@ -66,6 +65,7 @@ const trailOf = async (instanceId: string) => {
   return events.length;
 };
 
+/** A milking pen with two cows, a fattening pen with one, and a Staff member on the first. */
 const setup = async () => {
   const owner = await createTestClient(appRouter, { as: "owner" });
   const shed = await owner.client.herd.createShed({

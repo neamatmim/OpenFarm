@@ -1,5 +1,8 @@
 import { observation } from "@OpenFarm/db/schema/observation";
-import { SIGHTING_NEEDING_A_NOTE, sightingOf } from "@OpenFarm/domain";
+import {
+  OBSERVATION_WORD_NEEDING_A_NOTE,
+  observationWordOf,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -27,6 +30,7 @@ export const observationEntry: EntryKind<
   { id: string; animalId: string }
 > = {
   roles: ["owner", "manager", "staff", "vet"],
+  visitingVet: true,
 
   trail: () => ({
     entity: "observation",
@@ -49,14 +53,14 @@ export const observationEntry: EntryKind<
   }),
 
   apply: async (tx, context, input, { id, doneAt, receivedAt }) => {
-    const seen = sightingOf(input.saw);
+    const seen = observationWordOf(input.saw);
     if (!seen) {
       throw new ORPCError("BAD_REQUEST", {
         message: `"${input.saw}" is not something the farm records seeing`,
       });
     }
     const note = input.note?.trim() || null;
-    if (seen.value === SIGHTING_NEEDING_A_NOTE && !note) {
+    if (seen.value === OBSERVATION_WORD_NEEDING_A_NOTE && !note) {
       throw new ORPCError("BAD_REQUEST", { message: "Say what was seen" });
     }
     const beast = await requireAnimalStillHere(
