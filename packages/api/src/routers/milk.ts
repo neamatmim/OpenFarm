@@ -236,10 +236,11 @@ export const milkRouter = {
    * A challan, a note, a fat or an SNF sent as nothing is cleared: a figure written against the wrong
    * lorry is put right by taking it away.
    *
-   * The Manager's, as recording is (roles matrix: Dispatch — Manager C R U, Owner R).
+   * The Manager's, as recording is, and the Owner's — whose Correction Window never closes (Owner, 2026-09-14: the
+   * spec's "Owner always" over the matrix's read-only Owner).
    */
   correctDispatch: protectedProcedure
-    .use(requireRole("manager"))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         id: z.string(),

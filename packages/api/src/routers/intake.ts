@@ -266,7 +266,7 @@ export const intakeRouter = {
    * The Manager's, as recording is (roles matrix: Intake / Sale — Manager C R U, Owner R).
    */
   correct: protectedProcedure
-    .use(requireOnly("manager", MANAGER_ONLY))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         intakeId: z.string(),

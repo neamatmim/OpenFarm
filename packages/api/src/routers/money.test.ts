@@ -149,6 +149,16 @@ describe("money from the farm's records", () => {
     expect(await moneyOf(sold.id)).toEqual([
       expect.objectContaining({ amountBdt: 19_000, paymentMethod: "bkash" }),
     ]);
+    // A year on, past the Manager's window, the Owner can still put the same Sale right.
+    const yearOn = await as("owner", "2038-02-25T04:00:00.000Z");
+    await yearOn.client.sale.correct({
+      id: sold.id,
+      priceBdt: 19_200,
+      reason: "মালিক রসিদ মিলিয়ে দেখেছেন",
+    });
+    expect(await moneyOf(sold.id)).toEqual([
+      expect.objectContaining({ amountBdt: 19_200 }),
+    ]);
 
     const feed = await manager.client.feed.addItem({
       name: { bn: `ভুসি ${suffix}` },

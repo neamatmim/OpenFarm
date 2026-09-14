@@ -146,6 +146,7 @@ const TodaysSales = () => {
   const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
   const me = useQuery(orpc.people.me.queryOptions());
   const isManager = me.data?.roles.includes("manager") ?? false;
+  const isOwner = me.data?.roles.includes("owner") ?? false;
   const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
     null
   );
@@ -204,7 +205,7 @@ const TodaysSales = () => {
                 >
                   {t("sale.transportCard")}
                 </Button>
-                {isManager ? <SaleCorrection sale={row} /> : null}
+                {isManager || isOwner ? <SaleCorrection sale={row} /> : null}
               </span>
             }
           />

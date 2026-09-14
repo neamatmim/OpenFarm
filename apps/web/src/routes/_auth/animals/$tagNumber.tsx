@@ -148,7 +148,7 @@ const AnimalPage = () => {
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const me = useQuery(orpc.people.me.queryOptions());
-  const { isVet, isManager, runsTheFarm, mayHandle, seesPapers } = powersOf(
+  const { isVet, runsTheFarm, mayHandle, seesPapers } = powersOf(
     me.data?.roles
   );
   const sheds = useQuery(orpc.herd.list.queryOptions());
@@ -216,9 +216,9 @@ const AnimalPage = () => {
 
       {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
 
-      <HowSheArrived intake={detail.intake} mayCorrect={isManager} />
+      <HowSheArrived intake={detail.intake} mayCorrect={runsTheFarm} />
 
-      <HowSheLeft mayCorrect={isManager} sale={detail.sale} />
+      <HowSheLeft mayCorrect={runsTheFarm} sale={detail.sale} />
 
       <WhatSheCost tagNumber={detail.tagNumber} />
 
