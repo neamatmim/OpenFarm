@@ -18,6 +18,7 @@ import {
   setSwitchToken,
   subscribeDevice,
   markProved,
+  touchHeldSwitches,
   touchActiveUser,
 } from "./device";
 import { putAwayFor } from "./query-cache";
@@ -74,6 +75,7 @@ export const proveHeldSwitches = async (): Promise<void> => {
   if (heldSwitches().length === 0) {
     return;
   }
+  touchHeldSwitches();
   proving ??= proveAll();
   try {
     await proving;
@@ -110,6 +112,8 @@ export const useShedPhoneKeeper = () => {
     }
     const onActivity = () => touchActiveUser();
     const lockIfIdle = () => {
+      // Tells any other tab sending this phone's Outbox that the PINs held here are still on their way.
+      touchHeldSwitches();
       if (isLocked(getActiveUser(), getAutoLockMinutes())) {
         const hadToken = Boolean(getSwitchToken());
         void lockAndPutAway(queryClient);

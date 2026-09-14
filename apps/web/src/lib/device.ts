@@ -135,44 +135,101 @@ export const setAutoLockMinutes = (minutes: number) =>
 /**
  * A PIN proved on the phone while it had no signal, held in memory only — never stored — so the switch can be
  * proved to the farm the moment signal comes back, without asking the person again mid-task.
+ *
+ * What is stored is only what the entries need to be sent the same way every time, from any tab and after a reload:
+ * that a stint's PIN is held (and when a tab holding it last said so), the token the farm gave for it, or that it
+ * could not be proved.
  */
 const HELD = "held:";
-/** Each stint worked on a PIN the farm has not yet seen, by the reference its entries carry. */
+const PROOF_KEY = "openfarm.device.proof:";
+const HELD_STINT_KEY = "openfarm.device.heldStint";
+/** How long a held PIN counts as still held by some tab on this phone without that tab saying so again. */
+const HELD_FRESH_MS = 2 * 60_000;
+/** How long what was said about a stint is kept: as long as the phone keeps work at all. */
+const PROOF_KEPT_MS = 14 * 24 * 60 * 60_000;
+
+type ProofRecord =
+  | { state: "held"; seenAt: number; at: number }
+  | { state: "proved"; token: string; at: number }
+  | { state: "unproved"; at: number };
+
+/** Each stint worked on a PIN the farm has not yet seen, by the reference its entries carry — this tab's alone. */
 const unproved = new Map<string, { userId: string; pin: string }>();
-/** What the farm gave each such stint once it saw the PIN — or null, when it said the PIN was wrong. */
-const provedTokens = new Map<string, string | null>();
-/** The stint of whoever is switched in now, while it is unproved. */
-let heldRef: string | null = null;
+
+const readProof = (ref: string): ProofRecord | null => {
+  try {
+    const raw = read(`${PROOF_KEY}${ref}`);
+    return raw ? (JSON.parse(raw) as ProofRecord) : null;
+  } catch {
+    return null;
+  }
+};
+const writeProof = (ref: string, record: ProofRecord) =>
+  write(`${PROOF_KEY}${ref}`, JSON.stringify(record));
+
+const forgetOldProofs = () => {
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith(PROOF_KEY)) {
+        const record = readProof(key.slice(PROOF_KEY.length));
+        if (!record || Date.now() - record.at > PROOF_KEPT_MS) {
+          window.localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch {
+    // storage unavailable; nothing to tidy
+  }
+};
 
 /** Holds a PIN entered with no signal, and starts the stint its work is recorded under. Every stint is its own: a
  *  second person switching in after the first does not lose the first person's proof — their work still needs it. */
 export const holdUnprovedSwitch = (proof: { userId: string; pin: string }) => {
+  forgetOldProofs();
   const ref = `${HELD}${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
   unproved.set(ref, proof);
-  heldRef = ref;
+  const now = Date.now();
+  writeProof(ref, { state: "held", seenAt: now, at: now });
+  write(HELD_STINT_KEY, ref);
   return ref;
 };
 /** The person switched in has been proved straight away: no stint is held for them. */
-export const clearHeldStint = () => {
-  heldRef = null;
-};
+export const clearHeldStint = () => write(HELD_STINT_KEY, null);
 export const heldSwitches = (): [string, { userId: string; pin: string }][] => [
   ...unproved,
 ];
+/** This tab still holds these PINs: says so, so another tab sending the Outbox waits for them. */
+export const touchHeldSwitches = () => {
+  for (const ref of unproved.keys()) {
+    const record = readProof(ref);
+    writeProof(ref, {
+      state: "held",
+      seenAt: Date.now(),
+      at: record?.at ?? Date.now(),
+    });
+  }
+};
 /** What the farm said about a held PIN: the token it gave, or null for a PIN it refused. */
 export const markProved = (ref: string, token: string | null) => {
   unproved.delete(ref);
-  provedTokens.set(ref, token);
+  writeProof(
+    ref,
+    token
+      ? { state: "proved", token, at: Date.now() }
+      : { state: "unproved", at: Date.now() }
+  );
 };
-export const isHeldStint = (ref: string) => heldRef === ref;
+export const isHeldStint = (ref: string) => read(HELD_STINT_KEY) === ref;
 
 /** What an entry recorded now carries as proof of who recorded it: the switch token, or the held stint's reference. */
-export const currentProof = (): string | null => getSwitchToken() ?? heldRef;
+export const currentProof = (): string | null =>
+  getSwitchToken() ?? read(HELD_STINT_KEY);
 
 /**
- * The switch token an entry's proof stands for, when it is sent. Waiting while its PIN is still to be proved; nothing
- * when the farm refused the PIN or the phone was restarted before it was proved — the farm then decides on the entry
- * without it, and sends back work that names somebody it cannot prove.
+ * The switch token an entry's proof stands for, when it is sent. Waiting while its PIN is still to be proved by a tab
+ * on this phone; nothing when the farm refused the PIN, or when no tab holds it any more — the phone was restarted
+ * before it was proved. Once settled the answer is written down and never changes, so a batch sent again after a
+ * lost reply is the same batch the farm already has.
  */
 export const tokenForProof = (
   proof: string
@@ -180,15 +237,25 @@ export const tokenForProof = (
   if (!proof.startsWith(HELD)) {
     return { token: proof, waiting: false };
   }
-  if (unproved.has(proof)) {
+  const record = readProof(proof);
+  if (record?.state === "proved") {
+    return { token: record.token, waiting: false };
+  }
+  const stillHeld =
+    unproved.has(proof) ||
+    (record?.state === "held" && Date.now() - record.seenAt < HELD_FRESH_MS);
+  if (stillHeld) {
     return { waiting: true };
   }
-  return { token: provedTokens.get(proof) ?? undefined, waiting: false };
+  if (record?.state !== "unproved") {
+    writeProof(proof, { state: "unproved", at: Date.now() });
+  }
+  return { waiting: false };
 };
 
 /** Locks the phone on the phone: nobody is switched in, and no token names anyone. */
 export const lockThisPhone = () => {
-  heldRef = null;
+  clearHeldStint();
   setActiveUser(null);
   setSwitchToken(null);
 };
