@@ -25,6 +25,7 @@ import {
 import { protectedProcedure } from "../index";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
 import { requireClinicalInScope } from "../scope";
+import { whoIn } from "../work-moves";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -99,6 +100,7 @@ export const breedingRouter = {
           await forgetExpectedCalving(tx, context.farm.id, her, {
             now,
             calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+            who: whoIn(context),
           });
           // A heifer who lost her first calf is back on heat watch; a cow is where her Lactation leaves her.
           if (her.state === "pregnant_heifer") {

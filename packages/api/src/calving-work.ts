@@ -1,7 +1,7 @@
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { CalvingLead } from "@OpenFarm/domain";
-import { OPEN_INSTANCE_STATES, calvingWorkDue } from "@OpenFarm/domain";
+import { calvingWorkDue, isOpen, mayMove } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import {
@@ -9,6 +9,8 @@ import {
   calvingKeyOf,
   calvingWorkPrefix,
 } from "./instances-store";
+import type { Who } from "./work-moves";
+import { callOffWork, raiseWorkAgain } from "./work-moves";
 
 /** What following a changed Expected Calving did to the work about her, for the trail. */
 export interface CalvingWorkFollowed {
@@ -48,7 +50,14 @@ export const followExpectedCalving = async (
   tx: Tx,
   her: CalvingOf,
   leadDays: Record<CalvingLead, number>,
-  { expectedAgain }: { expectedAgain: boolean }
+  {
+    expectedAgain,
+    who,
+  }: {
+    expectedAgain: boolean;
+    /** Who changed her calving, as the trail of the work it calls off or raises again names them. */
+    who: Who;
+  }
 ): Promise<CalvingWorkFollowed> => {
   const calvingWork = await tx.query.sopInstance.findMany({
     where: {
@@ -63,9 +72,7 @@ export const followExpectedCalving = async (
   const key = calvingKeyOf(her);
   for (const work of calvingWork) {
     const parts = calvingCauseParts(work.cause);
-    const open = (OPEN_INSTANCE_STATES as readonly string[]).includes(
-      work.state
-    );
+    const open = isOpen(work.state);
     if (!parts) {
       continue;
     }
@@ -74,30 +81,38 @@ export const followExpectedCalving = async (
       followed.workClosed.push(work.id);
       continue;
     }
-    const comesBack = expectedAgain && work.state === "missed" && thisCalving;
+    // Only work her calving called off comes back: work the Manager closed as Missed stays closed.
+    const comesBack =
+      expectedAgain && mayMove("raiseAgain", work.state) && thisCalving;
     if (!((open || comesBack) && her.expectedCalvingAt)) {
       continue;
     }
     const to = calvingWorkDue(her.expectedCalvingAt, leadDays[parts.lead]);
     if (comesBack) {
-      followed.workReopened.push(work.id);
-    } else if (to.getTime() === work.dueAt.getTime()) {
+      // Sequential: one row each, and the trail reads them back in the order they went.
+      // oxlint-disable-next-line no-await-in-loop
+      if (await raiseWorkAgain(tx, her.farmId, work, { who, dueAt: to })) {
+        followed.workReopened.push(work.id);
+      }
       continue;
-    } else {
-      followed.workMoved.push({ instanceId: work.id, from: work.dueAt, to });
     }
-    // Sequential: one row each, and the trail reads them back in the order they went.
+    if (to.getTime() === work.dueAt.getTime()) {
+      continue;
+    }
+    followed.workMoved.push({ instanceId: work.id, from: work.dueAt, to });
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(sopInstance)
-      .set({ dueAt: to, ...(comesBack ? { state: "due" as const } : {}) })
+      .set({ dueAt: to })
       .where(eq(sopInstance.id, work.id));
   }
   if (followed.workClosed.length > 0) {
-    await tx
-      .update(sopInstance)
-      .set({ state: "missed" })
-      .where(inArray(sopInstance.id, followed.workClosed));
+    await callOffWork(
+      tx,
+      her.farmId,
+      inArray(sopInstance.id, followed.workClosed),
+      { who, by: "calving_no_longer_expected" }
+    );
   }
   return followed;
 };

@@ -13,6 +13,7 @@ import type { CalvingWorkFollowed } from "./calving-work";
 import { nothingFollowed } from "./calving-work";
 import { calves, insertAnimal, redateCalving } from "./herd-store";
 import { recordMortality, redateDeathOf } from "./mortality-store";
+import type { Who } from "./work-moves";
 
 export interface Calf {
   sex: CalfSex;
@@ -41,6 +42,8 @@ export interface CalvingEntry {
   recordedByRole: RoleName | null;
   times: PregnancyTimes;
   now: Date;
+  /** Who is recording it now, as the trail of work it calls off names them. */
+  who: Who;
 }
 
 /**
@@ -61,6 +64,7 @@ const recordStillbirth = async (
       recordedBy: entry.recordedBy,
       recordedByRole: entry.recordedByRole,
       now: entry.now,
+      who: entry.who,
     },
     { id: calfId },
     { kind: "died", happenedAt: at, cause: STILLBIRTH, disposal: null }
@@ -247,7 +251,12 @@ export const recordCalving = async (
     tx,
     entry.farmId,
     dam,
-    { at, now: entry.now, calvingLeadDays: entry.times.calvingLeadDays }
+    {
+      at,
+      now: entry.now,
+      calvingLeadDays: entry.times.calvingLeadDays,
+      who: entry.who,
+    }
   );
   await tx.insert(calving).values({
     id: calvingId,

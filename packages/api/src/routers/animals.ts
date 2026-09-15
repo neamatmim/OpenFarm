@@ -75,6 +75,7 @@ import {
   requireAnimalInScope,
   requireLookUp,
 } from "../scope";
+import { whoIn } from "../work-moves";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */
@@ -757,6 +758,7 @@ export const animalsRouter = {
               recordedBy: context.actor.id,
               recordedByRole: context.roleUsed,
               now,
+              who: whoIn(context),
             },
             her,
             {
@@ -901,6 +903,7 @@ export const animalsRouter = {
               at: input.calvedAt ?? now,
               now,
               calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+              who: whoIn(context),
             });
             return;
           }

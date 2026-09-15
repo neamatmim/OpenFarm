@@ -34,6 +34,8 @@ import type { Tx } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
 import { lateEntry } from "./late";
+import type { Who } from "./work-moves";
+import { callOffWork } from "./work-moves";
 
 /** What every way of arriving has to say about the Animal it makes. */
 interface NewAnimalRows {
@@ -281,10 +283,13 @@ export const forgetExpectedCalving = async (
   {
     now,
     calvingLeadDays,
+    who,
   }: {
     now: Date;
     /** How far before her Expected Calving each piece of calving work falls, for the work to close by. */
     calvingLeadDays: Record<CalvingLead, number>;
+    /** Who is doing what means she is no longer expected to calve, as the trail of the work it calls off names them. */
+    who: Who;
   }
 ): Promise<CalvingWorkFollowed> => {
   await tx
@@ -300,7 +305,7 @@ export const forgetExpectedCalving = async (
       expectedCalvingAt: null,
     },
     calvingLeadDays,
-    { expectedAgain: false }
+    { expectedAgain: false, who }
   );
 };
 
@@ -343,6 +348,8 @@ export const walkTo = async (
     now: Date;
     /** How far before her Expected Calving each piece of calving work falls, for the work to close by. */
     calvingLeadDays: Record<CalvingLead, number>;
+    /** Who is walking her, as the trail of the calving work a crossing calls off names them. */
+    who: Who;
   }
 ): Promise<void> => {
   const { beast } = entry;
@@ -405,51 +412,41 @@ export const walkTo = async (
 };
 
 /**
- * Work raised about an animal who has left the herd is work nobody can do: she is not in the
- * Pen to be dosed or looked at, and the Instance would sit there going late and telling people
- * about a cow who is dead.
+ * Work raised about an animal who has left the herd is work nobody can do: she is not in the Pen to be dosed or looked
+ * at, and the Instance would sit there going late and telling people about a cow who is dead.
  *
- * Closed as missed, which is the farm's word for work that will not happen — settled, but not
- * finished, and the reason is in the Audit Event that closed it.
+ * Called off, not Missed: nobody fell short, and her leaving is named in each piece's trail.
  */
-const closeOpenWorkAboutHer = (tx: Tx, farmId: string, animalId: string) =>
-  tx
-    .update(sopInstance)
-    .set({ state: "missed" })
-    .where(
-      and(
-        eq(sopInstance.farmId, farmId),
-        eq(sopInstance.animalId, animalId),
-        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
-      )
-    )
-    .returning({ id: sopInstance.id });
-
-/**
- * Shuts the work a happening raised, when the farm no longer believes the happening.
- *
- * A Heat a Correction withdrew is the case: its AI work would still send somebody to serve a cow
- * who was not in heat. Only open work — anything already done was done. Closed as missed, the
- * word the farm already uses for work that can no longer sensibly be done; why it was closed is
- * the Correction's own reason, in the trail beside it.
- */
-export const closeWorkRaisedBy = (
+const callOffWorkAboutHer = (
   tx: Tx,
   farmId: string,
-  happeningKey: string
+  animalId: string,
+  who: Who
 ) =>
-  tx
-    .update(sopInstance)
-    .set({ state: "missed" })
-    .where(
-      and(
-        eq(sopInstance.farmId, farmId),
-        // The cause is `<happening key>:+<days>`; the key alone is the happening.
-        like(sopInstance.cause, `${happeningKey}:%`),
-        inArray(sopInstance.state, [...OPEN_INSTANCE_STATES])
-      )
-    )
-    .returning({ id: sopInstance.id });
+  callOffWork(tx, farmId, eq(sopInstance.animalId, animalId), {
+    who,
+    by: "animal_left",
+  });
+
+/**
+ * Calls off the work a happening raised, when the farm no longer believes the happening.
+ *
+ * A Heat a Correction withdrew is the case: its AI work would still send somebody to serve a cow who was not in heat.
+ * Only open work — anything already done was done.
+ */
+export const callOffWorkRaisedBy = (
+  tx: Tx,
+  farmId: string,
+  happeningKey: string,
+  who: Who
+) =>
+  callOffWork(
+    tx,
+    farmId,
+    // The cause is `<happening key>:+<days>`; the key alone is the happening.
+    like(sopInstance.cause, `${happeningKey}:%`),
+    { who, by: "heat_withdrawn" }
+  );
 
 /** Only from the State this was decided on: she has not left, and nothing has moved her on meanwhile. */
 const stillIn = (farmId: string, her: { id: string; state: AnimalState }) =>
@@ -515,11 +512,14 @@ export const calves = async (
     at,
     now,
     calvingLeadDays,
+    who,
   }: {
     at: Date;
     now: Date;
     /** How far before her Expected Calving each piece of calving work falls, for the work to close by. */
     calvingLeadDays: Record<CalvingLead, number>;
+    /** Who recorded the calving, as the trail of the calving work it calls off names them. */
+    who: Who;
   }
 ): Promise<{ lactationNumber: number; calvingWork: CalvingWorkFollowed }> => {
   if (!(MAY_CALVE_FROM as readonly string[]).includes(her.state)) {
@@ -549,7 +549,7 @@ export const calves = async (
     tx,
     farmId,
     { id: her.id, lactationNumber },
-    { now, calvingLeadDays }
+    { now, calvingLeadDays, who }
   );
   return { lactationNumber, calvingWork };
 };
@@ -572,7 +572,18 @@ export const leaves = async (
   tx: Tx,
   farmId: string,
   her: { id: string },
-  { state, at, now }: { state: ExitState; at: Date; now: Date }
+  {
+    state,
+    at,
+    now,
+    who,
+  }: {
+    state: ExitState;
+    at: Date;
+    now: Date;
+    /** Who is taking her out of the herd, as the trail of the work it calls off names them. */
+    who: Who;
+  }
 ): Promise<{ workClosed: number }> => {
   const [left] = await tx
     .update(animal)
@@ -599,7 +610,7 @@ export const leaves = async (
   // Work about her outlives her otherwise: a dose due tomorrow, a weigh-in raised last week,
   // both going late and sending somebody to fetch an animal who is not there. The calving work
   // her forecast raised is among it.
-  const settled = await closeOpenWorkAboutHer(tx, farmId, her.id);
+  const settled = await callOffWorkAboutHer(tx, farmId, her.id, who);
   return { workClosed: settled.length };
 };
 
@@ -633,6 +644,7 @@ export const walkByStep = async (
     movedBy: string;
     movedAt: Date;
     now: Date;
+    who: Who;
     calvingLeadDays: Record<CalvingLead, number>;
   }
 ): Promise<WalkedByStep | null> => {
@@ -702,6 +714,7 @@ export const walkByStep = async (
       movedAt: entry.movedAt,
       now: entry.now,
       calvingLeadDays: entry.calvingLeadDays,
+      who: entry.who,
     });
   }
   return {

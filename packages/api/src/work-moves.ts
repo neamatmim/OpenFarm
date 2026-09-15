@@ -1,4 +1,7 @@
+import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, inArray } from "@OpenFarm/db/operators";
+import { auditEvent } from "@OpenFarm/db/schema/audit";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { WorkMove } from "@OpenFarm/domain";
 import { WORK_MOVES, mayMove } from "@OpenFarm/domain";
@@ -78,4 +81,120 @@ export const requireMove = async (
   if (!(await applyMove(tx, work, move, options))) {
     throw lateEntry("This work changed while you were on it");
   }
+};
+
+/** Somebody doing something that changes what the farm owes — a Sale, a Correction, a calving — as the trail of the
+ *  work it calls off names them. */
+export interface Who {
+  actorId: string | null;
+  roleUsed: RoleName | null;
+  deviceId: string | null;
+  at: Date;
+}
+
+/** The person a request is from, as the trail of work they call off names them. */
+export const whoIn = (context: {
+  actor: { id: string } | null;
+  roleUsed: RoleName | null;
+  device: { id: string } | null;
+  clock: { now: () => Date };
+}): Who => ({
+  actorId: context.actor?.id ?? null,
+  roleUsed: context.roleUsed,
+  deviceId: context.device?.id ?? null,
+  at: context.clock.now(),
+});
+
+/**
+ * What called work off: named in each piece's trail, so a board that no longer shows the morning's dose can say why.
+ */
+export type CalledOffBy =
+  | "animal_left"
+  | "heat_withdrawn"
+  | "attempt_no_longer_standing"
+  | "calving_no_longer_expected"
+  | "report_withdrawn";
+
+/** Writes what happened to a piece of work into its trail, as the person who made it happen. */
+const trailWork = (
+  tx: Tx,
+  farmId: string,
+  who: Who,
+  happened: { workId: string; after: Record<string, unknown> }[]
+) =>
+  happened.length === 0
+    ? Promise.resolve()
+    : tx.insert(auditEvent).values(
+        happened.map(({ workId, after }) => ({
+          id: uuidv7(who.at),
+          farmId,
+          entity: "sop_instance",
+          entityId: workId,
+          action: "update" as const,
+          actorId: who.actorId,
+          roleUsed: who.roleUsed,
+          deviceId: who.deviceId,
+          recordedAt: who.at,
+          receivedAt: who.at,
+          after,
+        }))
+      );
+
+/**
+ * Calls off the open work that matches (the glossary's Called Off): the farm no longer owes it. Each piece gets its own
+ * Audit Event naming who and what called it off; work done and awaiting sign-off is left, and so is work already closed.
+ * The ids of the work called off.
+ */
+export const callOffWork = async (
+  tx: Tx,
+  farmId: string,
+  which: SQL,
+  { who, by }: { who: Who; by: CalledOffBy }
+): Promise<string[]> => {
+  const { from, to } = WORK_MOVES.callOff;
+  const called = await tx
+    .update(sopInstance)
+    .set({ state: to })
+    .where(
+      and(
+        eq(sopInstance.farmId, farmId),
+        inArray(sopInstance.state, [...from]),
+        which
+      )
+    )
+    .returning({ id: sopInstance.id });
+  await trailWork(
+    tx,
+    farmId,
+    who,
+    called.map((work) => ({
+      workId: work.id,
+      after: { state: to, calledOffBy: by },
+    }))
+  );
+  return called.map((work) => work.id);
+};
+
+/**
+ * Raises again work that was called off, now its cause has come back — her calving expected again, on a new day. Work
+ * the Manager closed as Missed stays closed. Whether it came back.
+ */
+export const raiseWorkAgain = async (
+  tx: Tx,
+  farmId: string,
+  work: { id: string; state: string },
+  { who, dueAt }: { who: Who; dueAt: Date }
+): Promise<boolean> => {
+  const raised = await applyMove(tx, work, "raiseAgain", {
+    set: { dueAt, claimedBy: null, claimedAt: null },
+  });
+  if (raised) {
+    await trailWork(tx, farmId, who, [
+      {
+        workId: work.id,
+        after: { state: WORK_MOVES.raiseAgain.to, dueAt: dueAt.toISOString() },
+      },
+    ]);
+  }
+  return raised;
 };

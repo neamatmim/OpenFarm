@@ -1,6 +1,7 @@
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import {
   AWAITING_SIGN_OFF,
+  OPEN_INSTANCE_STATES,
   isEscalated,
   isOverdue,
   minutesOverdue,
@@ -336,7 +337,7 @@ export const instancesRouter = {
       const rows = await context.db.query.sopInstance.findMany({
         where: {
           farmId: context.farm.id,
-          state: { in: ["due", "in_progress", "sent_back"] },
+          state: { in: [...OPEN_INSTANCE_STATES] },
           dueAt: { gte: from, lt: to },
           // Their Scope: their Pens, or one of them when they ask for it, and the work about their Cases.
           ...workInScopeWhere(context.scope, input.penId),

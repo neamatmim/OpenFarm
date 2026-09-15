@@ -345,9 +345,18 @@ describe("a death and a cull", () => {
       disposal: "buried",
     });
 
-    // Work nobody can do is settled rather than left going late about a cow who is buried.
+    // Work nobody can do is called off rather than left going late about a cow who is buried — and its trail says why.
     const after = await manager.client.instances.get({ id: check.id });
-    expect(after.state).toBe("missed");
+    expect(after.state).toBe("called_off");
+    const [calledOff] = await manager.client.audit.list({
+      entity: "sop_instance",
+      entityId: check.id,
+    });
+    expect(calledOff).toMatchObject({
+      actorId: "test-manager",
+      roleUsed: "manager",
+      after: { state: "called_off", calledOffBy: "animal_left" },
+    });
 
     // And the Playbook's own mortality handling is raised by her death: bury her to the depth
     // the rule names, and the Owner checks it.

@@ -20,7 +20,7 @@ import { farmDay } from "../farm-clock";
 import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
 import { contentOf } from "../sop-content";
-import { requireMayMove, requireMove } from "../work-moves";
+import { requireMayMove, requireMove, whoIn } from "../work-moves";
 import type { EntryKind } from "./entry";
 
 export const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
@@ -184,6 +184,7 @@ const runEffect = (
     recordedBy,
     recordedAt,
     now,
+    who: whoIn(context),
   });
 
 /** Is this the same Step arriving again — a phone replaying its Outbox — or a different one? Compared on what it says,

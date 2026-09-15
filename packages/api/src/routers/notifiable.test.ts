@@ -343,7 +343,7 @@ describe("the letter that goes without delay", () => {
     const work = await manager.client.instances.get({
       id: made.reportInstanceId,
     });
-    expect(work.state).toBe("missed");
+    expect(work.state).toBe("called_off");
     await expect(
       manager.client.notifiable.letter({ diagnosisId: made.id })
     ).rejects.toThrow(/must be reported/u);

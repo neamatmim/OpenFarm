@@ -15,6 +15,7 @@ import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
+import { whoIn } from "../work-moves";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput } from "./correction";
 
@@ -66,7 +67,7 @@ export const diagnosisCorrection: CorrectionKind<
       disease: row.disease,
       note: row.note,
     }),
-  apply: async (tx, row, to, { now }) => {
+  apply: async (tx, row, to, { context, now }) => {
     const disease = to.disease ?? {
       bn: row.disease,
       en: row.diseaseEn ?? undefined,
@@ -98,6 +99,7 @@ export const diagnosisCorrection: CorrectionKind<
       animalId: her.id,
       penId: her.penId,
       now,
+      who: whoIn(context),
     });
     const alerts = owed.notifiable
       ? await raiseNotifiableAlerts(

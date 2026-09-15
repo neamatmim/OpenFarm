@@ -24,6 +24,7 @@ import {
   salePriceInput,
   readSale,
 } from "../sale-store";
+import { whoIn } from "../work-moves";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -186,6 +187,7 @@ export const saleRouter = {
             state: "sold",
             at: soldAt,
             now,
+            who: whoIn(context),
           }));
         }
       );

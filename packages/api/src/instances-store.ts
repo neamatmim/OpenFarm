@@ -1142,7 +1142,7 @@ export const heldByWithdrawal = async (
   return held.filter((beast) => isOnTheFarm(beast));
 };
 
-/** Every piece of work the farm's day holds, done or not. */
+/** Every piece of work the farm's day holds, done or not — but not work Called Off, which it no longer owes. */
 export const daysWork = (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
@@ -1150,7 +1150,12 @@ export const daysWork = (
 ) => {
   const { from, to } = farmDayRange(now);
   return db.query.sopInstance.findMany({
-    where: { farmId, dueAt: { gte: from, lt: to } },
+    // Work Called Off was never owed: it is not the day's work, done or undone.
+    where: {
+      farmId,
+      dueAt: { gte: from, lt: to },
+      state: { ne: "called_off" },
+    },
     columns: { id: true, penId: true, state: true },
   });
 };

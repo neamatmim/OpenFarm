@@ -42,7 +42,7 @@ import type { Tx } from "./audit";
 import type { PregnancyTimes } from "./breeding-store";
 import {
   attemptThatRaisedWork,
-  closeWorkOfAttemptsNoLongerStanding,
+  callOffWorkOfAttemptsNoLongerStanding,
   rederivePregnancy,
 } from "./breeding-store";
 import type { CalvingRecorded } from "./calving-store";
@@ -51,7 +51,7 @@ import type { CalvingWorkFollowed } from "./calving-work";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
-  closeWorkRaisedBy,
+  callOffWorkRaisedBy,
   entersState,
   loadLiveAnimal,
   requirePen,
@@ -71,6 +71,7 @@ import { raiseNeedsReview } from "./review-store";
 import { forbidden } from "./roles";
 import type { StockAdjustment, StockCountLine } from "./stock-store";
 import { recordStockCount } from "./stock-store";
+import type { Who } from "./work-moves";
 
 /**
  * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
@@ -284,6 +285,9 @@ export interface EffectInput {
   recordedBy: string;
   recordedAt: Date;
   now: Date;
+  /** Who is recording it now — the person putting a Step right, not the one who first did it — as the trail of work it
+   *  calls off names them. */
+  who: Who;
 }
 
 /** The Pen a Pen's Step records into. Feeding a Pen and milking one are about a Pen, and work about the whole
@@ -675,10 +679,11 @@ const applyLotNumberEffect = async (
 const unraiseIfHeat = async (
   tx: Tx,
   farmId: string,
-  withdrawn: { id: string; saw: string }
+  withdrawn: { id: string; saw: string },
+  who: Who
 ) => {
   if (withdrawn.saw === HEAT) {
-    await closeWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id));
+    await callOffWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id), who);
   }
 };
 
@@ -712,7 +717,7 @@ const applyObservationEffect = async (
         .update(observation)
         .set({ withdrawnAt: input.now })
         .where(eq(observation.id, standing.id));
-      await unraiseIfHeat(tx, input.instance.farmId, standing);
+      await unraiseIfHeat(tx, input.instance.farmId, standing, input.who);
     }
     return null;
   }
@@ -733,7 +738,7 @@ const applyObservationEffect = async (
       .update(observation)
       .set({ withdrawnAt: input.now, supersededById: id })
       .where(eq(observation.id, standing.id));
-    await unraiseIfHeat(tx, input.instance.farmId, standing);
+    await unraiseIfHeat(tx, input.instance.farmId, standing, input.who);
   }
   await tx.insert(observation).values({
     id,
@@ -811,6 +816,7 @@ const applyMoveEffect = async (
     movedAt: input.recordedAt,
     now: input.now,
     calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
+    who: input.who,
   });
   return walked ? { kind: "move", ...walked } : null;
 };
@@ -928,6 +934,7 @@ const rederiveFor = (
     at: input.recordedAt,
     now: input.now,
     undoingPositive,
+    who: input.who,
   });
 
 /**
@@ -940,7 +947,12 @@ const breedingFollowsService = async (
   input: EffectInput,
   cowId: string
 ) => {
-  await closeWorkOfAttemptsNoLongerStanding(tx, input.instance.farmId, cowId);
+  await callOffWorkOfAttemptsNoLongerStanding(
+    tx,
+    input.instance.farmId,
+    cowId,
+    input.who
+  );
   return rederiveFor(tx, input, cowId, false);
 };
 
@@ -1353,6 +1365,7 @@ const applyCalvingEffect = async (
     recordedByRole: input.roleUsed,
     times: input.pregnancyTimes,
     now: input.now,
+    who: input.who,
   });
   return recorded ? { kind: "calving", ...recorded } : null;
 };

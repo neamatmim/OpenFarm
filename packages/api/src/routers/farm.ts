@@ -20,6 +20,7 @@ import { certificatesOf, keepCertificate } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
+import { whoIn } from "../work-moves";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -431,7 +432,8 @@ export const farmRouter = {
               tx,
               context.farm.id,
               pregnancyTimesOf({ ...context.farm, ...changes }),
-              context.clock.now()
+              context.clock.now(),
+              whoIn(context)
             );
           }
         }

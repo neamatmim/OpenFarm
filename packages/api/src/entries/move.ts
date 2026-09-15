@@ -4,6 +4,7 @@ import { z } from "zod";
 import { pregnancyTimesOf } from "../breeding-store";
 import { readAnimal, requireAnimal, requirePen, walkTo } from "../herd-store";
 import { requirePenInScope } from "../scope";
+import { whoIn } from "../work-moves";
 import type { EntryKind } from "./entry";
 import { requireAnimalStillHere } from "./entry";
 
@@ -65,6 +66,7 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
       movedAt: doneAt,
       id,
       now: receivedAt,
+      who: whoIn(context),
     });
     return { animalId: beast.id };
   },

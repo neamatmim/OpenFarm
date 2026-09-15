@@ -241,7 +241,7 @@ const workAfter = (
   before: { penId: string | null } | undefined,
   after: { penId: string | null; state: string } | undefined
 ): Followed["work"] => {
-  if (after?.state === "missed") {
+  if (after?.state === "called_off") {
     return "closed";
   }
   return after?.penId === before?.penId ? "stays" : "follows";
@@ -271,7 +271,7 @@ const followed = async (
       row?.stateChangedAt?.getTime() !== before?.stateChangedAt?.getTime(),
     work: workAfter(subject.before.work, work),
     expectedCalving: row?.expectedCalvingAt ? "kept" : "cleared",
-    calvingWork: calvingWork?.state === "missed" ? "closed" : "open",
+    calvingWork: calvingWork?.state === "called_off" ? "closed" : "open",
   };
 };
 
@@ -296,6 +296,14 @@ const onHer = (
 
 const later = { at: new Date(LATER), now: new Date(LATER) };
 
+/** Somebody doing it, as the trail of work it calls off names them. */
+const someone = {
+  actorId: null,
+  roleUsed: null,
+  deviceId: null,
+  at: new Date(LATER),
+};
+
 /** The herd walks her. */
 const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
   onHer(animalId, (tx, beast) =>
@@ -307,6 +315,7 @@ const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
       movedAt: later.at,
       now: later.now,
       calvingLeadDays: DEFAULT_LEADS,
+      who: someone,
     })
   );
 
@@ -371,6 +380,7 @@ describe("what follows from what happens to her", () => {
       calves(tx, TEST_FARM.id, beast, {
         ...later,
         calvingLeadDays: DEFAULT_LEADS,
+        who: someone,
       })
     );
     expect(await followed(subject)).toEqual({
@@ -470,7 +480,11 @@ describe("what follows from what happens to her", () => {
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await onHer(subject.id, (tx, beast) =>
-      leaves(tx, TEST_FARM.id, beast, { state: "died", ...later })
+      leaves(tx, TEST_FARM.id, beast, {
+        state: "died",
+        ...later,
+        who: someone,
+      })
     );
     await expect(
       onHer(subject.id, (tx, beast) =>
@@ -492,6 +506,7 @@ describe("what follows from what happens to her", () => {
           state,
           at: new Date(LATER),
           now: new Date(LATER),
+          who: someone,
         })
       );
       expect(await followed(subject)).toEqual({
@@ -520,6 +535,7 @@ describe("what follows from what happens to her", () => {
             state: "culled",
             at: new Date(LATER),
             now: new Date(LATER),
+            who: someone,
           })
         )
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
@@ -543,6 +559,7 @@ describe("what follows from putting it right", () => {
         movedAt: at,
         now: at,
         calvingLeadDays: DEFAULT_LEADS,
+        who: someone,
       })
     );
 
@@ -592,7 +609,11 @@ describe("what follows from putting it right", () => {
   it("how she left put right: the way she went and when, and she is still gone", async () => {
     const subject = await her();
     await onHer(subject.id, (tx, beast) =>
-      leaves(tx, TEST_FARM.id, beast, { state: "died", ...later })
+      leaves(tx, TEST_FARM.id, beast, {
+        state: "died",
+        ...later,
+        who: someone,
+      })
     );
     const earlier = new Date("2034-02-01T04:30:00.000Z");
     await onHer(subject.id, (tx, beast) =>
@@ -622,6 +643,7 @@ describe("what follows from putting it right", () => {
       calves(tx, TEST_FARM.id, beast, {
         ...later,
         calvingLeadDays: DEFAULT_LEADS,
+        who: someone,
       })
     );
     const { row: calved } = await standing(subject.id, subject.workId);

@@ -8,6 +8,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { correctHowSheLeft, leaves, requireAnimal } from "./herd-store";
+import type { Who } from "./work-moves";
 
 /** The mortality as the trail records it either side of a Correction. */
 export const readMortality = async (tx: Tx, id: string) =>
@@ -48,6 +49,8 @@ export interface MortalityRecorder {
   /** The Role it was written under: a stillbirth is written under the Role the calving was. */
   recordedByRole: RoleName | null;
   now: Date;
+  /** Who is writing it down now, as the trail of the work her leaving calls off names them. */
+  who: Who;
 }
 
 /**
@@ -102,6 +105,7 @@ export const recordMortality = async (
     state: death.kind,
     at: death.happenedAt,
     now: recorder.now,
+    who: recorder.who,
   });
   return { id, recorded: true, workClosed };
 };

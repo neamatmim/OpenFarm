@@ -563,7 +563,7 @@ describe("the work Expected Calving pulls towards it", () => {
       // Sequential, reading each piece of work back.
       // oxlint-disable-next-line no-await-in-loop
       const now = await manager.client.instances.get({ id: work.id });
-      expect(now.state).toBe("missed");
+      expect(now.state).toBe("called_off");
     }
     // And the correction's own entry in the trail says which work it closed.
     const [event] = await scratchDb().query.auditEvent.findMany({
@@ -582,18 +582,31 @@ describe("the work Expected Calving pulls towards it", () => {
       raised.map((work) => work.id).toSorted()
     );
 
-    // She was carrying after all. The same calving, so the same work comes back on its day.
+    // Work the Manager had closed as Missed is the Manager's decision, and nothing brings it back.
+    const [closedByHand, ...calledOff] = raised;
+    const { eq } = await import("@OpenFarm/db/operators");
+    const { sopInstance } = await import("@OpenFarm/db/schema/instance");
+    await scratchDb()
+      .update(sopInstance)
+      .set({ state: "missed" })
+      .where(eq(sopInstance.id, closedByHand?.id ?? ""));
+
+    // She was carrying after all. The same calving, so the work it called off comes back on its day.
     await correctStepAsShown(vet.client, {
       completionId: entry?.id ?? "",
       evidence: ["positive"],
       reason: "আবার দেখে গর্ভবতী পাওয়া গেছে",
     });
-    for (const work of raised) {
+    for (const work of calledOff) {
       // Sequential, reading each piece of work back.
       // oxlint-disable-next-line no-await-in-loop
       const back = await manager.client.instances.get({ id: work.id });
       expect(back.state).toBe("due");
     }
+    const stillClosed = await manager.client.instances.get({
+      id: closedByHand?.id ?? "",
+    });
+    expect(stillClosed.state).toBe("missed");
   });
 
   it("dries off a cow who arrives close to calving, late, and stops once she has calved", async () => {
@@ -660,7 +673,7 @@ describe("the work Expected Calving pulls towards it", () => {
     const closed = await manager.client.instances.get({
       id: prep.rows[0]?.id ?? "",
     });
-    expect(closed.state).toBe("missed");
+    expect(closed.state).toBe("called_off");
   });
 
   it("moves open work when the farm changes a lead", async () => {
