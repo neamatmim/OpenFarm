@@ -904,6 +904,11 @@ export const en = {
   "prescribe.given": "given by {name}",
   "prescribe.owed": "not given yet",
   "prescribe.missed": "not given",
+  "prescribe.calledOff": "called off",
+  "work.calledOff":
+    "Called off — the farm no longer owes this work, and nothing more is recorded on it",
+  "work.closedAsMissed":
+    "Closed as missed by the Manager — nothing more is recorded on it",
   "prescribe.course": "Course of treatment",
   "route.intramuscular": "Intramuscular",
   "route.intravenous": "Intravenous",

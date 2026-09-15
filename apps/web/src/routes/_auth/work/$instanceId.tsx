@@ -511,7 +511,7 @@ const WorkPage = () => {
 
       {changed ? <WhatChanged changed={changed} /> : null}
 
-      <WorkNotices runningOn={runningOn} shortFed={shortFed} />
+      <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
 
       {chipSteps.length ? (
         <div className="flex flex-col gap-2">
@@ -584,13 +584,24 @@ const NextAnimal = ({
 const WorkNotices = ({
   runningOn,
   shortFed,
+  state,
 }: {
   runningOn: number | null | undefined;
   shortFed: { shortfallPercent: number } | null | undefined;
+  /** Where the work stands: closed work says so, so nobody records on it for nothing. */
+  state: string;
 }) => {
   const { t } = useLanguage();
   return (
     <>
+      {state === "called_off" ? (
+        <Notice title={t("work.calledOff")} tone="info" />
+      ) : null}
+
+      {state === "missed" ? (
+        <Notice title={t("work.closedAsMissed")} tone="warning" />
+      ) : null}
+
       {runningOn ? (
         <Notice
           title={t("changed.onOlder", { number: runningOn })}

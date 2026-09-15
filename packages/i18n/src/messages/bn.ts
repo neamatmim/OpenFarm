@@ -881,6 +881,10 @@ export const bn: Record<MessageKey, string> = {
   "prescribe.given": "{name} দিয়েছেন",
   "prescribe.owed": "এখনও দেওয়া হয়নি",
   "prescribe.missed": "দেওয়া হয়নি",
+  "prescribe.calledOff": "বাতিল",
+  "work.calledOff": "বাতিল — এই কাজ আর করতে হবে না, এতে আর কিছু লেখা যাবে না",
+  "work.closedAsMissed":
+    "ম্যানেজার এই কাজ হয়নি হিসেবে বন্ধ করেছেন — এতে আর কিছু লেখা যাবে না",
   "prescribe.course": "চিকিৎসার কোর্স",
   "route.intramuscular": "মাংসে ইনজেকশন",
   "route.intravenous": "শিরায় ইনজেকশন",

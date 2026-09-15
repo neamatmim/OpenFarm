@@ -57,6 +57,9 @@ export const DoseLine = ({ dose }: { dose: Dose }) => {
     if (dose.givenAt) {
       return t("prescribe.given", { name: dose.givenByName ?? "" });
     }
+    if (dose.state === "called_off") {
+      return t("prescribe.calledOff");
+    }
     return dose.state === "missed"
       ? t("prescribe.missed")
       : t("prescribe.owed");
