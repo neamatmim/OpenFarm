@@ -294,6 +294,18 @@ describe("the abortion", () => {
         reason: "ভুল লেখা",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // Nor another Vet: an abortion is the Vet's own finding, and only the Vet who recorded it puts it right.
+    const otherVet = await createTestClient(appRouter, {
+      as: "otherVet",
+      clock: vet.clock,
+    });
+    await expect(
+      otherVet.client.breeding.correctAbortion({
+        id: recorded.id,
+        stageMonths: 4,
+        reason: "আমার মনে হয় চার মাস",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await vet.client.breeding.correctAbortion({
       id: recorded.id,
       stageMonths: 5,

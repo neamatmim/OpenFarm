@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { abortion, repeatBreederAnswer } from "@OpenFarm/db/schema/breeding";
-import { REPEAT_BREEDER_DECISIONS } from "@OpenFarm/domain";
+import { REPEAT_BREEDER_DECISIONS, mayCorrect } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -12,7 +12,7 @@ import {
   repeatBreederFor,
   repeatBreedersOn,
 } from "../breeding-store";
-import { reasonInput } from "../corrections";
+import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import {
   entersState,
   forgetExpectedCalving,
@@ -172,18 +172,48 @@ export const breedingRouter = {
       const now = context.clock.now();
       const standing = await context.db.query.abortion.findFirst({
         where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, serviceId: true, animalId: true },
+        columns: {
+          id: true,
+          serviceId: true,
+          animalId: true,
+          recordedBy: true,
+          recordedAt: true,
+        },
       });
       if (!standing) {
         throw new ORPCError("NOT_FOUND", { message: "No such abortion" });
       }
       assertOnTheirCases(context, standing.animalId);
-      await audited(context).write(
+      const verdict = mayCorrect({
+        // Only their standing as the Vet is asked about, as for a Diagnosis: the finding is the Vet's, whatever else
+        // they hold on the farm.
+        roles: ["vet"],
+        isOwnEntry: standing.recordedBy === context.actor.id,
+        isHealthEntry: true,
+        recordedAt: standing.recordedAt,
+        now,
+        windows: correctionWindows(context.farm),
+      });
+      if (!verdict.allowed) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "An abortion is the vet's own to correct",
+          data: { refusal: refusalData(verdict.refusal) },
+        });
+      }
+      const audit = audited(context);
+      const previous = await audit.latestEventFor(
+        context.db,
+        "abortion",
+        standing.id
+      );
+      await audit.write(
         {
           entity: "abortion",
           entityId: standing.id,
           action: "correct",
           reason: input.reason,
+          roleUsed: verdict.role,
+          supersedesId: previous?.id,
           before: (tx) => readAbortion(tx, standing.id),
           after: (tx) => readAbortion(tx, standing.id),
         },
