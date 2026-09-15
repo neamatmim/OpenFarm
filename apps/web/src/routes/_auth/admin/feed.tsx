@@ -473,15 +473,20 @@ const ArrivalCorrection = ({
         await correct.mutateAsync({
           id: arrival.id,
           reason,
-          quantity:
-            Number(quantity) === arrival.quantity
-              ? undefined
-              : Number(quantity),
-          priceBdt:
-            arrival.priceBdt === null || Number(price) === arrival.priceBdt
-              ? undefined
-              : Number(price),
-          receivedOn: receivedOn === wasReceivedOn ? undefined : receivedOn,
+          changes: {
+            quantity:
+              Number(quantity) === arrival.quantity
+                ? undefined
+                : { from: arrival.quantity, to: Number(quantity) },
+            priceBdt:
+              arrival.priceBdt === null || Number(price) === arrival.priceBdt
+                ? undefined
+                : { from: arrival.priceBdt, to: Number(price) },
+            receivedOn:
+              receivedOn === wasReceivedOn
+                ? undefined
+                : { from: wasReceivedOn, to: receivedOn },
+          },
         });
         await queryClient.invalidateQueries({ queryKey: orpc.stock.key() });
       }}

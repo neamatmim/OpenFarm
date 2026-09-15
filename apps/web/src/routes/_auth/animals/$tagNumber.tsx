@@ -1007,16 +1007,18 @@ const IntakeCorrection = ({
     <CorrectionDialog
       onSave={async (reason) => {
         await correct.mutateAsync({
-          intakeId: intake.id,
+          id: intake.id,
           reason,
-          purchasePriceBdt:
-            Number(price) === intake.purchasePriceBdt
-              ? undefined
-              : Number(price),
-          seller:
-            seller.trim() === (intake.sellerName ?? "") || !seller.trim()
-              ? undefined
-              : { name: seller.trim() },
+          changes: {
+            purchasePriceBdt:
+              Number(price) === intake.purchasePriceBdt
+                ? undefined
+                : { from: intake.purchasePriceBdt, to: Number(price) },
+            seller:
+              seller.trim() === (intake.sellerName ?? "") || !seller.trim()
+                ? undefined
+                : { from: intake.sellerName, to: { name: seller.trim() } },
+          },
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
@@ -1056,11 +1058,16 @@ const SaleOfHerCorrection = ({
         await correct.mutateAsync({
           id: sale.id,
           reason,
-          priceBdt: Number(price) === sale.priceBdt ? undefined : Number(price),
-          buyer:
-            buyer.trim() === sale.buyerName
-              ? undefined
-              : { name: buyer.trim() },
+          changes: {
+            priceBdt:
+              Number(price) === sale.priceBdt
+                ? undefined
+                : { from: sale.priceBdt, to: Number(price) },
+            buyer:
+              buyer.trim() === sale.buyerName
+                ? undefined
+                : { from: sale.buyerName, to: { name: buyer.trim() } },
+          },
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}

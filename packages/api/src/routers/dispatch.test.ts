@@ -231,7 +231,7 @@ describe("the milk dispatch", () => {
     });
     await manager.client.milk.correctDispatch({
       id: dispatchId,
-      litres: 11.8,
+      changes: { litres: { from: 11.5, to: 11.8 } },
       reason: "মাপার সময় ভুল পড়া হয়েছিল",
     });
     const day = await manager.client.milk.day({ day: "2036-02-01" });
@@ -248,7 +248,7 @@ describe("the milk dispatch", () => {
     });
     await owner.client.milk.correctDispatch({
       id: dispatchId,
-      litres: 11.9,
+      changes: { litres: { from: 11.8, to: 11.9 } },
       reason: "মালিকের হিসাবে ১১.৯",
     });
     const later = await owner.client.milk.day({ day: "2036-02-01" });
@@ -260,7 +260,7 @@ describe("the milk dispatch", () => {
     // And back, as the challan says — the records the next test reads are the Manager's figure.
     await owner.client.milk.correctDispatch({
       id: dispatchId,
-      litres: 11.8,
+      changes: { litres: { from: 11.9, to: 11.8 } },
       reason: "চালানে ১১.৮ লেখা",
     });
   });
@@ -281,9 +281,11 @@ describe("the milk dispatch", () => {
     });
     await manager.client.milk.correctDispatch({
       id: wrong.id,
-      challan: null,
-      snfPercent: null,
-      note: null,
+      changes: {
+        challan: { from: "CH-0999", to: null },
+        snfPercent: { from: 8.2, to: null },
+        note: { from: "অন্য গাড়ির", to: null },
+      },
       reason: "অন্য গাড়ির চালান লেখা হয়েছিল",
     });
     const day = await manager.client.milk.day({ day: "2036-02-05" });
@@ -502,7 +504,12 @@ describe("the milk dispatch", () => {
     await expect(
       manager.client.milk.correctDispatch({
         id: later.id,
-        dispatchedAt: new Date("2036-02-04T02:00:00.000Z"),
+        changes: {
+          dispatchedAt: {
+            from: dispatchIt.dispatchedAt,
+            to: new Date("2036-02-04T02:00:00.000Z"),
+          },
+        },
         reason: "সময় ভুল",
       })
     ).rejects.toMatchObject({

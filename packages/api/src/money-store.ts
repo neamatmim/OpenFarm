@@ -279,6 +279,17 @@ export const moneySnapshotOf = async (
     },
   })) ?? null;
 
+/** How a record's money changed hands, or null for a record that booked none. */
+export const paymentMethodOf = async (
+  tx: Tx,
+  farmId: string,
+  source: MoneySource,
+  sourceId: string
+): Promise<PaymentMethod | null> => {
+  const money = await moneySnapshotOf(tx, farmId, source, sourceId);
+  return money?.paymentMethod ?? null;
+};
+
 /** The columns a booking writes, whether it makes the Money Event or puts it right. */
 const moneyFieldsOf = ({
   amountBdt,

@@ -78,7 +78,7 @@ describe("money from the farm's records", () => {
 
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      litres: 120,
+      changes: { litres: { from: 100, to: 120 } },
       reason: "মাপে ভুল",
     });
     const [money, ...more] = await moneyOf(recorded.id);
@@ -114,8 +114,8 @@ describe("money from the farm's records", () => {
     const manager = await as("manager", "2037-02-20T04:00:00.000Z");
     // The Manager put the price in wrong: the same Money Event is put right, not a second one booked.
     await manager.client.intake.correct({
-      intakeId: bull.intakeId,
-      purchasePriceBdt: 18_500,
+      id: bull.intakeId,
+      changes: { purchasePriceBdt: { from: 18_000, to: 18_500 } },
       reason: "হাটের রসিদে ১৮,৫০০",
     });
     expect(await moneyOf(bull.intakeId)).toEqual([
@@ -142,8 +142,10 @@ describe("money from the farm's records", () => {
     ]);
     await manager.client.sale.correct({
       id: sold.id,
-      priceBdt: 19_000,
-      paymentMethod: "bkash",
+      changes: {
+        priceBdt: { from: 19_500, to: 19_000 },
+        paymentMethod: { from: "cash", to: "bkash" },
+      },
       reason: "বিকাশে দিয়েছেন, ৫০০ কম",
     });
     expect(await moneyOf(sold.id)).toEqual([
@@ -153,7 +155,7 @@ describe("money from the farm's records", () => {
     const yearOn = await as("owner", "2038-02-25T04:00:00.000Z");
     await yearOn.client.sale.correct({
       id: sold.id,
-      priceBdt: 19_200,
+      changes: { priceBdt: { from: 19_000, to: 19_200 } },
       reason: "মালিক রসিদ মিলিয়ে দেখেছেন",
     });
     expect(await moneyOf(sold.id)).toEqual([
@@ -175,7 +177,7 @@ describe("money from the farm's records", () => {
     });
     await manager.client.stock.correct({
       id: lorry.id,
-      priceBdt: 16_000,
+      changes: { priceBdt: { from: 15_000, to: 16_000 } },
       reason: "রসিদে ১৬,০০০ লেখা",
     });
     expect(await moneyOf(lorry.id)).toEqual([
@@ -199,7 +201,7 @@ describe("money from the farm's records", () => {
     const owner = await as("owner", "2037-02-21T04:00:00.000Z");
     await owner.client.stock.correct({
       id: lorry.id,
-      priceBdt: 25_000,
+      changes: { priceBdt: { from: 16_000, to: 25_000 } },
       reason: "মালিক নিজে দাম দিয়েছেন",
     });
     expect(await moneyOf(lorry.id)).toEqual([
@@ -301,7 +303,7 @@ describe("money from the farm's records", () => {
     // A note changes nothing the Owner approved.
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      challan: "CH-77",
+      changes: { challan: { from: null, to: "CH-77" } },
       reason: "চালান পরে এল",
     });
     const [kept] = await moneyOf(recorded.id);
@@ -309,7 +311,7 @@ describe("money from the farm's records", () => {
 
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      litres: 520,
+      changes: { litres: { from: 500, to: 520 } },
       reason: "মাপে ভুল",
     });
     const [asked] = await moneyOf(recorded.id);
@@ -328,7 +330,7 @@ describe("money from the farm's records", () => {
     // Under the threshold again, it waits for nobody and the notice comes down.
     await manager.client.milk.correctDispatch({
       id: recorded.id,
-      litres: 300,
+      changes: { litres: { from: 520, to: 300 } },
       reason: "দুটো গাড়ির দুধ এক সাথে লেখা হয়েছিল",
     });
     const [under] = await moneyOf(recorded.id);
