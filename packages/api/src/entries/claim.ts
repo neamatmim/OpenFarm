@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { assertMayWork } from "../completion-store";
+import { lateEntry } from "../late";
 import type { EntryKind } from "./entry";
-import { lateEntry } from "./entry";
 
 /** Which piece of work. */
 export const workInput = z.object({ instanceId: z.string().trim().min(1) });

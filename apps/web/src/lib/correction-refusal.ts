@@ -50,6 +50,7 @@ const WORDED_REFUSALS = {
   calved_in_the_future: "refusal.calvedInTheFuture",
   calving_is_derived: "refusal.calvingIsDerived",
   calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
+  calving_of_a_male: "refusal.calvingOfAMale",
   category_exists: "refusal.categoryExists",
   category_kept_by_records: "refusal.categoryKeptByRecords",
   category_kept_for_wages: "refusal.categoryKeptForWages",

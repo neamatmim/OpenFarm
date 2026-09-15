@@ -15,7 +15,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { counterpartyNamed } from "../counterparty-store";
-import { loadLiveAnimal, recordExit } from "../herd-store";
+import { leaves, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import {
   correctedPaymentMethodInput,
@@ -242,7 +242,7 @@ export const saleRouter = {
             id,
             input.paymentMethod
           );
-          ({ workClosed: closed } = await recordExit(tx, context.farm.id, her, {
+          ({ workClosed: closed } = await leaves(tx, context.farm.id, her, {
             state: "sold",
             at: soldAt,
             now,

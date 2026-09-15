@@ -4,11 +4,11 @@ import { ORPCError } from "@orpc/server";
 
 import { assertMayWork } from "../completion-store";
 import { animalsForInstance } from "../instances-store";
+import { lateEntry } from "../late";
 import { contentOf } from "../sop-content";
 import type { WorkInput } from "./claim";
 import { readWork } from "./claim";
 import type { EntryKind } from "./entry";
-import { lateEntry } from "./entry";
 
 /**
  * Finishes a piece of work, dated when it was finished. Refused while any Step — or any animal within a per-animal Step

@@ -1,15 +1,18 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import { calving } from "@OpenFarm/db/schema/breeding";
-import { animal, animalMove, mortality } from "@OpenFarm/db/schema/herd";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
+import { animal } from "@OpenFarm/db/schema/herd";
 import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
-import { MAY_CALVE_FROM, STILLBIRTH, isExitState } from "@OpenFarm/domain";
+import { STILLBIRTH, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
-import { followExpectedCalving, nothingFollowed } from "./breeding-store";
-import { insertAnimal, recordExit } from "./herd-store";
+import type { PregnancyTimes } from "./breeding-store";
+import type { CalvingWorkFollowed } from "./calving-work";
+import { nothingFollowed } from "./calving-work";
+import { calves, insertAnimal, redateCalving } from "./herd-store";
+import { recordMortality, redateDeathOf } from "./mortality-store";
 
 export interface Calf {
   sex: CalfSex;
@@ -34,6 +37,8 @@ export interface CalvingEntry {
   /** Null when the entry is skipped: she has not calved. */
   calved: { at: Date; ease: CalvingEase; calves: Calf[] } | null;
   recordedBy: string;
+  /** The Role the calving was recorded under, which a stillborn calf's death is written under too. */
+  recordedByRole: RoleName | null;
   times: PregnancyTimes;
   now: Date;
 }
@@ -49,30 +54,17 @@ const recordStillbirth = async (
   calfId: string,
   at: Date
 ): Promise<void> => {
-  await recordExit(
+  await recordMortality(
     tx,
-    entry.farmId,
-    { id: calfId },
     {
-      state: "died",
-      at,
-      now: entry.now,
-    }
-  );
-  await tx
-    .insert(mortality)
-    .values({
-      id: uuidv7(entry.now),
       farmId: entry.farmId,
-      animalId: calfId,
-      kind: "died",
-      happenedAt: at,
-      cause: STILLBIRTH,
-      disposal: null,
       recordedBy: entry.recordedBy,
-      recordedAt: entry.now,
-    })
-    .onConflictDoNothing({ target: mortality.animalId });
+      recordedByRole: entry.recordedByRole,
+      now: entry.now,
+    },
+    { id: calfId },
+    { kind: "died", happenedAt: at, cause: STILLBIRTH, disposal: null }
+  );
 };
 
 /** Whether a calf was alive when she was born, as her calving recorded it. */
@@ -133,25 +125,20 @@ const putRight = async (
     .update(calving)
     .set({ calvedAt: calved.at, ease: calved.ease })
     .where(eq(calving.id, standing.id));
-  // Everything the calving dated moves with its hour: her Lactation and the moment she reached
-  // Milking, while this is still the calving she is in milk from.
-  const dam = await tx.query.animal.findFirst({
-    where: { id: standing.damId },
-    columns: { lactationNumber: true, state: true, stateChangedAt: true },
-  });
-  if (dam?.lactationNumber === standing.lactationNumber) {
-    const stillFromThisCalving =
-      dam.state === "milking" &&
-      dam.stateChangedAt.getTime() === standing.calvedAt.getTime();
-    await tx
-      .update(animal)
-      .set({
-        lactationStartedAt: calved.at,
-        ...(stillFromThisCalving ? { stateChangedAt: calved.at } : {}),
-        updatedAt: entry.now,
-      })
-      .where(eq(animal.id, standing.damId));
-  }
+  // Everything the calving dated moves with its hour: her Lactation and the moment she reached Milking, while this is
+  // still the calving she is in milk from, and each calf's birth and arrival.
+  await redateCalving(
+    tx,
+    entry.farmId,
+    {
+      damId: standing.damId,
+      lactationNumber: standing.lactationNumber,
+      from: standing.calvedAt,
+      to: calved.at,
+      calfIds: standing.calves.map((calf) => calf.id),
+    },
+    entry.now
+  );
   for (const [index, calf] of standing.calves.entries()) {
     const now = calved.calves[index];
     if (!now) {
@@ -162,35 +149,15 @@ const putRight = async (
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(animal)
-      .set({
-        sex: now.sex,
-        birthDate: calved.at,
-        calfOutcome: now.outcome,
-        // A stillborn calf left when she was born, so her exit moves with the hour too.
-        ...(asRecorded(calf) === "stillborn"
-          ? { stateChangedAt: calved.at }
-          : {}),
-        updatedAt: entry.now,
-      })
+      .set({ sex: now.sex, calfOutcome: now.outcome, updatedAt: entry.now })
       .where(eq(animal.id, calf.id));
-    // She came into the Pen the hour she was born, so her arrival moves with it.
-    // oxlint-disable-next-line no-await-in-loop
-    await tx
-      .update(animalMove)
-      .set({ movedAt: calved.at })
-      .where(
-        and(eq(animalMove.animalId, calf.id), isNull(animalMove.fromPenId))
-      );
     if (becomesStillborn) {
       // oxlint-disable-next-line no-await-in-loop
       await recordStillbirth(tx, entry, calf.id, calved.at);
     } else if (asRecorded(calf) === "stillborn") {
-      // Her death moves with the hour she was born dead in, whatever cause the farm has since written for it.
+      // A stillborn calf left when she was born, so her death, and her leaving, move with the hour too.
       // oxlint-disable-next-line no-await-in-loop
-      await tx
-        .update(mortality)
-        .set({ happenedAt: calved.at })
-        .where(eq(mortality.animalId, calf.id));
+      await redateDeathOf(tx, entry.farmId, calf, calved.at, entry.now);
     }
   }
   return {
@@ -256,6 +223,7 @@ export const recordCalving = async (
     columns: {
       id: true,
       sex: true,
+      side: true,
       state: true,
       penId: true,
       lactationNumber: true,
@@ -265,19 +233,22 @@ export const recordCalving = async (
   if (!dam) {
     throw new ORPCError("NOT_FOUND", { message: "No such animal" });
   }
-  if (
-    dam.sex !== "female" ||
-    !(MAY_CALVE_FROM as readonly string[]).includes(dam.state)
-  ) {
+  if (dam.sex !== "female") {
     throw new ORPCError("BAD_REQUEST", {
-      message: `A ${dam.state.replace("_", " ")} does not calve`,
-      data: { refusal: "calving_of_a_cow_not_in_calf" },
+      message: "A bull does not calve",
+      data: { refusal: "calving_of_a_male" },
     });
   }
 
-  const { at, ease, calves } = entry.calved;
+  const { at, ease, calves: calvesBorn } = entry.calved;
   const calvingId = uuidv7(entry.now);
-  const lactationNumber = dam.lactationNumber + 1;
+  // Her State first: whether she may calve at all is the herd's to say, and her Lactation's number is what it begins.
+  const { lactationNumber, calvingWork: followed } = await calves(
+    tx,
+    entry.farmId,
+    dam,
+    { at, now: entry.now, calvingLeadDays: entry.times.calvingLeadDays }
+  );
   await tx.insert(calving).values({
     id: calvingId,
     farmId: entry.farmId,
@@ -290,34 +261,9 @@ export const recordCalving = async (
     recordedBy: entry.recordedBy,
     createdAt: entry.now,
   });
-  await tx
-    .update(animal)
-    .set({
-      state: "milking",
-      // When she calved, not when it was written down: days-in-milk and anything a State raises
-      // count from here.
-      stateChangedAt: at,
-      lactationNumber,
-      lactationStartedAt: at,
-      expectedCalvingAt: null,
-      expectedCalvingServiceId: null,
-      updatedAt: entry.now,
-    })
-    .where(eq(animal.id, dam.id));
-  const followed = await followExpectedCalving(
-    tx,
-    {
-      id: dam.id,
-      farmId: entry.farmId,
-      lactationNumber,
-      expectedCalvingAt: null,
-    },
-    entry.times.calvingLeadDays,
-    { expectedAgain: false }
-  );
 
   const born: CalvingRecorded["calves"] = [];
-  for (const [position, calf] of calves.entries()) {
+  for (const [position, calf] of calvesBorn.entries()) {
     const calfId = uuidv7(entry.now);
     // Sequential: each calf takes the next Tag Number, twins in the order they were written.
     // oxlint-disable-next-line no-await-in-loop

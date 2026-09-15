@@ -286,6 +286,16 @@ describe("the calving", () => {
     });
     expect(record.state).toBe("died");
     expect(record.dam?.tagNumber).toBe(world.stillborn);
+    // On the mortality register like any other death, written under the Role the calving was recorded under.
+    const death = await scratchDb().query.mortality.findFirst({
+      where: { animalId: record.id },
+      columns: { cause: true, disposal: true, recordedByRole: true },
+    });
+    expect(death).toEqual({
+      cause: "stillbirth",
+      disposal: null,
+      recordedByRole: "staff",
+    });
   });
 
   it("is not the Owner's to record, and not of a cow who is not in calf", async () => {

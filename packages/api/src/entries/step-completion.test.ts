@@ -3,9 +3,10 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import type { Recorder } from "../completion-store";
+import { isLate } from "../late";
 import { appRouter } from "../routers/index";
 import { createTestClient } from "../test/client";
-import { isLate, recordHeld } from "./entry";
+import { recordHeld } from "./entry";
 import { stepCompletionEntry } from "./step-completion";
 
 // What the Step Completion Entry does that its parity case cannot show: the one Step that has no business in a phone's

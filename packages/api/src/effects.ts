@@ -9,7 +9,6 @@ import {
   dlsReport,
   treatment,
 } from "@OpenFarm/db/schema/health";
-import { animal, animalMove } from "@OpenFarm/db/schema/herd";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
   Choice,
@@ -40,7 +39,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import type { CalvingWorkFollowed, PregnancyTimes } from "./breeding-store";
+import type { PregnancyTimes } from "./breeding-store";
 import {
   attemptThatRaisedWork,
   closeWorkOfAttemptsNoLongerStanding,
@@ -48,15 +47,15 @@ import {
 } from "./breeding-store";
 import type { CalvingRecorded } from "./calving-store";
 import { recordCalving } from "./calving-store";
+import type { CalvingWorkFollowed } from "./calving-work";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import {
   closeWorkRaisedBy,
+  entersState,
   loadLiveAnimal,
-  moveOpenWorkWith,
-  movedSince,
-  recordMove,
   requirePen,
+  walkByStep,
 } from "./herd-store";
 import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
 import {
@@ -268,6 +267,8 @@ export interface EffectInput {
   /** The Roles the person recording holds. Most effects do not ask — the Step's own gate is
    *  enough — but a Service is the Manager's alone whoever is standing at the Step. */
   roles: readonly RoleName[];
+  /** The Role the Step is being recorded under, for a record an effect writes that names it. */
+  roleUsed: RoleName | null;
   /** How long this farm's cows carry, and how long before calving its work falls — which Expected
    *  Calving, and the work that follows it, are worked out from. */
   pregnancyTimes: PregnancyTimes;
@@ -790,100 +791,28 @@ const applyMoveEffect = async (
   }
   // An animal that has left the farm cannot be walked anywhere, whoever is asking.
   const live = await loadLiveAnimal(tx, input.instance.farmId, beast.tagNumber);
-  const already = await tx.query.animalMove.findFirst({
-    where: { completionId: input.completionId },
-    columns: { id: true, fromPenId: true, toPenId: true },
-  });
-  // Asked of the Moves themselves, not of where she is standing: a cow walked away and back
-  // again is standing where this entry left her, and is still a cow the farm has learned
-  // something newer about.
-  const somethingMovedHer = await movedSince(
-    tx,
-    live.id,
-    input.recordedAt,
-    input.completionId
-  );
-
-  // Corrected to a skip: the journey is undone if nothing has happened to her since.
-  if (input.skipped) {
-    if (!already) {
-      return null;
-    }
-    if (somethingMovedHer) {
-      return {
-        kind: "move",
-        fromPenId: already.fromPenId,
-        toPenId: already.toPenId,
-        moved: false,
-        cannotUndo: true,
-      };
-    }
-    await tx
-      .delete(animalMove)
-      .where(eq(animalMove.completionId, input.completionId));
-    if (already.fromPenId) {
-      await tx
-        .update(animal)
-        .set({ penId: already.fromPenId, updatedAt: input.now })
-        .where(eq(animal.id, live.id));
-      await moveOpenWorkWith(
-        tx,
-        input.instance.farmId,
-        live.id,
-        already.fromPenId
-      );
-    }
-    return null;
+  const toPenId = input.skipped
+    ? null
+    : choiceIn(
+        input.step,
+        input.evidence,
+        "This step moves an animal, and no pen was chosen"
+      ).value;
+  if (toPenId) {
+    // A Pen that is not this farm's is not somewhere she can be walked to.
+    await requirePen(tx, input.instance.farmId, toPenId);
   }
-
-  const toPenId = choiceIn(
-    input.step,
-    input.evidence,
-    "This step moves an animal, and no pen was chosen"
-  ).value;
-  // A Pen that is not this farm's is not somewhere she can be walked to.
-  await requirePen(tx, input.instance.farmId, toPenId);
-  const fromPenId = already?.fromPenId ?? live.penId;
-
-  if (somethingMovedHer) {
-    // Record what the Step now says, and leave her where the farm last saw her.
-    if (already) {
-      await tx
-        .update(animalMove)
-        .set({ toPenId })
-        .where(eq(animalMove.completionId, input.completionId));
-    }
-    return { kind: "move", fromPenId, toPenId, moved: false, cannotUndo: true };
-  }
-
-  if (already) {
-    await tx
-      .update(animalMove)
-      .set({ toPenId })
-      .where(eq(animalMove.completionId, input.completionId));
-    await tx
-      .update(animal)
-      .set({ penId: toPenId, updatedAt: input.now })
-      .where(eq(animal.id, live.id));
-    await moveOpenWorkWith(tx, input.instance.farmId, live.id, toPenId);
-  } else if (fromPenId !== toPenId) {
-    await recordMove(tx, {
-      farmId: input.instance.farmId,
-      beast: live,
-      toPenId,
-      completionId: input.completionId,
-      movedBy: input.recordedBy,
-      movedAt: input.recordedAt,
-      now: input.now,
-    });
-  }
-  return {
-    kind: "move",
-    fromPenId,
+  const walked = await walkByStep(tx, {
+    farmId: input.instance.farmId,
+    beast: live,
+    completionId: input.completionId,
     toPenId,
-    moved: fromPenId !== toPenId,
-    cannotUndo: false,
-  };
+    movedBy: input.recordedBy,
+    movedAt: input.recordedAt,
+    now: input.now,
+    calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
+  });
+  return walked ? { kind: "move", ...walked } : null;
 };
 
 /**
@@ -1313,14 +1242,11 @@ const applyDryOffEffect = async (
       data: { refusal: "dry_off_of_a_cow_not_in_milk" },
     });
   }
-  await tx
-    .update(animal)
-    .set({
-      state: "dry",
-      stateChangedAt: input.recordedAt,
-      updatedAt: input.now,
-    })
-    .where(eq(animal.id, live.id));
+  await entersState(tx, input.instance.farmId, live, {
+    state: "dry",
+    at: input.recordedAt,
+    now: input.now,
+  });
   return { kind: "dry_off", dried: true, cannotUndo: false };
 };
 
@@ -1424,6 +1350,7 @@ const applyCalvingEffect = async (
     completionId: input.completionId,
     calved: input.skipped ? null : calvingIn(input),
     recordedBy: input.recordedBy,
+    recordedByRole: input.roleUsed,
     times: input.pregnancyTimes,
     now: input.now,
   });

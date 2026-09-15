@@ -151,7 +151,7 @@ beforeAll(async () => {
 
   // 3 February: the bull calf goes to the fattening side.
   const third = await as("owner", "2046-02-03T04:00:00.000Z");
-  await third.client.animals.changeSide({
+  await third.client.animals.move({
     tagNumber: world.bull.tagNumber,
     toPenId: world.pens.fattening.id,
     toSide: "fattening",

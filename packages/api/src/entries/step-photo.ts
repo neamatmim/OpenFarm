@@ -4,9 +4,9 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { assertMayWork } from "../completion-store";
+import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
 import type { EntryKind } from "./entry";
-import { lateEntry } from "./entry";
 
 /** One photograph against the Evidence slot of the Step Completion it answers. */
 export const stepPhotoInput = photoInput.extend({

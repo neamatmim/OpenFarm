@@ -68,11 +68,14 @@ export const isLiveState = (state: AnimalState): state is LiveState =>
   (LIVE_STATES as readonly AnimalState[]).includes(state);
 
 const TRANSITIONS: Record<AnimalState, readonly AnimalState[]> = {
-  calf: ["heifer", "fattening"],
-  heifer: ["pregnant_heifer", "fattening"],
-  pregnant_heifer: ["milking", "heifer", "fattening"],
-  milking: ["dry", "fattening"],
-  dry: ["milking", "fattening"],
+  // No Dairy State leads to Fattening here: crossing Sides is a Move into a Pen on the other Side, and she takes the
+  // State it gives her then (`stateAfterSideChange`). A change of State alone would leave her on Fattening in a dairy
+  // Pen with no Move to say how she got there.
+  calf: ["heifer"],
+  heifer: ["pregnant_heifer"],
+  pregnant_heifer: ["milking", "heifer"],
+  milking: ["dry"],
+  dry: ["milking"],
   quarantine: ["fattening"],
   fattening: ["ready_for_sale"],
   ready_for_sale: ["fattening"],

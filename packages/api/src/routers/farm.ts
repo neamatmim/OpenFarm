@@ -11,8 +11,8 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import type { CalvingWorkFollowed } from "../breeding-store";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
+import type { CalvingWorkFollowed } from "../calving-work";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";

@@ -296,8 +296,6 @@ const AnimalPage = () => {
         }
         mayHandle={mayHandle}
         onChanged={refresh}
-        pens={pens}
-        runsTheFarm={runsTheFarm}
       />
 
       {detail.observations.length > 0 || detail.diagnoses.length > 0 ? (
@@ -695,17 +693,14 @@ const HerServices = ({
 /** Her photo, her Pen, her State, her tag and her side — each offered only to a Role the farm lets do it. */
 const ManageHer = ({
   detail,
-  pens,
   movePens,
   mayMove,
   isVet,
   mayChangeState,
   mayHandle,
-  runsTheFarm,
   onChanged,
 }: {
   detail: AnimalDetail;
-  pens: { id: string; name: string; shedName: string }[];
   /** Where she may be moved by this person: anywhere for those who run the farm, a Staff member's own Pens. */
   movePens: { id: string; name: string; shedName: string }[];
   mayMove: boolean;
@@ -713,7 +708,6 @@ const ManageHer = ({
   /** Owner, Manager or a full Vet: a visiting vet does not change her State. */
   mayChangeState: boolean;
   mayHandle: boolean;
-  runsTheFarm: boolean;
   onChanged: () => unknown;
 }) => {
   const { t } = useLanguage();
@@ -919,12 +913,8 @@ const ManageHer = ({
               {t("animals.retag")}
             </Button>
           </form>
-          {runsTheFarm ? (
-            <ChangeSide
-              pens={pens}
-              side={detail.side}
-              tagNumber={detail.tagNumber}
-            />
+          {mayMove && detail.side === "dairy" ? (
+            <ChangeSide pens={movePens} tagNumber={detail.tagNumber} />
           ) : null}
         </div>
       ) : null}
@@ -932,21 +922,20 @@ const ManageHer = ({
   );
 };
 
-/** Across to the other side — a bull calf to fattening, or an animal put on the wrong side — into a Pen there. */
+/** Across to Fattening — a bull calf, or an animal put on the wrong side — into a Pen there. A Move like any other, so
+ *  whoever may move her may take her across, and a phone out of signal keeps it until it can send it. */
 const ChangeSide = ({
   tagNumber,
-  side,
   pens,
 }: {
   tagNumber: string;
-  side: "dairy" | "fattening";
   pens: { id: string; name: string; shedName: string }[];
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const toSide = side === "dairy" ? "fattening" : "dairy";
+  const toSide = "fattening" as const;
   const [toPenId, setToPenId] = useState("");
-  const change = useMutation(orpc.animals.changeSide.mutationOptions({}));
+  const move = useMutation(orpc.animals.move.mutationOptions({}));
   return (
     <div className="flex flex-col gap-2 rounded-lg border p-4">
       <p className="text-sm font-medium">{t("correct.side")}</p>
@@ -954,7 +943,15 @@ const ChangeSide = ({
       <CorrectionDialog
         description={t("correct.sideHint")}
         onSave={async (reason) => {
-          await change.mutateAsync({ tagNumber, toSide, toPenId, reason });
+          const across = { tagNumber, toSide, toPenId, reason };
+          // With signal the farm answers now; without it the Move waits on the phone rather than being lost.
+          if (navigator.onLine) {
+            await move.mutateAsync(across);
+          } else {
+            await queueMove(across);
+            // Said as well as saved: it goes to the farm when the phone finds signal, not now.
+            toast.info(t("animals.moveQueued"));
+          }
           await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         }}
         ready={Boolean(toPenId)}
