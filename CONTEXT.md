@@ -68,6 +68,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Overdue** / **Missed**: An Instance past its due time and Grace is Overdue and the Manager is alerted. It becomes Missed only when the Manager closes it with a reason. Nothing disappears on its own. _Avoid_: Expired, skipped, failed
 
+**Called Off**: An Instance the farm no longer owes, closed by what changed rather than by a person: the animal it was for left the farm, the Heat that raised it was taken back, her calving moved, the report it would deliver was withdrawn. Not Missed and not outstanding — nobody fell short. Named in the trail with what called it off, and raised again if its cause comes back; Missed work never is. _Avoid_: Withdrawn (the Treatment Gate's word), cancelled, Missed (the Manager's close)
+
 ## Herd structure
 
 **Side**: Which half of the farm an Animal currently belongs to: Dairy or Fattening. Exactly one at a time; changing Side is a recorded move. _Avoid_: Department, unit, type
