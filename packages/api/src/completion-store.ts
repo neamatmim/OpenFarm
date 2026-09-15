@@ -5,7 +5,8 @@ import type { Tx } from "./audit";
 import type { Context } from "./context";
 import { isOnTheFarm } from "./instances-store";
 import { lateEntry } from "./late";
-import { assertOnTheirCases } from "./visiting-store";
+import type { Scope } from "./scope";
+import { requireWorkInScope } from "./scope";
 
 /** The context a record needs: who is recording, on which Farm, under which Role. */
 export type Recorder = Context & {
@@ -73,13 +74,10 @@ export const resolveStepAnimal = async (
 /** An Instance a person may work: theirs by Pen, and pinned or claimed by nobody else. */
 export const assertMayWork = (
   context: {
-    roleUsed: string | null;
-    penIds: string[];
+    scope: Scope;
     actor: { id: string };
     roles: string[];
     device: unknown;
-    visiting: boolean;
-    caseAnimalIds: string[];
   },
   instance: {
     penId: string | null;
@@ -89,8 +87,9 @@ export const assertMayWork = (
     animalId: string | null;
   }
 ) => {
-  // A visiting Vet works only on the animals they were called in for.
-  assertOnTheirCases(context, instance.animalId);
+  // Work in their Scope: their Pens, work about an animal on their Cases, and work about the whole farm for anybody but
+  // a visitor, who works only on the animals they were called in for.
+  requireWorkInScope(context.scope, instance);
   // The Instance says who does this work; holding some other Role is not enough. The Owner
   // and the Manager may always step in — someone has to be able to unstick a shift.
   const runsTheFarm =
@@ -105,14 +104,6 @@ export const assertMayWork = (
     throw new ORPCError("FORBIDDEN", {
       message: "This can only be done from your own phone, not a shed phone",
     });
-  }
-  // Work about the whole farm is in no Pen, and so in nobody's Pens to keep them from it.
-  if (
-    context.roleUsed === "staff" &&
-    instance.penId !== null &&
-    !context.penIds.includes(instance.penId)
-  ) {
-    throw new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
   }
   // Somebody else holding the work is not a question of permission: it is the world having
   // moved, which is exactly what happens to a phone that has been out of range. Marked as

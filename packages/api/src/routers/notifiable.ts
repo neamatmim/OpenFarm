@@ -113,7 +113,7 @@ export const notifiableRouter = {
    * (roles matrix). Barn Staff have no business in it.
    */
   list: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .handler(async ({ context }) => {
       const rows = await context.db.query.notifiableDisease.findMany({
         where: { farmId: context.farm.id },

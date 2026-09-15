@@ -97,7 +97,7 @@ describe("a visiting Vet", () => {
   it("sees only the animals on their cases", async () => {
     const vet = await calling(world.vetId, DURING);
     const me = await vet.people.me();
-    expect(me.visiting).toBe(true);
+    expect(me.scopes.vet?.kind).toBe("cases");
     const herd = await vet.animals.list({});
     expect(herd.map((beast) => beast.tagNumber)).toEqual([world.onCase]);
     await expect(
@@ -140,6 +140,8 @@ describe("a visiting Vet", () => {
     const vet = await calling(world.vetId, DURING);
     const me = await vet.people.me();
     expect(Object.keys(me.farm ?? {}).toSorted()).toEqual(["id", "name"]);
+    // And their screens are told their Scope is their Cases, and nothing of the farm besides.
+    expect(me.scopes).toMatchObject({ vet: { kind: "cases" } });
     await expect(vet.herd.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(vet.sops.card({ definitionId: "any" })).rejects.toMatchObject({
       code: "FORBIDDEN",
@@ -256,6 +258,11 @@ describe("a visiting Vet who also works the barn", () => {
       reason: "দুই কাজের মানুষ দেখবেন",
     });
     const withCase = await calling(id, DURING);
+    const told = await withCase.people.me();
+    expect(told.scopes).toMatchObject({
+      staff: { kind: "pens_or_cases" },
+      vet: { kind: "cases" },
+    });
     const herd = await withCase.animals.list({});
     expect(herd.map((beast) => beast.tagNumber)).toContain(world.onCase);
     const her = await withCase.animals.byTag({ tagNumber: world.onCase });
@@ -302,6 +309,12 @@ describe("a visiting Vet who also works the barn", () => {
     try {
       const today = await withCase.instances.today({});
       expect(today.map((work) => work.id)).toContain(workId);
+      // And they may open it, though it stands in no Pen of theirs: it is about an animal on their Case.
+      await expect(
+        withCase.instances.get({ id: workId })
+      ).resolves.toMatchObject({
+        id: workId,
+      });
     } finally {
       // The farm's list is every file's: nothing this test raised is left for a later clock to find late.
       await scratchDb()

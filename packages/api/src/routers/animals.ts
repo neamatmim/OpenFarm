@@ -47,7 +47,6 @@ import {
 } from "../health-store";
 import {
   animalSummaryColumns,
-  assertPenIsTheirs,
   calves,
   entersState,
   insertAnimal,
@@ -65,7 +64,12 @@ import {
   writeDisposal,
 } from "../mortality-store";
 import { requireRole } from "../roles";
-import { assertOnTheirCases, onTheirCases } from "../visiting-store";
+import {
+  animalsInScopeWhere,
+  isOnTheirCase,
+  requireAnimalInScope,
+  requireLookUp,
+} from "../scope";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */
@@ -285,17 +289,6 @@ const intakeView = (
       }
     : null;
 
-/** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
-const penScope = (assigned: string[] | null, requested: string | undefined) => {
-  if (assigned) {
-    const visible = requested
-      ? assigned.filter((id) => id === requested)
-      : assigned;
-    return { penId: { in: visible } };
-  }
-  return requested ? { penId: requested } : {};
-};
-
 /** A calving date is the one thing about a Lactation anyone gives us, so it is the one thing
  *  worth refusing when it is impossible. */
 const assertCalvedInThePast = (calvedAt: Date | undefined, now: Date) => {
@@ -444,7 +437,7 @@ const createAnimal = async (
 export const animalsRouter = {
   /** Staff see their assigned Pens; everyone who runs the farm sees the whole herd. */
   list: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z
         .object({
@@ -454,33 +447,13 @@ export const animalsRouter = {
         })
         .default({ includeExited: false })
     )
-    .handler(({ context, input }) => {
-      const scoped = context.roleUsed === "staff";
-      // Barn Staff who are also a visiting Vet see their Pens and their Cases together.
-      const alsoCases =
-        scoped && context.visiting && context.caseAnimalIds.length > 0;
-      if (scoped && context.penIds.length === 0 && !alsoCases) {
-        return [];
-      }
-      const theirs = alsoCases
-        ? {
-            OR: [
-              penScope(context.penIds, input.penId),
-              {
-                id: { in: context.caseAnimalIds },
-                ...(input.penId ? { penId: input.penId } : {}),
-              },
-            ],
-          }
-        : penScope(scoped ? context.penIds : null, input.penId);
-      return context.db.query.animal.findMany({
+    .handler(({ context, input }) =>
+      context.db.query.animal.findMany({
         where: {
           farmId: context.farm.id,
-          ...theirs,
-          // A visiting Vet's herd is their Cases.
-          ...(onTheirCases(context)
-            ? { id: { in: context.caseAnimalIds } }
-            : {}),
+          // Their Scope: the herd for those who run the farm and a Vet, their Pens for Barn Staff, their Cases for a
+          // visit, and Pens or Cases for Barn Staff who are also visiting.
+          ...animalsInScopeWhere(context.scope, input.penId),
           ...(input.side ? { side: input.side } : {}),
           ...(input.includeExited
             ? {}
@@ -488,12 +461,12 @@ export const animalsRouter = {
         },
         columns: animalSummaryColumns,
         orderBy: { tagNumber: "asc" },
-      });
-    }),
+      })
+    ),
 
   /** Any signed-in person may look up any animal by Tag Number, read-only. */
   byTag: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const row = await context.db.query.animal.findFirst({
@@ -631,15 +604,13 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      assertOnTheirCases(context, row.id);
+      requireLookUp(context.scope, row);
       // Barn Staff record what they see and give the doses they are told to give; the
       // conclusions drawn from them are not theirs to read (roles matrix: Staff read
       // treatment instances only). They still see the round's own Observations.
       // Barn Staff who are also the visiting Vet on her Case read what a Vet would.
-      const onTheirCase =
-        context.visiting && context.caseAnimalIds.includes(row.id);
       const readsTheClinicalRecord =
-        context.roleUsed !== "staff" || onTheirCase;
+        context.roleUsed !== "staff" || isOnTheirCase(context.scope, row.id);
       // A separate question from the clinical one, and a separate row of the matrix: money is
       // the Owner's and the Manager's whoever else may read her history.
       const readsWhatSheCost =
@@ -1116,7 +1087,7 @@ export const animalsRouter = {
         context.farm.id,
         tagNumber
       );
-      assertPenIsTheirs(context, target.penId);
+      requireAnimalInScope(context.scope, target);
       await audited(context).write(
         {
           entity: "animal",
@@ -1164,7 +1135,7 @@ export const animalsRouter = {
         context.farm.id,
         tagNumber
       );
-      assertPenIsTheirs(context, target.penId);
+      requireAnimalInScope(context.scope, target);
       await audited(context).write(
         {
           entity: "animal",
@@ -1202,7 +1173,7 @@ export const animalsRouter = {
     }),
 
   photo: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const target = await requireAnimal(
@@ -1210,7 +1181,7 @@ export const animalsRouter = {
         context.farm.id,
         input.tagNumber.toUpperCase()
       );
-      assertOnTheirCases(context, target.id);
+      requireLookUp(context.scope, target);
       const photo = await context.db.query.animalPhoto.findFirst({
         where: { animalId: target.id },
       });

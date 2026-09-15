@@ -21,8 +21,8 @@ import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { raiseDueInstances } from "../instances-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+import { requireClinicalInScope, requireLookUp } from "../scope";
 import { contentOf, publishedContent } from "../sop-content";
-import { assertOnTheirCases } from "../visiting-store";
 
 /** A Prescription is the Vet's act in law, like the Diagnosis it answers (BVC Act 2019). */
 const VET_ONLY = {
@@ -154,7 +154,7 @@ export const prescriptionsRouter = {
    * running for a dose to arrive on a phone in three days' time.
    */
   prescribe: protectedProcedure
-    .use(requireOnly("vet", VET_ONLY))
+    .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
     .use(requirePersonalSession())
     .input(
       z.object({
@@ -196,7 +196,7 @@ export const prescriptionsRouter = {
             context.farm.id,
             input.animalTag.toUpperCase()
           );
-          assertOnTheirCases(context, her.id);
+          requireClinicalInScope(context.scope, her.id);
           const answers = await tx.query.diagnosis.findFirst({
             where: { id: input.diagnosisId, farmId: context.farm.id },
             columns: { animalId: true },
@@ -258,7 +258,7 @@ export const prescriptionsRouter = {
   /** Every course this animal has been on, newest first, with each dose and its work. The
    *  Vet writes them; the Owner and the Manager read them (roles matrix). */
   forAnimal: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
       const her = await context.db.query.animal.findFirst({
@@ -273,7 +273,7 @@ export const prescriptionsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      assertOnTheirCases(context, her.id);
+      requireLookUp(context.scope, her);
       const rows = await context.db.query.prescription.findMany({
         where: { farmId: context.farm.id, animalId: her.id },
         orderBy: { prescribedAt: "desc" },

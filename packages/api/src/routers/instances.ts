@@ -56,8 +56,8 @@ import { tellOfRenewals } from "../registration-store";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
+import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
-import { assertOnTheirCases, onTheirCases } from "../visiting-store";
 
 const MINUTE_MS = 60_000;
 
@@ -125,20 +125,6 @@ const loadCheckableInstance = async (
     });
   }
   return instance;
-};
-
-/** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
-const penFilter = (
-  assigned: string[] | null,
-  requested: string | undefined
-) => {
-  if (!assigned) {
-    return requested ? { penId: requested } : {};
-  }
-  const visible = requested
-    ? assigned.filter((id) => id === requested)
-    : assigned;
-  return { penId: { in: visible } };
 };
 
 /**
@@ -360,30 +346,9 @@ export const instancesRouter = {
 
   /** Today's work: what this person can pick up, newest due first. */
   today: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ penId: z.string().optional() }).default({}))
     .handler(async ({ context, input }) => {
-      const scoped = context.roleUsed === "staff";
-      // Barn Staff who are also a visiting Vet have the work of their Pens and the work about their Cases together, as
-      // their herd list has both.
-      const alsoCases =
-        scoped && context.visiting && context.caseAnimalIds.length > 0;
-      if (scoped && context.penIds.length === 0 && !alsoCases) {
-        return [];
-      }
-      // Both filters must hold: a Staff member asking for one Pen gets that Pen only if it is theirs, rather than
-      // silently getting all of theirs.
-      const theirs = alsoCases
-        ? {
-            OR: [
-              penFilter(context.penIds, input.penId),
-              {
-                animalId: { in: context.caseAnimalIds },
-                ...(input.penId ? { penId: input.penId } : {}),
-              },
-            ],
-          }
-        : penFilter(scoped ? context.penIds : null, input.penId);
       // Today means the farm's day: yesterday's unfinished work belongs on the Overdue
       // list, not on the phone's list of what to do now.
       const now = context.clock.now();
@@ -393,10 +358,8 @@ export const instancesRouter = {
           farmId: context.farm.id,
           state: { in: ["due", "in_progress", "sent_back"] },
           dueAt: { gte: from, lt: to },
-          ...theirs,
-          ...(onTheirCases(context)
-            ? { animalId: { in: context.caseAnimalIds } }
-            : {}),
+          // Their Scope: their Pens, or one of them when they ask for it, and the work about their Cases.
+          ...workInScopeWhere(context.scope, input.penId),
         },
         with: {
           version: { columns: { content: true, number: true } },
@@ -415,7 +378,7 @@ export const instancesRouter = {
   /** Everything the pen board needs: the Version's Steps, the Pen's animals, and what has
    *  already been recorded. */
   get: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const instance = await context.db.query.sopInstance.findFirst({
@@ -438,7 +401,7 @@ export const instancesRouter = {
       if (!instance) {
         throw new ORPCError("NOT_FOUND");
       }
-      assertOnTheirCases(context, instance.animalId);
+      requireWorkInScope(context.scope, instance);
       const content = contentOf(instance.version);
       const animals = content.steps.some((step) => step.repeatPerAnimal)
         ? await animalsForInstance(
@@ -563,7 +526,9 @@ export const instancesRouter = {
 
   /** Claiming is exclusive: the first person to take it is the one working it. */
   claim: protectedProcedure
-    .use(requireRole(...claimEntry.roles))
+    .use(
+      requireRole(...claimEntry.roles, { visitingVet: claimEntry.visitingVet })
+    )
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       await recordNow(context, claimEntry, { instanceId: input.id });
@@ -642,7 +607,11 @@ export const instancesRouter = {
   /** Records one Step — once per animal where the Step repeats. The same answer again changes nothing; a different
    *  one is a Correction. */
   completeStep: protectedProcedure
-    .use(requireRole(...stepCompletionEntry.roles))
+    .use(
+      requireRole(...stepCompletionEntry.roles, {
+        visitingVet: stepCompletionEntry.visitingVet,
+      })
+    )
     .input(stepCompletionInput)
     .handler(async ({ context, input }) => {
       const { effect } = await recordNow(context, stepCompletionEntry, input);
@@ -651,7 +620,11 @@ export const instancesRouter = {
 
   /** A photograph a Step asked for, against the slot it answers — sent after the Step, as a phone's Outbox sends it. */
   attachPhoto: protectedProcedure
-    .use(requireRole(...stepPhotoEntry.roles))
+    .use(
+      requireRole(...stepPhotoEntry.roles, {
+        visitingVet: stepPhotoEntry.visitingVet,
+      })
+    )
     .input(stepPhotoInput)
     .handler(async ({ context, input }) => {
       await recordNow(context, stepPhotoEntry, input);
@@ -663,20 +636,11 @@ export const instancesRouter = {
   overdue: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
-      const scoped = context.roleUsed === "staff";
-      if (scoped && context.penIds.length === 0) {
-        return [];
-      }
       const now = context.clock.now();
       const late = await findLate(context.db, context.farm.id, now);
-      const mine = scoped
-        ? late.filter((row) =>
-            // Work about the whole farm is in nobody's Pens: Barn Staff see it only when it is theirs.
-            row.penId === null
-              ? row.assignedRole === "staff"
-              : context.penIds.includes(row.penId)
-          )
-        : late;
+      // Their Scope: every late piece of work for those who run the farm, and for Barn Staff the work in their Pens and
+      // the farm-wide work that is theirs to do.
+      const mine = late.filter((row) => isWorkInScope(context.scope, row));
       return mine
         .map((row) => ({
           ...row,
@@ -845,7 +809,7 @@ export const instancesRouter = {
    * replaces its Milk Record and the Session's reconciliation is worked out afresh.
    */
   correctStep: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z.object({
         completionId: z.string(),
@@ -874,9 +838,11 @@ export const instancesRouter = {
       const recordedUnder = await context.db.query.sopInstance.findFirst({
         where: { id: existing.instanceId },
         with: { version: { columns: { content: true } } },
-        columns: { id: true, animalId: true },
+        columns: { id: true, penId: true, animalId: true, assignedRole: true },
       });
-      assertOnTheirCases(context, recordedUnder?.animalId);
+      if (recordedUnder) {
+        requireWorkInScope(context.scope, recordedUnder);
+      }
       const clinical =
         recordedUnder !== undefined &&
         isClinicalStep(
@@ -1021,7 +987,11 @@ export const instancesRouter = {
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal
    *  Step — is neither done nor skipped. */
   complete: protectedProcedure
-    .use(requireRole(...finishEntry.roles))
+    .use(
+      requireRole(...finishEntry.roles, {
+        visitingVet: finishEntry.visitingVet,
+      })
+    )
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       await recordNow(context, finishEntry, { instanceId: input.id });

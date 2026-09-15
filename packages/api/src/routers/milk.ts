@@ -30,7 +30,7 @@ import {
 import type { Booking } from "../money-store";
 import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
 import { requireRole } from "../roles";
-import { assertOnTheirCases } from "../visiting-store";
+import { isPenInScope, requireLookUp } from "../scope";
 
 /** How many of a cow's recent milkings to hand back; enough for a fortnight of two-a-day
  *  sessions, which is as far as a phone screen usefully goes. */
@@ -364,9 +364,7 @@ export const milkRouter = {
       });
       // Barn Staff read the milkings of the Pens they work, as they read those Pens' animals.
       const outOfTheirPens =
-        context.roleUsed === "staff" &&
-        session !== undefined &&
-        !context.penIds.includes(session.penId);
+        session !== undefined && !isPenInScope(context.scope, session.penId);
       if (!session || outOfTheirPens) {
         throw new ORPCError("NOT_FOUND", {
           message: "Nothing has been milked in this session yet",
@@ -389,7 +387,7 @@ export const milkRouter = {
 
   /** One cow's lactation as the system derives it — never as anyone typed it. */
   forAnimal: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
       const beast = await context.db.query.animal.findFirst({
@@ -424,7 +422,7 @@ export const milkRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      assertOnTheirCases(context, beast.id);
+      requireLookUp(context.scope, beast);
       // Only what she gave in the Lactation she is in: an earlier one is a different curve,
       // and a total spanning both would be a number that means nothing.
       const records = beast.milkRecords.filter(

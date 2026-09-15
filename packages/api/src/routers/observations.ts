@@ -46,7 +46,11 @@ export const observationsRouter = {
    * handles the animals may say so; Barn Staff for the Pens they work.
    */
   record: protectedProcedure
-    .use(requireRole(...observationEntry.roles))
+    .use(
+      requireRole(...observationEntry.roles, {
+        visitingVet: observationEntry.visitingVet,
+      })
+    )
     .input(observationInput)
     .handler(async ({ context, input }) => {
       const { id } = await recordNow(context, observationEntry, input);

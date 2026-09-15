@@ -51,6 +51,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { queueMove } from "@/lib/record-offline";
+import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 const PHOTO_MAX_BYTES = 1_500_000;
@@ -153,12 +154,21 @@ const SeenWhere = ({
   );
 };
 
+/** A person's Scope under each Role they hold, as `people.me` tells a screen. */
+type MeScopes = Awaited<ReturnType<typeof client.people.me>>["scopes"];
+
+/** The Pens in somebody's Scope — none for a Scope that is the farm, which is not narrowed to any, or their Cases. */
+const pensOf = (scope: MeScopes[keyof MeScopes]): readonly string[] =>
+  scope && "penIds" in scope ? scope.penIds : [];
+
 /** The farm's Pens to move her to, once it is known the reader may see them: a visiting Vet moves nobody, and does
  *  not see the farm's layout. */
-const usePens = (me: { visiting: boolean; roles: string[] } | undefined) => {
-  // Only a visitor alone is kept from them: a visiting Vet who also works the barn or runs the farm moves animals.
+const usePens = (me: { scopes: MeScopes } | undefined) => {
+  // Only somebody here only on a visit is kept from them — every Scope they hold their Cases: a visiting Vet who also
+  // works the barn or runs the farm moves animals.
+  const scopes = Object.values(me?.scopes ?? {});
   const onlyVisiting =
-    me?.visiting === true && me.roles.every((role) => role === "vet");
+    scopes.length > 0 && scopes.every((scope) => scope?.kind === "cases");
   const sheds = useQuery({
     ...orpc.herd.list.queryOptions(),
     enabled: me !== undefined && !onlyVisiting,
@@ -198,7 +208,7 @@ const AnimalPage = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   const { isVet, fullVet, runsTheFarm, mayHandle, seesPapers } = powersOf(
     me.data?.roles,
-    me.data?.visiting
+    me.data?.scopes.vet?.kind === "cases"
   );
   const pens = usePens(me.data);
   const refresh = () =>
@@ -287,12 +297,14 @@ const AnimalPage = () => {
         mayChangeState={runsTheFarm || fullVet}
         mayMove={
           runsTheFarm ||
-          (mayHandle && (me.data?.penIds ?? []).includes(detail.penId))
+          (mayHandle && pensOf(me.data?.scopes.staff).includes(detail.penId))
         }
         movePens={
           runsTheFarm
             ? pens
-            : pens.filter((pen) => (me.data?.penIds ?? []).includes(pen.id))
+            : pens.filter((pen) =>
+                pensOf(me.data?.scopes.staff).includes(pen.id)
+              )
         }
         mayHandle={mayHandle}
         onChanged={refresh}

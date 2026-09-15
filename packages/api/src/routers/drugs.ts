@@ -100,7 +100,7 @@ const assertIsVet = (context: { roles: readonly string[] }) => {
 export const drugsRouter = {
   /** The farm's Drug List, and which of it may actually be prescribed. */
   list: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .handler(async ({ context }) => {
       const rows = await context.db.query.drugProduct.findMany({
         where: { farmId: context.farm.id },

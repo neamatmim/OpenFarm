@@ -138,16 +138,6 @@ export const loadLiveAnimal = async (
   return row;
 };
 
-/** A Staff member may only act on the Pens they are assigned to. */
-export const assertPenIsTheirs = (
-  context: { roleUsed: string | null; penIds: string[] },
-  penId: string
-) => {
-  if (context.roleUsed === "staff" && !context.penIds.includes(penId)) {
-    throw new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
-  }
-};
-
 export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
   const row = await tx.query.pen.findFirst({ where: { id: penId, farmId } });
   if (!row) {

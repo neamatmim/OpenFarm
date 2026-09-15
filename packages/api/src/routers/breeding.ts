@@ -20,7 +20,7 @@ import {
 } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
-import { assertOnTheirCases } from "../visiting-store";
+import { requireClinicalInScope } from "../scope";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -32,7 +32,7 @@ const VET_ONLY = {
 /** An abortion is a clinical finding the Vet signs, so it comes from the Vet's own account and
  *  never a Shed Phone — as a Diagnosis does. */
 const abortionByTheVet = protectedProcedure
-  .use(requireOnly("vet", VET_ONLY))
+  .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
   .use(requirePersonalSession());
 
 /** The abortion as the trail records it either side of a change. */
@@ -101,7 +101,7 @@ export const breedingRouter = {
         },
         async (tx) => {
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          assertOnTheirCases(context, her.id);
+          requireClinicalInScope(context.scope, her.id);
           if (!her.expectedCalvingAt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `${tagNumber} is not carrying, so there is no pregnancy to lose`,
@@ -183,7 +183,7 @@ export const breedingRouter = {
       if (!standing) {
         throw new ORPCError("NOT_FOUND", { message: "No such abortion" });
       }
-      assertOnTheirCases(context, standing.animalId);
+      requireClinicalInScope(context.scope, standing.animalId);
       const verdict = mayCorrect({
         // Only their standing as the Vet is asked about, as for a Diagnosis: the finding is the Vet's, whatever else
         // they hold on the farm.

@@ -6,8 +6,7 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { assertPenIsTheirs } from "../herd-store";
-import { assertOnTheirCases } from "../visiting-store";
+import { requireAnimalInScope } from "../scope";
 import type { EntryKind } from "./entry";
 import { requireAnimalStillHere } from "./entry";
 
@@ -68,8 +67,8 @@ export const observationEntry: EntryKind<
       context.farm.id,
       input.tagNumber
     );
-    assertPenIsTheirs(context, beast.penId);
-    assertOnTheirCases(context, beast.id);
+    // What they see of an animal is theirs to write down when she is in their Pens or on their Cases.
+    requireAnimalInScope(context.scope, beast);
     await tx.insert(observation).values({
       id,
       farmId: context.farm.id,

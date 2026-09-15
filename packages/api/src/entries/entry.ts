@@ -10,6 +10,7 @@ import type { Recorder } from "../completion-store";
 import { requireAnimal } from "../herd-store";
 import { isLate, lateEntry } from "../late";
 import { VISITING_VET, forbidden, roleFor } from "../roles";
+import { workingAs } from "../scope";
 
 /**
  * How the farm sorted an Entry it did not simply take (ADR 0004): late, when the world moved under it; not theirs, when
@@ -201,7 +202,7 @@ export const recordHeld = async <Input, Result>(
   if (refused) {
     throw new ORPCError("BAD_REQUEST", { message: refused });
   }
-  const context: Recorder = { ...recorder, roleUsed };
+  const context: Recorder = { ...recorder, ...workingAs(recorder, roleUsed) };
   const times = {
     id: held.id,
     doneAt:

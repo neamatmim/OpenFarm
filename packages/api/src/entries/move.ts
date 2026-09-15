@@ -2,13 +2,8 @@ import { SIDES } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { pregnancyTimesOf } from "../breeding-store";
-import {
-  assertPenIsTheirs,
-  readAnimal,
-  requireAnimal,
-  requirePen,
-  walkTo,
-} from "../herd-store";
+import { readAnimal, requireAnimal, requirePen, walkTo } from "../herd-store";
+import { requirePenInScope } from "../scope";
 import type { EntryKind } from "./entry";
 import { requireAnimalStillHere } from "./entry";
 
@@ -56,8 +51,8 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
       context.farm.id,
       input.tagNumber
     );
-    assertPenIsTheirs(context, beast.penId);
-    assertPenIsTheirs(context, input.toPenId);
+    requirePenInScope(context.scope, beast.penId);
+    requirePenInScope(context.scope, input.toPenId);
     await requirePen(tx, context.farm.id, input.toPenId);
     await walkTo(tx, {
       farmId: context.farm.id,

@@ -42,7 +42,7 @@ const VetPage = () => {
 
   const me = useQuery(orpc.people.me.queryOptions());
   // A vet called in for a visit sees their Cases, not the farm's rounds, breeding list or fees.
-  const visiting = me.data?.visiting ?? false;
+  const visiting = me.data?.scopes.vet?.kind === "cases";
   const kinds = useQuery({
     ...orpc.observations.kinds.queryOptions(),
     enabled: me.data !== undefined && !visiting,

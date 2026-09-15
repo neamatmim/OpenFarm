@@ -13,9 +13,10 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { feedingTargetForPen, linesOf } from "../feed-store";
-import { assertPenIsTheirs, requirePen } from "../herd-store";
+import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
+import { requirePenInScope } from "../scope";
 
 const bilingual = z.object({
   bn: z.string().trim().min(1).max(80),
@@ -345,7 +346,7 @@ export const feedRouter = {
       z.object({ penId: z.string(), rationAsOf: z.coerce.date().optional() })
     )
     .handler(async ({ context, input }) => {
-      assertPenIsTheirs(context, input.penId);
+      requirePenInScope(context.scope, input.penId);
       const found = await feedingTargetForPen(
         context.db,
         context.farm.id,
