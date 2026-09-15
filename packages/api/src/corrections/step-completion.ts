@@ -47,7 +47,8 @@ const loadStep = async (tx: Tx, farmId: string, id: string) => {
 
 /** A Step's answer as the work screen shows it: the Evidence, the skip, where the milk went, the warning gone past. */
 const answerShown = z.object({
-  skipReason: z.string().nullable(),
+  // Trimmed, as the farm keeps it: a screen still showing what a phone held before it was sent may not have been.
+  skipReason: z.string().trim().nullable(),
   evidence: z.array(evidenceValue),
   destination: z.enum(MILK_DESTINATIONS).nullable(),
   outOfRange: z.string().nullable(),
@@ -126,6 +127,8 @@ export const stepCorrection: CorrectionKind<
       outOfRange: to.outOfRange ?? null,
     }),
   },
+  // Taken as a change whenever they come: the work screen sends a feeding Step's lines every time, and the Effect run
+  // again on the same lines writes what it wrote before.
   changesBeyondValues: ({ feeding, counts, renewal }) =>
     Boolean(feeding ?? counts ?? renewal),
   trail: async (tx, row, outcome) => {

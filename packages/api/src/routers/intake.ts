@@ -15,7 +15,7 @@ import { protectedProcedure } from "../index";
 import {
   bookIntakeMoney,
   purchasePriceInput,
-  readArrival,
+  readIntake,
   sellerInput,
 } from "../intake-store";
 import { paymentMethodInput } from "../money-inputs";
@@ -131,7 +131,7 @@ export const intakeRouter = {
           entity: "animal",
           entityId: id,
           action: "create",
-          after: (tx) => readArrival(tx, id),
+          after: (tx) => readIntake(tx, id),
         },
         async (tx) => {
           const made = await insertAnimal(tx, {

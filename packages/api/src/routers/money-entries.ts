@@ -19,17 +19,17 @@ import {
   categoryForEntered,
   enteredOn,
   keepReceipt,
-  monthInput,
-  noteInput,
   readEntered,
-  receiptInput,
-  refused,
-  sideInput,
+  refusedByHand,
 } from "../money-by-hand-store";
 import {
   amountInput,
   counterpartyInput,
+  monthInput,
+  noteInput,
   paymentMethodInput,
+  receiptInput,
+  sideInput,
 } from "../money-inputs";
 import {
   addStandardCategories,
@@ -149,7 +149,7 @@ export const moneyEntryProcedures = {
             columns: { id: true },
           });
           if (taken || isStandardName(input.nameBn)) {
-            throw refused(
+            throw refusedByHand(
               "The farm already has that Category",
               "category_exists"
             );
@@ -188,11 +188,11 @@ export const moneyEntryProcedures = {
       }
       if (!mayBeRetired(category.key)) {
         throw category.key === "wages"
-          ? refused(
+          ? refusedByHand(
               "Wages are kept: a wage is one per person per month under them",
               "category_kept_for_wages"
             )
-          : refused(
+          : refusedByHand(
               "A record's money is booked under that Category",
               "category_kept_by_records"
             );

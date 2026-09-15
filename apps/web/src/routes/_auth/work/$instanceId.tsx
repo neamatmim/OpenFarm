@@ -39,9 +39,8 @@ import {
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import {
+  correctionRefusalMessage,
   isChangedSince,
-  refusalMessage,
-  wordedRefusal,
 } from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import type { Photo } from "@/lib/photo";
@@ -227,10 +226,7 @@ const WorkPage = () => {
     queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
     toast.error(
-      refusalMessage(error, t) ??
-        wordedRefusal(error, t) ??
-        error.message ??
-        t("common.error")
+      correctionRefusalMessage(error, t) ?? error.message ?? t("common.error")
     );
 
   const instanceKey = orpc.instances.get.queryKey({

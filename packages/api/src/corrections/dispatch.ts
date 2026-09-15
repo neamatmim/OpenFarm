@@ -12,9 +12,10 @@ import {
   readDispatch,
   twoPlaces,
 } from "../dispatch-store";
+import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, paymentMethodChange } from "./correction";
+import { changeOf, correctionInput } from "./correction";
 
 const loadDispatch = (tx: Tx, farmId: string, id: string) =>
   tx.query.dispatch.findFirst({ where: { id, farmId } });

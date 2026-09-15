@@ -35,7 +35,7 @@ export const buyerInput = z.object({
   phone: z.string().trim().max(20).optional(),
 });
 
-export const priceInput = z.number().min(0).max(100_000_000);
+export const salePriceInput = z.number().min(0).max(100_000_000);
 
 /**
  * Books what an animal fetched as the Sale now says it. A beast given away fetches nothing and books

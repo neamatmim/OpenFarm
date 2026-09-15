@@ -18,7 +18,12 @@ import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
 import { requireOnly, requireRole } from "../roles";
-import { bookSaleMoney, buyerInput, priceInput, readSale } from "../sale-store";
+import {
+  bookSaleMoney,
+  buyerInput,
+  salePriceInput,
+  readSale,
+} from "../sale-store";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -90,7 +95,7 @@ export const saleRouter = {
       z.object({
         tagNumber: tagInput,
         buyer: buyerInput,
-        priceBdt: priceInput,
+        priceBdt: salePriceInput,
         /** What she weighed on the day, which is what the price was struck on. */
         weightKg: z.number().positive().max(2000),
         destination: z.string().trim().min(1).max(200),

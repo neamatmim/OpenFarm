@@ -1,7 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { sql } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import type { ReviewReason } from "@OpenFarm/db/schema/review";
 import type { CorrectionRefusal, CorrectionWindows } from "@OpenFarm/domain";
 import { describeWindow, mayCorrect } from "@OpenFarm/domain";
@@ -65,14 +64,6 @@ export const changeOf = <
 ): z.ZodOptional<z.ZodObject<{ from: FromSchema; to: ToSchema }>> =>
   z.object({ from, to }).optional();
 
-const paymentMethod = z.enum(PAYMENT_METHODS);
-
-/** How the money of a record changed hands, put right: shown as nothing for a record that booked no money. */
-export const paymentMethodChange = changeOf(
-  paymentMethod,
-  paymentMethod.nullable()
-);
-
 /** What a Correction is asked to do: which record, why, and each value it changes. */
 export const correctionInput = <Shape extends z.ZodRawShape>(changes: Shape) =>
   z.object({
@@ -120,9 +111,15 @@ export interface CorrectionKind<
   visitingVet?: boolean;
   /** Said when there is no such record on this farm. */
   missing: string;
+  /** The record on this farm, or nothing; refuses one that is not this kind's to put right, as money a record booked. */
   load: (tx: Tx, farmId: string, id: string) => Promise<Row | undefined>;
   /** The Audit Event's entity id, when it is not the record's own. */
   entityIdOf?: (row: Row) => string;
+  /**
+   * False for a record filed under the Animal it is about, whose latest Audit Event may be about anything of hers — a
+   * Move, a State — and so is no event this Correction supersedes.
+   */
+  supersedes?: boolean;
   /**
    * When it reached the farm, by the farm's clock, and who entered it — what its Correction Window runs from. Null for
    * a fact that was never an entry, which has no window: only the Roles that may correct it.
@@ -156,12 +153,15 @@ export interface CorrectionKind<
   afterwards?: (context: Corrector, outcome: Outcome) => Promise<void>;
 }
 
+/** What a Correction Window runs from: when the entry reached the farm, who entered it, and whether it is clinical. */
 export interface EntryFacts {
   enteredAt: Date;
   enteredBy: string | null;
   isHealthEntry?: boolean;
 }
 
+/** Whether the screen showed what the record holds: figures and days by value, an answer part by part — a part left
+ *  out is a part that is not there. */
 const same = (
   a: Comparable | undefined,
   b: Comparable | undefined
@@ -213,41 +213,68 @@ const NOT_THEIRS: CorrectionRefusal = {
   ownEntriesOnly: true,
 };
 
+/** Most permissive first, as a Correction Window is asked about: someone who is Manager and Staff corrects as the
+ *  Manager. */
+const PRECEDENCE: readonly RoleName[] = ["owner", "manager", "vet", "staff"];
+
 /**
- * The Role this Correction is made under: of the Roles that may correct the kind, the one whose standing and window
- * let them — the widest, so someone who is Manager and Staff corrects as the Manager.
+ * The Role this Correction is made under, and the person working under it: of the Roles that may correct the kind, the
+ * widest whose standing and window let them and whose Scope reaches the record. Barn Staff also called in as a Vet put
+ * their own clinical entry in their Pen right as Staff, when the animal is on none of their Cases.
  */
-const roleToCorrect = <Row, C extends ChangeSet, Outcome, Extra extends object>(
+const workingToCorrect = <
+  Row,
+  C extends ChangeSet,
+  Outcome,
+  Extra extends object,
+>(
   context: Recorder,
   kind: CorrectionKind<Row, C, Outcome, Extra>,
   row: Row,
   now: Date
-): RoleName => {
-  const theirs = context.roles.filter(
+): Corrector => {
+  const theirs = PRECEDENCE.filter(
     (role) =>
+      context.roles.includes(role) &&
       kind.roles.includes(role) &&
       !(role === "vet" && context.visiting && !kind.visitingVet)
   );
-  if (!kind.entry) {
-    const role = pickRoleUsed(theirs, kind.roles);
-    if (!role) {
-      throw refused(NOT_THEIRS);
-    }
-    return role;
-  }
-  const entry = kind.entry(row);
-  const verdict = mayCorrect({
-    roles: theirs,
-    isOwnEntry: entry.enteredBy === context.actor.id,
-    isHealthEntry: entry.isHealthEntry,
-    recordedAt: entry.enteredAt,
-    now,
-    windows: correctionWindows(context.farm),
+  const entry = kind.entry?.(row);
+  const verdictFor = (roles: readonly RoleName[]) =>
+    entry
+      ? mayCorrect({
+          roles,
+          isOwnEntry: entry.enteredBy === context.actor.id,
+          isHealthEntry: entry.isHealthEntry,
+          recordedAt: entry.enteredAt,
+          now,
+          windows: correctionWindows(context.farm),
+        })
+      : pickRoleUsed(roles, kind.roles);
+  const allowed = theirs.filter((role) => {
+    const verdict = verdictFor([role]);
+    return typeof verdict === "string" || (verdict !== null && verdict.allowed);
   });
-  if (!verdict.allowed) {
-    throw refused(verdict.refusal);
+  let outOfReach: unknown;
+  for (const role of allowed) {
+    const working: Corrector = { ...context, ...workingAs(context, role) };
+    try {
+      kind.requireInScope?.(working.scope, row);
+      return working;
+    } catch (error) {
+      outOfReach ??= error;
+    }
   }
-  return verdict.role;
+  if (outOfReach) {
+    throw outOfReach;
+  }
+  // Refused by every Role they hold: the refusal names the widest window that ran out, or no Role at all.
+  const verdict = verdictFor(theirs);
+  throw refused(
+    verdict !== null && typeof verdict === "object" && !verdict.allowed
+      ? verdict.refusal
+      : NOT_THEIRS
+  );
 };
 
 /**
@@ -288,10 +315,9 @@ export const correct = async <
     if (!row) {
       throw new ORPCError("NOT_FOUND", { message: kind.missing });
     }
-    const role = roleToCorrect(context, kind, row, now);
-    const working: Corrector = { ...context, ...workingAs(context, role) };
+    const working = workingToCorrect(context, kind, row, now);
+    const role = working.roleUsed;
     corrector = working;
-    kind.requireInScope?.(working.scope, row);
 
     const shown = await kind.shown(tx, row);
     if (changed.some(({ field, from }) => !same(from, shown[field]))) {
@@ -314,7 +340,10 @@ export const correct = async <
 
     const entityId = kind.entityIdOf?.(row) ?? input.id;
     const audit = audited(working);
-    const previous = await audit.latestEventFor(tx, kind.entity, entityId);
+    const previous =
+      kind.supersedes === false
+        ? undefined
+        : await audit.latestEventFor(tx, kind.entity, entityId);
     const before = await kind.trail(tx, row);
     const to = Object.fromEntries(
       changed.map(({ field, to: value }) => [field, value])

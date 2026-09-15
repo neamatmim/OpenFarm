@@ -63,6 +63,7 @@ export const expectedCalvingCorrection: CorrectionKind<
   CalvingWorkFollowed | null
 > = {
   entity: "animal",
+  supersedes: false,
   table: animal,
   roles: ["owner", "manager"],
   missing: "No such animal",

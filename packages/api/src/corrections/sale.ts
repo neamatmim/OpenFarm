@@ -4,10 +4,16 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
+import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
-import { bookSaleMoney, buyerInput, priceInput, readSale } from "../sale-store";
+import {
+  bookSaleMoney,
+  buyerInput,
+  salePriceInput,
+  readSale,
+} from "../sale-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, paymentMethodChange } from "./correction";
+import { changeOf, correctionInput } from "./correction";
 
 const loadSale = (tx: Tx, farmId: string, id: string) =>
   tx.query.sale.findFirst({
@@ -24,7 +30,7 @@ const loadSale = (tx: Tx, farmId: string, id: string) =>
 
 /** What a Sale's Correction may change: what she fetched, who bought her, and how he paid. */
 export const saleCorrectionInput = correctionInput({
-  priceBdt: changeOf(priceInput, z.number()),
+  priceBdt: changeOf(salePriceInput, z.number()),
   buyer: changeOf(buyerInput, z.string()),
   paymentMethod: paymentMethodChange,
 });

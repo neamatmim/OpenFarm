@@ -10,17 +10,21 @@ import {
   categoryForEntered,
   enteredOn,
   keepReceipt,
+  readEntered,
+  refusedByHand,
+} from "../money-by-hand-store";
+import {
+  amountInput,
+  counterpartyInput,
   monthInput,
   noteInput,
-  readEntered,
+  paymentMethodChange,
   receiptInput,
-  refused,
   sideInput,
-} from "../money-by-hand-store";
-import { amountInput, counterpartyInput } from "../money-inputs";
+} from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, paymentMethodChange } from "./correction";
+import { changeOf, correctionInput } from "./correction";
 
 /** Money entered by hand, and only that: a record's own money is put right on the record. */
 const loadEntered = async (tx: Tx, farmId: string, id: string) => {
@@ -29,7 +33,7 @@ const loadEntered = async (tx: Tx, farmId: string, id: string) => {
     with: { counterparty: { columns: { name: true } } },
   });
   if (row && row.source !== "by_hand") {
-    throw refused(
+    throw refusedByHand(
       "That money comes from a record; put the record right",
       "correct_the_record"
     );

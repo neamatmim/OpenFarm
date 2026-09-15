@@ -1,9 +1,18 @@
+import { eq } from "@OpenFarm/db/operators";
+import { user } from "@OpenFarm/db/schema/auth";
+import { roleAssignment } from "@OpenFarm/db/schema/farm";
+import { sale } from "@OpenFarm/db/schema/fattening";
+import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { Principal } from "@OpenFarm/test-harness";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import type { Recorder } from "../completion-store";
 import { appRouter } from "../routers/index";
+import { requireAnimalInScope } from "../scope";
 import { createTestClient } from "../test/client";
+import type { Change, CorrectionKind } from "./correction";
+import { correct } from "./correction";
 
 // Every kind of record a person can put right, through the one Correction: the Role and the trail it is written under,
 // a value the record no longer holds, a Correction that changes nothing, a window that has closed or never does, whose
@@ -43,8 +52,12 @@ interface Made {
 
 interface Kind {
   name: string;
-  /** Who records it: the office's work, or the Vet's own. */
-  by: "manager" | "vet";
+  /** Who records it, and puts it right: the office's work, the Vet's own, or the Owner's. */
+  by: "owner" | "manager" | "vet";
+  /** Filed under the Animal it is about, whose latest event may be about anything of hers: it supersedes none. */
+  filedWithTheAnimal?: boolean;
+  /** Somebody holding a Role that may correct this kind, whose standing does not reach this record. */
+  someoneElse?: Principal;
   /** Whether the Owner may put it right as well: money entered by hand is the Manager's alone. */
   ownerToo?: boolean;
   /** A fact that was never an entry, with no Correction Window. */
@@ -115,6 +128,7 @@ const KINDS: Kind[] = [
     name: "an Intake",
     by: "manager",
     ownerToo: true,
+    filedWithTheAnimal: true,
     make: async (manager) => {
       const made = await intakeFor(manager, 20_000);
       const row = await scratchDb().query.intake.findFirst({
@@ -246,6 +260,7 @@ const KINDS: Kind[] = [
     name: "an Expected Calving somebody gave",
     by: "manager",
     neverAnEntry: true,
+    filedWithTheAnimal: true,
     make: async (manager) => {
       const her = await manager.animals.register({
         sex: "female",
@@ -272,6 +287,118 @@ const KINDS: Kind[] = [
         ...input,
         tagNumber: id,
       } as never),
+  },
+  {
+    name: "a Step Completion",
+    by: "manager",
+    ownerToo: true,
+    someoneElse: "staff",
+    make: async (manager) => {
+      const owner = await as("owner", RECORDED);
+      const sop = await owner.client.sops.create({
+        content: {
+          name: { bn: `গণনা ${suffix} ${Math.random()}` },
+          purpose: { bn: "খাতায় গণনা" },
+          triggers: [{ kind: "schedule", times: ["09:00"] }],
+          assignedRole: "manager",
+          checkerRole: null,
+          graceMinutes: 90,
+          steps: [
+            {
+              id: "count",
+              text: { bn: "গুনুন" },
+              repeatPerAnimal: false,
+              evidence: [
+                {
+                  type: "number",
+                  required: true,
+                  unit: { bn: "টি" },
+                  min: 0,
+                  max: 100,
+                },
+              ],
+              skipReasons: [],
+            },
+          ],
+        },
+      });
+      await owner.client.instances.raiseNow({
+        definitionId: sop.definitionId,
+        penId,
+      });
+      // Retired once raised: another file's clock must not find this procedure due in every Pen.
+      await scratchDb()
+        .update(sopDefinition)
+        .set({ retiredAt: new Date(RECORDED) })
+        .where(eq(sopDefinition.id, sop.definitionId));
+      const listed = await manager.instances.today({ penId });
+      const work = listed.find((one) => one.definitionId === sop.definitionId);
+      await manager.instances.claim({ id: work?.id ?? "" });
+      await manager.instances.completeStep({
+        instanceId: work?.id ?? "",
+        stepId: "count",
+        evidence: [5],
+      });
+      const loaded = await manager.instances.get({ id: work?.id ?? "" });
+      const completion = loaded.completions.find(
+        (one) => one.stepId === "count"
+      );
+      const recorded = {
+        skipReason: null,
+        evidence: [5],
+        destination: null,
+        outOfRange: null,
+      };
+      return {
+        id: completion?.id ?? "",
+        trail: { entity: "step_completion", entityId: completion?.id ?? "" },
+        field: "answer",
+        from: recorded,
+        to: { evidence: [6] },
+        stale: { ...recorded, evidence: [4] },
+        unchanged: { evidence: [5] },
+      };
+    },
+    correct: (client, input) => client.instances.correctStep(input as never),
+  },
+  {
+    name: "a person's name",
+    by: "owner",
+    neverAnEntry: true,
+    make: async () => {
+      const id = `named-${suffix}-${Math.random()}`;
+      const at = new Date(RECORDED);
+      await scratchDb()
+        .insert(user)
+        .values({
+          id,
+          name: "Rahmi",
+          email: `${id}@example.com`,
+          emailVerified: true,
+          createdAt: at,
+          updatedAt: at,
+        });
+      await scratchDb()
+        .insert(roleAssignment)
+        .values({
+          id: `role-${id}`,
+          farmId: TEST_FARM.id,
+          userId: id,
+          role: "staff",
+          grantedBy: id,
+          grantedByRole: "owner",
+          createdAt: at,
+        });
+      return {
+        id,
+        trail: { entity: "user", entityId: id },
+        field: "name",
+        from: "Rahmi",
+        to: "Rahim",
+        stale: "Rahman",
+      };
+    },
+    correct: (client, input) => client.people.correctName(input as never),
   },
   {
     name: "a Diagnosis",
@@ -349,7 +476,8 @@ describe.each(KINDS)("putting right $name", (kind) => {
       action: "correct",
       roleUsed: kind.by,
       reason: "রসিদ মিলিয়ে দেখা",
-      supersedesId: recorded?.id,
+      // Nothing recorded before it in the trail, for a person added to the farm without one.
+      supersedesId: kind.filedWithTheAnimal ? null : (recorded?.id ?? null),
     });
     expect(corrected?.before).not.toEqual(corrected?.after);
   });
@@ -448,13 +576,30 @@ describe.each(KINDS.filter((kind) => kind.by === "vet"))(
   }
 );
 
+describe.each(KINDS.filter((kind) => kind.someoneElse))(
+  "somebody else's $name",
+  (kind) => {
+    it("is not theirs, though their Role may correct their own", async () => {
+      const maker = await as(kind.by, RECORDED);
+      const record = await kind.make(maker.client);
+      const other = await as(kind.someoneElse ?? kind.by, NEXT_DAY);
+      await expect(
+        kind.correct(other.client, changing(record, record.from, record.to))
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        data: { refusal: { word: "not_theirs", role: null } },
+      });
+    });
+  }
+);
+
 describe.each(KINDS.filter((kind) => kind.neverAnEntry))(
   "$name, which was never an entry",
   (kind) => {
-    it("has no window: the Manager puts it right months on", async () => {
-      const manager = await as("manager", RECORDED);
-      const record = await kind.make(manager.client);
-      const monthsOn = await as("manager", "2039-10-01T04:00:00.000Z");
+    it("has no window: it is put right months on", async () => {
+      const maker = await as(kind.by, RECORDED);
+      const record = await kind.make(maker.client);
+      const monthsOn = await as(kind.by, "2039-10-01T04:00:00.000Z");
       await kind.correct(
         monthsOn.client,
         changing(record, record.from, record.to)
@@ -462,8 +607,67 @@ describe.each(KINDS.filter((kind) => kind.neverAnEntry))(
       const [corrected] = await monthsOn.client.audit.list(record.trail);
       expect(corrected).toMatchObject({
         action: "correct",
-        roleUsed: "manager",
+        roleUsed: kind.by,
       });
     });
   }
 );
+
+describe("the Role a Correction is made under", () => {
+  /** Barn Staff also called in as a Vet, correcting their own clinical entry about an animal in their Pen and on none
+   *  of their Cases — the combination where the widest window is not the Role that reaches her. */
+  const staffAlsoVisiting = async (enteredHoursAgo: number) => {
+    const staff = await as("staff", NEXT_DAY);
+    const context = {
+      ...staff.context,
+      roles: ["staff", "vet"],
+      visiting: true,
+      penIds: ["their-pen"],
+      caseAnimalIds: [],
+    } as unknown as Recorder;
+    const now = new Date(NEXT_DAY).getTime();
+    const row = {
+      id: `not-a-sale-${suffix}-${enteredHoursAgo}`,
+      animal: { id: "not-on-a-case", penId: "their-pen" },
+    };
+    const kind: CorrectionKind<
+      typeof row,
+      { note?: Change<string, string> },
+      { roleUsed: string }
+    > = {
+      entity: "correction_under_test",
+      table: sale,
+      roles: ["staff", "vet"],
+      visitingVet: true,
+      missing: "No such record",
+      load: () => Promise.resolve(row),
+      entry: () => ({
+        enteredAt: new Date(now - enteredHoursAgo * 60 * 60 * 1000),
+        enteredBy: context.actor.id,
+        isHealthEntry: true,
+      }),
+      requireInScope: (scope, record) =>
+        requireAnimalInScope(scope, record.animal),
+      shown: () => Promise.resolve({ note: "was" }),
+      trail: () => Promise.resolve(null),
+      apply: (_tx, _row, _to, { context: working }) =>
+        Promise.resolve({ roleUsed: working.roleUsed }),
+    };
+    return correct(context, kind, {
+      id: row.id,
+      reason: "ভুল লিখেছিলাম",
+      changes: { note: { from: "was", to: "is" } },
+    });
+  };
+
+  it("is the widest whose window lets them and whose Scope reaches the record", async () => {
+    // The Vet's window never closes, but a visit reaches only their Cases: it is made as Staff, inside their two hours.
+    await expect(staffAlsoVisiting(1)).resolves.toMatchObject({
+      roleUsed: "staff",
+    });
+    // Past their two hours as Staff, and no Case of theirs as the Vet: not theirs to reach.
+    await expect(staffAlsoVisiting(3)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+});

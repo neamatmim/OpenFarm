@@ -7,12 +7,13 @@ import { counterpartyNamed } from "../counterparty-store";
 import {
   bookIntakeMoney,
   purchasePriceInput,
-  readArrival,
+  readIntake,
   sellerInput,
 } from "../intake-store";
+import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, paymentMethodChange } from "./correction";
+import { changeOf, correctionInput } from "./correction";
 
 const loadIntake = (tx: Tx, farmId: string, id: string) =>
   tx.query.intake.findFirst({
@@ -37,7 +38,7 @@ export const intakeCorrectionInput = correctionInput({
 
 /**
  * An Intake put right — and with it the Money Event, rather than a second one. Filed under the Animal it made, as the
- * Intake itself was, so the Correction supersedes the event that recorded her arriving.
+ * Intake itself was.
  */
 export const intakeCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadIntake>>>,
@@ -49,6 +50,7 @@ export const intakeCorrection: CorrectionKind<
   missing: "No such intake",
   load: loadIntake,
   entityIdOf: (row) => row.animalId,
+  supersedes: false,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     purchasePriceBdt: Number(row.purchasePriceBdt),
@@ -56,7 +58,7 @@ export const intakeCorrection: CorrectionKind<
     paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
   }),
   shownAs: { seller: (to) => to.name },
-  trail: (tx, row) => readArrival(tx, row.animalId),
+  trail: (tx, row) => readIntake(tx, row.animalId),
   apply: async (tx, row, to, { context, now }) => {
     await tx
       .update(intake)

@@ -1,27 +1,14 @@
-import { SIDES } from "@OpenFarm/db/schema/herd";
 import { moneyReceipt } from "@OpenFarm/db/schema/money";
-import { PHOTO_MAX_BYTES, startOfFarmDay } from "@OpenFarm/domain";
+import { startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
-import { z } from "zod";
+import type { z } from "zod";
 
 import type { Tx } from "./audit";
+import type { receiptInput } from "./money-inputs";
 import { mayBeEnteredByHand } from "./money-store";
 
-/** A calendar month, as a wage pays for one. */
-export const monthInput = z.string().regex(/^\d{4}-(?:0[1-9]|1[0-2])$/u);
-
-export const receiptInput = z.object({
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-  data: z.string().min(1).max(PHOTO_MAX_BYTES),
-});
-
-export const noteInput = z.string().trim().min(1).max(300);
-
-/** The Side money entered by hand belongs to; left out, the whole farm. */
-export const sideInput = z.enum(SIDES);
-
 /** Refused, with the word the screen says it in. */
-export const refused = (message: string, refusal: string) =>
+export const refusedByHand = (message: string, refusal: string) =>
   new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 /** Money entered by hand as the trail records it: the Money Event, and when a receipt was kept — not the
@@ -60,27 +47,30 @@ export const categoryForEntered = async (
     throw new ORPCError("NOT_FOUND", { message: "No such Category" });
   }
   if (category.retiredAt && !alreadyUnderIt) {
-    throw refused("That Category is retired", "category_retired");
+    throw refusedByHand("That Category is retired", "category_retired");
   }
   if (!mayBeEnteredByHand(category.key)) {
     // Milk sold is booked by its Dispatch, a bull bought by its Intake: entering it by hand as well is
     // the same money twice.
-    throw refused(
+    throw refusedByHand(
       "That Category's money comes from its own record",
       "category_kept_by_records"
     );
   }
   const isWage = category.key === "wages";
   if (isWage && wageMonth === null) {
-    throw refused("A wage names the month it pays for", "wage_needs_month");
+    throw refusedByHand(
+      "A wage names the month it pays for",
+      "wage_needs_month"
+    );
   }
   if (!isWage && wageMonth !== null) {
-    throw refused("Only a wage pays for a month", "month_is_for_wages");
+    throw refusedByHand("Only a wage pays for a month", "month_is_for_wages");
   }
   return category;
 };
 
-/** One wage per person per month: refused when this person's month is already paid, by another entry. */
+/** One wage per person per month: refusedByHand when this person's month is already paid, by another entry. */
 export const assertWageNotYetEntered = async (
   tx: Tx,
   farmId: string,
@@ -99,18 +89,18 @@ export const assertWageNotYetEntered = async (
     columns: { id: true },
   });
   if (already) {
-    throw refused(
+    throw refusedByHand(
       "That person's wage for that month is already entered",
       "wage_already_entered"
     );
   }
 };
 
-/** The farm day money moved, refused when that day has not come yet. */
+/** The farm day money moved, refusedByHand when that day has not come yet. */
 export const enteredOn = (day: string, now: Date): Date => {
   const at = startOfFarmDay(day);
   if (at > now) {
-    throw refused(
+    throw refusedByHand(
       "Money cannot have moved on a day that has not come yet",
       "entered_in_the_future"
     );

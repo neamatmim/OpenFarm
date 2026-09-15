@@ -47,15 +47,17 @@ export const abortionCorrection: CorrectionKind<
     }),
   trail: (tx, row) => readAbortion(tx, row.id),
   apply: async (tx, row, to, { now }) => {
-    if (to.abortedAt) {
+    if (to.abortedAt !== undefined) {
       await assertLostWhenItCouldBe(tx, to.abortedAt, now, row.serviceId);
     }
     await tx
       .update(abortion)
       .set({
-        ...(to.abortedAt ? { abortedAt: to.abortedAt } : {}),
-        ...(to.stageMonths ? { stageMonths: to.stageMonths } : {}),
-        ...(to.note ? { note: to.note } : {}),
+        ...(to.abortedAt === undefined ? {} : { abortedAt: to.abortedAt }),
+        ...(to.stageMonths === undefined
+          ? {}
+          : { stageMonths: to.stageMonths }),
+        ...(to.note === undefined ? {} : { note: to.note }),
       })
       .where(eq(abortion.id, row.id));
   },

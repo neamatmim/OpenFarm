@@ -6,18 +6,19 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import {
   assertShapeOf,
   bookPurchaseMoney,
-  priceInput,
+  feedPriceInput,
   quantityInput,
-  readArrival,
+  readFeedArrival,
   receivedDay,
   sellerInput,
 } from "../stock-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, paymentMethodChange } from "./correction";
+import { changeOf, correctionInput } from "./correction";
 
 const loadArrival = (tx: Tx, farmId: string, id: string) =>
   tx.query.feedIn.findFirst({
@@ -28,7 +29,7 @@ const loadArrival = (tx: Tx, farmId: string, id: string) =>
 /** What putting right feed that came in may change: how much, what it cost, who sold it, the day, and how it was paid. */
 export const feedArrivalCorrectionInput = correctionInput({
   quantity: changeOf(quantityInput, z.number()),
-  priceBdt: changeOf(priceInput, z.number().nullable()),
+  priceBdt: changeOf(feedPriceInput, z.number().nullable()),
   seller: changeOf(sellerInput, z.string().nullable()),
   receivedOn: changeOf(farmDay, z.string()),
   paymentMethod: paymentMethodChange,
@@ -56,7 +57,7 @@ export const feedArrivalCorrection: CorrectionKind<
     paymentMethod: await paymentMethodOf(tx, row.farmId, "feed_in", row.id),
   }),
   shownAs: { seller: (to) => to.name },
-  trail: (tx, row) => readArrival(tx, row.id),
+  trail: (tx, row) => readFeedArrival(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
     assertShapeOf({
       kind: row.kind,

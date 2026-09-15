@@ -496,10 +496,10 @@ export const sellerInput = z.object({
 /** A tenth of the Feed Item's unit is the smallest amount the store keeps. */
 export const quantityInput = z.number().min(0.1).max(1_000_000);
 
-export const priceInput = z.number().positive().max(100_000_000);
+export const feedPriceInput = z.number().positive().max(100_000_000);
 
 /** What came in, as the trail records it either side of a change. */
-export const readArrival = async (tx: Tx, id: string) => {
+export const readFeedArrival = async (tx: Tx, id: string) => {
   const row = await tx.query.feedIn.findFirst({ where: { id } });
   return row
     ? { ...row, money: await moneySnapshotOf(tx, row.farmId, "feed_in", id) }

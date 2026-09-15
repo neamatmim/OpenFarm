@@ -19,9 +19,9 @@ import { requireRole } from "../roles";
 import {
   assertShapeOf,
   bookPurchaseMoney,
-  priceInput,
+  feedPriceInput,
   quantityInput,
-  readArrival,
+  readFeedArrival,
   receivedDay,
   sellerInput,
   adjustmentsOf,
@@ -104,7 +104,7 @@ export const stockRouter = {
         feedItemId: z.string(),
         kind: z.enum(FEED_IN_KINDS),
         quantity: quantityInput,
-        priceBdt: priceInput.optional(),
+        priceBdt: feedPriceInput.optional(),
         seller: sellerInput.optional(),
         receivedOn: farmDay,
         /** How the seller was paid, for a purchase. */
@@ -149,7 +149,7 @@ export const stockRouter = {
           entity: "feed_in",
           entityId: id,
           action: "create",
-          after: (tx) => readArrival(tx, id),
+          after: (tx) => readFeedArrival(tx, id),
         },
         async (tx) => {
           const sellerId = input.seller

@@ -6,7 +6,7 @@ import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
-export const readArrival = async (tx: Tx, animalId: string) => {
+export const readIntake = async (tx: Tx, animalId: string) => {
   const row = await tx.query.animal.findFirst({
     where: { id: animalId },
     columns: {

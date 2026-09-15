@@ -806,7 +806,11 @@ export const instancesRouter = {
    * replaces its Milk Record and the Session's reconciliation is worked out afresh.
    */
   correctStep: protectedProcedure
-    .use(requireRole(...stepCorrection.roles, { visitingVet: true }))
+    .use(
+      requireRole(...stepCorrection.roles, {
+        visitingVet: stepCorrection.visitingVet,
+      })
+    )
     .input(stepCorrectionInput)
     .handler(async ({ context, input }) => {
       const { id, roleUsed, effect, needsReview } = await correct(
