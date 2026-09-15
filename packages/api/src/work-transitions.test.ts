@@ -1,23 +1,23 @@
 import { INSTANCE_STATES as COLUMN_STATES } from "@OpenFarm/db/schema/instance";
-import type { InstanceState, WorkMove } from "@OpenFarm/domain";
+import type { InstanceState, WorkTransition } from "@OpenFarm/domain";
 import {
   INSTANCE_STATES,
   OPEN_INSTANCE_STATES,
-  WORK_MOVES,
+  WORK_TRANSITIONS,
   awaitsSignOff,
   isFinished,
   isOpen,
-  mayMove,
+  mayTransition,
   stateAfter,
 } from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
 
-// What can happen to an SOP Instance from each state it can be in, written out move by move so the rule reads at a
+// What can happen to an SOP Instance from each state it can be in, written out transition by transition so the rule reads at a
 // glance. No database: the rule is about states, and the gaps were where one path allowed what another refused.
 
-/** For each move, what it leaves work in from each state — or "refused". */
+/** For each transition, what it leaves work in from each state — or "refused". */
 const EXPECTED: Record<
-  WorkMove,
+  WorkTransition,
   Record<InstanceState, InstanceState | "refused">
 > = {
   claim: {
@@ -112,21 +112,23 @@ const EXPECTED: Record<
   },
 };
 
-describe("the moves of an SOP Instance", () => {
+describe("the transitions of an SOP Instance", () => {
   it("knows every state the database keeps", () => {
     expect([...INSTANCE_STATES]).toEqual([...COLUMN_STATES]);
   });
 
-  it.each(Object.keys(WORK_MOVES) as WorkMove[])(
+  it.each(Object.keys(WORK_TRANSITIONS) as WorkTransition[])(
     "%s, from every state",
-    (move) => {
+    (transition) => {
       const actual = Object.fromEntries(
         INSTANCE_STATES.map((state) => [
           state,
-          mayMove(move, state) ? stateAfter(move, state) : "refused",
+          mayTransition(transition, state)
+            ? stateAfter(transition, state)
+            : "refused",
         ])
       );
-      expect(actual).toEqual(EXPECTED[move]);
+      expect(actual).toEqual(EXPECTED[transition]);
     }
   );
 

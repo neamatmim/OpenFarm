@@ -53,7 +53,11 @@ import { raiseNeedsReview } from "../review-store";
 import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
-import { readWork, requireMayMove, requireMove } from "../work-moves";
+import {
+  readWork,
+  requireMayTransition,
+  requireTransition,
+} from "../work-transitions";
 
 const MINUTE_MS = 60_000;
 
@@ -84,7 +88,7 @@ const loadCheckableInstance = async (
   if (!instance) {
     throw new ORPCError("NOT_FOUND");
   }
-  requireMayMove(instance, "approve");
+  requireMayTransition(instance, "approve");
   if (!instance.checkerRole) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This work is not checked by anyone",
@@ -538,7 +542,7 @@ export const instancesRouter = {
             throw new ORPCError("NOT_FOUND");
           }
           // Only work still owed: finished work is done, and work closed as Missed or Called Off is not to be done.
-          requireMayMove(instance, "assign");
+          requireMayTransition(instance, "assign");
           if (input.userId) {
             // Pinning to someone who cannot work it would strand the Instance: nobody else
             // may touch it, and they are not on this farm to pick it up.
@@ -563,7 +567,7 @@ export const instancesRouter = {
             }
           }
           // Who changes, not where the work stands: work sent back stays sent back for whoever does it next.
-          await requireMove(tx, instance, "assign", {
+          await requireTransition(tx, instance, "assign", {
             set: {
               assignedTo: input.userId,
               assignedBy: context.actor.id,
@@ -661,7 +665,7 @@ export const instancesRouter = {
         },
         async (tx) => {
           const instance = await loadCheckableInstance(tx, context, input.id);
-          await requireMove(tx, instance, "approve");
+          await requireTransition(tx, instance, "approve");
         }
       );
       return { id: input.id, state: "approved" } as const;
@@ -686,7 +690,7 @@ export const instancesRouter = {
         },
         async (tx) => {
           const instance = await loadCheckableInstance(tx, context, input.id);
-          await requireMove(tx, instance, "sendBack", {
+          await requireTransition(tx, instance, "sendBack", {
             set: { completedAt: null },
           });
           // The people who did the work are the people who have to hear about it — and a
@@ -745,7 +749,7 @@ export const instancesRouter = {
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
           }
-          requireMayMove(instance, "closeAsMissed");
+          requireMayTransition(instance, "closeAsMissed");
           // Work that is not yet late has not been missed — it has not had its chance.
           if (!isOverdue(instance, now)) {
             throw new ORPCError("BAD_REQUEST", {
@@ -754,7 +758,7 @@ export const instancesRouter = {
           }
           // No completedAt: nobody completed it. When it was closed, and by whom, is the
           // Audit Event's business.
-          await requireMove(tx, instance, "closeAsMissed");
+          await requireTransition(tx, instance, "closeAsMissed");
         }
       );
       return { id: input.id, state: "missed" } as const;

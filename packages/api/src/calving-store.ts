@@ -7,13 +7,12 @@ import type { CalfOutcome, CalfSex, CalvingEase } from "@OpenFarm/domain";
 import { STILLBIRTH, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import type { PregnancyTimes } from "./breeding-store";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { nothingFollowed } from "./calving-work";
 import { calves, insertAnimal, redateCalving } from "./herd-store";
 import { recordMortality, redateDeathOf } from "./mortality-store";
-import type { Who } from "./work-moves";
 
 export interface Calf {
   sex: CalfSex;
@@ -42,8 +41,8 @@ export interface CalvingEntry {
   recordedByRole: RoleName | null;
   times: PregnancyTimes;
   now: Date;
-  /** Who is recording it now, as the trail of work it calls off names them. */
-  who: Who;
+  /** The trail of the request recording it: the work it calls off is written there. */
+  trail: Trail;
 }
 
 /**
@@ -64,7 +63,7 @@ const recordStillbirth = async (
       recordedBy: entry.recordedBy,
       recordedByRole: entry.recordedByRole,
       now: entry.now,
-      who: entry.who,
+      trail: entry.trail,
     },
     { id: calfId },
     { kind: "died", happenedAt: at, cause: STILLBIRTH, disposal: null }
@@ -255,7 +254,7 @@ export const recordCalving = async (
       at,
       now: entry.now,
       calvingLeadDays: entry.times.calvingLeadDays,
-      who: entry.who,
+      trail: entry.trail,
     }
   );
   await tx.insert(calving).values({

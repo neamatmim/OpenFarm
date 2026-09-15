@@ -38,7 +38,7 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import type { PregnancyTimes } from "./breeding-store";
 import {
   attemptThatRaisedWork,
@@ -71,7 +71,6 @@ import { raiseNeedsReview } from "./review-store";
 import { forbidden } from "./roles";
 import type { StockAdjustment, StockCountLine } from "./stock-store";
 import { recordStockCount } from "./stock-store";
-import type { Who } from "./work-moves";
 
 /**
  * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
@@ -285,9 +284,9 @@ export interface EffectInput {
   recordedBy: string;
   recordedAt: Date;
   now: Date;
-  /** Who is recording it now — the person putting a Step right, not the one who first did it — as the trail of work it
-   *  calls off names them. */
-  who: Who;
+  /** The trail of the request recording it now — the person putting a Step right, not the one who first did it: work
+   *  it calls off or raises again is written there. */
+  trail: Trail;
 }
 
 /** The Pen a Pen's Step records into. Feeding a Pen and milking one are about a Pen, and work about the whole
@@ -680,10 +679,10 @@ const unraiseIfHeat = async (
   tx: Tx,
   farmId: string,
   withdrawn: { id: string; saw: string },
-  who: Who
+  trail: Trail
 ) => {
   if (withdrawn.saw === HEAT) {
-    await callOffWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id), who);
+    await callOffWorkRaisedBy(tx, farmId, heatKeyOf(withdrawn.id), trail);
   }
 };
 
@@ -717,7 +716,7 @@ const applyObservationEffect = async (
         .update(observation)
         .set({ withdrawnAt: input.now })
         .where(eq(observation.id, standing.id));
-      await unraiseIfHeat(tx, input.instance.farmId, standing, input.who);
+      await unraiseIfHeat(tx, input.instance.farmId, standing, input.trail);
     }
     return null;
   }
@@ -738,7 +737,7 @@ const applyObservationEffect = async (
       .update(observation)
       .set({ withdrawnAt: input.now, supersededById: id })
       .where(eq(observation.id, standing.id));
-    await unraiseIfHeat(tx, input.instance.farmId, standing, input.who);
+    await unraiseIfHeat(tx, input.instance.farmId, standing, input.trail);
   }
   await tx.insert(observation).values({
     id,
@@ -816,7 +815,7 @@ const applyMoveEffect = async (
     movedAt: input.recordedAt,
     now: input.now,
     calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
-    who: input.who,
+    trail: input.trail,
   });
   return walked ? { kind: "move", ...walked } : null;
 };
@@ -934,7 +933,7 @@ const rederiveFor = (
     at: input.recordedAt,
     now: input.now,
     undoingPositive,
-    who: input.who,
+    trail: input.trail,
   });
 
 /**
@@ -951,7 +950,7 @@ const breedingFollowsService = async (
     tx,
     input.instance.farmId,
     cowId,
-    input.who
+    input.trail
   );
   return rederiveFor(tx, input, cowId, false);
 };
@@ -1365,7 +1364,7 @@ const applyCalvingEffect = async (
     recordedByRole: input.roleUsed,
     times: input.pregnancyTimes,
     now: input.now,
-    who: input.who,
+    trail: input.trail,
   });
   return recorded ? { kind: "calving", ...recorded } : null;
 };

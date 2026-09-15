@@ -22,13 +22,12 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving, nothingFollowed } from "./calving-work";
 import { entersState } from "./herd-store";
 import { ATTEMPT_KEY_PREFIX, attemptKeyOf } from "./instances-store";
-import type { Who } from "./work-moves";
-import { callOffWork } from "./work-moves";
+import { callOffWork } from "./work-transitions";
 
 /** The Farm Parameters a pregnancy is timed by: how long a cow carries, and how long before her
  *  Expected Calving each piece of calving work falls. */
@@ -62,7 +61,7 @@ export const retimeEveryCalving = async (
   farmId: string,
   times: PregnancyTimes,
   now: Date,
-  who: Who
+  trail: Trail
 ): Promise<CalvingWorkFollowed> => {
   const carrying = await tx.query.animal.findMany({
     where: { farmId, expectedCalvingAt: { isNotNull: true } },
@@ -100,7 +99,7 @@ export const retimeEveryCalving = async (
       tx,
       { ...her, expectedCalvingAt },
       times.calvingLeadDays,
-      { expectedAgain: false, who }
+      { expectedAgain: false, trail }
     );
     followed.workMoved.push(...one.workMoved);
     followed.workClosed.push(...one.workClosed);
@@ -161,7 +160,7 @@ export const callOffWorkOfAttemptsNoLongerStanding = async (
   tx: Tx,
   farmId: string,
   animalId: string,
-  who: Who
+  trail: Trail
 ): Promise<void> => {
   const latest = await latestAttemptOf(tx, animalId);
   const standing = latest ? `${attemptKeyOf(latest)}:` : null;
@@ -185,7 +184,7 @@ export const callOffWorkOfAttemptsNoLongerStanding = async (
         sopInstance.id,
         orphaned.map((work) => work.id)
       ),
-      { who, by: "attempt_no_longer_standing" }
+      { trail, by: "attempt_no_longer_standing" }
     );
   }
 };
@@ -241,14 +240,14 @@ export const rederivePregnancy = async (
     at,
     now,
     undoingPositive,
-    who,
+    trail,
   }: {
     times: PregnancyTimes;
     at: Date;
     now: Date;
     undoingPositive: boolean;
-    /** Who put the pregnancy right, as the trail of the calving work it moves names them. */
-    who: Who;
+    /** The trail of what put the pregnancy right: the calving work it calls off or raises again is written there. */
+    trail: Trail;
   }
 ): Promise<CalvingWorkFollowed> => {
   const her = await tx.query.animal.findFirst({
@@ -314,7 +313,7 @@ export const rederivePregnancy = async (
     {
       expectedAgain:
         her.expectedCalvingAt === null && expectedCalvingAt !== null,
-      who,
+      trail,
     }
   );
 };

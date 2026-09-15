@@ -1,4 +1,4 @@
-import { mayMove } from "@OpenFarm/domain";
+import { mayTransition } from "@OpenFarm/domain";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -38,7 +38,7 @@ export const AssignWork = ({
     (role) => role === "owner" || role === "manager"
   );
   // Only work still owed is given to somebody: finished work is done, and work closed as Missed or Called Off is not.
-  const finished = !mayMove("assign", state);
+  const finished = !mayTransition("assign", state);
   const people = useQuery({
     ...orpc.people.list.queryOptions(),
     enabled: runsTheFarm && !finished,

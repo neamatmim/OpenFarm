@@ -4,6 +4,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { audited } from "../audit";
 import {
   diagnosisNoteInput,
   diseaseInput,
@@ -15,7 +16,6 @@ import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
-import { whoIn } from "../work-moves";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput } from "./correction";
 
@@ -99,7 +99,7 @@ export const diagnosisCorrection: CorrectionKind<
       animalId: her.id,
       penId: her.penId,
       now,
-      who: whoIn(context),
+      trail: audited(context).recordEvent,
     });
     const alerts = owed.notifiable
       ? await raiseNotifiableAlerts(

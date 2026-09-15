@@ -1,16 +1,15 @@
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { CalvingLead } from "@OpenFarm/domain";
-import { calvingWorkDue, isOpen, mayMove } from "@OpenFarm/domain";
+import { calvingWorkDue, isOpen, mayTransition } from "@OpenFarm/domain";
 
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import {
   calvingCauseParts,
   calvingKeyOf,
   calvingWorkPrefix,
 } from "./instances-store";
-import type { Who } from "./work-moves";
-import { callOffWork, raiseWorkAgain } from "./work-moves";
+import { callOffWork, raiseWorkAgain } from "./work-transitions";
 
 /** What following a changed Expected Calving did to the work about her, for the trail. */
 export interface CalvingWorkFollowed {
@@ -52,11 +51,11 @@ export const followExpectedCalving = async (
   leadDays: Record<CalvingLead, number>,
   {
     expectedAgain,
-    who,
+    trail,
   }: {
     expectedAgain: boolean;
-    /** Who changed her calving, as the trail of the work it calls off or raises again names them. */
-    who: Who;
+    /** The trail of what changed her calving: the work it calls off or raises again is written there. */
+    trail: Trail;
   }
 ): Promise<CalvingWorkFollowed> => {
   const calvingWork = await tx.query.sopInstance.findMany({
@@ -83,7 +82,7 @@ export const followExpectedCalving = async (
     }
     // Only work her calving called off comes back: work the Manager closed as Missed stays closed.
     const comesBack =
-      expectedAgain && mayMove("raiseAgain", work.state) && thisCalving;
+      expectedAgain && mayTransition("raiseAgain", work.state) && thisCalving;
     if (!((open || comesBack) && her.expectedCalvingAt)) {
       continue;
     }
@@ -91,7 +90,12 @@ export const followExpectedCalving = async (
     if (comesBack) {
       // Sequential: one row each, and the trail reads them back in the order they went.
       // oxlint-disable-next-line no-await-in-loop
-      if (await raiseWorkAgain(tx, her.farmId, work, { who, dueAt: to })) {
+      const raised = await raiseWorkAgain(tx, work, {
+        trail,
+        dueAt: to,
+        by: "calving_expected_again",
+      });
+      if (raised) {
         followed.workReopened.push(work.id);
       }
       continue;
@@ -111,7 +115,7 @@ export const followExpectedCalving = async (
       tx,
       her.farmId,
       inArray(sopInstance.id, followed.workClosed),
-      { who, by: "calving_no_longer_expected" }
+      { trail, by: "calving_no_longer_expected" }
     );
   }
   return followed;

@@ -13,10 +13,10 @@ export type InstanceState = (typeof INSTANCE_STATES)[number];
 
 /**
  * What can happen to a piece of work, and the states it may happen from — the one place the farm's rule for an SOP
- * Instance is written. A move from any other state is refused: late, when the work was closed or taken while the person
+ * Instance is written. A transition from any other state is refused: late, when the work was closed or taken while the person
  * was doing it.
  */
-export const WORK_MOVES = {
+export const WORK_TRANSITIONS = {
   /** Somebody takes the work: theirs until it is done or given to somebody else. Nobody may hold it already. */
   claim: { from: ["due", "in_progress", "sent_back"], to: "in_progress" },
   /** Its first Step recorded — or its first since it was sent back. */
@@ -42,22 +42,25 @@ export const WORK_MOVES = {
   { from: readonly InstanceState[]; to: InstanceState | null }
 >;
 
-export type WorkMove = keyof typeof WORK_MOVES;
+export type WorkTransition = keyof typeof WORK_TRANSITIONS;
 
-/** Whether this move may happen to work in this state. */
-export const mayMove = (move: WorkMove, state: string): boolean =>
-  (WORK_MOVES[move].from as readonly string[]).includes(state);
+/** Whether this transition may happen to work in this state. */
+export const mayTransition = (
+  transition: WorkTransition,
+  state: string
+): boolean =>
+  (WORK_TRANSITIONS[transition].from as readonly string[]).includes(state);
 
-/** The state a move leaves the work in: its own, for a move that changes who rather than where it stands. */
+/** The state a transition leaves the work in: its own, for a transition that changes who rather than where it stands. */
 export const stateAfter = (
-  move: WorkMove,
+  transition: WorkTransition,
   state: InstanceState
-): InstanceState => WORK_MOVES[move].to ?? state;
+): InstanceState => WORK_TRANSITIONS[transition].to ?? state;
 
 /** Work still waiting to be done: what a Step may be recorded on. Overdue is not among them: it is not a state an
  *  Instance is put into but a fact about one of these and the clock, so nothing has to run on time for the farm to know
  *  the work is late. */
-export const OPEN_INSTANCE_STATES = WORK_MOVES.record.from;
+export const OPEN_INSTANCE_STATES = WORK_TRANSITIONS.record.from;
 
 /** Work that has been done and is waiting for the checker Role — when it has one. */
 export const AWAITING_SIGN_OFF = "completed" as const;

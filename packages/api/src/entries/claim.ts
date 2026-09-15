@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { assertMayWork } from "../completion-store";
 import { lateEntry } from "../late";
-import { applyMove, readWork } from "../work-moves";
+import { applyTransition, readWork } from "../work-transitions";
 import type { EntryKind } from "./entry";
 
 /** Which piece of work. */
@@ -51,7 +51,7 @@ export const claimEntry: EntryKind<WorkInput, { changed: boolean }> = {
     if (instance.claimedBy === context.actor.id) {
       return { changed: false };
     }
-    const taken = await applyMove(
+    const taken = await applyTransition(
       tx,
       { id: input.instanceId, state: instance.state },
       "claim",

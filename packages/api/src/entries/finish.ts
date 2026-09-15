@@ -5,7 +5,11 @@ import { assertMayWork } from "../completion-store";
 import { animalsForInstance } from "../instances-store";
 import { lateEntry } from "../late";
 import { contentOf } from "../sop-content";
-import { readWork, requireMayMove, requireMove } from "../work-moves";
+import {
+  readWork,
+  requireMayTransition,
+  requireTransition,
+} from "../work-transitions";
 import type { WorkInput } from "./claim";
 import type { EntryKind } from "./entry";
 
@@ -39,7 +43,7 @@ export const finishEntry: EntryKind<WorkInput, { changed: boolean }> = {
     if (isFinished(instance.state)) {
       return { changed: false };
     }
-    requireMayMove(instance, "finish");
+    requireMayTransition(instance, "finish");
     const content = contentOf(instance.version);
     const animals = await animalsForInstance(
       tx,
@@ -72,7 +76,9 @@ export const finishEntry: EntryKind<WorkInput, { changed: boolean }> = {
         outstanding,
       });
     }
-    await requireMove(tx, instance, "finish", { set: { completedAt: doneAt } });
+    await requireTransition(tx, instance, "finish", {
+      set: { completedAt: doneAt },
+    });
     return { changed: true };
   },
 

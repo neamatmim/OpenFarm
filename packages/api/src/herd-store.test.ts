@@ -6,7 +6,7 @@ import type { Side, SopContent } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Tx } from "./audit";
+import type { Trail, Tx } from "./audit";
 import {
   calves,
   correctHowSheLeft,
@@ -296,13 +296,8 @@ const onHer = (
 
 const later = { at: new Date(LATER), now: new Date(LATER) };
 
-/** Somebody doing it, as the trail of work it calls off names them. */
-const someone = {
-  actorId: null,
-  roleUsed: null,
-  deviceId: null,
-  at: new Date(LATER),
-};
+/** A trail nobody reads: these tests are about the herd, and the trail of work it calls off is the routers' tests'. */
+const nobodysTrail: Trail = () => Promise.resolve("");
 
 /** The herd walks her. */
 const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
@@ -315,7 +310,7 @@ const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
       movedAt: later.at,
       now: later.now,
       calvingLeadDays: DEFAULT_LEADS,
-      who: someone,
+      trail: nobodysTrail,
     })
   );
 
@@ -380,7 +375,7 @@ describe("what follows from what happens to her", () => {
       calves(tx, TEST_FARM.id, beast, {
         ...later,
         calvingLeadDays: DEFAULT_LEADS,
-        who: someone,
+        trail: nobodysTrail,
       })
     );
     expect(await followed(subject)).toEqual({
@@ -483,7 +478,7 @@ describe("what follows from what happens to her", () => {
       leaves(tx, TEST_FARM.id, beast, {
         state: "died",
         ...later,
-        who: someone,
+        trail: nobodysTrail,
       })
     );
     await expect(
@@ -506,7 +501,7 @@ describe("what follows from what happens to her", () => {
           state,
           at: new Date(LATER),
           now: new Date(LATER),
-          who: someone,
+          trail: nobodysTrail,
         })
       );
       expect(await followed(subject)).toEqual({
@@ -535,7 +530,7 @@ describe("what follows from what happens to her", () => {
             state: "culled",
             at: new Date(LATER),
             now: new Date(LATER),
-            who: someone,
+            trail: nobodysTrail,
           })
         )
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
@@ -559,7 +554,7 @@ describe("what follows from putting it right", () => {
         movedAt: at,
         now: at,
         calvingLeadDays: DEFAULT_LEADS,
-        who: someone,
+        trail: nobodysTrail,
       })
     );
 
@@ -612,7 +607,7 @@ describe("what follows from putting it right", () => {
       leaves(tx, TEST_FARM.id, beast, {
         state: "died",
         ...later,
-        who: someone,
+        trail: nobodysTrail,
       })
     );
     const earlier = new Date("2034-02-01T04:30:00.000Z");
@@ -643,7 +638,7 @@ describe("what follows from putting it right", () => {
       calves(tx, TEST_FARM.id, beast, {
         ...later,
         calvingLeadDays: DEFAULT_LEADS,
-        who: someone,
+        trail: nobodysTrail,
       })
     );
     const { row: calved } = await standing(subject.id, subject.workId);
