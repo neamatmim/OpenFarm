@@ -218,9 +218,11 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Role**: One of Owner, Manager, Staff, Vet. A person may hold several; every recorded action names the Role it was done under. _Avoid_: Permission level, user type, group
 
-**Pen Assignment**: The Pens a Staff member is responsible for. Defines what they see and may record. _Avoid_: Area, zone, allocation
+**Pen Assignment**: The Pens a Staff member is responsible for. Defines what they see and may record as Barn Staff — their **Scope** under that Role. _Avoid_: Area, zone, allocation
 
-**Visiting Scope**: A Vet account limited to animals with an open case they are on, granted per visit and time-limited. _Avoid_: Guest access, temporary account
+**Visiting Scope**: A Vet account limited to animals with an open case they are on, granted per visit and time-limited. It is the **Scope** of their work as the Vet. _Avoid_: Guest access, temporary account
+
+**Scope**: What a person may see and record acting under one Role: the whole farm for the Owner, the Manager and a Vet; their Pen Assignment for Barn Staff; their Visiting Scope for a Vet called in for a visit; and both together for Barn Staff who are also visiting. Worked out for each piece of work from the Role it is done under, never from the highest Role they hold. _Avoid_: Permissions (what a Role may do), access level, visibility
 
 ## Offline
 
