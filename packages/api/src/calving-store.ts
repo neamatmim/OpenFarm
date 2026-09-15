@@ -25,8 +25,8 @@ export type CalvingRecorded = {
   calves: { tagNumber: string; sex: CalfSex; outcome: CalfOutcome }[];
   /** Corrected in a way the farm cannot undo from here — a calving taken back, a calf added or taken
    *  away, a stillborn calf put back among the living, a calf who has since left found stillborn.
-   *  Nothing was changed, and a person is asked. */
-  cannotUndo: boolean;
+   *  Nothing was changed. */
+  actedOn: boolean;
 } & CalvingWorkFollowed;
 
 /** One calving as a Step recorded it. */
@@ -120,7 +120,7 @@ const putRight = async (
         sex: calf.sex,
         outcome: asRecorded(calf),
       })),
-      cannotUndo: true,
+      actedOn: true,
       ...nothingFollowed(),
     };
   }
@@ -170,7 +170,7 @@ const putRight = async (
       sex: calved.calves[index]?.sex ?? calf.sex,
       outcome: calved.calves[index]?.outcome ?? asRecorded(calf),
     })),
-    cannotUndo: false,
+    actedOn: false,
     ...nothingFollowed(),
   };
 };
@@ -304,5 +304,5 @@ export const recordCalving = async (
     }
     born.push({ tagNumber, ...calf });
   }
-  return { calvingId, calves: born, cannotUndo: false, ...followed };
+  return { calvingId, calves: born, actedOn: false, ...followed };
 };

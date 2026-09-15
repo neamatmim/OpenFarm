@@ -20,7 +20,7 @@ import {
   stepOf,
 } from "../completion-store";
 import type { EffectResult } from "../effects";
-import { runStepEffect } from "../effects";
+import { STANDING_ASIDE_SAID, runEffect, stoodAside } from "../effects/effect";
 import { farmDay } from "../farm-clock";
 import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
@@ -129,7 +129,7 @@ interface WorkForEffect {
  * Step's own transaction and keyed on its Completion, so a replay cannot double-count and a replacement replaces. The
  * one place what an Effect is told is put together, whether the Step is recorded or put right.
  */
-const runEffect = (
+const effectOfStep = (
   tx: Tx,
   context: Recorder,
   {
@@ -156,7 +156,7 @@ const runEffect = (
     now: Date;
   }
 ): Promise<EffectResult> =>
-  runStepEffect(tx, {
+  runEffect(tx, {
     step,
     instance: {
       id: work.id,
@@ -316,7 +316,7 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       if (!saved) {
         throw lateEntry("That is already recorded; correct it instead");
       }
-      const effect = await runEffect(tx, context, {
+      const effect = await effectOfStep(tx, context, {
         work,
         content,
         step,
@@ -328,6 +328,14 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         recordedAt: doneAt,
         now: receivedAt,
       });
+      // The farm has moved past what this Step says — she was walked on while the phone held it: the Step is a late Entry,
+      // nothing of it is written, and a person decides.
+      const aside = stoodAside(effect);
+      if (aside) {
+        throw lateEntry(STANDING_ASIDE_SAID[aside.because], {
+          refusal: aside.because,
+        });
+      }
       if (mayTransition("start", work.state)) {
         await requireTransition(tx, work, "start");
       }
@@ -381,7 +389,7 @@ export const replaceStep = async (
       destination: answer.destination ?? null,
     })
     .where(eq(stepCompletion.id, completion.id));
-  return runEffect(tx, context, {
+  return effectOfStep(tx, context, {
     work,
     content,
     step,

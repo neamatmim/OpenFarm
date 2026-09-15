@@ -676,6 +676,54 @@ describe("the work Expected Calving pulls towards it", () => {
     expect(closed.state).toBe("called_off");
   });
 
+  it("keeps a dry-off corrected to a skip, leaves her Dry, and asks a person", async () => {
+    // A cow of this test's own, due to calve on 1 December: her dry-off falls on 2 October.
+    const opening = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2031-09-20T04:00:00.000Z"),
+    });
+    const { imported } = await opening.client.animals.importRegister({
+      csv: [
+        "sex,side,state,pen,source,expected_calving",
+        `female,dairy,milking,দুধের ঘর ${suffix},bought,2031-12-01`,
+      ].join("\n"),
+    });
+    const tagNumber = imported[0]?.tagNumber ?? "";
+    const drying = await workFor(
+      "2031-10-02T03:00:00.000Z",
+      world.dryOff.definitionId,
+      tagNumber
+    );
+    const dryWork = drying.rows[0]?.id;
+    if (!dryWork) {
+      throw new Error("expected her dry-off to have been raised");
+    }
+    // Dried off by the Step itself, so a skip would have to put her back in milk.
+    const clock = new FakeClock("2031-10-02T04:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.instances.claim({ id: dryWork });
+    await manager.client.instances.completeStep({
+      instanceId: dryWork,
+      stepId: "dry",
+      animalTag: tagNumber,
+      evidence: [true],
+    });
+    const board = await manager.client.instances.get({ id: dryWork });
+    const entry = board.completions.find((row) => row.stepId === "dry");
+    const corrected = await correctStepAsShown(manager.client, {
+      completionId: entry?.id ?? "",
+      skipReason: "পাওয়া যায়নি",
+      reason: "ভুল গাভীর নামে লেখা হয়েছিল",
+    });
+    expect(corrected.needsReview).toBe(true);
+    expect(corrected.effect).toMatchObject({
+      kind: "dry_off",
+      standsAside: { because: "cannot_return_to_milk" },
+    });
+    const her = await manager.client.animals.byTag({ tagNumber });
+    expect(her.state).toBe("dry");
+  });
+
   it("moves open work when the farm changes a lead", async () => {
     // Her prep was put on 4 September after her date was corrected. Ten days' lead instead of seven
     // puts it on 1 September; seven again puts it back.

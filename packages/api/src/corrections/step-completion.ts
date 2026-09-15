@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { stepOf } from "../completion-store";
 import type { EffectResult } from "../effects";
+import { stoodAside } from "../effects/effect";
 import {
   evidenceValue,
   readCompletion,
@@ -157,18 +158,14 @@ export const stepCorrection: CorrectionKind<
       now,
     });
     const about = { ...alertParams(row.instance), stepId: row.stepId };
-    // She has been walked on since, so putting her back where this entry now says would overwrite something the farm
-    // knows and this Correction does not. She stays where she was last seen and a person is asked which is true.
-    const irreversible = Boolean(
-      effect && "cannotUndo" in effect && effect.cannotUndo
-    );
-    if (irreversible) {
+    // The farm has moved past what this Correction says — she has been walked on since, her calves have gone on — so the
+    // Effect left the newer fact standing, the corrected answer is kept, and a person is asked which is true.
+    const aside = stoodAside(effect);
+    const irreversible = aside !== null;
+    if (aside) {
       cannotUndo({
         reason: "irreversible_effect",
-        params: {
-          ...about,
-          ...(effect?.kind === "move" ? { toPenId: effect.toPenId } : {}),
-        },
+        params: { ...about, ...aside.params },
       });
     }
     // A checker has already signed this work off, on the figures as they were. The system cannot unsign it, so it says

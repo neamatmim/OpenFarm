@@ -610,8 +610,8 @@ export interface WalkedByStep {
   fromPenId: string | null;
   toPenId: string;
   moved: boolean;
-  /** She has been walked on since, so she stays where the farm last saw her and a person is asked. */
-  cannotUndo: boolean;
+  /** She has been walked on since, so she stays where the farm last saw her. */
+  movedSince: boolean;
 }
 
 /**
@@ -661,7 +661,7 @@ export const walkByStep = async (
         fromPenId: already.fromPenId,
         toPenId: already.toPenId,
         moved: false,
-        cannotUndo: true,
+        movedSince: true,
       };
     }
     await tx
@@ -687,7 +687,7 @@ export const walkByStep = async (
       .where(eq(animalMove.completionId, completionId));
   }
   if (somethingMovedHer) {
-    return { fromPenId, toPenId, moved: false, cannotUndo: true };
+    return { fromPenId, toPenId, moved: false, movedSince: true };
   }
   if (already) {
     await tx
@@ -712,7 +712,7 @@ export const walkByStep = async (
     fromPenId,
     toPenId,
     moved: fromPenId !== toPenId,
-    cannotUndo: false,
+    movedSince: false,
   };
 };
 

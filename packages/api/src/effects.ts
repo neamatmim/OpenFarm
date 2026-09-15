@@ -11,7 +11,6 @@ import {
 } from "@OpenFarm/db/schema/health";
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
-  Choice,
   FeedingEntryLine,
   FeedingLine,
   MilkDestination,
@@ -20,15 +19,9 @@ import type {
   Step,
 } from "@OpenFarm/domain";
 import {
-  CALF_OUTCOMES,
-  CALF_SEXES,
-  CALVING_EASES,
-  CALVING_EVIDENCE,
-  CALVING_RECORDERS,
   HEAT,
   KG_DECIMALS,
   SERVICE_EVIDENCE,
-  canTransition,
   isPregnancyCheckResult,
   isServiceMethod,
   implausibleChange,
@@ -46,17 +39,18 @@ import {
   rederivePregnancy,
 } from "./breeding-store";
 import type { CalvingRecorded } from "./calving-store";
-import { recordCalving } from "./calving-store";
 import type { CalvingWorkFollowed } from "./calving-work";
+import type { StandingAside } from "./effects/effect";
+import {
+  numberIn,
+  writtenNote,
+  choiceIn,
+  textAt,
+  penOf,
+} from "./effects/evidence";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
-import {
-  callOffWorkRaisedBy,
-  entersState,
-  loadLiveAnimal,
-  requirePen,
-  walkByStep,
-} from "./herd-store";
+import { callOffWorkRaisedBy } from "./herd-store";
 import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
 import {
   ensureSession,
@@ -125,9 +119,8 @@ export type EffectResult =
       toPenId: string;
       /** False when she was already standing there: the Step was done, no journey was made. */
       moved: boolean;
-      /** She has been moved again since, so a Correction cannot walk this one back and a
-       *  person has to decide what the truth is. */
-      cannotUndo: boolean;
+      /** She has been moved again since: the Effect left her where the farm last saw her. */
+      standsAside: StandingAside | null;
     }
   | {
       kind: "bulk_total";
@@ -150,7 +143,10 @@ export type EffectResult =
       kind: "pregnancy_check";
       result: PregnancyCheckResult | null;
     } & CalvingWorkFollowed)
-  | ({ kind: "calving" } & CalvingRecorded)
+  | ({ kind: "calving"; standsAside: StandingAside | null } & Omit<
+      CalvingRecorded,
+      "actedOn"
+    >)
   | {
       kind: "stock_count";
       /** The Feed Items whose count differed from what the store was thought to hold. */
@@ -158,84 +154,13 @@ export type EffectResult =
     }
   | {
       kind: "dry_off";
-      /** False when she was already Dry: a phone replaying the entry dries nobody twice. */
+      /** False when she was already Dry: the same Step again dries nobody twice. */
       dried: boolean;
       /** Corrected to a skip, but she cannot be put back in milk from here: what she was before,
        *  and since when, is the trail's to say and a person's to decide. */
-      cannotUndo: boolean;
+      standsAside: StandingAside | null;
     }
   | null;
-
-/** The figure a record-writing Step asks for: the first `number` slot the Version declares.
- *  A Step that writes a record has exactly one figure to write — litres, kilograms, a dose. */
-const numberIn = (step: Step, evidence: unknown[]): number => {
-  const index = step.evidence.findIndex((item) => item.type === "number");
-  const value = index === -1 ? undefined : evidence[index];
-  const typed = Number(value);
-  if (
-    index === -1 ||
-    value === undefined ||
-    value === "" ||
-    Number.isNaN(typed)
-  ) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step records a figure, and none was given",
-    });
-  }
-  return typed;
-};
-
-/** What was written in the Step's note, trimmed, or nothing when it was left empty. */
-const noteIn = (step: Step, evidence: unknown[]): string | null => {
-  const index = step.evidence.findIndex((item) => item.type === "note");
-  const value = index === -1 ? undefined : evidence[index];
-  const written = typeof value === "string" ? value.trim() : "";
-  return written === "" ? null : written;
-};
-
-/** The note a Step recorded, or nothing when the Step was skipped. */
-const writtenNote = (input: EffectInput): string | null =>
-  input.skipped ? null : noteIn(input.step, input.evidence);
-
-/** What was chosen at one position, as the Version declares it there — or null when nothing was.
- *  A value the Version never offered at that position is refused, not ignored. */
-const declaredChoiceAt = (
-  step: Step,
-  evidence: unknown[],
-  position: number
-): Choice | null => {
-  const value = evidence[position];
-  if (typeof value !== "string" || value === "") {
-    return null;
-  }
-  const declared = step.evidence[position]?.choices?.find(
-    (choice) => choice.value === value
-  );
-  if (!declared) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That is not one of the things this step offers",
-    });
-  }
-  return declared;
-};
-
-/**
- * What the person chose, as the Version declares it — the value, and the Bangla they were
- * reading when they chose it. Checked against the Step's own choices, the way a Move's Pen is
- * checked against the farm's: a value no Version ever offered is not something anybody saw.
- */
-const choiceIn = (
-  step: Step,
-  evidence: unknown[],
-  nothingChosen: string
-): Choice => {
-  const index = step.evidence.findIndex((item) => item.type === "choice");
-  const chosen = index === -1 ? null : declaredChoiceAt(step, evidence, index);
-  if (!chosen) {
-    throw new ORPCError("BAD_REQUEST", { message: nothingChosen });
-  }
-  return chosen;
-};
 
 export interface EffectInput {
   step: Step;
@@ -288,18 +213,6 @@ export interface EffectInput {
    *  it calls off or raises again is written there. */
   trail: Trail;
 }
-
-/** The Pen a Pen's Step records into. Feeding a Pen and milking one are about a Pen, and work about the whole
- *  farm cannot carry them. */
-const penOf = (input: EffectInput): string => {
-  if (input.instance.penId === null) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This Step records a Pen's work, and this work is in no Pen",
-      data: { refusal: "work_in_no_pen" },
-    });
-  }
-  return input.instance.penId;
-};
 
 /**
  * Records what a Pen was actually given against what its Ration owed it.
@@ -758,69 +671,6 @@ const applyObservationEffect = async (
 };
 
 /**
- * Walks her to the Pen the Step recorded, and writes the Move that says the Playbook did it.
- *
- * Keyed on the Completion, like every other effect: a phone replaying an entry, or a Manager
- * correcting one, changes where she went rather than sending her on a second journey. What
- * it will not do is rewrite where she is when anything has moved her since the entry was
- * recorded — that is a fact the farm has and this Correction does not, so she stays where she
- * was last seen and a person is asked (Needs Review, irreversible effect).
- *
- * The Pen she is walked to is not checked against the doer's Pen Assignments, unlike a Move
- * somebody records by hand. The destinations are the Owner's, authored into the Step, and a
- * milker assigned to the milking pen has to be able to walk a cow to the dry pen — that is
- * what the procedure says to do. What they may work on is already settled by the Instance.
- */
-const applyMoveEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!input.animalId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step moves an animal, and it was not recorded against one",
-    });
-  }
-  const beast = await tx.query.animal.findFirst({
-    where: { id: input.animalId, farmId: input.instance.farmId },
-    columns: {
-      id: true,
-      tagNumber: true,
-      penId: true,
-      side: true,
-      state: true,
-    },
-  });
-  if (!beast) {
-    throw new ORPCError("NOT_FOUND", { message: "No such animal" });
-  }
-  // An animal that has left the farm cannot be walked anywhere, whoever is asking.
-  const live = await loadLiveAnimal(tx, input.instance.farmId, beast.tagNumber);
-  const toPenId = input.skipped
-    ? null
-    : choiceIn(
-        input.step,
-        input.evidence,
-        "This step moves an animal, and no pen was chosen"
-      ).value;
-  if (toPenId) {
-    // A Pen that is not this farm's is not somewhere she can be walked to.
-    await requirePen(tx, input.instance.farmId, toPenId);
-  }
-  const walked = await walkByStep(tx, {
-    farmId: input.instance.farmId,
-    beast: live,
-    completionId: input.completionId,
-    toPenId,
-    movedBy: input.recordedBy,
-    movedAt: input.recordedAt,
-    now: input.now,
-    calvingLeadDays: input.pregnancyTimes.calvingLeadDays,
-    trail: input.trail,
-  });
-  return walked ? { kind: "move", ...walked } : null;
-};
-
-/**
  * Records what one animal weighed on the scale this round.
  *
  * The reading is kept and never overwritten by the next one: the whole of fattening is the
@@ -910,12 +760,6 @@ const applyWeighInEffect = async (
     );
   }
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
-};
-
-/** What was written at one position of the Evidence, trimmed, or null when it was left empty. */
-const textAt = (evidence: unknown[], position: number): string | null => {
-  const value = evidence[position];
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 };
 
 /**
@@ -1207,169 +1051,6 @@ const applyPregnancyCheckEffect = async (
 };
 
 /**
- * Dries her off: a milking cow is Dry from the moment this Step says, and her Lactation ends there
- * without being forgotten.
- *
- * Keyed on the cow rather than a row of its own, because Dry is her State and the State is the
- * record: a phone replaying the entry finds her Dry already and dries nobody twice. What it will not
- * do is put her back in milk when the entry is corrected to a skip. What she was before, and since
- * when, matters to every State-triggered procedure — a cow put back in Milking from here would look
- * freshly calved — so she stays Dry and a person is asked (Needs Review, irreversible effect).
- */
-const applyDryOffEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!input.animalId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step dries off a cow, and it was not recorded against one",
-    });
-  }
-  const her = await tx.query.animal.findFirst({
-    where: { id: input.animalId, farmId: input.instance.farmId },
-    columns: { tagNumber: true },
-  });
-  if (!her) {
-    throw new ORPCError("NOT_FOUND", { message: "No such animal" });
-  }
-  // A cow who has left the farm cannot be dried off, whoever is asking.
-  const live = await loadLiveAnimal(tx, input.instance.farmId, her.tagNumber);
-  if (input.skipped) {
-    // Only an entry that dried her has anything to undo: she went Dry at the moment it was recorded.
-    // A cow already Dry when this entry came asks nobody anything.
-    const driedByThisEntry =
-      live.state === "dry" &&
-      live.stateChangedAt.getTime() === input.recordedAt.getTime();
-    return driedByThisEntry
-      ? { kind: "dry_off", dried: false, cannotUndo: true }
-      : null;
-  }
-  if (live.state === "dry") {
-    return { kind: "dry_off", dried: false, cannotUndo: false };
-  }
-  if (!canTransition(live.state, "dry")) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "Only a cow in milk is dried off",
-      data: { refusal: "dry_off_of_a_cow_not_in_milk" },
-    });
-  }
-  await entersState(tx, input.instance.farmId, live, {
-    state: "dry",
-    at: input.recordedAt,
-    now: input.now,
-  });
-  return { kind: "dry_off", dried: true, cannotUndo: false };
-};
-
-/**
- * What was chosen at one position of the Evidence, as one of the fixed words the record reads back —
- * or null when that slot was left empty.
- */
-const choiceAt = <Value extends string>(
-  step: Step,
-  evidence: unknown[],
-  position: number,
-  allowed: readonly Value[]
-): Value | null => {
-  const value = declaredChoiceAt(step, evidence, position)?.value ?? null;
-  if (value !== null && !(allowed as readonly string[]).includes(value)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That is not one of the things this step offers",
-    });
-  }
-  return value as Value | null;
-};
-
-/** The calving a Step's Evidence describes, read by the positions the Step was validated by. */
-const calvingIn = (input: EffectInput) => {
-  const at = new Date(String(input.evidence[CALVING_EVIDENCE.calvedAt]));
-  if (Number.isNaN(at.getTime())) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A calving says when she calved",
-    });
-  }
-  if (at.getTime() > input.now.getTime()) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A calving cannot have happened later than now",
-      data: { refusal: "calved_in_the_future" },
-    });
-  }
-  const ease = choiceAt(
-    input.step,
-    input.evidence,
-    CALVING_EVIDENCE.ease,
-    CALVING_EASES
-  );
-  if (!ease) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A calving says how it went",
-    });
-  }
-  const calves = [];
-  for (const slots of CALVING_EVIDENCE.calves) {
-    const sex = choiceAt(input.step, input.evidence, slots.sex, CALF_SEXES);
-    const outcome = choiceAt(
-      input.step,
-      input.evidence,
-      slots.outcome,
-      CALF_OUTCOMES
-    );
-    // A calf is its sex and whether it lived, both or neither: half a calf is not one to create.
-    if (Boolean(sex) !== Boolean(outcome)) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Each calf needs its sex and whether it was born alive",
-      });
-    }
-    if (sex && outcome) {
-      calves.push({ sex, outcome });
-    }
-  }
-  if (calves.length === 0) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A calving has a calf; one without is an abortion",
-    });
-  }
-  return { at, ease, calves };
-};
-
-/**
- * Records that she calved — Barn Staff's to record on the round, or the Manager's.
- *
- * The roles matrix gives Calving `C R U` to the Manager and `C` to Barn Staff as an SOP step, and only
- * read to the Owner; the Owner may step into any shift, so the effect asks.
- */
-const applyCalvingEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!CALVING_RECORDERS.some((role) => input.roles.includes(role))) {
-    throw forbidden({
-      message: "A calving is recorded by Barn Staff or the Manager",
-      reason: "staff_or_manager_only",
-    });
-  }
-  const damId = input.animalId ?? input.instance.animalId;
-  if (!damId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "A calving is recorded about one cow, and this entry is about none",
-    });
-  }
-  const recorded = await recordCalving(tx, {
-    farmId: input.instance.farmId,
-    damId,
-    completionId: input.completionId,
-    calved: input.skipped ? null : calvingIn(input),
-    recordedBy: input.recordedBy,
-    recordedByRole: input.roleUsed,
-    times: input.pregnancyTimes,
-    now: input.now,
-    trail: input.trail,
-  });
-  return recorded ? { kind: "calving", ...recorded } : null;
-};
-
-/**
  * Counts the store: what is really there of each Feed Item, and why it differs. The Manager's alone
  * (roles matrix: Stock Count — Manager C R U): the Owner steps into shifts, and a count moves what the
  * farm's feed is worth.
@@ -1428,7 +1109,6 @@ const RECORDING_EFFECTS: Partial<
     (tx: Tx, input: EffectInput) => Promise<EffectResult>
   >
 > = {
-  move: applyMoveEffect,
   observation: applyObservationEffect,
   feeding: applyFeedingEffect,
   treatment: applyTreatmentEffect,
@@ -1436,8 +1116,6 @@ const RECORDING_EFFECTS: Partial<
   weigh_in: applyWeighInEffect,
   service: applyServiceEffect,
   pregnancy_check: applyPregnancyCheckEffect,
-  dry_off: applyDryOffEffect,
-  calving: applyCalvingEffect,
   stock_count: applyStockCountEffect,
   registration_renewal: applyRenewalEffect,
   lot_number: applyLotNumberEffect,
