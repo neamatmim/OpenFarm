@@ -97,7 +97,7 @@ describe("a visiting Vet", () => {
   it("sees only the animals on their cases", async () => {
     const vet = await calling(world.vetId, DURING);
     const me = await vet.people.me();
-    expect(me.visiting).toBe(true);
+    expect(me.scopes.vet?.kind).toBe("cases");
     const herd = await vet.animals.list({});
     expect(herd.map((beast) => beast.tagNumber)).toEqual([world.onCase]);
     await expect(
@@ -141,7 +141,7 @@ describe("a visiting Vet", () => {
     const me = await vet.people.me();
     expect(Object.keys(me.farm ?? {}).toSorted()).toEqual(["id", "name"]);
     // And their screens are told their Scope is their Cases, and nothing of the farm besides.
-    expect(me.scope.kind).toBe("cases");
+    expect(me.scopes).toMatchObject({ vet: { kind: "cases" } });
     await expect(vet.herd.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(vet.sops.card({ definitionId: "any" })).rejects.toMatchObject({
       code: "FORBIDDEN",
@@ -259,7 +259,10 @@ describe("a visiting Vet who also works the barn", () => {
     });
     const withCase = await calling(id, DURING);
     const told = await withCase.people.me();
-    expect(told.scope.kind).toBe("pens_or_cases");
+    expect(told.scopes).toMatchObject({
+      staff: { kind: "pens_or_cases" },
+      vet: { kind: "cases" },
+    });
     const herd = await withCase.animals.list({});
     expect(herd.map((beast) => beast.tagNumber)).toContain(world.onCase);
     const her = await withCase.animals.byTag({ tagNumber: world.onCase });

@@ -56,7 +56,7 @@ import { tellOfRenewals } from "../registration-store";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
-import { mayTouchWork, outOfScope, workInScope } from "../scope";
+import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
 
 const MINUTE_MS = 60_000;
@@ -359,7 +359,7 @@ export const instancesRouter = {
           state: { in: ["due", "in_progress", "sent_back"] },
           dueAt: { gte: from, lt: to },
           // Their Scope: their Pens, or one of them when they ask for it, and the work about their Cases.
-          ...workInScope(context.scope, input.penId),
+          ...workInScopeWhere(context.scope, input.penId),
         },
         with: {
           version: { columns: { content: true, number: true } },
@@ -401,9 +401,7 @@ export const instancesRouter = {
       if (!instance) {
         throw new ORPCError("NOT_FOUND");
       }
-      if (!mayTouchWork(context.scope, instance)) {
-        throw outOfScope(context.scope);
-      }
+      requireWorkInScope(context.scope, instance);
       const content = contentOf(instance.version);
       const animals = content.steps.some((step) => step.repeatPerAnimal)
         ? await animalsForInstance(
@@ -640,16 +638,9 @@ export const instancesRouter = {
     .handler(async ({ context }) => {
       const now = context.clock.now();
       const late = await findLate(context.db, context.farm.id, now);
-      const { scope } = context;
-      const mine =
-        scope.kind === "farm"
-          ? late
-          : late.filter((row) =>
-              // Work about the whole farm is in nobody's Pens: Barn Staff see it only when it is theirs to do.
-              row.penId === null
-                ? row.assignedRole === context.roleUsed
-                : mayTouchWork(scope, row)
-            );
+      // Their Scope: every late piece of work for those who run the farm, and for Barn Staff the work in their Pens and
+      // the farm-wide work that is theirs to do.
+      const mine = late.filter((row) => isWorkInScope(context.scope, row));
       return mine
         .map((row) => ({
           ...row,
@@ -847,10 +838,10 @@ export const instancesRouter = {
       const recordedUnder = await context.db.query.sopInstance.findFirst({
         where: { id: existing.instanceId },
         with: { version: { columns: { content: true } } },
-        columns: { id: true, penId: true, animalId: true },
+        columns: { id: true, penId: true, animalId: true, assignedRole: true },
       });
-      if (recordedUnder && !mayTouchWork(context.scope, recordedUnder)) {
-        throw outOfScope(context.scope);
+      if (recordedUnder) {
+        requireWorkInScope(context.scope, recordedUnder);
       }
       const clinical =
         recordedUnder !== undefined &&

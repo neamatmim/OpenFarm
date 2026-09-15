@@ -25,7 +25,7 @@ import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
-import { clinicalRecordsInScope, mayTouchAnimal, outOfScope } from "../scope";
+import { clinicalRecordsInScope, requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
 
 /** The Vet visits about weekly, so a fortnight is what they need to catch up on. */
@@ -197,9 +197,7 @@ export const diagnosesRouter = {
             context.farm.id,
             input.animalTag.toUpperCase()
           );
-          if (!mayTouchAnimal(context.scope, her)) {
-            throw outOfScope(context.scope);
-          }
+          requireClinicalInScope(context.scope, her.id);
           if (input.answers) {
             await assertAnswerable(tx, {
               farmId: context.farm.id,
@@ -274,11 +272,7 @@ export const diagnosesRouter = {
       if (!existing) {
         throw new ORPCError("NOT_FOUND");
       }
-      if (
-        !mayTouchAnimal(context.scope, { id: existing.animalId, penId: null })
-      ) {
-        throw outOfScope(context.scope);
-      }
+      requireClinicalInScope(context.scope, existing.animalId);
       const verdict = mayCorrect({
         // Only their standing as the Vet is asked about. An in-house Vet who is also the
         // Manager would otherwise have this recorded under the Manager's Role — and the

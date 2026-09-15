@@ -27,7 +27,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { languageOf } from "../reader-language";
 import { requireRole } from "../roles";
-import { mayLookUpAnimal, outOfScope } from "../scope";
+import { requireLookUp } from "../scope";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -148,9 +148,7 @@ export const papersRouter = {
         context.farm.id,
         input.tagNumber
       );
-      if (!mayLookUpAnimal(context.scope, her)) {
-        throw outOfScope(context.scope);
-      }
+      requireLookUp(context.scope, her);
       const text = animalPassport({
         farm: context.farm,
         tagNumber: her.tagNumber,
@@ -212,9 +210,7 @@ export const papersRouter = {
         context.farm.id,
         input.tagNumber
       );
-      if (!mayLookUpAnimal(context.scope, her)) {
-        throw outOfScope(context.scope);
-      }
+      requireLookUp(context.scope, her);
       // Thirty farm days, not thirty times twenty-four hours: the rule is "the thirty days
       // before slaughter", and a regulator counts them on a calendar.
       const since = new Date(

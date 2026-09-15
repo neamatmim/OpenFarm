@@ -13,7 +13,12 @@ export const onlyFor =
   ({
     context,
   }: {
-    context: { me: { roles: readonly string[]; visiting?: boolean } };
+    context: {
+      me: {
+        roles: readonly string[];
+        scopes?: { vet?: { kind: string } };
+      };
+    };
   }) => {
     // A vet called in for a visit holds the Vet role but not the whole farm's view: a screen about the farm at
     // large is not theirs, unless another Role they hold opens it.
@@ -21,7 +26,8 @@ export const onlyFor =
       (role) => role !== "vet"
     ) as readonly Role[];
     const onlyAsVisitor =
-      context.me.visiting === true && !isFor(audience, withoutTheVisit);
+      context.me.scopes?.vet?.kind === "cases" &&
+      !isFor(audience, withoutTheVisit);
     if (
       !isFor(audience, context.me.roles as readonly Role[]) ||
       (!visitors && onlyAsVisitor)

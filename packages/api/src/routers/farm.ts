@@ -19,6 +19,7 @@ import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
 import { scheduleStatus } from "../scheduler";
+import { onlyOnAVisit } from "../scope";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -195,10 +196,8 @@ export const farmRouter = {
       return null;
     }
     // Which farm, and no more, for somebody the farm's settings are not for: a Vet here only on a visit, or somebody
-    // who holds no Role yet. Thresholds, windows and tolerances are the running of the farm, not a visitor's to read.
-    const onlyVisiting =
-      context.visiting && context.roles.every((role) => role === "vet");
-    if (onlyVisiting || context.roles.length === 0) {
+    // who holds no Role yet. Thresholds, windows and tolerances are the running of the farm.
+    if (onlyOnAVisit(context) || context.roles.length === 0) {
       return { id: context.farm.id, name: context.farm.name };
     }
     // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see.

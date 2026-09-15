@@ -6,15 +6,15 @@ import type { Context } from "../context";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
-// Every procedure the farm has, called by a Vet called in for a visit and nothing else. Whatever a visit has not been
-// declared to reach is refused before the procedure reads a word of what it was sent — so a procedure added without
-// anybody deciding whether a visitor may call it is closed, not open.
+// Every procedure the farm has, called by a Vet called in for a visit and holding no other Role. Whatever has not been
+// declared open to a visit is refused before the procedure reads a word of what it was sent — so a procedure added
+// without anybody deciding whether a Vet on a visit may call it is closed, not open.
 
 /**
- * What a Vet called in for a visit is meant to reach, as the farm decided it: their own cases' animals, what the Vet
+ * What a Vet called in for a visit is meant to be able to call, as the farm decided it: their own cases' animals, what the Vet
  * does for them, the Drug List and the notifiable-disease list to do it with, and their own notices and trail. Each is
  * declared at its own procedure; a procedure that opens to a visit without being written here fails, and so does one
- * written here that a visit cannot reach.
+ * written here that a visit cannot call.
  */
 const OPEN_TO_A_VISIT = new Set<string>([
   "alerts.mine",
@@ -53,7 +53,7 @@ const OPEN_TO_A_VISIT = new Set<string>([
 ]);
 
 /**
- * Procedures that ask for no Role at all, and why a visitor may call them: they are about the person or the phone in
+ * Procedures that ask for no Role at all, and why a Vet on a visit may call them: they are about the person or the phone in
  * their hand, not about the farm's animals, work or settings.
  */
 const ROLE_FREE = new Map<string, string>([
@@ -70,6 +70,15 @@ const ROLE_FREE = new Map<string, string>([
   ["devices.claim", "enrols a Shed Phone with a code the Manager gave it"],
   ["devices.current", "says which phone this is and who is switched in on it"],
   ["devices.switchUser", "is a PIN Switch, which the PIN is the gate of"],
+  [
+    "devices.keepAwake",
+    "keeps a Shed Phone unlocked, and only a Shed Phone may ask",
+  ],
+  ["devices.lock", "locks a Shed Phone, and only a Shed Phone may ask"],
+  [
+    "people.roster",
+    "is who may PIN Switch on a Shed Phone, and only a Shed Phone may ask",
+  ],
   ["farm.bootstrap", "makes the farm, once, and refuses when there is one"],
 ]);
 
@@ -85,28 +94,28 @@ const procedurePaths = (node: unknown, prefix: string[] = []): string[][] => {
   );
 };
 
-let visitor: ReturnType<typeof createRouterClient<typeof appRouter>>;
+let onAVisit: ReturnType<typeof createRouterClient<typeof appRouter>>;
 
 beforeAll(async () => {
   const { context } = await createTestClient(appRouter, {
     as: "vet",
     clock: new FakeClock("2030-01-01T04:00:00.000Z"),
   });
-  const onAVisit: Context = {
+  const vetOnAVisit: Context = {
     ...context,
     roles: ["vet"],
     visiting: true,
     penIds: [],
     caseAnimalIds: [],
   };
-  visitor = createRouterClient(appRouter, { context: onAVisit });
+  onAVisit = createRouterClient(appRouter, { context: vetOnAVisit });
 });
 
-/** What the visitor sends: nothing, so a procedure that reads its input first would refuse the input, not the visitor. */
+/** What the Vet on a visit sends: nothing, so a procedure that reads its input first would refuse the input, not them. */
 const NOTHING_SENT: unknown = undefined;
 
 const call = async (path: string[]): Promise<unknown> => {
-  let target: unknown = visitor;
+  let target: unknown = onAVisit;
   for (const key of path) {
     target = (target as Record<string, unknown>)[key];
   }
@@ -131,7 +140,15 @@ describe("a Vet on a visit, calling every procedure", () => {
   it.each(closed.map((path) => [path.join("."), path] as const))(
     "is refused %s before it reads what it was sent",
     async (_name, path) => {
-      expect(await call(path)).toMatchObject({ code: "FORBIDDEN" });
+      const answer = (await call(path)) as {
+        code?: string;
+        message?: string;
+        data?: { refusal?: string };
+      } | null;
+      // Refused by the Role check — as a visit where the procedure is a Vet's, as not theirs where it is not — and not
+      // by anything further in, which would mean the procedure had let them past the Role check first.
+      expect(answer?.code).toBe("FORBIDDEN");
+      expect(answer?.message ?? "").not.toMatch(/shed phone/u);
     }
   );
   const open = procedurePaths(appRouter).filter((path) =>
@@ -139,7 +156,7 @@ describe("a Vet on a visit, calling every procedure", () => {
   );
 
   it.each(open.map((path) => [path.join("."), path] as const))(
-    "is let into %s, whatever it then says about what was sent",
+    "lets them call %s, whatever it then says about what was sent",
     async (_name, path) => {
       const answer = (await call(path)) as {
         data?: { refusal?: string };
@@ -150,8 +167,8 @@ describe("a Vet on a visit, calling every procedure", () => {
 });
 
 describe("the farm itself, for a Vet on a visit", () => {
-  it("is its name and no more: the settings the farm runs on are not a visitor's to read", async () => {
-    const current = visitor.farm.current as () => Promise<Record<
+  it("is its name and no more: the settings the farm runs on are not for a Vet on a visit", async () => {
+    const current = onAVisit.farm.current as () => Promise<Record<
       string,
       unknown
     > | null>;

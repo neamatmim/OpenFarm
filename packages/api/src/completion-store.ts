@@ -6,7 +6,7 @@ import type { Context } from "./context";
 import { isOnTheFarm } from "./instances-store";
 import { lateEntry } from "./late";
 import type { Scope } from "./scope";
-import { mayTouchWork, outOfScope } from "./scope";
+import { requireWorkInScope } from "./scope";
 
 /** The context a record needs: who is recording, on which Farm, under which Role. */
 export type Recorder = Context & {
@@ -89,9 +89,7 @@ export const assertMayWork = (
 ) => {
   // Work in their Scope: their Pens, work about an animal on their Cases, and work about the whole farm for anybody but
   // a visitor, who works only on the animals they were called in for.
-  if (!mayTouchWork(context.scope, instance)) {
-    throw outOfScope(context.scope);
-  }
+  requireWorkInScope(context.scope, instance);
   // The Instance says who does this work; holding some other Role is not enough. The Owner
   // and the Manager may always step in — someone has to be able to unstick a shift.
   const runsTheFarm =

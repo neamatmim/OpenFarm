@@ -28,7 +28,7 @@ const NotifiablePage = () => {
   const list = useQuery(orpc.notifiable.list.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
   // A vet called in for a visit reads the list; keeping it is the farm's own people's.
-  const keeps = me.data !== undefined && !me.data.visiting;
+  const keeps = me.data !== undefined && me.data.scopes.vet?.kind !== "cases";
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [note, setNote] = useState("");

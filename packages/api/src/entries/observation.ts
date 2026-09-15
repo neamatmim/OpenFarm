@@ -6,7 +6,7 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { mayTouchAnimal, outOfScope } from "../scope";
+import { requireAnimalInScope } from "../scope";
 import type { EntryKind } from "./entry";
 import { requireAnimalStillHere } from "./entry";
 
@@ -68,9 +68,7 @@ export const observationEntry: EntryKind<
       input.tagNumber
     );
     // What they see of an animal is theirs to write down when she is in their Pens or on their Cases.
-    if (!mayTouchAnimal(context.scope, beast)) {
-      throw outOfScope(context.scope);
-    }
+    requireAnimalInScope(context.scope, beast);
     await tx.insert(observation).values({
       id,
       farmId: context.farm.id,

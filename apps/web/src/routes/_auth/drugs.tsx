@@ -40,7 +40,7 @@ const DrugsPage = () => {
   const drugs = useQuery(orpc.drugs.list.queryOptions());
   const [name, setName] = useState("");
   // A vet called in for a visit reads the Drug List to prescribe from; keeping it is the farm's own Vet's.
-  const visiting = me.data?.visiting ?? false;
+  const visiting = me.data?.scopes.vet?.kind === "cases";
   const isVet = (me.data?.roles.includes("vet") ?? false) && !visiting;
   const buys = me.data?.roles.includes("manager") ?? false;
 

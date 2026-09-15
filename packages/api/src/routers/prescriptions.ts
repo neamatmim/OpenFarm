@@ -21,7 +21,7 @@ import { loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { raiseDueInstances } from "../instances-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
-import { mayLookUpAnimal, mayTouchAnimal, outOfScope } from "../scope";
+import { requireClinicalInScope, requireLookUp } from "../scope";
 import { contentOf, publishedContent } from "../sop-content";
 
 /** A Prescription is the Vet's act in law, like the Diagnosis it answers (BVC Act 2019). */
@@ -196,9 +196,7 @@ export const prescriptionsRouter = {
             context.farm.id,
             input.animalTag.toUpperCase()
           );
-          if (!mayTouchAnimal(context.scope, her)) {
-            throw outOfScope(context.scope);
-          }
+          requireClinicalInScope(context.scope, her.id);
           const answers = await tx.query.diagnosis.findFirst({
             where: { id: input.diagnosisId, farmId: context.farm.id },
             columns: { animalId: true },
@@ -275,9 +273,7 @@ export const prescriptionsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      if (!mayLookUpAnimal(context.scope, her)) {
-        throw outOfScope(context.scope);
-      }
+      requireLookUp(context.scope, her);
       const rows = await context.db.query.prescription.findMany({
         where: { farmId: context.farm.id, animalId: her.id },
         orderBy: { prescribedAt: "desc" },

@@ -65,11 +65,10 @@ import {
 } from "../mortality-store";
 import { requireRole } from "../roles";
 import {
-  animalsInScope,
-  mayLookUpAnimal,
-  mayTouchAnimal,
-  onTheirCase,
-  outOfScope,
+  animalsInScopeWhere,
+  isOnTheirCase,
+  requireAnimalInScope,
+  requireLookUp,
 } from "../scope";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
@@ -454,7 +453,7 @@ export const animalsRouter = {
           farmId: context.farm.id,
           // Their Scope: the herd for those who run the farm and a Vet, their Pens for Barn Staff, their Cases for a
           // visit, and Pens or Cases for Barn Staff who are also visiting.
-          ...animalsInScope(context.scope, input.penId),
+          ...animalsInScopeWhere(context.scope, input.penId),
           ...(input.side ? { side: input.side } : {}),
           ...(input.includeExited
             ? {}
@@ -605,15 +604,13 @@ export const animalsRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      if (!mayLookUpAnimal(context.scope, row)) {
-        throw outOfScope(context.scope);
-      }
+      requireLookUp(context.scope, row);
       // Barn Staff record what they see and give the doses they are told to give; the
       // conclusions drawn from them are not theirs to read (roles matrix: Staff read
       // treatment instances only). They still see the round's own Observations.
       // Barn Staff who are also the visiting Vet on her Case read what a Vet would.
       const readsTheClinicalRecord =
-        context.roleUsed !== "staff" || onTheirCase(context.scope, row.id);
+        context.roleUsed !== "staff" || isOnTheirCase(context.scope, row.id);
       // A separate question from the clinical one, and a separate row of the matrix: money is
       // the Owner's and the Manager's whoever else may read her history.
       const readsWhatSheCost =
@@ -1090,9 +1087,7 @@ export const animalsRouter = {
         context.farm.id,
         tagNumber
       );
-      if (!mayTouchAnimal(context.scope, target)) {
-        throw outOfScope(context.scope);
-      }
+      requireAnimalInScope(context.scope, target);
       await audited(context).write(
         {
           entity: "animal",
@@ -1140,9 +1135,7 @@ export const animalsRouter = {
         context.farm.id,
         tagNumber
       );
-      if (!mayTouchAnimal(context.scope, target)) {
-        throw outOfScope(context.scope);
-      }
+      requireAnimalInScope(context.scope, target);
       await audited(context).write(
         {
           entity: "animal",
@@ -1188,9 +1181,7 @@ export const animalsRouter = {
         context.farm.id,
         input.tagNumber.toUpperCase()
       );
-      if (!mayLookUpAnimal(context.scope, target)) {
-        throw outOfScope(context.scope);
-      }
+      requireLookUp(context.scope, target);
       const photo = await context.db.query.animalPhoto.findFirst({
         where: { animalId: target.id },
       });

@@ -10,7 +10,7 @@ import { hashToken } from "../device";
 import { protectedProcedure } from "../index";
 import { pushRaised } from "../push-send";
 import { pickRoleUsed, requireRole } from "../roles";
-import { scopeOf } from "../scope";
+import { workingAs } from "../scope";
 import type { EntryResult } from "../sync-entries";
 import { entryInput } from "../sync-entries";
 import { batchUnder, fingerprint, sourceKeyFor } from "../sync-store";
@@ -96,11 +96,7 @@ const recordersFor = (context: Recorder): RecorderFor => {
         message: "Recorded under somebody who no longer works on this farm",
       });
     }
-    return {
-      ...theirs,
-      roleUsed,
-      scope: scopeOf(theirs, roleUsed),
-    } as Recorder;
+    return { ...theirs, ...workingAs(theirs, roleUsed) } as Recorder;
   };
   return async (entry) => {
     if (!entry.actorId || entry.actorId === context.actor.id) {

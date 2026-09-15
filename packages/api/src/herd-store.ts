@@ -34,8 +34,6 @@ import type { Tx } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
 import { lateEntry } from "./late";
-import type { Scope } from "./scope";
-import { mayTouchPen, outOfScope } from "./scope";
 
 /** What every way of arriving has to say about the Animal it makes. */
 interface NewAnimalRows {
@@ -140,12 +138,6 @@ export const loadLiveAnimal = async (
   return row;
 };
 
-/** Refuses a Pen that is not theirs to act in: not in their Scope under the Role they work under. */
-export const assertPenIsTheirs = (context: { scope: Scope }, penId: string) => {
-  if (!mayTouchPen(context.scope, penId)) {
-    throw outOfScope(context.scope);
-  }
-};
 export const requirePen = async (tx: Tx, farmId: string, penId: string) => {
   const row = await tx.query.pen.findFirst({ where: { id: penId, farmId } });
   if (!row) {
