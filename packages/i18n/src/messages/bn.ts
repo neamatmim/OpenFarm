@@ -179,6 +179,15 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity": "রেকর্ড",
   "audit.action": "কাজ",
   "audit.reason": "কারণ",
+  "audit.calledOffBy.animal_left": "বাতিল: পশুটি খামার ছেড়ে গেছে",
+  "audit.calledOffBy.heat_withdrawn": "বাতিল: গরম দেখার এন্ট্রি ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.attempt_no_longer_standing":
+    "বাতিল: যে পাল দেওয়ার পরে এই কাজ, সেটি আর বহাল নেই",
+  "audit.calledOffBy.calving_no_longer_expected":
+    "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
+  "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
+  "audit.raisedAgainBy.calving_expected_again":
+    "আবার তোলা হয়েছে: তার বাচ্চা দেওয়া আবার প্রত্যাশিত",
   "audit.before": "আগে",
   "audit.after": "পরে",
   "audit.filterEntity": "রেকর্ডের ধরন",
@@ -667,6 +676,9 @@ export const bn: Record<MessageKey, string> = {
   "accountant.summary": "আয় ও ব্যয়",
   "accountant.csv": "সব টাকার হিসাব (CSV)",
   "work.wholeFarm": "পুরো খামার",
+  "work.calledOff": "বাতিল — এই কাজ আর করতে হবে না, এতে আর কিছু লেখা যাবে না",
+  "work.closedAsMissed":
+    "ম্যানেজার এই কাজ হয়নি হিসেবে বন্ধ করেছেন — এতে আর কিছু লেখা যাবে না",
   "renewal.runsOut": "নিবন্ধনের মেয়াদ শেষ হবে {date}",
   "renewal.newExpiry": "নবায়িত সনদের মেয়াদ শেষ হবে",
   "renewal.certificate": "নবায়িত সনদের ছবি",
@@ -881,6 +893,7 @@ export const bn: Record<MessageKey, string> = {
   "prescribe.given": "{name} দিয়েছেন",
   "prescribe.owed": "এখনও দেওয়া হয়নি",
   "prescribe.missed": "দেওয়া হয়নি",
+  "prescribe.calledOff": "বাতিল",
   "prescribe.course": "চিকিৎসার কোর্স",
   "route.intramuscular": "মাংসে ইনজেকশন",
   "route.intravenous": "শিরায় ইনজেকশন",

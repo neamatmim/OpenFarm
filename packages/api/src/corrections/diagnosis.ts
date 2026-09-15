@@ -4,6 +4,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { audited } from "../audit";
 import {
   diagnosisNoteInput,
   diseaseInput,
@@ -66,7 +67,7 @@ export const diagnosisCorrection: CorrectionKind<
       disease: row.disease,
       note: row.note,
     }),
-  apply: async (tx, row, to, { now }) => {
+  apply: async (tx, row, to, { context, now }) => {
     const disease = to.disease ?? {
       bn: row.disease,
       en: row.diseaseEn ?? undefined,
@@ -98,6 +99,7 @@ export const diagnosisCorrection: CorrectionKind<
       animalId: her.id,
       penId: her.penId,
       now,
+      trail: audited(context).recordEvent,
     });
     const alerts = owed.notifiable
       ? await raiseNotifiableAlerts(

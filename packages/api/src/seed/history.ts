@@ -1,4 +1,6 @@
 /* oxlint-disable no-await-in-loop */
+import { OPEN_INSTANCE_STATES } from "@OpenFarm/domain";
+
 import type { Herd } from "./herd";
 import { dailyYield } from "./herd";
 import type { PlaybookKey } from "./playbook";
@@ -256,7 +258,7 @@ const dueToday = async (farm: Farm, day: string, skip: Set<string>) => {
   const rows = await farm.db.query.sopInstance.findMany({
     where: {
       farmId: farm.farmId,
-      state: { in: ["due", "in_progress"] },
+      state: { in: [...OPEN_INSTANCE_STATES] },
       dueAt: { gte: from, lt: to },
     },
     columns: { id: true, definitionId: true, dueAt: true, penId: true },
@@ -278,7 +280,7 @@ const closeWhatWasMissed = async (farm: Farm, day: string) => {
   const missed = await farm.db.query.sopInstance.findMany({
     where: {
       farmId: farm.farmId,
-      state: { in: ["due", "in_progress"] },
+      state: { in: [...OPEN_INSTANCE_STATES] },
       dueAt: { lt: before },
     },
     columns: { id: true },

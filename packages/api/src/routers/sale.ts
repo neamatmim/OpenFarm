@@ -186,6 +186,7 @@ export const saleRouter = {
             state: "sold",
             at: soldAt,
             now,
+            trail: audited(context).recordEvent,
           }));
         }
       );

@@ -1,30 +1,22 @@
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { isNull } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { isFinished, isOpen } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import type { Tx } from "../audit";
 import { assertMayWork } from "../completion-store";
 import { lateEntry } from "../late";
+import {
+  applyTransition,
+  readWork,
+  requireMayTransition,
+} from "../work-transitions";
 import type { EntryKind } from "./entry";
 
 /** Which piece of work. */
 export const workInput = z.object({ instanceId: z.string().trim().min(1) });
 
 export type WorkInput = z.infer<typeof workInput>;
-
-/** A piece of work as the trail records it either side of a claim or a finish: where it stands and whose it is. */
-export const readWork = async (tx: Tx, instanceId: string) =>
-  (await tx.query.sopInstance.findFirst({
-    where: { id: instanceId },
-    columns: {
-      state: true,
-      assignedTo: true,
-      claimedBy: true,
-      claimedAt: true,
-      completedAt: true,
-    },
-  })) ?? null;
 
 /**
  * Takes a piece of work for the person recording. Exclusive: only an unclaimed one can be claimed, so two phones cannot
@@ -60,25 +52,29 @@ export const claimEntry: EntryKind<WorkInput, { changed: boolean }> = {
       throw new ORPCError("NOT_FOUND");
     }
     assertMayWork(context, instance);
-    const [taken] = await tx
-      .update(sopInstance)
-      .set({
-        claimedBy: context.actor.id,
-        claimedAt: doneAt,
-        state: "in_progress",
-      })
-      .where(
-        and(eq(sopInstance.id, input.instanceId), isNull(sopInstance.claimedBy))
-      )
-      .returning({ id: sopInstance.id });
-    if (taken) {
-      return { changed: true };
+    // Theirs already, by an earlier send: nothing to write down — for work still owed, or done since. Work closed as
+    // Missed or Called Off since is not theirs to hold, and they are told so.
+    if (instance.claimedBy === context.actor.id) {
+      if (!(isOpen(instance.state) || isFinished(instance.state))) {
+        requireMayTransition(instance, "claim");
+      }
+      return { changed: false };
     }
-    if (instance.claimedBy !== context.actor.id) {
+    const work = { id: input.instanceId, state: instance.state };
+    const taken = await applyTransition(tx, work, "claim", {
+      set: { claimedBy: context.actor.id, claimedAt: doneAt },
+      onlyIf: isNull(sopInstance.claimedBy),
+    });
+    if (!taken) {
+      // Closed while they reached for it, or taken by somebody else: each is said as what happened.
+      const since = await tx.query.sopInstance.findFirst({
+        where: { id: input.instanceId },
+        columns: { state: true },
+      });
+      requireMayTransition(since ?? work, "claim");
       throw lateEntry("Someone else took this first");
     }
-    // Theirs already, by an earlier send: nothing to write down.
-    return { changed: false };
+    return { changed: true };
   },
 
   unchanged: (result) => !result.changed,

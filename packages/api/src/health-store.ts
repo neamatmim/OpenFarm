@@ -11,10 +11,11 @@ import { withdrawalEndsAt } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import { holdersOf, raiseAlerts } from "./alerts-store";
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import type { RaisedAlert } from "./instances-store";
 import { dueAtFor, raiseDueInstances } from "./instances-store";
 import { contentOf, publishedContent } from "./sop-content";
+import { callOffWork } from "./work-transitions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_DAYS = 180;
@@ -592,6 +593,7 @@ export const reconsiderTheReport = async (
     animalId,
     penId,
     now,
+    trail,
   }: {
     farmId: string;
     diagnosisId: string;
@@ -599,6 +601,8 @@ export const reconsiderTheReport = async (
     animalId: string;
     penId: string;
     now: Date;
+    /** The trail of the Vet's Correction: the delivery work a withdrawn report calls off is written there. */
+    trail: Trail;
   }
 ): Promise<{ notifiable: boolean; instanceId: string | null }> => {
   const listed = await isNotifiable(tx, farmId, disease);
@@ -626,10 +630,10 @@ export const reconsiderTheReport = async (
       .set({ withdrawnAt: now })
       .where(eq(dlsReport.id, standing.id));
     if (standing.instanceId) {
-      await tx
-        .update(sopInstance)
-        .set({ state: "missed" })
-        .where(eq(sopInstance.id, standing.instanceId));
+      await callOffWork(tx, farmId, eq(sopInstance.id, standing.instanceId), {
+        trail,
+        by: "report_withdrawn",
+      });
     }
   }
   return { notifiable: false, instanceId: null };

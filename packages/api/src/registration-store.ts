@@ -6,7 +6,12 @@ import {
   registrationRenewal,
 } from "@OpenFarm/db/schema/farm";
 import type { FarmIdentity } from "@OpenFarm/domain";
-import { farmDayOf, identityView, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  OPEN_INSTANCE_STATES,
+  farmDayOf,
+  identityView,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { holdersOf, raiseAlerts } from "./alerts-store";
@@ -61,7 +66,7 @@ export const renewalDue = async (
     where: {
       farmId: standing.id,
       cause: { like: `${RENEWAL_CAUSE}%` },
-      state: { in: ["due", "in_progress", "sent_back"] },
+      state: { in: [...OPEN_INSTANCE_STATES] },
     },
     columns: { id: true },
     orderBy: { dueAt: "asc", id: "asc" },

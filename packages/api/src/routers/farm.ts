@@ -431,7 +431,8 @@ export const farmRouter = {
               tx,
               context.farm.id,
               pregnancyTimesOf({ ...context.farm, ...changes }),
-              context.clock.now()
+              context.clock.now(),
+              audited(context).recordEvent
             );
           }
         }

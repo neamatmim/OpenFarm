@@ -1,11 +1,16 @@
-import { eq } from "@OpenFarm/db/operators";
+import { eq, sql } from "@OpenFarm/db/operators";
 import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
 import type { SopContent, Step } from "@OpenFarm/domain";
-import { MILK_DESTINATIONS, sessionsPerDayOf } from "@OpenFarm/domain";
+import {
+  MILK_DESTINATIONS,
+  mayTransition,
+  sessionsPerDayOf,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
 import type { Recorder } from "../completion-store";
 import {
@@ -20,6 +25,7 @@ import { farmDay } from "../farm-clock";
 import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
 import { contentOf } from "../sop-content";
+import { requireMayTransition, requireTransition } from "../work-transitions";
 import type { EntryKind } from "./entry";
 
 export const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
@@ -183,6 +189,7 @@ const runEffect = (
     recordedBy,
     recordedAt,
     now,
+    trail: audited(context).recordEvent,
   });
 
 /** Is this the same Step arriving again — a phone replaying its Outbox — or a different one? Compared on what it says,
@@ -232,6 +239,12 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         : undefined,
 
     apply: async (tx, context, input, { id, doneAt, receivedAt, eventId }) => {
+      // Held while the Step is written: whether the work is still owed is then what it is, not what it was a moment ago
+      // — a Step cannot land on work called off under it, and two Steps begun together both start it without either
+      // finding it changed.
+      await tx.execute(
+        sql`select 1 from ${sopInstance} where ${sopInstance.id} = ${input.instanceId} for update`
+      );
       const work = await tx.query.sopInstance.findFirst({
         where: { id: input.instanceId, farmId: context.farm.id },
         with: { version: { columns: { content: true } } },
@@ -239,9 +252,8 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       if (!work) {
         throw new ORPCError("NOT_FOUND");
       }
-      if (work.state === "completed" || work.state === "approved") {
-        throw lateEntry("This work is already finished");
-      }
+      // Only on work still owed: finished work is corrected, and work closed as Missed or Called Off is not done at all.
+      requireMayTransition(work, "record");
       assertMayWork(context, work);
       const content = contentOf(work.version);
       const step = stepOf(content, input.stepId);
@@ -316,11 +328,8 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         recordedAt: doneAt,
         now: receivedAt,
       });
-      if (work.state === "due" || work.state === "sent_back") {
-        await tx
-          .update(sopInstance)
-          .set({ state: "in_progress" })
-          .where(eq(sopInstance.id, input.instanceId));
+      if (mayTransition("start", work.state)) {
+        await requireTransition(tx, work, "start");
       }
       return { completionId: saved.id, effect, changed: true };
     },

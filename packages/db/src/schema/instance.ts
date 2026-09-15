@@ -17,6 +17,7 @@ import { animal, pen } from "./herd";
 import { MILK_DESTINATIONS } from "./milk-destinations";
 import { sopDefinition, sopVersion } from "./sop";
 
+/** Every state an SOP Instance can be in. Mirrored in @OpenFarm/domain, which holds the moves between them. */
 export const INSTANCE_STATES = [
   "due",
   "in_progress",
@@ -24,6 +25,7 @@ export const INSTANCE_STATES = [
   "approved",
   "sent_back",
   "missed",
+  "called_off",
 ] as const;
 
 /**

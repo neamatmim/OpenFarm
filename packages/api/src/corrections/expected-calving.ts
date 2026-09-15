@@ -5,6 +5,7 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { audited } from "../audit";
 import {
   expectedCalvingWithinReach,
   pregnancyTimesOf,
@@ -95,7 +96,7 @@ export const expectedCalvingCorrection: CorrectionKind<
       tx,
       { ...her, expectedCalvingAt },
       pregnancyTimesOf(context.farm).calvingLeadDays,
-      { expectedAgain: false }
+      { expectedAgain: false, trail: audited(context).recordEvent }
     );
   },
 };

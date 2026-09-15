@@ -5,7 +5,12 @@ import type {
   SopContent,
   Step,
 } from "@OpenFarm/domain";
-import { MILK_DESTINATIONS, isClosingStep } from "@OpenFarm/domain";
+import {
+  MILK_DESTINATIONS,
+  isClosingStep,
+  isFinished,
+  mayTransition,
+} from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDayField, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -140,6 +145,10 @@ interface BulkOutcome {
   differenceLitres: number;
   flagged: boolean;
 }
+/** Work closed without being done — Missed or Called Off: neither owed any more nor finished. */
+const isClosed = (state: string) =>
+  !(mayTransition("record", state) || isFinished(state));
+
 interface Completion {
   id: string;
   stepId: string;
@@ -495,6 +504,16 @@ const WorkPage = () => {
 
   const { tally, nextAnimal } = roundOf(animals, perAnimalStep, doneFor);
 
+  // Closed as Missed or Called Off: nothing more is recorded on it, so it offers nothing to tap — only why.
+  if (isClosed(state)) {
+    return (
+      <Page className="max-w-4xl pb-2">
+        <WorkHeader name={content.name} tally={tally} />
+        <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
+      </Page>
+    );
+  }
+
   return (
     <Page className="max-w-4xl pb-2">
       <WorkHeader name={content.name} tally={tally} />
@@ -511,7 +530,7 @@ const WorkPage = () => {
 
       {changed ? <WhatChanged changed={changed} /> : null}
 
-      <WorkNotices runningOn={runningOn} shortFed={shortFed} />
+      <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
 
       {chipSteps.length ? (
         <div className="flex flex-col gap-2">
@@ -584,13 +603,24 @@ const NextAnimal = ({
 const WorkNotices = ({
   runningOn,
   shortFed,
+  state,
 }: {
   runningOn: number | null | undefined;
   shortFed: { shortfallPercent: number } | null | undefined;
+  /** Where the work stands: closed work says so, so nobody records on it for nothing. */
+  state: string;
 }) => {
   const { t } = useLanguage();
   return (
     <>
+      {state === "called_off" ? (
+        <Notice title={t("work.calledOff")} tone="info" />
+      ) : null}
+
+      {state === "missed" ? (
+        <Notice title={t("work.closedAsMissed")} tone="warning" />
+      ) : null}
+
       {runningOn ? (
         <Notice
           title={t("changed.onOlder", { number: runningOn })}

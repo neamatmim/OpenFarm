@@ -757,6 +757,7 @@ export const animalsRouter = {
               recordedBy: context.actor.id,
               recordedByRole: context.roleUsed,
               now,
+              trail: audited(context).recordEvent,
             },
             her,
             {
@@ -901,6 +902,7 @@ export const animalsRouter = {
               at: input.calvedAt ?? now,
               now,
               calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+              trail: audited(context).recordEvent,
             });
             return;
           }

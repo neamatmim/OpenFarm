@@ -1,14 +1,15 @@
 import { eq, inArray } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { CalvingLead } from "@OpenFarm/domain";
-import { OPEN_INSTANCE_STATES, calvingWorkDue } from "@OpenFarm/domain";
+import { calvingWorkDue, isOpen, mayTransition } from "@OpenFarm/domain";
 
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import {
   calvingCauseParts,
   calvingKeyOf,
   calvingWorkPrefix,
 } from "./instances-store";
+import { callOffWork, raiseWorkAgain } from "./work-transitions";
 
 /** What following a changed Expected Calving did to the work about her, for the trail. */
 export interface CalvingWorkFollowed {
@@ -39,16 +40,23 @@ export interface CalvingOf {
  * The Owner's decision (2026-09-13): if the date moves, the work moves with it. Work still open goes
  * to its new day; work already done stays done, and is never raised a second time because its key is
  * the calving, not the date or where the date came from. With no calving expected — a positive put
- * right, or a calving recorded — the open work closes. And when a calving is expected again, in the
- * same Lactation, the work that closed comes back on its new day rather than being lost: a positive
- * corrected away and then corrected back is the same calving. Returned, so the trail says which work
- * went where.
+ * right, or a calving recorded — the open work is Called Off. And when a calving is expected again, in
+ * the same Lactation, the work it called off comes back on its new day rather than being lost: a
+ * positive corrected away and then corrected back is the same calving. Work the Manager closed as
+ * Missed stays closed. Returned, so the trail says which work went where.
  */
 export const followExpectedCalving = async (
   tx: Tx,
   her: CalvingOf,
   leadDays: Record<CalvingLead, number>,
-  { expectedAgain }: { expectedAgain: boolean }
+  {
+    expectedAgain,
+    trail,
+  }: {
+    expectedAgain: boolean;
+    /** The trail of what changed her calving: the work it calls off or raises again is written there. */
+    trail: Trail;
+  }
 ): Promise<CalvingWorkFollowed> => {
   const calvingWork = await tx.query.sopInstance.findMany({
     where: {
@@ -63,9 +71,7 @@ export const followExpectedCalving = async (
   const key = calvingKeyOf(her);
   for (const work of calvingWork) {
     const parts = calvingCauseParts(work.cause);
-    const open = (OPEN_INSTANCE_STATES as readonly string[]).includes(
-      work.state
-    );
+    const open = isOpen(work.state);
     if (!parts) {
       continue;
     }
@@ -74,30 +80,43 @@ export const followExpectedCalving = async (
       followed.workClosed.push(work.id);
       continue;
     }
-    const comesBack = expectedAgain && work.state === "missed" && thisCalving;
+    // Only work her calving called off comes back: work the Manager closed as Missed stays closed.
+    const comesBack =
+      expectedAgain && mayTransition("raiseAgain", work.state) && thisCalving;
     if (!((open || comesBack) && her.expectedCalvingAt)) {
       continue;
     }
     const to = calvingWorkDue(her.expectedCalvingAt, leadDays[parts.lead]);
     if (comesBack) {
-      followed.workReopened.push(work.id);
-    } else if (to.getTime() === work.dueAt.getTime()) {
+      // Sequential: one row each, and the trail reads them back in the order they went.
+      // oxlint-disable-next-line no-await-in-loop
+      const raised = await raiseWorkAgain(tx, work, {
+        trail,
+        dueAt: to,
+        by: "calving_expected_again",
+      });
+      if (raised) {
+        followed.workReopened.push(work.id);
+      }
       continue;
-    } else {
-      followed.workMoved.push({ instanceId: work.id, from: work.dueAt, to });
     }
-    // Sequential: one row each, and the trail reads them back in the order they went.
+    if (to.getTime() === work.dueAt.getTime()) {
+      continue;
+    }
+    followed.workMoved.push({ instanceId: work.id, from: work.dueAt, to });
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(sopInstance)
-      .set({ dueAt: to, ...(comesBack ? { state: "due" as const } : {}) })
+      .set({ dueAt: to })
       .where(eq(sopInstance.id, work.id));
   }
   if (followed.workClosed.length > 0) {
-    await tx
-      .update(sopInstance)
-      .set({ state: "missed" })
-      .where(inArray(sopInstance.id, followed.workClosed));
+    await callOffWork(
+      tx,
+      her.farmId,
+      inArray(sopInstance.id, followed.workClosed),
+      { trail, by: "calving_no_longer_expected" }
+    );
   }
   return followed;
 };

@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type {
   AnimalState,
@@ -25,6 +26,7 @@ import {
   describeChanges,
   lastCarryingMoment,
   MAX_GRACE_MINUTES,
+  AWAITING_SIGN_OFF,
   OPEN_INSTANCE_STATES,
   appliesToAnimal,
   scheduleFallsOn,
@@ -1142,7 +1144,35 @@ export const heldByWithdrawal = async (
   return held.filter((beast) => isOnTheFarm(beast));
 };
 
-/** Every piece of work the farm's day holds, done or not. */
+/**
+ * The work waiting on a checker's word, oldest done first: done, with a checker Role, and that Role one this person
+ * holds. The one query every sign-off queue asks, so the Manager's home, the Owner's and the queue itself cannot
+ * disagree about what waits.
+ */
+export const workAwaitingSignOff = (
+  db: Pick<Database, "query">,
+  farmId: string,
+  roles: readonly RoleName[],
+  limit: number
+) =>
+  db.query.sopInstance.findMany({
+    where: {
+      farmId,
+      state: AWAITING_SIGN_OFF,
+      checkerRole: { in: [...roles] },
+    },
+    with: {
+      version: { columns: { content: true, number: true } },
+      pen: {
+        columns: { name: true },
+        with: { shed: { columns: { name: true } } },
+      },
+    },
+    orderBy: { completedAt: "asc", id: "asc" },
+    limit,
+  });
+
+/** Every piece of work the farm's day holds, done or not — but not work Called Off, which it no longer owes. */
 export const daysWork = (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
@@ -1150,12 +1180,11 @@ export const daysWork = (
 ) => {
   const { from, to } = farmDayRange(now);
   return db.query.sopInstance.findMany({
-    where: { farmId, dueAt: { gte: from, lt: to } },
+    where: {
+      farmId,
+      dueAt: { gte: from, lt: to },
+      state: { ne: "called_off" },
+    },
     columns: { id: true, penId: true, state: true },
   });
 };
-
-/** Is this piece of work finished, as far as the farm is concerned? Missed is settled but
- *  not finished: somebody decided it would not happen, and said why. */
-export const isFinished = (state: string): boolean =>
-  state === "completed" || state === "approved";

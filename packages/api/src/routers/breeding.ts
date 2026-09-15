@@ -99,6 +99,7 @@ export const breedingRouter = {
           await forgetExpectedCalving(tx, context.farm.id, her, {
             now,
             calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
+            trail: audited(context).recordEvent,
           });
           // A heifer who lost her first calf is back on heat watch; a cow is where her Lactation leaves her.
           if (her.state === "pregnant_heifer") {

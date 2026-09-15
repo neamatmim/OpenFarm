@@ -284,7 +284,7 @@ describe("the abortion", () => {
       { stageMonths: 6, note: "ব্রুসেলোসিস সন্দেহ" },
     ]);
     const closed = await manager.client.instances.get({ id: prep?.id ?? "" });
-    expect(closed.state).toBe("missed");
+    expect(closed.state).toBe("called_off");
 
     // The Vet puts the stage right, with a reason; the Manager may not.
     await expect(

@@ -1,6 +1,7 @@
 import { SIDES } from "@OpenFarm/domain";
 import { z } from "zod";
 
+import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
 import { readAnimal, requireAnimal, requirePen, walkTo } from "../herd-store";
 import { requirePenInScope } from "../scope";
@@ -65,6 +66,7 @@ export const moveEntry: EntryKind<MoveInput, { animalId: string }> = {
       movedAt: doneAt,
       id,
       now: receivedAt,
+      trail: audited(context).recordEvent,
     });
     return { animalId: beast.id };
   },

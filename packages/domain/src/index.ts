@@ -188,15 +188,21 @@ export {
   waitsForTheDigest,
   wakesTheFarm,
 } from "./notify";
-export type { DueWork } from "./work";
+export type { DueWork, InstanceState, WorkTransition } from "./work";
 export {
   AWAITING_SIGN_OFF,
+  INSTANCE_STATES,
   MAX_GRACE_MINUTES,
   OPEN_INSTANCE_STATES,
+  WORK_TRANSITIONS,
+  awaitsSignOff,
   isEscalated,
+  isFinished,
   isOpen,
   isOverdue,
+  mayTransition,
   minutesOverdue,
+  stateAfter,
 } from "./work";
 export type {
   FeedingEntryLine,

@@ -22,11 +22,12 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { Tx, Trail } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving, nothingFollowed } from "./calving-work";
 import { entersState } from "./herd-store";
 import { ATTEMPT_KEY_PREFIX, attemptKeyOf } from "./instances-store";
+import { callOffWork } from "./work-transitions";
 
 /** The Farm Parameters a pregnancy is timed by: how long a cow carries, and how long before her
  *  Expected Calving each piece of calving work falls. */
@@ -59,7 +60,8 @@ export const retimeEveryCalving = async (
   tx: Tx,
   farmId: string,
   times: PregnancyTimes,
-  now: Date
+  now: Date,
+  trail: Trail
 ): Promise<CalvingWorkFollowed> => {
   const carrying = await tx.query.animal.findMany({
     where: { farmId, expectedCalvingAt: { isNotNull: true } },
@@ -97,7 +99,7 @@ export const retimeEveryCalving = async (
       tx,
       { ...her, expectedCalvingAt },
       times.calvingLeadDays,
-      { expectedAgain: false }
+      { expectedAgain: false, trail }
     );
     followed.workMoved.push(...one.workMoved);
     followed.workClosed.push(...one.workClosed);
@@ -151,13 +153,14 @@ export const attemptThatRaisedWork = async (
  * takes the first service back so the second now begins the attempt, leaves work raised on a day or
  * a service that no longer stands. And a cow served again has come back into heat: the attempt
  * before has answered its own question, and its check would send the Vet to confirm a pregnancy
- * that is not there. Only open work — anything already done was done. The attempt as it now stands
- * raises its own on the next pass.
+ * that is not there. Only open work — anything already done was done, and the work is called off rather than Missed.
+ * The attempt as it now stands raises its own on the next pass.
  */
-export const closeWorkOfAttemptsNoLongerStanding = async (
+export const callOffWorkOfAttemptsNoLongerStanding = async (
   tx: Tx,
   farmId: string,
-  animalId: string
+  animalId: string,
+  trail: Trail
 ): Promise<void> => {
   const latest = await latestAttemptOf(tx, animalId);
   const standing = latest ? `${attemptKeyOf(latest)}:` : null;
@@ -174,15 +177,15 @@ export const closeWorkOfAttemptsNoLongerStanding = async (
     (work) => !(standing && work.cause?.startsWith(standing))
   );
   if (orphaned.length > 0) {
-    await tx
-      .update(sopInstance)
-      .set({ state: "missed" })
-      .where(
-        inArray(
-          sopInstance.id,
-          orphaned.map((work) => work.id)
-        )
-      );
+    await callOffWork(
+      tx,
+      farmId,
+      inArray(
+        sopInstance.id,
+        orphaned.map((work) => work.id)
+      ),
+      { trail, by: "attempt_no_longer_standing" }
+    );
   }
 };
 
@@ -237,7 +240,15 @@ export const rederivePregnancy = async (
     at,
     now,
     undoingPositive,
-  }: { times: PregnancyTimes; at: Date; now: Date; undoingPositive: boolean }
+    trail,
+  }: {
+    times: PregnancyTimes;
+    at: Date;
+    now: Date;
+    undoingPositive: boolean;
+    /** The trail of what put the pregnancy right: the calving work it calls off or raises again is written there. */
+    trail: Trail;
+  }
 ): Promise<CalvingWorkFollowed> => {
   const her = await tx.query.animal.findFirst({
     where: { id: animalId },
@@ -302,6 +313,7 @@ export const rederivePregnancy = async (
     {
       expectedAgain:
         her.expectedCalvingAt === null && expectedCalvingAt !== null,
+      trail,
     }
   );
 };

@@ -155,3 +155,10 @@ export const audited = (
 
   return { write, recordEvent, latestEventFor };
 };
+
+/**
+ * Writes one Audit Event on a transaction already held, as the person whose request it is (audited's recordEvent).
+ * Handed to a store that changes something the request did not name — the work a Sale calls off — so that change is
+ * in the trail beside the Sale's, under the same person, Role and phone.
+ */
+export type Trail = ReturnType<typeof audited>["recordEvent"];

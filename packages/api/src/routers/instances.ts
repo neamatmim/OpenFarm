@@ -1,10 +1,8 @@
-import { and, eq } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
-import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
-  AWAITING_SIGN_OFF,
+  OPEN_INSTANCE_STATES,
+  awaitsSignOff,
   isEscalated,
-  isOpen,
   isOverdue,
   minutesOverdue,
   sessionsPerDayOf,
@@ -36,6 +34,7 @@ import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
+  workAwaitingSignOff,
   alertParams,
   animalsForInstance,
   dueSlotsFor,
@@ -55,22 +54,16 @@ import { raiseNeedsReview } from "../review-store";
 import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
+import {
+  readWork,
+  requireMayTransition,
+  requireTransition,
+} from "../work-transitions";
 
 const MINUTE_MS = 60_000;
 
 /** How much of the sign-off queue a screen is handed at once. */
 const SIGN_OFF_LIMIT = 100;
-
-/** The state an Instance was in, for a trail that cannot be argued with. */
-const readInstanceState = async (tx: Tx, farmId: string, id: string) => {
-  const row = await tx.query.sopInstance.findFirst({
-    where: { id, farmId },
-    columns: { state: true, completedAt: true },
-  });
-  return row
-    ? { ...row, completedAt: row.completedAt?.toISOString() ?? null }
-    : null;
-};
 
 /**
  * Loads the Instance a checker may sign off, refusing if they may not: it must be waiting
@@ -96,12 +89,9 @@ const loadCheckableInstance = async (
   if (!instance) {
     throw new ORPCError("NOT_FOUND");
   }
-  if (instance.state !== AWAITING_SIGN_OFF) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `This work is ${instance.state}, not waiting for sign-off`,
-    });
-  }
-  if (!instance.checkerRole) {
+  // Waiting for sign-off: done, and done since somebody signed it off or sent it back.
+  requireMayTransition(instance, "approve");
+  if (!(awaitsSignOff(instance) && instance.checkerRole)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This work is not checked by anyone",
     });
@@ -353,7 +343,7 @@ export const instancesRouter = {
       const rows = await context.db.query.sopInstance.findMany({
         where: {
           farmId: context.farm.id,
-          state: { in: ["due", "in_progress", "sent_back"] },
+          state: { in: [...OPEN_INSTANCE_STATES] },
           dueAt: { gte: from, lt: to },
           // Their Scope: their Pens, or one of them when they ask for it, and the work about their Cases.
           ...workInScopeWhere(context.scope, input.penId),
@@ -542,21 +532,19 @@ export const instancesRouter = {
           entity: "sop_instance",
           entityId: input.id,
           action: "update",
-          after: { assignedTo: input.userId },
+          before: (tx) => readWork(tx, input.id),
+          after: (tx) => readWork(tx, input.id),
         },
         async (tx) => {
           const instance = await tx.query.sopInstance.findFirst({
             where: { id: input.id, farmId: context.farm.id },
-            columns: { state: true, assignedRole: true },
+            columns: { id: true, state: true, assignedRole: true },
           });
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
           }
-          if (instance.state === "completed" || instance.state === "approved") {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "Finished work cannot be reassigned",
-            });
-          }
+          // Only work still owed: finished work is done, and work closed as Missed or Called Off is not to be done.
+          requireMayTransition(instance, "assign");
           if (input.userId) {
             // Pinning to someone who cannot work it would strand the Instance: nobody else
             // may touch it, and they are not on this farm to pick it up.
@@ -580,22 +568,16 @@ export const instancesRouter = {
               });
             }
           }
-          await tx
-            .update(sopInstance)
-            .set({
+          // Who changes, not where the work stands: work sent back stays sent back for whoever does it next.
+          await requireTransition(tx, instance, "assign", {
+            set: {
               assignedTo: input.userId,
               assignedBy: context.actor.id,
               // Reassigning takes it out of the previous person's hands.
               claimedBy: null,
               claimedAt: null,
-              state: "due",
-            })
-            .where(
-              and(
-                eq(sopInstance.id, input.id),
-                eq(sopInstance.farmId, context.farm.id)
-              )
-            );
+            },
+          });
         }
       );
       return { id: input.id, assignedTo: input.userId };
@@ -652,22 +634,12 @@ export const instancesRouter = {
   signOffQueue: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(({ context }) =>
-      context.db.query.sopInstance.findMany({
-        where: {
-          farmId: context.farm.id,
-          state: AWAITING_SIGN_OFF,
-          checkerRole: { in: context.roles },
-        },
-        with: {
-          version: { columns: { content: true, number: true } },
-          pen: {
-            columns: { name: true },
-            with: { shed: { columns: { name: true } } },
-          },
-        },
-        orderBy: { completedAt: "asc" },
-        limit: SIGN_OFF_LIMIT,
-      })
+      workAwaitingSignOff(
+        context.db,
+        context.farm.id,
+        context.roles,
+        SIGN_OFF_LIMIT
+      )
     ),
 
   /** The checker accepts the work. Terminal: an approved Instance is the farm's record. */
@@ -680,15 +652,12 @@ export const instancesRouter = {
           entity: "sop_instance",
           entityId: input.id,
           action: "update",
-          before: { state: AWAITING_SIGN_OFF },
-          after: { state: "approved" },
+          before: (tx) => readWork(tx, input.id),
+          after: (tx) => readWork(tx, input.id),
         },
         async (tx) => {
-          await loadCheckableInstance(tx, context, input.id);
-          await tx
-            .update(sopInstance)
-            .set({ state: "approved" })
-            .where(eq(sopInstance.id, input.id));
+          const instance = await loadCheckableInstance(tx, context, input.id);
+          await requireTransition(tx, instance, "approve");
         }
       );
       return { id: input.id, state: "approved" } as const;
@@ -707,16 +676,15 @@ export const instancesRouter = {
           entity: "sop_instance",
           entityId: input.id,
           action: "update",
-          before: { state: AWAITING_SIGN_OFF },
-          after: { state: "sent_back" },
+          before: (tx) => readWork(tx, input.id),
+          after: (tx) => readWork(tx, input.id),
           reason: input.reason,
         },
         async (tx) => {
           const instance = await loadCheckableInstance(tx, context, input.id);
-          await tx
-            .update(sopInstance)
-            .set({ state: "sent_back", completedAt: null })
-            .where(eq(sopInstance.id, input.id));
+          await requireTransition(tx, instance, "sendBack", {
+            set: { completedAt: null },
+          });
           // The people who did the work are the people who have to hear about it — and a
           // Step can be recorded without anyone having claimed the Instance, so whoever
           // actually recorded something counts as having done it.
@@ -761,23 +729,19 @@ export const instancesRouter = {
           entity: "sop_instance",
           entityId: input.id,
           action: "update",
-          before: (tx) => readInstanceState(tx, context.farm.id, input.id),
-          after: { state: "missed" },
+          before: (tx) => readWork(tx, input.id),
+          after: (tx) => readWork(tx, input.id),
           reason: input.reason,
         },
         async (tx) => {
           const instance = await tx.query.sopInstance.findFirst({
             where: { id: input.id, farmId: context.farm.id },
-            columns: { state: true, dueAt: true, graceMinutes: true },
+            columns: { id: true, state: true, dueAt: true, graceMinutes: true },
           });
           if (!instance) {
             throw new ORPCError("NOT_FOUND");
           }
-          if (!isOpen(instance.state)) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `This work is ${instance.state}; only work still open can be closed as missed`,
-            });
-          }
+          requireMayTransition(instance, "closeAsMissed");
           // Work that is not yet late has not been missed — it has not had its chance.
           if (!isOverdue(instance, now)) {
             throw new ORPCError("BAD_REQUEST", {
@@ -786,10 +750,7 @@ export const instancesRouter = {
           }
           // No completedAt: nobody completed it. When it was closed, and by whom, is the
           // Audit Event's business.
-          await tx
-            .update(sopInstance)
-            .set({ state: "missed" })
-            .where(eq(sopInstance.id, input.id));
+          await requireTransition(tx, instance, "closeAsMissed");
         }
       );
       return { id: input.id, state: "missed" } as const;

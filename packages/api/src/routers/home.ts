@@ -1,7 +1,7 @@
 import type { SopContent } from "@OpenFarm/domain";
 import {
-  AWAITING_SIGN_OFF,
   isEscalated,
+  isFinished,
   litresTo,
   minutesOverdue,
   roundLitres,
@@ -18,10 +18,10 @@ import {
   farmDayRange,
   findLate,
   heldByWithdrawal,
-  isFinished,
   isOnTheFarm,
   openReviews,
   penLabel,
+  workAwaitingSignOff,
 } from "../instances-store";
 import { renewalDue } from "../registration-store";
 import { requireRole } from "../roles";
@@ -79,22 +79,7 @@ export const homeRouter = {
           now,
           new Date(now.getTime() - LATE_SINCE_DAYS * DAY_MS)
         ),
-        context.db.query.sopInstance.findMany({
-          where: {
-            farmId,
-            state: AWAITING_SIGN_OFF,
-            checkerRole: { in: context.roles },
-          },
-          with: {
-            version: { columns: { content: true } },
-            pen: {
-              columns: { name: true },
-              with: { shed: { columns: { name: true } } },
-            },
-          },
-          orderBy: { completedAt: "asc" },
-          limit: QUEUE_LIMIT,
-        }),
+        workAwaitingSignOff(context.db, farmId, context.roles, QUEUE_LIMIT),
         openReviews(context.db, farmId, QUEUE_LIMIT),
         // The work each of those entries belongs to, so the row reaches it rather than
         // dropping somebody on a list to search.
@@ -322,22 +307,7 @@ export const homeRouter = {
         // Work waiting on the Owner's own word. Money Events join this row in increment 6;
         // today the only thing anybody waits on an Owner to approve is work whose Version
         // named the Owner as its checker.
-        context.db.query.sopInstance.findMany({
-          where: {
-            farmId,
-            state: AWAITING_SIGN_OFF,
-            checkerRole: { in: context.roles },
-          },
-          with: {
-            version: { columns: { content: true } },
-            pen: {
-              columns: { name: true },
-              with: { shed: { columns: { name: true } } },
-            },
-          },
-          orderBy: { completedAt: "asc" },
-          limit: QUEUE_LIMIT,
-        }),
+        workAwaitingSignOff(context.db, farmId, context.roles, QUEUE_LIMIT),
         // Every Milking Session of the week behind today — all of them, not the newest
         // seven rows: a Session belongs to one Pen, so a farm with four pens milking twice
         // raises eight a day, and seven rows would be this morning rather than the week.

@@ -175,6 +175,34 @@ const recordCow = async (
 
 const tagOf = (index: number) => world.cows[index]?.tagNumber ?? "";
 
+describe("two people recording together", () => {
+  it("both start work nobody had started, and neither Step is lost", async () => {
+    const { instance, clock } = await session("2026-12-17");
+    const staff = await as("staff", clock);
+    const manager = await as("manager", clock);
+    const both = await Promise.allSettled([
+      staff.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "milk",
+        animalTag: tagOf(0),
+        evidence: [10],
+      }),
+      manager.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "milk",
+        animalTag: tagOf(1),
+        evidence: [9],
+      }),
+    ]);
+    expect(both.map((one) => one.status)).toEqual(["fulfilled", "fulfilled"]);
+    const loaded = await manager.instances.get({ id: instance.id });
+    expect(loaded.state).toBe("in_progress");
+    expect(
+      loaded.completions.filter((row) => row.stepId === "milk")
+    ).toHaveLength(2);
+  });
+});
+
 describe("correction windows", () => {
   it("lets Staff put their own entry right for two hours, and not after", async () => {
     const { instance, clock } = await session("2026-12-01");
