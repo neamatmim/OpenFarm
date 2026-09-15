@@ -193,7 +193,7 @@ export const vetCasesRouter = {
 
   /** Closes a Case: the farm has what it needed from the vet about her, or the vet has finished. */
   close: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
@@ -230,7 +230,7 @@ export const vetCasesRouter = {
 
   /** A Vet's own open Cases: the animals they were called in for, and why. */
   mine: protectedProcedure
-    .use(requireRole("vet"))
+    .use(requireRole("vet", { visitingVet: true }))
     .handler(async ({ context }) => {
       const rows = await context.db.query.vetCase.findMany({
         where: {

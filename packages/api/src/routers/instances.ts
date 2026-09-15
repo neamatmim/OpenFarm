@@ -360,7 +360,7 @@ export const instancesRouter = {
 
   /** Today's work: what this person can pick up, newest due first. */
   today: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ penId: z.string().optional() }).default({}))
     .handler(async ({ context, input }) => {
       const scoped = context.roleUsed === "staff";
@@ -415,7 +415,7 @@ export const instancesRouter = {
   /** Everything the pen board needs: the Version's Steps, the Pen's animals, and what has
    *  already been recorded. */
   get: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const instance = await context.db.query.sopInstance.findFirst({
@@ -563,7 +563,9 @@ export const instancesRouter = {
 
   /** Claiming is exclusive: the first person to take it is the one working it. */
   claim: protectedProcedure
-    .use(requireRole(...claimEntry.roles))
+    .use(
+      requireRole(...claimEntry.roles, { visitingVet: claimEntry.visitingVet })
+    )
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       await recordNow(context, claimEntry, { instanceId: input.id });
@@ -642,7 +644,11 @@ export const instancesRouter = {
   /** Records one Step — once per animal where the Step repeats. The same answer again changes nothing; a different
    *  one is a Correction. */
   completeStep: protectedProcedure
-    .use(requireRole(...stepCompletionEntry.roles))
+    .use(
+      requireRole(...stepCompletionEntry.roles, {
+        visitingVet: stepCompletionEntry.visitingVet,
+      })
+    )
     .input(stepCompletionInput)
     .handler(async ({ context, input }) => {
       const { effect } = await recordNow(context, stepCompletionEntry, input);
@@ -651,7 +657,11 @@ export const instancesRouter = {
 
   /** A photograph a Step asked for, against the slot it answers — sent after the Step, as a phone's Outbox sends it. */
   attachPhoto: protectedProcedure
-    .use(requireRole(...stepPhotoEntry.roles))
+    .use(
+      requireRole(...stepPhotoEntry.roles, {
+        visitingVet: stepPhotoEntry.visitingVet,
+      })
+    )
     .input(stepPhotoInput)
     .handler(async ({ context, input }) => {
       await recordNow(context, stepPhotoEntry, input);
@@ -845,7 +855,7 @@ export const instancesRouter = {
    * replaces its Milk Record and the Session's reconciliation is worked out afresh.
    */
   correctStep: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z.object({
         completionId: z.string(),
@@ -1021,7 +1031,11 @@ export const instancesRouter = {
   /** Finishes the Instance. Refused while any Step — or any animal within a per-animal
    *  Step — is neither done nor skipped. */
   complete: protectedProcedure
-    .use(requireRole(...finishEntry.roles))
+    .use(
+      requireRole(...finishEntry.roles, {
+        visitingVet: finishEntry.visitingVet,
+      })
+    )
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       await recordNow(context, finishEntry, { instanceId: input.id });

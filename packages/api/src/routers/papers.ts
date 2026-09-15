@@ -138,7 +138,7 @@ export const papersRouter = {
    * about an animal is not theirs to hand over.
    */
   passport: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
@@ -200,7 +200,7 @@ export const papersRouter = {
    * the paper a buyer holds and the gate that refused a sale can never disagree.
    */
   withdrawalSummary: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();

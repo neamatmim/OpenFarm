@@ -389,7 +389,7 @@ export const milkRouter = {
 
   /** One cow's lactation as the system derives it — never as anyone typed it. */
   forAnimal: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
       const beast = await context.db.query.animal.findFirst({

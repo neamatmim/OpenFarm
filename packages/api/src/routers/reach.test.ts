@@ -3,13 +3,54 @@ import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { Context } from "../context";
-import { VISITING_VET_REACH } from "../roles";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 
 // Every procedure the farm has, called by a Vet called in for a visit and nothing else. Whatever a visit has not been
 // declared to reach is refused before the procedure reads a word of what it was sent — so a procedure added without
 // anybody deciding whether a visitor may call it is closed, not open.
+
+/**
+ * What a Vet called in for a visit is meant to reach, as the farm decided it: their own cases' animals, what the Vet
+ * does for them, the Drug List and the notifiable-disease list to do it with, and their own notices and trail. Each is
+ * declared at its own procedure; a procedure that opens to a visit without being written here fails, and so does one
+ * written here that a visit cannot reach.
+ */
+const OPEN_TO_A_VISIT = new Set<string>([
+  "alerts.mine",
+  "alerts.dismiss",
+  "animals.list",
+  "animals.byTag",
+  "animals.photo",
+  "audit.list",
+  "breeding.recordAbortion",
+  "breeding.correctAbortion",
+  "diagnoses.record",
+  "diagnoses.correct",
+  "diagnoses.waiting",
+  "diagnoses.mine",
+  "drugs.list",
+  "instances.today",
+  "instances.get",
+  "instances.attachPhoto",
+  "instances.claim",
+  "instances.completeStep",
+  "instances.correctStep",
+  "instances.complete",
+  "milk.forAnimal",
+  "notifiable.list",
+  "observations.record",
+  "papers.passport",
+  "papers.withdrawalSummary",
+  "prescriptions.prescribe",
+  "prescriptions.forAnimal",
+  "push.key",
+  "push.listen",
+  "push.stopListening",
+  "sync.batch",
+  "vetCases.close",
+  "vetCases.mine",
+]);
 
 /**
  * Procedures that ask for no Role at all, and why a visitor may call them: they are about the person or the phone in
@@ -81,7 +122,7 @@ describe("a Vet on a visit, calling every procedure", () => {
   const closed = procedurePaths(appRouter).filter((path) => {
     const name = path.join(".");
     return !(
-      VISITING_VET_REACH.has(name) ||
+      OPEN_TO_A_VISIT.has(name) ||
       ROLE_FREE.has(name) ||
       name === "farm.current"
     );
@@ -91,6 +132,19 @@ describe("a Vet on a visit, calling every procedure", () => {
     "is refused %s before it reads what it was sent",
     async (_name, path) => {
       expect(await call(path)).toMatchObject({ code: "FORBIDDEN" });
+    }
+  );
+  const open = procedurePaths(appRouter).filter((path) =>
+    OPEN_TO_A_VISIT.has(path.join("."))
+  );
+
+  it.each(open.map((path) => [path.join("."), path] as const))(
+    "is let into %s, whatever it then says about what was sent",
+    async (_name, path) => {
+      const answer = (await call(path)) as {
+        data?: { refusal?: string };
+      } | null;
+      expect(answer?.data?.refusal).not.toBe("visiting_vet");
     }
   );
 });

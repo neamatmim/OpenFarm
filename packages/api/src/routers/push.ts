@@ -42,13 +42,13 @@ export const pushRouter = {
   /** What this farm's browsers need to speak to it, and nothing secret: the public half of
    *  the farm's keys, or nothing when the farm does not push at all. */
   key: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .handler(({ context }) => ({ key: context.pushKey })),
 
   /** This browser agrees to be told. Per browser, not per person: a Manager with a phone and
    *  an office machine has two, and an Alert should reach both. */
   listen: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z.object({
         endpoint: endpointInput,
@@ -89,7 +89,7 @@ export const pushRouter = {
   /** This browser would rather not be told. The row stays, revoked: who was told what, and
    *  who stopped being told, is part of the farm's record. */
   stopListening: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ endpoint: endpointInput }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();

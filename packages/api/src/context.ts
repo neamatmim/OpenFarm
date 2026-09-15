@@ -17,6 +17,7 @@ import {
 import type { PushTransport } from "./push";
 import { silentTransport } from "./push";
 import { webPush } from "./push-web";
+import type { Scope } from "./scope";
 import type { SmsTransport } from "./sms";
 import { silentSms } from "./sms";
 import { smsGateway } from "./sms-gateway";
@@ -108,6 +109,8 @@ export interface Context {
   caseAnimalIds: string[];
   /** Set by requireRole: the Role this request acts under. Null for role-free procedures. */
   roleUsed: RoleName | null;
+  /** Set by requireRole: what they may see and record under that Role. Nothing, for role-free procedures. */
+  scope: Scope;
   /** How a notice leaves the farm. Injected so the tests can watch it and development can
    *  run silent (ticket 14). */
   push: PushTransport;
@@ -216,6 +219,7 @@ export const buildContext = async ({
     sms,
     pushKey,
     roleUsed: null,
+    scope: { kind: "nothing" },
     deviceStatus,
   } as const;
   const actingUserId = session?.user.id ?? device?.activeUserId ?? null;

@@ -154,7 +154,7 @@ export const prescriptionsRouter = {
    * running for a dose to arrive on a phone in three days' time.
    */
   prescribe: protectedProcedure
-    .use(requireOnly("vet", VET_ONLY))
+    .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
     .use(requirePersonalSession())
     .input(
       z.object({
@@ -258,7 +258,7 @@ export const prescriptionsRouter = {
   /** Every course this animal has been on, newest first, with each dose and its work. The
    *  Vet writes them; the Owner and the Manager read them (roles matrix). */
   forAnimal: protectedProcedure
-    .use(requireRole("owner", "manager", "vet"))
+    .use(requireRole("owner", "manager", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: z.string().trim().min(1).max(32) }))
     .handler(async ({ context, input }) => {
       const her = await context.db.query.animal.findFirst({

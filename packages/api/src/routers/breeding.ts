@@ -32,7 +32,7 @@ const VET_ONLY = {
 /** An abortion is a clinical finding the Vet signs, so it comes from the Vet's own account and
  *  never a Shed Phone — as a Diagnosis does. */
 const abortionByTheVet = protectedProcedure
-  .use(requireOnly("vet", VET_ONLY))
+  .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
   .use(requirePersonalSession());
 
 /** The abortion as the trail records it either side of a change. */

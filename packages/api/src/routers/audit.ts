@@ -13,7 +13,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  *  actions. Day filters are farm-local, half-open: [fromDay 00:00, toDay + 1 day 00:00). */
 export const auditRouter = {
   list: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z
         .object({

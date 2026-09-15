@@ -53,7 +53,7 @@ const note = z.string().trim().max(2000);
 
 /** Every clinical act the Vet signs comes from their own account, never a Shed Phone. */
 const theVetsOwnAct = protectedProcedure
-  .use(requireOnly("vet", VET_ONLY))
+  .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
   .use(requirePersonalSession());
 
 /** The Diagnosis as it stands, for the trail to record either side of a change. One reader

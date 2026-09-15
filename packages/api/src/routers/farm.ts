@@ -194,6 +194,13 @@ export const farmRouter = {
     if (!context.farm) {
       return null;
     }
+    // Which farm, and no more, for somebody the farm's settings are not for: a Vet here only on a visit, or somebody
+    // who holds no Role yet. Thresholds, windows and tolerances are the running of the farm, not a visitor's to read.
+    const onlyVisiting =
+      context.visiting && context.roles.every((role) => role === "vet");
+    if (onlyVisiting || context.roles.length === 0) {
+      return { id: context.farm.id, name: context.farm.name };
+    }
     // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see.
     const { approvalThresholdBdt, ...withoutMoney } = context.farm;
     const readsMoney = context.roles.some(

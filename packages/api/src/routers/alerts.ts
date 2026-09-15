@@ -124,12 +124,7 @@ export const sweepTheAlerts = async (context: Sweeping) => {
         }),
     },
     async (tx) => {
-      const raised = await raiseLateAlerts(
-        tx,
-        context.farm.id,
-        pending,
-        now
-      );
+      const raised = await raiseLateAlerts(tx, context.farm.id, pending, now);
       // Remembered inside the same transaction as the notices: a watermark that moved
       // on without them would step over work nobody was ever told about.
       await tx
@@ -194,7 +189,7 @@ export const alertsRouter = {
     .handler(({ context }) => carryTheDigest(context)),
 
   mine: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z
         .object({
@@ -226,7 +221,7 @@ export const alertsRouter = {
    * show afterwards.
    */
   dismiss: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();

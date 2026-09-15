@@ -2,6 +2,7 @@ import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ORPCError, os } from "@orpc/server";
 
 import type { Actor, Context } from "./context";
+import { scopeOf } from "./scope";
 
 export type { RoleName } from "@OpenFarm/db/schema/farm";
 export { ROLES } from "@OpenFarm/db/schema/farm";
@@ -42,46 +43,14 @@ export const forbidden = (refusal: Refusal) =>
   });
 
 /**
- * What a visiting Vet can reach: their own cases' animals, what the Vet does for them, the Drug List and the
- * notifiable-disease list to do it with, and their own notices and trail. Everything else on the farm is not
- * theirs to see (roles matrix, Vet (visiting)). The procedures listed still narrow themselves to the Cases.
+ * Whether a Vet called in for a visit may call a procedure at all — declared where the procedure is, beside the
+ * narrowing its handler does to their Cases. A procedure that says nothing is closed to a visit: a visitor reaches
+ * their own cases' animals, what the Vet does for them, the Drug List and the notifiable-disease list to do it with,
+ * and their own notices and trail, and nothing else of the farm (roles matrix, Vet (visiting)).
  */
-export const VISITING_VET_REACH: ReadonlySet<string> = new Set([
-  "alerts.mine",
-  "alerts.dismiss",
-  "animals.list",
-  "animals.byTag",
-  "animals.photo",
-  "audit.list",
-  "breeding.recordAbortion",
-  "breeding.correctAbortion",
-  "diagnoses.record",
-  "diagnoses.correct",
-  "diagnoses.waiting",
-  "diagnoses.mine",
-  "drugs.list",
-  "instances.today",
-  "instances.get",
-  "instances.attachPhoto",
-  "instances.claim",
-  "instances.completeStep",
-  "instances.correctStep",
-  "instances.complete",
-  "milk.forAnimal",
-  "notifiable.list",
-  "observations.record",
-  "papers.passport",
-  "papers.withdrawalSummary",
-  "prescriptions.prescribe",
-  "prescriptions.forAnimal",
-  "push.key",
-  "push.listen",
-  "push.stopListening",
-  "sync.batch",
-  "vetCases.close",
-  "vetCases.mine",
-]);
-
+export interface Reach {
+  visitingVet?: boolean;
+}
 /** What a visiting Vet is told when something is not on their cases' side of the farm. */
 export const VISITING_VET: Refusal = {
   message: "A visiting vet sees only the animals on their cases",
@@ -106,27 +75,36 @@ export const roleFor = (
       )
     : null) ?? pickRoleUsed(person.roles, allowed);
 
-const roleGate = (allowed: readonly RoleName[], refusal?: Refusal) =>
-  os
-    .$context<Context & { actor: Actor }>()
-    .middleware(({ context, next, path }) => {
-      const roleUsed = roleFor(context, allowed);
-      if (!roleUsed || !context.farm) {
-        throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
-      }
-      if (
-        roleUsed === "vet" &&
-        context.visiting &&
-        !VISITING_VET_REACH.has(path.join("."))
-      ) {
-        throw forbidden(VISITING_VET);
-      }
-      return next({ context: { roleUsed, farm: context.farm } });
+const roleGate = (
+  allowed: readonly RoleName[],
+  { refusal, visitingVet = false }: { refusal?: Refusal } & Reach = {}
+) =>
+  os.$context<Context & { actor: Actor }>().middleware(({ context, next }) => {
+    const roleUsed = roleFor(context, allowed);
+    if (!roleUsed || !context.farm) {
+      throw refusal ? forbidden(refusal) : new ORPCError("FORBIDDEN");
+    }
+    if (roleUsed === "vet" && context.visiting && !visitingVet) {
+      throw forbidden(VISITING_VET);
+    }
+    // What they may see and record under the Role this work is done under, worked out once it is chosen.
+    return next({
+      context: {
+        roleUsed,
+        farm: context.farm,
+        scope: scopeOf(context, roleUsed),
+      },
     });
+  });
 
-/** Runs after requireAuth (the principal is already known good). Requires any of `allowed`
- *  and narrows the context: the Role used and the Farm are certain from here on. */
-export const requireRole = (...allowed: RoleName[]) => roleGate(allowed);
+/** Runs after requireAuth (the principal is already known good). Requires any of `allowed` — and, for a procedure a
+ *  visiting Vet may call, `{ visitingVet: true }` last — and narrows the context: the Role used, the Farm and their
+ *  Scope are certain from here on. */
+export const requireRole = (...allowed: (RoleName | Reach)[]) =>
+  roleGate(
+    allowed.filter((one): one is RoleName => typeof one === "string"),
+    allowed.find((one): one is Reach => typeof one === "object") ?? {}
+  );
 
 /**
  * The same gate, for work exactly one Role may ever do — and which therefore owes an
@@ -137,8 +115,11 @@ export const requireRole = (...allowed: RoleName[]) => roleGate(allowed);
  * the Role recorded is the one the work belongs to rather than the highest they happen to
  * have.
  */
-export const requireOnly = (role: RoleName, refusal: Refusal) =>
-  roleGate([role], refusal);
+export const requireOnly = (
+  role: RoleName,
+  refusal: Refusal,
+  reach: Reach = {}
+) => roleGate([role], { refusal, ...reach });
 
 /** Some work must never come from a shared Shed Phone, whatever Role the active person
  *  holds: office work, and every clinical act a Vet signs (ADR 0003). */

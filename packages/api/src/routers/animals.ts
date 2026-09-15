@@ -444,7 +444,7 @@ const createAnimal = async (
 export const animalsRouter = {
   /** Staff see their assigned Pens; everyone who runs the farm sees the whole herd. */
   list: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(
       z
         .object({
@@ -493,7 +493,7 @@ export const animalsRouter = {
 
   /** Any signed-in person may look up any animal by Tag Number, read-only. */
   byTag: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const row = await context.db.query.animal.findFirst({
@@ -1202,7 +1202,7 @@ export const animalsRouter = {
     }),
 
   photo: protectedProcedure
-    .use(requireRole("owner", "manager", "staff", "vet"))
+    .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
       const target = await requireAnimal(
