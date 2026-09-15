@@ -6,7 +6,7 @@ import { KG_DECIMALS, implausibleChange, roundKg } from "@OpenFarm/domain";
 import type { Tx } from "../audit";
 import { raiseNeedsReview } from "../review-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
-import { numberIn } from "./evidence";
+import { asPublished, numberIn } from "./evidence";
 
 type WeighInFacts = Pick<
   EffectInput,
@@ -26,8 +26,8 @@ type WeighInFacts = Pick<
  * Records what one animal weighed on the scale this round.
  *
  * The reading is kept and never overwritten by the next one: the whole of fattening is the
- * difference between two of these. A replayed entry or a Correction replaces this Completion's
- * own reading, because that is one weighing however many times the phone sends it.
+ * difference between two of these. A Correction replaces this Completion's own reading, because
+ * that is one weighing however many times it is put right.
  *
  * A jump nobody could have grown is **taken and flagged**, never refused (ADR 0002; story 85
  * names a weight out of range by hand). The barn wrote something down, and a farm that throws it
@@ -37,7 +37,7 @@ type WeighInFacts = Pick<
  */
 const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
   // Weighed one at a time (the published Version says so), so the Step names her.
-  const animalId = input.animalId ?? "";
+  const animalId = asPublished(input.animalId, "the animal it weighs");
   const standing = await tx.query.weighIn.findFirst({
     where: { completionId: input.completionId },
     columns: { id: true },

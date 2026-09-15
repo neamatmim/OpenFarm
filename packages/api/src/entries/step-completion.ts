@@ -131,7 +131,7 @@ interface WorkForEffect {
 
 /**
  * What a Step writes into the farm's records beyond its Evidence — the litres, the tank reading, the dose — in the
- * Step's own transaction and keyed on its Completion, so a replay cannot double-count and a replacement replaces. The
+ * Step's own transaction and keyed on its Completion, so a Correction replaces what it wrote rather than adding to it. The
  * one place what an Effect is told is put together, whether the Step is recorded or put right.
  */
 const effectOfStep = (
@@ -261,8 +261,6 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       assertMayWork(context, work);
       const content = contentOf(work.version);
       const step = stepOf(content, input.stepId);
-      // Whoever the procedure lets at the work, a Service is still the Manager's to record and a Pregnancy Check the Vet's.
-      requireMayRecord(step, context.roles);
       const animalId = await resolveStepAnimal(
         tx,
         context.farm.id,
@@ -295,6 +293,9 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         // record says who did it.
         return { completionId: already.id, effect: null, changed: false };
       }
+      // Whoever the procedure lets at the work, a Service is still the Manager's to record and a Pregnancy Check the Vet's.
+      // Asked once the Step is found not yet recorded: the same Step arriving again changes nothing, whoever sends it.
+      requireMayRecord(step, context.roles);
 
       // Never an update: a recorded fact changes only by Correction (ADR 0002). Two phones racing for the same Step land
       // here, and the second is told so rather than overwriting the first.

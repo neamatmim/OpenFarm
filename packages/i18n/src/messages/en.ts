@@ -716,8 +716,6 @@ export const en = {
   "digest.registrationRenewal": "The Registration is due for renewal",
   "alerts.registrationRenewal":
     "The Registration runs out on {date}: its renewal is on your list",
-  "refusal.renewalSuperseded":
-    "The Registration has moved on since this renewal; put the newer one right instead",
   "refusal.workInNoPen":
     "This step records a Pen's work, and this work is in no Pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
@@ -1379,6 +1377,15 @@ export const en = {
     "No registration number written down — the transport card cannot be printed complete.",
   "identity.expired": "The registration ran out on {when}.",
   "identity.endingSoon": "The registration runs out on {when}.",
+  "standsAside.movedSince": "She has been moved since this was done",
+  "standsAside.cannotReturnToMilk": "She cannot be put back in milk from here",
+  "standsAside.calvingActedOn": "The farm has acted on this calving since",
+  "standsAside.serviceChecked":
+    "The Vet has checked this service; correct the check first",
+  "standsAside.noRation":
+    "This pen is on no ration now, so what was fed cannot be set against one",
+  "standsAside.renewalSuperseded":
+    "The Registration has moved on since this renewal; put the newer one right instead",
 } as const;
 
 export type MessageKey = keyof typeof en;

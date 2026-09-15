@@ -6,6 +6,23 @@ import type { EffectInput } from "./effect";
 // How an Effect reads a Step's Evidence: by the positions and choices the Version declares, refusing what it never
 // offered.
 
+/**
+ * What the published Version says a Step always carries — a required answer, the animal of a Step walked animal by
+ * animal — read without asking the entry again what publishing already settled. Missing, the farm is at fault, not
+ * the entry.
+ */
+export const asPublished = <Value>(
+  value: Value | null | undefined,
+  what: string
+): Value => {
+  if (value === null || value === undefined) {
+    throw new ORPCError("INTERNAL_SERVER_ERROR", {
+      message: `The published Step says it carries ${what}, and it does not`,
+    });
+  }
+  return value;
+};
+
 /** The figure a record-writing Step asks for: the first `number` slot the Version declares.
  *  A Step that writes a record has exactly one figure to write — litres, kilograms, a dose. */
 export const numberIn = (step: Step, evidence: unknown[]): number => {

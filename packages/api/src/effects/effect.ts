@@ -7,7 +7,6 @@ import type {
   ServiceMethod,
   Step,
 } from "@OpenFarm/domain";
-import { roundKg } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Trail, Tx } from "../audit";
@@ -220,11 +219,11 @@ export interface StandingAside {
 export interface EffectKind<Facts> {
   kind: (typeof STEP_EFFECT_KINDS)[number];
   /**
-   * Who may record a Step of this kind, whatever the procedure's own gate lets in — the Owner may step into any shift,
-   * but a Service is still the Manager's to record. Checked once, when the Step is first recorded; putting it right is
-   * the Correction's to decide. Nobody but the procedure's gate, when unsaid.
+   * The Roles that may record a Step of this kind, whatever the procedure's own gate lets in — the Owner may step into
+   * any shift, but a Service is still the Manager's to record. Checked once, when the Step is first recorded; putting it
+   * right is the Correction's to decide. Nobody but the procedure's gate, when unsaid.
    */
-  recordedBy?: { roles: readonly RoleName[]; refusal: Refusal };
+  recordableBy?: { roles: readonly RoleName[]; refusal: Refusal };
   /**
    * Whether its Step may be skipped with a reason even when it is not done animal by animal — a dose ("the bottle was
    * empty"), a second service a heat did not need. A per-animal Step may always skip the animal.
@@ -236,7 +235,15 @@ export interface EffectKind<Facts> {
    * carries it, for a Correction to show, compare, and keep when it is not sent again. Nothing, for a kind whose Step
    * says it all in its Evidence.
    */
-  recorded?: (tx: Tx, completionId: string) => Promise<StepFacts>;
+  recorded?: (
+    db: Pick<Tx, "query">,
+    completionId: string
+  ) => Promise<StepFacts>;
+  /**
+   * Its facts as a Correction compares them, in the farm's order and rounding, so the same thing sent two ways reads the
+   * same. Only its own: a kind with no facts beside its Evidence says nothing.
+   */
+  asShown?: (facts: StepFacts) => FactsAsShown;
 }
 
 /** The facts a Step carries beside its Evidence, as its answer does. */
@@ -266,7 +273,7 @@ const EFFECTS: Record<
   registration_renewal: renewalEffect,
 };
 
-/** The Effect a Step declares, when it is one of the kinds that are their own modules. */
+/** The Effect a Step declares, or nothing for a Step that writes only its Evidence. */
 export const effectOf = (
   step: EffectInput["step"]
 ): EffectKind<EffectInput> | undefined =>
@@ -277,9 +284,12 @@ export const requireMayRecord = (
   step: EffectInput["step"],
   roles: readonly RoleName[]
 ): void => {
-  const recordedBy = effectOf(step)?.recordedBy;
-  if (recordedBy && !recordedBy.roles.some((role) => roles.includes(role))) {
-    throw forbidden(recordedBy.refusal);
+  const recordableBy = effectOf(step)?.recordableBy;
+  if (
+    recordableBy &&
+    !recordableBy.roles.some((role) => roles.includes(role))
+  ) {
+    throw forbidden(recordableBy.refusal);
   }
 };
 
@@ -328,38 +338,15 @@ export interface FactsAsShown {
 
 /** What a Step recorded beside its Evidence, when its kind keeps facts there. */
 export const recordedFactsOf = async (
-  tx: Tx,
+  db: Pick<Tx, "query">,
   step: EffectInput["step"],
   completionId: string
 ): Promise<StepFacts> =>
-  (await effectOf(step)?.recorded?.(tx, completionId)) ?? {};
+  (await effectOf(step)?.recorded?.(db, completionId)) ?? {};
 
-/**
- * Facts as a Correction compares them: in the farm's order and rounding, so the same feed given reads the same whichever
- * way it was sent — leftovers left out are none, a count's reason left out is none, and a certificate is not a day.
- */
-export const factsAsShown = (facts: StepFacts): FactsAsShown => ({
-  ...(facts.feeding
-    ? {
-        feeding: facts.feeding
-          .map((line) => ({
-            feedItemId: line.feedItemId,
-            givenKg: roundKg(line.givenKg),
-            leftoverKg: roundKg(line.leftoverKg ?? 0),
-          }))
-          .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
-      }
-    : {}),
-  ...(facts.counts
-    ? {
-        counts: facts.counts
-          .map((line) => ({
-            feedItemId: line.feedItemId,
-            counted: roundKg(line.counted),
-            ...(line.reason?.trim() ? { reason: line.reason.trim() } : {}),
-          }))
-          .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
-      }
-    : {}),
-  ...(facts.renewal ? { renewal: { expiresOn: facts.renewal.expiresOn } } : {}),
-});
+/** Facts as a Correction compares them, each kind saying how its own are shown. */
+export const factsAsShown = (facts: StepFacts): FactsAsShown =>
+  Object.assign(
+    {},
+    ...Object.values(EFFECTS).map((kind) => kind.asShown?.(facts))
+  ) as FactsAsShown;

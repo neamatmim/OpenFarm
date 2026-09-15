@@ -1,3 +1,4 @@
+import type { StandingAsideBecause } from "@OpenFarm/api/effects/effect";
 import type { EntryRefusal } from "@OpenFarm/api/entries/entry";
 import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 
@@ -40,12 +41,24 @@ export const refusalMessage = (
   });
 };
 
+/** Why an Effect stood aside, in the reader's language: on a late Entry the phone held, and on the Needs Review a
+ *  Correction so raised. */
+export const STANDING_ASIDE_WORDS = {
+  moved_since: "standsAside.movedSince",
+  cannot_return_to_milk: "standsAside.cannotReturnToMilk",
+  calving_acted_on: "standsAside.calvingActedOn",
+  service_checked: "standsAside.serviceChecked",
+  no_ration: "standsAside.noRation",
+  renewal_superseded: "standsAside.renewalSuperseded",
+} as const satisfies Record<StandingAsideBecause, MessageKey>;
+
 /**
  * Refusals that are a single word rather than a Correction Window: the reason a Step's record
  * would not be taken. Said in the reader's own language, because the person reading it is standing
  * at the animal and the server's English is not for them.
  */
 const WORDED_REFUSALS = {
+  ...STANDING_ASIDE_WORDS,
   aborted_before_she_was_served: "refusal.abortedBeforeSheWasServed",
   aborted_in_the_future: "refusal.abortedInTheFuture",
   abortion_of_a_cow_not_carrying: "refusal.abortionOfACowNotCarrying",
@@ -93,7 +106,6 @@ const WORDED_REFUSALS = {
   renewal_needs_certificate: "refusal.renewalNeedsCertificate",
   renewal_needs_expiry: "refusal.renewalNeedsExpiry",
   renewal_not_later: "refusal.renewalNotLater",
-  renewal_superseded: "refusal.renewalSuperseded",
   service_needs_technician: "refusal.serviceNeedsTechnician",
   service_of_a_male: "refusal.serviceOfAMale",
   staff_or_manager_only: "refusal.staffOrManagerOnly",

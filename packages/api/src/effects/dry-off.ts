@@ -4,6 +4,7 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "../audit";
 import { entersState, loadLiveAnimal } from "../herd-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
+import { asPublished } from "./evidence";
 
 type DryOffFacts = Pick<
   EffectInput,
@@ -15,19 +16,16 @@ type DryOffFacts = Pick<
  * without being forgotten.
  *
  * Keyed on the cow rather than a row of its own, because Dry is her State and the State is the
- * record: a phone replaying the entry finds her Dry already and dries nobody twice. What it will not
- * do is put her back in milk when the entry is corrected to a skip. What she was before, and since
- * when, matters to every State-triggered procedure — a cow put back in Milking from here would look
- * freshly calved — so she stays Dry and a person is asked (Needs Review, irreversible effect).
+ * record: a cow the farm already has Dry is dried by nobody twice. What it will not do is put her
+ * back in milk when the entry is corrected to a skip. What she was before, and since when, matters
+ * to every State-triggered procedure — a cow put back in Milking from here would look freshly
+ * calved — so she stays Dry and the Effect stands aside, for the Manager to decide.
  */
 const dryHerOff = async (tx: Tx, input: DryOffFacts): Promise<EffectResult> => {
-  if (!input.animalId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step dries off a cow, and it was not recorded against one",
-    });
-  }
+  // Dried off cow by cow (the published Version says so), so the Step names her.
+  const animalId = asPublished(input.animalId, "the cow it dries off");
   const her = await tx.query.animal.findFirst({
-    where: { id: input.animalId, farmId: input.instance.farmId },
+    where: { id: animalId, farmId: input.instance.farmId },
     columns: { tagNumber: true },
   });
   if (!her) {

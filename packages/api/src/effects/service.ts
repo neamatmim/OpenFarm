@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { service } from "@OpenFarm/db/schema/breeding";
-import { SERVICE_EVIDENCE, isServiceMethod } from "@OpenFarm/domain";
+import { SERVICE_EVIDENCE, SERVICE_METHODS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
@@ -10,7 +10,7 @@ import { nothingFollowed } from "../calving-work";
 import { heatThatRaised, isOnTheFarm } from "../instances-store";
 import { rederiveFor } from "./breeding";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { choiceIn, textAt } from "./evidence";
+import { asPublished, choiceAt, textAt } from "./evidence";
 
 type ServiceFacts = Pick<
   EffectInput,
@@ -109,22 +109,21 @@ const recordTheService = async (
     return null;
   }
 
-  const method = choiceIn(
+  const method = choiceAt(
     input.step,
     input.evidence,
-    "A service says how she was served, and nothing was chosen"
-  ).value;
-  if (!isServiceMethod(method)) {
+    SERVICE_EVIDENCE.method,
+    SERVICE_METHODS
+  );
+  if (!method) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `"${method}" is not a way a cow is served`,
+      message: "A service says how she was served, and nothing was chosen",
     });
   }
-  const sire = textAt(input.evidence, SERVICE_EVIDENCE.sire);
-  if (!sire) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A service names its sire",
-    });
-  }
+  const sire = asPublished(
+    textAt(input.evidence, SERVICE_EVIDENCE.sire),
+    "the sire"
+  );
 
   // The story asks for the technician. A bull running with the herd has nobody standing over him,
   // so it is only an AI service that is refused without a name.
@@ -205,7 +204,7 @@ export const serviceEffect: EffectKind<ServiceFacts> = {
   // The farm serves some cows a second time in a heat and not others, so the AI work carries a second service Step that
   // "once was enough" has to be able to pass.
   maySkip: true,
-  recordedBy: {
+  recordableBy: {
     roles: ["manager"],
     refusal: {
       message: "A service is the Manager's to record",

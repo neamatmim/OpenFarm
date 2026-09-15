@@ -3,7 +3,7 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "../audit";
 import { loadLiveAnimal, requirePen, walkByStep } from "../herd-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { choiceIn } from "./evidence";
+import { asPublished, choiceIn } from "./evidence";
 
 type MoveFacts = Pick<
   EffectInput,
@@ -23,11 +23,11 @@ type MoveFacts = Pick<
 /**
  * Walks her to the Pen the Step recorded, and writes the Move that says the Playbook did it.
  *
- * Keyed on the Completion, like every other effect: a phone replaying an entry, or a Manager
- * correcting one, changes where she went rather than sending her on a second journey. What
- * it will not do is rewrite where she is when anything has moved her since the entry was
- * recorded — that is a fact the farm has and this Correction does not, so she stays where she
- * was last seen and a person is asked (Needs Review, irreversible effect).
+ * Keyed on the Completion, like every other effect: a Manager correcting the entry changes where
+ * she went rather than sending her on a second journey. What it will not do is rewrite where she
+ * is when anything has moved her since the Step was done — that is a fact the farm has and the
+ * Step does not — so she stays where she was last seen and the Effect stands aside: a Step
+ * arriving so is a late Entry, and a Correction so is put in front of the Manager.
  *
  * The Pen she is walked to is not checked against the doer's Pen Assignments, unlike a Move
  * somebody records by hand. The destinations are the Owner's, authored into the Step, and a
@@ -38,13 +38,10 @@ const walkAsTheStepSays = async (
   tx: Tx,
   input: MoveFacts
 ): Promise<EffectResult> => {
-  if (!input.animalId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "This step moves an animal, and it was not recorded against one",
-    });
-  }
+  // Moved one at a time (the published Version says so), so the Step names her.
+  const animalId = asPublished(input.animalId, "the animal it moves");
   const beast = await tx.query.animal.findFirst({
-    where: { id: input.animalId, farmId: input.instance.farmId },
+    where: { id: animalId, farmId: input.instance.farmId },
     columns: {
       id: true,
       tagNumber: true,

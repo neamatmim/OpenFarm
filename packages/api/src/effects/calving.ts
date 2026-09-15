@@ -10,7 +10,7 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "../audit";
 import { recordCalving } from "../calving-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { choiceAt } from "./evidence";
+import { asPublished, choiceAt } from "./evidence";
 
 type CalvingFacts = Pick<
   EffectInput,
@@ -41,17 +41,10 @@ const calvingIn = (input: CalvingFacts) => {
       data: { refusal: "calved_in_the_future" },
     });
   }
-  const ease = choiceAt(
-    input.step,
-    input.evidence,
-    CALVING_EVIDENCE.ease,
-    CALVING_EASES
+  const ease = asPublished(
+    choiceAt(input.step, input.evidence, CALVING_EVIDENCE.ease, CALVING_EASES),
+    "how the calving went"
   );
-  if (!ease) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A calving says how it went",
-    });
-  }
   const calves = [];
   for (const slots of CALVING_EVIDENCE.calves) {
     const sex = choiceAt(input.step, input.evidence, slots.sex, CALF_SEXES);
@@ -83,7 +76,7 @@ const calvingIn = (input: CalvingFacts) => {
  * Records that she calved — Barn Staff's to record on the round, or the Manager's.
  *
  * The roles matrix gives Calving `C R U` to the Manager and `C` to Barn Staff as an SOP step, and only
- * read to the Owner; the Owner may step into any shift, so the effect asks.
+ * read to the Owner; the Owner may step into any shift, so the kind says who may record it.
  */
 const recordHerCalving = async (
   tx: Tx,
@@ -123,7 +116,7 @@ const recordHerCalving = async (
 /** A Step that records a calving. */
 export const calvingEffect: EffectKind<CalvingFacts> = {
   kind: "calving",
-  recordedBy: {
+  recordableBy: {
     roles: CALVING_RECORDERS,
     refusal: {
       message: "A calving is recorded by Barn Staff or the Manager",

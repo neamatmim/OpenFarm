@@ -63,8 +63,7 @@ const feedThePen = async (
   const short = shortfallPercent(lines);
   const flagged = isShortFed(lines, input.feedTolerancePercent);
 
-  // Keyed on the Completion: a replayed entry is the same meal, and a Correction rewrites
-  // what was given rather than feeding the Pen twice.
+  // Keyed on the Completion: a Correction rewrites what was given rather than feeding the Pen twice.
   await tx
     .insert(feeding)
     .values({
@@ -105,8 +104,8 @@ const feedThePen = async (
 export const feedingEffect: EffectKind<FeedingFacts> = {
   kind: "feeding",
   apply: feedThePen,
-  recorded: async (tx, completionId) => {
-    const fed = await tx.query.feeding.findFirst({
+  recorded: async (db, completionId) => {
+    const fed = await db.query.feeding.findFirst({
       where: { completionId },
       columns: { lines: true },
     });
@@ -120,4 +119,17 @@ export const feedingEffect: EffectKind<FeedingFacts> = {
         }
       : {};
   },
+  // Leftovers left out are none, and the lines are in the farm's order and rounding.
+  asShown: ({ feeding: lines }) =>
+    lines
+      ? {
+          feeding: lines
+            .map((line) => ({
+              feedItemId: line.feedItemId,
+              givenKg: roundKg(line.givenKg),
+              leftoverKg: roundKg(line.leftoverKg ?? 0),
+            }))
+            .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
+        }
+      : {},
 };

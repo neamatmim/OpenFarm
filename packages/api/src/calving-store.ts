@@ -23,7 +23,7 @@ export interface Calf {
 export type CalvingRecorded = {
   calvingId: string;
   calves: { tagNumber: string; sex: CalfSex; outcome: CalfOutcome }[];
-  /** Corrected in a way the farm cannot undo from here — a calving taken back, a calf added or taken
+  /** Corrected in a way the farm has already acted on — a calving taken back, a calf added or taken
    *  away, a stillborn calf put back among the living, a calf who has since left found stillborn.
    *  Nothing was changed. */
   actedOn: boolean;
@@ -184,7 +184,7 @@ const putRight = async (
  * tag yet — and a calf born dead is created all the same and leaves as Died in the same act, because a
  * calving history with a gap in it is not a calving history.
  *
- * Keyed on the Step Completion. Recorded again — a phone replaying it, or a Correction — it puts right
+ * Keyed on the Step Completion. Recorded again by a Correction, it puts right
  * what can be put right: the hour, how it went, a calf's sex, a calf found to have been born dead.
  * What cannot be — the calving itself, or how many calves there were, or a dead calf brought back —
  * changes nothing and says so, because a Tag Number once given is never given again.

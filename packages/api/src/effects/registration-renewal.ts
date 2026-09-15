@@ -36,7 +36,7 @@ const renewTheRegistration = async (
 /** A Step that renews the farm's Registration. */
 export const renewalEffect: EffectKind<RenewalFacts> = {
   kind: "registration_renewal",
-  recordedBy: {
+  recordableBy: {
     roles: ["owner"],
     refusal: {
       message: "Renewing the Registration is the Owner's",
@@ -44,9 +44,10 @@ export const renewalEffect: EffectKind<RenewalFacts> = {
     },
   },
   apply: renewTheRegistration,
-  // The certificate's photograph is kept on its own and stays: a correction puts the day right.
-  recorded: async (tx, completionId) => {
-    const renewed = await tx.query.registrationRenewal.findFirst({
+  // The day it was renewed to. The certificate's photograph and the day it was issued are kept on the farm's own record,
+  // not the renewal's, so a Correction that sends either is taken as a change.
+  recorded: async (db, completionId) => {
+    const renewed = await db.query.registrationRenewal.findFirst({
       where: { completionId },
       columns: { expiresOn: true },
     });
@@ -54,4 +55,7 @@ export const renewalEffect: EffectKind<RenewalFacts> = {
       ? { renewal: { expiresOn: farmDayOf(renewed.expiresOn) } }
       : {};
   },
+  // The day alone: a certificate is not a day.
+  asShown: ({ renewal }) =>
+    renewal ? { renewal: { expiresOn: renewal.expiresOn } } : {},
 };

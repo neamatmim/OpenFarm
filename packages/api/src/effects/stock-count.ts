@@ -1,3 +1,5 @@
+import { roundKg } from "@OpenFarm/domain";
+
 import type { Tx } from "../audit";
 import { recordStockCount } from "../stock-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
@@ -37,7 +39,7 @@ const countTheStore = async (
 /** A Step that counts the store. */
 export const stockCountEffect: EffectKind<StockCountFacts> = {
   kind: "stock_count",
-  recordedBy: {
+  recordableBy: {
     roles: ["manager"],
     refusal: {
       message: "Counting the store is the Manager's",
@@ -45,8 +47,8 @@ export const stockCountEffect: EffectKind<StockCountFacts> = {
     },
   },
   apply: countTheStore,
-  recorded: async (tx, completionId) => {
-    const lines = await tx.query.stockCount.findMany({
+  recorded: async (db, completionId) => {
+    const lines = await db.query.stockCount.findMany({
       where: { completionId },
       columns: { feedItemId: true, counted: true, reason: true },
       orderBy: { feedItemId: "asc" },
@@ -61,4 +63,17 @@ export const stockCountEffect: EffectKind<StockCountFacts> = {
         }
       : {};
   },
+  // A reason left out, or only spaces, is none; the lines are in the farm's order and rounding.
+  asShown: ({ counts }) =>
+    counts
+      ? {
+          counts: counts
+            .map((line) => ({
+              feedItemId: line.feedItemId,
+              counted: roundKg(line.counted),
+              ...(line.reason?.trim() ? { reason: line.reason.trim() } : {}),
+            }))
+            .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
+        }
+      : {},
 };

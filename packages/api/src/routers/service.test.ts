@@ -445,6 +445,19 @@ describe("the service", () => {
       code: "FORBIDDEN",
       data: { refusal: "manager_only" },
     });
+
+    // Once the Manager has recorded it, the same Service arriving again from the Owner's phone changes nothing, and is
+    // not refused: whose it is to record was asked when it was recorded.
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const served = {
+      instanceId: workId,
+      stepId: "serve",
+      evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
+    };
+    await manager.client.instances.completeStep(served);
+    await expect(
+      owner.client.instances.completeStep(served)
+    ).resolves.toMatchObject({ effect: null });
   });
 
   it("will not publish a procedure that hands a service to Barn Staff", async () => {

@@ -3,7 +3,7 @@ import { campaignLotNumber } from "@OpenFarm/db/schema/health";
 
 import type { Tx } from "../audit";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
-import { noteIn } from "./evidence";
+import { asPublished, noteIn } from "./evidence";
 
 type LotNumberFacts = Pick<
   EffectInput,
@@ -28,7 +28,10 @@ const keepTheLotNumber = async (
   input: LotNumberFacts
 ): Promise<EffectResult> => {
   // A required note on a Step that runs once: the published Version says it is there.
-  const lotNumber = noteIn(input.step, input.evidence) ?? "";
+  const lotNumber = asPublished(
+    noteIn(input.step, input.evidence),
+    "the Lot Number"
+  );
   const written = {
     lotNumber,
     completionId: input.completionId,

@@ -6,7 +6,7 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "../audit";
 import { recomputeWithdrawal } from "../health-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
-import { writtenNote } from "./evidence";
+import { asPublished, writtenNote } from "./evidence";
 
 type TreatmentFacts = Pick<
   EffectInput,
@@ -42,7 +42,11 @@ const doseShape = (input: TreatmentFacts) => {
     return { campaign: false as const, animalId: input.instance.animalId };
   }
   // A campaign's Step is done animal by animal (the published Version says so), so it always names one.
-  return { campaign: true as const, productId, animalId: input.animalId ?? "" };
+  return {
+    campaign: true as const,
+    productId,
+    animalId: asPublished(input.animalId, "the animal it doses"),
+  };
 };
 
 /**
@@ -183,7 +187,7 @@ const giveTheDose = async (
 
   let dose = owed;
   if (shape.campaign) {
-    // Written over itself on a replay or a Correction, so a lot put right at her dose lands with it.
+    // Written over itself on a Correction, so a lot put right at her dose lands with it.
     dose = await recordCampaignDose(tx, input, {
       productId: shape.productId,
       animalId: shape.animalId,

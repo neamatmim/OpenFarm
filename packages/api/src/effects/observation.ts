@@ -7,7 +7,7 @@ import type { Trail, Tx } from "../audit";
 import { callOffWorkRaisedBy } from "../herd-store";
 import { heatKeyOf } from "../instances-store";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
-import { choiceIn } from "./evidence";
+import { asPublished, choiceIn } from "./evidence";
 
 type ObservationFacts = Pick<
   EffectInput,
@@ -93,7 +93,7 @@ const recordWhatWasSeen = async (
     id,
     farmId: input.instance.farmId,
     // Looked at one at a time (the published Version says so), so the Step names her.
-    animalId: input.animalId ?? "",
+    animalId: asPublished(input.animalId, "the animal that was looked at"),
     completionId: input.completionId,
     saw: chosen.value,
     sawLabel: chosen.label.bn,

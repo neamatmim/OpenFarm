@@ -697,7 +697,6 @@ export const bn: Record<MessageKey, string> = {
   "digest.registrationRenewal": "নিবন্ধন নবায়নের সময় হয়েছে",
   "alerts.registrationRenewal":
     "নিবন্ধনের মেয়াদ শেষ {date}: নবায়নের কাজ আপনার তালিকায়",
-  "refusal.renewalSuperseded": "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
   "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
   "renewal.issuedOn": "নবায়িত সনদ ইস্যুর তারিখ",
   "nav.inspector": "পরিদর্শন",
@@ -1334,4 +1333,13 @@ export const bn: Record<MessageKey, string> = {
   "identity.missing": "নিবন্ধন নম্বর লেখা নেই — পরিবহন কার্ড সম্পূর্ণ ছাপা যাবে না।",
   "identity.expired": "নিবন্ধনের মেয়াদ {when} তারিখে শেষ হয়েছে।",
   "identity.endingSoon": "নিবন্ধনের মেয়াদ {when} তারিখে শেষ হবে।",
+  "standsAside.movedSince": "এটি করার পরে তাকে আবার স্থানান্তর করা হয়েছে",
+  "standsAside.cannotReturnToMilk": "এখান থেকে তাকে আবার দুধে ফেরানো যায় না",
+  "standsAside.calvingActedOn": "এই বাচ্চা দেওয়ার পরে খামার এর ওপর কাজ করে ফেলেছে",
+  "standsAside.serviceChecked":
+    "ভেট এই পাল দেওয়া পরীক্ষা করেছেন; আগে পরীক্ষাটি ঠিক করুন",
+  "standsAside.noRation":
+    "এই পেন এখন কোনো রেশনে নেই, তাই যা খাওয়ানো হয়েছে তা মেলানো যায় না",
+  "standsAside.renewalSuperseded":
+    "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
 };

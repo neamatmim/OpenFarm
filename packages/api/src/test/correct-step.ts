@@ -1,7 +1,6 @@
 import { scratchDb } from "@OpenFarm/test-harness";
 import type { RouterClient } from "@orpc/server";
 
-import type { Tx } from "../audit";
 import { stepOf } from "../completion-store";
 import { factsAsShown, recordedFactsOf } from "../effects/effect";
 import type { StepAnswer } from "../entries/step-completion";
@@ -37,7 +36,7 @@ export const correctStepAsShown = async (
   const facts = recorded?.instance
     ? factsAsShown(
         await recordedFactsOf(
-          scratchDb() as unknown as Tx,
+          scratchDb(),
           stepOf(contentOf(recorded.instance.version), recorded.stepId),
           completionId
         )

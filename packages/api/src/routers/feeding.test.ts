@@ -272,7 +272,9 @@ describe("feeding a Pen", () => {
       ],
     });
 
-    // A note about the tick, with no lines sent: the meal the Pen had is kept, not taken as nothing fed.
+    // A note about the tick, with no lines sent: the meal the Pen had is kept, not taken as nothing fed. Made from what a
+    // phone showed before the farm had seen the entry, whose lines are as they were typed — no leftovers said — and
+    // still the lines the farm holds.
     await owner.client.instances.correctStep({
       id: completionId,
       reason: "টিক দেওয়া ঠিক ছিল, নোট যোগ",
@@ -283,7 +285,7 @@ describe("feeding a Pen", () => {
             evidence: [true],
             destination: null,
             outOfRange: null,
-            ...done?.facts,
+            feeding: [{ feedItemId: world.concentrate.id, givenKg: 3 }],
           },
           to: { evidence: [true], outOfRange: "দেরিতে খাওয়ানো" },
         },

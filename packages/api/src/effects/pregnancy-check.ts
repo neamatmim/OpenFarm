@@ -1,14 +1,14 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { pregnancyCheck } from "@OpenFarm/db/schema/breeding";
-import { isPregnancyCheckResult } from "@OpenFarm/domain";
+import { PREGNANCY_CHECK_RESULTS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { attemptThatRaisedWork } from "../breeding-store";
 import { rederiveFor } from "./breeding";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { choiceIn } from "./evidence";
+import { asPublished, choiceAt } from "./evidence";
 
 type PregnancyCheckFacts = Pick<
   EffectInput,
@@ -45,16 +45,11 @@ const recordTheCheck = async (
     columns: { id: true, serviceId: true, result: true },
   });
   const wasPositive = standing?.result === "positive";
-  const result = choiceIn(
-    input.step,
-    input.evidence,
-    "A pregnancy check says what was found, and nothing was chosen"
-  ).value;
-  if (!isPregnancyCheckResult(result)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `"${result}" is not something a pregnancy check finds`,
-    });
-  }
+  // What was found is the Step's first answer, and a required one (the published Version says so).
+  const result = asPublished(
+    choiceAt(input.step, input.evidence, 0, PREGNANCY_CHECK_RESULTS),
+    "what the check found"
+  );
   // A correction keeps the attempt the check was made of, even if she has been served since.
   const raisedBy =
     standing || !cowId
@@ -101,7 +96,7 @@ const recordTheCheck = async (
 /** A Step that records a Pregnancy Check. */
 export const pregnancyCheckEffect: EffectKind<PregnancyCheckFacts> = {
   kind: "pregnancy_check",
-  recordedBy: {
+  recordableBy: {
     roles: ["vet"],
     refusal: {
       message: "A pregnancy check is the Vet's to record",

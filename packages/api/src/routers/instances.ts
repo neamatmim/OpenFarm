@@ -488,7 +488,7 @@ export const instancesRouter = {
             ...completion,
             facts: factsAsShown(
               await recordedFactsOf(
-                context.db as unknown as Tx,
+                context.db,
                 stepOf(content, completion.stepId),
                 completion.id
               )
