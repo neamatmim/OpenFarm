@@ -438,7 +438,72 @@ describe("closing as missed", () => {
 
     await expect(
       manager.instances.closeAsMissed({ id: instance.id, reason: "পরে" })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { state: "completed" },
+    });
+  });
+});
+
+describe("moves the work's state does not allow", () => {
+  it("keeps work closed as Missed closed: no claim, no Step, no reassigning", async () => {
+    const { instance, clock } = await workFor("2026-11-24", "23:05:00.000Z");
+    clock.set(after("2026-11-24", 6 * 60));
+    const manager = await as("manager", clock);
+    await manager.instances.closeAsMissed({
+      id: instance.id,
+      reason: "লোক ছিল না",
+    });
+
+    const staff = await as("staff", clock);
+    const closed = { code: "CONFLICT", data: { state: "missed", late: true } };
+    await expect(
+      staff.instances.claim({ id: instance.id })
+    ).rejects.toMatchObject(closed);
+    // A phone that did the cleaning anyway is told the work was closed, and nothing it said is written down.
+    await expect(
+      staff.instances.completeStep({
+        instanceId: instance.id,
+        stepId: "clean",
+        evidence: [true],
+      })
+    ).rejects.toMatchObject(closed);
+    await expect(
+      manager.instances.assign({ id: instance.id, userId: "test-staff" })
+    ).rejects.toMatchObject(closed);
+    const kept = await manager.instances.get({ id: instance.id });
+    expect(kept).toMatchObject({ state: "missed", claimedBy: null });
+    expect(kept.completions).toEqual([]);
+  });
+
+  it("keeps work sent back sent back when it is given to somebody else", async () => {
+    const { instance, clock } = await doneWork("2026-11-25");
+    const manager = await as("manager", clock);
+    await manager.instances.sendBack({
+      id: instance.id,
+      reason: "কোণগুলো বাকি",
+    });
+    await manager.instances.assign({ id: instance.id, userId: "test-staff" });
+    const given = await manager.instances.get({ id: instance.id });
+    expect(given).toMatchObject({
+      state: "sent_back",
+      assignedTo: "test-staff",
+      claimedBy: null,
+    });
+  });
+
+  it("signs work off once, when two checkers sign it off together", async () => {
+    const { instance, clock } = await doneWork("2026-11-26");
+    const manager = await as("manager", clock);
+    const owner = await as("owner", clock);
+    const both = await Promise.allSettled([
+      manager.instances.approve({ id: instance.id }),
+      owner.instances.sendBack({ id: instance.id, reason: "আবার দেখুন" }),
+    ]);
+    expect(both.filter((one) => one.status === "fulfilled")).toHaveLength(1);
+    expect(both.find((one) => one.status === "rejected")).toMatchObject({
+      reason: { code: "CONFLICT" },
+    });
   });
 });
 

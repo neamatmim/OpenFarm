@@ -1,13 +1,12 @@
-import { eq } from "@OpenFarm/db/operators";
-import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { isFinished } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { assertMayWork } from "../completion-store";
 import { animalsForInstance } from "../instances-store";
 import { lateEntry } from "../late";
 import { contentOf } from "../sop-content";
+import { readWork, requireMayMove, requireMove } from "../work-moves";
 import type { WorkInput } from "./claim";
-import { readWork } from "./claim";
 import type { EntryKind } from "./entry";
 
 /**
@@ -37,12 +36,10 @@ export const finishEntry: EntryKind<WorkInput, { changed: boolean }> = {
       throw new ORPCError("NOT_FOUND");
     }
     assertMayWork(context, instance);
-    if (instance.state === "completed" || instance.state === "approved") {
+    if (isFinished(instance.state)) {
       return { changed: false };
     }
-    if (instance.state !== "in_progress" && instance.state !== "sent_back") {
-      throw lateEntry(`This work is ${instance.state}, not in progress`);
-    }
+    requireMayMove(instance, "finish");
     const content = contentOf(instance.version);
     const animals = await animalsForInstance(
       tx,
@@ -75,10 +72,7 @@ export const finishEntry: EntryKind<WorkInput, { changed: boolean }> = {
         outstanding,
       });
     }
-    await tx
-      .update(sopInstance)
-      .set({ state: "completed", completedAt: doneAt })
-      .where(eq(sopInstance.id, input.instanceId));
+    await requireMove(tx, instance, "finish", { set: { completedAt: doneAt } });
     return { changed: true };
   },
 

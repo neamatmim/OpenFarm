@@ -685,7 +685,10 @@ describe("review findings", () => {
 
     await expect(
       manager.client.instances.assign({ id: instance.id, userId: "test-staff" })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { state: "completed" },
+    });
   });
 
   it("an explicit pen filter is honoured for Staff rather than widened to all their pens", async () => {

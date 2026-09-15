@@ -1,7 +1,7 @@
 import { eq } from "@OpenFarm/db/operators";
-import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
+import { stepCompletion } from "@OpenFarm/db/schema/instance";
 import type { SopContent, Step } from "@OpenFarm/domain";
-import { MILK_DESTINATIONS, sessionsPerDayOf } from "@OpenFarm/domain";
+import { MILK_DESTINATIONS, mayMove, sessionsPerDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ import { farmDay } from "../farm-clock";
 import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
 import { contentOf } from "../sop-content";
+import { requireMayMove, requireMove } from "../work-moves";
 import type { EntryKind } from "./entry";
 
 export const evidenceValue = z.union([z.boolean(), z.number(), z.string()]);
@@ -239,9 +240,8 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       if (!work) {
         throw new ORPCError("NOT_FOUND");
       }
-      if (work.state === "completed" || work.state === "approved") {
-        throw lateEntry("This work is already finished");
-      }
+      // Only on work still owed: finished work is corrected, and work closed as Missed or Called Off is not done at all.
+      requireMayMove(work, "record");
       assertMayWork(context, work);
       const content = contentOf(work.version);
       const step = stepOf(content, input.stepId);
@@ -316,11 +316,8 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         recordedAt: doneAt,
         now: receivedAt,
       });
-      if (work.state === "due" || work.state === "sent_back") {
-        await tx
-          .update(sopInstance)
-          .set({ state: "in_progress" })
-          .where(eq(sopInstance.id, input.instanceId));
+      if (mayMove("start", work.state)) {
+        await requireMove(tx, work, "start");
       }
       return { completionId: saved.id, effect, changed: true };
     },
