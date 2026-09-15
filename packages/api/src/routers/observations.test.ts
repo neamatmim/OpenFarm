@@ -3,6 +3,7 @@ import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /** The daily health walk: somebody walks the pen and says what they saw, cow by cow. */
@@ -152,7 +153,7 @@ describe("what somebody saw on the round", () => {
         (row) => row.stepId === "look" && row.animalId !== null
       )?.id ?? "";
 
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId,
       evidence: ["bulling"],
       reason: "খোঁড়াচ্ছিল না, গরমে ছিল",
@@ -190,7 +191,7 @@ describe("what somebody saw on the round", () => {
         (row) => row.stepId === "look" && row.animalId !== null
       )?.id ?? "";
 
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId,
       evidence: [],
       skipReason: "পশু পাওয়া যায়নি",

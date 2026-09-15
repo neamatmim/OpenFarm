@@ -18,8 +18,18 @@ import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
 
-/** A value as a Correction compares it: what the screen showed against what the record holds now. */
-export type Comparable = string | number | boolean | Date | null;
+/**
+ * A value as a Correction compares it: what the screen showed against what the record holds now — one figure, or an
+ * answer made of several, as a Step's Evidence is.
+ */
+export type Comparable =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | readonly Comparable[]
+  | { readonly [part: string]: Comparable | undefined };
 
 /** One value a Correction changes: what the person was shown, and what it should say. */
 export interface Change<Shown extends Comparable, Wanted> {
@@ -106,8 +116,8 @@ export interface CorrectionKind<
   shown: (tx: Tx, row: Row) => Promise<ShownValues<C>>;
   /** A value it is asked to hold, as a screen would show it, when the two are not the same shape. */
   shownAs?: { [K in keyof C]?: (to: NonNullable<C[K]>["to"]) => Comparable };
-  /** The record as the trail keeps it, either side of the Correction. */
-  trail: (tx: Tx, row: Row) => Promise<SnapshotValue>;
+  /** The record as the trail keeps it, either side of the Correction — after it, with what the Correction decided. */
+  trail: (tx: Tx, row: Row, outcome?: Outcome) => Promise<SnapshotValue>;
   /** Whether what it was asked beyond its values changes the record — a receipt that came later — so a Correction
    *  that changes no value is still one. */
   changesBeyondValues?: (extra: Extra) => boolean;
@@ -134,10 +144,35 @@ export interface EntryFacts {
   isHealthEntry?: boolean;
 }
 
-const same = (a: Comparable, b: Comparable): boolean =>
-  a instanceof Date && b instanceof Date
-    ? a.getTime() === b.getTime()
-    : a === b;
+const same = (
+  a: Comparable | undefined,
+  b: Comparable | undefined
+): boolean => {
+  if (a instanceof Date || b instanceof Date) {
+    return (
+      a instanceof Date && b instanceof Date && a.getTime() === b.getTime()
+    );
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return (
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((one, at) => same(one, b[at]))
+    );
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    // A part left out is a part that is not there.
+    const parts = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...parts].every((part) =>
+      same(
+        (a as Record<string, Comparable>)[part],
+        (b as Record<string, Comparable>)[part]
+      )
+    );
+  }
+  return (a ?? null) === (b ?? null);
+};
 
 /** A Correction no Role they hold may make, or one whose window has closed. */
 const refused = (refusal: CorrectionRefusal) =>
@@ -274,7 +309,7 @@ export const correct = async <
       extra,
       cannotUndo: (one) => cannotUndo.push(one),
     });
-    const after = await kind.trail(tx, row);
+    const after = await kind.trail(tx, row, applied);
     for (const one of cannotUndo) {
       // oxlint-disable-next-line no-await-in-loop
       await raiseNeedsReview(

@@ -6,6 +6,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /**
@@ -417,7 +418,7 @@ describe("a Prescription, and a dose per Instance", () => {
 
     // It turns out the bottle was empty and nobody gave it. The withdrawal cannot be
     // counted from a dose that was not given, so the course owes it again.
-    await manager.client.instances.correctStep({
+    await correctStepAsShown(manager.client, {
       completionId,
       evidence: [],
       skipReason: "ওষুধ শেষ",

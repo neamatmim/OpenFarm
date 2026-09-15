@@ -6,6 +6,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The farm's DLS Registration: its certificate photographed, and the renewal SOP raised for the Owner a
@@ -352,7 +353,7 @@ describe("the Registration and its renewal", () => {
     const done = await board.client.instances.get({ id: work?.id ?? "" });
     const renewed = done.completions.find((one) => one.stepId === "renewed");
     await expect(
-      board.client.instances.correctStep({
+      correctStepAsShown(board.client, {
         completionId: renewed?.id ?? "",
         evidence: [true],
         renewal: { expiresOn: "2042-04-30" },

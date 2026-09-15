@@ -5,6 +5,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // A Heat, and the window it opens: somebody on the round sees a cow bulling, and the farm raises
@@ -347,7 +348,7 @@ describe("a heat, and the window it opens", () => {
     const entry = board.completions.find(
       (row) => row.stepId === "look" && row.animalId === her.id
     );
-    await manager.client.instances.correctStep({
+    await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
       evidence: ["nothing"],
       reason: "ভুল গাভী লেখা হয়েছিল",

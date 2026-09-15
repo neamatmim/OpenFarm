@@ -7,6 +7,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The mortality register (R6): every death, its cause, how the carcass went, and the DLS reference when the
@@ -248,7 +249,7 @@ beforeAll(async () => {
   const board = await roundManager.client.instances.get({
     id: round?.id ?? "",
   });
-  await staff.client.instances.correctStep({
+  await correctStepAsShown(staff.client, {
     completionId:
       board.completions.find((row) => row.stepId === "calved")?.id ?? "",
     evidence: [

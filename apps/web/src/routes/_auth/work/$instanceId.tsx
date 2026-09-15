@@ -143,6 +143,10 @@ interface Completion {
   animalId: string | null;
   status: string;
   skipReason: string | null;
+  /** The answer as it stands, which a Correction says it was shown. */
+  evidence: (boolean | number | string)[];
+  destination: MilkDestination | null;
+  outOfRange: string | null;
 }
 
 const outOfRangeOf = (
@@ -403,15 +407,27 @@ const WorkPage = () => {
       // A Correction changes what was recorded; replacing the photo with it is a later
       // ticket's problem, so the one already attached stays.
       correct.mutate({
-        completionId: existing.id,
-        destination: payload.destination,
+        id: existing.id,
+        changes: {
+          answer: {
+            from: {
+              skipReason: existing.skipReason,
+              evidence: existing.evidence,
+              destination: existing.destination,
+              outOfRange: existing.outOfRange,
+            },
+            to: {
+              destination: payload.destination,
+              evidence: payload.evidence,
+              outOfRange: payload.outOfRange,
+              skipReason: payload.skipReason,
+            },
+          },
+        },
         feeding: payload.feeding,
         counts: payload.counts,
         renewal: payload.renewal,
-        evidence: payload.evidence,
-        outOfRange: payload.outOfRange,
         reason: payload.reason,
-        skipReason: payload.skipReason,
       });
       return;
     }

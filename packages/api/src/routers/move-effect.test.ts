@@ -3,6 +3,7 @@ import { FakeClock, HOUR } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /** The drying-off SOP: the cow stops milking and walks to the dry pen, and the walk is a
@@ -48,10 +49,14 @@ const setup = async () => {
     shedId: shed.id,
     name: "শুকনো পেন",
   });
-  const sop = await owner.client.sops.create({
-    content: movingSop([milking, dry]),
+  const sick = await owner.client.herd.createPen({
+    shedId: shed.id,
+    name: "অসুস্থ পেন",
   });
-  return { owner, milking, dry, sop };
+  const sop = await owner.client.sops.create({
+    content: movingSop([milking, dry, sick]),
+  });
+  return { owner, milking, dry, sick, sop };
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
@@ -201,7 +206,7 @@ describe("correcting a Step that moved her", () => {
     const clock = new FakeClock("2027-02-04T02:00:00.000Z");
     const { owner, cow, completionId } = await walkHer(clock, world.dry.id);
 
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId,
       evidence: [world.milking.id],
       reason: "ভুল পেন লেখা হয়েছিল",
@@ -219,7 +224,7 @@ describe("correcting a Step that moved her", () => {
     const clock = new FakeClock("2027-02-05T02:00:00.000Z");
     const { owner, cow, completionId } = await walkHer(clock, world.dry.id);
 
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId,
       evidence: [],
       skipReason: "আজ নয়",
@@ -246,10 +251,11 @@ describe("correcting a Step that moved her", () => {
       reason: "হাতে সরানো",
     });
 
-    const corrected = await owner.client.instances.correctStep({
+    // The Step should have said the sick pen.
+    const corrected = await correctStepAsShown(owner.client, {
       completionId,
-      evidence: [world.dry.id],
-      reason: "সময় ঠিক করা",
+      evidence: [world.sick.id],
+      reason: "ভুল পেন লেখা হয়েছিল",
     });
 
     expect(corrected.needsReview).toBe(true);
@@ -308,7 +314,7 @@ describe("what the farm has learned since", () => {
       reason: "আবার শুকনো পেনে",
     });
 
-    const corrected = await owner.client.instances.correctStep({
+    const corrected = await correctStepAsShown(owner.client, {
       completionId,
       evidence: [],
       skipReason: "আজ নয়",
@@ -339,9 +345,9 @@ describe("what the farm has learned since", () => {
       reason: "হাতে সরানো",
     });
 
-    const corrected = await owner.client.instances.correctStep({
+    const corrected = await correctStepAsShown(owner.client, {
       completionId,
-      evidence: [world.milking.id],
+      evidence: [world.sick.id],
       reason: "ঠিক করা",
     });
 

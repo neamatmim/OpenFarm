@@ -5,6 +5,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // Expected Calving, and the work it pulls towards it: drying her off sixty days out, and walking her
@@ -546,7 +547,7 @@ describe("the work Expected Calving pulls towards it", () => {
     expect(raised.map((work) => work.state)).toEqual(["due", "due"]);
 
     // The Vet looked at the wrong cow.
-    await vet.client.instances.correctStep({
+    await correctStepAsShown(vet.client, {
       completionId: entry?.id ?? "",
       evidence: ["negative"],
       reason: "ভুল গাভী দেখা হয়েছিল",
@@ -580,7 +581,7 @@ describe("the work Expected Calving pulls towards it", () => {
     );
 
     // She was carrying after all. The same calving, so the same work comes back on its day.
-    await vet.client.instances.correctStep({
+    await correctStepAsShown(vet.client, {
       completionId: entry?.id ?? "",
       evidence: ["positive"],
       reason: "আবার দেখে গর্ভবতী পাওয়া গেছে",
@@ -628,7 +629,7 @@ describe("the work Expected Calving pulls towards it", () => {
     });
     const board = await manager.client.instances.get({ id: dryWork });
     const entry = board.completions.find((row) => row.stepId === "dry");
-    const corrected = await manager.client.instances.correctStep({
+    const corrected = await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
       skipReason: "পাওয়া যায়নি",
       reason: "হাতে আগেই দুধ বন্ধ করা হয়েছিল",

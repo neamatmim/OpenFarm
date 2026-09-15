@@ -3,6 +3,7 @@ import { DAY, FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /** The round that starts the health chain: somebody walks the pen and says what they saw. */
@@ -268,7 +269,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
 
     // The round looked at the wrong cow; the Observation is withdrawn and another stands in
     // its place.
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId: seen.completionId ?? "",
       evidence: ["well"],
       reason: "ভুল পশু দেখা হয়েছিল",

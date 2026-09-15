@@ -4,6 +4,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /** The feeding SOP: twice a day, one Step for the whole Pen, and the Step writes the Feeding. */
@@ -237,7 +238,7 @@ describe("feeding a Pen", () => {
     const completionId =
       board.completions.find((row) => row.stepId === "feed")?.id ?? "";
 
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId,
       evidence: [true],
       feeding: [{ feedItemId: world.concentrate.id, givenKg: 6 }],
@@ -268,7 +269,7 @@ describe("feeding a Pen", () => {
     // A meal that did not happen is the Manager closing the work as Missed, with a reason —
     // not a Step quietly marked skipped and a Feeding left standing beside it.
     await expect(
-      owner.client.instances.correctStep({
+      correctStepAsShown(owner.client, {
         completionId,
         evidence: [],
         skipReason: "খাবার শেষ হয়ে গিয়েছিল",
