@@ -1,21 +1,192 @@
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import type { STEP_EFFECT_KINDS } from "@OpenFarm/domain";
+import type {
+  FeedingEntryLine,
+  MilkDestination,
+  PregnancyCheckResult,
+  STEP_EFFECT_KINDS,
+  ServiceMethod,
+  Step,
+} from "@OpenFarm/domain";
 import { roundKg } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "../audit";
-import type { EffectInput, EffectResult } from "../effects";
-import { runStepEffect } from "../effects";
+import type { Trail, Tx } from "../audit";
+import type { PregnancyTimes } from "../breeding-store";
+import type { CalvingRecorded } from "../calving-store";
+import type { CalvingWorkFollowed } from "../calving-work";
+import type { RenewalEntry } from "../registration-store";
 import type { Refusal } from "../roles";
 import { forbidden } from "../roles";
+import type { StockAdjustment, StockCountLine } from "../stock-store";
 import { calvingEffect } from "./calving";
+import { dlsReportEffect } from "./dls-report";
 import { dryOffEffect } from "./dry-off";
 import { feedingEffect } from "./feeding";
+import { lotNumberEffect } from "./lot-number";
+import { bulkTotalEffect, milkRecordEffect } from "./milk";
 import { moveEffect } from "./move";
+import { observationEffect } from "./observation";
 import { pregnancyCheckEffect } from "./pregnancy-check";
 import { renewalEffect } from "./registration-renewal";
 import { serviceEffect } from "./service";
 import { stockCountEffect } from "./stock-count";
+import { treatmentEffect } from "./treatment";
+import { weighInEffect } from "./weigh-in";
+
+/**
+ * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
+ * the phone can show the person what the gate decided, and so the Audit Event's `after`
+ * says what actually happened rather than what was asked for.
+ */
+export type EffectResult =
+  | { kind: "milk_record"; destination: MilkDestination; forced: boolean }
+  | {
+      kind: "registration_renewal";
+      expiresOn: Date;
+      previousExpiresOn: Date | null;
+      /** The Registration has moved on since this renewal, so the newer one is put right instead. */
+      standsAside: StandingAside | null;
+    }
+  | {
+      kind: "feeding";
+      /** What the Pen was owed, and how far under it the session came. */
+      shortfallPercent: number;
+      flagged: boolean;
+      /** The Pen is on no Ration now, so what was fed cannot be set against one. */
+      standsAside: StandingAside | null;
+    }
+  | {
+      kind: "observation";
+      /** What was seen, as the Version's own choice value. */
+      saw: string;
+      /** True when this replaced one a Correction withdrew. */
+      supersedes: boolean;
+    }
+  | {
+      kind: "lot_number";
+      /** The Lot Number the Campaign was given from. */
+      lotNumber: string;
+    }
+  | {
+      kind: "dls_report";
+      /** What the office filed it under. Null when a Correction took the delivery back. */
+      reference: string | null;
+      /** False when a Correction took the delivery back: the report is owed again. */
+      delivered: boolean;
+    }
+  | {
+      kind: "treatment";
+      /** Which dose of the course this was — 3 of 6 — so the phone can say where it got to. */
+      number: number;
+      of: number;
+      /** False when the dose was skipped: what the course owes is still owed. */
+      given: boolean;
+      /** When her milk may go to the tank again. */
+      milkWithdrawalUntil: Date | null;
+    }
+  | {
+      kind: "move";
+      fromPenId: string | null;
+      toPenId: string;
+      /** False when she was already standing there: the Step was done, no journey was made. */
+      moved: boolean;
+      /** She has been moved again since: the Effect left her where the farm last saw her. */
+      standsAside: StandingAside | null;
+    }
+  | {
+      kind: "bulk_total";
+      sumBulkLitres: number;
+      differenceLitres: number;
+      differencePercent: number;
+      flagged: boolean;
+    }
+  | {
+      kind: "weigh_in";
+      /** What the scale said, as the record now holds it. */
+      weightKg: number;
+      /** True when the farm doubted it and put it in front of the Manager. */
+      flagged: boolean;
+    }
+  /** A service or a check — or, with nothing, one taken back — and the calving work that followed the
+   *  date it changed. */
+  | ({
+      kind: "service";
+      method: ServiceMethod | null;
+      /** Taken back, but the Vet has checked it: the service stands, and the check is corrected first. */
+      standsAside: StandingAside | null;
+    } & CalvingWorkFollowed)
+  | ({
+      kind: "pregnancy_check";
+      result: PregnancyCheckResult | null;
+    } & CalvingWorkFollowed)
+  | ({ kind: "calving"; standsAside: StandingAside | null } & Omit<
+      CalvingRecorded,
+      "actedOn"
+    >)
+  | {
+      kind: "stock_count";
+      /** The Feed Items whose count differed from what the store was thought to hold. */
+      adjustments: StockAdjustment[];
+    }
+  | {
+      kind: "dry_off";
+      /** False when she was already Dry: the same Step again dries nobody twice. */
+      dried: boolean;
+      /** Corrected to a skip, but she cannot be put back in milk from here: what she was before,
+       *  and since when, is the trail's to say and a person's to decide. */
+      standsAside: StandingAside | null;
+    }
+  | null;
+
+/** Everything a Step's Effect may be told about the Step; each kind names the facts it needs from it. */
+export interface EffectInput {
+  step: Step;
+  instance: {
+    id: string;
+    farmId: string;
+    /** Null for work about the whole farm. */
+    penId: string | null;
+    /** The animal this work is about, for work raised about one — a dose of a Prescription is
+     *  hers alone. Null for work about the whole Pen. */
+    animalId: string | null;
+    dueAt: Date;
+    /** When the work was raised, which is the moment its Ration is read as of. */
+    raisedAt: Date;
+    /** What raised it, for work a happening raised — a Service reads which Heat it answered. */
+    cause: string | null;
+  };
+  completionId: string;
+  animalId: string | null;
+  evidence: unknown[];
+  destination: MilkDestination | undefined;
+  skipped: boolean;
+  tolerancePercent: number;
+  /** How far under its Feeding Target a Pen may come before the farm says so. */
+  feedTolerancePercent: number;
+  /** The Audit Event this Completion is being written under, for an effect that has to put
+   *  something in front of the Manager in the same transaction. */
+  eventId: string;
+  /** The Role the Step is being recorded under, for a record an effect writes that names it. */
+  roleUsed: RoleName | null;
+  /** How long this farm's cows carry, and how long before calving its work falls — which Expected
+   *  Calving, and the work that follows it, are worked out from. */
+  pregnancyTimes: PregnancyTimes;
+  /** What was actually put in front of the Pen, per Feed Item. */
+  feeding: FeedingEntryLine[];
+  /** What was counted of each Feed Item, for a Step that counts the store. */
+  counts: StockCountLine[];
+  /** The new expiry and the renewed certificate, for the Step that renews the Registration. */
+  renewal?: RenewalEntry;
+  /** How often this Playbook entry feeds — from the Version doing the feeding, so a farm with
+   *  more than one feeding routine divides by the one that raised this work. */
+  sessionsPerDay: number;
+  recordedBy: string;
+  recordedAt: Date;
+  now: Date;
+  /** The trail of the request recording it now — the person putting a Step right, not the one who first did it: work
+   *  it calls off or raises again is written there. */
+  trail: Trail;
+}
 
 /** Why an Effect stood aside: what the farm has learned since that the Step does not know. */
 export type StandingAsideBecause =
@@ -54,6 +225,11 @@ export interface EffectKind<Facts> {
    * the Correction's to decide. Nobody but the procedure's gate, when unsaid.
    */
   recordedBy?: { roles: readonly RoleName[]; refusal: Refusal };
+  /**
+   * Whether its Step may be skipped with a reason even when it is not done animal by animal — a dose ("the bottle was
+   * empty"), a second service a heat did not need. A per-animal Step may always skip the animal.
+   */
+  maySkip?: boolean;
   apply: (tx: Tx, facts: Facts) => Promise<EffectResult>;
   /**
    * What it recorded beside the Evidence — the feed given, the store counted, the day renewed to — as a Step's answer
@@ -68,18 +244,26 @@ export type StepFacts = Partial<
   Pick<EffectInput, "feeding" | "counts"> & { renewal: { expiresOn: string } }
 >;
 
-/** The kinds that are their own modules; the rest are still written in effects.ts. */
-const EFFECTS: Partial<
-  Record<(typeof STEP_EFFECT_KINDS)[number], EffectKind<EffectInput>>
+/** Every kind of Effect a Step may declare. */
+const EFFECTS: Record<
+  (typeof STEP_EFFECT_KINDS)[number],
+  EffectKind<EffectInput>
 > = {
-  [moveEffect.kind]: moveEffect,
-  [dryOffEffect.kind]: dryOffEffect,
-  [calvingEffect.kind]: calvingEffect,
-  [serviceEffect.kind]: serviceEffect,
-  [pregnancyCheckEffect.kind]: pregnancyCheckEffect,
-  [feedingEffect.kind]: feedingEffect,
-  [stockCountEffect.kind]: stockCountEffect,
-  [renewalEffect.kind]: renewalEffect,
+  milk_record: milkRecordEffect,
+  bulk_total: bulkTotalEffect,
+  observation: observationEffect,
+  treatment: treatmentEffect,
+  lot_number: lotNumberEffect,
+  dls_report: dlsReportEffect,
+  weigh_in: weighInEffect,
+  move: moveEffect,
+  dry_off: dryOffEffect,
+  calving: calvingEffect,
+  service: serviceEffect,
+  pregnancy_check: pregnancyCheckEffect,
+  feeding: feedingEffect,
+  stock_count: stockCountEffect,
+  registration_renewal: renewalEffect,
 };
 
 /** The Effect a Step declares, when it is one of the kinds that are their own modules. */
@@ -114,8 +298,8 @@ export const runEffect = (
       message: "This step does not record where the milk went",
     });
   }
-  const kind = input.step.effect && EFFECTS[input.step.effect.kind];
-  return kind ? kind.apply(tx, input) : runStepEffect(tx, input);
+  const kind = effectOf(input.step);
+  return kind ? kind.apply(tx, input) : Promise.resolve(null);
 };
 
 /** Whether an Effect stood aside, and why. */

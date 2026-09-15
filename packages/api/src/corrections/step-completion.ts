@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { stepOf } from "../completion-store";
-import type { EffectResult } from "../effects";
+import type { EffectResult } from "../effects/effect";
 import { factsAsShown, recordedFactsOf, stoodAside } from "../effects/effect";
 import {
   evidenceValue,

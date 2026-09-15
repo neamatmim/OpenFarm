@@ -1,9 +1,8 @@
 import { farmDayOf } from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
-import type { EffectInput, EffectResult } from "../effects";
 import { renewRegistration } from "../registration-store";
-import type { EffectKind } from "./effect";
+import type { EffectInput, EffectResult, EffectKind } from "./effect";
 
 type RenewalFacts = Pick<
   EffectInput,

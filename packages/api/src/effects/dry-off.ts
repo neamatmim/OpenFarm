@@ -2,9 +2,8 @@ import { canTransition } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
-import type { EffectInput, EffectResult } from "../effects";
 import { entersState, loadLiveAnimal } from "../herd-store";
-import type { EffectKind } from "./effect";
+import type { EffectInput, EffectResult, EffectKind } from "./effect";
 
 type DryOffFacts = Pick<
   EffectInput,

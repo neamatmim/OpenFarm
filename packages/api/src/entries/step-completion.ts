@@ -19,7 +19,7 @@ import {
   resolveStepAnimal,
   stepOf,
 } from "../completion-store";
-import type { EffectResult } from "../effects";
+import type { EffectResult } from "../effects/effect";
 import {
   STANDING_ASIDE_SAID,
   requireMayRecord,
@@ -189,7 +189,6 @@ const effectOfStep = (
     // The Audit Event this is written under, so an Effect that has to put something in front of the Manager can do it in
     // the same transaction.
     eventId,
-    roles: context.roles,
     roleUsed: context.roleUsed,
     recordedBy,
     recordedAt,

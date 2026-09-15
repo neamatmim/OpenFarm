@@ -4,9 +4,8 @@ import type { FeedingLine } from "@OpenFarm/domain";
 import { isShortFed, roundKg, shortfallPercent } from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
-import type { EffectInput, EffectResult } from "../effects";
 import { feedingTargetForPen } from "../feed-store";
-import type { EffectKind } from "./effect";
+import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { penOf } from "./evidence";
 
 type FeedingFacts = Pick<

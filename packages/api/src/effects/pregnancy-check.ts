@@ -6,9 +6,8 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { attemptThatRaisedWork } from "../breeding-store";
-import type { EffectInput, EffectResult } from "../effects";
 import { rederiveFor } from "./breeding";
-import type { EffectKind } from "./effect";
+import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { choiceIn } from "./evidence";
 
 type PregnancyCheckFacts = Pick<
@@ -16,7 +15,6 @@ type PregnancyCheckFacts = Pick<
   | "step"
   | "instance"
   | "evidence"
-  | "skipped"
   | "completionId"
   | "recordedBy"
   | "recordedAt"
@@ -47,18 +45,6 @@ const recordTheCheck = async (
     columns: { id: true, serviceId: true, result: true },
   });
   const wasPositive = standing?.result === "positive";
-  if (input.skipped) {
-    if (standing && cowId) {
-      await tx.delete(pregnancyCheck).where(eq(pregnancyCheck.id, standing.id));
-      return {
-        kind: "pregnancy_check",
-        result: null,
-        ...(await rederiveFor(tx, input, cowId, wasPositive)),
-      };
-    }
-    return null;
-  }
-
   const result = choiceIn(
     input.step,
     input.evidence,

@@ -1,6 +1,6 @@
 import type { Tx } from "../audit";
 import { rederivePregnancy } from "../breeding-store";
-import type { EffectInput } from "../effects";
+import type { EffectInput } from "./effect";
 
 /** What working her pregnancy out again needs from the Step that changed it. */
 export type RederiveFacts = Pick<

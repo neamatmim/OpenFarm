@@ -7,10 +7,9 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "../audit";
 import { callOffWorkOfAttemptsNoLongerStanding } from "../breeding-store";
 import { nothingFollowed } from "../calving-work";
-import type { EffectInput, EffectResult } from "../effects";
 import { heatThatRaised, isOnTheFarm } from "../instances-store";
 import { rederiveFor } from "./breeding";
-import type { EffectKind } from "./effect";
+import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { choiceIn, textAt } from "./evidence";
 
 type ServiceFacts = Pick<
@@ -203,6 +202,9 @@ const recordTheService = async (
 /** A Step that records a Service. */
 export const serviceEffect: EffectKind<ServiceFacts> = {
   kind: "service",
+  // The farm serves some cows a second time in a heat and not others, so the AI work carries a second service Step that
+  // "once was enough" has to be able to pass.
+  maySkip: true,
   recordedBy: {
     roles: ["manager"],
     refusal: {

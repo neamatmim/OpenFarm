@@ -1,7 +1,6 @@
 import type { Tx } from "../audit";
-import type { EffectInput, EffectResult } from "../effects";
 import { recordStockCount } from "../stock-store";
-import type { EffectKind } from "./effect";
+import type { EffectInput, EffectResult, EffectKind } from "./effect";
 
 type StockCountFacts = Pick<
   EffectInput,

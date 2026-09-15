@@ -1,7 +1,7 @@
 import type { Choice, Step } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { EffectInput } from "../effects";
+import type { EffectInput } from "./effect";
 
 // How an Effect reads a Step's Evidence: by the positions and choices the Version declares, refusing what it never
 // offered.
@@ -34,8 +34,9 @@ export const noteIn = (step: Step, evidence: unknown[]): string | null => {
 };
 
 /** The note a Step recorded, or nothing when the Step was skipped. */
-export const writtenNote = (input: EffectInput): string | null =>
-  input.skipped ? null : noteIn(input.step, input.evidence);
+export const writtenNote = (
+  input: Pick<EffectInput, "skipped" | "step" | "evidence">
+): string | null => (input.skipped ? null : noteIn(input.step, input.evidence));
 
 /** What was chosen at one position, as the Version declares it there — or null when nothing was.
  *  A value the Version never offered at that position is refused, not ignored. */
