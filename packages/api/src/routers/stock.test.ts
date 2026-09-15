@@ -270,7 +270,7 @@ describe("feed stock", () => {
 
     await manager.client.stock.correct({
       id: typo.id,
-      quantity: 500,
+      changes: { quantity: { from: 5000, to: 500 } },
       reason: "একটা শূন্য বেশি লেখা হয়েছিল",
     });
     const right = await lineFor(

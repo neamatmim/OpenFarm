@@ -3,6 +3,7 @@ import { DAY, FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /** The round that starts the health chain: somebody walks the pen and says what they saw. */
@@ -204,8 +205,13 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     const later = await createTestClient(appRouter, { as: "vet", clock });
     await later.client.diagnoses.correct({
       id: made.id,
-      disease: { bn: "ক্ষুর রোগ", en: "Foot and mouth" },
-      note: "মুখেও ঘা, আগের সিদ্ধান্ত ভুল ছিল",
+      changes: {
+        disease: {
+          from: "পায়ের ক্ষুরে পচন",
+          to: { bn: "ক্ষুর রোগ", en: "Foot and mouth" },
+        },
+        note: { from: "বাম পিছনের পা", to: "মুখেও ঘা, আগের সিদ্ধান্ত ভুল ছিল" },
+      },
       reason: "মুখের ঘা পরে দেখা গেছে",
     });
 
@@ -263,7 +269,7 @@ describe("a Diagnosis, and the Vet who makes it", () => {
 
     // The round looked at the wrong cow; the Observation is withdrawn and another stands in
     // its place.
-    await owner.client.instances.correctStep({
+    await correctStepAsShown(owner.client, {
       completionId: seen.completionId ?? "",
       evidence: ["well"],
       reason: "ভুল পশু দেখা হয়েছিল",
@@ -300,10 +306,15 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     await expect(
       other.client.diagnoses.correct({
         id: made.id,
-        disease: { bn: "ক্ষুর রোগ" },
+        changes: {
+          disease: { from: "পায়ের ক্ষুরে পচন", to: { bn: "ক্ষুর রোগ" } },
+        },
         reason: "আমার মনে হয় অন্য রোগ",
       })
-    ).rejects.toThrow(/the vet's own/u);
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: { word: "not_theirs" } },
+    });
 
     // And it is not in their own work either.
     const theirs = await other.client.diagnoses.mine();

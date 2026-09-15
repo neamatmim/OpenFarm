@@ -38,7 +38,10 @@ import {
   TagChip,
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
+import {
+  correctionRefusalMessage,
+  isChangedSince,
+} from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
@@ -143,6 +146,10 @@ interface Completion {
   animalId: string | null;
   status: string;
   skipReason: string | null;
+  /** The answer as it stands, which a Correction says it was shown. */
+  evidence: (boolean | number | string)[];
+  destination: MilkDestination | null;
+  outOfRange: string | null;
 }
 
 const outOfRangeOf = (
@@ -219,10 +226,7 @@ const WorkPage = () => {
     queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
     toast.error(
-      refusalMessage(error, t) ??
-        wordedRefusal(error, t) ??
-        error.message ??
-        t("common.error")
+      correctionRefusalMessage(error, t) ?? error.message ?? t("common.error")
     );
 
   const instanceKey = orpc.instances.get.queryKey({
@@ -272,7 +276,15 @@ const WorkPage = () => {
         setOpenStep(null);
         refresh();
       },
-      onError,
+      onError: (error) => {
+        onError(error);
+        // Put right by somebody else since: read the work again, and start from what it says now.
+        if (isChangedSince(error)) {
+          setOpenAnimal(null);
+          setOpenStep(null);
+          refresh();
+        }
+      },
     })
   );
   const finish = useMutation({
@@ -403,15 +415,27 @@ const WorkPage = () => {
       // A Correction changes what was recorded; replacing the photo with it is a later
       // ticket's problem, so the one already attached stays.
       correct.mutate({
-        completionId: existing.id,
-        destination: payload.destination,
+        id: existing.id,
+        changes: {
+          answer: {
+            from: {
+              skipReason: existing.skipReason,
+              evidence: existing.evidence,
+              destination: existing.destination,
+              outOfRange: existing.outOfRange,
+            },
+            to: {
+              destination: payload.destination,
+              evidence: payload.evidence,
+              outOfRange: payload.outOfRange,
+              skipReason: payload.skipReason,
+            },
+          },
+        },
         feeding: payload.feeding,
         counts: payload.counts,
         renewal: payload.renewal,
-        evidence: payload.evidence,
-        outOfRange: payload.outOfRange,
         reason: payload.reason,
-        skipReason: payload.skipReason,
       });
       return;
     }

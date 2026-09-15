@@ -1037,6 +1037,10 @@ export const bn: Record<MessageKey, string> = {
     "{role} একটি এন্ট্রি হওয়ার পর {span} পর্যন্ত সংশোধন করতে পারেন",
   "correct.spanHours": "{hours} ঘণ্টা",
   "correct.spanDays": "{days} দিন",
+  "correct.notTheirs": "এটি সংশোধন করার অধিকার আপনার নেই",
+  "refusal.changedSince":
+    "আপনি খোলার পরে কেউ এটি সংশোধন করেছেন। এখন কী লেখা আছে দেখতে আবার খুলুন।",
+  "refusal.nothingToCorrect": "কিছুই বদলানো হয়নি, তাই সংশোধনের কিছু নেই",
   "review.title": "দেখা দরকার",
   "review.none": "অপেক্ষায় কিছু নেই",
   "review.resolve": "নিষ্পত্তি করুন",

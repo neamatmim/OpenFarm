@@ -4,6 +4,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The Calving: she calves, the record says when, how it went and what was born, and the farm does
@@ -360,7 +361,7 @@ describe("the calving", () => {
     const entry = board.completions.find(
       (row) => row.stepId === "calved" && row.status === "done"
     );
-    await manager.client.instances.correctStep({
+    await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
       evidence: [
         "2032-03-24T00:10:00.000Z",
@@ -379,7 +380,7 @@ describe("the calving", () => {
 
     // Taken back altogether, the calving cannot be undone from here: the calf has a number the farm
     // never reuses. She stays calved, and the Manager is asked.
-    const undone = await manager.client.instances.correctStep({
+    const undone = await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
       skipReason: "এখনো বাচ্চা দেয়নি",
       reason: "ভুল গাভী",

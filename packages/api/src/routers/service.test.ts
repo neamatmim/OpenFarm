@@ -5,6 +5,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The Service: the event the whole rest of the breeding chain counts from.
@@ -279,7 +280,7 @@ describe("the service", () => {
     // And a wrong hour can be put right, which the moment of writing it down never could.
     const board = await manager.client.instances.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "serve");
-    await manager.client.instances.correctStep({
+    await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
       evidence: ["ai", "HF-4400", "রহিম", "2027-11-07T11:00:00.000Z"],
       reason: "সময় ভুল লেখা হয়েছিল",

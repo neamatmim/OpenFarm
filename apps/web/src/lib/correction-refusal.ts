@@ -1,10 +1,10 @@
 import type { EntryRefusal } from "@OpenFarm/api/entries/entry";
 import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 
-/** What the server says when a Correction Window has closed: which Role's window it was,
- *  how long that window is, and whether it covers other people's entries. */
+/** What the server says when a Correction is not theirs to make: which Role's window it was, how long that window is,
+ *  and whether it covers other people's entries — or no Role at all, when none they hold may correct it. */
 interface Refusal {
-  role: string;
+  role: string | null;
   ownEntriesOnly: boolean;
   hours?: number;
   days?: number;
@@ -13,7 +13,8 @@ interface Refusal {
 const isRefusal = (value: unknown): value is Refusal =>
   typeof value === "object" &&
   value !== null &&
-  typeof (value as Refusal).role === "string";
+  "role" in value &&
+  "ownEntriesOnly" in value;
 
 /** The refusal as a sentence in the reader's own language, or nothing when the error was
  *  about something else. */
@@ -24,6 +25,9 @@ export const refusalMessage = (
   const data = (error as { data?: { refusal?: unknown } })?.data?.refusal;
   if (!isRefusal(data)) {
     return null;
+  }
+  if (data.role === null) {
+    return t("correct.notTheirs");
   }
   const span =
     data.days === undefined
@@ -51,6 +55,7 @@ const WORDED_REFUSALS = {
   calving_is_derived: "refusal.calvingIsDerived",
   calving_of_a_cow_not_in_calf: "refusal.calvingOfACowNotInCalf",
   calving_of_a_male: "refusal.calvingOfAMale",
+  changed_since: "refusal.changedSince",
   category_exists: "refusal.categoryExists",
   category_kept_by_records: "refusal.categoryKeptByRecords",
   category_kept_for_wages: "refusal.categoryKeptForWages",
@@ -78,6 +83,7 @@ const WORDED_REFUSALS = {
   no_such_bull: "refusal.noSuchBull",
   not_a_repeat_breeder: "refusal.notARepeatBreeder",
   not_awaiting_approval: "refusal.notAwaitingApproval",
+  nothing_to_correct: "refusal.nothingToCorrect",
   owner_only: "refusal.ownerOnly",
   period_backwards: "refusal.periodBackwards",
   period_too_long: "refusal.periodTooLong",
@@ -109,6 +115,18 @@ export const wordedRefusal = (
     ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS])
     : null;
 };
+
+/** Why a Correction was not taken, in the reader's language — its window, its Role, a value changed since, nothing
+ *  changed, or the kind's own word — or nothing, when the error was about something else. */
+export const correctionRefusalMessage = (
+  error: unknown,
+  t: (key: MessageKey, params?: MessageParams) => string
+): string | null => refusalMessage(error, t) ?? wordedRefusal(error, t);
+
+/** Whether the record was corrected by someone else since the screen showed it: what the screen holds is stale. */
+export const isChangedSince = (error: unknown): boolean =>
+  (error as { data?: { refusal?: unknown } })?.data?.refusal ===
+  "changed_since";
 
 /** What each way of not taking an Entry says, when the Entry gave no word of its own. */
 const ENTRY_REFUSALS = {

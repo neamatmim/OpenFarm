@@ -6,6 +6,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The vaccination register (R3): every dose of a product the Vet has marked a vaccine, with the Lot Number it
@@ -211,20 +212,20 @@ describe("the vaccination register", () => {
       board.completions.find(
         (row) => row.stepId === stepId && row.animalId === animalId
       )?.id ?? "";
-    await fmd.staff.client.instances.correctStep({
+    await correctStepAsShown(fmd.staff.client, {
       completionId: completionOf("lot", null),
       evidence: ["FMD-2045-A2"],
       reason: "ভায়ালের নম্বর ভুল পড়েছিলাম",
     });
     // Taken back altogether, the doses given from it would be untraceable: a Step done once is not skipped.
     await expect(
-      fmd.staff.client.instances.correctStep({
+      correctStepAsShown(fmd.staff.client, {
         completionId: completionOf("lot", null),
         skipReason: "ভায়াল দেখা হয়নি",
         reason: "লট নম্বর লেখা হয়নি",
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    await fmd.staff.client.instances.correctStep({
+    await correctStepAsShown(fmd.staff.client, {
       completionId: completionOf("dose", third.id),
       evidence: [true, "FMD-2045-C"],
       reason: "অন্য ভায়াল থেকে দেওয়া",

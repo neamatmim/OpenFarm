@@ -1,20 +1,25 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq, sql } from "@OpenFarm/db/operators";
+import { sql } from "@OpenFarm/db/operators";
 import { diagnosis } from "@OpenFarm/db/schema/health";
 import type { observation } from "@OpenFarm/db/schema/observation";
-import { mayCorrect } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { correctionWindows, reasonInput, refusalData } from "../corrections";
+import { correct } from "../corrections/correction";
+import {
+  diagnosisCorrection,
+  diagnosisCorrectionInput,
+} from "../corrections/diagnosis";
 import {
   MAX_SEEN_ROWS,
+  diagnosisNoteInput,
+  diseaseInput,
+  readDiagnosis,
   isNotifiable,
   raiseNotifiableAlerts,
   raiseTheReport,
-  reconsiderTheReport,
   seenLately,
   seenLatelyInput,
   theConclusionAndWhatFollowed,
@@ -42,35 +47,10 @@ const VET_ONLY = {
   reason: "vet_only",
 } as const;
 
-/** What the Vet concluded she has. The glossary's word for the thing itself is Disease; the
- *  record of concluding it is the Diagnosis. */
-const disease = z.object({
-  bn: z.string().trim().min(1).max(120),
-  en: z.string().trim().max(120).optional(),
-});
-
-const note = z.string().trim().max(2000);
-
 /** Every clinical act the Vet signs comes from their own account, never a Shed Phone. */
 const theVetsOwnAct = protectedProcedure
   .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
   .use(requirePersonalSession());
-
-/** The Diagnosis as it stands, for the trail to record either side of a change. One reader
- *  for both the recording and the Correction, so the trail holds one shape throughout. */
-const readDiagnosis = async (tx: Tx, id: string) => {
-  const row = await tx.query.diagnosis.findFirst({
-    where: { id },
-    columns: {
-      animalId: true,
-      observationId: true,
-      disease: true,
-      diseaseEn: true,
-      note: true,
-    },
-  });
-  return row ?? null;
-};
 
 /**
  * The Observation this Diagnosis claims to answer has to be one the farm still stands behind,
@@ -171,8 +151,8 @@ export const diagnosesRouter = {
         animalTag: z.string().trim().min(1).max(32),
         /** The Observation this answers, when it answers one. */
         answers: z.string().optional(),
-        disease,
-        note: note.optional(),
+        disease: diseaseInput,
+        note: diagnosisNoteInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
@@ -248,114 +228,14 @@ export const diagnosesRouter = {
    * this Vet's to change, and the Manager may read it but never write it (roles matrix).
    */
   correct: theVetsOwnAct
-    .input(
-      z.object({
-        id: z.string(),
-        disease,
-        note: note.optional(),
-        reason: reasonInput,
-      })
-    )
+    .input(diagnosisCorrectionInput)
     .handler(async ({ context, input }) => {
-      let notifiable = false;
-      let reporting: string | null = null;
-      let alerts: RaisedAlert[] = [];
-      const existing = await context.db.query.diagnosis.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: {
-          id: true,
-          diagnosedBy: true,
-          recordedAt: true,
-          animalId: true,
-        },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND");
-      }
-      requireClinicalInScope(context.scope, existing.animalId);
-      const verdict = mayCorrect({
-        // Only their standing as the Vet is asked about. An in-house Vet who is also the
-        // Manager would otherwise have this recorded under the Manager's Role — and the
-        // Manager has no business in the clinical record at all.
-        roles: ["vet"],
-        isOwnEntry: existing.diagnosedBy === context.actor.id,
-        isHealthEntry: true,
-        recordedAt: existing.recordedAt,
-        now: context.clock.now(),
-        windows: correctionWindows(context.farm),
-      });
-      if (!verdict.allowed) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "A diagnosis is the vet's own to correct",
-          // The window's facts, the shape every Correction refusal has, so the screen says
-          // it in the reader's language.
-          data: { refusal: refusalData(verdict.refusal) },
-        });
-      }
-      const audit = audited(context);
-      const previous = await audit.latestEventFor(
-        context.db,
-        "diagnosis",
-        existing.id
+      const { id, notifiable, reportInstanceId } = await correct(
+        context,
+        diagnosisCorrection,
+        input
       );
-      await audit.write(
-        {
-          entity: "diagnosis",
-          entityId: existing.id,
-          action: "correct",
-          reason: input.reason,
-          roleUsed: verdict.role,
-          supersedesId: previous?.id,
-          before: (tx) => readDiagnosis(tx, existing.id),
-          after: (tx) => readDiagnosis(tx, existing.id),
-        },
-        async (tx) => {
-          await tx
-            .update(diagnosis)
-            .set({
-              disease: input.disease.bn,
-              diseaseEn: input.disease.en ?? null,
-              note: input.note ?? null,
-            })
-            .where(eq(diagnosis.id, existing.id));
-          // A Correction can start the duty or end it. Named a disease on the list where it did
-          // not before, the letter is owed from now; named something off the list, a report
-          // nobody has delivered is withdrawn and the work to deliver it closed — leaving the
-          // Manager under orders to write about a disease the Vet has taken back would be worse
-          // than never having raised it.
-          const her = await tx.query.animal.findFirst({
-            where: { id: existing.animalId, farmId: context.farm.id },
-            columns: { id: true, penId: true, tagNumber: true },
-          });
-          if (!her) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          const owed = await reconsiderTheReport(tx, {
-            farmId: context.farm.id,
-            diagnosisId: existing.id,
-            disease: input.disease,
-            animalId: her.id,
-            penId: her.penId,
-            now: context.clock.now(),
-          });
-          ({ notifiable, instanceId: reporting } = owed);
-          if (owed.notifiable) {
-            alerts = await raiseNotifiableAlerts(
-              tx,
-              context.farm.id,
-              {
-                diagnosisId: existing.id,
-                tagNumber: her.tagNumber,
-                disease: input.disease.bn,
-              },
-              context.clock.now()
-            );
-          }
-        }
-      );
-      await pushRaised(context, alerts, context.clock.now());
-      await textTheSafetyAlerts(context, alerts);
-      return { id: existing.id, notifiable, reportInstanceId: reporting };
+      return { id, notifiable, reportInstanceId };
     }),
 
   /**

@@ -5,6 +5,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The Pregnancy Check: forty-five days after a heat's first service, the Vet says whether she is
@@ -440,7 +441,7 @@ describe("the pregnancy check", () => {
     });
     const board = await manager.client.instances.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "first");
-    await manager.client.instances.correctStep({
+    await correctStepAsShown(manager.client, {
       completionId: entry?.id ?? "",
       evidence: ["ai", "HF-2231-BD", "রহিম", "2030-01-10T12:00:00.000Z"],
       reason: "তারিখ ভুল লেখা হয়েছিল",
@@ -537,7 +538,7 @@ describe("the pregnancy check", () => {
 
     const board = await client.client.instances.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "check");
-    await client.client.instances.correctStep({
+    await correctStepAsShown(client.client, {
       completionId: entry?.id ?? "",
       evidence: ["negative"],
       reason: "ভুল গাভী দেখা হয়েছিল",

@@ -1,26 +1,35 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { SIDES } from "@OpenFarm/db/schema/herd";
-import {
-  MONEY_DIRECTIONS,
-  moneyCategory,
-  moneyReceipt,
-} from "@OpenFarm/db/schema/money";
-import { PHOTO_MAX_BYTES, mayCorrect, startOfFarmDay } from "@OpenFarm/domain";
+import { MONEY_DIRECTIONS, moneyCategory } from "@OpenFarm/db/schema/money";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { correctionWindows, reasonInput, refusalData } from "../corrections";
+import { correct } from "../corrections/correction";
+import {
+  moneyByHandCorrection,
+  moneyByHandCorrectionInput,
+} from "../corrections/money-by-hand";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
+  assertWageNotYetEntered,
+  categoryForEntered,
+  enteredOn,
+  keepReceipt,
+  readEntered,
+  refusedByHand,
+} from "../money-by-hand-store";
+import {
   amountInput,
-  correctedPaymentMethodInput,
   counterpartyInput,
+  monthInput,
+  noteInput,
   paymentMethodInput,
+  receiptInput,
+  sideInput,
 } from "../money-inputs";
 import {
   addStandardCategories,
@@ -32,19 +41,6 @@ import {
   missingStandardCategories,
 } from "../money-store";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
-
-/** A calendar month, as a wage pays for one. */
-const monthInput = z.string().regex(/^\d{4}-(?:0[1-9]|1[0-2])$/u);
-
-const receiptInput = z.object({
-  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-  data: z.string().min(1).max(PHOTO_MAX_BYTES),
-});
-
-const noteInput = z.string().trim().min(1).max(300);
-
-/** The Side money entered by hand belongs to; left out, the whole farm. */
-const sideInput = z.enum(SIDES);
 
 /** Thrown inside the standard Categories' write when another request gave them first, so that no Audit
  *  Event says they were given twice. */
@@ -60,124 +56,9 @@ const MANAGER_ONLY = {
   reason: "manager_only",
 } as const;
 
-/** Refused, with the word the screen says it in. */
-const refused = (message: string, refusal: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
-
 /** The Category as the trail records it either side of a change. */
 const readCategory = async (tx: Tx, farmId: string, id: string) =>
   (await tx.query.moneyCategory.findFirst({ where: { id, farmId } })) ?? null;
-
-/** Money entered by hand as the trail records it: the Money Event, and when a receipt was kept — not the
- *  photo. */
-const readEntered = async (tx: Tx, farmId: string, id: string) => {
-  const row = await tx.query.moneyEvent.findFirst({
-    where: { id, farmId },
-    with: { receipt: { columns: { updatedAt: true } } },
-  });
-  if (!row) {
-    return null;
-  }
-  const { receipt, ...entry } = row;
-  return { ...entry, receiptKeptAt: receipt?.updatedAt ?? null };
-};
-
-/**
- * The Category money entered by hand goes under: this farm's, one a record does not book, and a wage's
- * month given exactly when it is a wage. A retired Category takes nothing new — but money already under
- * it stays correctable where it is.
- */
-const categoryForEntered = async (
-  db: Pick<Tx, "query">,
-  farmId: string,
-  categoryId: string,
-  {
-    wageMonth,
-    alreadyUnderIt,
-  }: { wageMonth: string | null; alreadyUnderIt: boolean }
-) => {
-  const category = await db.query.moneyCategory.findFirst({
-    where: { id: categoryId, farmId },
-    columns: { id: true, key: true, direction: true, retiredAt: true },
-  });
-  if (!category) {
-    throw new ORPCError("NOT_FOUND", { message: "No such Category" });
-  }
-  if (category.retiredAt && !alreadyUnderIt) {
-    throw refused("That Category is retired", "category_retired");
-  }
-  if (!mayBeEnteredByHand(category.key)) {
-    // Milk sold is booked by its Dispatch, a bull bought by its Intake: entering it by hand as well is
-    // the same money twice.
-    throw refused(
-      "That Category's money comes from its own record",
-      "category_kept_by_records"
-    );
-  }
-  const isWage = category.key === "wages";
-  if (isWage && wageMonth === null) {
-    throw refused("A wage names the month it pays for", "wage_needs_month");
-  }
-  if (!isWage && wageMonth !== null) {
-    throw refused("Only a wage pays for a month", "month_is_for_wages");
-  }
-  return category;
-};
-
-/** One wage per person per month: refused when this person's month is already paid, by another entry. */
-const assertWageNotYetEntered = async (
-  tx: Tx,
-  farmId: string,
-  wage: { counterpartyId: string; wageMonth: string | null; id: string }
-) => {
-  if (wage.wageMonth === null) {
-    return;
-  }
-  const already = await tx.query.moneyEvent.findFirst({
-    where: {
-      farmId,
-      counterpartyId: wage.counterpartyId,
-      wageMonth: wage.wageMonth,
-      id: { ne: wage.id },
-    },
-    columns: { id: true },
-  });
-  if (already) {
-    throw refused(
-      "That person's wage for that month is already entered",
-      "wage_already_entered"
-    );
-  }
-};
-
-/** The farm day money moved, refused when that day has not come yet. */
-const enteredOn = (day: string, now: Date): Date => {
-  const at = startOfFarmDay(day);
-  if (at > now) {
-    throw refused(
-      "Money cannot have moved on a day that has not come yet",
-      "entered_in_the_future"
-    );
-  }
-  return at;
-};
-
-/** Keeps a receipt's photo, replacing one kept before. */
-const keepReceipt = async (
-  tx: Tx,
-  farmId: string,
-  moneyEventId: string,
-  receipt: z.infer<typeof receiptInput>,
-  now: Date
-) => {
-  await tx
-    .insert(moneyReceipt)
-    .values({ moneyEventId, farmId, ...receipt, updatedAt: now })
-    .onConflictDoUpdate({
-      target: moneyReceipt.moneyEventId,
-      set: { ...receipt, updatedAt: now },
-    });
-};
 
 export const moneyEntryProcedures = {
   /**
@@ -268,7 +149,7 @@ export const moneyEntryProcedures = {
             columns: { id: true },
           });
           if (taken || isStandardName(input.nameBn)) {
-            throw refused(
+            throw refusedByHand(
               "The farm already has that Category",
               "category_exists"
             );
@@ -307,11 +188,11 @@ export const moneyEntryProcedures = {
       }
       if (!mayBeRetired(category.key)) {
         throw category.key === "wages"
-          ? refused(
+          ? refusedByHand(
               "Wages are kept: a wage is one per person per month under them",
               "category_kept_for_wages"
             )
-          : refused(
+          : refusedByHand(
               "A record's money is booked under that Category",
               "category_kept_by_records"
             );
@@ -426,127 +307,10 @@ export const moneyEntryProcedures = {
   correctEntered: protectedProcedure
     .use(requireOnly("manager", MANAGER_ONLY))
     .use(requirePersonalSession())
-    .input(
-      z.object({
-        id: z.string(),
-        categoryId: z.string().optional(),
-        amountBdt: amountInput.optional(),
-        occurredOn: farmDay.optional(),
-        counterparty: counterpartyInput.optional(),
-        paymentMethod: correctedPaymentMethodInput,
-        note: noteInput.nullable().optional(),
-        wageMonth: monthInput.nullable().optional(),
-        side: sideInput.nullable().optional(),
-        receipt: receiptInput.optional(),
-        reason: reasonInput,
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const existing = await context.db.query.moneyEvent.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", { message: "No such money entry" });
-      }
-      if (existing.source !== "by_hand") {
-        throw refused(
-          "That money comes from a record; put the record right",
-          "correct_the_record"
-        );
-      }
-      const verdict = mayCorrect({
-        roles: context.roles,
-        isOwnEntry: existing.recordedBy === context.actor.id,
-        recordedAt: existing.recordedAt,
-        now,
-        windows: correctionWindows(context.farm),
-      });
-      if (!verdict.allowed) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "The correction window for that entry has closed",
-          data: { refusal: refusalData(verdict.refusal) },
-        });
-      }
-      const wageMonth =
-        input.wageMonth === undefined ? existing.wageMonth : input.wageMonth;
-      const categoryId = input.categoryId ?? existing.categoryId;
-      const category = await categoryForEntered(
-        context.db,
-        context.farm.id,
-        categoryId,
-        { wageMonth, alreadyUnderIt: categoryId === existing.categoryId }
-      );
-      const occurredAt =
-        input.occurredOn === undefined
-          ? existing.occurredAt
-          : enteredOn(input.occurredOn, now);
-      const audit = audited(context);
-      const previous = await audit.latestEventFor(
-        context.db,
-        "money_event",
-        existing.id
-      );
-      await audit.write(
-        {
-          entity: "money_event",
-          entityId: existing.id,
-          action: "correct",
-          reason: input.reason,
-          roleUsed: verdict.role,
-          supersedesId: previous?.id,
-          before: (tx) => readEntered(tx, context.farm.id, existing.id),
-          after: (tx) => readEntered(tx, context.farm.id, existing.id),
-        },
-        async (tx) => {
-          const counterpartyId =
-            input.counterparty === undefined
-              ? existing.counterpartyId
-              : await counterpartyNamed(
-                  tx,
-                  context.farm.id,
-                  input.counterparty,
-                  now
-                );
-          if (counterpartyId !== null) {
-            await assertWageNotYetEntered(tx, context.farm.id, {
-              counterpartyId,
-              wageMonth,
-              id: existing.id,
-            });
-          }
-          await bookMoney(
-            tx,
-            bookingOf(context, verdict.role, now),
-            {
-              source: "by_hand",
-              sourceId: existing.id,
-              amountBdt: input.amountBdt ?? Number(existing.amountBdt),
-              occurredAt,
-              counterpartyId,
-              paymentMethod: input.paymentMethod,
-            },
-            {
-              id: existing.id,
-              category,
-              note: input.note === undefined ? existing.note : input.note,
-              wageMonth,
-              side: input.side === undefined ? existing.side : input.side,
-            }
-          );
-          if (input.receipt) {
-            await keepReceipt(
-              tx,
-              context.farm.id,
-              existing.id,
-              input.receipt,
-              now
-            );
-          }
-        }
-      );
-      return { id: existing.id };
-    }),
+    .input(moneyByHandCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, moneyByHandCorrection, input)
+    ),
 
   /** The photo of a Money Event's receipt. The Owner's and the Manager's, from their own phones. */
   receipt: protectedProcedure

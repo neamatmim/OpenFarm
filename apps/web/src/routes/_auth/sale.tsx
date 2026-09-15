@@ -109,16 +109,24 @@ const SaleCorrection = ({
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setPrice(String(sale.priceBdt));
+        setBuyer(sale.buyerName);
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: sale.id,
           reason,
-          ...(Number(price) === sale.priceBdt
-            ? {}
-            : { priceBdt: Number(price) }),
-          ...(buyer.trim() === sale.buyerName
-            ? {}
-            : { buyer: { name: buyer.trim() } }),
+          changes: {
+            priceBdt:
+              Number(price) === sale.priceBdt
+                ? undefined
+                : { from: sale.priceBdt, to: Number(price) },
+            buyer:
+              buyer.trim() === sale.buyerName
+                ? undefined
+                : { from: sale.buyerName, to: { name: buyer.trim() } },
+          },
         });
         await queryClient.invalidateQueries({ queryKey: orpc.papers.key() });
       }}

@@ -17,6 +17,8 @@ import { z } from "zod";
 import { CODE_ATTEMPTS, countFailure, lockedOut } from "../attempts";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correct } from "../corrections/correction";
+import { nameCorrection, nameCorrectionInput } from "../corrections/name";
 import { hashToken } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
@@ -741,44 +743,12 @@ export const peopleRouter = {
 
   /** A Correction: the Owner fixes a person's name with a reason; the old name stays readable. */
   correctName: protectedProcedure
-    .use(requireRole("owner"))
+    .use(requireRole(...nameCorrection.roles))
     .use(requirePersonalSession())
-    .input(
-      z.object({
-        userId: z.string(),
-        name: z.string().trim().min(1),
-        reason: z.string().trim().min(1),
-      })
-    )
+    .input(nameCorrectionInput)
     .handler(async ({ context, input }) => {
-      const audit = audited(context);
-      const previous = await audit.latestEventFor(
-        context.db,
-        "user",
-        input.userId
-      );
-      await audit.write(
-        {
-          entity: "user",
-          entityId: input.userId,
-          action: "correct",
-          before: (tx) => personSnapshot(tx, input.userId),
-          after: (tx) => personSnapshot(tx, input.userId),
-          reason: input.reason,
-          supersedesId: previous?.id,
-        },
-        async (tx) => {
-          const [row] = await tx
-            .update(user)
-            .set({ name: input.name, updatedAt: context.clock.now() })
-            .where(eq(user.id, input.userId))
-            .returning({ id: user.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-        }
-      );
-      return { userId: input.userId, name: input.name };
+      await correct(context, nameCorrection, input);
+      return { userId: input.id, name: input.changes.name?.to };
     }),
 
   /** Sets or rotates a Staff member's PIN. The PIN itself is never stored: the phone gets a

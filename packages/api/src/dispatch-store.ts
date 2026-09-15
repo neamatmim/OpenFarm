@@ -1,5 +1,13 @@
 import type { Database } from "@OpenFarm/db";
+import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { roundLitres } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
+import { z } from "zod";
+
+import type { Tx } from "./audit";
+import { counterpartyNamed } from "./counterparty-store";
+import type { Booking } from "./money-store";
+import { bookMoney, moneySnapshotOf } from "./money-store";
 
 /** One Dispatch as the day, the record and the reports read it. */
 export interface DispatchRow {
@@ -70,4 +78,82 @@ export const litresToBulkBetween = async (
       .flatMap((one) => one.records)
       .reduce((sum, record) => sum + Number(record.litres), 0)
   );
+};
+
+export const buyerInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  address: z.string().trim().max(300).optional(),
+  phone: z.string().trim().max(40).optional(),
+});
+
+export const dispatchFields = {
+  dispatchedAt: z.coerce.date(),
+  litres: z.number().positive().max(100_000),
+  challan: z.string().trim().min(1).max(60),
+  pricePerLitreBdt: z.number().positive().max(10_000),
+  fatPercent: z.number().min(0).max(20),
+  snfPercent: z.number().min(0).max(20),
+  note: z.string().trim().min(1).max(300),
+};
+
+/** The Dispatch as the trail records it either side of a change. */
+export const readDispatch = async (tx: Tx, id: string) => {
+  const row = await tx.query.dispatch.findFirst({ where: { id } });
+  return row
+    ? { ...row, money: await moneySnapshotOf(tx, row.farmId, "dispatch", id) }
+    : null;
+};
+
+/** Books a Dispatch's milk sale as it now stands: its litres at its price, to its buyer. */
+export const bookDispatchMoney = async (
+  tx: Tx,
+  booking: Booking,
+  id: string,
+  paymentMethod: PaymentMethod | undefined
+) => {
+  const row = await tx.query.dispatch.findFirst({ where: { id } });
+  if (row) {
+    await bookMoney(tx, booking, {
+      source: "dispatch",
+      sourceId: row.id,
+      amountBdt: Number(row.litres) * Number(row.pricePerLitreBdt),
+      occurredAt: row.dispatchedAt,
+      counterpartyId: row.buyerId,
+      paymentMethod,
+    });
+  }
+};
+
+/** Milk has not left before now. */
+export const assertNotLater = (dispatchedAt: Date, now: Date) => {
+  if (dispatchedAt > now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Milk cannot have left later than now",
+      data: { refusal: "dispatched_in_the_future" },
+    });
+  }
+};
+
+/** A figure as the record keeps it: two decimals, as text. */
+export const twoPlaces = (value: number | null | undefined) =>
+  value === undefined || value === null ? null : value.toFixed(2);
+
+/** The buyer as the Dispatch keeps them: the Counterparty, and their name and address as the farm has
+ *  them on the day the milk left. */
+export const buyerOnTheDay = async (
+  tx: Tx,
+  farmId: string,
+  said: z.infer<typeof buyerInput>,
+  now: Date
+) => {
+  const buyerId = await counterpartyNamed(tx, farmId, said, now);
+  const buyer = await tx.query.counterparty.findFirst({
+    where: { id: buyerId },
+    columns: { name: true, address: true },
+  });
+  return {
+    buyerId,
+    buyerName: buyer?.name ?? said.name,
+    buyerAddress: buyer?.address ?? null,
+  };
 };

@@ -290,7 +290,7 @@ describe("the abortion", () => {
     await expect(
       manager.client.breeding.correctAbortion({
         id: recorded.id,
-        stageMonths: 5,
+        changes: { stageMonths: { from: 6, to: 5 } },
         reason: "ভুল লেখা",
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -302,13 +302,16 @@ describe("the abortion", () => {
     await expect(
       otherVet.client.breeding.correctAbortion({
         id: recorded.id,
-        stageMonths: 4,
+        changes: { stageMonths: { from: 6, to: 4 } },
         reason: "আমার মনে হয় চার মাস",
       })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: { word: "not_theirs" } },
+    });
     await vet.client.breeding.correctAbortion({
       id: recorded.id,
-      stageMonths: 5,
+      changes: { stageMonths: { from: 6, to: 5 } },
       reason: "আবার দেখে পাঁচ মাস মনে হয়েছে",
     });
     const corrected = await manager.client.animals.byTag({

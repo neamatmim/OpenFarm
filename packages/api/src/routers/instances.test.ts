@@ -4,6 +4,7 @@ import { DAY, FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 /** The milking SOP: twice a day, a per-cow block with litres, a bulk total at the end. */
@@ -432,7 +433,7 @@ describe("working the pen board", () => {
     expect(forCow).toHaveLength(1);
     expect(forCow[0]?.evidence).toEqual([10]);
 
-    await staff.client.instances.correctStep({
+    await correctStepAsShown(staff.client, {
       completionId: forCow[0]?.id ?? "",
       evidence: [12],
       reason: "কীপ্যাডে ভুল",
@@ -482,7 +483,7 @@ describe("review findings", () => {
     });
     const first = await staff.client.instances.get({ id: instance.id });
     const original = first.completions.find((c) => c.stepId === "bulk");
-    await staff.client.instances.correctStep({
+    await correctStepAsShown(staff.client, {
       completionId: original?.id ?? "",
       evidence: [210],
       reason: "শূন্য বাদ পড়েছিল",

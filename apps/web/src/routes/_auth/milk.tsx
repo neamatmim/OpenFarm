@@ -85,24 +85,34 @@ const DispatchCorrection = ({
   const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setLitres(String(dispatch.litres));
+        setPrice(String(dispatch.pricePerLitreBdt));
+        setBuyer(dispatch.buyerName);
+        setChallan(dispatch.challan ?? "");
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: dispatch.id,
           reason,
-          litres:
-            Number(litres) === dispatch.litres ? undefined : Number(litres),
-          pricePerLitreBdt:
-            Number(price) === dispatch.pricePerLitreBdt
-              ? undefined
-              : Number(price),
-          buyer:
-            buyer.trim() === dispatch.buyerName
-              ? undefined
-              : { name: buyer.trim() },
-          challan:
-            (challan.trim() || null) === dispatch.challan
-              ? undefined
-              : challan.trim() || null,
+          changes: {
+            litres:
+              Number(litres) === dispatch.litres
+                ? undefined
+                : { from: dispatch.litres, to: Number(litres) },
+            pricePerLitreBdt:
+              Number(price) === dispatch.pricePerLitreBdt
+                ? undefined
+                : { from: dispatch.pricePerLitreBdt, to: Number(price) },
+            buyer:
+              buyer.trim() === dispatch.buyerName
+                ? undefined
+                : { from: dispatch.buyerName, to: { name: buyer.trim() } },
+            challan:
+              (challan.trim() || null) === dispatch.challan
+                ? undefined
+                : { from: dispatch.challan, to: challan.trim() || null },
+          },
         });
         await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
       }}

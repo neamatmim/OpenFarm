@@ -303,8 +303,13 @@ const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
   const correct = useMutation(orpc.people.correctName.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => setValue(name)}
       onSave={async (reason) => {
-        await correct.mutateAsync({ userId, name: value.trim(), reason });
+        await correct.mutateAsync({
+          id: userId,
+          changes: { name: { from: name, to: value.trim() } },
+          reason,
+        });
         await queryClient.invalidateQueries({ queryKey: orpc.people.key() });
       }}
       ready={value.trim() !== "" && value.trim() !== name}

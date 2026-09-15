@@ -236,9 +236,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Outbox**: The durable on-device queue of entries made without signal, sent in order when signal returns. Never emptied without the server's acknowledgement. _Avoid_: Cache, buffer, pending list (that's what the user _sees_)
 
-**Needs Review**: Something the system accepted but could not settle on its own, waiting for a person: an entry the server took although the world had changed since it was recorded, or a Correction whose effects it cannot walk back. Raised by the system, resolved by the Manager with their judgement recorded; never discarded. _Avoid_: Conflict (reserved for a failed correction), rejected, error
-
-**Conflict Record**: A stored, unapplied correction whose expected version did not match. Waits for a human; never overwrites. _Avoid_: Merge, clash
+**Needs Review**: Something the system accepted but could not settle on its own, waiting for a person: an entry the server took although the world had changed since it was recorded, or a Correction whose effects it cannot walk back. Raised by the system, resolved by the Manager with their judgement recorded; never discarded. _Avoid_: Conflict (a Correction made against a record changed since is refused, not kept), rejected, error
 
 ## Audit
 
@@ -246,9 +244,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Audit Event**: The append-only record of one state change: who (and in which Role), from which device, when by both clocks, what changed. Written in the same transaction as the change. _Avoid_: Log entry, history row, activity
 
-**Correction**: A new record that supersedes a wrong one, pointing at it and carrying a reason. The original stays visible. The only way a fact ever changes. _Avoid_: Edit, update, amendment, delete
+**Correction**: Putting a wrong fact right, with a reason: the record takes its right value, and an Audit Event written in the same transaction keeps what it said before and supersedes the event that wrote it, so the original stays visible in the trail. An Observation is the exception — withdrawn and a new one written beside it, because the health chain shows both. The only way a fact ever changes. _Avoid_: Edit, update, amendment, delete
 
-**Correction Window**: How long after an entry a given Role may still correct it: Staff 2 hours on their own entries, Manager 30 days on any, Owner always, Vet always on their own health entries. _Avoid_: Grace period (that's for SOP due times), edit window
+**Correction Window**: How long after an entry a given Role may still correct it: Staff 2 hours on their own entries, Manager 30 days on any, Owner always, Vet always on their own health entries. Measured by the farm's clock from when the entry reached it. A fact that was never an entry — Expected Calving, a person's name — has no window, only the Roles that may correct it. _Avoid_: Grace period (that's for SOP due times), edit window
 
 ## Compliance
 

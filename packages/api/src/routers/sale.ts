@@ -1,99 +1,39 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
 import { sale } from "@OpenFarm/db/schema/fattening";
-import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import {
   farmDayOf,
-  mayCorrect,
   startOfFarmDay,
   underMeatWithdrawal,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { correctionWindows, reasonInput, refusalData } from "../corrections";
+import { correct } from "../corrections/correction";
+import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
 import { counterpartyNamed } from "../counterparty-store";
 import { leaves, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
-import {
-  correctedPaymentMethodInput,
-  paymentMethodInput,
-} from "../money-inputs";
-import type { Booking } from "../money-store";
-import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
+import { paymentMethodInput } from "../money-inputs";
+import { bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
 import { requireOnly, requireRole } from "../roles";
+import {
+  bookSaleMoney,
+  buyerInput,
+  salePriceInput,
+  readSale,
+} from "../sale-store";
 
 const tagInput = z.string().trim().min(1).max(32);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** The Sale as the trail records it, so a Correction has the whole entry to supersede. */
-const readSale = async (tx: Tx, id: string) => {
-  const row = await tx.query.sale.findFirst({
-    where: { id },
-    columns: {
-      farmId: true,
-      priceBdt: true,
-      weightKg: true,
-      destination: true,
-      vehicle: true,
-      driver: true,
-      note: true,
-      soldAt: true,
-    },
-    with: { buyer: { columns: { name: true } } },
-  });
-  if (!row) {
-    return null;
-  }
-  const { farmId, ...sold } = row;
-  return { ...sold, money: await moneySnapshotOf(tx, farmId, "sale", id) };
-};
-
-/** The buyer as a Sale names them. */
-const buyerInput = z.object({
-  name: z.string().trim().min(1).max(120),
-  address: z.string().trim().max(200).optional(),
-  phone: z.string().trim().max(20).optional(),
-});
-
-const priceInput = z.number().min(0).max(100_000_000);
 
 const MANAGER_ONLY = {
   message:
     "Selling an animal is the Manager's to record; the Owner approves what it fetched",
   reason: "manager_only",
 } as const;
-
-/**
- * Books what an animal fetched as the Sale now says it. A beast given away fetches nothing and books
- * nothing — unless she was booked at a price before, which a Correction then puts right.
- */
-const bookSaleMoney = async (
-  tx: Tx,
-  booking: Booking,
-  id: string,
-  paymentMethod: PaymentMethod | undefined
-) => {
-  const row = await tx.query.sale.findFirst({ where: { id } });
-  if (!row) {
-    return;
-  }
-  const priceBdt = Number(row.priceBdt);
-  if (priceBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
-    await bookMoney(tx, booking, {
-      source: "sale",
-      sourceId: row.id,
-      amountBdt: priceBdt,
-      occurredAt: row.soldAt,
-      counterpartyId: row.counterpartyId,
-      paymentMethod,
-    });
-  }
-};
 
 export const saleRouter = {
   /**
@@ -155,7 +95,7 @@ export const saleRouter = {
       z.object({
         tagNumber: tagInput,
         buyer: buyerInput,
-        priceBdt: priceInput,
+        priceBdt: salePriceInput,
         /** What she weighed on the day, which is what the price was struck on. */
         weightKg: z.number().positive().max(2000),
         destination: z.string().trim().min(1).max(200),
@@ -261,84 +201,9 @@ export const saleRouter = {
    * spec's "Owner always" over the matrix's read-only Owner).
    */
   correct: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(
-      z.object({
-        id: z.string(),
-        priceBdt: priceInput.optional(),
-        buyer: buyerInput.optional(),
-        paymentMethod: correctedPaymentMethodInput,
-        reason: reasonInput,
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const existing = await context.db.query.sale.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, recordedBy: true, createdAt: true },
-      });
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", { message: "No such sale" });
-      }
-      const verdict = mayCorrect({
-        roles: context.roles,
-        isOwnEntry: existing.recordedBy === context.actor.id,
-        recordedAt: existing.createdAt,
-        now,
-        windows: correctionWindows(context.farm),
-      });
-      if (!verdict.allowed) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "The correction window for that entry has closed",
-          data: { refusal: refusalData(verdict.refusal) },
-        });
-      }
-      const audit = audited(context);
-      const previous = await audit.latestEventFor(
-        context.db,
-        "sale",
-        existing.id
-      );
-      await audit.write(
-        {
-          entity: "sale",
-          entityId: existing.id,
-          action: "correct",
-          reason: input.reason,
-          roleUsed: verdict.role,
-          supersedesId: previous?.id,
-          before: (tx) => readSale(tx, existing.id),
-          after: (tx) => readSale(tx, existing.id),
-        },
-        async (tx) => {
-          await tx
-            .update(sale)
-            .set({
-              ...(input.priceBdt === undefined
-                ? {}
-                : { priceBdt: input.priceBdt.toFixed(2) }),
-              ...(input.buyer === undefined
-                ? {}
-                : {
-                    counterpartyId: await counterpartyNamed(
-                      tx,
-                      context.farm.id,
-                      input.buyer,
-                      now
-                    ),
-                  }),
-            })
-            .where(eq(sale.id, existing.id));
-          await bookSaleMoney(
-            tx,
-            bookingOf(context, verdict.role, now),
-            existing.id,
-            input.paymentMethod
-          );
-        }
-      );
-      return { id: existing.id };
-    }),
+    .use(requireRole(...saleCorrection.roles))
+    .input(saleCorrectionInput)
+    .handler(({ context, input }) => correct(context, saleCorrection, input)),
 
   /**
    * The last Sale of the farm's own day, for the next one to start from.

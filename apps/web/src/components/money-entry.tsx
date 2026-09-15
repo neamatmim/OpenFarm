@@ -12,6 +12,7 @@ import { categoryName, useRefusalToast } from "@/components/money";
 import { Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { isChangedSince } from "@/lib/correction-refusal";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
 import { orpc } from "@/utils/orpc";
@@ -376,7 +377,7 @@ export const CorrectEntered = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const onError = useRefusalToast();
+  const onRefused = useRefusalToast();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(entered.amountBdt));
   const [note, setNote] = useState(entered.note ?? "");
@@ -390,12 +391,27 @@ export const CorrectEntered = ({
         toast.success(t("byHand.corrected"));
         await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
-      onError,
+      onError: async (error) => {
+        onRefused(error);
+        // Put right by somebody else since: read it again, and start from what it says now.
+        if (isChangedSince(error)) {
+          setOpen(false);
+          await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
+        }
+      },
     })
   );
   if (!open) {
     return (
-      <button className="underline" onClick={() => setOpen(true)} type="button">
+      <button
+        className="underline"
+        onClick={() => {
+          setAmount(String(entered.amountBdt));
+          setNote(entered.note ?? "");
+          setOpen(true);
+        }}
+        type="button"
+      >
         {t("byHand.correct")}
       </button>
     );
@@ -407,12 +423,16 @@ export const CorrectEntered = ({
         event.preventDefault();
         correct.mutate({
           id: entered.id,
-          ...(Number(amount) === entered.amountBdt
-            ? {}
-            : { amountBdt: Number(amount) }),
-          ...(note.trim() === (entered.note ?? "")
-            ? {}
-            : { note: note.trim() || null }),
+          changes: {
+            amountBdt:
+              Number(amount) === entered.amountBdt
+                ? undefined
+                : { from: entered.amountBdt, to: Number(amount) },
+            note:
+              note.trim() === (entered.note ?? "")
+                ? undefined
+                : { from: entered.note, to: note.trim() || null },
+          },
           receipt: receipt ?? undefined,
           reason,
         });

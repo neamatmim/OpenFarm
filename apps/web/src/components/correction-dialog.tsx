@@ -11,22 +11,32 @@ import {
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { useQueryClient } from "@tanstack/react-query";
 import { PencilLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
+import {
+  correctionRefusalMessage,
+  isChangedSince,
+} from "@/lib/correction-refusal";
 
 /**
  * Putting a record right: what to change, and why. The original stays readable in the trail beside the correction,
  * so the reason is asked for every time — a correction nobody can explain is a record nobody can trust.
+ *
+ * Its fields start from what the record says each time it opens. When somebody else corrected the record since, the
+ * farm refuses what was typed against the old values (ADR 0005): the dialog closes, the page is read again, and opening
+ * it again starts from what the record says now.
  */
 export const CorrectionDialog = ({
   title,
   description,
   trigger,
   children,
+  onOpen,
   onSave,
   ready = true,
 }: {
@@ -35,11 +45,14 @@ export const CorrectionDialog = ({
   /** The button's words; "Correct" by default. */
   trigger?: string;
   children: ReactNode;
+  /** Puts the fields back to what the record says now, as the dialog opens. */
+  onOpen: () => void;
   /** Resolves when the farm has taken the correction; the dialog closes then, and stays open on a refusal. */
   onSave: (reason: string) => Promise<unknown>;
   ready?: boolean;
 }) => {
   const t = useT();
+  const queryClient = useQueryClient();
   const id = useId();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -55,12 +68,27 @@ export const CorrectionDialog = ({
       setOpen(false);
     } catch (error) {
       setSaving(false);
-      toast.error((error as Error).message || t("common.error"));
+      toast.error(
+        correctionRefusalMessage(error, t) ??
+          ((error as Error).message || t("common.error"))
+      );
+      if (isChangedSince(error)) {
+        setOpen(false);
+        await queryClient.invalidateQueries();
+      }
     }
   };
 
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
+    <Dialog
+      onOpenChange={(opening) => {
+        if (opening) {
+          onOpen();
+        }
+        setOpen(opening);
+      }}
+      open={open}
+    >
       <DialogTrigger
         render={
           <Button size="sm" variant="ghost">

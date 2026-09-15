@@ -10,6 +10,7 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
@@ -182,7 +183,7 @@ describe("correction windows", () => {
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
-    const corrected = await staff.instances.correctStep({
+    const corrected = await correctStepAsShown(staff, {
       completionId,
       evidence: [12],
       reason: "ভুল লিখেছিলাম",
@@ -191,7 +192,7 @@ describe("correction windows", () => {
 
     clock.advance(2 * HOUR);
     await expect(
-      staff.instances.correctStep({
+      correctStepAsShown(staff, {
         completionId,
         evidence: [13],
         reason: "আবার ভুল",
@@ -212,7 +213,7 @@ describe("correction windows", () => {
 
     const staff = await as("staff", clock);
     await expect(
-      staff.instances.correctStep({
+      correctStepAsShown(staff, {
         completionId,
         evidence: [11],
         reason: "মনে হয় ভুল",
@@ -230,7 +231,7 @@ describe("correction windows", () => {
     // Signed in after the clock moved: a month-old session would have expired, which is a
     // different refusal from the one this test is about.
     const manager = await as("manager", clock);
-    const corrected = await manager.instances.correctStep({
+    const corrected = await correctStepAsShown(manager, {
       completionId,
       evidence: [14],
       reason: "খাতার সাথে মিলিয়ে",
@@ -240,7 +241,7 @@ describe("correction windows", () => {
     clock.advance(2 * DAY);
     const later = await as("manager", clock);
     await expect(
-      later.instances.correctStep({
+      correctStepAsShown(later, {
         completionId,
         evidence: [15],
         reason: "আরেকবার",
@@ -259,7 +260,7 @@ describe("correction windows", () => {
 
     clock.advance(400 * DAY);
     const owner = await as("owner", clock);
-    const corrected = await owner.instances.correctStep({
+    const corrected = await correctStepAsShown(owner, {
       completionId,
       evidence: [9],
       reason: "নিরীক্ষার সময় ধরা পড়ল",
@@ -290,7 +291,7 @@ describe("correction windows", () => {
     const vetLater = await as("vet", clock);
 
     await expect(
-      vetLater.instances.correctStep({
+      correctStepAsShown(vetLater, {
         completionId,
         evidence: ["বাঁ পায়ে খোঁড়া"],
         reason: "নোট অসম্পূর্ণ ছিল",
@@ -312,7 +313,7 @@ describe("correction windows", () => {
 
       // Six hours would have been too late a moment ago.
       clock.advance(6 * HOUR);
-      const corrected = await staff.instances.correctStep({
+      const corrected = await correctStepAsShown(staff, {
         completionId,
         evidence: [11],
         reason: "শিফট শেষে মিলিয়ে",
@@ -346,7 +347,7 @@ describe("what a correction does", () => {
 
     // The 10 was a mis-keyed 11.5. The tank was right all along.
     clock.advance(HOUR);
-    const corrected = await staff.instances.correctStep({
+    const corrected = await correctStepAsShown(staff, {
       completionId,
       evidence: [11.5],
       reason: "কীপ্যাডে ভুল",
@@ -369,7 +370,7 @@ describe("what a correction does", () => {
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
-    await staff.instances.correctStep({
+    await correctStepAsShown(staff, {
       completionId,
       evidence: [12],
       reason: "ভুল লিখেছিলাম",
@@ -403,7 +404,7 @@ describe("what a correction does", () => {
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
-    await staff.instances.correctStep({
+    await correctStepAsShown(staff, {
       completionId,
       evidence: [],
       skipReason: "অসুস্থ",
@@ -412,6 +413,48 @@ describe("what a correction does", () => {
 
     const session_ = await staff.milk.session({ instanceId: instance.id });
     expect(session_.records).toHaveLength(0);
+  });
+
+  it("refuses an answer the Step no longer holds, and one that changes nothing", async () => {
+    const { instance, clock } = await session("2026-12-15");
+    const staff = await as("staff", clock);
+    await staff.instances.claim({ id: instance.id });
+    const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
+    const recorded = {
+      skipReason: null,
+      evidence: [10],
+      destination: null,
+      outOfRange: null,
+    };
+
+    clock.advance(HOUR);
+    // The Manager put it right from the office while the milker's screen still showed ten.
+    const manager = await as("manager", clock);
+    await correctStepAsShown(manager, {
+      completionId,
+      evidence: [11],
+      reason: "খাতায় এগারো",
+    });
+    await expect(
+      staff.instances.correctStep({
+        id: completionId,
+        reason: "ভুল লিখেছিলাম",
+        changes: { answer: { from: recorded, to: { evidence: [12] } } },
+      })
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: {
+        refusal: "changed_since",
+        now: { answer: expect.objectContaining({ evidence: [11] }) },
+      },
+    });
+    await expect(
+      correctStepAsShown(staff, {
+        completionId,
+        evidence: [11],
+        reason: "একই",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "nothing_to_correct" } });
   });
 });
 
@@ -434,7 +477,7 @@ describe("review findings", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
 
     clock.advance(HOUR);
-    await staff.instances.correctStep({
+    await correctStepAsShown(staff, {
       completionId,
       evidence: [3],
       reason: "খাতার সাথে মিলিয়ে",
@@ -459,7 +502,7 @@ describe("review findings", () => {
 
     clock.advance(3 * HOUR);
     const owner = await as("owner", clock);
-    await owner.instances.correctStep({
+    await correctStepAsShown(owner, {
       completionId,
       evidence: [12],
       reason: "নিরীক্ষা",
@@ -499,7 +542,7 @@ describe("needs review", () => {
     // The Manager signed off on 10 litres. The Owner now says it was 14.
     clock.advance(2 * DAY);
     const owner = await as("owner", clock);
-    const corrected = await owner.instances.correctStep({
+    const corrected = await correctStepAsShown(owner, {
       completionId,
       evidence: [14],
       reason: "খাতার সাথে মিলিয়ে",
@@ -540,7 +583,7 @@ describe("needs review", () => {
     const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
 
     clock.advance(HOUR);
-    const corrected = await staff.instances.correctStep({
+    const corrected = await correctStepAsShown(staff, {
       completionId,
       evidence: [11],
       reason: "ভুল",

@@ -5,6 +5,7 @@ import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 // The weekly Stock Count: somebody counts what is really in the store, and the count wins. Every
@@ -313,7 +314,7 @@ describe("the stock count", () => {
       where: { id: booked?.completionId ?? "" },
       columns: { instanceId: true },
     });
-    await manager.client.instances.correctStep({
+    await correctStepAsShown(manager.client, {
       completionId: booked?.completionId ?? "",
       evidence: [true],
       counts: await countLines(manager, countedOn?.instanceId ?? "", {

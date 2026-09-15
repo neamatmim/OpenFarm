@@ -1,13 +1,23 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, notInArray, sql } from "@OpenFarm/db/operators";
+import type { FEED_IN_KINDS } from "@OpenFarm/db/schema/feed";
 import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
+import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import type { StockMovement } from "@OpenFarm/domain";
-import { lastFellBelow, roundKg, stockLedger } from "@OpenFarm/domain";
+import {
+  lastFellBelow,
+  roundKg,
+  startOfFarmDay,
+  stockLedger,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
+import { z } from "zod";
 
 import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
+import type { Booking } from "./money-store";
+import { bookMoney, moneySnapshotOf } from "./money-store";
 
 /** One Feed Item as the store holds it. */
 export interface StockLine {
@@ -475,4 +485,80 @@ export const adjustmentsOf = async (
     });
   }
   return out;
+};
+
+export const sellerInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  address: z.string().trim().max(300).optional(),
+  phone: z.string().trim().max(40).optional(),
+});
+
+/** A tenth of the Feed Item's unit is the smallest amount the store keeps. */
+export const quantityInput = z.number().min(0.1).max(1_000_000);
+
+export const feedPriceInput = z.number().positive().max(100_000_000);
+
+/** What came in, as the trail records it either side of a change. */
+export const readFeedArrival = async (tx: Tx, id: string) => {
+  const row = await tx.query.feedIn.findFirst({ where: { id } });
+  return row
+    ? { ...row, money: await moneySnapshotOf(tx, row.farmId, "feed_in", id) }
+    : null;
+};
+
+/** Books a feed Purchase's money as it now stands. A harvest from the farm's own fields is feed and not
+ *  money, and books nothing. */
+export const bookPurchaseMoney = async (
+  tx: Tx,
+  booking: Booking,
+  id: string,
+  paymentMethod: PaymentMethod | undefined
+) => {
+  const row = await tx.query.feedIn.findFirst({ where: { id } });
+  if (row?.priceBdt) {
+    await bookMoney(tx, booking, {
+      source: "feed_in",
+      sourceId: row.id,
+      amountBdt: Number(row.priceBdt),
+      occurredAt: row.receivedOn,
+      counterpartyId: row.counterpartyId,
+      paymentMethod,
+    });
+  }
+};
+
+/**
+ * A Purchase names what the lot cost and the seller it came from; a Harvest from the farm's own
+ * fields names neither. One without the other's pieces is refused rather than guessed at: a purchase
+ * nobody could account for, or money that never changed hands.
+ */
+export const assertShapeOf = (arrival: {
+  kind: (typeof FEED_IN_KINDS)[number];
+  priced: boolean;
+  seller: boolean;
+}) => {
+  if (arrival.kind === "purchase" && !(arrival.priced && arrival.seller)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A purchase names what it cost and who sold it",
+      data: { refusal: "purchase_needs_price_and_seller" },
+    });
+  }
+  if (arrival.kind === "harvest" && (arrival.priced || arrival.seller)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A harvest comes from the farm's own fields, at no price",
+      data: { refusal: "harvest_has_no_price" },
+    });
+  }
+};
+
+/** The farm day feed came in, refused when that day has not come yet. */
+export const receivedDay = (day: string, now: Date): Date => {
+  const receivedOn = startOfFarmDay(day);
+  if (receivedOn > now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Feed cannot have come in on a day that has not come yet",
+      data: { refusal: "received_in_the_future" },
+    });
+  }
+  return receivedOn;
 };

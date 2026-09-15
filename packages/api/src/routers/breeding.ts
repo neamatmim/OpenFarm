@@ -1,18 +1,22 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
 import { abortion, repeatBreederAnswer } from "@OpenFarm/db/schema/breeding";
-import { REPEAT_BREEDER_DECISIONS, mayCorrect } from "@OpenFarm/domain";
+import { REPEAT_BREEDER_DECISIONS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import type { Tx } from "../audit";
 import { audited } from "../audit";
 import {
+  assertLostWhenItCouldBe,
   pregnancyTimesOf,
+  readAbortion,
   repeatBreederFor,
   repeatBreedersOn,
 } from "../breeding-store";
-import { correctionWindows, reasonInput, refusalData } from "../corrections";
+import {
+  abortionCorrection,
+  abortionCorrectionInput,
+} from "../corrections/abortion";
+import { correct } from "../corrections/correction";
 import {
   entersState,
   forgetExpectedCalving,
@@ -34,41 +38,6 @@ const VET_ONLY = {
 const abortionByTheVet = protectedProcedure
   .use(requireOnly("vet", VET_ONLY, { visitingVet: true }))
   .use(requirePersonalSession());
-
-/** The abortion as the trail records it either side of a change. */
-const readAbortion = async (tx: Tx, id: string) =>
-  (await tx.query.abortion.findFirst({ where: { id } })) ?? null;
-
-/**
- * When a pregnancy can have been lost: not later than now, and not before the service it came from.
- * A late entry dated before she was served is a date written wrong, and it would clear a pregnancy
- * she had not begun.
- */
-const assertLostWhenItCouldBe = async (
-  tx: Tx,
-  abortedAt: Date,
-  now: Date,
-  serviceId: string | null
-) => {
-  if (abortedAt > now) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "An abortion cannot have happened later than now",
-      data: { refusal: "aborted_in_the_future" },
-    });
-  }
-  const served = serviceId
-    ? await tx.query.service.findFirst({
-        where: { id: serviceId },
-        columns: { servedAt: true },
-      })
-    : undefined;
-  if (served && abortedAt < served.servedAt) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "An abortion cannot be earlier than the service it ends",
-      data: { refusal: "aborted_before_she_was_served" },
-    });
-  }
-};
 
 export const breedingRouter = {
   /**
@@ -151,93 +120,10 @@ export const breedingRouter = {
    * pregnancy to find again with a check, not one to restore from here.
    */
   correctAbortion: abortionByTheVet
-    .input(
-      z
-        .object({
-          id: z.string(),
-          abortedAt: z.coerce.date().optional(),
-          stageMonths: z.number().int().min(1).max(9).optional(),
-          note: z.string().trim().min(1).max(2000).optional(),
-          reason: reasonInput,
-        })
-        .refine(
-          (value) =>
-            value.abortedAt !== undefined ||
-            value.stageMonths !== undefined ||
-            value.note !== undefined,
-          { message: "Nothing to correct" }
-        )
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const standing = await context.db.query.abortion.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: {
-          id: true,
-          serviceId: true,
-          animalId: true,
-          recordedBy: true,
-          recordedAt: true,
-        },
-      });
-      if (!standing) {
-        throw new ORPCError("NOT_FOUND", { message: "No such abortion" });
-      }
-      requireClinicalInScope(context.scope, standing.animalId);
-      const verdict = mayCorrect({
-        // Only their standing as the Vet is asked about, as for a Diagnosis: the finding is the Vet's, whatever else
-        // they hold on the farm.
-        roles: ["vet"],
-        isOwnEntry: standing.recordedBy === context.actor.id,
-        isHealthEntry: true,
-        recordedAt: standing.recordedAt,
-        now,
-        windows: correctionWindows(context.farm),
-      });
-      if (!verdict.allowed) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "An abortion is the vet's own to correct",
-          data: { refusal: refusalData(verdict.refusal) },
-        });
-      }
-      const audit = audited(context);
-      const previous = await audit.latestEventFor(
-        context.db,
-        "abortion",
-        standing.id
-      );
-      await audit.write(
-        {
-          entity: "abortion",
-          entityId: standing.id,
-          action: "correct",
-          reason: input.reason,
-          roleUsed: verdict.role,
-          supersedesId: previous?.id,
-          before: (tx) => readAbortion(tx, standing.id),
-          after: (tx) => readAbortion(tx, standing.id),
-        },
-        async (tx) => {
-          if (input.abortedAt) {
-            await assertLostWhenItCouldBe(
-              tx,
-              input.abortedAt,
-              now,
-              standing.serviceId
-            );
-          }
-          await tx
-            .update(abortion)
-            .set({
-              ...(input.abortedAt ? { abortedAt: input.abortedAt } : {}),
-              ...(input.stageMonths ? { stageMonths: input.stageMonths } : {}),
-              ...(input.note ? { note: input.note } : {}),
-            })
-            .where(eq(abortion.id, standing.id));
-        }
-      );
-      return { id: standing.id };
-    }),
+    .input(abortionCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, abortionCorrection, input)
+    ),
 
   /**
    * The cows somebody has to decide about, for whoever may read the question: the Manager's queue,

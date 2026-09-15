@@ -5,6 +5,7 @@ import { DAY, FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
@@ -154,7 +155,7 @@ describe("the milking effect", () => {
     // A different figure is a changed fact, so it goes through a Correction.
     const board = await staff.client.instances.get({ id: instance.id });
     const entry = board.completions.find((row) => row.stepId === "milk");
-    await staff.client.instances.correctStep({
+    await correctStepAsShown(staff.client, {
       completionId: entry?.id ?? "",
       evidence: [13],
       reason: "কীপ্যাডে ভুল",
@@ -269,7 +270,7 @@ describe("the milking effect", () => {
     const entry = board.completions.find(
       (row) => row.stepId === "milk" && row.status === "done"
     );
-    await staff.client.instances.correctStep({
+    await correctStepAsShown(staff.client, {
       completionId: entry?.id ?? "",
       evidence: [],
       skipReason: "অসুস্থ",
@@ -446,7 +447,7 @@ describe("reconciling the tank", () => {
     const entry = board.completions.find(
       (row) => row.stepId === "milk" && row.animalId === world.cows[1]?.id
     );
-    await staff.client.instances.correctStep({
+    await correctStepAsShown(staff.client, {
       completionId: entry?.id ?? "",
       evidence: [11.5],
       reason: "কীপ্যাডে ভুল",
