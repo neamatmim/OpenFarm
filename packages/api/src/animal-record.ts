@@ -36,6 +36,8 @@ export const herWholeRecord = async (
       birthDate: true,
       source: true,
       state: true,
+      // When she reached it: for an animal who has left, the moment she went, however she went.
+      stateChangedAt: true,
       // Her whole withdrawal record, the shortening included: a hold a Vet cut short is the one
       // thing a slaughter vet asks about, and a paper that did not say so would be the farm
       // asking to be taken at its word exactly where its word is not enough.
