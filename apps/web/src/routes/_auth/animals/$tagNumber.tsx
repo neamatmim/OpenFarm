@@ -1121,7 +1121,9 @@ const ExpectedCalvingCorrection = ({
       onSave={async (reason) => {
         await correct.mutateAsync({
           tagNumber,
-          expectedCalvingOn: day,
+          changes: {
+            expectedCalvingOn: { from: farmDayOf(expectedCalvingAt), to: day },
+          },
           reason,
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });

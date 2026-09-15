@@ -20,22 +20,24 @@ import {
   SIDES,
   STATES,
   failedAttempts,
-  farmDayOf,
   lactationView,
   withdrawalView,
   sideOfState,
-  startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { pregnancyTimesOf } from "../breeding-store";
-import type { CalvingWorkFollowed } from "../calving-work";
-import { followExpectedCalving } from "../calving-work";
+import {
+  expectedCalvingWithinReach,
+  pregnancyTimesOf,
+} from "../breeding-store";
 import type { Context } from "../context";
-import { reasonInput } from "../corrections";
-import { correct } from "../corrections/correction";
+import { correct, reasonInput } from "../corrections/correction";
+import {
+  expectedCalvingCorrection,
+  expectedCalvingCorrectionInput,
+} from "../corrections/expected-calving";
 import {
   mortalityCorrection,
   mortalityCorrectionInput,
@@ -77,8 +79,6 @@ import {
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */
 const IMPORT_MAX_ROWS = 600;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -318,32 +318,6 @@ const CARRYING_STATES = new Set<AnimalState>([
   "milking",
   "dry",
 ]);
-
-/** The farm day somebody said she will calve, refused when it has gone or is further off than a cow
- *  carries. */
-const expectedCalvingWithinReach = (
-  day: string,
-  now: Date,
-  gestationDays: number
-): Date => {
-  const due = startOfFarmDay(day);
-  if (Number.isNaN(due.getTime())) {
-    throw new ORPCError("BAD_REQUEST", { message: `"${day}" is not a day` });
-  }
-  if (due < startOfFarmDay(farmDayOf(now))) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That day has already gone",
-      data: { refusal: "expected_calving_passed" },
-    });
-  }
-  if (due.getTime() > now.getTime() + gestationDays * DAY_MS) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "No cow calves further off than a whole gestation",
-      data: { refusal: "expected_calving_too_far" },
-    });
-  }
-  return due;
-};
 
 /**
  * The Expected Calving somebody gave for a cow already in calf when she reached this farm, as the
@@ -946,68 +920,19 @@ export const animalsRouter = {
    * right by correcting the service or the check it came from, never typed over.
    */
   correctExpectedCalving: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(
-      z.object({
-        tagNumber: tagInput,
-        expectedCalvingOn: farmDay,
-        reason: reasonInput,
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
-      const target = await requireAnimal(
+    .use(requireRole(...expectedCalvingCorrection.roles))
+    .input(expectedCalvingCorrectionInput)
+    .handler(async ({ context, input: { tagNumber, ...input } }) => {
+      const her = await requireAnimal(
         context.db,
         context.farm.id,
-        tagNumber
+        tagNumber.toUpperCase()
       );
-      let followed: CalvingWorkFollowed | null = null;
-      await audited(context).write(
-        {
-          entity: "animal",
-          entityId: target.id,
-          action: "correct",
-          reason: input.reason,
-          before: (tx) => readAnimal(tx, target.id),
-          after: async (tx) => ({
-            ...(await readAnimal(tx, target.id)),
-            ...followed,
-          }),
-        },
-        async (tx) => {
-          const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          if (!her.expectedCalvingAt) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: `${tagNumber} is not expected to calve`,
-              data: { refusal: "no_calving_expected" },
-            });
-          }
-          if (her.expectedCalvingServiceId) {
-            throw new ORPCError("BAD_REQUEST", {
-              message:
-                "Her Expected Calving is worked out from her service; correct the service or the check instead",
-              data: { refusal: "calving_is_derived" },
-            });
-          }
-          const expectedCalvingAt = expectedCalvingWithinReach(
-            input.expectedCalvingOn,
-            now,
-            context.farm.gestationDays
-          );
-          await tx
-            .update(animal)
-            .set({ expectedCalvingAt, updatedAt: now })
-            .where(eq(animal.id, her.id));
-          followed = await followExpectedCalving(
-            tx,
-            { ...her, expectedCalvingAt },
-            pregnancyTimesOf(context.farm).calvingLeadDays,
-            { expectedAgain: false }
-          );
-        }
-      );
-      return { tagNumber };
+      await correct(context, expectedCalvingCorrection, {
+        ...input,
+        id: her.id,
+      });
+      return { tagNumber: her.tagNumber };
     }),
 
   /** A replacement Ear Tag carrying the same Tag Number. */

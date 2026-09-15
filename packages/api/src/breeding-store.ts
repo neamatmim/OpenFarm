@@ -16,7 +16,9 @@ import {
   sinceSheLastCalved,
   attemptsThatBegin,
   expectedCalvingFrom,
+  farmDayOf,
   isExitState,
+  startOfFarmDay,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -481,4 +483,32 @@ export const assertLostWhenItCouldBe = async (
       data: { refusal: "aborted_before_she_was_served" },
     });
   }
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The farm day somebody said she will calve, refused when it has gone or is further off than a cow
+ *  carries. */
+export const expectedCalvingWithinReach = (
+  day: string,
+  now: Date,
+  gestationDays: number
+): Date => {
+  const due = startOfFarmDay(day);
+  if (Number.isNaN(due.getTime())) {
+    throw new ORPCError("BAD_REQUEST", { message: `"${day}" is not a day` });
+  }
+  if (due < startOfFarmDay(farmDayOf(now))) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That day has already gone",
+      data: { refusal: "expected_calving_passed" },
+    });
+  }
+  if (due.getTime() > now.getTime() + gestationDays * DAY_MS) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "No cow calves further off than a whole gestation",
+      data: { refusal: "expected_calving_too_far" },
+    });
+  }
+  return due;
 };

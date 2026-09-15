@@ -3,8 +3,8 @@ import { sql } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import type { ReviewReason } from "@OpenFarm/db/schema/review";
-import type { CorrectionRefusal } from "@OpenFarm/domain";
-import { mayCorrect } from "@OpenFarm/domain";
+import type { CorrectionRefusal, CorrectionWindows } from "@OpenFarm/domain";
+import { describeWindow, mayCorrect } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -12,11 +12,29 @@ import { z } from "zod";
 import type { SnapshotValue, Tx } from "../audit";
 import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
-import { correctionWindows, reasonInput, refusalData } from "../corrections";
 import { raiseNeedsReview } from "../review-store";
 import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
+
+/** A Correction carries a reason. Every one of them, whatever is being put right. */
+export const reasonInput = z.string().trim().min(1).max(200);
+
+/** The Correction Windows as this Farm has them set. */
+const correctionWindows = (farm: {
+  staffCorrectionHours: number;
+  managerCorrectionDays: number;
+}): CorrectionWindows => ({
+  staffHours: farm.staffCorrectionHours,
+  managerDays: farm.managerCorrectionDays,
+});
+
+/** Why the Correction was refused, as facts rather than as a sentence. The person reading it reads Bangla; composing
+ *  their message here would mean composing it in English. The message on the error is for whoever is reading a log. */
+const refusalData = (refusal: CorrectionRefusal) => ({
+  ...refusal,
+  ...describeWindow(refusal.windowHours),
+});
 
 /**
  * A value as a Correction compares it: what the screen showed against what the record holds now — one figure, or an

@@ -47,6 +47,8 @@ interface Kind {
   by: "manager" | "vet";
   /** Whether the Owner may put it right as well: money entered by hand is the Manager's alone. */
   ownerToo?: boolean;
+  /** A fact that was never an entry, with no Correction Window. */
+  neverAnEntry?: boolean;
   make: (client: Client) => Promise<Made>;
   correct: (
     client: Client,
@@ -241,6 +243,37 @@ const KINDS: Kind[] = [
       client.animals.correctMortality({ ...input, tagNumber: id } as never),
   },
   {
+    name: "an Expected Calving somebody gave",
+    by: "manager",
+    neverAnEntry: true,
+    make: async (manager) => {
+      const her = await manager.animals.register({
+        sex: "female",
+        side: "dairy",
+        state: "pregnant_heifer",
+        penId,
+        source: "bought",
+        aliases: [],
+        expectedCalvingOn: "2039-11-01",
+      });
+      const row = await manager.animals.byTag({ tagNumber: her.tagNumber });
+      return {
+        // Asked about by her Tag Number, as the screen knows her.
+        id: her.tagNumber,
+        trail: { entity: "animal", entityId: row.id },
+        field: "expectedCalvingOn",
+        from: "2039-11-01",
+        to: "2039-11-08",
+        stale: "2039-11-02",
+      };
+    },
+    correct: (client, { id, ...input }) =>
+      client.animals.correctExpectedCalving({
+        ...input,
+        tagNumber: id,
+      } as never),
+  },
+  {
     name: "a Diagnosis",
     by: "vet",
     make: async (vet) => {
@@ -367,34 +400,33 @@ describe.each(KINDS)("putting right $name", (kind) => {
   });
 });
 
-describe.each(KINDS.filter((kind) => kind.by === "manager"))(
-  "the Manager's window on $name",
-  (kind) => {
-    it("refuses the Manager once it has closed", async () => {
-      const manager = await as("manager", RECORDED);
-      const record = await kind.make(manager.client);
-      const change = changing(record, record.from, record.to);
-      const later = await as("manager", YEARS_ON);
-      await expect(kind.correct(later.client, change)).rejects.toMatchObject({
-        code: "FORBIDDEN",
-        data: {
-          refusal: {
-            word: "window_closed",
-            role: "manager",
-            ownEntriesOnly: false,
-          },
+describe.each(
+  KINDS.filter((kind) => kind.by === "manager" && !kind.neverAnEntry)
+)("the Manager's window on $name", (kind) => {
+  it("refuses the Manager once it has closed", async () => {
+    const manager = await as("manager", RECORDED);
+    const record = await kind.make(manager.client);
+    const change = changing(record, record.from, record.to);
+    const later = await as("manager", YEARS_ON);
+    await expect(kind.correct(later.client, change)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: {
+        refusal: {
+          word: "window_closed",
+          role: "manager",
+          ownEntriesOnly: false,
         },
-      });
-      if (!kind.ownerToo) {
-        return;
-      }
-      const owner = await as("owner", YEARS_ON);
-      await kind.correct(owner.client, change);
-      const [corrected] = await owner.client.audit.list(record.trail);
-      expect(corrected).toMatchObject({ action: "correct", roleUsed: "owner" });
+      },
     });
-  }
-);
+    if (!kind.ownerToo) {
+      return;
+    }
+    const owner = await as("owner", YEARS_ON);
+    await kind.correct(owner.client, change);
+    const [corrected] = await owner.client.audit.list(record.trail);
+    expect(corrected).toMatchObject({ action: "correct", roleUsed: "owner" });
+  });
+});
 
 describe.each(KINDS.filter((kind) => kind.by === "vet"))(
   "the Vet's own $name",
@@ -412,6 +444,26 @@ describe.each(KINDS.filter((kind) => kind.by === "vet"))(
       await kind.correct(later.client, change);
       const [corrected] = await later.client.audit.list(record.trail);
       expect(corrected).toMatchObject({ action: "correct", roleUsed: "vet" });
+    });
+  }
+);
+
+describe.each(KINDS.filter((kind) => kind.neverAnEntry))(
+  "$name, which was never an entry",
+  (kind) => {
+    it("has no window: the Manager puts it right months on", async () => {
+      const manager = await as("manager", RECORDED);
+      const record = await kind.make(manager.client);
+      const monthsOn = await as("manager", "2039-10-01T04:00:00.000Z");
+      await kind.correct(
+        monthsOn.client,
+        changing(record, record.from, record.to)
+      );
+      const [corrected] = await monthsOn.client.audit.list(record.trail);
+      expect(corrected).toMatchObject({
+        action: "correct",
+        roleUsed: "manager",
+      });
     });
   }
 );

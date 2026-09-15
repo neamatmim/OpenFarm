@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { reasonInput } from "../corrections";
+import { reasonInput } from "../corrections/correction";
 import { raiseWithdrawalChanged } from "../health-store";
 import { loadLiveAnimal, requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";

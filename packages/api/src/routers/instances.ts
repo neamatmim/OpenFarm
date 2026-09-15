@@ -18,8 +18,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
 import type { Context } from "../context";
-import { reasonInput } from "../corrections";
-import { correct } from "../corrections/correction";
+import { correct, reasonInput } from "../corrections/correction";
 import {
   stepCorrection,
   stepCorrectionInput,

@@ -100,12 +100,16 @@ describe("audit events", () => {
     clock.advance(MINUTE);
 
     await expect(
-      owner.client.people.correctName({ userId, name: "Rahim", reason: "" })
+      owner.client.people.correctName({
+        id: userId,
+        changes: { name: { from: "Rahmi", to: "Rahim" } },
+        reason: "",
+      })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
     await owner.client.people.correctName({
-      userId,
-      name: "Rahim",
+      id: userId,
+      changes: { name: { from: "Rahmi", to: "Rahim" } },
       reason: "typo at invite",
     });
 

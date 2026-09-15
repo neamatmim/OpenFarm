@@ -478,7 +478,7 @@ describe("the work Expected Calving pulls towards it", () => {
 
     await manager.client.animals.correctExpectedCalving({
       tagNumber: world.alreadyCarrying,
-      expectedCalvingOn: "2031-09-11",
+      changes: { expectedCalvingOn: { from: "2031-09-01", to: "2031-09-11" } },
       reason: "রেজিস্টারে তারিখ ভুল ছিল",
     });
 
@@ -516,7 +516,9 @@ describe("the work Expected Calving pulls towards it", () => {
     await expect(
       manager.client.animals.correctExpectedCalving({
         tagNumber: world.homeBred,
-        expectedCalvingOn: "2031-10-20",
+        changes: {
+          expectedCalvingOn: { from: "2031-10-15", to: "2031-10-20" },
+        },
         reason: "অনুমান",
       })
     ).rejects.toMatchObject({
