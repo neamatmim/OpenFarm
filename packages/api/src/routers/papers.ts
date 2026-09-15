@@ -4,6 +4,7 @@ import {
   WITHDRAWAL_LOOK_BACK_DAYS,
   animalPassport,
   farmDayOf,
+  isExitState,
   saleReceipt,
   startOfFarmDay,
   transportCard,
@@ -158,7 +159,12 @@ export const papersRouter = {
         arrived: her.intake
           ? formatDate(her.intake.arrivedAt, language, "date")
           : null,
-        pens: penSpells(her.moves, her.sale?.soldAt ?? null, language),
+        // Her last spell ends when she left — sold, dead or culled — so the paper never says she stands there still.
+        pens: penSpells(
+          her.moves,
+          isExitState(her.state) ? her.stateChangedAt : null,
+          language
+        ),
         doses: her.treatments.map((dose) => doseGiven(dose, language)),
         ...herWithdrawal(her, now, language),
         moreThanShown: her.moreThanShown,

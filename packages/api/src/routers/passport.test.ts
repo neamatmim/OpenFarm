@@ -294,4 +294,24 @@ describe("the passport and the withdrawal summary", () => {
       )
     ).toBe(true);
   });
+
+  it("says she stood in her last Pen only until she died, not that she stands there still", async () => {
+    const manager = await asManager("2027-07-27");
+    await manager.client.animals.recordMortality({
+      tagNumber: tagOf(1),
+      kind: "died",
+      cause: "হঠাৎ মৃত্যু",
+      disposal: "buried",
+    });
+
+    const after = await asManager("2027-07-28");
+    const passport = await after.client.papers.passport({
+      tagNumber: tagOf(1),
+    });
+    const lastPen = passport.text
+      .split("\n")
+      .find((line) => line.includes(`পেন খ ${suffix}`));
+    // A spell with an end, as a sold animal's has: a line ending on its dash would say she is in that Pen today.
+    expect(lastPen).toMatch(/ – \S/u);
+  });
 });
