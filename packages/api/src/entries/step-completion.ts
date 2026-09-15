@@ -20,7 +20,12 @@ import {
   stepOf,
 } from "../completion-store";
 import type { EffectResult } from "../effects";
-import { STANDING_ASIDE_SAID, runEffect, stoodAside } from "../effects/effect";
+import {
+  STANDING_ASIDE_SAID,
+  requireMayRecord,
+  runEffect,
+  stoodAside,
+} from "../effects/effect";
 import { farmDay } from "../farm-clock";
 import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
@@ -257,6 +262,8 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       assertMayWork(context, work);
       const content = contentOf(work.version);
       const step = stepOf(content, input.stepId);
+      // Whoever the procedure lets at the work, a Service is still the Manager's to record and a Pregnancy Check the Vet's.
+      requireMayRecord(step, context.roles);
       const animalId = await resolveStepAnimal(
         tx,
         context.farm.id,

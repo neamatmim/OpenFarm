@@ -96,6 +96,11 @@ export const stepCorrection: CorrectionKind<
   entity: "step_completion",
   table: stepCompletion,
   roles: ["owner", "manager", "staff", "vet"],
+  // A Pregnancy Check is a clinical finding: the Vet's alone to put right, as a Diagnosis is.
+  rolesFor: (row) =>
+    isClinicalStep(stepOf(contentOf(row.instance.version), row.stepId))
+      ? ["vet"]
+      : ["owner", "manager", "staff", "vet"],
   visitingVet: true,
   missing: "No such step",
   load: loadStep,

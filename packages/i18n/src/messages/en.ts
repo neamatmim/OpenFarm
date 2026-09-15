@@ -1246,8 +1246,6 @@ export const en = {
   "refusal.vetOnly": "This is the Vet's to record",
   "refusal.checkWithoutAService":
     "A pregnancy check is recorded on the work her latest service raised",
-  "refusal.serviceAlreadyChecked":
-    "The Vet has checked this service; correct the check first",
   "refusal.differenceNeedsReason": "Say why a count differs from the store",
   "refusal.countIncomplete": "Count every feed in the store",
   "pregnancy.title": "Pregnancy checks",

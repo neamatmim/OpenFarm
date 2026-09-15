@@ -10,7 +10,6 @@ import { ORPCError } from "@orpc/server";
 import type { Tx } from "../audit";
 import { recordCalving } from "../calving-store";
 import type { EffectInput, EffectResult } from "../effects";
-import { forbidden } from "../roles";
 import type { EffectKind } from "./effect";
 import { choiceAt } from "./evidence";
 
@@ -22,7 +21,6 @@ type CalvingFacts = Pick<
   | "evidence"
   | "skipped"
   | "completionId"
-  | "roles"
   | "roleUsed"
   | "recordedBy"
   | "now"
@@ -92,12 +90,6 @@ const recordHerCalving = async (
   tx: Tx,
   input: CalvingFacts
 ): Promise<EffectResult> => {
-  if (!CALVING_RECORDERS.some((role) => input.roles.includes(role))) {
-    throw forbidden({
-      message: "A calving is recorded by Barn Staff or the Manager",
-      reason: "staff_or_manager_only",
-    });
-  }
   const damId = input.animalId ?? input.instance.animalId;
   if (!damId) {
     throw new ORPCError("BAD_REQUEST", {
@@ -132,5 +124,12 @@ const recordHerCalving = async (
 /** A Step that records a calving. */
 export const calvingEffect: EffectKind<CalvingFacts> = {
   kind: "calving",
+  recordedBy: {
+    roles: CALVING_RECORDERS,
+    refusal: {
+      message: "A calving is recorded by Barn Staff or the Manager",
+      reason: "staff_or_manager_only",
+    },
+  },
   apply: recordHerCalving,
 };

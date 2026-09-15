@@ -538,6 +538,50 @@ describe("the pregnancy check", () => {
 
     const board = await client.client.instances.get({ id: workId });
     const entry = board.completions.find((row) => row.stepId === "check");
+
+    // The finding is the Vet's: the Manager, who may put right most of the farm's entries, may not put right this one.
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      clock: new FakeClock(at),
+    });
+    await expect(
+      correctStepAsShown(manager.client, {
+        completionId: entry?.id ?? "",
+        evidence: ["negative"],
+        reason: "খাতায় অন্য লেখা",
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: { word: "not_theirs" } },
+    });
+
+    // Nor is the service it was of taken back from under it: the correction is kept, the service stands, and a person
+    // is asked — the check is put right first.
+    const served = await scratchDb().query.service.findFirst({
+      where: { animalId: carrying.id },
+      columns: { id: true, completionId: true },
+    });
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock(at),
+    });
+    const takenBack = await correctStepAsShown(owner.client, {
+      completionId: served?.completionId ?? "",
+      evidence: [],
+      skipReason: "একবারেই যথেষ্ট",
+      reason: "পাল দেওয়া হয়নি",
+    });
+    expect(takenBack.needsReview).toBe(true);
+    expect(takenBack.effect).toMatchObject({
+      kind: "service",
+      standsAside: { because: "service_checked" },
+    });
+    const stillServed = await scratchDb().query.service.findFirst({
+      where: { id: served?.id ?? "" },
+      columns: { id: true },
+    });
+    expect(stillServed).toBeDefined();
+
     await correctStepAsShown(client.client, {
       completionId: entry?.id ?? "",
       evidence: ["negative"],

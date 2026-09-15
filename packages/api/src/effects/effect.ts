@@ -1,12 +1,17 @@
+import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { STEP_EFFECT_KINDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import type { EffectInput, EffectResult } from "../effects";
 import { runStepEffect } from "../effects";
+import type { Refusal } from "../roles";
+import { forbidden } from "../roles";
 import { calvingEffect } from "./calving";
 import { dryOffEffect } from "./dry-off";
 import { moveEffect } from "./move";
+import { pregnancyCheckEffect } from "./pregnancy-check";
+import { serviceEffect } from "./service";
 
 /** Why an Effect stood aside: what the farm has learned since that the Step does not know. */
 export type StandingAsideBecause =
@@ -15,7 +20,9 @@ export type StandingAsideBecause =
   /** Corrected to a skip, but she cannot be put back in milk from here. */
   | "cannot_return_to_milk"
   /** Corrected in a way the farm has already acted on: a calf added, taken away, or since gone. */
-  | "calving_acted_on";
+  | "calving_acted_on"
+  /** A service taken back that the Vet has already checked: the check is corrected first. */
+  | "service_checked";
 
 /**
  * An Effect the farm has moved past (the glossary's Effect, standing aside): it wrote nothing over the newer fact, and
@@ -33,6 +40,12 @@ export interface StandingAside {
  */
 export interface EffectKind<Facts> {
   kind: (typeof STEP_EFFECT_KINDS)[number];
+  /**
+   * Who may record a Step of this kind, whatever the procedure's own gate lets in — the Owner may step into any shift,
+   * but a Service is still the Manager's to record. Checked once, when the Step is first recorded; putting it right is
+   * the Correction's to decide. Nobody but the procedure's gate, when unsaid.
+   */
+  recordedBy?: { roles: readonly RoleName[]; refusal: Refusal };
   apply: (tx: Tx, facts: Facts) => Promise<EffectResult>;
 }
 
@@ -43,6 +56,25 @@ const EFFECTS: Partial<
   [moveEffect.kind]: moveEffect,
   [dryOffEffect.kind]: dryOffEffect,
   [calvingEffect.kind]: calvingEffect,
+  [serviceEffect.kind]: serviceEffect,
+  [pregnancyCheckEffect.kind]: pregnancyCheckEffect,
+};
+
+/** The Effect a Step declares, when it is one of the kinds that are their own modules. */
+export const effectOf = (
+  step: EffectInput["step"]
+): EffectKind<EffectInput> | undefined =>
+  step.effect ? EFFECTS[step.effect.kind] : undefined;
+
+/** Refuses a Step of a kind the person may not record, whichever Role they hold that let them at the work. */
+export const requireMayRecord = (
+  step: EffectInput["step"],
+  roles: readonly RoleName[]
+): void => {
+  const recordedBy = effectOf(step)?.recordedBy;
+  if (recordedBy && !recordedBy.roles.some((role) => roles.includes(role))) {
+    throw forbidden(recordedBy.refusal);
+  }
 };
 
 /**
@@ -73,4 +105,6 @@ export const STANDING_ASIDE_SAID: Record<StandingAsideBecause, string> = {
   moved_since: "She has been moved since this was done",
   cannot_return_to_milk: "She cannot be put back in milk from here",
   calving_acted_on: "The farm has acted on this calving since",
+  service_checked:
+    "The Vet has checked this service; the check is put right first",
 };

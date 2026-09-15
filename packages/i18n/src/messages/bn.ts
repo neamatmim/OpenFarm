@@ -1206,8 +1206,6 @@ export const bn: Record<MessageKey, string> = {
   "event.service": "গাভীকে পাল দেওয়া হলে (খামারের নির্ধারিত দিন পরে পরীক্ষা)",
   "refusal.vetOnly": "এটি ভেটের কাজ",
   "refusal.checkWithoutAService": "গর্ভ পরীক্ষা তার শেষ পাল দেওয়ার কাজ থেকেই রেকর্ড হয়",
-  "refusal.serviceAlreadyChecked":
-    "ভেট এই পাল দেওয়া পরীক্ষা করেছেন; আগে পরীক্ষাটি ঠিক করুন",
   "refusal.differenceNeedsReason": "গণনা কেন মেলেনি তা লিখুন",
   "refusal.countIncomplete": "গুদামের সব খাদ্য গুনুন",
   "pregnancy.title": "গর্ভ পরীক্ষার রেকর্ড",

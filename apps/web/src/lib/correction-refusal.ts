@@ -94,7 +94,6 @@ const WORDED_REFUSALS = {
   renewal_needs_expiry: "refusal.renewalNeedsExpiry",
   renewal_not_later: "refusal.renewalNotLater",
   renewal_superseded: "refusal.renewalSuperseded",
-  service_already_checked: "refusal.serviceAlreadyChecked",
   service_needs_technician: "refusal.serviceNeedsTechnician",
   service_of_a_male: "refusal.serviceOfAMale",
   staff_or_manager_only: "refusal.staffOrManagerOnly",

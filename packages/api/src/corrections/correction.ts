@@ -107,6 +107,8 @@ export interface CorrectionKind<
   table: PgTable & { id: AnyPgColumn };
   /** The Roles that may put it right — the procedure's Role check, and the only Roles whose windows are asked about. */
   roles: readonly RoleName[];
+  /** The Roles that may put this one right, when that depends on the record — a clinical Step is the Vet's alone. */
+  rolesFor?: (row: Row) => readonly RoleName[];
   /** Whether a Vet called in for a visit may put it right as the Vet. */
   visitingVet?: boolean;
   /** Said when there is no such record on this farm. */
@@ -236,7 +238,7 @@ const workingToCorrect = <
   const theirs = PRECEDENCE.filter(
     (role) =>
       context.roles.includes(role) &&
-      kind.roles.includes(role) &&
+      (kind.rolesFor?.(row) ?? kind.roles).includes(role) &&
       !(role === "vet" && context.visiting && !kind.visitingVet)
   );
   const entry = kind.entry?.(row);
@@ -250,7 +252,7 @@ const workingToCorrect = <
           now,
           windows: correctionWindows(context.farm),
         })
-      : pickRoleUsed(roles, kind.roles);
+      : pickRoleUsed(roles, kind.rolesFor?.(row) ?? kind.roles);
   const allowed = theirs.filter((role) => {
     const verdict = verdictFor([role]);
     return typeof verdict === "string" || (verdict !== null && verdict.allowed);

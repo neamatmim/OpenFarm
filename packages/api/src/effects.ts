@@ -1,6 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { pregnancyCheck, service } from "@OpenFarm/db/schema/breeding";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { feeding } from "@OpenFarm/db/schema/feed";
@@ -21,9 +20,6 @@ import type {
 import {
   HEAT,
   KG_DECIMALS,
-  SERVICE_EVIDENCE,
-  isPregnancyCheckResult,
-  isServiceMethod,
   implausibleChange,
   isShortFed,
   roundKg,
@@ -33,25 +29,14 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx, Trail } from "./audit";
 import type { PregnancyTimes } from "./breeding-store";
-import {
-  attemptThatRaisedWork,
-  callOffWorkOfAttemptsNoLongerStanding,
-  rederivePregnancy,
-} from "./breeding-store";
 import type { CalvingRecorded } from "./calving-store";
 import type { CalvingWorkFollowed } from "./calving-work";
 import type { StandingAside } from "./effects/effect";
-import {
-  numberIn,
-  writtenNote,
-  choiceIn,
-  textAt,
-  penOf,
-} from "./effects/evidence";
+import { numberIn, writtenNote, choiceIn, penOf } from "./effects/evidence";
 import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import { callOffWorkRaisedBy } from "./herd-store";
-import { heatKeyOf, heatThatRaised, isOnTheFarm } from "./instances-store";
+import { heatKeyOf } from "./instances-store";
 import {
   ensureSession,
   reReconcile,
@@ -138,7 +123,12 @@ export type EffectResult =
     }
   /** A service or a check — or, with nothing, one taken back — and the calving work that followed the
    *  date it changed. */
-  | ({ kind: "service"; method: ServiceMethod | null } & CalvingWorkFollowed)
+  | ({
+      kind: "service";
+      method: ServiceMethod | null;
+      /** Taken back, but the Vet has checked it: the service stands, and the check is corrected first. */
+      standsAside: StandingAside | null;
+    } & CalvingWorkFollowed)
   | ({
       kind: "pregnancy_check";
       result: PregnancyCheckResult | null;
@@ -763,294 +753,6 @@ const applyWeighInEffect = async (
 };
 
 /**
- * Works her pregnancy out again after something under it changed. Only the caller knows whether that
- * change was a positive being put right.
- */
-const rederiveFor = (
-  tx: Tx,
-  input: EffectInput,
-  cowId: string,
-  undoingPositive: boolean
-) =>
-  rederivePregnancy(tx, cowId, {
-    times: input.pregnancyTimes,
-    at: input.recordedAt,
-    now: input.now,
-    undoingPositive,
-    trail: input.trail,
-  });
-
-/**
- * What a service changed further down the chain. A day corrected, a first service taken back, or a
- * new heat served moves her latest attempt: work raised by one that no longer stands is closed, and
- * a check already made counts from the day as it now stands.
- */
-const breedingFollowsService = async (
-  tx: Tx,
-  input: EffectInput,
-  cowId: string
-) => {
-  await callOffWorkOfAttemptsNoLongerStanding(
-    tx,
-    input.instance.farmId,
-    cowId,
-    input.trail
-  );
-  return rederiveFor(tx, input, cowId, false);
-};
-
-/**
- * Records that she was served: how, by which sire, by whom, and in answer to which Heat.
- *
- * The Manager's alone. The roles matrix gives Service `C R U` to the Manager and nothing to Barn
- * Staff or the Vet, and a Step is completed by whoever is standing at it — so the Step's own gate is
- * not enough and the effect asks. The Vet's breeding acts are the Pregnancy Check and the Abortion;
- * a milker's is recording a Calving on the round.
- *
- * A natural service names a bull standing on this farm. A tag that is not one is a sire nobody can
- * trace, and parentage is the whole reason the record exists.
- */
-const applyServiceEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!input.roles.includes("manager")) {
-    throw forbidden({
-      message: "A service is the Manager's to record",
-      reason: "manager_only",
-    });
-  }
-  const cowId = input.animalId ?? input.instance.animalId;
-  if (!cowId) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "A service is recorded about one cow, and this work is about none",
-    });
-  }
-  // A service is of a cow. Recorded against a bull or a steer, it is a service of nothing, and the
-  // Pregnancy Check and Calving that count from it would be counting from a mistake.
-  const cow = await tx.query.animal.findFirst({
-    where: { id: cowId },
-    columns: { sex: true },
-  });
-  if (cow?.sex !== "female") {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "Only a cow is served",
-      data: { refusal: "service_of_a_male" },
-    });
-  }
-  const standing = await tx.query.service.findFirst({
-    where: { completionId: input.completionId },
-    columns: { id: true },
-  });
-  if (input.skipped) {
-    if (standing) {
-      // A service the Vet has checked is the attempt that check is of. Taking it back would leave a
-      // finding about nothing; the check is corrected first, by the Vet whose finding it is.
-      const checked = await tx.query.pregnancyCheck.findFirst({
-        where: { serviceId: standing.id },
-        columns: { id: true },
-      });
-      if (checked) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "The Vet has checked this service; it cannot be taken back",
-          data: { refusal: "service_already_checked" },
-        });
-      }
-      await tx.delete(service).where(eq(service.id, standing.id));
-      return {
-        kind: "service",
-        method: null,
-        ...(await breedingFollowsService(tx, input, cowId)),
-      };
-    }
-    return null;
-  }
-
-  const method = choiceIn(
-    input.step,
-    input.evidence,
-    "A service says how she was served, and nothing was chosen"
-  ).value;
-  if (!isServiceMethod(method)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `"${method}" is not a way a cow is served`,
-    });
-  }
-  const sire = textAt(input.evidence, SERVICE_EVIDENCE.sire);
-  if (!sire) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A service names its sire",
-    });
-  }
-
-  // The story asks for the technician. A bull running with the herd has nobody standing over him,
-  // so it is only an AI service that is refused without a name.
-  const servedBy = textAt(input.evidence, SERVICE_EVIDENCE.servedBy);
-  if (method === "ai" && !servedBy) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "An AI service names who served her",
-      data: { refusal: "service_needs_technician" },
-    });
-  }
-
-  // When she was served, which is not when it was written down. A day that has not come yet is not
-  // a service; one that cannot be read is not a day.
-  const servedAt = new Date(String(input.evidence[SERVICE_EVIDENCE.servedAt]));
-  if (Number.isNaN(servedAt.getTime())) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A service says when she was served",
-    });
-  }
-  if (servedAt.getTime() > input.now.getTime()) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A service cannot have happened later than now",
-      data: { refusal: "served_in_the_future" },
-    });
-  }
-
-  let sireAnimalId: string | null = null;
-  if (method === "natural") {
-    const bull = await tx.query.animal.findFirst({
-      where: {
-        farmId: input.instance.farmId,
-        tagNumber: sire.toUpperCase(),
-        sex: "male",
-      },
-      columns: { id: true, state: true },
-    });
-    if (!(bull && isOnTheFarm(bull))) {
-      throw new ORPCError("BAD_REQUEST", {
-        message: `There is no bull with tag ${sire} on this farm`,
-        data: { refusal: "no_such_bull" },
-      });
-    }
-    sireAnimalId = bull.id;
-  }
-
-  const values = {
-    farmId: input.instance.farmId,
-    animalId: cowId,
-    completionId: input.completionId,
-    method,
-    sireStraw: method === "ai" ? sire : null,
-    sireAnimalId,
-    servedBy,
-    heatId: heatThatRaised(input.instance.cause),
-    // The Role the Service belongs to, on the record itself. The Step ran under whichever Role the
-    // person holds first, which for somebody who is both Owner and Manager reads "owner" — a Role
-    // that may only read a Service.
-    recordedByRole: "manager" as const,
-    servedAt,
-    recordedBy: input.recordedBy,
-  };
-  await (standing
-    ? tx.update(service).set(values).where(eq(service.id, standing.id))
-    : tx
-        .insert(service)
-        .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
-  return {
-    kind: "service",
-    method,
-    ...(await breedingFollowsService(tx, input, cowId)),
-  };
-};
-
-/**
- * Records what the Vet found: whether the attempt a Service began has taken.
- *
- * The Vet's alone. The roles matrix gives the Pregnancy Check `C R U` to the Vet and read to the
- * Owner and the Manager — and both of those may step into any shift, so the Step's own gate lets
- * them in and the effect asks. Whether a cow is carrying is a clinical finding.
- *
- * Of an attempt, not of a service, and only on the work that attempt raised: which of her heats a
- * pregnancy dates from is the farm's to know, not the Vet's to guess. A positive makes a Heifer a
- * Pregnant Heifer and sets Expected Calving from the attempt's first service; a negative is kept — a
- * run of them is a Repeat Breeder — and takes nothing from her. Both are worked out from the checks,
- * never typed.
- */
-const applyPregnancyCheckEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!input.roles.includes("vet")) {
-    throw forbidden({
-      message: "A pregnancy check is the Vet's to record",
-      reason: "vet_only",
-    });
-  }
-  const cowId = input.instance.animalId;
-  const standing = await tx.query.pregnancyCheck.findFirst({
-    where: { completionId: input.completionId },
-    columns: { id: true, serviceId: true, result: true },
-  });
-  const wasPositive = standing?.result === "positive";
-  if (input.skipped) {
-    if (standing && cowId) {
-      await tx.delete(pregnancyCheck).where(eq(pregnancyCheck.id, standing.id));
-      return {
-        kind: "pregnancy_check",
-        result: null,
-        ...(await rederiveFor(tx, input, cowId, wasPositive)),
-      };
-    }
-    return null;
-  }
-
-  const result = choiceIn(
-    input.step,
-    input.evidence,
-    "A pregnancy check says what was found, and nothing was chosen"
-  ).value;
-  if (!isPregnancyCheckResult(result)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: `"${result}" is not something a pregnancy check finds`,
-    });
-  }
-  // A correction keeps the attempt the check was made of, even if she has been served since.
-  const raisedBy =
-    standing || !cowId
-      ? null
-      : await attemptThatRaisedWork(tx, cowId, input.instance.cause);
-  const serviceId = standing?.serviceId ?? raisedBy?.id;
-  if (!(cowId && serviceId)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "A pregnancy check is of the service that raised it, and this work was not raised by her latest",
-      data: { refusal: "check_without_a_service" },
-    });
-  }
-
-  const values = {
-    farmId: input.instance.farmId,
-    animalId: cowId,
-    completionId: input.completionId,
-    serviceId,
-    result,
-    checkedAt: input.recordedAt,
-    recordedBy: input.recordedBy,
-  };
-  await (standing
-    ? tx
-        .update(pregnancyCheck)
-        .set(values)
-        .where(eq(pregnancyCheck.id, standing.id))
-    : tx
-        .insert(pregnancyCheck)
-        .values({ id: uuidv7(input.now), ...values, createdAt: input.now }));
-  return {
-    kind: "pregnancy_check",
-    result,
-    ...(await rederiveFor(
-      tx,
-      input,
-      cowId,
-      wasPositive && result === "negative"
-    )),
-  };
-};
-
-/**
  * Counts the store: what is really there of each Feed Item, and why it differs. The Manager's alone
  * (roles matrix: Stock Count — Manager C R U): the Owner steps into shifts, and a count moves what the
  * farm's feed is worth.
@@ -1114,8 +816,6 @@ const RECORDING_EFFECTS: Partial<
   treatment: applyTreatmentEffect,
   dls_report: applyReportEffect,
   weigh_in: applyWeighInEffect,
-  service: applyServiceEffect,
-  pregnancy_check: applyPregnancyCheckEffect,
   stock_count: applyStockCountEffect,
   registration_renewal: applyRenewalEffect,
   lot_number: applyLotNumberEffect,
