@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
-import type { WorkTransition } from "@OpenFarm/domain";
+import type { InstanceState, WorkTransition } from "@OpenFarm/domain";
 import { WORK_TRANSITIONS, mayTransition } from "@OpenFarm/domain";
 import type { SQL } from "drizzle-orm";
 
@@ -23,7 +23,7 @@ export const readWork = async (tx: Tx, instanceId: string) =>
 /** Refuses a transition the work's state does not allow (WORK_TRANSITIONS): late, because it was open when the person began and has
  *  been closed, taken or signed off since. */
 export const requireMayTransition = (
-  work: { state: string },
+  work: { state: InstanceState },
   transition: WorkTransition
 ): void => {
   if (!mayTransition(transition, work.state)) {
@@ -40,7 +40,7 @@ export const requireMayTransition = (
  */
 export const applyTransition = async (
   tx: Tx,
-  work: { id: string; state: string },
+  work: { id: string; state: InstanceState },
   transition: WorkTransition,
   {
     set = {},
@@ -71,7 +71,7 @@ export const applyTransition = async (
 /** Moves a piece of work, or refuses as late when somebody moved it first. */
 export const requireTransition = async (
   tx: Tx,
-  work: { id: string; state: string },
+  work: { id: string; state: InstanceState },
   transition: WorkTransition,
   options: Parameters<typeof applyTransition>[3] = {}
 ): Promise<void> => {
@@ -140,7 +140,7 @@ export const callOffWork = async (
  */
 export const raiseWorkAgain = async (
   tx: Tx,
-  work: { id: string; state: string; dueAt: Date },
+  work: { id: string; state: InstanceState; dueAt: Date },
   { trail, dueAt, by }: { trail: Trail; dueAt: Date; by: RaisedAgainBy }
 ): Promise<boolean> => {
   const raised = await applyTransition(tx, work, "raiseAgain", {

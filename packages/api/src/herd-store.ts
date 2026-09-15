@@ -411,23 +411,6 @@ export const walkTo = async (
 };
 
 /**
- * Work raised about an animal who has left the herd is work nobody can do: she is not in the Pen to be dosed or looked
- * at, and the Instance would sit there going late and telling people about a cow who is dead.
- *
- * Called off, not Missed: nobody fell short, and her leaving is named in each piece's trail.
- */
-const callOffWorkAboutHer = (
-  tx: Tx,
-  farmId: string,
-  animalId: string,
-  trail: Trail
-) =>
-  callOffWork(tx, farmId, eq(sopInstance.animalId, animalId), {
-    trail,
-    by: "animal_left",
-  });
-
-/**
  * Calls off the work a happening raised, when the farm no longer believes the happening.
  *
  * A Heat a Correction withdrew is the case: its AI work would still send somebody to serve a cow who was not in heat.
@@ -608,8 +591,17 @@ export const leaves = async (
   }
   // Work about her outlives her otherwise: a dose due tomorrow, a weigh-in raised last week,
   // both going late and sending somebody to fetch an animal who is not there. The calving work
-  // her forecast raised is among it.
-  const settled = await callOffWorkAboutHer(tx, farmId, her.id, trail);
+  // her forecast raised is among it. Called Off, not Missed: nobody fell short, and her leaving
+  // is named in each piece's trail.
+  const settled = await callOffWork(
+    tx,
+    farmId,
+    eq(sopInstance.animalId, her.id),
+    {
+      trail,
+      by: "animal_left",
+    }
+  );
   return { workClosed: settled.length };
 };
 

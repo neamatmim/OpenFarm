@@ -1180,7 +1180,6 @@ export const daysWork = (
 ) => {
   const { from, to } = farmDayRange(now);
   return db.query.sopInstance.findMany({
-    // Work Called Off was never owed: it is not the day's work, done or undone.
     where: {
       farmId,
       dueAt: { gte: from, lt: to },

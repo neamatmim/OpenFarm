@@ -38,10 +38,10 @@ export const AssignWork = ({
     (role) => role === "owner" || role === "manager"
   );
   // Only work still owed is given to somebody: finished work is done, and work closed as Missed or Called Off is not.
-  const finished = !mayTransition("assign", state);
+  const mayAssign = mayTransition("assign", state);
   const people = useQuery({
     ...orpc.people.list.queryOptions(),
-    enabled: runsTheFarm && !finished,
+    enabled: runsTheFarm && mayAssign,
   });
   const assign = useMutation(
     orpc.instances.assign.mutationOptions({
@@ -53,7 +53,7 @@ export const AssignWork = ({
     })
   );
 
-  if (!runsTheFarm || finished) {
+  if (!(runsTheFarm && mayAssign)) {
     return null;
   }
   const holders = (people.data?.people ?? []).filter(

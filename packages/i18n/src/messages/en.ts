@@ -177,6 +177,15 @@ export const en = {
   "audit.entity": "Record",
   "audit.action": "Action",
   "audit.reason": "Reason",
+  "audit.calledOffBy.animal_left": "Called off: the animal left the farm",
+  "audit.calledOffBy.heat_withdrawn": "Called off: the heat was taken back",
+  "audit.calledOffBy.attempt_no_longer_standing":
+    "Called off: the service it followed no longer stands",
+  "audit.calledOffBy.calving_no_longer_expected":
+    "Called off: her calving is no longer expected",
+  "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
+  "audit.raisedAgainBy.calving_expected_again":
+    "Raised again: her calving is expected again",
   "audit.before": "Before",
   "audit.after": "After",
   "audit.filterEntity": "Record type",
@@ -682,6 +691,10 @@ export const en = {
   "accountant.summary": "Income and expense",
   "accountant.csv": "Every money event (CSV)",
   "work.wholeFarm": "The whole farm",
+  "work.calledOff":
+    "Called off — the farm no longer owes this work, and nothing more is recorded on it",
+  "work.closedAsMissed":
+    "Closed as missed by the Manager — nothing more is recorded on it",
   "renewal.runsOut": "The Registration runs out on {date}",
   "renewal.newExpiry": "The renewed certificate runs out on",
   "renewal.certificate": "Photograph of the renewed certificate",
@@ -905,10 +918,6 @@ export const en = {
   "prescribe.owed": "not given yet",
   "prescribe.missed": "not given",
   "prescribe.calledOff": "called off",
-  "work.calledOff":
-    "Called off — the farm no longer owes this work, and nothing more is recorded on it",
-  "work.closedAsMissed":
-    "Closed as missed by the Manager — nothing more is recorded on it",
   "prescribe.course": "Course of treatment",
   "route.intramuscular": "Intramuscular",
   "route.intravenous": "Intravenous",

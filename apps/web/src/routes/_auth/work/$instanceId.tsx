@@ -5,7 +5,12 @@ import type {
   SopContent,
   Step,
 } from "@OpenFarm/domain";
-import { MILK_DESTINATIONS, isClosingStep } from "@OpenFarm/domain";
+import {
+  MILK_DESTINATIONS,
+  isClosingStep,
+  isFinished,
+  mayTransition,
+} from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDayField, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -140,6 +145,10 @@ interface BulkOutcome {
   differenceLitres: number;
   flagged: boolean;
 }
+/** Work closed without being done — Missed or Called Off: neither owed any more nor finished. */
+const isClosed = (state: string) =>
+  !(mayTransition("record", state) || isFinished(state));
+
 interface Completion {
   id: string;
   stepId: string;
@@ -494,6 +503,16 @@ const WorkPage = () => {
   }
 
   const { tally, nextAnimal } = roundOf(animals, perAnimalStep, doneFor);
+
+  // Closed as Missed or Called Off: nothing more is recorded on it, so it offers nothing to tap — only why.
+  if (isClosed(state)) {
+    return (
+      <Page className="max-w-4xl pb-2">
+        <WorkHeader name={content.name} tally={tally} />
+        <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
+      </Page>
+    );
+  }
 
   return (
     <Page className="max-w-4xl pb-2">

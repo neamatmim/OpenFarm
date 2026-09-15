@@ -40,10 +40,10 @@ export interface CalvingOf {
  * The Owner's decision (2026-09-13): if the date moves, the work moves with it. Work still open goes
  * to its new day; work already done stays done, and is never raised a second time because its key is
  * the calving, not the date or where the date came from. With no calving expected — a positive put
- * right, or a calving recorded — the open work closes. And when a calving is expected again, in the
- * same Lactation, the work that closed comes back on its new day rather than being lost: a positive
- * corrected away and then corrected back is the same calving. Returned, so the trail says which work
- * went where.
+ * right, or a calving recorded — the open work is Called Off. And when a calving is expected again, in
+ * the same Lactation, the work it called off comes back on its new day rather than being lost: a
+ * positive corrected away and then corrected back is the same calving. Work the Manager closed as
+ * Missed stays closed. Returned, so the trail says which work went where.
  */
 export const followExpectedCalving = async (
   tx: Tx,

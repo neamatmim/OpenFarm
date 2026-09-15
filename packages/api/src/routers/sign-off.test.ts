@@ -508,7 +508,7 @@ describe("moves the work's state does not allow", () => {
     });
   });
 
-  it("signs work off once, when two checkers sign it off together", async () => {
+  it("lets one sign-off stand when an approval and a send-back arrive together", async () => {
     const { instance, clock } = await doneWork("2026-11-26");
     const manager = await as("manager", clock);
     const owner = await as("owner", clock);

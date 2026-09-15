@@ -60,6 +60,22 @@ const isKnownEntity = (entity: string): entity is KnownEntity =>
 const entityLabelKey = (entity: string): MessageKey | null =>
   isKnownEntity(entity) ? `audit.entity.${entity}` : null;
 
+/** What closed or reopened a piece of work, as the trail names it — a word for the screen to say in the reader's
+ *  language — or nothing for a change a person made. */
+const becauseOf = (after: unknown): string | null => {
+  const said = after as {
+    calledOffBy?: unknown;
+    raisedAgainBy?: unknown;
+  } | null;
+  if (typeof said?.calledOffBy === "string") {
+    return `audit.calledOffBy.${said.calledOffBy}`;
+  }
+  if (typeof said?.raisedAgainBy === "string") {
+    return `audit.raisedAgainBy.${said.raisedAgainBy}`;
+  }
+  return null;
+};
+
 const pretty = (value: unknown): string =>
   value === null || value === undefined ? "—" : JSON.stringify(value, null, 2);
 
@@ -167,6 +183,9 @@ const AuditPage = () => {
                   <p>
                     {t("audit.reason")}: {event.reason}
                   </p>
+                ) : null}
+                {becauseOf(event.after) ? (
+                  <p>{t(becauseOf(event.after) as MessageKey)}</p>
                 ) : null}
                 <details className="mt-1">
                   <summary className="cursor-pointer">
