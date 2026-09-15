@@ -1,7 +1,7 @@
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import {
-  AWAITING_SIGN_OFF,
   OPEN_INSTANCE_STATES,
+  awaitsSignOff,
   isEscalated,
   isOverdue,
   minutesOverdue,
@@ -34,6 +34,7 @@ import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import {
+  workAwaitingSignOff,
   alertParams,
   animalsForInstance,
   dueSlotsFor,
@@ -88,8 +89,9 @@ const loadCheckableInstance = async (
   if (!instance) {
     throw new ORPCError("NOT_FOUND");
   }
+  // Waiting for sign-off: done, and done since somebody signed it off or sent it back.
   requireMayTransition(instance, "approve");
-  if (!instance.checkerRole) {
+  if (!(awaitsSignOff(instance) && instance.checkerRole)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This work is not checked by anyone",
     });
@@ -632,22 +634,12 @@ export const instancesRouter = {
   signOffQueue: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(({ context }) =>
-      context.db.query.sopInstance.findMany({
-        where: {
-          farmId: context.farm.id,
-          state: AWAITING_SIGN_OFF,
-          checkerRole: { in: context.roles },
-        },
-        with: {
-          version: { columns: { content: true, number: true } },
-          pen: {
-            columns: { name: true },
-            with: { shed: { columns: { name: true } } },
-          },
-        },
-        orderBy: { completedAt: "asc" },
-        limit: SIGN_OFF_LIMIT,
-      })
+      workAwaitingSignOff(
+        context.db,
+        context.farm.id,
+        context.roles,
+        SIGN_OFF_LIMIT
+      )
     ),
 
   /** The checker accepts the work. Terminal: an approved Instance is the farm's record. */

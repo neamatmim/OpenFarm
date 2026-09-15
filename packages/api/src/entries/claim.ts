@@ -1,11 +1,16 @@
 import { isNull } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { isFinished, isOpen } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { assertMayWork } from "../completion-store";
 import { lateEntry } from "../late";
-import { applyTransition, readWork } from "../work-transitions";
+import {
+  applyTransition,
+  readWork,
+  requireMayTransition,
+} from "../work-transitions";
 import type { EntryKind } from "./entry";
 
 /** Which piece of work. */
@@ -47,20 +52,26 @@ export const claimEntry: EntryKind<WorkInput, { changed: boolean }> = {
       throw new ORPCError("NOT_FOUND");
     }
     assertMayWork(context, instance);
-    // Theirs already, by an earlier send: nothing to write down, whatever has happened to the work since.
+    // Theirs already, by an earlier send: nothing to write down — for work still owed, or done since. Work closed as
+    // Missed or Called Off since is not theirs to hold, and they are told so.
     if (instance.claimedBy === context.actor.id) {
+      if (!(isOpen(instance.state) || isFinished(instance.state))) {
+        requireMayTransition(instance, "claim");
+      }
       return { changed: false };
     }
-    const taken = await applyTransition(
-      tx,
-      { id: input.instanceId, state: instance.state },
-      "claim",
-      {
-        set: { claimedBy: context.actor.id, claimedAt: doneAt },
-        onlyIf: isNull(sopInstance.claimedBy),
-      }
-    );
+    const work = { id: input.instanceId, state: instance.state };
+    const taken = await applyTransition(tx, work, "claim", {
+      set: { claimedBy: context.actor.id, claimedAt: doneAt },
+      onlyIf: isNull(sopInstance.claimedBy),
+    });
     if (!taken) {
+      // Closed while they reached for it, or taken by somebody else: each is said as what happened.
+      const since = await tx.query.sopInstance.findFirst({
+        where: { id: input.instanceId },
+        columns: { state: true },
+      });
+      requireMayTransition(since ?? work, "claim");
       throw lateEntry("Someone else took this first");
     }
     return { changed: true };

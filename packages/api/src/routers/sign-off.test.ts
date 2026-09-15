@@ -476,6 +476,22 @@ describe("moves the work's state does not allow", () => {
     expect(kept.completions).toEqual([]);
   });
 
+  it("tells the person holding work closed as Missed that it is closed, when their claim arrives again", async () => {
+    const { instance, clock } = await workFor("2026-11-27", "23:05:00.000Z");
+    const staff = await as("staff", clock);
+    await staff.instances.claim({ id: instance.id });
+    clock.set(after("2026-11-27", 6 * 60));
+    const manager = await as("manager", clock);
+    await manager.instances.closeAsMissed({
+      id: instance.id,
+      reason: "শেষ করা হয়নি",
+    });
+    const later = await as("staff", clock);
+    await expect(
+      later.instances.claim({ id: instance.id })
+    ).rejects.toMatchObject({ code: "CONFLICT", data: { state: "missed" } });
+  });
+
   it("keeps work sent back sent back when it is given to somebody else", async () => {
     const { instance, clock } = await doneWork("2026-11-25");
     const manager = await as("manager", clock);

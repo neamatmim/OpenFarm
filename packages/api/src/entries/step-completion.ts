@@ -1,5 +1,5 @@
-import { eq } from "@OpenFarm/db/operators";
-import { stepCompletion } from "@OpenFarm/db/schema/instance";
+import { eq, sql } from "@OpenFarm/db/operators";
+import { sopInstance, stepCompletion } from "@OpenFarm/db/schema/instance";
 import type { SopContent, Step } from "@OpenFarm/domain";
 import {
   MILK_DESTINATIONS,
@@ -239,6 +239,12 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         : undefined,
 
     apply: async (tx, context, input, { id, doneAt, receivedAt, eventId }) => {
+      // Held while the Step is written: whether the work is still owed is then what it is, not what it was a moment ago
+      // — a Step cannot land on work called off under it, and two Steps begun together both start it without either
+      // finding it changed.
+      await tx.execute(
+        sql`select 1 from ${sopInstance} where ${sopInstance.id} = ${input.instanceId} for update`
+      );
       const work = await tx.query.sopInstance.findFirst({
         where: { id: input.instanceId, farmId: context.farm.id },
         with: { version: { columns: { content: true } } },
