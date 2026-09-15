@@ -1063,6 +1063,11 @@ export const en = {
     "A {role} may put an entry right for {span} after it was made",
   "correct.spanHours": "{hours} hours",
   "correct.spanDays": "{days} days",
+  "correct.notTheirs": "That is not yours to correct",
+  "refusal.changedSince":
+    "Someone corrected this since you opened it. Open it again to see what it says now.",
+  "refusal.nothingToCorrect":
+    "Nothing was changed, so there is nothing to correct",
   "review.title": "Needs a look",
   "review.none": "Nothing waiting",
   "review.resolve": "Close this",

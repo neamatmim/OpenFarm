@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { correctionRefusalMessage } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 /** A Category in the reader's language, Bangla when it has no English. */
@@ -29,7 +29,7 @@ export const useRefusalToast = () => {
   const { t } = useLanguage();
   return (error: Error) =>
     toast.error(
-      wordedRefusal(error, t) ?? (error.message || t("common.error"))
+      correctionRefusalMessage(error, t) ?? (error.message || t("common.error"))
     );
 };
 

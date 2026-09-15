@@ -109,6 +109,10 @@ const SaleCorrection = ({
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setPrice(String(sale.priceBdt));
+        setBuyer(sale.buyerName);
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: sale.id,

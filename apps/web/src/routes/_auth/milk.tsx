@@ -85,6 +85,12 @@ const DispatchCorrection = ({
   const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setLitres(String(dispatch.litres));
+        setPrice(String(dispatch.pricePerLitreBdt));
+        setBuyer(dispatch.buyerName);
+        setChallan(dispatch.challan ?? "");
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: dispatch.id,

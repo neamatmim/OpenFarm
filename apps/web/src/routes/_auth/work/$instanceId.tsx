@@ -38,7 +38,11 @@ import {
   TagChip,
 } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
+import {
+  isChangedSince,
+  refusalMessage,
+  wordedRefusal,
+} from "@/lib/correction-refusal";
 import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
@@ -276,7 +280,15 @@ const WorkPage = () => {
         setOpenStep(null);
         refresh();
       },
-      onError,
+      onError: (error) => {
+        onError(error);
+        // Put right by somebody else since: read the work again, and start from what it says now.
+        if (isChangedSince(error)) {
+          setOpenAnimal(null);
+          setOpenStep(null);
+          refresh();
+        }
+      },
     })
   );
   const finish = useMutation({

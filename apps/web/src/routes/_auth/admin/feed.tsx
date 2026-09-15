@@ -469,6 +469,11 @@ const ArrivalCorrection = ({
   const correct = useMutation(orpc.stock.correct.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setQuantity(String(arrival.quantity));
+        setPrice(arrival.priceBdt === null ? "" : String(arrival.priceBdt));
+        setReceivedOn(wasReceivedOn);
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: arrival.id,

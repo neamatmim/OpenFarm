@@ -303,6 +303,7 @@ const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
   const correct = useMutation(orpc.people.correctName.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => setValue(name)}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: userId,

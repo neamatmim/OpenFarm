@@ -16,7 +16,11 @@ import { Page, PageHeader, Section } from "@/components/page";
 import { RepeatBreeder } from "@/components/repeat-breeder";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { refusalMessage, wordedRefusal } from "@/lib/correction-refusal";
+import {
+  correctionRefusalMessage,
+  isChangedSince,
+  wordedRefusal,
+} from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 /** What the Vet types either way: the disease, and what they found. */
@@ -285,7 +289,9 @@ const useRefusal = () => {
     toast.error(
       named
         ? t(named)
-        : (refusalMessage(error, t) ?? error.message ?? t("common.error"))
+        : (correctionRefusalMessage(error, t) ??
+            error.message ??
+            t("common.error"))
     );
   };
 };
@@ -627,7 +633,14 @@ const Concluded = ({
         toast.success(t("vet.corrected"));
         onCorrected();
       },
-      onError,
+      onError: (error) => {
+        onError(error);
+        // Put right by somebody else since: read it again, and start from what it says now.
+        if (isChangedSince(error)) {
+          setOpen(false);
+          onCorrected();
+        }
+      },
     })
   );
 
@@ -722,7 +735,10 @@ const Concluded = ({
         </form>
       ) : (
         <Button
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setConclusion({ disease: made.disease, note: made.note ?? "" });
+            setOpen(true);
+          }}
           size="sm"
           type="button"
           variant="outline"

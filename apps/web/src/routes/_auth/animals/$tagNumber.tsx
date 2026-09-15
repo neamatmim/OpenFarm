@@ -48,7 +48,11 @@ import { Paper } from "@/components/paper";
 import { ReportSighting } from "@/components/report-sighting";
 import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import {
+  correctionRefusalMessage,
+  isChangedSince,
+  wordedRefusal,
+} from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { queueMove } from "@/lib/record-offline";
 import type { client } from "@/utils/orpc";
@@ -513,12 +517,30 @@ const PutItRight = ({
         toast.success(t("mortality.corrected"));
         onDone();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => {
+        toast.error(
+          correctionRefusalMessage(error, t) ??
+            (error.message || t("common.error"))
+        );
+        // Put right by somebody else since: read it again, and start from what it says now when it is opened again.
+        if (isChangedSince(error)) {
+          onDone();
+        }
+      },
     })
   );
 
   return (
-    <details className="border-t pt-2">
+    <details
+      className="border-t pt-2"
+      onToggle={(event) => {
+        if (event.currentTarget.open) {
+          setKind(detail.mortality.kind);
+          setCause(detail.mortality.cause);
+          setDisposal(detail.mortality.disposal ?? "");
+        }
+      }}
+    >
       <summary className="cursor-pointer">{t("mortality.correct")}</summary>
       <form
         className="mt-2 space-y-2"
@@ -966,6 +988,7 @@ const ChangeSide = ({
       <p className="text-muted-foreground text-sm">{t("correct.sideHint")}</p>
       <CorrectionDialog
         description={t("correct.sideHint")}
+        onOpen={() => setToPenId("")}
         onSave={async (reason) => {
           const across = { tagNumber, toSide, toPenId, reason };
           // With signal the farm answers now; without it the Move waits on the phone rather than being lost.
@@ -1017,6 +1040,10 @@ const IntakeCorrection = ({
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setPrice(String(intake.purchasePriceBdt));
+        setSeller(intake.sellerName ?? "");
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: intake.id,
@@ -1066,6 +1093,10 @@ const SaleOfHerCorrection = ({
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
   return (
     <CorrectionDialog
+      onOpen={() => {
+        setPrice(String(sale.priceBdt));
+        setBuyer(sale.buyerName);
+      }}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: sale.id,
@@ -1118,6 +1149,7 @@ const ExpectedCalvingCorrection = ({
   );
   return (
     <CorrectionDialog
+      onOpen={() => setDay(farmDayOf(expectedCalvingAt))}
       onSave={async (reason) => {
         await correct.mutateAsync({
           tagNumber,
