@@ -1154,8 +1154,3 @@ export const daysWork = (
     columns: { id: true, penId: true, state: true },
   });
 };
-
-/** Is this piece of work finished, as far as the farm is concerned? Missed is settled but
- *  not finished: somebody decided it would not happen, and said why. */
-export const isFinished = (state: string): boolean =>
-  state === "completed" || state === "approved";

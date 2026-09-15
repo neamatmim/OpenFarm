@@ -2,6 +2,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import {
   AWAITING_SIGN_OFF,
   isEscalated,
+  isFinished,
   litresTo,
   minutesOverdue,
   roundLitres,
@@ -18,7 +19,6 @@ import {
   farmDayRange,
   findLate,
   heldByWithdrawal,
-  isFinished,
   isOnTheFarm,
   openReviews,
   penLabel,
