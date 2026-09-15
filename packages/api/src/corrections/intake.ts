@@ -82,6 +82,5 @@ export const intakeCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
-    return [];
   },
 };

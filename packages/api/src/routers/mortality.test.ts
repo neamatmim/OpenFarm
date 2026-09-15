@@ -264,7 +264,12 @@ describe("a death and a cull", () => {
     const later = await createTestClient(appRouter, { as: "manager", clock });
     await later.client.animals.correctMortality({
       tagNumber: cow.tagNumber,
-      cause: "বিষক্রিয়া — গাছের পাতা খেয়েছিল",
+      changes: {
+        cause: {
+          from: "কারণ জানা যায়নি",
+          to: "বিষক্রিয়া — গাছের পাতা খেয়েছিল",
+        },
+      },
       reason: "ময়নাতদন্তের ফল এসেছে",
     });
 

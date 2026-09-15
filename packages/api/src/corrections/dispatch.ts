@@ -103,6 +103,5 @@ export const dispatchCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
-    return [];
   },
 };

@@ -215,7 +215,7 @@ describe("money entered by hand", () => {
     // What was entered under it keeps it, and can still be put right where it is.
     await manager.client.money.correctEntered({
       id: premium.id,
-      amountBdt: 4200,
+      changes: { amountBdt: { from: 4000, to: 4200 } },
       reason: "প্রিমিয়াম বেড়েছে",
     });
     expect(await eventOf(premium.id)).toMatchObject({
@@ -269,7 +269,12 @@ describe("money entered by hand", () => {
     // Approved for the mechanic; paid to somebody else, it is a new thing to approve.
     await manager.client.money.correctEntered({
       id: pump.id,
-      counterparty: { name: `অন্য মেকানিক ${suffix}` },
+      changes: {
+        counterparty: {
+          from: `মোটর মেকানিক ${suffix}`,
+          to: { name: `অন্য মেকানিক ${suffix}` },
+        },
+      },
       reason: "অন্য লোক কাজটা করেছে",
     });
     expect(await eventOf(pump.id)).toMatchObject({ approval: "awaiting" });
@@ -277,7 +282,7 @@ describe("money entered by hand", () => {
     const [asked] = await owner.client.alerts.mine({ about: pump.id });
     await manager.client.money.correctEntered({
       id: pump.id,
-      note: "মোটর বদলানো হয়েছে",
+      changes: { note: { from: "দুধের পাম্প", to: "মোটর বদলানো হয়েছে" } },
       reason: "কী মেরামত হয়েছে লেখা",
     });
     const told = await owner.client.alerts.mine({ about: pump.id });
@@ -287,14 +292,16 @@ describe("money entered by hand", () => {
     await expect(
       manager.client.money.correctEntered({
         id: pump.id,
-        amountBdt: 3000,
+        changes: { amountBdt: { from: 30_000, to: 3000 } },
         reason: " ",
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await manager.client.money.correctEntered({
       id: pump.id,
-      amountBdt: 3000,
-      note: null,
+      changes: {
+        amountBdt: { from: 30_000, to: 3000 },
+        note: { from: "মোটর বদলানো হয়েছে", to: null },
+      },
       reason: "একটা শূন্য বেশি লেখা হয়েছিল",
     });
     expect(await eventOf(pump.id)).toMatchObject({
@@ -321,7 +328,7 @@ describe("money entered by hand", () => {
     await expect(
       manager.client.money.correctEntered({
         id: fromTheRecord?.id ?? "",
-        amountBdt: 1,
+        changes: { amountBdt: { from: 2000, to: 1 } },
         reason: "ভুল",
       })
     ).rejects.toMatchObject({ data: { refusal: "correct_the_record" } });

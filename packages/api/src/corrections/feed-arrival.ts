@@ -93,6 +93,5 @@ export const feedArrivalCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
-    return [];
   },
 };

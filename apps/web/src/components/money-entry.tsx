@@ -407,12 +407,16 @@ export const CorrectEntered = ({
         event.preventDefault();
         correct.mutate({
           id: entered.id,
-          ...(Number(amount) === entered.amountBdt
-            ? {}
-            : { amountBdt: Number(amount) }),
-          ...(note.trim() === (entered.note ?? "")
-            ? {}
-            : { note: note.trim() || null }),
+          changes: {
+            amountBdt:
+              Number(amount) === entered.amountBdt
+                ? undefined
+                : { from: entered.amountBdt, to: Number(amount) },
+            note:
+              note.trim() === (entered.note ?? "")
+                ? undefined
+                : { from: entered.note, to: note.trim() || null },
+          },
           receipt: receipt ?? undefined,
           reason,
         });

@@ -298,7 +298,9 @@ describe("the letter that goes without delay", () => {
     // The Vet looks again and names it. The duty starts now, not when the first entry was made.
     const fixed = await vet.client.diagnoses.correct({
       id: made.id,
-      disease: { bn: disease },
+      changes: {
+        disease: { from: "জ্বর, কারণ অজানা", to: { bn: disease } },
+      },
       reason: "পরীক্ষার ফল এসেছে",
     });
     expect(fixed.notifiable).toBe(true);
@@ -334,7 +336,7 @@ describe("the letter that goes without delay", () => {
     // disease the Vet has taken back would be worse than never having raised one.
     await vet.client.diagnoses.correct({
       id: made.id,
-      disease: { bn: "সাধারণ জ্বর" },
+      changes: { disease: { from: disease, to: { bn: "সাধারণ জ্বর" } } },
       reason: "আগের সিদ্ধান্ত ভুল ছিল",
     });
 

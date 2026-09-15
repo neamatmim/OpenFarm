@@ -22,7 +22,6 @@ import {
   failedAttempts,
   farmDayOf,
   lactationView,
-  mayCorrect,
   withdrawalView,
   sideOfState,
   startOfFarmDay,
@@ -35,7 +34,12 @@ import { pregnancyTimesOf } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
 import { followExpectedCalving } from "../calving-work";
 import type { Context } from "../context";
-import { correctionWindows, reasonInput, refusalData } from "../corrections";
+import { reasonInput } from "../corrections";
+import { correct } from "../corrections/correction";
+import {
+  mortalityCorrection,
+  mortalityCorrectionInput,
+} from "../corrections/mortality";
 import { parseCsvRecords } from "../csv";
 import { recordNow } from "../entries/entry";
 import { moveEntry, moveInput } from "../entries/move";
@@ -57,7 +61,6 @@ import {
 import { protectedProcedure } from "../index";
 import { causeOf, heatKeyOf } from "../instances-store";
 import {
-  correctMortality,
   mortalityOf,
   readMortality,
   recordMortality,
@@ -847,78 +850,16 @@ export const animalsRouter = {
    * mistake the farm can correct rather than live with.
    */
   correctMortality: protectedProcedure
-    .use(requireRole("owner", "manager"))
-    .input(
-      z.object({
-        tagNumber: tagInput,
-        kind: z.enum(MORTALITY_KINDS).optional(),
-        cause: z.string().trim().min(1).max(300).optional(),
-        disposal: z.enum(DISPOSALS).optional(),
-        disposalNote: z.string().trim().max(300).optional(),
-        happenedAt: z.coerce.date().optional(),
-        reason: reasonInput,
-      })
-    )
-    .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const tagNumber = input.tagNumber.toUpperCase();
-      const { her, existing } = await mortalityOf(
-        context.db,
-        context.farm.id,
-        tagNumber
-      );
-      if (input.happenedAt && input.happenedAt > now) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "An animal cannot have died in the future",
-        });
-      }
-      const verdict = mayCorrect({
-        roles: context.roles,
-        isOwnEntry: existing.recordedBy === context.actor.id,
-        recordedAt: existing.recordedAt,
-        now,
-        windows: correctionWindows(context.farm),
+    .use(requireRole(...mortalityCorrection.roles))
+    .input(mortalityCorrectionInput)
+    .handler(async ({ context, input: { tagNumber, ...input } }) => {
+      const her = tagNumber.toUpperCase();
+      const { existing } = await mortalityOf(context.db, context.farm.id, her);
+      await correct(context, mortalityCorrection, {
+        ...input,
+        id: existing.id,
       });
-      if (!verdict.allowed) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "The correction window for that entry has closed",
-          data: { refusal: refusalData(verdict.refusal) },
-        });
-      }
-      const audit = audited(context);
-      const previous = await audit.latestEventFor(
-        context.db,
-        "mortality",
-        existing.id
-      );
-      await audit.write(
-        {
-          entity: "mortality",
-          entityId: existing.id,
-          action: "correct",
-          reason: input.reason,
-          roleUsed: verdict.role,
-          supersedesId: previous?.id,
-          before: (tx) => readMortality(tx, existing.id),
-          after: (tx) => readMortality(tx, existing.id),
-        },
-        (tx) =>
-          correctMortality(
-            tx,
-            context.farm.id,
-            existing.id,
-            her,
-            {
-              kind: input.kind,
-              cause: input.cause,
-              disposal: input.disposal,
-              disposalNote: input.disposalNote,
-              happenedAt: input.happenedAt,
-            },
-            now
-          )
-      );
-      return { tagNumber };
+      return { tagNumber: her };
     }),
 
   /** Advances an Animal's State. Illegal transitions are refused by name. */

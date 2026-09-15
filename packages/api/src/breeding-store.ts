@@ -18,6 +18,7 @@ import {
   expectedCalvingFrom,
   isExitState,
 } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
@@ -445,4 +446,39 @@ export const repeatBreederFor = async (
     ...historyColumns,
   });
   return her ? repeatBreederOf(her, threshold) : null;
+};
+
+/** The abortion as the trail records it either side of a change. */
+export const readAbortion = async (tx: Tx, id: string) =>
+  (await tx.query.abortion.findFirst({ where: { id } })) ?? null;
+
+/**
+ * When a pregnancy can have been lost: not later than now, and not before the service it came from.
+ * A late entry dated before she was served is a date written wrong, and it would clear a pregnancy
+ * she had not begun.
+ */
+export const assertLostWhenItCouldBe = async (
+  tx: Tx,
+  abortedAt: Date,
+  now: Date,
+  serviceId: string | null
+) => {
+  if (abortedAt > now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An abortion cannot have happened later than now",
+      data: { refusal: "aborted_in_the_future" },
+    });
+  }
+  const served = serviceId
+    ? await tx.query.service.findFirst({
+        where: { id: serviceId },
+        columns: { servedAt: true },
+      })
+    : undefined;
+  if (served && abortedAt < served.servedAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "An abortion cannot be earlier than the service it ends",
+      data: { refusal: "aborted_before_she_was_served" },
+    });
+  }
 };

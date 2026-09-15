@@ -204,8 +204,13 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     const later = await createTestClient(appRouter, { as: "vet", clock });
     await later.client.diagnoses.correct({
       id: made.id,
-      disease: { bn: "ক্ষুর রোগ", en: "Foot and mouth" },
-      note: "মুখেও ঘা, আগের সিদ্ধান্ত ভুল ছিল",
+      changes: {
+        disease: {
+          from: "পায়ের ক্ষুরে পচন",
+          to: { bn: "ক্ষুর রোগ", en: "Foot and mouth" },
+        },
+        note: { from: "বাম পিছনের পা", to: "মুখেও ঘা, আগের সিদ্ধান্ত ভুল ছিল" },
+      },
       reason: "মুখের ঘা পরে দেখা গেছে",
     });
 
@@ -300,10 +305,15 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     await expect(
       other.client.diagnoses.correct({
         id: made.id,
-        disease: { bn: "ক্ষুর রোগ" },
+        changes: {
+          disease: { from: "পায়ের ক্ষুরে পচন", to: { bn: "ক্ষুর রোগ" } },
+        },
         reason: "আমার মনে হয় অন্য রোগ",
       })
-    ).rejects.toThrow(/the vet's own/u);
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      data: { refusal: { word: "not_theirs" } },
+    });
 
     // And it is not in their own work either.
     const theirs = await other.client.diagnoses.mine();

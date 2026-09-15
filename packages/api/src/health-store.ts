@@ -687,3 +687,29 @@ export const raiseWithdrawalChanged = async (
   const rows = await raiseAlerts(tx, farmId, managers, notice, now);
   return rows.map((row) => ({ ...row, ...notice }));
 };
+
+/** What the Vet concluded she has. The glossary's word for the thing itself is Disease; the
+ *  record of concluding it is the Diagnosis. */
+export const diseaseInput = z.object({
+  bn: z.string().trim().min(1).max(120),
+  en: z.string().trim().max(120).optional(),
+});
+
+/** What the Vet adds to a Diagnosis in their own words. */
+export const diagnosisNoteInput = z.string().trim().max(2000);
+
+/** The Diagnosis as it stands, for the trail to record either side of a change. One reader
+ *  for both the recording and the Correction, so the trail holds one shape throughout. */
+export const readDiagnosis = async (tx: Tx, id: string) => {
+  const row = await tx.query.diagnosis.findFirst({
+    where: { id },
+    columns: {
+      animalId: true,
+      observationId: true,
+      disease: true,
+      diseaseEn: true,
+      note: true,
+    },
+  });
+  return row ?? null;
+};

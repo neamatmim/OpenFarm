@@ -524,11 +524,23 @@ const PutItRight = ({
         className="mt-2 space-y-2"
         onSubmit={(event) => {
           event.preventDefault();
+          const { mortality } = detail;
           correct.mutate({
             tagNumber: detail.tagNumber,
-            kind,
-            cause: cause.trim(),
-            ...(disposal ? { disposal } : {}),
+            changes: {
+              kind:
+                kind === mortality.kind
+                  ? undefined
+                  : { from: mortality.kind, to: kind },
+              cause:
+                cause.trim() === mortality.cause
+                  ? undefined
+                  : { from: mortality.cause, to: cause.trim() },
+              disposal:
+                !disposal || disposal === mortality.disposal
+                  ? undefined
+                  : { from: mortality.disposal, to: disposal },
+            },
             reason: reason.trim(),
           });
         }}

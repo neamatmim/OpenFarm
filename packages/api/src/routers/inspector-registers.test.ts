@@ -209,7 +209,9 @@ beforeAll(async () => {
   });
   await mistaken.client.diagnoses.correct({
     id: wrong.id,
-    disease: { bn: "জ্বর, কারণ অজানা" },
+    changes: {
+      disease: { from: world.disease, to: { bn: "জ্বর, কারণ অজানা" } },
+    },
     reason: "পরীক্ষার ফল এসেছে",
   });
 

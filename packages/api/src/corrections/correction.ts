@@ -47,7 +47,12 @@ export const paymentMethodChange = changeOf(
 
 /** What a Correction is asked to do: which record, why, and each value it changes. */
 export const correctionInput = <Shape extends z.ZodRawShape>(changes: Shape) =>
-  z.object({ id: z.string(), reason: reasonInput, changes: z.object(changes) });
+  z.object({
+    id: z.string(),
+    reason: reasonInput,
+    // A receipt that came later changes no value.
+    changes: z.object(changes).default({} as never),
+  });
 
 type ChangeSet = Record<string, Change<Comparable, unknown> | undefined>;
 
@@ -71,7 +76,12 @@ export interface CannotUndo {
  * One kind of record a person can put right (the glossary's Correction): the facts the rules need from it, the values
  * it shows, and how it takes a change. `correct` does everything else, the same way for every kind.
  */
-export interface CorrectionKind<Row, C extends ChangeSet> {
+export interface CorrectionKind<
+  Row,
+  C extends ChangeSet,
+  Outcome = unknown,
+  Extra extends object = Record<never, never>,
+> {
   /** The entity its Audit Events are filed under. */
   entity: string;
   /** Its table, for the row to be held while it is put right. */
@@ -98,13 +108,24 @@ export interface CorrectionKind<Row, C extends ChangeSet> {
   shownAs?: { [K in keyof C]?: (to: NonNullable<C[K]>["to"]) => Comparable };
   /** The record as the trail keeps it, either side of the Correction. */
   trail: (tx: Tx, row: Row) => Promise<SnapshotValue>;
-  /** Puts the values right, and says what it could not walk back. */
+  /** Whether what it was asked beyond its values changes the record — a receipt that came later — so a Correction
+   *  that changes no value is still one. */
+  changesBeyondValues?: (extra: Extra) => boolean;
+  /** Puts the values right, telling `cannotUndo` what it could not walk back, and says what the screen needs to know. */
   apply: (
     tx: Tx,
     row: Row,
     to: NewValues<C>,
-    how: { context: Corrector; now: Date; eventId: string }
-  ) => Promise<readonly CannotUndo[]>;
+    how: {
+      context: Corrector;
+      now: Date;
+      eventId: string;
+      extra: Extra;
+      cannotUndo: (one: CannotUndo) => void;
+    }
+  ) => Promise<Outcome>;
+  /** What it does once the Correction is kept, outside the transaction: a push is a call to somebody else's server. */
+  afterwards?: (context: Corrector, outcome: Outcome) => Promise<void>;
 }
 
 export interface EntryFacts {
@@ -143,9 +164,9 @@ const NOT_THEIRS: CorrectionRefusal = {
  * The Role this Correction is made under: of the Roles that may correct the kind, the one whose standing and window
  * let them — the widest, so someone who is Manager and Staff corrects as the Manager.
  */
-const roleToCorrect = <Row, C extends ChangeSet>(
+const roleToCorrect = <Row, C extends ChangeSet, Outcome, Extra extends object>(
   context: Recorder,
-  kind: CorrectionKind<Row, C>,
+  kind: CorrectionKind<Row, C, Outcome, Extra>,
   row: Row,
   now: Date
 ): RoleName => {
@@ -183,17 +204,30 @@ const roleToCorrect = <Row, C extends ChangeSet>(
  * could not walk back; and writes the Audit Event with the reason, the Role, what it said before, and the event it
  * supersedes.
  */
-export const correct = async <Row, C extends ChangeSet>(
+export const correct = async <
+  Row,
+  C extends ChangeSet,
+  Outcome = unknown,
+  Extra extends object = Record<never, never>,
+>(
   context: Recorder,
-  kind: CorrectionKind<Row, C>,
-  input: { id: string; reason: string; changes: C }
-): Promise<{ id: string }> => {
+  kind: CorrectionKind<Row, C, Outcome, Extra>,
+  {
+    id,
+    reason,
+    changes,
+    ...rest
+  }: { id: string; reason: string; changes: C } & Extra
+): Promise<Outcome & { id: string }> => {
+  const extra = rest as unknown as Extra;
+  const input = { id, reason, changes };
   const now = context.clock.now();
   const changed = Object.entries(input.changes).flatMap(([field, change]) =>
     change ? [{ field: field as keyof C & string, ...change }] : []
   );
   const eventId = uuidv7(now);
-  await context.db.transaction(async (tx) => {
+  let corrector: Corrector | undefined;
+  const outcome = await context.db.transaction(async (tx) => {
     await tx.execute(
       sql`select 1 from ${kind.table} where ${kind.table.id} = ${input.id} for update`
     );
@@ -202,8 +236,9 @@ export const correct = async <Row, C extends ChangeSet>(
       throw new ORPCError("NOT_FOUND", { message: kind.missing });
     }
     const role = roleToCorrect(context, kind, row, now);
-    const corrector: Corrector = { ...context, ...workingAs(context, role) };
-    kind.requireInScope?.(corrector.scope, row);
+    const working: Corrector = { ...context, ...workingAs(context, role) };
+    corrector = working;
+    kind.requireInScope?.(working.scope, row);
 
     const shown = await kind.shown(tx, row);
     if (changed.some(({ field, from }) => !same(from, shown[field]))) {
@@ -214,9 +249,10 @@ export const correct = async <Row, C extends ChangeSet>(
     }
     const asShown = (field: keyof C, to: unknown): Comparable =>
       kind.shownAs?.[field]?.(to as never) ?? (to as Comparable);
-    if (
-      changed.every(({ field, to }) => same(asShown(field, to), shown[field]))
-    ) {
+    const changesAValue = changed.some(
+      ({ field, to }) => !same(asShown(field, to), shown[field])
+    );
+    if (!(changesAValue || kind.changesBeyondValues?.(extra))) {
       throw new ORPCError("BAD_REQUEST", {
         message: "Nothing to correct",
         data: { refusal: "nothing_to_correct" },
@@ -224,16 +260,19 @@ export const correct = async <Row, C extends ChangeSet>(
     }
 
     const entityId = kind.entityIdOf?.(row) ?? input.id;
-    const audit = audited(corrector);
+    const audit = audited(working);
     const previous = await audit.latestEventFor(tx, kind.entity, entityId);
     const before = await kind.trail(tx, row);
     const to = Object.fromEntries(
       changed.map(({ field, to: value }) => [field, value])
     ) as NewValues<C>;
-    const cannotUndo = await kind.apply(tx, row, to, {
-      context: corrector,
+    const cannotUndo: CannotUndo[] = [];
+    const applied = await kind.apply(tx, row, to, {
+      context: working,
       now,
       eventId,
+      extra,
+      cannotUndo: (one) => cannotUndo.push(one),
     });
     const after = await kind.trail(tx, row);
     for (const one of cannotUndo) {
@@ -263,6 +302,10 @@ export const correct = async <Row, C extends ChangeSet>(
       },
       { before, after, eventId, receivedAt: now }
     );
+    return applied;
   });
-  return { id: input.id };
+  if (corrector && kind.afterwards) {
+    await kind.afterwards(corrector, outcome);
+  }
+  return { ...(outcome as object), id: input.id } as Outcome & { id: string };
 };

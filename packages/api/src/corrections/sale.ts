@@ -75,6 +75,5 @@ export const saleCorrection: CorrectionKind<
       row.id,
       to.paymentMethod
     );
-    return [];
   },
 };

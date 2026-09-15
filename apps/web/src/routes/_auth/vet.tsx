@@ -683,9 +683,19 @@ const Concluded = ({
           className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
+            const { disease, note } = asRecorded(conclusion);
             correct.mutate({
               id: made.id,
-              ...asRecorded(conclusion),
+              changes: {
+                disease:
+                  disease.bn === made.disease
+                    ? undefined
+                    : { from: made.disease, to: disease },
+                note:
+                  (note ?? null) === made.note
+                    ? undefined
+                    : { from: made.note, to: note ?? null },
+              },
               reason: reason.trim(),
             });
           }}
