@@ -12,7 +12,6 @@ import { farmDay } from "../farm-clock";
 import { loadLiveAnimal, requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
-import { onTheirCases } from "../visiting-store";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -244,7 +243,7 @@ export const vetCasesRouter = {
         },
       });
       return {
-        visiting: onTheirCases(context),
+        visiting: context.scope.kind === "cases",
         cases: rows.map(({ animal, ...row }) => ({
           ...row,
           tagNumber: animal.tagNumber,

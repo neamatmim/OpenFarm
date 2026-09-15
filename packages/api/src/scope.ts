@@ -122,6 +122,13 @@ export const outOfScope = (scope: Scope) =>
     ? new ORPCError("NOT_FOUND", { message: "Not one of your cases" })
     : new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
 
+/**
+ * The clinical records a Vet may read, as a query asks for them: every animal's for a Vet on the farm's staff, their
+ * Cases' for a visit. Only for records the Vet alone reads; Barn Staff never reach them.
+ */
+export const clinicalRecordsInScope = (scope: Scope) =>
+  scope.kind === "cases" ? { animalId: { in: [...scope.caseAnimalIds] } } : {};
+
 /** The animals they may see, as a query asks for them, narrowed to one Pen when they ask for one. */
 export const animalsInScope = (scope: Scope, penId?: string) => {
   const inPen = penId ? { penId } : {};

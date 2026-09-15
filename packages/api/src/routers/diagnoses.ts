@@ -25,8 +25,8 @@ import { protectedProcedure } from "../index";
 import type { RaisedAlert } from "../instances-store";
 import { pushRaised } from "../push-send";
 import { requireOnly, requirePersonalSession } from "../roles";
+import { clinicalRecordsInScope, mayTouchAnimal, outOfScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
-import { assertOnTheirCases, onTheirCases } from "../visiting-store";
 
 /** The Vet visits about weekly, so a fortnight is what they need to catch up on. */
 const VET_WINDOW_DAYS = 14;
@@ -197,7 +197,9 @@ export const diagnosesRouter = {
             context.farm.id,
             input.animalTag.toUpperCase()
           );
-          assertOnTheirCases(context, her.id);
+          if (!mayTouchAnimal(context.scope, her)) {
+            throw outOfScope(context.scope);
+          }
           if (input.answers) {
             await assertAnswerable(tx, {
               farmId: context.farm.id,
@@ -272,7 +274,11 @@ export const diagnosesRouter = {
       if (!existing) {
         throw new ORPCError("NOT_FOUND");
       }
-      assertOnTheirCases(context, existing.animalId);
+      if (
+        !mayTouchAnimal(context.scope, { id: existing.animalId, penId: null })
+      ) {
+        throw outOfScope(context.scope);
+      }
       const verdict = mayCorrect({
         // Only their standing as the Vet is asked about. An in-house Vet who is also the
         // Manager would otherwise have this recorded under the Manager's Role — and the
@@ -378,9 +384,7 @@ export const diagnosesRouter = {
             now: context.clock.now(),
           }),
           RAW: unanswered,
-          ...(onTheirCases(context)
-            ? { animalId: { in: context.caseAnimalIds } }
-            : {}),
+          ...clinicalRecordsInScope(context.scope),
         },
         orderBy: { seenAt: "desc" },
         limit: MAX_SEEN_ROWS,
@@ -416,9 +420,7 @@ export const diagnosesRouter = {
           diagnosedBy: context.actor.id,
           diagnosedAt: seenAt,
           // A closed Case takes the animal out of a visiting Vet's sight, their own past conclusions included.
-          ...(onTheirCases(context)
-            ? { animalId: { in: context.caseAnimalIds } }
-            : {}),
+          ...clinicalRecordsInScope(context.scope),
         },
         orderBy: { diagnosedAt: "desc" },
         limit: MAX_SEEN_ROWS,

@@ -302,6 +302,12 @@ describe("a visiting Vet who also works the barn", () => {
     try {
       const today = await withCase.instances.today({});
       expect(today.map((work) => work.id)).toContain(workId);
+      // And they may open it, though it stands in no Pen of theirs: it is about an animal on their Case.
+      await expect(
+        withCase.instances.get({ id: workId })
+      ).resolves.toMatchObject({
+        id: workId,
+      });
     } finally {
       // The farm's list is every file's: nothing this test raised is left for a later clock to find late.
       await scratchDb()

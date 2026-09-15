@@ -56,8 +56,8 @@ import { tellOfRenewals } from "../registration-store";
 import { raiseNeedsReview } from "../review-store";
 import type { RoleName } from "../roles";
 import { requireRole } from "../roles";
+import { mayTouchWork, outOfScope, workInScope } from "../scope";
 import { contentOf } from "../sop-content";
-import { assertOnTheirCases, onTheirCases } from "../visiting-store";
 
 const MINUTE_MS = 60_000;
 
@@ -125,20 +125,6 @@ const loadCheckableInstance = async (
     });
   }
   return instance;
-};
-
-/** Staff see only their assigned Pens; everyone else sees the Pen they asked for, or all. */
-const penFilter = (
-  assigned: string[] | null,
-  requested: string | undefined
-) => {
-  if (!assigned) {
-    return requested ? { penId: requested } : {};
-  }
-  const visible = requested
-    ? assigned.filter((id) => id === requested)
-    : assigned;
-  return { penId: { in: visible } };
 };
 
 /**
@@ -363,27 +349,6 @@ export const instancesRouter = {
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ penId: z.string().optional() }).default({}))
     .handler(async ({ context, input }) => {
-      const scoped = context.roleUsed === "staff";
-      // Barn Staff who are also a visiting Vet have the work of their Pens and the work about their Cases together, as
-      // their herd list has both.
-      const alsoCases =
-        scoped && context.visiting && context.caseAnimalIds.length > 0;
-      if (scoped && context.penIds.length === 0 && !alsoCases) {
-        return [];
-      }
-      // Both filters must hold: a Staff member asking for one Pen gets that Pen only if it is theirs, rather than
-      // silently getting all of theirs.
-      const theirs = alsoCases
-        ? {
-            OR: [
-              penFilter(context.penIds, input.penId),
-              {
-                animalId: { in: context.caseAnimalIds },
-                ...(input.penId ? { penId: input.penId } : {}),
-              },
-            ],
-          }
-        : penFilter(scoped ? context.penIds : null, input.penId);
       // Today means the farm's day: yesterday's unfinished work belongs on the Overdue
       // list, not on the phone's list of what to do now.
       const now = context.clock.now();
@@ -393,10 +358,8 @@ export const instancesRouter = {
           farmId: context.farm.id,
           state: { in: ["due", "in_progress", "sent_back"] },
           dueAt: { gte: from, lt: to },
-          ...theirs,
-          ...(onTheirCases(context)
-            ? { animalId: { in: context.caseAnimalIds } }
-            : {}),
+          // Their Scope: their Pens, or one of them when they ask for it, and the work about their Cases.
+          ...workInScope(context.scope, input.penId),
         },
         with: {
           version: { columns: { content: true, number: true } },
@@ -438,7 +401,9 @@ export const instancesRouter = {
       if (!instance) {
         throw new ORPCError("NOT_FOUND");
       }
-      assertOnTheirCases(context, instance.animalId);
+      if (!mayTouchWork(context.scope, instance)) {
+        throw outOfScope(context.scope);
+      }
       const content = contentOf(instance.version);
       const animals = content.steps.some((step) => step.repeatPerAnimal)
         ? await animalsForInstance(
@@ -673,20 +638,18 @@ export const instancesRouter = {
   overdue: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
     .handler(async ({ context }) => {
-      const scoped = context.roleUsed === "staff";
-      if (scoped && context.penIds.length === 0) {
-        return [];
-      }
       const now = context.clock.now();
       const late = await findLate(context.db, context.farm.id, now);
-      const mine = scoped
-        ? late.filter((row) =>
-            // Work about the whole farm is in nobody's Pens: Barn Staff see it only when it is theirs.
-            row.penId === null
-              ? row.assignedRole === "staff"
-              : context.penIds.includes(row.penId)
-          )
-        : late;
+      const { scope } = context;
+      const mine =
+        scope.kind === "farm"
+          ? late
+          : late.filter((row) =>
+              // Work about the whole farm is in nobody's Pens: Barn Staff see it only when it is theirs to do.
+              row.penId === null
+                ? row.assignedRole === context.roleUsed
+                : mayTouchWork(scope, row)
+            );
       return mine
         .map((row) => ({
           ...row,
@@ -884,9 +847,11 @@ export const instancesRouter = {
       const recordedUnder = await context.db.query.sopInstance.findFirst({
         where: { id: existing.instanceId },
         with: { version: { columns: { content: true } } },
-        columns: { id: true, animalId: true },
+        columns: { id: true, penId: true, animalId: true },
       });
-      assertOnTheirCases(context, recordedUnder?.animalId);
+      if (recordedUnder && !mayTouchWork(context.scope, recordedUnder)) {
+        throw outOfScope(context.scope);
+      }
       const clinical =
         recordedUnder !== undefined &&
         isClinicalStep(

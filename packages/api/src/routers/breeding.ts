@@ -20,7 +20,7 @@ import {
 } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { requireOnly, requirePersonalSession, requireRole } from "../roles";
-import { assertOnTheirCases } from "../visiting-store";
+import { mayTouchAnimal, outOfScope } from "../scope";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -101,7 +101,9 @@ export const breedingRouter = {
         },
         async (tx) => {
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
-          assertOnTheirCases(context, her.id);
+          if (!mayTouchAnimal(context.scope, her)) {
+            throw outOfScope(context.scope);
+          }
           if (!her.expectedCalvingAt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `${tagNumber} is not carrying, so there is no pregnancy to lose`,
@@ -183,7 +185,11 @@ export const breedingRouter = {
       if (!standing) {
         throw new ORPCError("NOT_FOUND", { message: "No such abortion" });
       }
-      assertOnTheirCases(context, standing.animalId);
+      if (
+        !mayTouchAnimal(context.scope, { id: standing.animalId, penId: null })
+      ) {
+        throw outOfScope(context.scope);
+      }
       const verdict = mayCorrect({
         // Only their standing as the Vet is asked about, as for a Diagnosis: the finding is the Vet's, whatever else
         // they hold on the farm.
