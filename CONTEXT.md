@@ -58,7 +58,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Evidence**: What a Step requires to count as done: a tick, a number with unit, a choice from a list, a photo, or a note. Required or optional per Step. _Avoid_: Proof, data, field
 
-**Effect**: What completing a Step writes into the farm's records beyond the Evidence itself — a Milk Record, a Weigh-in, a dose. Runs in the same transaction as the Step Completion and is keyed on it, so a replayed or corrected entry replaces what it wrote. _Avoid_: Side effect, hook, trigger (which is how an SOP falls due)
+**Effect**: What completing a Step writes into the farm's records beyond the Evidence itself — a Milk Record, a Weigh-in, a dose. Runs in the same transaction as the Step Completion and is keyed on it, so a corrected entry replaces what it wrote. When the farm has moved past what the Step says — she has been walked on since, her calves have left — the Effect stands aside and writes nothing: a Step arriving so is a late Entry, kept for a person, and a Correction so is kept and put in front of the Manager as Needs Review. _Avoid_: Side effect, hook, trigger (which is how an SOP falls due)
 
 **Gate**: A rule by which an animal's state blocks a Step or an SOP from completing — e.g. milk withdrawal blocks that cow's milk from bulk; meat withdrawal blocks her sale. A hard block, not a warning. _Avoid_: Validation, warning, lock
 
