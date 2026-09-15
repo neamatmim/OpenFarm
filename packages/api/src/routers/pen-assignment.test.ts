@@ -8,7 +8,8 @@ const suffix = `${Date.now()}`;
 const penIdsOfStaff = async () => {
   const { client } = await createTestClient(appRouter, { as: "staff" });
   const me = await client.people.me();
-  return me.penIds;
+  // Their Pens are their Scope as Barn Staff.
+  return "penIds" in me.scope ? me.scope.penIds : [];
 };
 
 const staffIdOf = async (staff: {

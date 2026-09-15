@@ -20,8 +20,9 @@ import { audited } from "../audit";
 import { hashToken } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
-import { requirePersonalSession, requireRole } from "../roles";
+import { requirePersonalSession, requireRole, roleFor } from "../roles";
 import { activeRolesFor, grantRoles, revokeRoles } from "../roles-store";
+import { scopeOf } from "../scope";
 
 const roleSchema = z.enum(ROLES);
 
@@ -160,8 +161,11 @@ export const peopleRouter = {
       ? { id: context.farm.id, name: context.farm.name }
       : null,
     roles: context.roles,
-    penIds: context.penIds,
-    /** A Vet called in for a visit, who reaches only their Cases. */
+    /** What they may see and record under the widest Role they hold — the farm, their Pens, their Cases, or their Pens
+     *  or their Cases — worked out by the same Scope every procedure is held to, so a screen shows what the farm will
+     *  let them reach rather than working the rule out again. */
+    scope: scopeOf(context, roleFor(context, ROLES)),
+    /** A Vet called in for a visit, whose Vet's work reaches only their Cases. */
     visiting: context.visiting,
     /** The number the farm can text, so a screen can show what is written down. */
     phone: context.person?.phone ?? null,

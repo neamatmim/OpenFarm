@@ -153,12 +153,17 @@ const SeenWhere = ({
   );
 };
 
+/** The Pens in somebody's Scope — none for a Scope that is the farm, which is not narrowed to any, or their Cases. */
+const pensOf = (
+  scope: { kind: string; penIds?: readonly string[] } | undefined
+) => scope?.penIds ?? [];
+
 /** The farm's Pens to move her to, once it is known the reader may see them: a visiting Vet moves nobody, and does
  *  not see the farm's layout. */
-const usePens = (me: { visiting: boolean; roles: string[] } | undefined) => {
-  // Only a visitor alone is kept from them: a visiting Vet who also works the barn or runs the farm moves animals.
-  const onlyVisiting =
-    me?.visiting === true && me.roles.every((role) => role === "vet");
+const usePens = (me: { scope: { kind: string } } | undefined) => {
+  // Only a visitor alone is kept from them — somebody whose whole Scope is their Cases: a visiting Vet who also works
+  // the barn or runs the farm moves animals.
+  const onlyVisiting = me?.scope.kind === "cases";
   const sheds = useQuery({
     ...orpc.herd.list.queryOptions(),
     enabled: me !== undefined && !onlyVisiting,
@@ -287,12 +292,12 @@ const AnimalPage = () => {
         mayChangeState={runsTheFarm || fullVet}
         mayMove={
           runsTheFarm ||
-          (mayHandle && (me.data?.penIds ?? []).includes(detail.penId))
+          (mayHandle && pensOf(me.data?.scope).includes(detail.penId))
         }
         movePens={
           runsTheFarm
             ? pens
-            : pens.filter((pen) => (me.data?.penIds ?? []).includes(pen.id))
+            : pens.filter((pen) => pensOf(me.data?.scope).includes(pen.id))
         }
         mayHandle={mayHandle}
         onChanged={refresh}
