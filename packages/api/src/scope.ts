@@ -73,6 +73,22 @@ export const mayTouchAnimal = (
   hasPen(scope, animal.penId) ||
   hasCase(scope, animal.id);
 
+/**
+ * Whether they may look her up by her Tag Number and read what she is. Barn Staff may look up any animal, read-only,
+ * whichever Pen she stands in (roles matrix: "read-only lookup of any animal by Tag Number"); a visit reaches only
+ * the animals on its Cases.
+ */
+export const mayLookUpAnimal = (
+  scope: Scope,
+  animal: { id: string }
+): boolean =>
+  scope.kind !== "nothing" &&
+  (scope.kind !== "cases" || hasCase(scope, animal.id));
+
+/** Whether she is on one of their Cases — what lets Barn Staff who are also visiting read her as the Vet would. */
+export const onTheirCase = (scope: Scope, animalId: string): boolean =>
+  hasCase(scope, animalId);
+
 /** Whether a Pen is theirs to act in — to walk an animal into or out of. A visit reaches animals, not Pens. */
 export const mayTouchPen = (scope: Scope, penId: string): boolean =>
   scope.kind === "farm" || hasPen(scope, penId);
@@ -97,9 +113,14 @@ export const mayTouchWork = (
 const pensAsked = (penIds: readonly string[], penId?: string): string[] =>
   penId ? penIds.filter((id) => id === penId) : [...penIds];
 
-/** Refused as not found, because out of their Scope it is not there for them. */
-export const outOfScope = () =>
-  new ORPCError("NOT_FOUND", { message: "Not within your scope" });
+/**
+ * Why something is not theirs. To a visitor it is not there at all, so it is not found; Barn Staff know the Pen is the
+ * farm's and not theirs, and are told so.
+ */
+export const outOfScope = (scope: Scope) =>
+  scope.kind === "cases"
+    ? new ORPCError("NOT_FOUND", { message: "Not one of your cases" })
+    : new ORPCError("FORBIDDEN", { message: "That pen is not yours" });
 
 /** The animals they may see, as a query asks for them, narrowed to one Pen when they ask for one. */
 export const animalsInScope = (scope: Scope, penId?: string) => {

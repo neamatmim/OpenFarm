@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ScopeOf } from "./scope";
 import {
   animalsInScope,
+  mayLookUpAnimal,
   mayTouchAnimal,
   mayTouchPen,
   mayTouchWork,
@@ -38,6 +39,8 @@ interface Reaches {
   inTheirPen: boolean;
   onTheirCase: boolean;
   neither: boolean;
+  /** Looking up by her Tag Number an animal neither in their Pen nor on their Case. */
+  lookUpNeither: boolean;
   /** Walking an animal into a Pen that is not theirs. */
   otherPen: boolean;
   /** Work about the whole farm, in no Pen. */
@@ -51,6 +54,7 @@ const reaches = (who: ScopeOf, roleUsed: RoleName | null): Reaches => {
     inTheirPen: mayTouchAnimal(scope, inTheirPen),
     onTheirCase: mayTouchAnimal(scope, onTheirCase),
     neither: mayTouchAnimal(scope, neither),
+    lookUpNeither: mayLookUpAnimal(scope, neither),
     otherPen: mayTouchPen(scope, OTHER_PEN),
     farmWideWork: mayTouchWork(scope, { penId: null, animalId: null }),
   };
@@ -61,6 +65,7 @@ const FARM = {
   inTheirPen: true,
   onTheirCase: true,
   neither: true,
+  lookUpNeither: true,
   otherPen: true,
   farmWideWork: true,
 };
@@ -79,6 +84,7 @@ describe("a person's Scope under the Role they work under", () => {
         inTheirPen: true,
         onTheirCase: false,
         neither: false,
+        lookUpNeither: true,
         otherPen: false,
         farmWideWork: true,
       },
@@ -92,6 +98,7 @@ describe("a person's Scope under the Role they work under", () => {
         inTheirPen: false,
         onTheirCase: true,
         neither: false,
+        lookUpNeither: false,
         otherPen: false,
         farmWideWork: false,
       },
@@ -105,6 +112,7 @@ describe("a person's Scope under the Role they work under", () => {
         inTheirPen: true,
         onTheirCase: true,
         neither: false,
+        lookUpNeither: true,
         otherPen: false,
         farmWideWork: true,
       },
@@ -118,6 +126,7 @@ describe("a person's Scope under the Role they work under", () => {
         inTheirPen: false,
         onTheirCase: true,
         neither: false,
+        lookUpNeither: false,
         otherPen: false,
         farmWideWork: false,
       },
@@ -131,6 +140,7 @@ describe("a person's Scope under the Role they work under", () => {
         inTheirPen: true,
         onTheirCase: false,
         neither: false,
+        lookUpNeither: true,
         otherPen: false,
         farmWideWork: true,
       },
@@ -150,6 +160,7 @@ describe("a person's Scope under the Role they work under", () => {
         inTheirPen: false,
         onTheirCase: false,
         neither: false,
+        lookUpNeither: false,
         otherPen: false,
         farmWideWork: false,
       },

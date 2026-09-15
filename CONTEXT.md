@@ -222,7 +222,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Visiting Scope**: A Vet account limited to animals with an open case they are on, granted per visit and time-limited. It is the **Scope** of their work as the Vet. _Avoid_: Guest access, temporary account
 
-**Scope**: What a person may see and record acting under one Role: the whole farm for the Owner, the Manager and a Vet; their Pen Assignment for Barn Staff; their Visiting Scope for a Vet called in for a visit; and both together for Barn Staff who are also visiting. Worked out for each piece of work from the Role it is done under, never from the highest Role they hold. _Avoid_: Permissions (what a Role may do), access level, visibility
+**Scope**: What a person may see and record acting under one Role: the whole farm for the Owner, the Manager and a Vet; their Pen Assignment for Barn Staff; their Visiting Scope for a Vet called in for a visit; and both together for Barn Staff who are also visiting. Barn Staff may still look up any animal by her Tag Number, read-only; a visitor may not. Worked out for each piece of work from the Role it is done under, never from the highest Role they hold. _Avoid_: Permissions (what a Role may do), access level, visibility
 
 ## Offline
 

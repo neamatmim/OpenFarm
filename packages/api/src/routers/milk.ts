@@ -30,7 +30,7 @@ import {
 import type { Booking } from "../money-store";
 import { bookMoney, bookingOf, moneySnapshotOf } from "../money-store";
 import { requireRole } from "../roles";
-import { assertOnTheirCases } from "../visiting-store";
+import { mayLookUpAnimal, mayTouchPen, outOfScope } from "../scope";
 
 /** How many of a cow's recent milkings to hand back; enough for a fortnight of two-a-day
  *  sessions, which is as far as a phone screen usefully goes. */
@@ -364,9 +364,7 @@ export const milkRouter = {
       });
       // Barn Staff read the milkings of the Pens they work, as they read those Pens' animals.
       const outOfTheirPens =
-        context.roleUsed === "staff" &&
-        session !== undefined &&
-        !context.penIds.includes(session.penId);
+        session !== undefined && !mayTouchPen(context.scope, session.penId);
       if (!session || outOfTheirPens) {
         throw new ORPCError("NOT_FOUND", {
           message: "Nothing has been milked in this session yet",
@@ -424,7 +422,9 @@ export const milkRouter = {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      assertOnTheirCases(context, beast.id);
+      if (!mayLookUpAnimal(context.scope, beast)) {
+        throw outOfScope(context.scope);
+      }
       // Only what she gave in the Lactation she is in: an earlier one is a different curve,
       // and a total spanning both would be a number that means nothing.
       const records = beast.milkRecords.filter(
