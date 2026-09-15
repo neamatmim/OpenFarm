@@ -2,7 +2,6 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { weighIn } from "@OpenFarm/db/schema/fattening";
-import { feeding } from "@OpenFarm/db/schema/feed";
 import {
   campaignLotNumber,
   dlsReport,
@@ -11,7 +10,6 @@ import {
 import { observation } from "@OpenFarm/db/schema/observation";
 import type {
   FeedingEntryLine,
-  FeedingLine,
   MilkDestination,
   PregnancyCheckResult,
   ServiceMethod,
@@ -21,9 +19,7 @@ import {
   HEAT,
   KG_DECIMALS,
   implausibleChange,
-  isShortFed,
   roundKg,
-  shortfallPercent,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
@@ -33,7 +29,6 @@ import type { CalvingRecorded } from "./calving-store";
 import type { CalvingWorkFollowed } from "./calving-work";
 import type { StandingAside } from "./effects/effect";
 import { numberIn, writtenNote, choiceIn, penOf } from "./effects/evidence";
-import { feedingTargetForPen } from "./feed-store";
 import { recomputeWithdrawal } from "./health-store";
 import { callOffWorkRaisedBy } from "./herd-store";
 import { heatKeyOf } from "./instances-store";
@@ -45,11 +40,8 @@ import {
   writeMilkRecord,
 } from "./milk-store";
 import type { RenewalEntry } from "./registration-store";
-import { renewRegistration } from "./registration-store";
 import { raiseNeedsReview } from "./review-store";
-import { forbidden } from "./roles";
 import type { StockAdjustment, StockCountLine } from "./stock-store";
-import { recordStockCount } from "./stock-store";
 
 /**
  * What a Step wrote into the farm's records beyond the Evidence itself — reported back so
@@ -62,12 +54,16 @@ export type EffectResult =
       kind: "registration_renewal";
       expiresOn: Date;
       previousExpiresOn: Date | null;
+      /** The Registration has moved on since this renewal, so the newer one is put right instead. */
+      standsAside: StandingAside | null;
     }
   | {
       kind: "feeding";
       /** What the Pen was owed, and how far under it the session came. */
       shortfallPercent: number;
       flagged: boolean;
+      /** The Pen is on no Ration now, so what was fed cannot be set against one. */
+      standsAside: StandingAside | null;
     }
   | {
       kind: "observation";
@@ -203,93 +199,6 @@ export interface EffectInput {
    *  it calls off or raises again is written there. */
   trail: Trail;
 }
-
-/**
- * Records what a Pen was actually given against what its Ration owed it.
- *
- * The target is worked out from the Ration in force when the work was *raised* and the animals
- * standing in the Pen now, and both are written into the record with the figures — so a year
- * later the arithmetic can still be shown rather than re-derived from a farm that has changed.
- *
- * A session appreciably under target is flagged on the farm's own tolerance. That is the
- * first sign of a pen off its feed, a bag that ran out, or a job somebody did not do.
- */
-const applyFeedingEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  // A whole-Pen Step cannot be skipped today — a meal that did not happen is the Manager
-  // closing the work as Missed — so this is the guard for the day that rule changes, not a
-  // path the farm can reach. A Feeding left standing beside a skip would be a meal the farm
-  // believes it served, and feed the store believes it gave.
-  if (input.skipped) {
-    await tx
-      .delete(feeding)
-      .where(eq(feeding.completionId, input.completionId));
-    return null;
-  }
-  const owed = await feedingTargetForPen(
-    tx,
-    input.instance.farmId,
-    penOf(input),
-    // When the work was raised, not when it fell due: an Instance raised this morning for
-    // tonight is fed on the Ration the farm had this morning, whatever is published between.
-    input.instance.raisedAt,
-    input.sessionsPerDay
-  );
-  if (!owed) {
-    // The phone had a Ration when it recorded this; the farm does not now. That is the world
-    // moving under an entry, not an entry that was ever wrong (ADR 0002).
-    throw new ORPCError("CONFLICT", {
-      message:
-        "This pen is on no ration now, so what was fed cannot be set against one",
-      // The world moved under an entry that was good when it was written, which a phone's
-      // outbox keeps and puts in front of a person rather than throwing away (ADR 0002).
-      data: { late: true },
-    });
-  }
-  const given = new Map(input.feeding.map((line) => [line.feedItemId, line]));
-  const lines: FeedingLine[] = owed.items.map((line) => ({
-    feedItemId: line.feedItemId,
-    targetKg: line.quantity,
-    givenKg: roundKg(given.get(line.feedItemId)?.givenKg ?? 0),
-    leftoverKg: roundKg(given.get(line.feedItemId)?.leftoverKg ?? 0),
-  }));
-  const short = shortfallPercent(lines);
-  const flagged = isShortFed(lines, input.feedTolerancePercent);
-
-  // Keyed on the Completion: a replayed entry is the same meal, and a Correction rewrites
-  // what was given rather than feeding the Pen twice.
-  await tx
-    .insert(feeding)
-    .values({
-      id: uuidv7(input.now),
-      farmId: input.instance.farmId,
-      instanceId: input.instance.id,
-      completionId: input.completionId,
-      penId: penOf(input),
-      rationVersionId: owed.rationVersionId,
-      animals: owed.animals,
-      sessionsPerDay: owed.sessionsPerDay,
-      lines,
-      shortfallPercent: short,
-      flaggedAt: flagged ? input.now : null,
-      fedBy: input.recordedBy,
-      fedAt: input.recordedAt,
-      recordedAt: input.now,
-    })
-    .onConflictDoUpdate({
-      target: feeding.completionId,
-      set: {
-        lines,
-        animals: owed.animals,
-        shortfallPercent: short,
-        flaggedAt: flagged ? input.now : null,
-        fedAt: input.recordedAt,
-      },
-    });
-  return { kind: "feeding", shortfallPercent: short, flagged };
-};
 
 /**
  * Records that the letter reached the Upazila Livestock Officer, and under what reference.
@@ -752,57 +661,6 @@ const applyWeighInEffect = async (
   return { kind: "weigh_in", weightKg, flagged: flaggedNote !== null };
 };
 
-/**
- * Counts the store: what is really there of each Feed Item, and why it differs. The Manager's alone
- * (roles matrix: Stock Count — Manager C R U): the Owner steps into shifts, and a count moves what the
- * farm's feed is worth.
- */
-const applyStockCountEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!input.roles.includes("manager")) {
-    throw forbidden({
-      message: "Counting the store is the Manager's",
-      reason: "manager_only",
-    });
-  }
-  const adjustments = await recordStockCount(tx, {
-    farmId: input.instance.farmId,
-    completionId: input.completionId,
-    counts: input.counts,
-    skipped: input.skipped,
-    countedAt: input.recordedAt,
-    countedBy: input.recordedBy,
-    now: input.now,
-  });
-  return { kind: "stock_count", adjustments };
-};
-
-/**
- * Renews the farm's DLS Registration: the Owner's, as the renewal SOP is (the registration decision). The
- * new expiry and certificate replace the old, and the renewal is kept against the expiry it replaced.
- */
-const applyRenewalEffect = async (
-  tx: Tx,
-  input: EffectInput
-): Promise<EffectResult> => {
-  if (!input.roles.includes("owner")) {
-    throw forbidden({
-      message: "Renewing the Registration is the Owner's",
-      reason: "owner_only",
-    });
-  }
-  const renewed = await renewRegistration(tx, {
-    farmId: input.instance.farmId,
-    completionId: input.completionId,
-    renewal: input.renewal,
-    by: input.recordedBy,
-    now: input.now,
-  });
-  return { kind: "registration_renewal", ...renewed };
-};
-
 /** Every effect that writes its own record, by kind. The milk effects are not here: they share a
  *  Milking Session, which only they may open. */
 const RECORDING_EFFECTS: Partial<
@@ -812,12 +670,9 @@ const RECORDING_EFFECTS: Partial<
   >
 > = {
   observation: applyObservationEffect,
-  feeding: applyFeedingEffect,
   treatment: applyTreatmentEffect,
   dls_report: applyReportEffect,
   weigh_in: applyWeighInEffect,
-  stock_count: applyStockCountEffect,
-  registration_renewal: applyRenewalEffect,
   lot_number: applyLotNumberEffect,
 };
 

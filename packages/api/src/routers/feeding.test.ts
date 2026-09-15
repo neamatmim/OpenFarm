@@ -259,6 +259,80 @@ describe("feeding a Pen", () => {
     expect(after.fed?.shortfallPercent).toBe(0);
   });
 
+  it("keeps what went out when a Correction leaves the lines out, and refuses one made against lines since changed", async () => {
+    const clock = new FakeClock("2027-08-12T02:00:00.000Z");
+    const { owner, instance } = await fedWith(clock, 3);
+    const board = await owner.client.instances.get({ id: instance.id });
+    const done = board.completions.find((row) => row.stepId === "feed");
+    const completionId = done?.id ?? "";
+    // What the screen shows beside the tick: the three kilos that went out.
+    expect(done?.facts).toEqual({
+      feeding: [
+        { feedItemId: world.concentrate.id, givenKg: 3, leftoverKg: 0 },
+      ],
+    });
+
+    // A note about the tick, with no lines sent: the meal the Pen had is kept, not taken as nothing fed.
+    await owner.client.instances.correctStep({
+      id: completionId,
+      reason: "টিক দেওয়া ঠিক ছিল, নোট যোগ",
+      changes: {
+        answer: {
+          from: {
+            skipReason: null,
+            evidence: [true],
+            destination: null,
+            outOfRange: null,
+            ...done?.facts,
+          },
+          to: { evidence: [true], outOfRange: "দেরিতে খাওয়ানো" },
+        },
+      },
+    });
+    const kept = await owner.client.instances.get({ id: instance.id });
+    expect(kept.fed?.lines).toEqual([
+      {
+        feedItemId: world.concentrate.id,
+        targetKg: 6,
+        givenKg: 3,
+        leftoverKg: 0,
+      },
+    ]);
+
+    // A screen still showing three kilos after somebody put six right is told the meal has changed since.
+    await correctStepAsShown(owner.client, {
+      completionId,
+      evidence: [true],
+      outOfRange: "দেরিতে খাওয়ানো",
+      feeding: [{ feedItemId: world.concentrate.id, givenKg: 6 }],
+      reason: "ওজন ভুল লেখা হয়েছিল",
+    });
+    await expect(
+      owner.client.instances.correctStep({
+        id: completionId,
+        reason: "আমার খাতায় চার",
+        changes: {
+          answer: {
+            from: {
+              skipReason: null,
+              evidence: [true],
+              destination: null,
+              outOfRange: "দেরিতে খাওয়ানো",
+              ...done?.facts,
+            },
+            to: {
+              evidence: [true],
+              feeding: [{ feedItemId: world.concentrate.id, givenKg: 4 }],
+            },
+          },
+        },
+      })
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { refusal: "changed_since" },
+    });
+  });
+
   it("will not let a Pen's feeding be skipped, because a Pen is not skipped one animal at a time", async () => {
     const clock = new FakeClock("2027-08-07T02:00:00.000Z");
     const { owner, instance } = await fedWith(clock, 6);

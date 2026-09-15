@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { stepOf } from "../completion-store";
 import type { EffectResult } from "../effects";
-import { stoodAside } from "../effects/effect";
+import { factsAsShown, recordedFactsOf, stoodAside } from "../effects/effect";
 import {
   evidenceValue,
   readCompletion,
@@ -46,18 +46,40 @@ const loadStep = async (tx: Tx, farmId: string, id: string) => {
     | undefined;
 };
 
-/** A Step's answer as the work screen shows it: the Evidence, the skip, where the milk went, the warning gone past. */
+/**
+ * A Step's answer as the work screen shows it: the Evidence, the skip, where the milk went, the warning gone past — and
+ * what its Effect recorded beside them, for a Step that feeds, counts or renews.
+ */
 const answerShown = z.object({
   // Trimmed, as the farm keeps it: a screen still showing what a phone held before it was sent may not have been.
   skipReason: z.string().trim().nullable(),
   evidence: z.array(evidenceValue),
   destination: z.enum(MILK_DESTINATIONS).nullable(),
   outOfRange: z.string().nullable(),
+  feeding: z
+    .array(
+      z.object({
+        feedItemId: z.string(),
+        givenKg: z.number(),
+        leftoverKg: z.number().optional(),
+      })
+    )
+    .optional(),
+  counts: z
+    .array(
+      z.object({
+        feedItemId: z.string(),
+        counted: z.number(),
+        reason: z.string().optional(),
+      })
+    )
+    .optional(),
+  renewal: z.object({ expiresOn: z.string() }).optional(),
 });
 
 /**
- * What putting a Step right may change: its answer, in full — and what was fed, counted or renewed, which the Step's
- * Effect keeps rather than the Completion, and which is taken as it comes.
+ * What putting a Step right may change: its answer, in full — what was fed, counted or renewed with it. Facts left out
+ * of the answer keep what the Effect recorded.
  */
 export const stepCorrectionInput = correctionInput({
   answer: changeOf(
@@ -66,12 +88,13 @@ export const stepCorrectionInput = correctionInput({
       destination: true,
       outOfRange: true,
       skipReason: true,
+      feeding: true,
+      counts: true,
+      renewal: true,
     }),
     answerShown
   ),
-}).extend(
-  stepCompletionInput.pick({ feeding: true, counts: true, renewal: true }).shape
-);
+});
 
 type Input = z.infer<typeof stepCorrectionInput>;
 
@@ -90,8 +113,7 @@ interface StepCorrected {
 export const stepCorrection: CorrectionKind<
   NonNullable<Awaited<ReturnType<typeof loadStep>>>,
   Input["changes"],
-  StepCorrected,
-  Pick<Input, "feeding" | "counts" | "renewal">
+  StepCorrected
 > = {
   entity: "step_completion",
   table: stepCompletion,
@@ -116,34 +138,42 @@ export const stepCorrection: CorrectionKind<
     ),
   }),
   requireInScope: (scope, row) => requireWorkInScope(scope, row.instance),
-  shown: (_tx, row) =>
-    Promise.resolve({
-      answer: {
-        skipReason: row.skipReason,
-        evidence: row.evidence as z.infer<typeof evidenceValue>[],
-        destination: row.destination,
-        outOfRange: row.outOfRange,
-      },
-    }),
+  shown: async (tx, row) => ({
+    answer: {
+      skipReason: row.skipReason,
+      evidence: row.evidence as z.infer<typeof evidenceValue>[],
+      destination: row.destination,
+      outOfRange: row.outOfRange,
+      ...factsAsShown(
+        await recordedFactsOf(
+          tx,
+          stepOf(contentOf(row.instance.version), row.stepId),
+          row.id
+        )
+      ),
+    },
+  }),
   shownAs: {
-    answer: (to) => ({
+    answer: (to, holds) => ({
       skipReason: to.skipReason ?? null,
       evidence: to.evidence,
       destination: to.destination ?? null,
       outOfRange: to.outOfRange ?? null,
+      // Facts left out of the answer keep what was recorded.
+      ...factsAsShown({
+        feeding: to.feeding ?? holds.feeding,
+        counts: to.counts ?? holds.counts,
+        renewal: to.renewal ?? holds.renewal,
+      }),
     }),
   },
-  // Taken as a change whenever they come: the work screen sends a feeding Step's lines every time, and the Effect run
-  // again on the same lines writes what it wrote before.
-  changesBeyondValues: ({ feeding, counts, renewal }) =>
-    Boolean(feeding ?? counts ?? renewal),
   trail: async (tx, row, outcome) => {
     const completion = await readCompletion(tx, row.id);
     // With what the Effect decided, as a completion's own entry has: a corrected day that moved the calving work has to
     // say which work went where.
     return outcome ? { ...completion, effect: outcome.effect } : completion;
   },
-  apply: async (tx, row, to, { context, now, eventId, extra, cannotUndo }) => {
+  apply: async (tx, row, to, { context, now, eventId, cannotUndo }) => {
     const photos = await tx.query.completionPhoto.findMany({
       where: { completionId: row.id },
       columns: { slot: true },
@@ -154,10 +184,22 @@ export const stepCorrection: CorrectionKind<
       outOfRange: row.outOfRange ?? undefined,
       skipReason: row.skipReason ?? undefined,
     };
+    const facts = await recordedFactsOf(
+      tx,
+      stepOf(contentOf(row.instance.version), row.stepId),
+      row.id
+    );
+    const answer: NonNullable<typeof to.answer> = to.answer ?? recorded;
     const effect = await replaceStep(tx, context, {
       completion: row,
       work: row.instance,
-      answer: { ...(to.answer ?? recorded), ...extra },
+      // What was fed, counted or renewed, as the Effect recorded it, unless the Correction says otherwise.
+      answer: {
+        ...answer,
+        feeding: answer.feeding ?? facts.feeding,
+        counts: answer.counts ?? facts.counts,
+        renewal: answer.renewal ?? facts.renewal,
+      },
       hasPhotoAt: (slot) => photos.some((photo) => photo.slot === slot),
       eventId,
       now,

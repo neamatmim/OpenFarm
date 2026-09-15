@@ -132,7 +132,13 @@ export interface CorrectionKind<
   /** The values it holds, as a screen shows them. */
   shown: (tx: Tx, row: Row) => Promise<ShownValues<C>>;
   /** A value it is asked to hold, as a screen would show it, when the two are not the same shape. */
-  shownAs?: { [K in keyof C]?: (to: NonNullable<C[K]>["to"]) => Comparable };
+  shownAs?: {
+    [K in keyof C]?: (
+      to: NonNullable<C[K]>["to"],
+      /** What the record holds, for a value asked for in part: a part left out keeps what it holds. */
+      holds: NonNullable<C[K]>["from"]
+    ) => Comparable;
+  };
   /** The record as the trail keeps it, either side of the Correction — after it, with what the Correction decided. */
   trail: (tx: Tx, row: Row, outcome?: Outcome) => Promise<SnapshotValue>;
   /** Whether what it was asked beyond its values changes the record — a receipt that came later — so a Correction
@@ -329,7 +335,8 @@ export const correct = async <
       });
     }
     const asShown = (field: keyof C, to: unknown): Comparable =>
-      kind.shownAs?.[field]?.(to as never) ?? (to as Comparable);
+      kind.shownAs?.[field]?.(to as never, shown[field] as never) ??
+      (to as Comparable);
     const changesAValue = changed.some(
       ({ field, to }) => !same(asShown(field, to), shown[field])
     );

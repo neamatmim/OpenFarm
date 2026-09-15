@@ -330,6 +330,7 @@ describe("the Registration and its renewal", () => {
               kind: "registration_renewal",
               previousExpiresOn: "2041-03-30T18:00:00.000Z",
               expiresOn: "2042-03-30T18:00:00.000Z",
+              standsAside: null,
             },
           }),
         }),
@@ -344,7 +345,8 @@ describe("the Registration and its renewal", () => {
     const next = await renewalWork("2042-01-02T04:00:00.000Z");
     expect(next.filter((row) => row.state === "due")).toHaveLength(1);
 
-    // Once the Registration has moved on — by hand, here — the old renewal is not put right under it.
+    // Once the Registration has moved on — by hand, here — the old renewal is not put right under it: the Correction is
+    // kept, the Registration stays where it moved to, and a person is asked.
     const manager = await as("manager", "2042-01-03T04:00:00.000Z");
     await manager.client.farm.setIdentity({
       registrationExpiresOn: "2043-03-31",
@@ -352,13 +354,21 @@ describe("the Registration and its renewal", () => {
     const board = await as("owner", "2042-01-03T05:00:00.000Z");
     const done = await board.client.instances.get({ id: work?.id ?? "" });
     const renewed = done.completions.find((one) => one.stepId === "renewed");
-    await expect(
-      correctStepAsShown(board.client, {
-        completionId: renewed?.id ?? "",
-        evidence: [true],
-        renewal: { expiresOn: "2042-04-30" },
-        reason: "তারিখ ভুল লেখা হয়েছিল",
-      })
-    ).rejects.toMatchObject({ data: { refusal: "renewal_superseded" } });
+    const corrected = await correctStepAsShown(board.client, {
+      completionId: renewed?.id ?? "",
+      evidence: [true],
+      renewal: { expiresOn: "2042-04-30" },
+      reason: "তারিখ ভুল লেখা হয়েছিল",
+    });
+    expect(corrected).toMatchObject({
+      needsReview: true,
+      effect: { standsAside: { because: "renewal_superseded" } },
+    });
+    // A fresh client: a Context carries the Farm as it stood when it was made.
+    const reading = await as("owner", "2042-01-03T06:00:00.000Z");
+    const stillMoved = await reading.client.farm.identity();
+    expect(stillMoved.registrationExpiresOn?.toISOString()).toBe(
+      "2043-03-30T18:00:00.000Z"
+    );
   });
 });

@@ -1,5 +1,6 @@
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import type { STEP_EFFECT_KINDS } from "@OpenFarm/domain";
+import { roundKg } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
@@ -9,9 +10,12 @@ import type { Refusal } from "../roles";
 import { forbidden } from "../roles";
 import { calvingEffect } from "./calving";
 import { dryOffEffect } from "./dry-off";
+import { feedingEffect } from "./feeding";
 import { moveEffect } from "./move";
 import { pregnancyCheckEffect } from "./pregnancy-check";
+import { renewalEffect } from "./registration-renewal";
 import { serviceEffect } from "./service";
+import { stockCountEffect } from "./stock-count";
 
 /** Why an Effect stood aside: what the farm has learned since that the Step does not know. */
 export type StandingAsideBecause =
@@ -22,7 +26,11 @@ export type StandingAsideBecause =
   /** Corrected in a way the farm has already acted on: a calf added, taken away, or since gone. */
   | "calving_acted_on"
   /** A service taken back that the Vet has already checked: the check is corrected first. */
-  | "service_checked";
+  | "service_checked"
+  /** The Pen is on no Ration now, so what was fed cannot be set against one. */
+  | "no_ration"
+  /** The Registration has moved on since this renewal: the newer one is put right instead. */
+  | "renewal_superseded";
 
 /**
  * An Effect the farm has moved past (the glossary's Effect, standing aside): it wrote nothing over the newer fact, and
@@ -47,7 +55,18 @@ export interface EffectKind<Facts> {
    */
   recordedBy?: { roles: readonly RoleName[]; refusal: Refusal };
   apply: (tx: Tx, facts: Facts) => Promise<EffectResult>;
+  /**
+   * What it recorded beside the Evidence — the feed given, the store counted, the day renewed to — as a Step's answer
+   * carries it, for a Correction to show, compare, and keep when it is not sent again. Nothing, for a kind whose Step
+   * says it all in its Evidence.
+   */
+  recorded?: (tx: Tx, completionId: string) => Promise<StepFacts>;
 }
+
+/** The facts a Step carries beside its Evidence, as its answer does. */
+export type StepFacts = Partial<
+  Pick<EffectInput, "feeding" | "counts"> & { renewal: { expiresOn: string } }
+>;
 
 /** The kinds that are their own modules; the rest are still written in effects.ts. */
 const EFFECTS: Partial<
@@ -58,6 +77,9 @@ const EFFECTS: Partial<
   [calvingEffect.kind]: calvingEffect,
   [serviceEffect.kind]: serviceEffect,
   [pregnancyCheckEffect.kind]: pregnancyCheckEffect,
+  [feedingEffect.kind]: feedingEffect,
+  [stockCountEffect.kind]: stockCountEffect,
+  [renewalEffect.kind]: renewalEffect,
 };
 
 /** The Effect a Step declares, when it is one of the kinds that are their own modules. */
@@ -107,4 +129,53 @@ export const STANDING_ASIDE_SAID: Record<StandingAsideBecause, string> = {
   calving_acted_on: "The farm has acted on this calving since",
   service_checked:
     "The Vet has checked this service; the check is put right first",
+  no_ration:
+    "This pen is on no ration now, so what was fed cannot be set against one",
+  renewal_superseded:
+    "The Registration has moved on since this renewal; put the newer one right instead",
 };
+
+/** Facts as a Correction compares them — plain values, part by part. */
+export interface FactsAsShown {
+  feeding?: { feedItemId: string; givenKg: number; leftoverKg: number }[];
+  counts?: { feedItemId: string; counted: number; reason?: string }[];
+  renewal?: { expiresOn: string };
+}
+
+/** What a Step recorded beside its Evidence, when its kind keeps facts there. */
+export const recordedFactsOf = async (
+  tx: Tx,
+  step: EffectInput["step"],
+  completionId: string
+): Promise<StepFacts> =>
+  (await effectOf(step)?.recorded?.(tx, completionId)) ?? {};
+
+/**
+ * Facts as a Correction compares them: in the farm's order and rounding, so the same feed given reads the same whichever
+ * way it was sent — leftovers left out are none, a count's reason left out is none, and a certificate is not a day.
+ */
+export const factsAsShown = (facts: StepFacts): FactsAsShown => ({
+  ...(facts.feeding
+    ? {
+        feeding: facts.feeding
+          .map((line) => ({
+            feedItemId: line.feedItemId,
+            givenKg: roundKg(line.givenKg),
+            leftoverKg: roundKg(line.leftoverKg ?? 0),
+          }))
+          .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
+      }
+    : {}),
+  ...(facts.counts
+    ? {
+        counts: facts.counts
+          .map((line) => ({
+            feedItemId: line.feedItemId,
+            counted: roundKg(line.counted),
+            ...(line.reason?.trim() ? { reason: line.reason.trim() } : {}),
+          }))
+          .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
+      }
+    : {}),
+  ...(facts.renewal ? { renewal: { expiresOn: facts.renewal.expiresOn } } : {}),
+});

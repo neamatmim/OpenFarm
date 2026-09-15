@@ -159,6 +159,12 @@ interface Completion {
   evidence: (boolean | number | string)[];
   destination: MilkDestination | null;
   outOfRange: string | null;
+  /** What the Step's Effect recorded beside its Evidence — the feed given, the store counted — as it was shown. */
+  facts: {
+    feeding?: { feedItemId: string; givenKg: number; leftoverKg: number }[];
+    counts?: { feedItemId: string; counted: number; reason?: string }[];
+    renewal?: { expiresOn: string };
+  };
 }
 
 const outOfRangeOf = (
@@ -432,18 +438,19 @@ const WorkPage = () => {
               evidence: existing.evidence,
               destination: existing.destination,
               outOfRange: existing.outOfRange,
+              ...existing.facts,
             },
             to: {
               destination: payload.destination,
               evidence: payload.evidence,
               outOfRange: payload.outOfRange,
               skipReason: payload.skipReason,
+              feeding: payload.feeding,
+              counts: payload.counts,
+              renewal: payload.renewal,
             },
           },
         },
-        feeding: payload.feeding,
-        counts: payload.counts,
-        renewal: payload.renewal,
         reason: payload.reason,
       });
       return;

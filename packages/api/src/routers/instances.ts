@@ -15,12 +15,14 @@ import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
+import { stepOf } from "../completion-store";
 import type { Context } from "../context";
 import { correct, reasonInput } from "../corrections/correction";
 import {
   stepCorrection,
   stepCorrectionInput,
 } from "../corrections/step-completion";
+import { factsAsShown, recordedFactsOf } from "../effects/effect";
 import { claimEntry } from "../entries/claim";
 import { recordNow } from "../entries/entry";
 import { finishEntry } from "../entries/finish";
@@ -479,6 +481,20 @@ export const instancesRouter = {
           : instance.version.number;
       return {
         ...instance,
+        // Each with what its Effect recorded beside the Evidence — the feed given, the store counted — which a Correction
+        // says it was shown.
+        completions: await Promise.all(
+          instance.completions.map(async (completion) => ({
+            ...completion,
+            facts: factsAsShown(
+              await recordedFactsOf(
+                context.db as unknown as Tx,
+                stepOf(content, completion.stepId),
+                completion.id
+              )
+            ),
+          }))
+        ),
         content,
         changed,
         /** The Version this work runs on, when the Playbook has since moved on (ADR 0001). */

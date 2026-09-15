@@ -107,7 +107,7 @@ export const textAt = (
 
 /** The Pen a Pen's Step records into. Feeding a Pen and milking one are about a Pen, and work about the whole
  *  farm cannot carry them. */
-export const penOf = (input: EffectInput): string => {
+export const penOf = (input: Pick<EffectInput, "instance">): string => {
   if (input.instance.penId === null) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This Step records a Pen's work, and this work is in no Pen",
