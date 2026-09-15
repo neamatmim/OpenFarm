@@ -1,5 +1,8 @@
+import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -257,5 +260,58 @@ describe("a visiting Vet who also works the barn", () => {
     expect(herd.map((beast) => beast.tagNumber)).toContain(world.onCase);
     const her = await withCase.animals.byTag({ tagNumber: world.onCase });
     expect(her.diagnoses.length + her.observations.length).toBeGreaterThan(0);
+
+    // And the work raised about her is on their list for today, as she is on their herd list: what a visit reaches
+    // is added to what the barn does, not a second list they have to know to ask for.
+    const { definitionId, versionId } = await owner.sops.create({
+      content: {
+        name: { bn: `তার চিকিৎসা ${suffix}`, en: "Her treatment" },
+        purpose: { bn: "একটি পশুর কাজ" },
+        triggers: [],
+        assignedRole: "vet",
+        checkerRole: null,
+        graceMinutes: 60,
+        steps: [
+          {
+            id: "look",
+            text: { bn: "দেখুন" },
+            repeatPerAnimal: false,
+            evidence: [{ type: "tick", required: true }],
+            skipReasons: [],
+          },
+        ],
+      },
+    });
+    const workId = `case-work-${suffix}`;
+    await scratchDb()
+      .insert(sopInstance)
+      .values({
+        id: workId,
+        farmId: TEST_FARM.id,
+        definitionId,
+        versionId,
+        penId: her.penId,
+        animalId: her.id,
+        state: "due",
+        dueAt: new Date(DURING),
+        graceMinutes: 60,
+        assignedRole: "vet",
+        cause: `visit-test:${her.id}`,
+        createdAt: new Date(DURING),
+      });
+    try {
+      const today = await withCase.instances.today({});
+      expect(today.map((work) => work.id)).toContain(workId);
+    } finally {
+      // The farm's list is every file's: nothing this test raised is left for a later clock to find late.
+      await scratchDb()
+        .update(sopInstance)
+        .set({ state: "missed" })
+        .where(eq(sopInstance.id, workId));
+      await scratchDb()
+        .update(sopDefinition)
+        .set({ retiredAt: new Date(DURING) })
+        .where(eq(sopDefinition.id, definitionId));
+    }
   });
 });

@@ -364,9 +364,26 @@ export const instancesRouter = {
     .input(z.object({ penId: z.string().optional() }).default({}))
     .handler(async ({ context, input }) => {
       const scoped = context.roleUsed === "staff";
-      if (scoped && context.penIds.length === 0) {
+      // Barn Staff who are also a visiting Vet have the work of their Pens and the work about their Cases together, as
+      // their herd list has both.
+      const alsoCases =
+        scoped && context.visiting && context.caseAnimalIds.length > 0;
+      if (scoped && context.penIds.length === 0 && !alsoCases) {
         return [];
       }
+      // Both filters must hold: a Staff member asking for one Pen gets that Pen only if it is theirs, rather than
+      // silently getting all of theirs.
+      const theirs = alsoCases
+        ? {
+            OR: [
+              penFilter(context.penIds, input.penId),
+              {
+                animalId: { in: context.caseAnimalIds },
+                ...(input.penId ? { penId: input.penId } : {}),
+              },
+            ],
+          }
+        : penFilter(scoped ? context.penIds : null, input.penId);
       // Today means the farm's day: yesterday's unfinished work belongs on the Overdue
       // list, not on the phone's list of what to do now.
       const now = context.clock.now();
@@ -376,9 +393,7 @@ export const instancesRouter = {
           farmId: context.farm.id,
           state: { in: ["due", "in_progress", "sent_back"] },
           dueAt: { gte: from, lt: to },
-          // Both filters must hold: a Staff member asking for one Pen gets that Pen only
-          // if it is theirs, rather than silently getting all of theirs.
-          ...penFilter(scoped ? context.penIds : null, input.penId),
+          ...theirs,
           ...(onTheirCases(context)
             ? { animalId: { in: context.caseAnimalIds } }
             : {}),
