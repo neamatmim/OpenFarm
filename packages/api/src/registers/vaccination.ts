@@ -110,7 +110,7 @@ export const VACCINATION_REGISTER: Register<VaccinationRow> = {
       csv: { header: "given_by", value: (row) => row.givenBy },
     },
   ],
-  said: (rows) => ({
+  kept: (rows) => ({
     doses: rows.length,
     withoutLot: rows.filter((row) => row.lotNumber === null).length,
   }),

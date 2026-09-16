@@ -94,7 +94,6 @@ const InspectorPage = () => {
     enabled: certificateId !== undefined,
   });
   const [paper, setPaper] = useState<{
-    id: PaperId;
     register: InspectorRegister;
     text: string;
   } | null>(null);
@@ -106,7 +105,7 @@ const InspectorPage = () => {
           setPaper(null);
           return;
         }
-        setPaper({ id: PAPER_OF[register], register, text });
+        setPaper({ register, text });
       },
       onError: (error) =>
         toast.error(
@@ -266,7 +265,7 @@ const InspectorPage = () => {
 
       {paper ? (
         <Paper
-          id={paper.id}
+          id={PAPER_OF[paper.register]}
           image={
             paper.register === "registration" && certificate.data
               ? { ...certificate.data, alt: t("certificate.title") }

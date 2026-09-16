@@ -209,6 +209,15 @@ describe("the Inspector View", () => {
           data: { refusal: "farm_identity_incomplete" },
         });
       }
+
+      // But a register nobody makes a spreadsheet of is refused as that, before the farm's own paperwork is
+      // looked at: what an inspector asked for cannot be given at all, and that is the more useful answer.
+      await expect(
+        unregistered.client.inspector.print({
+          register: "disease_history",
+          format: "csv",
+        })
+      ).rejects.toMatchObject({ data: { refusal: "register_has_no_csv" } });
     } finally {
       await writer.client.farm.setIdentity({
         registrationNumber: REGISTRATION,

@@ -1,5 +1,5 @@
-import { rowsOfRegister } from "@OpenFarm/api/registers/all";
 import type { RegisterName } from "@OpenFarm/api/registers/register";
+import { rowsOfRegister } from "@OpenFarm/api/registers/rows";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";

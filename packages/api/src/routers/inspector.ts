@@ -19,9 +19,10 @@ import { assertRegistered, recordExport } from "../export-store";
 import { protectedProcedure } from "../index";
 import { periodInput } from "../period";
 import { languageOf } from "../reader-language";
-import { registerNamed, rowsAnswer } from "../registers/all";
+import { registerNamed } from "../registers/all";
 import type { RegisterName } from "../registers/register";
 import { REGISTER_NAMES, sayingIn } from "../registers/register";
+import { rowsAnswer } from "../registers/rows";
 import { certificatesOf } from "../registration-store";
 import { requirePersonalSession, requireRole } from "../roles";
 
@@ -133,10 +134,10 @@ const askedPeriodInput = z.object({
 });
 type AskedPeriod = z.infer<typeof askedPeriodInput>;
 
-/** A paper as written: the paper itself, and what it said for the trail to keep. */
+/** A paper as written: the paper itself, and what the Export keeps of what it said. */
 interface Made {
   text: string;
-  said: Record<string, unknown>;
+  kept: Record<string, unknown>;
 }
 
 /** The two the Inspector View writes by hand: what the farm is, and what stands on it today. Neither is a
@@ -166,7 +167,7 @@ const PAPERS: Record<
         producedBy: context.actor.name,
         producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
-      said: {
+      kept: {
         expiresOn: registration.expiresOn?.toISOString() ?? null,
         standing: registration.standing,
         certificateId: registration.certificate?.id ?? null,
@@ -211,7 +212,7 @@ const PAPERS: Record<
         producedBy: context.actor.name,
         producedAt: formatDate(context.clock.now(), language, "dateTime"),
       }),
-      said: { animals: herd.total, pens: herd.byPen.length },
+      kept: { animals: herd.total, pens: herd.byPen.length },
     };
   },
 };
@@ -223,18 +224,37 @@ type Printable = (typeof PRINTABLE)[number];
 
 /** Whether a name is one of the registers declared under `registers/`, or one of the two papers above. */
 const isRegister = (name: Printable): name is RegisterName =>
-  name !== "registration" && name !== "herd_summary";
+  (REGISTER_NAMES as readonly string[]).includes(name);
 
 /** A register asked for in a way it cannot be given: the disease history has no spreadsheet, and the movement
- *  log is not a paper anybody would read. */
-const refuse = (missing: "csv" | "paper") => {
-  throw new ORPCError("BAD_REQUEST", {
+ *  log is not a paper anybody would read. Said before anything is read, because a register the farm cannot
+ *  hand over that way is not a register it should be reading a year of first. */
+const refuse = (missing: "csv" | "paper") =>
+  new ORPCError("BAD_REQUEST", {
     message:
       missing === "csv"
         ? "That register is printed, not given as a CSV"
-        : "That register is a spreadsheet, not a paper",
+        : "That register is given as a CSV, not printed",
     data: { refusal: `register_has_no_${missing}` },
   });
+
+/** What the farm can hand this register over as, refused before the farm's own Registration is looked at:
+ *  which way round it goes is what main did, and an inspector asking for a spreadsheet nobody makes should
+ *  hear that, not that the farm's paperwork is incomplete. */
+const assertCanBeGiven = (register: Printable, format: "paper" | "csv") => {
+  if (!isRegister(register)) {
+    if (format === "csv") {
+      throw refuse("csv");
+    }
+    return;
+  }
+  const declared = registerNamed(register);
+  if (format === "csv" && !declared.savesAsCsv) {
+    throw refuse("csv");
+  }
+  if (format === "paper" && !declared.prints) {
+    throw refuse("paper");
+  }
 };
 
 /** What an inspector is handed, and what the Export keeps of it: the paper or the CSV, and the period it
@@ -243,7 +263,7 @@ interface HandedOver {
   text?: string;
   csv?: string;
   period: { from: string; to: string } | null;
-  said: Record<string, unknown>;
+  kept: Record<string, unknown>;
 }
 
 const handOver = async (
@@ -252,11 +272,8 @@ const handOver = async (
   language: Language
 ): Promise<HandedOver> => {
   if (!isRegister(asked.register)) {
-    if (asked.format === "csv") {
-      refuse("csv");
-    }
     const made = await PAPERS[asked.register](context, language);
-    return { ...made, period: null };
+    return { text: made.text, period: null, kept: made.kept };
   }
   const register = registerNamed(asked.register);
   const found = await register.read(
@@ -266,15 +283,9 @@ const handOver = async (
     context.clock.now()
   );
   const period = { from: found.from, to: found.to };
-  const said = register.said(found.rows);
+  const kept = register.kept(found.rows);
   if (asked.format === "csv") {
-    if (!register.spreadsheet) {
-      refuse("csv");
-    }
-    return { csv: register.csv(found.rows), period, said };
-  }
-  if (!register.prints) {
-    refuse("paper");
+    return { csv: register.csv(found.rows), period, kept };
   }
   return {
     text: register.paper(
@@ -288,7 +299,7 @@ const handOver = async (
       sayingIn(language)
     ),
     period,
-    said,
+    kept,
   };
 };
 
@@ -346,12 +357,13 @@ export const inspectorRouter = {
       })
     )
     .handler(async ({ context, input }) => {
+      assertCanBeGiven(input.register, input.format);
       assertRegistered(context.farm, "a register for an inspector");
       const language = await languageOf(context.db, context.actor.id);
       const handed = await handOver(context, input, language);
       await recordExport(context, input.register, handed.period, {
         format: input.format,
-        ...handed.said,
+        ...handed.kept,
       });
       // A CSV carries its period, so the file it is saved as can say what it covers.
       return input.format === "csv"

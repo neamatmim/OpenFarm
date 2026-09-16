@@ -113,7 +113,7 @@ export const DISEASE_HISTORY: Register<DiagnosisRow> = {
     },
     { paper: { bn: "পরিণতি", en: "Outcome", said: outcomeSaid } },
   ],
-  said: (rows) => ({
+  kept: (rows) => ({
     diagnoses: rows.length,
     notifiable: rows.filter((row) => row.notifiable).length,
   }),

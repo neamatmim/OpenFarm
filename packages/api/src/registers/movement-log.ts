@@ -199,5 +199,5 @@ export const MOVEMENT_LOG: Register<MovementRow> = {
     { csv: { header: "to", value: (row) => row.to } },
     { csv: { header: "recorded_by", value: (row) => row.recordedBy } },
   ],
-  said: (rows) => ({ movements: rows.length }),
+  kept: (rows) => ({ movements: rows.length }),
 };

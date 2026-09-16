@@ -10,7 +10,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { rowsOfRegister } from "../registers/all";
+import { rowsOfRegister } from "../registers/rows";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
 

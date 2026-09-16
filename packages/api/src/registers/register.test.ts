@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { REGISTERS } from "./all";
+import { DISEASE_HISTORY } from "./disease-history";
 import type { DeathRow } from "./mortality";
+import { MORTALITY_REGISTER } from "./mortality";
+import { MOVEMENT_LOG } from "./movement-log";
 import type { Register } from "./register";
 import { csvOf, hasCsv, paperOf, periodCovered, sayingIn } from "./register";
+import { TREATMENT_REGISTER } from "./treatment";
+import { VACCINATION_REGISTER } from "./vaccination";
 
 const FARM = {
   name: "সাভার ডেইরি",
@@ -33,9 +37,9 @@ const aDeath = (death: Partial<DeathRow> = {}): DeathRow => ({
   ...death,
 });
 
-/** A register of two columns, to say what the bench does with a declaration rather than what the mortality
- *  register happens to say. */
-const SPARE: Register<{ what: string; note: string | null }> = {
+/** A register of two columns, to say what the bench does with any declaration rather than what the mortality
+ *  register happens to say. Its name is borrowed — every Register has one and nothing here reads it. */
+const LEDGER: Register<{ what: string; note: string | null }> = {
   name: "movement_log",
   looksBack: { months: 0, days: -1 },
   read: () => Promise.resolve([]),
@@ -51,22 +55,22 @@ const SPARE: Register<{ what: string; note: string | null }> = {
       csv: { header: "note", value: (row) => row.note },
     },
   ],
-  said: (rows) => ({ lines: rows.length }),
+  kept: (rows) => ({ lines: rows.length }),
 };
 
 describe("a register's period", () => {
   it("looks back its own way when nobody names a first day, and ends today", () => {
     const now = new Date("2046-03-01T04:00:00.000Z");
 
-    expect(periodCovered(REGISTERS.mortality_register, {}, now)).toMatchObject({
+    expect(periodCovered(MORTALITY_REGISTER, {}, now)).toMatchObject({
       from: "2045-03-02",
       to: "2046-03-01",
     });
-    expect(periodCovered(REGISTERS.treatment_register, {}, now)).toMatchObject({
+    expect(periodCovered(TREATMENT_REGISTER, {}, now)).toMatchObject({
       from: "2046-01-31",
       to: "2046-03-01",
     });
-    expect(periodCovered(REGISTERS.disease_history, {}, now)).toMatchObject({
+    expect(periodCovered(DISEASE_HISTORY, {}, now)).toMatchObject({
       from: "2045-09-02",
       to: "2046-03-01",
     });
@@ -77,14 +81,14 @@ describe("a register's period", () => {
 
     expect(
       periodCovered(
-        REGISTERS.vaccination_register,
+        VACCINATION_REGISTER,
         { from: "2046-02-01", to: "2046-02-28" },
         now
       )
     ).toMatchObject({ from: "2046-02-01", to: "2046-02-28" });
     expect(() =>
       periodCovered(
-        REGISTERS.vaccination_register,
+        VACCINATION_REGISTER,
         { from: "2046-02-28", to: "2046-02-01" },
         now
       )
@@ -97,7 +101,7 @@ describe("a register as a paper", () => {
 
   it("heads each row and leaves out the lines that row has nothing for", () => {
     const paper = paperOf(
-      SPARE,
+      LEDGER,
       [
         { what: "one", note: "said" },
         { what: "two", note: null },
@@ -114,7 +118,7 @@ describe("a register as a paper", () => {
   it("says so in both languages when the period holds nothing", () => {
     expect(
       paperOf(
-        SPARE,
+        LEDGER,
         [],
         { from: "2046-02-01", to: "2046-02-28" },
         produced,
@@ -125,7 +129,7 @@ describe("a register as a paper", () => {
 
   it("writes the mortality register as the report set has it", () => {
     const paper = paperOf(
-      REGISTERS.mortality_register,
+      MORTALITY_REGISTER,
       [
         aDeath(),
         aDeath({
@@ -164,11 +168,26 @@ describe("a register as a paper", () => {
       ].join("\n")
     );
   });
+
+  it("leaves the DLS line out for a death with no reference, blank or missing", () => {
+    const written = (reportReference: string | null) =>
+      paperOf(
+        MORTALITY_REGISTER,
+        [aDeath({ reportReference })],
+        { from: "2046-02-01", to: "2046-02-28" },
+        produced,
+        saying
+      );
+
+    expect(written(null)).not.toContain("DLS reference");
+    expect(written("")).not.toContain("DLS reference");
+    expect(written("ULO/2046/০১২")).toContain("DLS reference: ULO/2046/০১২");
+  });
 });
 
 describe("a register as a CSV", () => {
   it("takes the columns a spreadsheet holds, in their own order", () => {
-    const sheet = csvOf(REGISTERS.mortality_register, [aDeath()]);
+    const sheet = csvOf(MORTALITY_REGISTER, [aDeath()]);
 
     expect(sheet.slice(1).trim().split("\r\n")).toEqual([
       "tag,date,kind,cause,disposal,disposal_note,dls_reference",
@@ -177,8 +196,8 @@ describe("a register as a CSV", () => {
   });
 
   it("is refused to a register whose columns are all the paper's", () => {
-    expect(hasCsv(REGISTERS.disease_history)).toBe(false);
-    expect(hasCsv(REGISTERS.mortality_register)).toBe(true);
-    expect(hasCsv(REGISTERS.movement_log)).toBe(true);
+    expect(hasCsv(DISEASE_HISTORY)).toBe(false);
+    expect(hasCsv(MORTALITY_REGISTER)).toBe(true);
+    expect(hasCsv(MOVEMENT_LOG)).toBe(true);
   });
 });

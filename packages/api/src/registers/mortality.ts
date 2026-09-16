@@ -111,12 +111,14 @@ export const MORTALITY_REGISTER: Register<DeathRow> = {
       paper: {
         bn: "ডিএলএস রেফারেন্স",
         en: "DLS reference",
-        said: (row) => row.reportReference,
+        // A death with nothing filed against it leaves the line out — as does one whose reference is blank,
+        // which is a reference nobody wrote.
+        said: (row) => row.reportReference || null,
       },
       csv: { header: "dls_reference", value: (row) => row.reportReference },
     },
   ],
-  said: (rows) => ({
+  kept: (rows) => ({
     deaths: rows.length,
     awaitingDisposal: rows.filter((row) => row.disposal === null).length,
   }),

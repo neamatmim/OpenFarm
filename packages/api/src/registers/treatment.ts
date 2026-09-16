@@ -169,5 +169,5 @@ export const TREATMENT_REGISTER: Register<TreatmentRow> = {
       csv: { header: "meat_withdrawal_ends", value: (row) => row.meatClearOn },
     },
   ],
-  said: (rows) => ({ doses: rows.length }),
+  kept: (rows) => ({ doses: rows.length }),
 };

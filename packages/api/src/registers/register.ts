@@ -74,7 +74,12 @@ export interface Register<Row> {
     range: { from: Date; until: Date }
   ) => Promise<Row[]>;
   /** How it prints: its title, what it says for a period holding nothing, and the line a row is headed by.
-   *  Null for the movement log, which is only ever a spreadsheet. */
+   *  Null for the movement log, which is only ever a spreadsheet.
+   *
+   *  The words are the paper's own, not the screen's, although the screen has its own for the same registers.
+   *  A paper the farm may have to produce years later should not be retitled by somebody rewording a heading
+   *  on a page. What a column *says* is a different matter: a Disposal or a Route is the farm's word for the
+   *  thing, and both read it from the same place. */
   paper: {
     title: { bn: string; en: string };
     none: { bn: string; en: string };
@@ -82,7 +87,7 @@ export interface Register<Row> {
   } | null;
   columns: Column<Row>[];
   /** What the Export keeps of what this register said, beside the period and the Registration number. */
-  said: (rows: Row[]) => Record<string, unknown>;
+  kept: (rows: Row[]) => Record<string, unknown>;
 }
 
 /** Nothing written where a name, a number or a date was expected, as every paper the farm hands over writes
