@@ -8,7 +8,7 @@ import { withdrawalEndsAt } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
-import type { HerArrival, HerPenSpell } from "./animal-record";
+import type { HerPenSpell } from "./animal-record";
 
 // How a paper says what her record holds. The record keeps dates and figures; a paper is read by a buyer or a
 // slaughter vet, in both languages, so the words are here rather than in the record every reader shares.
@@ -41,27 +41,30 @@ export const herWithdrawalWords = (
  *  brought her in was written — an animal bought before the farm kept records was bought all the same. */
 export const sourceWords = (her: {
   source: string;
-  arrival: HerArrival | null;
+  intake: { seller: { name: string } | null } | null;
 }): string => {
   if (her.source !== "bought") {
     return "খামারে জন্ম / born here";
   }
   // Bought, and the farm may or may not have written down from whom.
-  return her.arrival?.intake?.seller
-    ? `${her.arrival.intake.seller.name} থেকে কেনা / bought from`
+  return her.intake?.seller
+    ? `${her.intake.seller.name} থেকে কেনা / bought from`
     : "কেনা / bought";
 };
 
 /** Her age as the farm can say it: from her birth date if it knows one, and otherwise from what
  *  the seller said at Intake, which is a judgement and is labelled as one. */
 export const ageWords = (
-  her: { birthDate: Date | null; arrival: HerArrival | null },
+  her: {
+    birthDate: Date | null;
+    intake: { estimatedAgeMonths: number } | null;
+  },
   language: Language
 ): string | null => {
   if (her.birthDate) {
     return formatDate(her.birthDate, language, "date");
   }
-  const intake = her.arrival?.intake;
+  const { intake } = her;
   return intake
     ? `আনুমানিক ${formatNumber(intake.estimatedAgeMonths, language)} মাস (আসার সময়) / estimated at intake`
     : null;

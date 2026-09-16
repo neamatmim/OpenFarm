@@ -112,17 +112,24 @@ export const isOnTheirCase = (scope: Scope, animalId: string): boolean =>
 
 /**
  * Whether what the Vet concluded is theirs to read: the Diagnoses on her page, the Prescriptions that followed,
- * what she is said to have died of.
+ * and what she is said to have died of.
  *
  * Barn Staff record what they see and give the doses they are told to give; the conclusions drawn from them are
  * not theirs (roles matrix: Staff read treatment instances only). They still read the round's own Observations —
- * what somebody saw is not a conclusion — and Barn Staff who are also the visiting Vet on her Case read what a
- * Vet reads.
+ * what somebody saw is not a conclusion, and neither is the cause the farm wrote down when she died — and Barn
+ * Staff who are also the visiting Vet on her Case read what a Vet reads.
+ *
+ * Named Roles rather than "not Staff": a request holding no Role at all is nobody, and nobody reads a Vet's
+ * conclusions.
  */
 export const readsTheClinicalRecord = (
   who: { roleUsed: RoleName | null; scope: Scope },
   animalId: string
-): boolean => who.roleUsed !== "staff" || isOnTheirCase(who.scope, animalId);
+): boolean =>
+  who.roleUsed === "owner" ||
+  who.roleUsed === "manager" ||
+  who.roleUsed === "vet" ||
+  (who.roleUsed === "staff" && isOnTheirCase(who.scope, animalId));
 
 /**
  * Whether what she cost and what she fetched are theirs to read.

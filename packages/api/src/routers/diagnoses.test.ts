@@ -116,6 +116,45 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     });
   });
 
+  it("does not tell Barn Staff what she is said to have died of", async () => {
+    const clock = new FakeClock("2028-05-09T02:00:00.000Z");
+    const { cow, seen } = await aLameCow(clock);
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    const made = await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      answers: seen.id,
+      disease: { bn: "ক্ষুরা রোগ" },
+    });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.animals.recordMortality({
+      tagNumber: cow.tagNumber,
+      kind: "died",
+      cause: "হঠাৎ মরে গেছে",
+      disposal: "buried",
+      diagnosisId: made.id,
+    });
+
+    const staff = await createTestClient(appRouter, { as: "staff", clock });
+    const theirs = await staff.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+    const hers = await manager.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+
+    // What the farm wrote down when she died is everybody's; the Vet's conclusion about what it was is the
+    // clinical record, and Barn Staff read treatment instances only (roles matrix).
+    expect(theirs.mortality).toMatchObject({
+      cause: "হঠাৎ মরে গেছে",
+      disease: null,
+      reportReference: null,
+    });
+    expect(hers.mortality).toMatchObject({
+      cause: "হঠাৎ মরে গেছে",
+      disease: "ক্ষুরা রোগ",
+    });
+  });
+
   it("refuses everybody else, and says why rather than only no", async () => {
     const clock = new FakeClock("2028-05-02T02:00:00.000Z");
     const { cow, seen } = await aLameCow(clock);

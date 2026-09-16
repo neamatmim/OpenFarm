@@ -69,10 +69,10 @@ describe("her record", () => {
     });
 
     const her = await recordOf(taken.tagNumber, LATER);
-    expect(her.arrival).toMatchObject({
-      how: "bought",
-      at: new Date(AT),
-      intake: { estimatedAgeMonths: 20, seller: { name: `বেপারী ${suffix}` } },
+    expect(her.arrival).toMatchObject({ how: "bought", at: new Date(AT) });
+    expect(her.intake).toMatchObject({
+      estimatedAgeMonths: 20,
+      seller: { name: `বেপারী ${suffix}` },
     });
     expect(her.exit).toBeNull();
     // Oldest first, the last one still open: she is standing in it.
@@ -142,14 +142,18 @@ describe("her record", () => {
     expect(her.exit).toMatchObject({
       how: "culled",
       at: new Date(LATER),
-      death: { kind: "culled", cause: "বারবার ওলান প্রদাহ", disposal: "buried" },
-      sale: null,
     });
+    expect(her.mortality).toMatchObject({
+      kind: "culled",
+      cause: "বারবার ওলান প্রদাহ",
+      disposal: "buried",
+    });
+    expect(her.sale).toBeNull();
     // A paper asked for after she has gone never says she stands in a Pen still.
     expect(her.penSpells.at(-1)?.until).toEqual(new Date(LATER));
     // And who wrote it down, which her page shows beside how she went.
-    expect(her.exit?.death?.recorder?.name).toBeTruthy();
-    expect(her.exit?.death?.disposalNote).toBeNull();
+    expect(her.mortality?.recorder?.name).toBeTruthy();
+    expect(her.mortality?.disposalNote).toBeNull();
   });
 
   it("reads deep enough for her page: both ends of a Move, and the work that walked her", async () => {

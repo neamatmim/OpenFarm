@@ -1,11 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import type {
-  Arrival,
-  Disposal,
-  Exit,
-  MortalityKind,
-  PenSpellOf,
-} from "@OpenFarm/domain";
+import type { PenSpellOf } from "@OpenFarm/domain";
 import {
   arrivalOf,
   daysOnFeedOf,
@@ -37,26 +31,6 @@ const PAPER_DEPTH = { moves: 40, doses: 200, weighIns: 52 } as const;
 
 /** Where she stood, by the Pen's name. */
 export type HerPenSpell = PenSpellOf<{ name: string }>;
-
-/** How she came to be here, with what the Intake recorded of it for an animal the farm bought. */
-export type HerArrival = Arrival & {
-  intake: {
-    arrivedAt: Date;
-    estimatedAgeMonths: number;
-    seller: { name: string } | null;
-  } | null;
-};
-
-/** How she left, with what belongs to that way of going: who took her and where she went, or what she died of
- *  and what was done with her. */
-export type HerExit = Exit & {
-  sale: { destination: string | null; buyer: { name: string } | null } | null;
-  death: {
-    kind: MortalityKind;
-    cause: string;
-    disposal: Disposal | null;
-  } | null;
-};
 
 /**
  * Everything the farm's record says about one animal, whether she is standing in the shed or gone: what she is,
@@ -187,10 +161,18 @@ export const herRecord = async (
         dose.givenAt === null ? [] : [{ ...dose, givenAt: dose.givenAt }]
       ),
     weighIns: her.weighIns.slice(0, depth.weighIns),
-    /** How she came to be on the farm, and what the Intake said of it. */
-    arrival: arrival && { ...arrival, intake: intake ?? null },
+    /** How she came to be on the farm. */
+    arrival,
     /** How she left, or nothing while she is still here. */
-    exit: exit && { ...exit, sale: sale ?? null, death: mortality ?? null },
+    exit,
+    /** What the farm bought her at and from whom; nothing for one born here. Kept beside how she arrived
+     *  rather than inside it: an Intake is a row the farm wrote, and a reader of it should not have to go
+     *  through a fact worked out from her Moves to reach one. */
+    intake: intake ?? null,
+    /** What she fetched and who took her; nothing while she is here. */
+    sale: sale ?? null,
+    /** How she died or was culled, what was done with her, and who wrote it down. */
+    mortality: mortality ?? null,
     /** Where she stood, oldest first, her last spell ending when she left. */
     penSpells: penSpellsOf(moves, exit?.at ?? null),
     /** How long a bought-in animal has been on the farm being fed; null for one born here. */
