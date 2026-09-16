@@ -292,6 +292,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **PIN Switch**: A Staff member making themselves the active user on a Shed Phone with their 4-digit PIN. Works offline; every entry is attributed to the active user, never to the phone. _Avoid_: Login (that's the device session), shared account
 
+**Switch Token**: What the farm gives a person for one stint on a Shed Phone when it has seen their PIN, and what an Entry recorded during that stint carries to prove whose work it is. Kept only until the Entry is sent; never written into a record anybody can read, because a proof anybody can read is a proof anybody can use. _Avoid_: Session token (that's the device's), password, key
+
 **Coach Overlay**: The one-time in-app hint shown the first time a person meets a screen type. Dismissable; re-openable from help. _Avoid_: Tutorial, tour, onboarding flow
 
 **SOP Card**: The one-page Bangla print/in-app sheet generated from a published SOP Version: name, steps, icons, evidence. The training material. _Avoid_: Manual, guide, cheat-sheet

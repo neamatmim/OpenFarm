@@ -36,26 +36,24 @@ const farm: Transport = {
  * the token of the stint it was given for, a PIN the farm refused, or one a tab on this phone still holds — which
  * the Batch waits for rather than sending the work under nobody.
  */
-const proofsWorth = async (
+const settleProofs = async (
   refs: readonly string[]
 ): Promise<Map<string, ProofSettled>> => {
   if (getDeviceToken()) {
     await proveHeldSwitches();
   }
-  const worth = new Map<string, ProofSettled>();
+  const settled = new Map<string, ProofSettled>();
   for (const ref of refs) {
     // Sequential: settling a proof is one answer for the whole phone at a time, and these are a handful of PINs.
     // oxlint-disable-next-line no-await-in-loop
     const { token, waiting } = await tokenForProof(ref);
-    let answer: ProofSettled = "refused";
     if (waiting) {
-      answer = "waiting";
-    } else if (token) {
-      answer = { token };
+      settled.set(ref, "waiting");
+      continue;
     }
-    worth.set(ref, answer);
+    settled.set(ref, token ? { token } : "refused");
   }
-  return worth;
+  return settled;
 };
 
 /** How many times a batch is offered before its entries are handed back to the person. A
@@ -87,7 +85,7 @@ export const phoneOutbox = (): Outbox | null => {
         ? (getActiveUser()?.userId ?? null)
         : getSignedInPerson(),
     proofOf: () => (getDeviceToken() ? currentProof() : null),
-    proofs: proofsWorth,
+    settleProofs,
   });
   return outbox;
 };
