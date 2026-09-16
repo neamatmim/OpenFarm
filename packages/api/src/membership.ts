@@ -15,7 +15,12 @@ import { and, eq, gt, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ROLE, invite, roleAssignment } from "@OpenFarm/db/schema/farm";
+import {
+  ACTIVE_ROLE,
+  invite,
+  passwordCode,
+  roleAssignment,
+} from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
 import {
   derivePinHash,
@@ -711,4 +716,89 @@ export const theRoster = async (
         ]
       : [];
   });
+};
+
+/** How long a password code is worth reading out. Long enough for somebody to walk back to the shed and sit
+ *  down with it, short enough that a code overheard yesterday is no longer a way in. */
+const CODE_LASTS = 24 * 60 * 60 * 1000;
+
+/** A one-time code for somebody who cannot sign in, and what the farm keeps of it. Worked out before the
+ *  transaction, like a PIN and an invitation's code, because hashing is deliberately slow. */
+export const newPasswordCode = async (
+  now: Date
+): Promise<{ code: string; codeHash: string; expiresAt: Date }> => ({
+  ...(await newInviteCode()),
+  expiresAt: new Date(now.getTime() + CODE_LASTS),
+});
+
+/**
+ * Writes down the one code that will let this person set a password.
+ *
+ * One per person: issuing a second puts the first out of use, because two ways in is one more than anybody
+ * asked for. Only the hash is kept, so nobody — the Owner included — can read a code back out of the farm's
+ * records after it has been read out once.
+ */
+export const writePasswordCode = async (
+  tx: Tx,
+  farmId: string,
+  userId: string,
+  minted: { codeHash: string; expiresAt: Date },
+  by: Acting,
+  now: Date
+): Promise<void> => {
+  const held = await rolesOf(tx, farmId, userId);
+  if (held.length === 0) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "That person is not on this farm",
+    });
+  }
+  const values = {
+    farmId,
+    userId,
+    codeHash: minted.codeHash,
+    expiresAt: minted.expiresAt,
+    usedAt: null,
+    issuedBy: by.id,
+    issuedByRole: by.role,
+    createdAt: now,
+  };
+  await tx
+    .insert(passwordCode)
+    .values({ id: uuidv7(now), ...values })
+    .onConflictDoUpdate({ target: [passwordCode.userId], set: values });
+};
+
+/**
+ * Takes the code back off somebody, and says who they are.
+ *
+ * Nothing for a code this farm is not holding, one that has been used, or one that has gone stale — each is a
+ * wrong guess for the caller to count rather than a different answer to give somebody guessing.
+ */
+export const spendPasswordCode = async (
+  tx: Tx,
+  farmId: string,
+  given: { email: string; codeHash: string },
+  now: Date
+): Promise<{ id: string; name: string } | null> => {
+  const person = await tx.query.user.findFirst({
+    where: { email: given.email.toLowerCase() },
+    columns: { id: true, name: true, disabledAt: true },
+  });
+  if (!person || person.disabledAt) {
+    return null;
+  }
+  const [spent] = await tx
+    .update(passwordCode)
+    .set({ usedAt: now })
+    .where(
+      and(
+        eq(passwordCode.farmId, farmId),
+        eq(passwordCode.userId, person.id),
+        eq(passwordCode.codeHash, given.codeHash),
+        isNull(passwordCode.usedAt),
+        gt(passwordCode.expiresAt, now)
+      )
+    )
+    .returning({ id: passwordCode.id });
+  return spent ? { id: person.id, name: person.name } : null;
 };

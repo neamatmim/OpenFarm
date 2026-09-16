@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import type { Database } from "@OpenFarm/db";
 import { createDb } from "@OpenFarm/db";
 import * as schema from "@OpenFarm/db/schema/auth";
@@ -43,6 +45,15 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
   });
 
 /** The farm's own auth. Given a database for a test to run it against a scratch one; the farm's otherwise. */
+/**
+ * Where a reset token is caught on its way out.
+ *
+ * Better Auth mints the token and hands it to whoever would send it, which for most farms is an email. This
+ * one has no email it can rely on reaching a milker, so the token is caught here instead and spent in the same
+ * request that asked for it — it is never written down, never sent, and never leaves the server.
+ */
+const catching = new AsyncLocalStorage<{ token?: string }>();
+
 export const createAuth = (against?: Database) => {
   const db = against ?? createDb(env.DATABASE_URL);
 
@@ -65,6 +76,16 @@ export const createAuth = (against?: Database) => {
     trustedOrigins: [env.BETTER_AUTH_URL],
     emailAndPassword: {
       enabled: true,
+      // A password set in the shed is a good moment to turn out whoever is still signed in as them.
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: ({ token }) => {
+        const caught = catching.getStore();
+        if (caught) {
+          caught.token = token;
+        }
+        // Nobody waiting for it is nobody asking: the farm does not email these, so there is nothing to send.
+        return Promise.resolve();
+      },
     },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
@@ -74,3 +95,27 @@ export const createAuth = (against?: Database) => {
 };
 
 export const auth = createAuth();
+
+/**
+ * Sets somebody's password when they cannot sign in to change it themselves — the farm having handed them a
+ * one-time code and taken it back off them.
+ *
+ * Better Auth does the whole of it: minting the token, checking it, hashing the password, and turning out the
+ * sessions that were signed in as them. Nothing here holds a password, and nothing here hashes one.
+ */
+export const setPasswordFor = async (
+  which: ReturnType<typeof createAuth>,
+  email: string,
+  newPassword: string
+): Promise<boolean> => {
+  const caught: { token?: string } = {};
+  await catching.run(caught, () =>
+    which.api.requestPasswordReset({ body: { email } })
+  );
+  const { token } = caught;
+  if (!token) {
+    return false;
+  }
+  await which.api.resetPassword({ body: { token, newPassword } });
+  return true;
+};

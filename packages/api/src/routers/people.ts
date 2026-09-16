@@ -1,3 +1,4 @@
+import { auth, setPasswordFor } from "@OpenFarm/auth";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
@@ -28,12 +29,15 @@ import {
   rolesOf,
   setPens,
   setPin,
+  newPasswordCode,
   setRoles,
   signOutOf,
   signedInOn,
+  spendPasswordCode,
   theRoster,
   whoTheyAre,
   writeInvite,
+  writePasswordCode,
 } from "../membership";
 import { requirePersonalSession, requireRole } from "../roles";
 import { scopesOf } from "../scope";
@@ -542,6 +546,90 @@ export const peopleRouter = {
         (tx) => setPin(tx, context.farm.id, input.userId, credential, by, now)
       );
       return { userId: input.userId, pinSet: true };
+    }),
+
+  /**
+   * A one-time code for somebody who has forgotten their password, read out to them in person.
+   *
+   * The farm cannot set a password for them: a password somebody else has seen is a password that signs work
+   * in their name. So it hands them a code, takes it back, and lets them choose their own — the same way an
+   * invitation is handed over, and for the same reason.
+   */
+  newPasswordCode: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ userId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const by = { id: context.actor.id, role: context.roleUsed };
+      const minted = await newPasswordCode(now);
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: input.userId,
+          action: "update",
+          after: { passwordCodeIssued: true, expiresAt: minted.expiresAt },
+        },
+        (tx) =>
+          writePasswordCode(tx, context.farm.id, input.userId, minted, by, now)
+      );
+      // Shown once, to whoever is standing with them; the farm keeps only its hash.
+      return { userId: input.userId, code: minted.code };
+    }),
+
+  /**
+   * Setting a password with that code, which is done signed out: somebody who has forgotten theirs cannot sign
+   * in to change it.
+   *
+   * The code is the whole of what proves who is asking, so it is spent on the first try that works and a wrong
+   * one is counted — enough of them and the farm stops answering for fifteen minutes. The password is Better
+   * Auth's to take from here: it mints the token, it hashes what they chose, and it turns out whoever is still
+   * signed in as them.
+   */
+  setPasswordWithCode: publicProcedure
+    .input(
+      z.object({
+        email: z.email().trim().toLowerCase(),
+        code: z.string().trim().min(4).max(32),
+        newPassword: z.string().min(8).max(128),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm?.id;
+      if (!farmId) {
+        throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+      }
+      const now = context.clock.now();
+      const guesses = `password-code:${input.email}`;
+      if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
+        throw new ORPCError("TOO_MANY_REQUESTS", {
+          message: "Too many wrong codes — wait fifteen minutes",
+        });
+      }
+      const codeHash = await hashToken(input.code.toUpperCase());
+      let them: { id: string; name: string } | null = null;
+      await context.db.transaction(async (tx) => {
+        them = await spendPasswordCode(tx, farmId, { ...input, codeHash }, now);
+        if (!them) {
+          countFailure(guesses, now, CODE_ATTEMPTS);
+          throw new ORPCError("NOT_FOUND", {
+            message: "That code is not right",
+          });
+        }
+        // The trail names them, not whoever issued the code: it is their password and they chose it.
+        await audited({ ...context, actor: them }, farmId).recordEvent(
+          tx,
+          {
+            entity: "user",
+            entityId: them.id,
+            action: "update",
+            after: { passwordSet: true },
+          },
+          { receivedAt: now }
+        );
+      });
+      await setPasswordFor(auth, input.email, input.newPassword);
+      return { ok: true } as const;
     }),
 
   /**

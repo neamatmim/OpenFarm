@@ -143,6 +143,39 @@ export const roleAssignment = pgTable(
 /** The one definition of "a Role that counts": not revoked. Use in relational `where`s. */
 export const ACTIVE_ROLE = { revokedAt: { isNull: true } } as const;
 
+/**
+ * A one-time code that lets somebody who has forgotten their password set a new one.
+ *
+ * Issued by whoever runs the farm and read out in person, because the people who need it are standing in the
+ * same shed — and the farm has no email it can rely on reaching a milker. Only the hash is kept, as with an
+ * invite's code, so a code cannot be read back out of the farm's own records; and only one is live per person,
+ * because issuing a second should put the first out of use rather than leave two ways in.
+ *
+ * The password itself is never here. The code proves who is asking; Better Auth sets the password.
+ */
+export const passwordCode = pgTable(
+  "password_code",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    issuedBy: text("issued_by")
+      .notNull()
+      .references(() => user.id),
+    issuedByRole: text("issued_by_role", { enum: ROLES }).notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    /** When it was used, after which it is not a way in any more. */
+    usedAt: timestamp("used_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("password_code_user_uidx").on(table.userId)]
+);
+
 export const INVITE_STATUSES = ["pending", "approved", "revoked"] as const;
 
 /** A person invited to the Farm with Roles to be granted when the invite is approved and
