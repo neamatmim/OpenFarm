@@ -208,7 +208,7 @@ describe("money from the farm's records", () => {
       expect.objectContaining({ amountBdt: 25_000, approval: "not_needed" }),
     ]);
 
-    // Retired, so a Stock Count on another file's clock does not find a lorry from 2037 in the store.
+    // Retired, so a Stock Count later in this file does not find a lorry from 2037 still in the store.
     await manager.client.feed.retireItem({ id: feed.id });
   });
 

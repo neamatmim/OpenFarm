@@ -11,8 +11,8 @@ import { createTestClient } from "./test/client";
 // Who hears each kind of Notice, and what raising one writes. The audience is the kind's to say, so these are about the
 // table rather than about any one raiser: a kind with nobody to tell it to is a notice nobody ever gets.
 //
-// The farm is shared with every other test file, and those files hire people of their own, so each test asks whether
-// the right sort of person was told and the wrong sort was not — never who the whole farm is.
+// Each test asks whether the right sort of person was told and the wrong sort was not: who hears a kind of Notice is
+// the kind's to say, and a farm may have two Managers.
 
 const suffix = `${Date.now()}`;
 const AT = "2044-03-02T04:00:00.000Z";

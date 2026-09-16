@@ -159,10 +159,9 @@ const doneWork = async (day: string) => {
 };
 
 /**
- * Sweeps until the farm has nothing new to say. One sweep raises notices in batches, and
- * this database is shared with every other test file's open work, so a single sweep is not
- * guaranteed to have reached this test's own Instance. Catching up first is what a real
- * farm's second and third app-open do anyway.
+ * Sweeps until the farm has nothing new to say. One sweep raises notices in batches, so a single sweep is not
+ * guaranteed to have reached this test's own Instance when the file has left other work open. Catching up first is
+ * what a real farm's second and third app-open do anyway.
  */
 const sweepUntilQuiet = async (client: {
   alerts: { sweep: () => Promise<{ overdue: number; escalated: number }> };
@@ -211,9 +210,8 @@ describe("going late", () => {
     await sweepUntilQuiet(manager);
     await manager.alerts.sweep();
 
-    // Asked about this Instance rather than farm-wide: other test files share this database
-    // and leave their own work open, so an unfiltered inbox is a list about them. Sweeping
-    // again must still leave exactly one notice each.
+    // Asked about this Instance rather than farm-wide: this file leaves other work of its own open, so an
+    // unfiltered inbox is a list about that too. Sweeping again must still leave exactly one notice each.
     for (const inbox of [
       await manager.alerts.mine({ entityId: instance.id }),
       await staff.alerts.mine({ entityId: instance.id }),

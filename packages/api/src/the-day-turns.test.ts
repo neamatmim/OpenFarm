@@ -13,15 +13,8 @@ import { theDayTurns } from "./the-day-turns";
 // too whenever anybody opens it.
 
 const suffix = `${Date.now()}`;
-/**
- * Half past eight in the morning in Dhaka, in a year before every other test file's days.
- *
- * A sweep is the whole farm's, not this file's: it moves the farm's own watermark to the moment it swept, and the farm
- * is shared with every other test file. Turning the day in a year *after* theirs would step the watermark past their
- * work and leave their sweeps with nothing to find — so this file works in a year before anybody, as the schedule's
- * own test does.
- */
-const MORNING = "2019-05-04T02:30:00.000Z";
+/** Half past eight in the morning in Dhaka, on this farm's own day. */
+const MORNING = "2049-05-04T02:30:00.000Z";
 
 const everyMorningSop = (): SopContent => ({
   name: { bn: `সকালের কাজ ${suffix}`, en: `Morning ${suffix}` },
@@ -89,12 +82,12 @@ beforeAll(async () => {
 describe("the day turning", () => {
   it("raises the day's work once, however often the day is turned", async () => {
     // Half past eight: the eight o'clock round is due.
-    const first = await turnTheDay("2019-05-04T02:30:00.000Z");
+    const first = await turnTheDay("2049-05-04T02:30:00.000Z");
     expect(first.workRaised).toBeGreaterThan(0);
     expect(first.wentWrong).toEqual([]);
 
     // A minute later, because somebody opened the app: the same slot is not raised twice.
-    const again = await turnTheDay("2019-05-04T02:31:00.000Z");
+    const again = await turnTheDay("2049-05-04T02:31:00.000Z");
     expect(again.workRaised).toBe(0);
     expect(again.wentWrong).toEqual([]);
 
@@ -108,7 +101,7 @@ describe("the day turning", () => {
 
   it("carries no post while the farm is asleep", async () => {
     // Half past midnight on the farm's clock: quiet hours, so nothing buzzes whoever is awake.
-    const night = await turnTheDay("2019-05-04T18:30:00.000Z");
+    const night = await turnTheDay("2049-05-04T18:30:00.000Z");
     expect(night.toldTheDigest).toBe(0);
     expect(night.wentWrong).toEqual([]);
   });
@@ -116,7 +109,7 @@ describe("the day turning", () => {
   it("turns the rest of the day when the first piece of it fails", async () => {
     const context = await buildContext({
       session: null,
-      clock: new FakeClock("2019-05-11T02:30:00.000Z"),
+      clock: new FakeClock("2049-05-11T02:30:00.000Z"),
       db: scratchDb(),
     farmId: theFarm().id,
   });

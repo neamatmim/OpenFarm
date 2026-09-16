@@ -190,7 +190,7 @@ const KINDS: Kind[] = [
         seller: { name: `খড়ের দোকান ${suffix}` },
         receivedOn: "2039-03-01",
       });
-      // Retired at once: a Stock Count on another file's clock must not find this lot in the store.
+      // Retired at once: a Stock Count later in this file must not find this lot still in the store.
       await manager.feed.retireItem({ id: feed.id });
       return {
         id: made.id,
@@ -326,7 +326,7 @@ const KINDS: Kind[] = [
         definitionId: sop.definitionId,
         penId,
       });
-      // Retired once raised: another file's clock must not find this procedure due in every Pen.
+      // Retired once raised: a later test in this file must not find this procedure due in every Pen.
       await scratchDb()
         .update(sopDefinition)
         .set({ retiredAt: new Date(RECORDED) })

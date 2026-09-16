@@ -46,9 +46,8 @@ describe("the farm's schedule, on the server", () => {
     });
     const sop = await owner.sops.create({ content: roundSop() });
 
-    // Six in the morning in Dhaka on a day nobody has touched — and before every other test file's days, so the
-    // sweep that comes with it makes nobody else's work late on the shared farm.
-    const clock = new FakeClock("2021-05-10T00:00:00.000Z");
+    // Six in the morning in Dhaka, on this farm's own day.
+    const clock = new FakeClock("2027-05-10T00:00:00.000Z");
     const ran = await runTheSchedule({ db: scratchDb(), clock, farmId: theFarm().id });
 
     expect(ran.ok).toBe(true);

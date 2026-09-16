@@ -8,15 +8,10 @@ export default defineConfig({
     /**
      * One file at a time.
      *
-     * Every test here runs against one real database holding one Farm — which is the point:
-     * the rules being tested are rules about a farm, and a fake would not test them. But a
-     * farm has farm-wide state, and two files running at once fight over it: one tunes the
-     * escalation window while another is timing an escalation, one sweeps the Alert
-     * watermark into a fake year another is working in, one takes the Tag Number a third
-     * expected. Those were real flakes, and none of them were bugs in the farm.
-     *
-     * The suite takes longer and says the same thing every time, which is the trade worth
-     * making for tests anyone is meant to believe.
+     * Every test here runs against a real database — which is the point: the rules being tested are rules about a
+     * farm, and a fake would not test them. Each file now works on a Farm of its own, so files no longer fight over
+     * one farm's state; what they still share is the database itself, and turning them loose on it together is a
+     * change to make on its own, with the suite watched for flakes rather than alongside everything else.
      */
     fileParallelism: false,
     testTimeout: 30_000,
