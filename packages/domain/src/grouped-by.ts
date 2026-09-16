@@ -1,0 +1,17 @@
+/** Things gathered under the key each belongs to. */
+export const groupedBy = <T>(
+  items: readonly T[],
+  keyOf: (item: T) => string
+): Map<string, T[]> => {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    const group = groups.get(key);
+    if (group) {
+      group.push(item);
+    } else {
+      groups.set(key, [item]);
+    }
+  }
+  return groups;
+};

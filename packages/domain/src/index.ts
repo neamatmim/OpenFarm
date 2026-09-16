@@ -290,7 +290,6 @@ export type {
   Costs,
   FeedShare,
   FeedingToCost,
-  PenHistoryLine,
   UnallocatedFeeding,
 } from "./costs";
 export {
@@ -299,12 +298,25 @@ export {
   costPerLitreOf,
   dosePriceOf,
   feedShares,
-  groupedBy,
   marginOf,
-  penHistoryOf,
   roundedCosts,
-  sidesOverTime,
 } from "./costs";
+export { groupedBy } from "./grouped-by";
+export type {
+  Arrival,
+  ArrivalKind,
+  Exit,
+  PenHistoryLine,
+  PenSpellOf,
+} from "./pen-history";
+export {
+  ARRIVALS,
+  arrivalOf,
+  exitOf,
+  penHistoryOf,
+  penSpellsOf,
+  sidesOverTime,
+} from "./pen-history";
 export type {
   InAndOut,
   MoneySummary,
