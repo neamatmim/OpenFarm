@@ -39,6 +39,7 @@ import {
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { words } from "@/lib/correcting";
 import { useInFlight } from "@/lib/in-flight";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const roleKey = (role: RoleName) => `role.${role}` as const;
@@ -344,8 +345,7 @@ const VisitControls = ({
   const [day, setDay] = useState(lastDay);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.people.key() });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
   const extend = useMutation(
     orpc.vetCases.setVisitUntil.mutationOptions({
       onSuccess: async () => {

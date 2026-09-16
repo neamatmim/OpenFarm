@@ -11,6 +11,7 @@ import { Certificate } from "@/components/certificate";
 import { FarmParameters } from "@/components/farm-parameters";
 import { Page, PageHeader } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -45,7 +46,7 @@ const IdentityPage = () => {
         setDraft(null);
         queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

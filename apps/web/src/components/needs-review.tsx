@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { EmptyState, Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** Every reason has something to say, typed by the reason rather than by string, so a new
@@ -42,8 +43,7 @@ export const NeedsReview = () => {
         void queryClient.invalidateQueries({ queryKey: orpc.review.key() });
         void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
       },
-      onError: (error: Error) =>
-        toast.error(error.message || t("common.error")),
+      onError: (error: Error) => toast.error(sayWhy(error, t)),
     })
   );
 

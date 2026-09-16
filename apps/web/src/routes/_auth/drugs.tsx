@@ -15,6 +15,7 @@ import { EmptyState, Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** Why a product may not be prescribed, in the reader's words. Typed by the reason, so a
@@ -52,19 +53,19 @@ const DrugsPage = () => {
         setName("");
         refresh();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const retire = useMutation(
     orpc.drugs.retire.mutationOptions({
       onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const bringBack = useMutation(
     orpc.drugs.bringBack.mutationOptions({
       onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -307,13 +308,13 @@ const Product = ({
   const save = useMutation(
     orpc.drugs.setWithdrawal.mutationOptions({
       onSuccess: onChanged,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const markVaccine = useMutation(
     orpc.drugs.markVaccine.mutationOptions({
       onSuccess: onChanged,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

@@ -21,6 +21,7 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { hoursLate } from "@/lib/lateness";
+import { sayWhy } from "@/lib/saying";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -48,8 +49,7 @@ const SignOffPage = () => {
     void queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
     void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
   };
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
   const inFlight = useInFlight();
   const tracked = {
     onMutate: ({ id }: { id: string }) => inFlight.start(id),

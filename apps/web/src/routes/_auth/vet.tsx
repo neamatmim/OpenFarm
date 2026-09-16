@@ -22,10 +22,8 @@ import { RepeatBreeder } from "@/components/repeat-breeder";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { bilingual, note as writtenNote } from "@/lib/correcting";
-import {
-  correctionRefusalMessage,
-  wordedRefusal,
-} from "@/lib/correction-refusal";
+import { wordedRefusal } from "@/lib/correction-refusal";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** What the Vet types either way: the disease, and what they found. */
@@ -280,25 +278,10 @@ const REFUSALS: Record<string, MessageKey> = {
   no_treatment_sop: "prescribe.noTreatmentSop",
 };
 
-const reasonGiven = (error: unknown): string | null => {
-  const refusal = (error as { data?: { refusal?: unknown } })?.data?.refusal;
-  return typeof refusal === "string" ? refusal : null;
-};
-
-/** The refusal in the reader's own language where the server gave the facts to say it with,
- *  and the server's own words only when it did not. */
+/** The refusal in the reader's own language: this screen's own words for what only it meets, then the farm's. */
 const useRefusal = () => {
   const t = useT();
-  return (error: Error) => {
-    const named = REFUSALS[reasonGiven(error) ?? ""];
-    toast.error(
-      named
-        ? t(named)
-        : (correctionRefusalMessage(error, t) ??
-            error.message ??
-            t("common.error"))
-    );
-  };
+  return (error: Error) => toast.error(sayWhy(error, t, REFUSALS));
 };
 
 /** The disease and what was found — the two fields a Diagnosis is, wherever it is typed. */

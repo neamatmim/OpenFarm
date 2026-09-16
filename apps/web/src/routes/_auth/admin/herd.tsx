@@ -28,6 +28,7 @@ import {
 } from "@/components/page";
 import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** A new name for a Shed or a Pen. The old one stays in the audit trail; the animals in it do not move. */
@@ -82,7 +83,7 @@ const Rename = ({
               await onRename(name.trim());
               done = true;
             } catch (error) {
-              toast.error((error as Error).message || t("common.error"));
+              toast.error(sayWhy(error, t));
             }
             setSaving(false);
             setOpen(!done);
@@ -124,8 +125,7 @@ const HerdPage = () => {
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.herd.key() });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
 
   const createShed = useMutation(
     orpc.herd.createShed.mutationOptions({

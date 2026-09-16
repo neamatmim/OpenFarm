@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { EmptyState, Page, PageHeader } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const DevicesPage = () => {
@@ -23,8 +24,7 @@ const DevicesPage = () => {
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.devices.key() });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
 
   const enrol = useMutation(
     orpc.devices.enrol.mutationOptions({

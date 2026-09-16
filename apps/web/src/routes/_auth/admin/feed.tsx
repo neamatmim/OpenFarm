@@ -19,6 +19,7 @@ import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { day, figure } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 interface RationRow {
@@ -72,7 +73,7 @@ const FeedPage = () => {
   const assign = useMutation(
     orpc.feed.assignRation.mutationOptions({
       onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -250,13 +251,13 @@ const FeedItems = ({
         setEnglish("");
         onChanged();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const retireItem = useMutation(
     orpc.feed.retireItem.mutationOptions({
       onSuccess: onChanged,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -365,7 +366,7 @@ const RationForm = ({
   const save = useMutation(
     orpc.feed.saveRation.mutationOptions({
       onSuccess: onSaved,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -627,7 +628,7 @@ const LowStockAt = ({
           queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
           queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
         ]),
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   return (

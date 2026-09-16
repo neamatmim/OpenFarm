@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Page, PageHeader, Section, StickyAction } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** What a photograph may weigh before the farm refuses it, as `animals.setPhoto` counts it. */
@@ -89,7 +90,7 @@ const IntakePage = () => {
           params: { tagNumber: taken.tagNumber },
         });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

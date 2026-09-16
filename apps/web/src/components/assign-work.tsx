@@ -8,6 +8,7 @@ import { useId } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const SELECT =
@@ -49,7 +50,7 @@ export const AssignWork = ({
         toast.success(t("work.assigned"));
         await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

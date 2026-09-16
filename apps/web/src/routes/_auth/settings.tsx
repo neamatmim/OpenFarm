@@ -15,6 +15,7 @@ import {
   currentListener,
   stopBeingTold,
 } from "@/lib/push";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -42,8 +43,7 @@ const SettingsPage = () => {
   });
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["push", "listening"] });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
 
   const listen = useMutation(
     orpc.push.listen.mutationOptions({ onSuccess: refresh, onError })
@@ -139,7 +139,7 @@ const MyNumber = () => {
         toast.success(t("sms.saved"));
         void queryClient.invalidateQueries({ queryKey: orpc.people.key() });
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const mine = phone ?? me.data?.phone ?? "";

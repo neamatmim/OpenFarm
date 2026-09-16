@@ -30,7 +30,8 @@ const BackupsPage = () => {
     schedule.data !== undefined &&
     (schedule.data.lastError !== null ||
       schedule.data.lastOkAt === null ||
-      Date.now() - new Date(schedule.data.lastOkAt).getTime() > SCHEDULE_STALE_MS);
+      Date.now() - new Date(schedule.data.lastOkAt).getTime() >
+        SCHEDULE_STALE_MS);
 
   const state = backups.data;
   const worrying =
@@ -54,13 +55,20 @@ const BackupsPage = () => {
 
   return (
     <Page width="narrow" className="max-w-3xl">
-      <PageHeader description={t("backups.subtitle")} title={t("backups.title")} />
+      <PageHeader
+        description={t("backups.subtitle")}
+        title={t("backups.title")}
+      />
       {schedule.data ? (
         <Notice
           title={
             schedule.data.lastOkAt
               ? t("schedule.lastRan", {
-                  when: formatDate(new Date(schedule.data.lastOkAt), language, "dateTime"),
+                  when: formatDate(
+                    new Date(schedule.data.lastOkAt),
+                    language,
+                    "dateTime"
+                  ),
                 })
               : t("schedule.notYet")
           }

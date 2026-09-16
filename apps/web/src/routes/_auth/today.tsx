@@ -64,7 +64,9 @@ const TodayPage = () => {
   );
   const statusOf = useStatusLabel();
   const me = useQuery(orpc.people.me.queryOptions());
-  const runsTheFarm = (me.data?.roles ?? []).some((role) => role === "owner" || role === "manager");
+  const runsTheFarm = (me.data?.roles ?? []).some(
+    (role) => role === "owner" || role === "manager"
+  );
 
   // Raise whatever the day needs — the work, then the notices about work already late —
   // when someone opens the app. Both are idempotent, so running them on every open is safe,

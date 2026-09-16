@@ -55,6 +55,7 @@ import { choice, figure, person, words } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { queueMove } from "@/lib/record-offline";
+import { sayWhy } from "@/lib/saying";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -691,8 +692,7 @@ const ManageHer = ({
   const [toPenId, setToPenId] = useState("");
   const [nextState, setNextState] = useState("");
   const refresh = onChanged;
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
 
   const move = useMutation(
     orpc.animals.move.mutationOptions({
@@ -1293,9 +1293,6 @@ const HerAbortions = ({
   );
 };
 
-/** Whatever the farm said went wrong, in its own words. */
-const sayWhy = (error: Error) => toast.error(error.message);
-
 /**
  * The two papers the farm hands over about one animal: her passport, and the sharp question on
  * its own page.
@@ -1312,13 +1309,13 @@ const HerPapers = ({ tagNumber }: { tagNumber: string }) => {
   const passport = useMutation(
     orpc.papers.passport.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "animal-passport", text }),
-      onError: sayWhy,
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const summary = useMutation(
     orpc.papers.withdrawalSummary.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "withdrawal-summary", text }),
-      onError: sayWhy,
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -1564,7 +1561,7 @@ const HowSheWent = ({
         toast.success(t("mortality.recorded"));
         onRecorded();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -1720,7 +1717,7 @@ const Withdrawals = ({
         toast.success(t("withdrawal.shortened"));
         onShortened();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   if (!(detail.milkWithdrawalUntil || detail.meatWithdrawalUntil)) {
