@@ -19,7 +19,6 @@ import {
   PHOTO_MAX_BYTES,
   SIDES,
   STATES,
-  exitOf,
   failedAttempts,
   lactationView,
   withdrawalView,
@@ -452,8 +451,7 @@ export const animalsRouter = {
           farmId: context.farm.id,
           tagNumber: input.tagNumber.toUpperCase(),
         },
-        // With the moment she reached her State: for an animal who has left, that is when she went.
-        columns: { ...animalSummaryColumns, stateChangedAt: true },
+        columns: animalSummaryColumns,
         with: {
           pen: {
             columns: { id: true, name: true },
@@ -616,9 +614,6 @@ export const animalsRouter = {
         diagnoses: readsTheClinicalRecord
           ? row.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
-        /** How she left and when, as her record says it — the one reading her page, her papers and the registers
-         *   all take. Null while she is still here. */
-        exit: exitOf(row),
         mortality: row.mortality
           ? {
               kind: row.mortality.kind,

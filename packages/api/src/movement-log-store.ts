@@ -3,7 +3,7 @@ import type { Side } from "@OpenFarm/domain";
 import {
   ARRIVAL_MOVE_REASONS,
   MORTALITY_KINDS,
-  arrivalOf,
+  arrivalFromMove,
 } from "@OpenFarm/domain";
 
 type Db = Pick<Database, "query">;
@@ -55,7 +55,7 @@ const movesBetween = async (
       movedAt: within,
       OR: [
         { fromPenId: { isNotNull: true } },
-        { reason: { in: ARRIVAL_MOVE_REASONS } },
+        { reason: { in: [...ARRIVAL_MOVE_REASONS] } },
       ],
     },
     with: {
@@ -75,13 +75,13 @@ const movesBetween = async (
       recordedBy: move.mover?.name ?? null,
     };
     if (move.fromPenId === null) {
-      // How she came to be here, as her record says it — the same reading her page and her Animal Passport get.
-      // An animal who was already standing here moved nowhere, and has no line in the log.
-      const arrival = arrivalOf([move]);
-      if (!arrival || arrival.how === "already_here") {
+      // How she came to be here, as her record reads it — the same answer her page and her Animal Passport get.
+      // An animal who was already standing here moved nowhere, and the query above never asks for her.
+      const how = arrivalFromMove(move);
+      if (how === "already_here") {
         return [];
       }
-      const kind = ARRIVAL_LINE[arrival.how];
+      const kind = ARRIVAL_LINE[how];
       return [
         {
           ...line,

@@ -116,6 +116,8 @@ describe("her record", () => {
     );
     expect(shallow.moves).toHaveLength(1);
     expect(shallow.moreThanShown).toBe(true);
+    // How she arrived is a fact about her, not one a shallow read can lose.
+    expect(shallow.arrival).toEqual(her.arrival);
   });
 
   it("says how a cow who has gone left, and ends her last Pen Spell when she went", async () => {

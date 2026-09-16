@@ -1,16 +1,21 @@
-import type { DoseGiven, PenSpell, ShortenedHold } from "@OpenFarm/domain";
+import type {
+  DoseGiven,
+  PenSpellLine,
+  ShortenedHold,
+  WithdrawalView,
+} from "@OpenFarm/domain";
 import { withdrawalEndsAt } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
-import type { HerArrival, HerPenSpell, HerWithdrawal } from "./animal-record";
+import type { HerArrival, HerPenSpell } from "./animal-record";
 
 // How a paper says what her record holds. The record keeps dates and figures; a paper is read by a buyer or a
 // slaughter vet, in both languages, so the words are here rather than in the record every reader shares.
 
 /** What the farm says about her hold today, and whether a Vet cut it short. */
 export const herWithdrawalWords = (
-  view: HerWithdrawal,
+  view: WithdrawalView,
   language: Language
 ): {
   clear: boolean;
@@ -32,14 +37,18 @@ export const herWithdrawalWords = (
     : null,
 });
 
-/** Where she came from, in words rather than a column value. */
-export const sourceWords = (arrival: HerArrival | null): string => {
-  if (arrival?.how !== "bought") {
+/** Where she came from, in words rather than a column value: what the farm says of her, not how the Move that
+ *  brought her in was written — an animal bought before the farm kept records was bought all the same. */
+export const sourceWords = (her: {
+  source: string;
+  arrival: HerArrival | null;
+}): string => {
+  if (her.source !== "bought") {
     return "খামারে জন্ম / born here";
   }
   // Bought, and the farm may or may not have written down from whom.
-  return arrival.intake?.seller
-    ? `${arrival.intake.seller.name} থেকে কেনা / bought from`
+  return her.arrival?.intake?.seller
+    ? `${her.arrival.intake.seller.name} থেকে কেনা / bought from`
     : "কেনা / bought";
 };
 
@@ -62,7 +71,7 @@ export const ageWords = (
 export const penSpellWords = (
   spells: readonly HerPenSpell[],
   language: Language
-): PenSpell[] =>
+): PenSpellLine[] =>
   spells.toReversed().map((spell) => ({
     penName: spell.pen.name,
     from: formatDate(spell.from, language, "date"),

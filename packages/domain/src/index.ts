@@ -118,7 +118,7 @@ export type {
   TreatmentRegisterLine,
   VaccinationRegister,
   VaccinationRegisterLine,
-  PenSpell,
+  PenSpellLine,
   ShortenedHold,
   SaleReceipt,
   SoldAnimal,
@@ -313,6 +313,7 @@ export type {
 export {
   ARRIVAL_MOVE_REASONS,
   ARRIVALS,
+  arrivalFromMove,
   arrivalOf,
   exitOf,
   penHistoryOf,

@@ -145,7 +145,7 @@ export const transportCard = (card: TransportCard): string => {
 };
 
 /** One place she stood, and when. */
-export interface PenSpell {
+export interface PenSpellLine {
   penName: string;
   from: string;
   /** Blank while she is still there. */
@@ -190,7 +190,7 @@ export interface AnimalPassport {
   source: string;
   arrived: string | null;
   /** Every pen she has stood in, newest first, with the last thirty days among them. */
-  pens: PenSpell[];
+  pens: PenSpellLine[];
   doses: DoseGiven[];
   /** Every reading, newest first: her weight, and the date. */
   weighIns: { weight: string; on: string }[];

@@ -5,7 +5,6 @@ import type {
   Exit,
   MortalityKind,
   PenSpellOf,
-  WithdrawalView,
 } from "@OpenFarm/domain";
 import {
   arrivalOf,
@@ -21,7 +20,7 @@ import { ORPCError } from "@orpc/server";
  * slaughter vet is entitled to see, which is a great deal more. Whatever is asked for, the record says whether
  * there was more than it showed.
  */
-export interface HowMuch {
+export interface HowDeep {
   moves?: number;
   doses?: number;
   weighIns?: number;
@@ -75,9 +74,9 @@ export const herRecord = async (
   farmId: string,
   tagNumber: string,
   now: Date,
-  howMuch: HowMuch = {}
+  howDeep: HowDeep = {}
 ) => {
-  const depth = { ...PAPER_DEPTH, ...howMuch };
+  const depth = { ...PAPER_DEPTH, ...howDeep };
   const row = await db.query.animal.findFirst({
     where: { farmId, tagNumber: tagNumber.toUpperCase() },
     columns: {
@@ -87,7 +86,6 @@ export const herRecord = async (
       breed: true,
       birthDate: true,
       source: true,
-      side: true,
       state: true,
       // When she reached it: for an animal who has left, the moment she went, however she went.
       stateChangedAt: true,
@@ -106,11 +104,8 @@ export const herRecord = async (
         // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant.
         orderBy: { movedAt: "desc", id: "desc" },
         limit: depth.moves + 1,
-        columns: { id: true, movedAt: true, fromPenId: true, reason: true },
-        with: {
-          fromPen: { columns: { name: true } },
-          toPen: { columns: { name: true } },
-        },
+        columns: { id: true, movedAt: true },
+        with: { toPen: { columns: { name: true } } },
       },
       treatments: {
         where: { givenAt: { isNotNull: true } },
@@ -145,46 +140,44 @@ export const herRecord = async (
       message: `No animal with tag ${tagNumber}`,
     });
   }
+  // The Move that brought her onto the farm, read on its own: how she arrived is a fact about her, and a caller
+  // asking for one screenful of her Moves should not be able to lose it.
+  const cameIn = await db.query.animalMove.findFirst({
+    where: { animalId: row.id, fromPenId: { isNull: true } },
+    orderBy: { movedAt: "asc", id: "asc" },
+    columns: { movedAt: true, fromPenId: true, reason: true },
+  });
   // One row past each limit was read so a reader can say it has not shown everything, rather than
   // letting anybody believe a truncated list is the whole of it.
   const moreThanShown =
     row.moves.length > depth.moves ||
     row.treatments.length > depth.doses ||
     row.weighIns.length > depth.weighIns;
-  const moves = row.moves.slice(0, depth.moves);
-  const arrival = arrivalOf(row.moves);
+  const { moves: allMoves, treatments, intake, sale, mortality, ...her } = row;
+  const moves = allMoves.slice(0, depth.moves);
+  const arrival = arrivalOf(cameIn ? [cameIn] : []);
   const exit = exitOf(row);
   return {
-    ...row,
+    ...her,
     moves,
     // Narrowed here rather than at every reader: the query already asked for doses that were
     // given, and `givenAt` being nullable in the row type is about doses still owed.
-    doses: row.treatments
+    doses: treatments
       .slice(0, depth.doses)
       .flatMap((dose) =>
         dose.givenAt === null ? [] : [{ ...dose, givenAt: dose.givenAt }]
       ),
-    weighIns: row.weighIns.slice(0, depth.weighIns),
+    weighIns: her.weighIns.slice(0, depth.weighIns),
     /** How she came to be on the farm, and what the Intake said of it. */
-    arrival: arrival && { ...arrival, intake: row.intake ?? null },
+    arrival: arrival && { ...arrival, intake: intake ?? null },
     /** How she left, or nothing while she is still here. */
-    exit: exit && {
-      ...exit,
-      sale: row.sale ?? null,
-      death: row.mortality ?? null,
-    },
+    exit: exit && { ...exit, sale: sale ?? null, death: mortality ?? null },
     /** Where she stood, oldest first, her last spell ending when she left. */
     penSpells: penSpellsOf(moves, exit?.at ?? null),
     /** How long a bought-in animal has been on the farm being fed; null for one born here. */
-    daysOnFeed: row.intake ? daysOnFeedOf(row.intake.arrivedAt, now) : null,
+    daysOnFeed: intake ? daysOnFeedOf(intake.arrivedAt, now) : null,
     /** What she is held for today, and whether a Vet cut the hold short. */
     withdrawal: withdrawalView(row, now),
     moreThanShown,
   };
 };
-
-/** One animal's record, as her readers have it. */
-export type HerRecord = Awaited<ReturnType<typeof herRecord>>;
-
-/** What her record says she is held for, as the papers and the herd's gates read it. */
-export type HerWithdrawal = WithdrawalView;
