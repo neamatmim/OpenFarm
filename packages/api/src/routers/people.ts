@@ -1,15 +1,9 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
-import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
-import {
-  derivePinHash,
-  isPin,
-  randomPinSalt,
-  startOfFarmDay,
-} from "@OpenFarm/domain";
+import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
+import { startOfFarmDay } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -24,7 +18,11 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   grantRoles,
+  newPin,
+  pensOf,
   rolesOf,
+  setPens,
+  setPin,
   setRoles,
   setStanding,
   standingOf,
@@ -541,86 +539,24 @@ export const peopleRouter = {
     )
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
-      const now = context.clock.now();
-      const named = [...new Set([...input.add, ...input.remove])];
-      const pens = named.length
-        ? await context.db.query.pen.findMany({
-            where: { farmId, id: { in: named } },
-            columns: { id: true },
-          })
-        : [];
-      if (pens.length !== named.length) {
-        throw new ORPCError("NOT_FOUND", {
-          message: "No such Pen on this farm",
-        });
-      }
-      const penIdsOf = async (tx: Tx) => {
-        const rows = await tx.query.penAssignment.findMany({
-          where: { farmId, userId: input.userId, ...ACTIVE_ASSIGNMENT },
-          columns: { penId: true },
-        });
-        return rows.map((row) => row.penId).toSorted();
-      };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: async (tx) => ({ penIds: await penIdsOf(tx) }),
-          after: async (tx) => ({ penIds: await penIdsOf(tx) }),
+          before: async (tx) => ({
+            penIds: await pensOf(tx, farmId, input.userId),
+          }),
+          after: async (tx) => ({
+            penIds: await pensOf(tx, farmId, input.userId),
+          }),
         },
-        async (tx) => {
-          const person = await tx.query.user.findFirst({
-            where: { id: input.userId },
-            columns: { id: true },
-          });
-          if (!person) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "Nobody on this farm by that name",
-            });
-          }
-          const held = new Set(await penIdsOf(tx));
-          const adding = [...new Set(input.add)].filter(
-            (penId) => !held.has(penId)
-          );
-          if (adding.length > 0) {
-            // A Pen handed back reopens the old assignment rather than starting a second one.
-            await tx
-              .insert(penAssignment)
-              .values(
-                adding.map((penId) => ({
-                  id: uuidv7(now),
-                  farmId,
-                  userId: input.userId,
-                  penId,
-                  createdAt: now,
-                }))
-              )
-              .onConflictDoUpdate({
-                target: [penAssignment.userId, penAssignment.penId],
-                set: { endedAt: null },
-              });
-          }
-          if (input.remove.length > 0) {
-            await tx
-              .update(penAssignment)
-              .set({ endedAt: now })
-              .where(
-                and(
-                  eq(penAssignment.farmId, farmId),
-                  eq(penAssignment.userId, input.userId),
-                  inArray(penAssignment.penId, input.remove),
-                  isNull(penAssignment.endedAt)
-                )
-              );
-          }
-        }
+        (tx) => setPens(tx, farmId, input.userId, input, context.clock.now())
       );
-      const assigned = await context.db.query.penAssignment.findMany({
-        where: { farmId, userId: input.userId, ...ACTIVE_ASSIGNMENT },
-        columns: { penId: true },
-      });
-      return { userId: input.userId, penIds: assigned.map((row) => row.penId) };
+      return {
+        userId: input.userId,
+        penIds: await pensOf(context.db, farmId, input.userId),
+      };
     }),
 
   assignRoles: protectedProcedure
@@ -713,12 +649,8 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string(), pin: z.string().trim() }))
     .handler(async ({ context, input }) => {
-      if (!isPin(input.pin)) {
-        throw new ORPCError("BAD_REQUEST", { message: "A PIN is four digits" });
-      }
-      const now = context.clock.now();
-      const salt = randomPinSalt();
-      const hash = await derivePinHash(input.pin, salt);
+      const credential = await newPin(input.pin);
+      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
@@ -726,52 +658,15 @@ export const peopleRouter = {
           action: "update",
           after: { pinSet: true },
         },
-        async (tx) => {
-          const person = await tx.query.user.findFirst({
-            where: { id: input.userId },
-            columns: { id: true },
-            with: {
-              roles: { where: { farmId: context.farm.id, ...ACTIVE_ROLE } },
-            },
-          });
-          if (!person || person.roles.length === 0) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "That person is not on this farm",
-            });
-          }
-          // A Manager may only give a PIN to Staff: a PIN is how a person acts on a shared
-          // phone, so letting a Manager set an Owner's PIN would route around the rule that
-          // only the Owner grants Roles above Staff.
-          const targetRoles = person.roles.map((role) => role.role);
-          const staffOnly = targetRoles.every((role) => role === "staff");
-          if (context.roleUsed === "manager" && !staffOnly) {
-            throw new ORPCError("FORBIDDEN", {
-              message: "A Manager may only set a PIN for Barn Staff",
-            });
-          }
-          await tx
-            .insert(staffPin)
-            .values({
-              id: uuidv7(now),
-              userId: input.userId,
-              farmId: context.farm.id,
-              salt,
-              hash,
-              setBy: context.actor.id,
-              setByRole: context.roleUsed,
-              updatedAt: now,
-            })
-            .onConflictDoUpdate({
-              target: [staffPin.userId, staffPin.farmId],
-              set: {
-                salt,
-                hash,
-                setBy: context.actor.id,
-                setByRole: context.roleUsed,
-                updatedAt: now,
-              },
-            });
-        }
+        (tx) =>
+          setPin(
+            tx,
+            context.farm.id,
+            input.userId,
+            credential,
+            by,
+            context.clock.now()
+          )
       );
       return { userId: input.userId, pinSet: true };
     }),
