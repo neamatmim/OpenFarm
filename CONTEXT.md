@@ -38,6 +38,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Re-tag**: The recorded event of replacing a lost or unreadable Ear Tag with one carrying the same Tag Number. _Avoid_: Re-numbering (which never happens)
 
+**Arrival**: How an Animal came to be on the Farm — born here at a Calving, bought in at an Intake, or already standing when the Farm opened its register. Derived from the Move that put her in her first Pen, never entered. _Avoid_: Entry (an Entry is what a phone sends the Farm), admission, onboarding
+
+**Exit**: How an Animal left and when — Sold, Died or Culled — with what belongs to that way of going: who bought her and where she went, or what she died of and what was done with her. Derived from her State and the records of it, never entered; null while she is still here. Every paper and page says it the same way, because it is worked out once. _Avoid_: Departure, removal, disposal (that is what was done with a carcass)
+
 ## Work
 
 **Milking Session**: One of the two daily times the Dairy herd is milked — early morning and afternoon. The milking SOP runs once per Milking Session. _Avoid_: Milking time, shift
@@ -81,6 +85,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Pen**: A physical enclosure inside a Shed. Every Animal is in exactly one Pen; SOP Instances run per Pen or per Shed. _Avoid_: Group (a Pen _is_ the group), lot, batch
 
 **Move**: The recorded event of an Animal changing Pen — including a change of Side. The only way an Animal's location changes. _Avoid_: Transfer, relocation
+
+**Pen Spell**: Where an Animal stood and for how long: from the Move that put her there until the Move that took her away, or until her Exit. Derived from her Moves, never entered — her Pen history is her Pen Spells end to end, and her page, her Animal Passport and what her feed cost all read the same ones. _Avoid_: Stay, placement, pen history line
 
 **Weaning**: The point at which a Calf stops being fed milk; on this Farm the trigger for a male Calf's Move to Fattening. _Avoid_: Separation
 
