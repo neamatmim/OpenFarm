@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
-import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
+import { user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
@@ -22,19 +22,17 @@ import { nameCorrection, nameCorrectionInput } from "../corrections/name";
 import { hashToken } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
+import {
+  grantRoles,
+  rolesOf,
+  setRoles,
+  setStanding,
+  standingOf,
+} from "../membership";
 import { requirePersonalSession, requireRole } from "../roles";
-import { activeRolesFor, grantRoles, revokeRoles } from "../roles-store";
 import { scopesOf } from "../scope";
 
 const roleSchema = z.enum(ROLES);
-
-const personSnapshot = async (tx: Tx, userId: string) => {
-  const row = await tx.query.user.findFirst({
-    where: { id: userId },
-    columns: { name: true, disabledAt: true },
-  });
-  return row ? { name: row.name, disabledAt: row.disabledAt } : null;
-};
 
 /** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -631,46 +629,20 @@ export const peopleRouter = {
     .input(z.object({ userId: z.string(), roles: z.array(roleSchema) }))
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
-      const now = context.clock.now();
       const wanted = [...new Set(input.roles)];
-      const actor = { id: context.actor.id, role: context.roleUsed };
+      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
           before: async (tx) => ({
-            roles: await activeRolesFor(tx, farmId, input.userId),
+            roles: await rolesOf(tx, farmId, input.userId),
           }),
           after: { roles: wanted },
         },
-        async (tx) => {
-          const held = await activeRolesFor(tx, farmId, input.userId);
-          const losingOwner =
-            held.includes("owner") && !wanted.includes("owner");
-          if (losingOwner) {
-            const owners = await tx.query.roleAssignment.findMany({
-              where: { farmId, role: "owner", ...ACTIVE_ROLE },
-              columns: { userId: true },
-            });
-            const others = owners.filter((o) => o.userId !== input.userId);
-            if (input.userId === actor.id || others.length === 0) {
-              throw new ORPCError("BAD_REQUEST", {
-                message: "The farm must keep at least one other Owner",
-              });
-            }
-          }
-          await revokeRoles(
-            tx,
-            farmId,
-            input.userId,
-            held.filter((r) => !wanted.includes(r)),
-            now
-          );
-          await grantRoles(tx, farmId, input.userId, wanted, actor, now, {
-            reactivate: true,
-          });
-        }
+        (tx) =>
+          setRoles(tx, farmId, input.userId, wanted, by, context.clock.now())
       );
       return { userId: input.userId, roles: wanted };
     }),
@@ -681,35 +653,21 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
-      if (input.userId === context.actor.id) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "You cannot disable yourself",
-        });
-      }
-      const now = context.clock.now();
+      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: (tx) => personSnapshot(tx, input.userId),
-          after: (tx) => personSnapshot(tx, input.userId),
+          before: (tx) => standingOf(tx, input.userId),
+          after: (tx) => standingOf(tx, input.userId),
         },
-        async (tx) => {
-          const [row] = await tx
-            .update(user)
-            .set({ disabledAt: now })
-            .where(eq(user.id, input.userId))
-            .returning({ id: user.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          // Sessions are expired, not deleted, so the record stays.
-          await tx
-            .update(sessionTable)
-            .set({ expiresAt: now, updatedAt: now })
-            .where(eq(sessionTable.userId, input.userId));
-        }
+        (tx) =>
+          setStanding(tx, input.userId, {
+            disabled: true,
+            by,
+            now: context.clock.now(),
+          })
       );
       return { userId: input.userId, disabled: true };
     }),
@@ -719,24 +677,21 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
+      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: (tx) => personSnapshot(tx, input.userId),
-          after: (tx) => personSnapshot(tx, input.userId),
+          before: (tx) => standingOf(tx, input.userId),
+          after: (tx) => standingOf(tx, input.userId),
         },
-        async (tx) => {
-          const [row] = await tx
-            .update(user)
-            .set({ disabledAt: null })
-            .where(eq(user.id, input.userId))
-            .returning({ id: user.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-        }
+        (tx) =>
+          setStanding(tx, input.userId, {
+            disabled: false,
+            by,
+            now: context.clock.now(),
+          })
       );
       return { userId: input.userId, disabled: false };
     }),
