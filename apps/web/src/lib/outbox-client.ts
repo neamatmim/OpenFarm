@@ -1,4 +1,3 @@
-import type { EntryInput } from "@OpenFarm/api/sync-entries";
 import {
   DefaultRetryPolicy,
   IndexedDBAdapter,
@@ -15,38 +14,46 @@ import {
   getSignedInPerson,
   tokenForProof,
 } from "./device";
-import type { Transport } from "./outbox";
+import type { ProofSettled, Transport } from "./outbox";
 import { Outbox } from "./outbox";
 import { proveHeldSwitches } from "./shed-phone";
 
 /** The farm, as the Outbox speaks to it. Typed against the farm's own entry shapes rather than cast at them: this is
- *  the one seam where a field the server does not recognise would quietly lose a morning's work. */
+ *  the one seam where a field the server does not recognise would quietly lose a morning's work. It sends what it is
+ *  given: a Batch is frozen before it gets here, so every attempt under one key carries the same entries. */
 const farm: Transport = {
-  send: async (batch) => {
-    // Work recorded under a PIN entered with no signal goes under that person's name only once the farm has seen
-    // the PIN, so the PINs go first — and the batch waits, to be tried again, while one is still unproved.
-    if (getDeviceToken()) {
-      await proveHeldSwitches();
-    }
-    const entries: EntryInput[] = [];
-    for (const { proof, ...entry } of batch.entries) {
-      if (typeof proof !== "string") {
-        entries.push(entry);
-        continue;
-      }
-      // oxlint-disable-next-line no-await-in-loop
-      const { token, waiting } = await tokenForProof(proof);
-      if (waiting) {
-        throw new Error("A PIN entered with no signal is still to be proved");
-      }
-      entries.push(token ? { ...entry, switchToken: token } : entry);
-    }
-    return client.sync.batch({
+  send: (batch) =>
+    client.sync.batch({
       key: batch.key,
       sentAt: new Date(batch.sentAt),
-      entries,
-    });
-  },
+      entries: batch.entries,
+    }),
+};
+
+/**
+ * What the proofs in a Batch being frozen are worth. Work recorded under a PIN entered with no signal goes under
+ * that person's name only once the farm has seen the PIN, so the PINs go to the farm first; then each proof is
+ * the token of the stint it was given for, a PIN the farm refused, or one a tab on this phone still holds — which
+ * the Batch waits for rather than sending the work under nobody.
+ */
+const settleProofs = async (
+  refs: readonly string[]
+): Promise<Map<string, ProofSettled>> => {
+  if (getDeviceToken()) {
+    await proveHeldSwitches();
+  }
+  const settled = new Map<string, ProofSettled>();
+  for (const ref of refs) {
+    // Sequential: settling a proof is one answer for the whole phone at a time, and these are a handful of PINs.
+    // oxlint-disable-next-line no-await-in-loop
+    const { token, waiting } = await tokenForProof(ref);
+    if (waiting) {
+      settled.set(ref, "waiting");
+      continue;
+    }
+    settled.set(ref, token ? { token } : "refused");
+  }
+  return settled;
 };
 
 /** How many times a batch is offered before its entries are handed back to the person. A
@@ -78,6 +85,7 @@ export const phoneOutbox = (): Outbox | null => {
         ? (getActiveUser()?.userId ?? null)
         : getSignedInPerson(),
     proofOf: () => (getDeviceToken() ? currentProof() : null),
+    settleProofs,
   });
   return outbox;
 };

@@ -41,12 +41,13 @@ export type OutboxEntry = {
   };
 }[EntryKindName];
 
-/** An entry as the Transport hands it on: the farm's shape, with the proof still to be turned into a switch token. */
-export type OutgoingEntry = EntryInput extends infer Each
-  ? Each extends EntryInput
-    ? Omit<Each, "switchToken"> & { proof?: string }
-    : never
-  : never;
+/** An entry as it goes on the wire: the farm's own shape, the proof of who recorded it already turned into the
+ *  switch token that proves it. */
+export type OutgoingEntry = EntryInput;
+
+/** What a proof of who recorded an entry is worth when a Batch is frozen: the switch token the farm gave for that
+ *  stint, a PIN the farm refused, or a PIN a tab on this phone still holds and has yet to prove. */
+export type ProofSettled = { token: string } | "refused" | "waiting";
 
 /** An entry the phone is still holding, and what the farm said about it. */
 export interface Held {
@@ -68,7 +69,10 @@ export type EntryVerdict = Pick<
  *  second set of records (ADR 0002). */
 interface PendingBatch {
   key: string;
-  entryIds: string[];
+  /** The entries as they will be sent, frozen when the Batch was formed: every attempt under this key carries
+   *  these, whatever the phone has learned since (the glossary's Batch). They name themselves, so the Batch needs
+   *  no second list of what is in it. */
+  entries: OutgoingEntry[];
   retryCount: number;
   nextAttemptAt: number;
   lastError?: string;
@@ -125,18 +129,13 @@ const SEQ_WIDTH = 12;
 const entryKey = (seq: number, id: string) =>
   `${ENTRY}${String(seq).padStart(SEQ_WIDTH, "0")}:${id}`;
 
-/** An entry as the farm reads it: its body, with what the Outbox knows about it beside. The body was checked against
- *  its kind when it was added, and flattening changes nothing about that — TypeScript only cannot follow the kind
- *  through the spread. */
-const outgoing = ({
-  body,
-  kind,
-  id,
-  seq,
-  recordedAt,
-  actorId,
-  proof,
-}: OutboxEntry) =>
+/** An entry as the farm reads it: its body, with what the Outbox knows about it beside, and the switch token its
+ *  proof was worth when the Batch was frozen. The body was checked against its kind when it was added, and
+ *  flattening changes nothing about that — TypeScript only cannot follow the kind through the spread. */
+const outgoing = (
+  { body, kind, id, seq, recordedAt, actorId }: OutboxEntry,
+  switchToken: string | undefined
+) =>
   ({
     ...body,
     id,
@@ -144,7 +143,7 @@ const outgoing = ({
     kind,
     recordedAt,
     ...(actorId ? { actorId } : {}),
-    ...(proof ? { proof } : {}),
+    ...(switchToken ? { switchToken } : {}),
   }) as OutgoingEntry;
 
 /** Where an entry the farm did not simply take is kept. */
@@ -208,8 +207,15 @@ export interface OutboxOptions {
   newKey?: () => string;
   /** Who is working on this phone right now, so each entry carries the person who recorded it. */
   actorOf?: () => string | null;
-  /** What proves it was them — on a Shed Phone, the switch token for their stint. */
+  /** What proves it was them — on a Shed Phone, the switch token for their stint, or the reference of a PIN still
+   *  to be proved. */
   proofOf?: () => string | null;
+  /** What each proof in a Batch being frozen is worth: a Switch Token, a PIN the farm refused, or a PIN a tab on
+   *  this phone still holds. Proving held PINs with the farm happens in here, before it answers. Unasked, every
+   *  proof is taken as the token it already is. */
+  settleProofs?: (
+    refs: readonly string[]
+  ) => Promise<Map<string, ProofSettled>>;
 }
 
 /**
@@ -416,51 +422,72 @@ export class Outbox {
       await this.options.storage.delete(PENDING_BATCH);
       return nothing;
     }
+    // An answer already written down — the farm's, or the one the Outbox wrote when it gave up on a Batch — is put
+    // away first, whatever else is true. The phone stopped before it had finished the bookkeeping; this finishes it,
+    // and a Batch written down before this phone knew how to freeze one is answered here like any other.
+    const answered = await this.read<PendingBatch>(PENDING_BATCH);
+    if (answered?.verdicts) {
+      await this.finish(answered, waiting);
+      return { sent: 0, verdicts: answered.verdicts };
+    }
     const batch = await this.batchFor(waiting);
-    if (batch.verdicts) {
-      // The farm already answered this batch; the phone stopped before it had finished
-      // putting the answer away. Finish that, and send nothing.
-      await this.finish(batch, waiting);
-      return { sent: 0, verdicts: batch.verdicts };
+    if (!batch) {
+      // A tab on this phone still holds a PIN somebody entered offline: the work is theirs, and there is nothing
+      // yet to prove it with. Waiting is not a failed attempt (the glossary's Waiting for a PIN) — nothing is
+      // sent, nothing is handed back, and the Batch is offered again on the next flush.
+      return nothing;
     }
     if (this.now().getTime() < batch.nextAttemptAt) {
       // Still backing off from the last attempt.
       return nothing;
     }
-    const entries = waiting.filter((entry) =>
-      batch.entryIds.includes(entry.id)
-    );
     try {
       const answer = await this.options.transport.send({
         key: batch.key,
         sentAt: this.now().toISOString(),
-        entries: entries.map(outgoing),
+        // Exactly what was frozen, whatever the phone has learned since: the same key never carries two things.
+        entries: batch.entries,
       });
       // Written down first. From here the batch is settled business whatever becomes of the
       // phone; what is left is bookkeeping the next flush can finish.
-      const answered = { ...batch, verdicts: answer.results };
-      await this.write(PENDING_BATCH, answered);
-      await this.finish(answered, waiting);
-      return { sent: entries.length, verdicts: answer.results };
+      const settled = { ...batch, verdicts: answer.results };
+      await this.write(PENDING_BATCH, settled);
+      await this.finish(settled, waiting);
+      return { sent: batch.entries.length, verdicts: answer.results };
     } catch (error) {
       await this.stumble(batch, error);
       return nothing;
     }
   }
 
-  /** The batch in flight, or a new one over what is waiting. The key outlives the attempt. */
-  private async batchFor(waiting: OutboxEntry[]): Promise<PendingBatch> {
+  /**
+   * The Batch in flight, or a new one frozen over what is waiting — its key, and its entries as they will be sent.
+   * The key outlives the attempt and so do the entries under it. Nothing at all while a PIN entered offline is
+   * still to be proved.
+   */
+  private async batchFor(waiting: OutboxEntry[]): Promise<PendingBatch | null> {
     const inFlight = await this.read<PendingBatch>(PENDING_BATCH);
-    if (inFlight) {
+    // Kept whole, never shortened: what is frozen under a key is what that key means, and a Batch answered in part
+    // is recovered from the answer written down above rather than by sending a smaller one.
+    // A Batch written down before this phone knew how to freeze one, with no answer to put away, is formed afresh
+    // under a new key. Its entries are named by their own ids, and the same entry arriving twice is one fact
+    // (ADR 0002), so nothing is applied a second time by it.
+    if (inFlight?.entries) {
       const still = new Set(waiting.map((entry) => entry.id));
-      const kept = inFlight.entryIds.filter((id) => still.has(id));
-      if (kept.length > 0) {
-        return { ...inFlight, entryIds: kept };
+      if (inFlight.entries.some((entry) => still.has(entry.id))) {
+        return inFlight;
       }
+    }
+    const taking = takeWhatFits(waiting);
+    const proved = await this.tokensForProofs(taking);
+    if (proved === "waiting") {
+      return null;
     }
     const fresh: PendingBatch = {
       key: this.newKey(),
-      entryIds: takeWhatFits(waiting).map((entry) => entry.id),
+      entries: taking.map((entry) =>
+        outgoing(entry, entry.proof ? proved.get(entry.proof) : undefined)
+      ),
       retryCount: 0,
       nextAttemptAt: 0,
     };
@@ -468,11 +495,39 @@ export class Outbox {
     return fresh;
   }
 
-  /** What the farm said, entry by entry. Everything it took leaves the phone; everything it
-   *  refused stays, with its data and the reason. */
-  /** Puts the farm's answer away and clears what it took. Written before deleted, every
-   *  time: an entry in neither place is an entry nobody can account for. Safe to run again,
-   *  because every step is a write to a known key or a delete of one. */
+  /**
+   * What each entry's proof is worth, for the Batch about to be frozen: the switch token for the stint it was
+   * recorded in, or nothing for a PIN the farm refused or one no tab holds any more — an entry then goes unproved,
+   * and the farm keeps it for a person like any Entry it cannot take. Nothing at all while a tab still holds a PIN.
+   */
+  private async tokensForProofs(
+    taking: readonly OutboxEntry[]
+  ): Promise<Map<string, string | undefined> | "waiting"> {
+    const refs = [
+      ...new Set(taking.flatMap((entry) => (entry.proof ? [entry.proof] : []))),
+    ];
+    if (refs.length === 0) {
+      return new Map();
+    }
+    // Unasked, a proof is the Switch Token it already is: a phone that is nobody's Shed Phone holds no PINs.
+    if (!this.options.settleProofs) {
+      return new Map(refs.map((ref) => [ref, ref]));
+    }
+    const settled = await this.options.settleProofs(refs);
+    const tokens = new Map<string, string | undefined>();
+    for (const ref of refs) {
+      const answer = settled.get(ref);
+      if (answer === "waiting") {
+        return "waiting";
+      }
+      tokens.set(ref, answer === "refused" ? undefined : answer?.token);
+    }
+    return tokens;
+  }
+
+  /** Puts an answer away and clears what it accounted for — the farm's, or the one the Outbox wrote when it gave
+   *  up. Written before deleted, every time: an entry in neither place is an entry nobody can account for. Safe to
+   *  run again, because every step is a write to a known key or a delete of one. */
   private async finish(
     batch: PendingBatch,
     waiting: OutboxEntry[]
@@ -526,20 +581,23 @@ export class Outbox {
     ) {
       // The farm will not take this batch however often it is offered. Its entries go to
       // the refused list with their data rather than blocking everything behind them.
+      // Written down before a single entry is moved, exactly as the farm's own answer is: a phone that dies
+      // halfway through finishes the job when it comes back, rather than offering the farm work it has already
+      // handed to the person.
+      const inIt = new Set(batch.entries.map((entry) => entry.id));
       const waiting = await this.pending();
-      const stuck = waiting.filter((entry) =>
-        batch.entryIds.includes(entry.id)
-      );
-      await this.settle(
-        stuck,
-        stuck.map((entry) => ({
+      const stuck = waiting.filter((entry) => inIt.has(entry.id));
+      const givenUp = {
+        ...batch,
+        verdicts: stuck.map((entry) => ({
           id: entry.id,
           seq: entry.seq,
           outcome: "rejected" as const,
           reason: message,
-        }))
-      );
-      await this.options.storage.delete(PENDING_BATCH);
+        })),
+      };
+      await this.write(PENDING_BATCH, givenUp);
+      await this.finish(givenUp, waiting);
       return;
     }
     await this.write(PENDING_BATCH, {

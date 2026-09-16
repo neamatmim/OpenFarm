@@ -236,7 +236,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Entry**: One thing a person recorded that the farm takes the same way however it arrives — at once, or held in an Outbox and sent in a Batch: a claim, a Step Completion, a Step photo, a finish, a Move, an Observation. Recorded under the Role it was done in and dated when it was done, with when the farm received it kept beside; when the world has moved since — the animal has left, someone else took the work — it is kept for a person rather than refused. _Avoid_: Write, mutation, record (a record is what an Entry leaves in the farm's books)
 
-**Batch**: One send from an Outbox: the entries a phone has been holding, with one key for the lot, applied with their Audit Events in a single transaction. _Avoid_: Sync, upload, push
+**Batch**: One send from an Outbox: the entries a phone has been holding, with one key for the lot, applied with their Audit Events in a single transaction. Frozen when it is formed — the entries are written down exactly as they will be sent, proof of who recorded them included — so every attempt under its key carries the same thing, whatever the phone learns in between. _Avoid_: Sync, upload, push
+
+**Waiting for a PIN**: A frozen Batch cannot be formed while a tab on the phone still holds a PIN entered offline: the work is that person's, and until the farm has seen the PIN there is nothing to prove it with. The Batch waits and is offered again — waiting is not a failed attempt, and no work is ever handed back for it. A PIN the farm refused, or one no tab holds any more, is not waited for: the entry goes unproved, and the farm keeps it for a person like any Entry it cannot take. _Avoid_: Blocked, stalled, retrying
 
 **Idempotency Key**: The client's own name for a Batch. The same key arriving again is answered from what was stored, never applied twice; the same key carrying different entries is refused. _Avoid_: Request id, transaction id, nonce
 
@@ -289,6 +291,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Shed Phone**: A farm-provided Android phone kept in a Shed, holding a device session. Staff record on it after a PIN Switch. _Avoid_: Barn tablet, kiosk, terminal
 
 **PIN Switch**: A Staff member making themselves the active user on a Shed Phone with their 4-digit PIN. Works offline; every entry is attributed to the active user, never to the phone. _Avoid_: Login (that's the device session), shared account
+
+**Switch Token**: What the farm gives a person for one stint on a Shed Phone when it has seen their PIN, and what an Entry recorded during that stint carries to prove whose work it is. Kept only until the Entry is sent; never written into a record anybody can read, because a proof anybody can read is a proof anybody can use. _Avoid_: Session token (that's the device's), password, key
 
 **Coach Overlay**: The one-time in-app hint shown the first time a person meets a screen type. Dismissable; re-openable from help. _Avoid_: Tutorial, tour, onboarding flow
 
