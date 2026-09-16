@@ -63,10 +63,16 @@ const TONE = {
   waitingToSignUp: "neutral",
 } as const;
 
-/** What the farm is waiting on for somebody who already has an account. */
+/**
+ * What the farm is waiting on for somebody who already has an account.
+ *
+ * Written to survive an answer the farm gave some other week. The phone keeps what it last knew for a
+ * fortnight and shows it before it has asked again, so a screen written this morning is handed payloads
+ * shaped the way the farm shaped them when that phone was last in signal.
+ */
 const standingOf = (person: {
-  disabledAt: Date | null;
-  visitUntil: Date | null;
+  disabledAt?: Date | null;
+  visitUntil?: Date | null;
 }): Standing => {
   if (person.disabledAt) {
     return { kind: "gone" };
@@ -84,8 +90,8 @@ const matching = (rows: Listed[], looking: string) => {
   }
   return rows.filter(
     (row) =>
-      row.name.toLowerCase().includes(needle) ||
-      row.email.toLowerCase().includes(needle)
+      (row.name ?? "").toLowerCase().includes(needle) ||
+      (row.email ?? "").toLowerCase().includes(needle)
   );
 };
 
@@ -407,8 +413,9 @@ const PeoplePage = () => {
       userId: person.id,
       name: person.name,
       email: person.email,
-      roles: person.roles,
-      pens: person.penIds.length,
+      // A phone's own copy of an older answer may be missing either of these.
+      roles: person.roles ?? [],
+      pens: person.penIds?.length ?? 0,
       standing: standingOf(person),
     }));
     const pending = (list.data?.pendingInvites ?? []).map((one): Listed => ({
@@ -416,7 +423,7 @@ const PeoplePage = () => {
       userId: null,
       name: one.name,
       email: one.email,
-      roles: one.roles,
+      roles: one.roles ?? [],
       pens: 0,
       standing: { kind: "waitingForTheOwner", inviteId: one.id },
     }));
@@ -425,7 +432,7 @@ const PeoplePage = () => {
       userId: null,
       name: one.name,
       email: one.email,
-      roles: one.roles,
+      roles: one.roles ?? [],
       pens: 0,
       standing: { kind: "waitingToSignUp", inviteId: one.id },
     }));

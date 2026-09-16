@@ -627,9 +627,11 @@ const PersonPage = () => {
               />
             ) : null}
 
-            {isOwner ? <TheirRoles roles={them.roles} userId={userId} /> : null}
+            {isOwner ? (
+              <TheirRoles roles={them.roles ?? []} userId={userId} />
+            ) : null}
             {gone || them.visitUntil ? null : (
-              <TheirPens held={them.penIds} userId={userId} />
+              <TheirPens held={them.penIds ?? []} userId={userId} />
             )}
             {isOwner ? <TheirPin userId={userId} /> : null}
 
