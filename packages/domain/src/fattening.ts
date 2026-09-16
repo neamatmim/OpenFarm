@@ -156,6 +156,10 @@ export interface FatteningView {
 const daysBetween = (from: Date, to: Date): number =>
   (to.getTime() - from.getTime()) / DAY_MS;
 
+/** How long a bought-in Animal has been on the Farm being fed, counted from her Intake in whole days. */
+export const daysOnFeedOf = (arrivedAt: Date, now: Date): number =>
+  Math.max(0, Math.round(daysBetween(arrivedAt, now)));
+
 /** Rates carry a decimal more than kilogrammes do: a fattening bull's whole day's work is the
  *  second decimal place. */
 const RATE_SCALE = 100;
@@ -254,9 +258,7 @@ export const fatteningView = (
   // should be able to say so rather than ranking two animals by different measures in silence.
   const current = recent ?? sinceIntake;
   const onTrackFrom = whichRate(recent, sinceIntake);
-  const daysOnFeed = intake
-    ? Math.max(0, Math.round(daysBetween(intake.arrivedAt, now)))
-    : null;
+  const daysOnFeed = intake ? daysOnFeedOf(intake.arrivedAt, now) : null;
   return {
     daysOnFeed,
     latestKg: latest?.weightKg ?? intake?.weightKg ?? null,

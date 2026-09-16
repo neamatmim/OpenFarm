@@ -87,6 +87,7 @@ export {
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
   QURBANI_DAYS,
+  daysOnFeedOf,
   fatteningView,
   implausibleChange,
   nextEidWindow,

@@ -4,7 +4,6 @@ import {
   WITHDRAWAL_LOOK_BACK_DAYS,
   animalPassport,
   farmDayOf,
-  isExitState,
   saleReceipt,
   startOfFarmDay,
   transportCard,
@@ -14,17 +13,17 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import {
-  ageOf,
-  doseGiven,
-  herWholeRecord,
-  herWithdrawal,
-  penSpells,
-  sourceOf,
-} from "../animal-record";
+import { herRecord } from "../animal-record";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import {
+  ageWords,
+  doseWords,
+  herWithdrawalWords,
+  penSpellWords,
+  sourceWords,
+} from "../paper-words";
 import { languageOf } from "../reader-language";
 import { requireRole } from "../roles";
 import { requireLookUp } from "../scope";
@@ -143,10 +142,11 @@ export const papersRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
-      const her = await herWholeRecord(
+      const her = await herRecord(
         context.db,
         context.farm.id,
-        input.tagNumber
+        input.tagNumber,
+        now
       );
       requireLookUp(context.scope, her);
       const text = animalPassport({
@@ -154,19 +154,16 @@ export const papersRouter = {
         tagNumber: her.tagNumber,
         sex: her.sex,
         breed: her.breed,
-        age: ageOf(her, language),
-        source: sourceOf(her),
-        arrived: her.intake
-          ? formatDate(her.intake.arrivedAt, language, "date")
+        age: ageWords(her, language),
+        source: sourceWords(her.arrival),
+        arrived: her.arrival
+          ? formatDate(her.arrival.at, language, "date")
           : null,
-        // Her last spell ends when she left — sold, dead or culled — so the paper never says she stands there still.
-        pens: penSpells(
-          her.moves,
-          isExitState(her.state) ? her.stateChangedAt : null,
-          language
-        ),
-        doses: her.treatments.map((dose) => doseGiven(dose, language)),
-        ...herWithdrawal(her, now, language),
+        // Her Pen Spells as her record works them out: the last one ends when she left, so the paper never says a
+        // cow who has gone stands in a Pen still.
+        pens: penSpellWords(her.penSpells, language),
+        doses: her.doses.map((dose) => doseWords(dose, language)),
+        ...herWithdrawalWords(her.withdrawal, language),
         moreThanShown: her.moreThanShown,
         weighIns: her.weighIns.map((one) => ({
           weight: formatNumber(Number(one.weightKg), language),
@@ -184,7 +181,7 @@ export const papersRouter = {
           entityId: her.id,
           action: "export",
           after: exportedPaper(context.farm, "passport", [her.tagNumber], {
-            doses: her.treatments.length,
+            doses: her.doses.length,
           }),
         },
         () => Promise.resolve()
@@ -205,10 +202,11 @@ export const papersRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
-      const her = await herWholeRecord(
+      const her = await herRecord(
         context.db,
         context.farm.id,
-        input.tagNumber
+        input.tagNumber,
+        now
       );
       requireLookUp(context.scope, her);
       // Thirty farm days, not thirty times twenty-four hours: the rule is "the thirty days
@@ -217,9 +215,9 @@ export const papersRouter = {
         startOfFarmDay(farmDayOf(now)).getTime() -
           (WITHDRAWAL_LOOK_BACK_DAYS - 1) * DAY_MS
       );
-      const lately = her.treatments.filter((dose) => dose.givenAt >= since);
-      const held = herWithdrawal(her, now, language);
-      const doses = lately.map((dose) => doseGiven(dose, language));
+      const lately = her.doses.filter((dose) => dose.givenAt >= since);
+      const held = herWithdrawalWords(her.withdrawal, language);
+      const doses = lately.map((dose) => doseWords(dose, language));
       const text = withdrawalSummary({
         farm: context.farm,
         tagNumber: her.tagNumber,
