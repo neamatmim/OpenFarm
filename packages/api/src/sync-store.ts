@@ -6,6 +6,7 @@ import type { EntryOutcome, SyncKind } from "@OpenFarm/db/schema/sync";
 import { syncBatch, syncEntry } from "@OpenFarm/db/schema/sync";
 
 import type { Tx } from "./audit";
+import type { EntryRefusal } from "./entries/entry";
 
 const MINUTE_MS = 60_000;
 
@@ -73,7 +74,13 @@ export const clockIsOut = (
 export const entrySeen = (tx: Tx, farmId: string, id: string) =>
   tx.query.syncEntry.findFirst({
     where: { id, farmId },
-    columns: { id: true, seq: true, outcome: true, reason: true },
+    columns: {
+      id: true,
+      seq: true,
+      outcome: true,
+      reason: true,
+      refusal: true,
+    },
   });
 
 /** Has this source already used that sequence number for something else? */
@@ -100,6 +107,8 @@ export const rememberEntry = async (
     batchKey: string;
     payload: unknown;
     reason: string | null;
+    /** How the farm sorted one it could not take, for whenever it is asked about again. Null for one it took. */
+    refusal: EntryRefusal | null;
     recordedAt: Date;
     receivedAt: Date;
   }

@@ -99,6 +99,9 @@ export const syncEntry = pgTable(
     payload: jsonb("payload"),
     /** Why it could not be taken as it stands. */
     reason: text("reason"),
+    /** How the farm sorted it — late, wrong, not theirs — with the refusal's own word where the Entry gave one, so a
+     *  phone told about it again is told in the reader's language rather than shown the server's English (ADR 0004). */
+    refusal: jsonb("refusal"),
     /** The batch it came in, so a replay finds its own work. */
     batchKey: text("batch_key")
       .notNull()
