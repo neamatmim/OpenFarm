@@ -230,7 +230,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Role**: One of Owner, Manager, Staff, Vet. A person may hold several; every recorded action names the Role it was done under. _Avoid_: Permission level, user type, group
 
-**Membership**: What makes somebody one of the Farm's people: the Roles they hold, whether they still work here, the Pens they keep and the PIN they switch in with. It begins with an invitation taken up and ends when the Owner disables them — signed out everywhere, while every record they wrote stays exactly where it is. The Farm is never left without an Owner, and nobody ends their own Membership. _Avoid_: Account, user record, permissions (what a Role may do), access
+**Membership**: What makes somebody one of the Farm's people: the Roles they hold, whether they still work here, the Pens they keep and the PIN they switch in with. It begins with an invitation taken up and ends when the Owner disables them — turned away at sign-in, signed out everywhere, while every record they wrote stays exactly where it is. The Farm is never left without an Owner, and nobody ends their own Membership. Not their **Account**, which is how they sign in at all. _Avoid_: Account (that is the sign-in), user record, permissions (what a Role may do), access
+
+**Account**: How somebody signs in: their email, the password only they know, and wherever they are signed in. The Farm never sets a password for anybody — one somebody else has seen is one that signs work in their name — so somebody who has forgotten theirs is handed a one-time code, read out in person, and chooses their own. Whoever runs the Farm can see where a person is signed in and turn one of those out: a phone left in a yard is the Farm's problem. An Account is not a **Membership**: ending the Membership shuts the Account's door on this Farm, and the Account is what the door is on. _Avoid_: Login, credentials, profile
 
 **Pen Assignment**: The Pens a Staff member is responsible for. Defines what they see and may record as Barn Staff — their **Scope** under that Role. _Avoid_: Area, zone, allocation
 
