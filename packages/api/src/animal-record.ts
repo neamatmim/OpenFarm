@@ -15,6 +15,8 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
+import { animalSummaryColumns } from "./herd-store";
+
 /**
  * How much of her record to read. Her page shows a screenful; her Animal Passport shows what a buyer or a
  * slaughter vet is entitled to see, which is a great deal more. Whatever is asked for, the record says whether
@@ -79,40 +81,37 @@ export const herRecord = async (
   const depth = { ...PAPER_DEPTH, ...howDeep };
   const row = await db.query.animal.findFirst({
     where: { farmId, tagNumber: tagNumber.toUpperCase() },
+    // What she is, as every list of her says it — her whole withdrawal record included, the shortening with
+    // it: a hold a Vet cut short is the one thing a slaughter vet asks about, and a paper that did not say so
+    // would be the farm asking to be taken at its word exactly where its word is not enough.
     columns: {
-      id: true,
-      tagNumber: true,
-      sex: true,
-      breed: true,
-      birthDate: true,
-      source: true,
-      state: true,
-      // When she reached it: for an animal who has left, the moment she went, however she went.
+      ...animalSummaryColumns,
+      // When she reached her State: for an animal who has left, the moment she went, however she went.
       stateChangedAt: true,
-      // Her whole withdrawal record, the shortening included: a hold a Vet cut short is the one
-      // thing a slaughter vet asks about, and a paper that did not say so would be the farm
-      // asking to be taken at its word exactly where its word is not enough.
-      meatWithdrawalUntil: true,
-      meatWithdrawalFromDoses: true,
-      milkWithdrawalUntil: true,
-      milkWithdrawalFromDoses: true,
-      withdrawalShortenedAt: true,
-      withdrawalShortenedReason: true,
     },
     with: {
       moves: {
-        // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant.
+        // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant —
+        // registering an animal walks her to her first Pen in the same transaction as a Move recorded a
+        // moment later, and her history should not depend on which row the database hands back first.
         orderBy: { movedAt: "desc", id: "desc" },
         limit: depth.moves + 1,
-        columns: { id: true, movedAt: true },
-        with: { toPen: { columns: { name: true } } },
+        // Both ends of the journey and the work that walked her, so her history reads as one story rather
+        // than as a Move nobody can account for.
+        with: {
+          completion: { columns: { instanceId: true } },
+          fromPen: { columns: { name: true } },
+          toPen: { columns: { name: true } },
+        },
       },
       treatments: {
         where: { givenAt: { isNotNull: true } },
         orderBy: { givenAt: "desc", id: "desc" },
         limit: depth.doses + 1,
         with: {
-          product: { columns: { nameBn: true, meatWithdrawalDays: true } },
+          product: {
+            columns: { nameBn: true, nameEn: true, meatWithdrawalDays: true },
+          },
           giver: { columns: { name: true } },
           /** Whose prescription it was. A buyer and a slaughter vet are both entitled to ask,
            *  and "prescribed" without a name is not an answer. */
@@ -122,17 +121,37 @@ export const herRecord = async (
       weighIns: {
         orderBy: { weighedAt: "desc", id: "desc" },
         limit: depth.weighIns + 1,
-        columns: { weightKg: true, weighedAt: true },
+        columns: {
+          id: true,
+          weightKg: true,
+          weighedAt: true,
+          method: true,
+          // What the farm found doubtful about a reading, and null for one it did not doubt.
+          flaggedNote: true,
+        },
+        with: { weigher: { columns: { name: true } } },
       },
-      intake: {
-        columns: { arrivedAt: true, estimatedAgeMonths: true },
-        with: { seller: { columns: { name: true } } },
+      // What she cost and what she fetched are here because the farm knows them; who may read them is the
+      // reader's to decide (CONTEXT: Scope). A paper for a buyer prints neither.
+      intake: { with: { seller: { columns: { name: true, address: true } } } },
+      sale: { with: { buyer: { columns: { name: true } } } },
+      mortality: {
+        columns: {
+          kind: true,
+          happenedAt: true,
+          cause: true,
+          disposal: true,
+          disposalNote: true,
+        },
+        with: {
+          recorder: { columns: { name: true } },
+          // What she is said to have died of, and the reference the office filed the report under.
+          diagnosis: {
+            columns: { disease: true },
+            with: { report: { columns: { reference: true } } },
+          },
+        },
       },
-      sale: {
-        columns: { soldAt: true, destination: true },
-        with: { buyer: { columns: { name: true } } },
-      },
-      mortality: { columns: { kind: true, cause: true, disposal: true } },
     },
   });
   if (!row) {
