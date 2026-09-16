@@ -36,6 +36,14 @@ export const en = {
   "auth.signUp": "Sign up",
   "auth.needAccount": "Need an account? Sign up",
   "auth.haveAccount": "Already have an account? Sign in",
+  "auth.forgotPassword": "Forgotten your password?",
+  "auth.forgotTitle": "Set a new password",
+  "auth.forgotHint":
+    "Ask the Owner or the Manager for a code, then choose a password of your own.",
+  "auth.code": "Code",
+  "auth.newPassword": "New password",
+  "auth.passwordSet": "Password set — sign in with it",
+  "auth.backToSignIn": "Back to signing in",
   "auth.signInSuccess": "Signed in",
   "auth.noLongerHere":
     "You no longer work on this farm. Ask the Owner if this is wrong.",
