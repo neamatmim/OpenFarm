@@ -21,12 +21,12 @@ import {
   STATES,
   failedAttempts,
   lactationView,
-  withdrawalView,
   sideOfState,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { herRecord } from "../animal-record";
 import { audited } from "../audit";
 import {
   expectedCalvingWithinReach,
@@ -118,6 +118,8 @@ type NewAnimal = z.infer<typeof importRowInput>;
 /** How much of her treatment history a page shows. Longer than her Moves or her Observations,
  *  because a course of six doses twice a year is what this list is made of, and the question it
  *  answers — what has she been given — looks back further than the others. */
+/** A screenful of her Moves: her page answers "where is she now, and where has she been lately". */
+const MOVES_SHOWN = 20;
 const DOSES_SHOWN = 40;
 
 /** Two years of fortnights. Long enough to see a whole fattening cycle and the one before it. */
@@ -447,31 +449,26 @@ export const animalsRouter = {
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
     .input(z.object({ tagNumber: tagInput }))
     .handler(async ({ context, input }) => {
-      const row = await context.db.query.animal.findFirst({
-        where: {
-          farmId: context.farm.id,
-          tagNumber: input.tagNumber.toUpperCase(),
-        },
-        columns: animalSummaryColumns,
+      const now = context.clock.now();
+      // Her record, as her papers and the registers read it — what she is, where she has stood, what she has
+      // had and weighed, how she arrived and how she left. Her page shows a screenful of each.
+      const her = await herRecord(
+        context.db,
+        context.farm.id,
+        input.tagNumber,
+        now,
+        { moves: MOVES_SHOWN, doses: DOSES_SHOWN, weighIns: WEIGH_INS_SHOWN }
+      );
+      requireLookUp(context.scope, her);
+      // What is her page's alone: the chain from what somebody saw on the round to what the Vet made of it,
+      // her breeding, and the Pen she is standing in now.
+      const hers = await context.db.query.animal.findFirst({
+        where: { id: her.id },
+        columns: { id: true },
         with: {
           pen: {
             columns: { id: true, name: true },
             with: { shed: { columns: { name: true } } },
-          },
-          moves: {
-            // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an
-            // instant — registering an animal walks her to her first Pen in the same
-            // transaction as a Move recorded a moment later, and her history should not
-            // depend on which row the database happens to hand back first.
-            orderBy: { movedAt: "desc", id: "desc" },
-            limit: 20,
-            // Both ends of the journey, and the work that walked her — so her history reads
-            // as one story rather than as a Move nobody can account for.
-            with: {
-              completion: { columns: { instanceId: true } },
-              fromPen: { columns: { name: true } },
-              toPen: { columns: { name: true } },
-            },
           },
           retags: { orderBy: { retaggedAt: "desc", id: "desc" }, limit: 20 },
           // Every pregnancy she lost before calving, as the Vet recorded it.
@@ -530,43 +527,6 @@ export const animalsRouter = {
               },
             },
           },
-          /** Every dose she has actually had, a course's or a campaign's. This is what a
-           *  slaughter vet asks for: per animal, not per campaign. */
-          /** How she went, for an animal who has left. */
-          mortality: {
-            with: {
-              recorder: { columns: { name: true } },
-              /** What she is said to have died of, and the report the farm owed for it. */
-              diagnosis: {
-                columns: { disease: true },
-                with: { report: { columns: { reference: true } } },
-              },
-            },
-          },
-          treatments: {
-            where: { givenAt: { isNotNull: true } },
-            orderBy: { givenAt: "desc" },
-            limit: DOSES_SHOWN,
-            with: {
-              product: { columns: { nameBn: true, nameEn: true } },
-              giver: { columns: { name: true } },
-            },
-          },
-          /** How she arrived, for an animal the farm bought in: what she cost, what she
-           *  weighed off the lorry, and what she is being fed towards. */
-          intake: {
-            with: { seller: { columns: { name: true, address: true } } },
-          },
-          /** How she left, for an animal sold to a buyer: what she fetched, who took her,
-           *  and what carried her. */
-          sale: { with: { buyer: { columns: { name: true } } } },
-          /** Every time she has been on the scale, newest first: her page answers "what does
-           *  she weigh now" before it answers anything else. */
-          weighIns: {
-            orderBy: { weighedAt: "desc", id: "desc" },
-            limit: WEIGH_INS_SHOWN,
-            with: { weigher: { columns: { name: true } } },
-          },
           /** The Vet came for something else and found this: a Diagnosis answering no
            *  Observation still belongs to her history. */
           diagnoses: {
@@ -577,25 +537,49 @@ export const animalsRouter = {
           },
         },
       });
-      if (!row) {
+      if (!hers) {
         throw new ORPCError("NOT_FOUND", {
           message: `No animal with tag ${input.tagNumber}`,
         });
       }
-      requireLookUp(context.scope, row);
-      const clinical = readsTheClinicalRecord(context, row.id);
+      const clinical = readsTheClinicalRecord(context, her.id);
       // A separate question from the clinical one, and a separate row of the matrix: money is
       // the Owner's and the Manager's whoever else may read her history.
       const theCost = readsWhatSheCost(context);
+      // Her record answers more than her page asks. What it works out for a paper — where she stood as spells
+      // rather than Moves, how long she has been on feed, whether there was more than it showed — is not on
+      // this screen, and her State's own instant is carried by how she left.
+      const {
+        moves,
+        doses,
+        weighIns,
+        arrival,
+        exit,
+        withdrawal,
+        penSpells: _penSpells,
+        daysOnFeed: _daysOnFeed,
+        moreThanShown: _moreThanShown,
+        stateChangedAt: _stateChangedAt,
+        ...what
+      } = her;
+      // An Intake and a Sale hang off how she arrived and how she left, which is where her record keeps them.
+      const intake = arrival?.intake ?? null;
+      const sale = exit?.sale ?? null;
+      const death = exit?.death ?? null;
       return {
-        ...row,
-        moves: row.moves.map(({ completion, fromPen, toPen, ...move }) => ({
+        ...what,
+        pen: hers.pen,
+        retags: hers.retags,
+        abortions: hers.abortions,
+        dam: hers.dam,
+        calvings: hers.calvings,
+        moves: moves.map(({ completion, fromPen, toPen, ...move }) => ({
           ...move,
           fromPenName: fromPen?.name ?? null,
           toPenName: toPen.name,
           instanceId: completion?.instanceId ?? null,
         })),
-        observations: row.observations.map(
+        observations: hers.observations.map(
           ({ completion, observer, diagnoses, ...seen }) => ({
             ...seen,
             instanceId: completion?.instanceId ?? null,
@@ -607,26 +591,25 @@ export const animalsRouter = {
           })
         ),
         diagnoses: clinical
-          ? row.diagnoses.map(theConclusionAndWhatFollowed)
+          ? hers.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
-        mortality: row.mortality
+        mortality: death
           ? {
-              kind: row.mortality.kind,
-              happenedAt: row.mortality.happenedAt,
-              cause: row.mortality.cause,
-              disposal: row.mortality.disposal,
-              disposalNote: row.mortality.disposalNote,
-              recordedByName: row.mortality.recorder?.name ?? null,
+              kind: death.kind,
+              happenedAt: death.happenedAt,
+              cause: death.cause,
+              disposal: death.disposal,
+              disposalNote: death.disposalNote,
+              recordedByName: death.recorder?.name ?? null,
               /** For the mortality register: what she died of, and the office's reference for
                *  it when the farm had to report it. */
-              disease: row.mortality.diagnosis?.disease ?? null,
-              reportReference:
-                row.mortality.diagnosis?.report?.reference ?? null,
+              disease: death.diagnosis?.disease ?? null,
+              reportReference: death.diagnosis?.report?.reference ?? null,
             }
           : null,
         /** Barn Staff give the doses, so they may read what has been given (roles matrix:
          *  treatment instances). What the Vet concluded stays the clinical record's own. */
-        treatments: row.treatments.map(({ product, giver, ...dose }) => ({
+        treatments: doses.map(({ product, giver, ...dose }) => ({
           id: dose.id,
           givenAt: dose.givenAt,
           number: dose.number,
@@ -638,22 +621,20 @@ export const animalsRouter = {
         /** What the farm paid and who it bought her from is the Intake row of the roles
          *  matrix — `R` to the Owner, `C R U` to the Manager, and nothing to anybody else.
          *  A milker weighs her and a Vet treats her without being told what she cost. */
-        intake: theCost ? intakeView(row.intake) : null,
+        intake: theCost ? intakeView(intake) : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
-        sale: theCost ? saleView(row.sale) : null,
-        heats: await heatsOf(context.db, row.id),
-        services: await servicesOf(context.db, row.id),
-        ...(await pregnancyChecksOf(context.db, row.id)),
+        sale: theCost ? saleView(sale) : null,
+        heats: await heatsOf(context.db, her.id),
+        services: await servicesOf(context.db, her.id),
+        ...(await pregnancyChecksOf(context.db, her.id)),
         /** What the scale means, which anybody who may see her may see. Null for an animal
          *  who is not on the Fattening side: "days on feed" about a milking cow is a number
          *  about nothing. */
         fattening:
-          row.side === "fattening"
-            ? fatteningOf(row.intake, row.weighIns, context.clock.now())
-            : null,
+          her.side === "fattening" ? fatteningOf(intake, weighIns, now) : null,
         /** Kilogrammes live in a numeric column and come back as strings; converted here at
          *  the edge, like the litres, rather than left to drift as floats. */
-        weighIns: row.weighIns.map(({ weigher, ...reading }) => ({
+        weighIns: weighIns.map(({ weigher, ...reading }) => ({
           id: reading.id,
           weightKg: Number(reading.weightKg),
           method: reading.method,
@@ -663,8 +644,8 @@ export const animalsRouter = {
           flaggedNote: reading.flaggedNote,
           weighedByName: weigher?.name ?? null,
         })),
-        ...lactationView(row, context.clock.now()),
-        ...withdrawalView(row, context.clock.now()),
+        ...lactationView(her, now),
+        ...withdrawal,
       };
     }),
 
