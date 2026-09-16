@@ -1,0 +1,112 @@
+import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
+import { Label } from "@OpenFarm/ui/components/label";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
+import { orpc } from "@/utils/orpc";
+
+const PASSWORD_MIN = 8;
+
+/**
+ * Setting a password with the code the farm handed over, which is done signed out — somebody who has forgotten
+ * theirs cannot sign in to change it.
+ *
+ * The farm never sets a password for anybody: one somebody else has seen is one that signs work in their name.
+ * So whoever runs the farm reads out a code, and the person chooses their own password here.
+ */
+export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
+  const t = useT();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const set = useMutation(
+    orpc.people.setPasswordWithCode.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("auth.passwordSet"));
+        onDone();
+      },
+      onError: (error: Error) => toast.error(sayWhy(error, t)),
+    })
+  );
+  const ready =
+    email.includes("@") &&
+    code.length >= 4 &&
+    newPassword.length >= PASSWORD_MIN;
+
+  return (
+    <div className="bg-card flex flex-col gap-6 rounded-2xl border p-6 shadow-sm sm:p-8">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("auth.forgotTitle")}
+        </h1>
+        <p className="text-muted-foreground text-sm">{t("auth.forgotHint")}</p>
+      </div>
+
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          set.mutate({ email, code, newPassword });
+        }}
+      >
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="forgot-email">{t("auth.email")}</Label>
+          <Input
+            autoComplete="username"
+            id="forgot-email"
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            type="email"
+            value={email}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="forgot-code">{t("auth.code")}</Label>
+          <Input
+            // Read out across a shed and typed in: the farm's codes have no letters anybody misreads.
+            autoCapitalize="characters"
+            className="font-mono tracking-[0.2em]"
+            id="forgot-code"
+            onChange={(event) => setCode(event.target.value.toUpperCase())}
+            required
+            value={code}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="forgot-password">{t("auth.newPassword")}</Label>
+          <Input
+            autoComplete="new-password"
+            id="forgot-password"
+            minLength={PASSWORD_MIN}
+            onChange={(event) => setNewPassword(event.target.value)}
+            required
+            type="password"
+            value={newPassword}
+          />
+          <p className="text-muted-foreground text-xs">
+            {t("auth.passwordTooShort", { min: PASSWORD_MIN })}
+          </p>
+        </div>
+        <Button
+          className="mt-1 w-full"
+          disabled={!ready || set.isPending}
+          type="submit"
+        >
+          {set.isPending ? <Spinner /> : null}
+          {t("auth.forgotTitle")}
+        </Button>
+      </form>
+
+      <div className="text-center">
+        <Button onClick={onDone} variant="link">
+          {t("auth.backToSignIn")}
+        </Button>
+      </div>
+    </div>
+  );
+};

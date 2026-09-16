@@ -11,11 +11,16 @@
  */
 
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
+import { and, eq, gt, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ROLE, invite, roleAssignment } from "@OpenFarm/db/schema/farm";
+import {
+  ACTIVE_ROLE,
+  invite,
+  passwordCode,
+  roleAssignment,
+} from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
 import {
   derivePinHash,
@@ -237,6 +242,76 @@ export const endMembership = async (
 /** Somebody back at work: they sign in again, and the Roles they held are the Roles they held. */
 export const restoreMembership = (tx: Tx, userId: string): Promise<void> =>
   markDisabled(tx, userId, null);
+
+/** One place somebody is signed in: a browser or a phone of their own, holding a session of theirs.
+ *
+ *  Not a Shed Phone, which is the farm's own handset holding a device session that people PIN Switch on
+ *  (CONTEXT: Shed Phone). This is where a person is signed in as themselves. */
+export interface SignedInOn {
+  id: string;
+  since: Date;
+  lastSeen: Date;
+  from: string | null;
+  browser: string | null;
+}
+
+/** Where somebody is signed in today, the most recently used first. An expired session is not somewhere they
+ *  are: it is somewhere they were, and there is nothing to sign out of. */
+export const signedInOn = async (
+  tx: Reading,
+  userId: string,
+  now: Date
+): Promise<SignedInOn[]> => {
+  const rows = await tx.query.session.findMany({
+    where: { userId, expiresAt: { gt: now } },
+    columns: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      ipAddress: true,
+      userAgent: true,
+    },
+    orderBy: { updatedAt: "desc", id: "desc" },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    since: row.createdAt,
+    lastSeen: row.updatedAt,
+    from: row.ipAddress,
+    browser: row.userAgent,
+  }));
+};
+
+/**
+ * Signs somebody out of one of the places they are signed in — a phone left in the yard, a browser in a shop.
+ *
+ * Expired rather than deleted, as ending a Membership does it: the record that they were signed in there stays.
+ * Only a session of theirs: signing one person out of another's is not something to be one mistyped id away
+ * from.
+ */
+export const signOutOf = async (
+  tx: Tx,
+  userId: string,
+  sessionId: string,
+  now: Date
+): Promise<void> => {
+  const [row] = await tx
+    .update(sessionTable)
+    .set({ expiresAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(sessionTable.id, sessionId),
+        eq(sessionTable.userId, userId),
+        gt(sessionTable.expiresAt, now)
+      )
+    )
+    .returning({ id: sessionTable.id });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "They are not signed in there",
+    });
+  }
+};
 
 /** The Pens a Staff member keeps today, in an order two readings can be compared in. */
 export const pensOf = async (
@@ -641,4 +716,100 @@ export const theRoster = async (
         ]
       : [];
   });
+};
+
+/** How long a password code is worth reading out. Long enough for somebody to walk back to the shed and sit
+ *  down with it, short enough that a code overheard yesterday is no longer a way in. */
+const CODE_LASTS = 24 * 60 * 60 * 1000;
+
+/** A one-time code for somebody who cannot sign in, and what the farm keeps of it. Worked out before the
+ *  transaction, like a PIN and an invitation's code, because hashing is deliberately slow. */
+export const newPasswordCode = async (
+  now: Date
+): Promise<{ code: string; codeHash: string; expiresAt: Date }> => ({
+  ...(await newInviteCode()),
+  expiresAt: new Date(now.getTime() + CODE_LASTS),
+});
+
+/**
+ * Writes down the one code that will let this person set a password.
+ *
+ * One per person: issuing a second puts the first out of use, because two ways in is one more than anybody
+ * asked for. Only the hash is kept, so nobody — the Owner included — can read a code back out of the farm's
+ * records after it has been read out once.
+ */
+export const writePasswordCode = async (
+  tx: Tx,
+  farmId: string,
+  userId: string,
+  minted: { codeHash: string; expiresAt: Date },
+  by: Acting,
+  now: Date
+): Promise<void> => {
+  const held = await rolesOf(tx, farmId, userId);
+  if (held.length === 0) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "That person is not on this farm",
+    });
+  }
+  const values = {
+    farmId,
+    userId,
+    codeHash: minted.codeHash,
+    expiresAt: minted.expiresAt,
+    usedAt: null,
+    issuedBy: by.id,
+    issuedByRole: by.role,
+    createdAt: now,
+  };
+  await tx
+    .insert(passwordCode)
+    .values({ id: uuidv7(now), ...values })
+    .onConflictDoUpdate({ target: [passwordCode.userId], set: values });
+};
+
+/** Whoever the farm knows by that email and has not shown the door. Nothing for anybody else, which is the
+ *  same answer a wrong code gets: somebody guessing learns neither. */
+export const personByEmail = async (
+  tx: Reading,
+  email: string
+): Promise<{ id: string; name: string } | null> => {
+  const person = await tx.query.user.findFirst({
+    where: { email: email.toLowerCase() },
+    columns: { id: true, name: true, disabledAt: true },
+  });
+  return person && !person.disabledAt
+    ? { id: person.id, name: person.name }
+    : null;
+};
+
+/**
+ * Takes the code back off them.
+ *
+ * Refused for a code this farm is not holding, one that has been spent, and one that has gone stale — each the
+ * same way, because somebody guessing should not be told which of the three they have.
+ */
+export const spendPasswordCode = async (
+  tx: Tx,
+  farmId: string,
+  userId: string,
+  codeHash: string,
+  now: Date
+): Promise<void> => {
+  const [spent] = await tx
+    .update(passwordCode)
+    .set({ usedAt: now })
+    .where(
+      and(
+        eq(passwordCode.farmId, farmId),
+        eq(passwordCode.userId, userId),
+        eq(passwordCode.codeHash, codeHash),
+        isNull(passwordCode.usedAt),
+        gt(passwordCode.expiresAt, now)
+      )
+    )
+    .returning({ id: passwordCode.id });
+  if (!spent) {
+    throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+  }
 };

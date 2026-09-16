@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AuthScreen } from "@/components/auth-screen";
+import { ForgotPasswordForm } from "@/components/forgot-password-form";
 import SignInForm from "@/components/sign-in-form";
 import SignUpForm from "@/components/sign-up-form";
 import { getUser } from "@/functions/get-user";
@@ -24,16 +25,32 @@ export const Route = createFileRoute("/login")({
 });
 
 function RouteComponent() {
-  // Signing in is what nearly everybody comes here for; an account is opened once, by the farm's first person.
-  const [showSignIn, setShowSignIn] = useState(true);
+  // Signing in is what nearly everybody comes here for; an account is opened once, by the farm's first person,
+  // and a forgotten password is why somebody is standing here with a code the farm read out to them.
+  const [showing, setShowing] = useState<"signIn" | "signUp" | "forgot">(
+    "signIn"
+  );
 
+  if (showing === "signUp") {
+    return (
+      <AuthScreen>
+        <SignUpForm onSwitchToSignIn={() => setShowing("signIn")} />
+      </AuthScreen>
+    );
+  }
+  if (showing === "forgot") {
+    return (
+      <AuthScreen>
+        <ForgotPasswordForm onDone={() => setShowing("signIn")} />
+      </AuthScreen>
+    );
+  }
   return (
     <AuthScreen>
-      {showSignIn ? (
-        <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
-      ) : (
-        <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
-      )}
+      <SignInForm
+        onForgotPassword={() => setShowing("forgot")}
+        onSwitchToSignUp={() => setShowing("signUp")}
+      />
     </AuthScreen>
   );
 }

@@ -15,8 +15,10 @@ const PASSWORD_MIN = 8;
 
 export default function SignInForm({
   onSwitchToSignUp,
+  onForgotPassword,
 }: {
   onSwitchToSignUp: () => void;
+  onForgotPassword: () => void;
 }) {
   const navigate = useNavigate({
     from: "/",
@@ -143,7 +145,10 @@ export default function SignInForm({
         </form.Subscribe>
       </form>
 
-      <div className="text-center">
+      <div className="flex flex-col items-center gap-1">
+        <Button onClick={onForgotPassword} variant="link">
+          {t("auth.forgotPassword")}
+        </Button>
         <Button variant="link" onClick={onSwitchToSignUp}>
           {t("auth.needAccount")}
         </Button>
