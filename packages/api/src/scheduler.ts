@@ -4,10 +4,8 @@ import type { Clock } from "./clock";
 import { systemClock } from "./clock";
 import { buildContext } from "./context";
 import type { PushTransport } from "./push";
-import { carryTheDigest, sweepTheAlerts } from "./routers/alerts";
-import { raiseTheDaysWork } from "./routers/instances";
-import { endExpiredVisits } from "./routers/vet-cases";
 import type { SmsTransport } from "./sms";
+import { theDayTurns } from "./the-day-turns";
 
 /** How often the server looks at the farm's clock: often enough that nothing waits long for its notice. */
 const EVERY_MS = 5 * 60_000;
@@ -50,13 +48,10 @@ export const runTheSchedule = async ({
     if (!farm) {
       return { ok: true };
     }
-    const onTheFarm = { ...context, farm };
-    await endExpiredVisits(onTheFarm);
-    await raiseTheDaysWork(onTheFarm);
-    await sweepTheAlerts(onTheFarm);
-    await carryTheDigest(onTheFarm);
+    const turned = await theDayTurns({ ...context, farm });
     status.lastOkAt = clock.now();
-    status.lastError = null;
+    // A piece that failed is the Owner's to see on the systems page; the rest of the day still turned.
+    status.lastError = turned.wentWrong.join("; ") || null;
     return { ok: true };
   } catch (error) {
     status.lastError = error instanceof Error ? error.message : String(error);

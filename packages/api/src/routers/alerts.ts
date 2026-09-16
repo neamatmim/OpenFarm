@@ -1,164 +1,16 @@
 import { and, eq } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
-import { farm } from "@OpenFarm/db/schema/farm";
-import { isQuiet } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import {
-  anyUntold,
-  raiseWithdrawalAlerts,
-  withdrawalsEndingSoon,
-} from "../health-store";
 import { protectedProcedure } from "../index";
-import {
-  findPendingNotices,
-  minuteOfFarmDay,
-  postDueAt,
-  raiseLateAlerts,
-} from "../instances-store";
-import { carryThePost, pushRaised } from "../push-send";
 import { requireRole } from "../roles";
-import { textTheSafetyAlerts } from "../sms-send";
-import {
-  lowStockToTell,
-  raiseLowStockAlerts,
-  runningLow,
-} from "../stock-store";
+import { thePost, theSweep } from "../the-day-turns";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
  *  problem the farm has. */
 const INBOX_LIMIT = 50;
-
-/** The Instance the sweep's Audit Event is keyed on: the first it has something to say
- *  about, with the rest named in the event's payload. */
-const first = (pending: {
-  overdue: { id: string }[];
-  escalated: { id: string }[];
-}): string => pending.overdue[0]?.id ?? pending.escalated[0]?.id ?? "";
-
-/**
- * The other half of the sweep: cows coming off a Withdrawal within the day. Its own audited
- * write, keyed on an animal rather than on an Instance, because no work raised it — the clock
- * did, against a date a Treatment set.
- */
-type Sweeping = Parameters<typeof pushRaised>[0];
-
-const tellAboutWithdrawals = async (context: Sweeping, now: Date) => {
-  const ending = await withdrawalsEndingSoon(context.db, context.farm.id, now);
-  const [soonest] = ending;
-  // Nothing coming off, or everyone has already been told: no transaction, no trail entry.
-  if (!soonest || !(await anyUntold(context.db, context.farm.id, ending))) {
-    return;
-  }
-  const raised = await audited(context).write(
-    {
-      entity: "animal",
-      entityId: soonest.id,
-      action: "update",
-      after: () =>
-        Promise.resolve({ endingSoon: ending.map((beast) => beast.tagNumber) }),
-    },
-    (tx) => raiseWithdrawalAlerts(tx, context.farm.id, ending, now)
-  );
-  await pushRaised(context, raised, now);
-  // And by text, for the two the farm cannot afford to miss. After the push and outside the
-  // transaction, for the same reason: a gateway is somebody else's server.
-  await textTheSafetyAlerts(context, raised);
-};
-
-/**
- * The other part of the sweep with nothing to do with late work: Feed Items running low. Keyed on the
- * first Feed Item it tells about, with the rest named in the event, because the store — not any work —
- * is what the notice is about.
- */
-const tellAboutLowStock = async (context: Sweeping, now: Date) => {
-  const low = await runningLow(context.db, context.farm.id);
-  const toTell = await lowStockToTell(context.db, context.farm.id, low);
-  const [lowest] = toTell.untold;
-  if (!lowest) {
-    return;
-  }
-  await audited(context).write(
-    {
-      entity: "feed_item",
-      entityId: lowest.feedItemId,
-      action: "update",
-      after: () =>
-        Promise.resolve({
-          toldRunningLow: toTell.untold.map((line) => line.feedItemId),
-        }),
-    },
-    (tx) => raiseLowStockAlerts(tx, context.farm.id, toTell, now)
-  );
-};
-
-export const sweepTheAlerts = async (context: Sweeping) => {
-  const now = context.clock.now();
-  // Three things that have nothing to do with each other: work that went late, cows coming off a
-  // Withdrawal, and feed running low. The other two are told about first, because late work
-  // having nothing to say is the steady state and must not silence them.
-  await tellAboutWithdrawals(context, now);
-  await tellAboutLowStock(context, now);
-  const pending = await findPendingNotices(context.db, context.farm, now);
-  // A sweep with nothing to say is not an event, and opens no transaction: everyone
-  // calls this on opening the app, and in steady state there is nothing new to say.
-  // The watermark stays where it is — a window with nothing in it costs nothing to
-  // look at again.
-  if (pending.overdue.length + pending.escalated.length === 0) {
-    return { overdue: 0, escalated: 0 };
-  }
-  // Audited against each Instance the notice is about, not against the sweep: an
-  // entityId no row carries is a trail entry nothing can find its way back to. Reading
-  // an Instance's history now shows that it went late and who was told.
-  const swept = await audited(context).write(
-    {
-      entity: "sop_instance",
-      entityId: first(pending),
-      action: "update",
-      after: () =>
-        Promise.resolve({
-          overdue: pending.overdue.map((row) => row.id),
-          escalated: pending.escalated.map((row) => row.id),
-        }),
-    },
-    async (tx) => {
-      const raised = await raiseLateAlerts(tx, context.farm.id, pending, now);
-      // Remembered inside the same transaction as the notices: a watermark that moved
-      // on without them would step over work nobody was ever told about.
-      await tx
-        .update(farm)
-        .set({ alertsSweptFrom: pending.sweptFrom })
-        .where(eq(farm.id, context.farm.id));
-      return raised;
-    }
-  );
-  // The tap on the shoulder goes out after the Alerts are safely the farm's record, and
-  // never inside the transaction that made them: a push is a call to somebody else's
-  // server, and a hung one would hold a lock every phone in the shed is waiting on.
-  await pushRaised(context, swept.raised, now);
-  return { overdue: swept.overdue, escalated: swept.escalated };
-};
-
-export const carryTheDigest = async (context: Sweeping) => {
-  const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
-  const now = context.clock.now();
-  const quiet = {
-    from: context.farm.quietFrom,
-    until: context.farm.quietUntil,
-  };
-  // Not only "has a carrying moment passed" but "is the farm awake": somebody opening
-  // the app at half past midnight must not set every phone on the farm buzzing.
-  if (isQuiet(minuteOfFarmDay(now), quiet)) {
-    return nothing;
-  }
-  const upTo = postDueAt(now, context.farm.digestTimes, quiet);
-  if (!upTo) {
-    return nothing;
-  }
-  return await carryThePost(context, now, upTo);
-};
 
 export const alertsRouter = {
   /**
@@ -168,7 +20,7 @@ export const alertsRouter = {
    */
   sweep: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) => sweepTheAlerts(context)),
+    .handler(({ context }) => theSweep(context)),
 
   /**
    * What this person is being told, newest first. Theirs alone — an Alert is personal.
@@ -186,7 +38,7 @@ export const alertsRouter = {
    */
   digest: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) => carryTheDigest(context)),
+    .handler(({ context }) => thePost(context)),
 
   mine: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
