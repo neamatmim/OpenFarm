@@ -7,8 +7,10 @@ import {
   theFarm,
   thePerson,
 } from "@OpenFarm/test-harness";
+import { ORPCError } from "@orpc/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { PushTransport } from "../push";
 import type { SmsMessage, SmsTransport } from "../sms";
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
@@ -31,6 +33,14 @@ const listeningGateway = () => {
     },
   };
 };
+
+/** A push service that refuses the farm outright, the way the farm's own refusals read. */
+const refusingPush = (): PushTransport => ({
+  send: () =>
+    Promise.reject(
+      new ORPCError("BAD_REQUEST", { message: "that endpoint is not allowed" })
+    ),
+});
 
 const treatmentSop = (): SopContent => ({
   name: { bn: "চিকিৎসা — ডোজ দিন", en: "Treatment — give the dose" },
@@ -181,6 +191,35 @@ describe("the two alerts worth a text message", () => {
     expect(toTheManager?.message.lang).toBe("bn");
     expect(toTheManager?.message.text).toContain("আটকে");
   });
+  it("texts even when the push service will not have it", async () => {
+    const clock = new FakeClock("2026-10-23T02:00:00.000Z");
+    const { cow } = await aTreatedCow(clock);
+    const gateway = listeningGateway();
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    await owner.client.people.setPhone({ phone: "+8801711000007" });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    await manager.client.people.setPhone({ phone: "+8801711000008" });
+
+    clock.advance(3 * DAY + DAY / 2);
+    const sweeping = await createTestClient(appRouter, {
+      as: "manager",
+      clock,
+      sms: gateway.transport,
+      push: refusingPush(),
+    });
+    await sweeping.client.alerts.sweep();
+
+    // The text is the one the farm sends because a push may not arrive, so a push that does not arrive is the
+    // case it exists for — and the sweep that raised it carries on either way.
+    const about = gateway.sent.filter((one) =>
+      one.message.text.includes(cow.tagNumber)
+    );
+    expect(about.map((one) => one.to).toSorted()).toEqual([
+      "+8801711000007",
+      "+8801711000008",
+    ]);
+  });
+
   it("texts about a notifiable disease, and nothing else ever", async () => {
     const clock = new FakeClock("2026-10-21T02:00:00.000Z");
     const gateway = listeningGateway();

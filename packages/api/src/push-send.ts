@@ -17,9 +17,13 @@ import { carryTheDigest, claimTheDigest, pushAlerts } from "./push-store";
  * a lock that every phone in the shed is waiting on, and a push sent before that transaction
  * committed could buzz a pocket about work the farm then rolled back.
  *
- * Nothing here can fail loudly. The in-app Alert is the record; if the push service is down,
- * the keys are wrong, or the phone has been wiped, the person still opens the app to the
- * same list — and hears about none of it from us.
+ * The push service cannot fail loudly. A service that is down, keys that are wrong, a phone that has been
+ * wiped: each is swallowed where the browser is told, counted as missed, and the person still opens the app to
+ * the same list. Callers lean on that — a Withdrawal ending and a notifiable Diagnosis are texted on the line
+ * after this one, and the text exists because a push may not arrive.
+ *
+ * What is not swallowed is the farm refusing itself: an ORPCError from the trail written here is the farm's
+ * own word about the request, and belongs to whoever asked.
  */
 export const pushRaised = async (
   context: Context & {
