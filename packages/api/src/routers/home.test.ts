@@ -74,9 +74,8 @@ describe("the screen the Manager runs the day from", () => {
       [world.worked.id, world.untouched.id].includes(pen.penId)
     );
     expect(mine).toHaveLength(2);
-    // Two sessions of this round in each Pen, and nothing done in either. Counted with
-    // "at least", because a Pen's day is every SOP that concerns it — and other test files
-    // share this farm and author their own.
+    // Two sessions of this round in each Pen, and nothing done in either. Counted with "at least", because a Pen's
+    // day is every SOP that concerns it, and this file authors more than one.
     expect(mine.every((pen) => pen.done === 0 && pen.raised >= 2)).toBe(true);
     // And the morning round is late in both. Asked of the day's work rather than of the
     // Manager's queue: the queue shows the farm's fifty most overdue pieces of work, so on a

@@ -1,7 +1,12 @@
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { ALERT_KINDS, SAYS, goesNow } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { NOTICES, tell } from "./notice";
@@ -11,8 +16,8 @@ import { createTestClient } from "./test/client";
 // Who hears each kind of Notice, and what raising one writes. The audience is the kind's to say, so these are about the
 // table rather than about any one raiser: a kind with nobody to tell it to is a notice nobody ever gets.
 //
-// The farm is shared with every other test file, and those files hire people of their own, so each test asks whether
-// the right sort of person was told and the wrong sort was not — never who the whole farm is.
+// Each test asks whether the right sort of person was told and the wrong sort was not: who hears a kind of Notice is
+// the kind's to say, and a farm may have two Managers.
 
 const suffix = `${Date.now()}`;
 const AT = "2044-03-02T04:00:00.000Z";
@@ -40,18 +45,18 @@ beforeAll(async () => {
     .insert(penAssignment)
     .values({
       id: `pa-notice-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
-  world = { pen: pen.id, staff: "test-staff" };
+  world = { pen: pen.id, staff: thePerson("staff").id };
 });
 
 /** Who a Notice raised now reached. */
 const toldBy = async (id: string) => {
   const rows = await db().query.alert.findMany({
-    where: { farmId: TEST_FARM.id, entityId: id },
+    where: { farmId: theFarm().id, entityId: id },
     columns: { userId: true, kind: true, params: true },
   });
   return rows;
@@ -63,7 +68,7 @@ describe("who hears a Notice", () => {
     const raised = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           kind: "low_stock",
           about: { id },
@@ -79,10 +84,10 @@ describe("who hears a Notice", () => {
       )
     );
     const heard = raised.map((one) => one.userId);
-    expect(heard).toContain("test-manager");
+    expect(heard).toContain(thePerson("manager").id);
     // Not the milkers and not the Vet: a store running low is the Manager's to answer.
     expect(heard).not.toContain(world.staff);
-    expect(heard).not.toContain("test-vet");
+    expect(heard).not.toContain(thePerson("vet").id);
     // Its facts are stored under the names the screens already read.
     const [told] = await toldBy(id);
     expect(told?.params).toMatchObject({ nameBn: "ভুট্টা", onHand: 12 });
@@ -93,7 +98,7 @@ describe("who hears a Notice", () => {
     const raised = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           kind: "withdrawal_ending",
           about: { id, penId: world.pen },
@@ -103,7 +108,7 @@ describe("who hears a Notice", () => {
       )
     );
     const heard = raised.map((one) => one.userId);
-    expect(heard).toContain("test-manager");
+    expect(heard).toContain(thePerson("manager").id);
     expect(heard).toContain(world.staff);
   });
 
@@ -112,7 +117,7 @@ describe("who hears a Notice", () => {
     const raised = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           kind: "sop_published",
           about: { id, assignedRole: "vet" },
@@ -123,7 +128,7 @@ describe("who hears a Notice", () => {
     );
     const heard = raised.map((one) => one.userId);
     // The Vets do this procedure, so the Vets hear of it — and the milkers, who do not, are left alone.
-    expect(heard).toContain("test-vet");
+    expect(heard).toContain(thePerson("vet").id);
     expect(heard).not.toContain(world.staff);
   });
 
@@ -133,18 +138,18 @@ describe("who hears a Notice", () => {
     await db().transaction(async (tx) => {
       await tx.insert(auditEvent).values({
         id: eventId,
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         entity: "step_completion",
         entityId: id,
         action: "correct",
-        actorId: "test-manager",
+        actorId: thePerson("manager").id,
         roleUsed: "manager",
         recordedAt: new Date(AT),
         receivedAt: new Date(AT),
       });
       await tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           kind: "needs_review",
           about: { id, entity: "step_completion", auditEventId: eventId },
@@ -154,7 +159,7 @@ describe("who hears a Notice", () => {
       );
     });
     const owed = await db().query.needsReview.findMany({
-      where: { farmId: TEST_FARM.id, entityId: id },
+      where: { farmId: theFarm().id, entityId: id },
       columns: { reason: true, entity: true, resolvedAt: true },
     });
     expect(owed).toEqual([
@@ -166,7 +171,9 @@ describe("who hears a Notice", () => {
     ]);
     // And the Manager is pointed at it, with why the Effect stood aside.
     const everyoneTold = await toldBy(id);
-    const pointed = everyoneTold.find((row) => row.userId === "test-manager");
+    const pointed = everyoneTold.find(
+      (row) => row.userId === thePerson("manager").id
+    );
     expect(pointed).toMatchObject({
       kind: "needs_review",
       params: { because: "moved_since" },
@@ -204,14 +211,14 @@ describe("who hears a Notice", () => {
       const raised = await db().transaction((tx) =>
         tell(
           tx,
-          TEST_FARM.id,
+          theFarm().id,
           { kind: one.kind, about: { id: one.id }, facts: one.facts },
           new Date(AT)
         )
       );
       const heard = raised.map((row) => row.userId);
-      expect(heard).toContain("test-owner");
-      expect(heard).not.toContain("test-manager");
+      expect(heard).toContain(thePerson("owner").id);
+      expect(heard).not.toContain(thePerson("manager").id);
     }
   });
 
@@ -220,7 +227,7 @@ describe("who hears a Notice", () => {
     const raised = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           kind: "notifiable_diagnosis",
           about: { id },
@@ -231,8 +238,8 @@ describe("who hears a Notice", () => {
     );
     const heard = raised.map((row) => row.userId);
     // The Manager takes the letter to the office; the Owner answers for the farm if it does not go.
-    expect(heard).toContain("test-owner");
-    expect(heard).toContain("test-manager");
+    expect(heard).toContain(thePerson("owner").id);
+    expect(heard).toContain(thePerson("manager").id);
     expect(heard).not.toContain(world.staff);
   });
 
@@ -241,7 +248,7 @@ describe("who hears a Notice", () => {
     const raised = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           kind: "entry_rejected",
           about: { id, person: world.staff },
@@ -260,7 +267,7 @@ describe("who hears a Notice", () => {
     const first = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         { kind: "withdrawal_changed", about: { id }, facts },
         new Date(AT)
       )
@@ -268,7 +275,7 @@ describe("who hears a Notice", () => {
     const again = await db().transaction((tx) =>
       tell(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         { kind: "withdrawal_changed", about: { id }, facts },
         new Date(AT)
       )

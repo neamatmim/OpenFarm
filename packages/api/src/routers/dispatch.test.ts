@@ -3,7 +3,12 @@ import { animal, penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -99,8 +104,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-dp-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -354,8 +359,8 @@ describe("the milk dispatch", () => {
   });
 
   it("refuses a dispatch record to a farm without its registration number, and a period that runs backwards", async () => {
-    // As the Manager, as the transport card's refusal does: another file reads the farm's trail for the
-    // Manager's write of this number.
+    // As the Manager, as the transport card's refusal does: a later test in this file reads the farm's trail for
+    // the Manager's write of this number.
     const writer = await createTestClient(appRouter, {
       as: "manager",
       clock: new FakeClock("2036-02-02T04:00:00.000Z"),

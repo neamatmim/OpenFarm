@@ -7,7 +7,13 @@ import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SyncKind } from "@OpenFarm/db/schema/sync";
 import { SYNC_KINDS } from "@OpenFarm/db/schema/sync";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, HOUR, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  HOUR,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -88,7 +94,7 @@ const person = async (
     .values(
       roles.map((role) => ({
         id: `role-${id}-${role}`,
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         userId: id,
         role,
         createdAt: now,
@@ -100,7 +106,7 @@ const person = async (
     .values(
       pens.map((penId) => ({
         id: `pa-${id}-${penId}`,
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         userId: id,
         penId,
       }))
@@ -113,7 +119,7 @@ const person = async (
 const calling = async (userId: string, at: string) => {
   const row = await scratchDb().query.user.findFirst({ where: { id: userId } });
   const borrowed = await scratchDb().query.session.findFirst({
-    where: { userId: "test-staff" },
+    where: { userId: thePerson("staff").id },
   });
   if (!(row && borrowed)) {
     throw new Error("seed failed");
@@ -125,6 +131,7 @@ const calling = async (userId: string, at: string) => {
     },
     clock: new FakeClock(at),
     db: scratchDb(),
+    farmId: theFarm().id,
   });
   return createRouterClient(appRouter, { context });
 };
@@ -189,7 +196,7 @@ const sameness = (value: unknown): unknown => {
  *  Role, not which row it was or when the farm heard. */
 const lastEventAbout = async (entity: string, entityId: string) => {
   const row = await scratchDb().query.auditEvent.findFirst({
-    where: { entity, entityId, farmId: TEST_FARM.id },
+    where: { entity, entityId, farmId: theFarm().id },
     orderBy: { receivedAt: "desc", id: "desc" },
   });
   return row
@@ -317,7 +324,7 @@ const setup = async () => {
       aliases: [],
     });
     const row = await scratchDb().query.animal.findFirst({
-      where: { farmId: TEST_FARM.id, tagNumber },
+      where: { farmId: theFarm().id, tagNumber },
       columns: { id: true },
     });
     return { tagNumber, id: row?.id ?? "" };

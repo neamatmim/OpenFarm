@@ -2,7 +2,12 @@ import { eq, inArray } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -66,8 +71,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-registration-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -88,7 +93,7 @@ afterAll(async () => {
     .update(sopDefinition)
     .set({ retiredAt: new Date() })
     .where(inArray(sopDefinition.id, [world.sop.definitionId]));
-  // The Farm is the whole run's: put its registration back as another file may read it.
+  // The Registration goes back as it was, so what this file did is not left standing in its own later reads.
   const manager = await as("manager", "2042-06-01T04:00:00.000Z");
   await manager.client.farm.setIdentity({
     registrationNumber: world.before.registrationNumber ?? REGISTRATION,
@@ -124,7 +129,7 @@ const renewedStepOn = async (
 
 describe("the Registration and its renewal", () => {
   it("keeps a photograph of the certificate, replaced by a newer one", async () => {
-    // Other files photograph the certificate on the shared farm too, so this file reads its own by id.
+    // Read by id: this farm keeps every certificate it has ever been shown, and this test is about two of them.
     const manager = await as("manager", "2040-12-02T04:00:00.000Z");
     const first = await manager.client.farm.setCertificate({
       contentType: "image/jpeg",

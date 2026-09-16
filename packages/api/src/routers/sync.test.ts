@@ -2,7 +2,14 @@ import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { syncEntry } from "@OpenFarm/db/schema/sync";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, HOUR, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  HOUR,
+  scratchDb,
+  theFarm,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -77,8 +84,8 @@ const setup = async () => {
     .values(
       [pen.id, spare.id].map((penId) => ({
         id: `pa-sync-${penId}`,
-        farmId: TEST_FARM.id,
-        userId: "test-staff",
+        farmId: theFarm().id,
+        userId: thePerson("staff").id,
         penId,
       }))
     )
@@ -461,7 +468,7 @@ describe("review findings", () => {
     const board = await staff.instances.get({ id: instance.id });
     expect(board.completions).toHaveLength(1);
     expect(board.completions[0]).toMatchObject({
-      recordedBy: "test-staff",
+      recordedBy: thePerson("staff").id,
       deviceId: null,
     });
   });
@@ -614,7 +621,7 @@ describe("a phone that was out of signal all morning", () => {
     const board = await staff.client.instances.get({ id: instance.id });
     expect(board).toMatchObject({
       state: "completed",
-      claimedBy: "test-staff",
+      claimedBy: thePerson("staff").id,
     });
     const milked = await staff.client.milk.session({
       instanceId: instance.id,
@@ -927,8 +934,8 @@ describe("who is sending", () => {
 
     const board = await phone.client.instances.get({ id: instance.id });
     expect(board.completions[0]).toMatchObject({
-      recordedBy: "test-staff",
-      deviceId: "test-shed-phone",
+      recordedBy: thePerson("staff").id,
+      deviceId: theShedPhone().id,
     });
   });
 });

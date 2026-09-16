@@ -1,6 +1,13 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { DAY, FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  DAY,
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -117,8 +124,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-milking-${milkingPen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: milkingPen.id,
     })
     .onConflictDoNothing();
@@ -155,8 +162,7 @@ describe("the scheduler", () => {
     const clock = morning();
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
-    // Other test files share this database and add their own animals, so idempotence is
-    // asserted on this SOP's own Pens rather than on a farm-wide count.
+    // Twice, because raising the same day's work again must add nothing.
     await owner.client.instances.ensureDue();
     await owner.client.instances.ensureDue();
     const inMilkingPen = await owner.client.instances.today({
@@ -232,7 +238,7 @@ describe("claiming", () => {
 
     await manager.client.instances.assign({
       id: instance.id,
-      userId: "test-manager",
+      userId: thePerson("manager").id,
     });
 
     await expect(
@@ -245,7 +251,7 @@ describe("claiming", () => {
       assignedTo: reloaded.assignedTo,
       claimedBy: reloaded.claimedBy,
     }).toEqual({
-      assignedTo: "test-manager",
+      assignedTo: thePerson("manager").id,
       claimedBy: null,
     });
   });
@@ -288,9 +294,9 @@ describe("working the pen board", () => {
     const completion = loaded.completions.find((c) => c.stepId === "milk");
     expect(completion).toMatchObject({
       status: "done",
-      recordedBy: "test-staff",
+      recordedBy: thePerson("staff").id,
     });
-    expect(completion?.deviceId).toBe("test-shed-phone");
+    expect(completion?.deviceId).toBe(theShedPhone().id);
     expect(completion?.evidence).toEqual([12.5]);
     expect(loaded.state).toBe("in_progress");
     expect(loaded.animals.map((a) => a.tagNumber).toSorted()).toEqual(
@@ -385,9 +391,9 @@ describe("working the pen board", () => {
     expect(finished.state).toBe("completed");
     const loaded = await staff.client.instances.get({ id: instance.id });
     expect(loaded.completions).toHaveLength(4);
-    expect(loaded.completions.every((c) => c.recordedBy === "test-staff")).toBe(
-      true
-    );
+    expect(
+      loaded.completions.every((c) => c.recordedBy === thePerson("staff").id)
+    ).toBe(true);
     // Finished work is not open to a fresh entry — the world has moved past it.
     await expect(
       staff.client.instances.completeStep({
@@ -684,7 +690,10 @@ describe("review findings", () => {
     expect(await trailOf(instance.id)).toBe(finished);
 
     await expect(
-      manager.client.instances.assign({ id: instance.id, userId: "test-staff" })
+      manager.client.instances.assign({
+        id: instance.id,
+        userId: thePerson("staff").id,
+      })
     ).rejects.toMatchObject({
       code: "CONFLICT",
       data: { state: "completed" },

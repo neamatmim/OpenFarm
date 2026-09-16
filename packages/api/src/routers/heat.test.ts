@@ -1,7 +1,12 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { HEAT } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -13,8 +18,8 @@ import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
 
-/** The heat-watch round. No trigger of its own: this file raises it by hand in its own Pen,
- *  because a scheduled round would be raised in every dairy Pen the shared farm holds. */
+/** The heat-watch round. No trigger of its own: this file raises it by hand in the Pen it is about, because a
+ *  scheduled round would be raised in every dairy Pen this farm holds. */
 const heatWatchSop = (): SopContent => ({
   name: { bn: `গরম পর্যবেক্ষণ ${suffix}`, en: "Heat watch" },
   purpose: { bn: "গরম হওয়া গাভী খুঁজে বের করা" },
@@ -95,8 +100,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-heat-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -112,8 +117,8 @@ beforeAll(async () => {
   world = await setup();
 });
 
-/** Hands the farm back: both procedures retired, the work they raised shut, and the Pen this
- *  file gave the shared Staff member taken back again. */
+/** Leaves the farm as it found it: both procedures retired, the work they raised shut, and the Pen this file gave
+ *  its milker taken back again. */
 afterAll(async () => {
   const { and, eq, inArray } = await import("@OpenFarm/db/operators");
   const { sopDefinition } = await import("@OpenFarm/db/schema/sop");

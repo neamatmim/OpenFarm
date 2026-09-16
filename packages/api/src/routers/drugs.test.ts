@@ -1,4 +1,4 @@
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -144,7 +144,7 @@ describe("the Drug List", () => {
     const list = await vet.client.drugs.list();
     const written = list.find((one) => one.id === product.id);
     // The days are what the farm shows a slaughter vet, so who wrote them is evidence too.
-    expect(written?.daysSetBy).toBe("test-vet");
+    expect(written?.daysSetBy).toBe(thePerson("vet").id);
     expect(written?.daysSetAt).toBeInstanceOf(Date);
 
     const events = await scratchDb().query.auditEvent.findMany({

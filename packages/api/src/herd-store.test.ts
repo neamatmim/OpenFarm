@@ -3,7 +3,12 @@ import { and, eq, inArray } from "@OpenFarm/db/operators";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { Side, SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Trail, Tx } from "./audit";
@@ -177,7 +182,7 @@ const her = async ({ inMilk = false, open = false } = {}) => {
     .insert(sopInstance)
     .values({
       id: workId,
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       definitionId: world.work.definitionId,
       versionId: world.work.versionId,
       penId: world.dairyPen,
@@ -198,7 +203,7 @@ const her = async ({ inMilk = false, open = false } = {}) => {
     .insert(sopInstance)
     .values({
       id: calvingWorkId,
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       definitionId: world.work.definitionId,
       versionId: world.work.versionId,
       penId: world.dairyPen,
@@ -303,7 +308,7 @@ const nobodysTrail: Trail = () => Promise.resolve("");
 const walked = (animalId: string, to: { toPenId: string; toSide?: Side }) =>
   onHer(animalId, (tx, beast) =>
     walkTo(tx, {
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       beast,
       ...to,
       movedBy: null,
@@ -372,7 +377,7 @@ describe("what follows from what happens to her", () => {
   it("calves: in milk from the calving, the calving behind her, her work where it was", async () => {
     const subject = await her();
     await onHer(subject.id, (tx, beast) =>
-      calves(tx, TEST_FARM.id, beast, {
+      calves(tx, theFarm().id, beast, {
         ...later,
         calvingLeadDays: DEFAULT_LEADS,
         trail: nobodysTrail,
@@ -392,7 +397,7 @@ describe("what follows from what happens to her", () => {
   it("is dried off: Dry, and nothing else moves", async () => {
     const subject = await her({ inMilk: true });
     await onHer(subject.id, (tx, beast) =>
-      entersState(tx, TEST_FARM.id, beast, { state: "dry", ...later })
+      entersState(tx, theFarm().id, beast, { state: "dry", ...later })
     );
     expect(await followed(subject)).toEqual({
       move: null,
@@ -408,7 +413,7 @@ describe("what follows from what happens to her", () => {
   it("is found in calf: a Pregnant Heifer, and nothing else moves", async () => {
     const subject = await her({ open: true });
     await onHer(subject.id, (tx, beast) =>
-      entersState(tx, TEST_FARM.id, beast, {
+      entersState(tx, theFarm().id, beast, {
         state: "pregnant_heifer",
         ...later,
       })
@@ -431,7 +436,7 @@ describe("what follows from what happens to her", () => {
       toSide: "fattening",
     });
     await onHer(subject.id, (tx, beast) =>
-      entersState(tx, TEST_FARM.id, beast, {
+      entersState(tx, theFarm().id, beast, {
         state: "ready_for_sale",
         ...later,
       })
@@ -454,7 +459,7 @@ describe("what follows from what happens to her", () => {
   it("loses the calf: a Heifer again, and the dates of the pregnancy are breeding's to put right", async () => {
     const subject = await her();
     await onHer(subject.id, (tx, beast) =>
-      entersState(tx, TEST_FARM.id, beast, { state: "heifer", ...later })
+      entersState(tx, theFarm().id, beast, { state: "heifer", ...later })
     );
     expect(await followed(subject)).toEqual({
       move: null,
@@ -471,11 +476,11 @@ describe("what follows from what happens to her", () => {
     const subject = await her();
     await expect(
       onHer(subject.id, (tx, beast) =>
-        entersState(tx, TEST_FARM.id, beast, { state: "milking", ...later })
+        entersState(tx, theFarm().id, beast, { state: "milking", ...later })
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await onHer(subject.id, (tx, beast) =>
-      leaves(tx, TEST_FARM.id, beast, {
+      leaves(tx, theFarm().id, beast, {
         state: "died",
         ...later,
         trail: nobodysTrail,
@@ -483,7 +488,7 @@ describe("what follows from what happens to her", () => {
     );
     await expect(
       onHer(subject.id, (tx, beast) =>
-        entersState(tx, TEST_FARM.id, beast, { state: "heifer", ...later })
+        entersState(tx, theFarm().id, beast, { state: "heifer", ...later })
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -497,7 +502,7 @@ describe("what follows from what happens to her", () => {
     async (_how, state) => {
       const subject = await her();
       await scratchDb().transaction((tx) =>
-        leaves(tx, TEST_FARM.id, subject, {
+        leaves(tx, theFarm().id, subject, {
           state,
           at: new Date(LATER),
           now: new Date(LATER),
@@ -526,7 +531,7 @@ describe("what follows from what happens to her", () => {
       // And she leaves once: a second exit over the first would lose which one the farm stands behind.
       await expect(
         scratchDb().transaction((tx) =>
-          leaves(tx, TEST_FARM.id, subject, {
+          leaves(tx, theFarm().id, subject, {
             state: "culled",
             at: new Date(LATER),
             now: new Date(LATER),
@@ -546,11 +551,11 @@ describe("what follows from putting it right", () => {
   ) =>
     onHer(animalId, (tx, beast) =>
       walkByStep(tx, {
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         beast,
         completionId,
         toPenId,
-        movedBy: "test-owner",
+        movedBy: thePerson("owner").id,
         movedAt: at,
         now: at,
         calvingLeadDays: DEFAULT_LEADS,
@@ -604,7 +609,7 @@ describe("what follows from putting it right", () => {
   it("how she left put right: the way she went and when, and she is still gone", async () => {
     const subject = await her();
     await onHer(subject.id, (tx, beast) =>
-      leaves(tx, TEST_FARM.id, beast, {
+      leaves(tx, theFarm().id, beast, {
         state: "died",
         ...later,
         trail: nobodysTrail,
@@ -612,7 +617,7 @@ describe("what follows from putting it right", () => {
     );
     const earlier = new Date("2034-02-01T04:30:00.000Z");
     await onHer(subject.id, (tx, beast) =>
-      correctHowSheLeft(tx, TEST_FARM.id, beast, {
+      correctHowSheLeft(tx, theFarm().id, beast, {
         state: "culled",
         at: earlier,
         now: later.now,
@@ -624,7 +629,7 @@ describe("what follows from putting it right", () => {
     const other = await her();
     await expect(
       onHer(other.id, (tx, beast) =>
-        correctHowSheLeft(tx, TEST_FARM.id, beast, {
+        correctHowSheLeft(tx, theFarm().id, beast, {
           state: "died",
           now: later.now,
         })
@@ -635,7 +640,7 @@ describe("what follows from putting it right", () => {
   it("a calving's hour put right: her Lactation and her reaching Milking move with it", async () => {
     const subject = await her();
     await onHer(subject.id, (tx, beast) =>
-      calves(tx, TEST_FARM.id, beast, {
+      calves(tx, theFarm().id, beast, {
         ...later,
         calvingLeadDays: DEFAULT_LEADS,
         trail: nobodysTrail,
@@ -646,7 +651,7 @@ describe("what follows from putting it right", () => {
     await scratchDb().transaction((tx) =>
       redateCalving(
         tx,
-        TEST_FARM.id,
+        theFarm().id,
         {
           damId: subject.id,
           lactationNumber: calved?.lactationNumber ?? 0,

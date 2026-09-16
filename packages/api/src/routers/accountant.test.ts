@@ -127,7 +127,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Retired, so a Stock Count on another file's clock does not find a lorry from 2040 in the store.
+  // Retired, so a Stock Count later in this file does not find a lorry from 2040 still in the store.
   const manager = await as("manager", "2040-04-01T04:00:00.000Z");
   await manager.client.feed.retireItem({ id: world.feed.id });
 });
@@ -170,7 +170,7 @@ describe("the accountant's export", () => {
       ...MARCH,
       format: "paper",
     });
-    // March 2040 is this file's alone on the shared farm, so the farm's month is this file's work.
+    // March 2040 is the only month this file books anything in, so the farm's month is this file's work.
     expect(summary).toMatchObject({
       incomeBdt: 40_000,
       expenseBdt: 51_000,
@@ -230,7 +230,7 @@ describe("the accountant's export", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
     // A farm that has not written its Registration number down is told so, as the other papers tell it.
-    // As the Manager, because another file reads the farm's trail for the Manager's write of the number.
+    // As the Manager, because a later test reads the farm's trail for the Manager's write of the number.
     const writer = await as("manager", "2040-04-01T04:00:00.000Z");
     await writer.client.farm.setIdentity({ registrationNumber: null });
     try {

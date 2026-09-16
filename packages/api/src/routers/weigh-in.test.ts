@@ -1,8 +1,12 @@
-import { and } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { correctStepAsShown } from "../test/correct-step";
@@ -65,8 +69,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-weigh-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -81,34 +85,7 @@ beforeAll(async () => {
   world = await setup();
 });
 
-/**
- * Every test file shares one Farm, and `appliesTo` can name a Side but not a Pen — so this
- * file's SOP raises a round in *every* pen holding a fattening animal, including the ones other
- * files made. Retiring the definition stops new ones; the rounds already raised have to be shut
- * or they go Overdue for every file whose clock is later than this one's.
- */
-afterAll(async () => {
-  const { eq, inArray } = await import("@OpenFarm/db/operators");
-  const { sopDefinition } = await import("@OpenFarm/db/schema/sop");
-  const { sopInstance } = await import("@OpenFarm/db/schema/instance");
-  const db = scratchDb();
-  await db
-    .update(sopDefinition)
-    .set({ retiredAt: new Date() })
-    .where(eq(sopDefinition.id, world.sop.definitionId));
-  await db
-    .update(sopInstance)
-    .set({ state: "missed" })
-    .where(
-      and(
-        eq(sopInstance.definitionId, world.sop.definitionId),
-        inArray(sopInstance.state, ["due", "in_progress"])
-      )
-    );
-});
-
-/** A round of the weigh-in for the farm's own pen, on its own day, claimed by the Staff
- *  member who walks it. */
+/** A round of the weigh-in on its own day, claimed by the Staff member who walks it. */
 const round = async (day: string) => {
   const clock = new FakeClock(`${day}T07:30:00.000Z`);
   const scheduler = await createTestClient(appRouter, { as: "owner", clock });
@@ -212,8 +189,8 @@ describe("the fortnightly weigh-in", () => {
           row.reason === "implausible_weight" && row.entityId === entry?.id
       )
     ).toHaveLength(1);
-    // Closed again, because the queue is the whole Farm's and every test file shares it: one
-    // left open here is one more between the next file and the cap.
+    // Closed again, because the queue is the whole Farm's and the tests here share it: one
+    // left open is one more between the next test and the cap.
     await manager.client.review.resolve({
       id: asked?.id ?? "",
       resolution: "স্কেল দেখে নিশ্চিত করা হয়েছে",

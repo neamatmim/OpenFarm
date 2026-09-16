@@ -1,7 +1,13 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { HEAT } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -137,8 +143,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-pd-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -347,7 +353,7 @@ describe("the pregnancy check", () => {
       board.completions
         .filter((row) => row.stepId !== "look")
         .map((row) => row.deviceId)
-    ).toEqual(["test-shed-phone", "test-shed-phone"]);
+    ).toEqual([theShedPhone().id, theShedPhone().id]);
 
     const { rows, client } = await workFor(
       "2030-02-19T04:00:00.000Z",

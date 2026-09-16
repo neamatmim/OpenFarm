@@ -1,7 +1,7 @@
 import { like } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -123,9 +123,9 @@ const countWork = async (day: string, { claim = true } = {}) => {
 };
 
 /**
- * The count lines for everything on the board. Other test files keep Feed Items on this shared farm
- * too, and a count counts every one: theirs are counted at what the store holds, which changes nothing
- * and needs no reason — or, for one a file left below nothing, at nothing, which is what a store below
+ * The count lines for everything on the board. A count counts every Feed Item the farm keeps, and this file keeps
+ * more than the one each test is about: the rest are counted at what the store holds, which changes nothing
+ * and needs no reason — or, for one left below nothing, at nothing, which is what a store below
  * nothing really holds, with the reason that says so. A Correction repeats what the count said about
  * them.
  */
@@ -367,16 +367,14 @@ describe("running low", () => {
       feedItemId: world.concentrate.id,
       threshold: 1200,
     });
-    // Swept on a clock earlier than anything else on this shared farm: the sweep also tells everybody
-    // about every piece of work late by then, and a sweep dated 2035 would fill the Manager's inbox with
-    // the rest of the suite's work.
+    // A sweep tells the Manager about everything late by then, so it is run before this file's own counts.
     const early = await createTestClient(appRouter, {
       as: "manager",
-      clock: new FakeClock("2020-01-01T00:00:00.000Z"),
+      clock: new FakeClock("2035-01-01T00:00:00.000Z"),
     });
     const toldAbout = async () => {
       const told = await scratchDb().query.alert.findMany({
-        where: { kind: "low_stock", userId: "test-manager" },
+        where: { kind: "low_stock", userId: thePerson("manager").id },
         columns: { params: true },
       });
       return told.filter(
@@ -421,11 +419,6 @@ describe("running low", () => {
       });
       await early.client.alerts.sweep();
       expect(await toldAbout()).toBe(2);
-      // The Manager's inbox is every test file's: what this test raised in it goes at once, rather than
-      // sitting at the top of a list another file is reading.
-      await scratchDb()
-        .delete(alert)
-        .where(like(alert.entityId, `${world.concentrate.id}%`));
 
       // A lorry comes: above the level, off the queue.
       const restocking = await managerAt("2035-01-14T04:00:00.000Z");
@@ -442,8 +435,7 @@ describe("running low", () => {
         restocked.queue.lowStock.map((line) => line.feedItemId)
       ).not.toContain(world.concentrate.id);
     } finally {
-      // Every test file shares this farm and its Manager's digest: the level goes, and so do any notices
-      // another file's sweep raised about it meanwhile.
+      // The level goes back, so the rest of this file's tests read a store nobody is worried about.
       await manager.client.feed.setLowStock({
         feedItemId: world.concentrate.id,
         threshold: null,

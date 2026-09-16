@@ -36,15 +36,25 @@ export const runTheSchedule = async ({
   clock = systemClock,
   push,
   sms,
+  farmId = null,
 }: {
   db: Database;
   clock?: Clock;
   push?: PushTransport;
   sms?: SmsTransport;
+  /** Which farm's day to turn, for a caller that knows. Nothing on a farm's own install, which has one. */
+  farmId?: string | null;
 }): Promise<{ ok: boolean; error?: string }> => {
   status.lastRanAt = clock.now();
   try {
-    const context = await buildContext({ session: null, clock, db, push, sms });
+    const context = await buildContext({
+      session: null,
+      clock,
+      db,
+      push,
+      sms,
+      farmId,
+    });
     const { farm } = context;
     if (!farm) {
       return { ok: true };

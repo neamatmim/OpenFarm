@@ -3,6 +3,8 @@ import {
   FakeClock,
   createTestPrincipal,
   scratchDb,
+  theFarm,
+  thePerson,
 } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { describe, expect, it } from "vitest";
@@ -49,7 +51,7 @@ const signedUp = async (email: string, name = "নতুন") => {
     .values({ id: userId, name, email, emailVerified: false });
   const row = await scratchDb().query.user.findFirst({ where: { id: userId } });
   const session = await scratchDb().query.session.findFirst({
-    where: { userId: "test-staff" },
+    where: { userId: thePerson("staff").id },
   });
   if (!row || !session) {
     throw new Error("seed failed");
@@ -58,6 +60,7 @@ const signedUp = async (email: string, name = "নতুন") => {
     session: { user: row, session: { ...session, userId } },
     clock: new FakeClock(),
     db: scratchDb(),
+    farmId: theFarm().id,
   });
   return {
     userId,
@@ -153,13 +156,13 @@ describe("access", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     const vet = await createTestClient(appRouter, { as: "vet" });
 
-    await owner.client.people.disable({ userId: "test-vet" });
+    await owner.client.people.disable({ userId: thePerson("vet").id });
     const afterDisable = await createTestClient(appRouter, { as: "vet" });
 
     await expect(afterDisable.client.people.me()).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
-    await owner.client.people.enable({ userId: "test-vet" });
+    await owner.client.people.enable({ userId: thePerson("vet").id });
     const restored = await vet.client.people.me();
     expect(restored.roles).toEqual(["vet"]);
   });
@@ -181,6 +184,7 @@ describe("access", () => {
       session: { user: principal.user, session: principal.session },
       clock: new FakeClock(),
       db: noFarmYet,
+      farmId: theFarm().id,
     });
     const client = createRouterClient(appRouter, { context });
 
@@ -202,7 +206,7 @@ describe("access", () => {
       code: "CONFLICT",
     });
     const current = await client.farm.current();
-    expect(current?.name).toBe("পরীক্ষা খামার");
+    expect(current?.name).toBe(theFarm().name);
   });
 });
 
@@ -211,7 +215,10 @@ describe("review findings", () => {
     const { client } = await createTestClient(appRouter, { as: "owner" });
 
     await expect(
-      client.people.assignRoles({ userId: "test-owner", roles: ["manager"] })
+      client.people.assignRoles({
+        userId: thePerson("owner").id,
+        roles: ["manager"],
+      })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     const me = await client.people.me();
     expect(me.roles).toContain("owner");
@@ -336,14 +343,14 @@ describe("review findings", () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     await createTestClient(appRouter, { as: "vet" });
 
-    await owner.client.people.disable({ userId: "test-vet" });
+    await owner.client.people.disable({ userId: thePerson("vet").id });
 
     const session = await scratchDb().query.session.findFirst({
-      where: { userId: "test-vet" },
+      where: { userId: thePerson("vet").id },
     });
     expect(
       session && session.expiresAt.getTime() <= owner.clock.now().getTime()
     ).toBe(true);
-    await owner.client.people.enable({ userId: "test-vet" });
+    await owner.client.people.enable({ userId: thePerson("vet").id });
   });
 });

@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -307,8 +307,8 @@ describe("a death and a cull", () => {
       disposal: "buried",
     });
 
-    // One more than before — counted rather than compared against a total, because every test
-    // file shares this farm and its losses are not this test's business.
+    // One more than before — counted rather than compared against a total, because the tests
+    // around this one bury their own animals on the same farm.
     const after = await owner.client.home.owner();
     expect(after.tiles.died).toBe(before.tiles.died + 1);
     expect(after.tiles.culled).toBe(before.tiles.culled);
@@ -353,7 +353,7 @@ describe("a death and a cull", () => {
       entityId: check.id,
     });
     expect(calledOff).toMatchObject({
-      actorId: "test-manager",
+      actorId: thePerson("manager").id,
       roleUsed: "manager",
       after: { state: "called_off", calledOffBy: "animal_left" },
     });

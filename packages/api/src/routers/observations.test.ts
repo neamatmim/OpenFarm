@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -99,7 +99,7 @@ describe("what somebody saw on the round", () => {
     expect(her.observations[0]).toMatchObject({
       saw: "lame",
       instanceId: instance.id,
-      seenBy: "test-owner",
+      seenBy: thePerson("owner").id,
       withdrawn: false,
     });
   });

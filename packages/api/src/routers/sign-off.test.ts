@@ -2,7 +2,12 @@ import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -63,8 +68,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-signoff-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -99,15 +104,15 @@ beforeAll(async () => {
  * Puts the farm's Alert watermark back to a chosen instant.
  *
  * The sweep deliberately only looks at what has gone late since it last looked, and that
- * mark is the Farm's — one row, shared by every test file that sweeps. A file working in
- * one fake year would otherwise carry it past a file working in another, and the second to
- * run would find its own work behind the mark. Each test says where its own window starts.
+ * mark is the Farm's — one row, which the tests in this file share. Each works in a fake
+ * year of its own, so one would otherwise carry the mark past the next, which would then
+ * find its own work already behind it. Each test says where its own window starts.
  */
 const sweepFrom = async (at: Date) => {
   await scratchDb()
     .update(farm)
     .set({ alertsSweptFrom: at })
-    .where(eq(farm.id, TEST_FARM.id));
+    .where(eq(farm.id, theFarm().id));
 };
 
 /** The SOP falls due at 05:00 Dhaka — 23:00 UTC the evening before. */
@@ -159,10 +164,9 @@ const doneWork = async (day: string) => {
 };
 
 /**
- * Sweeps until the farm has nothing new to say. One sweep raises notices in batches, and
- * this database is shared with every other test file's open work, so a single sweep is not
- * guaranteed to have reached this test's own Instance. Catching up first is what a real
- * farm's second and third app-open do anyway.
+ * Sweeps until the farm has nothing new to say. One sweep raises notices in batches, so a single sweep is not
+ * guaranteed to have reached this test's own Instance when the file has left other work open. Catching up first is
+ * what a real farm's second and third app-open do anyway.
  */
 const sweepUntilQuiet = async (client: {
   alerts: { sweep: () => Promise<{ overdue: number; escalated: number }> };
@@ -211,9 +215,8 @@ describe("going late", () => {
     await sweepUntilQuiet(manager);
     await manager.alerts.sweep();
 
-    // Asked about this Instance rather than farm-wide: other test files share this database
-    // and leave their own work open, so an unfiltered inbox is a list about them. Sweeping
-    // again must still leave exactly one notice each.
+    // Asked about this Instance rather than farm-wide: this file leaves other work of its own open, so an
+    // unfiltered inbox is a list about that too. Sweeping again must still leave exactly one notice each.
     for (const inbox of [
       await manager.alerts.mine({ entityId: instance.id }),
       await staff.alerts.mine({ entityId: instance.id }),
@@ -469,7 +472,10 @@ describe("moves the work's state does not allow", () => {
       })
     ).rejects.toMatchObject(closed);
     await expect(
-      manager.instances.assign({ id: instance.id, userId: "test-staff" })
+      manager.instances.assign({
+        id: instance.id,
+        userId: thePerson("staff").id,
+      })
     ).rejects.toMatchObject(closed);
     const kept = await manager.instances.get({ id: instance.id });
     expect(kept).toMatchObject({ state: "missed", claimedBy: null });
@@ -499,11 +505,14 @@ describe("moves the work's state does not allow", () => {
       id: instance.id,
       reason: "কোণগুলো বাকি",
     });
-    await manager.instances.assign({ id: instance.id, userId: "test-staff" });
+    await manager.instances.assign({
+      id: instance.id,
+      userId: thePerson("staff").id,
+    });
     const given = await manager.instances.get({ id: instance.id });
     expect(given).toMatchObject({
       state: "sent_back",
-      assignedTo: "test-staff",
+      assignedTo: thePerson("staff").id,
       claimedBy: null,
     });
   });
@@ -713,13 +722,14 @@ describe("the trail", () => {
     );
     expect(sentBack).toMatchObject({
       roleUsed: "manager",
-      actorId: "test-manager",
+      actorId: thePerson("manager").id,
       reason: "আবার করুন",
     });
     // And the doing of it, under the Role that did it.
     expect(
       trail.some(
-        (row) => row.roleUsed === "staff" && row.actorId === "test-staff"
+        (row) =>
+          row.roleUsed === "staff" && row.actorId === thePerson("staff").id
       )
     ).toBe(true);
   });

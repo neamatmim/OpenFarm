@@ -1,7 +1,12 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { HEAT } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -169,8 +174,8 @@ const setup = async () => {
     .values(
       [pen.id, calvingPen.id].map((penId) => ({
         id: `pa-cw-${penId}`,
-        farmId: TEST_FARM.id,
-        userId: "test-staff",
+        farmId: theFarm().id,
+        userId: thePerson("staff").id,
         penId,
       }))
     )
@@ -742,7 +747,7 @@ describe("the work Expected Calving pulls towards it", () => {
       const moved = await manager.client.instances.get({ id: prepId });
       expect(moved.dueAt.toISOString()).toBe("2031-08-31T18:00:00.000Z");
     } finally {
-      // Every test file shares this farm: the lead goes back whatever happened above.
+      // The parameter is the Farm's and the tests around this one read it; put it back.
       await manager.client.farm.setParameters({ calvingPrepLeadDays: 7 });
     }
     const back = await manager.client.instances.get({ id: prepId });

@@ -1,6 +1,12 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { DAY, FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  DAY,
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { SmsMessage, SmsTransport } from "../sms";
@@ -68,8 +74,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-sms-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -291,8 +297,8 @@ describe("the two alerts worth a text message", () => {
     expect(refused.results.at(0)?.outcome).toBe("rejected");
 
     // And the milker is told, in the app, at once — not left with a phone quietly holding work
-    // nobody will look at again. Asked about this batch, not about their whole inbox: every test
-    // file shares this farm, and an inbox is capped at fifty.
+    // nobody will look at again. Asked about this batch, not about their whole inbox: the tests
+    // in this file fill the same one, and an inbox is capped at fifty.
     const told = await phone.client.alerts.mine({ entityId: refusedKey });
     expect(told).toHaveLength(1);
     expect(told.at(0)).toMatchObject({

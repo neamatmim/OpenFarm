@@ -1,6 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { alert } from "@OpenFarm/db/schema/alert";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
@@ -42,12 +47,12 @@ const listening = async (clock: FakeClock, transport: PushTransport) => {
 };
 
 /** Something the notification table says waits for a digest. */
-const quietNotice = async (at: Date, userId = "test-manager") => {
+const quietNotice = async (at: Date, userId = thePerson("manager").id) => {
   await scratchDb()
     .insert(alert)
     .values({
       id: uuidv7(at),
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       userId,
       kind: "needs_review",
       entity: "step_completion",
@@ -78,13 +83,12 @@ describe("the evening digest", () => {
     clock.set("2027-12-01T12:00:00.000Z");
     const sent = await manager.client.alerts.digest();
 
-    // Other test files leave the farm their own notices, so what is asserted is this
-    // browser's digest rather than the farm's count of them.
+    // The tests around this one leave the farm their own notices, so what is asserted is
+    // this browser's digest rather than the farm's count of them.
     expect(sent.people).toBeGreaterThanOrEqual(1);
     const mine = post.sent.filter((one) => one.target.endpoint === endpoint);
-    // One push, carrying what was waiting — named, in the words the reader reads. Not a
-    // count: this farm is shared with every other test file, and what else is waiting for
-    // this Manager is their business rather than this test's.
+    // One push, carrying what was waiting — named, in the words the reader reads. Not a count: what else this
+    // file has left waiting for the Manager is not what this test is about.
     expect(mine).toHaveLength(1);
     expect(mine[0]?.message.body).toContain("যাচাই");
     expect(mine[0]?.message.url).toBe("/today");
@@ -157,8 +161,8 @@ describe("the evening digest", () => {
       .insert(alert)
       .values({
         id: uuidv7(clock.now()),
-        farmId: TEST_FARM.id,
-        userId: "test-manager",
+        farmId: theFarm().id,
+        userId: thePerson("manager").id,
         kind: "instance_overdue",
         entity: "sop_instance",
         entityId: `urgent-${Date.now()}`,

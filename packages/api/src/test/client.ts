@@ -4,6 +4,7 @@ import {
   createTestDevice,
   createTestPrincipal,
   scratchDb,
+  theFarm,
 } from "@OpenFarm/test-harness";
 import type {
   InferRouterInitialContext,
@@ -30,8 +31,8 @@ interface Options {
   onShedPhone?: boolean;
   /** An enrolled phone with nobody PIN-switched in yet. */
   locked?: boolean;
-  /** A Shed Phone of this test file's own, rather than the one every file shares. What a
-   *  phone has sent is counted per phone, so a file that sends batches wants its own. */
+  /** A second Shed Phone, rather than the one the file's tests share. What a phone has
+   *  sent is counted per phone, so a test that sends batches may want one to itself. */
   phone?: { id: string; name: string };
 }
 
@@ -79,6 +80,8 @@ export const createTestClient = async <T extends Router<Context>>(
     db: scratchDb(),
     push,
     sms,
+    // This test file's own farm: the farm is single on a real install, and one per file here.
+    farmId: theFarm().id,
   });
   // `T extends Router<Context>` guarantees the router's initial context is `Context`;
   // TypeScript cannot reduce the inferred type for an unresolved `T`, hence the cast.

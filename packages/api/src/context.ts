@@ -150,11 +150,24 @@ export const productionWiring = () => ({
   sms: defaultSms(),
 });
 
-/** The Farm this request acts on: the phone's own Farm, or the single Farm that exists. */
-const resolveFarm = (db: Database, device: DeviceSession | null) =>
-  device
-    ? db.query.farm.findFirst({ where: { id: device.farmId } })
+/**
+ * The Farm this request acts on: the phone's own, the one the caller was told, or — for a request that says nothing,
+ * which is every request on a farm running its own install — the single Farm that exists.
+ *
+ * A Shed Phone's own farm comes first and cannot be talked out of: a phone belongs to the farm it was enrolled on,
+ * and nothing a caller passes may move it to another. Anything else that knows which farm says so, which is how the
+ * tests work, each file on a farm of its own.
+ */
+const resolveFarm = (
+  db: Database,
+  device: DeviceSession | null,
+  named: string | null
+) => {
+  const which = device?.farmId ?? named;
+  return which
+    ? db.query.farm.findFirst({ where: { id: which } })
     : db.query.farm.findFirst();
+};
 
 const resolvePerson = (db: Database, userId: string, farmId: string) =>
   db.query.user.findFirst({
@@ -200,6 +213,7 @@ export const buildContext = async ({
   push = silentTransport,
   sms = silentSms,
   pushKey = null,
+  farmId = null,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
@@ -209,6 +223,8 @@ export const buildContext = async ({
   push?: PushTransport;
   sms?: SmsTransport;
   pushKey?: string | null;
+  /** Which Farm this request acts on, for a caller that knows. Nothing for a request on a farm's own install. */
+  farmId?: string | null;
 }): Promise<Context> => {
   const base = {
     auth: null,
@@ -240,7 +256,7 @@ export const buildContext = async ({
 
   // A phone with nobody PIN-switched in still needs its Farm, so it can fetch the roster
   // it checks PINs against.
-  const farm = (await resolveFarm(db, device)) ?? null;
+  const farm = (await resolveFarm(db, device, farmId)) ?? null;
   if (!farm) {
     return { ...empty, actor: firstPersonOf(session, device) };
   }

@@ -3,7 +3,13 @@ import { shedPhone } from "@OpenFarm/db/schema/device";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
@@ -79,8 +85,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-push-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -108,15 +114,15 @@ const endpoint = () => {
  * Puts the farm's Alert watermark back to a chosen instant.
  *
  * The sweep deliberately only looks at what has gone late since it last looked, and that
- * mark is the Farm's — one row, shared by every test file that sweeps. A file working in
- * one fake year would otherwise carry it past a file working in another, and the second to
- * run would find its own work behind the mark. Each test says where its own window starts.
+ * mark is the Farm's — one row, which the tests in this file share. Each works in a fake
+ * year of its own, so one would otherwise carry the mark past the next, which would then
+ * find its own work already behind it. Each test says where its own window starts.
  */
 const sweepFrom = async (at: Date) => {
   await scratchDb()
     .update(farm)
     .set({ alertsSweptFrom: at })
-    .where(eq(farm.id, TEST_FARM.id));
+    .where(eq(farm.id, theFarm().id));
 };
 
 /** Work that has gone late, with nobody having been told yet. */
@@ -252,7 +258,7 @@ describe("review findings", () => {
       clock,
       push: post.transport,
     });
-    await owner.client.devices.revoke({ id: "test-shed-phone" });
+    await owner.client.devices.revoke({ id: theShedPhone().id });
 
     // A handset lost in a yard that kept receiving the farm's business would be the
     // revocation not having happened at all.
@@ -272,11 +278,11 @@ describe("review findings", () => {
     const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
     expect(inbox.length).toBeGreaterThan(0);
 
-    // The harness lends every test file the same Shed Phone, so this one puts it back.
+    // The file has one Shed Phone and the tests below still expect it live; put it back.
     await scratchDb()
       .update(shedPhone)
       .set({ revokedAt: null })
-      .where(eq(shedPhone.id, "test-shed-phone"));
+      .where(eq(shedPhone.id, theShedPhone().id));
   });
 
   it("tells the doer their work was sent back", async () => {

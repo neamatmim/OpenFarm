@@ -4,8 +4,9 @@ import {
   DAY,
   FakeClock,
   HOUR,
-  TEST_FARM,
   scratchDb,
+  theFarm,
+  thePerson,
 } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -95,8 +96,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-corr-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();

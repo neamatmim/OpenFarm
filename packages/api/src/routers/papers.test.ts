@@ -51,8 +51,8 @@ const setup = async () => {
 };
 
 let world: Awaited<ReturnType<typeof setup>>;
-/** This file's own first Sale. The day list is the whole farm's, so asking it for "the first
- *  row" would ask about whatever another file sold that morning. */
+/** The Sale this file's papers are about, held by id: the day's list has every Sale on it, and this file makes
+ *  more than one. */
 let sold = "";
 
 beforeAll(async () => {

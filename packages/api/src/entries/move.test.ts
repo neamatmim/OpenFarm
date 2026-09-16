@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, theFarm, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { Recorder } from "../completion-store";
@@ -75,7 +75,7 @@ const heldMove = (
 
 const standing = async (tagNumber: string) => {
   const her = await scratchDb().query.animal.findFirst({
-    where: { farmId: TEST_FARM.id, tagNumber },
+    where: { farmId: theFarm().id, tagNumber },
     columns: { id: true, penId: true },
   });
   const moves = await scratchDb().query.animalMove.findMany({

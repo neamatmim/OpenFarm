@@ -1,6 +1,11 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -89,8 +94,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-sale-${treatedPen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: treatedPen.id,
     })
     .onConflictDoNothing();
@@ -124,8 +129,8 @@ afterAll(async () => {
         inArray(sopInstance.state, ["due", "in_progress"])
       )
     );
-  // The Staff member is the whole farm's; the Pen this file gave them is not, and another file
-  // counting what they can see would count this one's.
+  // The Pen Assignment this file made goes with it: a later test counting what the milker can see counts the Pens
+  // they actually work, not the one a finished test lent them.
   await db
     .delete(assignment)
     .where(eq(assignment.id, `pa-sale-${world.treatedPen.id}`));
