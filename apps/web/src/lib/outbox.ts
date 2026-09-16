@@ -41,12 +41,13 @@ export type OutboxEntry = {
   };
 }[EntryKindName];
 
-/** An entry as the Transport hands it on: the farm's shape, with the proof still to be turned into a switch token. */
-export type OutgoingEntry = EntryInput extends infer Each
-  ? Each extends EntryInput
-    ? Omit<Each, "switchToken"> & { proof?: string }
-    : never
-  : never;
+/** An entry as it goes on the wire: the farm's own shape, the proof of who recorded it already turned into the
+ *  switch token that proves it. */
+export type OutgoingEntry = EntryInput;
+
+/** What a proof of who recorded an entry is worth when a Batch is frozen: the switch token the farm gave for that
+ *  stint, a PIN the farm refused, or a PIN a tab on this phone still holds and has yet to prove. */
+export type ProofSettled = { token: string } | "refused" | "waiting";
 
 /** An entry the phone is still holding, and what the farm said about it. */
 export interface Held {
@@ -69,6 +70,9 @@ export type EntryVerdict = Pick<
 interface PendingBatch {
   key: string;
   entryIds: string[];
+  /** The entries as they will be sent, frozen when the Batch was formed: every attempt under this key carries
+   *  these, whatever the phone has learned since (the glossary's Batch). */
+  entries: OutgoingEntry[];
   retryCount: number;
   nextAttemptAt: number;
   lastError?: string;
@@ -125,18 +129,13 @@ const SEQ_WIDTH = 12;
 const entryKey = (seq: number, id: string) =>
   `${ENTRY}${String(seq).padStart(SEQ_WIDTH, "0")}:${id}`;
 
-/** An entry as the farm reads it: its body, with what the Outbox knows about it beside. The body was checked against
- *  its kind when it was added, and flattening changes nothing about that — TypeScript only cannot follow the kind
- *  through the spread. */
-const outgoing = ({
-  body,
-  kind,
-  id,
-  seq,
-  recordedAt,
-  actorId,
-  proof,
-}: OutboxEntry) =>
+/** An entry as the farm reads it: its body, with what the Outbox knows about it beside, and the switch token its
+ *  proof was worth when the Batch was frozen. The body was checked against its kind when it was added, and
+ *  flattening changes nothing about that — TypeScript only cannot follow the kind through the spread. */
+const outgoing = (
+  { body, kind, id, seq, recordedAt, actorId }: OutboxEntry,
+  switchToken: string | undefined
+) =>
   ({
     ...body,
     id,
@@ -144,7 +143,7 @@ const outgoing = ({
     kind,
     recordedAt,
     ...(actorId ? { actorId } : {}),
-    ...(proof ? { proof } : {}),
+    ...(switchToken ? { switchToken } : {}),
   }) as OutgoingEntry;
 
 /** Where an entry the farm did not simply take is kept. */
@@ -208,8 +207,13 @@ export interface OutboxOptions {
   newKey?: () => string;
   /** Who is working on this phone right now, so each entry carries the person who recorded it. */
   actorOf?: () => string | null;
-  /** What proves it was them — on a Shed Phone, the switch token for their stint. */
+  /** What proves it was them — on a Shed Phone, the switch token for their stint, or the reference of a PIN still
+   *  to be proved. */
   proofOf?: () => string | null;
+  /** What each proof in a Batch being frozen is worth: a switch token, a PIN the farm refused, or a PIN a tab on
+   *  this phone still holds. Proving held PINs with the farm happens in here, before it answers. Unasked, every
+   *  proof is taken as the token it already is. */
+  proofs?: (refs: readonly string[]) => Promise<Map<string, ProofSettled>>;
 }
 
 /**
@@ -417,6 +421,12 @@ export class Outbox {
       return nothing;
     }
     const batch = await this.batchFor(waiting);
+    if (!batch) {
+      // A tab on this phone still holds a PIN somebody entered offline: the work is theirs, and there is nothing
+      // yet to prove it with. Waiting is not a failed attempt (the glossary's Waiting for a PIN) — nothing is
+      // sent, nothing is handed back, and the Batch is offered again on the next flush.
+      return nothing;
+    }
     if (batch.verdicts) {
       // The farm already answered this batch; the phone stopped before it had finished
       // putting the answer away. Finish that, and send nothing.
@@ -427,45 +437,92 @@ export class Outbox {
       // Still backing off from the last attempt.
       return nothing;
     }
-    const entries = waiting.filter((entry) =>
-      batch.entryIds.includes(entry.id)
-    );
     try {
       const answer = await this.options.transport.send({
         key: batch.key,
         sentAt: this.now().toISOString(),
-        entries: entries.map(outgoing),
+        // Exactly what was frozen, whatever the phone has learned since: the same key never carries two things.
+        entries: batch.entries,
       });
       // Written down first. From here the batch is settled business whatever becomes of the
       // phone; what is left is bookkeeping the next flush can finish.
       const answered = { ...batch, verdicts: answer.results };
       await this.write(PENDING_BATCH, answered);
       await this.finish(answered, waiting);
-      return { sent: entries.length, verdicts: answer.results };
+      return { sent: batch.entries.length, verdicts: answer.results };
     } catch (error) {
       await this.stumble(batch, error);
       return nothing;
     }
   }
 
-  /** The batch in flight, or a new one over what is waiting. The key outlives the attempt. */
-  private async batchFor(waiting: OutboxEntry[]): Promise<PendingBatch> {
+  /**
+   * The Batch in flight, or a new one frozen over what is waiting — its key, and its entries as they will be sent.
+   * The key outlives the attempt and so do the entries under it. Nothing at all while a PIN entered offline is
+   * still to be proved.
+   */
+  private async batchFor(waiting: OutboxEntry[]): Promise<PendingBatch | null> {
     const inFlight = await this.read<PendingBatch>(PENDING_BATCH);
-    if (inFlight) {
+    // A Batch written down before this phone knew how to freeze one is formed afresh, under a new key. Its entries
+    // are named by their own ids, and the same entry arriving twice is one fact (ADR 0002), so nothing is applied
+    // a second time by it.
+    if (inFlight?.entries) {
       const still = new Set(waiting.map((entry) => entry.id));
-      const kept = inFlight.entryIds.filter((id) => still.has(id));
-      if (kept.length > 0) {
-        return { ...inFlight, entryIds: kept };
+      if (inFlight.entryIds.some((id) => still.has(id))) {
+        return inFlight;
       }
+    }
+    const taking = takeWhatFits(waiting);
+    const settled = await this.settledProofs(taking);
+    if (!settled) {
+      return null;
     }
     const fresh: PendingBatch = {
       key: this.newKey(),
-      entryIds: takeWhatFits(waiting).map((entry) => entry.id),
+      entryIds: taking.map((entry) => entry.id),
+      entries: taking.map((entry) =>
+        outgoing(entry, entry.proof ? settled.get(entry.proof) : undefined)
+      ),
       retryCount: 0,
       nextAttemptAt: 0,
     };
     await this.write(PENDING_BATCH, fresh);
     return fresh;
+  }
+
+  /**
+   * What each entry's proof is worth, for the Batch about to be frozen: the switch token for the stint it was
+   * recorded in, or nothing for a PIN the farm refused or one no tab holds any more — an entry then goes unproved,
+   * and the farm keeps it for a person like any Entry it cannot take. Nothing at all while a tab still holds a PIN.
+   */
+  private async settledProofs(
+    taking: readonly OutboxEntry[]
+  ): Promise<Map<string, string | undefined> | null> {
+    const refs = [
+      ...new Set(taking.flatMap((entry) => (entry.proof ? [entry.proof] : []))),
+    ];
+    if (refs.length === 0) {
+      return new Map();
+    }
+    // Unasked, a proof is the switch token it already is: a phone that is nobody's Shed Phone holds no PINs.
+    if (!this.options.proofs) {
+      return new Map(refs.map((ref) => [ref, ref]));
+    }
+    const answers = await this.options.proofs(refs);
+    if (refs.some((ref) => answers.get(ref) === "waiting")) {
+      return null;
+    }
+    return new Map(
+      refs.map((ref) => {
+        const answer = answers.get(ref);
+        return [
+          ref,
+          answer && answer !== "refused" && answer !== "waiting"
+            ? answer.token
+            : undefined,
+        ];
+      })
+    );
   }
 
   /** What the farm said, entry by entry. Everything it took leaves the phone; everything it

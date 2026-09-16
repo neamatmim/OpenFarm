@@ -2,7 +2,7 @@ import { DefaultRetryPolicy } from "@tanstack/offline-transactions";
 import type { StorageAdapter } from "@tanstack/offline-transactions";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { EntryVerdict, Transport } from "./outbox";
+import type { EntryVerdict, ProofSettled, Transport } from "./outbox";
 import { Outbox } from "./outbox";
 
 /** Storage a test can hold in its hand. The real one is IndexedDB, which behaves the same
@@ -123,8 +123,8 @@ describe("recording with no signal", () => {
       "staff-a",
       "staff-b",
     ]);
-    // And each carries the proof of the stint it was recorded in, for the farm to check it against.
-    expect(farm.sends[0]?.entries.map((entry) => entry.proof)).toEqual([
+    // And each carries the token of the stint it was recorded in, for the farm to check it against.
+    expect(farm.sends[0]?.entries.map((entry) => entry.switchToken)).toEqual([
       "token-of-staff-a",
       "token-of-staff-b",
     ]);
@@ -184,6 +184,114 @@ describe("sending", () => {
     );
     const settled = await outbox.state();
     expect(settled.pending).toBe(0);
+  });
+
+  it("sends the same entries under one key however the phone's proofs change under it", async () => {
+    // A Shed Phone: each entry carries the reference of the PIN its person entered with no signal.
+    let worth = new Map<string, ProofSettled>([["pin-1", { token: "first" }]]);
+    const outbox = new Outbox({
+      storage,
+      transport: farm.transport,
+      retry: new DefaultRetryPolicy(5, false),
+      now: () => at,
+      newKey: () => "key-1",
+      actorOf: () => "staff-a",
+      proofOf: () => "pin-1",
+      proofs: () => Promise.resolve(worth),
+    });
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses(new Error("no route to host"));
+    await outbox.flush();
+
+    // The phone changes its mind about the PIN between attempts — and the Batch does not.
+    worth = new Map<string, ProofSettled>([["pin-1", "refused"]]);
+    at = new Date(at.getTime() + 60_000);
+    farm.says(takesEverything);
+    await outbox.flush();
+
+    expect(farm.sends.map((sent) => sent.entries[0]?.switchToken)).toEqual([
+      "first",
+      "first",
+    ]);
+  });
+
+  it("sends what it froze after a restart, not what it would freeze now", async () => {
+    let worth = new Map<string, ProofSettled>([["pin-1", { token: "first" }]]);
+    const shedPhone = (storageOverride: MemoryStorage) =>
+      new Outbox({
+        storage: storageOverride,
+        transport: farm.transport,
+        retry: new DefaultRetryPolicy(5, false),
+        now: () => at,
+        newKey: () => "key-1",
+        actorOf: () => "staff-a",
+        proofOf: () => "pin-1",
+        proofs: () => Promise.resolve(worth),
+      });
+    const outbox = shedPhone(storage);
+    await outbox.add("step_completion", milk(11), "a");
+    farm.refuses(new Error("no route to host"));
+    await outbox.flush();
+
+    // The app is closed and opened again, and the phone would now say something else about that PIN.
+    worth = new Map<string, ProofSettled>([["pin-1", { token: "second" }]]);
+    at = new Date(at.getTime() + 60_000);
+    farm.says(takesEverything);
+    await shedPhone(storage).flush();
+
+    expect(farm.sends.map((sent) => sent.entries[0]?.switchToken)).toEqual([
+      "first",
+      "first",
+    ]);
+  });
+
+  it("waits for a PIN a tab still holds: nothing sent, nothing handed back, no attempt used up", async () => {
+    let worth = new Map<string, ProofSettled>([["pin-1", "waiting"]]);
+    const outbox = new Outbox({
+      storage,
+      transport: farm.transport,
+      retry: new DefaultRetryPolicy(2, false),
+      now: () => at,
+      newKey: () => "key-1",
+      actorOf: () => "staff-a",
+      proofOf: () => "pin-1",
+      proofs: () => Promise.resolve(worth),
+    });
+    await outbox.add("step_completion", milk(11), "a");
+
+    // More flushes than the farm allows attempts: waiting is not failing, so nothing is handed back.
+    for (const _ of [1, 2, 3, 4]) {
+      // oxlint-disable-next-line no-await-in-loop
+      await outbox.flush();
+    }
+    expect(farm.sends).toHaveLength(0);
+    expect(await outbox.state()).toMatchObject({ pending: 1, rejected: 0 });
+
+    // The PIN is proved, and the morning's work goes with it.
+    worth = new Map<string, ProofSettled>([["pin-1", { token: "proved" }]]);
+    await outbox.flush();
+    expect(farm.sends[0]?.entries[0]?.switchToken).toBe("proved");
+    expect(await outbox.state()).toMatchObject({ pending: 0, rejected: 0 });
+  });
+
+  it("sends a PIN the farm refused unproved, for the farm to say so", async () => {
+    const outbox = new Outbox({
+      storage,
+      transport: farm.transport,
+      retry: new DefaultRetryPolicy(5, false),
+      now: () => at,
+      newKey: () => "key-1",
+      actorOf: () => "staff-a",
+      proofOf: () => "pin-1",
+      proofs: () =>
+        Promise.resolve(new Map<string, ProofSettled>([["pin-1", "refused"]])),
+    });
+    await outbox.add("step_completion", milk(11), "a");
+    await outbox.flush();
+
+    const [sent] = farm.sends;
+    expect(sent?.entries[0]).toMatchObject({ actorId: "staff-a" });
+    expect(sent?.entries[0]?.switchToken).toBeUndefined();
   });
 
   it("waits longer each time, and does not send again before it is due", async () => {
