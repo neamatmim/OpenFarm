@@ -242,6 +242,33 @@ describe("a batch arriving", () => {
     expect(loaded.records).toHaveLength(1);
   });
 
+  it("tells a phone asking again why an entry was not taken, not only that it was seen", async () => {
+    const { instance, clock, staff } = await session("2027-01-15");
+    const at = clock.now();
+    await staff.sync.batch({
+      key: key(),
+      entries: [milkEntry(instance.id, tagOf(0), 11, at)],
+    });
+    // A different figure for a cow already recorded: the world moved under it, so the farm keeps it for a person.
+    const late = milkEntry(instance.id, tagOf(0), 7, at);
+    const first = await staff.sync.batch({ key: key(), entries: [late] });
+    expect(first.results[0]).toMatchObject({
+      outcome: "kept",
+      refusal: { category: "late" },
+    });
+
+    // The same entry offered again under a new key — a phone whose reply was lost. It is told what it was told
+    // the first time, so the screen can still say why in the reader's own language.
+    const again = await staff.sync.batch({
+      key: key(),
+      entries: [{ ...late, seq: seq() }],
+    });
+    expect(again.results[0]).toMatchObject({
+      outcome: "kept",
+      refusal: { category: "late" },
+    });
+  });
+
   it("stores both clocks, and the phone cannot set the server's", async () => {
     const { instance, clock, staff } = await session("2027-01-06");
     const drawnAt = new Date(clock.now().getTime() - 3 * HOUR);

@@ -99,12 +99,16 @@ const keep = async (
     receivedAt,
     outcome,
     reason,
+    refusal,
   }: {
     input: { key: string };
     sourceKey: string;
     receivedAt: Date;
     outcome: EntryResult["outcome"];
     reason: string | null;
+    /** How the farm sorted one it could not take, kept with it so the same entry asked about again is answered the
+     *  same way, in the reader's language. Null for one it took. */
+    refusal: EntryRefusal | null;
   }
 ): Promise<void> => {
   const held = outcome === "kept" || outcome === "rejected";
@@ -118,6 +122,7 @@ const keep = async (
     batchKey: input.key,
     payload: held ? entryAfter(entry) : null,
     reason,
+    refusal,
     recordedAt: entry.recordedAt,
     receivedAt,
   });
@@ -230,12 +235,14 @@ const applyEntries = async (
     // oxlint-disable-next-line no-await-in-loop
     const before = await entrySeen(tx, context.farm.id, entry.id);
     if (before) {
-      // The same entry, read already. Its answer stands.
+      // The same entry, read already — under this key or another one. Its answer stands, and so does the reason it
+      // was refused for: a phone asking again is told what it was told the first time.
       results.push({
         id: entry.id,
         seq: entry.seq,
         outcome: before.outcome,
         reason: before.reason ?? "already recorded",
+        ...(before.refusal ? { refusal: before.refusal as EntryRefusal } : {}),
       });
       continue;
     }
@@ -251,6 +258,7 @@ const applyEntries = async (
         receivedAt,
         outcome: "rejected",
         reason: `sequence ${entry.seq} is already used by another entry`,
+        refusal: { category: "wrong" },
       });
       results.push({
         id: entry.id,
@@ -291,6 +299,7 @@ const applyEntries = async (
       receivedAt,
       outcome,
       reason,
+      refusal,
     });
     results.push({
       id: entry.id,
