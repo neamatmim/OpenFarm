@@ -768,37 +768,48 @@ export const writePasswordCode = async (
     .onConflictDoUpdate({ target: [passwordCode.userId], set: values });
 };
 
+/** Whoever the farm knows by that email and has not shown the door. Nothing for anybody else, which is the
+ *  same answer a wrong code gets: somebody guessing learns neither. */
+export const personByEmail = async (
+  tx: Reading,
+  email: string
+): Promise<{ id: string; name: string } | null> => {
+  const person = await tx.query.user.findFirst({
+    where: { email: email.toLowerCase() },
+    columns: { id: true, name: true, disabledAt: true },
+  });
+  return person && !person.disabledAt
+    ? { id: person.id, name: person.name }
+    : null;
+};
+
 /**
- * Takes the code back off somebody, and says who they are.
+ * Takes the code back off them.
  *
- * Nothing for a code this farm is not holding, one that has been used, or one that has gone stale — each is a
- * wrong guess for the caller to count rather than a different answer to give somebody guessing.
+ * Refused for a code this farm is not holding, one that has been spent, and one that has gone stale — each the
+ * same way, because somebody guessing should not be told which of the three they have.
  */
 export const spendPasswordCode = async (
   tx: Tx,
   farmId: string,
-  given: { email: string; codeHash: string },
+  userId: string,
+  codeHash: string,
   now: Date
-): Promise<{ id: string; name: string } | null> => {
-  const person = await tx.query.user.findFirst({
-    where: { email: given.email.toLowerCase() },
-    columns: { id: true, name: true, disabledAt: true },
-  });
-  if (!person || person.disabledAt) {
-    return null;
-  }
+): Promise<void> => {
   const [spent] = await tx
     .update(passwordCode)
     .set({ usedAt: now })
     .where(
       and(
         eq(passwordCode.farmId, farmId),
-        eq(passwordCode.userId, person.id),
-        eq(passwordCode.codeHash, given.codeHash),
+        eq(passwordCode.userId, userId),
+        eq(passwordCode.codeHash, codeHash),
         isNull(passwordCode.usedAt),
         gt(passwordCode.expiresAt, now)
       )
     )
     .returning({ id: passwordCode.id });
-  return spent ? { id: person.id, name: person.name } : null;
+  if (!spent) {
+    throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+  }
 };

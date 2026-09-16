@@ -30,6 +30,7 @@ import {
   setPens,
   setPin,
   newPasswordCode,
+  personByEmail,
   setRoles,
   signOutOf,
   signedInOn,
@@ -607,27 +608,29 @@ export const peopleRouter = {
         });
       }
       const codeHash = await hashToken(input.code.toUpperCase());
-      let them: { id: string; name: string } | null = null;
-      await context.db.transaction(async (tx) => {
-        them = await spendPasswordCode(tx, farmId, { ...input, codeHash }, now);
-        if (!them) {
-          countFailure(guesses, now, CODE_ATTEMPTS);
-          throw new ORPCError("NOT_FOUND", {
-            message: "That code is not right",
-          });
+      const them = await personByEmail(context.db, input.email);
+      if (!them) {
+        countFailure(guesses, now, CODE_ATTEMPTS);
+        throw new ORPCError("NOT_FOUND", { message: "That code is not right" });
+      }
+      // The trail names them, not whoever issued the code: it is their password and they chose it.
+      await audited({ ...context, actor: them }, farmId).write(
+        {
+          entity: "user",
+          entityId: them.id,
+          action: "update",
+          after: { passwordSet: true },
+        },
+        async (tx) => {
+          try {
+            await spendPasswordCode(tx, farmId, them.id, codeHash, now);
+          } catch (error) {
+            // Counted whether or not the farm is holding a code for them: the count is of wrong guesses.
+            countFailure(guesses, now, CODE_ATTEMPTS);
+            throw error;
+          }
         }
-        // The trail names them, not whoever issued the code: it is their password and they chose it.
-        await audited({ ...context, actor: them }, farmId).recordEvent(
-          tx,
-          {
-            entity: "user",
-            entityId: them.id,
-            action: "update",
-            after: { passwordSet: true },
-          },
-          { receivedAt: now }
-        );
-      });
+      );
       await setPasswordFor(auth, input.email, input.newPassword);
       return { ok: true } as const;
     }),
