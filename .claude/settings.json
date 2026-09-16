@@ -4,11 +4,11 @@
       {
         "hooks": [
           {
-            "command": "pnpm run fix",
+            "command": "file=$(jq -r '.tool_input.file_path // empty'); [ -n \"$file\" ] && [ -f \"$file\" ] && npx ultracite fix \"$file\" >/dev/null 2>&1; exit 0",
             "type": "command"
           }
         ],
-        "matcher": "Write|Edit"
+        "matcher": "Write|Edit|MultiEdit"
       }
     ]
   }
