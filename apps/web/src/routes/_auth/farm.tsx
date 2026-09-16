@@ -20,6 +20,7 @@ import {
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** The Registration's renewal on the Owner's list: to the renewal work when it has been raised, and to the farm
@@ -74,7 +75,7 @@ const OwnerHome = () => {
     orpc.sops.approveProposal.mutationOptions({
       onSuccess: () =>
         queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const approveMoney = useApproveMoney();

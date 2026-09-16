@@ -9,7 +9,6 @@ import {
   DISPOSALS,
   MORTALITY_KINDS,
   allowedNextStates,
-  farmDayOf,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
@@ -35,8 +34,10 @@ import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import {
+  CorrectionChoice,
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
+  useCorrecting,
 } from "@/components/correction-dialog";
 import { WhatSheCost } from "@/components/costs";
 import type { Course } from "@/components/course";
@@ -46,15 +47,14 @@ import { EmptyState, Page, Section, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { ReportSighting } from "@/components/report-sighting";
+import { SaleCorrection } from "@/components/sale-correction";
 import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
-import {
-  correctionRefusalMessage,
-  isChangedSince,
-  wordedRefusal,
-} from "@/lib/correction-refusal";
+import { amount, choice, counterparty, day, words } from "@/lib/correcting";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { queueMove } from "@/lib/record-offline";
+import { sayWhy } from "@/lib/saying";
 import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
@@ -503,130 +503,59 @@ const PutItRight = ({
   onDone: () => void;
 }) => {
   const { t } = useLanguage();
-  const [kind, setKind] = useState<MortalityKind>(detail.mortality.kind);
-  const [cause, setCause] = useState(detail.mortality.cause);
-  // Left as it is unless somebody chooses: a Correction to a stillborn calf's cause writes no disposal nobody said.
-  const [disposal, setDisposal] = useState<Disposal | "">(
-    detail.mortality.disposal ?? ""
-  );
-  const [reason, setReason] = useState("");
+  const correcting = useCorrecting({
+    kind: choice(detail.mortality.kind),
+    cause: words(detail.mortality.cause),
+    // Left as it is unless somebody chooses: a Correction to a stillborn calf's cause writes no disposal nobody said.
+    disposal: choice(detail.mortality.disposal),
+  });
   const correct = useMutation(
-    orpc.animals.correctMortality.mutationOptions({
-      onSuccess: () => {
-        setReason("");
-        toast.success(t("mortality.corrected"));
-        onDone();
-      },
-      onError: (error) => {
-        toast.error(
-          correctionRefusalMessage(error, t) ??
-            (error.message || t("common.error"))
-        );
-        // Put right by somebody else since: read it again, and start from what it says now when it is opened again.
-        if (isChangedSince(error)) {
-          onDone();
-        }
-      },
-    })
+    orpc.animals.correctMortality.mutationOptions({})
   );
-
   return (
-    <details
-      className="border-t pt-2"
-      onToggle={(event) => {
-        if (event.currentTarget.open) {
-          setKind(detail.mortality.kind);
-          setCause(detail.mortality.cause);
-          setDisposal(detail.mortality.disposal ?? "");
-        }
+    <CorrectionDialog
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          tagNumber: detail.tagNumber,
+          changes: correcting.changes(),
+          reason,
+        });
+        onDone();
       }}
+      ready={correcting.changed}
+      title={t("mortality.correct")}
+      trigger={t("mortality.correct")}
     >
-      <summary className="cursor-pointer">{t("mortality.correct")}</summary>
-      <form
-        className="mt-2 space-y-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const { mortality } = detail;
-          correct.mutate({
-            tagNumber: detail.tagNumber,
-            changes: {
-              kind:
-                kind === mortality.kind
-                  ? undefined
-                  : { from: mortality.kind, to: kind },
-              cause:
-                cause.trim() === mortality.cause
-                  ? undefined
-                  : { from: mortality.cause, to: cause.trim() },
-              disposal:
-                !disposal || disposal === mortality.disposal
-                  ? undefined
-                  : { from: mortality.disposal, to: disposal },
-            },
-            reason: reason.trim(),
-          });
-        }}
-      >
-        <div className="space-y-1">
-          <Label htmlFor="fix-kind">{t("mortality.kind")}</Label>
-          <select
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            id="fix-kind"
-            onChange={(event) => setKind(event.target.value as MortalityKind)}
-            value={kind}
-          >
-            {MORTALITY_KINDS.map((one) => (
-              <option key={one} value={one}>
-                {t(`mortality.${one}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="fix-cause">{t("mortality.cause")}</Label>
-          <Input
-            id="fix-cause"
-            onChange={(event) => setCause(event.target.value)}
-            value={cause}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="fix-disposal">{t("mortality.disposal")}</Label>
-          <select
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            id="fix-disposal"
-            onChange={(event) =>
-              setDisposal(event.target.value as Disposal | "")
-            }
-            value={disposal}
-          >
-            {detail.mortality.disposal ? null : (
-              <option value="">{t("mortality.awaitingDisposal")}</option>
-            )}
-            {DISPOSALS.map((one) => (
-              <option key={one} value={one}>
-                {t(`mortality.${one}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="fix-why">{t("mortality.why")}</Label>
-          <Input
-            id="fix-why"
-            onChange={(event) => setReason(event.target.value)}
-            value={reason}
-          />
-        </div>
-        <Button
-          disabled={!(cause.trim() && reason.trim())}
-          type="submit"
-          variant="outline"
-        >
-          {t("mortality.saveCorrection")}
-        </Button>
-      </form>
-    </details>
+      <CorrectionChoice
+        label={t("mortality.kind")}
+        onChange={(value) => correcting.set("kind", value)}
+        options={MORTALITY_KINDS.map((one) => ({
+          value: one,
+          label: t(`mortality.${one}`),
+        }))}
+        value={correcting.typed.kind ?? ""}
+      />
+      <CorrectionAnswer
+        label={t("mortality.cause")}
+        onChange={(value) => correcting.set("cause", value)}
+        value={correcting.typed.cause ?? ""}
+      />
+      <CorrectionChoice
+        label={t("mortality.disposal")}
+        onChange={(value) => correcting.set("disposal", value)}
+        options={DISPOSALS.map((one) => ({
+          value: one,
+          label: t(`mortality.${one}`),
+        }))}
+        unchosen={
+          detail.mortality.disposal
+            ? undefined
+            : t("mortality.awaitingDisposal")
+        }
+        value={correcting.typed.disposal ?? ""}
+      />
+    </CorrectionDialog>
   );
 };
 
@@ -761,8 +690,7 @@ const ManageHer = ({
   const [toPenId, setToPenId] = useState("");
   const [nextState, setNextState] = useState("");
   const refresh = onChanged;
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
 
   const move = useMutation(
     orpc.animals.move.mutationOptions({
@@ -1035,99 +963,36 @@ const IntakeCorrection = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [price, setPrice] = useState(String(intake.purchasePriceBdt));
-  const [seller, setSeller] = useState(intake.sellerName ?? "");
+  const correcting = useCorrecting({
+    purchasePriceBdt: amount(intake.purchasePriceBdt),
+    seller: counterparty(intake.sellerName),
+  });
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
   return (
     <CorrectionDialog
-      onOpen={() => {
-        setPrice(String(intake.purchasePriceBdt));
-        setSeller(intake.sellerName ?? "");
-      }}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: intake.id,
           reason,
-          changes: {
-            purchasePriceBdt:
-              Number(price) === intake.purchasePriceBdt
-                ? undefined
-                : { from: intake.purchasePriceBdt, to: Number(price) },
-            seller:
-              seller.trim() === (intake.sellerName ?? "") || !seller.trim()
-                ? undefined
-                : { from: intake.sellerName, to: { name: seller.trim() } },
-          },
+          changes: correcting.changes(),
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
-      ready={Number(price) > 0}
+      ready={correcting.changed}
       title={t("correct.intake")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         inputMode="numeric"
         label={t("intake.price")}
-        onChange={setPrice}
+        onChange={(value) => correcting.set("purchasePriceBdt", value)}
         type="number"
-        value={price}
+        value={correcting.typed.purchasePriceBdt ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("correct.seller")}
-        onChange={setSeller}
-        value={seller}
-      />
-    </CorrectionDialog>
-  );
-};
-
-/** The Manager puts right what she was sold for, or to whom. */
-const SaleOfHerCorrection = ({
-  sale,
-}: {
-  sale: { id: string; priceBdt: number; buyerName: string };
-}) => {
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const [price, setPrice] = useState(String(sale.priceBdt));
-  const [buyer, setBuyer] = useState(sale.buyerName);
-  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
-  return (
-    <CorrectionDialog
-      onOpen={() => {
-        setPrice(String(sale.priceBdt));
-        setBuyer(sale.buyerName);
-      }}
-      onSave={async (reason) => {
-        await correct.mutateAsync({
-          id: sale.id,
-          reason,
-          changes: {
-            priceBdt:
-              Number(price) === sale.priceBdt
-                ? undefined
-                : { from: sale.priceBdt, to: Number(price) },
-            buyer:
-              buyer.trim() === sale.buyerName
-                ? undefined
-                : { from: sale.buyerName, to: { name: buyer.trim() } },
-          },
-        });
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
-      }}
-      ready={Number(price) > 0 && buyer.trim() !== ""}
-      title={t("correct.sale")}
-    >
-      <CorrectionField
-        inputMode="numeric"
-        label={t("sale.price")}
-        onChange={setPrice}
-        type="number"
-        value={price}
-      />
-      <CorrectionField
-        label={t("correct.buyer")}
-        onChange={setBuyer}
-        value={buyer}
+        onChange={(value) => correcting.set("seller", value)}
+        value={correcting.typed.seller ?? ""}
       />
     </CorrectionDialog>
   );
@@ -1143,31 +1008,31 @@ const ExpectedCalvingCorrection = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [day, setDay] = useState(farmDayOf(expectedCalvingAt));
+  const correcting = useCorrecting({
+    expectedCalvingOn: day(expectedCalvingAt),
+  });
   const correct = useMutation(
     orpc.animals.correctExpectedCalving.mutationOptions({})
   );
   return (
     <CorrectionDialog
-      onOpen={() => setDay(farmDayOf(expectedCalvingAt))}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           tagNumber,
-          changes: {
-            expectedCalvingOn: { from: farmDayOf(expectedCalvingAt), to: day },
-          },
+          changes: correcting.changes(),
           reason,
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
-      ready={Boolean(day)}
+      ready={correcting.changed}
       title={t("correct.calving")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         label={t("pregnancy.expectedOn")}
-        onChange={setDay}
+        onChange={(value) => correcting.set("expectedCalvingOn", value)}
         type="date"
-        value={day}
+        value={correcting.typed.expectedCalvingOn ?? ""}
       />
     </CorrectionDialog>
   );
@@ -1426,9 +1291,6 @@ const HerAbortions = ({
   );
 };
 
-/** Whatever the farm said went wrong, in its own words. */
-const sayWhy = (error: Error) => toast.error(error.message);
-
 /**
  * The two papers the farm hands over about one animal: her passport, and the sharp question on
  * its own page.
@@ -1445,13 +1307,13 @@ const HerPapers = ({ tagNumber }: { tagNumber: string }) => {
   const passport = useMutation(
     orpc.papers.passport.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "animal-passport", text }),
-      onError: sayWhy,
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const summary = useMutation(
     orpc.papers.withdrawalSummary.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "withdrawal-summary", text }),
-      onError: sayWhy,
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -1564,7 +1426,9 @@ const HowSheLeft = ({
     <section className="surface space-y-1 p-4 text-sm">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">{t("sale.howSheLeft")}</h2>
-        {mayCorrect ? <SaleOfHerCorrection sale={sale} /> : null}
+        {mayCorrect ? (
+          <SaleCorrection sale={sale} thenReload={orpc.animals.key()} />
+        ) : null}
       </div>
       <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
       <Fact label={t("sale.price")}>
@@ -1695,7 +1559,7 @@ const HowSheWent = ({
         toast.success(t("mortality.recorded"));
         onRecorded();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -1851,7 +1715,7 @@ const Withdrawals = ({
         toast.success(t("withdrawal.shortened"));
         onShortened();
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   if (!(detail.milkWithdrawalUntil || detail.meatWithdrawalUntil)) {

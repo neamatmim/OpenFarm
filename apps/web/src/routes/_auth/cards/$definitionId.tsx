@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /** Everything printed on a card is in the language the shed reads. */
@@ -158,7 +159,7 @@ const TrainedOn = ({
         setWho("");
         queryClient.invalidateQueries({ queryKey: orpc.sops.training.key() });
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

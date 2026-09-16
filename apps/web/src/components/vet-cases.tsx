@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const SELECT =
@@ -40,8 +41,7 @@ export const VetCases = ({
   });
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.vetCases.key() });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
   const open = useMutation(
     orpc.vetCases.open.mutationOptions({
       onSuccess: async () => {

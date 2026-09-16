@@ -22,6 +22,7 @@ import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
 import { queueObservation } from "@/lib/record-offline";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -45,7 +46,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
   const record = useMutation(
     orpc.observations.record.mutationOptions({
       onSuccess: () => done(t("sighting.recorded")),
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const needsNote = saw === OBSERVATION_WORD_NEEDING_A_NOTE;
@@ -81,7 +82,7 @@ export const ReportSighting = ({ tagNumber }: { tagNumber: string }) => {
               await queueObservation(input);
               await done(t("sighting.queued"));
             } catch (error) {
-              toast.error((error as Error).message || t("common.error"));
+              toast.error(sayWhy(error, t));
             }
           }}
         >

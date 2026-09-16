@@ -13,7 +13,8 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
+  useCorrecting,
 } from "@/components/correction-dialog";
 import { MilkMismatches } from "@/components/milk-mismatches";
 import {
@@ -30,6 +31,7 @@ import {
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { amount, counterparty, note } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { onlyFor } from "@/lib/guard";
 import { saveCsv } from "@/lib/save-csv";
@@ -78,72 +80,52 @@ const DispatchCorrection = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [litres, setLitres] = useState(String(dispatch.litres));
-  const [price, setPrice] = useState(String(dispatch.pricePerLitreBdt));
-  const [buyer, setBuyer] = useState(dispatch.buyerName);
-  const [challan, setChallan] = useState(dispatch.challan ?? "");
+  const correcting = useCorrecting({
+    litres: amount(dispatch.litres),
+    pricePerLitreBdt: amount(dispatch.pricePerLitreBdt),
+    buyer: counterparty(dispatch.buyerName),
+    challan: note(dispatch.challan),
+  });
   const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
   return (
     <CorrectionDialog
-      onOpen={() => {
-        setLitres(String(dispatch.litres));
-        setPrice(String(dispatch.pricePerLitreBdt));
-        setBuyer(dispatch.buyerName);
-        setChallan(dispatch.challan ?? "");
-      }}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: dispatch.id,
           reason,
-          changes: {
-            litres:
-              Number(litres) === dispatch.litres
-                ? undefined
-                : { from: dispatch.litres, to: Number(litres) },
-            pricePerLitreBdt:
-              Number(price) === dispatch.pricePerLitreBdt
-                ? undefined
-                : { from: dispatch.pricePerLitreBdt, to: Number(price) },
-            buyer:
-              buyer.trim() === dispatch.buyerName
-                ? undefined
-                : { from: dispatch.buyerName, to: { name: buyer.trim() } },
-            challan:
-              (challan.trim() || null) === dispatch.challan
-                ? undefined
-                : { from: dispatch.challan, to: challan.trim() || null },
-          },
+          changes: correcting.changes(),
         });
         await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
       }}
-      ready={Number(litres) > 0 && Number(price) > 0 && buyer.trim() !== ""}
+      ready={correcting.changed}
       title={t("correct.dispatch")}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <CorrectionField
+        <CorrectionAnswer
           inputMode="decimal"
           label={t("dispatch.litresField")}
-          onChange={setLitres}
+          onChange={(value) => correcting.set("litres", value)}
           type="number"
-          value={litres}
+          value={correcting.typed.litres ?? ""}
         />
-        <CorrectionField
+        <CorrectionAnswer
           inputMode="decimal"
           label={t("dispatch.price")}
-          onChange={setPrice}
+          onChange={(value) => correcting.set("pricePerLitreBdt", value)}
           type="number"
-          value={price}
+          value={correcting.typed.pricePerLitreBdt ?? ""}
         />
       </div>
-      <CorrectionField
+      <CorrectionAnswer
         label={t("dispatch.buyer")}
-        onChange={setBuyer}
-        value={buyer}
+        onChange={(value) => correcting.set("buyer", value)}
+        value={correcting.typed.buyer ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("dispatch.challan")}
-        onChange={setChallan}
-        value={challan}
+        onChange={(value) => correcting.set("challan", value)}
+        value={correcting.typed.challan ?? ""}
       />
     </CorrectionDialog>
   );

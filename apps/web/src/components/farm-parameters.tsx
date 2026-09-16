@@ -9,6 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 type NumberKey =
@@ -226,7 +227,7 @@ export const FarmParameters = () => {
         await queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
         await queryClient.invalidateQueries({ queryKey: orpc.people.me.key() });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

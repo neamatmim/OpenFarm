@@ -10,9 +10,8 @@ import { toast } from "sonner";
 
 import { EmptyState, Page, PageHeader } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
-
-const onError = (error: Error) => toast.error(error.message);
 
 /**
  * The farm's list of diseases that must be reported to DLS without delay.
@@ -39,6 +38,8 @@ const NotifiablePage = () => {
 
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.notifiable.key() });
+  /** Whatever the farm said, in the reader's own language. */
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
   const add = useMutation(
     orpc.notifiable.add.mutationOptions({
       onSuccess: () => {

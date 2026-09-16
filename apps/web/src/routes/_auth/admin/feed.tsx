@@ -11,12 +11,15 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
+  useCorrecting,
 } from "@/components/correction-dialog";
 import { Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { amount as amountArrived, day, figure } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 interface RationRow {
@@ -70,7 +73,7 @@ const FeedPage = () => {
   const assign = useMutation(
     orpc.feed.assignRation.mutationOptions({
       onSuccess: refresh,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -248,13 +251,13 @@ const FeedItems = ({
         setEnglish("");
         onChanged();
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   const retireItem = useMutation(
     orpc.feed.retireItem.mutationOptions({
       onSuccess: onChanged,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -363,7 +366,7 @@ const RationForm = ({
   const save = useMutation(
     orpc.feed.saveRation.mutationOptions({
       onSuccess: onSaved,
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -460,65 +463,47 @@ const ArrivalCorrection = ({
 }) => {
   const t = useT();
   const queryClient = useQueryClient();
-  const [quantity, setQuantity] = useState(String(arrival.quantity));
-  const [price, setPrice] = useState(
-    arrival.priceBdt === null ? "" : String(arrival.priceBdt)
-  );
-  const wasReceivedOn = farmDayOf(arrival.receivedOn);
-  const [receivedOn, setReceivedOn] = useState(wasReceivedOn);
+  const correcting = useCorrecting({
+    quantity: amountArrived(arrival.quantity),
+    priceBdt: figure(arrival.priceBdt),
+    receivedOn: day(arrival.receivedOn),
+  });
   const correct = useMutation(orpc.stock.correct.mutationOptions({}));
   return (
     <CorrectionDialog
-      onOpen={() => {
-        setQuantity(String(arrival.quantity));
-        setPrice(arrival.priceBdt === null ? "" : String(arrival.priceBdt));
-        setReceivedOn(wasReceivedOn);
-      }}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: arrival.id,
           reason,
-          changes: {
-            quantity:
-              Number(quantity) === arrival.quantity
-                ? undefined
-                : { from: arrival.quantity, to: Number(quantity) },
-            priceBdt:
-              arrival.priceBdt === null || Number(price) === arrival.priceBdt
-                ? undefined
-                : { from: arrival.priceBdt, to: Number(price) },
-            receivedOn:
-              receivedOn === wasReceivedOn
-                ? undefined
-                : { from: wasReceivedOn, to: receivedOn },
-          },
+          changes: correcting.changes(),
         });
         await queryClient.invalidateQueries({ queryKey: orpc.stock.key() });
       }}
-      ready={Number(quantity) > 0}
+      ready={correcting.changed}
       title={t("correct.arrival")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         inputMode="decimal"
         label={t("stock.quantity", { unit: arrival.unit })}
-        onChange={setQuantity}
+        onChange={(value) => correcting.set("quantity", value)}
         type="number"
-        value={quantity}
+        value={correcting.typed.quantity ?? ""}
       />
       {arrival.priceBdt === null ? null : (
-        <CorrectionField
+        <CorrectionAnswer
           inputMode="numeric"
           label={t("stock.price")}
-          onChange={setPrice}
+          onChange={(value) => correcting.set("priceBdt", value)}
           type="number"
-          value={price}
+          value={correcting.typed.priceBdt ?? ""}
         />
       )}
-      <CorrectionField
+      <CorrectionAnswer
         label={t("stock.receivedOn")}
-        onChange={setReceivedOn}
+        onChange={(value) => correcting.set("receivedOn", value)}
         type="date"
-        value={receivedOn}
+        value={correcting.typed.receivedOn ?? ""}
       />
     </CorrectionDialog>
   );
@@ -643,7 +628,7 @@ const LowStockAt = ({
           queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
           queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
         ]),
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
   return (

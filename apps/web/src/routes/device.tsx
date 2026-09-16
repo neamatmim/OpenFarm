@@ -28,6 +28,7 @@ import {
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
 import { handOverThisPhone } from "@/lib/query-cache";
+import { sayWhy } from "@/lib/saying";
 import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
@@ -87,8 +88,7 @@ const DevicePage = () => {
         setCode("");
         toast.success(t("device.enrolled"));
       },
-      onError: (error: Error) =>
-        toast.error(error.message || t("common.error")),
+      onError: (error: Error) => toast.error(sayWhy(error, t)),
     })
   );
 

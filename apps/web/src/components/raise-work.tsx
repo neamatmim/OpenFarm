@@ -17,6 +17,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const SELECT =
@@ -44,7 +45,7 @@ export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
         setPen("");
         await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -52,7 +53,10 @@ export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
     .filter((row) => !row.retiredAt && row.currentVersion)
     .map((row) => {
       const { name } = row.currentVersion?.content as SopContent;
-      return { id: row.id, name: language === "en" && name.en ? name.en : name.bn };
+      return {
+        id: row.id,
+        name: language === "en" && name.en ? name.en : name.bn,
+      };
     });
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((one) => ({ id: one.id, name: `${shed.name} / ${one.name}` }))

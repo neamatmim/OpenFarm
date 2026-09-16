@@ -20,6 +20,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const SELECT =
@@ -85,7 +86,7 @@ export const RegisterAnimal = ({
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         await navigate({ to: "/animals/$tagNumber", params: { tagNumber } });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

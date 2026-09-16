@@ -10,10 +10,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
-  CorrectionDialog,
-  CorrectionField,
-} from "@/components/correction-dialog";
-import {
   EmptyState,
   Page,
   PageHeader,
@@ -26,6 +22,7 @@ import {
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
+import { SaleCorrection } from "@/components/sale-correction";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -95,59 +92,6 @@ const LastBuyerOfTheDay = ({
  * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
  * the man has finished buying, and it covers everything he took that morning.
  */
-/** The Manager puts a sale right: its price or its buyer, with the reason — the Owner sees it among what awaits
- *  approval. */
-const SaleCorrection = ({
-  sale,
-}: {
-  sale: { id: string; priceBdt: number; buyerName: string };
-}) => {
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const [price, setPrice] = useState(String(sale.priceBdt));
-  const [buyer, setBuyer] = useState(sale.buyerName);
-  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
-  return (
-    <CorrectionDialog
-      onOpen={() => {
-        setPrice(String(sale.priceBdt));
-        setBuyer(sale.buyerName);
-      }}
-      onSave={async (reason) => {
-        await correct.mutateAsync({
-          id: sale.id,
-          reason,
-          changes: {
-            priceBdt:
-              Number(price) === sale.priceBdt
-                ? undefined
-                : { from: sale.priceBdt, to: Number(price) },
-            buyer:
-              buyer.trim() === sale.buyerName
-                ? undefined
-                : { from: sale.buyerName, to: { name: buyer.trim() } },
-          },
-        });
-        await queryClient.invalidateQueries({ queryKey: orpc.papers.key() });
-      }}
-      ready={Number(price) > 0 && buyer.trim() !== ""}
-      title={t("correct.sale")}
-    >
-      <CorrectionField
-        inputMode="numeric"
-        label={t("sale.price")}
-        onChange={setPrice}
-        type="number"
-        value={price}
-      />
-      <CorrectionField
-        label={t("correct.buyer")}
-        onChange={setBuyer}
-        value={buyer}
-      />
-    </CorrectionDialog>
-  );
-};
 
 const TodaysSales = () => {
   const { t, language } = useLanguage();
@@ -213,7 +157,9 @@ const TodaysSales = () => {
                 >
                   {t("sale.transportCard")}
                 </Button>
-                {isManager || isOwner ? <SaleCorrection sale={row} /> : null}
+                {isManager || isOwner ? (
+                  <SaleCorrection sale={row} thenReload={orpc.papers.key()} />
+                ) : null}
               </span>
             }
           />
@@ -235,7 +181,7 @@ const TodaysSales = () => {
 const SalePage = () => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
-  const [fields, setFields] = useState(NOTHING_TYPED);
+  const [answers, setAnswers] = useState(NOTHING_TYPED);
   // A fattening beast is chosen from the list. A dairy cow going to a butcher — the cull the
   // Owner decided is a Sale — is never Ready for Sale, so she is named by her tag instead.
   const [byTag, setByTag] = useState(false);
@@ -245,15 +191,15 @@ const SalePage = () => {
   const last = useQuery(orpc.sale.lastToday.queryOptions());
 
   const ready = sellable.data ?? [];
-  const edit = (patch: Partial<typeof fields>) =>
-    setFields({ ...fields, ...patch });
+  const edit = (patch: Partial<typeof answers>) =>
+    setAnswers({ ...answers, ...patch });
 
   const record = useMutation(
     orpc.sale.record.mutationOptions({
       onSuccess: async ({ tagNumber }) => {
         toast.success(t("sale.done", { tag: tagNumber }));
         // The buyer and the lorry stay on the screen: the next beast is usually his too.
-        setFields({ ...fields, tagNumber: "", weightKg: "", priceBdt: "" });
+        setAnswers({ ...answers, tagNumber: "", weightKg: "", priceBdt: "" });
         await Promise.all(
           [orpc.papers.key(), orpc.ready.key()].map((key) =>
             queryClient.invalidateQueries({ queryKey: key })
@@ -286,19 +232,19 @@ const SalePage = () => {
         onSubmit={(event) => {
           event.preventDefault();
           record.mutate({
-            tagNumber: fields.tagNumber,
+            tagNumber: answers.tagNumber,
             buyer: {
-              name: fields.buyerName,
-              address: fields.buyerAddress || undefined,
-              phone: fields.buyerPhone || undefined,
+              name: answers.buyerName,
+              address: answers.buyerAddress || undefined,
+              phone: answers.buyerPhone || undefined,
             },
-            priceBdt: Number(fields.priceBdt),
-            weightKg: Number(fields.weightKg),
-            destination: fields.destination,
-            vehicle: fields.vehicle,
-            driver: fields.driver,
-            note: fields.note || undefined,
-            paymentMethod: fields.paymentMethod,
+            priceBdt: Number(answers.priceBdt),
+            weightKg: Number(answers.weightKg),
+            destination: answers.destination,
+            vehicle: answers.vehicle,
+            driver: answers.driver,
+            note: answers.note || undefined,
+            paymentMethod: answers.paymentMethod,
           });
         }}
       >
@@ -312,7 +258,7 @@ const SalePage = () => {
                 onChange={(e) => edit({ tagNumber: e.target.value })}
                 placeholder="F-0001"
                 required
-                value={fields.tagNumber}
+                value={answers.tagNumber}
               />
             ) : (
               <select
@@ -320,7 +266,7 @@ const SalePage = () => {
                 id="sale-animal"
                 onChange={(e) => edit({ tagNumber: e.target.value })}
                 required
-                value={fields.tagNumber}
+                value={answers.tagNumber}
               >
                 <option value="">—</option>
                 {ready.map((row) => (
@@ -358,7 +304,7 @@ const SalePage = () => {
               maxLength={120}
               onChange={(e) => edit({ buyerName: e.target.value })}
               required
-              value={fields.buyerName}
+              value={answers.buyerName}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -368,7 +314,7 @@ const SalePage = () => {
                 id="sale-address"
                 maxLength={200}
                 onChange={(e) => edit({ buyerAddress: e.target.value })}
-                value={fields.buyerAddress}
+                value={answers.buyerAddress}
               />
             </div>
             <div className="space-y-1">
@@ -378,7 +324,7 @@ const SalePage = () => {
                 inputMode="tel"
                 maxLength={20}
                 onChange={(e) => edit({ buyerPhone: e.target.value })}
-                value={fields.buyerPhone}
+                value={answers.buyerPhone}
               />
             </div>
           </div>
@@ -394,7 +340,7 @@ const SalePage = () => {
                 onChange={(e) => edit({ priceBdt: e.target.value })}
                 required
                 type="number"
-                value={fields.priceBdt}
+                value={answers.priceBdt}
               />
             </div>
             <div className="space-y-1">
@@ -406,14 +352,14 @@ const SalePage = () => {
                 required
                 step="0.1"
                 type="number"
-                value={fields.weightKg}
+                value={answers.weightKg}
               />
             </div>
           </div>
           <PaymentMethodField
             id="sale-paid-by"
             onChange={(paymentMethod) => edit({ paymentMethod })}
-            value={fields.paymentMethod}
+            value={answers.paymentMethod}
           />
         </Section>
 
@@ -425,7 +371,7 @@ const SalePage = () => {
               maxLength={200}
               onChange={(e) => edit({ destination: e.target.value })}
               required
-              value={fields.destination}
+              value={answers.destination}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -436,7 +382,7 @@ const SalePage = () => {
                 maxLength={60}
                 onChange={(e) => edit({ vehicle: e.target.value })}
                 required
-                value={fields.vehicle}
+                value={answers.vehicle}
               />
             </div>
             <div className="space-y-1">
@@ -446,7 +392,7 @@ const SalePage = () => {
                 maxLength={120}
                 onChange={(e) => edit({ driver: e.target.value })}
                 required
-                value={fields.driver}
+                value={answers.driver}
               />
             </div>
           </div>
@@ -457,7 +403,7 @@ const SalePage = () => {
               id="sale-note"
               maxLength={300}
               onChange={(e) => edit({ note: e.target.value })}
-              value={fields.note}
+              value={answers.note}
             />
             <p className="text-muted-foreground text-sm">{t("sale.noteWhy")}</p>
           </div>

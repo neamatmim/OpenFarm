@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Page, PageHeader, Section } from "@/components/page";
 import { RaiseWork } from "@/components/raise-work";
 import { useT } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
 import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
   emptyHappening,
@@ -83,8 +84,7 @@ const SopsPage = () => {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: orpc.sops.key() });
   };
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
   const onPublished = (result: { number: number }) => {
     toast.success(t("sop.published", { number: result.number }));
     setDraft(null);

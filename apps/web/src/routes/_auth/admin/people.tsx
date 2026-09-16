@@ -24,7 +24,8 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
+  useCorrecting,
 } from "@/components/correction-dialog";
 import {
   EmptyState,
@@ -36,7 +37,9 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { words } from "@/lib/correcting";
 import { useInFlight } from "@/lib/in-flight";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 const roleKey = (role: RoleName) => `role.${role}` as const;
@@ -299,27 +302,27 @@ const RoleChoice = ({
 const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
   const t = useT();
   const queryClient = useQueryClient();
-  const [value, setValue] = useState(name);
+  const correcting = useCorrecting({ name: words(name) });
   const correct = useMutation(orpc.people.correctName.mutationOptions({}));
   return (
     <CorrectionDialog
-      onOpen={() => setValue(name)}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: userId,
-          changes: { name: { from: name, to: value.trim() } },
+          changes: correcting.changes(),
           reason,
         });
         await queryClient.invalidateQueries({ queryKey: orpc.people.key() });
       }}
-      ready={value.trim() !== "" && value.trim() !== name}
+      ready={correcting.changed}
       title={t("people.correctName")}
       trigger={t("people.correctName")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         label={t("people.name")}
-        onChange={setValue}
-        value={value}
+        onChange={(value) => correcting.set("name", value)}
+        value={correcting.typed.name ?? ""}
       />
     </CorrectionDialog>
   );
@@ -342,8 +345,7 @@ const VisitControls = ({
   const [day, setDay] = useState(lastDay);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.people.key() });
-  const onError = (error: Error) =>
-    toast.error(error.message || t("common.error"));
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
   const extend = useMutation(
     orpc.vetCases.setVisitUntil.mutationOptions({
       onSuccess: async () => {

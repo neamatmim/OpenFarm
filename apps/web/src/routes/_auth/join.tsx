@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Page } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -30,7 +31,7 @@ const JoinPage = () => {
         queryClient.removeQueries({ queryKey: orpc.people.me.queryKey() });
         await navigate({ to: "/dashboard" });
       },
-      onError: (error) => toast.error(error.message || t("common.error")),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 

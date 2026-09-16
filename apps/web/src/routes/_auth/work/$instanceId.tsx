@@ -57,6 +57,7 @@ import {
   finishInstance,
   recordStep,
 } from "@/lib/record-offline";
+import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 interface Animal {
@@ -82,7 +83,7 @@ const TheLetter = ({
   const { t } = useLanguage();
   const letter = useMutation(
     orpc.notifiable.letter.mutationOptions({
-      onError: (error) => toast.error(error.message),
+      onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
 
@@ -1901,7 +1902,7 @@ const EvidenceControl = ({
             // morning of those would sit in the Outbox and time out on every attempt.
             onPhoto(await shrink(file));
           } catch (error) {
-            toast.error((error as Error).message || t("common.error"));
+            toast.error(sayWhy(error, t));
           }
         }}
         type="file"
