@@ -12,6 +12,9 @@ interface OptimisticCompletion {
   skipReason: string | null;
   evidence: unknown;
   destination: string | null;
+  outOfRange: string | null;
+  /** What was fed or counted with it, as it was typed: a Correction made from this says it was shown them. */
+  facts: Pick<StepRecord, "feeding" | "counts">;
 }
 
 /** A Step as the pen board records it: what the farm takes for a Step, which animal's tile it belongs on, and the
@@ -96,6 +99,11 @@ export const recordStep = async (
     skipReason: record.skipReason ?? null,
     evidence: record.evidence,
     destination: record.destination ?? null,
+    outOfRange: record.outOfRange ?? null,
+    facts: {
+      ...(record.feeding ? { feeding: record.feeding } : {}),
+      ...(record.counts ? { counts: record.counts } : {}),
+    },
   };
   queryClient.setQueryData(
     instanceKey,

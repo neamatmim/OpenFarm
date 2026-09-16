@@ -1,3 +1,4 @@
+import type { FactsAsShown } from "@OpenFarm/api/effects/effect";
 import type {
   Evidence,
   MilkDestination,
@@ -159,6 +160,8 @@ interface Completion {
   evidence: (boolean | number | string)[];
   destination: MilkDestination | null;
   outOfRange: string | null;
+  /** What the Step's Effect recorded beside its Evidence — the feed given, the store counted — as it was shown. */
+  facts: FactsAsShown;
 }
 
 const outOfRangeOf = (
@@ -432,18 +435,19 @@ const WorkPage = () => {
               evidence: existing.evidence,
               destination: existing.destination,
               outOfRange: existing.outOfRange,
+              ...existing.facts,
             },
             to: {
               destination: payload.destination,
               evidence: payload.evidence,
               outOfRange: payload.outOfRange,
               skipReason: payload.skipReason,
+              feeding: payload.feeding,
+              counts: payload.counts,
+              renewal: payload.renewal,
             },
           },
         },
-        feeding: payload.feeding,
-        counts: payload.counts,
-        renewal: payload.renewal,
         reason: payload.reason,
       });
       return;
@@ -492,6 +496,7 @@ const WorkPage = () => {
     return (
       <EvidenceSheet
         correcting={Boolean(existing)}
+        existing={existing}
         feeding={feeding}
         stockCount={stockCount}
         renewal={renewal}
@@ -1065,17 +1070,21 @@ const aYearOn = (expiresOn: string | null): string => {
 
 /**
  * What the renewal's closing Step is filling in: the day the renewed certificate runs out — starting a year
- * on from the day it runs out now, which is how a certificate is usually renewed — and its photograph. Ready
+ * on from the day it runs out now, which is how a certificate is usually renewed, or for a Correction the day it
+ * was renewed to — and its photograph. Ready
  * once both are given; a Correction may keep the photograph it already sent.
  */
 const useRenewal = (
   step: Step,
   board: { expiresOn: string | null } | null | undefined,
-  correcting: boolean
+  correcting: boolean,
+  recorded: FactsAsShown["renewal"]
 ) => {
   const renews = step.effect?.kind === "registration_renewal";
   const runsOutOn = board?.expiresOn ?? null;
-  const [expiresOn, setExpiresOn] = useState(() => aYearOn(runsOutOn));
+  const [expiresOn, setExpiresOn] = useState(
+    () => recorded?.expiresOn ?? aYearOn(runsOutOn)
+  );
   const [issuedOn, setIssuedOn] = useState("");
   const [certificate, setCertificate] = useState<Photo | null>(null);
   const given = expiresOn !== "" && (certificate !== null || correcting);
@@ -1438,6 +1447,19 @@ const whatWentOut = (
     leftoverKg: numberOr(leftover[line.feedItemId], 0),
   }));
 
+/** What an entry's Effect recorded beside its Evidence, or nothing for an entry not yet made. */
+const factsOf = (existing: Completion | undefined): FactsAsShown =>
+  existing?.facts ?? {};
+
+/** Each Feed Item's box filled with one figure of what was recorded. */
+const typedFrom = (
+  lines: FactsAsShown["feeding"],
+  figure: (line: NonNullable<FactsAsShown["feeding"]>[number]) => number
+): Typed =>
+  Object.fromEntries(
+    (lines ?? []).map((line) => [line.feedItemId, String(figure(line))])
+  );
+
 /** A field left as it was handed over means the figure that was handed over. */
 const numberOr = (value: string | undefined, fallback: number): number => {
   const typed = Number(value);
@@ -1471,6 +1493,7 @@ const EvidenceSheet = ({
   step,
   animal,
   correcting,
+  existing,
   feeding,
   stockCount,
   renewal,
@@ -1481,6 +1504,8 @@ const EvidenceSheet = ({
   animal?: Animal;
   /** The entry already exists, so saving it again is a Correction. */
   correcting: boolean;
+  /** The entry as it stands, whose Effect's facts a Correction starts from. */
+  existing?: Completion;
   /** What this Pen is owed this session, for a Step that feeds. */
   feeding?: {
     items: {
@@ -1519,10 +1544,16 @@ const EvidenceSheet = ({
   );
   const recordsMilk = step.effect?.kind === "milk_record";
   const feedsThePen = step.effect?.kind === "feeding";
-  const [given, setGiven] = useState<Typed>({});
-  const [leftover, setLeftover] = useState<Typed>({});
+  // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
+  const recorded = factsOf(existing);
+  const [given, setGiven] = useState<Typed>(() =>
+    typedFrom(recorded.feeding, (line) => line.givenKg)
+  );
+  const [leftover, setLeftover] = useState<Typed>(() =>
+    typedFrom(recorded.feeding, (line) => line.leftoverKg)
+  );
   const count = useStockCount(step, stockCount);
-  const renewing = useRenewal(step, renewal, correcting);
+  const renewing = useRenewal(step, renewal, correcting, recorded.renewal);
 
   const { rows: feedingRows, cannotFeed } = feedingState(feedsThePen, feeding);
 

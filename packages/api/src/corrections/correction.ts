@@ -105,8 +105,12 @@ export interface CorrectionKind<
   entity: string;
   /** Its table, for the row to be held while it is put right. */
   table: PgTable & { id: AnyPgColumn };
-  /** The Roles that may put it right — the procedure's Role check, and the only Roles whose windows are asked about. */
+  /** The Roles that may put it right — the procedure's Role check, and the Roles whose windows are asked about unless
+   *  `rolesFor` narrows them for the record. */
   roles: readonly RoleName[];
+  /** The Roles that may put this one right, when that depends on the record — a clinical Step is the Vet's alone.
+   *  Nothing, for a record any of `roles` may. */
+  rolesFor?: (row: Row) => readonly RoleName[] | undefined;
   /** Whether a Vet called in for a visit may put it right as the Vet. */
   visitingVet?: boolean;
   /** Said when there is no such record on this farm. */
@@ -130,12 +134,18 @@ export interface CorrectionKind<
   /** The values it holds, as a screen shows them. */
   shown: (tx: Tx, row: Row) => Promise<ShownValues<C>>;
   /** A value it is asked to hold, as a screen would show it, when the two are not the same shape. */
-  shownAs?: { [K in keyof C]?: (to: NonNullable<C[K]>["to"]) => Comparable };
+  shownAs?: {
+    [K in keyof C]?: (
+      to: NonNullable<C[K]>["to"],
+      /** What the record holds, for a value asked for in part: a part left out keeps what it holds. */
+      holds: NonNullable<C[K]>["from"]
+    ) => Comparable;
+  };
   /** The record as the trail keeps it, either side of the Correction — after it, with what the Correction decided. */
   trail: (tx: Tx, row: Row, outcome?: Outcome) => Promise<SnapshotValue>;
-  /** Whether what it was asked beyond its values changes the record — a receipt that came later — so a Correction
-   *  that changes no value is still one. */
-  changesBeyondValues?: (extra: Extra) => boolean;
+  /** Whether what it was asked beyond its values changes the record — a receipt that came later, a certificate's
+   *  photograph — so a Correction that changes no value is still one. */
+  changesBeyondValues?: (extra: Extra, changes: C) => boolean;
   /** Puts the values right, telling `cannotUndo` what it could not walk back, and says what the screen needs to know. */
   apply: (
     tx: Tx,
@@ -236,7 +246,7 @@ const workingToCorrect = <
   const theirs = PRECEDENCE.filter(
     (role) =>
       context.roles.includes(role) &&
-      kind.roles.includes(role) &&
+      (kind.rolesFor?.(row) ?? kind.roles).includes(role) &&
       !(role === "vet" && context.visiting && !kind.visitingVet)
   );
   const entry = kind.entry?.(row);
@@ -250,7 +260,7 @@ const workingToCorrect = <
           now,
           windows: correctionWindows(context.farm),
         })
-      : pickRoleUsed(roles, kind.roles);
+      : pickRoleUsed(roles, kind.rolesFor?.(row) ?? kind.roles);
   const allowed = theirs.filter((role) => {
     const verdict = verdictFor([role]);
     return typeof verdict === "string" || (verdict !== null && verdict.allowed);
@@ -327,11 +337,12 @@ export const correct = async <
       });
     }
     const asShown = (field: keyof C, to: unknown): Comparable =>
-      kind.shownAs?.[field]?.(to as never) ?? (to as Comparable);
+      kind.shownAs?.[field]?.(to as never, shown[field] as never) ??
+      (to as Comparable);
     const changesAValue = changed.some(
       ({ field, to }) => !same(asShown(field, to), shown[field])
     );
-    if (!(changesAValue || kind.changesBeyondValues?.(extra))) {
+    if (!(changesAValue || kind.changesBeyondValues?.(extra, input.changes))) {
       throw new ORPCError("BAD_REQUEST", {
         message: "Nothing to correct",
         data: { refusal: "nothing_to_correct" },

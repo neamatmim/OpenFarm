@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { STANDING_ASIDE_WORDS } from "@/lib/correction-refusal";
 import { hoursLate } from "@/lib/lateness";
 import { orpc } from "@/utils/orpc";
 
@@ -85,6 +86,14 @@ const URGENT: ReadonlySet<string> = new Set([
 const messageFor = (kind: string): MessageKey | null =>
   (MESSAGE_FOR as Record<string, MessageKey>)[kind] ?? null;
 
+/** Why an Effect stood aside, for a Needs Review a Correction raised so: what the farm knew that the entry did not. */
+const becauseOf = (params: unknown): MessageKey | null => {
+  const because = (params as { because?: unknown } | null)?.because;
+  return typeof because === "string" && because in STANDING_ASIDE_WORDS
+    ? STANDING_ASIDE_WORDS[because as keyof typeof STANDING_ASIDE_WORDS]
+    : null;
+};
+
 /**
  * What this person is being told. Raising the notices is the same call however anyone opens
  * the app: it is idempotent, so no scheduler has to have run for the farm to know its work
@@ -124,6 +133,7 @@ export const AlertList = () => {
       <ul className="divide-border divide-y">
         {shown.map((notice) => {
           const key = messageFor(notice.kind);
+          const because = becauseOf(notice.params);
           const urgent = URGENT.has(notice.kind);
           return (
             <li className="flex items-start gap-3 px-4 py-3" key={notice.id}>
@@ -148,6 +158,11 @@ export const AlertList = () => {
                       })
                     )
                   : notice.kind}
+                {because ? (
+                  <span className="text-muted-foreground block">
+                    {t(because)}
+                  </span>
+                ) : null}
               </p>
               <Button
                 className="shrink-0"

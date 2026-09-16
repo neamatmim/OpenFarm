@@ -184,7 +184,12 @@ export const renewRegistration = async (
     by: string;
     now: Date;
   }
-): Promise<{ expiresOn: Date; previousExpiresOn: Date | null }> => {
+): Promise<{
+  expiresOn: Date;
+  previousExpiresOn: Date | null;
+  /** The Registration has moved on since this renewal: nothing was written. */
+  superseded: boolean;
+}> => {
   if (!renewal) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A renewal says when the renewed certificate expires",
@@ -209,11 +214,11 @@ export const renewRegistration = async (
     already &&
     standing?.registrationExpiresOn?.getTime() !== already.expiresOn.getTime()
   ) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "The Registration has moved on since this renewal; put the newer one right instead",
-      data: { refusal: "renewal_superseded" },
-    });
+    return {
+      expiresOn: already.expiresOn,
+      previousExpiresOn,
+      superseded: true,
+    };
   }
   const expiresOn = startOfFarmDay(renewal.expiresOn);
   if (previousExpiresOn !== null && expiresOn < previousExpiresOn) {
@@ -258,5 +263,5 @@ export const renewRegistration = async (
       completionId,
     });
   }
-  return { expiresOn, previousExpiresOn };
+  return { expiresOn, previousExpiresOn, superseded: false };
 };

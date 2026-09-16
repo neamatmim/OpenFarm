@@ -181,6 +181,61 @@ describe("a Step that moves an animal", () => {
   });
 });
 
+describe("a Step the farm has moved past", () => {
+  it("is kept for a person, and walks her nowhere, when she was moved while the phone held it", async () => {
+    const clock = new FakeClock("2027-02-07T02:00:00.000Z");
+    const first = await createTestClient(appRouter, { as: "owner", clock });
+    const cow = await aCowIn(first, world.milking.id);
+    const { owner, instance } = await instanceFor(clock, world.milking.id);
+    const walkedAt = clock.now();
+
+    // An hour on, somebody walks her to the dry pen by hand, with signal.
+    clock.advance(HOUR);
+    await owner.client.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: world.dry.id,
+      reason: "হাতে সরানো",
+    });
+
+    // The phone that walked her to the sick pen an hour ago is only now in signal — a phone of this test's own, whose
+    // sequence starts here.
+    const phone = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      onShedPhone: true,
+      phone: { id: "test-phone-moves-late", name: "দেরির শেড ফোন" },
+    });
+    const sent = await phone.client.sync.batch({
+      key: `moves-late-${cow.tagNumber}`,
+      entries: [
+        {
+          id: `walk-late-${cow.tagNumber}`,
+          seq: 1,
+          recordedAt: walkedAt,
+          kind: "step_completion" as const,
+          instanceId: instance.id,
+          stepId: "walk",
+          animalTag: cow.tagNumber,
+          evidence: [world.sick.id],
+        },
+      ],
+    });
+
+    expect(sent.results[0]?.outcome).toBe("kept");
+    const after = await owner.client.animals.byTag({
+      tagNumber: cow.tagNumber,
+    });
+    expect(after.pen?.id).toBe(world.dry.id);
+    expect(after.moves.some((move) => move.toPenId === world.sick.id)).toBe(
+      false
+    );
+    const board = await owner.client.instances.get({ id: instance.id });
+    expect(board.completions.filter((row) => row.stepId === "walk")).toEqual(
+      []
+    );
+  });
+});
+
 describe("correcting a Step that moved her", () => {
   const walkHer = async (clock: FakeClock, toPenId: string) => {
     const first = await createTestClient(appRouter, { as: "owner", clock });

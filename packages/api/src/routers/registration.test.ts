@@ -113,6 +113,15 @@ const renewalWork = async (instant: string) => {
   });
 };
 
+/** The renewal's closing Step as its work's board shows it. */
+const renewedStepOn = async (
+  client: Awaited<ReturnType<typeof as>>["client"],
+  workId: string | undefined
+): Promise<string> => {
+  const board = await client.instances.get({ id: workId ?? "" });
+  return board.completions.find((one) => one.stepId === "renewed")?.id ?? "";
+};
+
 describe("the Registration and its renewal", () => {
   it("keeps a photograph of the certificate, replaced by a newer one", async () => {
     // Other files photograph the certificate on the shared farm too, so this file reads its own by id.
@@ -330,6 +339,7 @@ describe("the Registration and its renewal", () => {
               kind: "registration_renewal",
               previousExpiresOn: "2041-03-30T18:00:00.000Z",
               expiresOn: "2042-03-30T18:00:00.000Z",
+              standsAside: null,
             },
           }),
         }),
@@ -344,21 +354,59 @@ describe("the Registration and its renewal", () => {
     const next = await renewalWork("2042-01-02T04:00:00.000Z");
     expect(next.filter((row) => row.state === "due")).toHaveLength(1);
 
-    // Once the Registration has moved on — by hand, here — the old renewal is not put right under it.
+    // A Correction that sends only a new photograph of the certificate changes no day, and is still a Correction: the
+    // photograph is what an inspector asks to see.
+    const rephotographed = await as("owner", "2041-06-01T05:00:00.000Z");
+    await correctStepAsShown(rephotographed.client, {
+      completionId: await renewedStepOn(rephotographed.client, work?.id),
+      evidence: [true],
+      renewal: {
+        expiresOn: "2042-03-31",
+        certificate: { contentType: "image/jpeg", data: "EEEE" },
+      },
+      reason: "সনদের ছবি ঝাপসা ছিল",
+    });
+    const [retaken] = await rephotographed.client.farm.certificates();
+    expect(
+      await rephotographed.client.farm.certificate({ id: retaken?.id })
+    ).toEqual({ contentType: "image/jpeg", data: "EEEE" });
+
+    // Once the Registration has moved on — by hand, here — the old renewal is not put right under it: the Correction is
+    // kept, the Registration stays where it moved to, and a person is asked.
     const manager = await as("manager", "2042-01-03T04:00:00.000Z");
     await manager.client.farm.setIdentity({
       registrationExpiresOn: "2043-03-31",
     });
     const board = await as("owner", "2042-01-03T05:00:00.000Z");
-    const done = await board.client.instances.get({ id: work?.id ?? "" });
-    const renewed = done.completions.find((one) => one.stepId === "renewed");
-    await expect(
-      correctStepAsShown(board.client, {
-        completionId: renewed?.id ?? "",
-        evidence: [true],
-        renewal: { expiresOn: "2042-04-30" },
-        reason: "তারিখ ভুল লেখা হয়েছিল",
-      })
-    ).rejects.toMatchObject({ data: { refusal: "renewal_superseded" } });
+    const corrected = await correctStepAsShown(board.client, {
+      completionId: await renewedStepOn(board.client, work?.id),
+      evidence: [true],
+      renewal: { expiresOn: "2042-04-30" },
+      reason: "তারিখ ভুল লেখা হয়েছিল",
+    });
+    expect(corrected).toMatchObject({
+      needsReview: true,
+      effect: { standsAside: { because: "renewal_superseded" } },
+    });
+    // The Manager is told why, not only that something could not be undone.
+    const told = await as("manager", "2042-01-03T05:30:00.000Z");
+    const alerts = await told.client.alerts.mine({});
+    expect(alerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "needs_review",
+          params: expect.objectContaining({
+            reason: "irreversible_effect",
+            because: "renewal_superseded",
+          }),
+        }),
+      ])
+    );
+    // A fresh client: a Context carries the Farm as it stood when it was made.
+    const reading = await as("owner", "2042-01-03T06:00:00.000Z");
+    const stillMoved = await reading.client.farm.identity();
+    expect(stillMoved.registrationExpiresOn?.toISOString()).toBe(
+      "2043-03-30T18:00:00.000Z"
+    );
   });
 });

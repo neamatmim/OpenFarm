@@ -19,8 +19,13 @@ import {
   resolveStepAnimal,
   stepOf,
 } from "../completion-store";
-import type { EffectResult } from "../effects";
-import { runStepEffect } from "../effects";
+import type { EffectResult } from "../effects/effect";
+import {
+  STANDING_ASIDE_SAID,
+  requireMayRecord,
+  runEffect,
+  stoodAside,
+} from "../effects/effect";
 import { farmDay } from "../farm-clock";
 import { lateEntry } from "../late";
 import { photoInput } from "../photo-input";
@@ -126,10 +131,10 @@ interface WorkForEffect {
 
 /**
  * What a Step writes into the farm's records beyond its Evidence — the litres, the tank reading, the dose — in the
- * Step's own transaction and keyed on its Completion, so a replay cannot double-count and a replacement replaces. The
+ * Step's own transaction and keyed on its Completion, so a Correction replaces what it wrote rather than adding to it. The
  * one place what an Effect is told is put together, whether the Step is recorded or put right.
  */
-const runEffect = (
+const effectOfStep = (
   tx: Tx,
   context: Recorder,
   {
@@ -156,7 +161,7 @@ const runEffect = (
     now: Date;
   }
 ): Promise<EffectResult> =>
-  runStepEffect(tx, {
+  runEffect(tx, {
     step,
     instance: {
       id: work.id,
@@ -184,7 +189,6 @@ const runEffect = (
     // The Audit Event this is written under, so an Effect that has to put something in front of the Manager can do it in
     // the same transaction.
     eventId,
-    roles: context.roles,
     roleUsed: context.roleUsed,
     recordedBy,
     recordedAt,
@@ -289,6 +293,9 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         // record says who did it.
         return { completionId: already.id, effect: null, changed: false };
       }
+      // Whoever the procedure lets at the work, a Service is still the Manager's to record and a Pregnancy Check the Vet's.
+      // Asked once the Step is found not yet recorded: the same Step arriving again changes nothing, whoever sends it.
+      requireMayRecord(step, context.roles);
 
       // Never an update: a recorded fact changes only by Correction (ADR 0002). Two phones racing for the same Step land
       // here, and the second is told so rather than overwriting the first.
@@ -316,7 +323,7 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
       if (!saved) {
         throw lateEntry("That is already recorded; correct it instead");
       }
-      const effect = await runEffect(tx, context, {
+      const effect = await effectOfStep(tx, context, {
         work,
         content,
         step,
@@ -328,6 +335,14 @@ export const stepCompletionEntry: EntryKind<StepCompletionInput, StepRecorded> =
         recordedAt: doneAt,
         now: receivedAt,
       });
+      // The farm has moved past what this Step says — she was walked on while the phone held it: the Step is a late Entry,
+      // nothing of it is written, and a person decides.
+      const aside = stoodAside(effect);
+      if (aside) {
+        throw lateEntry(STANDING_ASIDE_SAID[aside.because], {
+          refusal: aside.because,
+        });
+      }
       if (mayTransition("start", work.state)) {
         await requireTransition(tx, work, "start");
       }
@@ -381,7 +396,7 @@ export const replaceStep = async (
       destination: answer.destination ?? null,
     })
     .where(eq(stepCompletion.id, completion.id));
-  return runEffect(tx, context, {
+  return effectOfStep(tx, context, {
     work,
     content,
     step,

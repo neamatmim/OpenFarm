@@ -5,6 +5,7 @@ import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { correctStepAsShown } from "../test/correct-step";
 import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`;
@@ -196,6 +197,21 @@ describe("the fortnightly weigh-in", () => {
       (row) => row.reason === "implausible_weight" && row.entityId === entry?.id
     );
     expect(asked).toBeDefined();
+
+    // Put right to another figure still nobody could have grown: the Manager already has the reading in front of them,
+    // and is not asked a second time.
+    await correctStepAsShown(manager.client, {
+      completionId: entry?.id ?? "",
+      evidence: [270],
+      reason: "স্কেলে আবার দেখা",
+    });
+    const again = await manager.client.review.open();
+    expect(
+      again.filter(
+        (row) =>
+          row.reason === "implausible_weight" && row.entityId === entry?.id
+      )
+    ).toHaveLength(1);
     // Closed again, because the queue is the whole Farm's and every test file shares it: one
     // left open here is one more between the next file and the cap.
     await manager.client.review.resolve({
