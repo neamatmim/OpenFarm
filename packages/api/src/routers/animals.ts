@@ -71,7 +71,8 @@ import {
 import { requireRole } from "../roles";
 import {
   animalsInScopeWhere,
-  isOnTheirCase,
+  readsTheClinicalRecord,
+  readsWhatSheCost,
   requireAnimalInScope,
   requireLookUp,
 } from "../scope";
@@ -582,16 +583,10 @@ export const animalsRouter = {
         });
       }
       requireLookUp(context.scope, row);
-      // Barn Staff record what they see and give the doses they are told to give; the
-      // conclusions drawn from them are not theirs to read (roles matrix: Staff read
-      // treatment instances only). They still see the round's own Observations.
-      // Barn Staff who are also the visiting Vet on her Case read what a Vet would.
-      const readsTheClinicalRecord =
-        context.roleUsed !== "staff" || isOnTheirCase(context.scope, row.id);
+      const clinical = readsTheClinicalRecord(context, row.id);
       // A separate question from the clinical one, and a separate row of the matrix: money is
       // the Owner's and the Manager's whoever else may read her history.
-      const readsWhatSheCost =
-        context.roleUsed === "owner" || context.roleUsed === "manager";
+      const theCost = readsWhatSheCost(context);
       return {
         ...row,
         moves: row.moves.map(({ completion, fromPen, toPen, ...move }) => ({
@@ -606,12 +601,12 @@ export const animalsRouter = {
             instanceId: completion?.instanceId ?? null,
             seenByName: observer?.name ?? null,
             withdrawn: seen.withdrawnAt !== null,
-            diagnoses: readsTheClinicalRecord
+            diagnoses: clinical
               ? diagnoses.map(theConclusionAndWhatFollowed)
               : [],
           })
         ),
-        diagnoses: readsTheClinicalRecord
+        diagnoses: clinical
           ? row.diagnoses.map(theConclusionAndWhatFollowed)
           : [],
         mortality: row.mortality
@@ -643,9 +638,9 @@ export const animalsRouter = {
         /** What the farm paid and who it bought her from is the Intake row of the roles
          *  matrix — `R` to the Owner, `C R U` to the Manager, and nothing to anybody else.
          *  A milker weighs her and a Vet treats her without being told what she cost. */
-        intake: readsWhatSheCost ? intakeView(row.intake) : null,
+        intake: theCost ? intakeView(row.intake) : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
-        sale: readsWhatSheCost ? saleView(row.sale) : null,
+        sale: theCost ? saleView(row.sale) : null,
         heats: await heatsOf(context.db, row.id),
         services: await servicesOf(context.db, row.id),
         ...(await pregnancyChecksOf(context.db, row.id)),
