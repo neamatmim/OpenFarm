@@ -1,3 +1,5 @@
+import type { MessageKey } from "@OpenFarm/i18n";
+
 import type { AlertKind } from "./alerts";
 
 /**
@@ -18,18 +20,18 @@ import type { AlertKind } from "./alerts";
  * somewhere else is how a farm ends up texting people about a feed digest. Two kinds carry
  * `sms`, and they are the two that cost money or break a legal deadline if they are missed.
  */
-export const DELIVERY: Record<
-  AlertKind,
-  {
-    when: "immediate" | "digest";
-    /** Also worth a text message, to the Owner and the Manager. */
-    sms?: true;
-    /** May wake the farm: quiet hours are 22:00–05:00 and safety alerts are the exception,
-     *  which means these and nothing else. Everything else still reaches the app at once — the
-     *  quiet is on the phone, not on the record. */
-    wakesTheFarm?: true;
-  }
-> = {
+interface Delivery {
+  when: "immediate" | "digest";
+  /** Also worth a text message, to the Owner and the Manager. */
+  sms?: true;
+  /** May wake the farm: quiet hours are 22:00–05:00 and safety alerts are the exception,
+   *  which means these and nothing else. Everything else still reaches the app at once — the
+   *  quiet is on the phone, not on the record. */
+  wakesTheFarm?: true;
+}
+
+// Each row keeps what it actually says, so the words table beside it can ask which kinds go by text.
+export const DELIVERY = {
   instance_overdue: { when: "immediate" },
   instance_escalated: { when: "immediate" },
   instance_sent_back: { when: "immediate" },
@@ -59,6 +61,85 @@ export const DELIVERY: Record<
   // Ninety days is time enough: the Owner reads it with the evening's post (notification channels: DLS
   // renewal due → Owner, digest).
   registration_renewal_due: { when: "digest" },
+} as const satisfies Record<AlertKind, Delivery>;
+
+/**
+ * What each kind of Notice says, wherever it is said: in the farm's own list, in a pocket, in the evening's post, and
+ * in the two that also go by text.
+ *
+ * One table over every kind, beside the one that says when each goes, because a kind given a delivery and no words is
+ * a notice that arrives as its own name. What the words are *filled with* is the Notice's facts, which the farm stores
+ * as it raised them.
+ */
+/** What one kind says. Whether it says anything in a text message is not this table's decision but the delivery
+ *  table's: a kind marked for texting must have the words for it, and a kind not marked must not have them. */
+type Saying<Kind extends AlertKind> = {
+  /** In the farm's own list, which every Notice reaches whether or not it travelled. */
+  app: MessageKey;
+  /** In a pocket, for the kinds that go now — a title and a line under it. */
+  push?: { title: MessageKey; body: MessageKey };
+  /** In the evening's post: so many of this, so many of that. */
+  digest: MessageKey;
+} & ((typeof DELIVERY)[Kind] extends { sms: true }
+  ? { sms: MessageKey }
+  : { sms?: never });
+
+export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
+  instance_overdue: {
+    app: "alerts.instanceOverdue",
+    push: { title: "push.overdueTitle", body: "alerts.instanceOverdue" },
+    digest: "digest.overdue",
+  },
+  instance_escalated: {
+    app: "alerts.instanceEscalated",
+    push: { title: "push.escalatedTitle", body: "alerts.instanceEscalated" },
+    digest: "digest.escalated",
+  },
+  instance_sent_back: {
+    app: "alerts.instanceSentBack",
+    push: { title: "push.sentBackTitle", body: "alerts.instanceSentBack" },
+    digest: "digest.sentBack",
+  },
+  needs_review: { app: "alerts.needsReview", digest: "digest.needsReview" },
+  sop_published: { app: "alerts.sopPublished", digest: "digest.sopPublished" },
+  sop_proposed: { app: "alerts.sopProposed", digest: "digest.sopProposed" },
+  // Its digest words are never carried — it goes the moment it is raised — but the table is over every kind, so a
+  // new one cannot be forgotten here.
+  withdrawal_ending: {
+    app: "alerts.withdrawalEnding",
+    digest: "digest.withdrawalEnding",
+    sms: "sms.withdrawalEnding",
+  },
+  notifiable_diagnosis: {
+    app: "alerts.notifiableDiagnosis",
+    digest: "digest.notifiable",
+    sms: "sms.notifiableDiagnosis",
+  },
+  entry_rejected: {
+    app: "alerts.entryRejected",
+    push: {
+      title: "push.entryRejectedTitle",
+      body: "push.entryRejectedBody",
+    },
+    digest: "digest.entryRejected",
+  },
+  withdrawal_changed: {
+    app: "alerts.withdrawalChanged",
+    push: {
+      title: "push.withdrawalChangedTitle",
+      body: "push.withdrawalChangedBody",
+    },
+    digest: "digest.withdrawalChanged",
+  },
+  low_stock: { app: "alerts.lowStock", digest: "digest.lowStock" },
+  money_awaiting_approval: {
+    app: "alerts.moneyAwaiting",
+    digest: "digest.moneyAwaiting",
+  },
+  registration_renewal_due: {
+    app: "alerts.registrationRenewal",
+    digest: "digest.registrationRenewal",
+  },
 };
 
 export const goesNow = (kind: AlertKind): boolean =>
@@ -69,11 +150,11 @@ export const waitsForTheDigest = (kind: AlertKind): boolean =>
 
 /** Is this one of the two worth a text message as well? */
 export const goesByText = (kind: AlertKind): boolean =>
-  DELIVERY[kind].sms === true;
+  (DELIVERY[kind] as Delivery).sms === true;
 
 /** May this notice buzz a phone while the farm is asleep? Only the safety ones may. */
 export const wakesTheFarm = (kind: AlertKind): boolean =>
-  DELIVERY[kind].wakesTheFarm === true;
+  (DELIVERY[kind] as Delivery).wakesTheFarm === true;
 
 const MINUTES_PER_HOUR = 60;
 

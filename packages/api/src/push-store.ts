@@ -8,7 +8,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { PushMessage, PushTarget, PushTransport } from "./push";
-import { DIGESTIBLE, DIGEST_WORDING, messageFor, travelsByPush } from "./push";
+import { DIGESTIBLE, digestWording, messageFor, travelsByPush } from "./push";
 
 /**
  * Every browser still listening for these people, with the language its owner reads in.
@@ -313,7 +313,7 @@ export const carryTheDigest = async (
         title: translate(listener.owner.language, "push.digestTitle"),
         body: theirs.kinds
           .map((each) =>
-            translate(listener.owner.language, DIGEST_WORDING[each.kind], {
+            translate(listener.owner.language, digestWording(each.kind), {
               count: each.count,
             })
           )

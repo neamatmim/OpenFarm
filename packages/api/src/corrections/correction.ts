@@ -11,7 +11,7 @@ import { z } from "zod";
 import type { SnapshotValue, Tx } from "../audit";
 import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
-import { raiseNeedsReview } from "../review-store";
+import { tell } from "../notice";
 import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
@@ -370,15 +370,13 @@ export const correct = async <
     const after = await kind.trail(tx, row, applied);
     for (const one of cannotUndo) {
       // oxlint-disable-next-line no-await-in-loop
-      await raiseNeedsReview(
+      await tell(
         tx,
         context.farm.id,
         {
-          entity: kind.entity,
-          entityId,
-          reason: one.reason,
-          auditEventId: eventId,
-          params: one.params,
+          kind: "needs_review",
+          about: { id: entityId, entity: kind.entity, auditEventId: eventId },
+          facts: { ...one.params, reason: one.reason },
         },
         now
       );

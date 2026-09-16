@@ -1,4 +1,5 @@
 import type { AlertKind } from "@OpenFarm/domain";
+import { SAYS } from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -12,23 +13,10 @@ import { STANDING_ASIDE_WORDS } from "@/lib/correction-refusal";
 import { hoursLate } from "@/lib/lateness";
 import { orpc } from "@/utils/orpc";
 
-/** Every kind of Alert has something to say. Typed by the kind rather than by string, so a
- *  new one is a compile error here rather than a row that renders as its own name. */
-const MESSAGE_FOR: Record<AlertKind, MessageKey> = {
-  instance_overdue: "alerts.instanceOverdue",
-  instance_escalated: "alerts.instanceEscalated",
-  instance_sent_back: "alerts.instanceSentBack",
-  needs_review: "alerts.needsReview",
-  sop_published: "alerts.sopPublished",
-  sop_proposed: "alerts.sopProposed",
-  withdrawal_ending: "alerts.withdrawalEnding",
-  notifiable_diagnosis: "alerts.notifiableDiagnosis",
-  entry_rejected: "alerts.entryRejected",
-  withdrawal_changed: "alerts.withdrawalChanged",
-  low_stock: "alerts.lowStock",
-  money_awaiting_approval: "alerts.moneyAwaiting",
-  registration_renewal_due: "alerts.registrationRenewal",
-};
+/** What each kind says in the farm's own list, from the farm's own words for it — one table, which the phone, the
+ *  pocket, the evening's post and the two that go by text all read. */
+const messageFor = (kind: string): MessageKey | null =>
+  kind in SAYS ? SAYS[kind as AlertKind].app : null;
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
  *  rather than the type system's; read defensively and in the reader's language. */
@@ -82,9 +70,6 @@ const URGENT: ReadonlySet<string> = new Set([
   "instance_escalated",
   "notifiable_diagnosis",
 ]);
-
-const messageFor = (kind: string): MessageKey | null =>
-  (MESSAGE_FOR as Record<string, MessageKey>)[kind] ?? null;
 
 /** Why an Effect stood aside, for a Needs Review a Correction raised so: what the farm knew that the entry did not. */
 const becauseOf = (params: unknown): MessageKey | null => {

@@ -4,7 +4,7 @@ import { weighIn } from "@OpenFarm/db/schema/fattening";
 import { KG_DECIMALS, implausibleChange, roundKg } from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
-import { raiseNeedsReview } from "../review-store";
+import { tell } from "../notice";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, numberIn } from "./evidence";
 
@@ -104,15 +104,17 @@ const weighHer = async (tx: Tx, input: WeighInFacts): Promise<EffectResult> => {
       columns: { id: true },
     })) !== undefined;
   if (flaggedNote && !alreadyAsked) {
-    await raiseNeedsReview(
+    await tell(
       tx,
       input.instance.farmId,
       {
-        entity: "weigh_in",
-        entityId: input.completionId,
-        reason: "implausible_weight",
-        auditEventId: input.eventId,
-        params: { weightKg, note: flaggedNote },
+        kind: "needs_review",
+        about: {
+          id: input.completionId,
+          entity: "weigh_in",
+          auditEventId: input.eventId,
+        },
+        facts: { reason: "implausible_weight", weightKg, note: flaggedNote },
       },
       input.now
     );

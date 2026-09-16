@@ -11,7 +11,6 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { doersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf } from "../breeding-store";
@@ -50,9 +49,9 @@ import {
   recentHappenings,
   whatChangedFor,
 } from "../instances-store";
+import { tell } from "../notice";
 import { pushRaised } from "../push-send";
 import { tellOfRenewals } from "../registration-store";
-import { raiseNeedsReview } from "../review-store";
 import { requireRole } from "../roles";
 import { isWorkInScope, requireWorkInScope, workInScopeWhere } from "../scope";
 import { contentOf } from "../sop-content";
@@ -153,15 +152,21 @@ const flagHeatsThatArrivedTooLate = async (
     if (windowShut) {
       // Sequential: one Needs Review each, in the order the work was raised.
       // oxlint-disable-next-line no-await-in-loop
-      await raiseNeedsReview(
+      await tell(
         tx,
         farmId,
         {
-          entity: "sop_instance",
-          entityId: work.id,
-          reason: "late_entry",
-          auditEventId: eventId,
-          params: { why: "heat_after_window", closedAt: slot.dueAt },
+          kind: "needs_review",
+          about: {
+            id: work.id,
+            entity: "sop_instance",
+            auditEventId: eventId,
+          },
+          facts: {
+            reason: "late_entry",
+            why: "heat_after_window",
+            closedAt: slot.dueAt,
+          },
         },
         now
       );
@@ -704,26 +709,16 @@ export const instancesRouter = {
           // The people who did the work are the people who have to hear about it — and a
           // Step can be recorded without anyone having claimed the Instance, so whoever
           // actually recorded something counts as having done it.
-          const params = { ...alertParams(instance), reason: input.reason };
-          const rows = await raiseAlerts(
+          raised = await tell(
             tx,
             context.farm.id,
-            await doersOf(tx, context.farm.id, instance),
             {
               kind: "instance_sent_back",
-              entity: "sop_instance",
-              entityId: input.id,
-              params,
+              about: { id: input.id, work: instance },
+              facts: { ...alertParams(instance), reason: input.reason },
             },
             now
           );
-          raised = rows.map((row) => ({
-            ...row,
-            kind: "instance_sent_back",
-            entity: "sop_instance",
-            entityId: input.id,
-            params,
-          }));
         }
       );
       // The doer hears about it in their pocket, not only the next time they open the app:
