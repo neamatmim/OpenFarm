@@ -9,6 +9,7 @@ import {
   figure,
   note,
   person,
+  words,
 } from "./correcting";
 
 // What a Correction actually sends. The farm refuses one that changes nothing, and one made against values somebody
@@ -60,14 +61,21 @@ describe("the farm's kinds of field", () => {
     expect(changesFrom({ buyer: person("করিম") }, { buyer: "  " })).toEqual({});
   });
 
-  it("keeps a note the farm has none of as none, rather than as an empty note", () => {
+  it("clears a note to nothing, rather than to an empty note", () => {
     expect(asShown({ challan: note(null) })).toEqual({ challan: "" });
-    // Cleared: the farm is told the note is now nothing, which is a change it can take.
+    // Cleared: the farm reads a challan set to nothing as one it no longer holds.
     expect(changesFrom({ challan: note("৪৪১") }, { challan: " " })).toEqual({
-      challan: { from: "৪৪১", to: "" },
+      challan: { from: "৪৪১", to: null },
     });
     // Untouched: nothing at all is sent about it.
     expect(changesFrom({ challan: note(null) }, { challan: "" })).toEqual({});
+  });
+
+  it("will not clear words the farm always holds, like the cause of a death", () => {
+    expect(changesFrom({ cause: words("তড়কা") }, { cause: "  " })).toEqual({});
+    expect(changesFrom({ cause: words("তড়কা") }, { cause: "বজ্রপাত" })).toEqual({
+      cause: { from: "তড়কা", to: "বজ্রপাত" },
+    });
   });
 
   it("reads a figure the farm does not hold as nothing to correct", () => {

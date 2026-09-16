@@ -43,12 +43,25 @@ export const person = (
   same: (typed) => typed.trim() === "" || typed.trim() === (held ?? ""),
 });
 
-/** Something somebody wrote: a cause, a challan number, a note. Blank is nothing, and the farm keeps nothing as null. */
-export const note = (held: string | null): Field<string | null, string> => ({
+/**
+ * Something somebody wrote: a cause a death is put down to, a challan number, a note beside a figure. Cleared, it is
+ * sent as nothing rather than as an empty note — the farm reads a challan set to nothing as one it no longer holds.
+ */
+export const note = (
+  held: string | null
+): Field<string | null, string | null> => ({
   holds: held,
   shows: held ?? "",
+  sends: (typed) => typed.trim() || null,
+  same: (typed) => (typed.trim() || null) === held,
+});
+
+/** A note the farm always holds: a cause, a reason. Cleared, it changes nothing — there is no such record without it. */
+export const words = (held: string): Field<string, string> => ({
+  holds: held,
+  shows: held,
   sends: (typed) => typed.trim(),
-  same: (typed) => typed.trim() === (held ?? ""),
+  same: (typed) => typed.trim() === "" || typed.trim() === held,
 });
 
 /** A farm day, as the farm writes one down and as a date box shows it. */

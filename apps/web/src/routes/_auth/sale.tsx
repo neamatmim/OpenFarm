@@ -10,10 +10,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
-  CorrectionDialog,
-  CorrectionField,
-} from "@/components/correction-dialog";
-import {
   EmptyState,
   Page,
   PageHeader,
@@ -26,6 +22,7 @@ import {
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
+import { SaleCorrection } from "@/components/sale-correction";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -95,59 +92,6 @@ const LastBuyerOfTheDay = ({
  * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
  * the man has finished buying, and it covers everything he took that morning.
  */
-/** The Manager puts a sale right: its price or its buyer, with the reason — the Owner sees it among what awaits
- *  approval. */
-const SaleCorrection = ({
-  sale,
-}: {
-  sale: { id: string; priceBdt: number; buyerName: string };
-}) => {
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const [price, setPrice] = useState(String(sale.priceBdt));
-  const [buyer, setBuyer] = useState(sale.buyerName);
-  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
-  return (
-    <CorrectionDialog
-      onOpen={() => {
-        setPrice(String(sale.priceBdt));
-        setBuyer(sale.buyerName);
-      }}
-      onSave={async (reason) => {
-        await correct.mutateAsync({
-          id: sale.id,
-          reason,
-          changes: {
-            priceBdt:
-              Number(price) === sale.priceBdt
-                ? undefined
-                : { from: sale.priceBdt, to: Number(price) },
-            buyer:
-              buyer.trim() === sale.buyerName
-                ? undefined
-                : { from: sale.buyerName, to: { name: buyer.trim() } },
-          },
-        });
-        await queryClient.invalidateQueries({ queryKey: orpc.papers.key() });
-      }}
-      ready={Number(price) > 0 && buyer.trim() !== ""}
-      title={t("correct.sale")}
-    >
-      <CorrectionField
-        inputMode="numeric"
-        label={t("sale.price")}
-        onChange={setPrice}
-        type="number"
-        value={price}
-      />
-      <CorrectionField
-        label={t("correct.buyer")}
-        onChange={setBuyer}
-        value={buyer}
-      />
-    </CorrectionDialog>
-  );
-};
 
 const TodaysSales = () => {
   const { t, language } = useLanguage();
@@ -213,7 +157,9 @@ const TodaysSales = () => {
                 >
                   {t("sale.transportCard")}
                 </Button>
-                {isManager || isOwner ? <SaleCorrection sale={row} /> : null}
+                {isManager || isOwner ? (
+                  <SaleCorrection sale={row} thenReload={orpc.papers.key()} />
+                ) : null}
               </span>
             }
           />

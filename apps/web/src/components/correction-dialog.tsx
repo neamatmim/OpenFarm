@@ -18,6 +18,8 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
+import type { Fields } from "@/lib/correcting";
+import { anythingChanged, asShown, changesFrom } from "@/lib/correcting";
 import {
   correctionRefusalMessage,
   isChangedSince,
@@ -162,4 +164,30 @@ export const CorrectionField = ({
       />
     </div>
   );
+};
+
+/**
+ * A record being put right: the fields it has, filled from what it says now, and what was typed into them.
+ *
+ * The screen says which fields a Correction edits and what kind each one is; what changed, and whether anything did,
+ * is worked out from the record itself rather than compared by hand. A Correction that changes nothing is not offered
+ * to the farm at all.
+ */
+export const useCorrecting = (fields: Fields) => {
+  const [typed, setTyped] = useState<Record<string, string>>(() =>
+    asShown(fields)
+  );
+  return {
+    /** What each box shows now. */
+    typed,
+    /** One box's words, as somebody types them. */
+    set: (name: string, value: string) =>
+      setTyped((boxes) => ({ ...boxes, [name]: value })),
+    /** Back to what the record says, which is what opening the dialog does. */
+    handleOpen: () => setTyped(asShown(fields)),
+    /** Whether there is a Correction to make at all. */
+    changed: anythingChanged(fields, typed),
+    /** What the farm is told changed. */
+    changes: () => changesFrom(fields, typed),
+  };
 };

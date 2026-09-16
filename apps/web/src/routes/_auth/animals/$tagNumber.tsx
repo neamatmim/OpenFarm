@@ -37,6 +37,7 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import {
   CorrectionDialog,
   CorrectionField,
+  useCorrecting,
 } from "@/components/correction-dialog";
 import { WhatSheCost } from "@/components/costs";
 import type { Course } from "@/components/course";
@@ -46,8 +47,10 @@ import { EmptyState, Page, Section, StatusBadge } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { ReportSighting } from "@/components/report-sighting";
+import { SaleCorrection } from "@/components/sale-correction";
 import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
+import { figure, person } from "@/lib/correcting";
 import {
   correctionRefusalMessage,
   isChangedSince,
@@ -1035,99 +1038,36 @@ const IntakeCorrection = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [price, setPrice] = useState(String(intake.purchasePriceBdt));
-  const [seller, setSeller] = useState(intake.sellerName ?? "");
+  const correcting = useCorrecting({
+    purchasePriceBdt: figure(intake.purchasePriceBdt),
+    seller: person(intake.sellerName),
+  });
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
   return (
     <CorrectionDialog
-      onOpen={() => {
-        setPrice(String(intake.purchasePriceBdt));
-        setSeller(intake.sellerName ?? "");
-      }}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           id: intake.id,
           reason,
-          changes: {
-            purchasePriceBdt:
-              Number(price) === intake.purchasePriceBdt
-                ? undefined
-                : { from: intake.purchasePriceBdt, to: Number(price) },
-            seller:
-              seller.trim() === (intake.sellerName ?? "") || !seller.trim()
-                ? undefined
-                : { from: intake.sellerName, to: { name: seller.trim() } },
-          },
+          changes: correcting.changes(),
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
-      ready={Number(price) > 0}
+      ready={correcting.changed}
       title={t("correct.intake")}
     >
       <CorrectionField
         inputMode="numeric"
         label={t("intake.price")}
-        onChange={setPrice}
+        onChange={(value) => correcting.set("purchasePriceBdt", value)}
         type="number"
-        value={price}
+        value={correcting.typed.purchasePriceBdt ?? ""}
       />
       <CorrectionField
         label={t("correct.seller")}
-        onChange={setSeller}
-        value={seller}
-      />
-    </CorrectionDialog>
-  );
-};
-
-/** The Manager puts right what she was sold for, or to whom. */
-const SaleOfHerCorrection = ({
-  sale,
-}: {
-  sale: { id: string; priceBdt: number; buyerName: string };
-}) => {
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const [price, setPrice] = useState(String(sale.priceBdt));
-  const [buyer, setBuyer] = useState(sale.buyerName);
-  const correct = useMutation(orpc.sale.correct.mutationOptions({}));
-  return (
-    <CorrectionDialog
-      onOpen={() => {
-        setPrice(String(sale.priceBdt));
-        setBuyer(sale.buyerName);
-      }}
-      onSave={async (reason) => {
-        await correct.mutateAsync({
-          id: sale.id,
-          reason,
-          changes: {
-            priceBdt:
-              Number(price) === sale.priceBdt
-                ? undefined
-                : { from: sale.priceBdt, to: Number(price) },
-            buyer:
-              buyer.trim() === sale.buyerName
-                ? undefined
-                : { from: sale.buyerName, to: { name: buyer.trim() } },
-          },
-        });
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
-      }}
-      ready={Number(price) > 0 && buyer.trim() !== ""}
-      title={t("correct.sale")}
-    >
-      <CorrectionField
-        inputMode="numeric"
-        label={t("sale.price")}
-        onChange={setPrice}
-        type="number"
-        value={price}
-      />
-      <CorrectionField
-        label={t("correct.buyer")}
-        onChange={setBuyer}
-        value={buyer}
+        onChange={(value) => correcting.set("seller", value)}
+        value={correcting.typed.seller ?? ""}
       />
     </CorrectionDialog>
   );
@@ -1564,7 +1504,9 @@ const HowSheLeft = ({
     <section className="surface space-y-1 p-4 text-sm">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">{t("sale.howSheLeft")}</h2>
-        {mayCorrect ? <SaleOfHerCorrection sale={sale} /> : null}
+        {mayCorrect ? (
+          <SaleCorrection sale={sale} thenReload={orpc.animals.key()} />
+        ) : null}
       </div>
       <Fact label={t("sale.soldTo")}>{sale.buyerName}</Fact>
       <Fact label={t("sale.price")}>
