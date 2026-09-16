@@ -18,17 +18,19 @@ import { protectedProcedure, publicProcedure } from "../index";
 import {
   acceptInvite,
   approveInvite,
+  endMembership,
   newInviteCode,
   newPin,
   pensOf,
+  planInvite,
+  reissueInvite,
+  restoreMembership,
   rolesOf,
   setPens,
   setPin,
-  planInvite,
-  reissueInvite,
   setRoles,
-  setStanding,
-  standingOf,
+  theRoster,
+  whoTheyAre,
   writeInvite,
 } from "../membership";
 import { requirePersonalSession, requireRole } from "../roles";
@@ -90,19 +92,17 @@ export const peopleRouter = {
       }
       if (!mine) {
         // Somebody on this Farm. The user table belongs to the whole database, and a Manager
-        // here has no standing over a person who is not theirs.
-        const theirs = await context.db.query.roleAssignment.findFirst({
-          where: { farmId: context.farm.id, userId: whose, ...ACTIVE_ROLE },
-          columns: { role: true },
-        });
-        if (!theirs) {
+        // here is nobody to a person who does not work here.
+        const theirs = await rolesOf(context.db, context.farm.id, whose);
+        if (theirs.length === 0) {
           throw new ORPCError("NOT_FOUND", {
             message: "Nobody on this farm by that name",
           });
         }
         // The Owner's own number is the Owner's. It is where the farm's safety messages go, and
-        // a Manager who could redirect or blank it could quietly stop them arriving.
-        if (theirs.role === "owner" && context.roleUsed !== "owner") {
+        // a Manager who could redirect or blank it could quietly stop them arriving. Every Role
+        // they hold is asked for: an Owner who is also a Manager is still the Owner.
+        if (theirs.includes("owner") && context.roleUsed !== "owner") {
           throw new ORPCError("FORBIDDEN", {
             message: "The Owner writes down their own number",
             data: { refusal: "owner_writes_their_own" },
@@ -303,7 +303,7 @@ export const peopleRouter = {
             visitUntil: planned.visitUntil,
           },
         },
-        (tx) => writeInvite(tx, context.farm.id, planned, by, now)
+        (tx) => writeInvite(tx, context.farm.id, planned)
       );
       // The code is shown once, to whoever invited them, to hand over in person; the farm keeps only its hash.
       return { id: planned.id, status: planned.status, code: planned.code };
@@ -387,6 +387,7 @@ export const peopleRouter = {
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
       const by = { id: context.actor.id, role: context.roleUsed };
+      const now = context.clock.now();
       await audited(context).write(
         {
           entity: "invite",
@@ -401,8 +402,7 @@ export const peopleRouter = {
             return row ?? null;
           },
         },
-        (tx) =>
-          approveInvite(tx, context.farm.id, input.id, by, context.clock.now())
+        (tx) => approveInvite(tx, context.farm.id, input.id, by, now)
       );
       return { id: input.id, status: "approved" } as const;
     }),
@@ -426,6 +426,7 @@ export const peopleRouter = {
     )
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
+      const now = context.clock.now();
       await audited(context).write(
         {
           entity: "user",
@@ -438,7 +439,7 @@ export const peopleRouter = {
             penIds: await pensOf(tx, farmId, input.userId),
           }),
         },
-        (tx) => setPens(tx, farmId, input.userId, input, context.clock.now())
+        (tx) => setPens(tx, farmId, input.userId, input, now)
       );
       return {
         userId: input.userId,
@@ -452,6 +453,7 @@ export const peopleRouter = {
     .input(z.object({ userId: z.string(), roles: z.array(roleSchema) }))
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
+      const now = context.clock.now();
       const wanted = [...new Set(input.roles)];
       const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
@@ -464,8 +466,7 @@ export const peopleRouter = {
           }),
           after: { roles: wanted },
         },
-        (tx) =>
-          setRoles(tx, farmId, input.userId, wanted, by, context.clock.now())
+        (tx) => setRoles(tx, farmId, input.userId, wanted, by, now)
       );
       return { userId: input.userId, roles: wanted };
     }),
@@ -477,20 +478,16 @@ export const peopleRouter = {
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
       const by = { id: context.actor.id, role: context.roleUsed };
+      const now = context.clock.now();
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: (tx) => standingOf(tx, input.userId),
-          after: (tx) => standingOf(tx, input.userId),
+          before: (tx) => whoTheyAre(tx, input.userId),
+          after: (tx) => whoTheyAre(tx, input.userId),
         },
-        (tx) =>
-          setStanding(tx, input.userId, {
-            disabled: true,
-            by,
-            now: context.clock.now(),
-          })
+        (tx) => endMembership(tx, input.userId, { by, now })
       );
       return { userId: input.userId, disabled: true };
     }),
@@ -500,21 +497,15 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
-      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: (tx) => standingOf(tx, input.userId),
-          after: (tx) => standingOf(tx, input.userId),
+          before: (tx) => whoTheyAre(tx, input.userId),
+          after: (tx) => whoTheyAre(tx, input.userId),
         },
-        (tx) =>
-          setStanding(tx, input.userId, {
-            disabled: false,
-            by,
-            now: context.clock.now(),
-          })
+        (tx) => restoreMembership(tx, input.userId)
       );
       return { userId: input.userId, disabled: false };
     }),
@@ -538,6 +529,7 @@ export const peopleRouter = {
     .handler(async ({ context, input }) => {
       const credential = await newPin(input.pin);
       const by = { id: context.actor.id, role: context.roleUsed };
+      const now = context.clock.now();
       await audited(context).write(
         {
           entity: "user",
@@ -545,15 +537,7 @@ export const peopleRouter = {
           action: "update",
           after: { pinSet: true },
         },
-        (tx) =>
-          setPin(
-            tx,
-            context.farm.id,
-            input.userId,
-            credential,
-            by,
-            context.clock.now()
-          )
+        (tx) => setPin(tx, context.farm.id, input.userId, credential, by, now)
       );
       return { userId: input.userId, pinSet: true };
     }),
@@ -570,24 +554,6 @@ export const peopleRouter = {
     if (!farmId) {
       return [];
     }
-    const pins = await context.db.query.staffPin.findMany({
-      where: { farmId },
-      columns: { userId: true, salt: true, hash: true, updatedAt: true },
-    });
-    const people = await context.db.query.user.findMany({
-      where: { id: { in: pins.map((p) => p.userId) } },
-      columns: { id: true, name: true, disabledAt: true },
-    });
-    const byId = new Map(people.map((person) => [person.id, person]));
-    return pins
-      .filter(
-        (pin) => byId.get(pin.userId) && !byId.get(pin.userId)?.disabledAt
-      )
-      .map((pin) => ({
-        userId: pin.userId,
-        name: byId.get(pin.userId)?.name ?? "",
-        salt: pin.salt,
-        hash: pin.hash,
-      }));
+    return await theRoster(context.db, farmId);
   }),
 };

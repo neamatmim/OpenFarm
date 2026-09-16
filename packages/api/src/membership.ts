@@ -1,3 +1,15 @@
+/**
+ * Who works here.
+ *
+ * A person's Membership is the Roles they hold, whether they still work here, the Pens they keep and the PIN
+ * they switch in with — and the rules the farm insists on about all four: that it is never left without an
+ * Owner, that nobody ends their own Membership, that a Pen handed back is the assignment they had before
+ * rather than a second one.
+ *
+ * Everything here works inside one transaction and writes no Audit Event: who is asking, in which Role and
+ * from which device is what a request knows, so the trail is written by whoever called (CONTEXT: Audit Event).
+ */
+
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
@@ -19,18 +31,6 @@ import { hashToken } from "./device";
 /** As much of the farm's records as a reader needs — inside a transaction, or out of one, because what
  *  somebody holds is as often a question the screen asks as one a rule does. */
 type Reading = Pick<Tx, "query">;
-
-/**
- * Who works here.
- *
- * A person's Membership is the Roles they hold, whether they still work here, the Pens they keep and the PIN
- * they switch in with — and the rules the farm insists on about all four: that it is never left without an
- * Owner, that nobody takes their own access away, that a Pen handed back is the assignment they had before
- * rather than a second one.
- *
- * Everything here works inside one transaction and writes no Audit Event: who is asking, in which Role and
- * from which device is what a request knows, so the trail is written by whoever called (CONTEXT: Audit Event).
- */
 
 /** Who is making the change, and in which Role they are making it. Either may be missing, because the farm
  *  itself grants Roles at times — a Vet taking up an invitation the Owner approved holds them from the Owner. */
@@ -58,9 +58,12 @@ export const rolesOf = async (
   return rows.map((row) => row.role);
 };
 
-/** Whether somebody still works here, and what the farm calls them — what the trail records either side of a
- *  change. Nothing for somebody the farm has never heard of. */
-export const standingOf = async (tx: Reading, userId: string) => {
+/** What the farm calls somebody and whether they still work here — what the trail records either side of a
+ *  change. Nothing for somebody the farm has never heard of.
+ *
+ *  No Farm is named, here or below: a person is a row of the whole database, and this farm is the only one
+ *  there is (CONTEXT: Farm). What is this Farm's is the Roles they hold on it. */
+export const whoTheyAre = async (tx: Reading, userId: string) => {
   const row = await tx.query.user.findFirst({
     where: { id: userId },
     columns: { name: true, disabledAt: true },
@@ -168,7 +171,7 @@ export const setRoles = async (
   farmId: string,
   userId: string,
   wanted: readonly RoleName[],
-  by: By,
+  by: Acting,
   now: Date
 ): Promise<void> => {
   const held = await rolesOf(tx, farmId, userId);
@@ -191,38 +194,49 @@ export const setRoles = async (
   await grantRoles(tx, farmId, userId, wanted, by, now, { reactivate: true });
 };
 
-/**
- * Whether somebody still works here.
- *
- * Disabling signs them out everywhere — their sessions are expired rather than deleted, so the record of them
- * stays — and touches nothing else they ever recorded. Nobody disables themselves: the farm is not somewhere a
- * person can shut themselves out of by accident.
- */
-export const setStanding = async (
+/** Whether somebody still works here, written down. */
+const markDisabled = async (
   tx: Tx,
   userId: string,
-  { disabled, by, now }: { disabled: boolean; by: By; now: Date }
+  disabledAt: Date | null
 ): Promise<void> => {
-  if (disabled && userId === by.id) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "You cannot disable yourself",
-    });
-  }
   const [row] = await tx
     .update(user)
-    .set({ disabledAt: disabled ? now : null })
+    .set({ disabledAt })
     .where(eq(user.id, userId))
     .returning({ id: user.id });
   if (!row) {
     throw new ORPCError("NOT_FOUND");
   }
-  if (disabled) {
-    await tx
-      .update(sessionTable)
-      .set({ expiresAt: now, updatedAt: now })
-      .where(eq(sessionTable.userId, userId));
-  }
 };
+
+/**
+ * The Owner ending somebody's Membership: they are signed out everywhere and record nothing more.
+ *
+ * Their sessions are expired rather than deleted, so the record of them stays, and everything they ever wrote
+ * is left exactly where it is. Nobody ends their own: the farm is not somewhere a person can shut themselves
+ * out of by accident.
+ */
+export const endMembership = async (
+  tx: Tx,
+  userId: string,
+  { by, now }: { by: Acting; now: Date }
+): Promise<void> => {
+  if (userId === by.id) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "You cannot disable yourself",
+    });
+  }
+  await markDisabled(tx, userId, now);
+  await tx
+    .update(sessionTable)
+    .set({ expiresAt: now, updatedAt: now })
+    .where(eq(sessionTable.userId, userId));
+};
+
+/** Somebody back at work: they sign in again, and the Roles they held are the Roles they held. */
+export const restoreMembership = (tx: Tx, userId: string): Promise<void> =>
+  markDisabled(tx, userId, null);
 
 /** The Pens a Staff member keeps today, in an order two readings can be compared in. */
 export const pensOf = async (
@@ -329,7 +343,7 @@ export const setPin = async (
   farmId: string,
   userId: string,
   credential: { salt: string; hash: string },
-  by: By,
+  by: Acting,
   now: Date
 ): Promise<void> => {
   const person = await tx.query.user.findFirst({
@@ -393,7 +407,7 @@ const endOfVisit = (day: string, now: Date): Date => {
   return end;
 };
 
-/** An invitation as it will stand once it is written. */
+/** An invitation as it will stand once it is written: everything the row holds, and the code to hand over. */
 export interface PlannedInvite {
   id: string;
   status: "pending" | "approved";
@@ -403,9 +417,12 @@ export interface PlannedInvite {
   email: string;
   name: string;
   roles: RoleName[];
-  /** The last farm day a visiting Vet's access lasts, and the instant it ends. */
+  /** The last farm day a visiting Vet's stint lasts, and the instant it ends. */
   visitUntil: string | null;
   accessUntil: Date | null;
+  /** Who wrote it, in which Role, and when — and, for the Owner's own, that it stands approved by them. */
+  by: Acting;
+  at: Date;
 }
 
 /**
@@ -415,6 +432,9 @@ export interface PlannedInvite {
  * The Owner invites anybody and their invitation is approved as they make it. A Manager invites Barn Staff and
  * calls in a visiting Vet, and the Owner approves either — so a Manager cannot make a second Owner, or a Vet
  * who stays, by writing an invitation for one (roles matrix).
+ *
+ * Worked out before the transaction opens, like a PIN and for the same reason: the code is hashed, hashing is
+ * deliberately slow, and a transaction held open while it runs is a lock held for no reason.
  */
 export const planInvite = async (
   asked: {
@@ -426,13 +446,17 @@ export const planInvite = async (
   by: Acting,
   now: Date
 ): Promise<PlannedInvite> => {
-  const visiting = asked.visitUntil !== undefined;
-  if (visiting && !(asked.roles.length === 1 && asked.roles[0] === "vet")) {
+  const visit = asked.visitUntil;
+  if (
+    visit !== undefined &&
+    !(asked.roles.length === 1 && asked.roles[0] === "vet")
+  ) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Only a Vet is invited for a visit",
     });
   }
-  const managerMay = asked.roles.every((role) => role === "staff") || visiting;
+  const managerMay =
+    asked.roles.every((role) => role === "staff") || visit !== undefined;
   if (by.role === "manager" && !managerMay) {
     throw new ORPCError("FORBIDDEN", {
       message: "A Manager may only invite Staff or a visiting Vet",
@@ -445,18 +469,18 @@ export const planInvite = async (
     email: asked.email,
     name: asked.name,
     roles: [...asked.roles],
-    visitUntil: asked.visitUntil ?? null,
-    accessUntil: visiting ? endOfVisit(asked.visitUntil ?? "", now) : null,
+    visitUntil: visit ?? null,
+    accessUntil: visit === undefined ? null : endOfVisit(visit, now),
+    by,
+    at: now,
   };
 };
 
-/** Writes a planned invitation down. */
+/** Writes a planned invitation down, exactly as it was planned. */
 export const writeInvite = async (
   tx: Tx,
   farmId: string,
-  planned: PlannedInvite,
-  by: Acting,
-  now: Date
+  planned: PlannedInvite
 ): Promise<void> => {
   const approved = planned.status === "approved";
   await tx.insert(invite).values({
@@ -466,14 +490,14 @@ export const writeInvite = async (
     name: planned.name,
     roles: planned.roles,
     status: planned.status,
-    invitedBy: by.id,
-    invitedByRole: by.role,
-    approvedBy: approved ? by.id : null,
-    approvedAt: approved ? now : null,
+    invitedBy: planned.by.id,
+    invitedByRole: planned.by.role,
+    approvedBy: approved ? planned.by.id : null,
+    approvedAt: approved ? planned.at : null,
     codeHash: planned.codeHash,
-    vetScope: planned.accessUntil ? "visiting" : null,
+    vetScope: planned.visitUntil === null ? null : "visiting",
     accessUntil: planned.accessUntil,
-    createdAt: now,
+    createdAt: planned.at,
   });
 };
 
@@ -551,7 +575,8 @@ export const acceptInvite = async (
 };
 
 /** The Owner approving an invitation a Manager wrote. Only a pending one of this Farm flips, so a second
- *  approver is told there is nothing to approve rather than approving it again. */
+ *  approver is told there is nothing to approve rather than approving it again — and, because throwing here
+ *  rolls the transaction back, no Audit Event says they did. */
 export const approveInvite = async (
   tx: Tx,
   farmId: string,
@@ -573,4 +598,47 @@ export const approveInvite = async (
   if (!row) {
     throw new ORPCError("NOT_FOUND");
   }
+};
+
+/** One person on the roster a Shed Phone caches. */
+export interface OnTheRoster {
+  userId: string;
+  name: string;
+  salt: string;
+  hash: string;
+}
+
+/**
+ * Who may PIN Switch on this farm's Shed Phones, and what the phone checks a PIN against.
+ *
+ * Everybody with a PIN whose Membership has not ended — a person the Owner has disabled is signed out of their
+ * own phone and is nobody on a shared one either. The phone keeps this so a Switch works with no signal
+ * (ADR 0003); what it holds is the salt and the hash, never a PIN.
+ */
+export const theRoster = async (
+  tx: Reading,
+  farmId: string
+): Promise<OnTheRoster[]> => {
+  const pins = await tx.query.staffPin.findMany({
+    where: { farmId },
+    columns: { userId: true, salt: true, hash: true },
+  });
+  const people = await tx.query.user.findMany({
+    where: { id: { in: pins.map((pin) => pin.userId) } },
+    columns: { id: true, name: true, disabledAt: true },
+  });
+  const byId = new Map(people.map((person) => [person.id, person]));
+  return pins.flatMap((pin) => {
+    const person = byId.get(pin.userId);
+    return person && !person.disabledAt
+      ? [
+          {
+            userId: pin.userId,
+            name: person.name,
+            salt: pin.salt,
+            hash: pin.hash,
+          },
+        ]
+      : [];
+  });
 };

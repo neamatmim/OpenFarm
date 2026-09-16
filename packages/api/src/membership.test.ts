@@ -1,3 +1,5 @@
+import { pen, shed } from "@OpenFarm/db/schema/herd";
+import { verifyPin } from "@OpenFarm/domain";
 import {
   FakeClock,
   createTestPrincipal,
@@ -9,12 +11,16 @@ import { describe, expect, it } from "vitest";
 
 import type { Tx } from "./audit";
 import {
+  acceptInvite,
+  endMembership,
   newPin,
+  pensOf,
   planInvite,
   rolesOf,
+  setPens,
   setPin,
   setRoles,
-  setStanding,
+  writeInvite,
 } from "./membership";
 
 const farmId = theFarm().id;
@@ -25,13 +31,31 @@ const manager = () => ({
   role: "manager" as const,
 });
 
+/** A Pen of this file's own, to hand out and take back. */
+let pens = 0;
+const aPen = async (): Promise<string> => {
+  pens += 1;
+  const shedId = `shed-membership-${pens}`;
+  const penId = `pen-membership-${pens}`;
+  await scratchDb()
+    .insert(shed)
+    .values({ id: shedId, farmId, name: `মেম্বারশিপ ${pens}`, createdAt: now })
+    .onConflictDoNothing();
+  await scratchDb()
+    .insert(pen)
+    .values({ id: penId, farmId, shedId, name: "ক", createdAt: now })
+    .onConflictDoNothing();
+  return penId;
+};
+
 /** Runs a rule against the farm's records and puts them back, so what one of these tests does is not the world
  *  the next one finds. */
 const ROLLED_BACK = new Error("rolled back");
-const tried = async (run: (tx: Tx) => Promise<unknown>): Promise<void> => {
+const tried = async <T>(run: (tx: Tx) => Promise<T>): Promise<T> => {
+  let answer: T | undefined;
   try {
     await scratchDb().transaction(async (tx) => {
-      await run(tx);
+      answer = await run(tx);
       throw ROLLED_BACK;
     });
   } catch (error) {
@@ -39,15 +63,29 @@ const tried = async (run: (tx: Tx) => Promise<unknown>): Promise<void> => {
       throw error;
     }
   }
+  return answer as T;
 };
 
 describe("the farm keeps an Owner", () => {
-  it("does not let an Owner take the Role off themselves, another Owner or none", async () => {
+  it("does not let an Owner take the Role off themselves", async () => {
     await createTestPrincipal("owner", now);
 
     await expect(
       tried((tx) =>
         setRoles(tx, farmId, thePerson("owner").id, ["manager"], owner(), now)
+      )
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("does not let the last Owner's Role be taken off by somebody else", async () => {
+    await createTestPrincipal("owner", now);
+    // Asked by somebody who is not the Owner being changed — and who holds no Owner Role of their own, so
+    // taking this one away would leave the farm with none.
+    const asker = { id: thePerson("manager").id, role: "owner" as const };
+
+    await expect(
+      tried((tx) =>
+        setRoles(tx, farmId, thePerson("owner").id, ["manager"], asker, now)
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -69,11 +107,7 @@ describe("the farm keeps an Owner", () => {
 
     await expect(
       tried((tx) =>
-        setStanding(tx, thePerson("owner").id, {
-          disabled: true,
-          by: owner(),
-          now,
-        })
+        endMembership(tx, thePerson("owner").id, { by: owner(), now })
       )
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -136,14 +170,155 @@ describe("what a Manager may do", () => {
 
 /** A PIN is never stored: what the farm keeps is a salt and a hash worked out from it. */
 describe("a PIN", () => {
-  it("is four digits, and what the farm keeps of it is not the PIN", async () => {
+  it("is four digits, and what the farm keeps of it answers to that PIN and no other", async () => {
     const credential = await newPin("4821");
 
-    expect(credential.hash).not.toContain("4821");
-    expect(credential.salt).not.toContain("4821");
+    expect(await verifyPin("4821", credential.salt, credential.hash)).toBe(
+      true
+    );
+    expect(await verifyPin("1234", credential.salt, credential.hash)).toBe(
+      false
+    );
+    // Two people who choose the same PIN do not share a hash: each gets a salt of their own.
+    const another = await newPin("4821");
+    expect(another.hash).not.toBe(credential.hash);
+
     await expect(newPin("48")).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await expect(newPin("abcd")).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
+  });
+});
+
+describe("the Pens somebody keeps", () => {
+  it("reopens the assignment they had before rather than starting a second one", async () => {
+    const staff = await createTestPrincipal("staff", now);
+    const penId = await aPen();
+
+    const twice = await tried(async (tx) => {
+      await setPens(
+        tx,
+        farmId,
+        staff.user.id,
+        { add: [penId], remove: [] },
+        now
+      );
+      await setPens(
+        tx,
+        farmId,
+        staff.user.id,
+        { add: [], remove: [penId] },
+        now
+      );
+      await setPens(
+        tx,
+        farmId,
+        staff.user.id,
+        { add: [penId], remove: [] },
+        now
+      );
+      const rows = await tx.query.penAssignment.findMany({
+        where: { farmId, userId: staff.user.id, penId },
+        columns: { id: true, endedAt: true },
+      });
+      return { rows, keeps: await pensOf(tx, farmId, staff.user.id) };
+    });
+
+    expect(twice.rows).toHaveLength(1);
+    expect(twice.rows.at(0)?.endedAt).toBeNull();
+    expect(twice.keeps).toEqual([penId]);
+  });
+
+  it("refuses a Pen this farm does not have", async () => {
+    const staff = await createTestPrincipal("staff", now);
+
+    await expect(
+      tried((tx) =>
+        setPens(
+          tx,
+          farmId,
+          staff.user.id,
+          { add: ["no-such-pen"], remove: [] },
+          now
+        )
+      )
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("taking up an invitation", () => {
+  it("grants what it was written for, once, and to that email alone", async () => {
+    const newcomer = await createTestPrincipal("newcomer", now);
+    await createTestPrincipal("owner", now);
+    const planned = await planInvite(
+      {
+        email: newcomer.user.email,
+        name: newcomer.user.name,
+        roles: ["staff"],
+      },
+      owner(),
+      now
+    );
+
+    const taken = await tried(async (tx) => {
+      await writeInvite(tx, farmId, planned);
+      const first = await acceptInvite(
+        tx,
+        farmId,
+        {
+          userId: newcomer.user.id,
+          email: newcomer.user.email,
+          codeHash: planned.codeHash,
+        },
+        now
+      );
+      const again = await acceptInvite(
+        tx,
+        farmId,
+        {
+          userId: newcomer.user.id,
+          email: newcomer.user.email,
+          codeHash: planned.codeHash,
+        },
+        now
+      );
+      return {
+        first,
+        again,
+        holds: await rolesOf(tx, farmId, newcomer.user.id),
+      };
+    });
+
+    expect(taken.first).toEqual(["staff"]);
+    expect(taken.holds).toEqual(["staff"]);
+    // The code works once, and a second try is nothing rather than a refusal — a wrong guess for the
+    // caller to count.
+    expect(taken.again).toBeNull();
+  });
+
+  it("is nothing to somebody signed in under another email", async () => {
+    const newcomer = await createTestPrincipal("newcomer", now);
+    await createTestPrincipal("owner", now);
+    const planned = await planInvite(
+      { email: "somebody.else@test.openfarm", name: "অন্য", roles: ["staff"] },
+      owner(),
+      now
+    );
+
+    const taken = await tried(async (tx) => {
+      await writeInvite(tx, farmId, planned);
+      return await acceptInvite(
+        tx,
+        farmId,
+        {
+          userId: newcomer.user.id,
+          email: newcomer.user.email,
+          codeHash: planned.codeHash,
+        },
+        now
+      );
+    });
+
+    expect(taken).toBeNull();
   });
 });
