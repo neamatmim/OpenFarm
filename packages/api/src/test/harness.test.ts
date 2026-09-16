@@ -1,8 +1,4 @@
-import {
-  FakeClock,
-  createTestPrincipal,
-  scratchDb,
-} from "@OpenFarm/test-harness";
+import { FakeClock, createTestPrincipal, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 describe("test harness", () => {
@@ -13,7 +9,7 @@ describe("test harness", () => {
       where: { id: principal.user.id },
     });
 
-    expect(row?.email).toBe("vet@test.openfarm");
+    expect(row?.email).toBe(thePerson("vet").email);
   });
 
   it("seeds the same person only once", async () => {
@@ -22,7 +18,7 @@ describe("test harness", () => {
     await createTestPrincipal("owner", now);
     await createTestPrincipal("owner", now);
     const rows = await scratchDb().query.user.findMany({
-      where: { id: "test-owner" },
+      where: { id: thePerson("owner").id },
     });
 
     expect(rows).toHaveLength(1);

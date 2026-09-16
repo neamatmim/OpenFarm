@@ -3,7 +3,7 @@ import { shedPhone } from "@OpenFarm/db/schema/device";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm, thePerson, theShedPhone } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
@@ -79,8 +79,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-push-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -116,7 +116,7 @@ const sweepFrom = async (at: Date) => {
   await scratchDb()
     .update(farm)
     .set({ alertsSweptFrom: at })
-    .where(eq(farm.id, TEST_FARM.id));
+    .where(eq(farm.id, theFarm().id));
 };
 
 /** Work that has gone late, with nobody having been told yet. */
@@ -252,7 +252,7 @@ describe("review findings", () => {
       clock,
       push: post.transport,
     });
-    await owner.client.devices.revoke({ id: "test-shed-phone" });
+    await owner.client.devices.revoke({ id: theShedPhone().id });
 
     // A handset lost in a yard that kept receiving the farm's business would be the
     // revocation not having happened at all.
@@ -276,7 +276,7 @@ describe("review findings", () => {
     await scratchDb()
       .update(shedPhone)
       .set({ revokedAt: null })
-      .where(eq(shedPhone.id, "test-shed-phone"));
+      .where(eq(shedPhone.id, theShedPhone().id));
   });
 
   it("tells the doer their work was sent back", async () => {

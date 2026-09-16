@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { DAY, FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { DAY, FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -58,7 +58,7 @@ describe("who knew which procedure", () => {
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
     await manager.client.sops.recordTraining({
-      userId: "test-staff",
+      userId: thePerson("staff").id,
       versionId: world.sop.versionId,
     });
 
@@ -67,13 +67,13 @@ describe("who knew which procedure", () => {
     });
     expect(onTheSop).toContainEqual(
       expect.objectContaining({
-        userId: "test-staff",
+        userId: thePerson("staff").id,
         versionNumber: 1,
-        trainedBy: "test-manager",
+        trainedBy: thePerson("manager").id,
       })
     );
 
-    const person = await manager.client.people.get({ userId: "test-staff" });
+    const person = await manager.client.people.get({ userId: thePerson("staff").id });
     expect(person.training).toContainEqual(
       expect.objectContaining({
         definitionId: world.sop.definitionId,
@@ -107,14 +107,14 @@ describe("who knew which procedure", () => {
     });
     clock.advance(DAY);
     await manager.client.sops.recordTraining({
-      userId: "test-staff",
+      userId: thePerson("staff").id,
       versionId: published.versionId,
     });
 
     const onTheSop = await manager.client.sops.training({
       definitionId: world.sop.definitionId,
     });
-    const mine = onTheSop.filter((row) => row.userId === "test-staff");
+    const mine = onTheSop.filter((row) => row.userId === thePerson("staff").id);
     // Both stand: what somebody was taught in September is not undone by October.
     expect(mine.map((row) => row.versionNumber).toSorted()).toEqual([1, 2]);
   });
@@ -128,13 +128,13 @@ describe("who knew which procedure", () => {
     });
 
     const first = await manager.client.sops.recordTraining({
-      userId: "test-staff",
+      userId: thePerson("staff").id,
       versionId: sop.versionId,
     });
     expect(first.taught).toBe(true);
 
     const again = await manager.client.sops.recordTraining({
-      userId: "test-staff",
+      userId: thePerson("staff").id,
       versionId: sop.versionId,
     });
     // Nothing changed, so nothing is written — least of all a trail saying something did.
@@ -145,7 +145,7 @@ describe("who knew which procedure", () => {
       orderBy: { receivedAt: "asc", id: "asc" },
     });
     expect(events.map((event) => event.action)).toEqual(["create"]);
-    expect(events[0]?.after).toMatchObject({ userId: "test-staff" });
+    expect(events[0]?.after).toMatchObject({ userId: thePerson("staff").id });
   });
 
   it("will not mark somebody who does not work on this farm", async () => {
@@ -171,7 +171,7 @@ describe("who knew which procedure", () => {
     clock.advance(7 * DAY);
     const later = await createTestClient(appRouter, { as: "manager", clock });
     await later.client.sops.recordTraining({
-      userId: "test-staff",
+      userId: thePerson("staff").id,
       versionId: sop.versionId,
     });
 

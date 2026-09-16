@@ -1,7 +1,7 @@
 import { eq } from "@OpenFarm/db/operators";
 import { animal, penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { DAY, FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { DAY, FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -98,8 +98,8 @@ const setup = async () => {
     .values(
       [pen.id, sickPen.id].map((penId) => ({
         id: `pa-milk-${penId}`,
-        farmId: TEST_FARM.id,
-        userId: "test-staff",
+        farmId: theFarm().id,
+        userId: thePerson("staff").id,
         penId,
       }))
     )
@@ -167,7 +167,7 @@ describe("the milking effect", () => {
       litres: "13.00",
       destination: "bulk",
       forced: false,
-      recordedBy: "test-staff",
+      recordedBy: thePerson("staff").id,
     });
     expect(loaded.records[0]?.animal.tagNumber).toBe(tagOf(0));
   });

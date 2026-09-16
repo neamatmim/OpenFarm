@@ -1,10 +1,5 @@
 import type { Principal } from "@OpenFarm/test-harness";
-import {
-  FakeClock,
-  createTestDevice,
-  createTestPrincipal,
-  scratchDb,
-} from "@OpenFarm/test-harness";
+import { FakeClock, createTestDevice, createTestPrincipal, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import type {
   InferRouterInitialContext,
   Router,
@@ -79,6 +74,8 @@ export const createTestClient = async <T extends Router<Context>>(
     db: scratchDb(),
     push,
     sms,
+    // This test file's own farm: the farm is single on a real install, and one per file here.
+    farmId: theFarm().id,
   });
   // `T extends Router<Context>` guarantees the router's initial context is `Context`;
   // TypeScript cannot reduce the inferred type for an unresolved `T`, hence the cast.

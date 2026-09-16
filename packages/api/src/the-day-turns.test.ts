@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "./context";
@@ -48,6 +48,7 @@ const turnTheDay = async (at: string) => {
     session: null,
     clock: new FakeClock(at),
     db: scratchDb(),
+    farmId: theFarm().id,
   });
   const { farm } = context;
   if (!farm) {
@@ -117,7 +118,8 @@ describe("the day turning", () => {
       session: null,
       clock: new FakeClock("2019-05-11T02:30:00.000Z"),
       db: scratchDb(),
-    });
+    farmId: theFarm().id,
+  });
     const { farm } = context;
     if (!farm) {
       throw new Error("expected the test farm");

@@ -1,6 +1,6 @@
 import { user } from "@OpenFarm/db/schema/auth";
 import { invite } from "@OpenFarm/db/schema/farm";
-import { FakeClock, HOUR, MINUTE, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, HOUR, MINUTE, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import { audited } from "./audit";
@@ -30,7 +30,7 @@ describe("audit events", () => {
 
     expect(event).toMatchObject({
       action: "create",
-      actorId: "test-owner",
+      actorId: thePerson("owner").id,
       roleUsed: "owner",
       deviceId: null,
       deviceSeq: null,
@@ -61,7 +61,7 @@ describe("audit events", () => {
             name: "Ghost",
             roles: ["staff"],
             status: "pending",
-            invitedBy: "test-owner",
+            invitedBy: thePerson("owner").id,
             invitedByRole: "owner",
           })
       )
@@ -152,10 +152,10 @@ describe("audit events", () => {
     });
 
     expect(new Set(all.map((e) => e.actorId))).toEqual(
-      new Set(["test-owner", "test-staff"])
+      new Set([thePerson("owner").id, thePerson("staff").id])
     );
     expect(own.length).toBeGreaterThan(0);
-    expect(own.every((e) => e.actorId === "test-staff")).toBe(true);
+    expect(own.every((e) => e.actorId === thePerson("staff").id)).toBe(true);
     const filtered = await owner.client.audit.list({
       entity: "invite",
       fromDay: "2026-09-13",
@@ -167,7 +167,7 @@ describe("audit events", () => {
     const nextDay = await owner.client.audit.list({
       fromDay: "2026-09-14",
       toDay: "2026-09-14",
-      actorId: "test-owner",
+      actorId: thePerson("owner").id,
       entity: "invite",
     });
     expect(nextDay).toEqual([]);

@@ -2,7 +2,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -22,7 +22,7 @@ const AFTER = "2029-03-04T01:00:00.000Z";
 const calling = async (userId: string, at: string) => {
   const row = await scratchDb().query.user.findFirst({ where: { id: userId } });
   const session = await scratchDb().query.session.findFirst({
-    where: { userId: "test-staff" },
+    where: { userId: thePerson("staff").id },
   });
   if (!row || !session) {
     throw new Error("seed failed");
@@ -34,6 +34,7 @@ const calling = async (userId: string, at: string) => {
     },
     clock: new FakeClock(at),
     db: scratchDb(),
+    farmId: theFarm().id,
   });
   return createRouterClient(appRouter, { context });
 };
@@ -202,7 +203,8 @@ describe("a visiting Vet", () => {
       session: null,
       clock: new FakeClock(AFTER),
       db: scratchDb(),
-    });
+    farmId: theFarm().id,
+  });
     if (!system.farm) {
       throw new Error("no farm");
     }
@@ -294,7 +296,7 @@ describe("a visiting Vet who also works the barn", () => {
       .insert(sopInstance)
       .values({
         id: workId,
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         definitionId,
         versionId,
         penId: her.penId,

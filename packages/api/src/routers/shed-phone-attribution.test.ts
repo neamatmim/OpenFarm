@@ -3,7 +3,7 @@ import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { deviceSwitch } from "@OpenFarm/db/schema/device";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { hashToken } from "../device";
@@ -69,8 +69,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-attr-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -163,17 +163,17 @@ const milked = (
 describe("who recorded work on a Shed Phone", () => {
   it("keeps the name of the person who recorded it, whoever is switched in when it is sent", async () => {
     const { instance, clock, staff, manager } = await morning("2031-03-01");
-    const token = await provedPin("test-staff", clock.now());
+    const token = await provedPin(thePerson("staff").id, clock.now());
 
     const sent = await manager.sync.batch({
       key: `attr-${suffix}-${counted()}`,
-      entries: [milked(instance.id, "test-staff", clock.now(), token)],
+      entries: [milked(instance.id, thePerson("staff").id, clock.now(), token)],
     });
 
     expect(sent.results[0]?.outcome).toBe("applied");
     const board = await staff.instances.get({ id: instance.id });
     expect(board.completions[0]).toMatchObject({
-      recordedBy: "test-staff",
+      recordedBy: thePerson("staff").id,
       deviceId: PHONE.id,
     });
     // Written under the Role they hold, not the one of whoever sent it: a Staff member's Pens are checked by it.
@@ -183,7 +183,7 @@ describe("who recorded work on a Shed Phone", () => {
       .where(
         and(
           eq(auditEvent.entity, "step_completion"),
-          eq(auditEvent.actorId, "test-staff"),
+          eq(auditEvent.actorId, thePerson("staff").id),
           eq(auditEvent.deviceId, PHONE.id)
         )
       )
@@ -194,19 +194,19 @@ describe("who recorded work on a Shed Phone", () => {
   it("refuses work naming somebody without the token their PIN earned on this phone for it", async () => {
     const { instance, clock, manager } = await morning("2031-03-04");
     // They did enter their PIN here this morning — but whoever sends cannot just say so.
-    const theirs = await provedPin("test-staff", clock.now());
+    const theirs = await provedPin(thePerson("staff").id, clock.now());
     // Nor reuse a token from two days ago for this morning's work.
     const old = await provedPin(
-      "test-staff",
+      thePerson("staff").id,
       new Date(clock.now().getTime() - 2 * 24 * 60 * 60_000)
     );
 
     const sent = await manager.sync.batch({
       key: `attr-${suffix}-${counted()}`,
       entries: [
-        milked(instance.id, "test-staff", clock.now()),
-        milked(instance.id, "test-staff", clock.now(), old),
-        milked(instance.id, "test-staff", clock.now(), `${theirs}-guessed`),
+        milked(instance.id, thePerson("staff").id, clock.now()),
+        milked(instance.id, thePerson("staff").id, clock.now(), old),
+        milked(instance.id, thePerson("staff").id, clock.now(), `${theirs}-guessed`),
       ],
     });
 
@@ -222,7 +222,7 @@ describe("who recorded work on a Shed Phone", () => {
 
     const sent = await manager.sync.batch({
       key: `attr-${suffix}-${counted()}`,
-      entries: [milked(instance.id, "test-newcomer", clock.now())],
+      entries: [milked(instance.id, thePerson("newcomer").id, clock.now())],
     });
 
     expect(sent.results[0]?.outcome).toBe("rejected");
@@ -233,7 +233,7 @@ describe("who recorded work on a Shed Phone", () => {
 
     const sent = await staff.sync.batch({
       key: `attr-${suffix}-${counted()}`,
-      entries: [milked(instance.id, "test-manager", clock.now())],
+      entries: [milked(instance.id, thePerson("manager").id, clock.now())],
     });
 
     expect(sent.results[0]?.outcome).toBe("rejected");

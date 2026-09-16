@@ -14,7 +14,8 @@
   "dependencies": {
     "@OpenFarm/db": "workspace:*",
     "drizzle-orm": "1.0.0-rc.4",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "vitest": "4.1.11"
   },
   "devDependencies": {
     "@OpenFarm/config": "workspace:*",

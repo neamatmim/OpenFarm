@@ -1,5 +1,5 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
-import { TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { appRouter } from "../routers/index";
@@ -36,8 +36,8 @@ beforeAll(async () => {
     .insert(penAssignment)
     .values({
       id: `pa-observation-${ourPen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: ourPen.id,
     })
     .onConflictDoNothing();

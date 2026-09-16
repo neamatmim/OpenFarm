@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { alert } from "@OpenFarm/db/schema/alert";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
@@ -42,12 +42,12 @@ const listening = async (clock: FakeClock, transport: PushTransport) => {
 };
 
 /** Something the notification table says waits for a digest. */
-const quietNotice = async (at: Date, userId = "test-manager") => {
+const quietNotice = async (at: Date, userId = thePerson("manager").id) => {
   await scratchDb()
     .insert(alert)
     .values({
       id: uuidv7(at),
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       userId,
       kind: "needs_review",
       entity: "step_completion",
@@ -157,8 +157,8 @@ describe("the evening digest", () => {
       .insert(alert)
       .values({
         id: uuidv7(clock.now()),
-        farmId: TEST_FARM.id,
-        userId: "test-manager",
+        farmId: theFarm().id,
+        userId: thePerson("manager").id,
         kind: "instance_overdue",
         entity: "sop_instance",
         entityId: `urgent-${Date.now()}`,

@@ -1,5 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -353,7 +353,7 @@ describe("a death and a cull", () => {
       entityId: check.id,
     });
     expect(calledOff).toMatchObject({
-      actorId: "test-manager",
+      actorId: thePerson("manager").id,
       roleUsed: "manager",
       after: { state: "called_off", calledOffBy: "animal_left" },
     });

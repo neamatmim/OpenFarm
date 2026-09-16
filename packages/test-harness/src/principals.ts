@@ -6,6 +6,8 @@ import {
 import { shedPhone, staffPin } from "@OpenFarm/db/schema/device";
 import { farm as farmTable, roleAssignment } from "@OpenFarm/db/schema/farm";
 
+import { expect } from "vitest";
+
 import { DAY } from "./clock";
 import { scratchDb } from "./database";
 
@@ -16,27 +18,59 @@ export type Role = "owner" | "manager" | "staff" | "vet";
  *  clinical record is each Vet's own. */
 export type Principal = Role | "newcomer" | "otherVet";
 
-export const TEST_FARM = { id: "test-farm", name: "পরীক্ষা খামার" } as const;
+/**
+ * The Farm this test file works on.
+ *
+ * One per file, not one per run. Everything a farm owns hangs off its id — its people, its Pens, its animals, the
+ * watermark its sweep moves, the Shed Phones enrolled on it — so two files sharing one farm are two stories told over
+ * one set of records: a sweep in one file makes another file's work late, and a person hired in one turns up in
+ * another's list of who was told. Each file gets its own, named after itself, and the database is all they share.
+ */
+export const theFarm = (): { id: string; name: string } => {
+  const file = thisFile();
+  return { id: `farm-${file}`, name: `পরীক্ষা খামার (${file})` };
+};
 
-const PEOPLE: Record<Principal, { id: string; name: string; email: string }> = {
-  owner: { id: "test-owner", name: "মালিক", email: "owner@test.openfarm" },
-  manager: {
-    id: "test-manager",
-    name: "ম্যানেজার",
-    email: "manager@test.openfarm",
-  },
-  staff: { id: "test-staff", name: "রহিম", email: "staff@test.openfarm" },
-  vet: { id: "test-vet", name: "ডা. করিম", email: "vet@test.openfarm" },
-  newcomer: {
-    id: "test-newcomer",
-    name: "নতুন",
-    email: "newcomer@test.openfarm",
-  },
-  otherVet: {
-    id: "test-other-vet",
-    name: "ডা. সালমা",
-    email: "othervet@test.openfarm",
-  },
+/** The file vitest is running, as a name a Farm can be called after. */
+const thisFile = (): string => {
+  const path = expect.getState().testPath ?? "shared";
+  return (
+    path
+      .split("/")
+      .at(-1)
+      ?.replace(/\.test\.tsx?$/u, "")
+      .replace(/[^a-z0-9-]/giu, "-") ?? "shared"
+  );
+};
+
+/** What each of the farm's people is called. Their names are the farm's; who they are is their own file's. */
+const NAMED: Record<Principal, string> = {
+  owner: "মালিক",
+  manager: "ম্যানেজার",
+  staff: "রহিম",
+  vet: "ডা. করিম",
+  newcomer: "নতুন",
+  otherVet: "ডা. সালমা",
+};
+
+/** One of this file's people, as a test refers to them: the Owner of this file's farm, its milker, its Vet. */
+export const thePerson = (
+  role: Principal
+): { id: string; name: string; email: string } => personFor(role);
+
+/**
+ * One of this file's people. Their own, not the run's: a person holds their Roles on a Farm, and one person holding
+ * Roles on every test file's Farm at once is a person no request could work out which farm to answer for.
+ */
+const personFor = (
+  role: Principal
+): { id: string; name: string; email: string } => {
+  const file = thisFile();
+  return {
+    id: `${role}-${file}`,
+    name: NAMED[role],
+    email: `${role}.${file}@test.openfarm`,
+  };
 };
 
 /** Which Role each Principal holds on the Farm. Null for the newcomer, who holds none. */
@@ -64,11 +98,11 @@ export const createTestPrincipal = async (
   now: Date
 ): Promise<TestPrincipal> => {
   const db = scratchDb();
-  const person = PEOPLE[role];
+  const person = personFor(role);
 
   await db
     .insert(farmTable)
-    .values({ ...TEST_FARM, createdAt: now })
+    .values({ ...theFarm(), createdAt: now })
     .onConflictDoNothing();
 
   const [inserted] = await db
@@ -88,7 +122,7 @@ export const createTestPrincipal = async (
       .insert(roleAssignment)
       .values({
         id: `role-${person.id}-${held}`,
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         userId: person.id,
         role: held,
         grantedBy: person.id,
@@ -123,20 +157,20 @@ export const createTestPrincipal = async (
   return { role, user, session };
 };
 
-export const TEST_DEVICE = {
-  id: "test-shed-phone",
+/** This file's own Shed Phone. Sequence numbers belong to the phone that sent them, so a phone shared between files
+ *  would have two queues in it and each would read as the other's gap. */
+export const theShedPhone = (): { id: string; name: string } => ({
+  id: `shed-phone-${thisFile()}`,
   name: "শেড A ফোন",
-} as const;
+});
 
 /** A Shed Phone enrolled on the test Farm, and a PIN for a Principal so they may PIN Switch
  *  on it. Returns the device session shape the API context expects. */
 export const createTestDevice = async (
   role: Principal,
   now: Date,
-  /** A phone of this test file's own. Sequence numbers belong to the phone that sent them,
-   *  so two files sharing one phone take each other's place in its queue — and one file's
-   *  batch then shows up as another's gap. Name your own and the queues stay separate. */
-  phone: { id: string; name: string } = TEST_DEVICE
+  /** A second phone, for a file whose story has two. Its own by default. */
+  phone: { id: string; name: string } = theShedPhone()
 ): Promise<{
   id: string;
   name: string;
@@ -150,7 +184,7 @@ export const createTestDevice = async (
     .insert(shedPhone)
     .values({
       ...phone,
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       tokenHash: `test-token-${phone.id}`,
       enrolledBy: principal.user.id,
       claimedAt: now,
@@ -163,7 +197,7 @@ export const createTestDevice = async (
     .values({
       id: `pin-${principal.user.id}`,
       userId: principal.user.id,
-      farmId: TEST_FARM.id,
+      farmId: theFarm().id,
       salt: "dGVzdC1zYWx0LTE2Ynl0ZXM=",
       hash: "test-hash",
       setBy: principal.user.id,
@@ -173,7 +207,7 @@ export const createTestDevice = async (
 
   return {
     ...phone,
-    farmId: TEST_FARM.id,
+    farmId: theFarm().id,
     activeUserId: principal.user.id,
   };
 };

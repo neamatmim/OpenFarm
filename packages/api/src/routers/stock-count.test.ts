@@ -1,7 +1,7 @@
 import { like } from "@OpenFarm/db/operators";
 import { alert } from "@OpenFarm/db/schema/alert";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -376,7 +376,7 @@ describe("running low", () => {
     });
     const toldAbout = async () => {
       const told = await scratchDb().query.alert.findMany({
-        where: { kind: "low_stock", userId: "test-manager" },
+        where: { kind: "low_stock", userId: thePerson("manager").id },
         columns: { params: true },
       });
       return told.filter(

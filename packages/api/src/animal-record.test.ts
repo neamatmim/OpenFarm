@@ -1,4 +1,4 @@
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, theFarm, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { herRecord } from "./animal-record";
@@ -23,7 +23,7 @@ const as = async (who: "owner" | "manager", at: string) => {
 
 /** Her record as the farm holds it, read without a router, the way its callers read it. */
 const recordOf = (tagNumber: string, now: string) =>
-  herRecord(scratchDb(), TEST_FARM.id, tagNumber, new Date(now));
+  herRecord(scratchDb(), theFarm().id, tagNumber, new Date(now));
 
 let world: {
   quarantine: string;
@@ -109,7 +109,7 @@ describe("her record", () => {
     // Asked for one Move, it gives one and says there was more.
     const shallow = await herRecord(
       scratchDb(),
-      TEST_FARM.id,
+      theFarm().id,
       cow.tagNumber,
       new Date(LATER),
       { moves: 1 }

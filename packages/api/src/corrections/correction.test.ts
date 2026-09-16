@@ -4,7 +4,7 @@ import { roleAssignment } from "@OpenFarm/db/schema/farm";
 import { sale } from "@OpenFarm/db/schema/fattening";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { Principal } from "@OpenFarm/test-harness";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, theFarm, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { Recorder } from "../completion-store";
@@ -382,7 +382,7 @@ const KINDS: Kind[] = [
         .insert(roleAssignment)
         .values({
           id: `role-${id}`,
-          farmId: TEST_FARM.id,
+          farmId: theFarm().id,
           userId: id,
           role: "staff",
           grantedBy: id,

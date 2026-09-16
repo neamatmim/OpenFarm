@@ -2,7 +2,7 @@ import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -54,8 +54,8 @@ const setup = async () => {
     .insert(penAssignment)
     .values({
       id: `pa-prescriptions-${pen.id}`,
-      farmId: TEST_FARM.id,
-      userId: "test-staff",
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
       penId: pen.id,
     })
     .onConflictDoNothing();
@@ -445,7 +445,7 @@ describe("a Prescription, and a dose per Instance", () => {
       .insert(sopDefinition)
       .values({
         id: `draft-${Date.now()}`,
-        farmId: TEST_FARM.id,
+        farmId: theFarm().id,
         createdBy: owner.context.actor?.id ?? null,
         createdAt: clock.now(),
       })
