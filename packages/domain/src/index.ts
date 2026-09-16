@@ -311,6 +311,7 @@ export type {
   PenSpellOf,
 } from "./pen-history";
 export {
+  ARRIVAL_MOVE_REASONS,
   ARRIVALS,
   arrivalOf,
   exitOf,

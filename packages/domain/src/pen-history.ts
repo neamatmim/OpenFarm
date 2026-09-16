@@ -104,6 +104,10 @@ const ARRIVAL_OF: Record<string, ArrivalKind> = {
   intake: "bought",
 };
 
+/** The reasons a Move says an Animal came onto the farm — anything else on a first Move means she was already
+ *  standing here when the farm wrote its opening register, and came from nowhere. */
+export const ARRIVAL_MOVE_REASONS = Object.keys(ARRIVAL_OF);
+
 /** How an Animal arrived, and when: born here at a Calving, bought in at an Intake, or already standing when the
  *  farm opened its register — which is what the Move into her first Pen was written for. */
 export interface Arrival {
