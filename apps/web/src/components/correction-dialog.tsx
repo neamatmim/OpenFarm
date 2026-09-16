@@ -18,18 +18,17 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
-import type { Fields } from "@/lib/correcting";
-import { anythingChanged, asShown, changesFrom } from "@/lib/correcting";
-import {
-  correctionRefusalMessage,
-  isChangedSince,
-} from "@/lib/correction-refusal";
+import type { Answers } from "@/lib/correcting";
+import { asShown, changesFrom, readyToSend } from "@/lib/correcting";
+import { isChangedSince } from "@/lib/correction-refusal";
+import type { OwnWords } from "@/lib/saying";
+import { sayWhy } from "@/lib/saying";
 
 /**
  * Putting a record right: what to change, and why. The original stays readable in the trail beside the correction,
  * so the reason is asked for every time — a correction nobody can explain is a record nobody can trust.
  *
- * Its fields start from what the record says each time it opens. When somebody else corrected the record since, the
+ * Its answers start from what the record says each time it opens. When somebody else corrected the record since, the
  * farm refuses what was typed against the old values (ADR 0005): the dialog closes, the page is read again, and opening
  * it again starts from what the record says now.
  */
@@ -41,13 +40,16 @@ export const CorrectionDialog = ({
   onOpen,
   onSave,
   ready = true,
+  ownWords,
 }: {
   title: string;
   description?: string;
   /** The button's words; "Correct" by default. */
   trigger?: string;
   children: ReactNode;
-  /** Puts the fields back to what the record says now, as the dialog opens. */
+  /** This screen's own words for the refusals only it can meet. */
+  ownWords?: OwnWords;
+  /** Puts the answers back to what the record says now, as the dialog opens. */
   onOpen: () => void;
   /** Resolves when the farm has taken the correction; the dialog closes then, and stays open on a refusal. */
   onSave: (reason: string) => Promise<unknown>;
@@ -70,10 +72,7 @@ export const CorrectionDialog = ({
       setOpen(false);
     } catch (error) {
       setSaving(false);
-      toast.error(
-        correctionRefusalMessage(error, t) ??
-          ((error as Error).message || t("common.error"))
-      );
+      toast.error(sayWhy(error, t, ownWords));
       if (isChangedSince(error)) {
         setOpen(false);
         await queryClient.invalidateQueries();
@@ -137,7 +136,7 @@ export const CorrectionDialog = ({
 };
 
 /** A labelled box inside a correction, filled with what the record says now. */
-export const CorrectionField = ({
+export const CorrectionAnswer = ({
   label,
   value,
   onChange,
@@ -203,15 +202,15 @@ export const CorrectionChoice = ({
 };
 
 /**
- * A record being put right: the fields it has, filled from what it says now, and what was typed into them.
+ * A record being put right: the answers it has, filled from what it says now, and what was typed into them.
  *
- * The screen says which fields a Correction edits and what kind each one is; what changed, and whether anything did,
+ * The screen says which answers a Correction edits and what kind each one is; what changed, and whether anything did,
  * is worked out from the record itself rather than compared by hand. A Correction that changes nothing is not offered
  * to the farm at all.
  */
-export const useCorrecting = (fields: Fields) => {
+export const useCorrecting = (answers: Answers) => {
   const [typed, setTyped] = useState<Record<string, string>>(() =>
-    asShown(fields)
+    asShown(answers)
   );
   return {
     /** What each box shows now. */
@@ -220,10 +219,10 @@ export const useCorrecting = (fields: Fields) => {
     set: (name: string, value: string) =>
       setTyped((boxes) => ({ ...boxes, [name]: value })),
     /** Back to what the record says, which is what opening the dialog does. */
-    handleOpen: () => setTyped(asShown(fields)),
-    /** Whether there is a Correction to make at all. */
-    changed: anythingChanged(fields, typed),
+    handleOpen: () => setTyped(asShown(answers)),
+    /** Whether there is a Correction the farm could take: something changed, and everything typed can be sent. */
+    changed: readyToSend(answers, typed),
     /** What the farm is told changed. */
-    changes: () => changesFrom(fields, typed),
+    changes: () => changesFrom(answers, typed),
   };
 };

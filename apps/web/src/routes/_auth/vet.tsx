@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import type { Course as CourseOfTreatment } from "@/components/course";
@@ -284,8 +284,8 @@ const useRefusal = () => {
   return (error: Error) => toast.error(sayWhy(error, t, REFUSALS));
 };
 
-/** The disease and what was found — the two fields a Diagnosis is, wherever it is typed. */
-const ConclusionFields = ({
+/** The disease and what was found — the two answers a Diagnosis is, wherever it is typed. */
+const ConclusionAnswers = ({
   conclusion,
   idPrefix,
   onChange,
@@ -390,7 +390,7 @@ const Unanswered = ({
           });
         }}
       >
-        <ConclusionFields
+        <ConclusionAnswers
           conclusion={conclusion}
           idPrefix={seen.id}
           onChange={setConclusion}
@@ -444,7 +444,7 @@ const OnItsOwn = ({ onRecorded }: { onRecorded: () => void }) => {
             value={tagNumber}
           />
         </div>
-        <ConclusionFields
+        <ConclusionAnswers
           conclusion={conclusion}
           idPrefix="own"
           onChange={setConclusion}
@@ -665,19 +665,18 @@ const Concluded = ({
             changes: correcting.changes(),
             reason,
           });
-          toast.success(t("vet.corrected"));
           onCorrected();
         }}
         ready={correcting.changed}
         title={t("vet.correct")}
         trigger={t("vet.correct")}
       >
-        <CorrectionField
+        <CorrectionAnswer
           label={t("vet.disease")}
           onChange={(value) => correcting.set("disease", value)}
           value={correcting.typed.disease ?? ""}
         />
-        <CorrectionField
+        <CorrectionAnswer
           label={t("vet.note")}
           onChange={(value) => correcting.set("note", value)}
           value={correcting.typed.note ?? ""}

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { MilkMismatches } from "@/components/milk-mismatches";
@@ -31,7 +31,7 @@ import {
 import { Paper } from "@/components/paper";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { figure, note, person } from "@/lib/correcting";
+import { amount, counterparty, note } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { onlyFor } from "@/lib/guard";
 import { saveCsv } from "@/lib/save-csv";
@@ -81,9 +81,9 @@ const DispatchCorrection = ({
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const correcting = useCorrecting({
-    litres: figure(dispatch.litres),
-    pricePerLitreBdt: figure(dispatch.pricePerLitreBdt),
-    buyer: person(dispatch.buyerName),
+    litres: amount(dispatch.litres),
+    pricePerLitreBdt: amount(dispatch.pricePerLitreBdt),
+    buyer: counterparty(dispatch.buyerName),
     challan: note(dispatch.challan),
   });
   const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
@@ -102,14 +102,14 @@ const DispatchCorrection = ({
       title={t("correct.dispatch")}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <CorrectionField
+        <CorrectionAnswer
           inputMode="decimal"
           label={t("dispatch.litresField")}
           onChange={(value) => correcting.set("litres", value)}
           type="number"
           value={correcting.typed.litres ?? ""}
         />
-        <CorrectionField
+        <CorrectionAnswer
           inputMode="decimal"
           label={t("dispatch.price")}
           onChange={(value) => correcting.set("pricePerLitreBdt", value)}
@@ -117,12 +117,12 @@ const DispatchCorrection = ({
           value={correcting.typed.pricePerLitreBdt ?? ""}
         />
       </div>
-      <CorrectionField
+      <CorrectionAnswer
         label={t("dispatch.buyer")}
         onChange={(value) => correcting.set("buyer", value)}
         value={correcting.typed.buyer ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("dispatch.challan")}
         onChange={(value) => correcting.set("challan", value)}
         value={correcting.typed.challan ?? ""}

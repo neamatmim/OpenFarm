@@ -9,7 +9,6 @@ import {
   DISPOSALS,
   MORTALITY_KINDS,
   allowedNextStates,
-  farmDayOf,
   startOfFarmDay,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
@@ -37,7 +36,7 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import {
   CorrectionChoice,
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { WhatSheCost } from "@/components/costs";
@@ -51,7 +50,7 @@ import { ReportSighting } from "@/components/report-sighting";
 import { SaleCorrection } from "@/components/sale-correction";
 import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
-import { choice, figure, person, words } from "@/lib/correcting";
+import { amount, choice, counterparty, day, words } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { queueMove } from "@/lib/record-offline";
@@ -522,7 +521,6 @@ const PutItRight = ({
           changes: correcting.changes(),
           reason,
         });
-        toast.success(t("mortality.corrected"));
         onDone();
       }}
       ready={correcting.changed}
@@ -538,7 +536,7 @@ const PutItRight = ({
         }))}
         value={correcting.typed.kind ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("mortality.cause")}
         onChange={(value) => correcting.set("cause", value)}
         value={correcting.typed.cause ?? ""}
@@ -966,8 +964,8 @@ const IntakeCorrection = ({
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const correcting = useCorrecting({
-    purchasePriceBdt: figure(intake.purchasePriceBdt),
-    seller: person(intake.sellerName),
+    purchasePriceBdt: amount(intake.purchasePriceBdt),
+    seller: counterparty(intake.sellerName),
   });
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
   return (
@@ -984,14 +982,14 @@ const IntakeCorrection = ({
       ready={correcting.changed}
       title={t("correct.intake")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         inputMode="numeric"
         label={t("intake.price")}
         onChange={(value) => correcting.set("purchasePriceBdt", value)}
         type="number"
         value={correcting.typed.purchasePriceBdt ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("correct.seller")}
         onChange={(value) => correcting.set("seller", value)}
         value={correcting.typed.seller ?? ""}
@@ -1010,31 +1008,31 @@ const ExpectedCalvingCorrection = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [day, setDay] = useState(farmDayOf(expectedCalvingAt));
+  const correcting = useCorrecting({
+    expectedCalvingOn: day(expectedCalvingAt),
+  });
   const correct = useMutation(
     orpc.animals.correctExpectedCalving.mutationOptions({})
   );
   return (
     <CorrectionDialog
-      onOpen={() => setDay(farmDayOf(expectedCalvingAt))}
+      onOpen={correcting.handleOpen}
       onSave={async (reason) => {
         await correct.mutateAsync({
           tagNumber,
-          changes: {
-            expectedCalvingOn: { from: farmDayOf(expectedCalvingAt), to: day },
-          },
+          changes: correcting.changes(),
           reason,
         });
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
-      ready={Boolean(day)}
+      ready={correcting.changed}
       title={t("correct.calving")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         label={t("pregnancy.expectedOn")}
-        onChange={setDay}
+        onChange={(value) => correcting.set("expectedCalvingOn", value)}
         type="date"
-        value={day}
+        value={correcting.typed.expectedCalvingOn ?? ""}
       />
     </CorrectionDialog>
   );

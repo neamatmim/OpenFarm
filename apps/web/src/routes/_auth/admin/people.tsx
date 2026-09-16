@@ -24,7 +24,7 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import {
@@ -319,7 +319,7 @@ const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
       title={t("people.correctName")}
       trigger={t("people.correctName")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         label={t("people.name")}
         onChange={(value) => correcting.set("name", value)}
         value={correcting.typed.name ?? ""}

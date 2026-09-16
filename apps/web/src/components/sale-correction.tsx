@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { useT } from "@/i18n/language-provider";
-import { figure, person } from "@/lib/correcting";
+import { amount, counterparty } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -26,8 +26,8 @@ export const SaleCorrection = ({
   const t = useT();
   const queryClient = useQueryClient();
   const correcting = useCorrecting({
-    priceBdt: figure(sale.priceBdt),
-    buyer: person(sale.buyerName),
+    priceBdt: amount(sale.priceBdt),
+    buyer: counterparty(sale.buyerName),
   });
   const correct = useMutation(orpc.sale.correct.mutationOptions({}));
   return (
@@ -44,14 +44,14 @@ export const SaleCorrection = ({
       ready={correcting.changed}
       title={t("correct.sale")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         inputMode="numeric"
         label={t("sale.price")}
         onChange={(value) => correcting.set("priceBdt", value)}
         type="number"
         value={correcting.typed.priceBdt ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("correct.buyer")}
         onChange={(value) => correcting.set("buyer", value)}
         value={correcting.typed.buyer ?? ""}

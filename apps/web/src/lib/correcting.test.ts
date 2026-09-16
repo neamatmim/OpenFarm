@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  anythingChanged,
+  amount,
+  bilingual,
   asShown,
   changesFrom,
   choice,
+  readyToSend,
   day,
   figure,
+  counterparty,
   note,
-  person,
   words,
 } from "./correcting";
 
@@ -17,11 +19,11 @@ import {
 
 const aSale = () => ({
   priceBdt: figure(92_000),
-  buyer: person("রহমান ব্যাপারী"),
+  buyer: counterparty("রহমান ব্যাপারী"),
 });
 
 describe("what a Correction sends", () => {
-  it("sends only the fields somebody actually changed", () => {
+  it("sends only the answers somebody actually changed", () => {
     const changes = changesFrom(aSale(), {
       priceBdt: "95000",
       buyer: "রহমান ব্যাপারী",
@@ -34,7 +36,7 @@ describe("what a Correction sends", () => {
   it("says nothing changed when nothing did, so the farm is not asked to take it", () => {
     const typed = { priceBdt: "92000", buyer: "রহমান ব্যাপারী" };
     expect(changesFrom(aSale(), typed)).toEqual({});
-    expect(anythingChanged(aSale(), typed)).toBe(false);
+    expect(readyToSend(aSale(), typed)).toBe(false);
   });
 
   it("starts every box from what the record says now", () => {
@@ -52,13 +54,36 @@ describe("what a Correction sends", () => {
   });
 });
 
+describe("what the farm could take at all", () => {
+  it("will not send a price of nothing, which the farm would store as nothing", () => {
+    const sale = { priceBdt: amount(92_000), buyer: counterparty("করিম") };
+    // Changed, and not something the farm should be asked to take.
+    expect(changesFrom(sale, { priceBdt: "0", buyer: "করিম" })).toEqual({
+      priceBdt: { from: 92_000, to: 0 },
+    });
+    expect(readyToSend(sale, { priceBdt: "0", buyer: "করিম" })).toBe(false);
+    expect(readyToSend(sale, { priceBdt: "95000", buyer: "করিম" })).toBe(true);
+  });
+
+  it("will not send a box somebody emptied where the farm holds a figure", () => {
+    const fed = { quantity: amount(40) };
+    expect(readyToSend(fed, { quantity: "" })).toBe(false);
+    expect(readyToSend(fed, { quantity: "abc" })).toBe(false);
+  });
+
+  it("will not rub out a buyer the record names", () => {
+    const sale = { buyer: counterparty("করিম") };
+    expect(readyToSend(sale, { buyer: " " })).toBe(false);
+  });
+});
+
 describe("the farm's kinds of field", () => {
   it("hands over a person as the person, and ignores a blank box", () => {
-    expect(changesFrom({ buyer: person("করিম") }, { buyer: " সালাম " })).toEqual({
+    expect(changesFrom({ buyer: counterparty("করিম") }, { buyer: " সালাম " })).toEqual({
       buyer: { from: "করিম", to: { name: "সালাম" } },
     });
     // Nobody named: not a correction to somebody's name, and not an empty name sent to the farm.
-    expect(changesFrom({ buyer: person("করিম") }, { buyer: "  " })).toEqual({});
+    expect(changesFrom({ buyer: counterparty("করিম") }, { buyer: "  " })).toEqual({});
   });
 
   it("clears a note to nothing, rather than to an empty note", () => {
@@ -83,6 +108,16 @@ describe("the farm's kinds of field", () => {
     expect(
       changesFrom({ priceBdt: figure(null) }, { priceBdt: "700" })
     ).toEqual({});
+  });
+
+  it("hands a Disease over as the farm keeps it, in Bangla", () => {
+    expect(
+      changesFrom({ disease: bilingual("তড়কা") }, { disease: " ওলান প্রদাহ " })
+    ).toEqual({ disease: { from: "তড়কা", to: { bn: "ওলান প্রদাহ" } } });
+    // A Disease rubbed out is not a conclusion the farm can take.
+    expect(readyToSend({ disease: bilingual("তড়কা") }, { disease: "" })).toBe(
+      false
+    );
   });
 
   it("says a day the way the farm writes one down", () => {

@@ -10,14 +10,14 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { categoryName, useRefusalToast } from "@/components/money";
 import { Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { figure, note } from "@/lib/correcting";
+import { amount, note } from "@/lib/correcting";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
 import { orpc } from "@/utils/orpc";
@@ -383,7 +383,7 @@ export const CorrectEntered = ({
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const correcting = useCorrecting({
-    amountBdt: figure(entered.amountBdt),
+    amountBdt: amount(entered.amountBdt),
     note: note(entered.note),
   });
   // A receipt that came later changes no figure, and is a Correction all the same.
@@ -402,21 +402,20 @@ export const CorrectEntered = ({
           receipt: receipt ?? undefined,
           reason,
         });
-        toast.success(t("byHand.corrected"));
         await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       }}
       ready={correcting.changed || receipt !== null}
       title={t("byHand.correct")}
       trigger={t("byHand.correct")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         inputMode="numeric"
         label={t("byHand.amount")}
         onChange={(value) => correcting.set("amountBdt", value)}
         type="number"
         value={correcting.typed.amountBdt ?? ""}
       />
-      <CorrectionField
+      <CorrectionAnswer
         label={t("byHand.note")}
         onChange={(value) => correcting.set("note", value)}
         value={correcting.typed.note ?? ""}

@@ -11,13 +11,13 @@ import { toast } from "sonner";
 
 import {
   CorrectionDialog,
-  CorrectionField,
+  CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
 import { Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { day, figure } from "@/lib/correcting";
+import { amount as amountArrived, day, figure } from "@/lib/correcting";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -464,7 +464,7 @@ const ArrivalCorrection = ({
   const t = useT();
   const queryClient = useQueryClient();
   const correcting = useCorrecting({
-    quantity: figure(arrival.quantity),
+    quantity: amountArrived(arrival.quantity),
     priceBdt: figure(arrival.priceBdt),
     receivedOn: day(arrival.receivedOn),
   });
@@ -483,7 +483,7 @@ const ArrivalCorrection = ({
       ready={correcting.changed}
       title={t("correct.arrival")}
     >
-      <CorrectionField
+      <CorrectionAnswer
         inputMode="decimal"
         label={t("stock.quantity", { unit: arrival.unit })}
         onChange={(value) => correcting.set("quantity", value)}
@@ -491,7 +491,7 @@ const ArrivalCorrection = ({
         value={correcting.typed.quantity ?? ""}
       />
       {arrival.priceBdt === null ? null : (
-        <CorrectionField
+        <CorrectionAnswer
           inputMode="numeric"
           label={t("stock.price")}
           onChange={(value) => correcting.set("priceBdt", value)}
@@ -499,7 +499,7 @@ const ArrivalCorrection = ({
           value={correcting.typed.priceBdt ?? ""}
         />
       )}
-      <CorrectionField
+      <CorrectionAnswer
         label={t("stock.receivedOn")}
         onChange={(value) => correcting.set("receivedOn", value)}
         type="date"
