@@ -8,8 +8,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { endExpiredVisits } from "../visits-store";
 import { appRouter } from "./index";
-import { endExpiredVisits } from "./vet-cases";
 
 // A vet called in for a visit sees the animals they were called in for, does the Vet's work on them, and nothing else
 // on the farm — until the visit ends.

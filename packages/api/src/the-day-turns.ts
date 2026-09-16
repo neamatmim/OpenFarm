@@ -26,10 +26,10 @@ import {
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
-import { endExpiredVisits } from "./routers/vet-cases";
 import { textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
+import { endExpiredVisits } from "./visits-store";
 
 const MINUTE_MS = 60_000;
 
@@ -41,13 +41,6 @@ const MINUTE_MS = 60_000;
 /** The farm, and whoever is asking on its behalf: the server's timer with no person behind it, or somebody opening
  *  the app. Every piece of the turning needs both, and the push and the text need the transports on it. */
 export type Turning = Context & { farm: NonNullable<Context["farm"]> };
-
-/** The Instance the sweep's Audit Event is keyed on: the first it has something to say
- *  about, with the rest named in the event's payload. */
-const first = (pending: {
-  overdue: { id: string }[];
-  escalated: { id: string }[];
-}): string => pending.overdue[0]?.id ?? pending.escalated[0]?.id ?? "";
 
 /**
  * Work for a Heat whose AI window had already closed by the time the farm heard about it.
@@ -242,6 +235,13 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
   );
 };
 
+/** The Instance the sweep's Audit Event is keyed on: the first it has something to say
+ *  about, with the rest named in the event's payload. */
+const first = (pending: {
+  overdue: { id: string }[];
+  escalated: { id: string }[];
+}): string => pending.overdue[0]?.id ?? pending.escalated[0]?.id ?? "";
+
 export const theSweep = async (context: Turning) => {
   const now = context.clock.now();
   // Three things that have nothing to do with each other: work that went late, cows coming off a
@@ -289,7 +289,7 @@ export const theSweep = async (context: Turning) => {
   return { overdue: swept.overdue, escalated: swept.escalated };
 };
 
-export const thePost = async (context: Turning) => {
+export const theDigest = async (context: Turning) => {
   const nothing = { people: 0, told: { sent: 0, gone: 0, missed: 0 } };
   const now = context.clock.now();
   const quiet = {
@@ -308,6 +308,13 @@ export const thePost = async (context: Turning) => {
   return await carryThePost(context, now, upTo);
 };
 
+/** The pieces a day's turning is made of, in the order they run. */
+export type Piece =
+  | "visits ending"
+  | "the day's work"
+  | "the sweep"
+  | "the digest";
+
 /**
  * One turn of the farm's day: the visits that have run out ended, the day's work raised, what has gone late swept, and
  * the evening's post carried — in that order, because each reads what the one before it wrote.
@@ -323,47 +330,38 @@ export const theDayTurns = async (
   workRaised: number;
   overdue: number;
   escalated: number;
-  post: { people: number };
-  wentWrong: string[];
+  toldTheDigest: number;
+  /** The pieces that did not turn, named. Empty for a day that turned whole. */
+  wentWrong: Piece[];
 }> => {
-  const wentWrong: string[] = [];
-  /** Each piece on its own: what it did, or its name on the list of what went wrong. */
+  const wentWrong: Piece[] = [];
+  /** Each piece on its own: what it did, or nothing and its name on the list of what did not turn. */
   const turn = async <Did>(
-    what: string,
-    piece: () => Promise<Did>,
-    nothing: Did
-  ): Promise<Did> => {
+    piece: Piece,
+    doing: () => Promise<Did>
+  ): Promise<Did | null> => {
     try {
-      return await piece();
+      return await doing();
     } catch (error) {
-      wentWrong.push(
-        `${what}: ${error instanceof Error ? error.message : String(error)}`
-      );
-      return nothing;
+      wentWrong.push(piece);
+      // What actually went wrong is for whoever reads a log; the Owner's page is told which piece it was.
+      // oxlint-disable-next-line no-console
+      console.error(`the day turning: ${piece}`, error);
+      return null;
     }
   };
-  const visitsEnded = await turn(
-    "visits ending",
-    () => endExpiredVisits(context),
-    0
+  const visitsEnded = await turn("visits ending", () =>
+    endExpiredVisits(context)
   );
-  const work = await turn("the day's work", () => theDaysWork(context), {
-    raised: 0,
-  });
-  const swept = await turn("the sweep", () => theSweep(context), {
-    overdue: 0,
-    escalated: 0,
-  });
-  const post = await turn("the post", () => thePost(context), {
-    people: 0,
-    told: { sent: 0, gone: 0, missed: 0 },
-  });
+  const work = await turn("the day's work", () => theDaysWork(context));
+  const swept = await turn("the sweep", () => theSweep(context));
+  const digest = await turn("the digest", () => theDigest(context));
   return {
-    visitsEnded,
-    workRaised: work.raised,
-    overdue: swept.overdue,
-    escalated: swept.escalated,
-    post: { people: post.people },
+    visitsEnded: visitsEnded ?? 0,
+    workRaised: work?.raised ?? 0,
+    overdue: swept?.overdue ?? 0,
+    escalated: swept?.escalated ?? 0,
+    toldTheDigest: digest?.people ?? 0,
     wentWrong,
   };
 };

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
-import { thePost, theSweep } from "../the-day-turns";
+import { theDigest, theSweep } from "../the-day-turns";
 
 /** How many notices a phone is handed at once. More than this and the list is not the
  *  problem the farm has. */
@@ -38,7 +38,7 @@ export const alertsRouter = {
    */
   digest: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) => thePost(context)),
+    .handler(({ context }) => theDigest(context)),
 
   mine: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet", { visitingVet: true }))
