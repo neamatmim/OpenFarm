@@ -334,6 +334,7 @@ export type {
   SlotNamed,
   StepShape,
   TurnOf,
+  WordsFor,
 } from "./step-shape";
 export {
   CALVING_STEP,
@@ -341,6 +342,7 @@ export {
   LOT_NUMBER_STEP,
   PREGNANCY_CHECK_STEP,
   SERVICE_STEP,
+  draftFrom,
   positionOf,
   problemsAgainst,
   slotsOf,

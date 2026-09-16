@@ -5,7 +5,7 @@ import {
   PREGNANCY_CHECK_RESULTS,
   SERVICE_METHODS,
 } from "./breeding";
-import type { Evidence, Step } from "./sop";
+import type { Bilingual, Evidence, Step } from "./sop";
 
 /**
  * What a shaped Step asks for, said once.
@@ -299,3 +299,44 @@ export type TurnOf<Shape extends StepShape, Name> = {
     >["of"][number] as Of["name"]
   ]: Held<Of> | null;
 };
+
+/** Every slot a shape asks for, the ones inside a repeated group included. */
+type AnySlot<Shape extends StepShape> =
+  | Extract<Shape[number], Slot>
+  | Extract<Shape[number], Repeated>["of"][number];
+
+/** The farm's own words for each fixed word a shape's choices offer. The words are the farm's to reword; the
+ *  values beneath them are the record's, and are never reworded. */
+export type WordsFor<Shape extends StepShape> = Record<
+  Extract<AnySlot<Shape>, ChoiceSlot>["values"][number],
+  Bilingual
+>;
+
+/**
+ * The Evidence a Step of this shape carries, as a draft for an Owner writing the Version.
+ *
+ * Built from the shape rather than written out beside it, so a Step the phone drafts is a Step publishing will
+ * take. All the phone supplies is what the farm calls each choice.
+ */
+export const draftFrom = <Shape extends StepShape>(
+  shape: Shape,
+  words: WordsFor<Shape>
+): Evidence[] =>
+  slotsOf(shape).map(({ slot, required }) => {
+    if (slot.kind !== "choice") {
+      return { type: slot.kind, required };
+    }
+    const said = words as Record<string, Bilingual>;
+    return {
+      type: "choice",
+      required,
+      choices: slot.values.map((value) => {
+        const label = said[value];
+        if (!label) {
+          // `WordsFor` asks for every one of them, so this is a caller that talked its way past the type.
+          throw new Error(`the farm has no words for the choice "${value}"`);
+        }
+        return { value, label };
+      }),
+    };
+  });

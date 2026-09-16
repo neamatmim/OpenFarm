@@ -8,6 +8,12 @@ import type {
   StepEffect,
   Trigger,
 } from "@OpenFarm/domain";
+import {
+  CALVING_STEP,
+  PREGNANCY_CHECK_STEP,
+  SERVICE_STEP,
+  draftFrom,
+} from "@OpenFarm/domain";
 
 /** A blank procedure the Owner fills in — Bangla first, everything else optional. */
 export const emptyStep = (id: string): Step => ({
@@ -129,75 +135,32 @@ export const emptyHappening = (): HappeningTrigger => ({
   event: "move",
 });
 
-/** The four things a Service Step asks, in the order the record reads them (SERVICE_EVIDENCE). The
- *  method's labels are the farm's words and may be reworded; its values may not. */
-const SERVICE_STEP_EVIDENCE: Evidence[] = [
-  {
-    type: "choice",
-    required: true,
-    choices: [
-      { value: "ai", label: { bn: "কৃত্রিম প্রজনন", en: "AI" } },
-      { value: "natural", label: { bn: "ষাঁড় দিয়ে", en: "Natural" } },
-    ],
-  },
-  { type: "note", required: true },
-  { type: "note", required: false },
-  { type: "datetime", required: true },
-];
-
-/** A choice the Step offers: the fixed word the record reads, and the farm's words for it. */
-interface Offered {
-  value: string;
-  bn: string;
-  en: string;
-}
-
-const choiceOf = (values: Offered[], required: boolean): Evidence => ({
-  type: "choice",
-  required,
-  choices: values.map(({ value, bn, en }) => ({ value, label: { bn, en } })),
+/**
+ * What a shaped Step asks for, drafted from the shape itself rather than written out again here.
+ *
+ * All this supplies is the farm's own words for each fixed word the record reads back. The words may be
+ * reworded whenever the farm likes; the values under them may not, and are not written here at all — leaving
+ * one of them out is a mistake the compiler makes rather than one publishing finds.
+ */
+const SERVICE_STEP_EVIDENCE = draftFrom(SERVICE_STEP, {
+  ai: { bn: "কৃত্রিম প্রজনন", en: "AI" },
+  natural: { bn: "ষাঁড় দিয়ে", en: "Natural" },
 });
 
-const CALF_SEX: Offered[] = [
-  { value: "female", bn: "বকনা", en: "Heifer calf" },
-  { value: "male", bn: "এঁড়ে", en: "Bull calf" },
-];
+const CALVING_STEP_EVIDENCE = draftFrom(CALVING_STEP, {
+  unassisted: { bn: "নিজে নিজে", en: "Unassisted" },
+  assisted: { bn: "সাহায্য লেগেছে", en: "Assisted" },
+  vet: { bn: "ভেট লেগেছে", en: "With the vet" },
+  female: { bn: "বকনা", en: "Heifer calf" },
+  male: { bn: "এঁড়ে", en: "Bull calf" },
+  alive: { bn: "জীবিত", en: "Alive" },
+  stillborn: { bn: "মৃত", en: "Stillborn" },
+});
 
-const CALF_OUTCOME: Offered[] = [
-  { value: "alive", bn: "জীবিত", en: "Alive" },
-  { value: "stillborn", bn: "মৃত", en: "Stillborn" },
-];
-
-/** The things a Calving Step asks, in the order the record reads them (CALVING_EVIDENCE): when, how
- *  it went, and a first calf and up to two more — each one's sex and whether it was alive. */
-const CALVING_STEP_EVIDENCE: Evidence[] = [
-  { type: "datetime", required: true },
-  choiceOf(
-    [
-      { value: "unassisted", bn: "নিজে নিজে", en: "Unassisted" },
-      { value: "assisted", bn: "সাহায্য লেগেছে", en: "Assisted" },
-      { value: "vet", bn: "ভেট লেগেছে", en: "With the vet" },
-    ],
-    true
-  ),
-  choiceOf(CALF_SEX, true),
-  choiceOf(CALF_OUTCOME, true),
-  choiceOf(CALF_SEX, false),
-  choiceOf(CALF_OUTCOME, false),
-  choiceOf(CALF_SEX, false),
-  choiceOf(CALF_OUTCOME, false),
-];
-
-/** What a Pregnancy Check Step asks first: what the Vet found. The labels are the farm's words; the
- *  values are what Breeding reads back. */
-const PREGNANCY_CHECK_RESULT: Evidence = {
-  type: "choice",
-  required: true,
-  choices: [
-    { value: "positive", label: { bn: "গর্ভবতী", en: "Carrying" } },
-    { value: "negative", label: { bn: "গর্ভবতী নয়", en: "Not carrying" } },
-  ],
-};
+const [PREGNANCY_CHECK_RESULT] = draftFrom(PREGNANCY_CHECK_STEP, {
+  positive: { bn: "গর্ভবতী", en: "Carrying" },
+  negative: { bn: "গর্ভবতী নয়", en: "Not carrying" },
+});
 
 /** The effects done once whose record is a written note: the reference a letter went under, a Campaign's Lot
  *  Number. */
