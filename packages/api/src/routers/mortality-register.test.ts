@@ -503,6 +503,14 @@ describe("the movement log", () => {
     ).toEqual([expect.objectContaining({ format: "csv", to: FEBRUARY.to })]);
   });
 
+  it("is not printed: nobody reads three hundred movements off a sheet of paper", async () => {
+    const manager = await as("manager", "2046-03-01T04:00:00.000Z");
+
+    await expect(
+      manager.client.inspector.print({ register: "movement_log", ...FEBRUARY })
+    ).rejects.toMatchObject({ data: { refusal: "register_has_no_paper" } });
+  });
+
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2046-03-01T04:00:00.000Z");
     await expect(

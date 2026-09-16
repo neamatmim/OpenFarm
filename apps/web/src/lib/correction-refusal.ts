@@ -103,6 +103,7 @@ const WORDED_REFUSALS = {
   purchase_needs_price_and_seller: "refusal.purchaseNeedsPriceAndSeller",
   received_in_the_future: "refusal.receivedInTheFuture",
   register_has_no_csv: "refusal.registerHasNoCsv",
+  register_has_no_paper: "refusal.registerHasNoPaper",
   renewal_needs_certificate: "refusal.renewalNeedsCertificate",
   renewal_needs_expiry: "refusal.renewalNeedsExpiry",
   renewal_not_later: "refusal.renewalNotLater",

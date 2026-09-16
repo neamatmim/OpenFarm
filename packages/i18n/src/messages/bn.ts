@@ -708,6 +708,7 @@ export const bn: Record<MessageKey, string> = {
   "inspector.asOf": "তারিখ",
   "inspector.onTheFarm": "খামারে আছে",
   "refusal.registerHasNoCsv": "এই রেজিস্টার প্রিন্ট হয়, CSV হিসেবে দেওয়া হয় না",
+  "refusal.registerHasNoPaper": "এই রেজিস্টার CSV হিসেবে দেওয়া হয়, প্রিন্ট হয় না",
   "inspector.vaccinations": "টিকার রেজিস্টার",
   "inspector.noVaccinations": "এই সময়ে কোনো টিকা দেওয়া হয়নি",
   "inspector.lotNumber": "লট নম্বর {lotNumber}",
