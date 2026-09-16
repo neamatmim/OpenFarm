@@ -37,6 +37,8 @@ export const en = {
   "auth.needAccount": "Need an account? Sign up",
   "auth.haveAccount": "Already have an account? Sign in",
   "auth.signInSuccess": "Signed in",
+  "auth.noLongerHere":
+    "You no longer work on this farm. Ask the Owner if this is wrong.",
   "auth.signUpSuccess": "Account created",
   "auth.invalidEmail": "Enter a valid email address",
   "auth.passwordTooShort": "Password must be at least {min} characters",

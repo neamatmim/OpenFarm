@@ -41,6 +41,7 @@ export const bn: Record<MessageKey, string> = {
   "auth.needAccount": "অ্যাকাউন্ট নেই? সাইন আপ করুন",
   "auth.haveAccount": "অ্যাকাউন্ট আছে? সাইন ইন করুন",
   "auth.signInSuccess": "সাইন ইন হয়েছে",
+  "auth.noLongerHere": "আপনি আর এই খামারে কাজ করেন না। ভুল হলে মালিককে বলুন।",
   "auth.signUpSuccess": "অ্যাকাউন্ট খোলা হয়েছে",
   "auth.invalidEmail": "সঠিক ইমেইল ঠিকানা দিন",
   "auth.passwordTooShort": "পাসওয়ার্ড কমপক্ষে {min} অক্ষরের হতে হবে",

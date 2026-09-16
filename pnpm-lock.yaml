@@ -404,6 +404,9 @@ importers:
       '@OpenFarm/env':
         specifier: workspace:*
         version: link:../env
+      '@OpenFarm/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       better-auth:
         specifier: 'catalog:'
         version: 1.7.3(@tanstack/react-start@1.168.50(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.0))(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rolldown@1.2.8))(drizzle-kit@0.31.10)(drizzle-orm@1.0.0-rc.4(@types/pg@8.23.1)(pg@8.23.0)(zod@4.6.1))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.11)
