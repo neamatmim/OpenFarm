@@ -69,10 +69,10 @@ describe("her record", () => {
     });
 
     const her = await recordOf(taken.tagNumber, LATER);
-    expect(her.arrival).toMatchObject({
-      how: "bought",
-      at: new Date(AT),
-      intake: { estimatedAgeMonths: 20, seller: { name: `বেপারী ${suffix}` } },
+    expect(her.arrival).toMatchObject({ how: "bought", at: new Date(AT) });
+    expect(her.intake).toMatchObject({
+      estimatedAgeMonths: 20,
+      seller: { name: `বেপারী ${suffix}` },
     });
     expect(her.exit).toBeNull();
     // Oldest first, the last one still open: she is standing in it.
@@ -142,10 +142,48 @@ describe("her record", () => {
     expect(her.exit).toMatchObject({
       how: "culled",
       at: new Date(LATER),
-      death: { kind: "culled", cause: "বারবার ওলান প্রদাহ", disposal: "buried" },
-      sale: null,
     });
+    expect(her.mortality).toMatchObject({
+      kind: "culled",
+      cause: "বারবার ওলান প্রদাহ",
+      disposal: "buried",
+    });
+    expect(her.sale).toBeNull();
     // A paper asked for after she has gone never says she stands in a Pen still.
     expect(her.penSpells.at(-1)?.until).toEqual(new Date(LATER));
+    // And who wrote it down, which her page shows beside how she went.
+    expect(her.mortality?.recorder?.name).toBeTruthy();
+    expect(her.mortality?.disposalNote).toBeNull();
+  });
+
+  it("reads deep enough for her page: both ends of a Move, and the work that walked her", async () => {
+    const manager = await as("manager", AT);
+    const cow = await manager.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: world.dairy,
+      source: "born",
+      aliases: [],
+    });
+    const later = await as("manager", LATER);
+    await later.animals.move({
+      tagNumber: cow.tagNumber,
+      toPenId: world.otherDairy,
+    });
+
+    const her = await recordOf(cow.tagNumber, LATER);
+
+    // Where she came from as well as where she went: a Move with one end is a Move nobody can account for.
+    expect(her.moves.at(0)).toMatchObject({
+      fromPen: { name: `দুধ ক ${suffix}` },
+      toPen: { name: `দুধ খ ${suffix}` },
+      completion: null,
+    });
+    // And the one that brought her in, which has no other end to have come from.
+    expect(her.moves.at(-1)).toMatchObject({
+      fromPen: null,
+      toPen: { name: `দুধ ক ${suffix}` },
+    });
   });
 });

@@ -1,11 +1,5 @@
 import type { Database } from "@OpenFarm/db";
-import type {
-  Arrival,
-  Disposal,
-  Exit,
-  MortalityKind,
-  PenSpellOf,
-} from "@OpenFarm/domain";
+import type { PenSpellOf } from "@OpenFarm/domain";
 import {
   arrivalOf,
   daysOnFeedOf,
@@ -14,6 +8,8 @@ import {
   withdrawalView,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
+
+import { animalSummaryColumns } from "./herd-store";
 
 /**
  * How much of her record to read. Her page shows a screenful; her Animal Passport shows what a buyer or a
@@ -35,26 +31,6 @@ const PAPER_DEPTH = { moves: 40, doses: 200, weighIns: 52 } as const;
 
 /** Where she stood, by the Pen's name. */
 export type HerPenSpell = PenSpellOf<{ name: string }>;
-
-/** How she came to be here, with what the Intake recorded of it for an animal the farm bought. */
-export type HerArrival = Arrival & {
-  intake: {
-    arrivedAt: Date;
-    estimatedAgeMonths: number;
-    seller: { name: string } | null;
-  } | null;
-};
-
-/** How she left, with what belongs to that way of going: who took her and where she went, or what she died of
- *  and what was done with her. */
-export type HerExit = Exit & {
-  sale: { destination: string | null; buyer: { name: string } | null } | null;
-  death: {
-    kind: MortalityKind;
-    cause: string;
-    disposal: Disposal | null;
-  } | null;
-};
 
 /**
  * Everything the farm's record says about one animal, whether she is standing in the shed or gone: what she is,
@@ -79,40 +55,37 @@ export const herRecord = async (
   const depth = { ...PAPER_DEPTH, ...howDeep };
   const row = await db.query.animal.findFirst({
     where: { farmId, tagNumber: tagNumber.toUpperCase() },
+    // What she is, as every list of her says it — her whole withdrawal record included, the shortening with
+    // it: a hold a Vet cut short is the one thing a slaughter vet asks about, and a paper that did not say so
+    // would be the farm asking to be taken at its word exactly where its word is not enough.
     columns: {
-      id: true,
-      tagNumber: true,
-      sex: true,
-      breed: true,
-      birthDate: true,
-      source: true,
-      state: true,
-      // When she reached it: for an animal who has left, the moment she went, however she went.
+      ...animalSummaryColumns,
+      // When she reached her State: for an animal who has left, the moment she went, however she went.
       stateChangedAt: true,
-      // Her whole withdrawal record, the shortening included: a hold a Vet cut short is the one
-      // thing a slaughter vet asks about, and a paper that did not say so would be the farm
-      // asking to be taken at its word exactly where its word is not enough.
-      meatWithdrawalUntil: true,
-      meatWithdrawalFromDoses: true,
-      milkWithdrawalUntil: true,
-      milkWithdrawalFromDoses: true,
-      withdrawalShortenedAt: true,
-      withdrawalShortenedReason: true,
     },
     with: {
       moves: {
-        // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant.
+        // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant —
+        // registering an animal walks her to her first Pen in the same transaction as a Move recorded a
+        // moment later, and her history should not depend on which row the database hands back first.
         orderBy: { movedAt: "desc", id: "desc" },
         limit: depth.moves + 1,
-        columns: { id: true, movedAt: true },
-        with: { toPen: { columns: { name: true } } },
+        // Both ends of the journey and the work that walked her, so her history reads as one story rather
+        // than as a Move nobody can account for.
+        with: {
+          completion: { columns: { instanceId: true } },
+          fromPen: { columns: { name: true } },
+          toPen: { columns: { name: true } },
+        },
       },
       treatments: {
         where: { givenAt: { isNotNull: true } },
         orderBy: { givenAt: "desc", id: "desc" },
         limit: depth.doses + 1,
         with: {
-          product: { columns: { nameBn: true, meatWithdrawalDays: true } },
+          product: {
+            columns: { nameBn: true, nameEn: true, meatWithdrawalDays: true },
+          },
           giver: { columns: { name: true } },
           /** Whose prescription it was. A buyer and a slaughter vet are both entitled to ask,
            *  and "prescribed" without a name is not an answer. */
@@ -122,17 +95,37 @@ export const herRecord = async (
       weighIns: {
         orderBy: { weighedAt: "desc", id: "desc" },
         limit: depth.weighIns + 1,
-        columns: { weightKg: true, weighedAt: true },
+        columns: {
+          id: true,
+          weightKg: true,
+          weighedAt: true,
+          method: true,
+          // What the farm found doubtful about a reading, and null for one it did not doubt.
+          flaggedNote: true,
+        },
+        with: { weigher: { columns: { name: true } } },
       },
-      intake: {
-        columns: { arrivedAt: true, estimatedAgeMonths: true },
-        with: { seller: { columns: { name: true } } },
+      // What she cost and what she fetched are here because the farm knows them; who may read them is the
+      // reader's to decide (CONTEXT: Scope). A paper for a buyer prints neither.
+      intake: { with: { seller: { columns: { name: true, address: true } } } },
+      sale: { with: { buyer: { columns: { name: true } } } },
+      mortality: {
+        columns: {
+          kind: true,
+          happenedAt: true,
+          cause: true,
+          disposal: true,
+          disposalNote: true,
+        },
+        with: {
+          recorder: { columns: { name: true } },
+          // What she is said to have died of, and the reference the office filed the report under.
+          diagnosis: {
+            columns: { disease: true },
+            with: { report: { columns: { reference: true } } },
+          },
+        },
       },
-      sale: {
-        columns: { soldAt: true, destination: true },
-        with: { buyer: { columns: { name: true } } },
-      },
-      mortality: { columns: { kind: true, cause: true, disposal: true } },
     },
   });
   if (!row) {
@@ -168,10 +161,18 @@ export const herRecord = async (
         dose.givenAt === null ? [] : [{ ...dose, givenAt: dose.givenAt }]
       ),
     weighIns: her.weighIns.slice(0, depth.weighIns),
-    /** How she came to be on the farm, and what the Intake said of it. */
-    arrival: arrival && { ...arrival, intake: intake ?? null },
+    /** How she came to be on the farm. */
+    arrival,
     /** How she left, or nothing while she is still here. */
-    exit: exit && { ...exit, sale: sale ?? null, death: mortality ?? null },
+    exit,
+    /** What the farm bought her at and from whom; nothing for one born here. Kept beside how she arrived
+     *  rather than inside it: an Intake is a row the farm wrote, and a reader of it should not have to go
+     *  through a fact worked out from her Moves to reach one. */
+    intake: intake ?? null,
+    /** What she fetched and who took her; nothing while she is here. */
+    sale: sale ?? null,
+    /** How she died or was culled, what was done with her, and who wrote it down. */
+    mortality: mortality ?? null,
     /** Where she stood, oldest first, her last spell ending when she left. */
     penSpells: penSpellsOf(moves, exit?.at ?? null),
     /** How long a bought-in animal has been on the farm being fed; null for one born here. */

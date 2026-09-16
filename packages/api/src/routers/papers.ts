@@ -158,8 +158,8 @@ export const papersRouter = {
         source: sourceWords(her),
         // The day the Intake says she came, which is not the day she was written down: an animal bought last
         // week and entered today arrived last week. A calf born here has no arrival line.
-        arrived: her.arrival?.intake
-          ? formatDate(her.arrival.intake.arrivedAt, language, "date")
+        arrived: her.intake
+          ? formatDate(her.intake.arrivedAt, language, "date")
           : null,
         // Her Pen Spells as her record works them out: the last one ends when she left, so the paper never says a
         // cow who has gone stands in a Pen still.
@@ -173,7 +173,7 @@ export const papersRouter = {
         })),
         // Where she went, not who took her: R7 names the destination, and one buyer's name is
         // not the next holder's business.
-        leftFor: her.exit?.sale?.destination ?? null,
+        leftFor: her.sale?.destination ?? null,
         producedBy: context.actor.name,
         producedAt: formatDate(now, language, "dateTime"),
       });

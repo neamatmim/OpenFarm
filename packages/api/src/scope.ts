@@ -110,6 +110,36 @@ export const mayLookUp = (scope: Scope, animal: { id: string }): boolean =>
 export const isOnTheirCase = (scope: Scope, animalId: string): boolean =>
   hasCase(scope, animalId);
 
+/**
+ * Whether what the Vet concluded is theirs to read: the Diagnoses on her page, the Prescriptions that followed,
+ * and what she is said to have died of.
+ *
+ * Barn Staff record what they see and give the doses they are told to give; the conclusions drawn from them are
+ * not theirs (roles matrix: Staff read treatment instances only). They still read the round's own Observations —
+ * what somebody saw is not a conclusion, and neither is the cause the farm wrote down when she died — and Barn
+ * Staff who are also the visiting Vet on her Case read what a Vet reads.
+ *
+ * Named Roles rather than "not Staff": a request holding no Role at all is nobody, and nobody reads a Vet's
+ * conclusions.
+ */
+export const readsTheClinicalRecord = (
+  who: { roleUsed: RoleName | null; scope: Scope },
+  animalId: string
+): boolean =>
+  who.roleUsed === "owner" ||
+  who.roleUsed === "manager" ||
+  who.roleUsed === "vet" ||
+  (who.roleUsed === "staff" && isOnTheirCase(who.scope, animalId));
+
+/**
+ * Whether what she cost and what she fetched are theirs to read.
+ *
+ * The Intake and Sale rows of the roles matrix: `R` to the Owner, `C R U` to the Manager, and nothing to anybody
+ * else. A milker weighs her and a Vet treats her without being told what she cost.
+ */
+export const readsWhatSheCost = (who: { roleUsed: RoleName | null }): boolean =>
+  who.roleUsed === "owner" || who.roleUsed === "manager";
+
 /** Whether a Pen is theirs to act in — to walk an animal into or out of. A visit is to animals, not Pens. */
 export const isPenInScope = (scope: Scope, penId: string): boolean =>
   scope.kind === "farm" || hasPen(scope, penId);
