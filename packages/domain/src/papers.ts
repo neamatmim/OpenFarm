@@ -510,6 +510,58 @@ export type HealthRegister = Extract<
   | "mortality_register"
 >;
 
+/** One line under a row's heading on a register: a label in both of the farm's languages, and what it says. */
+export interface RegisterPaperField {
+  bn: string;
+  en: string;
+  said: string;
+}
+
+/** One row of a register as the paper prints it: the line it is headed by, and the fields indented under it. */
+export interface RegisterPaperRow {
+  heading: string;
+  fields: RegisterPaperField[];
+}
+
+/** A register as a paper: the farm it came from, what it is, the period it covers, and its rows — everything
+ *  already written out for the reader, because how a date looks is the i18n package's business. */
+export interface RegisterPaper {
+  farm: FarmIdentity;
+  title: { bn: string; en: string };
+  from: string;
+  to: string;
+  /** What the paper says instead of rows when the period holds nothing: "no deaths in this period". */
+  none: { bn: string; en: string };
+  rows: RegisterPaperRow[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * Any of the Inspector View's registers as a paper.
+ *
+ * Every one reads the same way — the farm of origin, the register's name, the period, then a row headed by
+ * what identifies it with its fields indented under — because an inspector reads four of them in a row and
+ * should not have to learn four layouts. What each register puts on those lines is the register's own business;
+ * this writes them out.
+ */
+export const registerPaper = (paper: RegisterPaper): string =>
+  [
+    ...farmOfOriginLines(paper.farm),
+    "",
+    `${paper.title.bn} / ${paper.title.en}`,
+    field("সময়কাল", "Period", `${paper.from} — ${paper.to}`),
+    "",
+    ...(paper.rows.length === 0
+      ? [`${paper.none.bn} / ${paper.none.en}`]
+      : paper.rows.flatMap((row) => [
+          row.heading,
+          ...row.fields.map((one) => `  ${field(one.bn, one.en, one.said)}`),
+        ])),
+    "",
+    `${paper.producedAt} · ${paper.producedBy}`,
+  ].join("\n");
+
 const STANDING_LABEL: Record<RegistrationStanding, string> = {
   valid: "বৈধ / Valid",
   ending_soon: "মেয়াদ শেষ হতে চলেছে / Ending soon",
