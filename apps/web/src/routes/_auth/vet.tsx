@@ -10,15 +10,20 @@ import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CorrectionDialog,
+  CorrectionField,
+  useCorrecting,
+} from "@/components/correction-dialog";
 import type { Course as CourseOfTreatment } from "@/components/course";
 import { CourseLine, DoseLine } from "@/components/course";
 import { Page, PageHeader, Section } from "@/components/page";
 import { RepeatBreeder } from "@/components/repeat-breeder";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage, useT } from "@/i18n/language-provider";
+import { bilingual, note as writtenNote } from "@/lib/correcting";
 import {
   correctionRefusalMessage,
-  isChangedSince,
   wordedRefusal,
 } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -617,33 +622,11 @@ const Concluded = ({
 }) => {
   const t = useT();
   const { language } = useLanguage();
-  const onError = useRefusal();
-  const [open, setOpen] = useState(false);
-  const [conclusion, setConclusion] = useState<Conclusion>({
-    disease: made.disease,
-    note: made.note ?? "",
+  const correcting = useCorrecting({
+    disease: bilingual(made.disease),
+    note: writtenNote(made.note),
   });
-  const [reason, setReason] = useState("");
-
-  const correct = useMutation(
-    orpc.diagnoses.correct.mutationOptions({
-      onSuccess: () => {
-        setOpen(false);
-        setReason("");
-        toast.success(t("vet.corrected"));
-        onCorrected();
-      },
-      onError: (error) => {
-        onError(error);
-        // Put right by somebody else since: read it again, and start from what it says now.
-        if (isChangedSince(error)) {
-          setOpen(false);
-          onCorrected();
-        }
-      },
-    })
-  );
-
+  const correct = useMutation(orpc.diagnoses.correct.mutationOptions({}));
   return (
     <li className="space-y-2 rounded-lg border p-4 text-sm">
       <div className="flex items-baseline justify-between gap-2">
@@ -691,61 +674,32 @@ const Concluded = ({
         tagNumber={made.tagNumber}
       />
 
-      {open ? (
-        <form
-          className="space-y-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const { disease, note } = asRecorded(conclusion);
-            correct.mutate({
-              id: made.id,
-              changes: {
-                disease:
-                  disease.bn === made.disease
-                    ? undefined
-                    : { from: made.disease, to: disease },
-                note:
-                  (note ?? null) === made.note
-                    ? undefined
-                    : { from: made.note, to: note ?? null },
-              },
-              reason: reason.trim(),
-            });
-          }}
-        >
-          <ConclusionFields
-            conclusion={conclusion}
-            idPrefix={`fix-${made.id}`}
-            onChange={setConclusion}
-          />
-          <div className="space-y-1">
-            <Label htmlFor={`fix-reason-${made.id}`}>{t("vet.reason")}</Label>
-            <Input
-              id={`fix-reason-${made.id}`}
-              onChange={(event) => setReason(event.target.value)}
-              value={reason}
-            />
-          </div>
-          <Button
-            disabled={!(conclusion.disease.trim() && reason.trim())}
-            type="submit"
-          >
-            {t("vet.saveCorrection")}
-          </Button>
-        </form>
-      ) : (
-        <Button
-          onClick={() => {
-            setConclusion({ disease: made.disease, note: made.note ?? "" });
-            setOpen(true);
-          }}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {t("vet.correct")}
-        </Button>
-      )}
+      <CorrectionDialog
+        onOpen={correcting.handleOpen}
+        onSave={async (reason) => {
+          await correct.mutateAsync({
+            id: made.id,
+            changes: correcting.changes(),
+            reason,
+          });
+          toast.success(t("vet.corrected"));
+          onCorrected();
+        }}
+        ready={correcting.changed}
+        title={t("vet.correct")}
+        trigger={t("vet.correct")}
+      >
+        <CorrectionField
+          label={t("vet.disease")}
+          onChange={(value) => correcting.set("disease", value)}
+          value={correcting.typed.disease ?? ""}
+        />
+        <CorrectionField
+          label={t("vet.note")}
+          onChange={(value) => correcting.set("note", value)}
+          value={correcting.typed.note ?? ""}
+        />
+      </CorrectionDialog>
     </li>
   );
 };

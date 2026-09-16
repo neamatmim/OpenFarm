@@ -166,6 +166,42 @@ export const CorrectionField = ({
   );
 };
 
+/** One of a fixed few words, inside a correction: how she went, what was done with her. */
+export const CorrectionChoice = ({
+  label,
+  value,
+  options,
+  onChange,
+  unchosen,
+}: {
+  label: string;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void;
+  /** What an unanswered choice reads as, for a record the farm is still waiting on. Left out, one must be chosen. */
+  unchosen?: string;
+}) => {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <select
+        className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
+        id={id}
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {unchosen === undefined ? null : <option value="">{unchosen}</option>}
+        {options.map((one) => (
+          <option key={one.value} value={one.value}>
+            {one.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 /**
  * A record being put right: the fields it has, filled from what it says now, and what was typed into them.
  *

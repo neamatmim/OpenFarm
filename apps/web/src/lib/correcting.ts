@@ -56,6 +56,17 @@ export const note = (
   same: (typed) => (typed.trim() || null) === held,
 });
 
+/**
+ * Something the farm keeps in both languages and a person types in one — a Disease as the Vet named it. The record
+ * holds what it is called; the farm is handed the name, which it keeps as the Bangla of it.
+ */
+export const bilingual = (held: string): Field<string, { bn: string }> => ({
+  holds: held,
+  shows: held,
+  sends: (typed) => (typed.trim() === "" ? undefined : { bn: typed.trim() }),
+  same: (typed) => typed.trim() === "" || typed.trim() === held,
+});
+
 /** A note the farm always holds: a cause, a reason. Cleared, it changes nothing — there is no such record without it. */
 export const words = (held: string): Field<string, string> => ({
   holds: held,

@@ -8,11 +8,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CorrectionDialog,
+  CorrectionField,
+  useCorrecting,
+} from "@/components/correction-dialog";
 import { categoryName, useRefusalToast } from "@/components/money";
 import { Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { isChangedSince } from "@/lib/correction-refusal";
+import { figure, note } from "@/lib/correcting";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
 import { orpc } from "@/utils/orpc";
@@ -377,110 +382,49 @@ export const CorrectEntered = ({
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const onRefused = useRefusalToast();
-  const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(String(entered.amountBdt));
-  const [note, setNote] = useState(entered.note ?? "");
+  const correcting = useCorrecting({
+    amountBdt: figure(entered.amountBdt),
+    note: note(entered.note),
+  });
+  // A receipt that came later changes no figure, and is a Correction all the same.
   const [receipt, setReceipt] = useState<Photo | null>(null);
-  const [reason, setReason] = useState("");
-  const correct = useMutation(
-    orpc.money.correctEntered.mutationOptions({
-      onSuccess: async () => {
-        setOpen(false);
-        setReason("");
-        toast.success(t("byHand.corrected"));
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
-      },
-      onError: async (error) => {
-        onRefused(error);
-        // Put right by somebody else since: read it again, and start from what it says now.
-        if (isChangedSince(error)) {
-          setOpen(false);
-          await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
-        }
-      },
-    })
-  );
-  if (!open) {
-    return (
-      <button
-        className="underline"
-        onClick={() => {
-          setAmount(String(entered.amountBdt));
-          setNote(entered.note ?? "");
-          setOpen(true);
-        }}
-        type="button"
-      >
-        {t("byHand.correct")}
-      </button>
-    );
-  }
+  const correct = useMutation(orpc.money.correctEntered.mutationOptions({}));
   return (
-    <form
-      className="bg-card mt-2 space-y-2 rounded-lg border p-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        correct.mutate({
+    <CorrectionDialog
+      onOpen={() => {
+        correcting.handleOpen();
+        setReceipt(null);
+      }}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
           id: entered.id,
-          changes: {
-            amountBdt:
-              Number(amount) === entered.amountBdt
-                ? undefined
-                : { from: entered.amountBdt, to: Number(amount) },
-            note:
-              note.trim() === (entered.note ?? "")
-                ? undefined
-                : { from: entered.note, to: note.trim() || null },
-          },
+          changes: correcting.changes(),
           receipt: receipt ?? undefined,
           reason,
         });
+        toast.success(t("byHand.corrected"));
+        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       }}
+      ready={correcting.changed || receipt !== null}
+      title={t("byHand.correct")}
+      trigger={t("byHand.correct")}
     >
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`correct-amount-${entered.id}`}>
-          {t("byHand.amount")}
-        </Label>
-        <Input
-          id={`correct-amount-${entered.id}`}
-          min={0}
-          onChange={(event) => setAmount(event.target.value)}
-          type="number"
-          value={amount}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`correct-note-${entered.id}`}>{t("byHand.note")}</Label>
-        <Input
-          id={`correct-note-${entered.id}`}
-          maxLength={300}
-          onChange={(event) => setNote(event.target.value)}
-          value={note}
-        />
-      </div>
+      <CorrectionField
+        inputMode="numeric"
+        label={t("byHand.amount")}
+        onChange={(value) => correcting.set("amountBdt", value)}
+        type="number"
+        value={correcting.typed.amountBdt ?? ""}
+      />
+      <CorrectionField
+        label={t("byHand.note")}
+        onChange={(value) => correcting.set("note", value)}
+        value={correcting.typed.note ?? ""}
+      />
       <ReceiptField
         id={`correct-receipt-${entered.id}`}
         onChange={setReceipt}
       />
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`correct-reason-${entered.id}`}>
-          {t("byHand.reason")}
-        </Label>
-        <Input
-          id={`correct-reason-${entered.id}`}
-          onChange={(event) => setReason(event.target.value)}
-          value={reason}
-        />
-      </div>
-      <Button
-        disabled={!(Number(amount) > 0) || !reason.trim() || correct.isPending}
-        size="sm"
-        type="submit"
-        variant="outline"
-      >
-        {t("byHand.correct")}
-      </Button>
-    </form>
+    </CorrectionDialog>
   );
 };

@@ -35,6 +35,7 @@ import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import {
+  CorrectionChoice,
   CorrectionDialog,
   CorrectionField,
   useCorrecting,
@@ -50,12 +51,8 @@ import { ReportSighting } from "@/components/report-sighting";
 import { SaleCorrection } from "@/components/sale-correction";
 import { VetCases } from "@/components/vet-cases";
 import { useLanguage } from "@/i18n/language-provider";
-import { figure, person } from "@/lib/correcting";
-import {
-  correctionRefusalMessage,
-  isChangedSince,
-  wordedRefusal,
-} from "@/lib/correction-refusal";
+import { choice, figure, person, words } from "@/lib/correcting";
+import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { queueMove } from "@/lib/record-offline";
 import type { client } from "@/utils/orpc";
@@ -506,130 +503,60 @@ const PutItRight = ({
   onDone: () => void;
 }) => {
   const { t } = useLanguage();
-  const [kind, setKind] = useState<MortalityKind>(detail.mortality.kind);
-  const [cause, setCause] = useState(detail.mortality.cause);
-  // Left as it is unless somebody chooses: a Correction to a stillborn calf's cause writes no disposal nobody said.
-  const [disposal, setDisposal] = useState<Disposal | "">(
-    detail.mortality.disposal ?? ""
-  );
-  const [reason, setReason] = useState("");
+  const correcting = useCorrecting({
+    kind: choice(detail.mortality.kind),
+    cause: words(detail.mortality.cause),
+    // Left as it is unless somebody chooses: a Correction to a stillborn calf's cause writes no disposal nobody said.
+    disposal: choice(detail.mortality.disposal),
+  });
   const correct = useMutation(
-    orpc.animals.correctMortality.mutationOptions({
-      onSuccess: () => {
-        setReason("");
+    orpc.animals.correctMortality.mutationOptions({})
+  );
+  return (
+    <CorrectionDialog
+      onOpen={correcting.handleOpen}
+      onSave={async (reason) => {
+        await correct.mutateAsync({
+          tagNumber: detail.tagNumber,
+          changes: correcting.changes(),
+          reason,
+        });
         toast.success(t("mortality.corrected"));
         onDone();
-      },
-      onError: (error) => {
-        toast.error(
-          correctionRefusalMessage(error, t) ??
-            (error.message || t("common.error"))
-        );
-        // Put right by somebody else since: read it again, and start from what it says now when it is opened again.
-        if (isChangedSince(error)) {
-          onDone();
-        }
-      },
-    })
-  );
-
-  return (
-    <details
-      className="border-t pt-2"
-      onToggle={(event) => {
-        if (event.currentTarget.open) {
-          setKind(detail.mortality.kind);
-          setCause(detail.mortality.cause);
-          setDisposal(detail.mortality.disposal ?? "");
-        }
       }}
+      ready={correcting.changed}
+      title={t("mortality.correct")}
+      trigger={t("mortality.correct")}
     >
-      <summary className="cursor-pointer">{t("mortality.correct")}</summary>
-      <form
-        className="mt-2 space-y-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const { mortality } = detail;
-          correct.mutate({
-            tagNumber: detail.tagNumber,
-            changes: {
-              kind:
-                kind === mortality.kind
-                  ? undefined
-                  : { from: mortality.kind, to: kind },
-              cause:
-                cause.trim() === mortality.cause
-                  ? undefined
-                  : { from: mortality.cause, to: cause.trim() },
-              disposal:
-                !disposal || disposal === mortality.disposal
-                  ? undefined
-                  : { from: mortality.disposal, to: disposal },
-            },
-            reason: reason.trim(),
-          });
-        }}
-      >
-        <div className="space-y-1">
-          <Label htmlFor="fix-kind">{t("mortality.kind")}</Label>
-          <select
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            id="fix-kind"
-            onChange={(event) => setKind(event.target.value as MortalityKind)}
-            value={kind}
-          >
-            {MORTALITY_KINDS.map((one) => (
-              <option key={one} value={one}>
-                {t(`mortality.${one}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="fix-cause">{t("mortality.cause")}</Label>
-          <Input
-            id="fix-cause"
-            onChange={(event) => setCause(event.target.value)}
-            value={cause}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="fix-disposal">{t("mortality.disposal")}</Label>
-          <select
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            id="fix-disposal"
-            onChange={(event) =>
-              setDisposal(event.target.value as Disposal | "")
-            }
-            value={disposal}
-          >
-            {detail.mortality.disposal ? null : (
-              <option value="">{t("mortality.awaitingDisposal")}</option>
-            )}
-            {DISPOSALS.map((one) => (
-              <option key={one} value={one}>
-                {t(`mortality.${one}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="fix-why">{t("mortality.why")}</Label>
-          <Input
-            id="fix-why"
-            onChange={(event) => setReason(event.target.value)}
-            value={reason}
-          />
-        </div>
-        <Button
-          disabled={!(cause.trim() && reason.trim())}
-          type="submit"
-          variant="outline"
-        >
-          {t("mortality.saveCorrection")}
-        </Button>
-      </form>
-    </details>
+      <CorrectionChoice
+        label={t("mortality.kind")}
+        onChange={(value) => correcting.set("kind", value)}
+        options={MORTALITY_KINDS.map((one) => ({
+          value: one,
+          label: t(`mortality.${one}`),
+        }))}
+        value={correcting.typed.kind ?? ""}
+      />
+      <CorrectionField
+        label={t("mortality.cause")}
+        onChange={(value) => correcting.set("cause", value)}
+        value={correcting.typed.cause ?? ""}
+      />
+      <CorrectionChoice
+        label={t("mortality.disposal")}
+        onChange={(value) => correcting.set("disposal", value)}
+        options={DISPOSALS.map((one) => ({
+          value: one,
+          label: t(`mortality.${one}`),
+        }))}
+        unchosen={
+          detail.mortality.disposal
+            ? undefined
+            : t("mortality.awaitingDisposal")
+        }
+        value={correcting.typed.disposal ?? ""}
+      />
+    </CorrectionDialog>
   );
 };
 
