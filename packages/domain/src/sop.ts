@@ -1,19 +1,18 @@
 import type { CalvingLead } from "./breeding";
-import {
-  CALF_OUTCOMES,
-  CALF_SEXES,
-  CALVING_EASES,
-  CALVING_RECORDERS,
-  HEAT,
-  PREGNANCY_CHECK_RESULTS,
-  SERVICE,
-  SERVICE_METHODS,
-  isCalvingLead,
-} from "./breeding";
+import { CALVING_RECORDERS, HEAT, SERVICE, isCalvingLead } from "./breeding";
 import { farmDayOf } from "./farm-clock";
 import type { AnimalState, Side } from "./lifecycle";
 import { LIVE_STATES } from "./lifecycle";
 import type { ROLES, RoleName } from "./roles";
+import type { StepShape } from "./step-shape";
+import {
+  CALVING_STEP,
+  DLS_REPORT_STEP,
+  LOT_NUMBER_STEP,
+  PREGNANCY_CHECK_STEP,
+  SERVICE_STEP,
+  problemsAgainst,
+} from "./step-shape";
 
 /** SOP content is authored in Bangla; English is optional and used for reports and a
  *  visiting Vet (i18n decision, ticket 02). */
@@ -263,31 +262,28 @@ export const findMissingBangla = (content: SopContent): string[] => {
 
 /** A Step done once whose record is a written note: the note has to be asked for and required, and the Step not
  *  repeated per animal. */
+/** A Step that writes down one thing, once for the whole of what it is about: the shape says what it asks,
+ *  and this says that asking it animal by animal is asking it over and over for one answer. */
 const onceWithRequiredNoteProblems = (
+  shape: StepShape,
   step: Step,
   path: string,
-  said: { note: string; once: string }
-): string[] => {
-  const problems: string[] = [];
-  if (!step.evidence.some((item) => item.type === "note" && item.required)) {
-    problems.push(
-      `${path}.evidence: ${said.note}, and it has to be asked for and required`
-    );
-  }
-  if (step.repeatPerAnimal) {
-    problems.push(`${path}.effect: ${said.once}`);
-  }
-  return problems;
-};
+  once: string
+): string[] => [
+  ...problemsAgainst(shape, step, path),
+  ...(step.repeatPerAnimal ? [`${path}.effect: ${once}`] : []),
+];
 
 /** What a Step that records delivering the letter has to ask for. The reference the office
  *  files it under is what the farm keeps, and it is written rather than counted — required,
  *  because a report that cannot be evidenced is a report that was not made. */
 const reportStepProblems = (step: Step, path: string): string[] =>
-  onceWithRequiredNoteProblems(step, path, {
-    note: "this step records the reference the report was delivered under",
-    once: "one letter reports one animal, so this step runs once",
-  });
+  onceWithRequiredNoteProblems(
+    DLS_REPORT_STEP,
+    step,
+    path,
+    "one letter reports one animal, so this step runs once"
+  );
 
 /** The two shapes of a dose Step. A campaign goes round the Pen animal by animal and this
  *  Version says what each of them gets; a Prescription's dose is about the one animal it names,
@@ -312,93 +308,23 @@ const doseStepProblems = (
   return problems;
 };
 
-/** Where each fact sits in a Service Step's Evidence. Validated and read by the same positions,
- *  so what the Step asks for and what the record takes from it cannot drift apart. */
-export const SERVICE_EVIDENCE = {
-  method: 0,
-  sire: 1,
-  servedBy: 2,
-  servedAt: 3,
-} as const;
+/** A Service Step asks what SERVICE_STEP says it asks, and publishing is where that is settled. */
+const serviceStepProblems = (step: Step, path: string): string[] =>
+  problemsAgainst(SERVICE_STEP, step, path);
 
 /**
- * What a Service Step has to ask for. The Step's own words are the farm's, but the record is read
- * back by every later act in the breeding chain, so its shape is not.
- *
- * How she was served, as a choice offering exactly `ai` and `natural`; the sire, as a required note
- * — a straw's number, or the farm's own bull by his Tag Number; who served her, as a note; and when,
- * as a required date and time. Who served her is not required here, because a bull running with the
- * herd has nobody standing over him, but an AI service is refused without it: the story asks for the
- * technician.
- *
- * The Step may be per animal. A Heat raises work about one cow, but a bull running with the herd
- * serves cows nobody saw in heat, and the round that walks the Pen afterwards is where that is
- * written down — refusing a per-animal Service Step would leave that service no way in at all.
+ * A Pregnancy Check asks what PREGNANCY_CHECK_STEP says, and is not per animal: a check is of the attempt that
+ * raised it, and that work is about one cow. A Vet walking a Pen could not say which of a cow's heats a
+ * pregnancy dates from; the farm can.
  */
-const serviceStepProblems = (step: Step, path: string): string[] => {
-  const problems: string[] = [];
-  const method = step.evidence[SERVICE_EVIDENCE.method];
-  const sire = step.evidence[SERVICE_EVIDENCE.sire];
-  const servedBy = step.evidence[SERVICE_EVIDENCE.servedBy];
-  const servedAt = step.evidence[SERVICE_EVIDENCE.servedAt];
-  const offered = method?.choices?.map((choice) => choice.value) ?? [];
-  const exactlyTheMethods =
-    method?.type === "choice" &&
-    offered.length === SERVICE_METHODS.length &&
-    SERVICE_METHODS.every((one) => offered.includes(one));
-  if (!exactlyTheMethods) {
-    problems.push(
-      `${path}.evidence[0]: a service step first asks how she was served, offering "ai" and "natural"`
-    );
-  }
-  if (sire?.type !== "note" || !sire.required) {
-    problems.push(
-      `${path}.evidence[1]: a service step then asks for the sire, as a required note`
-    );
-  }
-  if (servedBy?.type !== "note") {
-    problems.push(
-      `${path}.evidence[2]: a service step then asks who served her, as a note`
-    );
-  }
-  // When she was served, which is not when it was written down: every later date in the chain —
-  // the Pregnancy Check, Expected Calving — counts from this day (Owner's decision, 2026-09-13).
-  if (servedAt?.type !== "datetime" || !servedAt.required) {
-    problems.push(
-      `${path}.evidence[3]: a service step then asks when she was served, as a required date and time`
-    );
-  }
-  return problems;
-};
-
-/**
- * What a Pregnancy Check Step has to ask: what the Vet found, as a required choice offering exactly
- * `positive` and `negative`. Anything else the Vet wants to write sits after it.
- *
- * Not per animal: a check is of the attempt that raised it, and that work is about one cow. A Vet
- * walking a Pen could not say which of a cow's heats a pregnancy dates from; the farm can.
- */
-const pregnancyCheckStepProblems = (step: Step, path: string): string[] => {
-  const problems: string[] = [];
-  if (step.repeatPerAnimal) {
-    problems.push(
-      `${path}: a pregnancy check is of one cow's service, not walked animal by animal`
-    );
-  }
-  const [result] = step.evidence;
-  const offered = result?.choices?.map((choice) => choice.value) ?? [];
-  const exactlyTheResults =
-    result?.type === "choice" &&
-    result.required &&
-    offered.length === PREGNANCY_CHECK_RESULTS.length &&
-    PREGNANCY_CHECK_RESULTS.every((one) => offered.includes(one));
-  if (!exactlyTheResults) {
-    problems.push(
-      `${path}.evidence[0]: a pregnancy check first asks what was found, as a required choice offering "positive" and "negative"`
-    );
-  }
-  return problems;
-};
+const pregnancyCheckStepProblems = (step: Step, path: string): string[] => [
+  ...(step.repeatPerAnimal
+    ? [
+        `${path}: a pregnancy check is of one cow's service, not walked animal by animal`,
+      ]
+    : []),
+  ...problemsAgainst(PREGNANCY_CHECK_STEP, step, path),
+];
 
 /**
  * A procedure recording a Pregnancy Check is the Vet's (roles matrix: Breeding — PD is `C R U` to the
@@ -429,73 +355,9 @@ const pregnancyCheckProcedureProblems = (content: SopContent): string[] => {
   return problems;
 };
 
-/** Where each fact sits in a Calving Step's Evidence, read by the same positions it is validated
- *  by. Room for three calves, because twins — and, rarely, triplets — are one calving; the slots of a
- *  calf not born are left empty. */
-export const CALVING_EVIDENCE = {
-  calvedAt: 0,
-  ease: 1,
-  calves: [
-    { sex: 2, outcome: 3 },
-    { sex: 4, outcome: 5 },
-    { sex: 6, outcome: 7 },
-  ],
-} as const;
-
-/** Whether a choice slot offers exactly these values. */
-const offersExactly = (
-  evidence: Evidence | undefined,
-  values: readonly string[]
-): boolean => {
-  const offered = evidence?.choices?.map((one) => one.value) ?? [];
-  return (
-    evidence?.type === "choice" &&
-    offered.length === values.length &&
-    values.every((one) => offered.includes(one))
-  );
-};
-
-/**
- * What a Calving Step has to ask, in order: when she calved, as a required date and time; how it
- * went, offering `unassisted`, `assisted` and `vet`; and for a first calf and up to two more its sex
- * (`female`, `male`) and whether it was `alive` or `stillborn`. The first calf is required — a calving
- * with no calf is an abortion, recorded as one — and the others are not.
- */
-const calvingStepProblems = (step: Step, path: string): string[] => {
-  const problems: string[] = [];
-  const at = step.evidence[CALVING_EVIDENCE.calvedAt];
-  if (at?.type !== "datetime" || !at.required) {
-    problems.push(
-      `${path}.evidence[0]: a calving step first asks when she calved, as a required date and time`
-    );
-  }
-  const ease = step.evidence[CALVING_EVIDENCE.ease];
-  if (!(offersExactly(ease, CALVING_EASES) && ease?.required)) {
-    problems.push(
-      `${path}.evidence[1]: a calving step then asks how it went, offering "unassisted", "assisted" and "vet"`
-    );
-  }
-  for (const [calf, slots] of CALVING_EVIDENCE.calves.entries()) {
-    const sex = step.evidence[slots.sex];
-    const outcome = step.evidence[slots.outcome];
-    const requiredAsItShouldBe =
-      calf === 0
-        ? Boolean(sex?.required && outcome?.required)
-        : !(sex?.required || outcome?.required);
-    if (
-      !(
-        offersExactly(sex, CALF_SEXES) &&
-        offersExactly(outcome, CALF_OUTCOMES) &&
-        requiredAsItShouldBe
-      )
-    ) {
-      problems.push(
-        `${path}.evidence[${slots.sex}]: a calving step asks each calf's sex ("female", "male") and whether it was born "alive" or "stillborn" — the first calf required, the others not`
-      );
-    }
-  }
-  return problems;
-};
+/** A Calving Step asks what CALVING_STEP says it asks. */
+const calvingStepProblems = (step: Step, path: string): string[] =>
+  problemsAgainst(CALVING_STEP, step, path);
 
 /**
  * A dry-off Step is walked cow by cow: which cow went Dry is the whole of what it records, so the
@@ -526,10 +388,12 @@ const renewalStepProblems = (step: Step, path: string): string[] =>
 /** What a Step that records a Campaign's Lot Number has to ask for: the number off the vial, written and
  *  required, once for the Pen — a Lot Number asked at every animal is the round the Owner decided not to make. */
 const lotNumberStepProblems = (step: Step, path: string): string[] =>
-  onceWithRequiredNoteProblems(step, path, {
-    note: "this step records the Lot Number off the vial",
-    once: "a Campaign's Lot Number is asked once, not once per animal",
-  });
+  onceWithRequiredNoteProblems(
+    LOT_NUMBER_STEP,
+    step,
+    path,
+    "a Campaign's Lot Number is asked once, not once per animal"
+  );
 
 const SHAPED_STEPS: Partial<
   Record<StepEffect["kind"], (step: Step, path: string) => string[]>

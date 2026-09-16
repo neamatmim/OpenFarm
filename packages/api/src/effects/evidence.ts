@@ -1,4 +1,14 @@
-import type { Choice, Step } from "@OpenFarm/domain";
+import type {
+  Choice,
+  Held,
+  Slot,
+  SlotName,
+  SlotNamed,
+  Step,
+  StepShape,
+  TurnOf,
+} from "@OpenFarm/domain";
+import { positionOf, slotsOf, turnsOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { EffectInput } from "./effect";
@@ -133,4 +143,72 @@ export const penOf = (input: Pick<EffectInput, "instance">): string => {
     });
   }
   return input.instance.penId;
+};
+
+/** What was answered at one position, as the slot there says it is held. Null for a slot left empty — and for
+ *  a date nobody can read, which is a slot nobody answered. */
+const heldAt = (
+  step: Step,
+  evidence: unknown[],
+  slot: Slot,
+  at: number
+): unknown => {
+  if (slot.kind === "choice") {
+    const chosen = declaredChoiceAt(step, evidence, at)?.value ?? null;
+    if (chosen !== null && !slot.values.includes(chosen)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "That is not one of the things this step offers",
+      });
+    }
+    return chosen;
+  }
+  if (slot.kind === "datetime") {
+    const when = new Date(String(evidence[at]));
+    return Number.isNaN(when.getTime()) ? null : when;
+  }
+  return textAt(evidence, at);
+};
+
+/**
+ * What one slot of a shaped Step holds, by the name the shape gives it: a choice one of its own words, a date
+ * and time the instant the farm means, a note what was written. Nothing for a slot left empty.
+ *
+ * Read by name rather than by position, so an Effect and the rule publishing checked cannot come to disagree
+ * about which answer is which (CONTEXT: SOP Definition).
+ */
+export const heldIn = <Shape extends StepShape, Name extends SlotName<Shape>>(
+  input: { step: Step; evidence: unknown[] },
+  shape: Shape,
+  name: Name
+): Held<SlotNamed<Shape, Name>> | null => {
+  const at = positionOf(shape, name);
+  const slot = slotsOf(shape).find((one) => one.at === at)?.slot;
+  if (!slot) {
+    throw new Error(`no slot called ${String(name)} in this shape`);
+  }
+  return heldAt(input.step, input.evidence, slot, at) as Held<
+    SlotNamed<Shape, Name>
+  > | null;
+};
+
+/** Each turn of a repeated group, in order — the calves of one calving — with what every slot of that turn
+ *  holds, and nothing for the turns the farm left empty. */
+export const turnsIn = <Shape extends StepShape, Name extends string>(
+  input: { step: Step; evidence: unknown[] },
+  shape: Shape,
+  name: Name
+): TurnOf<Shape, Name>[] => {
+  const group = shape.find(
+    (asked) => "kind" in asked && asked.kind === "repeat" && asked.name === name
+  );
+  const slots = group && "of" in group ? group.of : [];
+  return turnsOf(shape, name).map(
+    ({ at }) =>
+      Object.fromEntries(
+        slots.map((slot) => [
+          slot.name,
+          heldAt(input.step, input.evidence, slot, at[slot.name] ?? -1),
+        ])
+      ) as TurnOf<Shape, Name>
+  );
 };
