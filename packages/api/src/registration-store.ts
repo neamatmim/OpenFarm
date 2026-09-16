@@ -16,7 +16,7 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { Raised } from "./notice";
-import { tell } from "./notice";
+import { rememberingPeople, tell } from "./notice";
 import type { PhotoInput } from "./photo-input";
 
 /** What the renewal SOP's closing Step records: the new expiry, when the renewed certificate was issued, and
@@ -95,6 +95,7 @@ export const tellOfRenewals = async (
 ): Promise<Raised[]> => {
   const renewals = raised.filter((one) => one.cause?.startsWith(RENEWAL_CAUSE));
   const told: Raised[] = [];
+  const remembering = rememberingPeople();
   for (const work of renewals) {
     // oxlint-disable-next-line no-await-in-loop
     const rows = await tell(
@@ -107,7 +108,8 @@ export const tellOfRenewals = async (
           expiresOn: standing.registrationExpiresOn?.toISOString() ?? null,
         },
       },
-      now
+      now,
+      remembering
     );
     told.push(...rows);
   }

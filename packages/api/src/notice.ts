@@ -53,7 +53,7 @@ const theOwner = { roles: ["owner"] } as const;
  * existed still reads. What each kind *says* is the wording's business (push, digest, SMS, the app's own list); what
  * it *carries* is here, once, where a new kind cannot be added without saying what it needs.
  */
-export interface NoticeKind<Facts> {
+export interface NoticeKind {
   audience: Audience;
   /** True for the kind of Notice that is not finished until a person has decided: raising it writes the judgement
    *  owed beside it, under the reason its facts carry. */
@@ -61,8 +61,6 @@ export interface NoticeKind<Facts> {
   /** What the thing is, as the trail and the screens name it — for the kinds that are always about one sort of thing.
    *  A Needs Review is about whatever was being put right, so it says so when it is raised. */
   entity?: string;
-  /** Narrows `Facts` at the call site; never read. */
-  readonly facts?: (facts: Facts) => void;
 }
 
 /** Work that is late, and the same work escalated to the Owner: named, placed, and dated. */
@@ -80,23 +78,12 @@ export interface NoticeFacts {
   instance_overdue: WorkFacts;
   instance_escalated: WorkFacts;
   instance_sent_back: WorkFacts & { reason: string };
-  needs_review: Partial<WorkFacts> & {
-    /** What the farm could not put right on its own. */
-    reason: ReviewReason;
-    stepId?: string;
-    /** Why an Effect stood aside, for a Correction the farm has moved past. */
-    because?: string;
-    /** For an Entry the world moved past, or a phone whose clock or count is out: what it sent, and what the farm
-     *  made of it. */
-    kind?: string;
-    seq?: number;
-    why?: string;
-    closedAt?: Date;
-    count?: number;
-    /** For a weighing nobody could have grown into: what the scale said, and what the farm found odd about it. */
-    weightKg?: number;
-    note?: string;
-  };
+  /**
+   * What the farm could not put right on its own, and whatever the thing being put right carried with it — a
+   * corrected Step names its work and its Step, a late Entry what a phone sent, a doubted weighing what the scale
+   * said. Five different things want a Manager's judgement, and what each of them has to show is its own.
+   */
+  needs_review: { reason: ReviewReason } & Record<string, unknown>;
   sop_published: { sopBn: string; number: number };
   sop_proposed: { sopBn: string; sopEn: string };
   withdrawal_ending: { tag: string; animalId: string; until: string };
@@ -121,9 +108,7 @@ export interface NoticeFacts {
 }
 
 /** The farm's own list of who hears what, beside the delivery table that says when. */
-export const NOTICES: {
-  [Kind in AlertKind]: NoticeKind<NoticeFacts[Kind]>;
-} = {
+export const NOTICES: Record<AlertKind, NoticeKind> = {
   // The Manager, and whoever the work is actually on: work nobody has picked up is exactly the work that goes late.
   instance_overdue: {
     audience: [theManagers, "thePeopleOnTheWork"],
@@ -137,20 +122,25 @@ export const NOTICES: {
   needs_review: { audience: [theManagers], wantsJudgement: true },
   // Whoever does the work it changes, and nobody else: a procedure the milkers run is not the Vet's news.
   sop_published: { audience: ["whoDoesThisWork"], entity: "sop_version" },
+  // A change somebody wants made to the Playbook is the Owner's to accept or not.
   sop_proposed: { audience: [theOwner], entity: "sop_proposal" },
   // The Manager and the milkers of her Pen: they are the people who decide where tomorrow morning's litres go.
   withdrawal_ending: {
     audience: [theManagers, "thePeopleOfHerPen"],
     entity: "withdrawal",
   },
+  // A hold starting or being cut short changes where tomorrow's milk goes, which is the Manager's to know.
   withdrawal_changed: { audience: [theManagers], entity: "animal" },
   // The Manager takes the letter to the office and the Owner answers for the farm if it does not go.
   notifiable_diagnosis: {
     audience: [{ roles: ["owner", "manager"] }],
     entity: "diagnosis",
   },
+  // The store is the Manager's to keep filled.
   low_stock: { audience: [theManagers], entity: "stock_low" },
+  // Money over the farm's threshold waits for the Owner, and nobody else can say yes to it.
   money_awaiting_approval: { audience: [theOwner], entity: "money_event" },
+  // The Registration is in the Owner's name, and renewing it is theirs to do.
   registration_renewal_due: { audience: [theOwner], entity: "sop_instance" },
   // Their own phone is holding the entries, so it is their own news.
   entry_rejected: { audience: ["whoseActItWas"], entity: "sync_batch" },
@@ -158,6 +148,7 @@ export const NOTICES: {
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */
 export interface Raised {
+  /** The Alert row itself, so what became of telling somebody is recorded against it. */
   id: string;
   userId: string;
   kind: AlertKind;
@@ -166,8 +157,16 @@ export interface Raised {
   params: Record<string, unknown>;
 }
 
+/** The kinds of Notice that are not finished until a person has decided. */
+type WantsJudgement = "needs_review";
+
 /** What raising one needs to know beyond its facts: which thing it is about, and — where the audience depends on it —
- *  the work or the person. */
+ *  the work or the person. A kind that wants a person's judgement must also say which Audit Event raised it and what
+ *  sort of thing it is about: the queue row is written from both, and neither can be worked out here. */
+export type AboutFor<Kind extends AlertKind> = Kind extends WantsJudgement
+  ? About & { entity: string; auditEventId: string }
+  : About;
+
 export interface About {
   /** The thing the Notice is about, as the screens and the trail name it. One per thing per kind. */
   id: string;
@@ -185,6 +184,30 @@ export interface About {
   /** The Audit Event that raised it, which a judgement owed is read back from either end. */
   auditEventId?: string;
 }
+
+/**
+ * What one sweep has already looked up. Telling a hundred cows' Managers is one question, not a hundred: the answer is
+ * the same for every Notice in the same act, and the sweep runs whenever anybody opens the app.
+ */
+export type Remembered = Map<string, string[]>;
+
+/** Made once for a run of tellings, so the people each lot names are looked up once between them. */
+export const rememberingPeople = (): Remembered => new Map();
+
+/** What this lot of people is, as one telling asks for them: the same question twice is the same answer. */
+const asked = (part: AudiencePart, about: About): string | null => {
+  if (typeof part !== "string") {
+    return `roles:${[...part.roles].toSorted().join(",")}`;
+  }
+  if (part === "thePeopleOfHerPen") {
+    return about.penId ? `pen:${about.penId}` : null;
+  }
+  if (part === "whoDoesThisWork") {
+    return about.assignedRole ? `roles:${about.assignedRole}` : null;
+  }
+  // The people on one piece of work, or whoever did it, are that work's own — a different answer every time.
+  return null;
+};
 
 const somePeople = async (
   tx: Tx,
@@ -219,13 +242,20 @@ const peopleFor = async (
   tx: Tx,
   farmId: string,
   audience: Audience,
-  about: About
+  about: About,
+  remembering: Remembered
 ): Promise<string[]> => {
   const people: string[] = [];
   for (const part of audience) {
+    const question = asked(part, about);
+    const answered = question === null ? undefined : remembering.get(question);
     // Sequential: each lot is a query, and there are one or two of them.
     // oxlint-disable-next-line no-await-in-loop
-    people.push(...(await somePeople(tx, farmId, part, about)));
+    const lot = answered ?? (await somePeople(tx, farmId, part, about));
+    if (question !== null) {
+      remembering.set(question, lot);
+    }
+    people.push(...lot);
   }
   return [...new Set(people)];
 };
@@ -241,30 +271,35 @@ const peopleFor = async (
 export const tell = async <Kind extends AlertKind>(
   tx: Tx,
   farmId: string,
-  notice: { kind: Kind; about: About; facts: NoticeFacts[Kind] },
-  now: Date
+  notice: { kind: Kind; about: AboutFor<Kind>; facts: NoticeFacts[Kind] },
+  now: Date,
+  /** What this telling has already looked up, when it is one of many in a sweep. */
+  remembering: Remembered = new Map()
 ): Promise<Raised[]> => {
-  const kind = NOTICES[notice.kind] as NoticeKind<NoticeFacts[Kind]>;
-  const params = notice.facts as Record<string, unknown>;
-  const entity = notice.about.entity ?? kind.entity ?? "";
+  const kind = NOTICES[notice.kind];
+  const about: About = notice.about;
+  const entity = about.entity ?? kind.entity ?? "";
   if (kind.wantsJudgement) {
+    const judgement = notice.facts as NoticeFacts[WantsJudgement];
     await writeTheJudgementOwed(
       tx,
       farmId,
       {
         entity,
-        entityId: notice.about.id,
-        reason: params.reason as ReviewReason,
-        auditEventId: notice.about.auditEventId ?? "",
+        entityId: about.id,
+        reason: judgement.reason,
+        // Required of a kind that wants a judgement, so there is always one to write.
+        auditEventId: about.auditEventId ?? "",
       },
       now
     );
   }
-  const people = await peopleFor(tx, farmId, kind.audience, notice.about);
+  const params = notice.facts as Record<string, unknown>;
+  const people = await peopleFor(tx, farmId, kind.audience, about, remembering);
   const written = {
     kind: notice.kind,
     entity,
-    entityId: notice.about.id,
+    entityId: about.id,
     params,
   };
   const rows = await raiseAlerts(tx, farmId, people, written, now);

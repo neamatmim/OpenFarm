@@ -16,7 +16,7 @@ import { orpc } from "@/utils/orpc";
 /** What each kind says in the farm's own list, from the farm's own words for it — one table, which the phone, the
  *  pocket, the evening's post and the two that go by text all read. */
 const messageFor = (kind: string): MessageKey | null =>
-  kind in SAYS ? (SAYS[kind as AlertKind].app as MessageKey) : null;
+  kind in SAYS ? SAYS[kind as AlertKind].app : null;
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
  *  rather than the type system's; read defensively and in the reader's language. */

@@ -37,7 +37,8 @@ import {
 } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
-import { tell } from "./notice";
+import type { Raised } from "./notice";
+import { rememberingPeople, tell } from "./notice";
 import { renewalCause } from "./registration-store";
 
 const MINUTE_MS = 60_000;
@@ -877,15 +878,8 @@ export const findPendingNotices = async (
   };
 };
 
-export interface RaisedAlert {
-  /** The Alert row itself, so what became of telling someone is recorded against it. */
-  id: string;
-  kind: string;
-  entity: string;
-  entityId: string;
-  params: Record<string, unknown>;
-  userId: string;
-}
+/** A Notice as it was raised. Named here as well because this is where the sweep that raises most of them lives. */
+export type RaisedAlert = Raised;
 
 /**
  * Tells the farm about work that has gone late. Overdue reaches the Manager and whoever the
@@ -906,6 +900,8 @@ export const raiseLateAlerts = async (
   let overdue = 0;
   let escalated = 0;
   const raised: RaisedAlert[] = [];
+  // Asked once for the whole sweep: who the Managers and the Owner are is the same answer for every late piece of work.
+  const remembering = rememberingPeople();
   for (const instance of pending.overdue) {
     // Deliberately sequential: a hundred concurrent upserts against one unique index buys
     // nothing but lock contention.
@@ -918,7 +914,8 @@ export const raiseLateAlerts = async (
         about: { id: instance.id, work: instance },
         facts: alertParams(instance),
       },
-      now
+      now,
+      remembering
     );
     overdue += rows.length;
     raised.push(...rows);
@@ -936,7 +933,8 @@ export const raiseLateAlerts = async (
           minutesOverdue: minutesOverdue(instance, now),
         },
       },
-      now
+      now,
+      remembering
     );
     escalated += rows.length;
     raised.push(...rows);

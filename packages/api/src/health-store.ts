@@ -13,7 +13,7 @@ import { z } from "zod";
 import type { Tx, Trail } from "./audit";
 import type { RaisedAlert } from "./instances-store";
 import { dueAtFor, raiseDueInstances } from "./instances-store";
-import { tell } from "./notice";
+import { rememberingPeople, tell } from "./notice";
 import { contentOf, publishedContent } from "./sop-content";
 import { callOffWork } from "./work-transitions";
 
@@ -386,6 +386,9 @@ export const raiseWithdrawalAlerts = async (
     return [];
   }
   const raised: RaisedAlert[] = [];
+  // One sweep, one question: who the Managers are does not change between two cows, and the milkers of a Pen are the
+  // same for every cow standing in it.
+  const remembering = rememberingPeople();
   for (const beast of ending) {
     const until = beast.milkWithdrawalUntil;
     if (!until) {
@@ -411,7 +414,8 @@ export const raiseWithdrawalAlerts = async (
           until: until.toISOString(),
         },
       },
-      now
+      now,
+      remembering
     );
     raised.push(...rows);
   }

@@ -10,6 +10,9 @@
   "scripts": {
     "check-types": "tsc --noEmit"
   },
+  "dependencies": {
+    "@OpenFarm/i18n": "workspace:*"
+  },
   "devDependencies": {
     "@OpenFarm/config": "workspace:*",
     "@types/node": "catalog:",

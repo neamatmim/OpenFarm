@@ -87,11 +87,9 @@ export const messageFor = (
   return {
     lang: reader,
     title: said
-      ? translate(reader, said.title as MessageKey)
+      ? translate(reader, said.title)
       : translate(reader, "alerts.title"),
-    body: said
-      ? translate(reader, said.body as MessageKey, params)
-      : alert.kind,
+    body: said ? translate(reader, said.body, params) : alert.kind,
     url: alert.entity === "sop_instance" ? `/work/${alert.entityId}` : "/today",
     // One notice per thing per kind: a phone that has been in a pocket all morning should
     // show what is waiting, not a history of it being told.
@@ -104,5 +102,4 @@ export const DIGESTIBLE = ALERT_KINDS.filter((kind) => !goesNow(kind));
 
 /** How a Digest names what is in it: so many of this, so many of that, rather than a count
  *  of things the reader then has to go and find. */
-export const digestWording = (kind: AlertKind): MessageKey =>
-  SAYS[kind].digest as MessageKey;
+export const digestWording = (kind: AlertKind): MessageKey => SAYS[kind].digest;

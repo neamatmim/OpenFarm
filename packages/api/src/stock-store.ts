@@ -19,7 +19,7 @@ import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 import type { Raised } from "./notice";
-import { tell } from "./notice";
+import { rememberingPeople, tell } from "./notice";
 
 /** One Feed Item as the store holds it. */
 export interface StockLine {
@@ -255,10 +255,12 @@ export const lowStockToTell = async (
 export const raiseLowStockAlerts = async (
   tx: Tx,
   farmId: string,
-  { untold }: { managers: string[]; untold: RunningLow[] },
+  { untold }: { untold: RunningLow[] },
   now: Date
 ): Promise<Raised[]> => {
   const raised: Raised[] = [];
+  // The Managers are the same people for every Feed Item running low.
+  const remembering = rememberingPeople();
   for (const line of untold) {
     // Sequential against one unique index, as the other notices are.
     // oxlint-disable-next-line no-await-in-loop
@@ -278,7 +280,8 @@ export const raiseLowStockAlerts = async (
           threshold: line.threshold,
         },
       },
-      now
+      now,
+      remembering
     );
     raised.push(...rows);
   }

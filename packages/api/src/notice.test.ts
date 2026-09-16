@@ -173,6 +173,87 @@ describe("who hears a Notice", () => {
     });
   });
 
+  it("tells the Owner what is the Owner's, and nobody else", async () => {
+    // Money over the threshold, a change proposed to the Playbook, the Registration running out: three kinds, one
+    // audience, and the Manager hears none of them.
+    const owners = [
+      {
+        kind: "money_awaiting_approval" as const,
+        id: `money-${suffix}`,
+        facts: {
+          moneyEventId: `m-${suffix}`,
+          amountBdt: 40_000,
+          categoryBn: "খাবার",
+          categoryEn: "Feed",
+        },
+      },
+      {
+        kind: "sop_proposed" as const,
+        id: `proposed-${suffix}`,
+        facts: { sopBn: `প্রস্তাব ${suffix}`, sopEn: `Proposal ${suffix}` },
+      },
+      {
+        kind: "registration_renewal_due" as const,
+        id: `renewal-${suffix}`,
+        facts: { expiresOn: AT },
+      },
+    ];
+    for (const one of owners) {
+      // Sequential: each is a telling of its own, as it is on the farm.
+      // oxlint-disable-next-line no-await-in-loop
+      const raised = await db().transaction((tx) =>
+        tell(
+          tx,
+          TEST_FARM.id,
+          { kind: one.kind, about: { id: one.id }, facts: one.facts },
+          new Date(AT)
+        )
+      );
+      const heard = raised.map((row) => row.userId);
+      expect(heard).toContain("test-owner");
+      expect(heard).not.toContain("test-manager");
+    }
+  });
+
+  it("tells the Owner and the Manager about a disease the farm must report", async () => {
+    const id = `notifiable-${suffix}`;
+    const raised = await db().transaction((tx) =>
+      tell(
+        tx,
+        TEST_FARM.id,
+        {
+          kind: "notifiable_diagnosis",
+          about: { id },
+          facts: { tag: "D-0003", disease: "তড়কা" },
+        },
+        new Date(AT)
+      )
+    );
+    const heard = raised.map((row) => row.userId);
+    // The Manager takes the letter to the office; the Owner answers for the farm if it does not go.
+    expect(heard).toContain("test-owner");
+    expect(heard).toContain("test-manager");
+    expect(heard).not.toContain(world.staff);
+  });
+
+  it("tells a phone's own person that the farm would not take their entries", async () => {
+    const id = `refused-${suffix}`;
+    const raised = await db().transaction((tx) =>
+      tell(
+        tx,
+        TEST_FARM.id,
+        {
+          kind: "entry_rejected",
+          about: { id, person: world.staff },
+          facts: { count: 3, reason: "no animal with tag D-9999" },
+        },
+        new Date(AT)
+      )
+    );
+    // Their own phone is holding the entries, so it is their own news and nobody else's.
+    expect(raised.map((row) => row.userId)).toEqual([world.staff]);
+  });
+
   it("says the same thing once, however often it is raised", async () => {
     const id = `twice-${suffix}`;
     const facts = { tag: "D-0002", until: AT };

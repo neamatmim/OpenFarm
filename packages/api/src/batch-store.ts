@@ -153,7 +153,7 @@ const keep = async (
         reason: "late_entry",
         kind: entry.kind,
         seq: entry.seq,
-        why: reason ?? undefined,
+        why: reason,
       },
     },
     receivedAt

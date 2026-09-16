@@ -30,11 +30,11 @@ export const silentSms: SmsTransport = {
   send: () => Promise.resolve({ delivered: false }),
 };
 
-/** What a text message says, for the kinds that travel this way: the farm's own words for each kind, which the
- *  delivery table beside them says is worth texting. A kind marked for texting with nothing to say is a compile
- *  error there, not silence on somebody's phone. */
-const said = (kind: AlertKind): MessageKey | undefined =>
-  SAYS[kind].sms as MessageKey | undefined;
+/** What a text message says, for the kinds that travel this way: the farm's own words for each kind. Which kinds
+ *  those are is the delivery table's to say, and the words are typed from it — a kind marked for texting with
+ *  nothing to say is a compile error there, not silence on somebody's phone. */
+const inATextMessage = (kind: AlertKind): MessageKey | undefined =>
+  SAYS[kind].sms;
 
 /** The message for one notice in one person's language, or nothing when this kind does not go
  *  by text at all. */
@@ -43,7 +43,7 @@ export const smsFor = (
   params: MessageParams,
   person: { language?: string | null } | null
 ): SmsMessage | null => {
-  const key = said(kind);
+  const key = inATextMessage(kind);
   if (!key) {
     return null;
   }
