@@ -339,6 +339,45 @@ describe("review findings", () => {
     );
   });
 
+  it("lets a Manager write down a number, except the Owner's — whatever else the Owner holds", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    await createTestClient(appRouter, { as: "staff" });
+
+    await manager.client.people.setPhone({
+      userId: thePerson("staff").id,
+      phone: "+8801711000401",
+    });
+
+    const refused = { refusal: "owner_writes_their_own" };
+    await expect(
+      manager.client.people.setPhone({
+        userId: thePerson("owner").id,
+        phone: "+8801711000402",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN", data: refused });
+
+    // And refused for somebody who became an Owner while holding another Role — the Role they held first is
+    // not the answer to whether they are the Owner.
+    await owner.client.people.assignRoles({
+      userId: thePerson("staff").id,
+      roles: ["staff", "owner"],
+    });
+    try {
+      await expect(
+        manager.client.people.setPhone({
+          userId: thePerson("staff").id,
+          phone: "+8801711000403",
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN", data: refused });
+    } finally {
+      await owner.client.people.assignRoles({
+        userId: thePerson("staff").id,
+        roles: ["staff"],
+      });
+    }
+  });
+
   it("disabling a person expires their sessions", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
     await createTestClient(appRouter, { as: "vet" });

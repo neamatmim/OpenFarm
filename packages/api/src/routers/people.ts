@@ -1,15 +1,8 @@
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
-import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
-import { staffPin } from "@OpenFarm/db/schema/device";
-import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
-import {
-  derivePinHash,
-  isPin,
-  randomPinSalt,
-  startOfFarmDay,
-} from "@OpenFarm/domain";
+import { eq } from "@OpenFarm/db/operators";
+import { user } from "@OpenFarm/db/schema/auth";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ROLE, ROLES } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -22,44 +15,28 @@ import { nameCorrection, nameCorrectionInput } from "../corrections/name";
 import { hashToken } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
+import {
+  acceptInvite,
+  approveInvite,
+  endMembership,
+  newInviteCode,
+  newPin,
+  pensOf,
+  planInvite,
+  reissueInvite,
+  restoreMembership,
+  rolesOf,
+  setPens,
+  setPin,
+  setRoles,
+  theRoster,
+  whoTheyAre,
+  writeInvite,
+} from "../membership";
 import { requirePersonalSession, requireRole } from "../roles";
-import { activeRolesFor, grantRoles, revokeRoles } from "../roles-store";
 import { scopesOf } from "../scope";
 
 const roleSchema = z.enum(ROLES);
-
-const personSnapshot = async (tx: Tx, userId: string) => {
-  const row = await tx.query.user.findFirst({
-    where: { id: userId },
-    columns: { name: true, disabledAt: true },
-  });
-  return row ? { name: row.name, disabledAt: row.disabledAt } : null;
-};
-
-/** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LENGTH = 8;
-
-/** The instant a visit's access ends: the close of its last farm day. A visit ending before today is no visit. */
-const endOfVisit = (day: string, now: Date): Date => {
-  const end = new Date(startOfFarmDay(day).getTime() + 24 * 60 * 60 * 1000);
-  if (end <= now) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A visit has to last until today at least",
-    });
-  }
-  return end;
-};
-
-/** A fresh invitation code, and what the farm keeps of it. */
-const newInviteCode = async (): Promise<{ code: string; codeHash: string }> => {
-  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
-  const code = Array.from(
-    bytes,
-    (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]
-  ).join("");
-  return { code, codeHash: await hashToken(code) };
-};
 
 /** One teaching, as a person's row shows it. */
 export interface TaughtOnce {
@@ -115,19 +92,17 @@ export const peopleRouter = {
       }
       if (!mine) {
         // Somebody on this Farm. The user table belongs to the whole database, and a Manager
-        // here has no standing over a person who is not theirs.
-        const theirs = await context.db.query.roleAssignment.findFirst({
-          where: { farmId: context.farm.id, userId: whose, ...ACTIVE_ROLE },
-          columns: { role: true },
-        });
-        if (!theirs) {
+        // here is nobody to a person who does not work here.
+        const theirs = await rolesOf(context.db, context.farm.id, whose);
+        if (theirs.length === 0) {
           throw new ORPCError("NOT_FOUND", {
             message: "Nobody on this farm by that name",
           });
         }
         // The Owner's own number is the Owner's. It is where the farm's safety messages go, and
-        // a Manager who could redirect or blank it could quietly stop them arriving.
-        if (theirs.role === "owner" && context.roleUsed !== "owner") {
+        // a Manager who could redirect or blank it could quietly stop them arriving. Every Role
+        // they hold is asked for: an Owner who is also a Manager is still the Owner.
+        if (theirs.includes("owner") && context.roleUsed !== "owner") {
           throw new ORPCError("FORBIDDEN", {
             message: "The Owner writes down their own number",
             data: { refusal: "owner_writes_their_own" },
@@ -312,63 +287,26 @@ export const peopleRouter = {
       })
     )
     .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
       const now = context.clock.now();
-      const actor = { id: context.actor.id, role: context.roleUsed };
-      const visiting = input.visitUntil !== undefined;
-      if (visiting && !(input.roles.length === 1 && input.roles[0] === "vet")) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Only a Vet is invited for a visit",
-        });
-      }
-      const accessUntil = visiting
-        ? endOfVisit(input.visitUntil ?? "", now)
-        : null;
-      // A Manager invites Barn Staff and calls in a visiting Vet; the Owner approves either (roles matrix).
-      const managerMay = input.roles.every((r) => r === "staff") || visiting;
-      if (actor.role === "manager" && !managerMay) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "A Manager may only invite Staff or a visiting Vet",
-        });
-      }
-      const approvedNow = actor.role === "owner";
-      const status = approvedNow ? "approved" : "pending";
-      const id = uuidv7(now);
-      const { code, codeHash } = await newInviteCode();
+      const by = { id: context.actor.id, role: context.roleUsed };
+      const planned = await planInvite(input, by, now);
       await audited(context).write(
         {
           entity: "invite",
-          entityId: id,
+          entityId: planned.id,
           action: "create",
           after: {
-            email: input.email,
-            name: input.name,
-            roles: input.roles,
-            status,
-            visitUntil: input.visitUntil ?? null,
+            email: planned.email,
+            name: planned.name,
+            roles: planned.roles,
+            status: planned.status,
+            visitUntil: planned.visitUntil,
           },
         },
-        async (tx) => {
-          await tx.insert(invite).values({
-            id,
-            farmId,
-            email: input.email,
-            name: input.name,
-            roles: input.roles,
-            status,
-            invitedBy: actor.id,
-            invitedByRole: actor.role,
-            approvedBy: approvedNow ? actor.id : null,
-            approvedAt: approvedNow ? now : null,
-            codeHash,
-            vetScope: visiting ? "visiting" : null,
-            accessUntil,
-            createdAt: now,
-          });
-        }
+        (tx) => writeInvite(tx, context.farm.id, planned)
       );
       // The code is shown once, to whoever invited them, to hand over in person; the farm keeps only its hash.
-      return { id, status, code } as const;
+      return { id: planned.id, status: planned.status, code: planned.code };
     }),
 
   /**
@@ -380,7 +318,6 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
       const { code, codeHash } = await newInviteCode();
       await audited(context).write(
         {
@@ -389,24 +326,7 @@ export const peopleRouter = {
           action: "update",
           after: { code: "reissued" },
         },
-        async (tx) => {
-          const [row] = await tx
-            .update(invite)
-            .set({ codeHash })
-            .where(
-              and(
-                eq(invite.id, input.id),
-                eq(invite.farmId, farmId),
-                isNull(invite.acceptedAt)
-              )
-            )
-            .returning({ id: invite.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "No invite waiting to be taken up",
-            });
-          }
-        }
+        (tx) => reissueInvite(tx, context.farm.id, input.id, codeHash)
       );
       return { id: input.id, code };
     }),
@@ -433,7 +353,7 @@ export const peopleRouter = {
         });
       }
       const codeHash = await hashToken(input.code.toUpperCase());
-      let roles: (typeof ROLES)[number][] = [];
+      let roles: RoleName[] = [];
       await audited(context).write(
         {
           entity: "user",
@@ -442,39 +362,20 @@ export const peopleRouter = {
           after: () => Promise.resolve({ roles, source: "invite accepted" }),
         },
         async (tx) => {
-          const [row] = await tx
-            .update(invite)
-            .set({ codeHash: null, acceptedAt: now })
-            .where(
-              and(
-                eq(invite.farmId, farmId),
-                eq(invite.codeHash, codeHash),
-                eq(invite.email, email),
-                eq(invite.status, "approved"),
-                isNull(invite.acceptedAt)
-              )
-            )
-            .returning({
-              roles: invite.roles,
-              approvedBy: invite.approvedBy,
-              accessUntil: invite.accessUntil,
-            });
-          if (!row) {
+          const taken = await acceptInvite(
+            tx,
+            farmId,
+            { userId: context.actor.id, email, codeHash },
+            now
+          );
+          if (!taken) {
+            // A code this farm is not waiting for is a wrong guess, and enough of them wait fifteen minutes.
             countFailure(guesses, now, CODE_ATTEMPTS);
             throw new ORPCError("NOT_FOUND", {
               message: "That code is not right",
             });
           }
-          roles = [...row.roles];
-          await grantRoles(
-            tx,
-            farmId,
-            context.actor.id,
-            roles,
-            { id: row.approvedBy ?? context.actor.id, role: "owner" },
-            now,
-            { reactivate: true, visitUntil: row.accessUntil ?? undefined }
-          );
+          roles = taken;
         }
       );
       return { roles };
@@ -485,9 +386,8 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
+      const by = { id: context.actor.id, role: context.roleUsed };
       const now = context.clock.now();
-      const actor = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "invite",
@@ -502,24 +402,7 @@ export const peopleRouter = {
             return row ?? null;
           },
         },
-        async (tx) => {
-          // Atomic: only a pending invite of this Farm flips; a second approver gets NOT_FOUND
-          // and no audit row, because throwing here rolls the transaction back.
-          const [row] = await tx
-            .update(invite)
-            .set({ status: "approved", approvedBy: actor.id, approvedAt: now })
-            .where(
-              and(
-                eq(invite.id, input.id),
-                eq(invite.farmId, farmId),
-                eq(invite.status, "pending")
-              )
-            )
-            .returning({ email: invite.email, roles: invite.roles });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-        }
+        (tx) => approveInvite(tx, context.farm.id, input.id, by, now)
       );
       return { id: input.id, status: "approved" } as const;
     }),
@@ -544,85 +427,24 @@ export const peopleRouter = {
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       const now = context.clock.now();
-      const named = [...new Set([...input.add, ...input.remove])];
-      const pens = named.length
-        ? await context.db.query.pen.findMany({
-            where: { farmId, id: { in: named } },
-            columns: { id: true },
-          })
-        : [];
-      if (pens.length !== named.length) {
-        throw new ORPCError("NOT_FOUND", {
-          message: "No such Pen on this farm",
-        });
-      }
-      const penIdsOf = async (tx: Tx) => {
-        const rows = await tx.query.penAssignment.findMany({
-          where: { farmId, userId: input.userId, ...ACTIVE_ASSIGNMENT },
-          columns: { penId: true },
-        });
-        return rows.map((row) => row.penId).toSorted();
-      };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: async (tx) => ({ penIds: await penIdsOf(tx) }),
-          after: async (tx) => ({ penIds: await penIdsOf(tx) }),
+          before: async (tx) => ({
+            penIds: await pensOf(tx, farmId, input.userId),
+          }),
+          after: async (tx) => ({
+            penIds: await pensOf(tx, farmId, input.userId),
+          }),
         },
-        async (tx) => {
-          const person = await tx.query.user.findFirst({
-            where: { id: input.userId },
-            columns: { id: true },
-          });
-          if (!person) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "Nobody on this farm by that name",
-            });
-          }
-          const held = new Set(await penIdsOf(tx));
-          const adding = [...new Set(input.add)].filter(
-            (penId) => !held.has(penId)
-          );
-          if (adding.length > 0) {
-            // A Pen handed back reopens the old assignment rather than starting a second one.
-            await tx
-              .insert(penAssignment)
-              .values(
-                adding.map((penId) => ({
-                  id: uuidv7(now),
-                  farmId,
-                  userId: input.userId,
-                  penId,
-                  createdAt: now,
-                }))
-              )
-              .onConflictDoUpdate({
-                target: [penAssignment.userId, penAssignment.penId],
-                set: { endedAt: null },
-              });
-          }
-          if (input.remove.length > 0) {
-            await tx
-              .update(penAssignment)
-              .set({ endedAt: now })
-              .where(
-                and(
-                  eq(penAssignment.farmId, farmId),
-                  eq(penAssignment.userId, input.userId),
-                  inArray(penAssignment.penId, input.remove),
-                  isNull(penAssignment.endedAt)
-                )
-              );
-          }
-        }
+        (tx) => setPens(tx, farmId, input.userId, input, now)
       );
-      const assigned = await context.db.query.penAssignment.findMany({
-        where: { farmId, userId: input.userId, ...ACTIVE_ASSIGNMENT },
-        columns: { penId: true },
-      });
-      return { userId: input.userId, penIds: assigned.map((row) => row.penId) };
+      return {
+        userId: input.userId,
+        penIds: await pensOf(context.db, farmId, input.userId),
+      };
     }),
 
   assignRoles: protectedProcedure
@@ -633,44 +455,18 @@ export const peopleRouter = {
       const farmId = context.farm.id;
       const now = context.clock.now();
       const wanted = [...new Set(input.roles)];
-      const actor = { id: context.actor.id, role: context.roleUsed };
+      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
           before: async (tx) => ({
-            roles: await activeRolesFor(tx, farmId, input.userId),
+            roles: await rolesOf(tx, farmId, input.userId),
           }),
           after: { roles: wanted },
         },
-        async (tx) => {
-          const held = await activeRolesFor(tx, farmId, input.userId);
-          const losingOwner =
-            held.includes("owner") && !wanted.includes("owner");
-          if (losingOwner) {
-            const owners = await tx.query.roleAssignment.findMany({
-              where: { farmId, role: "owner", ...ACTIVE_ROLE },
-              columns: { userId: true },
-            });
-            const others = owners.filter((o) => o.userId !== input.userId);
-            if (input.userId === actor.id || others.length === 0) {
-              throw new ORPCError("BAD_REQUEST", {
-                message: "The farm must keep at least one other Owner",
-              });
-            }
-          }
-          await revokeRoles(
-            tx,
-            farmId,
-            input.userId,
-            held.filter((r) => !wanted.includes(r)),
-            now
-          );
-          await grantRoles(tx, farmId, input.userId, wanted, actor, now, {
-            reactivate: true,
-          });
-        }
+        (tx) => setRoles(tx, farmId, input.userId, wanted, by, now)
       );
       return { userId: input.userId, roles: wanted };
     }),
@@ -681,35 +477,17 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
     .handler(async ({ context, input }) => {
-      if (input.userId === context.actor.id) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "You cannot disable yourself",
-        });
-      }
+      const by = { id: context.actor.id, role: context.roleUsed };
       const now = context.clock.now();
       await audited(context).write(
         {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: (tx) => personSnapshot(tx, input.userId),
-          after: (tx) => personSnapshot(tx, input.userId),
+          before: (tx) => whoTheyAre(tx, input.userId),
+          after: (tx) => whoTheyAre(tx, input.userId),
         },
-        async (tx) => {
-          const [row] = await tx
-            .update(user)
-            .set({ disabledAt: now })
-            .where(eq(user.id, input.userId))
-            .returning({ id: user.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          // Sessions are expired, not deleted, so the record stays.
-          await tx
-            .update(sessionTable)
-            .set({ expiresAt: now, updatedAt: now })
-            .where(eq(sessionTable.userId, input.userId));
-        }
+        (tx) => endMembership(tx, input.userId, { by, now })
       );
       return { userId: input.userId, disabled: true };
     }),
@@ -724,19 +502,10 @@ export const peopleRouter = {
           entity: "user",
           entityId: input.userId,
           action: "update",
-          before: (tx) => personSnapshot(tx, input.userId),
-          after: (tx) => personSnapshot(tx, input.userId),
+          before: (tx) => whoTheyAre(tx, input.userId),
+          after: (tx) => whoTheyAre(tx, input.userId),
         },
-        async (tx) => {
-          const [row] = await tx
-            .update(user)
-            .set({ disabledAt: null })
-            .where(eq(user.id, input.userId))
-            .returning({ id: user.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-        }
+        (tx) => restoreMembership(tx, input.userId)
       );
       return { userId: input.userId, disabled: false };
     }),
@@ -758,12 +527,9 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string(), pin: z.string().trim() }))
     .handler(async ({ context, input }) => {
-      if (!isPin(input.pin)) {
-        throw new ORPCError("BAD_REQUEST", { message: "A PIN is four digits" });
-      }
+      const credential = await newPin(input.pin);
+      const by = { id: context.actor.id, role: context.roleUsed };
       const now = context.clock.now();
-      const salt = randomPinSalt();
-      const hash = await derivePinHash(input.pin, salt);
       await audited(context).write(
         {
           entity: "user",
@@ -771,52 +537,7 @@ export const peopleRouter = {
           action: "update",
           after: { pinSet: true },
         },
-        async (tx) => {
-          const person = await tx.query.user.findFirst({
-            where: { id: input.userId },
-            columns: { id: true },
-            with: {
-              roles: { where: { farmId: context.farm.id, ...ACTIVE_ROLE } },
-            },
-          });
-          if (!person || person.roles.length === 0) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "That person is not on this farm",
-            });
-          }
-          // A Manager may only give a PIN to Staff: a PIN is how a person acts on a shared
-          // phone, so letting a Manager set an Owner's PIN would route around the rule that
-          // only the Owner grants Roles above Staff.
-          const targetRoles = person.roles.map((role) => role.role);
-          const staffOnly = targetRoles.every((role) => role === "staff");
-          if (context.roleUsed === "manager" && !staffOnly) {
-            throw new ORPCError("FORBIDDEN", {
-              message: "A Manager may only set a PIN for Barn Staff",
-            });
-          }
-          await tx
-            .insert(staffPin)
-            .values({
-              id: uuidv7(now),
-              userId: input.userId,
-              farmId: context.farm.id,
-              salt,
-              hash,
-              setBy: context.actor.id,
-              setByRole: context.roleUsed,
-              updatedAt: now,
-            })
-            .onConflictDoUpdate({
-              target: [staffPin.userId, staffPin.farmId],
-              set: {
-                salt,
-                hash,
-                setBy: context.actor.id,
-                setByRole: context.roleUsed,
-                updatedAt: now,
-              },
-            });
-        }
+        (tx) => setPin(tx, context.farm.id, input.userId, credential, by, now)
       );
       return { userId: input.userId, pinSet: true };
     }),
@@ -833,24 +554,6 @@ export const peopleRouter = {
     if (!farmId) {
       return [];
     }
-    const pins = await context.db.query.staffPin.findMany({
-      where: { farmId },
-      columns: { userId: true, salt: true, hash: true, updatedAt: true },
-    });
-    const people = await context.db.query.user.findMany({
-      where: { id: { in: pins.map((p) => p.userId) } },
-      columns: { id: true, name: true, disabledAt: true },
-    });
-    const byId = new Map(people.map((person) => [person.id, person]));
-    return pins
-      .filter(
-        (pin) => byId.get(pin.userId) && !byId.get(pin.userId)?.disabledAt
-      )
-      .map((pin) => ({
-        userId: pin.userId,
-        name: byId.get(pin.userId)?.name ?? "",
-        salt: pin.salt,
-        hash: pin.hash,
-      }));
+    return await theRoster(context.db, farmId);
   }),
 };
