@@ -1,6 +1,8 @@
+import { session } from "@OpenFarm/db/schema/auth";
 import { pen, shed } from "@OpenFarm/db/schema/herd";
 import { verifyPin } from "@OpenFarm/domain";
 import {
+  DAY,
   FakeClock,
   createTestPrincipal,
   scratchDb,
@@ -20,6 +22,8 @@ import {
   setPens,
   setPin,
   setRoles,
+  signOutOf,
+  signedInOn,
   writeInvite,
 } from "./membership";
 
@@ -187,6 +191,43 @@ describe("a PIN", () => {
     await expect(newPin("abcd")).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
+  });
+});
+
+describe("where somebody is signed in", () => {
+  it("lists the places they are, and signs them out of one without touching the rest", async () => {
+    const them = await createTestPrincipal("vet", now);
+    const another = `${them.session.id}-yard`;
+    await scratchDb()
+      .insert(session)
+      .values({
+        ...them.session,
+        id: another,
+        token: `${them.session.token}-yard`,
+        ipAddress: "10.0.0.9",
+        userAgent: "a phone left in the yard",
+      })
+      .onConflictDoNothing();
+
+    const both = await signedInOn(scratchDb(), them.user.id, now);
+    expect(both.map((one) => one.id)).toContain(another);
+
+    await tried((tx) => signOutOf(tx, them.user.id, another, now));
+
+    // Signing out of somewhere they are not, somewhere that is somebody else's, or somewhere they were signed
+    // out of already: each is nothing to do.
+    await expect(
+      tried((tx) => signOutOf(tx, them.user.id, "no-such-session", now))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      tried((tx) => signOutOf(tx, thePerson("owner").id, another, now))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const longSince = new Date(them.session.expiresAt.getTime() + DAY);
+    await expect(
+      tried((tx) => signOutOf(tx, them.user.id, another, longSince))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    // And it is not one of the places they are, either.
+    expect(await signedInOn(scratchDb(), them.user.id, longSince)).toEqual([]);
   });
 });
 

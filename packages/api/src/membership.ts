@@ -11,7 +11,7 @@
  */
 
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
+import { and, eq, gt, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
@@ -237,6 +237,76 @@ export const endMembership = async (
 /** Somebody back at work: they sign in again, and the Roles they held are the Roles they held. */
 export const restoreMembership = (tx: Tx, userId: string): Promise<void> =>
   markDisabled(tx, userId, null);
+
+/** One place somebody is signed in: a browser or a phone of their own, holding a session of theirs.
+ *
+ *  Not a Shed Phone, which is the farm's own handset holding a device session that people PIN Switch on
+ *  (CONTEXT: Shed Phone). This is where a person is signed in as themselves. */
+export interface SignedInOn {
+  id: string;
+  since: Date;
+  lastSeen: Date;
+  from: string | null;
+  browser: string | null;
+}
+
+/** Where somebody is signed in today, the most recently used first. An expired session is not somewhere they
+ *  are: it is somewhere they were, and there is nothing to sign out of. */
+export const signedInOn = async (
+  tx: Reading,
+  userId: string,
+  now: Date
+): Promise<SignedInOn[]> => {
+  const rows = await tx.query.session.findMany({
+    where: { userId, expiresAt: { gt: now } },
+    columns: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      ipAddress: true,
+      userAgent: true,
+    },
+    orderBy: { updatedAt: "desc", id: "desc" },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    since: row.createdAt,
+    lastSeen: row.updatedAt,
+    from: row.ipAddress,
+    browser: row.userAgent,
+  }));
+};
+
+/**
+ * Signs somebody out of one of the places they are signed in — a phone left in the yard, a browser in a shop.
+ *
+ * Expired rather than deleted, as ending a Membership does it: the record that they were signed in there stays.
+ * Only a session of theirs: signing one person out of another's is not something to be one mistyped id away
+ * from.
+ */
+export const signOutOf = async (
+  tx: Tx,
+  userId: string,
+  sessionId: string,
+  now: Date
+): Promise<void> => {
+  const [row] = await tx
+    .update(sessionTable)
+    .set({ expiresAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(sessionTable.id, sessionId),
+        eq(sessionTable.userId, userId),
+        gt(sessionTable.expiresAt, now)
+      )
+    )
+    .returning({ id: sessionTable.id });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "They are not signed in there",
+    });
+  }
+};
 
 /** The Pens a Staff member keeps today, in an order two readings can be compared in. */
 export const pensOf = async (

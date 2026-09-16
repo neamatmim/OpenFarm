@@ -29,6 +29,8 @@ import {
   setPens,
   setPin,
   setRoles,
+  signOutOf,
+  signedInOn,
   theRoster,
   whoTheyAre,
   writeInvite,
@@ -540,6 +542,39 @@ export const peopleRouter = {
         (tx) => setPin(tx, context.farm.id, input.userId, credential, by, now)
       );
       return { userId: input.userId, pinSet: true };
+    }),
+
+  /**
+   * Where somebody is signed in as themselves: their own phone, a browser in the office. The Owner's and the
+   * Manager's to see, because a handset left in a yard is the farm's problem and not only its owner's.
+   *
+   * Not Shed Phones, which the farm enrols and revokes as devices (CONTEXT: Shed Phone).
+   */
+  signedInOn: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ userId: z.string() }))
+    .handler(({ context, input }) =>
+      signedInOn(context.db, input.userId, context.clock.now())
+    ),
+
+  /** Signs them out of one of them, and leaves the rest alone. */
+  signOut: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ userId: z.string(), sessionId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      await audited(context).write(
+        {
+          entity: "user",
+          entityId: input.userId,
+          action: "update",
+          after: { signedOutOf: input.sessionId },
+        },
+        (tx) => signOutOf(tx, input.userId, input.sessionId, now)
+      );
+      return { userId: input.userId, sessionId: input.sessionId };
     }),
 
   /** The roster a Shed Phone caches: who may PIN Switch on it, and what to check against.
