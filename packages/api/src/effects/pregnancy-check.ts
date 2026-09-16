@@ -1,14 +1,14 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { pregnancyCheck } from "@OpenFarm/db/schema/breeding";
-import { PREGNANCY_CHECK_RESULTS } from "@OpenFarm/domain";
+import { PREGNANCY_CHECK_STEP } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { attemptThatRaisedWork } from "../breeding-store";
 import { rederiveFor } from "./breeding";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { asPublished, choiceAt } from "./evidence";
+import { asPublished, heldIn } from "./evidence";
 
 type PregnancyCheckFacts = Pick<
   EffectInput,
@@ -45,9 +45,9 @@ const recordTheCheck = async (
     columns: { id: true, serviceId: true, result: true },
   });
   const wasPositive = standing?.result === "positive";
-  // What was found is the Step's first answer, and a required one (the published Version says so).
+  // What was found, which the published Version says the Step insists on.
   const result = asPublished(
-    choiceAt(input.step, input.evidence, 0, PREGNANCY_CHECK_RESULTS),
+    heldIn(input, PREGNANCY_CHECK_STEP, "result"),
     "what the check found"
   );
   // A correction keeps the attempt the check was made of, even if she has been served since.

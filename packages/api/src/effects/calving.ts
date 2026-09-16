@@ -1,16 +1,10 @@
-import {
-  CALF_OUTCOMES,
-  CALF_SEXES,
-  CALVING_EASES,
-  CALVING_EVIDENCE,
-  CALVING_RECORDERS,
-} from "@OpenFarm/domain";
+import { CALVING_RECORDERS, CALVING_STEP } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { recordCalving } from "../calving-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { asPublished, choiceAt } from "./evidence";
+import { asPublished, heldIn, turnsIn } from "./evidence";
 
 type CalvingFacts = Pick<
   EffectInput,
@@ -27,10 +21,10 @@ type CalvingFacts = Pick<
   | "trail"
 >;
 
-/** The calving a Step's Evidence describes, read by the positions the Step was validated by. */
+/** The calving a Step's Evidence describes, read by the names its shape gives them. */
 const calvingIn = (input: CalvingFacts) => {
-  const at = new Date(String(input.evidence[CALVING_EVIDENCE.calvedAt]));
-  if (Number.isNaN(at.getTime())) {
+  const at = heldIn(input, CALVING_STEP, "calvedAt");
+  if (!at) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A calving says when she calved",
     });
@@ -42,18 +36,12 @@ const calvingIn = (input: CalvingFacts) => {
     });
   }
   const ease = asPublished(
-    choiceAt(input.step, input.evidence, CALVING_EVIDENCE.ease, CALVING_EASES),
+    heldIn(input, CALVING_STEP, "ease"),
     "how the calving went"
   );
   const calves = [];
-  for (const slots of CALVING_EVIDENCE.calves) {
-    const sex = choiceAt(input.step, input.evidence, slots.sex, CALF_SEXES);
-    const outcome = choiceAt(
-      input.step,
-      input.evidence,
-      slots.outcome,
-      CALF_OUTCOMES
-    );
+  for (const calf of turnsIn(input, CALVING_STEP, "calves")) {
+    const { sex, outcome } = calf;
     // A calf is its sex and whether it lived, both or neither: half a calf is not one to create.
     if (Boolean(sex) !== Boolean(outcome)) {
       throw new ORPCError("BAD_REQUEST", {

@@ -257,8 +257,6 @@ export {
   FARM_EVENTS,
   MAX_TRIGGER_OFFSET_DAYS,
   PHOTO_MAX_BYTES,
-  CALVING_EVIDENCE,
-  SERVICE_EVIDENCE,
   STEP_EFFECT_KINDS,
   TRIGGER_KINDS,
   appliesToAnimal,
@@ -325,3 +323,28 @@ export {
   OBSERVATION_WORD_NEEDING_A_NOTE,
   observationWordOf,
 } from "./observation-words";
+export type {
+  ChoiceSlot,
+  DateTimeSlot,
+  Held,
+  NoteSlot,
+  RepeatName,
+  Repeated,
+  Slot,
+  SlotName,
+  SlotNamed,
+  StepShape,
+  TurnOf,
+  WordsFor,
+} from "./step-shape";
+export {
+  CALVING_STEP,
+  DLS_REPORT_STEP,
+  LOT_NUMBER_STEP,
+  PREGNANCY_CHECK_STEP,
+  SERVICE_STEP,
+  draftFrom,
+  problemsAgainst,
+  slotsOf,
+  turnsOf,
+} from "./step-shape";

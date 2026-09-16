@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { service } from "@OpenFarm/db/schema/breeding";
-import { SERVICE_EVIDENCE, SERVICE_METHODS } from "@OpenFarm/domain";
+import { SERVICE_STEP } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
@@ -10,7 +10,7 @@ import { nothingFollowed } from "../calving-work";
 import { heatThatRaised, isOnTheFarm } from "../instances-store";
 import { rederiveFor } from "./breeding";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
-import { asPublished, choiceAt, textAt } from "./evidence";
+import { asPublished, heldIn } from "./evidence";
 
 type ServiceFacts = Pick<
   EffectInput,
@@ -109,25 +109,17 @@ const recordTheService = async (
     return null;
   }
 
-  const method = choiceAt(
-    input.step,
-    input.evidence,
-    SERVICE_EVIDENCE.method,
-    SERVICE_METHODS
-  );
+  const method = heldIn(input, SERVICE_STEP, "method");
   if (!method) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A service says how she was served, and nothing was chosen",
     });
   }
-  const sire = asPublished(
-    textAt(input.evidence, SERVICE_EVIDENCE.sire),
-    "the sire"
-  );
+  const sire = asPublished(heldIn(input, SERVICE_STEP, "sire"), "the sire");
 
   // The story asks for the technician. A bull running with the herd has nobody standing over him,
   // so it is only an AI service that is refused without a name.
-  const servedBy = textAt(input.evidence, SERVICE_EVIDENCE.servedBy);
+  const servedBy = heldIn(input, SERVICE_STEP, "servedBy");
   if (method === "ai" && !servedBy) {
     throw new ORPCError("BAD_REQUEST", {
       message: "An AI service names who served her",
@@ -137,8 +129,8 @@ const recordTheService = async (
 
   // When she was served, which is not when it was written down. A day that has not come yet is not
   // a service; one that cannot be read is not a day.
-  const servedAt = new Date(String(input.evidence[SERVICE_EVIDENCE.servedAt]));
-  if (Number.isNaN(servedAt.getTime())) {
+  const servedAt = heldIn(input, SERVICE_STEP, "servedAt");
+  if (!servedAt) {
     throw new ORPCError("BAD_REQUEST", {
       message: "A service says when she was served",
     });

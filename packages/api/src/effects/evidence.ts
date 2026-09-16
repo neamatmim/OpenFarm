@@ -1,4 +1,15 @@
-import type { Choice, Step } from "@OpenFarm/domain";
+import type {
+  Choice,
+  Held,
+  Slot,
+  SlotName,
+  SlotNamed,
+  RepeatName,
+  Step,
+  StepShape,
+  TurnOf,
+} from "@OpenFarm/domain";
+import { slotsOf, turnsOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { EffectInput } from "./effect";
@@ -57,7 +68,7 @@ export const writtenNote = (
 
 /** What was chosen at one position, as the Version declares it there — or null when nothing was.
  *  A value the Version never offered at that position is refused, not ignored. */
-export const declaredChoiceAt = (
+const declaredChoiceAt = (
   step: Step,
   evidence: unknown[],
   position: number
@@ -95,30 +106,8 @@ export const choiceIn = (
   return chosen;
 };
 
-/**
- * What was chosen at one position of the Evidence, as one of the fixed words the record reads back —
- * or null when that slot was left empty.
- */
-export const choiceAt = <Value extends string>(
-  step: Step,
-  evidence: unknown[],
-  position: number,
-  allowed: readonly Value[]
-): Value | null => {
-  const value = declaredChoiceAt(step, evidence, position)?.value ?? null;
-  if (value !== null && !(allowed as readonly string[]).includes(value)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That is not one of the things this step offers",
-    });
-  }
-  return value as Value | null;
-};
-
 /** What was written at one position of the Evidence, trimmed, or null when it was left empty. */
-export const textAt = (
-  evidence: unknown[],
-  position: number
-): string | null => {
+const textAt = (evidence: unknown[], position: number): string | null => {
   const value = evidence[position];
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 };
@@ -134,3 +123,76 @@ export const penOf = (input: Pick<EffectInput, "instance">): string => {
   }
   return input.instance.penId;
 };
+
+/** What was answered at one position, as the slot there says it is held. Null for a slot left empty — and for
+ *  a date nobody can read, which is a slot nobody answered. */
+const heldAt = (
+  step: Step,
+  evidence: unknown[],
+  slot: Slot,
+  at: number
+): unknown => {
+  if (slot.kind === "choice") {
+    const chosen = declaredChoiceAt(step, evidence, at)?.value ?? null;
+    if (chosen !== null && !slot.values.includes(chosen)) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: "That is not one of the things this step offers",
+      });
+    }
+    return chosen;
+  }
+  if (slot.kind === "datetime") {
+    const when = new Date(String(evidence[at]));
+    return Number.isNaN(when.getTime()) ? null : when;
+  }
+  return textAt(evidence, at);
+};
+
+/**
+ * What one slot of a shaped Step holds, by the name the shape gives it: a choice one of its own words, a date
+ * and time the instant the farm means, a note what was written. Nothing for a slot left empty.
+ *
+ * Read by name rather than by position, so an Effect and the rule publishing checked cannot come to disagree
+ * about which answer is which (CONTEXT: SOP Definition).
+ */
+export const heldIn = <Shape extends StepShape, Name extends SlotName<Shape>>(
+  input: { step: Step; evidence: unknown[] },
+  shape: Shape,
+  name: Name
+): Held<SlotNamed<Shape, Name>> | null => {
+  const asked = slotsOf(shape).find((one) => one.slot.name === name);
+  if (!asked) {
+    throw new Error(`no slot called ${String(name)} in this shape`);
+  }
+  return heldAt(input.step, input.evidence, asked.slot, asked.at) as Held<
+    SlotNamed<Shape, Name>
+  > | null;
+};
+
+/** Each turn of a repeated group, in order — the calves of one calving — with what every slot of that turn
+ *  holds, and nothing for the turns the farm left empty. */
+export const turnsIn = <
+  Shape extends StepShape,
+  Name extends RepeatName<Shape>,
+>(
+  input: { step: Step; evidence: unknown[] },
+  shape: Shape,
+  name: Name
+): TurnOf<Shape, Name>[] =>
+  turnsOf(shape, name).map(
+    ({ of, at }) =>
+      Object.fromEntries(
+        of.map((slot) => {
+          const position = at[slot.name];
+          if (position === undefined) {
+            throw new Error(
+              `the group ${String(name)} has no slot ${slot.name}`
+            );
+          }
+          return [
+            slot.name,
+            heldAt(input.step, input.evidence, slot, position),
+          ];
+        })
+      ) as TurnOf<Shape, Name>
+  );
