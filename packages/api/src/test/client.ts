@@ -1,5 +1,11 @@
 import type { Principal } from "@OpenFarm/test-harness";
-import { FakeClock, createTestDevice, createTestPrincipal, scratchDb, theFarm } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  createTestDevice,
+  createTestPrincipal,
+  scratchDb,
+  theFarm,
+} from "@OpenFarm/test-harness";
 import type {
   InferRouterInitialContext,
   Router,
@@ -25,8 +31,8 @@ interface Options {
   onShedPhone?: boolean;
   /** An enrolled phone with nobody PIN-switched in yet. */
   locked?: boolean;
-  /** A Shed Phone of this test file's own, rather than the one every file shares. What a
-   *  phone has sent is counted per phone, so a file that sends batches wants its own. */
+  /** A second Shed Phone, rather than the one the file's tests share. What a phone has
+   *  sent is counted per phone, so a test that sends batches may want one to itself. */
   phone?: { id: string; name: string };
 }
 

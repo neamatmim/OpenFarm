@@ -1,9 +1,13 @@
-import { inArray } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
-import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SopContent } from "@OpenFarm/domain";
-import { DAY, FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  DAY,
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import { appRouter } from "./index";
@@ -91,25 +95,6 @@ let world: Awaited<ReturnType<typeof setup>>;
 
 beforeAll(async () => {
   world = await setup();
-});
-
-/**
- * Hands the farm back as it was found. Every test file shares one Farm and one database, and a
- * milking round left standing raises work in every Pen on it — including the Pens of files
- * that run after this one, whose day would then contain a round they never wrote.
- *
- * Retired directly because retiring an SOP is not something the API does yet.
- */
-afterAll(async () => {
-  await scratchDb()
-    .update(sopDefinition)
-    .set({ retiredAt: new Date() })
-    .where(
-      inArray(sopDefinition.id, [
-        world.milking.definitionId,
-        world.treatment.definitionId,
-      ])
-    );
 });
 
 /** A milking cow on a three-day course, and the work her doses raised. */
@@ -393,15 +378,14 @@ describe("withdrawal, from the last dose actually given", () => {
     await giveDose(clock, cow.tagNumber, 1);
 
     // Three and a half days on: her four days are nearly up, and the Manager plans the tank
-    // around it. (The dates in this file sit just after the farm was created, deliberately:
-    // every test file shares one farm, and a sweep on a later clock would call every other
-    // file's unfinished work late.)
+    // around it. (The dates in this file sit close together, deliberately: a sweep on a far
+    // later clock would call the work its other tests left standing late.)
     clock.advance(3 * DAY + DAY / 2);
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     await manager.client.alerts.sweep();
 
     // Asked about this cow's own Withdrawal, not about everything the farm is being told:
-    // every test file shares this farm, and a count of its notices is nobody's business here.
+    // the tests around this one leave their own notices, which are nobody's business here.
     const held = await manager.client.animals.byTag({
       tagNumber: cow.tagNumber,
     });

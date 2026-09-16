@@ -261,8 +261,8 @@ describe("the letter that goes without delay", () => {
       disease: { bn: disease },
     });
 
-    // Asked about this Diagnosis, not about everything the farm is being told: every test file
-    // shares this farm.
+    // Asked about this Diagnosis, not about everything the farm is being told: the tests in
+    // this file all tell it something.
     const told = await manager.client.alerts.mine({ entityId: made.id });
     expect(told).toHaveLength(1);
     expect(told.at(0)).toMatchObject({

@@ -14,8 +14,7 @@
   "dependencies": {
     "@OpenFarm/db": "workspace:*",
     "drizzle-orm": "1.0.0-rc.4",
-    "pg": "^8.23.0",
-    "vitest": "4.1.11"
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@OpenFarm/config": "workspace:*",
@@ -25,5 +24,8 @@
     "testcontainers": "^12.1.0",
     "tsx": "^4.23.13",
     "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "vitest": "4.1.11"
   }
 }

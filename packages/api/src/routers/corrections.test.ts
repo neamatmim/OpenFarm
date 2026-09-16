@@ -1,6 +1,13 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { DAY, FakeClock, HOUR, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  DAY,
+  FakeClock,
+  HOUR,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";

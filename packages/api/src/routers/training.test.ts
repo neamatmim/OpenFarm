@@ -73,7 +73,9 @@ describe("who knew which procedure", () => {
       })
     );
 
-    const person = await manager.client.people.get({ userId: thePerson("staff").id });
+    const person = await manager.client.people.get({
+      userId: thePerson("staff").id,
+    });
     expect(person.training).toContainEqual(
       expect.objectContaining({
         definitionId: world.sop.definitionId,

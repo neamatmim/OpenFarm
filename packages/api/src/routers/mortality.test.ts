@@ -307,8 +307,8 @@ describe("a death and a cull", () => {
       disposal: "buried",
     });
 
-    // One more than before — counted rather than compared against a total, because every test
-    // file shares this farm and its losses are not this test's business.
+    // One more than before — counted rather than compared against a total, because the tests
+    // around this one bury their own animals on the same farm.
     const after = await owner.client.home.owner();
     expect(after.tiles.died).toBe(before.tiles.died + 1);
     expect(after.tiles.culled).toBe(before.tiles.culled);

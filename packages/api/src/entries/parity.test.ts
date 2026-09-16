@@ -7,7 +7,13 @@ import { sopDefinition } from "@OpenFarm/db/schema/sop";
 import type { SyncKind } from "@OpenFarm/db/schema/sync";
 import { SYNC_KINDS } from "@OpenFarm/db/schema/sync";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, HOUR, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  HOUR,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

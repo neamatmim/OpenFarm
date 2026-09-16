@@ -2,7 +2,12 @@ import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -99,9 +104,9 @@ beforeAll(async () => {
  * Puts the farm's Alert watermark back to a chosen instant.
  *
  * The sweep deliberately only looks at what has gone late since it last looked, and that
- * mark is the Farm's — one row, shared by every test file that sweeps. A file working in
- * one fake year would otherwise carry it past a file working in another, and the second to
- * run would find its own work behind the mark. Each test says where its own window starts.
+ * mark is the Farm's — one row, which the tests in this file share. Each works in a fake
+ * year of its own, so one would otherwise carry the mark past the next, which would then
+ * find its own work already behind it. Each test says where its own window starts.
  */
 const sweepFrom = async (at: Date) => {
   await scratchDb()
@@ -467,7 +472,10 @@ describe("moves the work's state does not allow", () => {
       })
     ).rejects.toMatchObject(closed);
     await expect(
-      manager.instances.assign({ id: instance.id, userId: thePerson("staff").id })
+      manager.instances.assign({
+        id: instance.id,
+        userId: thePerson("staff").id,
+      })
     ).rejects.toMatchObject(closed);
     const kept = await manager.instances.get({ id: instance.id });
     expect(kept).toMatchObject({ state: "missed", claimedBy: null });
@@ -497,7 +505,10 @@ describe("moves the work's state does not allow", () => {
       id: instance.id,
       reason: "কোণগুলো বাকি",
     });
-    await manager.instances.assign({ id: instance.id, userId: thePerson("staff").id });
+    await manager.instances.assign({
+      id: instance.id,
+      userId: thePerson("staff").id,
+    });
     const given = await manager.instances.get({ id: instance.id });
     expect(given).toMatchObject({
       state: "sent_back",
@@ -717,7 +728,8 @@ describe("the trail", () => {
     // And the doing of it, under the Role that did it.
     expect(
       trail.some(
-        (row) => row.roleUsed === "staff" && row.actorId === thePerson("staff").id
+        (row) =>
+          row.roleUsed === "staff" && row.actorId === thePerson("staff").id
       )
     ).toBe(true);
   });

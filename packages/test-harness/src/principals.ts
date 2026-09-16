@@ -5,7 +5,6 @@ import {
 } from "@OpenFarm/db/schema/auth";
 import { shedPhone, staffPin } from "@OpenFarm/db/schema/device";
 import { farm as farmTable, roleAssignment } from "@OpenFarm/db/schema/farm";
-
 import { expect } from "vitest";
 
 import { DAY } from "./clock";
@@ -17,6 +16,26 @@ export type Role = "owner" | "manager" | "staff" | "vet";
  *  Role somebody else already holds ("otherVet") — a farm has more than one Vet, and the
  *  clinical record is each Vet's own. */
 export type Principal = Role | "newcomer" | "otherVet";
+
+/**
+ * The file vitest is running, as a name a Farm can be called after — its whole path below `src`, so two files of the
+ * same name in different folders are two farms.
+ *
+ * Nothing to fall back on: a harness that cannot tell which file is asking would hand every file the same farm, which
+ * is the thing this exists to stop, and it would do it silently.
+ */
+const thisFile = (): string => {
+  const path = expect.getState().testPath;
+  if (!path) {
+    throw new Error(
+      "test harness: vitest did not say which file is running, so this farm would be everybody's"
+    );
+  }
+  return path
+    .replace(/^.*\/src\//u, "")
+    .replace(/\.test\.tsx?$/u, "")
+    .replaceAll(/[^a-z0-9-]/giu, "-");
+};
 
 /**
  * The Farm this test file works on.
@@ -31,20 +50,8 @@ export const theFarm = (): { id: string; name: string } => {
   return { id: `farm-${file}`, name: `পরীক্ষা খামার (${file})` };
 };
 
-/** The file vitest is running, as a name a Farm can be called after. */
-const thisFile = (): string => {
-  const path = expect.getState().testPath ?? "shared";
-  return (
-    path
-      .split("/")
-      .at(-1)
-      ?.replace(/\.test\.tsx?$/u, "")
-      .replace(/[^a-z0-9-]/giu, "-") ?? "shared"
-  );
-};
-
 /** What each of the farm's people is called. Their names are the farm's; who they are is their own file's. */
-const NAMED: Record<Principal, string> = {
+const NAME_OF: Record<Principal, string> = {
   owner: "মালিক",
   manager: "ম্যানেজার",
   staff: "রহিম",
@@ -53,22 +60,19 @@ const NAMED: Record<Principal, string> = {
   otherVet: "ডা. সালমা",
 };
 
-/** One of this file's people, as a test refers to them: the Owner of this file's farm, its milker, its Vet. */
-export const thePerson = (
-  role: Principal
-): { id: string; name: string; email: string } => personFor(role);
-
 /**
- * One of this file's people. Their own, not the run's: a person holds their Roles on a Farm, and one person holding
- * Roles on every test file's Farm at once is a person no request could work out which farm to answer for.
+ * One of this file's people: the Owner of its farm, its milker, its Vet.
+ *
+ * Their own, not the run's — a person holds their Roles on a Farm, and one person holding Roles on every test file's
+ * Farm at once is a person no request could work out which farm to answer for.
  */
-const personFor = (
+export const thePerson = (
   role: Principal
 ): { id: string; name: string; email: string } => {
   const file = thisFile();
   return {
     id: `${role}-${file}`,
-    name: NAMED[role],
+    name: NAME_OF[role],
     email: `${role}.${file}@test.openfarm`,
   };
 };
@@ -91,14 +95,14 @@ export interface TestPrincipal {
   session: typeof sessionTable.$inferSelect;
 }
 
-/** Seeds the Farm (once), the person for a Principal (once), their Role on the Farm,
+/** Seeds this file's Farm (once), the person for a Principal (once), their Role on that Farm,
  *  and a session dated from `now` — all as real rows — and returns the persisted rows. */
 export const createTestPrincipal = async (
   role: Principal,
   now: Date
 ): Promise<TestPrincipal> => {
   const db = scratchDb();
-  const person = personFor(role);
+  const person = thePerson(role);
 
   await db
     .insert(farmTable)
@@ -142,8 +146,8 @@ export const createTestPrincipal = async (
     ipAddress: null,
     userAgent: null,
   };
-  // Parallel test files seed the same person at once; conflict on any unique index is
-  // fine (the row exists), then refresh the expiry from this test's clock.
+  // The same person seeded again by a later test in this file: a conflict on any unique index is fine (the row is
+  // already there), and the expiry is refreshed from this test's clock.
   await db.insert(sessionTable).values(sessionValues).onConflictDoNothing();
   const [session] = await db
     .update(sessionTable)
@@ -164,7 +168,7 @@ export const theShedPhone = (): { id: string; name: string } => ({
   name: "শেড A ফোন",
 });
 
-/** A Shed Phone enrolled on the test Farm, and a PIN for a Principal so they may PIN Switch
+/** A Shed Phone enrolled on this file's Farm, and a PIN for a Principal so they may PIN Switch
  *  on it. Returns the device session shape the API context expects. */
 export const createTestDevice = async (
   role: Principal,

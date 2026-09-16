@@ -3,7 +3,13 @@ import { shedPhone } from "@OpenFarm/db/schema/device";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm, thePerson, theShedPhone } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
@@ -108,9 +114,9 @@ const endpoint = () => {
  * Puts the farm's Alert watermark back to a chosen instant.
  *
  * The sweep deliberately only looks at what has gone late since it last looked, and that
- * mark is the Farm's — one row, shared by every test file that sweeps. A file working in
- * one fake year would otherwise carry it past a file working in another, and the second to
- * run would find its own work behind the mark. Each test says where its own window starts.
+ * mark is the Farm's — one row, which the tests in this file share. Each works in a fake
+ * year of its own, so one would otherwise carry the mark past the next, which would then
+ * find its own work already behind it. Each test says where its own window starts.
  */
 const sweepFrom = async (at: Date) => {
   await scratchDb()
@@ -272,7 +278,7 @@ describe("review findings", () => {
     const inbox = await sweeper.client.alerts.mine({ entityId: instance.id });
     expect(inbox.length).toBeGreaterThan(0);
 
-    // The harness lends every test file the same Shed Phone, so this one puts it back.
+    // The file has one Shed Phone and the tests below still expect it live; put it back.
     await scratchDb()
       .update(shedPhone)
       .set({ revokedAt: null })

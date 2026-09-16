@@ -1,7 +1,13 @@
 import { eq } from "@OpenFarm/db/operators";
 import { shedPhone } from "@OpenFarm/db/schema/device";
 import { derivePinHash, verifyPin } from "@OpenFarm/domain";
-import { FakeClock, MINUTE, scratchDb, theFarm, thePerson, theShedPhone } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  MINUTE,
+  scratchDb,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -85,7 +91,10 @@ describe("enrolling a Shed Phone", () => {
 describe("PINs", () => {
   it("stores a salt and a derived hash, never the PIN, and the phone can check it offline", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    await owner.client.people.setPin({ userId: thePerson("staff").id, pin: "4821" });
+    await owner.client.people.setPin({
+      userId: thePerson("staff").id,
+      pin: "4821",
+    });
 
     const pin = await scratchDb().query.staffPin.findFirst({
       where: { userId: thePerson("staff").id },
@@ -110,12 +119,18 @@ describe("PINs", () => {
 
   it("rotating a PIN replaces the old one", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    await owner.client.people.setPin({ userId: thePerson("manager").id, pin: "1111" });
+    await owner.client.people.setPin({
+      userId: thePerson("manager").id,
+      pin: "1111",
+    });
     const first = await scratchDb().query.staffPin.findFirst({
       where: { userId: thePerson("manager").id },
     });
 
-    await owner.client.people.setPin({ userId: thePerson("manager").id, pin: "2222" });
+    await owner.client.people.setPin({
+      userId: thePerson("manager").id,
+      pin: "2222",
+    });
     const second = await scratchDb().query.staffPin.findFirst({
       where: { userId: thePerson("manager").id },
     });
@@ -165,7 +180,10 @@ describe("a device session", () => {
     });
 
     await expect(
-      ownerOnPhone.client.people.setPin({ userId: thePerson("staff").id, pin: "9999" })
+      ownerOnPhone.client.people.setPin({
+        userId: thePerson("staff").id,
+        pin: "9999",
+      })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       ownerOnPhone.client.people.assignRoles({
@@ -196,14 +214,19 @@ describe("a device session", () => {
 
   it("the roster gives the phone what it needs to check a PIN offline, and nobody else", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    await owner.client.people.setPin({ userId: thePerson("staff").id, pin: "4821" });
+    await owner.client.people.setPin({
+      userId: thePerson("staff").id,
+      pin: "4821",
+    });
     const staffOnPhone = await createTestClient(appRouter, {
       as: "staff",
       onShedPhone: true,
     });
 
     const roster = await staffOnPhone.client.people.roster();
-    const entry = roster.find((person) => person.userId === thePerson("staff").id);
+    const entry = roster.find(
+      (person) => person.userId === thePerson("staff").id
+    );
 
     expect(entry?.name).toBe("রহিম");
     expect(await verifyPin("4821", entry?.salt ?? "", entry?.hash ?? "")).toBe(
@@ -212,14 +235,16 @@ describe("a device session", () => {
     await expect(owner.client.people.roster()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    void theFarm();
   });
 });
 
 describe("review findings", () => {
   it("a locked phone can still read the roster, so PIN Switch can start at all", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    await owner.client.people.setPin({ userId: thePerson("staff").id, pin: "4821" });
+    await owner.client.people.setPin({
+      userId: thePerson("staff").id,
+      pin: "4821",
+    });
     // A phone with nobody switched in: device present, no actor.
     const locked = await createTestClient(appRouter, {
       as: "staff",
@@ -230,7 +255,9 @@ describe("review findings", () => {
     const roster = await locked.client.people.roster();
     const where = await locked.client.devices.current();
 
-    expect(roster.some((person) => person.userId === thePerson("staff").id)).toBe(true);
+    expect(
+      roster.some((person) => person.userId === thePerson("staff").id)
+    ).toBe(true);
     expect(where.status).toBe("locked");
     expect(where.autoLockMinutes).toBe(5);
   });
@@ -250,7 +277,10 @@ describe("review findings", () => {
 
   it("the PIN is proved by the server, and the person is named by the token", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    await owner.client.people.setPin({ userId: thePerson("staff").id, pin: "4821" });
+    await owner.client.people.setPin({
+      userId: thePerson("staff").id,
+      pin: "4821",
+    });
     const phone = await createTestClient(appRouter, {
       as: "staff",
       onShedPhone: true,
@@ -258,7 +288,10 @@ describe("review findings", () => {
     });
 
     await expect(
-      phone.client.devices.switchUser({ userId: thePerson("staff").id, pin: "0000" })
+      phone.client.devices.switchUser({
+        userId: thePerson("staff").id,
+        pin: "0000",
+      })
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     const switched = await phone.client.devices.switchUser({
       userId: thePerson("staff").id,
@@ -271,7 +304,10 @@ describe("review findings", () => {
 
   it("stops taking PINs for a person after five wrong ones, even the right one", async () => {
     const owner = await createTestClient(appRouter, { as: "owner" });
-    await owner.client.people.setPin({ userId: thePerson("manager").id, pin: "7314" });
+    await owner.client.people.setPin({
+      userId: thePerson("manager").id,
+      pin: "7314",
+    });
     const phone = await createTestClient(appRouter, {
       as: "manager",
       onShedPhone: true,
@@ -282,11 +318,17 @@ describe("review findings", () => {
     for (const guess of ["0000", "1111", "2222", "3333", "4444"]) {
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        phone.client.devices.switchUser({ userId: thePerson("manager").id, pin: guess })
+        phone.client.devices.switchUser({
+          userId: thePerson("manager").id,
+          pin: guess,
+        })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     }
     await expect(
-      phone.client.devices.switchUser({ userId: thePerson("manager").id, pin: "7314" })
+      phone.client.devices.switchUser({
+        userId: thePerson("manager").id,
+        pin: "7314",
+      })
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
 
@@ -294,7 +336,10 @@ describe("review findings", () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
 
     await expect(
-      manager.client.people.setPin({ userId: thePerson("owner").id, pin: "1234" })
+      manager.client.people.setPin({
+        userId: thePerson("owner").id,
+        pin: "1234",
+      })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       manager.client.people.setPin({ userId: "nobody-here", pin: "1234" })

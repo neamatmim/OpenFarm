@@ -151,18 +151,19 @@ export const productionWiring = () => ({
 });
 
 /**
- * The Farm this request acts on: the one it was told, the phone's own, or — for a request that says nothing, which is
- * every request on a farm running its own install — the single Farm that exists.
+ * The Farm this request acts on: the phone's own, the one the caller was told, or — for a request that says nothing,
+ * which is every request on a farm running its own install — the single Farm that exists.
  *
- * A caller that knows which farm says so: a Shed Phone always knows, because a phone belongs to the farm it was
- * enrolled on, and the tests know, because each test file works on a farm of its own.
+ * A Shed Phone's own farm comes first and cannot be talked out of: a phone belongs to the farm it was enrolled on,
+ * and nothing a caller passes may move it to another. Anything else that knows which farm says so, which is how the
+ * tests work, each file on a farm of its own.
  */
 const resolveFarm = (
   db: Database,
   device: DeviceSession | null,
   named: string | null
 ) => {
-  const which = named ?? device?.farmId ?? null;
+  const which = device?.farmId ?? named;
   return which
     ? db.query.farm.findFirst({ where: { id: which } })
     : db.query.farm.findFirst();

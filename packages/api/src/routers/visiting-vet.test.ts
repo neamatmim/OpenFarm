@@ -2,7 +2,12 @@ import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import { sopDefinition } from "@OpenFarm/db/schema/sop";
-import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -203,8 +208,8 @@ describe("a visiting Vet", () => {
       session: null,
       clock: new FakeClock(AFTER),
       db: scratchDb(),
-    farmId: theFarm().id,
-  });
+      farmId: theFarm().id,
+    });
     if (!system.farm) {
       throw new Error("no farm");
     }

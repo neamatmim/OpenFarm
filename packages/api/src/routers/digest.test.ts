@@ -1,6 +1,11 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { alert } from "@OpenFarm/db/schema/alert";
-import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
@@ -78,8 +83,8 @@ describe("the evening digest", () => {
     clock.set("2027-12-01T12:00:00.000Z");
     const sent = await manager.client.alerts.digest();
 
-    // Other test files leave the farm their own notices, so what is asserted is this
-    // browser's digest rather than the farm's count of them.
+    // The tests around this one leave the farm their own notices, so what is asserted is
+    // this browser's digest rather than the farm's count of them.
     expect(sent.people).toBeGreaterThanOrEqual(1);
     const mine = post.sent.filter((one) => one.target.endpoint === endpoint);
     // One push, carrying what was waiting — named, in the words the reader reads. Not a count: what else this

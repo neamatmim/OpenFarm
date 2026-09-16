@@ -1,6 +1,13 @@
 import { user } from "@OpenFarm/db/schema/auth";
 import { invite } from "@OpenFarm/db/schema/farm";
-import { FakeClock, HOUR, MINUTE, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  HOUR,
+  MINUTE,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
 import { audited } from "./audit";
@@ -56,7 +63,7 @@ describe("audit events", () => {
         (tx) =>
           tx.insert(invite).values({
             id: `inv-${Date.now()}`,
-            farmId: "test-farm",
+            farmId: theFarm().id,
             email,
             name: "Ghost",
             roles: ["staff"],
@@ -162,8 +169,8 @@ describe("audit events", () => {
     });
     expect(filtered.every((e) => e.entity === "invite")).toBe(true);
     // 2026-09-13 farm-local (UTC+6) ends at 2026-09-13T18:00Z, so this test's own events
-    // fall inside that day and none appear on the next. Other test files share the
-    // database and write their own events, so the window is scoped to this actor.
+    // fall inside that day and none appear on the next. The tests around this one write
+    // their own events, so the window is scoped to this actor.
     const nextDay = await owner.client.audit.list({
       fromDay: "2026-09-14",
       toDay: "2026-09-14",

@@ -111,8 +111,8 @@ describe("the day turning", () => {
       session: null,
       clock: new FakeClock("2049-05-11T02:30:00.000Z"),
       db: scratchDb(),
-    farmId: theFarm().id,
-  });
+      farmId: theFarm().id,
+    });
     const { farm } = context;
     if (!farm) {
       throw new Error("expected the test farm");

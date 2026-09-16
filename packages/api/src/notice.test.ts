@@ -1,7 +1,12 @@
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { ALERT_KINDS, SAYS, goesNow } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { NOTICES, tell } from "./notice";
@@ -166,7 +171,9 @@ describe("who hears a Notice", () => {
     ]);
     // And the Manager is pointed at it, with why the Effect stood aside.
     const everyoneTold = await toldBy(id);
-    const pointed = everyoneTold.find((row) => row.userId === thePerson("manager").id);
+    const pointed = everyoneTold.find(
+      (row) => row.userId === thePerson("manager").id
+    );
     expect(pointed).toMatchObject({
       kind: "needs_review",
       params: { because: "moved_since" },

@@ -20,7 +20,7 @@ const staffIdOf = async (staff: {
   return me.id;
 };
 
-/** Two Pens of this file's own: every test file shares the farm and its Staff member. */
+/** Two Pens for one test: the tests in this file share the farm and its Staff member. */
 let sheds = 0;
 const twoPens = async () => {
   const { client: manager } = await createTestClient(appRouter, {

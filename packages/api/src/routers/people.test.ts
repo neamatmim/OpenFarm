@@ -1,5 +1,11 @@
 import { user } from "@OpenFarm/db/schema/auth";
-import { FakeClock, createTestPrincipal, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  createTestPrincipal,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { createRouterClient } from "@orpc/server";
 import { describe, expect, it } from "vitest";
 
@@ -178,8 +184,8 @@ describe("access", () => {
       session: { user: principal.user, session: principal.session },
       clock: new FakeClock(),
       db: noFarmYet,
-    farmId: theFarm().id,
-  });
+      farmId: theFarm().id,
+    });
     const client = createRouterClient(appRouter, { context });
 
     // Who they are, and that there is no farm: the screen sends them to set it up.
@@ -209,7 +215,10 @@ describe("review findings", () => {
     const { client } = await createTestClient(appRouter, { as: "owner" });
 
     await expect(
-      client.people.assignRoles({ userId: thePerson("owner").id, roles: ["manager"] })
+      client.people.assignRoles({
+        userId: thePerson("owner").id,
+        roles: ["manager"],
+      })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     const me = await client.people.me();
     expect(me.roles).toContain("owner");

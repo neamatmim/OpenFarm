@@ -2,7 +2,14 @@ import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { syncEntry } from "@OpenFarm/db/schema/sync";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, HOUR, scratchDb, theFarm, thePerson, theShedPhone } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  HOUR,
+  scratchDb,
+  theFarm,
+  thePerson,
+  theShedPhone,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";

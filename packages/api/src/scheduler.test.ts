@@ -48,7 +48,11 @@ describe("the farm's schedule, on the server", () => {
 
     // Six in the morning in Dhaka, on this farm's own day.
     const clock = new FakeClock("2027-05-10T00:00:00.000Z");
-    const ran = await runTheSchedule({ db: scratchDb(), clock, farmId: theFarm().id });
+    const ran = await runTheSchedule({
+      db: scratchDb(),
+      clock,
+      farmId: theFarm().id,
+    });
 
     expect(ran.ok).toBe(true);
     const { client: manager } = await createTestClient(appRouter, {

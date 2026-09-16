@@ -3,7 +3,12 @@ import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { deviceSwitch } from "@OpenFarm/db/schema/device";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
-import { FakeClock, scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { hashToken } from "../device";
@@ -206,7 +211,12 @@ describe("who recorded work on a Shed Phone", () => {
       entries: [
         milked(instance.id, thePerson("staff").id, clock.now()),
         milked(instance.id, thePerson("staff").id, clock.now(), old),
-        milked(instance.id, thePerson("staff").id, clock.now(), `${theirs}-guessed`),
+        milked(
+          instance.id,
+          thePerson("staff").id,
+          clock.now(),
+          `${theirs}-guessed`
+        ),
       ],
     });
 

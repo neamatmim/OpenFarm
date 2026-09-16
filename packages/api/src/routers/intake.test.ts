@@ -7,8 +7,8 @@ import { appRouter } from "./index";
 /**
  * Intake: a bought-in animal arrives on the Fattening side.
  *
- * The farm's own pen, because every test file shares one Farm and a count over somebody else's
- * animals is a count that moves when they edit their test.
+ * A quarantine Pen of this file's own, so a count over its arrivals is a count of what these
+ * tests put there and nothing else.
  */
 const QUARANTINE = `intake-${Date.now()}`;
 let penId = "";
@@ -176,7 +176,7 @@ describe("intake", () => {
       });
       expect(her.intake?.targetWeightKg).toBe(420);
     } finally {
-      // The Farm is shared by every test file; put the parameter back.
+      // The parameter is the Farm's and the tests around this one read it; put it back.
       await setter.client.farm.setParameters({ fatteningTargetWeightKg: 350 });
     }
   });
