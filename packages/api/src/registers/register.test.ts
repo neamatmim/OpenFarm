@@ -10,6 +10,9 @@ const FARM = {
   address: null,
   phone: null,
   registrationNumber: "DLS/SAV/2026/০৪২",
+  registrationOffice: null,
+  registrationIssuedOn: null,
+  registrationExpiresOn: null,
 };
 
 const produced = {

@@ -11,7 +11,14 @@ import { periodOf } from "../period";
 export type Db = Pick<Database, "query">;
 
 /** Everything an inspector asks for by period: the four health registers, and the movement log. */
-export type RegisterName = HealthRegister | "movement_log";
+export const REGISTER_NAMES = [
+  "vaccination_register",
+  "treatment_register",
+  "disease_history",
+  "mortality_register",
+  "movement_log",
+] as const satisfies readonly (HealthRegister | "movement_log")[];
+export type RegisterName = (typeof REGISTER_NAMES)[number];
 
 /** The farm days a register covers, and the instants they run between. */
 export interface Period {
@@ -133,12 +140,20 @@ export const sayingIn = (language: Language): Saying => ({
   both: (key) => `${translate("bn", key)} / ${translate("en", key)}`,
 });
 
+/** Who produced a paper, on what farm, and when — the stamp the report set asks of every paper the farm
+ *  hands over, so that two copies of one register can be told apart. */
+export interface FarmProducing {
+  farm: FarmIdentity;
+  by: string;
+  at: string;
+}
+
 /** A register as the paper an inspector is handed, in the language of whoever produced it. */
 export const paperOf = <Row>(
   register: Register<Row>,
   rows: Row[],
   period: { from: string; to: string },
-  produced: { farm: FarmIdentity; by: string; at: string },
+  produced: FarmProducing,
   saying: Saying
 ): string => {
   const shape = register.paper;

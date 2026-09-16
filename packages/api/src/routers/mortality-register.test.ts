@@ -304,7 +304,10 @@ const ours = (tag: string) =>
 describe("the mortality register", () => {
   it("lists every death with its cause, disposal and DLS reference, a stillbirth awaiting its disposal", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
-    const register = await manager.client.inspector.mortalities(FEBRUARY);
+    const register = await manager.client.inspector.rows({
+      register: "mortality_register",
+      ...FEBRUARY,
+    });
     expect(register).toMatchObject(FEBRUARY);
     expect(register.rows.filter((row) => ours(row.tagNumber))).toEqual([
       {
@@ -339,13 +342,15 @@ describe("the mortality register", () => {
       },
     ]);
     // A year to today unless asked, today counted.
-    expect(await manager.client.inspector.mortalities({})).toMatchObject({
+    expect(
+      await manager.client.inspector.rows({ register: "mortality_register" })
+    ).toMatchObject({
       from: "2045-03-02",
       to: "2046-03-01",
     });
 
     const awaiting = await manager.client.inspector.print({
-      report: "mortality_register",
+      register: "mortality_register",
       format: "csv",
       ...FEBRUARY,
     });
@@ -355,7 +360,7 @@ describe("the mortality register", () => {
 
     await manager.client.language.set({ language: "bn" });
     const paper = await manager.client.inspector.print({
-      report: "mortality_register",
+      register: "mortality_register",
       ...FEBRUARY,
     });
     expect(paper.text).toContain("মৃত্যুর রেজিস্টার / Mortality register");
@@ -403,7 +408,10 @@ describe("the mortality register", () => {
     });
 
     const later = await as("manager", "2046-03-01T04:00:00.000Z");
-    const register = await later.client.inspector.mortalities(FEBRUARY);
+    const register = await later.client.inspector.rows({
+      register: "mortality_register",
+      ...FEBRUARY,
+    });
     expect(
       register.rows.find((row) => row.tagNumber === tags.stillborn)
     ).toMatchObject({
@@ -412,7 +420,7 @@ describe("the mortality register", () => {
     });
 
     const sheet = await later.client.inspector.print({
-      report: "mortality_register",
+      register: "mortality_register",
       format: "csv",
       ...FEBRUARY,
     });
@@ -444,8 +452,12 @@ describe("the mortality register", () => {
 describe("the movement log", () => {
   it("lists every Move, Side change, calving, intake, sale, death and cull in time order, as a CSV and an Export", async () => {
     const manager = await as("manager", "2046-03-01T04:00:00.000Z");
-    const log = await manager.client.inspector.movementLog(FEBRUARY);
-    const [header, ...rows] = log.csv.slice(1).trim().split("\r\n");
+    const log = await manager.client.inspector.print({
+      register: "movement_log",
+      format: "csv",
+      ...FEBRUARY,
+    });
+    const [header, ...rows] = (log.csv ?? "").slice(1).trim().split("\r\n");
     expect(header).toBe("when,tag,kind,from,to,recorded_by");
     const pen = (name: string) => `${name} ${suffix}`;
     expect(
@@ -494,10 +506,13 @@ describe("the movement log", () => {
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2046-03-01T04:00:00.000Z");
     await expect(
-      staff.client.inspector.mortalities(FEBRUARY)
+      staff.client.inspector.rows({
+        register: "mortality_register",
+        ...FEBRUARY,
+      })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      staff.client.inspector.movementLog(FEBRUARY)
+      staff.client.inspector.rows({ register: "movement_log", ...FEBRUARY })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

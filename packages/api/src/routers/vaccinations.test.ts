@@ -249,10 +249,15 @@ describe("the vaccination register", () => {
     });
 
     const manager = await as("manager", "2045-06-01T04:00:00.000Z");
-    const register = await manager.client.inspector.vaccinations(MAY);
+    const register = await manager.client.inspector.rows({
+      register: "vaccination_register",
+      ...MAY,
+    });
     expect(register).toMatchObject(MAY);
     // A year to today unless asked, today counted: FMD and anthrax come round yearly.
-    expect(await manager.client.inspector.vaccinations({})).toMatchObject({
+    expect(
+      await manager.client.inspector.rows({ register: "vaccination_register" })
+    ).toMatchObject({
       from: "2044-06-02",
       to: "2045-06-01",
     });
@@ -290,7 +295,7 @@ describe("the vaccination register", () => {
     await manager.client.language.set({ language: "bn" });
     const [first] = world.cows;
     const paper = await manager.client.inspector.print({
-      report: "vaccination_register",
+      register: "vaccination_register",
       ...MAY,
     });
     expect(paper.text).toContain("টিকার রেজিস্টার / Vaccination register");
@@ -304,7 +309,7 @@ describe("the vaccination register", () => {
     );
 
     const sheet = await manager.client.inspector.print({
-      report: "vaccination_register",
+      register: "vaccination_register",
       format: "csv",
       ...MAY,
     });
@@ -347,7 +352,7 @@ describe("the vaccination register", () => {
   it("is the Owner's and the Manager's, never Barn Staff's", async () => {
     const staff = await as("staff", "2045-06-01T04:00:00.000Z");
     await expect(
-      staff.client.inspector.vaccinations(MAY)
+      staff.client.inspector.rows({ register: "vaccination_register", ...MAY })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
