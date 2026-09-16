@@ -18,6 +18,7 @@ import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
+import type { Raised } from "./notice";
 import { tell } from "./notice";
 
 /** One Feed Item as the store holds it. */
@@ -256,11 +257,12 @@ export const raiseLowStockAlerts = async (
   farmId: string,
   { untold }: { managers: string[]; untold: RunningLow[] },
   now: Date
-): Promise<void> => {
+): Promise<Raised[]> => {
+  const raised: Raised[] = [];
   for (const line of untold) {
     // Sequential against one unique index, as the other notices are.
     // oxlint-disable-next-line no-await-in-loop
-    await tell(
+    const rows = await tell(
       tx,
       farmId,
       {
@@ -278,7 +280,9 @@ export const raiseLowStockAlerts = async (
       },
       now
     );
+    raised.push(...rows);
   }
+  return raised;
 };
 
 /** One Feed Item as a Stock Count Step recorded it. */

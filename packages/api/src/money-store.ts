@@ -356,6 +356,8 @@ const tellTheOwner = async (
   if (approval !== "awaiting") {
     return;
   }
+  // Nothing to hand back: money waiting for the Owner waits for the evening's post, which reads the Notice itself
+  // (the farm's delivery table). Only a kind that goes now has to be carried out of here.
   await tell(
     tx,
     farm.id,

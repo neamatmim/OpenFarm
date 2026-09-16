@@ -1,5 +1,5 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import { ALERT_KINDS, goesNow } from "@OpenFarm/domain";
+import { ALERT_KINDS, SAYS, goesNow } from "@OpenFarm/domain";
 import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
@@ -40,45 +40,21 @@ export const silentTransport: PushTransport = {
   send: () => Promise.resolve({ delivered: false, gone: false }),
 };
 
-/** What each kind of Alert says, in the reader's own language. */
-/** What each kind says, and nothing for the kinds that do not travel this way: the
- *  notification table puts Needs Review in the evening digest, not in somebody's pocket. */
-const WORDING: Partial<
-  Record<AlertKind, { title: MessageKey; body: MessageKey }>
-> = {
-  instance_overdue: {
-    title: "push.overdueTitle",
-    body: "alerts.instanceOverdue",
-  },
-  instance_escalated: {
-    title: "push.escalatedTitle",
-    body: "alerts.instanceEscalated",
-  },
-  entry_rejected: {
-    title: "push.entryRejectedTitle",
-    body: "push.entryRejectedBody",
-  },
-  withdrawal_changed: {
-    title: "push.withdrawalChangedTitle",
-    body: "push.withdrawalChangedBody",
-  },
-  instance_sent_back: {
-    title: "push.sentBackTitle",
-    body: "alerts.instanceSentBack",
-  },
-};
+/** What a kind says in a pocket, and nothing for the kinds that do not travel that way: the farm's own table puts a
+ *  Needs Review in the evening's post, not in somebody's pocket. */
+const inAPocket = (kind: AlertKind) => SAYS[kind].push;
 
 /**
  * Is this the sort of notice that reaches into a pocket the moment it is raised?
  *
- * Asked of the farm's own delivery table and nowhere else: having words for a kind and
- * carrying it immediately are two different decisions, and when `kind in WORDING` answered
- * this question, giving a digest kind a title would quietly have made it an Alert.
+ * Asked of the farm's own delivery table as well as of its words: having words for a kind and carrying it immediately
+ * are two different decisions, and answering this by the words alone would make a digest kind an Alert the day
+ * somebody gave it a title.
  */
 export const travelsByPush = (kind: string): boolean =>
   (ALERT_KINDS as readonly string[]).includes(kind) &&
   goesNow(kind as AlertKind) &&
-  kind in WORDING;
+  inAPocket(kind as AlertKind) !== undefined;
 
 const MINUTES_PER_HOUR = 60;
 
@@ -107,13 +83,15 @@ export const messageFor = (
 ): PushMessage => {
   const reader: Language = resolveLanguage({ language });
   const params = wording(alert.params, reader === "bn");
-  const said = WORDING[alert.kind as AlertKind];
+  const said = inAPocket(alert.kind as AlertKind);
   return {
     lang: reader,
     title: said
-      ? translate(reader, said.title)
+      ? translate(reader, said.title as MessageKey)
       : translate(reader, "alerts.title"),
-    body: said ? translate(reader, said.body, params) : alert.kind,
+    body: said
+      ? translate(reader, said.body as MessageKey, params)
+      : alert.kind,
     url: alert.entity === "sop_instance" ? `/work/${alert.entityId}` : "/today",
     // One notice per thing per kind: a phone that has been in a pocket all morning should
     // show what is waiting, not a history of it being told.
@@ -126,20 +104,5 @@ export const DIGESTIBLE = ALERT_KINDS.filter((kind) => !goesNow(kind));
 
 /** How a Digest names what is in it: so many of this, so many of that, rather than a count
  *  of things the reader then has to go and find. */
-export const DIGEST_WORDING: Record<AlertKind, MessageKey> = {
-  instance_overdue: "digest.overdue",
-  instance_escalated: "digest.escalated",
-  instance_sent_back: "digest.sentBack",
-  needs_review: "digest.needsReview",
-  sop_published: "digest.sopPublished",
-  /** Never carried in a Digest — it goes the moment it is raised — but the table is over
-   *  every kind, so that a new one cannot be forgotten here. */
-  withdrawal_ending: "digest.withdrawalEnding",
-  notifiable_diagnosis: "digest.notifiable",
-  entry_rejected: "digest.entryRejected",
-  withdrawal_changed: "digest.withdrawalChanged",
-  low_stock: "digest.lowStock",
-  money_awaiting_approval: "digest.moneyAwaiting",
-  registration_renewal_due: "digest.registrationRenewal",
-  sop_proposed: "digest.sopProposed",
-};
+export const digestWording = (kind: AlertKind): MessageKey =>
+  SAYS[kind].digest as MessageKey;

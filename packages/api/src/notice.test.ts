@@ -1,6 +1,6 @@
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
-import { ALERT_KINDS } from "@OpenFarm/domain";
+import { ALERT_KINDS, SAYS, goesNow } from "@OpenFarm/domain";
 import { FakeClock, TEST_FARM, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -203,6 +203,21 @@ describe("the farm's list of who hears what", () => {
   it("has an audience for every kind of Notice the farm has", () => {
     for (const kind of ALERT_KINDS) {
       expect(NOTICES[kind].audience.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives every kind words in the app and in the evening's post", () => {
+    for (const kind of ALERT_KINDS) {
+      expect(SAYS[kind].app).toBeTruthy();
+      expect(SAYS[kind].digest).toBeTruthy();
+    }
+  });
+
+  it("gives every kind that goes now a way of reaching somebody who is not looking", () => {
+    // In a pocket, or by text for the two the farm cannot afford to miss. A kind that goes now with neither would
+    // reach only somebody who happened to open the app.
+    for (const kind of ALERT_KINDS.filter(goesNow)) {
+      expect(SAYS[kind].push ?? SAYS[kind].sms).toBeTruthy();
     }
   });
 });

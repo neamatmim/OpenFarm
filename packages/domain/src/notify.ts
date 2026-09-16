@@ -61,6 +61,82 @@ export const DELIVERY: Record<
   registration_renewal_due: { when: "digest" },
 };
 
+/**
+ * What each kind of Notice says, wherever it is said: in the farm's own list, in a pocket, in the evening's post, and
+ * in the two that also go by text.
+ *
+ * One table over every kind, beside the one that says when each goes, because a kind given a delivery and no words is
+ * a notice that arrives as its own name. What the words are *filled with* is the Notice's facts, which the farm stores
+ * as it raised them.
+ */
+export const SAYS: Record<
+  AlertKind,
+  {
+    /** In the farm's own list, which every Notice reaches whether or not it travelled. */
+    app: string;
+    /** In a pocket, for the kinds that go now — a title and a line under it. */
+    push?: { title: string; body: string };
+    /** In the evening's post: so many of this, so many of that. */
+    digest: string;
+    /** In a text message, for the two that cost money or break a deadline if they are missed. */
+    sms?: string;
+  }
+> = {
+  instance_overdue: {
+    app: "alerts.instanceOverdue",
+    push: { title: "push.overdueTitle", body: "alerts.instanceOverdue" },
+    digest: "digest.overdue",
+  },
+  instance_escalated: {
+    app: "alerts.instanceEscalated",
+    push: { title: "push.escalatedTitle", body: "alerts.instanceEscalated" },
+    digest: "digest.escalated",
+  },
+  instance_sent_back: {
+    app: "alerts.instanceSentBack",
+    push: { title: "push.sentBackTitle", body: "alerts.instanceSentBack" },
+    digest: "digest.sentBack",
+  },
+  needs_review: { app: "alerts.needsReview", digest: "digest.needsReview" },
+  sop_published: { app: "alerts.sopPublished", digest: "digest.sopPublished" },
+  sop_proposed: { app: "alerts.sopProposed", digest: "digest.sopProposed" },
+  withdrawal_ending: {
+    app: "alerts.withdrawalEnding",
+    digest: "digest.withdrawalEnding",
+    sms: "sms.withdrawalEnding",
+  },
+  notifiable_diagnosis: {
+    app: "alerts.notifiableDiagnosis",
+    digest: "digest.notifiable",
+    sms: "sms.notifiableDiagnosis",
+  },
+  entry_rejected: {
+    app: "alerts.entryRejected",
+    push: {
+      title: "push.entryRejectedTitle",
+      body: "push.entryRejectedBody",
+    },
+    digest: "digest.entryRejected",
+  },
+  withdrawal_changed: {
+    app: "alerts.withdrawalChanged",
+    push: {
+      title: "push.withdrawalChangedTitle",
+      body: "push.withdrawalChangedBody",
+    },
+    digest: "digest.withdrawalChanged",
+  },
+  low_stock: { app: "alerts.lowStock", digest: "digest.lowStock" },
+  money_awaiting_approval: {
+    app: "alerts.moneyAwaiting",
+    digest: "digest.moneyAwaiting",
+  },
+  registration_renewal_due: {
+    app: "alerts.registrationRenewal",
+    digest: "digest.registrationRenewal",
+  },
+};
+
 export const goesNow = (kind: AlertKind): boolean =>
   DELIVERY[kind].when === "immediate";
 

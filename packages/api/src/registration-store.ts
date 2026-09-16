@@ -15,6 +15,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import type { Raised } from "./notice";
 import { tell } from "./notice";
 import type { PhotoInput } from "./photo-input";
 
@@ -91,14 +92,12 @@ export const tellOfRenewals = async (
   standing: { id: string; registrationExpiresOn: Date | null },
   raised: readonly { id: string; cause: string | null }[],
   now: Date
-): Promise<void> => {
+): Promise<Raised[]> => {
   const renewals = raised.filter((one) => one.cause?.startsWith(RENEWAL_CAUSE));
-  if (renewals.length === 0) {
-    return;
-  }
+  const told: Raised[] = [];
   for (const work of renewals) {
     // oxlint-disable-next-line no-await-in-loop
-    await tell(
+    const rows = await tell(
       tx,
       standing.id,
       {
@@ -110,7 +109,9 @@ export const tellOfRenewals = async (
       },
       now
     );
+    told.push(...rows);
   }
+  return told;
 };
 
 /** The certificate photographs the farm holds, newest first — the first is the certificate it holds now. */
