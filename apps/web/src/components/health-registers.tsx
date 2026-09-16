@@ -1,4 +1,5 @@
-import type { HealthRegister } from "@OpenFarm/domain";
+import type { RegisterName } from "@OpenFarm/api/registers/register";
+import { rowsOfRegister } from "@OpenFarm/api/registers/rows";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -100,7 +101,7 @@ export const HealthRegisters = ({
   onPrint,
   printing,
 }: {
-  onPrint: (report: HealthRegister, asked: AskedPeriod) => void;
+  onPrint: (register: RegisterName, asked: AskedPeriod) => void;
   printing: boolean;
 }) => {
   const { t } = useLanguage();
@@ -110,33 +111,27 @@ export const HealthRegisters = ({
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
   };
+  /** What to ask for one register's rows over the period on the screen. */
+  const listing = (register: RegisterName) => ({
+    input: { register, ...asked },
+  });
   const vaccinations = useQuery(
-    orpc.inspector.vaccinations.queryOptions({ input: asked })
+    orpc.inspector.rows.queryOptions(listing("vaccination_register"))
   );
   const treatments = useQuery(
-    orpc.inspector.treatments.queryOptions({ input: asked })
+    orpc.inspector.rows.queryOptions(listing("treatment_register"))
   );
   const diseases = useQuery(
-    orpc.inspector.diseases.queryOptions({ input: asked })
+    orpc.inspector.rows.queryOptions(listing("disease_history"))
   );
   const mortalities = useQuery(
-    orpc.inspector.mortalities.queryOptions({ input: asked })
-  );
-  const movementLog = useMutation(
-    orpc.inspector.movementLog.mutationOptions({
-      onSuccess: ({ csv, period }) =>
-        saveCsv(`movement-log-${period.from}-${period.to}.csv`, csv),
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
-    })
+    orpc.inspector.rows.queryOptions(listing("mortality_register"))
   );
   const sheet = useMutation(
     orpc.inspector.print.mutationOptions({
-      onSuccess: ({ csv, period }, { report }) =>
+      onSuccess: ({ csv, period }, { register }) =>
         saveCsv(
-          `${report.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
+          `${register.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
           csv ?? ""
         ),
       onError: (error) =>
@@ -145,13 +140,13 @@ export const HealthRegisters = ({
         ),
     })
   );
-  const printed = (report: HealthRegister) => ({
+  const printed = (register: RegisterName) => ({
     printing,
-    onPrint: () => onPrint(report, asked),
+    onPrint: () => onPrint(register, asked),
   });
-  const saved = (report: HealthRegister) => ({
+  const saved = (register: RegisterName) => ({
     saving: sheet.isPending,
-    onCsv: () => sheet.mutate({ report, format: "csv", ...asked }),
+    onCsv: () => sheet.mutate({ register, format: "csv", ...asked }),
   });
 
   return (
@@ -178,8 +173,10 @@ export const HealthRegisters = ({
         </div>
         <Button
           className="ml-auto"
-          disabled={movementLog.isPending}
-          onClick={() => movementLog.mutate(asked)}
+          disabled={sheet.isPending}
+          onClick={() =>
+            sheet.mutate({ register: "movement_log", format: "csv", ...asked })
+          }
           variant="outline"
         >
           <FileSpreadsheet data-icon="inline-start" />
@@ -199,17 +196,19 @@ export const HealthRegisters = ({
         {...printed("vaccination_register")}
         {...saved("vaccination_register")}
       >
-        {vaccinations.data?.rows.map((row) => (
-          <li className="py-3 text-sm" key={row.id}>
-            {row.givenOn} · {row.tagNumber} · {row.vaccine}
-            <span className="text-muted-foreground block text-xs">
-              {t("inspector.lotNumber", {
-                lotNumber: row.lotNumber ?? "—",
-              })}{" "}
-              · {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
-            </span>
-          </li>
-        ))}
+        {rowsOfRegister(vaccinations.data, "vaccination_register").map(
+          (row) => (
+            <li className="py-3 text-sm" key={row.id}>
+              {row.givenOn} · {row.tagNumber} · {row.vaccine}
+              <span className="text-muted-foreground block text-xs">
+                {t("inspector.lotNumber", {
+                  lotNumber: row.lotNumber ?? "—",
+                })}{" "}
+                · {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
+              </span>
+            </li>
+          )
+        )}
       </RegisterSection>
 
       <RegisterSection
@@ -219,7 +218,7 @@ export const HealthRegisters = ({
         {...printed("treatment_register")}
         {...saved("treatment_register")}
       >
-        {treatments.data?.rows.map((row) => (
+        {rowsOfRegister(treatments.data, "treatment_register").map((row) => (
           <li className="py-3 text-sm" key={row.id}>
             {row.givenOn} · {row.tagNumber}
             {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
@@ -248,7 +247,7 @@ export const HealthRegisters = ({
         title="inspector.diseases"
         {...printed("disease_history")}
       >
-        {diseases.data?.rows.map((row) => (
+        {rowsOfRegister(diseases.data, "disease_history").map((row) => (
           <li className="py-3 text-sm" key={row.id}>
             {row.diagnosedOn} · {row.tagNumber} · {row.disease}
             {row.notifiable ? (
@@ -273,7 +272,7 @@ export const HealthRegisters = ({
         {...printed("mortality_register")}
         {...saved("mortality_register")}
       >
-        {mortalities.data?.rows.map((row) => (
+        {rowsOfRegister(mortalities.data, "mortality_register").map((row) => (
           <li className="py-3 text-sm" key={row.id}>
             {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
             {causeWord(row.cause, t)}

@@ -493,13 +493,6 @@ export const INSPECTOR_REGISTERS = [
 ] as const;
 export type InspectorRegister = (typeof INSPECTOR_REGISTERS)[number];
 
-/** The registers an inspector may also take away as a CSV (the report set: R3, R4 and R6 as PDF and CSV). */
-export const REGISTERS_WITH_CSV: readonly InspectorRegister[] = [
-  "vaccination_register",
-  "treatment_register",
-  "mortality_register",
-];
-
 /** The health registers, which cover a period: a year of vaccinations, thirty days of treatments, six months of
  *  diagnoses, a year of deaths. */
 export type HealthRegister = Extract<
@@ -509,6 +502,58 @@ export type HealthRegister = Extract<
   | "disease_history"
   | "mortality_register"
 >;
+
+/** One line under a row's heading on a register: a label in both of the farm's languages, and what it says. */
+export interface RegisterPaperField {
+  bn: string;
+  en: string;
+  said: string;
+}
+
+/** One row of a register as the paper prints it: the line it is headed by, and the fields indented under it. */
+export interface RegisterPaperRow {
+  heading: string;
+  fields: RegisterPaperField[];
+}
+
+/** A register as a paper: the farm it came from, what it is, the period it covers, and its rows — everything
+ *  already written out for the reader, because how a date looks is the i18n package's business. */
+export interface RegisterPaper {
+  farm: FarmIdentity;
+  title: { bn: string; en: string };
+  from: string;
+  to: string;
+  /** What the paper says instead of rows when the period holds nothing: "no deaths in this period". */
+  none: { bn: string; en: string };
+  rows: RegisterPaperRow[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * Any of the Inspector View's registers as a paper.
+ *
+ * Every one reads the same way — the farm of origin, the register's name, the period, then a row headed by
+ * what identifies it with its fields indented under — because an inspector reads four of them in a row and
+ * should not have to learn four layouts. What each register puts on those lines is the register's own business;
+ * this writes them out.
+ */
+export const registerPaper = (paper: RegisterPaper): string =>
+  [
+    ...farmOfOriginLines(paper.farm),
+    "",
+    `${paper.title.bn} / ${paper.title.en}`,
+    field("সময়কাল", "Period", `${paper.from} — ${paper.to}`),
+    "",
+    ...(paper.rows.length === 0
+      ? [`${paper.none.bn} / ${paper.none.en}`]
+      : paper.rows.flatMap((row) => [
+          row.heading,
+          ...row.fields.map((one) => `  ${field(one.bn, one.en, one.said)}`),
+        ])),
+    "",
+    `${paper.producedAt} · ${paper.producedBy}`,
+  ].join("\n");
 
 const STANDING_LABEL: Record<RegistrationStanding, string> = {
   valid: "বৈধ / Valid",
@@ -584,198 +629,3 @@ export const herdSummary = (summary: HerdSummary): string =>
     "",
     `${summary.producedAt} · ${summary.producedBy}`,
   ].join("\n");
-
-/** One death on the printed mortality register, its day, cause and disposal already written out for the reader. */
-export interface MortalityRegisterLine {
-  tagNumber: string;
-  diedOn: string;
-  cause: string;
-  /** How the carcass went, with the detail beside it; the words for awaiting while a stillborn calf's waits. */
-  disposal: string;
-  /** The office's reference, for a death the farm attributes to a notifiable disease reported under one. */
-  reportReference: string | null;
-}
-
-export interface MortalityRegister {
-  farm: FarmIdentity;
-  from: string;
-  to: string;
-  deaths: MortalityRegisterLine[];
-  producedBy: string;
-  producedAt: string;
-}
-
-/**
- * R6, the mortality register: every death and cull in a period — the animal, the day, the cause, how the carcass
- * was disposed of, and the DLS reference when it was notifiable — a line to each in the CSV's order.
- */
-export const mortalityRegister = (register: MortalityRegister): string =>
-  [
-    ...farmOfOriginLines(register.farm),
-    "",
-    "মৃত্যুর রেজিস্টার / Mortality register",
-    field("সময়কাল", "Period", `${register.from} — ${register.to}`),
-    "",
-    ...(register.deaths.length === 0
-      ? ["এই সময়ে কোনো মৃত্যু হয়নি / No deaths in this period"]
-      : register.deaths.flatMap((one) => [
-          one.tagNumber,
-          `  ${field("তারিখ", "Date", one.diedOn)}`,
-          `  ${field("কারণ", "Cause", one.cause)}`,
-          `  ${field("নিষ্পত্তি", "Disposal", one.disposal)}`,
-          ...(one.reportReference
-            ? [
-                `  ${field("ডিএলএস রেফারেন্স", "DLS reference", one.reportReference)}`,
-              ]
-            : []),
-        ])),
-    "",
-    `${register.producedAt} · ${register.producedBy}`,
-  ].join("\n");
-
-/** One vaccine dose on the printed vaccination register, its day already written out for the reader. */
-export interface VaccinationRegisterLine {
-  tagNumber: string;
-  vaccine: string;
-  givenOn: string;
-  /** The vial's Lot Number: the dose's own, or its Campaign's. Null for a dose recorded before the product
-   *  was marked a vaccine. */
-  lotNumber: string | null;
-  givenBy: string | null;
-}
-
-export interface VaccinationRegister {
-  farm: FarmIdentity;
-  from: string;
-  to: string;
-  doses: VaccinationRegisterLine[];
-  producedBy: string;
-  producedAt: string;
-}
-
-/**
- * R3, the vaccination register: every vaccine dose in a period, per animal — the vaccine, the date, the Lot
- * Number, and who gave it, a line to each in the CSV's order. What an inspector reads for FMD and anthrax.
- */
-export const vaccinationRegister = (register: VaccinationRegister): string =>
-  [
-    ...farmOfOriginLines(register.farm),
-    "",
-    "টিকার রেজিস্টার / Vaccination register",
-    field("সময়কাল", "Period", `${register.from} — ${register.to}`),
-    "",
-    ...(register.doses.length === 0
-      ? ["এই সময়ে কোনো টিকা দেওয়া হয়নি / No vaccinations in this period"]
-      : register.doses.flatMap((one) => [
-          one.tagNumber,
-          `  ${field("টিকা", "Vaccine", one.vaccine)}`,
-          `  ${field("তারিখ", "Date", one.givenOn)}`,
-          `  ${field("লট নম্বর", "Lot number", one.lotNumber ?? "—")}`,
-          `  ${field("যিনি দিয়েছেন", "Given by", one.givenBy ?? "—")}`,
-        ])),
-    "",
-    `${register.producedAt} · ${register.producedBy}`,
-  ].join("\n");
-
-/** One dose on the printed treatment register, its days and route already written out for the reader. */
-export interface TreatmentRegisterLine {
-  givenOn: string;
-  tagNumber: string;
-  diagnosis: string | null;
-  drug: string;
-  dose: string | null;
-  route: string | null;
-  course: string | null;
-  givenBy: string | null;
-  prescribedBy: string | null;
-  milkClearOn: string | null;
-  meatClearOn: string | null;
-}
-
-export interface TreatmentRegister {
-  farm: FarmIdentity;
-  from: string;
-  to: string;
-  doses: TreatmentRegisterLine[];
-  producedBy: string;
-  producedAt: string;
-}
-
-/**
- * R4, the treatment register: every dose in a period, a line to each field in the DLS guideline's column order as
- * the CSV has it — the date, the
- * animal, the diagnosis, the drug, the dose and route, which dose of the course, who gave it, the prescribing
- * Vet, and when the milk and the meat were clear. What an inspector and a slaughter vet ask for first.
- */
-export const treatmentRegister = (register: TreatmentRegister): string =>
-  [
-    ...farmOfOriginLines(register.farm),
-    "",
-    "চিকিৎসার রেজিস্টার / Treatment register",
-    field("সময়কাল", "Period", `${register.from} — ${register.to}`),
-    "",
-    ...(register.doses.length === 0
-      ? ["এই সময়ে কোনো চিকিৎসা হয়নি / No treatments in this period"]
-      : register.doses.flatMap((one) => [
-          `${one.givenOn} · ${one.tagNumber}`,
-          `  ${field("রোগ", "Diagnosis", one.diagnosis ?? "—")}`,
-          `  ${field("ওষুধ", "Drug", one.drug)}`,
-          `  ${field("ডোজ", "Dose", one.dose ?? "—")}`,
-          `  ${field("পথ", "Route", one.route ?? "—")}`,
-          `  ${field("কোর্স", "Course", one.course ?? "—")}`,
-          `  ${field("যিনি দিয়েছেন", "Given by", one.givenBy ?? "—")}`,
-          `  ${field("প্রেসক্রিপশন", "Prescribed by", one.prescribedBy ?? "—")}`,
-          `  ${field("দুধ মুক্ত", "Milk clear", one.milkClearOn ?? "—")}`,
-          `  ${field("মাংস মুক্ত", "Meat clear", one.meatClearOn ?? "—")}`,
-        ])),
-    "",
-    `${register.producedAt} · ${register.producedBy}`,
-  ].join("\n");
-
-/** One diagnosis on the printed disease history. */
-export interface DiseaseHistoryLine {
-  diagnosedOn: string;
-  tagNumber: string;
-  disease: string;
-  diagnosedBy: string;
-  notifiable: boolean;
-  reportReference: string | null;
-  /** What became of the animal, already written out. */
-  outcome: string;
-}
-
-export interface DiseaseHistory {
-  farm: FarmIdentity;
-  from: string;
-  to: string;
-  diagnoses: DiseaseHistoryLine[];
-  producedBy: string;
-  producedAt: string;
-}
-
-/**
- * R5, the disease history: every diagnosis in a period by date and animal, the notifiable ones marked with the
- * reference their letter to the office was delivered under, and what became of the animal since.
- */
-export const diseaseHistory = (history: DiseaseHistory): string =>
-  [
-    ...farmOfOriginLines(history.farm),
-    "",
-    "রোগের ইতিহাস / Disease history",
-    field("সময়কাল", "Period", `${history.from} — ${history.to}`),
-    "",
-    ...(history.diagnoses.length === 0
-      ? ["এই সময়ে কোনো রোগ নির্ণয় হয়নি / No diagnoses in this period"]
-      : history.diagnoses.flatMap((one) => [
-          `${one.diagnosedOn} · ${one.tagNumber} · ${one.disease}${one.notifiable ? " · জ্ঞাপনযোগ্য / Notifiable" : ""}`,
-          `  ${field("ভেট", "Vet", one.diagnosedBy)}`,
-          one.notifiable
-            ? `  ${field("ডিএলএস রেফারেন্স", "DLS reference", one.reportReference ?? "এখনো দেওয়া হয়নি / not yet delivered")}`
-            : null,
-          `  ${field("পরিণতি", "Outcome", one.outcome)}`,
-        ])),
-    "",
-    `${history.producedAt} · ${history.producedBy}`,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");

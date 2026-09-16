@@ -1,12 +1,14 @@
-import type { Database } from "@OpenFarm/db";
 import type { Side } from "@OpenFarm/domain";
 import {
   ARRIVAL_MOVE_REASONS,
   MORTALITY_KINDS,
   arrivalFromMove,
+  farmDayOf,
+  farmTimeOf,
 } from "@OpenFarm/domain";
 
-type Db = Pick<Database, "query">;
+import type { Db, Register } from "./register";
+import { A_YEAR_BACK } from "./register";
 
 /**
  * What happened to an animal's whereabouts, in the words the movement log's CSV uses: a calf coming into her
@@ -14,7 +16,7 @@ type Db = Pick<Database, "query">;
  * Sale, and a death or cull. In that order when two fall at the same instant — a calf born dead is born before
  * she dies.
  */
-export const MOVEMENT_KINDS = [
+const MOVEMENT_KINDS = [
   "calving",
   "intake",
   "move",
@@ -22,10 +24,10 @@ export const MOVEMENT_KINDS = [
   "sale",
   ...MORTALITY_KINDS,
 ] as const;
-export type MovementKind = (typeof MOVEMENT_KINDS)[number];
+type MovementKind = (typeof MOVEMENT_KINDS)[number];
 
 /** One line of the movement log: when, which animal, what happened, from where to where, and who wrote it. */
-export interface MovementLine {
+export interface MovementRow {
   at: Date;
   tagNumber: string;
   kind: MovementKind;
@@ -48,7 +50,7 @@ const movesBetween = async (
   db: Db,
   farmId: string,
   within: { gte: Date; lt: Date }
-): Promise<MovementLine[]> => {
+): Promise<MovementRow[]> => {
   const moves = await db.query.animalMove.findMany({
     where: {
       farmId,
@@ -68,7 +70,7 @@ const movesBetween = async (
       mover: { columns: { name: true } },
     },
   });
-  return moves.flatMap((move): MovementLine[] => {
+  return moves.flatMap((move): MovementRow[] => {
     const line = {
       at: move.movedAt,
       tagNumber: move.animal.tagNumber,
@@ -119,7 +121,7 @@ const leaving = (
   at: Date,
   kind: MovementKind,
   to: string | null
-): MovementLine => ({
+): MovementRow => ({
   at,
   tagNumber: one.animal.tagNumber,
   kind,
@@ -142,11 +144,11 @@ const leaverColumns = {
  * intake comes from the seller; a Side change names the Side at both ends; a sale goes from her Pen to where the
  * buyer took her; a death leaves from her Pen.
  */
-export const movementsBetween = async (
+const movementsBetween = async (
   db: Db,
   farmId: string,
   range: { from: Date; until: Date }
-): Promise<MovementLine[]> => {
+): Promise<MovementRow[]> => {
   const within = { gte: range.from, lt: range.until };
   const [moves, sales, deaths] = await Promise.all([
     movesBetween(db, farmId, within),
@@ -159,7 +161,7 @@ export const movementsBetween = async (
       with: leaverColumns,
     }),
   ]);
-  const lines: MovementLine[] = [
+  const lines: MovementRow[] = [
     ...moves,
     ...sales.map((one) => leaving(one, one.soldAt, "sale", one.destination)),
     ...deaths.map((one) => leaving(one, one.happenedAt, one.kind, null)),
@@ -171,4 +173,31 @@ export const movementsBetween = async (
       a.tagNumber.localeCompare(b.tagNumber) ||
       orderOf(a.kind) - orderOf(b.kind)
   );
+};
+
+/**
+ * R11, the movement log: every Move, Side change, arrival, sale and death in a period — a year back from today
+ * unless asked — in time order. Only ever a spreadsheet: it is the one an inspector takes away and opens
+ * beside the farm's own, and nobody reads three hundred lines off a sheet of paper.
+ */
+export const MOVEMENT_LOG: Register<MovementRow> = {
+  name: "movement_log",
+  looksBack: A_YEAR_BACK,
+  read: movementsBetween,
+  paper: null,
+  columns: [
+    {
+      // The farm's own date and time, so a line reads as the day the farm had, not as UTC.
+      csv: {
+        header: "when",
+        value: (row) => `${farmDayOf(row.at)} ${farmTimeOf(row.at)}`,
+      },
+    },
+    { csv: { header: "tag", value: (row) => row.tagNumber } },
+    { csv: { header: "kind", value: (row) => row.kind } },
+    { csv: { header: "from", value: (row) => row.from } },
+    { csv: { header: "to", value: (row) => row.to } },
+    { csv: { header: "recorded_by", value: (row) => row.recordedBy } },
+  ],
+  kept: (rows) => ({ movements: rows.length }),
 };

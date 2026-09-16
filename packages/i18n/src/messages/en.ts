@@ -728,6 +728,7 @@ export const en = {
   "inspector.asOf": "As of",
   "inspector.onTheFarm": "On the farm",
   "refusal.registerHasNoCsv": "That register is printed, not given as a CSV",
+  "refusal.registerHasNoPaper": "That register is given as a CSV, not printed",
   "inspector.vaccinations": "Vaccination register",
   "inspector.noVaccinations": "No vaccinations in this period",
   "inspector.lotNumber": "Lot Number {lotNumber}",

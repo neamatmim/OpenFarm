@@ -94,13 +94,19 @@ const InspectorPage = () => {
     enabled: certificateId !== undefined,
   });
   const [paper, setPaper] = useState<{
-    report: InspectorRegister;
+    register: InspectorRegister;
     text: string;
   } | null>(null);
   const print = useMutation(
     orpc.inspector.print.mutationOptions({
-      onSuccess: ({ text }, { report }) =>
-        setPaper(text ? { report, text } : null),
+      onSuccess: ({ text }, { register }) => {
+        // The movement log is a spreadsheet and comes back with no paper to show.
+        if (!text || register === "movement_log") {
+          setPaper(null);
+          return;
+        }
+        setPaper({ register, text });
+      },
       onError: (error) =>
         toast.error(
           wordedRefusal(error, t) ?? (error.message || t("common.error"))
@@ -130,16 +136,16 @@ const InspectorPage = () => {
   const standingWord = STANDING_WORD[registration.standing];
   const day = (at: Date | null) =>
     at ? formatDate(at, language, "date") : "—";
-  const printButton = (report: InspectorRegister) => (
+  const printButton = (register: InspectorRegister) => (
     <Button
       // The Registration waits for its certificate, so the paper is not printed without the photograph.
       disabled={
         print.isPending ||
-        (report === "registration" &&
+        (register === "registration" &&
           certificateId !== undefined &&
           !certificate.data)
       }
-      onClick={() => print.mutate({ report })}
+      onClick={() => print.mutate({ register })}
       size="sm"
       variant="outline"
     >
@@ -253,15 +259,15 @@ const InspectorPage = () => {
       </div>
 
       <HealthRegisters
-        onPrint={(report, asked) => print.mutate({ report, ...asked })}
+        onPrint={(register, asked) => print.mutate({ register, ...asked })}
         printing={print.isPending}
       />
 
       {paper ? (
         <Paper
-          id={PAPER_OF[paper.report]}
+          id={PAPER_OF[paper.register]}
           image={
-            paper.report === "registration" && certificate.data
+            paper.register === "registration" && certificate.data
               ? { ...certificate.data, alt: t("certificate.title") }
               : undefined
           }

@@ -113,7 +113,7 @@ describe("the Inspector View", () => {
     });
 
     const { text } = await manager.client.inspector.print({
-      report: "registration",
+      register: "registration",
     });
     expect(text).toContain("নিবন্ধন / Registration");
     expect(text).toContain(REGISTRATION);
@@ -155,7 +155,7 @@ describe("the Inspector View", () => {
     );
 
     const { text } = await owner.client.inspector.print({
-      report: "herd_summary",
+      register: "herd_summary",
     });
     expect(text).toContain("পশুর সারসংক্ষেপ / Herd summary");
     expect(text).toContain(`পরিদর্শন দুধ ${suffix}`);
@@ -188,7 +188,7 @@ describe("the Inspector View", () => {
       });
       // oxlint-disable-next-line no-await-in-loop
       await expect(
-        other.client.inspector.print({ report: "registration" })
+        other.client.inspector.print({ register: "registration" })
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
     const onShedPhone = await as("manager", "2043-05-03T04:00:00.000Z", true);
@@ -201,14 +201,23 @@ describe("the Inspector View", () => {
     await writer.client.farm.setIdentity({ registrationNumber: null });
     try {
       const unregistered = await as("owner", "2043-05-03T04:00:00.000Z");
-      for (const report of ["registration", "herd_summary"] as const) {
+      for (const register of ["registration", "herd_summary"] as const) {
         // oxlint-disable-next-line no-await-in-loop
         await expect(
-          unregistered.client.inspector.print({ report })
+          unregistered.client.inspector.print({ register })
         ).rejects.toMatchObject({
           data: { refusal: "farm_identity_incomplete" },
         });
       }
+
+      // But a register nobody makes a spreadsheet of is refused as that, before the farm's own paperwork is
+      // looked at: what an inspector asked for cannot be given at all, and that is the more useful answer.
+      await expect(
+        unregistered.client.inspector.print({
+          register: "disease_history",
+          format: "csv",
+        })
+      ).rejects.toMatchObject({ data: { refusal: "register_has_no_csv" } });
     } finally {
       await writer.client.farm.setIdentity({
         registrationNumber: REGISTRATION,
