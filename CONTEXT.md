@@ -68,6 +68,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Sign-off**: The checker's review of a completed SOP Instance: approve, or send back with a reason. _Avoid_: Approval (one outcome of Sign-off), verification
 
+**The Day Turning**: Everything the Farm does because time has passed rather than because somebody did something: work falling due, a visiting Vet's days running out, Alerts swept for work gone late and holds ending and feed running low, and the evening's Digest carried. Idempotent, and run both by the server's own timer and by whoever opens the app — so a farm whose server is asleep is a farm that catches up the moment somebody looks at it, and neither run does anything twice. _Avoid_: Schedule (that is one kind of Trigger), cron, job
+
 **Grace**: The minutes after an Instance's due time before it counts as Overdue. Set per SOP. _Avoid_: Buffer, slack, tolerance (which is milk's word)
 
 **Overdue** / **Missed**: An Instance past its due time and Grace is Overdue and the Manager is alerted. It becomes Missed only when the Manager closes it with a reason. Nothing disappears on its own. _Avoid_: Expired, skipped, failed

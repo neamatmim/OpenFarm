@@ -4,10 +4,8 @@ import type { Clock } from "./clock";
 import { systemClock } from "./clock";
 import { buildContext } from "./context";
 import type { PushTransport } from "./push";
-import { carryTheDigest, sweepTheAlerts } from "./routers/alerts";
-import { raiseTheDaysWork } from "./routers/instances";
-import { endExpiredVisits } from "./routers/vet-cases";
 import type { SmsTransport } from "./sms";
+import { theDayTurns } from "./the-day-turns";
 
 /** How often the server looks at the farm's clock: often enough that nothing waits long for its notice. */
 const EVERY_MS = 5 * 60_000;
@@ -24,13 +22,14 @@ const status: ScheduleStatus = {
   lastError: null,
 };
 
-/** When the schedule last ran, last ran cleanly, and what went wrong if it did not — for the Owner's systems page. */
+/** When the schedule last ran, when it last turned the whole day cleanly, and what went wrong if any of it did not —
+ *  for the Owner's systems page. */
 export const scheduleStatus = (): Readonly<ScheduleStatus> => ({ ...status });
 
 /**
- * One turn of the farm's clock, on the server: the day's work raised, late work and ending withdrawals told about,
- * and the digest carried when its time has come. The same idempotent work the app does when somebody opens it — but
- * nothing now waits for somebody to open it, so an overdue milking at night still reaches the Owner.
+ * One turn of the farm's day, on the server (the glossary's Day Turning). The same idempotent round the app runs when
+ * somebody opens it — but nothing now waits for somebody to open it, so an overdue milking at night still reaches the
+ * Owner.
  */
 export const runTheSchedule = async ({
   db,
@@ -50,13 +49,14 @@ export const runTheSchedule = async ({
     if (!farm) {
       return { ok: true };
     }
-    const onTheFarm = { ...context, farm };
-    await endExpiredVisits(onTheFarm);
-    await raiseTheDaysWork(onTheFarm);
-    await sweepTheAlerts(onTheFarm);
-    await carryTheDigest(onTheFarm);
+    const turned = await theDayTurns({ ...context, farm });
+    // A piece that failed does not stop the rest of the day turning, but the turn was not a clean one: the Owner's
+    // systems page reads both, and a page that called this morning clean would be the wrong thing to show.
+    status.lastError = turned.wentWrong.join("; ") || null;
+    if (status.lastError) {
+      return { ok: false, error: status.lastError };
+    }
     status.lastOkAt = clock.now();
-    status.lastError = null;
     return { ok: true };
   } catch (error) {
     status.lastError = error instanceof Error ? error.message : String(error);
