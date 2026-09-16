@@ -252,7 +252,7 @@ export const peopleRouter = {
         with: {
           roles: {
             where: { farmId: context.farm.id, ...ACTIVE_ROLE },
-            columns: { role: true },
+            columns: { role: true, scope: true, expiresAt: true },
           },
         },
       });
@@ -272,6 +272,13 @@ export const peopleRouter = {
       return {
         ...person,
         roles: person.roles.map((role) => role.role),
+        /** When a visiting Vet's stint ends; nothing for everybody else. */
+        visitUntil:
+          person.roles.find(
+            (role) => role.role === "vet" && role.scope === "visiting"
+          )?.expiresAt ?? null,
+        /** The Pens whose work is theirs. */
+        penIds: await pensOf(context.db, context.farm.id, input.userId),
         training: training.map(({ version, ...row }) => ({
           ...row,
           versionNumber: version.number,
