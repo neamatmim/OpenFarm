@@ -185,6 +185,42 @@ describe("the passport and the withdrawal summary", () => {
     expect(passport.text).toContain("খামার");
   });
 
+  it("says she was bought and when she came, not when she was written down", async () => {
+    // Bought on 20 June and entered on 1 July: a farm writes up an intake when it gets to the office.
+    const manager = await asManager("2027-07-06");
+    const late = await manager.client.intake.record({
+      penId: world.pen.id,
+      sex: "male",
+      seller: { name: `দেরির হাট ${suffix}`, address: "সাভার হাট" },
+      purchasePriceBdt: 80_000,
+      weightKg: 250,
+      estimatedAgeMonths: 22,
+      arrivedAt: "2027-06-20T04:00:00.000Z",
+    });
+    const paper = await manager.client.papers.passport({
+      tagNumber: late.tagNumber,
+    });
+    expect(paper.text).toContain("bought from");
+    expect(paper.text).toContain(`দেরির হাট ${suffix}`);
+    // The day the Intake says she came.
+    expect(paper.text).toContain("২০ জুন, ২০২৭");
+
+    // An animal the farm wrote into its opening register was bought all the same, and her paper says so.
+    const already = await manager.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "heifer",
+      penId: world.pen.id,
+      source: "bought",
+      aliases: [],
+    });
+    const hers = await manager.client.papers.passport({
+      tagNumber: already.tagNumber,
+    });
+    expect(hers.text).toContain("কেনা / bought");
+    expect(hers.text).not.toContain("born here");
+  });
+
   it("answers the sharp question: clear, or not clear, and until when", async () => {
     // Vaccinated on 2 July, and the vaccine holds meat for twenty-one days.
     const manager = await asManager("2027-07-10");

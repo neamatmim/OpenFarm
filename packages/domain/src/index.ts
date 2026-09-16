@@ -87,6 +87,7 @@ export {
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
   QURBANI_DAYS,
+  daysOnFeedOf,
   fatteningView,
   implausibleChange,
   nextEidWindow,
@@ -117,7 +118,7 @@ export type {
   TreatmentRegisterLine,
   VaccinationRegister,
   VaccinationRegisterLine,
-  PenSpell,
+  PenSpellLine,
   ShortenedHold,
   SaleReceipt,
   SoldAnimal,
@@ -290,7 +291,6 @@ export type {
   Costs,
   FeedShare,
   FeedingToCost,
-  PenHistoryLine,
   UnallocatedFeeding,
 } from "./costs";
 export {
@@ -299,12 +299,27 @@ export {
   costPerLitreOf,
   dosePriceOf,
   feedShares,
-  groupedBy,
   marginOf,
-  penHistoryOf,
   roundedCosts,
-  sidesOverTime,
 } from "./costs";
+export { groupedBy } from "./grouped-by";
+export type {
+  Arrival,
+  ArrivalKind,
+  Exit,
+  PenHistoryLine,
+  PenSpellOf,
+} from "./pen-history";
+export {
+  ARRIVAL_MOVE_REASONS,
+  ARRIVALS,
+  arrivalFromMove,
+  arrivalOf,
+  exitOf,
+  penHistoryOf,
+  penSpellsOf,
+  sidesOverTime,
+} from "./pen-history";
 export type {
   InAndOut,
   MoneySummary,

@@ -1,82 +1,9 @@
 import { roundKg } from "./feed";
+import { groupedBy } from "./grouped-by";
 import type { Side } from "./lifecycle";
 import { roundTaka } from "./money";
-
-/** Things gathered under the key each belongs to. */
-export const groupedBy = <T>(
-  items: readonly T[],
-  keyOf: (item: T) => string
-): Map<string, T[]> => {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const key = keyOf(item);
-    const group = groups.get(key);
-    if (group) {
-      group.push(item);
-    } else {
-      groups.set(key, [item]);
-    }
-  }
-  return groups;
-};
-
-/** One line of an Animal's Pen history: where she stood, and on which Side, from one move until the next
- *  — or until she left. */
-export interface PenHistoryLine {
-  animalId: string;
-  penId: string;
-  side: Side;
-  from: Date;
-  /** When she moved on or left the farm; null while she is still there. */
-  until: Date | null;
-}
-
-const covers = (line: PenHistoryLine, at: Date): boolean =>
-  line.from <= at && (line.until === null || at < line.until);
-
-/**
- * Every Animal's Pen history, from her moves and the day she left. The first move is the one that put her
- * on the farm; each later one ends the line before it. Moves at the same instant keep the order they were
- * written in.
- */
-export const penHistoryOf = (
-  moves: readonly {
-    id: string;
-    animalId: string;
-    toPenId: string;
-    toSide: Side;
-    movedAt: Date;
-  }[],
-  leftAt: ReadonlyMap<string, Date>
-): PenHistoryLine[] =>
-  [...groupedBy(moves, (move) => move.animalId).entries()].flatMap(
-    ([animalId, hers]) => {
-      const inOrder = hers.toSorted(
-        (a, b) =>
-          a.movedAt.getTime() - b.movedAt.getTime() || a.id.localeCompare(b.id)
-      );
-      return inOrder.map((move, index) => ({
-        animalId,
-        penId: move.toPenId,
-        side: move.toSide,
-        from: move.movedAt,
-        until: inOrder[index + 1]?.movedAt ?? leftAt.get(animalId) ?? null,
-      }));
-    }
-  );
-
-/**
- * Which Side each Animal was on at a moment, read from her own Pen history — indexed once, because the
- * farm asks it for every dose and every litre.
- */
-export const sidesOverTime = (
-  history: readonly PenHistoryLine[]
-): ((animal: { id: string; side: Side }, at: Date) => Side) => {
-  const byAnimal = groupedBy(history, (line) => line.animalId);
-  return (animal, at) =>
-    byAnimal.get(animal.id)?.find((line) => covers(line, at))?.side ??
-    animal.side;
-};
+import type { PenHistoryLine } from "./pen-history";
+import { covers } from "./pen-history";
 
 /** One Feeding, as its cost is worked out: the Pen, when, and what was given of each Feed Item. */
 export interface FeedingToCost {

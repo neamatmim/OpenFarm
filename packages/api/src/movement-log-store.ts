@@ -1,6 +1,10 @@
 import type { Database } from "@OpenFarm/db";
 import type { Side } from "@OpenFarm/domain";
-import { MORTALITY_KINDS } from "@OpenFarm/domain";
+import {
+  ARRIVAL_MOVE_REASONS,
+  MORTALITY_KINDS,
+  arrivalFromMove,
+} from "@OpenFarm/domain";
 
 type Db = Pick<Database, "query">;
 
@@ -30,10 +34,10 @@ export interface MovementLine {
   recordedBy: string | null;
 }
 
-/** The Moves that put an animal in a Pen from outside the farm's record, by the reason they were written with.
- *  An animal entered by registering her — the opening register above all — was already there, and moved
- *  nowhere. */
-const ARRIVAL_REASONS = ["born", "intake"];
+/** How an Arrival reads in the log: a calf comes into her mother's Pen at her Calving, and a bought animal at
+ *  her Intake. An animal who was already here when the farm wrote its opening register moved nowhere, and the
+ *  log never asks. */
+const ARRIVAL_LINE = { born: "calving", bought: "intake" } as const;
 
 /** A Pen as a Side change names it: which Side she stood on there. */
 const penOnSide = (pen: string | undefined, side: Side | null) =>
@@ -51,7 +55,7 @@ const movesBetween = async (
       movedAt: within,
       OR: [
         { fromPenId: { isNotNull: true } },
-        { reason: { in: ARRIVAL_REASONS } },
+        { reason: { in: [...ARRIVAL_MOVE_REASONS] } },
       ],
     },
     with: {
@@ -64,33 +68,45 @@ const movesBetween = async (
       mover: { columns: { name: true } },
     },
   });
-  return moves.map((move) => {
+  return moves.flatMap((move): MovementLine[] => {
     const line = {
       at: move.movedAt,
       tagNumber: move.animal.tagNumber,
       recordedBy: move.mover?.name ?? null,
     };
     if (move.fromPenId === null) {
-      const kind = move.reason === "intake" ? "intake" : "calving";
-      return {
-        ...line,
-        kind,
-        from:
-          kind === "intake" ? (move.animal.intake?.seller?.name ?? null) : null,
-        to: move.toPen.name,
-      };
+      // How she came to be here, as her record reads it — the same answer her page and her Animal Passport get.
+      // An animal who was already standing here moved nowhere, and the query above never asks for her.
+      const how = arrivalFromMove(move);
+      if (how === "already_here") {
+        return [];
+      }
+      const kind = ARRIVAL_LINE[how];
+      return [
+        {
+          ...line,
+          kind,
+          from:
+            kind === "intake"
+              ? (move.animal.intake?.seller?.name ?? null)
+              : null,
+          to: move.toPen.name,
+        },
+      ];
     }
     const sideChange = move.fromSide !== move.toSide;
-    return {
-      ...line,
-      kind: sideChange ? "side_change" : "move",
-      from: sideChange
-        ? penOnSide(move.fromPen?.name, move.fromSide)
-        : (move.fromPen?.name ?? null),
-      to: sideChange
-        ? penOnSide(move.toPen.name, move.toSide)
-        : move.toPen.name,
-    };
+    return [
+      {
+        ...line,
+        kind: sideChange ? "side_change" : "move",
+        from: sideChange
+          ? penOnSide(move.fromPen?.name, move.fromSide)
+          : (move.fromPen?.name ?? null),
+        to: sideChange
+          ? penOnSide(move.toPen.name, move.toSide)
+          : move.toPen.name,
+      },
+    ];
   });
 };
 

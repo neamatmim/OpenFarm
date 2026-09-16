@@ -6,7 +6,7 @@ import type {
   PenHistoryLine,
 } from "@OpenFarm/domain";
 import {
-  EXIT_STATES,
+  exitOf,
   costOfGainOf,
   costPerLitreOf,
   dosePriceOf,
@@ -155,11 +155,13 @@ export const farmCosts = async (db: Db, farmId: string) => {
     }),
   ]);
 
-  const exits: readonly string[] = EXIT_STATES;
+  // When each animal left, as her record says it: her Pen history ends there, so nothing is charged to a cow
+  // for feed put out after she had gone.
   const leftAt = new Map(
-    animals
-      .filter((one) => exits.includes(one.state))
-      .map((one) => [one.id, one.stateChangedAt] as const)
+    animals.flatMap((one) => {
+      const exit = exitOf(one);
+      return exit ? [[one.id, exit.at] as const] : [];
+    })
   );
   const history = penHistoryOf(moves, leftAt);
   const sideOf = sidesOverTime(history);

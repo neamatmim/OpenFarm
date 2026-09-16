@@ -1,31 +1,82 @@
 import type { Database } from "@OpenFarm/db";
-import type { DoseGiven, PenSpell, ShortenedHold } from "@OpenFarm/domain";
-import { withdrawalEndsAt, withdrawalView } from "@OpenFarm/domain";
-import type { Language } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import type {
+  Arrival,
+  Disposal,
+  Exit,
+  MortalityKind,
+  PenSpellOf,
+} from "@OpenFarm/domain";
+import {
+  arrivalOf,
+  daysOnFeedOf,
+  exitOf,
+  penSpellsOf,
+  withdrawalView,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-/** Long enough to carry the last thirty days and the stay before them. A row count, not a number
- *  of days, and the paper says so when there were more. */
-const PEN_ROWS = 40;
-/** A legal course runs to thirty days at four doses a day, so a paper has to hold more than a
- *  hundred before it can claim to have shown the last thirty days' worth. */
-const DOSE_ROWS = 200;
-/** Two years of fortnights. */
-const READING_ROWS = 52;
+/**
+ * How much of her record to read. Her page shows a screenful; her Animal Passport shows what a buyer or a
+ * slaughter vet is entitled to see, which is a great deal more. Whatever is asked for, the record says whether
+ * there was more than it showed.
+ */
+export interface HowDeep {
+  moves?: number;
+  doses?: number;
+  weighIns?: number;
+}
 
 /**
- * Everything one animal's papers are made from, whether she is standing in the shed or gone.
- *
- * Deliberately not one of the loaders that insist she is still here: a passport is asked for
- * *because* she has left, by whoever is holding her now, and a record that stopped being readable
- * the moment she went would be no use to the person who most needs it.
+ * What a paper reads, and what her record reads when a caller says nothing: long enough to carry the last
+ * thirty days and the stay before them; a legal course of thirty days at four doses a day, so a paper can claim
+ * to have shown the last thirty days' worth; and two years of fortnightly weighings.
  */
-export const herWholeRecord = async (
-  db: Database,
+const PAPER_DEPTH = { moves: 40, doses: 200, weighIns: 52 } as const;
+
+/** Where she stood, by the Pen's name. */
+export type HerPenSpell = PenSpellOf<{ name: string }>;
+
+/** How she came to be here, with what the Intake recorded of it for an animal the farm bought. */
+export type HerArrival = Arrival & {
+  intake: {
+    arrivedAt: Date;
+    estimatedAgeMonths: number;
+    seller: { name: string } | null;
+  } | null;
+};
+
+/** How she left, with what belongs to that way of going: who took her and where she went, or what she died of
+ *  and what was done with her. */
+export type HerExit = Exit & {
+  sale: { destination: string | null; buyer: { name: string } | null } | null;
+  death: {
+    kind: MortalityKind;
+    cause: string;
+    disposal: Disposal | null;
+  } | null;
+};
+
+/**
+ * Everything the farm's record says about one animal, whether she is standing in the shed or gone: what she is,
+ * how she arrived, where she has stood, what she has had, what she has weighed, and how she left.
+ *
+ * Deliberately not one of the loaders that insist she is still here: a passport is asked for *because* she has
+ * left, by whoever is holding her now, and a record that stopped being readable the moment she went would be no
+ * use to the person who most needs it.
+ *
+ * Values, not words: her page, her papers and the registers each say them in their own way, and the reader's
+ * language belongs with whoever is doing the saying. What is derived — where she stood, how she arrived, how
+ * she left, how long she has been on feed, what she is held for — is derived here, once, so no two readers of
+ * her record can tell a buyer different things.
+ */
+export const herRecord = async (
+  db: Pick<Database, "query">,
   farmId: string,
-  tagNumber: string
+  tagNumber: string,
+  now: Date,
+  howDeep: HowDeep = {}
 ) => {
+  const depth = { ...PAPER_DEPTH, ...howDeep };
   const row = await db.query.animal.findFirst({
     where: { farmId, tagNumber: tagNumber.toUpperCase() },
     columns: {
@@ -50,14 +101,16 @@ export const herWholeRecord = async (
     },
     with: {
       moves: {
+        // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant.
         orderBy: { movedAt: "desc", id: "desc" },
-        limit: PEN_ROWS + 1,
+        limit: depth.moves + 1,
+        columns: { id: true, movedAt: true },
         with: { toPen: { columns: { name: true } } },
       },
       treatments: {
         where: { givenAt: { isNotNull: true } },
         orderBy: { givenAt: "desc", id: "desc" },
-        limit: DOSE_ROWS + 1,
+        limit: depth.doses + 1,
         with: {
           product: { columns: { nameBn: true, meatWithdrawalDays: true } },
           giver: { columns: { name: true } },
@@ -68,7 +121,7 @@ export const herWholeRecord = async (
       },
       weighIns: {
         orderBy: { weighedAt: "desc", id: "desc" },
-        limit: READING_ROWS + 1,
+        limit: depth.weighIns + 1,
         columns: { weightKg: true, weighedAt: true },
       },
       intake: {
@@ -79,6 +132,7 @@ export const herWholeRecord = async (
         columns: { soldAt: true, destination: true },
         with: { buyer: { columns: { name: true } } },
       },
+      mortality: { columns: { kind: true, cause: true, disposal: true } },
     },
   });
   if (!row) {
@@ -86,125 +140,44 @@ export const herWholeRecord = async (
       message: `No animal with tag ${tagNumber}`,
     });
   }
-  // One row past each limit was read so the paper can say it has not shown everything, rather
-  // than letting a reader believe a truncated list is the whole of it.
+  // The Move that brought her onto the farm, read on its own: how she arrived is a fact about her, and a caller
+  // asking for one screenful of her Moves should not be able to lose it.
+  const cameIn = await db.query.animalMove.findFirst({
+    where: { animalId: row.id, fromPenId: { isNull: true } },
+    orderBy: { movedAt: "asc", id: "asc" },
+    columns: { movedAt: true, fromPenId: true, reason: true },
+  });
+  // One row past each limit was read so a reader can say it has not shown everything, rather than
+  // letting anybody believe a truncated list is the whole of it.
   const moreThanShown =
-    row.moves.length > PEN_ROWS ||
-    row.treatments.length > DOSE_ROWS ||
-    row.weighIns.length > READING_ROWS;
+    row.moves.length > depth.moves ||
+    row.treatments.length > depth.doses ||
+    row.weighIns.length > depth.weighIns;
+  const { moves: allMoves, treatments, intake, sale, mortality, ...her } = row;
+  const moves = allMoves.slice(0, depth.moves);
+  const arrival = arrivalOf(cameIn ? [cameIn] : []);
+  const exit = exitOf(row);
   return {
-    ...row,
-    moves: row.moves.slice(0, PEN_ROWS),
+    ...her,
+    moves,
     // Narrowed here rather than at every reader: the query already asked for doses that were
     // given, and `givenAt` being nullable in the row type is about doses still owed.
-    treatments: row.treatments
-      .slice(0, DOSE_ROWS)
+    doses: treatments
+      .slice(0, depth.doses)
       .flatMap((dose) =>
         dose.givenAt === null ? [] : [{ ...dose, givenAt: dose.givenAt }]
       ),
-    weighIns: row.weighIns.slice(0, READING_ROWS),
+    weighIns: her.weighIns.slice(0, depth.weighIns),
+    /** How she came to be on the farm, and what the Intake said of it. */
+    arrival: arrival && { ...arrival, intake: intake ?? null },
+    /** How she left, or nothing while she is still here. */
+    exit: exit && { ...exit, sale: sale ?? null, death: mortality ?? null },
+    /** Where she stood, oldest first, her last spell ending when she left. */
+    penSpells: penSpellsOf(moves, exit?.at ?? null),
+    /** How long a bought-in animal has been on the farm being fed; null for one born here. */
+    daysOnFeed: intake ? daysOnFeedOf(intake.arrivedAt, now) : null,
+    /** What she is held for today, and whether a Vet cut the hold short. */
+    withdrawal: withdrawalView(row, now),
     moreThanShown,
   };
 };
-
-/** What the farm says about her hold today, and whether a Vet cut it short. */
-export const herWithdrawal = (
-  her: Parameters<typeof withdrawalView>[0],
-  now: Date,
-  language: Language
-): {
-  clear: boolean;
-  clearOn: string | null;
-  shortened: ShortenedHold | null;
-} => {
-  const view = withdrawalView(her, now);
-  return {
-    clear: !view.underMeatWithdrawal,
-    clearOn: view.meatWithdrawalUntil
-      ? formatDate(view.meatWithdrawalUntil, language, "date")
-      : null,
-    shortened: view.shortened
-      ? {
-          on: formatDate(view.shortened.at, language, "date"),
-          reason: view.shortened.reason,
-          wouldHaveRunTo: view.shortened.wasMeatUntil
-            ? formatDate(view.shortened.wasMeatUntil, language, "date")
-            : null,
-        }
-      : null,
-  };
-};
-
-/** Where she came from, in words rather than a column value. */
-export const sourceOf = (her: {
-  source: string;
-  intake?: { seller: { name: string } | null } | null;
-}): string => {
-  if (her.source !== "bought") {
-    return "খামারে জন্ম / born here";
-  }
-  // Bought, and the farm may or may not have written down from whom.
-  return her.intake?.seller
-    ? `${her.intake.seller.name} থেকে কেনা / bought from`
-    : "কেনা / bought";
-};
-
-/** Her age as the farm can say it: from her birth date if it knows one, and otherwise from what
- *  the seller said at Intake, which is a judgement and is labelled as one. */
-export const ageOf = (
-  her: {
-    birthDate: Date | null;
-    intake?: { estimatedAgeMonths: number } | null;
-  },
-  language: Language
-): string | null => {
-  if (her.birthDate) {
-    return formatDate(her.birthDate, language, "date");
-  }
-  return her.intake
-    ? `আনুমানিক ${formatNumber(her.intake.estimatedAgeMonths, language)} মাস (আসার সময়) / estimated at intake`
-    : null;
-};
-
-/** Her pen history as spells: where she stood, from when, and until the next Move took her. */
-export const penSpells = (
-  moves: { movedAt: Date; toPen: { name: string } }[],
-  /** When she left the farm, if she has: her last pen ended then, and a paper saying she is
-   *  still standing in it would be wrong on the very document that exists because she has gone. */
-  leftAt: Date | null,
-  language: Language
-): PenSpell[] =>
-  moves.map((move, index) => {
-    // The Move before it in this newest-first list is the one that took her away again.
-    const takenAway = index === 0 ? leftAt : moves[index - 1]?.movedAt;
-    return {
-      penName: move.toPen.name,
-      from: formatDate(move.movedAt, language, "date"),
-      until: takenAway ? formatDate(takenAway, language, "date") : null,
-    };
-  });
-
-/** One dose, as either paper reports it. */
-export const doseGiven = (
-  dose: {
-    givenAt: Date;
-    product: { nameBn: string; meatWithdrawalDays: number | null };
-    giver: { name: string } | null;
-    prescription: { vet: { name: string } | null } | null;
-  },
-  language: Language
-): DoseGiven => ({
-  productName: dose.product.nameBn,
-  givenOn: formatDate(dose.givenAt, language, "date"),
-  // What this dose alone held her for, which is not the same as what she is held for today: a
-  // Vet may have cut the hold short, and the papers say so where they say she is clear.
-  meatClearOn: dose.product.meatWithdrawalDays
-    ? formatDate(
-        withdrawalEndsAt(dose.givenAt, dose.product.meatWithdrawalDays),
-        language,
-        "date"
-      )
-    : null,
-  prescribedBy: dose.prescription?.vet?.name ?? null,
-  givenBy: dose.giver?.name ?? null,
-});
