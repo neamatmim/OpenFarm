@@ -1,9 +1,8 @@
-import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
-import { ACTIVE_ROLE, ROLES, invite } from "@OpenFarm/db/schema/farm";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ROLE, ROLES } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT } from "@OpenFarm/db/schema/herd";
-import { startOfFarmDay } from "@OpenFarm/domain";
 import type { SopContent } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -17,45 +16,25 @@ import { hashToken } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
-  grantRoles,
+  acceptInvite,
+  approveInvite,
+  newInviteCode,
   newPin,
   pensOf,
   rolesOf,
   setPens,
   setPin,
+  planInvite,
+  reissueInvite,
   setRoles,
   setStanding,
   standingOf,
+  writeInvite,
 } from "../membership";
 import { requirePersonalSession, requireRole } from "../roles";
 import { scopesOf } from "../scope";
 
 const roleSchema = z.enum(ROLES);
-
-/** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CODE_LENGTH = 8;
-
-/** The instant a visit's access ends: the close of its last farm day. A visit ending before today is no visit. */
-const endOfVisit = (day: string, now: Date): Date => {
-  const end = new Date(startOfFarmDay(day).getTime() + 24 * 60 * 60 * 1000);
-  if (end <= now) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "A visit has to last until today at least",
-    });
-  }
-  return end;
-};
-
-/** A fresh invitation code, and what the farm keeps of it. */
-const newInviteCode = async (): Promise<{ code: string; codeHash: string }> => {
-  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
-  const code = Array.from(
-    bytes,
-    (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]
-  ).join("");
-  return { code, codeHash: await hashToken(code) };
-};
 
 /** One teaching, as a person's row shows it. */
 export interface TaughtOnce {
@@ -308,63 +287,26 @@ export const peopleRouter = {
       })
     )
     .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
       const now = context.clock.now();
-      const actor = { id: context.actor.id, role: context.roleUsed };
-      const visiting = input.visitUntil !== undefined;
-      if (visiting && !(input.roles.length === 1 && input.roles[0] === "vet")) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Only a Vet is invited for a visit",
-        });
-      }
-      const accessUntil = visiting
-        ? endOfVisit(input.visitUntil ?? "", now)
-        : null;
-      // A Manager invites Barn Staff and calls in a visiting Vet; the Owner approves either (roles matrix).
-      const managerMay = input.roles.every((r) => r === "staff") || visiting;
-      if (actor.role === "manager" && !managerMay) {
-        throw new ORPCError("FORBIDDEN", {
-          message: "A Manager may only invite Staff or a visiting Vet",
-        });
-      }
-      const approvedNow = actor.role === "owner";
-      const status = approvedNow ? "approved" : "pending";
-      const id = uuidv7(now);
-      const { code, codeHash } = await newInviteCode();
+      const by = { id: context.actor.id, role: context.roleUsed };
+      const planned = await planInvite(input, by, now);
       await audited(context).write(
         {
           entity: "invite",
-          entityId: id,
+          entityId: planned.id,
           action: "create",
           after: {
-            email: input.email,
-            name: input.name,
-            roles: input.roles,
-            status,
-            visitUntil: input.visitUntil ?? null,
+            email: planned.email,
+            name: planned.name,
+            roles: planned.roles,
+            status: planned.status,
+            visitUntil: planned.visitUntil,
           },
         },
-        async (tx) => {
-          await tx.insert(invite).values({
-            id,
-            farmId,
-            email: input.email,
-            name: input.name,
-            roles: input.roles,
-            status,
-            invitedBy: actor.id,
-            invitedByRole: actor.role,
-            approvedBy: approvedNow ? actor.id : null,
-            approvedAt: approvedNow ? now : null,
-            codeHash,
-            vetScope: visiting ? "visiting" : null,
-            accessUntil,
-            createdAt: now,
-          });
-        }
+        (tx) => writeInvite(tx, context.farm.id, planned, by, now)
       );
       // The code is shown once, to whoever invited them, to hand over in person; the farm keeps only its hash.
-      return { id, status, code } as const;
+      return { id: planned.id, status: planned.status, code: planned.code };
     }),
 
   /**
@@ -376,7 +318,6 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
       const { code, codeHash } = await newInviteCode();
       await audited(context).write(
         {
@@ -385,24 +326,7 @@ export const peopleRouter = {
           action: "update",
           after: { code: "reissued" },
         },
-        async (tx) => {
-          const [row] = await tx
-            .update(invite)
-            .set({ codeHash })
-            .where(
-              and(
-                eq(invite.id, input.id),
-                eq(invite.farmId, farmId),
-                isNull(invite.acceptedAt)
-              )
-            )
-            .returning({ id: invite.id });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "No invite waiting to be taken up",
-            });
-          }
-        }
+        (tx) => reissueInvite(tx, context.farm.id, input.id, codeHash)
       );
       return { id: input.id, code };
     }),
@@ -429,7 +353,7 @@ export const peopleRouter = {
         });
       }
       const codeHash = await hashToken(input.code.toUpperCase());
-      let roles: (typeof ROLES)[number][] = [];
+      let roles: RoleName[] = [];
       await audited(context).write(
         {
           entity: "user",
@@ -438,39 +362,20 @@ export const peopleRouter = {
           after: () => Promise.resolve({ roles, source: "invite accepted" }),
         },
         async (tx) => {
-          const [row] = await tx
-            .update(invite)
-            .set({ codeHash: null, acceptedAt: now })
-            .where(
-              and(
-                eq(invite.farmId, farmId),
-                eq(invite.codeHash, codeHash),
-                eq(invite.email, email),
-                eq(invite.status, "approved"),
-                isNull(invite.acceptedAt)
-              )
-            )
-            .returning({
-              roles: invite.roles,
-              approvedBy: invite.approvedBy,
-              accessUntil: invite.accessUntil,
-            });
-          if (!row) {
+          const taken = await acceptInvite(
+            tx,
+            farmId,
+            { userId: context.actor.id, email, codeHash },
+            now
+          );
+          if (!taken) {
+            // A code this farm is not waiting for is a wrong guess, and enough of them wait fifteen minutes.
             countFailure(guesses, now, CODE_ATTEMPTS);
             throw new ORPCError("NOT_FOUND", {
               message: "That code is not right",
             });
           }
-          roles = [...row.roles];
-          await grantRoles(
-            tx,
-            farmId,
-            context.actor.id,
-            roles,
-            { id: row.approvedBy ?? context.actor.id, role: "owner" },
-            now,
-            { reactivate: true, visitUntil: row.accessUntil ?? undefined }
-          );
+          roles = taken;
         }
       );
       return { roles };
@@ -481,9 +386,7 @@ export const peopleRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
-      const now = context.clock.now();
-      const actor = { id: context.actor.id, role: context.roleUsed };
+      const by = { id: context.actor.id, role: context.roleUsed };
       await audited(context).write(
         {
           entity: "invite",
@@ -498,24 +401,8 @@ export const peopleRouter = {
             return row ?? null;
           },
         },
-        async (tx) => {
-          // Atomic: only a pending invite of this Farm flips; a second approver gets NOT_FOUND
-          // and no audit row, because throwing here rolls the transaction back.
-          const [row] = await tx
-            .update(invite)
-            .set({ status: "approved", approvedBy: actor.id, approvedAt: now })
-            .where(
-              and(
-                eq(invite.id, input.id),
-                eq(invite.farmId, farmId),
-                eq(invite.status, "pending")
-              )
-            )
-            .returning({ email: invite.email, roles: invite.roles });
-          if (!row) {
-            throw new ORPCError("NOT_FOUND");
-          }
-        }
+        (tx) =>
+          approveInvite(tx, context.farm.id, input.id, by, context.clock.now())
       );
       return { id: input.id, status: "approved" } as const;
     }),

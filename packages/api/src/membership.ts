@@ -3,12 +3,18 @@ import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
 import { session as sessionTable, user } from "@OpenFarm/db/schema/auth";
 import { staffPin } from "@OpenFarm/db/schema/device";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
-import { ACTIVE_ROLE, roleAssignment } from "@OpenFarm/db/schema/farm";
+import { ACTIVE_ROLE, invite, roleAssignment } from "@OpenFarm/db/schema/farm";
 import { ACTIVE_ASSIGNMENT, penAssignment } from "@OpenFarm/db/schema/herd";
-import { derivePinHash, isPin, randomPinSalt } from "@OpenFarm/domain";
+import {
+  derivePinHash,
+  isPin,
+  randomPinSalt,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { hashToken } from "./device";
 
 /** As much of the farm's records as a reader needs — inside a transaction, or out of one, because what
  *  somebody holds is as often a question the screen asks as one a rule does. */
@@ -26,10 +32,17 @@ type Reading = Pick<Tx, "query">;
  * from which device is what a request knows, so the trail is written by whoever called (CONTEXT: Audit Event).
  */
 
-/** Who is making the change, and in which Role they are making it. */
+/** Who is making the change, and in which Role they are making it. Either may be missing, because the farm
+ *  itself grants Roles at times — a Vet taking up an invitation the Owner approved holds them from the Owner. */
 export interface By {
   id: string | null;
   role: RoleName | null;
+}
+
+/** A person acting in a Role, both known: an invitation is always written and approved by somebody. */
+export interface Acting {
+  id: string;
+  role: RoleName;
 }
 
 /** The Roles a person holds today. */
@@ -348,4 +361,216 @@ export const setPin = async (
       target: [staffPin.userId, staffPin.farmId],
       set,
     });
+};
+
+/** Letters and digits nobody misreads when a code is read out across a shed: no 0/O, no 1/I. */
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 8;
+const A_DAY = 24 * 60 * 60 * 1000;
+
+/** A fresh invitation code, and what the farm keeps of it. The code is shown once, to whoever invited them,
+ *  to hand over in person; the farm keeps only the hash, so a code is never read back out of it. */
+export const newInviteCode = async (): Promise<{
+  code: string;
+  codeHash: string;
+}> => {
+  const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
+  const code = Array.from(
+    bytes,
+    (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]
+  ).join("");
+  return { code, codeHash: await hashToken(code) };
+};
+
+/** The instant a visit's access ends: the close of its last farm day. A visit ending before today is no visit. */
+const endOfVisit = (day: string, now: Date): Date => {
+  const end = new Date(startOfFarmDay(day).getTime() + A_DAY);
+  if (end <= now) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A visit has to last until today at least",
+    });
+  }
+  return end;
+};
+
+/** An invitation as it will stand once it is written. */
+export interface PlannedInvite {
+  id: string;
+  status: "pending" | "approved";
+  /** Shown once to whoever invited them; never stored. */
+  code: string;
+  codeHash: string;
+  email: string;
+  name: string;
+  roles: RoleName[];
+  /** The last farm day a visiting Vet's access lasts, and the instant it ends. */
+  visitUntil: string | null;
+  accessUntil: Date | null;
+}
+
+/**
+ * An invitation worked out before anything is written: who it is for, what it grants, whether it stands
+ * approved already, and the code to hand over.
+ *
+ * The Owner invites anybody and their invitation is approved as they make it. A Manager invites Barn Staff and
+ * calls in a visiting Vet, and the Owner approves either — so a Manager cannot make a second Owner, or a Vet
+ * who stays, by writing an invitation for one (roles matrix).
+ */
+export const planInvite = async (
+  asked: {
+    email: string;
+    name: string;
+    roles: readonly RoleName[];
+    visitUntil?: string;
+  },
+  by: Acting,
+  now: Date
+): Promise<PlannedInvite> => {
+  const visiting = asked.visitUntil !== undefined;
+  if (visiting && !(asked.roles.length === 1 && asked.roles[0] === "vet")) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only a Vet is invited for a visit",
+    });
+  }
+  const managerMay = asked.roles.every((role) => role === "staff") || visiting;
+  if (by.role === "manager" && !managerMay) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "A Manager may only invite Staff or a visiting Vet",
+    });
+  }
+  return {
+    id: uuidv7(now),
+    status: by.role === "owner" ? "approved" : "pending",
+    ...(await newInviteCode()),
+    email: asked.email,
+    name: asked.name,
+    roles: [...asked.roles],
+    visitUntil: asked.visitUntil ?? null,
+    accessUntil: visiting ? endOfVisit(asked.visitUntil ?? "", now) : null,
+  };
+};
+
+/** Writes a planned invitation down. */
+export const writeInvite = async (
+  tx: Tx,
+  farmId: string,
+  planned: PlannedInvite,
+  by: Acting,
+  now: Date
+): Promise<void> => {
+  const approved = planned.status === "approved";
+  await tx.insert(invite).values({
+    id: planned.id,
+    farmId,
+    email: planned.email,
+    name: planned.name,
+    roles: planned.roles,
+    status: planned.status,
+    invitedBy: by.id,
+    invitedByRole: by.role,
+    approvedBy: approved ? by.id : null,
+    approvedAt: approved ? now : null,
+    codeHash: planned.codeHash,
+    vetScope: planned.accessUntil ? "visiting" : null,
+    accessUntil: planned.accessUntil,
+    createdAt: now,
+  });
+};
+
+/** A new code for an invitation not yet taken up — the first one lost, or never written down. The old code
+ *  stops working at once, because the row holds one hash and this replaces it. */
+export const reissueInvite = async (
+  tx: Tx,
+  farmId: string,
+  id: string,
+  codeHash: string
+): Promise<void> => {
+  const [row] = await tx
+    .update(invite)
+    .set({ codeHash })
+    .where(
+      and(
+        eq(invite.id, id),
+        eq(invite.farmId, farmId),
+        isNull(invite.acceptedAt)
+      )
+    )
+    .returning({ id: invite.id });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No invite waiting to be taken up",
+    });
+  }
+};
+
+/**
+ * Taking up an invitation: the person signed in with the email they were invited under hands over the code,
+ * and holds the Roles it was written for.
+ *
+ * The code works once, only once the Owner has approved the invitation, and only for that email — so somebody
+ * who signs up first with another person's address gets nothing. Nothing comes back when the code is not one
+ * this farm is waiting for, which is a wrong guess for the caller to count.
+ */
+export const acceptInvite = async (
+  tx: Tx,
+  farmId: string,
+  taker: { userId: string; email: string; codeHash: string },
+  now: Date
+): Promise<RoleName[] | null> => {
+  const [row] = await tx
+    .update(invite)
+    .set({ codeHash: null, acceptedAt: now })
+    .where(
+      and(
+        eq(invite.farmId, farmId),
+        eq(invite.codeHash, taker.codeHash),
+        eq(invite.email, taker.email),
+        eq(invite.status, "approved"),
+        isNull(invite.acceptedAt)
+      )
+    )
+    .returning({
+      roles: invite.roles,
+      approvedBy: invite.approvedBy,
+      accessUntil: invite.accessUntil,
+    });
+  if (!row) {
+    return null;
+  }
+  const roles = [...row.roles];
+  await grantRoles(
+    tx,
+    farmId,
+    taker.userId,
+    roles,
+    { id: row.approvedBy ?? taker.userId, role: "owner" },
+    now,
+    { reactivate: true, visitUntil: row.accessUntil ?? undefined }
+  );
+  return roles;
+};
+
+/** The Owner approving an invitation a Manager wrote. Only a pending one of this Farm flips, so a second
+ *  approver is told there is nothing to approve rather than approving it again. */
+export const approveInvite = async (
+  tx: Tx,
+  farmId: string,
+  id: string,
+  by: Acting,
+  now: Date
+): Promise<void> => {
+  const [row] = await tx
+    .update(invite)
+    .set({ status: "approved", approvedBy: by.id, approvedAt: now })
+    .where(
+      and(
+        eq(invite.id, id),
+        eq(invite.farmId, farmId),
+        eq(invite.status, "pending")
+      )
+    )
+    .returning({ id: invite.id });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND");
+  }
 };
