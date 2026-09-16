@@ -3,7 +3,6 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import type { SyncKind } from "@OpenFarm/db/schema/sync";
 import { ORPCError } from "@orpc/server";
 
-import { raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Recorder } from "./completion-store";
@@ -16,7 +15,7 @@ import { observationEntry } from "./entries/observation";
 import { stepCompletionEntry } from "./entries/step-completion";
 import { stepPhotoEntry } from "./entries/step-photo";
 import type { RaisedAlert } from "./instances-store";
-import { raiseNeedsReview } from "./review-store";
+import { tell } from "./notice";
 import type { Entry, EntryResult } from "./sync-entries";
 import {
   clockIsOut,
@@ -144,15 +143,18 @@ const keep = async (
     },
     { receivedAt }
   );
-  await raiseNeedsReview(
+  await tell(
     tx,
     context.farm.id,
     {
-      entity: "sync_entry",
-      entityId: entry.id,
-      reason: "late_entry",
-      auditEventId: eventId,
-      params: { kind: entry.kind, seq: entry.seq, why: reason },
+      kind: "needs_review",
+      about: { id: entry.id, entity: "sync_entry", auditEventId: eventId },
+      facts: {
+        reason: "late_entry",
+        kind: entry.kind,
+        seq: entry.seq,
+        why: reason ?? undefined,
+      },
     },
     receivedAt
   );
@@ -185,15 +187,13 @@ const flagSource = async (
     },
     { receivedAt }
   );
-  await raiseNeedsReview(
+  await tell(
     tx,
     context.farm.id,
     {
-      entity: "sync_entry",
-      entityId,
-      reason,
-      auditEventId: eventId,
-      params,
+      kind: "needs_review",
+      about: { id: entityId, entity: "sync_entry", auditEventId: eventId },
+      facts: { ...params, reason },
     },
     receivedAt
   );
@@ -390,26 +390,23 @@ export const applyBatch = async (
     // at once, in the app, because the alternative is a phone quietly holding an entry nobody
     // will ever look at again.
     const refused = applied.filter((one) => one.outcome === "rejected");
-    const notice = {
-      kind: "entry_rejected" as const,
-      entity: "sync_batch",
-      entityId: input.key,
-      params: { count: refused.length, reason: refused[0]?.reason ?? "" },
-    };
-    const rows =
+    // The whole notice, not its id: whoever pushes it needs what it says, and rebuilding it at
+    // the call site is how the count and the reason got lost.
+    const told =
       refused.length > 0
-        ? await raiseAlerts(
+        ? await tell(
             tx,
             context.farm.id,
-            [context.actor.id],
-            notice,
+            {
+              kind: "entry_rejected",
+              about: { id: input.key, person: context.actor.id },
+              facts: {
+                count: refused.length,
+                reason: refused[0]?.reason ?? "",
+              },
+            },
             receivedAt
           )
         : [];
-    // The whole notice, not its id: whoever pushes it needs what it says, and rebuilding it at
-    // the call site is how the count and the reason got lost.
-    return {
-      results: applied,
-      told: rows.map((row) => ({ ...row, ...notice })),
-    };
+    return { results: applied, told };
   });

@@ -14,8 +14,8 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
+import { tell } from "./notice";
 import type { PhotoInput } from "./photo-input";
 
 /** What the renewal SOP's closing Step records: the new expiry, when the renewed certificate was issued, and
@@ -96,18 +96,15 @@ export const tellOfRenewals = async (
   if (renewals.length === 0) {
     return;
   }
-  const owners = await holdersOf(tx, standing.id, ["owner"]);
   for (const work of renewals) {
     // oxlint-disable-next-line no-await-in-loop
-    await raiseAlerts(
+    await tell(
       tx,
       standing.id,
-      owners,
       {
         kind: "registration_renewal_due",
-        entity: "sop_instance",
-        entityId: work.id,
-        params: {
+        about: { id: work.id },
+        facts: {
           expiresOn: standing.registrationExpiresOn?.toISOString() ?? null,
         },
       },

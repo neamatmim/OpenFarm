@@ -14,10 +14,11 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { holdersOf, raiseAlerts } from "./alerts-store";
+import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
+import { tell } from "./notice";
 
 /** One Feed Item as the store holds it. */
 export interface StockLine {
@@ -249,27 +250,25 @@ export const lowStockToTell = async (
   return { managers, untold };
 };
 
-/** Raises the low-stock notices for these Feed Items, to these Managers. */
+/** Raises the low-stock notices for these Feed Items. Who hears them is the Notice's to say. */
 export const raiseLowStockAlerts = async (
   tx: Tx,
   farmId: string,
-  { managers, untold }: { managers: string[]; untold: RunningLow[] },
+  { untold }: { managers: string[]; untold: RunningLow[] },
   now: Date
 ): Promise<void> => {
   for (const line of untold) {
     // Sequential against one unique index, as the other notices are.
     // oxlint-disable-next-line no-await-in-loop
-    await raiseAlerts(
+    await tell(
       tx,
       farmId,
-      managers,
       {
         kind: "low_stock",
-        // The store running low, not the Feed Item row: the notice is about one time it ran low, and
-        // the Feed Item travels in the params.
-        entity: "stock_low",
-        entityId: lowStockNoticeId(line),
-        params: {
+        // The store running low, not the Feed Item row: the notice is about one time it ran low, and the Feed Item
+        // travels in its facts.
+        about: { id: lowStockNoticeId(line) },
+        facts: {
           feedItemId: line.feedItemId,
           nameBn: line.nameBn,
           unit: line.unit,

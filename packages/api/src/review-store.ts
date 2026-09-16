@@ -2,54 +2,35 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import type { ReviewReason } from "@OpenFarm/db/schema/review";
 import { needsReview } from "@OpenFarm/db/schema/review";
 
-import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
 
 /**
- * Puts something in front of the Manager. Raised by the system when a Correction changes
- * something it cannot put right on its own — figures a checker has already signed off, or,
- * as later increments add them, an effect that cannot be walked back: a calf already
- * created, an animal already sold.
+ * Writes down that the farm owes somebody's judgement: a Correction changed something it could not put right on its
+ * own — figures a checker had signed off, an Effect the farm has moved past — or an Entry arrived that no longer fits
+ * the world it was made in.
  *
- * The Manager is told as well as listed: a queue nobody is pointed at is a queue nobody
- * reads.
+ * The row alone. Telling the Manager it is there is the Notice's business, and the two happen in one act (see
+ * `tell`): a queue nobody is pointed at is a queue nobody reads.
  */
-export const raiseNeedsReview = async (
+export const writeTheJudgementOwed = async (
   tx: Tx,
   farmId: string,
-  entry: {
+  owed: {
     entity: string;
     entityId: string;
     reason: ReviewReason;
+    /** The Correction or Entry that raised it, so the trail reads from either end. */
     auditEventId: string;
-    /** What the message should say, in the reader's language. */
-    params: Record<string, unknown>;
   },
   now: Date
 ): Promise<void> => {
-  const id = uuidv7(now);
   await tx.insert(needsReview).values({
-    id,
+    id: uuidv7(now),
     farmId,
-    entity: entry.entity,
-    entityId: entry.entityId,
-    reason: entry.reason,
-    auditEventId: entry.auditEventId,
+    entity: owed.entity,
+    entityId: owed.entityId,
+    reason: owed.reason,
+    auditEventId: owed.auditEventId,
     raisedAt: now,
   });
-  // The Manager's queue, per the notification table: the Owner sees it on their own
-  // exception list rather than being told twice.
-  const managers = await holdersOf(tx, farmId, ["manager"]);
-  await raiseAlerts(
-    tx,
-    farmId,
-    managers,
-    {
-      kind: "needs_review",
-      entity: entry.entity,
-      entityId: entry.entityId,
-      params: { ...entry.params, reason: entry.reason },
-    },
-    now
-  );
 };

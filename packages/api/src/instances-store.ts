@@ -36,8 +36,8 @@ import {
   renewalOpensAt,
 } from "@OpenFarm/domain";
 
-import { holdersOf, peopleOnTheWork, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
+import { tell } from "./notice";
 import { renewalCause } from "./registration-store";
 
 const MINUTE_MS = 60_000;
@@ -903,13 +903,6 @@ export const raiseLateAlerts = async (
   escalated: number;
   raised: RaisedAlert[];
 }> => {
-  const managers = pending.overdue.length
-    ? await holdersOf(tx, farmId, ["manager"])
-    : [];
-  const owners = pending.escalated.length
-    ? await holdersOf(tx, farmId, ["owner"])
-    : [];
-
   let overdue = 0;
   let escalated = 0;
   const raised: RaisedAlert[] = [];
@@ -917,62 +910,36 @@ export const raiseLateAlerts = async (
     // Deliberately sequential: a hundred concurrent upserts against one unique index buys
     // nothing but lock contention.
     // oxlint-disable-next-line no-await-in-loop
-    const onIt = await peopleOnTheWork(tx, farmId, instance);
-    // oxlint-disable-next-line no-await-in-loop
-    const told = [...new Set([...managers, ...onIt])];
-    // oxlint-disable-next-line no-await-in-loop
-    const rows = await raiseAlerts(
+    const rows = await tell(
       tx,
       farmId,
-      told,
       {
         kind: "instance_overdue",
-        entity: "sop_instance",
-        entityId: instance.id,
-        params: alertParams(instance),
+        about: { id: instance.id, work: instance },
+        facts: alertParams(instance),
       },
       now
     );
     overdue += rows.length;
-    raised.push(
-      ...rows.map((row) => ({
-        ...row,
-        kind: "instance_overdue",
-        entity: "sop_instance",
-        entityId: instance.id,
-        params: alertParams(instance) as Record<string, unknown>,
-      }))
-    );
+    raised.push(...rows);
   }
   for (const instance of pending.escalated) {
     // oxlint-disable-next-line no-await-in-loop
-    const params = {
-      ...alertParams(instance),
-      minutesOverdue: minutesOverdue(instance, now),
-    };
-    // oxlint-disable-next-line no-await-in-loop
-    const rows = await raiseAlerts(
+    const rows = await tell(
       tx,
       farmId,
-      owners,
       {
         kind: "instance_escalated",
-        entity: "sop_instance",
-        entityId: instance.id,
-        params,
+        about: { id: instance.id, work: instance },
+        facts: {
+          ...alertParams(instance),
+          minutesOverdue: minutesOverdue(instance, now),
+        },
       },
       now
     );
     escalated += rows.length;
-    raised.push(
-      ...rows.map((row) => ({
-        ...row,
-        kind: "instance_escalated",
-        entity: "sop_instance",
-        entityId: instance.id,
-        params: params as Record<string, unknown>,
-      }))
-    );
+    raised.push(...rows);
   }
   return { overdue, escalated, raised };
 };

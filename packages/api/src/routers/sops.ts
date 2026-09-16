@@ -16,10 +16,10 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { holdersOf, raiseAlerts } from "../alerts-store";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
+import { tell } from "../notice";
 import { requirePersonalSession, requireRole } from "../roles";
 import {
   asSopContent,
@@ -201,16 +201,13 @@ const publishVersion = async (
   // evening digests. What actually changed is shown on the work itself, the first time the
   // person opens it.
   if (number > 1) {
-    const doers = await holdersOf(tx, farmId, [content.assignedRole]);
-    await raiseAlerts(
+    await tell(
       tx,
       farmId,
-      doers,
       {
         kind: "sop_published",
-        entity: "sop_version",
-        entityId: id,
-        params: { sopBn: content.name.bn, number },
+        about: { id, assignedRole: content.assignedRole },
+        facts: { sopBn: content.name.bn, number },
       },
       now
     );
@@ -569,15 +566,13 @@ export const sopsRouter = {
           // The Owner is the only person who can answer a proposal, so the Owner is who is
           // told. In the digest: a suggested change to the Playbook is not something to
           // wake anybody for (notification channels).
-          await raiseAlerts(
+          await tell(
             tx,
             context.farm.id,
-            await holdersOf(tx, context.farm.id, ["owner"]),
             {
               kind: "sop_proposed",
-              entity: "sop_proposal",
-              entityId: id,
-              params: {
+              about: { id },
+              facts: {
                 sopBn: input.content.name.bn,
                 sopEn: input.content.name.en ?? input.content.name.bn,
               },

@@ -4,16 +4,16 @@ import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { dlsReport } from "@OpenFarm/db/schema/health";
-import { ACTIVE_ASSIGNMENT, animal } from "@OpenFarm/db/schema/herd";
+import { animal } from "@OpenFarm/db/schema/herd";
 import { sopInstance } from "@OpenFarm/db/schema/instance";
 import type { DoseRoute } from "@OpenFarm/domain";
 import { withdrawalEndsAt } from "@OpenFarm/domain";
 import { z } from "zod";
 
-import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx, Trail } from "./audit";
 import type { RaisedAlert } from "./instances-store";
 import { dueAtFor, raiseDueInstances } from "./instances-store";
+import { tell } from "./notice";
 import { contentOf, publishedContent } from "./sop-content";
 import { callOffWork } from "./work-transitions";
 
@@ -385,45 +385,35 @@ export const raiseWithdrawalAlerts = async (
   if (ending.length === 0) {
     return [];
   }
-  const managers = await holdersOf(tx, farmId, ["manager"]);
-  const milkers = await tx.query.penAssignment.findMany({
-    where: {
-      farmId,
-      penId: { in: ending.map((beast) => beast.penId) },
-      ...ACTIVE_ASSIGNMENT,
-    },
-    columns: { penId: true, userId: true },
-  });
   const raised: RaisedAlert[] = [];
   for (const beast of ending) {
     const until = beast.milkWithdrawalUntil;
     if (!until) {
       continue;
     }
-    const told = [
-      ...managers,
-      ...milkers
-        .filter((row) => row.penId === beast.penId)
-        .map((row) => row.userId),
-    ];
-    const notice = {
-      kind: "withdrawal_ending" as const,
-      /** The Withdrawal, not the cow: one cow has many over her life, and this notice is
-       *  about one of them. Her id and tag travel in the params, so anything reading the
-       *  notice can still find her. */
-      entity: "withdrawal",
-      entityId: withdrawalNoticeId(beast.id, until),
-      params: {
-        tag: beast.tagNumber,
-        animalId: beast.id,
-        until: until.toISOString(),
-      },
-    };
     // Deliberately sequential: a herd of concurrent upserts against one unique index buys
     // nothing but lock contention.
     // oxlint-disable-next-line no-await-in-loop
-    const rows = await raiseAlerts(tx, farmId, told, notice, now);
-    raised.push(...rows.map((row) => ({ ...row, ...notice })));
+    const rows = await tell(
+      tx,
+      farmId,
+      {
+        kind: "withdrawal_ending",
+        // The Withdrawal, not the cow: one cow has many over her life, and this notice is about one of them. Her id
+        // and tag travel in its facts, so anything reading the notice can still find her.
+        about: {
+          id: withdrawalNoticeId(beast.id, until),
+          penId: beast.penId,
+        },
+        facts: {
+          tag: beast.tagNumber,
+          animalId: beast.id,
+          until: until.toISOString(),
+        },
+      },
+      now
+    );
+    raised.push(...rows);
   }
   return raised;
 };
@@ -651,17 +641,17 @@ export const raiseNotifiableAlerts = async (
   farmId: string,
   told: { diagnosisId: string; tagNumber: string; disease: string },
   now: Date
-): Promise<RaisedAlert[]> => {
-  const people = await holdersOf(tx, farmId, ["owner", "manager"]);
-  const notice = {
-    kind: "notifiable_diagnosis" as const,
-    entity: "diagnosis",
-    entityId: told.diagnosisId,
-    params: { tag: told.tagNumber, disease: told.disease },
-  };
-  const rows = await raiseAlerts(tx, farmId, people, notice, now);
-  return rows.map((row) => ({ ...row, ...notice }));
-};
+): Promise<RaisedAlert[]> =>
+  await tell(
+    tx,
+    farmId,
+    {
+      kind: "notifiable_diagnosis",
+      about: { id: told.diagnosisId },
+      facts: { tag: told.tagNumber, disease: told.disease },
+    },
+    now
+  );
 
 /**
  * Tells the Manager that a cow's Withdrawal has changed: a dose has started one, or a Vet has
@@ -677,20 +667,22 @@ export const raiseWithdrawalChanged = async (
   farmId: string,
   told: { animalId: string; tagNumber: string; until: Date | null },
   now: Date
-): Promise<RaisedAlert[]> => {
-  const managers = await holdersOf(tx, farmId, ["manager"]);
-  const notice = {
-    kind: "withdrawal_changed" as const,
-    entity: "animal",
-    entityId: withdrawalNoticeId(told.animalId, told.until ?? new Date(0)),
-    params: {
-      tag: told.tagNumber,
-      until: told.until?.toISOString() ?? "",
+): Promise<RaisedAlert[]> =>
+  await tell(
+    tx,
+    farmId,
+    {
+      kind: "withdrawal_changed",
+      about: {
+        id: withdrawalNoticeId(told.animalId, told.until ?? new Date(0)),
+      },
+      facts: {
+        tag: told.tagNumber,
+        until: told.until?.toISOString() ?? "",
+      },
     },
-  };
-  const rows = await raiseAlerts(tx, farmId, managers, notice, now);
-  return rows.map((row) => ({ ...row, ...notice }));
-};
+    now
+  );
 
 /** What the Vet concluded she has. The glossary's word for the thing itself is Disease; the
  *  record of concluding it is the Diagnosis. */

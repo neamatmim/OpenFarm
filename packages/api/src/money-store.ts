@@ -17,8 +17,8 @@ import {
 import type { ApprovedTerms, MoneyApproval } from "@OpenFarm/domain";
 import { approvalOf, roundTaka, termsUnchanged } from "@OpenFarm/domain";
 
-import { holdersOf, raiseAlerts } from "./alerts-store";
 import type { Tx } from "./audit";
+import { tell } from "./notice";
 
 /** The standard Categories: the one each record's money falls under, and the ones the rest of a dairy
  *  farm's month is made of — and which way each goes. */
@@ -356,16 +356,14 @@ const tellTheOwner = async (
   if (approval !== "awaiting") {
     return;
   }
-  await raiseAlerts(
+  await tell(
     tx,
     farm.id,
-    await holdersOf(tx, farm.id, ["owner"]),
     {
       kind: "money_awaiting_approval",
-      entity: "money_event",
       // One notice for each time it starts waiting: a corrected Money Event is a new thing to approve.
-      entityId: `${id}:${newId(now)}`,
-      params: {
+      about: { id: `${id}:${newId(now)}` },
+      facts: {
         moneyEventId: id,
         amountBdt,
         ...(await categoryNamesOf(tx, farm.id, id)),

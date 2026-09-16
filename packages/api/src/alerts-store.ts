@@ -114,6 +114,19 @@ export const raiseAlerts = async (
   return raised;
 };
 
+/** Whoever works this Pen: the people a notice about an animal standing in it is for. */
+export const peopleOfThePen = async (
+  tx: Tx,
+  farmId: string,
+  penId: string
+): Promise<string[]> => {
+  const rows = await tx.query.penAssignment.findMany({
+    where: { farmId, penId, ...ACTIVE_ASSIGNMENT },
+    columns: { userId: true },
+  });
+  return [...new Set(rows.map((row) => row.userId))];
+};
+
 /**
  * Whoever did the work, for a send-back that has to reach someone. Claimed or pinned says
  * who; failing that, the people who actually recorded a Step — an Instance can be worked
