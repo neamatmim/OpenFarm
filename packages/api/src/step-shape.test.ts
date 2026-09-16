@@ -9,7 +9,7 @@ import {
   problemsAgainst,
   slotsOf,
 } from "@OpenFarm/domain";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 // What a shaped Step asks for is said once, and three readers take it from there: publishing checks a Step
 // against it, the phone drafts from it, and an Effect reads a slot by name. These are about the first two
@@ -88,6 +88,54 @@ describe("what a shaped Step asks for", () => {
       'steps[3].evidence[0]: a service step first asks how she was served, offering "ai" and "natural"',
       "steps[3].evidence[1]: a service step then asks for the sire, as a required note",
     ]);
+  });
+
+  it("lets the farm decide whether it insists on the technician's name", () => {
+    const step = stepOf(SERVICE_STEP);
+    // The farm that wants the name written down every time may say so — and the farm that does not, need not.
+    step.evidence[2] = { type: "note", required: true };
+
+    expect(problemsAgainst(SERVICE_STEP, step, "steps[0]")).toEqual([]);
+    expect(step.evidence[0]?.required).toBe(true);
+  });
+
+  it("insists on the answers the record cannot do without", () => {
+    const service = stepOf(SERVICE_STEP);
+    // How she was served is read back by every later act in the chain, so a Step that lets it go unanswered is
+    // a Step the farm cannot publish.
+    service.evidence[0] = {
+      ...service.evidence[0],
+      required: false,
+    } as Step["evidence"][number];
+    expect(problemsAgainst(SERVICE_STEP, service, "steps[0]")).toHaveLength(1);
+
+    // And the note a Step writes its one answer into is the first thing it asks, which is where it is read from.
+    const report = stepOf(DLS_REPORT_STEP);
+    report.evidence = [{ type: "tick", required: true }, ...report.evidence];
+    expect(problemsAgainst(DLS_REPORT_STEP, report, "steps[0]")).toEqual([
+      "steps[0].evidence[0]: this step records the reference the report was delivered under, and it has to be asked for and required",
+    ]);
+  });
+
+  it("hands a reader what the slot it named holds, and nothing it did not name", () => {
+    expectTypeOf<(typeof SERVICE_STEP)[0]["values"][number]>().toEqualTypeOf<
+      "ai" | "natural"
+    >();
+    expectTypeOf<WordsFor<typeof SERVICE_STEP>>().toEqualTypeOf<
+      Record<"ai" | "natural", Bilingual>
+    >();
+    expectTypeOf<WordsFor<typeof CALVING_STEP>>().toEqualTypeOf<
+      Record<
+        | "unassisted"
+        | "assisted"
+        | "vet"
+        | "female"
+        | "male"
+        | "alive"
+        | "stillborn",
+        Bilingual
+      >
+    >();
   });
 
   it("refuses a draft the farm has no words for", () => {

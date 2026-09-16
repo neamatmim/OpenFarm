@@ -21,10 +21,16 @@ import type { Bilingual, Evidence, Step } from "./sop";
  * own words for each choice, which are the farm's to reword and the record's to never read.
  */
 
-/** One thing a Step asks for. `says` is what publishing tells an Owner whose Step does not ask it. */
+/**
+ * One thing a Step asks for. `says` is what publishing tells an Owner whose Step does not ask it.
+ *
+ * `required` is what the farm must do about it: `true` the Step has to insist on an answer, `false` it must
+ * not, and `"either"` the farm decides — which is a farm that wants to insist on the technician's name being
+ * allowed to, without every farm having to.
+ */
 interface Asks {
   name: string;
-  required: boolean;
+  required: boolean | "either";
   says: string;
 }
 
@@ -64,11 +70,11 @@ export type StepShape = readonly (Slot | Repeated)[];
 /** Where each slot of a shape sits in the Step's Evidence, flattened as an Owner's Version carries it. */
 export const slotsOf = (
   shape: StepShape
-): { slot: Slot; at: number; required: boolean }[] => {
-  const flat: { slot: Slot; at: number; required: boolean }[] = [];
+): { slot: Slot; at: number; required: boolean | "either" }[] => {
+  const flat: { slot: Slot; at: number; required: boolean | "either" }[] = [];
   let at = 0;
   for (const asked of shape) {
-    if ("kind" in asked && asked.kind === "repeat") {
+    if (asked.kind === "repeat") {
       for (let turn = 0; turn < asked.upTo; turn += 1) {
         for (const slot of asked.of) {
           flat.push({ slot, at, required: turn < asked.atLeast });
@@ -98,10 +104,13 @@ const offersExactly = (
 /** Whether what an Owner's Step asks at one position is what the shape says it must. */
 const asksAsItMust = (
   slot: Slot,
-  required: boolean,
+  required: boolean | "either",
   evidence: Evidence | undefined
 ): boolean => {
-  if (evidence?.type !== slot.kind || evidence.required !== required) {
+  if (evidence?.type !== slot.kind) {
+    return false;
+  }
+  if (required !== "either" && evidence.required !== required) {
     return false;
   }
   return slot.kind === "choice" ? offersExactly(evidence, slot.values) : true;
@@ -123,8 +132,12 @@ export const problemsAgainst = (
  * What a Service Step asks for. The Step's own words are the farm's, but the record is read back by every later
  * act in the breeding chain, so its shape is not.
  *
- * Who served her is not required, because a bull running with the herd has nobody standing over him — an AI
- * service is refused without it when the dose is read, where the farm knows which it was.
+ * Who served her the farm may insist on or not, because a bull running with the herd has nobody standing over
+ * him — an AI service is refused without a name when the service is read, where the farm knows which it was.
+ *
+ * The Step may be walked animal by animal. A Heat raises work about one cow, but a bull running with the herd
+ * serves cows nobody saw in heat, and the round that walks the Pen afterwards is where that is written down:
+ * refusing a per-animal Service Step would leave that service no way in at all.
  */
 export const SERVICE_STEP = [
   {
@@ -143,7 +156,7 @@ export const SERVICE_STEP = [
   {
     name: "servedBy",
     kind: "note",
-    required: false,
+    required: "either",
     says: "a service step then asks who served her, as a note",
   },
   {
@@ -254,38 +267,30 @@ export type SlotName<Shape extends StepShape> = Extract<
   Slot
 >["name"];
 
-/** Where the slot of this name sits in a Step's Evidence. */
-export const positionOf = <Shape extends StepShape>(
-  shape: Shape,
-  name: SlotName<Shape>
-): number => {
-  const found = slotsOf(shape).find((one) => one.slot.name === name);
-  if (!found) {
-    throw new Error(`no slot called ${name} in this shape`);
-  }
-  return found.at;
-};
+/** The names a shape's repeated groups go by. */
+export type RepeatName<Shape extends StepShape> = Extract<
+  Shape[number],
+  Repeated
+>["name"];
 
-/** Where each turn of a repeated group sits, turn by turn: the calves of one calving. */
+/** A repeated group of a shape, and where each turn of it sits: the calves of one calving. */
 export const turnsOf = <Shape extends StepShape>(
   shape: Shape,
-  name: string
-): { at: Record<string, number>; required: boolean }[] => {
+  name: RepeatName<Shape>
+): { of: readonly Slot[]; at: Record<string, number>; required: boolean }[] => {
   const group = shape.find(
-    (asked): asked is Repeated =>
-      "kind" in asked && asked.kind === "repeat" && asked.name === name
+    (asked): asked is Repeated => asked.kind === "repeat" && asked.name === name
   );
   if (!group) {
-    throw new Error(`no group called ${name} in this shape`);
+    throw new Error(`no group called ${String(name)} in this shape`);
   }
-  const flat = slotsOf(shape);
-  const first = flat.findIndex((one) => one.slot === group.of[0]);
+  const first = slotsOf(shape).findIndex((one) => one.slot === group.of[0]);
   return Array.from({ length: group.upTo }, (_, turn) => {
     const at: Record<string, number> = {};
     for (const [offset, slot] of group.of.entries()) {
       at[slot.name] = first + turn * group.of.length + offset;
     }
-    return { at, required: turn < group.atLeast };
+    return { of: group.of, at, required: turn < group.atLeast };
   });
 };
 
@@ -323,13 +328,15 @@ export const draftFrom = <Shape extends StepShape>(
   words: WordsFor<Shape>
 ): Evidence[] =>
   slotsOf(shape).map(({ slot, required }) => {
+    // A slot the farm decides about starts out not insisted on; the Owner may turn it on.
+    const insisted = required === "either" ? false : required;
     if (slot.kind !== "choice") {
-      return { type: slot.kind, required };
+      return { type: slot.kind, required: insisted };
     }
     const said = words as Record<string, Bilingual>;
     return {
       type: "choice",
-      required,
+      required: insisted,
       choices: slot.values.map((value) => {
         const label = said[value];
         if (!label) {

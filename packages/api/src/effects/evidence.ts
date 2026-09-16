@@ -4,11 +4,12 @@ import type {
   Slot,
   SlotName,
   SlotNamed,
+  RepeatName,
   Step,
   StepShape,
   TurnOf,
 } from "@OpenFarm/domain";
-import { positionOf, slotsOf, turnsOf } from "@OpenFarm/domain";
+import { slotsOf, turnsOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { EffectInput } from "./effect";
@@ -67,7 +68,7 @@ export const writtenNote = (
 
 /** What was chosen at one position, as the Version declares it there — or null when nothing was.
  *  A value the Version never offered at that position is refused, not ignored. */
-export const declaredChoiceAt = (
+const declaredChoiceAt = (
   step: Step,
   evidence: unknown[],
   position: number
@@ -105,30 +106,8 @@ export const choiceIn = (
   return chosen;
 };
 
-/**
- * What was chosen at one position of the Evidence, as one of the fixed words the record reads back —
- * or null when that slot was left empty.
- */
-export const choiceAt = <Value extends string>(
-  step: Step,
-  evidence: unknown[],
-  position: number,
-  allowed: readonly Value[]
-): Value | null => {
-  const value = declaredChoiceAt(step, evidence, position)?.value ?? null;
-  if (value !== null && !(allowed as readonly string[]).includes(value)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "That is not one of the things this step offers",
-    });
-  }
-  return value as Value | null;
-};
-
 /** What was written at one position of the Evidence, trimmed, or null when it was left empty. */
-export const textAt = (
-  evidence: unknown[],
-  position: number
-): string | null => {
+const textAt = (evidence: unknown[], position: number): string | null => {
   const value = evidence[position];
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 };
@@ -181,34 +160,39 @@ export const heldIn = <Shape extends StepShape, Name extends SlotName<Shape>>(
   shape: Shape,
   name: Name
 ): Held<SlotNamed<Shape, Name>> | null => {
-  const at = positionOf(shape, name);
-  const slot = slotsOf(shape).find((one) => one.at === at)?.slot;
-  if (!slot) {
+  const asked = slotsOf(shape).find((one) => one.slot.name === name);
+  if (!asked) {
     throw new Error(`no slot called ${String(name)} in this shape`);
   }
-  return heldAt(input.step, input.evidence, slot, at) as Held<
+  return heldAt(input.step, input.evidence, asked.slot, asked.at) as Held<
     SlotNamed<Shape, Name>
   > | null;
 };
 
 /** Each turn of a repeated group, in order — the calves of one calving — with what every slot of that turn
  *  holds, and nothing for the turns the farm left empty. */
-export const turnsIn = <Shape extends StepShape, Name extends string>(
+export const turnsIn = <
+  Shape extends StepShape,
+  Name extends RepeatName<Shape>,
+>(
   input: { step: Step; evidence: unknown[] },
   shape: Shape,
   name: Name
-): TurnOf<Shape, Name>[] => {
-  const group = shape.find(
-    (asked) => "kind" in asked && asked.kind === "repeat" && asked.name === name
-  );
-  const slots = group && "of" in group ? group.of : [];
-  return turnsOf(shape, name).map(
-    ({ at }) =>
+): TurnOf<Shape, Name>[] =>
+  turnsOf(shape, name).map(
+    ({ of, at }) =>
       Object.fromEntries(
-        slots.map((slot) => [
-          slot.name,
-          heldAt(input.step, input.evidence, slot, at[slot.name] ?? -1),
-        ])
+        of.map((slot) => {
+          const position = at[slot.name];
+          if (position === undefined) {
+            throw new Error(
+              `the group ${String(name)} has no slot ${slot.name}`
+            );
+          }
+          return [
+            slot.name,
+            heldAt(input.step, input.evidence, slot, position),
+          ];
+        })
       ) as TurnOf<Shape, Name>
   );
-};

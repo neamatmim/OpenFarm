@@ -260,8 +260,6 @@ export const findMissingBangla = (content: SopContent): string[] => {
   return missing;
 };
 
-/** A Step done once whose record is a written note: the note has to be asked for and required, and the Step not
- *  repeated per animal. */
 /** A Step that writes down one thing, once for the whole of what it is about: the shape says what it asks,
  *  and this says that asking it animal by animal is asking it over and over for one answer. */
 const onceWithRequiredNoteProblems = (

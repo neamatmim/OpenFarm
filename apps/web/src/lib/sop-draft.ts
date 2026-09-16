@@ -10,6 +10,8 @@ import type {
 } from "@OpenFarm/domain";
 import {
   CALVING_STEP,
+  DLS_REPORT_STEP,
+  LOT_NUMBER_STEP,
   PREGNANCY_CHECK_STEP,
   SERVICE_STEP,
   draftFrom,
@@ -162,6 +164,17 @@ const [PREGNANCY_CHECK_RESULT] = draftFrom(PREGNANCY_CHECK_STEP, {
   negative: { bn: "গর্ভবতী নয়", en: "Not carrying" },
 });
 
+/** The reference the office files the letter under, and the number off the vial: one written answer each, and
+ *  the shape says it is insisted on — a report that cannot be evidenced was not made, and a vaccination
+ *  nobody can trace is not one. */
+const [DLS_REPORT_NOTE] = draftFrom(DLS_REPORT_STEP, {});
+const [LOT_NUMBER_NOTE] = draftFrom(LOT_NUMBER_STEP, {});
+const ONCE_WITH_A_NOTE_EVIDENCE: Partial<Record<StepEffect["kind"], Evidence>> =
+  {
+    dls_report: DLS_REPORT_NOTE,
+    lot_number: LOT_NUMBER_NOTE,
+  };
+
 /** The effects done once whose record is a written note: the reference a letter went under, a Campaign's Lot
  *  Number. */
 const ONCE_WITH_A_NOTE: ReadonlySet<StepEffect["kind"]> = new Set<
@@ -211,10 +224,9 @@ const fittedEvidence = (
     // how much is the Prescription's or the campaign's to say, not the milker's.
     return { type: "tick", required: true };
   }
-  if (ONCE_WITH_A_NOTE.has(kind)) {
-    // The reference the office files the letter under, or the number off the vial. Required: a report that
-    // cannot be evidenced was not made, and a vaccination nobody can trace is not one.
-    return { type: "note", required: true };
+  const asked = ONCE_WITH_A_NOTE_EVIDENCE[kind];
+  if (asked) {
+    return asked;
   }
   return { type: "number", required: true, unit: current?.unit };
 };
