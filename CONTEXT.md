@@ -192,11 +192,13 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Feed Purchase**: Feed bought and brought into the store: the Feed Item, how much, what the lot cost, and the Counterparty who sold it — the **seller**, as on an Intake. What a Feed Item's price is worked out from. Not the finance side of buying anything else, which is a Money Event. _Avoid_: Order, delivery, procurement, supplier
 
-**Harvest**: Feed cut from the farm's own fields and brought into the store, at no price and from nobody. It adds to Stock on Hand at no cost, so the feed it is mixed with is charged at what the farm really paid for all of it. _Avoid_: Home stock, own production
+**Harvest**: Feed cut from the farm's own fields and brought into the store, from nobody and bought from nobody. It adds to Stock on Hand at its Feed Item's **Fodder Price**, so an Animal fed home-grown fodder is charged for it like bought feed. The fields are the Farm's, but what grows on them is not free to whoever eats it. _Avoid_: Home stock, own production
+
+**Fodder Price**: The price per kg the Owner sets on a home-grown Feed Item: roughly what it would cost to buy. What a Harvest brings into the store at. Changing it is the Owner's, and applies to Harvests from then on. _Avoid_: Market price, notional cost
 
 **Stock on Hand**: Current quantity of a Feed Item: Feed Purchases and Harvests in, minus Feeding, corrected by the latest Stock Count. Worked out, never typed, and shown below nothing when the pens were fed from feed nobody wrote down arriving. _Avoid_: Inventory (the whole area), balance
 
-**Stock Count**: The weekly physical count of each Feed Item — every one the Farm keeps, counted without seeing what the store is thought to hold. The count wins: Stock on Hand reads from it afterwards. Each difference is an adjustment with a reason, read against the store as it now stands, so something written up late but dated before the count shows in it rather than as a loss. _Avoid_: Stocktake, audit
+**Stock Count**: The weekly physical count of each Feed Item — every one the Farm keeps, counted without seeing what the store is thought to hold. The count wins: Stock on Hand reads from it afterwards. Each difference is an adjustment with a reason, read against the store as it now stands, so something written up late but dated before the count shows in it rather than as a loss. A shortfall is the Farm's: keeping the store is the place and the people, so no Animal is charged for feed she was never given. _Avoid_: Stocktake, audit
 
 **Running Low**: A Feed Item holding less than the level the Manager set for it. It waits on the Manager's queue and the Owner's exception list, and is told once in the Manager's Digest each time it falls below the level — never as a push. _Avoid_: Shortage, out of stock (that is nothing left), reorder point
 
@@ -214,13 +216,55 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Load**: The Animals that went to one destination, on one vehicle, with one driver, on one day. What a Transport Card describes — a card covering a whole day's sales to one buyer would assert a load that was never on that lorry. _Avoid_: Consignment, shipment, batch
 
+**Venture**: One investor-funded run of fattening cattle, from the first Investment Agreement to the last payout: Open, Buying, Fattening, Selling, Settled — or Cancelled, where an under-funded one ends. It carries a target capital, a **Floor**, a decision date, its two budgets and its own **Target Window**, which its Animals inherit. Ventures run alongside the Farm's own cattle in the same Pens. _Avoid_: Project, batch (which is an offline send), scheme, lot
+
+**Cattle Budget**: The part of a Venture's capital meant for buying animals. What it does not spend rolls into the **Running Budget** when buying closes. _Avoid_: Purchase fund, capex
+
+**Running Budget**: The part of a Venture's capital held back in the Venture Account for what the animals cost while they stand here: feed, medicine, vet, haat costs. What is left at the end goes back to Investors at settlement. _Avoid_: Working capital, float
+
+**Floor**: The least capital a Venture is worth starting on. Reached by the decision date, it buys what the money allows; missed, every taka is refunded and the Venture is Cancelled. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Minimum, threshold
+
+**Advance**: The Owner's own money put into a Venture whose Running Budget has run out: interest-free, recorded against that Venture, and repaid at cost from sale proceeds before any profit is split. It earns nothing and is never a charge. _Avoid_: Loan, credit, float
+
+**Internal Sale**: The Owner's recorded sale of an Animal between the Farm's herd and a Venture — priced at her latest Weigh-in times a live-weight rate the Owner enters that day, with a note of where the rate came from, and the money moving through the Venture Account. Owner-only and audited, and impossible once the Venture is Selling or the Animal is Ready for Sale. Not a **Move**, which changes her Pen, and not a **Sale**, which is a buyer taking her away. _Avoid_: Transfer, reallocation, book entry
+
+**Settlement**: The close-out of a Venture: what its Animals fetched, less everything it was charged and the Owner's Advance, capital back to Investors, and the profit split by the percentages its Investment Agreements froze. Approved by the Owner as one act, which freezes the figures, and impossible while an Animal still stands, a price is missing, a Buying Float is unreconciled or the Venture Account does not match the bank. _Avoid_: Payout (one part of it), closing, liquidation
+
+**Settlement Adjustment**: A Correction or a late cost landing after a Settlement was approved. The Settlement's figures stand; the Adjustment shows each Investor's revised share, and above the amount the Farm sets it means a supplementary payout or a written waiver. Not a **Correction**, which puts a record right, and not a Stock Count's adjustment. _Avoid_: Revision, true-up, restatement
+
+**Unit**: One fixed-price share of a Venture. The Venture sets the price and how many there are; an Investor holds whole Units, and capital, profit and loss all divide by Units held. Fixed once the Venture starts Buying. _Avoid_: Share (the general word), stake, slot
+
+**Purse**: Whose money a Money Event moved: the Farm's or one named Venture's. The Farm's reports and the accountant export read the Farm's purse alone, so money that was never the Farm's never shows as its income or its cost. _Avoid_: Account, fund, source
+
+**Reimbursement**: The monthly transfer from a Venture Account to the Farm's, for what that Venture's animals consumed of feed and medicine the Farm bought. The Farm buys for the whole herd; the purse is put right once a month. _Avoid_: Recharge, settlement (which is a Venture ending), invoice
+
+**Buying Float**: Cash drawn from the Venture Account for one Buying Trip and reconciled when it returns: the float out equals the Animals bought, plus the trip's costs, plus the cash brought back with its deposit slip. _Avoid_: Advance (which is the Owner's own money), petty cash, imprest
+
+**Wind-up Period**: The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is left as an **Internal Sale**, so the Venture settles on time. A Farm Parameter, 30 days by default. Not a **Grace**, which is how late an SOP Instance may run. _Avoid_: Extension, overtime, grace
+
+**Arbitrator**: The person an Investor and the Owner name in the Investment Agreement to decide whether the Farm was negligent, and what that costs the Farm. Named at signing, before there is anything to argue about. _Avoid_: Mediator, judge, referee
+
+**Investor**: A person whose money is in a project: known to the Owner personally or personally introduced, resident in Bangladesh, and one of at most twenty at any time, the Owner included. The Owner is an Investor for money they put in themselves, and the Farm for the work. Not a **Counterparty**, who is paid for something rather than sharing what the Farm makes. _Avoid_: Shareholder, partner, funder, client
+
+**Investment Agreement**: The stamped, signed mudarabah contract between the Owner and one Investor for one project: the capital, the percentages and the window, signed afresh for each project. The Farm holds a photo of the stamped instrument with its stamp value, date and serial, and no capital is taken without it. _Avoid_: Contract (the general word), deed, terms
+
+**Venture Account**: The one bank account, in the Owner's name, that Investors' money moves through: capital in, project buying out, payouts out. The Farm's own money never passes through it. Every movement is by bank transfer, cheque or deposit slip, never cash. _Avoid_: Escrow (nobody holds it in trust), wallet, fund
+
 **Counterparty**: A person or business the Farm buys from, sells to, or pays: name, address, phone. Recorded once per name and shared across Sale, Dispatch, Intake, Purchase and Money Events — the trader who sells the Farm a bull is often the man who buys one back at Eid. Called the **seller** on an Intake and the **buyer** on a Sale, which is the side he stands on rather than a second kind of record. _Avoid_: Customer, vendor, contact, party
 
-**Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. Every farm starts with the standard ones; the farm adds its own, and retires one rather than removing it. A Category a record books under — milk sales from a Dispatch, say — is not retired, nor entered by hand, which would be the same money twice; the one exception is a vet's fee, which a visiting vet with no login is paid all the same. Wages are not retired either: the one-wage-a-month rule is kept by them. _Avoid_: Account, head, GL code
+**Category**: The farm-defined heading a Money Event falls under (milk sales, feed, medicine, wages, utilities…). Used for reports. Every farm starts with the standard ones; the farm adds its own, and retires one rather than removing it. A Category a record books under — milk sales from a Dispatch, say — is not retired, nor entered by hand, which would be the same money twice; the one exception is a vet's fee, which a visiting vet with no login is paid all the same. Wages are not retired either: the one-wage-a-month rule is kept by them. The Owner marks a Category, once, as charged to the animals of its Side or not; that mark, never the entry, is what makes a Money Event a **Herd Cost**, and changing it is the Owner's. _Avoid_: Account, head, GL code
 
-**Margin**: What a fattening Animal made: her Sale price less her purchase price, the feed charged to her, her doses and her share of the Vet Fees for visits that named her. Worked out, never stored, and only once she is sold. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Profit, return
+**Margin**: What a fattening Animal made: her Sale price less her purchase price, the feed charged to her, her doses, her share of the Vet Fees for visits that named her, her Hasil and her shares of the Buying Trip that brought her and the Selling Trips that took her, and her share of the Herd Costs. The same sum for every Animal, whoever owns her. Worked out, never stored, and only once she is sold. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Profit, return
 
 **Cost per Litre**: What a litre of milk cost the farm: the feed, doses and Vet Fees charged to a cow over her current Lactation, over the litres she sent to Bulk in it — or, for the Dairy side, everything charged to its animals in a period over the litres sent to Bulk in it. Worked out, never stored. _Avoid_: Production cost, unit cost
+
+**Buying Trip**: One outing to buy cattle, with what it cost beyond the animals' prices: broker, lorry to the farm, the men's food and lodging. Split evenly across the Animals brought in on it; the Hasil is not, because a haat takes it per Animal. _Avoid_: Purchase run, procurement
+
+**Selling Trip**: One outing to sell cattle at a haat, with what it cost: lorry both ways, stall or space, the men's food and lodging. Split evenly across every Animal taken, sold or brought home again, because a bull that came back still stood on the lorry. A broker's fee for one sale is typed on that Sale. _Avoid_: Market trip, Load (one vehicle to one destination)
+
+**Hasil**: The toll a haat takes on one Animal bought there, typed per Animal as the haat's slip gives it. Charged to her alone. _Avoid_: Market fee, tax, levy
+
+**Herd Cost**: A hand-entered Money Event whose Category the Owner has marked as charged to the animals of its Side, such as a Vet visit that named no animal, lab tests or fly spray. Split across the Animals of that Side by the days each stood on the farm in its month. Shed hygiene, wages, utilities, repairs and equipment are never Herd Costs: they are the place and the people, and the Farm's. _Avoid_: Overhead (which is exactly what it is not), shared cost
 
 **Cost of Gain**: What each kilogram a fattening Animal put on cost: everything charged to her, over the weight she gained between arriving and her latest Weigh-in or her Sale. _Avoid_: Feed conversion (that is kg of feed, not taka)
 
