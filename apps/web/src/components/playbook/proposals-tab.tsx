@@ -202,7 +202,7 @@ const ProposalSheet = ({
   return (
     <Sheet onOpenChange={onOpenChange} open={row !== undefined}>
       <SheetContent
-        className="w-full gap-0 sm:max-w-lg"
+        className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg"
         closeLabel={t("common.close")}
       >
         <SheetHeader className="border-b">

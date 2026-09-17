@@ -8,6 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@OpenFarm/ui/components/sheet";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { ChevronRight, Eye } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -28,6 +29,7 @@ import {
   becauseOf,
   entityLabelKey,
   fieldChanges,
+  fieldLabelKey,
 } from "./audit-words";
 
 /** How many events a page of the trail shows before the next. */
@@ -215,6 +217,23 @@ const Particular = ({
   </div>
 );
 
+/** A field a change touched, by the screens' word for it; one the trail has no word for as it is stored. */
+const FieldName = ({ field }: { field: string }) => {
+  const t = useT();
+  const key = fieldLabelKey(field);
+  return (
+    <th
+      className={cn(
+        "px-3 py-2 text-left text-xs font-medium",
+        key === null && "font-mono"
+      )}
+      scope="row"
+    >
+      {key === null ? field : t(key)}
+    </th>
+  );
+};
+
 /** The fields the change touched, each as it stood before and after. */
 const ChangedFields = ({ event }: { event: AuditEvent }) => {
   const t = useT();
@@ -243,12 +262,7 @@ const ChangedFields = ({ event }: { event: AuditEvent }) => {
         <tbody className="divide-y">
           {changes.map((change) => (
             <tr className="align-top" key={change.field}>
-              <th
-                className="px-3 py-2 text-left font-mono text-xs font-medium"
-                scope="row"
-              >
-                {change.field}
-              </th>
+              <FieldName field={change.field} />
               <td className="text-danger px-3 py-2 break-all">
                 {change.before}
               </td>
@@ -276,7 +290,7 @@ const EventSheet = ({
   return (
     <Sheet onOpenChange={onOpenChange} open={event !== undefined}>
       <SheetContent
-        className="w-full gap-0 sm:max-w-xl"
+        className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
         closeLabel={t("common.close")}
       >
         <SheetHeader className="border-b">

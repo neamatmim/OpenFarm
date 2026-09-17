@@ -1,7 +1,7 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDigits, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -128,6 +128,76 @@ const EntrySummary = ({
       {t(direction === "in" ? "byHand.in" : "byHand.out")} · ৳
       {formatNumber(taka, language)}
     </p>
+  );
+};
+
+/** The years a wage may be written for: this one and the two before, newest first. */
+const WAGE_YEARS = 3;
+
+/**
+ * The month a wage pays for, as a month and a year chosen from lists. A browser's own month field draws dashes where a
+ * month should be and speaks no Bangla; the Manager picks the month by its name instead. Stored as YYYY-MM.
+ */
+const WageMonth = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  const { t, language } = useLanguage();
+  const thisYear = Number(farmDayOf(new Date()).slice(0, 4));
+  const [chosenYear = "", month = ""] = value.split("-");
+  // The year is kept while no month is chosen yet, so picking the year first is not undone by picking the month.
+  const [year, setYear] = useState(chosenYear || String(thisYear));
+  const years = Array.from(
+    { length: WAGE_YEARS },
+    (_, back) => thisYear - back
+  );
+  const monthName = new Intl.DateTimeFormat(
+    language === "bn" ? "bn-BD" : "en-GB",
+    { month: "long", timeZone: "UTC" }
+  );
+  const pick = (nextYear: string, nextMonth: string) =>
+    onChange(nextYear && nextMonth ? `${nextYear}-${nextMonth}` : "");
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="mb-1.5 text-sm font-medium">
+        {t("byHand.wageMonth")}
+      </legend>
+      <div className="grid grid-cols-[1fr_7rem] gap-2">
+        <NativeSelect
+          aria-label={t("byHand.wageMonthName")}
+          onChange={(event) => pick(year, event.target.value)}
+          required
+          value={month}
+        >
+          <option value="">{t("byHand.pickMonth")}</option>
+          {Array.from({ length: 12 }, (_, index) => {
+            const number = String(index + 1).padStart(2, "0");
+            return (
+              <option key={number} value={number}>
+                {monthName.format(new Date(Date.UTC(2000, index, 1)))}
+              </option>
+            );
+          })}
+        </NativeSelect>
+        <NativeSelect
+          aria-label={t("byHand.wageYear")}
+          onChange={(event) => {
+            setYear(event.target.value);
+            pick(event.target.value, month);
+          }}
+          value={year}
+        >
+          {years.map((one) => (
+            <option key={one} value={String(one)}>
+              {formatDigits(one, language)}
+            </option>
+          ))}
+        </NativeSelect>
+      </div>
+    </fieldset>
   );
 };
 
@@ -273,15 +343,7 @@ export const EnterMoneySheet = ({
               />
             </FormField>
             {isWage ? (
-              <FormField id="entry-month" label={t("byHand.wageMonth")}>
-                <Input
-                  id="entry-month"
-                  onChange={(event) => set("wageMonth")(event.target.value)}
-                  required
-                  type="month"
-                  value={typed.wageMonth}
-                />
-              </FormField>
+              <WageMonth onChange={set("wageMonth")} value={typed.wageMonth} />
             ) : null}
           </div>
 

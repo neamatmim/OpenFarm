@@ -23,7 +23,12 @@ import {
 } from "@/components/data-table";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
-import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
+import {
+  ConfirmDialog,
+  FormDialog,
+  FormField,
+  RowMenu,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -460,15 +465,22 @@ export const ProductsTab = ({
   mayBuy: boolean;
   onBuy: (productId: string) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [daysFor, setDaysFor] = useState<DrugProduct | null>(null);
+  const [retiring, setRetiring] = useState<DrugProduct | null>(null);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
   const onError = (error: Error) => toast.error(sayWhy(error, t));
   const retire = useMutation(
-    orpc.drugs.retire.mutationOptions({ onSuccess: refresh, onError })
+    orpc.drugs.retire.mutationOptions({
+      onSuccess: async () => {
+        setRetiring(null);
+        await refresh();
+      },
+      onError,
+    })
   );
   const bringBack = useMutation(
     orpc.drugs.bringBack.mutationOptions({ onSuccess: refresh, onError })
@@ -483,7 +495,7 @@ export const ProductsTab = ({
     handleDays: setDaysFor,
     handleVaccine: (product) =>
       markVaccine.mutate({ id: product.id, vaccine: !product.vaccine }),
-    handleRetire: (product) => retire.mutate({ id: product.id }),
+    handleRetire: setRetiring,
     handleBringBack: (product) => bringBack.mutate({ id: product.id }),
     handleBuy: onBuy,
   };
@@ -532,6 +544,25 @@ export const ProductsTab = ({
           product={daysFor}
         />
       ) : null}
+      <ConfirmDialog
+        confirmLabel={t("drugs.retire")}
+        description={t("drugs.retireWhy")}
+        onConfirm={() => {
+          if (retiring) {
+            retire.mutate({ id: retiring.id });
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRetiring(null);
+          }
+        }}
+        open={retiring !== null}
+        pending={retire.isPending}
+        title={t("drugs.retireTitle", {
+          name: retiring ? productName(retiring, language) : "",
+        })}
+      />
     </Section>
   );
 };
