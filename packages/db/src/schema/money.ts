@@ -30,6 +30,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const RECORD_SOURCES = [
   "dispatch",
   "intake",
+  "buying_trip",
   "sale",
   "feed_in",
   "medicine_purchase",

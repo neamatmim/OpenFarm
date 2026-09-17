@@ -13,6 +13,7 @@ import { farmDay } from "../farm-clock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import {
+  assertTripIsOurs,
   bookIntakeMoney,
   hasilInput,
   purchasePriceInput,
@@ -38,6 +39,8 @@ const recordInput = z
     purchasePriceBdt: purchasePriceInput,
     /** The toll the haat took on her, as its slip gives it. None at a farm-gate sale. */
     hasilBdt: hasilInput.optional(),
+    /** The outing she came home on, when the farm wrote one. */
+    buyingTripId: z.string().optional(),
     weightKg: weight,
     /** Months, as the seller says and the Manager judges. Asked for, not optional: a bull with
      *  no age is a bull whose gain nobody can read. */
@@ -146,6 +149,7 @@ export const intakeRouter = {
             reason: "intake",
           });
           ({ tagNumber } = made);
+          await assertTripIsOurs(tx, context.farm.id, input.buyingTripId);
           const sellerId = await counterpartyNamed(
             tx,
             context.farm.id,
@@ -159,6 +163,7 @@ export const intakeRouter = {
             counterpartyId: sellerId,
             purchasePriceBdt: input.purchasePriceBdt.toFixed(2),
             hasilBdt: (input.hasilBdt ?? 0).toFixed(2),
+            buyingTripId: input.buyingTripId ?? null,
             weightKg: input.weightKg.toFixed(2),
             estimatedAgeMonths: input.estimatedAgeMonths,
             targetWindowStart: window.start,

@@ -1,4 +1,5 @@
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
@@ -74,6 +75,28 @@ export const bookIntakeMoney = async (
 
 /** Taka. Whole animals are bought in thousands; the column keeps poisha so finance can too. */
 export const purchasePriceInput = z.number().min(0).max(100_000_000);
+
+/**
+ * Refuses an outing that is not this Farm's. An Intake names the Trip it came home on by id, and an id from
+ * somewhere else would attach silently: her share would be lost, and another farm's outing would show an
+ * animal it never carried.
+ */
+export const assertTripIsOurs = async (
+  tx: Tx,
+  farmId: string,
+  tripId: string | undefined
+) => {
+  if (tripId === undefined) {
+    return;
+  }
+  const ours = await tx.query.buyingTrip.findFirst({
+    where: { id: tripId, farmId },
+    columns: { id: true },
+  });
+  if (!ours) {
+    throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+  }
+};
 
 /** The haat's toll on one beast, as its slip gives it. Taka, like everything else the arrival cost. */
 export const hasilInput = z.number().min(0).max(10_000_000);

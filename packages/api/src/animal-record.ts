@@ -107,7 +107,12 @@ export const herRecord = async (
       },
       // What she cost and what she fetched are here because the farm knows them; who may read them is the
       // reader's to decide (CONTEXT: Scope). A paper for a buyer prints neither.
-      intake: { with: { seller: { columns: { name: true, address: true } } } },
+      intake: {
+        with: {
+          seller: { columns: { name: true, address: true } },
+          buyingTrip: { columns: { id: true, wentTo: true } },
+        },
+      },
       sale: { with: { buyer: { columns: { name: true } } } },
       mortality: {
         columns: {

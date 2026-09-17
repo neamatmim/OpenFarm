@@ -32,6 +32,7 @@ const REGISTER_PAGE = 20;
 const SOURCE_WORD = {
   dispatch: "money.from.dispatch",
   intake: "money.from.intake",
+  buying_trip: "money.from.buyingTrip",
   sale: "money.from.sale",
   feed_in: "money.from.feedIn",
   medicine_purchase: "money.from.medicinePurchase",

@@ -20,7 +20,11 @@ const Note = ({
   word,
 }: {
   amount: number;
-  word: "costs.unpricedNote" | "costs.uncostedNote" | "costs.unallocatedNote";
+  word:
+    | "costs.unpricedNote"
+    | "costs.uncostedNote"
+    | "costs.unallocatedNote"
+    | "costs.strayTripNote";
 }) => {
   const { t, language } = useLanguage();
   return amount > 0 ? (
@@ -184,6 +188,7 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
         </CostCard>
       </div>
       <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />
+      <Note amount={unallocated.tripBdt} word="costs.strayTripNote" />
     </div>
   );
 };

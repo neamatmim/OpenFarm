@@ -278,11 +278,14 @@ export {
   termsUnchanged,
 } from "./money";
 export type {
+  CameHome,
   CostShare,
   Costs,
   FeedShare,
   FeedingToCost,
+  TripToSplit,
   UnallocatedFeeding,
+  UnallocatedTrip,
 } from "./costs";
 export {
   PURCHASES_A_DOSE_IS_COSTED_OVER,
@@ -292,6 +295,7 @@ export {
   feedShares,
   marginOf,
   roundedCosts,
+  tripShares,
 } from "./costs";
 export { groupedBy } from "./grouped-by";
 export type {

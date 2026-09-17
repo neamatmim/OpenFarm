@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import {
+  assertTripIsOurs,
   bookIntakeMoney,
   hasilInput,
   purchasePriceInput,
@@ -25,6 +26,7 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       animalId: true,
       purchasePriceBdt: true,
       hasilBdt: true,
+      buyingTripId: true,
       recordedBy: true,
       createdAt: true,
     },
@@ -32,12 +34,13 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
   });
 
 /**
- * What an Intake's Correction may change: what the farm paid, the haat's toll on her, who sold the animal,
- * and how he was paid.
+ * What an Intake's Correction may change: what the farm paid, the haat's toll on her, the outing she came
+ * home on, who sold the animal, and how he was paid.
  */
 export const intakeCorrectionInput = correctionInput({
   purchasePriceBdt: changeOf(purchasePriceInput, z.number()),
   hasilBdt: changeOf(hasilInput, z.number()),
+  buyingTrip: changeOf(z.string().nullable(), z.string().nullable()),
   seller: changeOf(sellerInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
 });
@@ -61,12 +64,14 @@ export const intakeCorrection: CorrectionKind<
   shown: async (tx, row) => ({
     purchasePriceBdt: Number(row.purchasePriceBdt),
     hasilBdt: Number(row.hasilBdt),
+    buyingTrip: row.buyingTripId,
     seller: row.seller?.name ?? null,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
   }),
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readIntake(tx, row.animalId),
   apply: async (tx, row, to, { context, now }) => {
+    await assertTripIsOurs(tx, row.farmId, to.buyingTrip ?? undefined);
     await tx
       .update(intake)
       .set({
@@ -76,6 +81,7 @@ export const intakeCorrection: CorrectionKind<
         ...(to.hasilBdt === undefined
           ? {}
           : { hasilBdt: to.hasilBdt.toFixed(2) }),
+        ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
         ...(to.seller === undefined
           ? {}
           : {

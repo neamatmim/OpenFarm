@@ -577,7 +577,11 @@ describe("what an animal costs, and what a litre costs", () => {
       ],
       marginBdt: 7450,
     });
-    expect(report.unallocated).toEqual({ feedBdt: 300, unpricedKg: 5 });
+    expect(report.unallocated).toEqual({
+      feedBdt: 300,
+      unpricedKg: 5,
+      tripBdt: 0,
+    });
 
     // A period after the sale sells nobody, whatever the bull's margin was.
     const february = await owner.client.costs.bySide({
@@ -585,7 +589,11 @@ describe("what an animal costs, and what a litre costs", () => {
       to: "2039-02-28",
     });
     expect(february.soldFattening).toEqual({ animals: [], marginBdt: 0 });
-    expect(february.unallocated).toEqual({ feedBdt: 0, unpricedKg: 0 });
+    expect(february.unallocated).toEqual({
+      feedBdt: 0,
+      unpricedKg: 0,
+      tripBdt: 0,
+    });
   });
 
   // Her share of the Trips that moved her and of the month's Herd Costs are parts of what she cost from

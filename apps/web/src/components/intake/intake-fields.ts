@@ -11,6 +11,9 @@ export interface IntakeFields {
   purchasePriceBdt: string;
   /** The haat's toll on this beast, as its slip gives it. Blank at a farm-gate sale. */
   hasilBdt: string;
+  /** The outing she came home on, chosen from the ones the farm has written up lately. Blank for an
+   *  animal bought at the farm gate, or one nobody wrote a Trip for. */
+  buyingTripId: string;
   weightKg: string;
   estimatedAgeMonths: string;
   breed: string;
@@ -28,6 +31,7 @@ export const EMPTY: IntakeFields = {
   sellerPhone: "",
   purchasePriceBdt: "",
   hasilBdt: "",
+  buyingTripId: "",
   weightKg: "",
   estimatedAgeMonths: "",
   breed: "",
