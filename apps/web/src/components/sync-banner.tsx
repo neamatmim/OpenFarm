@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
 import { getDeviceToken } from "@/lib/device";
-import { cachedHerd, rememberHerd } from "@/lib/herd-cache";
+import { cachedHerd, herdCacheQuery, rememberHerd } from "@/lib/herd-cache";
 import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { client, orpc } from "@/utils/orpc";
@@ -88,7 +88,9 @@ export const SyncBanner = () => {
           })),
           new Date()
         );
-        await queryClient.invalidateQueries({ queryKey: ["herd-cache"] });
+        await queryClient.invalidateQueries({
+          queryKey: herdCacheQuery.queryKey,
+        });
       } catch {
         // No signal, or the farm is not answering. The queue is on the device; the next
         // tick tries again.
@@ -104,11 +106,8 @@ export const SyncBanner = () => {
   }, [queryClient]);
 
   const herdAt = useQuery({
-    queryKey: ["herd-cache"],
-    queryFn: async () => {
-      const herd = await cachedHerd();
-      return herd.at ?? null;
-    },
+    ...herdCacheQuery,
+    select: (herd) => herd.at,
   });
 
   const held = state.data;

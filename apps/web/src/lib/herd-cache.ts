@@ -62,6 +62,17 @@ export const cachedHerd = async (): Promise<{
   };
 };
 
+/**
+ * The one question for what this phone last knew of the herd. Everything that reads it asks this, and picks what it
+ * needs with `select`: two questions under one key, answered in different shapes, handed the top bar the whole herd
+ * where it expected the time it was kept, and the page fell over formatting it as a date.
+ */
+export const herdCacheQuery = {
+  queryKey: ["herd-cache"] as const,
+  queryFn: cachedHerd,
+  staleTime: Number.POSITIVE_INFINITY,
+};
+
 /** Is this cow's milk held back, as far as this phone knows? */
 export const cachedWithdrawal = (
   animal: Pick<CachedAnimal, "milkWithdrawalUntil"> | undefined,
