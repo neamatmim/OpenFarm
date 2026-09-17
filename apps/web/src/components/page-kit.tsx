@@ -34,6 +34,7 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { EllipsisVertical } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
 import type { Tone } from "@/components/page";
 import { StatTile } from "@/components/page";
@@ -126,19 +127,40 @@ export const PageTabs = <T extends string>({
   onChange: (value: T) => void;
 }) => {
   const { language } = useLanguage();
+  const strip = useRef<HTMLDivElement>(null);
+  // A page opened on a tab far along the row — from its address — brings that tab into sight on a phone, sideways
+  // only, so the page itself does not jump.
+  useEffect(() => {
+    const row = strip.current;
+    const active = row?.querySelector<HTMLElement>(
+      `[data-tab="${CSS.escape(value)}"]`
+    );
+    if (!(row && active)) {
+      return;
+    }
+    const left = active.offsetLeft - row.offsetLeft;
+    const right = left + active.offsetWidth;
+    if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) {
+      row.scrollLeft = Math.max(0, left - 16);
+    }
+  }, [value]);
   return (
     <Tabs
       className="gap-4"
       onValueChange={(next) => onChange(next as T)}
       value={value}
     >
-      <div className="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
+      <div
+        className="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0"
+        ref={strip}
+      >
         <TabsList className="h-11 gap-4" variant="line">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <TabsTrigger
                 className="flex-none px-1"
+                data-tab={tab.value}
                 key={tab.value}
                 value={tab.value}
               >
@@ -298,7 +320,7 @@ export const FormSheet = ({
   const { t } = useLanguage();
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="w-full gap-0 sm:max-w-lg">
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
         <SheetHeader className="border-b">
           <SheetTitle>{title}</SheetTitle>
           {description ? (

@@ -1,519 +1,174 @@
-import type { PaymentMethod } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { ReceiptText } from "lucide-react";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Banknote, CircleCheck, ReceiptText, Scale, Store } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
-import {
-  ActionsHeader,
-  DataTable,
-  createListColumns,
-  listHeader,
-  useListTable,
-} from "@/components/data-table";
-import {
-  EmptyState,
-  Page,
-  PageHeader,
-  RecordList,
-  RecordRow,
-  Section,
-  StickyAction,
-  TagChip,
-} from "@/components/page";
-import type { PaperId } from "@/components/paper";
-import { Paper } from "@/components/paper";
-import { PaymentMethodField } from "@/components/payment-method";
-import { SaleCorrection } from "@/components/sale-correction";
+import { Loaded, Page, PageHeader } from "@/components/page";
+import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import type { Sellable } from "@/components/sale/ready-to-go";
+import { ReadyToGo } from "@/components/sale/ready-to-go";
+import type { SaleAnswers } from "@/components/sale/sale-sheet";
+import { NOTHING_TYPED, SaleSheet } from "@/components/sale/sale-sheet";
+import type { Sold } from "@/components/sale/todays-sales";
+import { TodaysSales } from "@/components/sale/todays-sales";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
-const NOTHING_TYPED = {
-  tagNumber: "",
-  buyerName: "",
-  buyerAddress: "",
-  buyerPhone: "",
-  priceBdt: "",
-  weightKg: "",
-  destination: "",
-  vehicle: "",
-  driver: "",
-  note: "",
-  paymentMethod: "cash" as PaymentMethod,
-};
+const TABS = ["ready", "sold"] as const;
+type Tab = (typeof TABS)[number];
 
-/** The day she is fit, when the farm refused the sale because she is still inside her days. */
-const fitOnFrom = (error: unknown): string | null => {
-  const data = (error as { data?: { refusal?: string; fitOn?: string } })?.data;
-  return data?.refusal === "meat_withdrawal" ? (data.fitOn ?? null) : null;
-};
+/** The address for a tab: the first tab is the page itself, and says nothing. */
+const tabSearch = (value: Tab) => (value === "ready" ? {} : { tab: value });
 
-/** The last buyer and lorry of the day, one button away. Nothing at all on a day the farm has
- *  sold nothing: yesterday's buyer is a different market. */
-const LastBuyerOfTheDay = ({
-  sale,
-  onUse,
+/** The four figures a morning of selling is judged by: how many went, what they fetched, what that came to a kilo,
+ *  and how many more can still go. A dash for what the farm has not answered yet. */
+const SaleFigures = ({
+  sold,
+  sellable,
 }: {
-  sale: {
-    buyerName: string;
-    buyerAddress: string | null;
-    buyerPhone: string | null;
-    destination: string;
-    vehicle: string;
-    driver: string;
-  } | null;
-  onUse: (patch: Partial<typeof NOTHING_TYPED>) => void;
+  sold: Sold[] | undefined;
+  sellable: Sellable[] | undefined;
 }) => {
-  const { t } = useLanguage();
-  if (!sale) {
-    return null;
-  }
-  return (
-    <Button
-      onClick={() =>
-        onUse({
-          buyerName: sale.buyerName,
-          buyerAddress: sale.buyerAddress ?? "",
-          buyerPhone: sale.buyerPhone ?? "",
-          destination: sale.destination,
-          vehicle: sale.vehicle,
-          driver: sale.driver,
-        })
-      }
-      variant="outline"
-    >
-      {t("sale.again")}
-    </Button>
-  );
-};
-
-type Sold = Awaited<ReturnType<typeof orpc.papers.day.call>>[number];
-
-/** What can be done with one of the day's sales from this screen: its two papers, and — for the Manager or the
- *  Owner — a Correction. */
-interface SalePapers {
-  onReceipt: (saleId: string) => void;
-  onCard: (saleId: string) => void;
-  mayCorrect: boolean;
-}
-
-const SaleActions = ({ sale, papers }: { sale: Sold; papers: SalePapers }) => {
-  const { t } = useLanguage();
-  return (
-    <span className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-      <Button
-        onClick={() => papers.onReceipt(sale.id)}
-        size="sm"
-        variant="outline"
-      >
-        {t("sale.receipt")}
-      </Button>
-      <Button
-        onClick={() => papers.onCard(sale.id)}
-        size="sm"
-        variant="outline"
-      >
-        {t("sale.transportCard")}
-      </Button>
-      {papers.mayCorrect ? (
-        <SaleCorrection sale={sale} thenReload={orpc.papers.key()} />
-      ) : null}
-    </span>
-  );
-};
-
-interface SoldRow extends Sold {
-  papers: SalePapers;
-}
-
-interface SoldCell {
-  row: { original: SoldRow };
-}
-
-const TagCell = ({ row }: SoldCell) => (
-  <TagChip>{row.original.tagNumber}</TagChip>
-);
-
-const PriceCell = ({ row }: SoldCell) => {
   const { t, language } = useLanguage();
+  const taken = sold?.reduce((sum, one) => sum + one.priceBdt, 0);
+  const weighed = sold?.reduce((sum, one) => sum + one.weightKg, 0) ?? 0;
+  const buyers = new Set(sold?.map((one) => one.buyerName)).size;
+  const taka = (value: number | undefined) =>
+    value === undefined ? "—" : `৳${formatNumber(Math.round(value), language)}`;
   return (
-    <span className="font-medium whitespace-nowrap">
-      {t("intake.taka", {
-        taka: formatNumber(row.original.priceBdt, language),
-      })}
-    </span>
-  );
-};
-
-const ActionsCell = ({ row }: SoldCell) => (
-  <SaleActions papers={row.original.papers} sale={row.original} />
-);
-
-const column = createListColumns<SoldRow>();
-const soldColumns = column.columns([
-  column.accessor("tagNumber", {
-    header: listHeader("animals.col.tag"),
-    cell: TagCell,
-  }),
-  column.accessor("buyerName", { header: listHeader("sale.soldTo") }),
-  column.accessor("priceBdt", {
-    header: listHeader("sale.price"),
-    cell: PriceCell,
-    meta: { align: "end" },
-  }),
-  column.display({
-    header: ActionsHeader,
-    id: "papers",
-    cell: ActionsCell,
-    meta: { align: "end" },
-  }),
-]);
-
-/** The day's sales as a table where there is room: which beast, to whom and for how much, and its papers at the end
- *  of the row — the page is as narrow as its form, so the weight stays on the receipt. */
-const SoldTable = ({ sold, papers }: { sold: Sold[]; papers: SalePapers }) => {
-  const table = useListTable({
-    columns: soldColumns,
-    data: sold.map((row) => ({ ...row, papers })),
-    getRowId: (row) => row.id,
-  });
-  return (
-    <DataTable
-      className="no-print hidden md:block"
-      minWidth="36rem"
-      table={table}
+    <SummaryFigures
+      figures={[
+        {
+          label: t("sale.kpi.sold"),
+          value: sold === undefined ? "—" : formatNumber(sold.length, language),
+          hint: t("sale.kpi.soldHint", {
+            count: formatNumber(buyers, language),
+          }),
+          icon: Store,
+        },
+        {
+          label: t("sale.kpi.takings"),
+          value: taka(taken),
+          hint: t("sale.kpi.takingsHint"),
+          icon: Banknote,
+          tone: (taken ?? 0) > 0 ? "success" : "neutral",
+        },
+        {
+          label: t("sale.kpi.perKg"),
+          value: taken && weighed > 0 ? taka(taken / weighed) : "—",
+          hint: t("sale.kpi.perKgHint"),
+          icon: Scale,
+        },
+        {
+          label: t("sale.kpi.ready"),
+          value:
+            sellable === undefined
+              ? "—"
+              : formatNumber(sellable.length, language),
+          hint: t("sale.kpi.readyHint"),
+          icon: CircleCheck,
+        },
+      ]}
     />
-  );
-};
-
-/**
- * The day's sales, and the two papers each buyer leaves with.
- *
- * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
- * the man has finished buying, and it covers everything he took that morning.
- */
-const TodaysSales = () => {
-  const { t, language } = useLanguage();
-  const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
-  const me = useQuery(orpc.people.me.queryOptions());
-  const isManager = me.data?.roles.includes("manager") ?? false;
-  const isOwner = me.data?.roles.includes("owner") ?? false;
-  const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
-    null
-  );
-  const onError = (error: Error) =>
-    toast.error(
-      (error as { data?: { refusal?: string } }).data?.refusal ===
-        "farm_identity_incomplete"
-        ? t("sale.missingRegistration")
-        : (error.message ?? t("common.error"))
-    );
-  const receipt = useMutation(
-    orpc.papers.receipt.mutationOptions({
-      onSuccess: ({ text }) => setPaper({ id: "sale-receipt", text }),
-      onError,
-    })
-  );
-  const card = useMutation(
-    orpc.papers.transportCard.mutationOptions({
-      onSuccess: ({ text }) => setPaper({ id: "transport-card", text }),
-      onError,
-    })
-  );
-
-  if (!sold.data || sold.data.length === 0) {
-    return (
-      <Section title={t("sale.today")}>
-        <EmptyState bare icon={ReceiptText} title={t("sale.noneToday")} />
-      </Section>
-    );
-  }
-
-  const papers: SalePapers = {
-    onReceipt: (saleId) => receipt.mutate({ saleId }),
-    onCard: (saleId) => card.mutate({ saleId }),
-    mayCorrect: isManager || isOwner,
-  };
-
-  return (
-    <Section description={t("sale.todayHint")} title={t("sale.today")}>
-      <RecordList className="no-print md:hidden">
-        {sold.data.map((row) => (
-          <RecordRow
-            key={row.id}
-            leading={<TagChip>{row.tagNumber}</TagChip>}
-            meta={row.buyerName}
-            title={t("intake.taka", {
-              taka: formatNumber(row.priceBdt, language),
-            })}
-            trailing={<SaleActions papers={papers} sale={row} />}
-          />
-        ))}
-      </RecordList>
-      <SoldTable papers={papers} sold={sold.data} />
-      {paper ? <Paper id={paper.id} text={paper.text} /> : null}
-    </Section>
   );
 };
 
 /**
  * Selling an animal, on Eid morning, on a phone.
  *
- * Only animals the Manager has already confirmed Ready appear in the list, and the last buyer
- * and lorry of the day are one button away — at Eid several beasts go to one man in one morning,
- * and asking for his name, his address, his lorry and his driver five times is how a farm ends up
- * with five spellings of one man.
+ * The day's figures on top; beneath them, by what somebody came for, the animals that can go — each one button from
+ * the sale sheet with her already chosen — and the day's sales with the papers each buyer leaves with. Only animals
+ * the Manager has already confirmed Ready are offered; a dairy cow going to a butcher is named by her tag in the
+ * sheet. Another page sends somebody here to sell one animal with `?sell=`, which opens the sheet with her chosen.
  */
 const SalePage = () => {
-  const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
-  const [answers, setAnswers] = useState(NOTHING_TYPED);
-  // A fattening beast is chosen from the list. A dairy cow going to a butcher — the cull the
-  // Owner decided is a Sale — is never Ready for Sale, so she is named by her tag instead.
-  const [byTag, setByTag] = useState(false);
-  // Asked of the farm, not filtered here: the phone cannot see a withdrawal, and a beast
-  // confirmed Ready last week and treated on Thursday would sit in this list looking sellable.
+  const { t } = useLanguage();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { tab = "ready", sell } = Route.useSearch();
+  const [answers, setAnswers] = useState<SaleAnswers>(() => ({
+    ...NOTHING_TYPED,
+    tagNumber: sell ?? "",
+  }));
+  const [selling, setSelling] = useState(sell !== undefined);
   const sellable = useQuery(orpc.sale.sellable.queryOptions());
-  const last = useQuery(orpc.sale.lastToday.queryOptions());
+  const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
+  const me = useQuery(orpc.people.me.queryOptions());
+  const mayCorrect =
+    me.data?.roles.some((role) => role === "manager" || role === "owner") ??
+    false;
 
-  const ready = sellable.data ?? [];
-  const edit = (patch: Partial<typeof answers>) =>
-    setAnswers({ ...answers, ...patch });
-
-  const record = useMutation(
-    orpc.sale.record.mutationOptions({
-      onSuccess: async ({ tagNumber }) => {
-        toast.success(t("sale.done", { tag: tagNumber }));
-        // The buyer and the lorry stay on the screen: the next beast is usually his too.
-        setAnswers({ ...answers, tagNumber: "", weightKg: "", priceBdt: "" });
-        await Promise.all(
-          [orpc.papers.key(), orpc.ready.key()].map((key) =>
-            queryClient.invalidateQueries({ queryKey: key })
-          )
-        );
-      },
-      onError: (error) => {
-        const fitOn = fitOnFrom(error);
-        toast.error(
-          fitOn
-            ? t("ready.underWithdrawal", {
-                when: formatDate(new Date(fitOn), language, "date"),
-              })
-            : (error.message ?? t("common.error"))
-        );
-      },
-    })
-  );
+  const openFor = (tagNumber: string) => {
+    setAnswers({ ...answers, tagNumber });
+    setSelling(true);
+  };
 
   return (
-    <Page width="narrow">
+    <Page>
       <PageHeader
-        actions={<LastBuyerOfTheDay onUse={edit} sale={last.data ?? null} />}
+        actions={
+          <Button onClick={() => setSelling(true)} type="button">
+            <Store aria-hidden data-icon="inline-start" />
+            {t("sale.record")}
+          </Button>
+        }
         description={t("sale.subtitle")}
         title={t("sale.title")}
       />
 
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          record.mutate({
-            tagNumber: answers.tagNumber,
-            buyer: {
-              name: answers.buyerName,
-              address: answers.buyerAddress || undefined,
-              phone: answers.buyerPhone || undefined,
-            },
-            priceBdt: Number(answers.priceBdt),
-            weightKg: Number(answers.weightKg),
-            destination: answers.destination,
-            vehicle: answers.vehicle,
-            driver: answers.driver,
-            note: answers.note || undefined,
-            paymentMethod: answers.paymentMethod,
-          });
+      <SaleFigures sellable={sellable.data} sold={sold.data} />
+
+      <PageTabs
+        onChange={(value) =>
+          navigate({ replace: true, search: tabSearch(value) })
+        }
+        tabs={[
+          {
+            value: "ready",
+            label: t("sale.tab.ready"),
+            icon: Store,
+            count: sellable.data?.length,
+            content: (
+              <Loaded
+                query={sellable}
+                skeleton={<Skeleton className="h-40 rounded-xl" />}
+              >
+                <ReadyToGo onSell={openFor} sellable={sellable.data ?? []} />
+              </Loaded>
+            ),
+          },
+          {
+            value: "sold",
+            label: t("sale.today"),
+            icon: ReceiptText,
+            content: (
+              <Loaded
+                query={sold}
+                skeleton={<Skeleton className="h-40 rounded-xl" />}
+              >
+                <TodaysSales mayCorrect={mayCorrect} sold={sold.data ?? []} />
+              </Loaded>
+            ),
+          },
+        ]}
+        value={tab}
+      />
+
+      <SaleSheet
+        answers={answers}
+        onAnswers={setAnswers}
+        onOpenChange={(open) => {
+          setSelling(open);
+          // The address said which animal to sell; once the sheet is closed it has been answered.
+          if (!open && sell !== undefined) {
+            navigate({ replace: true, search: tabSearch(tab) });
+          }
         }}
-      >
-        <Section title={t("sale.groupAnimal")}>
-          <div className="space-y-1">
-            <Label htmlFor="sale-animal">{t("sale.animal")}</Label>
-            {byTag || ready.length === 0 ? (
-              <Input
-                id="sale-animal"
-                maxLength={32}
-                onChange={(e) => edit({ tagNumber: e.target.value })}
-                placeholder="F-0001"
-                required
-                value={answers.tagNumber}
-              />
-            ) : (
-              <select
-                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-                id="sale-animal"
-                onChange={(e) => edit({ tagNumber: e.target.value })}
-                required
-                value={answers.tagNumber}
-              >
-                <option value="">—</option>
-                {ready.map((row) => (
-                  <option key={row.id} value={row.tagNumber}>
-                    {row.tagNumber} · {row.penName}
-                  </option>
-                ))}
-              </select>
-            )}
-            {ready.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                {t("sale.noneReady")}
-              </p>
-            ) : (
-              <Button
-                className="px-0"
-                onClick={() => {
-                  setByTag(!byTag);
-                  edit({ tagNumber: "" });
-                }}
-                type="button"
-                variant="link"
-              >
-                {t(byTag ? "sale.fromList" : "sale.otherAnimal")}
-              </Button>
-            )}
-          </div>
-        </Section>
-
-        <Section title={t("sale.groupBuyer")}>
-          <div className="space-y-1">
-            <Label htmlFor="sale-buyer">{t("sale.buyerName")}</Label>
-            <Input
-              id="sale-buyer"
-              maxLength={120}
-              onChange={(e) => edit({ buyerName: e.target.value })}
-              required
-              value={answers.buyerName}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="sale-address">{t("sale.buyerAddress")}</Label>
-              <Input
-                id="sale-address"
-                maxLength={200}
-                onChange={(e) => edit({ buyerAddress: e.target.value })}
-                value={answers.buyerAddress}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="sale-phone">{t("sale.buyerPhone")}</Label>
-              <Input
-                id="sale-phone"
-                inputMode="tel"
-                maxLength={20}
-                onChange={(e) => edit({ buyerPhone: e.target.value })}
-                value={answers.buyerPhone}
-              />
-            </div>
-          </div>
-        </Section>
-
-        <Section title={t("sale.groupPrice")}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="sale-price">{t("sale.price")}</Label>
-              <Input
-                id="sale-price"
-                inputMode="numeric"
-                onChange={(e) => edit({ priceBdt: e.target.value })}
-                required
-                type="number"
-                value={answers.priceBdt}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="sale-weight">{t("sale.weight")}</Label>
-              <Input
-                id="sale-weight"
-                inputMode="decimal"
-                onChange={(e) => edit({ weightKg: e.target.value })}
-                required
-                step="0.1"
-                type="number"
-                value={answers.weightKg}
-              />
-            </div>
-          </div>
-          <PaymentMethodField
-            id="sale-paid-by"
-            onChange={(paymentMethod) => edit({ paymentMethod })}
-            value={answers.paymentMethod}
-          />
-        </Section>
-
-        <Section title={t("sale.groupTransport")}>
-          <div className="space-y-1">
-            <Label htmlFor="sale-destination">{t("sale.destination")}</Label>
-            <Input
-              id="sale-destination"
-              maxLength={200}
-              onChange={(e) => edit({ destination: e.target.value })}
-              required
-              value={answers.destination}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="sale-vehicle">{t("sale.vehicle")}</Label>
-              <Input
-                id="sale-vehicle"
-                maxLength={60}
-                onChange={(e) => edit({ vehicle: e.target.value })}
-                required
-                value={answers.vehicle}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="sale-driver">{t("sale.driver")}</Label>
-              <Input
-                id="sale-driver"
-                maxLength={120}
-                onChange={(e) => edit({ driver: e.target.value })}
-                required
-                value={answers.driver}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="sale-note">{t("sale.note")}</Label>
-            <Input
-              id="sale-note"
-              maxLength={300}
-              onChange={(e) => edit({ note: e.target.value })}
-              value={answers.note}
-            />
-            <p className="text-muted-foreground text-sm">{t("sale.noteWhy")}</p>
-          </div>
-        </Section>
-
-        <StickyAction>
-          <Button
-            className="w-full sm:w-auto"
-            disabled={record.isPending || ready.length === 0}
-            size="lg"
-            type="submit"
-          >
-            {t("sale.record")}
-          </Button>
-        </StickyAction>
-      </form>
-
-      <TodaysSales />
+        open={selling}
+      />
     </Page>
   );
 };
@@ -521,4 +176,14 @@ const SalePage = () => {
 export const Route = createFileRoute("/_auth/sale")({
   beforeLoad: onlyFor("runsTheFarm"),
   component: SalePage,
+  /** Which tab, kept in the address so the page comes back as it was left, and — from another page — which animal to
+   *  sell. */
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { tab?: Tab; sell?: string } => ({
+    ...(search.tab === "sold" ? { tab: "sold" as const } : {}),
+    ...(typeof search.sell === "string" && search.sell !== ""
+      ? { sell: search.sell }
+      : {}),
+  }),
 });

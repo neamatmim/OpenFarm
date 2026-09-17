@@ -3,9 +3,11 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
+import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import { useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -59,6 +61,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
           <Input
             autoComplete="username"
             id="forgot-email"
+            inputMode="email"
             onChange={(event) => setEmail(event.target.value)}
             required
             type="email"
@@ -70,7 +73,8 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
           <Input
             // Read out across a shed and typed in: the farm's codes have no letters anybody misreads.
             autoCapitalize="characters"
-            className="font-mono tracking-[0.2em]"
+            autoComplete="one-time-code"
+            className="font-mono tracking-[0.2em] uppercase"
             id="forgot-code"
             onChange={(event) => setCode(event.target.value.toUpperCase())}
             required
@@ -79,21 +83,24 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="forgot-password">{t("auth.newPassword")}</Label>
-          <Input
+          <PasswordInput
+            aria-describedby="forgot-password-hint"
             autoComplete="new-password"
             id="forgot-password"
             minLength={PASSWORD_MIN}
             onChange={(event) => setNewPassword(event.target.value)}
             required
-            type="password"
             value={newPassword}
           />
-          <p className="text-muted-foreground text-xs">
+          <p
+            className="text-muted-foreground text-xs"
+            id="forgot-password-hint"
+          >
             {t("auth.passwordTooShort", { min: PASSWORD_MIN })}
           </p>
         </div>
         <Button
-          className="mt-1 w-full"
+          className="mt-1 h-12 w-full text-base md:h-10"
           disabled={!ready || set.isPending}
           type="submit"
         >
@@ -104,6 +111,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
 
       <div className="text-center">
         <Button onClick={onDone} variant="link">
+          <ChevronLeft data-icon="inline-start" />
           {t("auth.backToSignIn")}
         </Button>
       </div>

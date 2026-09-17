@@ -1,13 +1,14 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { BellOff, BellRing } from "lucide-react";
+import { BellOff, BellRing, Phone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Page, PageHeader, Section } from "@/components/page";
+import { Page, PageHeader, Section, StatusBadge } from "@/components/page";
+import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import {
   askToBeTold,
@@ -18,13 +19,52 @@ import {
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
+/** How this device stands for being told: told, not told, refused by the browser, or unable to be told at all. */
+const PushStanding = ({
+  possible,
+  already,
+  said,
+}: {
+  possible: boolean;
+  already: boolean;
+  said: string | null;
+}) => {
+  const { t } = useLanguage();
+  if (!possible) {
+    return (
+      <StatusBadge icon={BellOff} tone="neutral">
+        {t("push.unavailable")}
+      </StatusBadge>
+    );
+  }
+  if (already) {
+    return (
+      <StatusBadge icon={BellRing} tone="success">
+        {t("push.enabled")}
+      </StatusBadge>
+    );
+  }
+  if (said) {
+    return (
+      <StatusBadge icon={BellOff} tone="warning">
+        {said}
+      </StatusBadge>
+    );
+  }
+  return (
+    <StatusBadge icon={BellOff} tone="neutral">
+      {t("push.notTold")}
+    </StatusBadge>
+  );
+};
+
 /**
  * Whether this device gets told things when the app is closed.
  *
  * Per device, because that is what a browser can promise: a Manager with a phone in the yard
  * and a machine in the office says yes on both, and hears about late work wherever they are.
  */
-const SettingsPage = () => {
+const BeingTold = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [said, setSaid] = useState<string | null>(null);
@@ -86,38 +126,38 @@ const SettingsPage = () => {
 
   const possible = possibleHere.data && Boolean(key.data?.key);
   const already = Boolean(listening.data);
+  const pending = agree.isPending || refuse.isPending;
 
   return (
-    <Page width="narrow">
-      <PageHeader title={t("nav.settings")} />
-      <Section description={t("push.why")} title={t("push.title")}>
-        {possible ? (
+    <Section
+      action={
+        possible ? (
           <Button
-            className="h-12 w-full text-base sm:w-auto"
-            disabled={agree.isPending || refuse.isPending}
+            className="w-full sm:w-auto"
+            disabled={pending}
             onClick={() => (already ? refuse.mutate() : agree.mutate())}
+            type="button"
             variant={already ? "outline" : "default"}
           >
-            {already ? <BellOff size={18} /> : <BellRing size={18} />}
+            {pending ? <Spinner /> : null}
+            {!pending && already ? (
+              <BellOff aria-hidden data-icon="inline-start" />
+            ) : null}
+            {!pending && !already ? (
+              <BellRing aria-hidden data-icon="inline-start" />
+            ) : null}
             {already ? t("push.stop") : t("push.enable")}
           </Button>
-        ) : (
-          <p className="bg-muted rounded-xl p-3 text-sm">
-            {t("push.unavailable")}
-          </p>
-        )}
-        {said ? (
-          <p className="bg-warning-surface text-warning rounded-xl p-3 text-sm">
-            {said}
-          </p>
-        ) : null}
-        {already ? (
-          <p className="text-muted-foreground text-sm">{t("push.enabled")}</p>
-        ) : null}
-      </Section>
-
-      <MyNumber />
-    </Page>
+        ) : null
+      }
+      description={t("push.why")}
+      id="being-told"
+      title={t("push.title")}
+    >
+      <div>
+        <PushStanding already={already} possible={possible} said={said} />
+      </div>
+    </Section>
   );
 };
 
@@ -145,29 +185,52 @@ const MyNumber = () => {
   const mine = phone ?? me.data?.phone ?? "";
 
   return (
-    <Section description={t("sms.why")} title={t("sms.myNumber")}>
+    <Section description={t("sms.why")} id="my-number" title={t("sms.title")}>
       <form
-        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
         onSubmit={(event) => {
           event.preventDefault();
           save.mutate({ phone: mine.trim() || null });
         }}
       >
-        <Label className="sr-only" htmlFor="my-phone">
-          {t("sms.myNumber")}
-        </Label>
-        <Input
-          className="sm:max-w-xs"
-          id="my-phone"
-          inputMode="tel"
-          onChange={(event) => setPhone(event.target.value)}
-          value={mine}
-        />
-        <Button type="submit" variant="outline">
+        <FormField className="sm:w-72" id="my-phone" label={t("sms.myNumber")}>
+          <div className="relative">
+            <Phone
+              aria-hidden
+              className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
+            />
+            <Input
+              autoComplete="tel"
+              className="ps-9"
+              id="my-phone"
+              inputMode="tel"
+              onChange={(event) => setPhone(event.target.value)}
+              type="tel"
+              value={mine}
+            />
+          </div>
+        </FormField>
+        <Button disabled={save.isPending} type="submit" variant="outline">
+          {save.isPending ? <Spinner /> : null}
           {t("sms.save")}
         </Button>
       </form>
     </Section>
+  );
+};
+
+/** What each person sets for themselves: whether this device is told things, and the number the farm may text. */
+const SettingsPage = () => {
+  const { t } = useLanguage();
+  return (
+    <Page width="narrow">
+      <PageHeader
+        description={t("settings.subtitle")}
+        title={t("nav.settings")}
+      />
+      <BeingTold />
+      <MyNumber />
+    </Page>
   );
 };
 

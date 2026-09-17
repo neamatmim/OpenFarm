@@ -1,7 +1,8 @@
 import { formatDate } from "@OpenFarm/i18n";
+import { Input } from "@OpenFarm/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Eye } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -10,8 +11,14 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { EmptyState, Page, PageHeader } from "@/components/page";
-import { SawFilter } from "@/components/saw-filter";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  TagChip,
+} from "@/components/page";
+import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -28,7 +35,7 @@ const SeenFrom = ({ row }: { row: Seen }) => {
   }
   return (
     <Link
-      className="underline"
+      className="underline underline-offset-4"
       params={{ instanceId: row.instanceId }}
       to="/work/$instanceId"
     >
@@ -37,18 +44,25 @@ const SeenFrom = ({ row }: { row: Seen }) => {
   );
 };
 
+/** The cow's Tag Number, opening her record. */
+const SeenTag = ({ row }: { row: Seen }) => (
+  <Link
+    className="rounded-md outline-none focus-visible:ring-2"
+    params={{ tagNumber: row.tagNumber }}
+    to="/animals/$tagNumber"
+  >
+    <TagChip>{row.tagNumber}</TagChip>
+  </Link>
+);
+
 interface SeenCell {
   row: { original: Seen };
 }
 
-const TagCell = ({ row }: SeenCell) => (
-  <Link
-    className="font-mono font-semibold tabular-nums underline-offset-4 hover:underline"
-    params={{ tagNumber: row.original.tagNumber }}
-    to="/animals/$tagNumber"
-  >
-    {row.original.tagNumber}
-  </Link>
+const TagCell = ({ row }: SeenCell) => <SeenTag row={row.original} />;
+
+const SawCell = ({ row }: SeenCell) => (
+  <span className="font-medium">{row.original.sawLabel}</span>
 );
 
 const WhenCell = ({ row }: SeenCell) => {
@@ -73,7 +87,10 @@ const seenColumns = column.columns([
     header: listHeader("animals.col.tag"),
     cell: TagCell,
   }),
-  column.accessor("sawLabel", { header: listHeader("observations.col.saw") }),
+  column.accessor("sawLabel", {
+    header: listHeader("observations.col.saw"),
+    cell: SawCell,
+  }),
   column.accessor((row) => new Date(row.seenAt), {
     id: "seenAt",
     header: listHeader("observations.col.when"),
@@ -96,8 +113,34 @@ const seenColumns = column.columns([
   }),
 ]);
 
-/** The week's Observations as a table where there is room: which cow, what was seen, when and by whom, one to a row,
- *  newest first until a heading is pressed. */
+/** An Observation on a phone: which cow and what was seen on one line, when and by whom beneath, and the note. */
+const SeenCard = ({ row }: { row: Seen }) => {
+  const { language } = useLanguage();
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <SeenTag row={row} />
+        <span className="font-medium">{row.sawLabel}</span>
+      </div>
+      <span className="text-muted-foreground text-sm">
+        <span className="tabular-nums">
+          {formatDate(new Date(row.seenAt), language, "dateTime")}
+        </span>
+        {row.seenByName ? ` · ${row.seenByName}` : ""}
+        {" · "}
+        <SeenFrom row={row} />
+      </span>
+      {row.note ? (
+        <span className="text-muted-foreground text-sm">“{row.note}”</span>
+      ) : null}
+    </div>
+  );
+};
+
+const seenCard = (row: Seen) => <SeenCard row={row} />;
+
+/** The week's Observations: a table where there is room, cards on a phone, newest first until a heading is pressed,
+ *  read twenty at a time. */
 const SeenTable = ({ seen }: { seen: Seen[] }) => {
   const table = useListTable({
     columns: seenColumns,
@@ -105,25 +148,28 @@ const SeenTable = ({ seen }: { seen: Seen[] }) => {
     getRowId: (row) => row.id,
   });
   return (
-    <div className="bg-card hidden rounded-xl border md:block">
-      <DataTable bare minWidth="48rem" table={table} />
-    </div>
+    <DataTable card={seenCard} minWidth="52rem" pageSize={20} table={table} />
   );
 };
 
 /** What the rounds have noticed lately, across the herd. The Manager's question is "which
  *  cows were seen bulling this week", and answering it should not mean opening seven
- *  Instances and remembering what was in them. */
+ *  Instances and remembering what was in them. What was seen is asked of the farm; a Tag
+ *  Number narrows what came back. */
 const ObservationsPage = () => {
   const t = useT();
-  const { language } = useLanguage();
   const [saw, setSaw] = useState<string>("");
+  const [tag, setTag] = useState("");
 
   const kinds = useQuery(orpc.observations.kinds.queryOptions());
   const seen = useQuery(
     orpc.observations.recent.queryOptions({
       input: { days: WINDOW_DAYS, ...(saw ? { saw } : {}) },
     })
+  );
+  const wanted = tag.trim().toLowerCase();
+  const shown = (seen.data ?? []).filter(
+    (row) => wanted === "" || row.tagNumber.toLowerCase().includes(wanted)
   );
 
   return (
@@ -133,38 +179,45 @@ const ObservationsPage = () => {
         title={t("observations.title")}
       />
 
-      <SawFilter chosen={saw} kinds={kinds.data ?? []} onChoose={setSaw} />
-
-      {seen.data?.length ? (
-        <>
-          <ul className="space-y-2 md:hidden">
-            {seen.data.map((row) => (
-              <li className="surface p-4 text-sm" key={row.id}>
-                <div className="flex items-baseline justify-between gap-2">
-                  <Link
-                    className="font-medium underline"
-                    params={{ tagNumber: row.tagNumber }}
-                    to="/animals/$tagNumber"
-                  >
-                    {row.tagNumber}
-                  </Link>
-                  <span>{row.sawLabel}</span>
-                </div>
-                <div className="text-muted-foreground">
-                  {formatDate(new Date(row.seenAt), language, "dateTime")}
-                  {row.seenByName ? ` · ${row.seenByName}` : ""}
-                  {" · "}
-                  <SeenFrom row={row} />
-                  {row.note ? ` · “${row.note}”` : ""}
-                </div>
-              </li>
+      <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+        <FilterBar>
+          <NativeSelect
+            aria-label={t("observations.col.saw")}
+            className="sm:w-56"
+            onChange={(event) => setSaw(event.target.value)}
+            value={saw}
+          >
+            <option value="">{t("observations.all")}</option>
+            {(kinds.data ?? []).map((kind) => (
+              <option key={kind.saw} value={kind.saw}>
+                {kind.label}
+              </option>
             ))}
-          </ul>
-          <SeenTable seen={seen.data} />
-        </>
-      ) : (
-        <EmptyState icon={Eye} title={t("observations.none")} />
-      )}
+          </NativeSelect>
+          <div className="relative sm:w-64">
+            <Search
+              aria-hidden
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+            />
+            <Input
+              aria-label={t("animals.search")}
+              className="pl-9"
+              onChange={(event) => setTag(event.target.value)}
+              placeholder={t("animals.searchPlaceholder")}
+              type="search"
+              value={tag}
+            />
+          </div>
+        </FilterBar>
+
+        <Loaded query={seen}>
+          {shown.length ? (
+            <SeenTable seen={shown} />
+          ) : (
+            <EmptyState bare icon={Eye} title={t("observations.none")} />
+          )}
+        </Loaded>
+      </div>
     </Page>
   );
 };

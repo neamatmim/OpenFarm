@@ -1,226 +1,80 @@
-import type { SopContent } from "@OpenFarm/domain";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { ClipboardCheck, Clock } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ClipboardCheck, Clock, Gavel } from "lucide-react";
 
 import { NeedsReview } from "@/components/needs-review";
-import {
-  EmptyState,
-  Loaded,
-  Page,
-  PageHeader,
-  Section,
-  StatusBadge,
-} from "@/components/page";
+import { Page, PageHeader } from "@/components/page";
+import { PageTabs } from "@/components/page-kit";
+import { CheckTab } from "@/components/sign-off/check-tab";
+import { LateTab } from "@/components/sign-off/late-tab";
 import { useLanguage } from "@/i18n/language-provider";
-import { useInFlight } from "@/lib/in-flight";
-import { hoursLate } from "@/lib/lateness";
-import { sayWhy } from "@/lib/saying";
-import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
-interface Queued {
-  version: { content: unknown };
-  pen: { name: string; shed: { name: string } } | null;
-}
+const TABS = ["check", "review", "late"] as const;
+type Tab = (typeof TABS)[number];
 
-/** SOP content is jsonb, so it arrives untyped; the Version's own shape is the promise. */
-const titleOf = (row: Queued, bangla: boolean) => {
-  const { name } = row.version.content as SopContent;
-  return bangla ? name.bn : (name.en ?? name.bn);
-};
-
-/** The Manager's two queues: work waiting to be checked, and work that has gone late. */
+/**
+ * The Manager's queues, by what they came to decide: work done and waiting to be checked, entries the farm could not
+ * put right on its own, and work that has gone late. Each tab carries how many are waiting, and the tab is kept in the
+ * address, so a Manager sent here from the day's screen lands on the queue they were sent to.
+ */
 const SignOffPage = () => {
-  const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
-  const [reasonFor, setReasonFor] = useState<Record<string, string>>({});
+  const { t } = useLanguage();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { tab = "check" } = Route.useSearch();
 
   const queue = useQuery(orpc.instances.signOffQueue.queryOptions());
+  const review = useQuery(orpc.review.open.queryOptions());
   const late = useQuery(orpc.instances.overdue.queryOptions());
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
-    void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
-  };
-  const onError = (error: Error) => toast.error(sayWhy(error, t));
-  const inFlight = useInFlight();
-  const tracked = {
-    onMutate: ({ id }: { id: string }) => inFlight.start(id),
-    onSettled: (_data: unknown, _error: unknown, { id }: { id: string }) =>
-      inFlight.end(id),
-  };
-  const approve = useMutation(
-    orpc.instances.approve.mutationOptions({
-      onSuccess: refresh,
-      onError,
-      ...tracked,
-    })
-  );
-  const sendBack = useMutation(
-    orpc.instances.sendBack.mutationOptions({
-      onSuccess: refresh,
-      onError,
-      ...tracked,
-    })
-  );
-  const closeAsMissed = useMutation(
-    orpc.instances.closeAsMissed.mutationOptions({
-      onSuccess: refresh,
-      onError,
-      ...tracked,
-    })
-  );
-
-  const reason = (id: string) => reasonFor[id] ?? "";
-  // One row's buttons wait for that row's answer; the rest of the queue stays usable.
-  const busy = inFlight.has;
-  const setReason = (id: string, value: string) =>
-    setReasonFor((current) => ({ ...current, [id]: value }));
-
   return (
-    <Page className="max-w-3xl" width="narrow">
-      <PageHeader title={t("signOff.title")} />
-      <Section>
-        <Loaded query={queue}>
-          {queue.data?.length ? (
-            <ul className="space-y-3">
-              {queue.data.map((row) => (
-                <li className="rounded-lg border p-4" key={row.id}>
-                  <Link
-                    className="block"
-                    params={{ instanceId: row.id }}
-                    to="/work/$instanceId"
-                  >
-                    <p className="text-lg font-semibold hover:underline">
-                      {titleOf(row, language === "bn")}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {placeOfWork(row.pen, t("work.wholeFarm"))} ·{" "}
-                      {formatDate(new Date(row.dueAt), language, "dateTime")}
-                    </p>
-                  </Link>
-                  <div className="mt-3 space-y-2">
-                    <Input
-                      aria-label={t("signOff.reason")}
-                      onChange={(event) =>
-                        setReason(row.id, event.target.value)
-                      }
-                      placeholder={t("signOff.reason")}
-                      value={reason(row.id)}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        disabled={!reason(row.id).trim() || busy(row.id)}
-                        onClick={() =>
-                          sendBack.mutate({
-                            id: row.id,
-                            reason: reason(row.id).trim(),
-                          })
-                        }
-                        variant="outline"
-                      >
-                        {t("signOff.sendBack")}
-                      </Button>
-                      <Button
-                        disabled={busy(row.id)}
-                        onClick={() => approve.mutate({ id: row.id })}
-                      >
-                        {busy(row.id) ? <Spinner /> : null}
-                        {t("signOff.approve")}
-                      </Button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState bare icon={ClipboardCheck} title={t("signOff.none")} />
-          )}
-        </Loaded>
-      </Section>
+    <Page>
+      <PageHeader
+        description={t("signOff.subtitle")}
+        title={t("signOff.title")}
+      />
 
-      <NeedsReview />
-
-      <Section
-        action={
-          late.data?.length ? (
-            <StatusBadge icon={Clock} tone="warning">
-              {formatNumber(late.data.length, language)}
-            </StatusBadge>
-          ) : null
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            replace: true,
+            search: value === "check" ? {} : { tab: value },
+          })
         }
-        title={t("work.overdueTitle")}
-      >
-        <Loaded query={late}>
-          {late.data?.length ? (
-            <ul className="space-y-3">
-              {late.data.map((row) => (
-                <li
-                  className="border-warning/40 rounded-lg border p-4"
-                  key={row.id}
-                >
-                  <Link
-                    className="block"
-                    params={{ instanceId: row.id }}
-                    to="/work/$instanceId"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-lg font-semibold hover:underline">
-                        {titleOf(row, language === "bn")}
-                      </p>
-                      <StatusBadge icon={Clock} tone="warning">
-                        {t("work.lateFor", {
-                          hours: hoursLate(row.minutesOverdue),
-                        })}
-                      </StatusBadge>
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {placeOfWork(row.pen, t("work.wholeFarm"))}
-                    </p>
-                  </Link>
-                  <div className="mt-3 space-y-2">
-                    <Input
-                      aria-label={t("signOff.missedWhy")}
-                      onChange={(event) =>
-                        setReason(row.id, event.target.value)
-                      }
-                      placeholder={t("signOff.missedWhy")}
-                      value={reason(row.id)}
-                    />
-                    <Button
-                      className="w-full sm:w-auto"
-                      disabled={!reason(row.id).trim() || busy(row.id)}
-                      onClick={() =>
-                        closeAsMissed.mutate({
-                          id: row.id,
-                          reason: reason(row.id).trim(),
-                        })
-                      }
-                      variant="outline"
-                    >
-                      {busy(row.id) ? <Spinner /> : null}
-                      {t("signOff.missed")}
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState bare title={t("work.overdueNone")} />
-          )}
-        </Loaded>
-      </Section>
+        tabs={[
+          {
+            value: "check",
+            label: t("home.signOff"),
+            icon: ClipboardCheck,
+            count: queue.data?.length,
+            content: <CheckTab queue={queue} />,
+          },
+          {
+            value: "review",
+            label: t("review.title"),
+            icon: Gavel,
+            count: review.data?.length,
+            content: <NeedsReview queue={review} />,
+          },
+          {
+            value: "late",
+            label: t("work.overdueTitle"),
+            icon: Clock,
+            count: late.data?.length,
+            content: <LateTab late={late} />,
+          },
+        ]}
+        value={tab}
+      />
     </Page>
   );
 };
 
 export const Route = createFileRoute("/_auth/admin/sign-off")({
   component: SignOffPage,
+  /** Which queue, kept in the address so the page comes back as it was left. */
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search.tab as Tab) && search.tab !== "check"
+      ? { tab: search.tab as Tab }
+      : {},
 });

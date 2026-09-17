@@ -1,0 +1,537 @@
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
+import { Input } from "@OpenFarm/ui/components/input";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Archive,
+  ArchiveRestore,
+  CalendarClock,
+  PackagePlus,
+  Pill,
+  Plus,
+  Syringe,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import { EmptyState, Section, StatusBadge } from "@/components/page";
+import type { RowAction } from "@/components/page-kit";
+import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
+import { useLanguage } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
+import { orpc } from "@/utils/orpc";
+
+import type { DrugProduct } from "./drug-types";
+import { STANDING_TONE, productName, standingOf } from "./drug-types";
+
+/** Days as a box holds them: blank for days nobody has written. */
+const daysTyped = (days: number | null): string =>
+  days === null ? "" : String(days);
+
+/** What the page does when a product's row is used: the in-house Vet keeps it, the Manager buys for it. */
+interface ProductActions {
+  isVet: boolean;
+  mayBuy: boolean;
+  busy: boolean;
+  handleDays: (product: DrugProduct) => void;
+  handleVaccine: (product: DrugProduct) => void;
+  handleRetire: (product: DrugProduct) => void;
+  handleBringBack: (product: DrugProduct) => void;
+  handleBuy: (productId: string) => void;
+}
+
+interface ProductRow extends DrugProduct {
+  actions: ProductActions;
+}
+
+/** A product's standing, as a word with its colour. */
+const Standing = ({ product }: { product: DrugProduct }) => {
+  const { t } = useLanguage();
+  const standing = standingOf(product);
+  const words = {
+    prescribable: t("drugs.status.prescribable"),
+    waiting: t("drugs.blank"),
+    retired: t("drugs.retired"),
+  } as const;
+  return (
+    <StatusBadge
+      icon={standing === "retired" ? Archive : undefined}
+      tone={STANDING_TONE[standing]}
+    >
+      {words[standing]}
+    </StatusBadge>
+  );
+};
+
+/** A vaccine says so beside its name: the Campaigns draw from these. */
+const VaccineMark = ({ product }: { product: DrugProduct }) => {
+  const { t } = useLanguage();
+  if (!product.vaccine) {
+    return null;
+  }
+  return (
+    <StatusBadge icon={Syringe} tone="info">
+      {t("drugs.vaccine")}
+    </StatusBadge>
+  );
+};
+
+const NameCell = ({ row }: { row: { original: ProductRow } }) => {
+  const { language } = useLanguage();
+  const product = row.original;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span
+        className={product.retiredAt ? "text-muted-foreground" : "font-medium"}
+      >
+        {productName(product, language)}
+      </span>
+      <VaccineMark product={product} />
+    </div>
+  );
+};
+
+const StandingCell = ({ row }: { row: { original: ProductRow } }) => (
+  <Standing product={row.original} />
+);
+
+/** Days of one kind as written, or a dash where nobody has written them. */
+const DaysFigure = ({ days }: { days: number | null }) => {
+  const { t, language } = useLanguage();
+  if (days === null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="whitespace-nowrap">
+      {t("drugs.days", { count: formatNumber(days, language) })}
+    </span>
+  );
+};
+
+const MilkDaysCell = ({ row }: { row: { original: ProductRow } }) => (
+  <DaysFigure days={row.original.milkWithdrawalDays} />
+);
+
+const MeatDaysCell = ({ row }: { row: { original: ProductRow } }) => (
+  <DaysFigure days={row.original.meatWithdrawalDays} />
+);
+
+const SetByCell = ({ row }: { row: { original: ProductRow } }) => {
+  const { language } = useLanguage();
+  const { daysSetByName, daysSetAt } = row.original;
+  if (!daysSetByName || !daysSetAt) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-col">
+      <span>{daysSetByName}</span>
+      <span className="text-muted-foreground text-xs whitespace-nowrap">
+        {formatDate(new Date(daysSetAt), language, "date")}
+      </span>
+    </div>
+  );
+};
+
+/** What a product's menu holds: for the in-house Vet, its days, whether it is a vaccine, and retiring it; for
+ *  whoever buys, medicine bought for it. */
+const menuFor = (
+  product: DrugProduct,
+  actions: ProductActions,
+  t: ReturnType<typeof useLanguage>["t"]
+): RowAction[] => {
+  const menu: RowAction[] = [];
+  if (actions.mayBuy && !product.retiredAt) {
+    menu.push({
+      label: t("drugs.recordPurchase"),
+      icon: PackagePlus,
+      handleSelect: () => actions.handleBuy(product.id),
+    });
+  }
+  if (!actions.isVet) {
+    return menu;
+  }
+  menu.push(
+    {
+      label: t("drugs.save"),
+      icon: CalendarClock,
+      handleSelect: () => actions.handleDays(product),
+    },
+    {
+      label: t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine"),
+      icon: Syringe,
+      disabled: actions.busy,
+      handleSelect: () => actions.handleVaccine(product),
+    }
+  );
+  if (product.retiredAt) {
+    menu.push({
+      label: t("drugs.bringBack"),
+      icon: ArchiveRestore,
+      handleSelect: () => actions.handleBringBack(product),
+    });
+  } else {
+    menu.push({
+      label: t("drugs.retire"),
+      icon: Archive,
+      destructive: true,
+      handleSelect: () => actions.handleRetire(product),
+    });
+  }
+  return menu;
+};
+
+/** The end of a product's row: the days, as a button, where the Vet has yet to write them; everything else in the menu. */
+const ProductRowActions = ({
+  product,
+  actions,
+}: {
+  product: DrugProduct;
+  actions: ProductActions;
+}) => {
+  const { t, language } = useLanguage();
+  const { handleDays } = actions;
+  const waiting = actions.isVet && standingOf(product) === "waiting";
+  return (
+    <div className="flex items-center justify-end gap-1">
+      {waiting ? (
+        <Button
+          onClick={() => handleDays(product)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <CalendarClock aria-hidden data-icon="inline-start" />
+          {t("drugs.save")}
+        </Button>
+      ) : null}
+      <RowMenu
+        actions={menuFor(product, actions, t)}
+        label={t("drugs.rowActions", {
+          name: productName(product, language),
+        })}
+      />
+    </div>
+  );
+};
+
+const ActionsCell = ({ row }: { row: { original: ProductRow } }) => (
+  <ProductRowActions actions={row.original.actions} product={row.original} />
+);
+
+const column = createListColumns<ProductRow>();
+const productColumns = column.columns([
+  column.accessor("nameBn", {
+    header: listHeader("drugs.name"),
+    cell: NameCell,
+  }),
+  column.accessor(
+    (product) =>
+      ["waiting", "prescribable", "retired"].indexOf(standingOf(product)),
+    {
+      id: "standing",
+      header: listHeader("drugs.col.status"),
+      cell: StandingCell,
+    }
+  ),
+  column.accessor((product) => product.milkWithdrawalDays ?? -1, {
+    id: "milkDays",
+    header: listHeader("drugs.milkDays"),
+    cell: MilkDaysCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((product) => product.meatWithdrawalDays ?? -1, {
+    id: "meatDays",
+    header: listHeader("drugs.meatDays"),
+    cell: MeatDaysCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((product) => product.daysSetByName ?? "", {
+    id: "setBy",
+    header: listHeader("drugs.col.setBy"),
+    cell: SetByCell,
+  }),
+  column.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: ActionsCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** One figure on a product's card: what it is, small, and the days beneath. */
+const CardDays = ({ label, days }: { label: string; days: number | null }) => (
+  <div className="flex min-w-0 flex-col">
+    <span className="text-muted-foreground truncate text-xs">{label}</span>
+    <span className="text-base font-semibold tabular-nums">
+      <DaysFigure days={days} />
+    </span>
+  </div>
+);
+
+/** A product on a phone: its name and standing on one line, the milk and meat days large beneath, who wrote them. */
+const ProductCard = ({ row }: { row: ProductRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={row.retiredAt ? "text-muted-foreground" : "font-medium"}
+          >
+            {productName(row, language)}
+          </span>
+          <Standing product={row} />
+          <VaccineMark product={row} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <CardDays days={row.milkWithdrawalDays} label={t("drugs.milkDays")} />
+          <CardDays days={row.meatWithdrawalDays} label={t("drugs.meatDays")} />
+        </div>
+        {row.daysSetByName && row.daysSetAt ? (
+          <span className="text-muted-foreground text-xs">
+            {t("drugs.setBy", {
+              name: row.daysSetByName,
+              date: formatDate(new Date(row.daysSetAt), language, "date"),
+            })}
+          </span>
+        ) : null}
+      </div>
+      <ProductRowActions actions={row.actions} product={row} />
+    </div>
+  );
+};
+
+const productCard = (row: ProductRow) => <ProductCard row={row} />;
+
+/** The milk and meat days of one product, written by the in-house Vet in a dialog over the list. */
+const DaysDialog = ({
+  product,
+  onOpenChange,
+  onChanged,
+}: {
+  product: DrugProduct | null;
+  onOpenChange: (open: boolean) => void;
+  onChanged: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const [milk, setMilk] = useState(
+    daysTyped(product?.milkWithdrawalDays ?? null)
+  );
+  const [meat, setMeat] = useState(
+    daysTyped(product?.meatWithdrawalDays ?? null)
+  );
+  const save = useMutation(
+    orpc.drugs.setWithdrawal.mutationOptions({
+      onSuccess: () => {
+        toast.success(t("drugs.daysSaved"));
+        onOpenChange(false);
+        onChanged();
+      },
+      onError: (error) => toast.error(sayWhy(error, t)),
+    })
+  );
+  return (
+    <FormDialog
+      description={t("drugs.daysHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => {
+        if (product) {
+          save.mutate({
+            id: product.id,
+            milkWithdrawalDays: Number(milk),
+            meatWithdrawalDays: Number(meat),
+          });
+        }
+      }}
+      open={product !== null}
+      pending={save.isPending}
+      ready={product !== null && milk !== "" && meat !== ""}
+      submitLabel={t("drugs.save")}
+      title={
+        product ? `${t("drugs.save")} — ${productName(product, language)}` : ""
+      }
+    >
+      <div className="grid grid-cols-2 gap-4">
+        <FormField id="days-milk" label={t("drugs.milkDays")}>
+          <Input
+            id="days-milk"
+            inputMode="numeric"
+            max={365}
+            min={0}
+            onChange={(event) => setMilk(event.target.value)}
+            step="1"
+            type="number"
+            value={milk}
+          />
+        </FormField>
+        <FormField id="days-meat" label={t("drugs.meatDays")}>
+          <Input
+            id="days-meat"
+            inputMode="numeric"
+            max={365}
+            min={0}
+            onChange={(event) => setMeat(event.target.value)}
+            step="1"
+            type="number"
+            value={meat}
+          />
+        </FormField>
+      </div>
+      {product?.daysSetByName && product.daysSetAt ? (
+        <p className="text-muted-foreground text-xs">
+          {t("drugs.setBy", {
+            name: product.daysSetByName,
+            date: formatDate(new Date(product.daysSetAt), language, "date"),
+          })}
+        </p>
+      ) : null}
+    </FormDialog>
+  );
+};
+
+/** A new product on the Drug List, by its name on the label. Its days wait for the Vet. */
+const AddProductDialog = ({
+  open,
+  onOpenChange,
+  onChanged,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChanged: () => void;
+}) => {
+  const { t } = useLanguage();
+  const [name, setName] = useState("");
+  const add = useMutation(
+    orpc.drugs.add.mutationOptions({
+      onSuccess: () => {
+        setName("");
+        toast.success(t("drugs.added"));
+        onOpenChange(false);
+        onChanged();
+      },
+      onError: (error) => toast.error(sayWhy(error, t)),
+    })
+  );
+  return (
+    <FormDialog
+      description={t("drugs.addHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => add.mutate({ name: { bn: name.trim() } })}
+      open={open}
+      pending={add.isPending}
+      ready={name.trim() !== ""}
+      submitLabel={t("drugs.add")}
+      title={t("drugs.add")}
+    >
+      <FormField id="drug-name" label={t("drugs.name")}>
+        <Input
+          autoComplete="off"
+          id="drug-name"
+          onChange={(event) => setName(event.target.value)}
+          value={name}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/**
+ * The Drug List itself, a row per product: whether it may be prescribed, its milk and meat days, and who wrote them.
+ * The in-house Vet writes the days and keeps the list from a row's menu; whoever buys records medicine from it; a vet
+ * called in for a visit only reads it.
+ */
+export const ProductsTab = ({
+  products,
+  isVet,
+  mayAdd,
+  mayBuy,
+  onBuy,
+}: {
+  products: DrugProduct[];
+  isVet: boolean;
+  mayAdd: boolean;
+  mayBuy: boolean;
+  onBuy: (productId: string) => void;
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const [daysFor, setDaysFor] = useState<DrugProduct | null>(null);
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
+  const onError = (error: Error) => toast.error(sayWhy(error, t));
+  const retire = useMutation(
+    orpc.drugs.retire.mutationOptions({ onSuccess: refresh, onError })
+  );
+  const bringBack = useMutation(
+    orpc.drugs.bringBack.mutationOptions({ onSuccess: refresh, onError })
+  );
+  const markVaccine = useMutation(
+    orpc.drugs.markVaccine.mutationOptions({ onSuccess: refresh, onError })
+  );
+  const actions: ProductActions = {
+    isVet,
+    mayBuy,
+    busy: markVaccine.isPending,
+    handleDays: setDaysFor,
+    handleVaccine: (product) =>
+      markVaccine.mutate({ id: product.id, vaccine: !product.vaccine }),
+    handleRetire: (product) => retire.mutate({ id: product.id }),
+    handleBringBack: (product) => bringBack.mutate({ id: product.id }),
+    handleBuy: onBuy,
+  };
+  const table = useListTable({
+    columns: productColumns,
+    data: products.map((product) => ({ ...product, actions })),
+    getRowId: (row) => row.id,
+  });
+  return (
+    <Section
+      action={
+        mayAdd ? (
+          <Button
+            onClick={() => setAdding(true)}
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden data-icon="inline-start" />
+            {t("drugs.add")}
+          </Button>
+        ) : null
+      }
+      description={isVet ? t("drugs.vetOnly") : t("drugs.managerAdds")}
+    >
+      {products.length === 0 ? (
+        <EmptyState bare icon={Pill} title={t("drugs.none")} />
+      ) : (
+        <DataTable card={productCard} minWidth="52rem" table={table} />
+      )}
+      {mayAdd ? (
+        <AddProductDialog
+          onChanged={refresh}
+          onOpenChange={setAdding}
+          open={adding}
+        />
+      ) : null}
+      {isVet ? (
+        <DaysDialog
+          key={daysFor?.id ?? "none"}
+          onChanged={refresh}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDaysFor(null);
+            }
+          }}
+          product={daysFor}
+        />
+      ) : null}
+    </Section>
+  );
+};

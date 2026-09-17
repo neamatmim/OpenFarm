@@ -1,9 +1,10 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CircleCheck, Sprout } from "lucide-react";
+import { ChevronRight, CircleCheck, Sprout } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -42,10 +43,11 @@ const SetupPage = () => {
           </span>
           <p className="text-lg font-semibold">{t("setup.done")}</p>
           <Button
-            className="w-full"
+            className="h-12 w-full text-base md:h-10"
             onClick={() => navigate({ to: "/dashboard" })}
           >
             {t("setup.goOn")}
+            <ChevronRight data-icon="inline-end" />
           </Button>
         </div>
       </Page>
@@ -73,13 +75,20 @@ const SetupPage = () => {
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="farm-name">{t("setup.farmName")}</Label>
           <Input
+            autoComplete="organization"
+            className="h-12 text-base md:h-10"
             id="farm-name"
             onChange={(e) => setName(e.target.value)}
             required
             value={name}
           />
         </div>
-        <Button disabled={bootstrap.isPending} type="submit">
+        <Button
+          className="h-12 text-base md:h-10"
+          disabled={bootstrap.isPending}
+          type="submit"
+        >
+          {bootstrap.isPending ? <Spinner /> : null}
           {t("setup.create")}
         </Button>
       </form>

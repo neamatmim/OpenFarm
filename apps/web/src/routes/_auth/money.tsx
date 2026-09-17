@@ -1,289 +1,48 @@
 import { farmDayOf } from "@OpenFarm/domain";
-import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  BookOpen,
+  Calculator,
   Hourglass,
+  PieChart,
+  Plus,
   Scale,
-  Wallet,
+  Tags,
 } from "lucide-react";
 import { useState } from "react";
 
 import { AccountantExport } from "@/components/accountant-export";
 import { CostsBySide } from "@/components/costs";
-import {
-  DataTable,
-  createListColumns,
-  listHeader,
-  useListTable,
-} from "@/components/data-table";
-import { categoryName, useApproveMoney } from "@/components/money";
-import {
-  Categories,
-  CorrectEntered,
-  EnterMoney,
-  ReceiptLink,
-} from "@/components/money-entry";
-import {
-  EmptyState,
-  Notice,
-  Page,
-  PageHeader,
-  PeriodFilter,
-  Section,
-  StatTile,
-  StatusBadge,
-} from "@/components/page";
-import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
+import { EnterMoneySheet } from "@/components/money-entry";
+import { CategoriesTab } from "@/components/money/categories-tab";
+import { PeriodBar } from "@/components/money/period-bar";
+import type { MoneyList } from "@/components/money/register";
+import { RegisterTab } from "@/components/money/register";
+import { Notice, Page, PageHeader } from "@/components/page";
+import type { Figure } from "@/components/page-kit";
+import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
+
+const TABS = ["register", "costs", "accountant", "categories"] as const;
+type Tab = (typeof TABS)[number];
 
 /** The first of this month on the farm's clock, which is where an Owner starts reading money. */
 const firstOfTheMonth = () =>
   `${farmDayOf(new Date()).slice(0, "YYYY-MM".length)}-01`;
 
-const SOURCE_WORD = {
-  dispatch: "money.from.dispatch",
-  intake: "money.from.intake",
-  sale: "money.from.sale",
-  feed_in: "money.from.feedIn",
-  medicine_purchase: "money.from.medicinePurchase",
-  vet_fee: "money.from.vetFee",
-  by_hand: "money.from.byHand",
-} as const satisfies Record<string, MessageKey>;
-
-type MoneyEvent = Awaited<
-  ReturnType<typeof orpc.money.list.call>
->["events"][number];
-
-/** One Money Event in the register, with what the reader may do about it: the Owner approves what is awaiting
- *  them, and whoever enters money by hand corrects what was entered by hand. */
-interface MoneyRow {
-  id: string;
-  event: MoneyEvent;
-  /** Its Category in the reader's language, which is what the register sorts by. */
-  what: string;
-  canApprove: boolean;
-  entersMoney: boolean;
-  approving: boolean;
-  onApprove: (event: MoneyEvent) => void;
-}
-
-const ApproveButton = ({ row }: { row: MoneyRow }) => {
-  const { t } = useLanguage();
-  if (!row.canApprove) {
-    return null;
-  }
-  return (
-    <Button
-      disabled={row.approving}
-      onClick={() => row.onApprove(row.event)}
-      size="sm"
-    >
-      {t("money.approve")}
-    </Button>
-  );
-};
-
-/** The amount, signed by which way it went, and green when it came in. */
-const Amount = ({ event }: { event: MoneyEvent }) => {
-  const { language } = useLanguage();
-  return (
-    <span
-      className={cn(
-        "font-semibold whitespace-nowrap tabular-nums",
-        event.direction === "in" ? "text-success" : "text-foreground"
-      )}
-    >
-      {event.direction === "in" ? "+" : "−"}৳
-      {formatNumber(event.amountBdt, language)}
-    </span>
-  );
-};
-
-/** One entry on a phone: its Category, when and with whom, whether it waits for approval, and the amount. */
-const MoneyCard = ({ row }: { row: MoneyRow }) => {
+/** The four figures a period's money is judged by: what came in, what went out, what that leaves, and how much waits
+ *  for the Owner. Totals from a list the server cut short are the shown rows' totals, and say so on every figure. */
+const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
   const { t, language } = useLanguage();
-  const { event } = row;
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-medium">{row.what}</span>
-        <span className="text-muted-foreground text-xs">
-          {formatDate(event.occurredAt, language)}
-          {event.counterpartyName ? ` · ${event.counterpartyName}` : ""}
-        </span>
-        {event.approval === "awaiting" ? (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <StatusBadge tone="warning">{t("money.awaiting")}</StatusBadge>
-            <ApproveButton row={row} />
-          </div>
-        ) : null}
-      </div>
-      <span className="shrink-0 text-right">
-        <Amount event={event} />
-      </span>
-    </div>
-  );
-};
-
-const moneyCard = (row: MoneyRow) => <MoneyCard row={row} />;
-
-const DateCell = ({ row }: { row: { original: MoneyRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-      {formatDate(row.original.event.occurredAt, language)}
-    </span>
-  );
-};
-
-/** What the entry is: its Category, where it came from and how it was paid, any note, and its receipt. */
-const WhatCell = ({ row }: { row: { original: MoneyRow } }) => {
-  const { t } = useLanguage();
-  const { event, entersMoney } = row.original;
-  const correctable = entersMoney && event.source === "by_hand";
-  return (
-    <>
-      <div className="font-medium">{row.original.what}</div>
-      <div className="text-muted-foreground text-xs">
-        {t(SOURCE_WORD[event.source])} ·{" "}
-        {t(PAYMENT_METHOD_WORD[event.paymentMethod])}
-      </div>
-      {event.note || event.wageMonth ? (
-        <div className="text-muted-foreground text-xs">
-          {event.wageMonth
-            ? t("byHand.wageFor", { month: event.wageMonth })
-            : ""}
-          {event.wageMonth && event.note ? " · " : ""}
-          {event.note ?? ""}
-        </div>
-      ) : null}
-      {correctable || event.hasReceipt ? (
-        <div className="flex flex-wrap gap-3 pt-1 text-xs">
-          {correctable ? <CorrectEntered entered={event} /> : null}
-          {event.hasReceipt ? <ReceiptLink id={event.id} /> : null}
-        </div>
-      ) : null}
-    </>
-  );
-};
-
-const WithCell = ({ row }: { row: { original: MoneyRow } }) => (
-  <span className="text-sm">{row.original.event.counterpartyName ?? "—"}</span>
-);
-
-const StatusCell = ({ row }: { row: { original: MoneyRow } }) => {
-  const { t } = useLanguage();
-  const { event } = row.original;
-  if (event.approval === "awaiting") {
-    return (
-      <div className="flex flex-col items-start gap-2">
-        <StatusBadge tone="warning">{t("money.awaiting")}</StatusBadge>
-        <ApproveButton row={row.original} />
-      </div>
-    );
-  }
-  if (event.approval === "approved") {
-    return (
-      <StatusBadge tone="success">
-        {t("money.approvedBy", { name: event.approvedByName ?? "" })}
-      </StatusBadge>
-    );
-  }
-  return null;
-};
-
-const AmountCell = ({ row }: { row: { original: MoneyRow } }) => (
-  <Amount event={row.original.event} />
-);
-
-const column = createListColumns<MoneyRow>();
-const moneyColumns = column.columns([
-  column.accessor((row) => new Date(row.event.occurredAt).getTime(), {
-    id: "date",
-    header: listHeader("money.col.date"),
-    cell: DateCell,
-  }),
-  column.accessor("what", {
-    header: listHeader("money.col.what"),
-    cell: WhatCell,
-    meta: { className: "min-w-56" },
-  }),
-  column.accessor((row) => row.event.counterpartyName ?? "", {
-    id: "with",
-    header: listHeader("money.col.with"),
-    cell: WithCell,
-  }),
-  column.accessor((row) => row.event.approval ?? "", {
-    id: "status",
-    header: listHeader("money.col.status"),
-    cell: StatusCell,
-  }),
-  column.accessor(
-    (row) =>
-      row.event.direction === "in" ? row.event.amountBdt : -row.event.amountBdt,
-    {
-      id: "amount",
-      header: listHeader("money.col.amount"),
-      cell: AmountCell,
-      meta: { align: "end" },
-    }
-  ),
-]);
-
-/** The register: a card for each entry on a phone, and a table where there is room, sortable by any column. */
-const Register = ({
-  events,
-  isOwner,
-  entersMoney,
-}: {
-  events: MoneyEvent[];
-  isOwner: boolean;
-  entersMoney: boolean;
-}) => {
-  const { language } = useLanguage();
-  const approve = useApproveMoney();
-  const onApprove = (event: MoneyEvent) =>
-    approve.mutate({ id: event.id, amountBdt: event.amountBdt });
-  const table = useListTable({
-    columns: moneyColumns,
-    data: events.map((event) => ({
-      id: event.id,
-      event,
-      what: categoryName(event, language),
-      canApprove: isOwner,
-      entersMoney,
-      approving: approve.isPending,
-      onApprove,
-    })),
-    getRowId: (row) => row.id,
-  });
-  return <DataTable card={moneyCard} minWidth="44rem" table={table} />;
-};
-
-/**
- * The farm's money in a period, newest first, as its own records made it: which way, under what
- * Category, with whom and how it was paid — and, for the Owner, what is waiting for their approval. The
- * period's totals are the accountant's report, not this list's.
- */
-const MoneyPage = () => {
-  const { t, language } = useLanguage();
-  const me = useQuery(orpc.people.me.queryOptions());
-  const [from, setFrom] = useState(firstOfTheMonth);
-  const [to, setTo] = useState(() => farmDayOf(new Date()));
-  const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
-  const isOwner = me.data?.roles.includes("owner") ?? false;
-  const entersMoney = isOwner || (me.data?.roles.includes("manager") ?? false);
-  const rows = money.data?.events ?? [];
-
+  const rows = list?.events ?? [];
   const taka = (n: number) => `৳${formatNumber(n, language)}`;
   const moneyIn = rows
     .filter((row) => row.direction === "in")
@@ -291,107 +50,146 @@ const MoneyPage = () => {
   const moneyOut = rows
     .filter((row) => row.direction === "out")
     .reduce((sum, row) => sum + row.amountBdt, 0);
+  const net = moneyIn - moneyOut;
   const awaiting = rows.filter((row) => row.approval === "awaiting").length;
-  // Totals from a list the server cut short are the shown rows' totals, and say so on every figure.
-  const partial = money.data?.more ? t("money.shownOnly") : undefined;
+  const partial = list?.more ? t("money.shownOnly") : undefined;
+  const loading = <Skeleton className="h-8 w-28" />;
+  return [
+    {
+      label: t("money.totalIn"),
+      value: list ? taka(moneyIn) : loading,
+      hint: partial,
+      icon: ArrowDownLeft,
+      tone: "success",
+    },
+    {
+      label: t("money.totalOut"),
+      value: list ? taka(moneyOut) : loading,
+      hint: partial,
+      icon: ArrowUpRight,
+    },
+    {
+      label: t("money.net"),
+      value: list ? `${net < 0 ? "−" : ""}${taka(Math.abs(net))}` : loading,
+      hint: partial,
+      icon: Scale,
+      tone: net < 0 ? "danger" : "neutral",
+    },
+    {
+      label: t("money.awaitingCount"),
+      value: list ? formatNumber(awaiting, language) : loading,
+      hint: partial,
+      icon: Hourglass,
+      tone: awaiting > 0 ? "warning" : "neutral",
+    },
+  ];
+};
+
+/**
+ * The farm's money in a period, by what somebody came to it for: the register of every taka in and out — and, for the
+ * Owner, what waits for their approval — what each Side cost, the accountant's export, and the Categories money is
+ * entered under. Money entered by hand is one button away from every tab, and the period above the figures is the one
+ * every tab reads. The tab is kept in the address, so a page comes back as it was left.
+ */
+const MoneyPage = () => {
+  const { t } = useLanguage();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { tab = "register" } = Route.useSearch();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const [from, setFrom] = useState(firstOfTheMonth);
+  const [to, setTo] = useState(() => farmDayOf(new Date()));
+  const [entering, setEntering] = useState(false);
+  const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
+  const isOwner = me.data?.roles.includes("owner") ?? false;
+  const entersMoney = isOwner || (me.data?.roles.includes("manager") ?? false);
+  const figures = useMoneyFigures(money.data);
+  const awaiting = (money.data?.events ?? []).filter(
+    (row) => row.approval === "awaiting"
+  ).length;
 
   return (
     <Page width="wide">
       <PageHeader
+        actions={
+          entersMoney ? (
+            <Button onClick={() => setEntering(true)} type="button">
+              <Plus aria-hidden data-icon="inline-start" />
+              {t("byHand.title")}
+            </Button>
+          ) : null
+        }
         description={t("money.subtitle")}
-        eyebrow={t("nav.group.money")}
         title={t("money.title")}
       />
 
-      <PeriodFilter
-        from={from}
-        fromLabel={t("dispatch.from")}
-        label={t("money.period")}
-        onFrom={setFrom}
-        onTo={setTo}
-        to={to}
-        toLabel={t("dispatch.to")}
-      />
-
-      {money.data ? (
-        <div className="flex flex-col gap-2">
-          {money.data.more ? (
-            <Notice title={t("money.partialTotals")} tone="info">
-              {t("money.partialHint")}
-            </Notice>
-          ) : null}
-          <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
-            <StatTile
-              hint={partial}
-              icon={ArrowDownLeft}
-              label={t("money.totalIn")}
-              tone="success"
-              value={taka(moneyIn)}
-            />
-            <StatTile
-              hint={partial}
-              icon={ArrowUpRight}
-              label={t("money.totalOut")}
-              value={taka(moneyOut)}
-            />
-            <StatTile
-              hint={partial}
-              icon={Scale}
-              label={t("money.net")}
-              tone={moneyIn - moneyOut < 0 ? "danger" : "neutral"}
-              value={`${moneyIn - moneyOut < 0 ? "−" : ""}${taka(Math.abs(moneyIn - moneyOut))}`}
-            />
-            <StatTile
-              hint={partial}
-              icon={Hourglass}
-              label={t("money.awaitingCount")}
-              tone={awaiting > 0 ? "warning" : "neutral"}
-              value={formatNumber(awaiting, language)}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((n) => (
-            <Skeleton className="h-32 rounded-xl" key={n} />
-          ))}
-        </div>
-      )}
-
-      {money.isError ? (
-        <Notice
-          title={wordedRefusal(money.error, t) ?? t("common.error")}
-          tone="danger"
+      <div className="flex flex-col gap-4">
+        <PeriodBar
+          from={from}
+          onFromChange={setFrom}
+          onToChange={setTo}
+          to={to}
         />
-      ) : null}
-
-      <div
-        className={cn(
-          "grid gap-6",
-          entersMoney && "xl:grid-cols-[minmax(0,1fr)_24rem]"
-        )}
-      >
-        <Section className="min-w-0" id="register" title={t("money.register")}>
-          {rows.length === 0 ? (
-            <EmptyState bare icon={Wallet} title={t("money.none")} />
-          ) : (
-            <Register
-              entersMoney={entersMoney}
-              events={rows}
-              isOwner={isOwner}
-            />
-          )}
-        </Section>
-        {entersMoney ? (
-          <div className="flex flex-col gap-6">
-            <EnterMoney />
-          </div>
+        {money.data?.more ? (
+          <Notice title={t("money.partialTotals")} tone="info">
+            {t("money.partialHint")}
+          </Notice>
         ) : null}
+        {money.isError ? (
+          <Notice
+            title={wordedRefusal(money.error, t) ?? t("common.error")}
+            tone="danger"
+          />
+        ) : null}
+        <SummaryFigures figures={figures} />
       </div>
 
-      <AccountantExport from={from} to={to} />
-      <CostsBySide from={from} to={to} />
-      <Categories />
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            replace: true,
+            search: value === "register" ? {} : { tab: value },
+          })
+        }
+        tabs={[
+          {
+            value: "register",
+            label: t("money.register"),
+            icon: BookOpen,
+            // Money waiting is the Owner's to approve, so it asks for their attention alone.
+            count: isOwner ? awaiting : undefined,
+            content: (
+              <RegisterTab
+                entersMoney={entersMoney}
+                isOwner={isOwner}
+                money={money}
+              />
+            ),
+          },
+          {
+            value: "costs",
+            label: t("costs.bySide"),
+            icon: PieChart,
+            content: <CostsBySide from={from} to={to} />,
+          },
+          {
+            value: "accountant",
+            label: t("accountant.title"),
+            icon: Calculator,
+            content: <AccountantExport from={from} to={to} />,
+          },
+          {
+            value: "categories",
+            label: t("byHand.categories"),
+            icon: Tags,
+            content: <CategoriesTab />,
+          },
+        ]}
+        value={tab}
+      />
+
+      {entersMoney ? (
+        <EnterMoneySheet onOpenChange={setEntering} open={entering} />
+      ) : null}
     </Page>
   );
 };
@@ -405,4 +203,9 @@ export const Route = createFileRoute("/_auth/money")({
     }
   },
   component: MoneyPage,
+  /** Which tab, kept in the address so the page comes back as it was left. */
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search.tab as Tab) && search.tab !== "register"
+      ? { tab: search.tab as Tab }
+      : {},
 });

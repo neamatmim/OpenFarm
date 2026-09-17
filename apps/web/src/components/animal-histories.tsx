@@ -1,6 +1,7 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import type { Table as TableInstance } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 
 import type { ListFeatures } from "@/components/data-table";
 import {
@@ -10,13 +11,14 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
 
 /**
  * An animal's histories as tables, where there is room to read one across: her weigh-ins, her doses, her moves, her
- * services, her pregnancy checks and her calvings. Her page keeps its own lines for a phone; these stand beside
- * them from a tablet up, each sortable, newest first as the farm gave them.
+ * services, her pregnancy checks and her calvings — each sortable, newest first as the farm gave them — and as tidy
+ * cards on a phone, where a row of five columns is a row nobody can read. Each stands on its section's card.
  */
 
 type AnimalDetail = NonNullable<
@@ -53,24 +55,49 @@ const ONE_LINE = { className: "whitespace-nowrap" };
 /** A name somebody may not have left, as a dash when they did not. */
 const orDash = (value: string | null): string => value ?? "—";
 
-/** A history as a table from a tablet up, and nothing on a phone, where the page's own lines stand. On a card, it runs
- *  to the card's edges; without one, it brings a card of its own. */
+/** A long history is read a page at a time. */
+const HISTORY_PAGE = 20;
+
+/** A history as a table where there is room and as cards on a phone, running to its section card's edges. */
 const HistoryTable = <Row extends object>({
   table,
   minWidth,
-  onCard,
+  card,
 }: {
   table: TableInstance<ListFeatures, Row>;
   minWidth: string;
-  onCard: boolean;
-}) =>
-  onCard ? (
-    <DataTable className="hidden md:block" minWidth={minWidth} table={table} />
-  ) : (
-    <div className="bg-card hidden rounded-xl border md:block">
-      <DataTable bare minWidth={minWidth} table={table} />
+  card: (row: Row) => ReactNode;
+}) => (
+  <DataTable
+    card={card}
+    minWidth={minWidth}
+    pageSize={HISTORY_PAGE}
+    table={table}
+  />
+);
+
+/** A history's line on a phone: what happened on the first line, and when, and who, muted beneath. */
+const HistoryCard = ({
+  title,
+  detail,
+  trailing,
+}: {
+  title: ReactNode;
+  detail: ReactNode;
+  trailing?: ReactNode;
+}) => (
+  <div className="flex items-start justify-between gap-3 text-sm">
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-2 font-medium">
+        {title}
+      </div>
+      <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+        {detail}
+      </div>
     </div>
-  );
+    {trailing ? <div className="shrink-0">{trailing}</div> : null}
+  </div>
+);
 
 // Weigh-ins
 
@@ -97,9 +124,9 @@ const QueriedCell = ({ row }: { row: { original: WeighInRow } }) => {
     return null;
   }
   return (
-    <span className="text-warning">
+    <StatusBadge tone="warning">
       {row.original.flaggedNote ?? t("weighIn.flagged")}
-    </span>
+    </StatusBadge>
   );
 };
 
@@ -124,6 +151,37 @@ const weighInColumns = weighIn.columns([
     cell: QueriedCell,
   }),
 ]);
+
+/** A reading on a phone: the figure, whether it was doubted, and when and by whom. */
+const WeighInCard = ({ row }: { row: WeighInRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <HistoryCard
+      detail={
+        <>
+          <span>{formatDate(new Date(row.at), language, "date")}</span>
+          {row.weighedByName ? (
+            <span>{t("weighIn.by", { name: row.weighedByName })}</span>
+          ) : null}
+        </>
+      }
+      title={
+        <>
+          <span className="text-base tabular-nums">
+            {t("intake.kg", { kg: formatNumber(row.weightKg, language) })}
+          </span>
+          {row.flagged ? (
+            <StatusBadge tone="warning">
+              {row.flaggedNote ?? t("weighIn.flagged")}
+            </StatusBadge>
+          ) : null}
+        </>
+      }
+    />
+  );
+};
+
+const weighInCard = (row: WeighInRow) => <WeighInCard row={row} />;
 
 /** Every time she has been on the scale: the day, the figure, who read it, and whether the farm doubted it. */
 export const WeighInTable = ({
@@ -151,7 +209,7 @@ export const WeighInTable = ({
     })),
     getRowId: (row) => row.id,
   });
-  return <HistoryTable minWidth="32rem" onCard table={table} />;
+  return <HistoryTable card={weighInCard} minWidth="32rem" table={table} />;
 };
 
 // What she has been given
@@ -208,6 +266,35 @@ const doseColumns = dose.columns([
   }),
 ]);
 
+/** A dose on a phone: what was given, then when, from what, and by whom. */
+const DoseCard = ({ row }: { row: DoseRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <HistoryCard
+      detail={
+        <>
+          {row.given ? (
+            <span>{formatDate(new Date(row.at), language, "dateTime")}</span>
+          ) : null}
+          <span>
+            {row.fromPrescription
+              ? t("prescribe.course")
+              : t("animals.fromCampaign")}
+          </span>
+          {row.givenByName ? <span>{row.givenByName}</span> : null}
+        </>
+      }
+      title={
+        language === "en" && row.productNameEn
+          ? row.productNameEn
+          : row.productNameBn
+      }
+    />
+  );
+};
+
+const doseCard = (row: DoseRow) => <DoseCard row={row} />;
+
 /** What she has been given, a course's doses and a Campaign's alike: when, what, from which, and by whom. */
 export const DoseTable = ({ doses }: { doses: AnimalDetail["treatments"] }) => {
   const table = useListTable({
@@ -223,7 +310,7 @@ export const DoseTable = ({ doses }: { doses: AnimalDetail["treatments"] }) => {
     })),
     getRowId: (row) => row.id,
   });
-  return <HistoryTable minWidth="36rem" onCard={false} table={table} />;
+  return <HistoryTable card={doseCard} minWidth="36rem" table={table} />;
 };
 
 // Moves
@@ -273,6 +360,39 @@ const moveColumns = move.columns([
   }),
 ]);
 
+/** A Move on a phone: from which Pen to which, then when and why, with the work that moved her at the end. */
+const MoveCard = ({ row }: { row: MoveRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <HistoryCard
+      detail={
+        <>
+          <span>{formatDate(new Date(row.at), language, "dateTime")}</span>
+          {row.reason ? <span>{row.reason}</span> : null}
+        </>
+      }
+      title={
+        row.fromPenName
+          ? `${row.fromPenName} → ${row.toPenName}`
+          : row.toPenName
+      }
+      trailing={
+        row.instanceId ? (
+          <Link
+            className="text-sm underline"
+            params={{ instanceId: row.instanceId }}
+            to="/work/$instanceId"
+          >
+            {t("animals.moveFromWork")}
+          </Link>
+        ) : null
+      }
+    />
+  );
+};
+
+const moveCard = (row: MoveRow) => <MoveCard row={row} />;
+
 /** Every Pen she has been in and when she went, with the work that moved her at the end of the row. */
 export const MoveTable = ({ moves }: { moves: AnimalDetail["moves"] }) => {
   const table = useListTable({
@@ -287,7 +407,7 @@ export const MoveTable = ({ moves }: { moves: AnimalDetail["moves"] }) => {
     })),
     getRowId: (row) => row.id,
   });
-  return <HistoryTable minWidth="36rem" onCard={false} table={table} />;
+  return <HistoryTable card={moveCard} minWidth="36rem" table={table} />;
 };
 
 // Services
@@ -337,6 +457,41 @@ const serviceColumns = service.columns([
   }),
 ]);
 
+/** A service on a phone: when and how, then the sire, who served her, and the heat it answered. */
+const ServiceCard = ({ row }: { row: ServiceRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <HistoryCard
+      detail={
+        <>
+          <span>
+            {t("service.sire")}: {row.sire}
+          </span>
+          {row.servedBy ? (
+            <span>{t("service.servedBy", { name: row.servedBy })}</span>
+          ) : null}
+          {row.heatSeenAt === null ? null : (
+            <span>
+              {t("service.afterHeat", {
+                when: formatDate(
+                  new Date(row.heatSeenAt),
+                  language,
+                  "dateTime"
+                ),
+              })}
+            </span>
+          )}
+        </>
+      }
+      title={`${formatDate(new Date(row.at), language, "dateTime")} · ${t(
+        row.method === "ai" ? "service.ai" : "service.natural"
+      )}`}
+    />
+  );
+};
+
+const serviceCard = (row: ServiceRow) => <ServiceCard row={row} />;
+
 /** Every time she has been served, beside the heat each one answered. */
 export const ServiceTable = ({
   services,
@@ -361,7 +516,7 @@ export const ServiceTable = ({
     }),
     getRowId: (row) => row.id,
   });
-  return <HistoryTable minWidth="36rem" onCard table={table} />;
+  return <HistoryTable card={serviceCard} minWidth="36rem" table={table} />;
 };
 
 // Pregnancy checks
@@ -371,10 +526,19 @@ interface CheckRow extends Dated {
   firstServedAt: number;
 }
 
-const ResultCell = ({ row }: { row: { original: CheckRow } }) => {
+/** What the Vet found, as a word with its colour: carrying is good news, not carrying is said plainly. */
+const CheckResult = ({ positive }: { positive: boolean }) => {
   const { t } = useLanguage();
-  return t(row.original.positive ? "pregnancy.positive" : "pregnancy.negative");
+  return (
+    <StatusBadge tone={positive ? "success" : "neutral"}>
+      {t(positive ? "pregnancy.positive" : "pregnancy.negative")}
+    </StatusBadge>
+  );
 };
+
+const ResultCell = ({ row }: { row: { original: CheckRow } }) => (
+  <CheckResult positive={row.original.positive} />
+);
 
 const ServedOnCell = ({ row }: { row: { original: CheckRow } }) => {
   const { language } = useLanguage();
@@ -399,6 +563,26 @@ const checkColumns = check.columns([
   }),
 ]);
 
+/** A check on a phone: what was found and when, and the service it answered. */
+const CheckCard = ({ row }: { row: CheckRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <HistoryCard
+      detail={t("pregnancy.ofService", {
+        when: formatDate(new Date(row.firstServedAt), language, "dateTime"),
+      })}
+      title={
+        <>
+          <span>{formatDate(new Date(row.at), language, "date")}</span>
+          <CheckResult positive={row.positive} />
+        </>
+      }
+    />
+  );
+};
+
+const checkCard = (row: CheckRow) => <CheckCard row={row} />;
+
 /** What the Vet found each time, and which service it was the answer to. */
 export const PregnancyCheckTable = ({
   checks,
@@ -418,7 +602,7 @@ export const PregnancyCheckTable = ({
     })),
     getRowId: (row) => row.id,
   });
-  return <HistoryTable minWidth="28rem" onCard table={table} />;
+  return <HistoryTable card={checkCard} minWidth="28rem" table={table} />;
 };
 
 // Calvings
@@ -448,11 +632,11 @@ const LactationCell = ({ row }: { row: { original: CalvingRow } }) => {
 };
 
 /** Each calf by her own number, a stillborn one included. */
-const CalvesCell = ({ row }: { row: { original: CalvingRow } }) => {
+const Calves = ({ calves }: { calves: Calf[] }) => {
   const { t } = useLanguage();
   return (
     <ul className="flex flex-wrap gap-x-3 gap-y-1">
-      {row.original.calves.map((calf) => (
+      {calves.map((calf) => (
         <li key={calf.tagNumber}>
           <Link
             className="font-mono underline"
@@ -472,6 +656,10 @@ const CalvesCell = ({ row }: { row: { original: CalvingRow } }) => {
     </ul>
   );
 };
+
+const CalvesCell = ({ row }: { row: { original: CalvingRow } }) => (
+  <Calves calves={row.original.calves} />
+);
 
 const calving = createListColumns<CalvingRow>();
 const calvingColumns = calving.columns([
@@ -496,6 +684,26 @@ const calvingColumns = calving.columns([
   }),
 ]);
 
+/** A calving on a phone: when and how it went, the Lactation it began, and each calf by her number. */
+const CalvingCard = ({ row }: { row: CalvingRow }) => {
+  const { t, language } = useLanguage();
+  return (
+    <HistoryCard
+      detail={
+        <>
+          <span>{t("calving.lactation", { number: row.lactationNumber })}</span>
+          <Calves calves={row.calves} />
+        </>
+      }
+      title={`${formatDate(new Date(row.at), language, "dateTime")} · ${t(
+        `calving.ease.${row.ease}`
+      )}`}
+    />
+  );
+};
+
+const calvingCard = (row: CalvingRow) => <CalvingCard row={row} />;
+
 /** Every time she has calved: when, how it went, which Lactation it began, and what was born. */
 export const CalvingTable = ({
   calvings,
@@ -515,5 +723,5 @@ export const CalvingTable = ({
     })),
     getRowId: (row) => row.id,
   });
-  return <HistoryTable minWidth="36rem" onCard table={table} />;
+  return <HistoryTable card={calvingCard} minWidth="36rem" table={table} />;
 };

@@ -1,10 +1,18 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,7 +22,7 @@ import {
   useCorrecting,
 } from "@/components/correction-dialog";
 import { categoryName, useRefusalToast } from "@/components/money";
-import { Section } from "@/components/page";
+import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
@@ -42,10 +50,8 @@ const SideField = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{t("byHand.side")}</Label>
-      <select
-        className="bg-card h-9 w-full rounded-md border px-3 text-sm"
+    <FormField id={id} label={t("byHand.side")}>
+      <NativeSelect
         id={id}
         onChange={(event) =>
           onChange(
@@ -61,8 +67,8 @@ const SideField = ({
             {t(SIDE_WORD[side])}
           </option>
         ))}
-      </select>
-    </div>
+      </NativeSelect>
+    </FormField>
   );
 };
 
@@ -76,12 +82,11 @@ const ReceiptField = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{t("byHand.receipt")}</Label>
-      <input
+    <FormField id={id} label={t("byHand.receipt")}>
+      <Input
         accept="image/*"
         capture="environment"
-        className="text-sm"
+        className="cursor-pointer"
         id={id}
         onChange={async (event) => {
           const file = event.target.files?.[0];
@@ -93,7 +98,7 @@ const ReceiptField = ({
         }}
         type="file"
       />
-    </div>
+    </FormField>
   );
 };
 
@@ -105,11 +110,39 @@ const NOTHING_TYPED = {
   note: "",
 };
 
+/** The entry as it will read in the register, worked out as it is typed: which way, and the taka grouped. */
+const EntrySummary = ({
+  direction,
+  typedAmount,
+}: {
+  direction: "in" | "out";
+  typedAmount: string;
+}) => {
+  const { t, language } = useLanguage();
+  const taka = Number(typedAmount);
+  if (!(taka > 0)) {
+    return null;
+  }
+  return (
+    <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm tabular-nums">
+      {t(direction === "in" ? "byHand.in" : "byHand.out")} · ৳
+      {formatNumber(taka, language)}
+    </p>
+  );
+};
+
 /**
- * Money no record catches, entered by hand by the Manager: how much, the day, the Category, who with,
- * how it was paid, a note, and a photo of the receipt. A wage names the month it pays for.
+ * Money no record catches, entered by hand by the Manager in a sheet beside the register: how much, the day, the
+ * Category, who with, how it was paid, a note, and a photo of the receipt. A wage names the month it pays for. What is
+ * typed stays when the sheet is closed without entering it; a receipt photo is taken again.
  */
-export const EnterMoney = () => {
+export const EnterMoneySheet = ({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const onError = useRefusalToast();
@@ -126,224 +159,158 @@ export const EnterMoney = () => {
     (one) => one.id === (typed.categoryId || usable[0]?.id)
   );
   const isWage = chosen?.key === "wages";
+  const handleOpenChange = (opening: boolean) => {
+    if (!opening) {
+      // The file box is drawn afresh next time, so the photo it held goes with it.
+      setReceipt(null);
+    }
+    onOpenChange(opening);
+  };
   const enter = useMutation(
     orpc.money.enter.mutationOptions({
       onSuccess: async () => {
         setTyped({ ...NOTHING_TYPED, categoryId: typed.categoryId });
-        setReceipt(null);
         toast.success(t("byHand.entered"));
+        handleOpenChange(false);
         await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
       onError,
     })
   );
-  if (!chosen) {
-    return null;
-  }
   const set = (key: keyof typeof NOTHING_TYPED) => (value: string) =>
     setTyped((current) => ({ ...current, [key]: value }));
   const complete =
+    chosen !== undefined &&
     Number(typed.amount) > 0 &&
     typed.counterparty.trim() !== "" &&
     (!isWage || typed.wageMonth !== "");
 
   return (
-    <Section description={t("byHand.hint")} title={t("byHand.title")}>
-      <form
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 [&>*]:min-w-0"
-        onSubmit={(event) => {
-          event.preventDefault();
-          enter.mutate({
-            categoryId: chosen.id,
-            amountBdt: Number(typed.amount),
-            occurredOn,
-            counterparty: { name: typed.counterparty.trim() },
-            paymentMethod,
-            note: typed.note.trim() || undefined,
-            wageMonth: isWage ? typed.wageMonth : undefined,
-            side: side || undefined,
-            receipt: receipt ?? undefined,
-          });
-        }}
-      >
-        <select
-          aria-label={t("byHand.category")}
-          className="bg-card h-10 w-full rounded-md border px-3 text-sm sm:col-span-2 xl:col-span-1"
-          onChange={(event) => set("categoryId")(event.target.value)}
-          value={chosen.id}
-        >
-          {usable.map((one) => (
-            <option key={one.id} value={one.id}>
-              {categoryName(
-                { categoryBn: one.nameBn, categoryEn: one.nameEn },
-                language
-              )}{" "}
-              ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
-            </option>
-          ))}
-        </select>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entry-amount">{t("byHand.amount")}</Label>
-          <Input
-            id="entry-amount"
-            min={0}
-            onChange={(event) => set("amount")(event.target.value)}
-            type="number"
-            value={typed.amount}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entry-on">{t("byHand.on")}</Label>
-          <Input
-            id="entry-on"
-            onChange={(event) => setOccurredOn(event.target.value)}
-            type="date"
-            value={occurredOn}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entry-who">
-            {t(isWage ? "byHand.wagePerson" : "byHand.counterparty")}
-          </Label>
-          <Input
-            id="entry-who"
-            onChange={(event) => set("counterparty")(event.target.value)}
-            value={typed.counterparty}
-          />
-        </div>
-        {isWage ? (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="entry-month">{t("byHand.wageMonth")}</Label>
-            <Input
-              id="entry-month"
-              onChange={(event) => set("wageMonth")(event.target.value)}
-              type="month"
-              value={typed.wageMonth}
-            />
-          </div>
-        ) : null}
-        <PaymentMethodField
-          id="entry-paid-by"
-          onChange={setPaymentMethod}
-          value={paymentMethod}
-        />
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entry-note">{t("byHand.note")}</Label>
-          <Input
-            id="entry-note"
-            maxLength={300}
-            onChange={(event) => set("note")(event.target.value)}
-            value={typed.note}
-          />
-        </div>
-        <SideField id="entry-side" onChange={setSide} value={side} />
-        <ReceiptField id="entry-receipt" onChange={setReceipt} />
-        <Button
-          className="h-10 sm:col-span-2 xl:col-span-1"
-          disabled={!complete || enter.isPending}
-          type="submit"
-        >
-          {t("byHand.save")}
-        </Button>
-      </form>
-    </Section>
-  );
-};
-
-/** The farm's Categories: the standard ones, the farm's own, and the retired — kept by the Owner and the
- *  Manager. */
-export const Categories = () => {
-  const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
-  const onError = useRefusalToast();
-  const categories = useQuery(orpc.money.categories.queryOptions());
-  const [nameBn, setNameBn] = useState("");
-  const [direction, setDirection] = useState<"in" | "out">("out");
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.money.key() });
-  const add = useMutation(
-    orpc.money.addCategory.mutationOptions({
-      onSuccess: async () => {
-        setNameBn("");
-        await refresh();
-      },
-      onError,
-    })
-  );
-  const retire = useMutation(
-    orpc.money.retireCategory.mutationOptions({ onSuccess: refresh, onError })
-  );
-
-  return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-semibold">{t("byHand.categories")}</h2>
-      <ul className="space-y-1 text-sm">
-        {(categories.data ?? []).map((one) => (
-          <li
-            className="bg-card flex items-center justify-between gap-2 rounded-lg border p-3"
-            key={one.id}
-          >
-            <span
-              className={
-                one.retiredAt ? "text-muted-foreground line-through" : ""
-              }
+    <FormSheet
+      description={t("byHand.hint")}
+      onOpenChange={handleOpenChange}
+      onSubmit={() => {
+        if (!chosen) {
+          return;
+        }
+        enter.mutate({
+          categoryId: chosen.id,
+          amountBdt: Number(typed.amount),
+          occurredOn,
+          counterparty: { name: typed.counterparty.trim() },
+          paymentMethod,
+          note: typed.note.trim() || undefined,
+          wageMonth: isWage ? typed.wageMonth : undefined,
+          side: side || undefined,
+          receipt: receipt ?? undefined,
+        });
+      }}
+      open={open}
+      pending={enter.isPending}
+      ready={complete}
+      submitLabel={t("byHand.save")}
+      title={t("byHand.title")}
+    >
+      {chosen ? (
+        <>
+          <FormField id="entry-category" label={t("byHand.category")}>
+            <NativeSelect
+              id="entry-category"
+              onChange={(event) => set("categoryId")(event.target.value)}
+              value={chosen.id}
             >
-              {categoryName(
-                { categoryBn: one.nameBn, categoryEn: one.nameEn },
-                language
-              )}{" "}
-              ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
-            </span>
-            {one.retiredAt || !one.retirable ? null : (
-              <Button
-                disabled={retire.isPending}
-                onClick={() => retire.mutate({ id: one.id })}
-                size="sm"
-                variant="outline"
-              >
-                {t("byHand.retire")}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <form
-        className="flex flex-wrap items-end gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (nameBn.trim()) {
-            add.mutate({ nameBn: nameBn.trim(), direction });
-          }
-        }}
-      >
-        <div className="flex-1 space-y-1">
-          <Label htmlFor="category-name">{t("byHand.newCategory")}</Label>
-          <Input
-            id="category-name"
-            onChange={(event) => setNameBn(event.target.value)}
-            value={nameBn}
+              {usable.map((one) => (
+                <option key={one.id} value={one.id}>
+                  {categoryName(
+                    { categoryBn: one.nameBn, categoryEn: one.nameEn },
+                    language
+                  )}{" "}
+                  ({t(one.direction === "in" ? "byHand.in" : "byHand.out")})
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField id="entry-amount" label={t("byHand.amount")}>
+              <Input
+                id="entry-amount"
+                inputMode="numeric"
+                min={0}
+                onChange={(event) => set("amount")(event.target.value)}
+                required
+                type="number"
+                value={typed.amount}
+              />
+            </FormField>
+            <FormField id="entry-on" label={t("byHand.on")}>
+              <Input
+                id="entry-on"
+                onChange={(event) => setOccurredOn(event.target.value)}
+                required
+                type="date"
+                value={occurredOn}
+              />
+            </FormField>
+          </div>
+          <EntrySummary
+            direction={chosen.direction === "in" ? "in" : "out"}
+            typedAmount={typed.amount}
           />
-        </div>
-        <select
-          aria-label={t("byHand.direction")}
-          className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
-          onChange={(event) =>
-            setDirection(event.target.value === "in" ? "in" : "out")
-          }
-          value={direction}
-        >
-          <option value="out">{t("byHand.out")}</option>
-          <option value="in">{t("byHand.in")}</option>
-        </select>
-        <Button disabled={add.isPending} type="submit" variant="outline">
-          {t("byHand.addCategory")}
-        </Button>
-      </form>
-    </section>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              className={isWage ? undefined : "sm:col-span-2"}
+              id="entry-who"
+              label={t(isWage ? "byHand.wagePerson" : "byHand.counterparty")}
+            >
+              <Input
+                autoComplete="off"
+                id="entry-who"
+                onChange={(event) => set("counterparty")(event.target.value)}
+                required
+                value={typed.counterparty}
+              />
+            </FormField>
+            {isWage ? (
+              <FormField id="entry-month" label={t("byHand.wageMonth")}>
+                <Input
+                  id="entry-month"
+                  onChange={(event) => set("wageMonth")(event.target.value)}
+                  required
+                  type="month"
+                  value={typed.wageMonth}
+                />
+              </FormField>
+            ) : null}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PaymentMethodField
+              id="entry-paid-by"
+              onChange={setPaymentMethod}
+              value={paymentMethod}
+            />
+            <SideField id="entry-side" onChange={setSide} value={side} />
+          </div>
+
+          <FormField id="entry-note" label={t("byHand.note")}>
+            <Input
+              id="entry-note"
+              maxLength={300}
+              onChange={(event) => set("note")(event.target.value)}
+              value={typed.note}
+            />
+          </FormField>
+          <ReceiptField id="entry-receipt" onChange={setReceipt} />
+        </>
+      ) : null}
+      {categories.data ? null : <Skeleton className="h-64 rounded-lg" />}
+    </FormSheet>
   );
 };
 
-/** Shows the photo of a Money Event's receipt, fetched only when somebody asks to see it. */
+/** Shows the photo of a Money Event's receipt over the page, fetched only when somebody asks to see it. */
 export const ReceiptLink = ({ id }: { id: string }) => {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -352,22 +319,35 @@ export const ReceiptLink = ({ id }: { id: string }) => {
     enabled: open,
   });
   return (
-    <span>
-      <button
-        className="underline"
-        onClick={() => setOpen((shown) => !shown)}
+    <>
+      <Button
+        onClick={() => setOpen(true)}
+        size="sm"
         type="button"
+        variant="ghost"
       >
+        <ReceiptText aria-hidden data-icon="inline-start" />
         {t("byHand.showReceipt")}
-      </button>
-      {open && receipt.data ? (
-        <img
-          alt={t("byHand.receipt")}
-          className="mt-2 max-h-96 rounded-lg"
-          src={`data:${receipt.data.contentType};base64,${receipt.data.data}`}
-        />
-      ) : null}
-    </span>
+      </Button>
+      <Dialog onOpenChange={setOpen} open={open}>
+        <DialogContent className="sm:max-w-xl" closeLabel={t("common.close")}>
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">
+              {t("byHand.receipt")}
+            </DialogTitle>
+          </DialogHeader>
+          {receipt.data ? (
+            <img
+              alt={t("byHand.receipt")}
+              className="max-h-[70vh] w-full rounded-lg object-contain"
+              src={`data:${receipt.data.contentType};base64,${receipt.data.data}`}
+            />
+          ) : (
+            <Skeleton className="h-72 rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

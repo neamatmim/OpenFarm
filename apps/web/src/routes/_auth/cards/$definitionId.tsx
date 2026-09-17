@@ -1,10 +1,21 @@
 import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft, GraduationCap, Printer, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  Loaded,
+  Page,
+  RecordList,
+  RecordRow,
+  Section,
+} from "@/components/page";
+import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -20,27 +31,18 @@ const onTheWall = (key: CardKey, params?: CardParams) =>
  *  is half a card by the time anybody reads it. */
 const STEPS_BEFORE_TIGHTENING = 8;
 
+type Card = Awaited<ReturnType<typeof orpc.sops.card.call>>;
+
 /**
- * The SOP Card: one page, in Bangla, for the shed wall.
- *
- * It is generated from the published Version rather than written beside it, so the paper on
- * the wall and the procedure the farm enforces cannot drift apart — and it names its own
- * Version and publication date, so a card somebody printed in March can be checked rather
- * than trusted.
+ * The card itself, as it goes on the wall: generated from the published Version rather than written beside it, so
+ * the paper on the wall and the procedure the farm enforces cannot drift apart — and it names its own Version and
+ * publication date, so a card somebody printed in March can be checked rather than trusted.
  */
-const CardPage = () => {
-  const { definitionId } = Route.useParams();
+const WallCard = ({ card }: { card: Card }) => {
   // The card goes on a shed wall, so it is Bangla whoever printed it — including a Manager
   // whose own app is in English. The people who read it off the wall read Bangla.
   const t = onTheWall;
-  const card = useQuery(
-    orpc.sops.card.queryOptions({ input: { definitionId } })
-  );
-
-  if (!card.data) {
-    return <p className="p-6">{t("common.loading")}</p>;
-  }
-  const { name, purpose, steps, number, publishedAt, triggers } = card.data;
+  const { name, purpose, steps, number, publishedAt, triggers } = card;
   const schedule = triggers.find((trigger) => trigger.kind === "schedule");
   const times = schedule?.kind === "schedule" ? schedule.times : [];
   // "Sat 08:00, every other week" rather than the time alone, for work that is not daily.
@@ -53,9 +55,10 @@ const CardPage = () => {
   const tight = steps.length > STEPS_BEFORE_TIGHTENING;
 
   return (
-    <div
-      className="mx-auto max-w-[210mm] space-y-4 p-6 print:p-0"
+    <article
+      className="bg-card mx-auto w-full max-w-[210mm] space-y-4 rounded-xl border p-6 shadow-sm md:p-10 print:rounded-none print:border-0 print:p-0 print:shadow-none"
       id="sop-card"
+      lang={CARD_LANGUAGE}
     >
       {/* One A4 page: the card is for a wall, not a screen, and a card that runs onto a
           second sheet is half a card by the time somebody reads it. */}
@@ -67,12 +70,6 @@ const CardPage = () => {
           .no-print { display: none }
           body { font-size: ${tight ? "10pt" : "12pt"} }
         }`}</style>
-
-      <div className="no-print flex justify-end">
-        <Button onClick={() => window.print()} type="button" variant="outline">
-          {t("common.print")}
-        </Button>
-      </div>
 
       <header className="space-y-1 border-b pb-3">
         <h1 className="text-2xl font-semibold">{name.bn}</h1>
@@ -91,7 +88,7 @@ const CardPage = () => {
 
       <section className="flex flex-wrap gap-6 text-sm">
         <span>
-          {t("card.who")}: {t(`role.${card.data.assignedRole}`)}
+          {t("card.who")}: {t(`role.${card.assignedRole}`)}
         </span>
         {times.length > 0 ? (
           <span>
@@ -100,8 +97,6 @@ const CardPage = () => {
           </span>
         ) : null}
       </section>
-
-      <TrainedOn definitionId={definitionId} versionId={card.data.versionId} />
 
       <ol className={tight ? "columns-2 gap-6 space-y-2 text-sm" : "space-y-3"}>
         {steps.map((step, index) => (
@@ -128,7 +123,68 @@ const CardPage = () => {
           </li>
         ))}
       </ol>
-    </div>
+    </article>
+  );
+};
+
+/**
+ * The SOP Card: one page, in Bangla, for the shed wall — with, around it on the screen only, the way back to the
+ * Playbook, the print, and who has been taught from it.
+ */
+const CardPage = () => {
+  const { definitionId } = Route.useParams();
+  const t = useT();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const card = useQuery(
+    orpc.sops.card.queryOptions({ input: { definitionId } })
+  );
+  // The Playbook is the Owner's and the Manager's; anybody else came to the card from somewhere else.
+  const keepsPlaybook =
+    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
+    false;
+
+  return (
+    <Page className="max-w-screen-xl">
+      <div className="no-print flex flex-wrap items-center justify-between gap-3">
+        {keepsPlaybook ? (
+          <Button
+            nativeButton={false}
+            render={<Link to="/admin/sops" />}
+            variant="ghost"
+          >
+            <ArrowLeft aria-hidden data-icon="inline-start" />
+            {t("sop.backToPlaybook")}
+          </Button>
+        ) : (
+          <span />
+        )}
+        <Button
+          disabled={!card.data}
+          onClick={() => window.print()}
+          type="button"
+        >
+          <Printer aria-hidden data-icon="inline-start" />
+          {t("common.print")}
+        </Button>
+      </div>
+
+      <Loaded
+        query={card}
+        skeleton={
+          <Skeleton className="mx-auto h-[60vh] w-full max-w-[210mm] rounded-xl" />
+        }
+      >
+        {card.data ? (
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <WallCard card={card.data} />
+            <TrainedOn
+              definitionId={definitionId}
+              versionId={card.data.versionId}
+            />
+          </div>
+        ) : null}
+      </Loaded>
+    </Page>
   );
 };
 
@@ -144,8 +200,7 @@ const TrainedOn = ({
   definitionId: string;
   versionId: string;
 }) => {
-  const t = useT();
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const [who, setWho] = useState("");
 
@@ -164,25 +219,14 @@ const TrainedOn = ({
   );
 
   return (
-    <section className="no-print surface space-y-2 p-4">
-      <h2 className="text-sm font-medium">{t("training.title")}</h2>
-      {trained.data?.length ? (
-        <ul className="space-y-1 text-sm">
-          {trained.data.map((row) => (
-            <li className="text-muted-foreground" key={row.id}>
-              {row.personName} ·{" "}
-              {t("training.on", {
-                number: row.versionNumber,
-                date: formatDate(new Date(row.trainedAt), language, "date"),
-              })}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground text-sm">{t("training.none")}</p>
-      )}
+    <Section
+      className="no-print xl:sticky xl:top-6"
+      description={t("training.hint")}
+      id="training"
+      title={t("training.title")}
+    >
       <form
-        className="flex flex-wrap items-end gap-2"
+        className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (who) {
@@ -190,24 +234,53 @@ const TrainedOn = ({
           }
         }}
       >
-        <select
-          aria-label={t("training.mark")}
-          className="bg-background h-9 flex-1 rounded-md border px-2 text-sm"
-          onChange={(event) => setWho(event.target.value)}
-          value={who}
-        >
-          <option value="">—</option>
-          {(people.data?.people ?? []).map((person) => (
-            <option key={person.id} value={person.id}>
-              {person.name}
-            </option>
-          ))}
-        </select>
-        <Button disabled={!who} type="submit">
+        <FormField id="training-who" label={t("training.who")}>
+          <NativeSelect
+            id="training-who"
+            onChange={(event) => setWho(event.target.value)}
+            value={who}
+          >
+            <option value="">—</option>
+            {(people.data?.people ?? []).map((person) => (
+              <option key={person.id} value={person.id}>
+                {person.name}
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
+        <Button disabled={!who || mark.isPending} type="submit">
+          {mark.isPending ? (
+            <Spinner />
+          ) : (
+            <UserCheck aria-hidden data-icon="inline-start" />
+          )}
           {t("training.mark")}
         </Button>
       </form>
-    </section>
+      {trained.data?.length ? (
+        <RecordList className="border-t">
+          {trained.data.map((row) => (
+            <RecordRow
+              key={row.id}
+              leading={
+                <span className="bg-secondary text-secondary-foreground grid size-8 place-items-center rounded-full">
+                  <GraduationCap aria-hidden className="size-4" />
+                </span>
+              }
+              meta={t("training.on", {
+                number: row.versionNumber,
+                date: formatDate(new Date(row.trainedAt), language, "date"),
+              })}
+              title={row.personName}
+            />
+          ))}
+        </RecordList>
+      ) : (
+        <p className="text-muted-foreground border-t pt-3 text-sm">
+          {t("training.none")}
+        </p>
+      )}
+    </Section>
   );
 };
 
