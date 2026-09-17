@@ -79,11 +79,15 @@ describe("what the farm could take at all", () => {
 
 describe("the farm's kinds of field", () => {
   it("hands over a person as the person, and ignores a blank box", () => {
-    expect(changesFrom({ buyer: counterparty("করিম") }, { buyer: " সালাম " })).toEqual({
+    expect(
+      changesFrom({ buyer: counterparty("করিম") }, { buyer: " সালাম " })
+    ).toEqual({
       buyer: { from: "করিম", to: { name: "সালাম" } },
     });
     // Nobody named: not a correction to somebody's name, and not an empty name sent to the farm.
-    expect(changesFrom({ buyer: counterparty("করিম") }, { buyer: "  " })).toEqual({});
+    expect(
+      changesFrom({ buyer: counterparty("করিম") }, { buyer: "  " })
+    ).toEqual({});
   });
 
   it("clears a note to nothing, rather than to an empty note", () => {
