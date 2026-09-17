@@ -1,23 +1,40 @@
+import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   CircleCheck,
-  ClipboardCheck,
-  Droplets,
+  Hourglass,
   Milk,
-  MilkOff,
+  Scale,
+  Tractor,
+  Wallet,
 } from "lucide-react";
 
+import {
+  FatteningPanel,
+  FeedPanel,
+  HerdPanel,
+  MoneyMonth,
+  OpenWords,
+  thisMonth,
+  useTaka,
+} from "@/components/home/farm-panels";
 import { MilkWeek } from "@/components/home/milk-week";
-import { OwnerQueue } from "@/components/home/owner-queue";
+import {
+  FarmToday,
+  OwnerDecisions,
+  decisionsWaiting,
+  moneyAwaitingTotal,
+} from "@/components/home/owner-queue";
+import { MORE_LINK } from "@/components/home/queue";
 import {
   EmptyState,
   Notice,
   Page,
   PageHeader,
-  ProgressBar,
   Section,
   StatusBadge,
 } from "@/components/page";
@@ -27,103 +44,111 @@ import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
-type OwnerTiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
+type OwnerAnswer = Awaited<ReturnType<typeof orpc.home.owner.call>>;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A figure still waiting for its list. */
+const loading = <Skeleton className="h-8 w-28" />;
+
+/** The milk figure: today's tank, read against yesterday — a whole day, where today may be half of one — and the
+ *  week's average. */
+const useMilkFigure = (tiles: OwnerAnswer["tiles"]): Figure => {
+  const { t, language } = useLanguage();
+  const now = new Date();
+  const yesterday = farmDayOf(new Date(now.getTime() - DAY_MS));
+  const yesterdays = tiles.days.find((one) => one.day === yesterday);
+  const average = formatNumber(tiles.averageBulk, language, {
+    maximumFractionDigits: 1,
+  });
+  return {
+    label: t("owner.bulkToday"),
+    value: t("owner.litres", {
+      litres: formatNumber(tiles.bulkToday, language),
+    }),
+    hint: yesterdays
+      ? t("owner.milkHint", {
+          yesterday: formatNumber(yesterdays.litres, language),
+          average,
+        })
+      : t("owner.average", { litres: average }),
+    icon: Milk,
+  };
+};
+
+/** The four figures the Owner judges the farm by: the milk, the month's money, the herd, and the money waiting on
+ *  their word. Each is worked out from what was recorded; the two from other lists wait for them without holding up
+ *  the rest. */
+const useFarmFigures = (data: OwnerAnswer): Figure[] => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  const milk = useMilkFigure(data.tiles);
+  const money = useQuery(orpc.money.list.queryOptions({ input: thisMonth() }));
+  const animals = useQuery(
+    orpc.animals.list.queryOptions({ input: { includeExited: false } })
+  );
+  const rows = money.data?.events ?? [];
+  const sum = (direction: "in" | "out") =>
+    rows
+      .filter((row) => row.direction === direction)
+      .reduce((total, row) => total + row.amountBdt, 0);
+  const net = sum("in") - sum("out");
+  const herd = animals.data ?? [];
+  const awaiting = data.needsYou.moneyAwaiting.length;
+  return [
+    milk,
+    {
+      label: t("owner.monthNet"),
+      value: money.data ? taka(net) : loading,
+      hint: money.data
+        ? t("owner.inAndOut", { in: taka(sum("in")), out: taka(sum("out")) })
+        : undefined,
+      icon: Scale,
+      tone: net < 0 ? "danger" : "neutral",
+    },
+    {
+      label: t("owner.herd"),
+      value: animals.data ? formatNumber(herd.length, language) : loading,
+      hint: animals.data
+        ? t("owner.bySide", {
+            dairy: formatNumber(
+              herd.filter((one) => one.side === "dairy").length,
+              language
+            ),
+            fattening: formatNumber(
+              herd.filter((one) => one.side === "fattening").length,
+              language
+            ),
+          })
+        : undefined,
+      icon: Tractor,
+    },
+    {
+      label: t("money.awaitingCount"),
+      value: (
+        <Link className={FIGURE_LINK} to="/money">
+          {taka(moneyAwaitingTotal(data.needsYou))}
+        </Link>
+      ),
+      hint: t("owner.entries", { count: formatNumber(awaiting, language) }),
+      icon: Hourglass,
+      tone: awaiting > 0 ? "warning" : "neutral",
+    },
+  ];
+};
 
 /** A figure that is a way to the list it counts. */
 const FIGURE_LINK =
   "focus-visible:ring-ring rounded-md underline-offset-4 outline-none hover:underline focus-visible:ring-2";
 
-/** The four figures the Owner judges a day by: the milk that went to the tank and the milk that could not, how much of
- *  the day's work is done, and how many cows' milk the farm may not sell. */
-const useDayFigures = (tiles: OwnerTiles): Figure[] => {
-  const { t, language } = useLanguage();
-  const donePercent =
-    tiles.workRaised === 0
-      ? 0
-      : Math.round((tiles.workDone / tiles.workRaised) * 100);
-  const workDone = (
-    <Link className={FIGURE_LINK} search={{}} to="/today">
-      {t("home.progress", {
-        done: formatNumber(tiles.workDone, language),
-        raised: formatNumber(tiles.workRaised, language),
-      })}
-    </Link>
-  );
-  return [
-    {
-      label: t("owner.bulkToday"),
-      value: t("owner.litres", {
-        litres: formatNumber(tiles.bulkToday, language),
-      }),
-      hint: t("owner.average", {
-        litres: formatNumber(tiles.averageBulk, language),
-      }),
-      icon: Milk,
-    },
-    {
-      label: t("home.workDone"),
-      value: workDone,
-      hint: <ProgressBar label={t("home.workDone")} value={donePercent} />,
-      icon: ClipboardCheck,
-    },
-    {
-      label: t("owner.discardToday"),
-      value: t("owner.litres", {
-        litres: formatNumber(tiles.discardToday, language),
-      }),
-      hint: t("owner.discardHint"),
-      icon: Droplets,
-    },
-    {
-      label: t("home.cowsHeld"),
-      value: (
-        <Link className={FIGURE_LINK} to="/animals">
-          {formatNumber(tiles.underWithdrawal, language)}
-        </Link>
-      ),
-      hint: t("home.withdrawal"),
-      icon: MilkOff,
-      tone: tiles.underWithdrawal > 0 ? "warning" : "neutral",
-    },
-  ];
-};
-
-/** What the farm has lost lately, beside its milk: the number a farm lives by belongs with the Owner's other numbers. */
-const Losses = ({ tiles }: { tiles: OwnerTiles }) => {
-  const { t, language } = useLanguage();
-  return (
-    <Section title={t("owner.lossesTitle")}>
-      <dl className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <dt className="text-muted-foreground text-sm">{t("owner.died")}</dt>
-          <dd
-            className={
-              tiles.died > 0
-                ? "text-danger text-2xl font-semibold tabular-nums"
-                : "text-2xl font-semibold tabular-nums"
-            }
-          >
-            {formatNumber(tiles.died, language)}
-          </dd>
-        </div>
-        <div className="flex flex-col gap-1">
-          <dt className="text-muted-foreground text-sm">{t("owner.culled")}</dt>
-          <dd className="text-2xl font-semibold tabular-nums">
-            {formatNumber(tiles.culled, language)}
-          </dd>
-        </div>
-      </dl>
-    </Section>
-  );
-};
-
 /**
- * The Owner's home: the day's four figures, then the exception list, and beside it the week's milk and what the farm
- * has lost.
+ * The Owner's home: the figures the farm is judged by, then what only the Owner can settle — and below it the farm
+ * going about its day — and beside them the week's milk, the month's money, the herd, the fattening side and the store,
+ * each a way into its own page.
  *
- * An empty list means the farm is fine, and that is the whole point of it — a screen that
- * always has something on it is a screen that stops meaning anything. Nothing here is typed
- * by anybody: every figure is worked out from what was recorded.
+ * An empty list of decisions means the farm is fine, and that is the whole point of it — a screen that always has
+ * something on it is a screen that stops meaning anything. Nothing here is typed by anybody: every figure is worked out
+ * from what was recorded.
  */
 const OwnerHome = () => {
   const t = useT();
@@ -147,28 +172,58 @@ const OwnerHome = () => {
   return <OwnerDay data={home.data} />;
 };
 
+/** The week's milk, with what the week averages and what today could not send to the tank. */
+const MilkPanel = ({ tiles }: { tiles: OwnerAnswer["tiles"] }) => {
+  const { t, language } = useLanguage();
+  return (
+    <Section
+      action={
+        <Link className={MORE_LINK} to="/milk">
+          <OpenWords />
+        </Link>
+      }
+      title={t("owner.weekTitle")}
+    >
+      <MilkWeek average={tiles.averageBulk} days={tiles.days} />
+      <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="border-foreground/50 w-5 border-t border-dashed"
+          />
+          {t("owner.average", {
+            litres: formatNumber(tiles.averageBulk, language, {
+              maximumFractionDigits: 1,
+            }),
+          })}
+        </span>
+        <span className={tiles.discardToday > 0 ? "text-warning" : undefined}>
+          {t("owner.discardToday")}:{" "}
+          {t("owner.litres", {
+            litres: formatNumber(tiles.discardToday, language),
+          })}
+        </span>
+      </div>
+    </Section>
+  );
+};
+
 /** The Owner's day once the farm has answered. */
-const OwnerDay = ({
-  data,
-}: {
-  data: Awaited<ReturnType<typeof orpc.home.owner.call>>;
-}) => {
+const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const { t, language } = useLanguage();
   const { needsYou, tiles } = data;
-  const figures = useDayFigures(tiles);
-  const waiting =
-    needsYou.overdue.length +
-    needsYou.approvals.length +
-    needsYou.proposals.length +
-    needsYou.needsReview.length +
-    needsYou.endingWithdrawal.length +
-    needsYou.lowStock.length +
-    needsYou.moneyAwaiting.length +
-    (needsYou.registrationRenewal ? 1 : 0);
+  const figures = useFarmFigures(data);
+  const waiting = decisionsWaiting(needsYou);
 
   return (
     <Page width="wide">
       <PageHeader
+        actions={
+          <Button nativeButton={false} render={<Link to="/money" />}>
+            <Wallet aria-hidden data-icon="inline-start" />
+            {t("nav.money")}
+          </Button>
+        }
         description={t("owner.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
         meta={
@@ -188,29 +243,33 @@ const OwnerDay = ({
       <SummaryFigures figures={figures} />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <Section className="min-w-0" id="needs-you" title={t("owner.needsYou")}>
-          {waiting === 0 ? (
-            <EmptyState
-              bare
-              description={t("owner.allFineHint")}
-              icon={CircleCheck}
-              title={t("owner.allFine")}
-            />
-          ) : (
-            <OwnerQueue needsYou={needsYou} />
-          )}
-        </Section>
-
-        <div className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-20">
-          <Section title={t("owner.weekTitle")}>
-            <MilkWeek days={tiles.days} />
-            <p className="text-muted-foreground text-sm">
-              {t("owner.average", {
-                litres: formatNumber(tiles.averageBulk, language),
-              })}
-            </p>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Section id="needs-you" title={t("owner.needsYou")}>
+            {waiting === 0 ? (
+              <EmptyState
+                bare
+                description={t("owner.allFineHint")}
+                icon={CircleCheck}
+                title={t("owner.allFine")}
+              />
+            ) : (
+              <OwnerDecisions needsYou={needsYou} />
+            )}
           </Section>
-          <Losses tiles={tiles} />
+          <Section
+            description={t("owner.onTheFarmHint")}
+            title={t("owner.onTheFarm")}
+          >
+            <FarmToday needsYou={needsYou} tiles={tiles} />
+          </Section>
+          <MoneyMonth />
+        </div>
+
+        <div className="grid min-w-0 items-start gap-6 md:grid-cols-2 xl:grid-cols-1">
+          <MilkPanel tiles={tiles} />
+          <HerdPanel culled={tiles.culled} died={tiles.died} />
+          <FatteningPanel />
+          <FeedPanel />
         </div>
       </div>
     </Page>
