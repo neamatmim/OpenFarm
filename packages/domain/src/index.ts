@@ -278,10 +278,10 @@ export {
   termsUnchanged,
 } from "./money";
 export type {
-  CameHome,
   CostShare,
   Costs,
   FeedShare,
+  Carried,
   FeedingToCost,
   TripToSplit,
   UnallocatedFeeding,

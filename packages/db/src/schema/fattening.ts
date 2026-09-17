@@ -3,6 +3,7 @@ import {
   integer,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -128,6 +129,57 @@ export const intake = pgTable(
     uniqueIndex("intake_animal_uidx").on(table.animalId),
     index("intake_window_idx").on(table.farmId, table.targetWindowStart),
   ]
+);
+
+/**
+ * One outing to sell cattle, with what the day cost: the lorry both ways, the stall or the space, and
+ * keeping the men who went. Split evenly across every Animal taken — sold or brought home again, because a
+ * bull that came back still stood on the lorry.
+ *
+ * Not a **Load**, which is one vehicle to one destination and what a Transport Card describes.
+ */
+export const sellingTrip = pgTable(
+  "selling_trip",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** Where it went, as the farm says it. */
+    wentTo: text("went_to").notNull(),
+    /** The lorry, both ways. */
+    transportBdt: numeric("transport_bdt", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    /** The stall or the space, and keeping the men who went. */
+    keepBdt: numeric("keep_bdt", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    wentOn: timestamp("went_on").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [index("selling_trip_day_idx").on(table.farmId, table.wentOn)]
+);
+
+/**
+ * One Animal taken on one Selling Trip. A recorded fact and never derived from who sold: the lorry carried
+ * her whether or not anybody bought her, and that is what her share is for.
+ */
+export const sellingTripAnimal = pgTable(
+  "selling_trip_animal",
+  {
+    sellingTripId: text("selling_trip_id")
+      .notNull()
+      .references(() => sellingTrip.id, { onDelete: "cascade" }),
+    /** No cascade, as the Vet Fee's animals have none: an Animal removed would silently re-split a cost
+     *  the farm has already paid and already booked. */
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id),
+  },
+  (table) => [primaryKey({ columns: [table.sellingTripId, table.animalId] })]
 );
 
 /** How a weight was arrived at. A crush scale today; a girth tape, if the farm ever falls back

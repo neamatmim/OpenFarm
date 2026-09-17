@@ -3,9 +3,17 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Banknote, CircleCheck, ReceiptText, Scale, Store } from "lucide-react";
+import {
+  Banknote,
+  CircleCheck,
+  ReceiptText,
+  Scale,
+  Store,
+  Truck,
+} from "lucide-react";
 import { useState } from "react";
 
+import { SellingTripForm } from "@/components/fattening/selling-trip";
 import { Loaded, Page, PageHeader } from "@/components/page";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import type { Sellable } from "@/components/sale/ready-to-go";
@@ -18,7 +26,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["ready", "sold"] as const;
+const TABS = ["ready", "sold", "trip"] as const;
 type Tab = (typeof TABS)[number];
 
 /** The address for a tab: the first tab is the page itself, and says nothing. */
@@ -141,6 +149,12 @@ const SalePage = () => {
             ),
           },
           {
+            value: "trip",
+            label: t("selling.trip"),
+            icon: Truck,
+            content: <SellingTripForm />,
+          },
+          {
             value: "sold",
             label: t("sale.today"),
             icon: ReceiptText,
@@ -182,6 +196,7 @@ export const Route = createFileRoute("/_auth/sale")({
     search: Record<string, unknown>
   ): { tab?: Tab; sell?: string } => ({
     ...(search.tab === "sold" ? { tab: "sold" as const } : {}),
+    ...(search.tab === "trip" ? { tab: "trip" as const } : {}),
     ...(typeof search.sell === "string" && search.sell !== ""
       ? { sell: search.sell }
       : {}),

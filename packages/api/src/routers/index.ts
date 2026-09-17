@@ -31,6 +31,7 @@ import { readyRouter } from "./ready";
 import { reportsRouter } from "./reports";
 import { reviewRouter } from "./review";
 import { saleRouter } from "./sale";
+import { sellingTripsRouter } from "./selling-trips";
 import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
 import { syncRouter } from "./sync";
@@ -74,6 +75,7 @@ export const appRouter = {
   review: reviewRouter,
   sale: saleRouter,
   trips: tripsRouter,
+  sellingTrips: sellingTripsRouter,
   sops: sopsRouter,
   sync: syncRouter,
   vetCases: vetCasesRouter,

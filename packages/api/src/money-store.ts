@@ -34,6 +34,11 @@ const CATEGORIES: Record<
     nameEn: "Buying trips",
     direction: "out",
   },
+  selling_trip: {
+    nameBn: "হাটে বিক্রির খরচ",
+    nameEn: "Selling trips",
+    direction: "out",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",
