@@ -1,4 +1,6 @@
 import type { MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import {
   Table,
   TableBody,
@@ -22,10 +24,17 @@ import {
   sortFns,
   tableFeatures,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+} from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 
 /** How a column sits in its table: figures line up on the right, and a column may carry its own classes. */
 interface ColumnLook {
@@ -103,26 +112,91 @@ const Heading = <TData extends object>({
 
 const ARIA_SORT = { asc: "ascending", desc: "descending" } as const;
 
+/** Where a long list stands — which of how many — and the way to the page before and after. */
+const Pager = ({
+  from,
+  to,
+  total,
+  onPrevious,
+  onNext,
+}: {
+  from: number;
+  to: number;
+  total: number;
+  onPrevious?: () => void;
+  onNext?: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <nav
+      aria-label={t("common.pages")}
+      className="flex items-center justify-between gap-3 border-t pt-3 text-sm"
+    >
+      <span className="text-muted-foreground tabular-nums">
+        {t("common.pager", {
+          from: formatNumber(from, language),
+          to: formatNumber(to, language),
+          total: formatNumber(total, language),
+        })}
+      </span>
+      <div className="flex gap-1">
+        <Button
+          aria-label={t("common.previousPage")}
+          disabled={!onPrevious}
+          onClick={onPrevious}
+          size="icon-sm"
+          type="button"
+          variant="outline"
+        >
+          <ChevronLeft aria-hidden />
+        </Button>
+        <Button
+          aria-label={t("common.nextPage")}
+          disabled={!onNext}
+          onClick={onNext}
+          size="icon-sm"
+          type="button"
+          variant="outline"
+        >
+          <ChevronRight aria-hidden />
+        </Button>
+      </div>
+    </nav>
+  );
+};
+
 /**
  * A list as a table where there is room for one, and as the page's own cards on a phone, where a row of six columns
  * is a row nobody can read. Without `card` the table is all there is, scrolling sideways on a phone.
  *
- * Inside a `Section` the table runs to the card's edges; `bare` keeps it within its own box elsewhere.
+ * Inside a `Section` the table runs to the card's edges; `bare` keeps it within its own box elsewhere. A long history
+ * gives a `pageSize`, and is read a page at a time in the order it is sorted.
  */
 export const DataTable = <TData extends object>({
   table,
   card,
   minWidth = "40rem",
   bare = false,
+  pageSize,
   className,
 }: {
   table: TableInstance<ListFeatures, TData>;
   card?: (row: TData) => ReactNode;
   minWidth?: string;
   bare?: boolean;
+  pageSize?: number;
   className?: string;
 }) => {
-  const { rows } = table.getRowModel();
+  const [page, setPage] = useState(0);
+  const all = table.getRowModel().rows;
+  const size = pageSize ?? all.length;
+  const pages = Math.max(1, Math.ceil(all.length / Math.max(size, 1)));
+  // A list that shrank under a filter keeps its reader on a page that still exists.
+  const shown = Math.min(page, pages - 1);
+  const rows = pageSize
+    ? all.slice(shown * pageSize, (shown + 1) * pageSize)
+    : all;
+  const paged = pageSize !== undefined && all.length > pageSize;
   return (
     <>
       {card ? (
@@ -189,6 +263,15 @@ export const DataTable = <TData extends object>({
           </TableBody>
         </Table>
       </div>
+      {paged ? (
+        <Pager
+          from={shown * size + 1}
+          onNext={shown < pages - 1 ? () => setPage(shown + 1) : undefined}
+          onPrevious={shown > 0 ? () => setPage(shown - 1) : undefined}
+          to={Math.min((shown + 1) * size, all.length)}
+          total={all.length}
+        />
+      ) : null}
     </>
   );
 };
