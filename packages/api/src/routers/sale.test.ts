@@ -299,7 +299,7 @@ describe("the sale", () => {
     expect(sold.state).toBe("sold");
   });
 
-  it("is not a milker's to make, nor the Owner's, and not twice over", async () => {
+  it("is not a milker's to make, is the Owner's as the Manager's, and not twice over", async () => {
     const staff = await createTestClient(appRouter, {
       as: "staff",
       clock: new FakeClock("2027-04-03T09:00:00.000Z"),
@@ -313,23 +313,38 @@ describe("the sale", () => {
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
-    // Nor the Owner's: the roles matrix gives Intake and Sale to the Manager, the Owner
-    // approving what it fetched rather than doing the selling.
+    // The Owner may sell as the Manager does — a bull of the Owner's own buying, so the bulls the other tests
+    // sell are still on the farm.
     const owner = await createTestClient(appRouter, {
       as: "owner",
       clock: new FakeClock("2027-04-03T09:00:00.000Z"),
     });
-    await expect(
-      owner.client.sale.record({
-        tagNumber: tagOf(1),
-        ...aBuyer,
-        priceBdt: 130_000,
-        weightKg: 300,
-      })
-    ).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      data: { refusal: "manager_only" },
+    const ownersBull = await owner.client.intake.record({
+      penId: world.pen.id,
+      sex: "male",
+      seller: { name: `হাট ${suffix}` },
+      purchasePriceBdt: 90_000,
+      weightKg: 300,
+      estimatedAgeMonths: 24,
+      targetWeightKg: 280,
+      targetWindowStart: "2027-05-17",
+      targetWindowEnd: "2027-05-19",
     });
+    await owner.client.animals.setState({
+      tagNumber: ownersBull.tagNumber,
+      state: "fattening",
+    });
+    await owner.client.ready.confirm({ tagNumber: ownersBull.tagNumber });
+    await owner.client.sale.record({
+      tagNumber: ownersBull.tagNumber,
+      ...aBuyer,
+      priceBdt: 130_000,
+      weightKg: 300,
+    });
+    const sold = await owner.client.animals.byTag({
+      tagNumber: ownersBull.tagNumber,
+    });
+    expect(sold.state).toBe("sold");
 
     // An animal who has left cannot leave again — the second sale would lose which one the
     // farm stands behind.

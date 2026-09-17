@@ -24,6 +24,7 @@ type ServiceFacts = Pick<
   | "recordedAt"
   | "now"
   | "pregnancyTimes"
+  | "roleUsed"
   | "trail"
 >;
 
@@ -170,10 +171,10 @@ const recordTheService = async (
     sireAnimalId,
     servedBy,
     heatId: heatThatRaised(input.instance.cause),
-    // The Role the Service belongs to, on the record itself. The Step ran under whichever Role the
-    // person holds first, which for somebody who is both Owner and Manager reads "owner" — a Role
-    // that may only read a Service.
-    recordedByRole: "manager" as const,
+    // The Role the Service was recorded under, on the record itself: the Owner's when the Step ran under
+    // it, since the Owner may now record one; the Manager's otherwise.
+    recordedByRole:
+      input.roleUsed === "owner" ? ("owner" as const) : ("manager" as const),
     servedAt,
     recordedBy: input.recordedBy,
   };
@@ -197,9 +198,9 @@ export const serviceEffect: EffectKind<ServiceFacts> = {
   // "once was enough" has to be able to pass.
   maySkip: true,
   recordableBy: {
-    roles: ["manager"],
+    roles: ["owner", "manager"],
     refusal: {
-      message: "A service is the Manager's to record",
+      message: "A service is the Manager's or the Owner's to record",
       reason: "manager_only",
     },
   },

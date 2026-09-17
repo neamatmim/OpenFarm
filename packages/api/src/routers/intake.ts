@@ -20,13 +20,7 @@ import {
 } from "../intake-store";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
-import { requireOnly, requireRole } from "../roles";
-
-const MANAGER_ONLY = {
-  message:
-    "Taking an animal in is the Manager's to record; the Owner approves what it cost",
-  reason: "manager_only",
-} as const;
+import { requireRole } from "../roles";
 
 /** Enough that the Manager recognises the man; not so many that a shed phone fetches a ledger. */
 const SELLERS_SHOWN = 100;
@@ -92,16 +86,14 @@ export const intakeRouter = {
   /**
    * Takes a bought-in animal in on the Fattening side.
    *
-   * The Manager's alone (roles matrix: Intake / Sale is `C R U` to the Manager and `R; approve
-   * above threshold` to the Owner). The Owner answers for the money, not for the buying — so an
-   * Owner sent here is told why rather than left looking for a permission to change. An Owner
-   * who does the buying on a small farm holds the Manager role too, and acts under it.
+   * The Manager's or the Owner's: the Owner may do anything the Manager does (the Owner,
+   * 2026-09-17), and money the Owner books needs no approval of theirs.
    *
    * The animal and the record of how it arrived are written in one transaction: an animal with
    * no account of where it came from is the thing a half-finished arrival would leave behind.
    */
   record: protectedProcedure
-    .use(requireOnly("manager", MANAGER_ONLY))
+    .use(requireRole("owner", "manager"))
     .input(recordInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();

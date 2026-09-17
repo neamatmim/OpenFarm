@@ -97,10 +97,11 @@ export const feedRouter = {
 
   /**
    * How low a Feed Item may run before the Manager is told — or null, for one nobody watches. The
-   * Manager's to set, as the store is theirs to keep.
+   * Manager's to set, as the store is theirs to keep, and the Owner's, who may do anything the Manager
+   * does (the Owner, 2026-09-17).
    */
   setLowStock: protectedProcedure
-    .use(requireRole("manager"))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         feedItemId: z.string(),

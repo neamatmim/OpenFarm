@@ -281,7 +281,7 @@ const MoneyPage = () => {
   const [to, setTo] = useState(() => farmDayOf(new Date()));
   const money = useQuery(orpc.money.list.queryOptions({ input: { from, to } }));
   const isOwner = me.data?.roles.includes("owner") ?? false;
-  const entersMoney = me.data?.roles.includes("manager") ?? false;
+  const entersMoney = isOwner || (me.data?.roles.includes("manager") ?? false);
   const rows = money.data?.events ?? [];
 
   const taka = (n: number) => `৳${formatNumber(n, language)}`;

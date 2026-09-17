@@ -903,8 +903,11 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
   const adjustments = useQuery(
     orpc.stock.adjustments.queryOptions({ input: {} })
   );
-  const mayRecord = me.data?.roles.includes("manager") ?? false;
-  const mayCorrect = mayRecord || (me.data?.roles.includes("owner") ?? false);
+  // The store is the Manager's to keep, and the Owner's, who may do anything the Manager does.
+  const mayRecord =
+    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
+    false;
+  const mayCorrect = mayRecord;
   return (
     <Section title={t("stock.title")}>
       <StockLines lines={stock.data ?? []} mayRecord={mayRecord} />

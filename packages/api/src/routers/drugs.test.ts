@@ -70,6 +70,26 @@ describe("the Drug List", () => {
       })
     ).rejects.toThrow();
 
+    // The Owner does what the Manager does, and the days stay the Vet's all the same.
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const ownersBox = await owner.client.drugs.add({
+      name: { bn: `আইভারমেকটিন ${Date.now()}` },
+    });
+    await expect(
+      owner.client.drugs.add({
+        name: { bn: `আইভারমেকটিন দিনসহ ${Date.now()}` },
+        milkWithdrawalDays: 3,
+        meatWithdrawalDays: 14,
+      })
+    ).rejects.toThrow(/Only the Vet keeps the Drug List/u);
+    await expect(
+      owner.client.drugs.setWithdrawal({
+        id: ownersBox.id,
+        milkWithdrawalDays: 3,
+        meatWithdrawalDays: 14,
+      })
+    ).rejects.toThrow();
+
     // And Staff have no business in the Drug List at all.
     await expect(staff.client.drugs.list()).rejects.toThrow();
   });

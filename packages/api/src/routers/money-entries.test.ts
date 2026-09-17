@@ -354,10 +354,15 @@ describe("money entered by hand", () => {
         code: "FORBIDDEN",
       });
     }
-    // Entering money is the Manager's; the Owner reads and approves it.
+    // Entering money is the Manager's and the Owner's; the Owner's own, even over the threshold, waits for nobody.
     const owner = await as("owner", "2038-05-01T04:00:00.000Z");
-    await expect(owner.client.money.enter(entry)).rejects.toMatchObject({
-      code: "FORBIDDEN",
+    const ownersRepair = await owner.client.money.enter({
+      ...entry,
+      amountBdt: 90_000,
+    });
+    expect(await eventOf(ownersRepair.id)).toMatchObject({
+      amountBdt: 90_000,
+      approval: "not_needed",
     });
     const onShedPhone = await as("manager", "2038-05-01T04:00:00.000Z", true);
     await expect(onShedPhone.client.money.enter(entry)).rejects.toMatchObject({

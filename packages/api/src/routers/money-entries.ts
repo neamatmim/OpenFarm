@@ -40,7 +40,7 @@ import {
   mayBeRetired,
   missingStandardCategories,
 } from "../money-store";
-import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+import { requirePersonalSession, requireRole } from "../roles";
 
 /** Thrown inside the standard Categories' write when another request gave them first, so that no Audit
  *  Event says they were given twice. */
@@ -50,11 +50,6 @@ class NothingToGiveError extends Error {
     this.name = "NothingToGiveError";
   }
 }
-
-const MANAGER_ONLY = {
-  message: "Entering money is the Manager's; the Owner reads and approves it",
-  reason: "manager_only",
-} as const;
 
 /** The Category as the trail records it either side of a change. */
 const readCategory = async (tx: Tx, farmId: string, id: string) =>
@@ -223,11 +218,12 @@ export const moneyEntryProcedures = {
    * the Category, who with, how it was paid, a note and a photo of the receipt. A wage names the person
    * and the month it pays for, once.
    *
-   * The Manager's, from their own phone (roles matrix: Money Events — Manager C R U, Owner R). Over the
-   * Approval Threshold it waits for the Owner as a record's money does.
+   * The Manager's or the Owner's, from their own phone (the Owner may do anything the Manager does, the
+   * Owner, 2026-09-17). Over the Approval Threshold it waits for the Owner as a record's money does —
+   * unless the Owner entered it.
    */
   enter: protectedProcedure
-    .use(requireOnly("manager", MANAGER_ONLY))
+    .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(
       z.object({
@@ -305,7 +301,7 @@ export const moneyEntryProcedures = {
    * is put right on the record, never here.
    */
   correctEntered: protectedProcedure
-    .use(requireOnly("manager", MANAGER_ONLY))
+    .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(moneyByHandCorrectionInput)
     .handler(({ context, input }) =>

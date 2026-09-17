@@ -96,9 +96,10 @@ const loadCheckableInstance = async (
       message: `This work is signed off by ${instance.checkerRole}`,
     });
   }
-  // Marking your own work as checked is not a check.
+  // Marking your own work as checked is not a check — except for the Owner, whose farm it is and who may sign off
+  // what they did themselves (the Owner, 2026-09-17).
   const doer = instance.claimedBy ?? instance.assignedTo;
-  if (doer === context.actor.id) {
+  if (doer === context.actor.id && !context.roles.includes("owner")) {
     throw new ORPCError("FORBIDDEN", {
       message: "Work is signed off by someone other than the person who did it",
     });

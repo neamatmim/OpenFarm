@@ -68,7 +68,7 @@ describe("intake", () => {
     expect(her.intake?.targetWeightKg).toBe(350);
   });
 
-  it("lets the Manager move the window, and lets nobody else take an animal in", async () => {
+  it("lets the Manager move the window, and nobody but the Manager and the Owner take an animal in", async () => {
     const clock = new FakeClock("2027-01-16T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
     const staff = await createTestClient(appRouter, { as: "staff", clock });
@@ -83,20 +83,25 @@ describe("intake", () => {
       estimatedAgeMonths: 20,
     };
 
-    // Buying an animal is not a milker's act, nor a Vet's — and the roles matrix gives Intake
-    // to the Manager alone, the Owner approving what it cost rather than doing the buying. An
-    // Owner sent here is told why, not left looking for a permission to change.
+    // Buying an animal is not a milker's act, nor a Vet's.
     await expect(staff.client.intake.record(arriving)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(vet.client.intake.record(arriving)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+    // The Owner may do it as the Manager does, and what the Owner paid waits for nobody's approval.
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await expect(owner.client.intake.record(arriving)).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      data: { refusal: "manager_only" },
+    const ownersBuy = await owner.client.intake.record(arriving);
+    const money = await owner.client.money.list({
+      from: "2027-01-01",
+      to: "2027-01-31",
     });
+    expect(
+      money.events.filter((one) => one.sourceId === ownersBuy.intakeId)
+    ).toEqual([
+      expect.objectContaining({ amountBdt: 88_000, approval: "not_needed" }),
+    ]);
 
     // This one is for the Qurbani market in Chattogram, which the Manager sells into early.
     const taken = await manager.client.intake.record({

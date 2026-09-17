@@ -298,21 +298,28 @@ describe("feed stock", () => {
     });
   });
 
-  it("is the Manager's to record and the Owner's to read, and nobody else's", async () => {
+  it("is the Manager's and the Owner's to record and to read, and nobody else's", async () => {
     const at = new FakeClock("2034-01-06T04:00:00.000Z");
     const owner = await createTestClient(appRouter, { as: "owner", clock: at });
     const ownersView = await owner.client.stock.onHand();
     expect(
       ownersView.some((line) => line.feedItemId === world.concentrate.id)
     ).toBe(true);
-    await expect(
-      owner.client.stock.receive({
-        feedItemId: world.concentrate.id,
-        kind: "harvest",
-        quantity: 10,
-        receivedOn: "2034-01-06",
-      })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // A feed of the Owner's own buying, so the store the other tests weigh is as they left it.
+    const hay = await owner.client.feed.addItem({
+      name: { bn: `খড় মালিকের ${suffix}` },
+    });
+    await owner.client.stock.receive({
+      feedItemId: hay.id,
+      kind: "harvest",
+      quantity: 10,
+      receivedOn: "2034-01-06",
+    });
+    const afterOwnersHay = await owner.client.stock.onHand();
+    expect(
+      afterOwnersHay.find((line) => line.feedItemId === hay.id)
+    ).toMatchObject({ onHand: 10 });
+    await owner.client.feed.retireItem({ id: hay.id });
     for (const as of ["staff", "vet"] as const) {
       // oxlint-disable-next-line no-await-in-loop
       const other = await createTestClient(appRouter, { as, clock: at });

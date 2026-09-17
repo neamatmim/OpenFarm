@@ -40,9 +40,9 @@ const countTheStore = async (
 export const stockCountEffect: EffectKind<StockCountFacts> = {
   kind: "stock_count",
   recordableBy: {
-    roles: ["manager"],
+    roles: ["owner", "manager"],
     refusal: {
-      message: "Counting the store is the Manager's",
+      message: "Counting the store is the Manager's or the Owner's",
       reason: "manager_only",
     },
   },

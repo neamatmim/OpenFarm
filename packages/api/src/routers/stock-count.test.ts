@@ -338,8 +338,9 @@ describe("the stock count", () => {
     expect(adjustments).toMatchObject([{ counted: 900, difference: -150 }]);
   });
 
-  it("is the Manager's to make", async () => {
-    // Unclaimed, so nothing but the count's own rule stands between the Owner and the Step.
+  it("is the Owner's to make as the Manager's is", async () => {
+    // Unclaimed, so nothing but the count's own rule stands between the Owner and the Step. Counted as the store
+    // stands, so nothing moves for the tests after it.
     const { id, manager } = await countWork("2035-01-10", { claim: false });
     const owner = await createTestClient(appRouter, {
       as: "owner",
@@ -352,10 +353,7 @@ describe("the stock count", () => {
         evidence: [true],
         counts: await countLines(manager, id, {}),
       })
-    ).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      data: { refusal: "manager_only" },
-    });
+    ).resolves.toMatchObject({ effect: { kind: "stock_count" } });
   });
 });
 

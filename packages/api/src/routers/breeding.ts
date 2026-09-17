@@ -145,12 +145,12 @@ export const breedingRouter = {
    * Somebody's answer to a Repeat Breeder: serve her again, treat her, or cull her, and why.
    *
    * A decision recorded as one and nothing more (the Owner, 2026-09-13): it changes no State and
-   * culls nobody. The Manager's or the Vet's to give; the Owner reads it. Only a cow who is on the
+   * culls nobody. The Manager's, the Vet's or the Owner's to give. Only a cow who is on the
    * queue can be answered — an answer for one who is not would quietly hold back her flag later, and a
    * second tap on the same answer finds nothing left to answer.
    */
   answerRepeatBreeder: protectedProcedure
-    .use(requireRole("manager", "vet"))
+    .use(requireRole("owner", "manager", "vet"))
     .input(
       z.object({
         tagNumber: tagInput,

@@ -414,7 +414,7 @@ describe("the service", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
-  it("is the Manager's alone to record, the Owner included", async () => {
+  it("is the Manager's or the Owner's to record, and nobody else's", async () => {
     // Her own heat and her own unclaimed work, so nothing but the Role stands in the way.
     const workId = await inHeat("2027-11-05", tagOf(3));
     const clock = new FakeClock("2027-11-05T13:00:00.000Z");
@@ -435,33 +435,26 @@ describe("the service", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     }
 
-    // The Owner may always step into a shift — someone has to be able to unstick one — so the
-    // step's own gate lets them in. But the roles matrix gives the Owner only read on a Service,
-    // and parentage recorded by the wrong hand is parentage nobody can trust. An Owner who does
-    // the breeding holds the Manager's role as well, and records it under that.
+    // The Owner may do anything the Manager does, a Service included, and the Service says so.
     const owner = await createTestClient(appRouter, { as: "owner", clock });
-    await expect(
-      owner.client.instances.completeStep({
-        instanceId: workId,
-        stepId: "serve",
-        evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
-      })
-    ).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      data: { refusal: "manager_only" },
-    });
-
-    // Once the Manager has recorded it, the same Service arriving again from the Owner's phone changes nothing, and is
-    // not refused: whose it is to record was asked when it was recorded.
-    const manager = await createTestClient(appRouter, { as: "manager", clock });
     const served = {
       instanceId: workId,
       stepId: "serve",
       evidence: ["ai", "HF-1100", "রহিম", "2027-11-05T13:00:00.000Z"],
     };
-    await manager.client.instances.completeStep(served);
+    await owner.client.instances.completeStep(served);
+    const cow = await owner.client.animals.byTag({ tagNumber: tagOf(3) });
+    const recorded = await scratchDb().query.service.findFirst({
+      where: { animalId: cow.id },
+      columns: { recordedByRole: true },
+    });
+    expect(recorded?.recordedByRole).toBe("owner");
+
+    // Once the Owner has recorded it, the same Service arriving again from the Manager's phone changes nothing, and is
+    // not refused: whose it is to record was asked when it was recorded.
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
     await expect(
-      owner.client.instances.completeStep(served)
+      manager.client.instances.completeStep(served)
     ).resolves.toMatchObject({ effect: null });
   });
 
