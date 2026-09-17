@@ -1,5 +1,5 @@
 import { verifyPin } from "@OpenFarm/domain";
-import { formatDigits } from "@OpenFarm/i18n";
+import { formatDigits, numberAsTyped } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -360,7 +360,10 @@ const DevicePage = () => {
     // Typed on the phone's keyboard or tapped on the pad, the PIN goes the same way: digits only, four of them, and
     // checked as soon as the fourth is in.
     const typePin = (typed: string) => {
-      const next = typed.replaceAll(/\D/gu, "").slice(0, PIN_LENGTH);
+      // A Bangla keyboard's ১২৩৪ is the PIN 1234.
+      const next = numberAsTyped(typed)
+        .replaceAll(/\D/gu, "")
+        .slice(0, PIN_LENGTH);
       setPin(next);
       if (next.length === PIN_LENGTH) {
         void submitPin(chosen, next);

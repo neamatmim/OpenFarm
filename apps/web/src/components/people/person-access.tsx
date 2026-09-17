@@ -1,6 +1,6 @@
 import type { RoleName } from "@OpenFarm/api/roles";
 import { ROLES } from "@OpenFarm/api/roles";
-import { formatDate, formatDayField } from "@OpenFarm/i18n";
+import { formatDate, formatDayField, numberAsTyped } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
@@ -499,7 +499,11 @@ const PinDialog = ({
           inputMode="numeric"
           maxLength={4}
           onChange={(event) =>
-            setPin(event.target.value.replaceAll(/\D/gu, "").slice(0, 4))
+            setPin(
+              numberAsTyped(event.target.value)
+                .replaceAll(/\D/gu, "")
+                .slice(0, 4)
+            )
           }
           value={pin}
         />
