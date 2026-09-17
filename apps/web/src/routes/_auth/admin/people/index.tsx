@@ -1,6 +1,6 @@
 import type { RoleName } from "@OpenFarm/api/roles";
 import { ROLES } from "@OpenFarm/api/roles";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -12,6 +12,13 @@ import { KeyRound, MailCheck, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import {
   EmptyState,
   Loaded,
@@ -288,32 +295,69 @@ const InviteForm = ({
   );
 };
 
-/** One name on the list: what they are, what they are waiting for, and the way to their page. */
-const PersonLine = ({
-  row,
-  onApprove,
-  onNewCode,
-  busy,
-}: {
-  row: Listed;
-  onApprove: (inviteId: string) => void;
-  onNewCode: (inviteId: string) => void;
-  busy: (what: string) => boolean;
-}) => {
+/** What somebody's standing is called, in its colour: a visit says the last day it lasts. */
+const StandingBadge = ({ standing }: { standing: Standing }) => {
   const { t, language } = useLanguage();
-  const said = t(STANDING_WORD[row.standing.kind], {
+  const said = t(STANDING_WORD[standing.kind], {
     date:
-      row.standing.kind === "visiting"
+      standing.kind === "visiting"
         ? formatDate(
-            new Date(row.standing.until.getTime() - 60_000),
+            new Date(standing.until.getTime() - 60_000),
             language,
             "date"
           )
         : "",
   });
+  return <StatusBadge tone={TONE[standing.kind]}>{said}</StatusBadge>;
+};
+
+/** What the Owner can do for somebody still on their way in: approve the invitation, or hand them a new code. */
+interface Waiting {
+  onApprove: (inviteId: string) => void;
+  onNewCode: (inviteId: string) => void;
+  busy: (what: string) => boolean;
+}
+
+const WaitingAction = ({
+  row,
+  onApprove,
+  onNewCode,
+  busy,
+}: Waiting & { row: Listed }) => {
+  const t = useT();
+  if (row.standing.kind === "waitingForTheOwner") {
+    return (
+      <Button
+        disabled={busy(`approve:${row.standing.inviteId}`)}
+        onClick={() => onApprove(row.key)}
+        size="sm"
+      >
+        {t("people.approve")}
+      </Button>
+    );
+  }
+  if (row.standing.kind === "waitingToSignUp") {
+    return (
+      <Button
+        disabled={busy(`code:${row.standing.inviteId}`)}
+        onClick={() => onNewCode(row.key)}
+        size="sm"
+        variant="outline"
+      >
+        {t("people.newCode")}
+      </Button>
+    );
+  }
+  return null;
+};
+
+/** One name on the list, on a phone: what they are, what they are waiting for — said under the name, where a
+ *  long visit has room — and the way to their page. */
+const PersonLine = ({ row, ...waiting }: Waiting & { row: Listed }) => {
+  const t = useT();
   const what = (
-    <>
-      <span className="min-w-0 flex-1">
+    <span className="flex min-w-0 flex-1 flex-col items-start gap-1 py-1.5">
+      <span className="max-w-full min-w-0">
         <span className="font-medium">{row.name}</span>
         <span className="text-muted-foreground block truncate text-sm">
           {row.roles.map((role) => t(roleKey(role))).join(", ") || row.email}
@@ -322,44 +366,137 @@ const PersonLine = ({
             : ""}
         </span>
       </span>
-      <StatusBadge tone={TONE[row.standing.kind]}>{said}</StatusBadge>
-    </>
+      <StandingBadge standing={row.standing} />
+    </span>
   );
   return (
     <li className="flex items-center gap-3 py-1">
       {row.userId ? (
         <Link
-          className="hover:bg-muted/50 flex min-h-11 flex-1 items-center gap-3 rounded-lg px-2"
+          className="hover:bg-muted/50 flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-2"
           params={{ userId: row.userId }}
           to="/admin/people/$userId"
         >
           {what}
         </Link>
       ) : (
-        <span className="flex min-h-11 flex-1 items-center gap-3 px-2">
+        <span className="flex min-h-11 min-w-0 flex-1 items-center gap-3 px-2">
           {what}
         </span>
       )}
-      {row.standing.kind === "waitingForTheOwner" ? (
-        <Button
-          disabled={busy(`approve:${row.standing.inviteId}`)}
-          onClick={() => onApprove(row.key)}
-          size="sm"
-        >
-          {t("people.approve")}
-        </Button>
-      ) : null}
-      {row.standing.kind === "waitingToSignUp" ? (
-        <Button
-          disabled={busy(`code:${row.standing.inviteId}`)}
-          onClick={() => onNewCode(row.key)}
-          size="sm"
-          variant="outline"
-        >
-          {t("people.newCode")}
-        </Button>
-      ) : null}
+      <WaitingAction row={row} {...waiting} />
     </li>
+  );
+};
+
+/** A name in the table leads to their page, where the farm has one for them. */
+interface PersonRow extends Listed, Waiting {}
+
+const NameCell = ({ row }: { row: { original: PersonRow } }) => {
+  const { userId, name } = row.original;
+  if (!userId) {
+    return <span className="font-medium">{name}</span>;
+  }
+  return (
+    <Link
+      className="font-medium underline-offset-4 hover:underline"
+      params={{ userId }}
+      to="/admin/people/$userId"
+    >
+      {name}
+    </Link>
+  );
+};
+
+const EmailCell = ({ row }: { row: { original: PersonRow } }) => (
+  <span className="text-muted-foreground whitespace-nowrap">
+    {row.original.email}
+  </span>
+);
+
+const RolesCell = ({ row }: { row: { original: PersonRow } }) => {
+  const t = useT();
+  return row.original.roles.map((role) => t(roleKey(role))).join(", ") || "—";
+};
+
+/** Pens counted where somebody keeps some; an invitation keeps none until it is taken up. */
+const PensCell = ({ row }: { row: { original: PersonRow } }) => {
+  const { language } = useLanguage();
+  return row.original.pens > 0
+    ? formatNumber(row.original.pens, language)
+    : "—";
+};
+
+const StandingCell = ({ row }: { row: { original: PersonRow } }) => (
+  <StandingBadge standing={row.original.standing} />
+);
+
+const ActionCell = ({ row }: { row: { original: PersonRow } }) => {
+  const { busy, onApprove, onNewCode } = row.original;
+  return (
+    <WaitingAction
+      busy={busy}
+      onApprove={onApprove}
+      onNewCode={onNewCode}
+      row={row.original}
+    />
+  );
+};
+
+/** Sorted by standing, whoever the farm is waiting on comes first, and those no longer here last. */
+const STANDING_ORDER = {
+  waitingForTheOwner: 0,
+  waitingToSignUp: 1,
+  visiting: 2,
+  working: 3,
+  gone: 4,
+} as const;
+
+const column = createListColumns<PersonRow>();
+const personColumns = column.columns([
+  column.accessor("name", {
+    header: listHeader("people.name"),
+    cell: NameCell,
+    meta: { className: "min-w-40" },
+  }),
+  column.accessor("email", {
+    header: listHeader("people.email"),
+    cell: EmailCell,
+  }),
+  column.accessor((person) => person.roles.join(","), {
+    id: "roles",
+    header: listHeader("people.roles"),
+    cell: RolesCell,
+  }),
+  column.accessor("pens", {
+    header: listHeader("people.col.pens"),
+    cell: PensCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((person) => STANDING_ORDER[person.standing.kind], {
+    id: "standing",
+    header: listHeader("people.status"),
+    cell: StandingCell,
+  }),
+  column.display({
+    id: "action",
+    header: ActionsHeader,
+    cell: ActionCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** Everybody as a table where there is room: name, email, Roles, Pens and standing side by side, sortable. */
+const PeopleTable = ({ rows, ...waiting }: Waiting & { rows: Listed[] }) => {
+  const table = useListTable({
+    columns: personColumns,
+    data: rows.map((row) => ({ ...row, ...waiting })),
+    getRowId: (row) => row.key,
+  });
+  return (
+    <div className="hidden md:block">
+      <DataTable minWidth="44rem" table={table} />
+    </div>
   );
 };
 
@@ -441,9 +578,11 @@ const PeoplePage = () => {
   }, [list.data]);
 
   const shown = matching(rows, looking);
+  const handleApprove = (id: string) => approve.mutate({ id });
+  const handleNewCode = (id: string) => reissue.mutate({ id });
 
   return (
-    <Page className="max-w-4xl" width="default">
+    <Page width="default">
       <PageHeader title={t("people.title")} />
       {reissued ? <InviteCode {...reissued} /> : null}
 
@@ -469,17 +608,25 @@ const PeoplePage = () => {
               title={looking ? t("people.noneFound") : t("people.noPending")}
             />
           ) : (
-            <ul className="divide-border flex flex-col divide-y">
-              {shown.map((row) => (
-                <PersonLine
-                  busy={inFlight.has}
-                  key={row.key}
-                  onApprove={(id) => approve.mutate({ id })}
-                  onNewCode={(id) => reissue.mutate({ id })}
-                  row={row}
-                />
-              ))}
-            </ul>
+            <>
+              <ul className="divide-border flex flex-col divide-y md:hidden">
+                {shown.map((row) => (
+                  <PersonLine
+                    busy={inFlight.has}
+                    key={row.key}
+                    onApprove={handleApprove}
+                    onNewCode={handleNewCode}
+                    row={row}
+                  />
+                ))}
+              </ul>
+              <PeopleTable
+                busy={inFlight.has}
+                onApprove={handleApprove}
+                onNewCode={handleNewCode}
+                rows={shown}
+              />
+            </>
           )}
         </Loaded>
       </Section>

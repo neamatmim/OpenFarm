@@ -120,7 +120,10 @@ const ManagerHome = () => {
     <Page>
       <PageHeader
         actions={
-          <Button render={<Link search={{}} to="/today" />}>
+          <Button
+            nativeButton={false}
+            render={<Link search={{}} to="/today" />}
+          >
             <ClipboardList data-icon="inline-start" />
             {t("nav.today")}
           </Button>
@@ -130,7 +133,9 @@ const ManagerHome = () => {
         title={t("home.title")}
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* One column that shrinks to the phone: a grid's own column grows to its widest unbroken line, and a Tag Number
+          beside a long date pushed both cards off the screen. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Section
           className="lg:col-span-2"
           description={waiting === 0 ? undefined : t("home.queueHint")}

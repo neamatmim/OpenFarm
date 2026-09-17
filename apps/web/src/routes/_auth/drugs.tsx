@@ -11,6 +11,13 @@ import { Pill, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { EmptyState, Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -70,23 +77,32 @@ const DrugsPage = () => {
   );
 
   return (
-    <Page width="narrow" className="max-w-3xl">
+    <Page>
       <PageHeader title={t("drugs.title")} />
 
       <Section>
         {drugs.data?.length ? (
-          <ul className="space-y-2">
-            {drugs.data.map((product) => (
-              <Product
-                isVet={isVet}
-                key={product.id}
-                onChanged={refresh}
-                onBringBack={() => bringBack.mutate({ id: product.id })}
-                onRetire={() => retire.mutate({ id: product.id })}
-                product={product}
-              />
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2 md:hidden">
+              {drugs.data.map((product) => (
+                <Product
+                  isVet={isVet}
+                  key={product.id}
+                  onChanged={refresh}
+                  onBringBack={() => bringBack.mutate({ id: product.id })}
+                  onRetire={() => retire.mutate({ id: product.id })}
+                  product={product}
+                />
+              ))}
+            </ul>
+            <DrugTable
+              drugs={drugs.data}
+              isVet={isVet}
+              onBringBack={(id) => bringBack.mutate({ id })}
+              onChanged={refresh}
+              onRetire={(id) => retire.mutate({ id })}
+            />
+          </>
         ) : (
           <EmptyState bare icon={Pill} title={t("drugs.none")} />
         )}
@@ -251,7 +267,7 @@ const BuyMedicine = ({
         </Button>
       </form>
       {bought.data?.length ? (
-        <ul className="space-y-1 text-sm">
+        <ul className="space-y-1 text-sm md:hidden">
           {bought.data.map((one) => (
             <li className="bg-card rounded-lg border p-3" key={one.id}>
               {formatDate(one.purchasedOn, language)} · {one.quantity} ·{" "}
@@ -263,6 +279,7 @@ const BuyMedicine = ({
           ))}
         </ul>
       ) : null}
+      {bought.data?.length ? <PurchaseTable purchases={bought.data} /> : null}
     </Section>
   );
 };
@@ -424,6 +441,329 @@ const Product = ({
       )}
     </li>
   );
+};
+
+type DrugProduct = Awaited<ReturnType<typeof orpc.drugs.list.call>>[number];
+
+/** Days as a box holds them: blank for days nobody has written. */
+const daysTyped = (days: number | null): string =>
+  days === null ? "" : String(days);
+
+interface DrugRow extends DrugProduct {
+  isVet: boolean;
+  milk: string;
+  meat: string;
+  handleMilk: (value: string) => void;
+  handleMeat: (value: string) => void;
+  onChanged: () => void;
+  onRetire: () => void;
+  onBringBack: () => void;
+}
+
+/** A row's days boxes sit in their own cells, and belong to the form in the row's last cell by its id. */
+const daysForm = (id: string) => `drug-days-${id}`;
+
+const ProductCell = ({ row }: { row: { original: DrugRow } }) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const product = row.original;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={product.retiredAt ? "text-muted-foreground" : ""}>
+        <span className="font-medium">
+          {language === "en" && product.nameEn
+            ? product.nameEn
+            : product.nameBn}
+        </span>
+        {product.vaccine ? ` · ${t("drugs.vaccine")}` : ""}
+        {product.retiredAt ? ` · ${t("drugs.retired")}` : ""}
+      </span>
+      {product.whyNot ? (
+        <span className="text-warning text-sm">
+          {t(WHY_NOT[product.whyNot])}
+        </span>
+      ) : null}
+    </div>
+  );
+};
+
+/** One product's days of one kind: a box the in-house Vet writes them in, the days as written for everybody else. */
+const Days = ({
+  days,
+  typed,
+  onType,
+  label,
+  row,
+}: {
+  days: number | null;
+  typed: string;
+  onType: (value: string) => void;
+  label: string;
+  row: DrugRow;
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  if (row.isVet) {
+    return (
+      <Input
+        aria-label={label}
+        className="ml-auto w-20"
+        form={daysForm(row.id)}
+        max={365}
+        min={0}
+        onChange={(event) => onType(event.target.value)}
+        step="1"
+        type="number"
+        value={typed}
+      />
+    );
+  }
+  return days === null
+    ? "—"
+    : t("drugs.days", { count: formatNumber(days, language) });
+};
+
+const MilkDaysCell = ({ row }: { row: { original: DrugRow } }) => {
+  const t = useT();
+  return (
+    <Days
+      days={row.original.milkWithdrawalDays}
+      label={t("drugs.milkDays")}
+      onType={row.original.handleMilk}
+      row={row.original}
+      typed={row.original.milk}
+    />
+  );
+};
+
+const MeatDaysCell = ({ row }: { row: { original: DrugRow } }) => {
+  const t = useT();
+  return (
+    <Days
+      days={row.original.meatWithdrawalDays}
+      label={t("drugs.meatDays")}
+      onType={row.original.handleMeat}
+      row={row.original}
+      typed={row.original.meat}
+    />
+  );
+};
+
+const SetByCell = ({ row }: { row: { original: DrugRow } }) => {
+  const { language } = useLanguage();
+  const { daysSetByName, daysSetAt } = row.original;
+  if (!daysSetByName || !daysSetAt) {
+    return "—";
+  }
+  return (
+    <div className="flex flex-col">
+      <span>{daysSetByName}</span>
+      <span className="text-muted-foreground text-xs whitespace-nowrap">
+        {formatDate(new Date(daysSetAt), language, "date")}
+      </span>
+    </div>
+  );
+};
+
+/** What the in-house Vet does to a product from its row: write its days, mark it a vaccine or not, retire it. */
+const KeepCell = ({ row }: { row: { original: DrugRow } }) => {
+  const t = useT();
+  const product = row.original;
+  const save = useMutation(
+    orpc.drugs.setWithdrawal.mutationOptions({
+      onSuccess: product.onChanged,
+      onError: (error) => toast.error(sayWhy(error, t)),
+    })
+  );
+  const markVaccine = useMutation(
+    orpc.drugs.markVaccine.mutationOptions({
+      onSuccess: product.onChanged,
+      onError: (error) => toast.error(sayWhy(error, t)),
+    })
+  );
+  return (
+    <form
+      className="flex flex-wrap justify-end gap-2"
+      id={daysForm(product.id)}
+      onSubmit={(event) => {
+        event.preventDefault();
+        save.mutate({
+          id: product.id,
+          milkWithdrawalDays: Number(product.milk),
+          meatWithdrawalDays: Number(product.meat),
+        });
+      }}
+    >
+      <Button
+        disabled={product.milk === "" || product.meat === ""}
+        size="sm"
+        type="submit"
+      >
+        {t("drugs.save")}
+      </Button>
+      <Button
+        disabled={markVaccine.isPending}
+        onClick={() =>
+          markVaccine.mutate({ id: product.id, vaccine: !product.vaccine })
+        }
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        {t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine")}
+      </Button>
+      <Button
+        onClick={product.retiredAt ? product.onBringBack : product.onRetire}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        {product.retiredAt ? t("drugs.bringBack") : t("drugs.retire")}
+      </Button>
+    </form>
+  );
+};
+
+const drugColumn = createListColumns<DrugRow>();
+const drugReadColumns = [
+  drugColumn.accessor("nameBn", {
+    header: listHeader("drugs.name"),
+    cell: ProductCell,
+  }),
+  drugColumn.accessor((product) => product.milkWithdrawalDays ?? -1, {
+    id: "milkDays",
+    header: listHeader("drugs.milkDays"),
+    cell: MilkDaysCell,
+    meta: { align: "end" },
+  }),
+  drugColumn.accessor((product) => product.meatWithdrawalDays ?? -1, {
+    id: "meatDays",
+    header: listHeader("drugs.meatDays"),
+    cell: MeatDaysCell,
+    meta: { align: "end" },
+  }),
+  drugColumn.accessor((product) => product.daysSetByName ?? "", {
+    id: "setBy",
+    header: listHeader("drugs.col.setBy"),
+    cell: SetByCell,
+  }),
+];
+const drugColumns = drugColumn.columns(drugReadColumns);
+const drugKeepColumns = drugColumn.columns([
+  ...drugReadColumns,
+  drugColumn.display({
+    id: "keep",
+    header: ActionsHeader,
+    cell: KeepCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** The Drug List as a table where there is room: each product's milk and meat days side by side, and who wrote
+ *  them. The in-house Vet writes the days in the row itself. */
+const DrugTable = ({
+  drugs,
+  isVet,
+  onChanged,
+  onRetire,
+  onBringBack,
+}: {
+  drugs: DrugProduct[];
+  isVet: boolean;
+  onChanged: () => void;
+  onRetire: (id: string) => void;
+  onBringBack: (id: string) => void;
+}) => {
+  const t = useT();
+  const [typed, setTyped] = useState<
+    Record<string, { milk?: string; meat?: string }>
+  >({});
+  const type = (id: string, kind: "milk" | "meat") => (value: string) =>
+    setTyped((current) => ({
+      ...current,
+      [id]: { ...current[id], [kind]: value },
+    }));
+  const table = useListTable({
+    columns: isVet ? drugKeepColumns : drugColumns,
+    data: drugs.map((product) => ({
+      ...product,
+      isVet,
+      milk: typed[product.id]?.milk ?? daysTyped(product.milkWithdrawalDays),
+      meat: typed[product.id]?.meat ?? daysTyped(product.meatWithdrawalDays),
+      handleMilk: type(product.id, "milk"),
+      handleMeat: type(product.id, "meat"),
+      onChanged,
+      onRetire: () => onRetire(product.id),
+      onBringBack: () => onBringBack(product.id),
+    })),
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="hidden flex-col gap-3 md:flex">
+      <DataTable table={table} />
+      {isVet ? null : (
+        <p className="text-muted-foreground text-xs">
+          {t("drugs.managerAdds")}
+        </p>
+      )}
+    </div>
+  );
+};
+
+type Purchase = Awaited<ReturnType<typeof orpc.drugs.purchases.call>>[number];
+
+const BoughtOnCell = ({ row }: { row: { original: Purchase } }) => {
+  const { language } = useLanguage();
+  return (
+    <span className="whitespace-nowrap">
+      {formatDate(row.original.purchasedOn, language)}
+    </span>
+  );
+};
+
+const DosesCell = ({ row }: { row: { original: Purchase } }) => {
+  const { language } = useLanguage();
+  return formatNumber(row.original.doses, language);
+};
+
+const PurchasePriceCell = ({ row }: { row: { original: Purchase } }) => {
+  const { language } = useLanguage();
+  return `৳${formatNumber(row.original.priceBdt, language)}`;
+};
+
+const purchaseColumn = createListColumns<Purchase>();
+const purchaseColumns = purchaseColumn.columns([
+  purchaseColumn.accessor((one) => new Date(one.purchasedOn).getTime(), {
+    id: "purchasedOn",
+    header: listHeader("drugs.boughtOn"),
+    cell: BoughtOnCell,
+  }),
+  purchaseColumn.accessor("quantity", {
+    header: listHeader("drugs.quantity"),
+  }),
+  purchaseColumn.accessor("doses", {
+    header: listHeader("drugs.doses"),
+    cell: DosesCell,
+    meta: { align: "end" },
+  }),
+  purchaseColumn.accessor("priceBdt", {
+    header: listHeader("drugs.price"),
+    cell: PurchasePriceCell,
+    meta: { align: "end" },
+  }),
+  purchaseColumn.accessor("sellerName", {
+    header: listHeader("drugs.seller"),
+  }),
+]);
+
+/** A product's Medicine Purchases as a table where there is room, newest first. */
+const PurchaseTable = ({ purchases }: { purchases: Purchase[] }) => {
+  const table = useListTable({
+    columns: purchaseColumns,
+    data: purchases,
+    getRowId: (row) => row.id,
+  });
+  return <DataTable className="hidden md:block" table={table} />;
 };
 
 export const Route = createFileRoute("/_auth/drugs")({

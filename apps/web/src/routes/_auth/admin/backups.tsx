@@ -3,14 +3,80 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { DatabaseBackup } from "lucide-react";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
-import { useLanguage } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 /** Two nights without a copy is a farm one disk away from losing its own records. */
 const NIGHTS_BEFORE_WORRYING = 2;
 /** Three turns of the server's five-minute clock missed. */
 const SCHEDULE_STALE_MS = 15 * 60_000;
+
+/** Whether a moment is further back than a span, as of when the screen is drawn. */
+const olderThan = (at: Date | string, spanMs: number): boolean =>
+  Date.now() - new Date(at).getTime() > spanMs;
+
+type BackupRun = Awaited<
+  ReturnType<typeof orpc.backups.recent.call>
+>["runs"][number];
+
+/** Whether a copy worked, and what went wrong when it did not. */
+const RunResult = ({ run }: { run: BackupRun }) => {
+  const t = useT();
+  return (
+    <span className={run.ok === "yes" ? "text-success" : "text-warning"}>
+      {run.ok === "yes" ? t("backups.ok") : t("backups.failed")}
+      {run.detail ? ` · ${run.detail}` : ""}
+    </span>
+  );
+};
+
+const StartedCell = ({ row }: { row: { original: BackupRun } }) => {
+  const { language } = useLanguage();
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {formatDate(new Date(row.original.startedAt), language, "dateTime")}
+    </span>
+  );
+};
+
+const ResultCell = ({ row }: { row: { original: BackupRun } }) => (
+  <RunResult run={row.original} />
+);
+
+const column = createListColumns<BackupRun>();
+const runColumns = column.columns([
+  column.accessor((run) => new Date(run.startedAt).getTime(), {
+    id: "startedAt",
+    header: listHeader("audit.when"),
+    cell: StartedCell,
+  }),
+  column.accessor("kind", { header: listHeader("backups.col.kind") }),
+  column.accessor("ok", {
+    header: listHeader("backups.col.result"),
+    cell: ResultCell,
+  }),
+]);
+
+/** The copies taken, as a table where there is room: when, which kind, and whether it worked. */
+const RunTable = ({ runs }: { runs: BackupRun[] }) => {
+  const table = useListTable({
+    columns: runColumns,
+    data: runs,
+    getRowId: (run) => run.id,
+  });
+  return (
+    <div className="bg-card hidden rounded-xl border md:block">
+      <DataTable bare minWidth="32rem" table={table} />
+    </div>
+  );
+};
 
 /**
  * Whether the farm is being copied off the machine it lives on.
@@ -30,8 +96,7 @@ const BackupsPage = () => {
     schedule.data !== undefined &&
     (schedule.data.lastError !== null ||
       schedule.data.lastOkAt === null ||
-      Date.now() - new Date(schedule.data.lastOkAt).getTime() >
-        SCHEDULE_STALE_MS);
+      olderThan(schedule.data.lastOkAt, SCHEDULE_STALE_MS));
 
   const state = backups.data;
   const worrying =
@@ -81,25 +146,23 @@ const BackupsPage = () => {
         <Notice title={howItStands()} tone={worrying ? "warning" : "success"} />
       ) : null}
       {state?.runs.length ? (
-        <ul className="space-y-2">
-          {state.runs.map((run) => (
-            <li
-              className="bg-card surface flex items-center justify-between p-4 text-sm"
-              key={run.id}
-            >
-              <span>
-                {formatDate(new Date(run.startedAt), language, "dateTime")} ·{" "}
-                {run.kind}
-              </span>
-              <span
-                className={run.ok === "yes" ? "text-success" : "text-warning"}
+        <>
+          <ul className="space-y-2 md:hidden">
+            {state.runs.map((run) => (
+              <li
+                className="bg-card surface flex items-center justify-between p-4 text-sm"
+                key={run.id}
               >
-                {run.ok === "yes" ? t("backups.ok") : t("backups.failed")}
-                {run.detail ? ` · ${run.detail}` : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
+                <span>
+                  {formatDate(new Date(run.startedAt), language, "dateTime")} ·{" "}
+                  {run.kind}
+                </span>
+                <RunResult run={run} />
+              </li>
+            ))}
+          </ul>
+          <RunTable runs={state.runs} />
+        </>
       ) : (
         <EmptyState icon={DatabaseBackup} title={t("backups.none")} />
       )}

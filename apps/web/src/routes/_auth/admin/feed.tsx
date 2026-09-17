@@ -4,6 +4,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -14,6 +15,13 @@ import {
   CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { Page, PageHeader, Section } from "@/components/page";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -78,7 +86,7 @@ const FeedPage = () => {
   );
 
   return (
-    <Page width="narrow" className="max-w-3xl">
+    <Page className="max-w-5xl">
       <PageHeader title={t("feed.title")} />
 
       <FeedItems items={(items.data ?? []) as FeedRow[]} onChanged={refresh} />
@@ -509,26 +517,134 @@ const ArrivalCorrection = ({
   );
 };
 
-/**
- * What is in the store, what came into it, and feed coming in. What is on hand is worked out from what
- * came in and what the pens were given — nobody types it — and a line below nothing says feed arrived
- * that nobody wrote down. Recording feed coming in is the Manager's; the Owner reads.
- */
-const FeedStock = ({ items }: { items: FeedRow[] }) => {
+type StockLine = Awaited<ReturnType<typeof orpc.stock.onHand.call>>[number];
+type Adjustment = Awaited<
+  ReturnType<typeof orpc.stock.adjustments.call>
+>[number];
+type Arrival = Awaited<ReturnType<typeof orpc.stock.arrivals.call>>[number];
+
+interface StockRow extends StockLine {
+  watchable: boolean;
+}
+
+/** A Feed Item's name, and that it is retired when it is. */
+const FeedName = ({
+  nameBn,
+  retiredAt,
+}: {
+  nameBn: string;
+  retiredAt: Date | null;
+}) => {
+  const t = useT();
+  return (
+    <span className={retiredAt ? "text-muted-foreground" : "font-medium"}>
+      {nameBn}
+      {retiredAt ? ` · ${t("feed.retired")}` : ""}
+    </span>
+  );
+};
+
+const StockNameCell = ({ row }: { row: { original: StockRow } }) => (
+  <FeedName nameBn={row.original.nameBn} retiredAt={row.original.retiredAt} />
+);
+
+const OnHandCell = ({ row }: { row: { original: StockRow } }) => {
+  const { language } = useLanguage();
+  const line = row.original;
+  return (
+    <span
+      className={cn(
+        "whitespace-nowrap",
+        (line.onHand < 0 || line.runningLow) && "text-destructive font-medium"
+      )}
+    >
+      {formatNumber(line.onHand, language)} {line.unit}
+    </span>
+  );
+};
+
+const AveragePriceCell = ({ row }: { row: { original: StockRow } }) => {
   const t = useT();
   const { language } = useLanguage();
-  const me = useQuery(orpc.people.me.queryOptions());
-  const stock = useQuery(orpc.stock.onHand.queryOptions());
-  const arrivals = useQuery(orpc.stock.arrivals.queryOptions({ input: {} }));
-  const adjustments = useQuery(
-    orpc.stock.adjustments.queryOptions({ input: {} })
-  );
-  const mayRecord = me.data?.roles.includes("manager") ?? false;
-  const mayCorrect = mayRecord || (me.data?.roles.includes("owner") ?? false);
+  const line = row.original;
+  if (line.averagePriceBdt === null) {
+    return "—";
+  }
   return (
-    <Section title={t("stock.title")}>
-      <ul className="space-y-1 text-sm">
-        {(stock.data ?? []).map((line) => (
+    <span className="whitespace-nowrap">
+      {t("stock.averagePrice", {
+        taka: formatNumber(line.averagePriceBdt, language),
+        unit: line.unit,
+      })}
+    </span>
+  );
+};
+
+const LowAtCell = ({ row }: { row: { original: StockRow } }) =>
+  row.original.watchable ? (
+    <div className="flex justify-end">
+      <LowStockAt
+        feedItemId={row.original.feedItemId}
+        threshold={row.original.lowStockAt}
+      />
+    </div>
+  ) : null;
+
+const stockColumn = createListColumns<StockRow>();
+const stockReadColumns = [
+  stockColumn.accessor("nameBn", {
+    header: listHeader("stock.col.item"),
+    cell: StockNameCell,
+  }),
+  stockColumn.accessor("onHand", {
+    header: listHeader("stock.col.onHand"),
+    cell: OnHandCell,
+    meta: { align: "end" },
+  }),
+  stockColumn.accessor((line) => line.averagePriceBdt ?? -1, {
+    id: "averagePrice",
+    header: listHeader("stock.col.averagePrice"),
+    cell: AveragePriceCell,
+    meta: { align: "end" },
+  }),
+];
+const stockColumns = stockColumn.columns(stockReadColumns);
+const stockWatchColumns = stockColumn.columns([
+  ...stockReadColumns,
+  stockColumn.display({
+    id: "lowAt",
+    header: listHeader("stock.lowAt"),
+    cell: LowAtCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** What is in the store, a line per Feed Item: a list on a phone, a table where there is room, and the level the
+ *  Manager is told below beside each one the Manager watches. */
+const StockLines = ({
+  lines,
+  mayRecord,
+}: {
+  lines: StockLine[];
+  mayRecord: boolean;
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const table = useListTable({
+    columns: mayRecord ? stockWatchColumns : stockColumns,
+    data: lines.map((line) => ({
+      ...line,
+      watchable: mayRecord && !line.retiredAt,
+    })),
+    getRowId: (row) => row.feedItemId,
+  });
+  if (lines.length === 0) {
+    return null;
+  }
+  return (
+    <>
+      <ul className="space-y-1 text-sm md:hidden">
+        {lines.map((line) => (
           <li
             className="flex flex-wrap justify-between gap-2"
             key={line.feedItemId}
@@ -559,49 +675,245 @@ const FeedStock = ({ items }: { items: FeedRow[] }) => {
           </li>
         ))}
       </ul>
+      <DataTable className="hidden md:block" table={table} />
+    </>
+  );
+};
+
+const CountedOnCell = ({ row }: { row: { original: Adjustment } }) => {
+  const { language } = useLanguage();
+  return (
+    <span className="whitespace-nowrap">
+      {formatDate(row.original.countedAt, language)}
+    </span>
+  );
+};
+
+/** A figure from a Stock Count, in the reader's digits. */
+const CountFigure = ({ value }: { value: number }) => {
+  const { language } = useLanguage();
+  return formatNumber(value, language);
+};
+
+const ExpectedCell = ({ row }: { row: { original: Adjustment } }) => (
+  <CountFigure value={row.original.expected} />
+);
+
+const CountedCell = ({ row }: { row: { original: Adjustment } }) => (
+  <CountFigure value={row.original.counted} />
+);
+
+const adjustmentColumn = createListColumns<Adjustment>();
+const adjustmentColumns = adjustmentColumn.columns([
+  adjustmentColumn.accessor((one) => new Date(one.countedAt).getTime(), {
+    id: "countedAt",
+    header: listHeader("money.col.date"),
+    cell: CountedOnCell,
+  }),
+  adjustmentColumn.accessor("nameBn", {
+    header: listHeader("stock.col.item"),
+  }),
+  adjustmentColumn.accessor("expected", {
+    header: listHeader("stock.col.expected"),
+    cell: ExpectedCell,
+    meta: { align: "end" },
+  }),
+  adjustmentColumn.accessor("counted", {
+    header: listHeader("stock.col.counted"),
+    cell: CountedCell,
+    meta: { align: "end" },
+  }),
+  adjustmentColumn.accessor("reason", {
+    header: listHeader("audit.reason"),
+  }),
+  adjustmentColumn.accessor((one) => one.countedByName ?? "—", {
+    id: "countedBy",
+    header: listHeader("stock.col.countedBy"),
+  }),
+]);
+
+/** What the Stock Counts found against what the store was thought to hold, each difference with its reason. */
+const Adjustments = ({ adjustments }: { adjustments: Adjustment[] }) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const table = useListTable({
+    columns: adjustmentColumns,
+    data: adjustments,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="space-y-1">
+      <h3 className="text-sm font-medium">{t("stock.adjustments")}</h3>
+      <ul className="space-y-1 text-sm md:hidden">
+        {adjustments.map((one) => (
+          <li key={one.id}>
+            {formatDate(one.countedAt, language)} · {one.nameBn} ·{" "}
+            {t("stock.adjustment", {
+              expected: formatNumber(one.expected, language),
+              counted: formatNumber(one.counted, language),
+            })}{" "}
+            · {one.reason}
+            {one.countedByName ? ` · ${one.countedByName}` : ""}
+          </li>
+        ))}
+      </ul>
+      <DataTable className="hidden md:block" minWidth="48rem" table={table} />
+    </div>
+  );
+};
+
+interface ArrivalRow extends Arrival {
+  mayCorrect: boolean;
+}
+
+const ReceivedOnCell = ({ row }: { row: { original: ArrivalRow } }) => {
+  const { language } = useLanguage();
+  return (
+    <span className="whitespace-nowrap">
+      {formatDate(row.original.receivedOn, language)}
+    </span>
+  );
+};
+
+/** How much came in, and — for feed weighed in kg — the maunds a trader's slip says beneath it. */
+const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const one = row.original;
+  return (
+    <div className="flex flex-col items-end">
+      <span className="whitespace-nowrap">
+        {formatNumber(one.quantity, language)} {one.unit}
+      </span>
+      {one.maunds === null ? null : (
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
+          {t("stock.maunds", { maunds: formatNumber(one.maunds, language) })}
+        </span>
+      )}
+    </div>
+  );
+};
+
+const ArrivalPriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
+  const { language } = useLanguage();
+  return row.original.priceBdt === null
+    ? "—"
+    : `৳${formatNumber(row.original.priceBdt, language)}`;
+};
+
+/** Who sold it, or that it came off the farm's own fields. */
+const FromCell = ({ row }: { row: { original: ArrivalRow } }) => {
+  const t = useT();
+  if (row.original.priceBdt === null) {
+    return <span className="text-muted-foreground">{t("stock.harvest")}</span>;
+  }
+  return row.original.sellerName ?? "—";
+};
+
+const ArrivalCorrectCell = ({ row }: { row: { original: ArrivalRow } }) =>
+  row.original.mayCorrect ? <ArrivalCorrection arrival={row.original} /> : null;
+
+const arrivalColumn = createListColumns<ArrivalRow>();
+const arrivalColumns = arrivalColumn.columns([
+  arrivalColumn.accessor((one) => new Date(one.receivedOn).getTime(), {
+    id: "receivedOn",
+    header: listHeader("stock.receivedOn"),
+    cell: ReceivedOnCell,
+  }),
+  arrivalColumn.accessor("nameBn", {
+    header: listHeader("stock.col.item"),
+  }),
+  arrivalColumn.accessor("quantity", {
+    header: listHeader("stock.col.quantity"),
+    cell: QuantityCell,
+    meta: { align: "end" },
+  }),
+  arrivalColumn.accessor((one) => one.priceBdt ?? -1, {
+    id: "price",
+    header: listHeader("stock.price"),
+    cell: ArrivalPriceCell,
+    meta: { align: "end" },
+  }),
+  arrivalColumn.accessor((one) => one.sellerName ?? "", {
+    id: "from",
+    header: listHeader("stock.col.from"),
+    cell: FromCell,
+  }),
+  arrivalColumn.display({
+    id: "correct",
+    header: ActionsHeader,
+    cell: ArrivalCorrectCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** Feed that came into the store, newest first: a list on a phone, a table where there is room to compare lorries. */
+const Arrivals = ({
+  arrivals,
+  mayCorrect,
+}: {
+  arrivals: Arrival[];
+  mayCorrect: boolean;
+}) => {
+  const t = useT();
+  const { language } = useLanguage();
+  const table = useListTable({
+    columns: arrivalColumns,
+    data: arrivals.map((one) => ({ ...one, mayCorrect })),
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="space-y-1">
+      <h3 className="text-sm font-medium">{t("stock.arrivals")}</h3>
+      <ul className="space-y-1 text-sm md:hidden">
+        {arrivals.map((one) => (
+          <li
+            className="flex flex-wrap items-center justify-between gap-2"
+            key={one.id}
+          >
+            <span>
+              {formatDate(one.receivedOn, language)} · {one.nameBn} ·{" "}
+              {formatNumber(one.quantity, language)} {one.unit}
+              {one.maunds === null
+                ? ""
+                : ` (${t("stock.maunds", { maunds: formatNumber(one.maunds, language) })})`}
+              {one.priceBdt === null
+                ? ` · ${t("stock.harvest")}`
+                : ` · ৳${formatNumber(one.priceBdt, language)} · ${one.sellerName ?? ""}`}
+            </span>
+            {mayCorrect ? <ArrivalCorrection arrival={one} /> : null}
+          </li>
+        ))}
+      </ul>
+      <DataTable className="hidden md:block" minWidth="48rem" table={table} />
+    </div>
+  );
+};
+
+/**
+ * What is in the store, what came into it, and feed coming in. What is on hand is worked out from what
+ * came in and what the pens were given — nobody types it — and a line below nothing says feed arrived
+ * that nobody wrote down. Recording feed coming in is the Manager's; the Owner reads.
+ */
+const FeedStock = ({ items }: { items: FeedRow[] }) => {
+  const t = useT();
+  const me = useQuery(orpc.people.me.queryOptions());
+  const stock = useQuery(orpc.stock.onHand.queryOptions());
+  const arrivals = useQuery(orpc.stock.arrivals.queryOptions({ input: {} }));
+  const adjustments = useQuery(
+    orpc.stock.adjustments.queryOptions({ input: {} })
+  );
+  const mayRecord = me.data?.roles.includes("manager") ?? false;
+  const mayCorrect = mayRecord || (me.data?.roles.includes("owner") ?? false);
+  return (
+    <Section title={t("stock.title")}>
+      <StockLines lines={stock.data ?? []} mayRecord={mayRecord} />
       {mayRecord ? <ReceiveFeed items={items} /> : null}
       {adjustments.data?.length ? (
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">{t("stock.adjustments")}</h3>
-          <ul className="space-y-1 text-sm">
-            {adjustments.data.map((one) => (
-              <li key={one.id}>
-                {formatDate(one.countedAt, language)} · {one.nameBn} ·{" "}
-                {t("stock.adjustment", {
-                  expected: formatNumber(one.expected, language),
-                  counted: formatNumber(one.counted, language),
-                })}{" "}
-                · {one.reason}
-                {one.countedByName ? ` · ${one.countedByName}` : ""}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Adjustments adjustments={adjustments.data} />
       ) : null}
       {arrivals.data?.length ? (
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">{t("stock.arrivals")}</h3>
-          <ul className="space-y-1 text-sm">
-            {arrivals.data.map((one) => (
-              <li
-                className="flex flex-wrap items-center justify-between gap-2"
-                key={one.id}
-              >
-                <span>
-                  {formatDate(one.receivedOn, language)} · {one.nameBn} ·{" "}
-                  {formatNumber(one.quantity, language)} {one.unit}
-                  {one.maunds === null
-                    ? ""
-                    : ` (${t("stock.maunds", { maunds: formatNumber(one.maunds, language) })})`}
-                  {one.priceBdt === null
-                    ? ` · ${t("stock.harvest")}`
-                    : ` · ৳${formatNumber(one.priceBdt, language)} · ${one.sellerName ?? ""}`}
-                </span>
-                {mayCorrect ? <ArrivalCorrection arrival={one} /> : null}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Arrivals arrivals={arrivals.data} mayCorrect={mayCorrect} />
       ) : null}
     </Section>
   );

@@ -128,7 +128,8 @@ const TodayPage = () => {
         </div>
       ) : null}
       {items.length ? (
-        <ul className="grid gap-3 lg:grid-cols-2">
+        // One column held to the phone's width: left to itself the grid's column grows to the card's longest line.
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {items.map((instance) => {
             const content = instance.version.content as SopContent;
             const status = statusOf(instance);
