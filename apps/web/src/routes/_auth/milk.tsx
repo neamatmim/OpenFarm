@@ -281,9 +281,11 @@ const MilkPage = () => {
   const [to, setTo] = useState(() => farmDayOf(new Date()));
   const [paper, setPaper] = useState<string | null>(null);
   const today = useQuery(orpc.milk.day.queryOptions({ input: { day } }));
-  const mayRecord = me.data?.roles.includes("manager") ?? false;
-  // The Owner puts a Dispatch right as well, at any age; recording one stays the Manager's.
-  const mayCorrect = mayRecord || (me.data?.roles.includes("owner") ?? false);
+  // The Manager's to record and put right, and the Owner's, who may do anything the Manager does.
+  const mayRecord =
+    me.data?.roles.some((role) => role === "owner" || role === "manager") ??
+    false;
+  const mayCorrect = mayRecord;
   const onError = (error: Error) =>
     toast.error(
       wordedRefusal(error, t) ?? (error.message || t("common.error"))

@@ -278,8 +278,8 @@ export const CALF_OUTCOMES = ["alive", "stillborn"] as const;
 export type CalfOutcome = (typeof CALF_OUTCOMES)[number];
 
 /** Who records a Calving (roles matrix: Breeding — Calving is `C R U` to the Manager and `C` to Barn
- *  Staff as an SOP step). */
-export const CALVING_RECORDERS = ["staff", "manager"] as const;
+ *  Staff as an SOP step), and the Owner, who may do anything the Manager does (the Owner, 2026-09-17). */
+export const CALVING_RECORDERS = ["owner", "manager", "staff"] as const;
 
 /** The States a cow who calves may be in: carrying her first, dried off for this one, or — a dry-off
  *  that never happened — still in milk. */

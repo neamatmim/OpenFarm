@@ -59,11 +59,12 @@ export const milkRouter = {
    * Milk handed over to a buyer: when, how many litres, to whom, the challan, the price, and the fat
    * and SNF if the processor measured them.
    *
-   * The Manager's to record (roles matrix: Dispatch — Manager C R U, Owner R). The buyer is a
-   * Counterparty found by name, whose address is what makes this the farm's milk-buyer record.
+   * The Manager's to record, or the Owner's, who may do anything the Manager does (the Owner,
+   * 2026-09-17). The buyer is a Counterparty found by name, whose address is what makes this the farm's
+   * milk-buyer record.
    */
   dispatch: protectedProcedure
-    .use(requireRole("manager"))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         ...dispatchFields,

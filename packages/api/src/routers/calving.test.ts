@@ -304,26 +304,39 @@ describe("the calving", () => {
     });
   });
 
-  it("is not the Owner's to record, and not of a cow who is not in calf", async () => {
-    const { id, client } = await morningRound("2032-03-19", "owner");
-    await expect(
-      client.client.instances.completeStep({
-        instanceId: id,
-        stepId: "calved",
-        animalTag: world.corrected,
-        evidence: [
-          "2032-03-19T00:30:00.000Z",
-          "unassisted",
-          "female",
-          "alive",
-          "",
-          "",
-        ],
-      })
-    ).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      data: { refusal: "staff_or_manager_only" },
+  it("is the Owner's to record as the Manager's is, and not of a cow who is not in calf", async () => {
+    // A heifer of the Owner's own, so the calving the next test puts right is not this one.
+    const registrar = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2032-03-01T00:00:00.000Z"),
     });
+    const ownersHeifer = await registrar.client.animals.register({
+      sex: "female",
+      side: "dairy",
+      state: "pregnant_heifer",
+      penId: world.pen.id,
+      source: "bought",
+      aliases: [],
+      expectedCalvingOn: "2032-03-19",
+    });
+    const { id, client } = await morningRound("2032-03-19", "owner");
+    await client.client.instances.completeStep({
+      instanceId: id,
+      stepId: "calved",
+      animalTag: ownersHeifer.tagNumber,
+      evidence: [
+        "2032-03-19T00:30:00.000Z",
+        "unassisted",
+        "female",
+        "alive",
+        "",
+        "",
+      ],
+    });
+    const dam = await registrar.client.animals.byTag({
+      tagNumber: ownersHeifer.tagNumber,
+    });
+    expect(dam.calvings).toHaveLength(1);
 
     // An open heifer walks the round with the rest, and nothing she does is a calving.
     const nextMorning = await morningRound("2032-03-20", "manager");

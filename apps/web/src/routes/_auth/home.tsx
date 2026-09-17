@@ -51,10 +51,11 @@ const ManagerHome = () => {
   const digest = useMutation(orpc.alerts.digest.mutationOptions({}));
   const home = useQuery(orpc.home.manager.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
-  // The Owner reads the queue; answering a Repeat Breeder is the Manager's or the Vet's.
+  // Answering a Repeat Breeder is the Manager's, the Vet's or the Owner's.
   const mayAnswer =
-    me.data?.roles.some((role) => role === "manager" || role === "vet") ??
-    false;
+    me.data?.roles.some(
+      (role) => role === "owner" || role === "manager" || role === "vet"
+    ) ?? false;
 
   // The Manager often opens this before anybody has opened Today, and the day's work is
   // raised by whoever opens the app first. Without this the screen would say the farm had

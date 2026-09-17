@@ -92,12 +92,12 @@ export const stockRouter = {
    * Feed coming into the store: a Purchase — how much, what the lot cost, and who sold it — or a
    * Harvest from the farm's own fields.
    *
-   * The Manager's to record. Carries the id the screen made for this entry, so a second tap on the
-   * same form is the same arrival and not a second lorry. A retired Feed Item takes nothing in: it is
-   * kept for what it was fed, not for buying more of.
+   * The Manager's to record, or the Owner's, who may do anything the Manager does. Carries the id the
+   * screen made for this entry, so a second tap on the same form is the same arrival and not a second
+   * lorry. A retired Feed Item takes nothing in: it is kept for what it was fed, not for buying more of.
    */
   receive: protectedProcedure
-    .use(requireRole("manager"))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         id: z.string().uuid().optional(),

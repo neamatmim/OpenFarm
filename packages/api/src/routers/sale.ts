@@ -17,7 +17,7 @@ import { protectedProcedure } from "../index";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
-import { requireOnly, requireRole } from "../roles";
+import { requireRole } from "../roles";
 import {
   bookSaleMoney,
   buyerInput,
@@ -28,12 +28,6 @@ import {
 const tagInput = z.string().trim().min(1).max(32);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const MANAGER_ONLY = {
-  message:
-    "Selling an animal is the Manager's to record; the Owner approves what it fetched",
-  reason: "manager_only",
-} as const;
 
 export const saleRouter = {
   /**
@@ -85,12 +79,11 @@ export const saleRouter = {
    * A cull that ends at a butcher is one of these and not a Mortality (the Owner's decision,
    * 2026-09-12): one exit, one record, and the reason she was culled in the note.
    *
-   * The Manager's alone (roles matrix: Intake / Sale is `C R U` to the Manager and `R; approve
-   * above threshold` to the Owner). The Owner's part is the check above the Approval Threshold,
-   * which arrives with finance in increment 6.
+   * The Manager's or the Owner's: the Owner may do anything the Manager does (the Owner,
+   * 2026-09-17), and money the Owner books needs no approval of theirs.
    */
   record: protectedProcedure
-    .use(requireOnly("manager", MANAGER_ONLY))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         tagNumber: tagInput,

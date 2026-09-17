@@ -71,7 +71,7 @@ export const moneyByHandCorrection: CorrectionKind<
 > = {
   entity: "money_event",
   table: moneyEvent,
-  roles: ["manager"],
+  roles: ["owner", "manager"],
   missing: "No such money entry",
   load: loadEntered,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),

@@ -389,25 +389,17 @@ describe("the repeat breeder", () => {
     const vetsList = await vet.client.breeding.repeatBreeders();
     expect(vetsList.map((row) => row.tagNumber)).toContain(world.hardToSettle);
 
-    // The Owner may read the queue but does not answer it.
+    // The Owner may answer it as the Manager does.
     const owner = await createTestClient(appRouter, {
       as: "owner",
       clock: new FakeClock("2033-03-15T05:00:00.000Z"),
     });
-    await expect(
-      owner.client.breeding.answerRepeatBreeder({
-        tagNumber: world.hardToSettle,
-        decision: "serve_again",
-        note: "আরেকবার দেখি",
-      })
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
-
-    await weekOn.manager.client.breeding.answerRepeatBreeder({
+    await owner.client.breeding.answerRepeatBreeder({
       tagNumber: world.hardToSettle,
       decision: "serve_again",
       note: "ভেট দেখেছেন, আরেকবার দেখি",
     });
-    // Answered once is answered: a second tap finds nothing waiting.
+    // Answered once is answered: a second tap, from anybody, finds nothing waiting.
     await expect(
       weekOn.manager.client.breeding.answerRepeatBreeder({
         tagNumber: world.hardToSettle,

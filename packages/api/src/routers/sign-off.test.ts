@@ -374,10 +374,26 @@ describe("sign-off", () => {
       manager.instances.sendBack({ id: instance.id, reason: "   " })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    // The doer cannot sign their own work off, whatever Roles they hold.
+    // The doer cannot sign their own work off, whatever Roles they hold — unless the doer is the Owner.
     await expect(
       staff.instances.approve({ id: instance.id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lets the Owner sign off work the Owner did", async () => {
+    // After every other day this file raises, so the work it raises is nobody else's to sweep.
+    const { instance, clock } = await workFor("2026-12-20", "00:05:00.000Z");
+    const owner = await as("owner", clock);
+    await owner.instances.claim({ id: instance.id });
+    await owner.instances.completeStep({
+      instanceId: instance.id,
+      stepId: "clean",
+      evidence: [true],
+    });
+    await owner.instances.complete({ id: instance.id });
+
+    const approved = await owner.instances.approve({ id: instance.id });
+    expect(approved.state).toBe("approved");
   });
 
   it("never queues work from an SOP nobody checks", async () => {

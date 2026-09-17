@@ -107,7 +107,7 @@ export const calvingEffect: EffectKind<CalvingFacts> = {
   recordableBy: {
     roles: CALVING_RECORDERS,
     refusal: {
-      message: "A calving is recorded by Barn Staff or the Manager",
+      message: "A calving is recorded by Barn Staff, the Manager or the Owner",
       reason: "staff_or_manager_only",
     },
   },

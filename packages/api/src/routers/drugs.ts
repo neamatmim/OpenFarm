@@ -123,11 +123,11 @@ export const drugsRouter = {
    * doses that is, what it cost, and who sold it. It becomes the Money Event for the medicine, and the
    * doses are what a dose given is later costed from (the Owner's decision, 2026-09-13).
    *
-   * The Manager's to record (roles matrix: Drug List — Manager adds products; Money Events — Manager C).
-   * A retired product is not bought.
+   * The Manager's to record, or the Owner's, who may do anything the Manager does (the Owner,
+   * 2026-09-17). A retired product is not bought.
    */
   purchase: protectedProcedure
-    .use(requireRole("manager"))
+    .use(requireRole("owner", "manager"))
     .input(
       z.object({
         drugProductId: z.string(),
@@ -234,11 +234,11 @@ export const drugsRouter = {
 
   /**
    * Adds a product. The Manager may add one the day it is bought, with the days blank —
-   * buying is not blocked on the Vet being reachable — and the Vet may add one outright.
-   * The Owner reads the list and does not keep it (roles matrix).
+   * buying is not blocked on the Vet being reachable — and the Vet may add one outright. The
+   * Owner may add one as the Manager does; the withdrawal days stay the Vet's to write.
    */
   add: protectedProcedure
-    .use(requireRole("manager", "vet"))
+    .use(requireRole("owner", "manager", "vet"))
     .input(
       z
         .object({

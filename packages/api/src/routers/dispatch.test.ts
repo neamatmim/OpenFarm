@@ -450,7 +450,7 @@ describe("the milk dispatch", () => {
     ]);
   });
 
-  it("is the Manager's to record, and never Barn Staff's or the Vet's to see", async () => {
+  it("is the Manager's or the Owner's to record, and never Barn Staff's or the Vet's to see", async () => {
     const at = new FakeClock("2036-02-03T04:00:00.000Z");
     const dispatchIt = {
       dispatchedAt: new Date("2036-02-03T02:00:00.000Z"),
@@ -459,9 +459,9 @@ describe("the milk dispatch", () => {
       pricePerLitreBdt: 55,
     };
     const owner = await createTestClient(appRouter, { as: "owner", clock: at });
-    await expect(owner.client.milk.dispatch(dispatchIt)).rejects.toMatchObject({
-      code: "FORBIDDEN",
-    });
+    await owner.client.milk.dispatch(dispatchIt);
+    const ownersDay = await owner.client.milk.day({ day: "2036-02-03" });
+    expect(ownersDay.dispatches.map((one) => one.litres)).toEqual([10]);
     for (const as of ["staff", "vet"] as const) {
       // oxlint-disable-next-line no-await-in-loop
       const other = await createTestClient(appRouter, { as, clock: at });

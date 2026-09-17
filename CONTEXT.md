@@ -18,7 +18,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## People
 
-**Owner**: The person who owns the Farm, sets the Playbook, and can see and approve everything. _Avoid_: Admin, boss
+**Owner**: The person who owns the Farm, sets the Playbook, and can see and approve everything — and may do anything the Farm Manager does, recording and signing off included. A Vet's clinical acts stay the Vet's. _Avoid_: Admin, boss
 
 **Farm Manager**: The person who runs the Farm day to day: assigns SOP work, signs it off, and keeps the records honest. _Avoid_: Supervisor, admin
 
