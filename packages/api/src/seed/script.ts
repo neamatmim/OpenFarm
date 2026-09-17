@@ -25,6 +25,7 @@ import {
   shelfCount,
   shelfReason,
 } from "./shared";
+import { HERD_SUNDRIES } from "./standing";
 import type { Farm, PenKey } from "./standing";
 import "./responders";
 
@@ -41,6 +42,19 @@ type FeedKey = keyof Farm["feeds"];
 /** The store: opening stock, napier cut daily, silage from the pit, and the rest bought weekly. */
 const keepTheStore = ({ farm, days, on }: Script) => {
   const { start, today, random } = farm;
+  // What the farm's own fodder is worth to whoever eats it, said before the first cut comes in: the
+  // fields are the farm's, but the grass is not free to the animals standing in front of it.
+  on(start, "07:30", "what our own fodder is worth", async (f) => {
+    for (const [key, price] of [
+      ["napier", 3],
+      ["silage", 6.5],
+    ] as [FeedKey, number][]) {
+      await f.as.owner.feed.setFodderPrice({
+        feedItemId: f.feeds[key],
+        fodderPriceBdt: price,
+      });
+    }
+  });
   on(start, "08:00", "opening stock", async (f) => {
     const opening: [
       FeedKey,
@@ -362,6 +376,21 @@ const payTheMonth = async (f: Farm, payday: string, withRepair: boolean) => {
       counterparty: { name },
       paymentMethod: "bkash",
       wageMonth,
+    });
+  }
+  // Fly spray, lime for the troughs, a lab test: money on the animals that names none of them. The Owner
+  // marked the Category, so the month's worth of it is split across the animals standing that month.
+  const sundries =
+    categories.find((category) => category.nameBn === HERD_SUNDRIES)?.id ?? "";
+  if (sundries !== "") {
+    await f.as.manager.money.enter({
+      categoryId: sundries,
+      amountBdt: random.int(2800, 4600),
+      occurredOn: payday,
+      counterparty: { name: "পশু ওষুধের দোকান — সদর" },
+      paymentMethod: "cash",
+      side: "fattening",
+      note: "মাছি স্প্রে, চুন ও পরীক্ষার খরচ",
     });
   }
   const bills: [string, number, string, "bank" | "cash", string][] = [
@@ -798,6 +827,25 @@ const sellTheReady = ({ farm, on }: Script) => {
       await f.as.manager.ready.confirm({ tagNumber: bull.tag });
       bull.state = "ready_for_sale";
     }
+  });
+  // The day at the haat: four bulls went, and what the day cost is split across all of them — the two
+  // that came home again took a place on the lorry too.
+  on(addDays(today, -9), "05:30", "off to the haat", async (f, h) => {
+    const going = [...h.bulls.values()]
+      .filter((bull) => bull.state === "ready_for_sale")
+      .slice(0, 6)
+      .map((bull) => bull.tag);
+    if (going.length === 0) {
+      return;
+    }
+    await f.as.manager.sellingTrips.record({
+      wentTo: "গাবতলী পশুর হাট, ঢাকা",
+      transportBdt: random.int(7000, 9000),
+      keepBdt: random.int(1200, 2200),
+      animals: going,
+      wentOn: onFarm(addDays(today, -9), "05:30"),
+      paymentMethod: "cash",
+    });
   });
   for (const [index, offset] of [-9, -9, -6, -4].entries()) {
     const day = addDays(today, offset);

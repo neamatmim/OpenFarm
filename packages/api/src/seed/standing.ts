@@ -215,6 +215,9 @@ export const openTheFarm = async (
   };
 };
 
+/** The farm's own Category for what it spends on the animals without naming any of them. */
+export const HERD_SUNDRIES = "পালের টুকিটাকি";
+
 /** The store's items, the Rations each Pen is fed, the medicine chest and the farm's notifiable list. */
 export const stockTheFarm = async (farm: Farm): Promise<void> => {
   const { as } = farm;
@@ -222,6 +225,18 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     const item = await as.manager.feed.addItem({ name, unit: "kg" });
     farm.feeds[key as FeedKey] = item.id;
   }
+
+  // What the farm spends on the animals without naming any of them — fly spray, lime, a lab test. The
+  // Owner marks it as one the animals of its Side carry, and the month's worth is split by their days.
+  const sundries = await as.manager.money.addCategory({
+    nameBn: HERD_SUNDRIES,
+    nameEn: "Herd sundries",
+    direction: "out",
+  });
+  await as.owner.money.setChargedToAnimals({
+    categoryId: sundries.id,
+    chargedToAnimals: true,
+  });
 
   const rations: [PenKey[], { bn: string; en: string }, [FeedKey, number][]][] =
     [
