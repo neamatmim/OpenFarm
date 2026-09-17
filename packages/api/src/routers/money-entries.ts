@@ -36,11 +36,17 @@ import {
   bookMoney,
   bookingOf,
   isStandardName,
+  mayBeChargedToAnimals,
   mayBeEnteredByHand,
   mayBeRetired,
   missingStandardCategories,
 } from "../money-store";
-import { requirePersonalSession, requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 
 /** Thrown inside the standard Categories' write when another request gave them first, so that no Audit
  *  Event says they were given twice. */
@@ -112,6 +118,10 @@ export const moneyEntryProcedures = {
         /** Whether money may be entered by hand under it, and whether the farm may retire it. */
         enterable: mayBeEnteredByHand(row.key),
         retirable: mayBeRetired(row.key),
+        // Whether the animals of its Side carry money entered under it, and whether the Owner may say
+        // they do at all.
+        chargedToAnimals: row.chargedToAnimals,
+        chargeable: mayBeChargedToAnimals(row),
       }));
     }),
 
@@ -161,6 +171,63 @@ export const moneyEntryProcedures = {
         }
       );
       return { id };
+    }),
+
+  /**
+   * Marks a Category as charged to the animals of its Side — a Vet visit that named nobody, lab tests, fly
+   * spray — or takes the mark off. The month's money under it is then split across the animals standing
+   * that month, by the days each stood.
+   *
+   * The Owner's alone, and from their own phone: it decides what every Margin on that Side carries.
+   */
+  setChargedToAnimals: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ categoryId: z.string(), chargedToAnimals: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const existing = await context.db.query.moneyCategory.findFirst({
+        where: { id: input.categoryId, farmId: context.farm.id },
+        columns: {
+          id: true,
+          key: true,
+          nameBn: true,
+          direction: true,
+          chargedToAnimals: true,
+        },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Category" });
+      }
+      if (
+        input.chargedToAnimals &&
+        !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
+      ) {
+        throw refusedByHand(
+          "Wages, utilities, repairs, money coming in and money a record books are never the animals' to carry",
+          "never_the_animals"
+        );
+      }
+      await audited(context).write(
+        {
+          entity: "money_category",
+          entityId: existing.id,
+          action: "update",
+          before: {
+            nameBn: existing.nameBn,
+            chargedToAnimals: existing.chargedToAnimals,
+          },
+          after: {
+            nameBn: existing.nameBn,
+            chargedToAnimals: input.chargedToAnimals,
+          },
+        },
+        (tx) =>
+          tx
+            .update(moneyCategory)
+            .set({ chargedToAnimals: input.chargedToAnimals })
+            .where(eq(moneyCategory.id, existing.id))
+      );
+      return { chargedToAnimals: input.chargedToAnimals };
     }),
 
   /**

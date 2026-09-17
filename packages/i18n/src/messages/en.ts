@@ -898,6 +898,8 @@ export const en = {
   "refusal.harvestHasNoPrice": "A harvest from our own fields has no price",
   "refusal.receivedInTheFuture":
     "Feed cannot come in on a day that has not come yet",
+  "refusal.neverTheAnimals":
+    "Wages, utilities, repairs and money coming in are never charged to the animals",
   "refusal.feedRetired": "That feed is retired",
   "nav.feed": "Feed",
   "nav.milk": "Milk",
@@ -1047,6 +1049,9 @@ export const en = {
   "byHand.retireTitle": "Retire the “{name}” category?",
   "byHand.retireWhy":
     "New money can no longer be entered under it. What is already written under it stays as it is.",
+  "byHand.chargedToAnimals": "The animals carry it",
+  "byHand.chargeToAnimals": "Charge it to the animals",
+  "byHand.stopCharging": "Stop charging it to the animals",
   "byHand.retire": "Retire",
   "byHand.newCategory": "New Category",
   "byHand.direction": "In or out",
@@ -1090,6 +1095,8 @@ export const en = {
     "{amount} kg of home-grown fodder was fed at no price, and costs nothing here",
   "costs.uncostedNote":
     "{amount} doses were of medicine the farm had not bought, and are not costed",
+  "costs.strayHerdNote":
+    "৳{amount} was spent on the animals of a Side in a month when none were standing there, and is charged to nobody",
   "costs.strayTripNote":
     "৳{amount} was spent on buying trips that brought no animal home, and is charged to nobody",
   "costs.unallocatedNote":

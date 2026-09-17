@@ -24,7 +24,8 @@ const Note = ({
     | "costs.unpricedNote"
     | "costs.uncostedNote"
     | "costs.unallocatedNote"
-    | "costs.strayTripNote";
+    | "costs.strayTripNote"
+    | "costs.strayHerdNote";
 }) => {
   const { t, language } = useLanguage();
   return amount > 0 ? (
@@ -188,7 +189,8 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
         </CostCard>
       </div>
       <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />
-      <Note amount={unallocated.tripBdt} word="costs.strayTripNote" />
+      <Note amount={unallocated.tripBdt ?? 0} word="costs.strayTripNote" />
+      <Note amount={unallocated.herdBdt ?? 0} word="costs.strayHerdNote" />
     </div>
   );
 };

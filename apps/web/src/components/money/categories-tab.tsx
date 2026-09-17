@@ -2,7 +2,13 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
+import {
+  Archive,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Beef as Herd,
+  Plus,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -12,7 +18,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { categoryName, useRefusalToast } from "@/components/money";
+import { useIsOwner, categoryName, useRefusalToast } from "@/components/money";
 import { SegmentedControl, StatusBadge } from "@/components/page";
 import {
   ConfirmDialog,
@@ -31,8 +37,21 @@ type Direction = "in" | "out";
 interface CategoryRow extends Category {
   name: string;
   retiring: boolean;
+  /** Only the Owner marks a Category as one the animals carry. */
+  mayMark: boolean;
   handleRetire: () => void;
+  handleMark: () => void;
 }
+
+/** A Category whose money the animals of its Side carry, split by the days each stood here that month. */
+const CarriedBadge = ({ row }: { row: CategoryRow }) => {
+  const { t } = useLanguage();
+  return row.chargedToAnimals ? (
+    <StatusBadge icon={Herd} tone="neutral">
+      {t("byHand.chargedToAnimals")}
+    </StatusBadge>
+  ) : null;
+};
 
 /** Which way a Category's money goes, as a word with its icon and colour. */
 const DirectionBadge = ({ direction }: { direction: Direction }) => {
@@ -61,20 +80,37 @@ const RetiredBadge = ({ row }: { row: CategoryRow }) => {
 /** The menu at the end of a Category's row: retiring it, the one thing done to a Category, where it may be. */
 const CategoryMenu = ({ row }: { row: CategoryRow }) => {
   const { t } = useLanguage();
-  const { handleRetire } = row;
-  if (row.retiredAt || !row.retirable) {
+  const { handleRetire, handleMark } = row;
+  if (row.retiredAt || !(row.retirable || row.mayMark)) {
     return null;
   }
   return (
     <RowMenu
       actions={[
-        {
-          label: t("byHand.retire"),
-          icon: Archive,
-          handleSelect: handleRetire,
-          destructive: true,
-          disabled: row.retiring,
-        },
+        ...(row.mayMark
+          ? [
+              {
+                label: t(
+                  row.chargedToAnimals
+                    ? "byHand.stopCharging"
+                    : "byHand.chargeToAnimals"
+                ),
+                icon: Herd,
+                handleSelect: handleMark,
+              },
+            ]
+          : []),
+        ...(row.retirable
+          ? [
+              {
+                label: t("byHand.retire"),
+                icon: Archive,
+                handleSelect: handleRetire,
+                destructive: true,
+                disabled: row.retiring,
+              },
+            ]
+          : []),
       ]}
       label={row.name}
     />
@@ -94,7 +130,10 @@ const DirectionCell = ({ row }: { row: { original: CategoryRow } }) => (
 );
 
 const StatusCell = ({ row }: { row: { original: CategoryRow } }) => (
-  <RetiredBadge row={row.original} />
+  <div className="flex flex-wrap gap-2">
+    <RetiredBadge row={row.original} />
+    <CarriedBadge row={row.original} />
+  </div>
 );
 
 const MenuCell = ({ row }: { row: { original: CategoryRow } }) => (
@@ -134,6 +173,7 @@ const CategoryCard = ({ row }: { row: CategoryRow }) => (
       <div className="flex flex-wrap gap-2">
         <DirectionBadge direction={row.direction === "in" ? "in" : "out"} />
         <RetiredBadge row={row} />
+        <CarriedBadge row={row} />
       </div>
     </div>
     <CategoryMenu row={row} />
@@ -221,6 +261,19 @@ export const CategoriesTab = () => {
       onError,
     })
   );
+  const mark = useMutation(
+    orpc.money.setChargedToAnimals.mutationOptions({
+      onSuccess: async () => {
+        // It decides what every Margin on that Side carries from here on.
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: orpc.money.key() }),
+          queryClient.invalidateQueries({ queryKey: orpc.costs.key() }),
+        ]);
+      },
+      onError,
+    })
+  );
+  const isOwner = useIsOwner();
   const table = useListTable({
     columns: categoryColumns,
     data: (categories.data ?? []).map((one) => ({
@@ -230,6 +283,12 @@ export const CategoriesTab = () => {
         language
       ),
       retiring: retire.isPending,
+      mayMark: isOwner && one.enterable && one.chargeable,
+      handleMark: () =>
+        mark.mutate({
+          categoryId: one.id,
+          chargedToAnimals: !one.chargedToAnimals,
+        }),
       handleRetire: () =>
         setRetiring({
           id: one.id,

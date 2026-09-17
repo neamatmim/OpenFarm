@@ -1,3 +1,4 @@
+import { farmDayOf, startOfFarmDay } from "./farm-clock";
 import { roundKg } from "./feed";
 import { groupedBy } from "./grouped-by";
 import type { Side } from "./lifecycle";
@@ -87,6 +88,104 @@ export const tripShares = ({
         at: one.at,
         bdt: each,
       }))
+    );
+  }
+  return { shares, unallocated };
+};
+
+/** One month's marked money for one Side: what it was, when, and which Side's animals carry it. */
+export interface HerdCostToSplit {
+  at: Date;
+  side: Side;
+  bdt: number;
+}
+
+/** A month's marked money no animal was standing for: charged to nobody, and said. */
+export interface UnallocatedHerdCost {
+  at: Date;
+  bdt: number;
+}
+
+/**
+ * The month one day falls in, as the farm's own day begins and ends it. Counted in years and months rather
+ * than by adding a month to a date: a month added to the 31st of January lands on the 3rd of March, and
+ * February would swallow the animals standing in March.
+ */
+const firstOfMonth = (year: number, month: number): Date =>
+  startOfFarmDay(`${year}-${String(month).padStart(2, "0")}-01`);
+
+const monthOf = (at: Date): { from: Date; until: Date } => {
+  const day = farmDayOf(at);
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  return {
+    from: firstOfMonth(year, month),
+    until:
+      month === 12 ? firstOfMonth(year + 1, 1) : firstOfMonth(year, month + 1),
+  };
+};
+
+/** How long one Animal stood on one Side inside a month, and from when: the time she carries a share of
+ *  that month for, and the first moment she was here to carry it. */
+const standingIn = (
+  lines: readonly PenHistoryLine[],
+  side: Side,
+  { from, until }: { from: Date; until: Date }
+): { ms: number; since: Date } => {
+  let ms = 0;
+  let since = until.getTime();
+  for (const line of lines) {
+    if (line.side !== side) {
+      continue;
+    }
+    const start = Math.max(line.from.getTime(), from.getTime());
+    const end = Math.min((line.until ?? until).getTime(), until.getTime());
+    if (end > start) {
+      ms += end - start;
+      since = Math.min(since, start);
+    }
+  }
+  return { ms, since: new Date(since) };
+};
+
+/**
+ * What the farm spent on the animals without naming any of them, charged to the animals of that Side by
+ * the days each stood here in the month the money belongs to. An Animal who arrived mid-month carries her
+ * days and no more; one who left before it carries none; and a month with nobody standing is charged to
+ * nobody and said, the way a Feeding nobody stood for is.
+ */
+export const herdShares = ({
+  costs,
+  history,
+}: {
+  costs: readonly HerdCostToSplit[];
+  history: readonly PenHistoryLine[];
+}): { shares: CostShare[]; unallocated: UnallocatedHerdCost[] } => {
+  const byAnimal = groupedBy(history, (line) => line.animalId);
+  const shares: CostShare[] = [];
+  const unallocated: UnallocatedHerdCost[] = [];
+  for (const cost of costs) {
+    const month = monthOf(cost.at);
+    const stood = [...byAnimal.entries()].map(([animalId, lines]) => ({
+      animalId,
+      ...standingIn(lines, cost.side, month),
+    }));
+    const total = stood.reduce((sum, one) => sum + one.ms, 0);
+    if (total === 0) {
+      unallocated.push({ at: cost.at, bdt: cost.bdt });
+      continue;
+    }
+    shares.push(
+      ...stood
+        .filter((one) => one.ms > 0)
+        .map((one) => ({
+          animalId: one.animalId,
+          side: cost.side,
+          // Not before she was here: a share dated the 3rd for a beast who came on the 20th would be
+          // read into periods she had nothing to do with.
+          at: one.since > cost.at ? one.since : cost.at,
+          bdt: (cost.bdt * one.ms) / total,
+        }))
     );
   }
   return { shares, unallocated };
