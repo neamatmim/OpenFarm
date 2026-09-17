@@ -1,15 +1,5 @@
 import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Archive, Plus, Wheat } from "lucide-react";
 import { useState } from "react";
@@ -23,6 +13,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -144,71 +135,49 @@ const AddItemDialog = ({
     })
   );
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent closeLabel={t("common.close")}>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!name.trim()) {
-              return;
-            }
-            addItem.mutate({
-              name: {
-                bn: name.trim(),
-                ...(english.trim() ? { en: english.trim() } : {}),
-              },
-              unit: unit.trim() || "kg",
-            });
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{t("feed.addItem")}</DialogTitle>
-            <DialogDescription>{t("feed.itemsDescription")}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1.5">
-            <Label htmlFor="feed-name">{t("sop.bangla")}</Label>
-            <Input
-              id="feed-name"
-              onChange={(event) => setName(event.target.value)}
-              required
-              value={name}
-            />
-          </div>
-          <div className="grid grid-cols-[1fr_6rem] gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="feed-en">{t("feed.english")}</Label>
-              <Input
-                id="feed-en"
-                onChange={(event) => setEnglish(event.target.value)}
-                value={english}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="feed-unit">{t("feed.unit")}</Label>
-              <Input
-                id="feed-unit"
-                onChange={(event) => setUnit(event.target.value)}
-                value={unit}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => onOpenChange(false)}
-              type="button"
-              variant="outline"
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button disabled={!name.trim() || addItem.isPending} type="submit">
-              {addItem.isPending ? <Spinner /> : null}
-              {t("feed.addItem")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      description={t("feed.itemsDescription")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        addItem.mutate({
+          name: {
+            bn: name.trim(),
+            ...(english.trim() ? { en: english.trim() } : {}),
+          },
+          unit: unit.trim() || "kg",
+        })
+      }
+      open={open}
+      pending={addItem.isPending}
+      ready={name.trim() !== ""}
+      submitLabel={t("feed.addItem")}
+      title={t("feed.addItem")}
+    >
+      <FormField id="feed-name" label={t("sop.bangla")}>
+        <Input
+          id="feed-name"
+          onChange={(event) => setName(event.target.value)}
+          required
+          value={name}
+        />
+      </FormField>
+      <div className="grid grid-cols-[1fr_6rem] gap-4">
+        <FormField id="feed-en" label={t("feed.english")}>
+          <Input
+            id="feed-en"
+            onChange={(event) => setEnglish(event.target.value)}
+            value={english}
+          />
+        </FormField>
+        <FormField id="feed-unit" label={t("feed.unit")}>
+          <Input
+            id="feed-unit"
+            onChange={(event) => setUnit(event.target.value)}
+            value={unit}
+          />
+        </FormField>
+      </div>
+    </FormDialog>
   );
 };
 

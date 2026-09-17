@@ -1,30 +1,8 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@OpenFarm/ui/components/dropdown-menu";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  BellRing,
-  EllipsisVertical,
-  PackagePlus,
-  Warehouse,
-} from "lucide-react";
+import { BellRing, PackagePlus, Warehouse } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +15,7 @@ import {
 } from "@/components/data-table";
 import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
+import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -140,7 +119,7 @@ const LowAtCell = ({ row }: { row: { original: StockRow } }) => {
 };
 
 /** The menu at the end of a Feed Item's row: feed in for it, or the level it is watched at. */
-const RowMenu = ({
+const StockRowMenu = ({
   line,
   actions,
 }: {
@@ -153,35 +132,27 @@ const RowMenu = ({
     return null;
   }
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            aria-label={t("stock.rowActions", { name: line.nameBn })}
-            size="icon-sm"
-            variant="ghost"
-          >
-            <EllipsisVertical aria-hidden />
-          </Button>
-        }
-      />
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={() => handleReceive(line.feedItemId)}>
-          <PackagePlus aria-hidden />
-          {t("stock.recordArrival")}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleSetLevel(line)}>
-          <BellRing aria-hidden />
-          {t("stock.setLevel")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <RowMenu
+      actions={[
+        {
+          label: t("stock.recordArrival"),
+          icon: PackagePlus,
+          handleSelect: () => handleReceive(line.feedItemId),
+        },
+        {
+          label: t("stock.setLevel"),
+          icon: BellRing,
+          handleSelect: () => handleSetLevel(line),
+        },
+      ]}
+      label={t("stock.rowActions", { name: line.nameBn })}
+    />
   );
 };
 
 const MenuCell = ({ row }: { row: { original: StockRow } }) => (
   <div className="flex justify-end">
-    <RowMenu actions={row.original.actions} line={row.original} />
+    <StockRowMenu actions={row.original.actions} line={row.original} />
   </div>
 );
 
@@ -256,7 +227,7 @@ const StockCard = ({ row }: { row: StockRow }) => {
             : ` · ${t("stock.col.lowAt")} ${formatNumber(row.lowStockAt, language)} ${row.unit}`}
         </span>
       </div>
-      <RowMenu actions={row.actions} line={row} />
+      <StockRowMenu actions={row.actions} line={row} />
     </div>
   );
 };
@@ -291,56 +262,40 @@ const LevelDialog = ({
     })
   );
   return (
-    <Dialog onOpenChange={onOpenChange} open={line !== null}>
-      <DialogContent closeLabel={t("common.close")}>
-        {line ? (
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              save.mutate({
-                feedItemId: line.feedItemId,
-                threshold: value.trim() === "" ? null : Number(value),
-              });
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {t("stock.setLevel")} — {line.nameBn}
-              </DialogTitle>
-              <DialogDescription>{t("stock.levelHint")}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-1.5">
-              <Label htmlFor="level-value">
-                {t("stock.quantity", { unit: line.unit })}
-              </Label>
-              <Input
-                id="level-value"
-                inputMode="decimal"
-                min={0.1}
-                onChange={(event) => setValue(event.target.value)}
-                step="0.1"
-                type="number"
-                value={value}
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                onClick={() => onOpenChange(false)}
-                type="button"
-                variant="outline"
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button disabled={save.isPending} type="submit">
-                {save.isPending ? <Spinner /> : null}
-                {t("common.save")}
-              </Button>
-            </DialogFooter>
-          </form>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      description={t("stock.levelHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => {
+        if (line) {
+          save.mutate({
+            feedItemId: line.feedItemId,
+            threshold: value.trim() === "" ? null : Number(value),
+          });
+        }
+      }}
+      open={line !== null}
+      pending={save.isPending}
+      ready={line !== null}
+      submitLabel={t("common.save")}
+      title={line ? `${t("stock.setLevel")} — ${line.nameBn}` : ""}
+    >
+      {line ? (
+        <FormField
+          id="level-value"
+          label={t("stock.quantity", { unit: line.unit })}
+        >
+          <Input
+            id="level-value"
+            inputMode="decimal"
+            min={0.1}
+            onChange={(event) => setValue(event.target.value)}
+            step="0.1"
+            type="number"
+            value={value}
+          />
+        </FormField>
+      ) : null}
+    </FormDialog>
   );
 };
 
