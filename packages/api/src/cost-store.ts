@@ -92,6 +92,8 @@ export const farmCosts = async (db: Db, farmId: string) => {
     fees,
     sessions,
     buyingTrips,
+    sellingTrips,
+    takenOnSellingTrips,
   ] = await Promise.all([
     db.query.animal.findMany({
       where: { farmId },
@@ -175,6 +177,11 @@ export const farmCosts = async (db: Db, farmId: string) => {
         wentOn: true,
       },
     }),
+    db.query.sellingTrip.findMany({
+      where: { farmId },
+      columns: { id: true, transportBdt: true, keepBdt: true, wentOn: true },
+    }),
+    db.query.sellingTripAnimal.findMany({}),
   ]);
 
   // When each animal left, as her record says it: her Pen history ends there, so nothing is charged to a cow
@@ -264,25 +271,50 @@ export const farmCosts = async (db: Db, farmId: string) => {
         ]
       : []
   );
-  // What an outing cost beyond the animals, charged to the Animals that came home on it.
+  // Who stood on which lorry, by outing.
+  const takenOn = groupedBy(
+    takenOnSellingTrips.filter((one) => byId.has(one.animalId)),
+    (one) => one.sellingTripId
+  );
+
+  // What the outings cost beyond the animals, charged to the Animals they carried: those that came home on
+  // a Buying Trip, and every Animal taken on a Selling Trip, sold or brought home again.
   const outings = tripShares({
-    trips: buyingTrips.map((one) => ({
+    trips: [...buyingTrips, ...sellingTrips].map((one) => ({
       id: one.id,
       at: one.wentOn,
       costBdt: tripCostOf(one),
     })),
-    cameHome: animals.flatMap((one) =>
-      one.intake?.buyingTripId
-        ? [
-            {
-              animalId: one.id,
-              tripId: one.intake.buyingTripId,
-              side: sideOf(one, one.intake.arrivedAt),
-              at: one.intake.arrivedAt,
-            },
-          ]
-        : []
-    ),
+    carried: [
+      ...animals.flatMap((one) =>
+        one.intake?.buyingTripId
+          ? [
+              {
+                animalId: one.id,
+                tripId: one.intake.buyingTripId,
+                side: sideOf(one, one.intake.arrivedAt),
+                at: one.intake.arrivedAt,
+              },
+            ]
+          : []
+      ),
+      ...sellingTrips.flatMap(
+        (trip) =>
+          takenOn.get(trip.id)?.flatMap(({ animalId }) => {
+            const one = byId.get(animalId);
+            return one
+              ? [
+                  {
+                    animalId,
+                    tripId: trip.id,
+                    side: sideOf(one, trip.wentOn),
+                    at: trip.wentOn,
+                  },
+                ]
+              : [];
+          }) ?? []
+      ),
+    ],
   });
 
   // Nothing writes this one yet: the month's Herd Costs arrive with their own ticket, and every reader

@@ -31,6 +31,7 @@ export const RECORD_SOURCES = [
   "dispatch",
   "intake",
   "buying_trip",
+  "selling_trip",
   "sale",
   "feed_in",
   "medicine_purchase",

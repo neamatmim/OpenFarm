@@ -70,8 +70,11 @@ describe("a Buying Trip", () => {
     const third = await buy(manager, 55_000, trip.id);
 
     // Nine thousand over three beasts.
-    for (const one of [first, second, third]) {
-      expect(await costOf(one.tagNumber)).toMatchObject({ tripBdt: 3000 });
+    const each = await Promise.all(
+      [first, second, third].map((one) => costOf(one.tagNumber))
+    );
+    for (const one of each) {
+      expect(one).toMatchObject({ tripBdt: 3000 });
     }
   });
 
@@ -218,15 +221,21 @@ describe("a Buying Trip", () => {
   });
 
   it("is the Owner's and the Manager's, and nobody else's", async () => {
-    for (const role of ["staff", "vet"] as const) {
-      const other = await createTestClient(appRouter, { as: role });
-      await expect(
-        other.client.trips.record({
-          wentTo: `না ${suffix}`,
-          transportBdt: 100,
-          paymentMethod: "cash",
-        })
-      ).rejects.toMatchObject({ code: "FORBIDDEN" });
-    }
+    const others = await Promise.all(
+      (["staff", "vet"] as const).map((role) =>
+        createTestClient(appRouter, { as: role })
+      )
+    );
+    await Promise.all(
+      others.map((other) =>
+        expect(
+          other.client.trips.record({
+            wentTo: `না ${suffix}`,
+            transportBdt: 100,
+            paymentMethod: "cash",
+          })
+        ).rejects.toMatchObject({ code: "FORBIDDEN" })
+      )
+    );
   });
 });
