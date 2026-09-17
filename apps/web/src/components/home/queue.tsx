@@ -66,6 +66,8 @@ export const QueueGroup = ({
   icon: Icon,
   rows,
   more,
+  aside,
+  firstShown = FIRST_SHOWN,
 }: {
   label: string;
   tone: Tone;
@@ -74,19 +76,23 @@ export const QueueGroup = ({
   rows: ReactNode[];
   /** The link to the page that holds the whole list, where there is one. */
   more?: ReactNode;
+  /** What the rows come to, beside how many there are: a sum of money is read by its total before its lines. */
+  aside?: ReactNode;
+  /** How many rows show before "show all", where a queue's rows are better read by their total. */
+  firstShown?: number;
 }) => {
   const { t, language } = useLanguage();
   const [all, setAll] = useState(false);
   if (rows.length === 0) {
     return null;
   }
-  const shown = all ? rows : rows.slice(0, FIRST_SHOWN);
-  const long = rows.length > FIRST_SHOWN;
+  const shown = all ? rows : rows.slice(0, firstShown);
+  const long = rows.length > firstShown;
   const Chevron = all ? ChevronUp : ChevronDown;
   return (
     <div className="flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pb-1">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span
             className={cn(
               "grid size-7 shrink-0 place-items-center rounded-md",
@@ -99,6 +105,11 @@ export const QueueGroup = ({
           <StatusBadge tone={tone}>
             {formatNumber(rows.length, language)}
           </StatusBadge>
+          {aside ? (
+            <span className="text-muted-foreground text-sm tabular-nums">
+              {aside}
+            </span>
+          ) : null}
         </div>
         {more ? <div className="hidden text-sm sm:block">{more}</div> : null}
       </div>
