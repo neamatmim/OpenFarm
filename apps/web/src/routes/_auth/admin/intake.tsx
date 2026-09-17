@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { BuyingTripForm } from "@/components/intake/buying-trip";
 import type { IntakeFields } from "@/components/intake/intake-fields";
 import {
   EMPTY,
@@ -61,6 +62,8 @@ const IntakePage = () => {
   const [fields, setFields] = useState<IntakeFields>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
   const sheds = useQuery(orpc.herd.list.queryOptions());
+  // The outings the farm has written up lately, so an arrival can be put on the one it came home on.
+  const trips = useQuery(orpc.trips.list.queryOptions());
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
@@ -129,6 +132,7 @@ const IntakePage = () => {
             targetWeightKg: orNothing(fields.targetWeightKg),
             targetWindowStart: fields.targetWindowStart || undefined,
             targetWindowEnd: fields.targetWindowEnd || undefined,
+            buyingTripId: fields.buyingTripId || undefined,
             paymentMethod: fields.paymentMethod,
           });
         }}
@@ -142,7 +146,12 @@ const IntakePage = () => {
             photoName={photo?.name ?? null}
           />
           <SellerSection fields={fields} onEdit={edit} />
-          <PriceSection fields={fields} onEdit={edit} />
+          <PriceSection
+            fields={fields}
+            onEdit={edit}
+            trips={trips.data ?? []}
+          />
+          <BuyingTripForm fields={fields} onEdit={edit} />
           <TargetSection fields={fields} onEdit={edit} />
         </div>
 

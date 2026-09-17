@@ -1,3 +1,4 @@
+import { formatDate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Camera, CircleCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -229,8 +230,14 @@ const PerKgLine = ({ fields }: { fields: IntakeFields }) => {
 
 /** What was paid and how, what the scale read off the lorry, and the age the seller gave — with what that came to a
  *  kilo, worked out as it is typed. */
-export const PriceSection = ({ fields, onEdit }: PartProps) => {
-  const { t } = useLanguage();
+export const PriceSection = ({
+  fields,
+  onEdit,
+  trips,
+}: PartProps & {
+  trips: { id: string; wentTo: string; wentOn: Date; animals: number }[];
+}) => {
+  const { t, language } = useLanguage();
   return (
     <Section
       description={t("intake.groupPriceHint")}
@@ -267,6 +274,20 @@ export const PriceSection = ({ fields, onEdit }: PartProps) => {
           value={fields.estimatedAgeMonths}
         />
       </div>
+      <FormField id="intake-trip" label={t("intake.trip")}>
+        <NativeSelect
+          id="intake-trip"
+          onChange={(event) => onEdit({ buyingTripId: event.target.value })}
+          value={fields.buyingTripId}
+        >
+          <option value="">{t("intake.noTrip")}</option>
+          {trips.map((trip) => (
+            <option key={trip.id} value={trip.id}>
+              {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
+            </option>
+          ))}
+        </NativeSelect>
+      </FormField>
       <PerKgLine fields={fields} />
       <PaymentMethodField
         id="intake-paid-by"

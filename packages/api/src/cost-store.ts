@@ -21,9 +21,11 @@ import {
   roundTaka,
   roundedCosts,
   sidesOverTime,
+  tripShares,
 } from "@OpenFarm/domain";
 
 import { movementsByItem } from "./stock-store";
+import { tripCostOf } from "./trip-store";
 
 type Db = Pick<Database, "query" | "execute">;
 type Side = PenHistoryLine["side"];
@@ -89,6 +91,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
     purchases,
     fees,
     sessions,
+    buyingTrips,
   ] = await Promise.all([
     db.query.animal.findMany({
       where: { farmId },
@@ -105,6 +108,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
           columns: {
             purchasePriceBdt: true,
             hasilBdt: true,
+            buyingTripId: true,
             weightKg: true,
             arrivedAt: true,
           },
@@ -159,6 +163,16 @@ export const farmCosts = async (db: Db, farmId: string) => {
           where: { destination: "bulk" },
           columns: { animalId: true, litres: true },
         },
+      },
+    }),
+    db.query.buyingTrip.findMany({
+      where: { farmId },
+      columns: {
+        id: true,
+        brokerBdt: true,
+        transportBdt: true,
+        keepBdt: true,
+        wentOn: true,
       },
     }),
   ]);
@@ -250,9 +264,29 @@ export const farmCosts = async (db: Db, farmId: string) => {
         ]
       : []
   );
-  // Nothing writes these two yet: the Trips that moved her and the month's Herd Costs each arrive with
-  // their own ticket. Every reader below is already right for the day they do.
-  const trips: CostShare[] = [];
+  // What an outing cost beyond the animals, charged to the Animals that came home on it.
+  const outings = tripShares({
+    trips: buyingTrips.map((one) => ({
+      id: one.id,
+      at: one.wentOn,
+      costBdt: tripCostOf(one),
+    })),
+    cameHome: animals.flatMap((one) =>
+      one.intake?.buyingTripId
+        ? [
+            {
+              animalId: one.id,
+              tripId: one.intake.buyingTripId,
+              side: sideOf(one, one.intake.arrivedAt),
+              at: one.intake.arrivedAt,
+            },
+          ]
+        : []
+    ),
+  });
+
+  // Nothing writes this one yet: the month's Herd Costs arrive with their own ticket, and every reader
+  // below is already right for the day they do.
   const herd: CostShare[] = [];
 
   const milked: LitresShare[] = sessions.flatMap((session) =>
@@ -275,13 +309,14 @@ export const farmCosts = async (db: Db, farmId: string) => {
     animals,
     sideOf,
     unallocated: fed.unallocated,
+    unallocatedTrips: outings.unallocated,
     all: {
       feed: fed.shares,
       doses: dosed,
       vet: visited,
       litres: milked,
       hasil,
-      trips,
+      trips: outings.shares,
       herd,
     },
     ofAnimal: {
@@ -290,7 +325,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       vet: byAnimal(visited),
       litres: byAnimal(milked),
       hasil: byAnimal(hasil),
-      trips: byAnimal(trips),
+      trips: byAnimal(outings.shares),
       herd: byAnimal(herd),
     },
   };
@@ -451,6 +486,9 @@ export const costsBySide = (
     )
     .toSorted((a, b) => a.tagNumber.localeCompare(b.tagNumber));
   const unallocated = costs.unallocated.filter((one) => inThePeriod(one.at));
+  const strayTrips = costs.unallocatedTrips.filter((one) =>
+    inThePeriod(one.at)
+  );
   return {
     dairy: {
       ...roundedCosts(dairy.costs),
@@ -476,6 +514,7 @@ export const costsBySide = (
       unpricedKg: roundKg(
         unallocated.reduce((sum, one) => sum + one.unpricedKg, 0)
       ),
+      tripBdt: roundTaka(strayTrips.reduce((sum, one) => sum + one.bdt, 0)),
     },
   };
 };

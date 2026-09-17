@@ -210,7 +210,19 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.intake.counterpartyId,
       to: r.counterparty.id,
     }),
+    /** The outing she came home on, when she came home on one. */
+    buyingTrip: r.one.buyingTrip({
+      from: r.intake.buyingTripId,
+      to: r.buyingTrip.id,
+    }),
     recorder: r.one.user({ from: r.intake.recordedBy, to: r.user.id }),
+  },
+  buyingTrip: {
+    /** The Animals that came home on it. */
+    intakes: r.many.intake({
+      from: r.buyingTrip.id,
+      to: r.intake.buyingTripId,
+    }),
   },
   mortality: {
     animal: r.one.animal({

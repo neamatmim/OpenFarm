@@ -34,6 +34,64 @@ export interface CostShare {
   bdt: number;
 }
 
+/** One outing, as its cost is split: what it cost beyond the animals, and who came home on it. */
+export interface TripToSplit {
+  id: string;
+  at: Date;
+  costBdt: number;
+}
+
+/** An Animal who came home on an outing: which one, when she arrived, and the Side she arrived on. */
+export interface CameHome {
+  animalId: string;
+  tripId: string;
+  side: Side;
+  at: Date;
+}
+
+/** An outing nobody came home on: charged to nobody, and said. */
+export interface UnallocatedTrip {
+  at: Date;
+  bdt: number;
+}
+
+/**
+ * What the outings cost, charged to the Animals that came home on them: split evenly, because the lorry was
+ * hired for all of them and not for one. An outing nobody came home on — none bought, or every arrival
+ * corrected off it — is charged to nobody and said, the way a Feeding nobody stood for is.
+ */
+export const tripShares = ({
+  trips,
+  cameHome,
+}: {
+  trips: readonly TripToSplit[];
+  cameHome: readonly CameHome[];
+}): { shares: CostShare[]; unallocated: UnallocatedTrip[] } => {
+  const byTrip = groupedBy(cameHome, (one) => one.tripId);
+  const shares: CostShare[] = [];
+  const unallocated: UnallocatedTrip[] = [];
+  for (const trip of trips) {
+    if (trip.costBdt === 0) {
+      continue;
+    }
+    const theirs = byTrip.get(trip.id) ?? [];
+    if (theirs.length === 0) {
+      unallocated.push({ at: trip.at, bdt: trip.costBdt });
+      continue;
+    }
+    const each = trip.costBdt / theirs.length;
+    shares.push(
+      ...theirs.map((one) => ({
+        animalId: one.animalId,
+        side: one.side,
+        at: one.at,
+        bdt: each,
+      }))
+    );
+  }
+  return { shares, unallocated };
+};
+
 /** A Feeding nobody can be found standing for: charged to nobody, and said. */
 export interface UnallocatedFeeding {
   at: Date;

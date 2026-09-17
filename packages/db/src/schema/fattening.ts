@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { farm } from "./farm";
+import { ROLES, farm } from "./farm";
 import { animal } from "./herd";
 import { stepCompletion } from "./instance";
 
@@ -40,6 +40,40 @@ export const counterparty = pgTable(
 );
 
 /**
+ * One outing to buy cattle, with what it cost beyond the animals' prices: the broker, the lorry home, and
+ * keeping the men who went. Split evenly across the Animals whose Intakes name it, because the lorry was
+ * hired for all of them; the Hasil is not, because a haat takes that per animal.
+ */
+export const buyingTrip = pgTable(
+  "buying_trip",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** Where it went, as the farm says it: a haat's name, or a village's. */
+    wentTo: text("went_to").notNull(),
+    /** What the broker took for finding the animals. */
+    brokerBdt: numeric("broker_bdt", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    /** The lorry home. */
+    transportBdt: numeric("transport_bdt", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    /** Keeping the men who went: their food, and a night's lodging when the haat runs late. */
+    keepBdt: numeric("keep_bdt", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    wentOn: timestamp("went_on").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [index("buying_trip_day_idx").on(table.farmId, table.wentOn)]
+);
+
+/**
  * The recorded arrival of a bought-in Animal on the Fattening side.
  *
  * One per Animal: an animal arrives once. What it cost and what it weighed on the day are facts
@@ -58,6 +92,9 @@ export const intake = pgTable(
       .references(() => animal.id, { onDelete: "cascade" }),
     /** Who the farm bought it from. Null for an animal whose seller nobody wrote down. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
+    /** The outing she came home on, when she came home on one. Null for an animal bought at the farm
+     *  gate, or one nobody wrote a Trip for. */
+    buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
     /** What the farm paid, in taka. One of the two money events in a fattening animal's life. */
     purchasePriceBdt: numeric("purchase_price_bdt", {
       precision: 12,

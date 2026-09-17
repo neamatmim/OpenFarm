@@ -29,6 +29,11 @@ const CATEGORIES: Record<
   dispatch: { nameBn: "দুধ বিক্রি", nameEn: "Milk sales", direction: "in" },
   sale: { nameBn: "গরু বিক্রি", nameEn: "Cattle sales", direction: "in" },
   intake: { nameBn: "গরু কেনা", nameEn: "Cattle purchases", direction: "out" },
+  buying_trip: {
+    nameBn: "হাটে যাওয়ার খরচ",
+    nameEn: "Buying trips",
+    direction: "out",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",

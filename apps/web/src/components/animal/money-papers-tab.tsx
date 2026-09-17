@@ -113,6 +113,9 @@ const HowSheArrived = ({
             taka: formatNumber(intake.purchasePriceBdt, language),
           })}
         </Fact>
+        {intake.buyingTrip ? (
+          <Fact label={t("intake.trip")}>{intake.buyingTrip.wentTo}</Fact>
+        ) : null}
         {intake.hasilBdt > 0 ? (
           <Fact label={t("intake.hasil")}>
             {t("intake.taka", {
