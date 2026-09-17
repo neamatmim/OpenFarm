@@ -261,18 +261,32 @@ export const takeInBulls = async (
   const { random } = farm;
   const seller = random.pick(SELLERS);
   const arrived: Bull[] = [];
+  farm.clock.set(onFarm(on, "06:00"));
+  // The day at the haat: a broker to find them, the lorry home, and keeping the men who went. Its cost is
+  // split evenly across the beasts that came home on it.
+  const trip = await farm.as.manager.trips.record({
+    wentTo: seller.address ?? "গাবতলী হাট, ঢাকা",
+    brokerBdt: count * random.int(250, 400),
+    transportBdt: random.int(6000, 11_000),
+    keepBdt: random.int(900, 1800),
+    wentOn: onFarm(on, "06:00"),
+    paymentMethod: "cash",
+  });
   for (let index = 0; index < count; index += 1) {
     farm.clock.set(
       new Date(onFarm(on, "15:30").getTime() + index * 4 * 60_000)
     );
     const breed = random.pick(BULL_BREEDS);
     const weightKg = random.int(185, 290) + heavier;
+    const price = Math.round((weightKg * random.between(430, 520)) / 500) * 500;
     const recorded = await farm.as.manager.intake.record({
       penId: farm.pens[pen],
       sex: "male",
       seller,
-      purchasePriceBdt:
-        Math.round((weightKg * random.between(430, 520)) / 500) * 500,
+      purchasePriceBdt: price,
+      // The haat's toll on this beast, as its slip gives it: a fraction of what she fetched.
+      hasilBdt: Math.round((price * random.between(0.03, 0.045)) / 50) * 50,
+      buyingTripId: trip.id,
       weightKg,
       estimatedAgeMonths: random.int(16, 26),
       breed,
