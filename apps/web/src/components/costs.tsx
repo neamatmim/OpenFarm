@@ -1,4 +1,5 @@
 import { formatNumber } from "@OpenFarm/i18n";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
@@ -114,6 +115,20 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   );
 };
 
+/** One part of the period's costs, on its own card with its name. */
+const CostCard = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) => (
+  <section className="bg-card flex flex-col rounded-xl border p-4 text-sm md:p-5">
+    <h3 className="mb-1 text-base font-semibold tracking-tight">{title}</h3>
+    {children}
+  </section>
+);
+
 /**
  * A period by Side: what each Side's animals were fed, dosed and visited for in it, what a litre of the
  * Dairy side's milk cost — and, apart, the fattening animals sold in it with each one's whole-life Margin.
@@ -125,36 +140,39 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
     orpc.costs.bySide.queryOptions({ input: { from, to } })
   );
   if (!report.data) {
-    return null;
+    return <Skeleton className="h-64 rounded-xl" />;
   }
   const { dairy, fattening, soldFattening, unallocated } = report.data;
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">{t("costs.bySide")}</h2>
-      <div className="surface space-y-1 p-4 text-sm">
-        <h3 className="font-medium">{t("animals.side.dairy")}</h3>
-        <WhatWasSpent costs={dairy} />
-        <Line label={t("costs.litres")}>
-          {formatNumber(dairy.litresToBulk, language)}
-        </Line>
-        <Line label={t("costs.perLitre")}>
-          {dairy.costPerLitreBdt === null ? "—" : taka(dairy.costPerLitreBdt)}
-        </Line>
-      </div>
-      <div className="surface space-y-1 p-4 text-sm">
-        <h3 className="font-medium">{t("animals.side.fattening")}</h3>
-        <WhatWasSpent costs={fattening} />
-      </div>
-      <div className="surface space-y-1 p-4 text-sm">
-        <h3 className="font-medium">{t("costs.soldInPeriod")}</h3>
-        {soldFattening.animals.map((one) => (
-          <Line key={one.tagNumber} label={one.tagNumber}>
-            {one.marginBdt === null ? "—" : taka(one.marginBdt)}
+    <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground text-sm">{t("costs.bySideHint")}</p>
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <CostCard title={t("animals.side.dairy")}>
+          <WhatWasSpent costs={dairy} />
+          <Line label={t("costs.litres")}>
+            {formatNumber(dairy.litresToBulk, language)}
           </Line>
-        ))}
-        <Line label={t("costs.margin")}>{taka(soldFattening.marginBdt)}</Line>
+          <Line label={t("costs.perLitre")}>
+            {dairy.costPerLitreBdt === null ? "—" : taka(dairy.costPerLitreBdt)}
+          </Line>
+        </CostCard>
+        <CostCard title={t("animals.side.fattening")}>
+          <WhatWasSpent costs={fattening} />
+        </CostCard>
+        <CostCard title={t("costs.soldInPeriod")}>
+          {soldFattening.animals.map((one) => (
+            <Line key={one.tagNumber} label={one.tagNumber}>
+              {one.marginBdt === null ? "—" : taka(one.marginBdt)}
+            </Line>
+          ))}
+          <Line label={t("costs.margin")}>
+            <span className="font-semibold">
+              {taka(soldFattening.marginBdt)}
+            </span>
+          </Line>
+        </CostCard>
       </div>
       <Note amount={unallocated.feedBdt} word="costs.unallocatedNote" />
-    </section>
+    </div>
   );
 };

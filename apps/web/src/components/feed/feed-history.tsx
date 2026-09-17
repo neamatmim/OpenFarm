@@ -2,7 +2,6 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, Truck } from "lucide-react";
-import type { ReactNode } from "react";
 import { useState } from "react";
 
 import {
@@ -18,6 +17,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
+import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount as amountArrived, day, figure } from "@/lib/correcting";
 import { orpc } from "@/utils/orpc";
@@ -26,9 +26,6 @@ import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
 
 /** How many rows of a history a page shows before the next. */
 const HISTORY_PAGE = 20;
-
-const SELECT_CLASS =
-  "bg-card border-input focus-visible:ring-ring/50 h-9 rounded-md border px-3 text-sm outline-none focus-visible:ring-3";
 
 /** Feed that came in written up wrong: how much, what it cost, or the day — with the reason. */
 const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
@@ -226,13 +223,6 @@ const arrivalCard = (row: ArrivalRow) => <ArrivalCard row={row} />;
 
 type KindFilter = "" | "purchase" | "harvest";
 
-/** A history's bar of filters, above its table. */
-const FilterBar = ({ children }: { children: ReactNode }) => (
-  <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-    {children}
-  </div>
-);
-
 /** Every Feed Item a history names, once, for its filter. */
 const ItemFilter = ({
   items,
@@ -245,9 +235,9 @@ const ItemFilter = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <select
+    <NativeSelect
       aria-label={t("stock.filterItem")}
-      className={cn(SELECT_CLASS, "w-full sm:w-56")}
+      className="sm:w-56"
       onChange={(event) => onChange(event.target.value)}
       value={value}
     >
@@ -257,7 +247,7 @@ const ItemFilter = ({
           {item.nameBn}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   );
 };
 
@@ -289,7 +279,7 @@ export const ArrivalsTab = ({
   }
   return (
     <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
-      <FilterBar>
+      <FilterBar className="border-b pb-4 sm:justify-between">
         <ItemFilter items={items} onChange={setItemId} value={itemId} />
         <SegmentedControl
           label={t("stock.kind")}
@@ -442,7 +432,7 @@ export const CountsTab = ({
   }
   return (
     <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
-      <FilterBar>
+      <FilterBar className="border-b pb-4 sm:justify-between">
         <ItemFilter items={items} onChange={setItemId} value={itemId} />
       </FilterBar>
       <DataTable

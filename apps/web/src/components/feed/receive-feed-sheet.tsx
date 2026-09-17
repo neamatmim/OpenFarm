@@ -1,32 +1,19 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf, maundsOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@OpenFarm/ui/components/sheet";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { SegmentedControl } from "@/components/page";
+import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow } from "./feed-types";
-
-const SELECT_CLASS =
-  "bg-card border-input focus-visible:ring-ring/50 h-11 w-full rounded-md border px-3 text-base outline-none focus-visible:ring-3 md:h-9 md:text-sm";
 
 type Kind = "purchase" | "harvest";
 
@@ -129,158 +116,135 @@ export const ReceiveFeedSheet = ({
   );
 
   const amount = Number(draft.quantity);
-  const complete =
+  const ready =
     chosen !== null &&
     amount > 0 &&
     (draft.kind === "harvest" ||
       (Number(draft.price) > 0 && draft.seller.trim() !== ""));
 
   return (
-    <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="w-full gap-0 sm:max-w-md">
-        <SheetHeader className="border-b">
-          <SheetTitle>{t("stock.recordArrival")}</SheetTitle>
-          <SheetDescription>{t("stock.sheetDescription")}</SheetDescription>
-        </SheetHeader>
-        {chosen ? (
-          <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!complete) {
-                return;
+    <FormSheet
+      description={t("stock.sheetDescription")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => {
+        if (!chosen) {
+          return;
+        }
+        receive.mutate({
+          id: entryId,
+          feedItemId: chosen.id,
+          kind: draft.kind,
+          quantity: amount,
+          receivedOn: draft.receivedOn,
+          ...(draft.kind === "purchase"
+            ? {
+                priceBdt: Number(draft.price),
+                seller: { name: draft.seller.trim() },
+                paymentMethod: draft.paymentMethod,
               }
-              receive.mutate({
-                id: entryId,
-                feedItemId: chosen.id,
-                kind: draft.kind,
-                quantity: amount,
-                receivedOn: draft.receivedOn,
-                ...(draft.kind === "purchase"
-                  ? {
-                      priceBdt: Number(draft.price),
-                      seller: { name: draft.seller.trim() },
-                      paymentMethod: draft.paymentMethod,
-                    }
-                  : {}),
-              });
-            }}
-          >
-            <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="receive-item">{t("stock.col.item")}</Label>
-                <select
-                  className={SELECT_CLASS}
-                  id="receive-item"
-                  onChange={(event) => set("feedItemId", event.target.value)}
-                  value={chosen.id}
-                >
-                  {live.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.nameBn}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            : {}),
+        });
+      }}
+      open={open}
+      pending={receive.isPending}
+      ready={ready}
+      submitLabel={t("stock.record")}
+      title={t("stock.recordArrival")}
+    >
+      {chosen ? (
+        <>
+          <FormField id="receive-item" label={t("stock.col.item")}>
+            <NativeSelect
+              id="receive-item"
+              onChange={(event) => set("feedItemId", event.target.value)}
+              value={chosen.id}
+            >
+              {live.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nameBn}
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
 
-              <div className="space-y-1.5">
-                <span className="text-sm font-medium">{t("stock.kind")}</span>
-                <SegmentedControl
-                  label={t("stock.kind")}
-                  name="receive-kind"
-                  onChange={(value) => set("kind", value)}
-                  options={[
-                    { value: "purchase", label: t("stock.purchase") },
-                    { value: "harvest", label: t("stock.harvest") },
-                  ]}
-                  value={draft.kind}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">{t("stock.kind")}</span>
+            <SegmentedControl
+              label={t("stock.kind")}
+              name="receive-kind"
+              onChange={(value) => set("kind", value)}
+              options={[
+                { value: "purchase", label: t("stock.purchase") },
+                { value: "harvest", label: t("stock.harvest") },
+              ]}
+              value={draft.kind}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              id="receive-quantity"
+              label={t("stock.quantity", { unit: chosen.unit })}
+            >
+              <Input
+                id="receive-quantity"
+                inputMode="decimal"
+                min={0}
+                onChange={(event) => set("quantity", event.target.value)}
+                required
+                step="0.1"
+                type="number"
+                value={draft.quantity}
+              />
+            </FormField>
+            <FormField id="receive-on" label={t("stock.receivedOn")}>
+              <Input
+                id="receive-on"
+                onChange={(event) => set("receivedOn", event.target.value)}
+                required
+                type="date"
+                value={draft.receivedOn}
+              />
+            </FormField>
+          </div>
+
+          {draft.kind === "purchase" ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="receive-price" label={t("stock.price")}>
+                  <Input
+                    id="receive-price"
+                    inputMode="numeric"
+                    min={0}
+                    onChange={(event) => set("price", event.target.value)}
+                    required
+                    type="number"
+                    value={draft.price}
+                  />
+                </FormField>
+                <PaymentMethodField
+                  id="receive-paid-by"
+                  onChange={(method) => set("paymentMethod", method)}
+                  value={draft.paymentMethod}
                 />
               </div>
+              <FormField id="receive-seller" label={t("stock.seller")}>
+                <Input
+                  autoComplete="off"
+                  id="receive-seller"
+                  onChange={(event) => set("seller", event.target.value)}
+                  required
+                  value={draft.seller}
+                />
+              </FormField>
+            </>
+          ) : null}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="receive-quantity">
-                    {t("stock.quantity", { unit: chosen.unit })}
-                  </Label>
-                  <Input
-                    id="receive-quantity"
-                    inputMode="decimal"
-                    min={0}
-                    onChange={(event) => set("quantity", event.target.value)}
-                    required
-                    step="0.1"
-                    type="number"
-                    value={draft.quantity}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="receive-on">{t("stock.receivedOn")}</Label>
-                  <Input
-                    id="receive-on"
-                    onChange={(event) => set("receivedOn", event.target.value)}
-                    required
-                    type="date"
-                    value={draft.receivedOn}
-                  />
-                </div>
-              </div>
-
-              {draft.kind === "purchase" ? (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="receive-price">{t("stock.price")}</Label>
-                      <Input
-                        id="receive-price"
-                        inputMode="numeric"
-                        min={0}
-                        onChange={(event) => set("price", event.target.value)}
-                        required
-                        type="number"
-                        value={draft.price}
-                      />
-                    </div>
-                    <PaymentMethodField
-                      id="receive-paid-by"
-                      onChange={(method) => set("paymentMethod", method)}
-                      value={draft.paymentMethod}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="receive-seller">{t("stock.seller")}</Label>
-                    <Input
-                      autoComplete="off"
-                      id="receive-seller"
-                      onChange={(event) => set("seller", event.target.value)}
-                      required
-                      value={draft.seller}
-                    />
-                  </div>
-                </>
-              ) : null}
-
-              <LotSummary draft={draft} unit={chosen.unit} />
-            </div>
-            <SheetFooter className="flex-row justify-end border-t">
-              <Button
-                onClick={() => onOpenChange(false)}
-                type="button"
-                variant="outline"
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button disabled={!complete || receive.isPending} type="submit">
-                {receive.isPending ? <Spinner /> : null}
-                {t("stock.record")}
-              </Button>
-            </SheetFooter>
-          </form>
-        ) : (
-          <p className="text-muted-foreground p-4 text-sm">
-            {t("feed.noItems")}
-          </p>
-        )}
-      </SheetContent>
-    </Sheet>
+          <LotSummary draft={draft} unit={chosen.unit} />
+        </>
+      ) : (
+        <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>
+      )}
+    </FormSheet>
   );
 };

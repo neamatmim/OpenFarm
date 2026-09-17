@@ -1,13 +1,6 @@
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@OpenFarm/ui/components/tabs";
-import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -35,36 +28,27 @@ import type {
 } from "@/components/feed/feed-types";
 import { standingOf, valueOf } from "@/components/feed/feed-types";
 import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
-import { Page, PageHeader, StatTile } from "@/components/page";
+import { Page, PageHeader } from "@/components/page";
+import type { Figure } from "@/components/page-kit";
+import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["stock", "arrivals", "counts", "rations", "items"] as const;
 type Tab = (typeof TABS)[number];
 
-const TAB_ICON = {
-  stock: Warehouse,
-  arrivals: Truck,
-  counts: ClipboardList,
-  rations: Utensils,
-  items: Wheat,
-} as const;
+/** Feed Items still fed that hold nothing, or less than their level. */
+const shortOf = (lines: StockLine[]) =>
+  lines.filter(
+    (line) => !line.retiredAt && ["low", "out"].includes(standingOf(line))
+  ).length;
 
 /** The four figures the store is judged by: how many Feed Items it holds, how many are Running Low, what it is worth,
  *  and what feed was bought this month. */
-const StoreFigures = ({
-  lines,
-  arrivals,
-}: {
-  lines: StockLine[];
-  arrivals: Arrival[];
-}) => {
+const useStoreFigures = (lines: StockLine[], arrivals: Arrival[]): Figure[] => {
   const { t, language } = useLanguage();
   const live = lines.filter((line) => !line.retiredAt);
-  const short = live.filter((line) => {
-    const standing = standingOf(line);
-    return standing === "low" || standing === "out";
-  }).length;
+  const short = shortOf(lines);
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
   const month = farmDayOf(new Date()).slice(0, 7);
   const bought = arrivals.filter(
@@ -73,77 +57,35 @@ const StoreFigures = ({
       farmDayOf(new Date(one.receivedOn)).slice(0, 7) === month
   );
   const spent = bought.reduce((sum, one) => sum + (one.priceBdt ?? 0), 0);
-  const figures = [
+  return [
     {
       label: t("feed.kpi.items"),
       value: formatNumber(live.length, language),
-      warn: false,
+      hint: t("feed.kpi.itemsHint"),
+      icon: Warehouse,
     },
     {
       label: t("feed.kpi.low"),
       value: formatNumber(short, language),
-      warn: short > 0,
+      hint: t("feed.kpi.lowHint"),
+      icon: TriangleAlert,
+      tone: short > 0 ? "warning" : "neutral",
     },
     {
       label: t("feed.kpi.value"),
       value: `৳${formatNumber(Math.round(worth), language)}`,
-      warn: false,
+      hint: t("feed.kpi.valueHint"),
+      icon: Coins,
     },
     {
       label: t("feed.kpi.bought"),
       value: `৳${formatNumber(Math.round(spent), language)}`,
-      warn: false,
+      hint: t("feed.kpi.boughtHint", {
+        count: formatNumber(bought.length, language),
+      }),
+      icon: ShoppingCart,
     },
   ];
-  return (
-    <>
-      {/* A phone reads the four figures as one card, so the tabs are still on the first screen. */}
-      <dl className="bg-card grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 md:hidden">
-        {figures.map((figure) => (
-          <div className="flex flex-col gap-0.5" key={figure.label}>
-            <dt className="text-muted-foreground text-xs">{figure.label}</dt>
-            <dd
-              className={cn(
-                "text-lg font-semibold tabular-nums",
-                figure.warn && "text-warning"
-              )}
-            >
-              {figure.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="hidden grid-cols-2 gap-4 md:grid xl:grid-cols-4">
-        <StatTile
-          hint={t("feed.kpi.itemsHint")}
-          icon={Warehouse}
-          label={t("feed.kpi.items")}
-          value={formatNumber(live.length, language)}
-        />
-        <StatTile
-          hint={t("feed.kpi.lowHint")}
-          icon={TriangleAlert}
-          label={t("feed.kpi.low")}
-          tone={short > 0 ? "warning" : "neutral"}
-          value={formatNumber(short, language)}
-        />
-        <StatTile
-          hint={t("feed.kpi.valueHint")}
-          icon={Coins}
-          label={t("feed.kpi.value")}
-          value={`৳${formatNumber(Math.round(worth), language)}`}
-        />
-        <StatTile
-          hint={t("feed.kpi.boughtHint", {
-            count: formatNumber(bought.length, language),
-          })}
-          icon={ShoppingCart}
-          label={t("feed.kpi.bought")}
-          value={`৳${formatNumber(Math.round(spent), language)}`}
-        />
-      </div>
-    </>
-  );
 };
 
 /**
@@ -152,7 +94,7 @@ const StoreFigures = ({
  * every tab. The tab is kept in the address, so a page comes back as it was left.
  */
 const FeedPage = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "stock" } = Route.useSearch();
   const [receiving, setReceiving] = useState<{ feedItemId?: string } | null>(
@@ -178,12 +120,7 @@ const FeedPage = () => {
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
-  const short = lines.filter(
-    (line) => !line.retiredAt && ["low", "out"].includes(standingOf(line))
-  ).length;
-  const counts: Partial<Record<Tab, number>> = {
-    stock: short,
-  };
+  const figures = useStoreFigures(lines, arrivals.data ?? []);
 
   return (
     <Page>
@@ -200,67 +137,74 @@ const FeedPage = () => {
         title={t("feed.title")}
       />
 
-      <StoreFigures arrivals={arrivals.data ?? []} lines={lines} />
+      <SummaryFigures figures={figures} />
 
-      <Tabs
-        className="gap-4"
-        onValueChange={(value) =>
+      <PageTabs
+        onChange={(value) =>
           navigate({
             replace: true,
-            search: value === "stock" ? {} : { tab: value as Tab },
+            search: value === "stock" ? {} : { tab: value },
           })
         }
+        tabs={[
+          {
+            value: "stock",
+            label: t("feed.tab.stock"),
+            icon: Warehouse,
+            count: shortOf(lines),
+            content: (
+              <StockTab
+                lines={lines}
+                mayRecord={mayRecord}
+                onReceive={(feedItemId) => setReceiving({ feedItemId })}
+              />
+            ),
+          },
+          {
+            value: "arrivals",
+            label: t("feed.tab.arrivals"),
+            icon: Truck,
+            content: (
+              <ArrivalsTab
+                arrivals={arrivals.data ?? []}
+                items={feedItems}
+                mayCorrect={mayRecord}
+              />
+            ),
+          },
+          {
+            value: "counts",
+            label: t("feed.tab.counts"),
+            icon: ClipboardList,
+            content: (
+              <CountsTab
+                adjustments={adjustments.data ?? []}
+                items={feedItems}
+              />
+            ),
+          },
+          {
+            value: "rations",
+            label: t("feed.tab.rations"),
+            icon: Utensils,
+            content: (
+              <RationsTab
+                items={feedItems}
+                mayEdit={mayRecord}
+                pens={pens}
+                rations={(rations.data ?? []) as RationRow[]}
+              />
+            ),
+          },
+          {
+            value: "items",
+            label: t("feed.tab.items"),
+            icon: Wheat,
+            content: <ItemsTab items={feedItems} />,
+          },
+        ]}
         value={tab}
-      >
-        <div className="-mx-4 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
-          <TabsList className="h-11 gap-4" variant="line">
-            {TABS.map((one) => {
-              const Icon = TAB_ICON[one];
-              const count = counts[one] ?? 0;
-              return (
-                <TabsTrigger className="flex-none px-1" key={one} value={one}>
-                  <Icon aria-hidden />
-                  {t(`feed.tab.${one}`)}
-                  {count > 0 ? (
-                    <span className="bg-warning/15 text-warning rounded-full px-1.5 text-xs font-semibold tabular-nums">
-                      {formatNumber(count, language)}
-                    </span>
-                  ) : null}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </div>
-
-        <TabsContent value="stock">
-          <StockTab
-            lines={lines}
-            mayRecord={mayRecord}
-            onReceive={(feedItemId) => setReceiving({ feedItemId })}
-          />
-        </TabsContent>
-        <TabsContent value="arrivals">
-          <ArrivalsTab
-            arrivals={arrivals.data ?? []}
-            items={feedItems}
-            mayCorrect={mayRecord}
-          />
-        </TabsContent>
-        <TabsContent value="counts">
-          <CountsTab adjustments={adjustments.data ?? []} items={feedItems} />
-        </TabsContent>
-        <TabsContent value="rations">
-          <RationsTab
-            items={feedItems}
-            mayEdit={mayRecord}
-            pens={pens}
-            rations={(rations.data ?? []) as RationRow[]}
-          />
-        </TabsContent>
-        <TabsContent value="items">
-          <ItemsTab items={feedItems} />
-        </TabsContent>
-      </Tabs>
+      />
 
       {mayRecord ? (
         <ReceiveFeedSheet

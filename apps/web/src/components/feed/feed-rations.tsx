@@ -1,30 +1,19 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Pencil, Plus, Utensils } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow, RationRow } from "./feed-types";
-
-const SELECT_CLASS =
-  "bg-card border-input focus-visible:ring-ring/50 h-11 w-full rounded-md border px-3 text-base outline-none focus-visible:ring-3 md:h-9 md:w-72 md:text-sm";
 
 /** Everything this tab reads, refreshed together when a Ration changes. */
 const useRefreshRations = () => {
@@ -92,115 +81,90 @@ const RationDialog = ({
   const idFor = (part: string) => `ration-${ration?.id ?? "new"}-${part}`;
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-lg" closeLabel={t("common.close")}>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!name.trim() || lines.length === 0) {
-              return;
-            }
-            save.mutate({
-              ...(ration ? { rationId: ration.id } : {}),
-              name: {
-                bn: name.trim(),
-                ...(english.trim() ? { en: english.trim() } : {}),
-              },
-              items: lines,
-            });
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {ration ? t("feed.editRation") : t("feed.newRation")}
-            </DialogTitle>
-            <DialogDescription>
-              {t("feed.rationsDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          {offered.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>
-          ) : (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor={idFor("name")}>{t("feed.rationName")}</Label>
-                  <Input
-                    id={idFor("name")}
-                    onChange={(event) => setName(event.target.value)}
-                    required
-                    value={name}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor={idFor("en")}>{t("feed.english")}</Label>
-                  <Input
-                    id={idFor("en")}
-                    onChange={(event) => setEnglish(event.target.value)}
-                    value={english}
-                  />
-                </div>
-              </div>
-              <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm font-medium">
-                  {t("feed.kgPerAnimal")}
-                </legend>
-                <ul className="divide-border max-h-80 divide-y overflow-y-auto rounded-lg border">
-                  {offered.map((item) => (
-                    <li
-                      className="flex items-center justify-between gap-3 px-3 py-2"
-                      key={item.id}
-                    >
-                      <Label className="font-normal" htmlFor={idFor(item.id)}>
-                        {item.nameBn}
-                        {item.retiredAt ? ` · ${t("feed.retired")}` : ""}
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          className="w-24 text-right"
-                          id={idFor(item.id)}
-                          inputMode="decimal"
-                          min={0}
-                          onChange={(event) =>
-                            setKg((current) => ({
-                              ...current,
-                              [item.id]: event.target.value,
-                            }))
-                          }
-                          step="0.1"
-                          type="number"
-                          value={kg[item.id] ?? ""}
-                        />
-                        <span className="text-muted-foreground w-6 text-xs">
-                          {item.unit}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </fieldset>
-            </>
-          )}
-          <DialogFooter>
-            <Button
-              onClick={() => onOpenChange(false)}
-              type="button"
-              variant="outline"
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              disabled={lines.length === 0 || !name.trim() || save.isPending}
-              type="submit"
-            >
-              {save.isPending ? <Spinner /> : null}
-              {t("feed.setRation")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      className="sm:max-w-lg"
+      description={t("feed.rationsDescription")}
+      onOpenChange={onOpenChange}
+      onSubmit={() =>
+        save.mutate({
+          ...(ration ? { rationId: ration.id } : {}),
+          name: {
+            bn: name.trim(),
+            ...(english.trim() ? { en: english.trim() } : {}),
+          },
+          items: lines,
+        })
+      }
+      open={open}
+      pending={save.isPending}
+      ready={lines.length > 0 && name.trim() !== ""}
+      submitLabel={t("feed.setRation")}
+      title={ration ? t("feed.editRation") : t("feed.newRation")}
+    >
+      {offered.length === 0 ? (
+        <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor={idFor("name")}>{t("feed.rationName")}</Label>
+              <Input
+                id={idFor("name")}
+                onChange={(event) => setName(event.target.value)}
+                required
+                value={name}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={idFor("en")}>{t("feed.english")}</Label>
+              <Input
+                id={idFor("en")}
+                onChange={(event) => setEnglish(event.target.value)}
+                value={english}
+              />
+            </div>
+          </div>
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm font-medium">
+              {t("feed.kgPerAnimal")}
+            </legend>
+            <ul className="divide-border max-h-80 divide-y overflow-y-auto rounded-lg border">
+              {offered.map((item) => (
+                <li
+                  className="flex items-center justify-between gap-3 px-3 py-2"
+                  key={item.id}
+                >
+                  <Label className="font-normal" htmlFor={idFor(item.id)}>
+                    {item.nameBn}
+                    {item.retiredAt ? ` · ${t("feed.retired")}` : ""}
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      className="w-24 text-right"
+                      id={idFor(item.id)}
+                      inputMode="decimal"
+                      min={0}
+                      onChange={(event) =>
+                        setKg((current) => ({
+                          ...current,
+                          [item.id]: event.target.value,
+                        }))
+                      }
+                      step="0.1"
+                      type="number"
+                      value={kg[item.id] ?? ""}
+                    />
+                    <span className="text-muted-foreground w-6 text-xs">
+                      {item.unit}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+        </>
+      )}
+    </FormDialog>
   );
 };
 
@@ -356,10 +320,8 @@ export const RationsTab = ({
         description={t("feed.targetDescription")}
         title={t("feed.target")}
       >
-        <div className="space-y-1.5">
-          <Label htmlFor="feed-pen">{t("feed.pen")}</Label>
-          <select
-            className={SELECT_CLASS}
+        <FormField className="md:w-72" id="feed-pen" label={t("feed.pen")}>
+          <NativeSelect
             id="feed-pen"
             onChange={(event) => setPenId(event.target.value)}
             value={chosen}
@@ -369,8 +331,8 @@ export const RationsTab = ({
                 {pen.name}
               </option>
             ))}
-          </select>
-        </div>
+          </NativeSelect>
+        </FormField>
         {chosen ? <FeedingTarget penId={chosen} /> : null}
       </Section>
 

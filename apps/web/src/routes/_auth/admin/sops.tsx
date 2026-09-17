@@ -1,300 +1,71 @@
-import type {
-  EvidenceType,
-  SopContent,
-  Step,
-  StepEffect,
-  TriggerKind,
-} from "@OpenFarm/domain";
-import {
-  CALVING_LEADS,
-  EVIDENCE_TYPES,
-  FARM_EVENTS,
-  HEAT,
-  SERVICE,
-  STEP_EFFECT_KINDS,
-  LIVE_STATES,
-  MAX_TRIGGER_OFFSET_DAYS,
-  ROLES,
-  findPublishBlockers,
-} from "@OpenFarm/domain";
+import type { SopContent } from "@OpenFarm/domain";
+import { findPublishBlockers } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { BookOpen, GitPullRequestArrow, Hand, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  ActionsHeader,
-  DataTable,
-  createListColumns,
-  listHeader,
-  useListTable,
-} from "@/components/data-table";
-import { Page, PageHeader, Section } from "@/components/page";
-import { RaiseWork } from "@/components/raise-work";
-import { useLanguage, useT } from "@/i18n/language-provider";
+import { Loaded, Page, PageHeader } from "@/components/page";
+import type { Figure } from "@/components/page-kit";
+import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import type { Proposal, Sop } from "@/components/playbook/playbook-types";
+import { contentOf, raisedByHand } from "@/components/playbook/playbook-types";
+import { ProceduresTab } from "@/components/playbook/procedures-tab";
+import { ProposalsTab } from "@/components/playbook/proposals-tab";
+import { SopEditor } from "@/components/playbook/sop-editor";
+import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
-import type { HappeningTrigger } from "@/lib/sop-draft";
-import {
-  emptyHappening,
-  emptySop,
-  emptyStep,
-  fromChoices,
-  happeningTriggers,
-  needsChoices,
-  toChoices,
-  fromBilingualList,
-  needsUnit,
-  scheduleEveryOtherWeek,
-  scheduleTimes,
-  scheduleWeekdays,
-  withEveryOtherWeek,
-  withScheduleWeekdays,
-  splitList,
-  toBilingualList,
-  withEffect,
-  withProduct,
-  withHappeningTriggers,
-  withScheduleTimes,
-} from "@/lib/sop-draft";
+import { emptySop } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
 
-type Sop = Awaited<ReturnType<typeof orpc.sops.list.call>>[number];
-type Proposal = Awaited<ReturnType<typeof orpc.sops.proposals.call>>[number];
+const TABS = ["procedures", "proposals"] as const;
+type Tab = (typeof TABS)[number];
 
-/** What can be done with a procedure in the Playbook: raise its work now, read its card, and change it — the Owner
- *  by editing, anybody else by proposing. */
-interface SopRow {
-  id: string;
-  name: string;
-  version: number;
-  steps: number;
-  content: SopContent | undefined;
-  isOwner: boolean;
-  onEdit: (definitionId: string, content: SopContent) => void;
-}
-
-const toSopRow = (
-  sop: Sop,
-  isOwner: boolean,
-  onEdit: SopRow["onEdit"]
-): SopRow => {
-  const content = sop.currentVersion?.content as SopContent | undefined;
-  return {
-    id: sop.id,
-    name: content?.name.bn ?? "—",
-    version: sop.currentVersion?.number ?? 0,
-    steps: content?.steps.length ?? 0,
-    content,
-    isOwner,
-    onEdit,
-  };
+/** The figures the Playbook is judged by: how many procedures are in force, how many changes wait on the Owner, and
+ *  how many are raised by hand, which nobody's clock will bring round. */
+const usePlaybookFigures = (
+  sops: Sop[],
+  proposals: Proposal[],
+  isOwner: boolean
+): Figure[] => {
+  const { t, language } = useLanguage();
+  const inForce = sops.flatMap((sop) => contentOf(sop) ?? []);
+  const byHand = inForce.filter(raisedByHand).length;
+  return [
+    {
+      label: t("sop.kpi.procedures"),
+      value: formatNumber(inForce.length, language),
+      hint: t("sop.kpi.proceduresHint"),
+      icon: BookOpen,
+    },
+    {
+      label: t("sop.kpi.waiting"),
+      value: formatNumber(proposals.length, language),
+      hint: isOwner ? t("sop.kpi.waitingOwner") : t("sop.kpi.waitingManager"),
+      icon: GitPullRequestArrow,
+      tone: proposals.length > 0 ? "warning" : "neutral",
+    },
+    {
+      label: t("sop.kpi.byHand"),
+      value: formatNumber(byHand, language),
+      hint: t("sop.kpi.byHandHint"),
+      icon: Hand,
+    },
+  ];
 };
 
-const SopActions = ({ sop }: { sop: SopRow }) => {
-  const t = useT();
-  const { content } = sop;
-  if (!content) {
-    return null;
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-2 md:justify-end">
-      <RaiseWork definitionId={sop.id} />
-      <Button
-        nativeButton={false}
-        render={
-          <Link params={{ definitionId: sop.id }} to="/cards/$definitionId" />
-        }
-        variant="ghost"
-      >
-        {t("nav.card")}
-      </Button>
-      <Button onClick={() => sop.onEdit(sop.id, content)} variant="outline">
-        {sop.isOwner ? t("sop.edit") : t("sop.propose")}
-      </Button>
-    </div>
-  );
-};
-
-/** One procedure on a phone: its name, its Version and how many Steps, with what can be done with it beneath. */
-const SopCard = ({ sop }: { sop: SopRow }) => {
-  const t = useT();
-  return (
-    <li className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <p className="font-medium">{sop.name}</p>
-        <p className="text-muted-foreground text-sm">
-          {t("sop.version", { number: sop.version })} · {sop.steps}{" "}
-          {t("sop.steps")}
-        </p>
-      </div>
-      <SopActions sop={sop} />
-    </li>
-  );
-};
-
-const SopNameCell = ({ row }: { row: { original: SopRow } }) => (
-  <span className="font-medium">{row.original.name}</span>
-);
-
-const CountCell = ({ getValue }: { getValue: () => number }) => {
-  const { language } = useLanguage();
-  return formatNumber(getValue(), language);
-};
-
-const SopActionsCell = ({ row }: { row: { original: SopRow } }) => (
-  <SopActions sop={row.original} />
-);
-
-const sopColumn = createListColumns<SopRow>();
-const sopColumns = sopColumn.columns([
-  sopColumn.accessor("name", {
-    header: listHeader("sop.name"),
-    cell: SopNameCell,
-  }),
-  sopColumn.accessor("version", {
-    header: listHeader("sop.col.version"),
-    cell: CountCell,
-    meta: { align: "end" },
-  }),
-  sopColumn.accessor("steps", {
-    header: listHeader("sop.steps"),
-    cell: CountCell,
-    meta: { align: "end" },
-  }),
-  sopColumn.display({
-    id: "actions",
-    header: ActionsHeader,
-    cell: SopActionsCell,
-    meta: { align: "end" },
-  }),
-]);
-
-/** The Playbook as a table where there is room: each procedure's name, Version and Steps in a line, sortable. */
-const SopTable = ({ rows }: { rows: SopRow[] }) => {
-  const table = useListTable({
-    columns: sopColumns,
-    data: rows,
-    getRowId: (row) => row.id,
-  });
-  return (
-    <div className="bg-card hidden rounded-xl border md:block">
-      <DataTable bare minWidth="40rem" table={table} />
-    </div>
-  );
-};
-
-/** A change somebody proposed to a procedure, waiting for the Owner to publish it or turn it down. */
-interface ProposalRow {
-  id: string;
-  name: string;
-  proposer: string;
-  note: string | null;
-  isOwner: boolean;
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
-}
-
-const toProposalRow = (
-  proposal: Proposal,
-  decide: Pick<ProposalRow, "isOwner" | "onApprove" | "onReject">
-): ProposalRow => ({
-  id: proposal.id,
-  name: (proposal.content as SopContent).name.bn,
-  proposer: proposal.proposer?.name ?? "",
-  note: proposal.note,
-  ...decide,
-});
-
-const ProposalActions = ({ proposal }: { proposal: ProposalRow }) => {
-  const t = useT();
-  if (!proposal.isOwner) {
-    return null;
-  }
-  return (
-    <div className="flex gap-2 md:justify-end">
-      <Button onClick={() => proposal.onApprove(proposal.id)} size="sm">
-        {t("sop.approve")}
-      </Button>
-      <Button
-        onClick={() => proposal.onReject(proposal.id)}
-        size="sm"
-        variant="outline"
-      >
-        {t("sop.reject")}
-      </Button>
-    </div>
-  );
-};
-
-const ProposalCard = ({ proposal }: { proposal: ProposalRow }) => {
-  const t = useT();
-  return (
-    <li className="space-y-2 rounded-lg border p-4">
-      <p className="text-sm">
-        {proposal.name} · {t("sop.proposalBy", { name: proposal.proposer })}
-      </p>
-      {proposal.note ? (
-        <p className="text-muted-foreground text-sm">{proposal.note}</p>
-      ) : null}
-      <ProposalActions proposal={proposal} />
-    </li>
-  );
-};
-
-const ProposalNameCell = ({ row }: { row: { original: ProposalRow } }) => (
-  <span className="font-medium">{row.original.name}</span>
-);
-
-const NoteCell = ({ row }: { row: { original: ProposalRow } }) => (
-  <span className="text-muted-foreground">{row.original.note ?? "—"}</span>
-);
-
-const ProposalActionsCell = ({ row }: { row: { original: ProposalRow } }) => (
-  <ProposalActions proposal={row.original} />
-);
-
-const proposalColumn = createListColumns<ProposalRow>();
-const proposalColumns = proposalColumn.columns([
-  proposalColumn.accessor("name", {
-    header: listHeader("sop.name"),
-    cell: ProposalNameCell,
-  }),
-  proposalColumn.accessor("proposer", {
-    header: listHeader("sop.col.proposer"),
-  }),
-  proposalColumn.accessor((proposal) => proposal.note ?? "", {
-    id: "note",
-    header: listHeader("sop.col.note"),
-    cell: NoteCell,
-  }),
-  proposalColumn.display({
-    id: "actions",
-    header: ActionsHeader,
-    cell: ProposalActionsCell,
-    meta: { align: "end" },
-  }),
-]);
-
-/** The changes waiting, as a table where there is room: which procedure, who proposed it and why. */
-const ProposalTable = ({ rows }: { rows: ProposalRow[] }) => {
-  const table = useListTable({
-    columns: proposalColumns,
-    data: rows,
-    getRowId: (row) => row.id,
-  });
-  return (
-    <div className="hidden md:block">
-      <DataTable minWidth="40rem" table={table} />
-    </div>
-  );
-};
-
+/**
+ * The Playbook, by what somebody came to it for: the procedures in force — raising one's work now, reading its card,
+ * changing it — or the changes proposed and waiting on the Owner. A procedure is written on a page of its own; the
+ * Owner publishes it, and anybody else proposes it. The tab is kept in the address.
+ */
 const SopsPage = () => {
-  const t = useT();
+  const { t } = useLanguage();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { tab = "procedures" } = Route.useSearch();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<{
     content: SopContent;
@@ -379,37 +150,31 @@ const SopsPage = () => {
     }
   };
 
-  const sopRows = (sops.data ?? []).map((sop) =>
-    toSopRow(sop, isOwner, (definitionId, content) =>
-      setDraft({ content, definitionId })
-    )
-  );
-  const proposalRows = (proposals.data ?? []).map((proposal) =>
-    toProposalRow(proposal, {
-      isOwner,
-      onApprove: (id) => approve.mutate({ id }),
-      onReject: (id) => reject.mutate({ id, note: t("sop.rejectReason") }),
-    })
+  const figures = usePlaybookFigures(
+    sops.data ?? [],
+    proposals.data ?? [],
+    isOwner
   );
 
   if (draft) {
-    const blockers = findPublishBlockers(draft.content);
     return (
       <SopEditor
-        content={draft.content}
-        blockers={blockers}
+        blockers={findPublishBlockers(draft.content)}
         canPublish={isOwner}
-        pens={pens}
-        products={products}
+        content={draft.content}
+        isNew={draft.definitionId === null}
+        onCancel={() => setDraft(null)}
         onChange={(content) => setDraft({ ...draft, content })}
         onSave={save}
-        onCancel={() => setDraft(null)}
+        pending={create.isPending || publish.isPending || propose.isPending}
+        pens={pens}
+        products={products}
       />
     );
   }
 
   return (
-    <Page className="max-w-4xl">
+    <Page>
       <PageHeader
         actions={
           isOwner ? (
@@ -417,7 +182,9 @@ const SopsPage = () => {
               onClick={() =>
                 setDraft({ content: emptySop(), definitionId: null })
               }
+              type="button"
             >
+              <Plus aria-hidden data-icon="inline-start" />
               {t("sop.new")}
             </Button>
           ) : null
@@ -426,734 +193,63 @@ const SopsPage = () => {
         title={t("sop.title")}
       />
 
-      {sopRows.length ? (
-        <>
-          <ul className="space-y-2 md:hidden">
-            {sopRows.map((sop) => (
-              <SopCard key={sop.id} sop={sop} />
-            ))}
-          </ul>
-          <SopTable rows={sopRows} />
-        </>
-      ) : (
-        <p className="text-muted-foreground text-sm">{t("sop.none")}</p>
-      )}
+      <SummaryFigures figures={figures} />
 
-      <Section title={t("sop.proposals")}>
-        {proposalRows.length ? (
-          <>
-            <ul className="space-y-2 md:hidden">
-              {proposalRows.map((proposal) => (
-                <ProposalCard key={proposal.id} proposal={proposal} />
-              ))}
-            </ul>
-            <ProposalTable rows={proposalRows} />
-          </>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            {t("sop.noProposals")}
-          </p>
-        )}
-      </Section>
-    </Page>
-  );
-};
-
-/** A happening whose work the farm times by its own Parameters rather than days on the Trigger. */
-const farmTimed = (happening: HappeningTrigger): boolean =>
-  happening.kind === "before_calving" ||
-  (happening.kind === "event" &&
-    (happening.event === HEAT || happening.event === SERVICE));
-
-/** The same trigger, as another kind of thing that raises work — keeping the days-after
- *  count where the new kind has one to keep. */
-const ofKind = (
-  kind: TriggerKind,
-  happening: HappeningTrigger
-): HappeningTrigger => {
-  if (kind === "prescription") {
-    return { kind: "prescription" };
-  }
-  if (kind === "notifiable_disease") {
-    return { kind: "notifiable_disease" };
-  }
-  if (kind === "before_calving") {
-    return { kind: "before_calving", lead: "dry_off" };
-  }
-  if (kind === "registration_renewal") {
-    return { kind: "registration_renewal" };
-  }
-  const offsetDays =
-    "offsetDays" in happening ? happening.offsetDays : undefined;
-  return kind === "event"
-    ? { kind: "event", event: "move", offsetDays }
-    : { kind: "state", state: "dry", offsetDays };
-};
-
-/** What raises this work besides the clock: a Move, an arrival, a cow reaching a State, or a
- *  Prescription — one dose of which is one piece of work. Only what the farm actually records
- *  can be picked, because a Trigger nobody writes is work that never arrives. */
-const TriggerFields = ({
-  content,
-  onChange,
-}: {
-  content: SopContent;
-  onChange: (next: SopContent) => void;
-}) => {
-  const t = useT();
-  const happenings = happeningTriggers(content);
-  const replace = (index: number, next: HappeningTrigger | null) =>
-    onChange(
-      withHappeningTriggers(
-        content,
-        next === null
-          ? happenings.filter((_, at) => at !== index)
-          : happenings.map((current, at) => (at === index ? next : current))
-      )
-    );
-
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-muted-foreground text-sm">
-        {t("sop.triggers")}
-      </legend>
-      {content.triggers.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          {t("sop.trigger.byHand")}
-        </p>
-      ) : null}
-      {happenings.map((happening, index) => (
-        <div
-          className="flex flex-wrap items-end gap-2"
-          key={`${happening.kind}-${index}`}
-        >
-          <select
-            aria-label={t("sop.triggers")}
-            className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
-            onChange={(e) =>
-              replace(index, ofKind(e.target.value as TriggerKind, happening))
-            }
-            value={happening.kind}
-          >
-            <option value="event">{t("sop.trigger.event")}</option>
-            <option value="state">{t("sop.trigger.state")}</option>
-            <option value="prescription">
-              {t("sop.trigger.prescription")}
-            </option>
-            <option value="notifiable_disease">
-              {t("sop.trigger.notifiable")}
-            </option>
-            <option value="before_calving">
-              {t("sop.trigger.beforeCalving")}
-            </option>
-            <option value="registration_renewal">
-              {t("sop.trigger.registrationRenewal")}
-            </option>
-          </select>
-          {happening.kind === "before_calving" ? (
-            <select
-              aria-label={t("sop.trigger.beforeCalving")}
-              className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
-              onChange={(e) =>
-                replace(index, { ...happening, lead: e.target.value as never })
-              }
-              value={happening.lead}
-            >
-              {CALVING_LEADS.map((lead) => (
-                <option key={lead} value={lead}>
-                  {t(`calvingLead.${lead}`)}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {happening.kind === "prescription" ? (
-            // A Prescription says when its own doses fall due, so there is nothing here to
-            // choose and nothing to count days from.
-            <p className="text-muted-foreground text-sm">
-              {t("sop.trigger.perDose")}
-            </p>
-          ) : null}
-          {happening.kind === "notifiable_disease" ? (
-            // Due the moment the Diagnosis is made: the Act says without delay.
-            <p className="text-muted-foreground text-sm">
-              {t("sop.trigger.withoutDelay")}
-            </p>
-          ) : null}
-          {happening.kind === "event" ? (
-            <select
-              aria-label={t("sop.trigger.event")}
-              className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
-              onChange={(e) =>
-                replace(index, { ...happening, event: e.target.value as never })
-              }
-              value={happening.event}
-            >
-              {FARM_EVENTS.map((event) => (
-                <option key={event} value={event}>
-                  {t(`event.${event}`)}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {happening.kind === "state" ? (
-            <select
-              aria-label={t("sop.trigger.state")}
-              className="bg-card border-input h-11 rounded-md border px-3 text-base md:h-9 md:text-sm"
-              onChange={(e) =>
-                replace(index, { ...happening, state: e.target.value as never })
-              }
-              value={happening.state}
-            >
-              {LIVE_STATES.map((state) => (
-                <option key={state} value={state}>
-                  {t(`state.${state}`)}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {farmTimed(happening) ? (
-            // A Heat's and a Service's work — and calving work — are timed by the farm's own
-            // Parameters, and the Playbook refuses a number of days here, so it does not offer one.
-            <p className="text-muted-foreground text-sm">
-              {t("sop.trigger.farmTimed")}
-            </p>
-          ) : null}
-          {(happening.kind === "event" || happening.kind === "state") &&
-          !farmTimed(happening) ? (
-            <div className="space-y-1">
-              <Label htmlFor={`after-${index}`}>{t("sop.trigger.after")}</Label>
-              <Input
-                className="w-24"
-                id={`after-${index}`}
-                max={MAX_TRIGGER_OFFSET_DAYS}
-                min={0}
-                onChange={(e) =>
-                  replace(index, {
-                    ...happening,
-                    offsetDays: Number(e.target.value) || 0,
-                  })
-                }
-                type="number"
-                value={happening.offsetDays ?? 0}
-              />
-            </div>
-          ) : null}
-          <Button
-            onClick={() => replace(index, null)}
-            type="button"
-            variant="ghost"
-          >
-            {t("sop.trigger.remove")}
-          </Button>
-        </div>
-      ))}
-      <Button
-        onClick={() =>
-          onChange(
-            withHappeningTriggers(content, [...happenings, emptyHappening()])
-          )
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            replace: true,
+            search: value === "procedures" ? {} : { tab: value },
+          })
         }
-        type="button"
-        variant="outline"
-      >
-        {t("sop.trigger.add")}
-      </Button>
-    </fieldset>
-  );
-};
-
-/** The days of the week, Sunday first, as the farm's schedule numbers them. */
-const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
-
-/** Which days the scheduled work falls on — every day when none is ticked — and whether only every other week. */
-const ScheduleDays = ({
-  content,
-  onChange,
-}: {
-  content: SopContent;
-  onChange: (content: SopContent) => void;
-}) => {
-  const t = useT();
-  const days = scheduleWeekdays(content);
-  return (
-    <fieldset className="flex flex-col gap-2 pt-1">
-      <legend className="text-muted-foreground mb-1 text-sm">
-        {t("sop.days")}
-      </legend>
-      <div className="flex flex-wrap gap-1.5">
-        {WEEKDAYS.map((day) => {
-          const on = days.includes(day);
-          return (
-            <Button
-              aria-pressed={on}
-              key={day}
-              onClick={() =>
-                onChange(
-                  withScheduleWeekdays(
-                    content,
-                    on ? days.filter((d) => d !== day) : [...days, day]
-                  )
-                )
-              }
-              size="sm"
-              type="button"
-              variant={on ? "default" : "outline"}
-            >
-              {t(`sop.weekday.${day}`)}
-            </Button>
-          );
-        })}
-      </div>
-      <p className="text-muted-foreground text-xs">
-        {days.length === 0 ? t("sop.everyDay") : t("sop.onTheseDays")}
-      </p>
-      {days.length > 0 ? (
-        <label className="inline-flex items-center gap-2 text-sm">
-          <input
-            checked={scheduleEveryOtherWeek(content)}
-            className="size-4"
-            onChange={(event) =>
-              onChange(withEveryOtherWeek(content, event.target.checked))
-            }
-            type="checkbox"
-          />
-          {t("sop.everyOtherWeek")}
-        </label>
-      ) : null}
-    </fieldset>
-  );
-};
-
-const SopEditor = ({
-  content,
-  blockers,
-  canPublish,
-  pens,
-  products,
-  onChange,
-  onSave,
-  onCancel,
-}: {
-  content: SopContent;
-  blockers: string[];
-  canPublish: boolean;
-  pens: { id: string; name: string }[];
-  /** What a campaign may give: the Drug List's products whose withdrawal days are known. */
-  products: { id: string; name: string; vaccine: boolean }[];
-  onChange: (content: SopContent) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}) => {
-  const t = useT();
-  const setStep = (index: number, step: Step) => {
-    const steps = [...content.steps];
-    steps[index] = step;
-    onChange({ ...content, steps });
-  };
-
-  return (
-    <form
-      className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSave();
-      }}
-    >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label htmlFor="name-bn">{`${t("sop.name")} — ${t("sop.bangla")}`}</Label>
-          <Input
-            id="name-bn"
-            value={content.name.bn}
-            onChange={(e) =>
-              onChange({
-                ...content,
-                name: { ...content.name, bn: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="name-en">{`${t("sop.name")} — ${t("sop.english")}`}</Label>
-          <Input
-            id="name-en"
-            value={content.name.en ?? ""}
-            onChange={(e) =>
-              onChange({
-                ...content,
-                name: { ...content.name, en: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="purpose-bn">{`${t("sop.purpose")} — ${t("sop.bangla")}`}</Label>
-          <Input
-            id="purpose-bn"
-            value={content.purpose.bn}
-            onChange={(e) =>
-              onChange({
-                ...content,
-                purpose: { ...content.purpose, bn: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="times">{t("sop.times")}</Label>
-          <Input
-            id="times"
-            value={scheduleTimes(content).join(", ")}
-            placeholder={t("sop.timesHelp")}
-            onChange={(e) =>
-              onChange(withScheduleTimes(content, splitList(e.target.value)))
-            }
-          />
-          <ScheduleDays content={content} onChange={onChange} />
-        </div>
-        <TriggerFields content={content} onChange={onChange} />
-        <div className="space-y-1">
-          <Label htmlFor="assigned">{t("sop.assignedRole")}</Label>
-          <select
-            id="assigned"
-            value={content.assignedRole}
-            onChange={(e) =>
-              onChange({
-                ...content,
-                assignedRole: e.target.value as SopContent["assignedRole"],
-              })
-            }
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-          >
-            {ROLES.map((role) => (
-              <option key={role} value={role}>
-                {t(`role.${role}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="checker">{t("sop.checkerRole")}</Label>
-          <select
-            id="checker"
-            value={content.checkerRole ?? ""}
-            onChange={(e) =>
-              onChange({
-                ...content,
-                checkerRole: (e.target.value ||
-                  null) as SopContent["checkerRole"],
-              })
-            }
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-          >
-            <option value="">{t("sop.checkerNone")}</option>
-            {ROLES.map((role) => (
-              <option key={role} value={role}>
-                {t(`role.${role}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="grace">{t("sop.grace")}</Label>
-          <Input
-            id="grace"
-            type="number"
-            min={0}
-            value={content.graceMinutes}
-            onChange={(e) =>
-              onChange({ ...content, graceMinutes: Number(e.target.value) })
-            }
-          />
-        </div>
-      </div>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t("sop.steps")}</h2>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              onChange({
-                ...content,
-                steps: [
-                  ...content.steps,
-                  emptyStep(`step-${content.steps.length + 1}`),
-                ],
-              })
-            }
-          >
-            {t("sop.addStep")}
-          </Button>
-        </div>
-        {content.steps.map((step, index) => (
-          <StepEditor
-            key={step.id}
-            pens={pens}
-            products={products}
-            step={step}
-            onChange={(next) => setStep(index, next)}
-            onRemove={() =>
-              onChange({
-                ...content,
-                steps: content.steps.filter((_, i) => i !== index),
-              })
-            }
-          />
-        ))}
-      </section>
-
-      {blockers.length > 0 ? (
-        <div className="border-warning/40 surface p-4 text-sm">
-          <p className="text-warning font-medium">{t("sop.cannotPublish")}</p>
-          <ul className="text-muted-foreground">
-            {blockers.map((blocker) => (
-              <li key={blocker}>{blocker}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <div className="flex gap-2">
-        <Button type="submit" disabled={blockers.length > 0}>
-          {canPublish ? t("sop.publish") : t("sop.propose")}
-        </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          {t("common.cancel")}
-        </Button>
-      </div>
-    </form>
-  );
-};
-
-const StepEditor = ({
-  step,
-  pens,
-  products,
-  onChange,
-  onRemove,
-}: {
-  step: Step;
-  /** The Pens a moving Step may walk an animal to — the farm's own, never typed. */
-  pens: { id: string; name: string }[];
-  products: { id: string; name: string; vaccine: boolean }[];
-  onChange: (step: Step) => void;
-  onRemove: () => void;
-}) => {
-  const t = useT();
-  const evidence = step.evidence[0] ?? {
-    type: "tick" as EvidenceType,
-    required: true,
-  };
-
-  return (
-    <div className="surface space-y-2 p-4">
-      <div className="flex items-end gap-2">
-        <div className="flex-1 space-y-1">
-          <Label
-            htmlFor={`${step.id}-text`}
-          >{`${t("sop.stepText")} — ${t("sop.bangla")}`}</Label>
-          <Input
-            id={`${step.id}-text`}
-            value={step.text.bn}
-            onChange={(e) =>
-              onChange({ ...step, text: { ...step.text, bn: e.target.value } })
-            }
-          />
-        </div>
-        <Button type="button" size="sm" variant="ghost" onClick={onRemove}>
-          {t("sop.removeStep")}
-        </Button>
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor={`${step.id}-effect`}>{t("sop.effect")}</Label>
-        <select
-          className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-          id={`${step.id}-effect`}
-          onChange={(e) =>
-            onChange(
-              withEffect(step, e.target.value as StepEffect["kind"] | "", pens)
-            )
-          }
-          value={step.effect?.kind ?? ""}
-        >
-          <option value="">{t("sop.effect.none")}</option>
-          {STEP_EFFECT_KINDS.map((kind) => (
-            <option
-              disabled={kind === "move" && pens.length === 0}
-              key={kind}
-              value={kind}
-            >
-              {kind === "move" && pens.length === 0
-                ? `${t("sop.effect.move")} — ${t("sop.effect.needsPens")}`
-                : t(`sop.effect.${kind}`)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {step.effect?.kind === "treatment" ? (
-        <div className="space-y-1">
-          <Label htmlFor={`${step.id}-product`}>
-            {t("sop.effect.product")}
-          </Label>
-          <select
-            className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-            id={`${step.id}-product`}
-            onChange={(e) =>
-              onChange(
-                withProduct(
-                  step,
-                  products.find((product) => product.id === e.target.value) ??
-                    null
-                )
-              )
-            }
-            value={step.effect.productId ?? ""}
-          >
-            {/* Blank is the farm's one Treatment procedure, whose doses a Prescription names
-                one at a time. Anything else is a campaign over a Pen. */}
-            <option value="">{t("sop.effect.prescriptionNames")}</option>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          checked={step.repeatPerAnimal}
-          disabled={Boolean(step.effect)}
-          onChange={(e) =>
-            onChange({ ...step, repeatPerAnimal: e.target.checked })
-          }
-          type="checkbox"
-        />
-        {t("sop.repeatPerAnimal")}
-      </label>
-
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="space-y-1">
-          <Label htmlFor={`${step.id}-evidence`}>{t("sop.evidence")}</Label>
-          <select
-            disabled={Boolean(step.effect)}
-            id={`${step.id}-evidence`}
-            value={evidence.type}
-            onChange={(e) =>
-              onChange({
-                ...step,
-                evidence: [
-                  { ...evidence, type: e.target.value as EvidenceType },
-                ],
-              })
-            }
-            className="bg-card border-input h-11 rounded-md border px-3 text-base disabled:opacity-60 md:h-9 md:text-sm"
-          >
-            {EVIDENCE_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {t(`sop.evidence.${type}`)}
-              </option>
-            ))}
-          </select>
-        </div>
-        {needsChoices(step) ? (
-          <div className="flex-1 space-y-1">
-            <Label htmlFor={`${step.id}-choices`}>{t("sop.choices")}</Label>
-            <Input
-              id={`${step.id}-choices`}
-              onChange={(e) =>
-                onChange({
-                  ...step,
-                  evidence: [
-                    {
-                      ...evidence,
-                      type: "choice",
-                      choices: toChoices(e.target.value, evidence.choices),
-                    },
-                  ],
-                })
-              }
-              placeholder={t("sop.choicesHelp")}
-              value={fromChoices(evidence.choices)}
-            />
-          </div>
-        ) : null}
-        {needsUnit(evidence.type) ? (
-          <>
-            <div className="space-y-1">
-              <Label htmlFor={`${step.id}-unit`}>{t("sop.unit")}</Label>
-              <Input
-                id={`${step.id}-unit`}
-                className="w-24"
-                value={evidence.unit?.bn ?? ""}
-                onChange={(e) =>
-                  onChange({
-                    ...step,
-                    evidence: [{ ...evidence, unit: { bn: e.target.value } }],
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor={`${step.id}-min`}>{t("sop.min")}</Label>
-              <Input
-                id={`${step.id}-min`}
-                type="number"
-                className="w-20"
-                value={evidence.min ?? 0}
-                onChange={(e) =>
-                  onChange({
-                    ...step,
-                    evidence: [{ ...evidence, min: Number(e.target.value) }],
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor={`${step.id}-max`}>{t("sop.max")}</Label>
-              <Input
-                id={`${step.id}-max`}
-                type="number"
-                className="w-20"
-                value={evidence.max ?? 0}
-                onChange={(e) =>
-                  onChange({
-                    ...step,
-                    evidence: [{ ...evidence, max: Number(e.target.value) }],
-                  })
-                }
-              />
-            </div>
-          </>
-        ) : null}
-      </div>
-
-      {step.repeatPerAnimal ? (
-        <div className="space-y-1">
-          <Label htmlFor={`${step.id}-skip`}>{t("sop.skipReasons")}</Label>
-          <Input
-            id={`${step.id}-skip`}
-            placeholder={t("sop.skipHelp")}
-            value={fromBilingualList(step.skipReasons)}
-            onChange={(e) =>
-              onChange({
-                ...step,
-                skipReasons: toBilingualList(e.target.value),
-              })
-            }
-          />
-        </div>
-      ) : null}
-    </div>
+        tabs={[
+          {
+            value: "procedures",
+            label: t("sop.tab.procedures"),
+            icon: BookOpen,
+            content: (
+              <Loaded query={sops}>
+                <ProceduresTab
+                  isOwner={isOwner}
+                  onEdit={(definitionId, content) =>
+                    setDraft({ content, definitionId })
+                  }
+                  sops={sops.data ?? []}
+                />
+              </Loaded>
+            ),
+          },
+          {
+            value: "proposals",
+            label: t("sop.tab.proposals"),
+            icon: GitPullRequestArrow,
+            count: proposals.data?.length,
+            content: (
+              <Loaded query={proposals}>
+                <ProposalsTab
+                  deciding={approve.isPending || reject.isPending}
+                  isOwner={isOwner}
+                  onApprove={(id) => approve.mutate({ id })}
+                  onReject={(id) =>
+                    reject.mutate({ id, note: t("sop.rejectReason") })
+                  }
+                  proposals={proposals.data ?? []}
+                />
+              </Loaded>
+            ),
+          },
+        ]}
+        value={tab}
+      />
+    </Page>
   );
 };
 
 export const Route = createFileRoute("/_auth/admin/sops")({
   component: SopsPage,
+  /** Which tab, kept in the address so the page comes back as it was left. */
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search.tab as Tab) && search.tab !== "procedures"
+      ? { tab: search.tab as Tab }
+      : {},
 });

@@ -1,520 +1,166 @@
-import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { FileDown, Milk, Printer, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { FileText, Milk, Scale, Truck } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
-import {
-  CorrectionDialog,
-  CorrectionAnswer,
-  useCorrecting,
-} from "@/components/correction-dialog";
-import {
-  ActionsHeader,
-  DataTable,
-  createListColumns,
-  listHeader,
-  useListTable,
-} from "@/components/data-table";
 import { MilkMismatches } from "@/components/milk-mismatches";
-import {
-  EmptyState,
-  Loaded,
-  Page,
-  PageHeader,
-  PeriodFilter,
-  RecordList,
-  RecordRow,
-  Section,
-  StatTile,
-} from "@/components/page";
-import { Paper } from "@/components/paper";
-import { PaymentMethodField } from "@/components/payment-method";
+import { DispatchSheet } from "@/components/milk/dispatch-sheet";
+import { HandedOverTab } from "@/components/milk/handed-over";
+import { MilkRecordsTab } from "@/components/milk/milk-records";
+import type { MilkDay } from "@/components/milk/milk-types";
+import { worthOf } from "@/components/milk/milk-types";
+import { Page, PageHeader } from "@/components/page";
+import type { Figure } from "@/components/page-kit";
+import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount, counterparty, note } from "@/lib/correcting";
-import { wordedRefusal } from "@/lib/correction-refusal";
 import { onlyFor } from "@/lib/guard";
-import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
-const NOTHING_TYPED = {
-  dispatchedAt: "",
-  litres: "",
-  buyerName: "",
-  buyerAddress: "",
-  buyerPhone: "",
-  challan: "",
-  price: "",
-  fat: "",
-  snf: "",
-  note: "",
-};
-
-const DISPATCH_FIELDS = [
-  ["dispatchedAt", "dispatch.when", "datetime-local"],
-  ["litres", "dispatch.litresField", "number"],
-  ["buyerName", "dispatch.buyer", "text"],
-  ["buyerPhone", "dispatch.buyerPhone", "tel"],
-  ["buyerAddress", "dispatch.buyerAddress", "text"],
-  ["challan", "dispatch.challan", "text"],
-  ["price", "dispatch.price", "number"],
-  ["fat", "dispatch.fat", "number"],
-  ["snf", "dispatch.snf", "number"],
-  ["note", "dispatch.note", "text"],
-] as const;
-
-/** The boxes that read better across the whole form than in half of it. */
-const WIDE_FIELDS = new Set(["buyerAddress", "note"]);
-
-/** The Manager puts a Dispatch right — litres, price, buyer or challan — with the reason. */
-const DispatchCorrection = ({
-  dispatch,
-}: {
-  dispatch: {
-    id: string;
-    litres: number;
-    pricePerLitreBdt: number;
-    buyerName: string;
-    challan: string | null;
-  };
-}) => {
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const correcting = useCorrecting({
-    litres: amount(dispatch.litres),
-    pricePerLitreBdt: amount(dispatch.pricePerLitreBdt),
-    buyer: counterparty(dispatch.buyerName),
-    challan: note(dispatch.challan),
-  });
-  const correct = useMutation(orpc.milk.correctDispatch.mutationOptions({}));
-  return (
-    <CorrectionDialog
-      onOpen={correcting.handleOpen}
-      onSave={async (reason) => {
-        await correct.mutateAsync({
-          id: dispatch.id,
-          reason,
-          changes: correcting.changes(),
-        });
-        await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
-      }}
-      ready={correcting.changed}
-      title={t("correct.dispatch")}
-    >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <CorrectionAnswer
-          inputMode="decimal"
-          label={t("dispatch.litresField")}
-          onChange={(value) => correcting.set("litres", value)}
-          type="number"
-          value={correcting.typed.litres ?? ""}
-        />
-        <CorrectionAnswer
-          inputMode="decimal"
-          label={t("dispatch.price")}
-          onChange={(value) => correcting.set("pricePerLitreBdt", value)}
-          type="number"
-          value={correcting.typed.pricePerLitreBdt ?? ""}
-        />
-      </div>
-      <CorrectionAnswer
-        label={t("dispatch.buyer")}
-        onChange={(value) => correcting.set("buyer", value)}
-        value={correcting.typed.buyer ?? ""}
-      />
-      <CorrectionAnswer
-        label={t("dispatch.challan")}
-        onChange={(value) => correcting.set("challan", value)}
-        value={correcting.typed.challan ?? ""}
-      />
-    </CorrectionDialog>
-  );
-};
-
-type Dispatch = Awaited<
-  ReturnType<typeof orpc.milk.day.call>
->["dispatches"][number];
-
-interface DispatchRow extends Dispatch {
-  mayCorrect: boolean;
-}
-
-/** A percentage the collector may not have measured: a dash when nobody wrote it. */
-const PercentCell = ({ value }: { value: number | null }) => {
-  const { language } = useLanguage();
-  return value === null ? "—" : formatNumber(value, language);
-};
-
-const WhenCell = ({ row }: { row: { original: DispatchRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(row.original.dispatchedAt, language, "dateTime")}
-    </span>
-  );
-};
-
-const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
-  <span className="font-medium">{row.original.buyerName}</span>
-);
-
-const LitresCell = ({ row }: { row: { original: DispatchRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="font-semibold">
-      {formatNumber(row.original.litres, language)}
-    </span>
-  );
-};
-
-const PriceCell = ({ row }: { row: { original: DispatchRow } }) => {
-  const { language } = useLanguage();
-  return formatNumber(row.original.pricePerLitreBdt, language);
-};
-
-const FatCell = ({ row }: { row: { original: DispatchRow } }) => (
-  <PercentCell value={row.original.fatPercent} />
-);
-
-const SnfCell = ({ row }: { row: { original: DispatchRow } }) => (
-  <PercentCell value={row.original.snfPercent} />
-);
-
-const CorrectCell = ({ row }: { row: { original: DispatchRow } }) =>
-  row.original.mayCorrect ? (
-    <DispatchCorrection dispatch={row.original} />
-  ) : null;
-
-const column = createListColumns<DispatchRow>();
-const dispatchColumns = column.columns([
-  column.accessor((one) => new Date(one.dispatchedAt).getTime(), {
-    id: "dispatchedAt",
-    header: listHeader("audit.when"),
-    cell: WhenCell,
-  }),
-  column.accessor("buyerName", {
-    header: listHeader("dispatch.buyer"),
-    cell: BuyerCell,
-  }),
-  column.accessor((one) => one.challan ?? "—", {
-    id: "challan",
-    header: listHeader("dispatch.challan"),
-    meta: { className: "whitespace-nowrap" },
-  }),
-  column.accessor("litres", {
-    header: listHeader("dispatch.litresField"),
-    cell: LitresCell,
-    meta: { align: "end" },
-  }),
-  column.accessor("pricePerLitreBdt", {
-    header: listHeader("dispatch.price"),
-    cell: PriceCell,
-    meta: { align: "end" },
-  }),
-  column.accessor((one) => one.fatPercent ?? -1, {
-    id: "fat",
-    header: listHeader("dispatch.fat"),
-    cell: FatCell,
-    meta: { align: "end" },
-  }),
-  column.accessor((one) => one.snfPercent ?? -1, {
-    id: "snf",
-    header: listHeader("dispatch.snf"),
-    cell: SnfCell,
-    meta: { align: "end" },
-  }),
-  column.display({
-    id: "correct",
-    header: ActionsHeader,
-    cell: CorrectCell,
-    meta: { align: "end" },
-  }),
-]);
-
-/** The day's Dispatches as a table where there is room: when, to whom, the challan, and the figures a processor
- *  pays on — litres, price, fat and SNF — side by side. */
-const DispatchTable = ({
-  dispatches,
-  mayCorrect,
-}: {
-  dispatches: Dispatch[];
-  mayCorrect: boolean;
-}) => {
-  const table = useListTable({
-    columns: dispatchColumns,
-    data: dispatches.map((one) => ({ ...one, mayCorrect })),
-    getRowId: (row) => row.id,
-  });
-  return (
-    <DataTable className="hidden md:block" minWidth="48rem" table={table} />
-  );
-};
-
-/** Words typed into a box, or nothing when the box was left empty. */
-const written = (value: string): string | undefined =>
-  value.trim() || undefined;
-
-/** A figure typed into a box, or nothing when the box was left empty. */
-const typed = (value: string): number | undefined =>
-  value.trim() === "" ? undefined : Number(value);
+const TABS = ["handedOver", "mismatches", "records"] as const;
+type Tab = (typeof TABS)[number];
 
 /**
- * The milk leaving the farm: one day's tank beside what was handed over, the Dispatch as the Manager
- * records it at the gate, and the two reports that come from them — the dispatch record a processor or
- * BFSA asks for, and the production figures the Owner reads.
+ * The figures a day of milk is judged by: what went into the tank, what was handed over at the gate and what it came
+ * to, and how many tank readings wait for the Manager to look at.
+ */
+const useMilkFigures = ({
+  day,
+  milkDay,
+  failed,
+  mismatches,
+}: {
+  day: string;
+  milkDay: MilkDay | undefined;
+  failed: boolean;
+  mismatches: number | undefined;
+}): Figure[] => {
+  const { t, language } = useLanguage();
+  // A figure the farm has not given yet: a placeholder while it is asked, a dash once asking has failed.
+  const notYet = failed ? "—" : <Skeleton className="h-8 w-28" />;
+  const litres = (value: number) =>
+    `${formatNumber(value, language)} ${t("dispatch.litres")}`;
+  const worth = (milkDay?.dispatches ?? []).reduce(
+    (sum, one) => sum + worthOf(one.litres, one.pricePerLitreBdt),
+    0
+  );
+  const dayWord = formatDate(new Date(`${day}T12:00:00`), language);
+  return [
+    {
+      label: t("dispatch.intoTank"),
+      value: milkDay ? litres(milkDay.toBulkLitres) : notYet,
+      hint: dayWord,
+      icon: Milk,
+    },
+    {
+      label: t("dispatch.handedOver"),
+      value: milkDay ? litres(milkDay.dispatchedLitres) : notYet,
+      hint: milkDay
+        ? t("dispatch.kpi.handedOverHint", {
+            count: milkDay.dispatches.length,
+            taka: Math.round(worth),
+          })
+        : dayWord,
+      icon: Truck,
+    },
+    {
+      label: t("dispatch.tab.mismatches"),
+      value:
+        mismatches === undefined ? notYet : formatNumber(mismatches, language),
+      hint: t("dispatch.kpi.mismatchesHint"),
+      icon: Scale,
+      tone: mismatches ? "warning" : "neutral",
+    },
+  ];
+};
+
+/**
+ * The milk leaving the farm, by what somebody came to it for: one day's tank beside what was handed over at the gate,
+ * the milkings whose tank did not match its cows, and the records a processor or BFSA asks for. Milk handed over is
+ * one button away from every tab. The tab is kept in the address, so a page comes back as it was left.
  */
 const MilkPage = () => {
-  const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
+  const { t } = useLanguage();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { tab = "handedOver" } = Route.useSearch();
   const me = useQuery(orpc.people.me.queryOptions());
   const [day, setDay] = useState(() => farmDayOf(new Date()));
-  const [form, setForm] = useState(NOTHING_TYPED);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
-  const [from, setFrom] = useState(() => farmDayOf(new Date()));
-  const [to, setTo] = useState(() => farmDayOf(new Date()));
-  const [paper, setPaper] = useState<string | null>(null);
-  const today = useQuery(orpc.milk.day.queryOptions({ input: { day } }));
+  const [recording, setRecording] = useState(false);
+  const milkDay = useQuery(orpc.milk.day.queryOptions({ input: { day } }));
+  const flagged = useQuery(orpc.milk.flagged.queryOptions());
   // The Manager's to record and put right, and the Owner's, who may do anything the Manager does.
   const mayRecord =
     me.data?.roles.some((role) => role === "owner" || role === "manager") ??
     false;
-  const mayCorrect = mayRecord;
-  const onError = (error: Error) =>
-    toast.error(
-      wordedRefusal(error, t) ?? (error.message || t("common.error"))
-    );
-
-  const record = useMutation(
-    orpc.milk.dispatch.mutationOptions({
-      onSuccess: async () => {
-        setForm(NOTHING_TYPED);
-        toast.success(t("dispatch.recorded"));
-        await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
-      },
-      onError,
-    })
-  );
-  const dispatchRecord = useMutation(
-    orpc.reports.milkDispatchRecord.mutationOptions({
-      onSuccess: ({ text }) => setPaper(text ?? null),
-      onError,
-    })
-  );
-  const dispatchCsv = useMutation(
-    orpc.reports.milkDispatchRecord.mutationOptions({
-      onSuccess: ({ csv }) =>
-        saveCsv(`milk-dispatch-${from}-${to}.csv`, csv ?? ""),
-      onError,
-    })
-  );
-  const production = useMutation(
-    orpc.reports.milkProduction.mutationOptions({
-      onSuccess: ({ csv }) => saveCsv(`milk-production-${from}-${to}.csv`, csv),
-      onError,
-    })
-  );
-  const set = (key: keyof typeof NOTHING_TYPED) => (value: string) =>
-    setForm((current) => ({ ...current, [key]: value }));
-  // A figure the farm has not given yet: a placeholder while it is asked, a dash once asking has failed.
-  const notYet = today.isError ? "—" : <Skeleton className="h-9 w-32" />;
-  const complete =
-    Number(form.litres) > 0 &&
-    Number(form.price) > 0 &&
-    form.buyerName.trim() !== "";
+  const figures = useMilkFigures({
+    day,
+    milkDay: milkDay.data,
+    failed: milkDay.isError,
+    mismatches: flagged.data?.length,
+  });
 
   return (
     <Page>
       <PageHeader
         actions={
-          <label
-            className="flex flex-col gap-1.5 text-sm font-medium"
-            htmlFor="milk-day"
-          >
-            {t("dispatch.day")}
-            <Input
-              className="w-44"
-              id="milk-day"
-              onChange={(event) => setDay(event.target.value)}
-              type="date"
-              value={day}
-            />
-          </label>
+          mayRecord ? (
+            <Button onClick={() => setRecording(true)} type="button">
+              <Truck aria-hidden data-icon="inline-start" />
+              {t("dispatch.recordAction")}
+            </Button>
+          ) : null
         }
         description={t("dispatch.subtitle")}
         title={t("dispatch.title")}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatTile
-          icon={Milk}
-          label={t("dispatch.intoTank")}
-          value={
-            today.data
-              ? `${formatNumber(today.data.toBulkLitres, language)} ${t("dispatch.litres")}`
-              : notYet
-          }
-        />
-        <StatTile
-          icon={Truck}
-          label={t("dispatch.handedOver")}
-          value={
-            today.data
-              ? `${formatNumber(today.data.dispatchedLitres, language)} ${t("dispatch.litres")}`
-              : notYet
-          }
-        />
-      </div>
+      <SummaryFigures figures={figures} />
 
-      <MilkMismatches />
-
-      <Section title={t("dispatch.thatDay")}>
-        <Loaded query={today}>
-          {today.data?.dispatches.length ? (
-            <>
-              <RecordList className="md:hidden">
-                {today.data.dispatches.map((one) => (
-                  <RecordRow
-                    key={one.id}
-                    meta={
-                      <>
-                        <span>
-                          {formatDate(one.dispatchedAt, language, "dateTime")}
-                        </span>
-                        {one.challan ? <span>{one.challan}</span> : null}
-                      </>
-                    }
-                    title={one.buyerName}
-                    trailing={
-                      <span className="flex items-center gap-2">
-                        <span className="font-semibold tabular-nums">
-                          {formatNumber(one.litres, language)}{" "}
-                          {t("dispatch.litres")}
-                        </span>
-                        {mayCorrect ? (
-                          <DispatchCorrection dispatch={one} />
-                        ) : null}
-                      </span>
-                    }
-                  />
-                ))}
-              </RecordList>
-              <DispatchTable
-                dispatches={today.data.dispatches}
-                mayCorrect={mayCorrect}
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            replace: true,
+            search: value === "handedOver" ? {} : { tab: value },
+          })
+        }
+        tabs={[
+          {
+            value: "handedOver",
+            label: t("dispatch.handedOver"),
+            icon: Truck,
+            content: (
+              <HandedOverTab
+                day={day}
+                mayRecord={mayRecord}
+                milkDay={milkDay}
+                onDayChange={setDay}
+                onRecord={() => setRecording(true)}
               />
-            </>
-          ) : (
-            <EmptyState bare icon={Truck} title={t("dispatch.noneThatDay")} />
-          )}
-        </Loaded>
-      </Section>
+            ),
+          },
+          {
+            value: "mismatches",
+            label: t("dispatch.tab.mismatches"),
+            icon: Scale,
+            count: flagged.data?.length,
+            content: <MilkMismatches />,
+          },
+          {
+            value: "records",
+            label: t("dispatch.reports"),
+            icon: FileText,
+            content: <MilkRecordsTab />,
+          },
+        ]}
+        value={tab}
+      />
 
       {mayRecord ? (
-        <Section title={t("dispatch.record")}>
-          <form
-            className="grid gap-4 sm:grid-cols-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              record.mutate({
-                // Left empty, the milk is leaving now.
-                dispatchedAt: form.dispatchedAt
-                  ? new Date(form.dispatchedAt)
-                  : new Date(),
-                litres: Number(form.litres),
-                buyer: {
-                  name: form.buyerName,
-                  address: written(form.buyerAddress),
-                  phone: written(form.buyerPhone),
-                },
-                challan: written(form.challan),
-                pricePerLitreBdt: Number(form.price),
-                fatPercent: typed(form.fat),
-                snfPercent: typed(form.snf),
-                note: written(form.note),
-                paymentMethod,
-              });
-            }}
-          >
-            {DISPATCH_FIELDS.map(([key, label, type]) => (
-              <div
-                className={
-                  WIDE_FIELDS.has(key) ? "space-y-1 sm:col-span-2" : "space-y-1"
-                }
-                key={key}
-              >
-                <Label htmlFor={`dispatch-${key}`}>{t(label)}</Label>
-                <Input
-                  id={`dispatch-${key}`}
-                  inputMode={type === "number" ? "decimal" : undefined}
-                  onChange={(event) => set(key)(event.target.value)}
-                  step={type === "number" ? "0.01" : undefined}
-                  type={type}
-                  value={form[key]}
-                />
-              </div>
-            ))}
-            <div className="sm:col-span-2">
-              <PaymentMethodField
-                id="dispatch-paid-by"
-                onChange={setPaymentMethod}
-                value={paymentMethod}
-              />
-            </div>
-            <Button
-              className="w-full sm:col-span-2 sm:w-auto sm:justify-self-start"
-              disabled={!complete || record.isPending}
-              type="submit"
-            >
-              {t("dispatch.save")}
-            </Button>
-          </form>
-        </Section>
+        <DispatchSheet onOpenChange={setRecording} open={recording} />
       ) : null}
-
-      <Section title={t("dispatch.reports")}>
-        <PeriodFilter
-          from={from}
-          fromLabel={t("dispatch.from")}
-          label={t("dispatch.reports")}
-          onFrom={setFrom}
-          onTo={setTo}
-          to={to}
-          toLabel={t("dispatch.to")}
-        >
-          <Button
-            disabled={dispatchRecord.isPending}
-            onClick={() => dispatchRecord.mutate({ from, to, format: "paper" })}
-            variant="outline"
-          >
-            <Printer aria-hidden />
-            {t("dispatch.recordPaper")}
-          </Button>
-          <Button
-            disabled={dispatchCsv.isPending}
-            onClick={() => dispatchCsv.mutate({ from, to, format: "csv" })}
-            variant="outline"
-          >
-            <FileDown aria-hidden />
-            {t("dispatch.recordCsv")}
-          </Button>
-          <Button
-            disabled={production.isPending}
-            onClick={() => production.mutate({ from, to })}
-            variant="outline"
-          >
-            <FileDown aria-hidden />
-            {t("dispatch.productionCsv")}
-          </Button>
-        </PeriodFilter>
-        {paper ? <Paper id="milk-dispatch-record" text={paper} /> : null}
-      </Section>
     </Page>
   );
 };
@@ -522,4 +168,9 @@ const MilkPage = () => {
 export const Route = createFileRoute("/_auth/milk")({
   beforeLoad: onlyFor("runsTheFarm"),
   component: MilkPage,
+  /** Which tab, kept in the address so the page comes back as it was left. */
+  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
+    TABS.includes(search.tab as Tab) && search.tab !== "handedOver"
+      ? { tab: search.tab as Tab }
+      : {},
 });

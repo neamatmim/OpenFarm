@@ -1,14 +1,28 @@
 import { verifyPin } from "@OpenFarm/domain";
+import { formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Delete,
+  Lock,
+  Smartphone,
+  UserRound,
+  WifiOff,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { EmptyState, Notice } from "@/components/page";
 import { PublicHeader } from "@/components/public-header";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import type { RosterEntry } from "@/lib/device";
 import {
   getActiveUser,
@@ -35,6 +49,105 @@ import { orpc } from "@/utils/orpc";
 const PIN_LENGTH = 4;
 const DEFAULT_AUTO_LOCK_MINUTES = 5;
 const LOCK_TICK_MS = 15_000;
+const PAD_DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
+/** Every step of the Shed Phone's door is the same card: one thing asked of whoever is holding the phone. */
+const CARD =
+  "bg-card mx-auto flex w-full max-w-sm flex-col gap-5 rounded-2xl border p-6 shadow-sm sm:p-8";
+
+/** What this step of the door is, with its picture and a line of help. */
+const StepHead = ({
+  icon,
+  title,
+  hint,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint?: string;
+}) => (
+  <div className="flex flex-col items-center gap-3 text-center">
+    <span className="bg-secondary text-secondary-foreground grid size-14 place-items-center rounded-2xl">
+      {icon}
+    </span>
+    <div className="flex flex-col gap-1.5">
+      <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+        {title}
+      </h1>
+      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
+    </div>
+  </div>
+);
+
+/** A person's first letter in a circle, so a milker finds their own name by its shape before reading it. */
+const Initial = ({
+  name,
+  size = "md",
+}: {
+  name: string;
+  size?: "md" | "lg";
+}) => (
+  <span
+    aria-hidden
+    className={cn(
+      "bg-primary text-primary-foreground grid shrink-0 place-items-center rounded-full font-semibold",
+      size === "lg" ? "size-16 text-2xl" : "size-10 text-base"
+    )}
+  >
+    {name.slice(0, 1)}
+  </span>
+);
+
+/** One key of the pad, big enough for a thumb that has just come off a cow. */
+const PadKey = ({
+  label,
+  children,
+  onPress,
+}: {
+  label?: string;
+  children: ReactNode;
+  onPress: () => void;
+}) => (
+  <Button
+    aria-label={label}
+    className="h-16 text-2xl font-semibold tabular-nums md:h-16"
+    onClick={onPress}
+    type="button"
+    variant="outline"
+  >
+    {children}
+  </Button>
+);
+
+/** The PIN pad: the digits in the farm's own numerals, and a key to take one back. */
+const PinPad = ({
+  onDigit,
+  onDelete,
+}: {
+  onDigit: (digit: number) => void;
+  onDelete: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {PAD_DIGITS.map((digit) => (
+        <PadKey
+          key={digit}
+          label={String(digit)}
+          onPress={() => onDigit(digit)}
+        >
+          {formatDigits(digit, language)}
+        </PadKey>
+      ))}
+      <span aria-hidden />
+      <PadKey label="0" onPress={() => onDigit(0)}>
+        {formatDigits(0, language)}
+      </PadKey>
+      <PadKey label={t("device.pinDelete")} onPress={onDelete}>
+        <Delete aria-hidden className="size-6" />
+      </PadKey>
+    </div>
+  );
+};
 
 /** The Shed Phone's own screen: set the phone up once, then PIN Switch between people.
  *  Everything after enrolment works with no signal (ADR 0003). */
@@ -169,28 +282,35 @@ const DevicePage = () => {
   if (!token) {
     return (
       <form
-        className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8"
+        className={CARD}
         onSubmit={(event) => {
           event.preventDefault();
           claim.mutate({ code });
         }}
       >
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {t("device.setup")}
-        </h1>
-        <p className="text-muted-foreground">{t("device.setupHelp")}</p>
+        <StepHead
+          hint={t("device.setupHelp")}
+          icon={<Smartphone aria-hidden className="size-7" />}
+          title={t("device.setup")}
+        />
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="code">{t("device.code")}</Label>
           <Input
+            autoComplete="off"
             id="code"
             inputMode="numeric"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="text-center font-mono text-2xl tracking-widest"
+            className="h-16 text-center font-mono text-3xl tracking-widest md:h-16 md:text-3xl"
             required
           />
         </div>
-        <Button type="submit" className="w-full" disabled={claim.isPending}>
+        <Button
+          type="submit"
+          className="h-14 w-full text-lg"
+          disabled={claim.isPending}
+        >
+          {claim.isPending ? <Spinner /> : null}
           {t("device.enrol")}
         </Button>
       </form>
@@ -201,28 +321,35 @@ const DevicePage = () => {
 
   if (!locked && active) {
     return (
-      <div className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 text-center sm:p-8">
-        <p className="text-2xl font-semibold">
-          {t("device.workingAs", { name: active.name })}
-        </p>
-        <p className="text-muted-foreground text-sm">
-          {where.data?.device?.name}
-        </p>
+      <div className={cn(CARD, "items-center text-center")}>
+        <Initial name={active.name} size="lg" />
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+            {t("device.workingAs", { name: active.name })}
+          </h1>
+          {where.data?.device?.name ? (
+            <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
+              <Smartphone aria-hidden className="size-4" />
+              {where.data.device.name}
+            </p>
+          ) : null}
+        </div>
         <Button
-          className="w-full"
+          className="h-14 w-full text-lg"
           onClick={() => navigate({ to: "/today" })}
-          size="lg"
         >
           {t("device.startWork")}
+          <ChevronRight data-icon="inline-end" />
         </Button>
         <Button
           variant="outline"
-          className="w-full"
+          className="h-12 w-full text-base"
           onClick={() => {
             void lockAndPutAway(queryClient);
             void lockOnTheFarm();
           }}
         >
+          <Lock data-icon="inline-start" />
           {t("device.lock")}
         </Button>
       </div>
@@ -230,69 +357,83 @@ const DevicePage = () => {
   }
 
   if (chosen) {
+    // Typed on the phone's keyboard or tapped on the pad, the PIN goes the same way: digits only, four of them, and
+    // checked as soon as the fourth is in.
+    const typePin = (typed: string) => {
+      const next = typed.replaceAll(/\D/gu, "").slice(0, PIN_LENGTH);
+      setPin(next);
+      if (next.length === PIN_LENGTH) {
+        void submitPin(chosen, next);
+      }
+    };
     return (
-      <div className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {chosen.name}
-        </h1>
-        <Label htmlFor="pin">{t("device.enterPin")}</Label>
-        <Input
-          id="pin"
-          type="password"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={PIN_LENGTH}
-          value={pin}
-          onChange={(e) => {
-            const next = e.target.value
-              .replaceAll(/\D/gu, "")
-              .slice(0, PIN_LENGTH);
-            setPin(next);
-            if (next.length === PIN_LENGTH) {
-              void submitPin(chosen, next);
-            }
-          }}
-          className="text-center font-mono text-3xl tracking-[0.5em]"
-        />
-        <Button
-          variant="ghost"
-          className="w-full"
+      <div className={CARD}>
+        <button
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mt-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
           onClick={() => {
             setChosen(null);
             setPin("");
           }}
+          type="button"
         >
+          <ChevronLeft aria-hidden className="size-4" />
           {t("device.whoAreYou")}
-        </Button>
+        </button>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Initial name={chosen.name} size="lg" />
+          <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+            {chosen.name}
+          </h1>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <Label htmlFor="pin">{t("device.enterPin")}</Label>
+          <Input
+            id="pin"
+            type="password"
+            // The pad below is the keyboard: the phone's own would cover it. A keyboard plugged in still types.
+            inputMode="none"
+            autoComplete="off"
+            autoFocus
+            maxLength={PIN_LENGTH}
+            value={pin}
+            onChange={(e) => typePin(e.target.value)}
+            className="h-16 w-56 text-center font-mono text-4xl tracking-[0.6em] md:h-16 md:text-4xl"
+          />
+        </div>
+        <PinPad
+          onDelete={() => setPin((current) => current.slice(0, -1))}
+          onDigit={(digit) => typePin(`${pin}${digit}`)}
+        />
       </div>
     );
   }
 
   return (
-    <div className="surface mx-auto flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-        {t("device.whoAreYou")}
-      </h1>
+    <div className={CARD}>
+      <StepHead
+        icon={<UserRound aria-hidden className="size-7" />}
+        title={t("device.whoAreYou")}
+      />
       {roster.isError ? (
-        <p className="text-muted-foreground text-sm">
-          {t("device.offlineRoster")}
-        </p>
+        <Notice icon={WifiOff} title={t("device.offlineRoster")} tone="info" />
       ) : null}
       {people.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("device.noRoster")}</p>
+        <EmptyState icon={UserRound} title={t("device.noRoster")} />
       ) : (
         <ul className="flex flex-col gap-2">
           {people.map((person) => (
             <li key={person.userId}>
               <Button
                 variant="outline"
-                className="h-16 w-full justify-start gap-3 text-lg"
+                className="h-auto min-h-16 w-full justify-start gap-3 py-2 text-start text-lg whitespace-normal"
                 onClick={() => setChosen(person)}
               >
-                <span className="bg-primary text-primary-foreground grid size-10 shrink-0 place-items-center rounded-full text-base font-semibold">
-                  {person.name.slice(0, 1)}
-                </span>
-                {person.name}
+                <Initial name={person.name} />
+                <span className="min-w-0 flex-1">{person.name}</span>
+                <ChevronRight
+                  aria-hidden
+                  className="text-muted-foreground size-5"
+                />
               </Button>
             </li>
           ))}

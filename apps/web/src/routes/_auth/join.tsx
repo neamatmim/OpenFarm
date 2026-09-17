@@ -4,7 +4,7 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -58,7 +58,7 @@ const JoinPage = () => {
           <Input
             autoCapitalize="characters"
             autoComplete="off"
-            className="text-center font-mono text-2xl tracking-[0.3em] uppercase"
+            className="h-14 text-center font-mono text-2xl tracking-[0.3em] uppercase md:h-14 md:text-2xl"
             id="invite-code"
             maxLength={16}
             onChange={(event) => setCode(event.target.value)}
@@ -67,13 +67,16 @@ const JoinPage = () => {
           />
         </div>
         {session?.user.email ? (
-          <p className="text-muted-foreground text-sm">
-            {t("join.wrongEmail", { email: session.user.email })}
+          <p className="text-muted-foreground bg-muted/60 flex items-start gap-2 rounded-lg px-3 py-2 text-sm">
+            <Mail aria-hidden className="mt-0.5 size-4 shrink-0" />
+            <span className="min-w-0 break-words">
+              {t("join.wrongEmail", { email: session.user.email })}
+            </span>
           </p>
         ) : null}
         <Button
           disabled={accept.isPending || code.trim().length < 4}
-          size="lg"
+          className="h-12 text-base"
           type="submit"
         >
           {accept.isPending ? <Spinner /> : null}

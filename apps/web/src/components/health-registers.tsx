@@ -7,11 +7,11 @@ import type { TreatmentRow } from "@OpenFarm/api/registers/treatment";
 import type { VaccinationRow } from "@OpenFarm/api/registers/vaccination";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileSpreadsheet, Printer } from "lucide-react";
+import { ClipboardList, FileSpreadsheet, Printer, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -20,7 +20,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { Section } from "@/components/page";
+import { EmptyState, Notice, PeriodFilter, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
@@ -28,7 +28,7 @@ import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
 /** A period as the registers are asked for it: a day left empty is the register's own look-back. */
-interface AskedPeriod {
+export interface AskedPeriod {
   from?: string;
   to?: string;
 }
@@ -75,7 +75,7 @@ const RegisterSection = ({
             size="sm"
             variant="outline"
           >
-            <Printer data-icon="inline-start" />
+            <Printer aria-hidden data-icon="inline-start" />
             {t("common.print")}
           </Button>
           {onCsv ? (
@@ -85,7 +85,7 @@ const RegisterSection = ({
               size="sm"
               variant="outline"
             >
-              <FileSpreadsheet data-icon="inline-start" />
+              <FileSpreadsheet aria-hidden data-icon="inline-start" />
               {t("inspector.csv")}
             </Button>
           ) : null}
@@ -95,9 +95,7 @@ const RegisterSection = ({
       title={t(title)}
     >
       {count === 0 ? (
-        <p className="text-muted-foreground bg-muted/50 rounded-lg px-3 py-4 text-center text-sm">
-          {t(empty)}
-        </p>
+        <EmptyState bare icon={ClipboardList} title={t(empty)} />
       ) : (
         children
       )}
@@ -494,43 +492,17 @@ const MortalityRegister = ({
   );
 };
 
-/**
- * The health registers on the Inspector View — vaccinations (R3), treatments (R4), the disease history (R5) and
- * deaths (R6) — each printed, all but the disease history also given as a CSV; and the movement log (R11), a CSV
- * alone. A year of vaccinations, deaths and movements, thirty days of treatments and six months of diagnoses back
- * unless a period is set.
- */
-export const HealthRegisters = ({
-  onPrint,
-  printing,
-}: {
-  onPrint: (register: RegisterName, asked: AskedPeriod) => void;
-  printing: boolean;
-}) => {
+/** The registers read on the screen a period at a time; the movement log is a CSV alone. */
+export type HealthRegisterName =
+  | "vaccination_register"
+  | "treatment_register"
+  | "disease_history"
+  | "mortality_register";
+
+/** Saving a register as a CSV, named for the register and the period it covers. */
+const useCsv = () => {
   const { t } = useLanguage();
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const asked: AskedPeriod = {
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
-  };
-  /** What to ask for one register's rows over the period on the screen. */
-  const listing = (register: RegisterName) => ({
-    input: { register, ...asked },
-  });
-  const vaccinations = useQuery(
-    orpc.inspector.rows.queryOptions(listing("vaccination_register"))
-  );
-  const treatments = useQuery(
-    orpc.inspector.rows.queryOptions(listing("treatment_register"))
-  );
-  const diseases = useQuery(
-    orpc.inspector.rows.queryOptions(listing("disease_history"))
-  );
-  const mortalities = useQuery(
-    orpc.inspector.rows.queryOptions(listing("mortality_register"))
-  );
-  const sheet = useMutation(
+  return useMutation(
     orpc.inspector.print.mutationOptions({
       onSuccess: ({ csv, period }, { register }) =>
         saveCsv(
@@ -543,71 +515,132 @@ export const HealthRegisters = ({
         ),
     })
   );
-  const printed = (register: RegisterName) => ({
-    printing,
-    onPrint: () => onPrint(register, asked),
-  });
-  const saved = (register: RegisterName) => ({
-    saving: sheet.isPending,
-    onCsv: () => sheet.mutate({ register, format: "csv", ...asked }),
-  });
+};
 
+const REGISTER_OF = {
+  vaccination_register: VaccinationRegister,
+  treatment_register: TreatmentRegister,
+  disease_history: DiseaseHistory,
+  mortality_register: MortalityRegister,
+} as const;
+
+/**
+ * One health register on the Inspector View — vaccinations (R3), treatments (R4), the disease history (R5) or deaths
+ * (R6) — over the period asked, printed, and all but the disease history also given as a CSV. A year of vaccinations
+ * and deaths, thirty days of treatments and six months of diagnoses back unless a period is set.
+ */
+export const HealthRegister = ({
+  register,
+  asked,
+  onPrint,
+  printing,
+}: {
+  register: HealthRegisterName;
+  asked: AskedPeriod;
+  onPrint: (register: RegisterName, asked: AskedPeriod) => void;
+  printing: boolean;
+}) => {
+  const { t } = useLanguage();
+  const rows = useQuery(
+    orpc.inspector.rows.queryOptions({ input: { register, ...asked } })
+  );
+  const sheet = useCsv();
+  if (rows.data === undefined && rows.error) {
+    return (
+      <Notice
+        title={wordedRefusal(rows.error, t) ?? t("common.error")}
+        tone="danger"
+      />
+    );
+  }
+  if (rows.data === undefined) {
+    return <Skeleton className="h-72 rounded-xl" />;
+  }
+  const Register = REGISTER_OF[register];
   return (
-    <>
-      <div className="bg-card flex flex-wrap items-end gap-3 rounded-xl border p-4">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">{t("inspector.period")}</span>
-          <div className="flex flex-wrap gap-2">
-            <Input
-              aria-label={t("dispatch.from")}
-              className="w-44"
-              onChange={(event) => setFrom(event.target.value)}
-              type="date"
-              value={from}
-            />
-            <Input
-              aria-label={t("dispatch.to")}
-              className="w-44"
-              onChange={(event) => setTo(event.target.value)}
-              type="date"
-              value={to}
-            />
-          </div>
-        </div>
-        <Button
-          className="ml-auto"
-          disabled={sheet.isPending}
-          onClick={() =>
-            sheet.mutate({ register: "movement_log", format: "csv", ...asked })
-          }
-          variant="outline"
-        >
-          <FileSpreadsheet data-icon="inline-start" />
-          {t("inspector.movementLog")}
-        </Button>
-      </div>
-      {treatments.error ? (
-        <p className="text-destructive text-sm">
-          {wordedRefusal(treatments.error, t) ?? t("common.error")}
-        </p>
-      ) : null}
+    <Register
+      answer={rows.data}
+      onPrint={() => onPrint(register, asked)}
+      printing={printing}
+      {...(register === "disease_history"
+        ? {}
+        : {
+            saving: sheet.isPending,
+            onCsv: () => sheet.mutate({ register, format: "csv", ...asked }),
+          })}
+    />
+  );
+};
 
-      <VaccinationRegister
-        answer={vaccinations.data}
-        {...printed("vaccination_register")}
-        {...saved("vaccination_register")}
-      />
-      <TreatmentRegister
-        answer={treatments.data}
-        {...printed("treatment_register")}
-        {...saved("treatment_register")}
-      />
-      <DiseaseHistory answer={diseases.data} {...printed("disease_history")} />
-      <MortalityRegister
-        answer={mortalities.data}
-        {...printed("mortality_register")}
-        {...saved("mortality_register")}
-      />
-    </>
+/** The movement log (R11) — every Move, Intake, Sale and death in the period — taken away as a CSV. */
+export const MovementLog = ({ asked }: { asked: AskedPeriod }) => {
+  const { t } = useLanguage();
+  const sheet = useCsv();
+  return (
+    <Section
+      description={t("inspector.movementHint")}
+      title={t("inspector.movementLog")}
+    >
+      <Button
+        className="self-start"
+        disabled={sheet.isPending}
+        onClick={() =>
+          sheet.mutate({ register: "movement_log", format: "csv", ...asked })
+        }
+        variant="outline"
+      >
+        {sheet.isPending ? (
+          <Spinner />
+        ) : (
+          <FileSpreadsheet aria-hidden data-icon="inline-start" />
+        )}
+        {t("inspector.saveMovements")}
+      </Button>
+    </Section>
+  );
+};
+
+/** The period the registers are read for: either day left empty is the register's own look-back. */
+export const RegisterPeriod = ({
+  from,
+  to,
+  onFrom,
+  onTo,
+}: {
+  from: string;
+  to: string;
+  onFrom: (day: string) => void;
+  onTo: (day: string) => void;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col gap-2">
+      <PeriodFilter
+        from={from}
+        fromLabel={t("dispatch.from")}
+        label={t("inspector.period")}
+        onFrom={onFrom}
+        onTo={onTo}
+        to={to}
+        toLabel={t("dispatch.to")}
+      >
+        {from || to ? (
+          <Button
+            onClick={() => {
+              onFrom("");
+              onTo("");
+            }}
+            type="button"
+            variant="ghost"
+          >
+            <X aria-hidden data-icon="inline-start" />
+            {t("inspector.clearPeriod")}
+          </Button>
+        ) : null}
+      </PeriodFilter>
+      <p className="text-muted-foreground px-1 text-xs">
+        {t("inspector.periodHint")}
+      </p>
+    </div>
   );
 };

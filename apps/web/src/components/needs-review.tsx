@@ -2,13 +2,22 @@ import type { ReviewReason } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CircleCheck, Gavel } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, Loaded, Section } from "@/components/page";
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import { EmptyState, Loaded } from "@/components/page";
+import { ReasonDialog } from "@/components/sign-off/reason-dialog";
+import type { Asked, OpenReview } from "@/components/sign-off/sign-off-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
 import { sayWhy } from "@/lib/saying";
@@ -27,78 +36,182 @@ const REASON_MESSAGE: Record<ReviewReason, MessageKey> = {
 const messageFor = (reason: string): MessageKey | null =>
   (REASON_MESSAGE as Record<string, MessageKey>)[reason] ?? null;
 
+/** What a row can do: open the dialog that closes it with a judgement. */
+interface ReviewActions {
+  busy: (id: string) => boolean;
+  handleResolve: (row: OpenReview) => void;
+}
+
+interface ReviewRow extends OpenReview {
+  actions: ReviewActions;
+}
+
+interface ReviewCell {
+  row: { original: ReviewRow };
+}
+
+/** What happened, in the farm's words for the reason. */
+const WhatHappened = ({ row }: { row: OpenReview }) => {
+  const { t } = useLanguage();
+  const key = messageFor(row.reason);
+  return <span className="font-medium">{key ? t(key) : row.reason}</span>;
+};
+
+const ResolveButton = ({ row }: { row: ReviewRow }) => {
+  const { t } = useLanguage();
+  const { busy, handleResolve } = row.actions;
+  const waiting = busy(row.id);
+  return (
+    <Button
+      disabled={waiting}
+      onClick={() => handleResolve(row)}
+      type="button"
+      variant="outline"
+    >
+      {waiting ? <Spinner /> : <Gavel aria-hidden data-icon="inline-start" />}
+      {t("review.resolve")}
+    </Button>
+  );
+};
+
+const WhatCell = ({ row }: ReviewCell) => <WhatHappened row={row.original} />;
+
+const RaisedCell = ({ row }: ReviewCell) => {
+  const { language } = useLanguage();
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {formatDate(new Date(row.original.raisedAt), language, "dateTime")}
+    </span>
+  );
+};
+
+const WhyCell = ({ row }: ReviewCell) =>
+  row.original.raisedBy.reason ? (
+    <span className="text-muted-foreground">
+      “{row.original.raisedBy.reason}”
+    </span>
+  ) : (
+    <span className="text-muted-foreground">—</span>
+  );
+
+const ResolveCell = ({ row }: ReviewCell) => (
+  <div className="-my-1.5 flex justify-end">
+    <ResolveButton row={row.original} />
+  </div>
+);
+
+const column = createListColumns<ReviewRow>();
+const reviewColumns = column.columns([
+  column.accessor("reason", {
+    header: listHeader("review.col.what"),
+    cell: WhatCell,
+    meta: { className: "min-w-64" },
+  }),
+  column.accessor((row) => new Date(row.raisedAt), {
+    id: "raised",
+    header: listHeader("review.col.raised"),
+    cell: RaisedCell,
+  }),
+  column.display({
+    id: "why",
+    header: listHeader("review.col.why"),
+    cell: WhyCell,
+    meta: { className: "min-w-48" },
+  }),
+  column.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: ResolveCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** One thing to look at, on a phone: what happened, when and the reason given, and closing it at the foot. */
+const ReviewCard = ({ row }: { row: ReviewRow }) => {
+  const { language } = useLanguage();
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <WhatHappened row={row} />
+        <span className="text-muted-foreground text-sm">
+          <span className="tabular-nums">
+            {formatDate(new Date(row.raisedAt), language, "dateTime")}
+          </span>
+          {row.raisedBy.reason ? ` · “${row.raisedBy.reason}”` : ""}
+        </span>
+      </div>
+      <div className="flex justify-end">
+        <ResolveButton row={row} />
+      </div>
+    </div>
+  );
+};
+
+const reviewCard = (row: ReviewRow) => <ReviewCard row={row} />;
+
 /** What the system could not put right on its own. Closing one is a judgement, so it asks
  *  for the judgement rather than offering a tick. */
-export const NeedsReview = () => {
-  const { t, language } = useLanguage();
+export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const queue = useQuery(orpc.review.open.queryOptions());
+  const [resolving, setResolving] = useState<OpenReview | null>(null);
   const inFlight = useInFlight();
   const resolve = useMutation(
     orpc.review.resolve.mutationOptions({
       onMutate: ({ id }) => inFlight.start(id),
       onSettled: (_data, _error, { id }) => inFlight.end(id),
       onSuccess: () => {
+        toast.success(t("review.resolved"));
+        setResolving(null);
         void queryClient.invalidateQueries({ queryKey: orpc.review.key() });
         void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
       },
       onError: (error: Error) => toast.error(sayWhy(error, t)),
     })
   );
-
-  const note = (id: string) => notes[id] ?? "";
-  const resolving = inFlight.has;
+  const actions: ReviewActions = {
+    busy: inFlight.has,
+    handleResolve: setResolving,
+  };
+  const table = useListTable({
+    columns: reviewColumns,
+    data: (queue.data ?? []).map((row) => ({ ...row, actions })),
+    getRowId: (row) => row.id,
+  });
 
   return (
-    <Section title={t("review.title")}>
+    <div className="bg-card rounded-xl border p-4 md:p-5">
       <Loaded query={queue}>
         {queue.data?.length ? (
-          <ul className="space-y-3">
-            {queue.data.map((row) => {
-              const key = messageFor(row.reason);
-              return (
-                <li className="rounded-lg border p-4" key={row.id}>
-                  <p className="font-semibold">{key ? t(key) : row.reason}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {formatDate(new Date(row.raisedAt), language, "dateTime")}
-                    {row.raisedBy.reason ? ` · ${row.raisedBy.reason}` : ""}
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    <Input
-                      aria-label={t("review.resolution")}
-                      onChange={(event) =>
-                        setNotes((current) => ({
-                          ...current,
-                          [row.id]: event.target.value,
-                        }))
-                      }
-                      placeholder={t("review.resolution")}
-                      value={note(row.id)}
-                    />
-                    <Button
-                      className="w-full sm:w-auto"
-                      disabled={!note(row.id).trim() || resolving(row.id)}
-                      onClick={() =>
-                        resolve.mutate({
-                          id: row.id,
-                          resolution: note(row.id).trim(),
-                        })
-                      }
-                      variant="outline"
-                    >
-                      {resolving(row.id) ? <Spinner /> : null}
-                      {t("review.resolve")}
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <DataTable
+            card={reviewCard}
+            minWidth="48rem"
+            pageSize={20}
+            table={table}
+          />
         ) : (
-          <EmptyState bare title={t("review.none")} />
+          <EmptyState bare icon={CircleCheck} title={t("review.none")} />
         )}
       </Loaded>
-    </Section>
+      <ReasonDialog
+        description={t("review.resolveHint")}
+        handleSubmit={(resolution) => {
+          if (resolving) {
+            resolve.mutate({ id: resolving.id, resolution });
+          }
+        }}
+        key={resolving?.id ?? "none"}
+        label={t("review.resolution")}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResolving(null);
+          }
+        }}
+        open={resolving !== null}
+        pending={resolving !== null && inFlight.has(resolving.id)}
+        submitLabel={t("review.resolve")}
+        title={t("review.resolve")}
+      />
+    </div>
   );
 };

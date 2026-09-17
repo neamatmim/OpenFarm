@@ -1,46 +1,47 @@
-import type { PaymentMethod } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
-import { Input } from "@OpenFarm/ui/components/input";
-import { Label } from "@OpenFarm/ui/components/label";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Camera } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Page, PageHeader, Section, StickyAction } from "@/components/page";
-import { PaymentMethodField } from "@/components/payment-method";
+import type { IntakeFields } from "@/components/intake/intake-fields";
+import {
+  EMPTY,
+  missingFrom,
+  orNothing,
+  windowIsWhole,
+} from "@/components/intake/intake-fields";
+import {
+  AnimalSection,
+  PriceSection,
+  SellerSection,
+  TargetSection,
+} from "@/components/intake/intake-sections";
+import { IntakeSummary } from "@/components/intake/intake-summary";
+import { RecentIntakes } from "@/components/intake/recent-intakes";
+import { Page, PageHeader } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
-
-/** What a photograph may weigh before the farm refuses it, as `animals.setPhoto` counts it. */
-const PHOTO_MAX_BYTES = 1_500_000;
 
 const readAsBase64 = async (file: File): Promise<string> => {
   const bytes = new Uint8Array(await file.arrayBuffer());
   return btoa(Array.from(bytes, (byte) => String.fromCodePoint(byte)).join(""));
 };
 
-/** A blank field means "the farm's own answer", never zero. */
-const orNothing = (value: string) =>
-  value.trim() === "" ? undefined : Number(value);
-
-const EMPTY = {
-  penId: "",
-  sex: "male",
-  sellerName: "",
-  sellerPlace: "",
-  sellerPhone: "",
-  purchasePriceBdt: "",
-  weightKg: "",
-  estimatedAgeMonths: "",
-  breed: "",
-  targetWeightKg: "",
-  targetWindowStart: "",
-  targetWindowEnd: "",
-  paymentMethod: "cash" as PaymentMethod,
-};
+/**
+ * The button at the foot of the form on a phone and a tablet, held in sight the whole way down it — above the phone's
+ * bottom bar, which the kit's `StickyAction` (made for a Step, where the bar steps aside) would sit behind. Beside the
+ * form on a wide screen the summary carries the button instead, so this bar is not drawn there.
+ */
+const SubmitBar = ({ children }: { children: ReactNode }) => (
+  <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-[calc(3.8rem+max(env(safe-area-inset-bottom),0.25rem))] z-20 -mx-4 border-t px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 lg:hidden">
+    {children}
+  </div>
+);
 
 /**
  * Taking a bought-in animal in: where it came from, what it cost, what it weighed, and the
@@ -49,14 +50,15 @@ const EMPTY = {
  * Almost everything has a default the farm already knows — the Target Window is the next
  * Eid-ul-Adha, the target weight is the Farm Parameter — so the Manager standing by a lorry
  * types the four things only they can know.
+ *
+ * The page is the form, since taking an animal in is the only thing anybody comes here to do: its four parts one
+ * under the other, what will be written read back beside them — with the farm's own answers filled in for what was
+ * left blank — and the newest arrivals beneath, so a beast is not written up twice.
  */
 const IntakePage = () => {
   const t = useT();
   const navigate = useNavigate();
-  const [fields, setFields] = useState(EMPTY);
-  // The photograph is the animal's face and the farm's proof of what it bought. Taken here
-  // because the Manager is standing next to it; optional, because a lorry at dusk in the rain
-  // is not a reason to turn an arrival away (issue 06: prompted later if missing).
+  const [fields, setFields] = useState<IntakeFields>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const pens = (sheds.data ?? []).flatMap((shed) =>
@@ -94,20 +96,26 @@ const IntakePage = () => {
     })
   );
 
-  const edit = (patch: Partial<typeof fields>) =>
+  const edit = (patch: Partial<IntakeFields>) =>
     setFields({ ...fields, ...patch });
+  const ready = missingFrom(fields).length === 0 && windowIsWhole(fields);
+  // The photograph goes up after the animal exists, so the whole arrival is pending until it has.
+  const pending = record.isPending || setItsPhoto.isPending;
 
   return (
-    <Page width="narrow" className="max-w-3xl">
+    <Page>
       <PageHeader description={t("intake.subtitle")} title={t("nav.intake")} />
 
       <form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!ready) {
+            return;
+          }
           record.mutate({
             penId: fields.penId,
-            sex: fields.sex === "female" ? "female" : "male",
+            sex: fields.sex,
             seller: {
               name: fields.sellerName,
               address: fields.sellerPlace || undefined,
@@ -124,211 +132,46 @@ const IntakePage = () => {
           });
         }}
       >
-        <Section title={t("intake.groupAnimal")}>
-          <div className="space-y-1">
-            <Label htmlFor="intake-pen">{t("intake.pen")}</Label>
-            <select
-              className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-              id="intake-pen"
-              onChange={(e) => edit({ penId: e.target.value })}
-              required
-              value={fields.penId}
-            >
-              <option value="">—</option>
-              {pens.map((pen) => (
-                <option key={pen.id} value={pen.id}>
-                  {pen.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="intake-sex">{t("animals.sex")}</Label>
-              <select
-                className="bg-card border-input h-11 w-full rounded-md border px-3 text-base md:h-9 md:text-sm"
-                id="intake-sex"
-                onChange={(e) => edit({ sex: e.target.value })}
-                value={fields.sex}
-              >
-                <option value="male">{t("animals.sex.male")}</option>
-                <option value="female">{t("animals.sex.female")}</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="intake-breed">{t("animals.breed")}</Label>
-              <Input
-                id="intake-breed"
-                maxLength={60}
-                onChange={(e) => edit({ breed: e.target.value })}
-                value={fields.breed}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">{t("animals.photo")}</span>
-            {/* The browser's own file button speaks the browser's language; this one speaks the farm's. */}
-            <label
-              className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-[3px] md:min-h-9"
-              htmlFor="intake-photo"
-            >
-              <Camera aria-hidden className="size-4" />
-              {t("animals.photoTake")}
-            </label>
-            <p className="text-muted-foreground truncate text-sm">
-              {photo ? photo.name : t("intake.noPhoto")}
-            </p>
-            <input
-              accept="image/*"
-              capture="environment"
-              className="sr-only"
-              id="intake-photo"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                if (file && file.size > PHOTO_MAX_BYTES) {
-                  toast.error(t("common.error"));
-                  return;
-                }
-                setPhoto(file);
-              }}
-              type="file"
-            />
-          </div>
-        </Section>
-
-        <Section title={t("intake.groupSeller")}>
-          <div className="space-y-1">
-            <Label htmlFor="intake-seller">{t("intake.sellerName")}</Label>
-            <Input
-              id="intake-seller"
-              maxLength={120}
-              onChange={(e) => edit({ sellerName: e.target.value })}
-              required
-              value={fields.sellerName}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="intake-place">{t("intake.sellerPlace")}</Label>
-              <Input
-                id="intake-place"
-                maxLength={200}
-                onChange={(e) => edit({ sellerPlace: e.target.value })}
-                value={fields.sellerPlace}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="intake-phone">{t("intake.sellerPhone")}</Label>
-              <Input
-                id="intake-phone"
-                inputMode="tel"
-                maxLength={20}
-                onChange={(e) => edit({ sellerPhone: e.target.value })}
-                value={fields.sellerPhone}
-              />
-            </div>
-          </div>
-        </Section>
-
-        <Section title={t("intake.groupPrice")}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1">
-              <Label htmlFor="intake-price">{t("intake.price")}</Label>
-              <Input
-                id="intake-price"
-                inputMode="numeric"
-                onChange={(e) => edit({ purchasePriceBdt: e.target.value })}
-                required
-                type="number"
-                value={fields.purchasePriceBdt}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="intake-weight">{t("intake.weight")}</Label>
-              <Input
-                id="intake-weight"
-                inputMode="decimal"
-                onChange={(e) => edit({ weightKg: e.target.value })}
-                required
-                step="0.1"
-                type="number"
-                value={fields.weightKg}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="intake-age">{t("intake.age")}</Label>
-              <Input
-                id="intake-age"
-                inputMode="numeric"
-                onChange={(e) => edit({ estimatedAgeMonths: e.target.value })}
-                required
-                type="number"
-                value={fields.estimatedAgeMonths}
-              />
-            </div>
-          </div>
-
-          <PaymentMethodField
-            id="intake-paid-by"
-            onChange={(paymentMethod) => edit({ paymentMethod })}
-            value={fields.paymentMethod}
+        <div className="flex min-w-0 flex-col gap-4">
+          <AnimalSection
+            fields={fields}
+            onEdit={edit}
+            onPhoto={setPhoto}
+            pens={pens}
+            photoName={photo?.name ?? null}
           />
-        </Section>
+          <SellerSection fields={fields} onEdit={edit} />
+          <PriceSection fields={fields} onEdit={edit} />
+          <TargetSection fields={fields} onEdit={edit} />
+        </div>
 
-        <Section title={t("intake.groupTarget")}>
-          <div className="space-y-1">
-            <Label htmlFor="intake-target">{t("intake.targetWeight")}</Label>
-            <Input
-              id="intake-target"
-              inputMode="decimal"
-              onChange={(e) => edit({ targetWeightKg: e.target.value })}
-              step="0.1"
-              type="number"
-              value={fields.targetWeightKg}
-            />
-            <p className="text-muted-foreground text-sm">
-              {t("intake.targetWeightNote")}
-            </p>
-          </div>
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:row-span-2">
+          <IntakeSummary
+            fields={fields}
+            pending={pending}
+            pens={pens}
+            photoName={photo?.name ?? null}
+          />
+        </aside>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="intake-from">{t("intake.windowStart")}</Label>
-              <Input
-                id="intake-from"
-                onChange={(e) => edit({ targetWindowStart: e.target.value })}
-                type="date"
-                value={fields.targetWindowStart}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="intake-to">{t("intake.windowEnd")}</Label>
-              <Input
-                id="intake-to"
-                onChange={(e) => edit({ targetWindowEnd: e.target.value })}
-                type="date"
-                value={fields.targetWindowEnd}
-              />
-            </div>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            {t("intake.windowNote")}
-          </p>
-        </Section>
-
-        <StickyAction>
+        <SubmitBar>
           <Button
             className="w-full sm:w-auto"
-            disabled={record.isPending}
+            disabled={!ready || pending}
             size="lg"
             type="submit"
           >
+            {pending ? (
+              <Spinner />
+            ) : (
+              <ClipboardCheck aria-hidden data-icon="inline-start" />
+            )}
             {t("intake.record")}
           </Button>
-        </StickyAction>
+        </SubmitBar>
       </form>
+
+      <RecentIntakes />
     </Page>
   );
 };

@@ -18,20 +18,30 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
 import {
+  Baby,
   Camera,
   Check,
+  CheckCheck,
   ChevronLeft,
   CircleDashed,
   ChevronRight,
+  ClipboardList,
+  Info,
   Lock,
+  MapPin,
+  Milk,
   SkipForward,
   SprayCan,
+  Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { AnimalPhoto } from "@/components/animal-photo";
@@ -58,6 +68,7 @@ import {
   recordStep,
 } from "@/lib/record-offline";
 import { sayWhy } from "@/lib/saying";
+import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
 interface Animal {
@@ -203,7 +214,11 @@ const WorkNotShown = ({ error }: { error: Error | null }) => {
     <Page width="narrow">
       <Notice
         action={
-          <Button render={<Link to="/today" />} variant="outline">
+          <Button
+            nativeButton={false}
+            render={<Link to="/today" />}
+            variant="outline"
+          >
             {t("nav.today")}
           </Button>
         }
@@ -211,6 +226,40 @@ const WorkNotShown = ({ error }: { error: Error | null }) => {
         tone="danger"
       />
     </Page>
+  );
+};
+
+/** The way back to the day's list, big enough for a thumb in a glove. */
+const BackToToday = () => {
+  const { t } = useLanguage();
+  return (
+    <Link
+      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
+      search={{}}
+      to="/today"
+    >
+      <ChevronLeft aria-hidden className="size-4" />
+      {t("nav.today")}
+    </Link>
+  );
+};
+
+/** Where the work is — the shed and the Pen, or the whole farm — said once under its name. Nothing is said when the
+ *  phone's cached copy of the work is older than the farm's saying so. */
+const PlaceLine = ({
+  pen,
+}: {
+  pen: { name: string; shed: { name: string } } | null | undefined;
+}) => {
+  const { t } = useLanguage();
+  if (pen === undefined) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
+      <MapPin aria-hidden className="size-4 shrink-0" />
+      {placeOfWork(pen, t("work.wholeFarm"))}
+    </p>
   );
 };
 
@@ -383,27 +432,35 @@ const WorkPage = () => {
     : true;
   const readyToClose = chipsDone && animalsDone;
 
+  const { pen } = instance.data as {
+    pen?: Parameters<typeof PlaceLine>[0]["pen"];
+  };
+
   if (state === "due") {
     return (
       <Page width="narrow">
-        <div className="bg-card mx-auto mt-6 flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border p-8 text-center shadow-sm">
-          <span className="bg-secondary text-secondary-foreground grid size-16 place-items-center rounded-2xl">
-            <SprayCan aria-hidden className="size-8" />
-          </span>
-          <div className="flex flex-col gap-1.5">
-            <h1 className="text-2xl leading-tight font-semibold tracking-tight">
-              <SopName name={content.name} />
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {t("work.claimHint")}
-            </p>
+        <div className="mx-auto flex w-full max-w-md flex-col gap-3">
+          <BackToToday />
+          <div className="bg-card flex w-full flex-col items-center gap-5 rounded-2xl border p-6 text-center shadow-sm sm:p-8">
+            <span className="bg-secondary text-secondary-foreground grid size-16 place-items-center rounded-2xl">
+              <ClipboardList aria-hidden className="size-8" />
+            </span>
+            <div className="flex flex-col items-center gap-1.5">
+              <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+                <SopName name={content.name} />
+              </h1>
+              <PlaceLine pen={pen} />
+              <p className="text-muted-foreground mt-1 text-sm text-balance">
+                {t("work.claimHint")}
+              </p>
+            </div>
+            <Button
+              className="h-14 w-full text-lg md:h-12"
+              onClick={() => claim.mutate()}
+            >
+              {t("work.claim")}
+            </Button>
           </div>
-          <Button
-            className="h-14 w-full text-lg"
-            onClick={() => claim.mutate()}
-          >
-            {t("work.claim")}
-          </Button>
         </div>
         <AssignWork
           className="mx-auto w-full max-w-md"
@@ -514,15 +571,24 @@ const WorkPage = () => {
   if (isClosed(state)) {
     return (
       <Page className="max-w-4xl pb-2">
-        <WorkHeader name={content.name} tally={tally} />
+        <WorkHeader name={content.name} pen={pen} tally={tally} />
         <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
+        <Button
+          className="h-12 w-full sm:w-fit"
+          nativeButton={false}
+          render={<Link search={{}} to="/today" />}
+          variant="outline"
+        >
+          <ChevronLeft data-icon="inline-start" />
+          {t("nav.today")}
+        </Button>
       </Page>
     );
   }
 
   return (
-    <Page className="max-w-4xl pb-2">
-      <WorkHeader name={content.name} tally={tally} />
+    <Page className="max-w-4xl gap-5 pb-2 md:gap-6">
+      <WorkHeader name={content.name} pen={pen} tally={tally} />
       <AssignWork
         assignedRole={instance.data.assignedRole}
         assignedTo={instance.data.assignedTo}
@@ -539,30 +605,35 @@ const WorkPage = () => {
       <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
 
       {chipSteps.length ? (
-        <div className="flex flex-col gap-2">
-          {chipSteps.map((step) => (
-            <StepRow
-              done={Boolean(doneFor(step.id))}
-              key={step.id}
-              onOpen={() => setOpenStep(step)}
-              step={step}
-            />
-          ))}
-        </div>
+        <BoardPart title={t("sop.steps")}>
+          <div className="flex flex-col gap-2">
+            {chipSteps.map((step) => (
+              <StepRow
+                done={Boolean(doneFor(step.id))}
+                key={step.id}
+                onOpen={() => setOpenStep(step)}
+                step={step}
+              />
+            ))}
+          </div>
+        </BoardPart>
       ) : null}
 
       {perAnimalStep ? (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {animals.map((beast) => (
-            <li key={beast.id}>
-              <AnimalTile
-                animal={beast}
-                completion={doneFor(perAnimalStep.id, beast.id)}
-                onOpen={() => setOpenAnimal(beast)}
-              />
-            </li>
-          ))}
-        </ul>
+        <BoardPart title={t("work.animalsTitle")}>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {animals.map((beast) => (
+              <li key={beast.id}>
+                <AnimalTile
+                  animal={beast}
+                  completion={doneFor(perAnimalStep.id, beast.id)}
+                  next={beast.id === nextAnimal?.id}
+                  onOpen={() => setOpenAnimal(beast)}
+                />
+              </li>
+            ))}
+          </ul>
+        </BoardPart>
       ) : null}
 
       {outcome ? <BulkOutcomeBanner outcome={outcome} /> : null}
@@ -588,6 +659,20 @@ const WorkPage = () => {
   );
 };
 
+/** One part of the board — the Steps done once, the Pen's animals — under a quiet heading of its own. */
+const BoardPart = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) => (
+  <section className="flex flex-col gap-2.5">
+    <h2 className="text-muted-foreground text-sm font-semibold">{title}</h2>
+    {children}
+  </section>
+);
+
 /** The one action that takes a person to the next animal still to do. */
 const NextAnimal = ({
   animal,
@@ -598,7 +683,7 @@ const NextAnimal = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <Button className="h-14 w-full text-lg" onClick={onOpen}>
+    <Button className="h-14 w-full text-lg md:h-12" onClick={onOpen}>
       {t("work.nextAnimal", { tag: animal.tagNumber })}
       <ChevronRight data-icon="inline-end" />
     </Button>
@@ -660,23 +745,23 @@ const TILE_LOOK = {
     icon: Check,
     label: "work.tileDone",
     tile: "border-success/35 bg-success-surface/50",
-    text: "text-success",
+    text: "bg-success text-white",
   },
   skipped: {
     icon: SkipForward,
     label: "work.tileSkipped",
     tile: "bg-muted/60",
-    text: "text-muted-foreground",
+    text: "bg-muted-foreground/15 text-muted-foreground",
   },
   left: {
     icon: CircleDashed,
     label: "work.tileLeft",
     tile: "",
-    text: "text-foreground",
+    text: "bg-secondary text-secondary-foreground",
   },
 } as const satisfies Record<
   Standing,
-  { icon: unknown; label: MessageKey; tile: string; text: string }
+  { icon: LucideIcon; label: MessageKey; tile: string; text: string }
 >;
 
 /** A Pen's round so far — how many animals are done, skipped and left — and the next animal still to do. */
@@ -700,12 +785,32 @@ const roundOf = (
   return { tally, nextAnimal };
 };
 
+/** One count of the round — done, skipped or left — as a word with its icon, never its colour alone. */
+const TallyCount = ({
+  icon: Icon,
+  className,
+  children,
+}: {
+  icon: LucideIcon;
+  className: string;
+  children: ReactNode;
+}) => (
+  <span
+    className={cn("inline-flex items-center gap-1.5 font-medium", className)}
+  >
+    <Icon aria-hidden className="size-4" />
+    {children}
+  </span>
+);
+
 /** How far round the Pen this work has got: done, skipped and still to do, each counted and each its own colour. */
 const WorkHeader = ({
   name,
+  pen,
   tally,
 }: {
   name: { bn: string; en?: string };
+  pen: { name: string; shed: { name: string } } | null | undefined;
   tally: { done: number; skipped: number; left: number } | null;
 }) => {
   const { t, language } = useLanguage();
@@ -714,36 +819,42 @@ const WorkHeader = ({
   const share = (n: number) => `${total === 0 ? 0 : (n / total) * 100}%`;
   return (
     <header className="flex flex-col gap-3">
-      <Link
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
-        search={{}}
-        to="/today"
-      >
-        <ChevronLeft aria-hidden className="size-4" />
-        {t("nav.today")}
-      </Link>
-      <h1 className="text-2xl font-semibold md:text-3xl">
-        <SopName name={name} />
-      </h1>
+      <BackToToday />
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl leading-tight font-semibold tracking-tight md:text-3xl">
+          <SopName name={name} />
+        </h1>
+        <PlaceLine pen={pen} />
+      </div>
       {tally && total > 0 ? (
-        <div className="flex flex-col gap-2">
-          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <span className="text-success inline-flex items-center gap-1.5 font-medium">
-              <Check aria-hidden className="size-4" />
-              {t("work.tallyDone", { count: count(tally.done) })}
-            </span>
-            <span className="text-muted-foreground inline-flex items-center gap-1.5 font-medium">
-              <SkipForward aria-hidden className="size-4" />
-              {t("work.tallySkipped", { count: count(tally.skipped) })}
-            </span>
-            <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
-              <CircleDashed aria-hidden className="size-4" />
-              {t("work.tallyLeft", { count: count(tally.left) })}
-            </span>
-          </p>
+        <div className="bg-card flex flex-col gap-3 rounded-xl border p-3.5 md:p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p className="flex items-baseline gap-2">
+              <span className="text-muted-foreground text-sm">
+                {t("work.animalsDone")}
+              </span>
+              <span className="text-base font-semibold tabular-nums">
+                {t("work.progress", {
+                  done: count(tally.done + tally.skipped),
+                  total: count(total),
+                })}
+              </span>
+            </p>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+              <TallyCount className="text-success" icon={Check}>
+                {t("work.tallyDone", { count: count(tally.done) })}
+              </TallyCount>
+              <TallyCount className="text-muted-foreground" icon={SkipForward}>
+                {t("work.tallySkipped", { count: count(tally.skipped) })}
+              </TallyCount>
+              <TallyCount className="text-foreground" icon={CircleDashed}>
+                {t("work.tallyLeft", { count: count(tally.left) })}
+              </TallyCount>
+            </p>
+          </div>
           <div
             aria-hidden
-            className="bg-muted flex h-2.5 w-full overflow-hidden rounded-full"
+            className="bg-muted flex h-3 w-full overflow-hidden rounded-full"
           >
             <div
               className="bg-success h-full transition-[width] duration-300"
@@ -805,14 +916,16 @@ const StepRow = ({
 };
 
 /** One animal of a Pen's round: her number first, then — in words, not only colour — whether she is done, skipped
- *  and why, or still to do, and whether a Withdrawal holds her milk. */
+ *  and why, or still to do, and whether a Withdrawal holds her milk. The next one to do is marked, in a word too. */
 const AnimalTile = ({
   animal,
   completion,
+  next,
   onOpen,
 }: {
   animal: Animal;
   completion: Completion | undefined;
+  next: boolean;
   onOpen: () => void;
 }) => {
   const { t } = useLanguage();
@@ -823,13 +936,19 @@ const AnimalTile = ({
     <button
       aria-label={`${animal.tagNumber} — ${t(label)}`}
       className={cn(
-        "bg-card hover:border-primary/40 focus-visible:ring-ring flex min-h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-[border-color,box-shadow] duration-150 outline-none hover:shadow-md focus-visible:ring-2",
+        "bg-card hover:border-primary/40 focus-visible:ring-ring relative flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border p-3 pt-4 text-center transition-[border-color,box-shadow] duration-150 outline-none hover:shadow-md focus-visible:ring-2 active:translate-y-px",
         tile,
-        held && "border-warning/40"
+        held && "border-warning/50",
+        next && "border-primary ring-primary/25 ring-2"
       )}
       onClick={onOpen}
       type="button"
     >
+      {next ? (
+        <span className="bg-primary text-primary-foreground absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap">
+          {t("work.tileNext")}
+        </span>
+      ) : null}
       {animal.photoUpdatedAt ? (
         <AnimalPhoto
           photoUpdatedAt={animal.photoUpdatedAt}
@@ -837,16 +956,16 @@ const AnimalTile = ({
           tagNumber={animal.tagNumber}
         />
       ) : null}
-      <span className="font-mono text-lg font-bold tabular-nums">
+      <span className="font-mono text-xl font-bold tracking-tight tabular-nums">
         {animal.tagNumber}
       </span>
       <span
         className={cn(
-          "inline-flex items-center gap-1 text-sm font-medium",
+          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium",
           text
         )}
       >
-        <StateIcon aria-hidden className="size-4" />
+        <StateIcon aria-hidden className="size-3.5" />
         {t(label)}
       </span>
       {standing === "skipped" && completion?.skipReason ? (
@@ -925,18 +1044,26 @@ const WhatChanged = ({ changed }: { changed: Changed }) => {
     };
   };
   return (
-    <section className="bg-info-surface text-info space-y-1 rounded-xl p-3">
-      <p className="font-medium">{t("changed.title")}</p>
-      <p className="text-info text-sm">
-        {t("changed.versions", { from: changed.from, to: changed.to })}
-      </p>
-      <ul className="space-y-1 text-sm">
-        {changed.changes.map((change, index) => (
-          <li key={`${change.kind}-${index}`}>
-            {t(CHANGE_MESSAGE[change.kind], said(change))}
-          </li>
-        ))}
-      </ul>
+    <section
+      aria-labelledby="what-changed-title"
+      className="border-info/25 bg-info-surface text-info flex items-start gap-3 rounded-xl border px-4 py-3"
+    >
+      <Info aria-hidden className="mt-0.5 size-5 shrink-0" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h2 className="font-semibold" id="what-changed-title">
+          {t("changed.title")}
+        </h2>
+        <p className="text-sm">
+          {t("changed.versions", { from: changed.from, to: changed.to })}
+        </p>
+        <ul className="text-foreground/85 mt-1 list-disc space-y-1 ps-5 text-sm">
+          {changed.changes.map((change, index) => (
+            <li key={`${change.kind}-${index}`}>
+              {t(CHANGE_MESSAGE[change.kind], said(change))}
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 };
@@ -982,7 +1109,8 @@ const ClosingAction = ({
   const { t } = useLanguage();
   if (!ready) {
     return (
-      <p className="text-muted-foreground bg-muted/60 rounded-xl px-4 py-3 text-center text-sm">
+      <p className="text-muted-foreground bg-muted/60 flex min-h-14 items-center justify-center gap-2 rounded-xl px-4 py-3 text-center text-sm font-medium">
+        <CircleDashed aria-hidden className="size-4 shrink-0" />
         {t("work.notFinished")}
       </p>
     );
@@ -992,21 +1120,23 @@ const ClosingAction = ({
   if (!(closingStep && !done)) {
     return (
       <Button
-        className="h-14 w-full text-lg"
+        className="h-14 w-full text-lg md:h-12"
         disabled={pending}
         onClick={onFinish}
       >
+        {pending ? <Spinner /> : <CheckCheck data-icon="inline-start" />}
         {t("work.finish")}
       </Button>
     );
   }
   return (
     <Button
-      className="h-14 w-full text-lg"
+      className="h-auto min-h-14 w-full py-2 text-lg whitespace-normal"
       variant="outline"
       onClick={() => onOpen(closingStep)}
     >
       {closingStep.text.bn}
+      <ChevronRight data-icon="inline-end" />
     </Button>
   );
 };
@@ -1203,9 +1333,15 @@ const StockCountFields = ({
   return (
     <>
       {items.map((item) => (
-        <div className="space-y-2" key={item.feedItemId}>
-          <p className="text-sm">
-            {item.nameBn} ({item.unit})
+        <div
+          className="bg-card flex flex-col gap-2 rounded-xl border p-3"
+          key={item.feedItemId}
+        >
+          <p className="text-sm font-medium">
+            {item.nameBn}{" "}
+            <span className="text-muted-foreground font-normal">
+              ({item.unit})
+            </span>
           </p>
           <div className="grid grid-cols-2 gap-2">
             <Input
@@ -1266,18 +1402,20 @@ const FeedingFields = ({
 }) => {
   const { t } = useLanguage();
   if (cannotFeed) {
-    return (
-      <p className="bg-warning-surface text-warning rounded-xl p-3">
-        {t("work.noRation")}
-      </p>
-    );
+    return <Notice title={t("work.noRation")} tone="warning" />;
   }
   return (
     <>
       {rows.map((line) => (
-        <div className="space-y-2" key={line.feedItemId}>
-          <p className="text-sm">
-            {line.nameBn} · {t("feed.target")}: {line.quantity} {line.unit}
+        <div
+          className="bg-card flex flex-col gap-2 rounded-xl border p-3"
+          key={line.feedItemId}
+        >
+          <p className="text-sm font-medium">
+            {line.nameBn}{" "}
+            <span className="text-muted-foreground font-normal">
+              · {t("feed.target")}: {line.quantity} {line.unit}
+            </span>
           </p>
           <div className="grid grid-cols-2 gap-2">
             <Input
@@ -1350,6 +1488,7 @@ const everythingAsked = (step: Step, values: Entered, photos: Taken): boolean =>
  *  Correction still has to say why, because changing a recorded fact is the person speaking. */
 const SkipSheet = ({
   step,
+  animalTag,
   correcting,
   reason,
   onReason,
@@ -1357,6 +1496,8 @@ const SkipSheet = ({
   onBack,
 }: {
   step: Step;
+  /** The animal being skipped, named above the reasons so nobody skips the wrong cow. */
+  animalTag?: string;
   correcting: boolean;
   reason: string;
   onReason: (value: string) => void;
@@ -1365,36 +1506,63 @@ const SkipSheet = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="mx-auto mt-8 w-full max-w-sm space-y-3 p-4">
-      <p className="text-lg">{t("work.skipWhy")}</p>
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-4 pb-6">
+      <button
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
+        onClick={onBack}
+        type="button"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+        {t("work.back")}
+      </button>
+      <header className="flex items-center gap-3">
+        <span className="bg-muted text-muted-foreground grid size-12 shrink-0 place-items-center rounded-xl">
+          <SkipForward aria-hidden className="size-6" />
+        </span>
+        <div className="flex min-w-0 flex-col gap-1">
+          {animalTag ? <TagChip>{animalTag}</TagChip> : null}
+          <h1 className="text-xl leading-snug font-semibold">
+            {t("work.skipWhy")}
+          </h1>
+        </div>
+      </header>
       {correcting ? (
-        <Input
-          aria-label={t("correct.why")}
-          onChange={(event) => onReason(event.target.value)}
-          placeholder={t("correct.why")}
-          value={reason}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="skip-correction-reason">{t("correct.why")}</Label>
+          <Input
+            className="h-12 text-base"
+            id="skip-correction-reason"
+            onChange={(event) => onReason(event.target.value)}
+            value={reason}
+          />
+        </div>
       ) : null}
-      {step.skipReasons.map((skip) => (
-        <Button
-          className="h-14 w-full text-lg"
-          disabled={correcting && !reason.trim()}
-          key={skip.bn}
-          onClick={() =>
-            onSkip({
-              evidence: [],
-              skipReason: skip.bn,
-              // Never the skip label standing in for a reason: changing what was recorded is
-              // a Correction, and a Correction is the person saying why.
-              reason: correcting ? reason.trim() : undefined,
-            })
-          }
-          variant="outline"
-        >
-          {skip.bn}
-        </Button>
-      ))}
-      <Button className="w-full" onClick={onBack} variant="ghost">
+      <div className="flex flex-col gap-2">
+        {step.skipReasons.map((skip) => (
+          <Button
+            className="h-auto min-h-14 w-full justify-start py-2 text-start text-lg whitespace-normal"
+            disabled={correcting && !reason.trim()}
+            key={skip.bn}
+            onClick={() =>
+              onSkip({
+                evidence: [],
+                skipReason: skip.bn,
+                // Never the skip label standing in for a reason: changing what was recorded is
+                // a Correction, and a Correction is the person saying why.
+                reason: correcting ? reason.trim() : undefined,
+              })
+            }
+            variant="outline"
+          >
+            {skip.bn}
+          </Button>
+        ))}
+      </div>
+      <Button
+        className="h-12 w-full text-base"
+        onClick={onBack}
+        variant="ghost"
+      >
         {t("work.back")}
       </Button>
     </div>
@@ -1487,6 +1655,49 @@ interface RecordPayload {
    *  Correction carries a reason. */
   reason?: string;
 }
+
+/** What the sheet is for, at its top: the animal and her photo, or the Step's picture; the Step's words; and whether
+ *  this is a Correction or a cow whose milk is held. */
+const SheetHead = ({
+  step,
+  animal,
+  correcting,
+  locked,
+}: {
+  step: Step;
+  animal?: Animal;
+  correcting: boolean;
+  locked: boolean;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <header className="bg-card flex items-center gap-4 rounded-xl border p-4">
+      {animal ? (
+        <AnimalPhoto
+          photoUpdatedAt={animal.photoUpdatedAt}
+          size={80}
+          tagNumber={animal.tagNumber}
+        />
+      ) : (
+        <span className="bg-secondary text-secondary-foreground grid size-14 shrink-0 place-items-center rounded-xl">
+          <SprayCan aria-hidden className="size-7" />
+        </span>
+      )}
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {animal ? <TagChip>{animal.tagNumber}</TagChip> : null}
+        <h1 className="text-xl leading-snug font-semibold">{step.text.bn}</h1>
+        {correcting ? (
+          <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
+        ) : null}
+        {locked ? (
+          <StatusBadge icon={Lock} tone="warning">
+            {t("milk.withdrawalShort")}
+          </StatusBadge>
+        ) : null}
+      </div>
+    </header>
+  );
+};
 
 /** The full-screen sheet: one control per piece of Evidence the Version asks for, skip with
  *  a reason for a per-animal Step, and a warning that must be acknowledged for an odd figure. */
@@ -1601,6 +1812,7 @@ const EvidenceSheet = ({
   if (skipping) {
     return (
       <SkipSheet
+        animalTag={animal?.tagNumber}
         correcting={correcting}
         onBack={() => setSkipping(false)}
         onReason={setReason}
@@ -1612,35 +1824,21 @@ const EvidenceSheet = ({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 pt-6 pb-2">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 pt-4 pb-2">
       <button
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ms-2 -mb-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2"
         onClick={onCancel}
         type="button"
       >
         <ChevronLeft aria-hidden className="size-4" />
         {t("work.back")}
       </button>
-      <header className="bg-card flex items-center gap-4 rounded-xl border p-4">
-        {animal ? (
-          <AnimalPhoto
-            photoUpdatedAt={animal.photoUpdatedAt}
-            size={80}
-            tagNumber={animal.tagNumber}
-          />
-        ) : (
-          <span className="bg-secondary text-secondary-foreground grid size-14 shrink-0 place-items-center rounded-xl">
-            <SprayCan aria-hidden className="size-7" />
-          </span>
-        )}
-        <div className="flex min-w-0 flex-col gap-1.5">
-          {animal ? <TagChip>{animal.tagNumber}</TagChip> : null}
-          <p className="text-xl leading-snug font-semibold">{step.text.bn}</p>
-          {correcting ? (
-            <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
-          ) : null}
-        </div>
-      </header>
+      <SheetHead
+        animal={animal}
+        correcting={correcting}
+        locked={locked}
+        step={step}
+      />
 
       {step.evidence.map((item, index) => (
         <EvidenceControl
@@ -1684,10 +1882,11 @@ const EvidenceSheet = ({
       />
 
       {correcting ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">{t("correct.why")}</p>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="correction-reason">{t("correct.why")}</Label>
           <Input
-            aria-label={t("correct.why")}
+            className="h-12 text-base"
+            id="correction-reason"
             onChange={(event) => setReason(event.target.value)}
             value={reason}
           />
@@ -1708,15 +1907,16 @@ const EvidenceSheet = ({
 
       <StickyAction>
         <div className="grid grid-cols-3 gap-2">
-          <Button variant="ghost" className="h-14" onClick={onCancel}>
+          <Button variant="ghost" className="h-14 text-base" onClick={onCancel}>
             {t("work.back")}
           </Button>
           {step.repeatPerAnimal ? (
             <Button
               variant="outline"
-              className="h-14"
+              className="h-14 text-base"
               onClick={() => setSkipping(true)}
             >
+              <SkipForward data-icon="inline-start" />
               {t("work.skip")}
             </Button>
           ) : null}
@@ -1729,12 +1929,20 @@ const EvidenceSheet = ({
             }
             onClick={() => submit(false)}
           >
+            <Check data-icon="inline-start" />
             {correcting ? t("correct.save") : t("work.confirm")}
           </Button>
         </div>
       </StickyAction>
     </div>
   );
+};
+
+/** Each place milk can go, with a picture beside its word: the tank, the calf, the drain. */
+const DESTINATION_ICON: Record<MilkDestination, LucideIcon> = {
+  bulk: Milk,
+  calves: Baby,
+  discard: Trash2,
 };
 
 /** Where the milk goes. Three buttons, because that is the whole vocabulary — and none at
@@ -1757,23 +1965,47 @@ const DestinationChoice = ({
     );
   }
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium">{t("milk.destination")}</p>
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-2 text-sm font-medium">
+        {t("milk.destination")}
+      </legend>
       <div className="grid grid-cols-3 gap-2">
-        {MILK_DESTINATIONS.map((option) => (
-          <Button
-            key={option}
-            variant={value === option ? "default" : "outline"}
-            className="h-12"
-            onClick={() => onChange(option)}
-          >
-            {t(`milk.${option}`)}
-          </Button>
-        ))}
+        {MILK_DESTINATIONS.map((option) => {
+          const Icon = DESTINATION_ICON[option];
+          const chosen = value === option;
+          return (
+            <Button
+              aria-pressed={chosen}
+              key={option}
+              variant={chosen ? "default" : "outline"}
+              className="h-auto min-h-16 flex-col gap-1 px-2 py-2 text-sm whitespace-normal"
+              onClick={() => onChange(option)}
+            >
+              <Icon aria-hidden className="size-5" />
+              {t(`milk.${option}`)}
+            </Button>
+          );
+        })}
       </div>
-    </div>
+    </fieldset>
   );
 };
+
+/** A field with its name above it, where somebody reads it before they type. */
+const FieldWithLabel = ({
+  htmlFor,
+  label,
+  children,
+}: {
+  htmlFor: string;
+  label: string;
+  children: ReactNode;
+}) => (
+  <div className="flex flex-col gap-1.5">
+    <Label htmlFor={htmlFor}>{label}</Label>
+    {children}
+  </div>
+);
 
 /** Two digits, as a date field writes a month, a day, an hour or a minute. */
 const twoDigits = (part: number) => String(part).padStart(2, "0");
@@ -1808,6 +2040,7 @@ const EvidenceControl = ({
   onPhoto: (photo: { contentType: "image/jpeg"; data: string }) => void;
 }) => {
   const { t } = useLanguage();
+  const id = useId();
 
   if (evidence.type === "tick") {
     return null;
@@ -1816,14 +2049,22 @@ const EvidenceControl = ({
   if (evidence.type === "number") {
     const typed = String(value ?? "");
     return (
-      <div className="space-y-2">
-        <p className="text-center text-5xl font-bold tabular-nums">
+      <div className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+        <p
+          aria-hidden
+          className={cn(
+            "text-center text-5xl font-bold tracking-tight tabular-nums",
+            typed === "" && "text-muted-foreground/50"
+          )}
+        >
           {typed === ""
             ? "০"
             : new Intl.NumberFormat(
                 language === "bn" ? "bn-BD" : "en-GB"
               ).format(Number(typed))}{" "}
-          <span className="text-xl">{evidence.unit?.bn}</span>
+          <span className="text-muted-foreground text-xl font-semibold">
+            {evidence.unit?.bn}
+          </span>
         </p>
         <Input
           inputMode="decimal"
@@ -1831,7 +2072,7 @@ const EvidenceControl = ({
           onChange={(event) =>
             onValue(event.target.value.replaceAll(/[^\d.]/gu, ""))
           }
-          className="text-center text-2xl"
+          className="h-16 text-center text-3xl font-semibold tabular-nums md:h-16 md:text-3xl"
           aria-label={evidence.unit?.bn ?? t("work.confirm")}
         />
       </div>
@@ -1840,12 +2081,13 @@ const EvidenceControl = ({
 
   if (evidence.type === "choice") {
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {(evidence.choices ?? []).map((choice) => (
           <Button
+            aria-pressed={value === choice.value}
             key={choice.value}
             variant={value === choice.value ? "default" : "outline"}
-            className="h-12"
+            className="h-auto min-h-14 py-2 text-base whitespace-normal"
             onClick={() => onValue(choice.value)}
           >
             {choice.label.bn}
@@ -1857,37 +2099,54 @@ const EvidenceControl = ({
 
   if (evidence.type === "datetime") {
     return (
-      <Input
-        aria-label={t("work.when")}
-        // The field speaks the phone's own clock, which on this farm is the farm's; what is kept
-        // is the instant, so a phone set a zone away still records the right moment.
-        onChange={(event) =>
-          onValue(
-            event.target.value === ""
-              ? ""
-              : new Date(event.target.value).toISOString()
-          )
-        }
-        type="datetime-local"
-        value={asLocalField(value)}
-      />
+      <FieldWithLabel htmlFor={id} label={t("work.when")}>
+        <Input
+          className="h-12 text-base"
+          id={id}
+          // The field speaks the phone's own clock, which on this farm is the farm's; what is kept
+          // is the instant, so a phone set a zone away still records the right moment.
+          onChange={(event) =>
+            onValue(
+              event.target.value === ""
+                ? ""
+                : new Date(event.target.value).toISOString()
+            )
+          }
+          type="datetime-local"
+          value={asLocalField(value)}
+        />
+      </FieldWithLabel>
     );
   }
 
   if (evidence.type === "note") {
     return (
-      <Input
-        value={String(value ?? "")}
-        onChange={(event) => onValue(event.target.value)}
-        placeholder={t("work.note")}
-        aria-label={t("work.note")}
-      />
+      <FieldWithLabel htmlFor={id} label={t("work.note")}>
+        <Input
+          className="h-12 text-base"
+          id={id}
+          value={String(value ?? "")}
+          onChange={(event) => onValue(event.target.value)}
+        />
+      </FieldWithLabel>
     );
   }
 
   return (
-    <label className="bg-muted flex items-center gap-2 rounded-xl p-3 text-base">
-      <Camera size={20} /> {hasPhoto ? t("work.saved") : t("work.photo")}
+    <label
+      className={cn(
+        "has-[:focus-visible]:ring-ring flex min-h-16 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed p-3 text-base font-medium has-[:focus-visible]:ring-2",
+        hasPhoto
+          ? "border-success/40 bg-success-surface text-success"
+          : "bg-muted/60 hover:bg-muted"
+      )}
+    >
+      {hasPhoto ? (
+        <Check aria-hidden className="size-5" />
+      ) : (
+        <Camera aria-hidden className="size-5" />
+      )}
+      {hasPhoto ? t("work.saved") : t("work.photo")}
       <input
         accept="image/*"
         capture="environment"

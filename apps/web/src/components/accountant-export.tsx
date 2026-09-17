@@ -1,5 +1,7 @@
 import { Button } from "@OpenFarm/ui/components/button";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
+import { FileDown, Printer } from "lucide-react";
 import { useState } from "react";
 
 import { useRefusalToast } from "@/components/money";
@@ -35,27 +37,39 @@ export const AccountantExport = ({
     })
   );
   return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-semibold">{t("accountant.title")}</h2>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={summary.isPending}
-          onClick={() => summary.mutate({ from, to, format: "paper" })}
-          size="sm"
-          variant="outline"
-        >
-          {t("accountant.summary")}
-        </Button>
-        <Button
-          disabled={sheet.isPending}
-          onClick={() => sheet.mutate({ from, to, format: "csv" })}
-          size="sm"
-          variant="outline"
-        >
-          {t("accountant.csv")}
-        </Button>
+    <div className="flex flex-col gap-4">
+      <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+        <p className="text-muted-foreground text-sm">{t("accountant.hint")}</p>
+        <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:flex-wrap">
+          <Button
+            disabled={summary.isPending}
+            onClick={() => summary.mutate({ from, to, format: "paper" })}
+            type="button"
+            variant="outline"
+          >
+            {summary.isPending ? (
+              <Spinner />
+            ) : (
+              <Printer aria-hidden data-icon="inline-start" />
+            )}
+            {t("accountant.summary")}
+          </Button>
+          <Button
+            disabled={sheet.isPending}
+            onClick={() => sheet.mutate({ from, to, format: "csv" })}
+            type="button"
+            variant="outline"
+          >
+            {sheet.isPending ? (
+              <Spinner />
+            ) : (
+              <FileDown aria-hidden data-icon="inline-start" />
+            )}
+            {t("accountant.csv")}
+          </Button>
+        </div>
       </div>
       {paper ? <Paper id="accountant-summary" text={paper} /> : null}
-    </section>
+    </div>
   );
 };

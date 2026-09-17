@@ -3,8 +3,15 @@ import { SAYS } from "@OpenFarm/domain";
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, BellRing, OctagonAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  BellRing,
+  ChevronDown,
+  ChevronUp,
+  OctagonAlert,
+} from "lucide-react";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
@@ -61,9 +68,6 @@ const paramsOf = (
   };
 };
 
-/** How many notices show before the rest wait behind "show all": the work below them is what the person came for. */
-const FIRST_SHOWN = 2;
-
 /** Notices about work already late, drawn with the same severity as the late work itself. */
 const URGENT: ReadonlySet<string> = new Set([
   "instance_overdue",
@@ -79,14 +83,58 @@ const becauseOf = (params: unknown): MessageKey | null => {
     : null;
 };
 
+/** One notice, in the reader's language, with why an Effect stood aside where that is what it is about. */
+const NoticeWords = ({
+  notice,
+  truncate = false,
+}: {
+  notice: { kind: string; params: unknown };
+  truncate?: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  const key = messageFor(notice.kind);
+  const because = becauseOf(notice.params);
+  const said = key
+    ? t(
+        key,
+        paramsOf(notice.params, { language, wholeFarm: t("work.wholeFarm") })
+      )
+    : notice.kind;
+  if (truncate) {
+    return <span className="block truncate">{said}</span>;
+  }
+  return (
+    <>
+      {said}
+      {because ? (
+        <span className="text-muted-foreground block">{t(because)}</span>
+      ) : null}
+    </>
+  );
+};
+
+/** The mark beside a notice: louder for late work and a notifiable disease than for the rest. */
+const NoticeIcon = ({ kind }: { kind: string }) =>
+  URGENT.has(kind) ? (
+    <OctagonAlert aria-hidden className="text-danger mt-0.5 size-5 shrink-0" />
+  ) : (
+    <AlertTriangle
+      aria-hidden
+      className="text-warning mt-0.5 size-5 shrink-0"
+    />
+  );
+
 /**
- * What this person is being told. Raising the notices is the same call however anyone opens
- * the app: it is idempotent, so no scheduler has to have run for the farm to know its work
- * is late.
+ * What this person is being told, as a banner that takes one line until it is opened: how many notices there are and
+ * the loudest of them, so the work below stays on the first screen of a phone. Opened, every notice is listed, the
+ * loudest first, each with its "got it".
+ *
+ * Raising the notices is the same call however anyone opens the app: it is idempotent, so no scheduler has to have run
+ * for the farm to know its work is late.
  */
 export const AlertList = () => {
   const { t, language } = useLanguage();
-  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const alerts = useQuery(orpc.alerts.mine.queryOptions({ input: {} }));
   const dismiss = useMutation(
@@ -99,58 +147,68 @@ export const AlertList = () => {
   if (!alerts.data?.length) {
     return null;
   }
-  const notices = alerts.data;
-  const shown = showAll ? notices : notices.slice(0, FIRST_SHOWN);
+  // The loudest first; within each, the order the farm gave them.
+  const notices = alerts.data.toSorted(
+    (a, b) => Number(URGENT.has(b.kind)) - Number(URGENT.has(a.kind))
+  );
+  const [loudest] = notices;
+  const urgent = notices.some((notice) => URGENT.has(notice.kind));
+  const Chevron = open ? ChevronUp : ChevronDown;
   return (
     <section
       aria-label={t("alerts.title")}
-      className="bg-card overflow-hidden rounded-xl border"
+      className={cn(
+        "bg-card overflow-hidden rounded-xl border",
+        urgent ? "border-danger/35" : "border-warning/35"
+      )}
     >
-      <div className="bg-muted/50 flex items-center justify-between gap-2 border-b px-4 py-2.5">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <BellRing aria-hidden className="text-warning size-4" />
-          {t("alerts.title")}
-        </h2>
-        <StatusBadge tone="warning">
-          {formatNumber(notices.length, language)}
-        </StatusBadge>
-      </div>
-      <ul className="divide-border divide-y">
-        {shown.map((notice) => {
-          const key = messageFor(notice.kind);
-          const because = becauseOf(notice.params);
-          const urgent = URGENT.has(notice.kind);
-          return (
+      <button
+        aria-expanded={open}
+        className="hover:bg-muted/50 focus-visible:ring-ring flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset"
+        onClick={() => setOpen((shown) => !shown)}
+        type="button"
+      >
+        <BellRing
+          aria-hidden
+          className={cn(
+            "size-5 shrink-0",
+            urgent ? "text-danger" : "text-warning"
+          )}
+        />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            {t("alerts.title")}
+            <StatusBadge tone={urgent ? "danger" : "warning"}>
+              {formatNumber(notices.length, language)}
+            </StatusBadge>
+          </span>
+          {open || !loudest ? null : (
+            <span className="text-muted-foreground min-w-0 text-sm">
+              <NoticeWords notice={loudest} truncate />
+            </span>
+          )}
+        </span>
+        <span className="text-primary flex shrink-0 items-center gap-1 text-sm font-medium">
+          <span className="hidden sm:inline">
+            {open
+              ? t("alerts.showFewer")
+              : t("alerts.showAll", {
+                  count: formatNumber(notices.length, language),
+                })}
+          </span>
+          <Chevron aria-hidden className="size-4" />
+        </span>
+      </button>
+      {open ? (
+        <ul className="divide-border divide-y border-t">
+          {notices.map((notice) => (
             <li className="flex items-start gap-3 px-4 py-3" key={notice.id}>
-              {urgent ? (
-                <OctagonAlert
-                  aria-hidden
-                  className="text-danger mt-0.5 size-5 shrink-0"
-                />
-              ) : (
-                <AlertTriangle
-                  aria-hidden
-                  className="text-warning mt-0.5 size-5 shrink-0"
-                />
-              )}
-              <p className="flex-1 text-sm">
-                {key
-                  ? t(
-                      key,
-                      paramsOf(notice.params, {
-                        language,
-                        wholeFarm: t("work.wholeFarm"),
-                      })
-                    )
-                  : notice.kind}
-                {because ? (
-                  <span className="text-muted-foreground block">
-                    {t(because)}
-                  </span>
-                ) : null}
+              <NoticeIcon kind={notice.kind} />
+              <p className="min-w-0 flex-1 text-sm">
+                <NoticeWords notice={notice} />
               </p>
               <Button
-                className="shrink-0"
+                className="h-11 shrink-0 md:h-8"
                 onClick={() => dismiss.mutate({ id: notice.id })}
                 size="sm"
                 variant="ghost"
@@ -158,21 +216,8 @@ export const AlertList = () => {
                 {t("alerts.dismiss")}
               </Button>
             </li>
-          );
-        })}
-      </ul>
-      {FIRST_SHOWN < notices.length ? (
-        <button
-          className="text-primary hover:bg-muted/60 w-full border-t px-4 py-2.5 text-sm font-medium"
-          onClick={() => setShowAll((all) => !all)}
-          type="button"
-        >
-          {showAll
-            ? t("alerts.showFewer")
-            : t("alerts.showAll", {
-                count: formatNumber(notices.length, language),
-              })}
-        </button>
+          ))}
+        </ul>
       ) : null}
     </section>
   );

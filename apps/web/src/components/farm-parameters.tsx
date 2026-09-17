@@ -5,9 +5,11 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SlidersHorizontal } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -40,10 +42,18 @@ interface FieldSpec {
   time?: boolean;
 }
 
-/** The Parameters in the groups a Manager thinks of them in, each with the bounds the farm will accept. */
-const GROUPS: { title: MessageKey; fields: FieldSpec[] }[] = [
+/** The Parameters in the groups a Manager thinks of them in, each with what it is for and the bounds the farm will
+ *  accept. */
+const GROUPS: {
+  id: string;
+  title: MessageKey;
+  hint: MessageKey;
+  fields: FieldSpec[];
+}[] = [
   {
+    id: "params-alerts",
     title: "params.alerts",
+    hint: "params.alertsHint",
     fields: [
       { key: "digestTimes", label: "params.digestTimes" },
       { key: "quietFrom", label: "params.quietFrom", time: true },
@@ -58,7 +68,9 @@ const GROUPS: { title: MessageKey; fields: FieldSpec[] }[] = [
     ],
   },
   {
+    id: "params-records",
     title: "params.records",
+    hint: "params.recordsHint",
     fields: [
       {
         key: "milkTolerancePercent",
@@ -98,7 +110,9 @@ const GROUPS: { title: MessageKey; fields: FieldSpec[] }[] = [
     ],
   },
   {
+    id: "params-breeding",
     title: "params.breeding",
+    hint: "params.breedingHint",
     fields: [
       {
         key: "aiWindowStartHours",
@@ -152,7 +166,9 @@ const GROUPS: { title: MessageKey; fields: FieldSpec[] }[] = [
     ],
   },
   {
+    id: "params-fattening",
     title: "params.fatteningAndPapers",
+    hint: "params.fatteningAndPapersHint",
     fields: [
       {
         key: "fatteningTargetWeightKg",
@@ -173,6 +189,8 @@ const GROUPS: { title: MessageKey; fields: FieldSpec[] }[] = [
 ];
 
 type Values = Record<Key, string>;
+/** What has been typed into a group so far: only the fields somebody touched. */
+type Draft = Partial<Values>;
 
 const inputTypeOf = (field: FieldSpec) => {
   if (field.time) {
@@ -189,36 +207,106 @@ const asText = (value: unknown): string => {
 };
 
 /** Only what was changed goes to the farm, so saving one number never rewrites the rest. */
-const changesOf = (draft: Values, saved: Values): Record<string, unknown> => {
+const changesOf = (draft: Draft, saved: Values): Record<string, unknown> => {
   const changes: Record<string, unknown> = {};
   for (const key of Object.keys(draft) as Key[]) {
-    if (draft[key].trim() === saved[key].trim()) {
+    const typed = draft[key] ?? "";
+    if (typed.trim() === saved[key].trim()) {
       continue;
     }
     if (key === "digestTimes") {
-      changes[key] = draft[key]
+      changes[key] = typed
         .split(",")
         .map((time) => time.trim())
         .filter(Boolean);
     } else if (key === "quietFrom" || key === "quietUntil") {
-      changes[key] = draft[key].trim();
+      changes[key] = typed.trim();
     } else {
-      changes[key] = Number(draft[key]);
+      changes[key] = Number(typed);
     }
   }
   return changes;
 };
 
 /**
- * How the farm is tuned: when people are told, how far a reading may drift, how long a record stays open to
- * correction, and the breeding calendar the Playbook times its work from. The Owner's or the Manager's to turn.
+ * One part of a settings page with a save of its own: its name and what it is for, its fields, and at its foot the
+ * save — ready only once something in it has changed — with the way back to what the farm holds.
  */
-export const FarmParameters = () => {
+export const SettingsSection = ({
+  id,
+  title,
+  description,
+  saveLabel,
+  changed,
+  pending,
+  onSubmit,
+  onReset,
+  children,
+}: {
+  id: string;
+  title: ReactNode;
+  description?: ReactNode;
+  saveLabel: ReactNode;
+  changed: boolean;
+  pending: boolean;
+  onSubmit: () => void;
+  onReset: () => void;
+  children: ReactNode;
+}) => {
+  const t = useT();
+  return (
+    <Section
+      className="scroll-mt-6"
+      description={description}
+      id={id}
+      title={title}
+    >
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        {children}
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+          {changed ? (
+            <p className="text-muted-foreground mr-auto text-sm">
+              {t("identity.unsaved")}
+            </p>
+          ) : null}
+          {changed ? (
+            <Button onClick={onReset} type="button" variant="ghost">
+              {t("common.cancel")}
+            </Button>
+          ) : null}
+          <Button disabled={pending || !changed} type="submit">
+            {pending ? <Spinner /> : null}
+            {saveLabel}
+          </Button>
+        </div>
+      </form>
+    </Section>
+  );
+};
+
+/** The parts of the Parameters, for a page that lists what is on it. */
+export const PARAMETER_SECTIONS = GROUPS.map(({ id, title }) => ({
+  id,
+  title,
+}));
+
+/** One group of Parameters, saved on its own: only what was changed in it goes to the farm. */
+const ParameterGroup = ({
+  group,
+  saved,
+}: {
+  group: (typeof GROUPS)[number];
+  saved: Values;
+}) => {
   const t = useT();
   const queryClient = useQueryClient();
-  const farm = useQuery(orpc.farm.current.queryOptions());
-  const [draft, setDraft] = useState<Values | null>(null);
-
+  const [draft, setDraft] = useState<Draft | null>(null);
   const save = useMutation(
     orpc.farm.setParameters.mutationOptions({
       onSuccess: async () => {
@@ -230,6 +318,64 @@ export const FarmParameters = () => {
       onError: (error) => toast.error(sayWhy(error, t)),
     })
   );
+  const values = draft ?? {};
+  const changes = changesOf(values, saved);
+  const changed = Object.keys(changes).length > 0;
+
+  return (
+    <SettingsSection
+      changed={changed}
+      description={t(group.hint)}
+      id={group.id}
+      onReset={() => setDraft(null)}
+      onSubmit={() => save.mutate(changes as Parameters<typeof save.mutate>[0])}
+      pending={save.isPending}
+      saveLabel={t("params.save")}
+      title={t(group.title)}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        {group.fields.map((field) => {
+          const id = `param-${field.key}`;
+          return (
+            <div className="flex flex-col gap-1.5" key={field.key}>
+              <Label htmlFor={id}>
+                {t(field.label)}
+                {field.unit ? (
+                  <span className="text-muted-foreground font-normal">
+                    {" "}
+                    · {t(field.unit)}
+                  </span>
+                ) : null}
+              </Label>
+              <Input
+                id={id}
+                inputMode={field.unit ? "numeric" : undefined}
+                max={field.max}
+                min={field.min}
+                onChange={(event) =>
+                  setDraft({ ...values, [field.key]: event.target.value })
+                }
+                placeholder={field.key === "digestTimes" ? "18:00" : undefined}
+                required
+                type={inputTypeOf(field)}
+                value={values[field.key] ?? saved[field.key]}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </SettingsSection>
+  );
+};
+
+/**
+ * How the farm is tuned: when people are told, how far a reading may drift, how long a record stays open to
+ * correction, and the breeding calendar the Playbook times its work from — a group at a time, each saved on its own.
+ * The Owner's or the Manager's to turn.
+ */
+export const FarmParameters = () => {
+  const t = useT();
+  const farm = useQuery(orpc.farm.current.queryOptions());
 
   if (!farm.data) {
     return null;
@@ -241,20 +387,11 @@ export const FarmParameters = () => {
       asText(record[field.key]),
     ])
   ) as Values;
-  const values = draft ?? saved;
-  const changes = changesOf(values, saved);
-  const changed = Object.keys(changes).length > 0;
 
   return (
-    <form
-      className="surface flex flex-col gap-6 p-4 md:p-6"
-      onSubmit={(event) => {
-        event.preventDefault();
-        save.mutate(changes as Parameters<typeof save.mutate>[0]);
-      }}
-    >
-      <div className="flex flex-col gap-1">
-        <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1 pt-2">
+        <h2 className="inline-flex items-center gap-2 text-lg font-semibold md:text-xl">
           <SlidersHorizontal
             aria-hidden
             className="text-muted-foreground size-5"
@@ -264,56 +401,8 @@ export const FarmParameters = () => {
         <p className="text-muted-foreground text-sm">{t("params.why")}</p>
       </div>
       {GROUPS.map((group) => (
-        <fieldset className="flex flex-col gap-3" key={group.title}>
-          <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
-            {t(group.title)}
-          </legend>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {group.fields.map((field) => {
-              const id = `param-${field.key}`;
-              return (
-                <div className="flex flex-col gap-1.5" key={field.key}>
-                  <Label htmlFor={id}>
-                    {t(field.label)}
-                    {field.unit ? (
-                      <span className="text-muted-foreground font-normal">
-                        {" "}
-                        · {t(field.unit)}
-                      </span>
-                    ) : null}
-                  </Label>
-                  <Input
-                    id={id}
-                    inputMode={field.unit ? "numeric" : undefined}
-                    max={field.max}
-                    min={field.min}
-                    onChange={(event) =>
-                      setDraft({ ...values, [field.key]: event.target.value })
-                    }
-                    placeholder={
-                      field.key === "digestTimes" ? "18:00" : undefined
-                    }
-                    required
-                    type={inputTypeOf(field)}
-                    value={values[field.key]}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </fieldset>
+        <ParameterGroup group={group} key={group.id} saved={saved} />
       ))}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button disabled={save.isPending || !changed} type="submit">
-          {save.isPending ? <Spinner /> : null}
-          {t("params.save")}
-        </Button>
-        {changed ? (
-          <Button onClick={() => setDraft(null)} type="button" variant="ghost">
-            {t("common.cancel")}
-          </Button>
-        ) : null}
-      </div>
-    </form>
+    </div>
   );
 };
