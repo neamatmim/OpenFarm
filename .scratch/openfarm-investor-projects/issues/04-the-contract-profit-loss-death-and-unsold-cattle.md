@@ -22,12 +22,13 @@ Map: [OpenFarm investor-funded fattening projects](../map.md)
 - **Changing terms.** Can terms change mid-Venture, and what does the record of the Investment Agreement (versions, signed copy photo) need to hold?
 
 Inputs from research (see the two resolved research tickets):
-- Profit is a percentage of *actual* profit. There is no guaranteed capital or return, and the percentages are fixed at signing and changed only by dated amendment.
+
+- Profit is a percentage of _actual_ profit. There is no guaranteed capital or return, and the percentages are fixed at signing and changed only by dated amendment.
 - Under Mudarabah the farm may take no fee on top of its share.
 - Known practice: investors get 30–50% of profit.
-  - *Unsold animals:* the farm buys them at the Eid price (nusaQu).
-  - *Early exit:* full refund in the first 20% of the term, then 2% or Tk 2,500 and no profit (WeGro).
-  - *Death:* Green Delta sells 4–6-month fattening cover.
+  - _Unsold animals:_ the farm buys them at the Eid price (nusaQu).
+  - _Early exit:_ full refund in the first 20% of the term, then 2% or Tk 2,500 and no profit (WeGro).
+  - _Death:_ Green Delta sells 4–6-month fattening cover.
 - No scheme publishes an underfunding rule.
 
 ## Answer

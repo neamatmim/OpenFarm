@@ -32,14 +32,15 @@ Decided with the Owner on 2026-09-17.
 What an Animal is charged, on top of Release 1's purchase price, feed, doses and named Vet Fees:
 
 | Cost | Charged how |
-|---|---|
+| --- | --- |
 | Home-grown fodder | A **Fodder Price** per kg set by the Owner on each home-grown Feed Item; a Harvest enters the store at it and joins the weighted average. It is no longer free. |
 | **Hasil** (haat toll) | Typed per Animal from the haat's slip; charged to her alone. |
 | **Buying Trip** (broker, lorry home, men's food and lodging) | Recorded once per trip; split evenly across the Animals brought in on it. |
-| **Selling Trip** (lorry both ways, stall, men's food and lodging) | Recorded once per trip; split evenly across every Animal *taken*, sold or brought home. A broker's per-sale fee is typed on that Sale. |
+| **Selling Trip** (lorry both ways, stall, men's food and lodging) | Recorded once per trip; split evenly across every Animal _taken_, sold or brought home. A broker's per-sale fee is typed on that Sale. |
 | **Herd Cost** (Vet visit naming no animal, lab tests, fly spray, dewormer not given as a dose) | A hand-entered Money Event whose Category is marked as charged. Split across the Animals of its Side by animal-days in its month. |
 
 **Never charged to an Animal (the Farm's):**
+
 - wages, utilities, repairs, shed hygiene (disinfectant, lime, bedding)
 - equipment, even when a project prompted the purchase (a trough, shade net, scale)
 - feed lost from the store, as found by a Stock Count
