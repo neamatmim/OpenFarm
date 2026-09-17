@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDigits, formatNumber } from "./format";
+import {
+  formatDate,
+  formatDigits,
+  formatNumber,
+  numberAsTyped,
+} from "./format";
 import { resolveLanguage } from "./languages";
 import { findTranslationGaps, translate } from "./translate";
 
@@ -60,5 +65,27 @@ describe("messages", () => {
 
   it("Bangla covers every English key with no strays", () => {
     expect(findTranslationGaps("bn")).toEqual({ missing: [], stray: [] });
+  });
+});
+
+describe("a number as it is typed", () => {
+  it("takes Bangla digits from a Bangla keyboard as the figure they are", () => {
+    expect(numberAsTyped("১২.৫")).toBe("12.5");
+    expect(numberAsTyped("১২০")).toBe("120");
+  });
+
+  it("keeps English digits, and a mix of both", () => {
+    expect(numberAsTyped("12.5")).toBe("12.5");
+    expect(numberAsTyped("১2.৫")).toBe("12.5");
+  });
+
+  it("drops what is not part of a number: grouping, units, letters, a second point", () => {
+    expect(numberAsTyped("১,২০০ kg")).toBe("1200");
+    expect(numberAsTyped("1.2.3")).toBe("1.23");
+  });
+
+  it("keeps a minus only at the front", () => {
+    expect(numberAsTyped("-3")).toBe("-3");
+    expect(numberAsTyped("3-")).toBe("3");
   });
 });

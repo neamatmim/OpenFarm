@@ -13,7 +13,12 @@ import {
   mayTransition,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatDayField, formatDigits } from "@OpenFarm/i18n";
+import {
+  formatDate,
+  formatDayField,
+  formatDigits,
+  numberAsTyped,
+} from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -58,7 +63,7 @@ import {
   correctionRefusalMessage,
   isChangedSince,
 } from "@/lib/correction-refusal";
-import { cachedHerd, cachedWithdrawal } from "@/lib/herd-cache";
+import { cachedWithdrawal, herdCacheQuery } from "@/lib/herd-cache";
 import type { Photo } from "@/lib/photo";
 import { shrink } from "@/lib/photo";
 import type { StepRecord, StockCountEntry } from "@/lib/record-offline";
@@ -279,11 +284,7 @@ const WorkPage = () => {
   );
   // What this phone last knew of the herd. With no signal the board still has to say which
   // cow may not go to the tank: a shed with no bars is exactly where that mistake is made.
-  const herd = useQuery({
-    queryKey: ["herd-cache"],
-    queryFn: () => cachedHerd(),
-    staleTime: Number.POSITIVE_INFINITY,
-  });
+  const herd = useQuery(herdCacheQuery);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
@@ -2057,11 +2058,11 @@ const EvidenceControl = ({
             typed === "" && "text-muted-foreground/50"
           )}
         >
-          {typed === ""
-            ? "০"
-            : new Intl.NumberFormat(
+          {typed !== "" && Number.isFinite(Number(typed))
+            ? new Intl.NumberFormat(
                 language === "bn" ? "bn-BD" : "en-GB"
-              ).format(Number(typed))}{" "}
+              ).format(Number(typed))
+            : "০"}{" "}
           <span className="text-muted-foreground text-xl font-semibold">
             {evidence.unit?.bn}
           </span>
@@ -2070,7 +2071,7 @@ const EvidenceControl = ({
           inputMode="decimal"
           value={typed}
           onChange={(event) =>
-            onValue(event.target.value.replaceAll(/[^\d.]/gu, ""))
+            onValue(numberAsTyped(event.target.value).replaceAll("-", ""))
           }
           className="h-16 text-center text-3xl font-semibold tabular-nums md:h-16 md:text-3xl"
           aria-label={evidence.unit?.bn ?? t("work.confirm")}

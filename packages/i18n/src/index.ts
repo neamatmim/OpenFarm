@@ -4,6 +4,7 @@ export {
   formatDayField,
   formatDigits,
   formatNumber,
+  numberAsTyped,
 } from "./format";
 export type { Language } from "./languages";
 export {

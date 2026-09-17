@@ -14,7 +14,12 @@ import {
 } from "@/components/data-table";
 import { categoryName, useRefusalToast } from "@/components/money";
 import { SegmentedControl, StatusBadge } from "@/components/page";
-import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
+import {
+  ConfirmDialog,
+  FormDialog,
+  FormField,
+  RowMenu,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
@@ -204,10 +209,15 @@ export const CategoriesTab = () => {
   const onError = useRefusalToast();
   const categories = useQuery(orpc.money.categories.queryOptions());
   const [adding, setAdding] = useState(false);
+  const [retiring, setRetiring] = useState<{ id: string; name: string } | null>(
+    null
+  );
   const retire = useMutation(
     orpc.money.retireCategory.mutationOptions({
-      onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: orpc.money.key() }),
+      onSuccess: async () => {
+        setRetiring(null);
+        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
+      },
       onError,
     })
   );
@@ -220,7 +230,14 @@ export const CategoriesTab = () => {
         language
       ),
       retiring: retire.isPending,
-      handleRetire: () => retire.mutate({ id: one.id }),
+      handleRetire: () =>
+        setRetiring({
+          id: one.id,
+          name: categoryName(
+            { categoryBn: one.nameBn, categoryEn: one.nameEn },
+            language
+          ),
+        }),
     })),
     getRowId: (row) => row.id,
   });
@@ -246,6 +263,23 @@ export const CategoriesTab = () => {
         <Skeleton className="h-40 rounded-lg" />
       )}
       <AddCategoryDialog onOpenChange={setAdding} open={adding} />
+      <ConfirmDialog
+        confirmLabel={t("byHand.retire")}
+        description={t("byHand.retireWhy")}
+        onConfirm={() => {
+          if (retiring) {
+            retire.mutate({ id: retiring.id });
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRetiring(null);
+          }
+        }}
+        open={retiring !== null}
+        pending={retire.isPending}
+        title={t("byHand.retireTitle", { name: retiring?.name ?? "" })}
+      />
     </div>
   );
 };

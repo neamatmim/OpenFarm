@@ -320,7 +320,10 @@ export const FormSheet = ({
   const { t } = useLanguage();
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
+      <SheetContent
+        className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg"
+        closeLabel={t("common.close")}
+      >
         <SheetHeader className="border-b">
           <SheetTitle>{title}</SheetTitle>
           {description ? (
@@ -395,6 +398,58 @@ export const FormDialog = ({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/**
+ * Asking before an act that takes something away — retiring a product, a Category — so a stray tap in a row's menu is
+ * not the end of it. The question names what goes; the line under it says what that means; the act is in red.
+ */
+export const ConfirmDialog = ({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  onConfirm,
+  pending = false,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: ReactNode;
+  description: ReactNode;
+  confirmLabel: ReactNode;
+  onConfirm: () => void;
+  pending?: boolean;
+}) => {
+  const { t } = useLanguage();
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent closeLabel={t("common.close")}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            onClick={() => onOpenChange(false)}
+            type="button"
+            variant="outline"
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={pending}
+            onClick={onConfirm}
+            type="button"
+            variant="destructive"
+          >
+            {pending ? <Spinner /> : null}
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

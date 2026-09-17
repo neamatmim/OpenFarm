@@ -17,6 +17,26 @@ export const formatDigits = (value: number, language: Language): string =>
     maximumFractionDigits: 0,
   });
 
+/** The Bangla numerals ০–৯, in order, for reading a figure somebody typed on a Bangla keyboard. */
+const BANGLA_DIGITS = "০১২৩৪৫৬৭৮৯";
+const BANGLA_DIGIT = /[০-৯]/gu;
+const NOT_OF_A_NUMBER = /[^\d.-]/gu;
+
+/**
+ * A figure as somebody is typing it, in the digits it is stored in: Bangla numerals become English ones, and what
+ * cannot be part of a number — grouping commas, a unit, a second decimal point, a minus anywhere but the front — is
+ * dropped. A milker whose phone types ১২.৫ has typed 12.5, not nothing.
+ */
+export const numberAsTyped = (text: string): string => {
+  const digits = text
+    .replaceAll(BANGLA_DIGIT, (digit) => String(BANGLA_DIGITS.indexOf(digit)))
+    .replaceAll(NOT_OF_A_NUMBER, "");
+  const negative = digits.startsWith("-");
+  const [whole = "", ...fraction] = digits.replaceAll("-", "").split(".");
+  const figure = fraction.length > 0 ? `${whole}.${fraction.join("")}` : whole;
+  return negative ? `-${figure}` : figure;
+};
+
 /** The farm's own clock, which is what every date shown to somebody on it is read on. Asia/Dhaka
  *  has no daylight saving; a farm parameter later. */
 const FARM_TIME_ZONE = "Asia/Dhaka";
