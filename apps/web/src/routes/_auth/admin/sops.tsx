@@ -17,6 +17,7 @@ import {
   ROLES,
   findPublishBlockers,
 } from "@OpenFarm/domain";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -25,9 +26,16 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { Page, PageHeader, Section } from "@/components/page";
 import { RaiseWork } from "@/components/raise-work";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import type { HappeningTrigger } from "@/lib/sop-draft";
 import {
@@ -53,6 +61,237 @@ import {
   withScheduleTimes,
 } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
+
+type Sop = Awaited<ReturnType<typeof orpc.sops.list.call>>[number];
+type Proposal = Awaited<ReturnType<typeof orpc.sops.proposals.call>>[number];
+
+/** What can be done with a procedure in the Playbook: raise its work now, read its card, and change it — the Owner
+ *  by editing, anybody else by proposing. */
+interface SopRow {
+  id: string;
+  name: string;
+  version: number;
+  steps: number;
+  content: SopContent | undefined;
+  isOwner: boolean;
+  onEdit: (definitionId: string, content: SopContent) => void;
+}
+
+const toSopRow = (
+  sop: Sop,
+  isOwner: boolean,
+  onEdit: SopRow["onEdit"]
+): SopRow => {
+  const content = sop.currentVersion?.content as SopContent | undefined;
+  return {
+    id: sop.id,
+    name: content?.name.bn ?? "—",
+    version: sop.currentVersion?.number ?? 0,
+    steps: content?.steps.length ?? 0,
+    content,
+    isOwner,
+    onEdit,
+  };
+};
+
+const SopActions = ({ sop }: { sop: SopRow }) => {
+  const t = useT();
+  const { content } = sop;
+  if (!content) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+      <RaiseWork definitionId={sop.id} />
+      <Button
+        nativeButton={false}
+        render={
+          <Link params={{ definitionId: sop.id }} to="/cards/$definitionId" />
+        }
+        variant="ghost"
+      >
+        {t("nav.card")}
+      </Button>
+      <Button onClick={() => sop.onEdit(sop.id, content)} variant="outline">
+        {sop.isOwner ? t("sop.edit") : t("sop.propose")}
+      </Button>
+    </div>
+  );
+};
+
+/** One procedure on a phone: its name, its Version and how many Steps, with what can be done with it beneath. */
+const SopCard = ({ sop }: { sop: SopRow }) => {
+  const t = useT();
+  return (
+    <li className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="font-medium">{sop.name}</p>
+        <p className="text-muted-foreground text-sm">
+          {t("sop.version", { number: sop.version })} · {sop.steps}{" "}
+          {t("sop.steps")}
+        </p>
+      </div>
+      <SopActions sop={sop} />
+    </li>
+  );
+};
+
+const SopNameCell = ({ row }: { row: { original: SopRow } }) => (
+  <span className="font-medium">{row.original.name}</span>
+);
+
+const CountCell = ({ getValue }: { getValue: () => number }) => {
+  const { language } = useLanguage();
+  return formatNumber(getValue(), language);
+};
+
+const SopActionsCell = ({ row }: { row: { original: SopRow } }) => (
+  <SopActions sop={row.original} />
+);
+
+const sopColumn = createListColumns<SopRow>();
+const sopColumns = sopColumn.columns([
+  sopColumn.accessor("name", {
+    header: listHeader("sop.name"),
+    cell: SopNameCell,
+  }),
+  sopColumn.accessor("version", {
+    header: listHeader("sop.col.version"),
+    cell: CountCell,
+    meta: { align: "end" },
+  }),
+  sopColumn.accessor("steps", {
+    header: listHeader("sop.steps"),
+    cell: CountCell,
+    meta: { align: "end" },
+  }),
+  sopColumn.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: SopActionsCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** The Playbook as a table where there is room: each procedure's name, Version and Steps in a line, sortable. */
+const SopTable = ({ rows }: { rows: SopRow[] }) => {
+  const table = useListTable({
+    columns: sopColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="bg-card hidden rounded-xl border md:block">
+      <DataTable bare minWidth="40rem" table={table} />
+    </div>
+  );
+};
+
+/** A change somebody proposed to a procedure, waiting for the Owner to publish it or turn it down. */
+interface ProposalRow {
+  id: string;
+  name: string;
+  proposer: string;
+  note: string | null;
+  isOwner: boolean;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}
+
+const toProposalRow = (
+  proposal: Proposal,
+  decide: Pick<ProposalRow, "isOwner" | "onApprove" | "onReject">
+): ProposalRow => ({
+  id: proposal.id,
+  name: (proposal.content as SopContent).name.bn,
+  proposer: proposal.proposer?.name ?? "",
+  note: proposal.note,
+  ...decide,
+});
+
+const ProposalActions = ({ proposal }: { proposal: ProposalRow }) => {
+  const t = useT();
+  if (!proposal.isOwner) {
+    return null;
+  }
+  return (
+    <div className="flex gap-2 md:justify-end">
+      <Button onClick={() => proposal.onApprove(proposal.id)} size="sm">
+        {t("sop.approve")}
+      </Button>
+      <Button
+        onClick={() => proposal.onReject(proposal.id)}
+        size="sm"
+        variant="outline"
+      >
+        {t("sop.reject")}
+      </Button>
+    </div>
+  );
+};
+
+const ProposalCard = ({ proposal }: { proposal: ProposalRow }) => {
+  const t = useT();
+  return (
+    <li className="space-y-2 rounded-lg border p-4">
+      <p className="text-sm">
+        {proposal.name} · {t("sop.proposalBy", { name: proposal.proposer })}
+      </p>
+      {proposal.note ? (
+        <p className="text-muted-foreground text-sm">{proposal.note}</p>
+      ) : null}
+      <ProposalActions proposal={proposal} />
+    </li>
+  );
+};
+
+const ProposalNameCell = ({ row }: { row: { original: ProposalRow } }) => (
+  <span className="font-medium">{row.original.name}</span>
+);
+
+const NoteCell = ({ row }: { row: { original: ProposalRow } }) => (
+  <span className="text-muted-foreground">{row.original.note ?? "—"}</span>
+);
+
+const ProposalActionsCell = ({ row }: { row: { original: ProposalRow } }) => (
+  <ProposalActions proposal={row.original} />
+);
+
+const proposalColumn = createListColumns<ProposalRow>();
+const proposalColumns = proposalColumn.columns([
+  proposalColumn.accessor("name", {
+    header: listHeader("sop.name"),
+    cell: ProposalNameCell,
+  }),
+  proposalColumn.accessor("proposer", {
+    header: listHeader("sop.col.proposer"),
+  }),
+  proposalColumn.accessor((proposal) => proposal.note ?? "", {
+    id: "note",
+    header: listHeader("sop.col.note"),
+    cell: NoteCell,
+  }),
+  proposalColumn.display({
+    id: "actions",
+    header: ActionsHeader,
+    cell: ProposalActionsCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** The changes waiting, as a table where there is room: which procedure, who proposed it and why. */
+const ProposalTable = ({ rows }: { rows: ProposalRow[] }) => {
+  const table = useListTable({
+    columns: proposalColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="hidden md:block">
+      <DataTable minWidth="40rem" table={table} />
+    </div>
+  );
+};
 
 const SopsPage = () => {
   const t = useT();
@@ -140,6 +379,19 @@ const SopsPage = () => {
     }
   };
 
+  const sopRows = (sops.data ?? []).map((sop) =>
+    toSopRow(sop, isOwner, (definitionId, content) =>
+      setDraft({ content, definitionId })
+    )
+  );
+  const proposalRows = (proposals.data ?? []).map((proposal) =>
+    toProposalRow(proposal, {
+      isOwner,
+      onApprove: (id) => approve.mutate({ id }),
+      onReject: (id) => reject.mutate({ id, note: t("sop.rejectReason") }),
+    })
+  );
+
   if (draft) {
     const blockers = findPublishBlockers(draft.content);
     return (
@@ -174,97 +426,29 @@ const SopsPage = () => {
         title={t("sop.title")}
       />
 
-      {sops.data?.length ? (
-        <ul className="space-y-2">
-          {sops.data.map((sop) => {
-            const content = sop.currentVersion?.content as
-              | SopContent
-              | undefined;
-            return (
-              <li
-                key={sop.id}
-                className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">{content?.name.bn ?? "—"}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {t("sop.version", {
-                      number: sop.currentVersion?.number ?? 0,
-                    })}{" "}
-                    · {content?.steps.length ?? 0} {t("sop.steps")}
-                  </p>
-                </div>
-                {content ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <RaiseWork definitionId={sop.id} />
-                    <Button
-                      render={
-                        <Link
-                          params={{ definitionId: sop.id }}
-                          to="/cards/$definitionId"
-                        />
-                      }
-                      variant="ghost"
-                    >
-                      {t("nav.card")}
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        setDraft({ content, definitionId: sop.id })
-                      }
-                      variant="outline"
-                    >
-                      {isOwner ? t("sop.edit") : t("sop.propose")}
-                    </Button>
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+      {sopRows.length ? (
+        <>
+          <ul className="space-y-2 md:hidden">
+            {sopRows.map((sop) => (
+              <SopCard key={sop.id} sop={sop} />
+            ))}
+          </ul>
+          <SopTable rows={sopRows} />
+        </>
       ) : (
         <p className="text-muted-foreground text-sm">{t("sop.none")}</p>
       )}
 
       <Section title={t("sop.proposals")}>
-        {proposals.data?.length ? (
-          <ul className="space-y-2">
-            {proposals.data.map((proposal) => (
-              <li key={proposal.id} className="space-y-2 rounded-lg border p-4">
-                <p className="text-sm">
-                  {(proposal.content as SopContent).name.bn} ·{" "}
-                  {t("sop.proposalBy", { name: proposal.proposer?.name ?? "" })}
-                </p>
-                {proposal.note ? (
-                  <p className="text-muted-foreground text-sm">
-                    {proposal.note}
-                  </p>
-                ) : null}
-                {isOwner ? (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => approve.mutate({ id: proposal.id })}
-                    >
-                      {t("sop.approve")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        reject.mutate({
-                          id: proposal.id,
-                          note: t("sop.rejectReason"),
-                        })
-                      }
-                    >
-                      {t("sop.reject")}
-                    </Button>
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+        {proposalRows.length ? (
+          <>
+            <ul className="space-y-2 md:hidden">
+              {proposalRows.map((proposal) => (
+                <ProposalCard key={proposal.id} proposal={proposal} />
+              ))}
+            </ul>
+            <ProposalTable rows={proposalRows} />
+          </>
         ) : (
           <p className="text-muted-foreground text-sm">
             {t("sop.noProposals")}

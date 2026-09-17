@@ -10,6 +10,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import {
   EmptyState,
   Page,
   PageHeader,
@@ -86,13 +93,111 @@ const LastBuyerOfTheDay = ({
   );
 };
 
+type Sold = Awaited<ReturnType<typeof orpc.papers.day.call>>[number];
+
+/** What can be done with one of the day's sales from this screen: its two papers, and — for the Manager or the
+ *  Owner — a Correction. */
+interface SalePapers {
+  onReceipt: (saleId: string) => void;
+  onCard: (saleId: string) => void;
+  mayCorrect: boolean;
+}
+
+const SaleActions = ({ sale, papers }: { sale: Sold; papers: SalePapers }) => {
+  const { t } = useLanguage();
+  return (
+    <span className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Button
+        onClick={() => papers.onReceipt(sale.id)}
+        size="sm"
+        variant="outline"
+      >
+        {t("sale.receipt")}
+      </Button>
+      <Button
+        onClick={() => papers.onCard(sale.id)}
+        size="sm"
+        variant="outline"
+      >
+        {t("sale.transportCard")}
+      </Button>
+      {papers.mayCorrect ? (
+        <SaleCorrection sale={sale} thenReload={orpc.papers.key()} />
+      ) : null}
+    </span>
+  );
+};
+
+interface SoldRow extends Sold {
+  papers: SalePapers;
+}
+
+interface SoldCell {
+  row: { original: SoldRow };
+}
+
+const TagCell = ({ row }: SoldCell) => (
+  <TagChip>{row.original.tagNumber}</TagChip>
+);
+
+const PriceCell = ({ row }: SoldCell) => {
+  const { t, language } = useLanguage();
+  return (
+    <span className="font-medium whitespace-nowrap">
+      {t("intake.taka", {
+        taka: formatNumber(row.original.priceBdt, language),
+      })}
+    </span>
+  );
+};
+
+const ActionsCell = ({ row }: SoldCell) => (
+  <SaleActions papers={row.original.papers} sale={row.original} />
+);
+
+const column = createListColumns<SoldRow>();
+const soldColumns = column.columns([
+  column.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  column.accessor("buyerName", { header: listHeader("sale.soldTo") }),
+  column.accessor("priceBdt", {
+    header: listHeader("sale.price"),
+    cell: PriceCell,
+    meta: { align: "end" },
+  }),
+  column.display({
+    header: ActionsHeader,
+    id: "papers",
+    cell: ActionsCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** The day's sales as a table where there is room: which beast, to whom and for how much, and its papers at the end
+ *  of the row — the page is as narrow as its form, so the weight stays on the receipt. */
+const SoldTable = ({ sold, papers }: { sold: Sold[]; papers: SalePapers }) => {
+  const table = useListTable({
+    columns: soldColumns,
+    data: sold.map((row) => ({ ...row, papers })),
+    getRowId: (row) => row.id,
+  });
+  return (
+    <DataTable
+      className="no-print hidden md:block"
+      minWidth="36rem"
+      table={table}
+    />
+  );
+};
+
 /**
  * The day's sales, and the two papers each buyer leaves with.
  *
  * Asked for one at a time rather than printed with every sale: at Eid the receipt is written once
  * the man has finished buying, and it covers everything he took that morning.
  */
-
 const TodaysSales = () => {
   const { t, language } = useLanguage();
   const sold = useQuery(orpc.papers.day.queryOptions({ input: {} }));
@@ -130,9 +235,15 @@ const TodaysSales = () => {
     );
   }
 
+  const papers: SalePapers = {
+    onReceipt: (saleId) => receipt.mutate({ saleId }),
+    onCard: (saleId) => card.mutate({ saleId }),
+    mayCorrect: isManager || isOwner,
+  };
+
   return (
     <Section description={t("sale.todayHint")} title={t("sale.today")}>
-      <RecordList className="no-print">
+      <RecordList className="no-print md:hidden">
         {sold.data.map((row) => (
           <RecordRow
             key={row.id}
@@ -141,30 +252,11 @@ const TodaysSales = () => {
             title={t("intake.taka", {
               taka: formatNumber(row.priceBdt, language),
             })}
-            trailing={
-              <span className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  onClick={() => receipt.mutate({ saleId: row.id })}
-                  size="sm"
-                  variant="outline"
-                >
-                  {t("sale.receipt")}
-                </Button>
-                <Button
-                  onClick={() => card.mutate({ saleId: row.id })}
-                  size="sm"
-                  variant="outline"
-                >
-                  {t("sale.transportCard")}
-                </Button>
-                {isManager || isOwner ? (
-                  <SaleCorrection sale={row} thenReload={orpc.papers.key()} />
-                ) : null}
-              </span>
-            }
+            trailing={<SaleActions papers={papers} sale={row} />}
           />
         ))}
       </RecordList>
+      <SoldTable papers={papers} sold={sold.data} />
       {paper ? <Paper id={paper.id} text={paper.text} /> : null}
     </Section>
   );

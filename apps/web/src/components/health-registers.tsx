@@ -1,5 +1,10 @@
+import type { DiagnosisRow } from "@OpenFarm/api/registers/disease-history";
+import type { DeathRow } from "@OpenFarm/api/registers/mortality";
 import type { RegisterName } from "@OpenFarm/api/registers/register";
+import type { RowsAnswer } from "@OpenFarm/api/registers/rows";
 import { rowsOfRegister } from "@OpenFarm/api/registers/rows";
+import type { TreatmentRow } from "@OpenFarm/api/registers/treatment";
+import type { VaccinationRow } from "@OpenFarm/api/registers/vaccination";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -9,6 +14,12 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -35,6 +46,7 @@ const RegisterSection = ({
   title,
   period,
   empty,
+  count,
   printing,
   onPrint,
   saving,
@@ -44,11 +56,13 @@ const RegisterSection = ({
   title: MessageKey;
   period: { from: string; to: string } | undefined;
   empty: MessageKey;
+  /** How many rows it holds: none, and it says so rather than drawing an empty table. */
+  count: number;
   printing: boolean;
   onPrint: () => void;
   saving?: boolean;
   onCsv?: () => void;
-  children: ReactNode[] | undefined;
+  children: ReactNode;
 }) => {
   const { t } = useLanguage();
   return (
@@ -80,14 +94,403 @@ const RegisterSection = ({
       description={period ? `${period.from} — ${period.to}` : undefined}
       title={t(title)}
     >
-      {children?.length ? (
-        <ul className="divide-border flex flex-col divide-y">{children}</ul>
-      ) : (
+      {count === 0 ? (
         <p className="text-muted-foreground bg-muted/50 rounded-lg px-3 py-4 text-center text-sm">
           {t(empty)}
         </p>
+      ) : (
+        children
       )}
     </Section>
+  );
+};
+
+/** What each register's section is handed besides its rows: the period they came back for, and its Print and CSV. */
+interface RegisterControls {
+  printing: boolean;
+  onPrint: () => void;
+  saving?: boolean;
+  onCsv?: () => void;
+}
+
+/** A day a register was read for, kept on one line so a column of them reads down. */
+const ONE_LINE = { className: "whitespace-nowrap" };
+
+const TagCell = ({ row }: { row: { original: { tagNumber: string } } }) => (
+  <span className="font-mono font-semibold tabular-nums">
+    {row.original.tagNumber}
+  </span>
+);
+
+/** A dash for what a register has no word for. */
+const orDash = (value: string | null): string => value ?? "—";
+
+// Vaccinations (R3)
+
+const VaccinationLine = ({ row }: { row: VaccinationRow }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="text-sm">
+      {row.givenOn} · {row.tagNumber} · {row.vaccine}
+      <span className="text-muted-foreground block text-xs">
+        {t("inspector.lotNumber", { lotNumber: row.lotNumber ?? "—" })} ·{" "}
+        {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
+      </span>
+    </div>
+  );
+};
+
+const vaccinationCard = (row: VaccinationRow) => <VaccinationLine row={row} />;
+
+const vaccination = createListColumns<VaccinationRow>();
+const vaccinationColumns = vaccination.columns([
+  vaccination.accessor("givenOn", {
+    header: listHeader("money.col.date"),
+    meta: ONE_LINE,
+  }),
+  vaccination.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  vaccination.accessor("vaccine", { header: listHeader("drugs.vaccine") }),
+  vaccination.accessor((row) => orDash(row.lotNumber), {
+    id: "lotNumber",
+    header: listHeader("inspector.col.lotNumber"),
+  }),
+  vaccination.accessor((row) => orDash(row.givenBy), {
+    id: "givenBy",
+    header: listHeader("animals.col.givenBy"),
+  }),
+]);
+
+/** Every vaccine given in the period: the day, the animal, the vaccine, its vial's Lot Number and who gave it. */
+const VaccinationRegister = ({
+  answer,
+  ...controls
+}: RegisterControls & { answer: RowsAnswer | undefined }) => {
+  const rows = rowsOfRegister(answer, "vaccination_register");
+  const table = useListTable({
+    columns: vaccinationColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <RegisterSection
+      count={rows.length}
+      empty="inspector.noVaccinations"
+      period={answer}
+      title="inspector.vaccinations"
+      {...controls}
+    >
+      <DataTable card={vaccinationCard} minWidth="40rem" table={table} />
+    </RegisterSection>
+  );
+};
+
+// Treatments (R4)
+
+const TreatmentLine = ({ row }: { row: TreatmentRow }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="text-sm">
+      {row.givenOn} · {row.tagNumber}
+      {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
+      {row.dose ? ` · ${row.dose}` : ""}
+      {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
+      {row.course ? ` · ${row.course}` : ""}
+      <span className="text-muted-foreground block text-xs">
+        {t("inspector.givenBy", {
+          giver: row.givenBy ?? "—",
+          vet: row.prescribedBy ?? "—",
+        })}
+      </span>
+      <span className="text-muted-foreground block text-xs">
+        {t("inspector.clear", {
+          milk: row.milkClearOn ?? "—",
+          meat: row.meatClearOn ?? "—",
+        })}
+      </span>
+    </div>
+  );
+};
+
+const treatmentCard = (row: TreatmentRow) => <TreatmentLine row={row} />;
+
+/** The drug, and under it how it was given: the dose, the route and the course, as far as they were written. */
+const DrugCell = ({ row }: { row: { original: TreatmentRow } }) => {
+  const { t } = useLanguage();
+  const { dose, route, course, drug } = row.original;
+  const how = [dose, route ? t(`route.${route}`) : null, course].filter(
+    Boolean
+  );
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span>{drug}</span>
+      {how.length > 0 ? (
+        <span className="text-muted-foreground text-xs">{how.join(" · ")}</span>
+      ) : null}
+    </div>
+  );
+};
+
+const treatment = createListColumns<TreatmentRow>();
+const treatmentColumns = treatment.columns([
+  treatment.accessor("givenOn", {
+    header: listHeader("money.col.date"),
+    meta: ONE_LINE,
+  }),
+  treatment.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  treatment.accessor((row) => orDash(row.diagnosis), {
+    id: "diagnosis",
+    header: listHeader("vet.disease"),
+  }),
+  treatment.accessor("drug", {
+    header: listHeader("prescribe.product"),
+    cell: DrugCell,
+  }),
+  treatment.accessor((row) => orDash(row.givenBy), {
+    id: "givenBy",
+    header: listHeader("animals.col.givenBy"),
+  }),
+  treatment.accessor((row) => orDash(row.prescribedBy), {
+    id: "prescribedBy",
+    header: listHeader("inspector.col.prescribedBy"),
+  }),
+  treatment.accessor((row) => orDash(row.milkClearOn), {
+    id: "milkClearOn",
+    header: listHeader("inspector.col.milkClear"),
+    meta: ONE_LINE,
+  }),
+  treatment.accessor((row) => orDash(row.meatClearOn), {
+    id: "meatClearOn",
+    header: listHeader("inspector.col.meatClear"),
+    meta: ONE_LINE,
+  }),
+]);
+
+/** Every dose given in the period, with what it answered, who gave and who prescribed it, and when her milk and meat
+ *  come clear of it. */
+const TreatmentRegister = ({
+  answer,
+  ...controls
+}: RegisterControls & { answer: RowsAnswer | undefined }) => {
+  const rows = rowsOfRegister(answer, "treatment_register");
+  const table = useListTable({
+    columns: treatmentColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <RegisterSection
+      count={rows.length}
+      empty="inspector.noTreatments"
+      period={answer}
+      title="inspector.treatments"
+      {...controls}
+    >
+      <DataTable card={treatmentCard} minWidth="56rem" table={table} />
+    </RegisterSection>
+  );
+};
+
+// Disease history (R5)
+
+/** A notifiable diagnosis and the reference its letter went under — nothing beside one that is not. */
+const NotifiableCell = ({ row }: { row: { original: DiagnosisRow } }) => {
+  const { t } = useLanguage();
+  if (!row.original.notifiable) {
+    return null;
+  }
+  return (
+    <span className="text-warning">
+      {t("inspector.notifiable", {
+        reference: row.original.reportReference ?? "—",
+      })}
+    </span>
+  );
+};
+
+/** What became of her since, and when. */
+const OutcomeWord = ({ outcome }: { outcome: DiagnosisRow["outcome"] }) => {
+  const { t } = useLanguage();
+  return (
+    <>
+      {t(OUTCOME_WORD[outcome.kind])}
+      {outcome.on ? ` ${outcome.on}` : ""}
+    </>
+  );
+};
+
+const OutcomeCell = ({ row }: { row: { original: DiagnosisRow } }) => (
+  <OutcomeWord outcome={row.original.outcome} />
+);
+
+const DiagnosisLine = ({ row }: { row: DiagnosisRow }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="text-sm">
+      {row.diagnosedOn} · {row.tagNumber} · {row.disease}
+      {row.notifiable ? (
+        <span className="text-warning ml-1">
+          {t("inspector.notifiable", {
+            reference: row.reportReference ?? "—",
+          })}
+        </span>
+      ) : null}
+      <span className="text-muted-foreground block text-xs">
+        <OutcomeWord outcome={row.outcome} />
+      </span>
+    </div>
+  );
+};
+
+const diagnosisCard = (row: DiagnosisRow) => <DiagnosisLine row={row} />;
+
+const diagnosis = createListColumns<DiagnosisRow>();
+const diagnosisColumns = diagnosis.columns([
+  diagnosis.accessor("diagnosedOn", {
+    header: listHeader("money.col.date"),
+    meta: ONE_LINE,
+  }),
+  diagnosis.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  diagnosis.accessor("disease", { header: listHeader("vet.disease") }),
+  diagnosis.accessor("notifiable", {
+    header: listHeader("inspector.col.notifiable"),
+    cell: NotifiableCell,
+  }),
+  diagnosis.accessor((row) => row.outcome.kind, {
+    id: "outcome",
+    header: listHeader("inspector.col.outcome"),
+    cell: OutcomeCell,
+    meta: ONE_LINE,
+  }),
+]);
+
+/** Every diagnosis in the period, whether the farm's list made it notifiable, and what became of the animal. */
+const DiseaseHistory = ({
+  answer,
+  ...controls
+}: RegisterControls & { answer: RowsAnswer | undefined }) => {
+  const rows = rowsOfRegister(answer, "disease_history");
+  const table = useListTable({
+    columns: diagnosisColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <RegisterSection
+      count={rows.length}
+      empty="inspector.noDiseases"
+      period={answer}
+      title="inspector.diseases"
+      {...controls}
+    >
+      <DataTable card={diagnosisCard} minWidth="44rem" table={table} />
+    </RegisterSection>
+  );
+};
+
+// Deaths (R6)
+
+const KindCell = ({ row }: { row: { original: DeathRow } }) => {
+  const { t } = useLanguage();
+  return t(`mortality.${row.original.kind}`);
+};
+
+const CauseCell = ({ row }: { row: { original: DeathRow } }) => {
+  const { t } = useLanguage();
+  return causeWord(row.original.cause, t);
+};
+
+/** How the carcass went, or — in the warning colour — that the farm is still to say. */
+const DisposalCell = ({ row }: { row: { original: DeathRow } }) => {
+  const { t } = useLanguage();
+  const { disposal, disposalNote } = row.original;
+  return (
+    <span className={disposal ? undefined : "text-warning"}>
+      {disposalWord(disposal, t)}
+      {disposalNote ? ` · ${disposalNote}` : ""}
+    </span>
+  );
+};
+
+const DeathLine = ({ row }: { row: DeathRow }) => {
+  const { t } = useLanguage();
+  return (
+    <div className="text-sm">
+      {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
+      {causeWord(row.cause, t)}
+      <span
+        className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-warning"}`}
+      >
+        {disposalWord(row.disposal, t)}
+        {row.disposalNote ? ` · ${row.disposalNote}` : ""}
+        {row.reportReference
+          ? ` · ${t("inspector.notifiable", { reference: row.reportReference })}`
+          : ""}
+      </span>
+    </div>
+  );
+};
+
+const deathCard = (row: DeathRow) => <DeathLine row={row} />;
+
+const death = createListColumns<DeathRow>();
+const deathColumns = death.columns([
+  death.accessor("diedOn", {
+    header: listHeader("money.col.date"),
+    meta: ONE_LINE,
+  }),
+  death.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  death.accessor("kind", {
+    header: listHeader("mortality.kind"),
+    cell: KindCell,
+  }),
+  death.accessor("cause", {
+    header: listHeader("inspector.col.cause"),
+    cell: CauseCell,
+  }),
+  death.accessor((row) => row.disposal ?? "", {
+    id: "disposal",
+    header: listHeader("inspector.col.disposal"),
+    cell: DisposalCell,
+  }),
+  death.accessor((row) => orDash(row.reportReference || null), {
+    id: "reportReference",
+    header: listHeader("inspector.col.dlsReference"),
+  }),
+]);
+
+/** Every death and cull in the period: the day, the animal, how she went and why, the carcass, and the letter to DLS. */
+const MortalityRegister = ({
+  answer,
+  ...controls
+}: RegisterControls & { answer: RowsAnswer | undefined }) => {
+  const rows = rowsOfRegister(answer, "mortality_register");
+  const table = useListTable({
+    columns: deathColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <RegisterSection
+      count={rows.length}
+      empty="inspector.noMortalities"
+      period={answer}
+      title="inspector.mortalities"
+      {...controls}
+    >
+      <DataTable card={deathCard} minWidth="48rem" table={table} />
+    </RegisterSection>
   );
 };
 
@@ -189,105 +592,22 @@ export const HealthRegisters = ({
         </p>
       ) : null}
 
-      <RegisterSection
-        empty="inspector.noVaccinations"
-        period={vaccinations.data}
-        title="inspector.vaccinations"
+      <VaccinationRegister
+        answer={vaccinations.data}
         {...printed("vaccination_register")}
         {...saved("vaccination_register")}
-      >
-        {rowsOfRegister(vaccinations.data, "vaccination_register").map(
-          (row) => (
-            <li className="py-3 text-sm" key={row.id}>
-              {row.givenOn} · {row.tagNumber} · {row.vaccine}
-              <span className="text-muted-foreground block text-xs">
-                {t("inspector.lotNumber", {
-                  lotNumber: row.lotNumber ?? "—",
-                })}{" "}
-                · {t("inspector.vaccinatedBy", { giver: row.givenBy ?? "—" })}
-              </span>
-            </li>
-          )
-        )}
-      </RegisterSection>
-
-      <RegisterSection
-        empty="inspector.noTreatments"
-        period={treatments.data}
-        title="inspector.treatments"
+      />
+      <TreatmentRegister
+        answer={treatments.data}
         {...printed("treatment_register")}
         {...saved("treatment_register")}
-      >
-        {rowsOfRegister(treatments.data, "treatment_register").map((row) => (
-          <li className="py-3 text-sm" key={row.id}>
-            {row.givenOn} · {row.tagNumber}
-            {row.diagnosis ? ` · ${row.diagnosis}` : ""} · {row.drug}
-            {row.dose ? ` · ${row.dose}` : ""}
-            {row.route ? ` · ${t(`route.${row.route}`)}` : ""}
-            {row.course ? ` · ${row.course}` : ""}
-            <span className="text-muted-foreground block text-xs">
-              {t("inspector.givenBy", {
-                giver: row.givenBy ?? "—",
-                vet: row.prescribedBy ?? "—",
-              })}
-            </span>
-            <span className="text-muted-foreground block text-xs">
-              {t("inspector.clear", {
-                milk: row.milkClearOn ?? "—",
-                meat: row.meatClearOn ?? "—",
-              })}
-            </span>
-          </li>
-        ))}
-      </RegisterSection>
-
-      <RegisterSection
-        empty="inspector.noDiseases"
-        period={diseases.data}
-        title="inspector.diseases"
-        {...printed("disease_history")}
-      >
-        {rowsOfRegister(diseases.data, "disease_history").map((row) => (
-          <li className="py-3 text-sm" key={row.id}>
-            {row.diagnosedOn} · {row.tagNumber} · {row.disease}
-            {row.notifiable ? (
-              <span className="text-warning ml-1">
-                {t("inspector.notifiable", {
-                  reference: row.reportReference ?? "—",
-                })}
-              </span>
-            ) : null}
-            <span className="text-muted-foreground block text-xs">
-              {t(OUTCOME_WORD[row.outcome.kind])}
-              {row.outcome.on ? ` ${row.outcome.on}` : ""}
-            </span>
-          </li>
-        ))}
-      </RegisterSection>
-
-      <RegisterSection
-        empty="inspector.noMortalities"
-        period={mortalities.data}
-        title="inspector.mortalities"
+      />
+      <DiseaseHistory answer={diseases.data} {...printed("disease_history")} />
+      <MortalityRegister
+        answer={mortalities.data}
         {...printed("mortality_register")}
         {...saved("mortality_register")}
-      >
-        {rowsOfRegister(mortalities.data, "mortality_register").map((row) => (
-          <li className="py-3 text-sm" key={row.id}>
-            {row.diedOn} · {row.tagNumber} · {t(`mortality.${row.kind}`)} ·{" "}
-            {causeWord(row.cause, t)}
-            <span
-              className={`block text-xs ${row.disposal ? "text-muted-foreground" : "text-warning"}`}
-            >
-              {disposalWord(row.disposal, t)}
-              {row.disposalNote ? ` · ${row.disposalNote}` : ""}
-              {row.reportReference
-                ? ` · ${t("inspector.notifiable", { reference: row.reportReference })}`
-                : ""}
-            </span>
-          </li>
-        ))}
-      </RegisterSection>
+      />
     </>
   );
 };

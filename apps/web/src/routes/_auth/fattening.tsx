@@ -15,7 +15,17 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { GainColumn } from "@/components/gain";
+import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import {
+  GainColumn,
+  GainFigures,
+  WeightAgainstTarget,
+} from "@/components/gain";
 import type { Tone } from "@/components/page";
 import {
   EmptyState,
@@ -28,7 +38,7 @@ import {
   StatusBadge,
   TagChip,
 } from "@/components/page";
-import { useLanguage } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
 
@@ -60,6 +70,13 @@ type Row = NonNullable<
   Awaited<ReturnType<typeof orpc.fattening.board.call>>
 >[number];
 
+/** The gap between her two rates, said out loud: a bull whose lifetime average still looks fine may have stopped
+ *  gaining a fortnight ago. */
+const isSlowing = (row: Row): boolean =>
+  row.recent !== null &&
+  row.sinceIntake !== null &&
+  row.recent.dailyGainKg < row.sinceIntake.dailyGainKg;
+
 /** One animal on the fattening side: where it stands against its target, and the two rates that say why. */
 const AnimalCard = ({ row }: { row: Row }) => {
   const { t, language } = useLanguage();
@@ -67,10 +84,7 @@ const AnimalCard = ({ row }: { row: Row }) => {
   const look = STANDING_LOOK[standing];
   const kg = (value: number) =>
     t("intake.kg", { kg: formatNumber(value, language) });
-  const slowing =
-    row.recent !== null &&
-    row.sinceIntake !== null &&
-    row.recent.dailyGainKg < row.sinceIntake.dailyGainKg;
+  const slowing = isSlowing(row);
   const towardsTarget =
     row.latestKg !== null && row.targetWeightKg !== null
       ? (row.latestKg / row.targetWeightKg) * 100
@@ -152,12 +166,129 @@ const AnimalCard = ({ row }: { row: Row }) => {
         </div>
       )}
 
-      {/* The gap between the two columns, said out loud: a bull whose lifetime average still looks fine may have
-          stopped gaining a fortnight ago. */}
       {slowing ? (
         <Notice icon={TrendingDown} title={t("gain.slowing")} tone="warning" />
       ) : null}
     </li>
+  );
+};
+
+interface BoardCell {
+  row: { original: Row };
+}
+
+const TagCell = ({ row }: BoardCell) => (
+  <Link
+    className="focus-visible:ring-ring w-fit rounded-md outline-none hover:underline focus-visible:ring-2"
+    params={{ tagNumber: row.original.tagNumber }}
+    to="/animals/$tagNumber"
+  >
+    <TagChip>{row.original.tagNumber}</TagChip>
+  </Link>
+);
+
+const StandingCell = ({ row }: BoardCell) => {
+  const t = useT();
+  const look = STANDING_LOOK[standingOf(row.original.onTrack)];
+  return (
+    <div className="flex flex-wrap gap-1">
+      <StatusBadge icon={look.icon} tone={look.tone}>
+        {t(look.word)}
+      </StatusBadge>
+      {isSlowing(row.original) ? (
+        <StatusBadge icon={TrendingDown} tone="warning">
+          {t("gain.slowing")}
+        </StatusBadge>
+      ) : null}
+    </div>
+  );
+};
+
+const StateCell = ({ row }: BoardCell) => useT()(`state.${row.original.state}`);
+
+const DaysCell = ({ row }: BoardCell) => {
+  const { t, language } = useLanguage();
+  const days = row.original.daysOnFeed;
+  if (days === null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return t("correct.spanDays", { days: formatNumber(days, language) });
+};
+
+const WeightCell = ({ row }: BoardCell) => (
+  <WeightAgainstTarget
+    bar
+    latestKg={row.original.latestKg}
+    targetWeightKg={row.original.targetWeightKg}
+  />
+);
+
+const SinceIntakeCell = ({ row }: BoardCell) => (
+  <GainFigures basis={row.original.sinceIntake} />
+);
+
+const RecentCell = ({ row }: BoardCell) => (
+  <GainFigures basis={row.original.recent} />
+);
+
+const column = createListColumns<Row>();
+const boardColumns = column.columns([
+  column.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  column.accessor((row) => ORDER[standingOf(row.onTrack)], {
+    id: "standing",
+    header: listHeader("gain.col.standing"),
+    cell: StandingCell,
+  }),
+  column.accessor("penName", { header: listHeader("animals.pen") }),
+  column.accessor("state", {
+    header: listHeader("animals.state"),
+    cell: StateCell,
+  }),
+  column.accessor((row) => row.daysOnFeed ?? undefined, {
+    id: "daysOnFeed",
+    header: listHeader("gain.daysOnFeed"),
+    cell: DaysCell,
+    sortUndefined: "last",
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.latestKg ?? undefined, {
+    id: "latestKg",
+    header: listHeader("gain.now"),
+    cell: WeightCell,
+    sortUndefined: "last",
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.sinceIntake?.dailyGainKg, {
+    id: "sinceIntake",
+    header: listHeader("gain.sinceIntake"),
+    cell: SinceIntakeCell,
+    sortUndefined: "last",
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => row.recent?.dailyGainKg, {
+    id: "recent",
+    header: listHeader("gain.recent"),
+    cell: RecentCell,
+    sortUndefined: "last",
+    meta: { align: "end" },
+  }),
+]);
+
+/** The board as a table where there is room: every animal's figures in the same place, so a slow one stands out
+ *  down a column instead of being found card by card. It keeps the board's order until a heading is pressed. */
+const BoardTable = ({ rows }: { rows: Row[] }) => {
+  const table = useListTable({
+    columns: boardColumns,
+    data: rows,
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="bg-card hidden rounded-xl border md:block">
+      <DataTable bare minWidth="62rem" table={table} />
+    </div>
   );
 };
 
@@ -178,10 +309,14 @@ const FatteningPage = () => {
     <PageHeader
       actions={
         <>
-          <Button render={<Link to="/ready" />} variant="outline">
+          <Button
+            nativeButton={false}
+            render={<Link to="/ready" />}
+            variant="outline"
+          >
             {t("nav.ready")}
           </Button>
-          <Button render={<Link to="/admin/intake" />}>
+          <Button nativeButton={false} render={<Link to="/admin/intake" />}>
             <ClipboardPlus aria-hidden />
             {t("nav.intake")}
           </Button>
@@ -229,7 +364,7 @@ const FatteningPage = () => {
         {header}
         <EmptyState
           action={
-            <Button render={<Link to="/admin/intake" />}>
+            <Button nativeButton={false} render={<Link to="/admin/intake" />}>
               <ClipboardPlus aria-hidden />
               {t("nav.intake")}
             </Button>
@@ -301,11 +436,14 @@ const FatteningPage = () => {
       {shown.length === 0 ? (
         <EmptyState title={t("gain.noneInFilter")} />
       ) : (
-        <ul className="grid gap-4 lg:grid-cols-2">
-          {shown.map((row) => (
-            <AnimalCard key={row.id} row={row} />
-          ))}
-        </ul>
+        <>
+          <ul className="grid gap-4 md:hidden">
+            {shown.map((row) => (
+              <AnimalCard key={row.id} row={row} />
+            ))}
+          </ul>
+          <BoardTable rows={shown} />
+        </>
       )}
     </Page>
   );

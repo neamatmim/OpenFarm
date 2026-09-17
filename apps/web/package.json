@@ -29,6 +29,7 @@
     "@tanstack/react-router": "^1.170.34",
     "@tanstack/react-router-ssr-query": "^1.167.2",
     "@tanstack/react-start": "^1.168.51",
+    "@tanstack/react-table": "^9.2.4",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "evlog": "^2.28.1",

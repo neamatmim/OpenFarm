@@ -1,6 +1,7 @@
 import type { FatteningView, GainBasis } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 
+import { ProgressBar } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 /**
@@ -49,6 +50,81 @@ export const GainColumn = ({
             kg: formatNumber(basis.projectedKg, language),
           })}
         </p>
+      )}
+    </div>
+  );
+};
+
+/** The same rate as a cell of a table: the rate, the days it was measured over, and where it lands her — a dash
+ *  where there is no rate yet, since the column's heading already says which rate this is. */
+export const GainFigures = ({ basis }: { basis: GainBasis | null }) => {
+  const { t, language } = useLanguage();
+  if (!basis) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5 whitespace-nowrap">
+      <span className="font-medium">
+        {t("gain.perDay", { kg: formatNumber(basis.dailyGainKg, language) })}
+      </span>
+      <span className="text-muted-foreground text-xs">
+        {t("correct.spanDays", {
+          days: formatNumber(basis.overDays, language),
+        })}
+      </span>
+      {basis.projectedKg === null ? null : (
+        <span
+          className={
+            basis.reachesTarget
+              ? "text-success text-xs"
+              : "text-warning text-xs"
+          }
+        >
+          {t("gain.projected", {
+            kg: formatNumber(basis.projectedKg, language),
+          })}
+        </span>
+      )}
+    </div>
+  );
+};
+
+/** What she weighs now as a cell of a table, with her target weight under it — and, with `bar`, how far she has come
+ *  towards it. One column rather than two, so a row of her figures still fits beside her two rates. */
+export const WeightAgainstTarget = ({
+  latestKg,
+  targetWeightKg,
+  bar = false,
+}: {
+  latestKg: number | null;
+  targetWeightKg: number | null;
+  bar?: boolean;
+}) => {
+  const { t, language } = useLanguage();
+  const kg = (value: number) =>
+    t("intake.kg", { kg: formatNumber(value, language) });
+  const towards =
+    bar && latestKg !== null && targetWeightKg !== null
+      ? (latestKg / targetWeightKg) * 100
+      : null;
+  return (
+    <div className="flex flex-col gap-1 whitespace-nowrap">
+      <span
+        className={latestKg === null ? "text-muted-foreground" : "font-medium"}
+      >
+        {latestKg === null ? "—" : kg(latestKg)}
+      </span>
+      {targetWeightKg === null ? null : (
+        <span className="text-muted-foreground text-xs">
+          {t("intake.targetWeight")}: {kg(targetWeightKg)}
+        </span>
+      )}
+      {towards === null ? null : (
+        <ProgressBar
+          className="h-1.5"
+          label={`${t("gain.now")} / ${t("intake.targetWeight")}`}
+          value={towards}
+        />
       )}
     </div>
   );

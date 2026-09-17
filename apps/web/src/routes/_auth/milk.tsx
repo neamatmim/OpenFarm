@@ -16,6 +16,13 @@ import {
   CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
+import {
+  ActionsHeader,
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
 import { MilkMismatches } from "@/components/milk-mismatches";
 import {
   EmptyState,
@@ -128,6 +135,125 @@ const DispatchCorrection = ({
         value={correcting.typed.challan ?? ""}
       />
     </CorrectionDialog>
+  );
+};
+
+type Dispatch = Awaited<
+  ReturnType<typeof orpc.milk.day.call>
+>["dispatches"][number];
+
+interface DispatchRow extends Dispatch {
+  mayCorrect: boolean;
+}
+
+/** A percentage the collector may not have measured: a dash when nobody wrote it. */
+const PercentCell = ({ value }: { value: number | null }) => {
+  const { language } = useLanguage();
+  return value === null ? "—" : formatNumber(value, language);
+};
+
+const WhenCell = ({ row }: { row: { original: DispatchRow } }) => {
+  const { language } = useLanguage();
+  return (
+    <span className="whitespace-nowrap">
+      {formatDate(row.original.dispatchedAt, language, "dateTime")}
+    </span>
+  );
+};
+
+const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
+  <span className="font-medium">{row.original.buyerName}</span>
+);
+
+const LitresCell = ({ row }: { row: { original: DispatchRow } }) => {
+  const { language } = useLanguage();
+  return (
+    <span className="font-semibold">
+      {formatNumber(row.original.litres, language)}
+    </span>
+  );
+};
+
+const PriceCell = ({ row }: { row: { original: DispatchRow } }) => {
+  const { language } = useLanguage();
+  return formatNumber(row.original.pricePerLitreBdt, language);
+};
+
+const FatCell = ({ row }: { row: { original: DispatchRow } }) => (
+  <PercentCell value={row.original.fatPercent} />
+);
+
+const SnfCell = ({ row }: { row: { original: DispatchRow } }) => (
+  <PercentCell value={row.original.snfPercent} />
+);
+
+const CorrectCell = ({ row }: { row: { original: DispatchRow } }) =>
+  row.original.mayCorrect ? (
+    <DispatchCorrection dispatch={row.original} />
+  ) : null;
+
+const column = createListColumns<DispatchRow>();
+const dispatchColumns = column.columns([
+  column.accessor((one) => new Date(one.dispatchedAt).getTime(), {
+    id: "dispatchedAt",
+    header: listHeader("audit.when"),
+    cell: WhenCell,
+  }),
+  column.accessor("buyerName", {
+    header: listHeader("dispatch.buyer"),
+    cell: BuyerCell,
+  }),
+  column.accessor((one) => one.challan ?? "—", {
+    id: "challan",
+    header: listHeader("dispatch.challan"),
+    meta: { className: "whitespace-nowrap" },
+  }),
+  column.accessor("litres", {
+    header: listHeader("dispatch.litresField"),
+    cell: LitresCell,
+    meta: { align: "end" },
+  }),
+  column.accessor("pricePerLitreBdt", {
+    header: listHeader("dispatch.price"),
+    cell: PriceCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((one) => one.fatPercent ?? -1, {
+    id: "fat",
+    header: listHeader("dispatch.fat"),
+    cell: FatCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((one) => one.snfPercent ?? -1, {
+    id: "snf",
+    header: listHeader("dispatch.snf"),
+    cell: SnfCell,
+    meta: { align: "end" },
+  }),
+  column.display({
+    id: "correct",
+    header: ActionsHeader,
+    cell: CorrectCell,
+    meta: { align: "end" },
+  }),
+]);
+
+/** The day's Dispatches as a table where there is room: when, to whom, the challan, and the figures a processor
+ *  pays on — litres, price, fat and SNF — side by side. */
+const DispatchTable = ({
+  dispatches,
+  mayCorrect,
+}: {
+  dispatches: Dispatch[];
+  mayCorrect: boolean;
+}) => {
+  const table = useListTable({
+    columns: dispatchColumns,
+    data: dispatches.map((one) => ({ ...one, mayCorrect })),
+    getRowId: (row) => row.id,
+  });
+  return (
+    <DataTable className="hidden md:block" minWidth="48rem" table={table} />
   );
 };
 
@@ -246,11 +372,11 @@ const MilkPage = () => {
 
       <MilkMismatches />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <Section title={t("dispatch.thatDay")}>
-          <Loaded query={today}>
-            {today.data?.dispatches.length ? (
-              <RecordList>
+      <Section title={t("dispatch.thatDay")}>
+        <Loaded query={today}>
+          {today.data?.dispatches.length ? (
+            <>
+              <RecordList className="md:hidden">
                 {today.data.dispatches.map((one) => (
                   <RecordRow
                     key={one.id}
@@ -277,76 +403,78 @@ const MilkPage = () => {
                   />
                 ))}
               </RecordList>
-            ) : (
-              <EmptyState bare icon={Truck} title={t("dispatch.noneThatDay")} />
-            )}
-          </Loaded>
-        </Section>
+              <DispatchTable
+                dispatches={today.data.dispatches}
+                mayCorrect={mayCorrect}
+              />
+            </>
+          ) : (
+            <EmptyState bare icon={Truck} title={t("dispatch.noneThatDay")} />
+          )}
+        </Loaded>
+      </Section>
 
-        {mayRecord ? (
-          <Section title={t("dispatch.record")}>
-            <form
-              className="grid gap-4 sm:grid-cols-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                record.mutate({
-                  // Left empty, the milk is leaving now.
-                  dispatchedAt: form.dispatchedAt
-                    ? new Date(form.dispatchedAt)
-                    : new Date(),
-                  litres: Number(form.litres),
-                  buyer: {
-                    name: form.buyerName,
-                    address: written(form.buyerAddress),
-                    phone: written(form.buyerPhone),
-                  },
-                  challan: written(form.challan),
-                  pricePerLitreBdt: Number(form.price),
-                  fatPercent: typed(form.fat),
-                  snfPercent: typed(form.snf),
-                  note: written(form.note),
-                  paymentMethod,
-                });
-              }}
-            >
-              {DISPATCH_FIELDS.map(([key, label, type]) => (
-                <div
-                  className={
-                    WIDE_FIELDS.has(key)
-                      ? "space-y-1 sm:col-span-2"
-                      : "space-y-1"
-                  }
-                  key={key}
-                >
-                  <Label htmlFor={`dispatch-${key}`}>{t(label)}</Label>
-                  <Input
-                    id={`dispatch-${key}`}
-                    inputMode={type === "number" ? "decimal" : undefined}
-                    onChange={(event) => set(key)(event.target.value)}
-                    step={type === "number" ? "0.01" : undefined}
-                    type={type}
-                    value={form[key]}
-                  />
-                </div>
-              ))}
-              <div className="sm:col-span-2">
-                <PaymentMethodField
-                  id="dispatch-paid-by"
-                  onChange={setPaymentMethod}
-                  value={paymentMethod}
+      {mayRecord ? (
+        <Section title={t("dispatch.record")}>
+          <form
+            className="grid gap-4 sm:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              record.mutate({
+                // Left empty, the milk is leaving now.
+                dispatchedAt: form.dispatchedAt
+                  ? new Date(form.dispatchedAt)
+                  : new Date(),
+                litres: Number(form.litres),
+                buyer: {
+                  name: form.buyerName,
+                  address: written(form.buyerAddress),
+                  phone: written(form.buyerPhone),
+                },
+                challan: written(form.challan),
+                pricePerLitreBdt: Number(form.price),
+                fatPercent: typed(form.fat),
+                snfPercent: typed(form.snf),
+                note: written(form.note),
+                paymentMethod,
+              });
+            }}
+          >
+            {DISPATCH_FIELDS.map(([key, label, type]) => (
+              <div
+                className={
+                  WIDE_FIELDS.has(key) ? "space-y-1 sm:col-span-2" : "space-y-1"
+                }
+                key={key}
+              >
+                <Label htmlFor={`dispatch-${key}`}>{t(label)}</Label>
+                <Input
+                  id={`dispatch-${key}`}
+                  inputMode={type === "number" ? "decimal" : undefined}
+                  onChange={(event) => set(key)(event.target.value)}
+                  step={type === "number" ? "0.01" : undefined}
+                  type={type}
+                  value={form[key]}
                 />
               </div>
-              <Button
-                className="w-full sm:col-span-2 sm:w-auto sm:justify-self-start"
-                disabled={!complete || record.isPending}
-                type="submit"
-              >
-                {t("dispatch.save")}
-              </Button>
-            </form>
-          </Section>
-        ) : null}
-      </div>
+            ))}
+            <div className="sm:col-span-2">
+              <PaymentMethodField
+                id="dispatch-paid-by"
+                onChange={setPaymentMethod}
+                value={paymentMethod}
+              />
+            </div>
+            <Button
+              className="w-full sm:col-span-2 sm:w-auto sm:justify-self-start"
+              disabled={!complete || record.isPending}
+              type="submit"
+            >
+              {t("dispatch.save")}
+            </Button>
+          </form>
+        </Section>
+      ) : null}
 
       <Section title={t("dispatch.reports")}>
         <PeriodFilter

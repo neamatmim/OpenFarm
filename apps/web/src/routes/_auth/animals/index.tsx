@@ -1,5 +1,6 @@
 import { SIDES } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -10,6 +11,12 @@ import { useState } from "react";
 
 import { AnimalPhoto } from "@/components/animal-photo";
 import {
+  DataTable,
+  createListColumns,
+  listHeader,
+  useListTable,
+} from "@/components/data-table";
+import {
   EmptyState,
   Page,
   PageHeader,
@@ -17,7 +24,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { RegisterAnimal } from "@/components/register-animal";
-import { useLanguage } from "@/i18n/language-provider";
+import { useLanguage, useT } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
 
 /** How many animals a page of the herd shows before "show more": enough for a pen at a glance, few enough that a
@@ -29,6 +36,112 @@ type SideFilter = "" | (typeof SIDES)[number];
 /** Whether a Withdrawal still holds her, as of when the card is drawn. */
 const stillHeld = (until: Date | string | null): boolean =>
   until !== null && new Date(until).getTime() > Date.now();
+
+interface AnimalRow {
+  id: string;
+  tagNumber: string;
+  state: string;
+  side: (typeof SIDES)[number];
+  penName: string;
+  breed: string | null;
+  milkHeld: boolean;
+  meatHeld: boolean;
+}
+
+const TagCell = ({ row }: { row: { original: AnimalRow } }) => (
+  <Link
+    className="font-mono font-semibold tabular-nums underline-offset-4 hover:underline"
+    params={{ tagNumber: row.original.tagNumber }}
+    to="/animals/$tagNumber"
+  >
+    {row.original.tagNumber}
+  </Link>
+);
+
+const StateCell = ({ row }: { row: { original: AnimalRow } }) =>
+  useT()(`state.${row.original.state}` as MessageKey);
+
+const SideCell = ({ row }: { row: { original: AnimalRow } }) =>
+  useT()(`animals.side.${row.original.side}`);
+
+const HeldCell = ({ row }: { row: { original: AnimalRow } }) => {
+  const t = useT();
+  return (
+    <div className="flex flex-wrap gap-1">
+      {row.original.milkHeld ? (
+        <StatusBadge tone="warning">{t("animals.milkHeld")}</StatusBadge>
+      ) : null}
+      {row.original.meatHeld ? (
+        <StatusBadge tone="warning">{t("animals.meatHeld")}</StatusBadge>
+      ) : null}
+    </div>
+  );
+};
+
+const column = createListColumns<AnimalRow>();
+const animalColumns = column.columns([
+  column.accessor("tagNumber", {
+    header: listHeader("animals.col.tag"),
+    cell: TagCell,
+  }),
+  column.accessor("state", {
+    header: listHeader("animals.state"),
+    cell: StateCell,
+  }),
+  column.accessor("side", {
+    header: listHeader("animals.side"),
+    cell: SideCell,
+  }),
+  column.accessor("penName", { header: listHeader("animals.pen") }),
+  column.accessor((a) => a.breed ?? "—", {
+    id: "breed",
+    header: listHeader("animals.breed"),
+  }),
+  column.display({
+    id: "held",
+    header: listHeader("animals.col.held"),
+    cell: HeldCell,
+  }),
+]);
+
+type Animal = Awaited<ReturnType<typeof orpc.animals.list.call>>[number];
+
+/** The same animals as a table where there is room: her number, State, Side and Pen side by side, sortable — all of
+ *  them, since a table sorts the whole herd, not the first page of cards. */
+const AnimalTable = ({ animals }: { animals: Animal[] }) => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  // A visiting Vet reaches their Cases, not the sheds; their table goes without the Pen's name.
+  const onlyCases =
+    me.data?.roles.length === 1 && me.data.scopes?.vet?.kind === "cases";
+  const sheds = useQuery({
+    ...orpc.herd.list.queryOptions(),
+    enabled: Boolean(me.data) && !onlyCases,
+  });
+  const penNames = new Map(
+    (sheds.data ?? []).flatMap((shed) =>
+      shed.pens.map((pen) => [pen.id, `${shed.name} / ${pen.name}`] as const)
+    )
+  );
+  const table = useListTable({
+    columns: animalColumns,
+    data: animals.map((a) => ({
+      id: a.id,
+      tagNumber: a.tagNumber,
+      state: a.state,
+      side: a.side,
+      penName: (a.penId && penNames.get(a.penId)) || "—",
+      breed: a.breed,
+      milkHeld: stillHeld(a.milkWithdrawalUntil),
+      meatHeld: stillHeld(a.meatWithdrawalUntil),
+    })),
+    getRowId: (row) => row.id,
+  });
+  return (
+    <div className="bg-card hidden rounded-xl border md:block">
+      <DataTable bare minWidth="44rem" table={table} />
+    </div>
+  );
+};
 
 /** The herd this person works: found by Tag Number as it is typed, narrowed to a Side — both kept in the address,
  *  so the list comes back as it was — each animal known first by her number, then her State, and anything holding
@@ -145,7 +258,7 @@ const AnimalsPage = () => {
       ) : null}
 
       {shown.length ? (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:hidden">
           {shown.map((a) => {
             const milkHeld = stillHeld(a.milkWithdrawalUntil);
             const meatHeld = stillHeld(a.meatWithdrawalUntil);
@@ -197,9 +310,11 @@ const AnimalsPage = () => {
         </ul>
       ) : null}
 
+      {matching.length ? <AnimalTable animals={matching} /> : null}
+
       {shown.length < matching.length ? (
         <Button
-          className="self-center"
+          className="self-center md:hidden"
           onClick={() => setShownCount((count) => count + PAGE)}
           variant="outline"
         >

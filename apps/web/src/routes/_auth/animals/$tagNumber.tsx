@@ -32,6 +32,14 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  CalvingTable,
+  DoseTable,
+  MoveTable,
+  PregnancyCheckTable,
+  ServiceTable,
+  WeighInTable,
+} from "@/components/animal-histories";
 import { AnimalPhoto } from "@/components/animal-photo";
 import {
   CorrectionChoice,
@@ -358,7 +366,7 @@ const AnimalPage = () => {
           <h2 className="text-lg font-semibold">{t("animals.treatments")}</h2>
           {/* Per animal, not per campaign: this is the list a slaughter vet asks for, and it
               holds what a course gave her and what a round of the Pen gave her alike. */}
-          <ul className="space-y-1 text-sm">
+          <ul className="space-y-1 text-sm md:hidden">
             {detail.treatments.map((dose) => (
               <li className="text-muted-foreground" key={dose.id}>
                 {dose.givenAt
@@ -373,12 +381,13 @@ const AnimalPage = () => {
               </li>
             ))}
           </ul>
+          <DoseTable doses={detail.treatments} />
         </section>
       ) : null}
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{t("animals.movesHistory")}</h2>
-        <ul className="space-y-1 text-sm">
+        <ul className="space-y-1 text-sm md:hidden">
           {detail.moves.map((m) => (
             <li className="text-muted-foreground" key={m.id}>
               {formatDate(new Date(m.movedAt), language, "dateTime")} ·{" "}
@@ -400,6 +409,7 @@ const AnimalPage = () => {
             </li>
           ))}
         </ul>
+        <MoveTable moves={detail.moves} />
         {detail.retags.length > 0 ? (
           <>
             <h2 className="text-lg font-semibold">
@@ -629,9 +639,9 @@ const HerServices = ({
   }
   const heatSeen = new Map(heats.map((heat) => [heat.id, heat.seenAt]));
   return (
-    <section className="surface space-y-1 p-4 text-sm">
+    <section className="surface space-y-1 p-4 text-sm md:p-5">
       <h2 className="text-lg font-semibold">{t("service.title")}</h2>
-      <ul className="space-y-2">
+      <ul className="space-y-2 md:hidden">
         {services.map((one) => {
           const answered = one.heatId ? heatSeen.get(one.heatId) : undefined;
           return (
@@ -657,6 +667,7 @@ const HerServices = ({
           );
         })}
       </ul>
+      <ServiceTable heats={heats} services={services} />
     </section>
   );
 };
@@ -1061,7 +1072,7 @@ const HerPregnancyChecks = ({
     return null;
   }
   return (
-    <section className="surface space-y-1 p-4 text-sm">
+    <section className="surface space-y-1 p-4 text-sm md:p-5">
       <h2 className="text-lg font-semibold">{t("pregnancy.title")}</h2>
       {expectedCalvingAt ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1083,7 +1094,7 @@ const HerPregnancyChecks = ({
           {t("pregnancy.failedAttempts", { count: failedAttempts })}
         </p>
       ) : null}
-      <ul className="space-y-2">
+      <ul className="space-y-2 md:hidden">
         {checks.map((check) => (
           <li className="space-y-0.5" key={check.id}>
             <p>
@@ -1102,6 +1113,7 @@ const HerPregnancyChecks = ({
           </li>
         ))}
       </ul>
+      {checks.length > 0 ? <PregnancyCheckTable checks={checks} /> : null}
     </section>
   );
 };
@@ -1130,9 +1142,9 @@ const HerCalvings = ({
     return null;
   }
   return (
-    <section className="surface space-y-1 p-4 text-sm">
+    <section className="surface space-y-1 p-4 text-sm md:p-5">
       <h2 className="text-lg font-semibold">{t("calving.title")}</h2>
-      <ul className="space-y-2">
+      <ul className="space-y-2 md:hidden">
         {calvings.map((one) => (
           <li className="space-y-0.5" key={one.id}>
             <p>
@@ -1162,6 +1174,7 @@ const HerCalvings = ({
           </li>
         ))}
       </ul>
+      <CalvingTable calvings={calvings} />
     </section>
   );
 };
@@ -1365,9 +1378,9 @@ const TheScale = ({
     return null;
   }
   return (
-    <section className="surface space-y-2 p-4 text-sm">
+    <section className="surface space-y-2 p-4 text-sm md:p-5">
       <h2 className="text-lg font-semibold">{t("weighIn.title")}</h2>
-      <ul className="space-y-1">
+      <ul className="space-y-1 md:hidden">
         {readings.map((reading) => (
           <li className="flex flex-wrap items-baseline gap-2" key={reading.id}>
             <span className="font-medium">
@@ -1392,6 +1405,7 @@ const TheScale = ({
           </li>
         ))}
       </ul>
+      <WeighInTable readings={readings} />
     </section>
   );
 };
