@@ -85,7 +85,12 @@ export const summariseMoney = (
     }
     tally(byCategory, money.categoryBn, money.direction, money.amountBdt);
     categoryNames.set(money.categoryBn, money.categoryEn);
-    tally(byCounterparty, money.counterpartyName, money.direction, money.amountBdt);
+    tally(
+      byCounterparty,
+      money.counterpartyName,
+      money.direction,
+      money.amountBdt
+    );
     for (const share of money.sides) {
       tally(bySide, share.side, money.direction, share.amountBdt);
     }
