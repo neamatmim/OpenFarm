@@ -20,6 +20,18 @@ import {
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput } from "./correction";
 
+/** A cut lot re-valued for a new quantity, at the price a kilo of it was worth the day it came in. */
+const revalued = (
+  row: { quantity: string; priceBdt: string | null },
+  quantity: number
+): string | null => {
+  const was = Number(row.quantity);
+  if (row.priceBdt === null || was === 0) {
+    return row.priceBdt;
+  }
+  return ((Number(row.priceBdt) / was) * quantity).toFixed(2);
+};
+
 const loadArrival = (tx: Tx, farmId: string, id: string) =>
   tx.query.feedIn.findFirst({
     where: { id, farmId },
@@ -61,7 +73,12 @@ export const feedArrivalCorrection: CorrectionKind<
   apply: async (tx, row, to, { context, now }) => {
     assertShapeOf({
       kind: row.kind,
-      priced: (to.priceBdt ?? row.priceBdt) !== null,
+      // A Harvest carries what the farm's own fodder is worth, which nobody typed: only a price actually
+      // typed into this Correction makes it "priced", and that is what a Harvest may not have.
+      priced:
+        row.kind === "harvest"
+          ? to.priceBdt !== undefined
+          : (to.priceBdt ?? row.priceBdt) !== null,
       seller: to.seller !== undefined || row.counterpartyId !== null,
     });
     await tx
@@ -69,7 +86,14 @@ export const feedArrivalCorrection: CorrectionKind<
       .set({
         ...(to.quantity === undefined
           ? {}
-          : { quantity: to.quantity.toFixed(1) }),
+          : {
+              quantity: to.quantity.toFixed(1),
+              // A cut lot is worth its kilos at the price it came in at: fewer kilos, less fodder, and
+              // the price a kilo of it was worth that day is untouched.
+              ...(row.kind === "harvest"
+                ? { priceBdt: revalued(row, to.quantity) }
+                : {}),
+            }),
         ...(to.priceBdt === undefined
           ? {}
           : { priceBdt: to.priceBdt.toFixed(2) }),

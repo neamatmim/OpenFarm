@@ -111,6 +111,12 @@ export const requireRole = (...allowed: (RoleName | OpenToAVisit)[]) =>
  * the Role recorded is the one the work belongs to rather than the highest they happen to
  * have.
  */
+/** What the farm says when an act is the Owner's alone. One refusal, because a reader is shown one line. */
+export const OWNER_ONLY = {
+  message: "This is the Owner's alone",
+  reason: "owner_only",
+} as const;
+
 export const requireOnly = (
   role: RoleName,
   refusal: Refusal,

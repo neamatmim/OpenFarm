@@ -30,6 +30,10 @@ export const feedItem = pgTable(
     unit: text("unit").notNull().default("kg"),
     /** Below this much on hand, the Manager is told. Null for a Feed Item nobody watches. */
     lowStockAt: numeric("low_stock_at", { precision: 12, scale: 1 }),
+    /** What a kilo of this is worth when the farm grows it itself: roughly what buying it would cost.
+     *  A Harvest comes into the store at it, so the animals that eat home-grown fodder are charged for
+     *  it. Null for anything the farm does not grow, which comes in at what it was bought for. */
+    fodderPriceBdt: numeric("fodder_price_bdt", { precision: 12, scale: 2 }),
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),

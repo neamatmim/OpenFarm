@@ -1,0 +1,1 @@
+ALTER TABLE "feed_item" ADD COLUMN "fodder_price_bdt" numeric(12,2);

@@ -2,7 +2,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BellRing, PackagePlus, Warehouse } from "lucide-react";
+import { BellRing, PackagePlus, Sprout, Warehouse } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { useIsOwner } from "@/components/money";
 import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
@@ -33,8 +34,11 @@ const STANDING_TONE: Record<StockStanding, Tone> = {
 /** What the page does when a row's menu is used: feed in for this item, or the level it is watched at. */
 interface StockActions {
   mayRecord: boolean;
+  /** What the farm's own fodder is worth is the Owner's to say, and nobody else's. */
+  maySetFodderPrice: boolean;
   handleReceive: (feedItemId: string) => void;
   handleSetLevel: (line: StockLine) => void;
+  handleSetFodderPrice: (line: StockLine) => void;
 }
 
 interface StockRow extends StockLine {
@@ -118,7 +122,8 @@ const LowAtCell = ({ row }: { row: { original: StockRow } }) => {
   );
 };
 
-/** The menu at the end of a Feed Item's row: feed in for it, or the level it is watched at. */
+/** The menu at the end of a Feed Item's row: feed in for it, the level it is watched at, and — the
+ *  Owner's alone — what a kilo of it is worth when the farm grows it itself. */
 const StockRowMenu = ({
   line,
   actions,
@@ -127,7 +132,7 @@ const StockRowMenu = ({
   actions: StockActions;
 }) => {
   const { t } = useLanguage();
-  const { handleReceive, handleSetLevel } = actions;
+  const { handleReceive, handleSetLevel, handleSetFodderPrice } = actions;
   if (!actions.mayRecord || line.retiredAt) {
     return null;
   }
@@ -144,6 +149,15 @@ const StockRowMenu = ({
           icon: BellRing,
           handleSelect: () => handleSetLevel(line),
         },
+        ...(actions.maySetFodderPrice
+          ? [
+              {
+                label: t("stock.setFodderPrice"),
+                icon: Sprout,
+                handleSelect: () => handleSetFodderPrice(line),
+              },
+            ]
+          : []),
       ]}
       label={t("stock.rowActions", { name: line.nameBn })}
     />
@@ -234,62 +248,99 @@ const StockCard = ({ row }: { row: StockRow }) => {
 
 const stockCard = (row: StockRow) => <StockCard row={row} />;
 
-/** The level a Feed Item is watched at, set in a dialog: blank for one nobody watches. */
-const LevelDialog = ({
+/** What each figure is called on the screen that sets it. */
+const WORDS = {
+  level: {
+    title: "stock.setLevel",
+    hint: "stock.levelHint",
+    saved: "stock.levelSaved",
+    label: "stock.quantity",
+  },
+  fodderPrice: {
+    title: "stock.setFodderPrice",
+    hint: "stock.fodderPriceHint",
+    saved: "stock.fodderPriceSaved",
+    label: "stock.perUnit",
+  },
+} as const;
+
+/** What the Feed Item holds for the figure being set. */
+const ofLine = (line: StockLine, kind: "level" | "fodderPrice") =>
+  kind === "level" ? line.lowStockAt : line.fodderPriceBdt;
+
+/**
+ * One figure a Feed Item carries, set in a dialog: how low it may run before the Manager is told, or what
+ * a unit of it is worth when the farm grows it itself. Blank means the farm says nothing — nobody watches
+ * it, or it is not something the farm grows.
+ */
+const FigureDialog = ({
   line,
+  kind,
   onOpenChange,
 }: {
   line: StockLine | null;
+  kind: "level" | "fodderPrice";
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
-  const [value, setValue] = useState(
-    line?.lowStockAt === null || line === null ? "" : String(line.lowStockAt)
-  );
-  const save = useMutation(
-    orpc.feed.setLowStock.mutationOptions({
-      onSuccess: async () => {
-        toast.success(t("stock.levelSaved"));
-        onOpenChange(false);
-        // The level decides what is on the home queues as well as this screen.
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
-        ]);
-      },
-      onError: (error) => toast.error(sayWhy(error, t)),
-    })
-  );
+  const held = line === null ? null : ofLine(line, kind);
+  const [value, setValue] = useState(held === null ? "" : String(held));
+  const words = WORDS[kind];
+  const level = useMutation(orpc.feed.setLowStock.mutationOptions({}));
+  const fodder = useMutation(orpc.feed.setFodderPrice.mutationOptions({}));
+  const save = kind === "level" ? level : fodder;
+  const onSaved = async () => {
+    toast.success(t(words.saved));
+    onOpenChange(false);
+    // Both decide what other screens say: the level feeds the home queues, and the price values every
+    // cut from here on, and so what the animals cost.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
+      queryClient.invalidateQueries({
+        queryKey: kind === "level" ? orpc.home.key() : orpc.costs.key(),
+      }),
+    ]);
+  };
   return (
     <FormDialog
-      description={t("stock.levelHint")}
+      description={t(words.hint)}
       onOpenChange={onOpenChange}
       onSubmit={() => {
-        if (line) {
-          save.mutate({
-            feedItemId: line.feedItemId,
-            threshold: value.trim() === "" ? null : Number(value),
-          });
+        if (!line) {
+          return;
+        }
+        const typed = value.trim() === "" ? null : Number(value);
+        const done = {
+          onSuccess: onSaved,
+          onError: (error: Error) => toast.error(sayWhy(error, t)),
+        };
+        if (kind === "level") {
+          level.mutate({ feedItemId: line.feedItemId, threshold: typed }, done);
+        } else {
+          fodder.mutate(
+            { feedItemId: line.feedItemId, fodderPriceBdt: typed },
+            done
+          );
         }
       }}
       open={line !== null}
       pending={save.isPending}
       ready={line !== null}
       submitLabel={t("common.save")}
-      title={line ? `${t("stock.setLevel")} — ${line.nameBn}` : ""}
+      title={line ? `${t(words.title)} — ${line.nameBn}` : ""}
     >
       {line ? (
         <FormField
-          id="level-value"
-          label={t("stock.quantity", { unit: line.unit })}
+          id="figure-value"
+          label={t(words.label, { unit: line.unit })}
         >
           <Input
-            id="level-value"
+            id="figure-value"
             inputMode="decimal"
-            min={0.1}
+            min={kind === "level" ? 0.1 : 0}
             onChange={(event) => setValue(event.target.value)}
-            step="0.1"
+            step={kind === "level" ? "0.1" : "0.01"}
             type="number"
             value={value}
           />
@@ -299,10 +350,6 @@ const LevelDialog = ({
   );
 };
 
-/**
- * What is in the store, a row per Feed Item still fed: how it stands against its level, what it holds, what a unit cost
- * and what it is all worth. The row's menu takes feed in for it or sets its level.
- */
 export const StockTab = ({
   lines,
   mayRecord,
@@ -314,11 +361,15 @@ export const StockTab = ({
 }) => {
   const { t } = useLanguage();
   const [levelFor, setLevelFor] = useState<StockLine | null>(null);
+  const [fodderFor, setFodderFor] = useState<StockLine | null>(null);
+  const maySetFodderPrice = useIsOwner();
   const live = lines.filter((line) => !line.retiredAt);
   const actions: StockActions = {
     mayRecord,
+    maySetFodderPrice,
     handleReceive: onReceive,
     handleSetLevel: setLevelFor,
+    handleSetFodderPrice: setFodderFor,
   };
   const table = useListTable({
     columns: stockColumns,
@@ -331,12 +382,23 @@ export const StockTab = ({
   return (
     <div className="bg-card rounded-xl border p-4 md:p-5">
       <DataTable card={stockCard} minWidth="52rem" table={table} />
-      <LevelDialog
-        key={levelFor?.feedItemId ?? "none"}
+      <FigureDialog
+        key={`level-${levelFor?.feedItemId ?? "none"}`}
+        kind="level"
         line={levelFor}
         onOpenChange={(open) => {
           if (!open) {
             setLevelFor(null);
+          }
+        }}
+      />
+      <FigureDialog
+        key={`fodder-${fodderFor?.feedItemId ?? "none"}`}
+        kind="fodderPrice"
+        line={fodderFor}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFodderFor(null);
           }
         }}
       />

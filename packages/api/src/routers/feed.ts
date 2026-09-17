@@ -15,7 +15,12 @@ import { audited } from "../audit";
 import { feedingTargetForPen, linesOf } from "../feed-store";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import { requirePenInScope } from "../scope";
 
 const bilingual = z.object({
@@ -52,12 +57,19 @@ export const feedRouter = {
   /** The farm's Feed Items. A retired one is kept: a Ration that fed it still names it. */
   items: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
-    .handler(({ context }) =>
-      context.db.query.feedItem.findMany({
+    .handler(async ({ context }) => {
+      const rows = await context.db.query.feedItem.findMany({
         where: { farmId: context.farm.id },
         orderBy: { nameBn: "asc" },
-      })
-    ),
+      });
+      // The price lives in a numeric column and comes back as a string; it is turned at the edge, as
+      // every other figure is.
+      return rows.map((row) => ({
+        ...row,
+        fodderPriceBdt:
+          row.fodderPriceBdt === null ? null : Number(row.fodderPriceBdt),
+      }));
+    }),
 
   addItem: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -93,6 +105,52 @@ export const feedRouter = {
           })
       );
       return { id, name: input.name, unit: input.unit };
+    }),
+
+  /**
+   * What a kilo of home-grown fodder is worth. A Harvest comes into the store at the price in force when
+   * it is recorded, so the animals that eat it are charged as they are for bought feed — and what was cut
+   * before keeps the price it came in at.
+   *
+   * The Owner's alone: it is a price the farm puts on its own land's work, and it moves every Margin.
+   */
+  setFodderPrice: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        feedItemId: z.string(),
+        fodderPriceBdt: z.number().min(0).max(100_000).nullable(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const existing = await context.db.query.feedItem.findFirst({
+        where: { id: input.feedItemId, farmId: context.farm.id },
+        columns: { id: true, nameBn: true, fodderPriceBdt: true },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such feed" });
+      }
+      const fodderPriceBdt =
+        input.fodderPriceBdt === null ? null : input.fodderPriceBdt.toFixed(2);
+      await audited(context).write(
+        {
+          entity: "feed_item",
+          entityId: existing.id,
+          action: "update",
+          before: {
+            nameBn: existing.nameBn,
+            fodderPriceBdt: existing.fodderPriceBdt,
+          },
+          after: { nameBn: existing.nameBn, fodderPriceBdt },
+        },
+        (tx) =>
+          tx
+            .update(feedItem)
+            .set({ fodderPriceBdt })
+            .where(eq(feedItem.id, existing.id))
+      );
+      return { fodderPriceBdt: input.fodderPriceBdt };
     }),
 
   /**

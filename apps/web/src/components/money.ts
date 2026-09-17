@@ -24,6 +24,12 @@ export const useReadsMoney = (): boolean => {
   );
 };
 
+/** Whether the reader is the Owner: what the farm's own fodder is worth is the Owner's to say. */
+export const useIsOwner = (): boolean => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  return me.data?.roles.some((role) => role === "owner") ?? false;
+};
+
 /** Shows a refused money write in the reader's words where the farm has them. */
 export const useRefusalToast = () => {
   const { t } = useLanguage();
