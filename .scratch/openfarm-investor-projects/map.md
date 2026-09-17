@@ -36,6 +36,10 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 - **Research** findings land on `research/<name>` branches at `docs/research/<name>.md`; the ticket links them.
 - Assets produced by tickets go in `.scratch/openfarm-investor-projects/assets/` and are linked from the ticket, never pasted in.
 
+## Spec
+
+[`spec.md`](./spec.md) — written 2026-09-18 from the ten resolved tickets, `ready-for-agent`, six increments, one test seam. The two open tickets stay open: what an adviser answers changes Farm Parameters and the agreement's wording, not the shape specified.
+
 ## Decisions so far
 
 <!-- one line per closed ticket: gist + link -->
