@@ -22,6 +22,18 @@ export interface FeedShare {
   unpricedKg: number;
 }
 
+/**
+ * One Animal's share of something charged to her by the head rather than by what she ate: the Hasil the
+ * haat took on her, a Buying or Selling Trip she was on, a month's Herd Costs. One shape for the three,
+ * because each is only ever an animal, a moment and an amount.
+ */
+export interface CostShare {
+  animalId: string;
+  side: Side;
+  at: Date;
+  bdt: number;
+}
+
 /** A Feeding nobody can be found standing for: charged to nobody, and said. */
 export interface UnallocatedFeeding {
   at: Date;
@@ -122,10 +134,21 @@ export interface Costs {
   uncostedDoses: number;
   /** Her share of the Vet Fees for visits that named her. */
   vetBdt: number;
+  /** The Hasil the haat took on her, charged to her alone. */
+  hasilBdt: number;
+  /** Her share of the Buying Trip that brought her and the Selling Trips that took her. */
+  tripBdt: number;
+  /** Her share of the Herd Costs of the Side she stood on, by the days she stood there. */
+  herdBdt: number;
 }
 
 const spentOn = (costs: Costs): number =>
-  costs.feedBdt + costs.medicineBdt + costs.vetBdt;
+  costs.feedBdt +
+  costs.medicineBdt +
+  costs.vetBdt +
+  costs.hasilBdt +
+  costs.tripBdt +
+  costs.herdBdt;
 
 /** Costs as the farm reads them: to the poisha and to the kilo. */
 export const roundedCosts = (costs: Costs): Costs => ({
@@ -134,11 +157,15 @@ export const roundedCosts = (costs: Costs): Costs => ({
   medicineBdt: roundTaka(costs.medicineBdt),
   uncostedDoses: costs.uncostedDoses,
   vetBdt: roundTaka(costs.vetBdt),
+  hasilBdt: roundTaka(costs.hasilBdt),
+  tripBdt: roundTaka(costs.tripBdt),
+  herdBdt: roundTaka(costs.herdBdt),
 });
 
 /**
- * A fattening Animal's Margin: her sale price less her purchase price and everything she cost. Null until
- * she is sold. A beast bred on the farm was bought for nothing.
+ * A fattening Animal's Margin: her sale price less her purchase price and everything she cost — her feed,
+ * her doses, the Vet's visits that named her, the Hasil paid on her, the Trips that moved her and her
+ * share of the Herd Costs. Null until she is sold. A beast bred on the farm was bought for nothing.
  */
 export const marginOf = ({
   costs,

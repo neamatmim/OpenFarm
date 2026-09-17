@@ -1075,6 +1075,9 @@ export const en = {
   "costs.unallocatedNote":
     "৳{amount} of feed went to Pens with no animals recorded in them, and is charged to nobody",
   "costs.vet": "Vet visits",
+  "costs.hasil": "Hasil at the haat",
+  "costs.trips": "Buying and selling trips",
+  "costs.herd": "Herd costs",
   "costs.costOfGain": "Cost per kg gained",
   "costs.thisLactation": "This lactation",
   "costs.soldInPeriod":

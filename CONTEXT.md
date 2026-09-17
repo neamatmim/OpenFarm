@@ -256,7 +256,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Margin**: What a fattening Animal made: her Sale price less her purchase price, the feed charged to her, her doses, her share of the Vet Fees for visits that named her, her Hasil and her shares of the Buying Trip that brought her and the Selling Trips that took her, and her share of the Herd Costs. The same sum for every Animal, whoever owns her. Worked out, never stored, and only once she is sold. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Profit, return
 
-**Cost per Litre**: What a litre of milk cost the farm: the feed, doses and Vet Fees charged to a cow over her current Lactation, over the litres she sent to Bulk in it — or, for the Dairy side, everything charged to its animals in a period over the litres sent to Bulk in it. Worked out, never stored. _Avoid_: Production cost, unit cost
+**Cost per Litre**: What a litre of milk cost the farm: everything charged to a cow in her current Lactation — her feed, her doses, the Vet Fees for visits that named her, and her share of whatever is charged by the head in it — over the litres she sent to Bulk in it — or, for the Dairy side, everything charged to its animals in a period over the litres sent to Bulk in it. Worked out, never stored. _Avoid_: Production cost, unit cost
 
 **Buying Trip**: One outing to buy cattle, with what it cost beyond the animals' prices: broker, lorry to the farm, the men's food and lodging. Split evenly across the Animals brought in on it; the Hasil is not, because a haat takes it per Animal. _Avoid_: Purchase run, procurement
 

@@ -492,6 +492,9 @@ describe("what an animal costs, and what a litre costs", () => {
       medicineBdt: 100,
       uncostedDoses: 0,
       vetBdt: 500,
+      hasilBdt: 0,
+      tripBdt: 0,
+      herdBdt: 0,
       purchaseBdt: 50_000,
       saleBdt: 60_000,
       marginBdt: 8950,
@@ -555,6 +558,9 @@ describe("what an animal costs, and what a litre costs", () => {
       medicineBdt: 100,
       uncostedDoses: 1,
       vetBdt: 1000,
+      hasilBdt: 0,
+      tripBdt: 0,
+      herdBdt: 0,
     });
     // The bulls sold in the period, each with a whole life's Margin: a different sum, kept apart.
     expect(report.soldFattening).toEqual({
@@ -577,6 +583,37 @@ describe("what an animal costs, and what a litre costs", () => {
     });
     expect(february.soldFattening).toEqual({ animals: [], marginBdt: 0 });
     expect(february.unallocated).toEqual({ feedBdt: 0, unpricedKg: 0 });
+  });
+
+  // The Hasil on an animal, her share of the Trips that moved her and her share of the month's Herd Costs
+  // are parts of what she cost from here on. Nothing fills them yet, so every figure is what it was.
+  it("carries the Hasil, the Trips and the Herd Costs as parts of their own, empty for now", async () => {
+    const owner = await as("owner", "2039-02-01T04:00:00.000Z");
+    const her = await owner.client.costs.ofAnimal({
+      tagNumber: world.bullA.tagNumber,
+    });
+    expect(her).toMatchObject({ hasilBdt: 0, tripBdt: 0, herdBdt: 0 });
+    // Bought at 50,000, sold at 60,000, less 450 of feed, 100 of medicine and 500 of the Vet.
+    expect(her.marginBdt).toBe(8950);
+    expect(her.costOfGainBdt).toBe(52.5);
+
+    const cow = await owner.client.costs.ofAnimal({
+      tagNumber: world.cow.tagNumber,
+    });
+    expect(cow.lactation).toMatchObject({
+      hasilBdt: 0,
+      tripBdt: 0,
+      herdBdt: 0,
+      costPerLitreBdt: 60,
+    });
+
+    const report = await owner.client.costs.bySide(PERIOD);
+    expect(report.dairy).toMatchObject({
+      hasilBdt: 0,
+      tripBdt: 0,
+      herdBdt: 0,
+      costPerLitreBdt: 120,
+    });
   });
 
   it("is the Owner's and the Manager's, and never Barn Staff's or the Vet's", async () => {
