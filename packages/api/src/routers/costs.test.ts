@@ -581,6 +581,7 @@ describe("what an animal costs, and what a litre costs", () => {
       feedBdt: 300,
       unpricedKg: 5,
       tripBdt: 0,
+      herdBdt: 0,
     });
 
     // A period after the sale sells nobody, whatever the bull's margin was.
@@ -593,6 +594,7 @@ describe("what an animal costs, and what a litre costs", () => {
       feedBdt: 0,
       unpricedKg: 0,
       tripBdt: 0,
+      herdBdt: 0,
     });
   });
 

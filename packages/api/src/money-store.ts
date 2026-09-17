@@ -77,6 +77,25 @@ export const mayBeRetired = (key: CategoryKey | null): boolean =>
 export const mayBeEnteredByHand = (key: CategoryKey | null): boolean =>
   key === null || key === "vet_fee" || !KEPT_BY_RECORDS.has(key);
 
+/** The standard Categories the animals never carry: the place and the people, which are the Farm's. */
+const NEVER_THE_ANIMALS: ReadonlySet<CategoryKey> = new Set<CategoryKey>([
+  "wages",
+  "utilities",
+  "repairs",
+]);
+
+/**
+ * Whether the Owner may mark this Category as one the animals of its Side carry. Money coming in never is —
+ * it is not a cost — and neither are wages, utilities or repairs, which are the place and the people and
+ * stay the Farm's (the Owner's decision, 2026-09-17).
+ */
+export const mayBeChargedToAnimals = (category: {
+  key: CategoryKey | null;
+  direction: MoneyDirection;
+}): boolean =>
+  category.direction === "out" &&
+  !(category.key !== null && NEVER_THE_ANIMALS.has(category.key));
+
 /** Whether this Bangla name is one of the standard Categories', which the farm's own may not take. */
 export const isStandardName = (nameBn: string): boolean =>
   Object.values(CATEGORIES).some((one) => one.nameBn === nameBn);

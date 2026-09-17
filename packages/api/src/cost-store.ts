@@ -20,6 +20,7 @@ import {
   roundLitres,
   roundTaka,
   roundedCosts,
+  herdShares,
   sidesOverTime,
   tripShares,
 } from "@OpenFarm/domain";
@@ -94,6 +95,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
     buyingTrips,
     sellingTrips,
     takenOnSellingTrips,
+    enteredByHand,
   ] = await Promise.all([
     db.query.animal.findMany({
       where: { farmId },
@@ -182,6 +184,12 @@ export const farmCosts = async (db: Db, farmId: string) => {
       columns: { id: true, transportBdt: true, keepBdt: true, wentOn: true },
     }),
     db.query.sellingTripAnimal.findMany({}),
+    // Money the farm entered by hand under a Category the Owner marked as charged to the animals.
+    db.query.moneyEvent.findMany({
+      where: { farmId, source: "by_hand", side: { isNotNull: true } },
+      columns: { amountBdt: true, occurredAt: true, side: true },
+      with: { category: { columns: { chargedToAnimals: true } } },
+    }),
   ]);
 
   // When each animal left, as her record says it: her Pen history ends there, so nothing is charged to a cow
@@ -317,9 +325,22 @@ export const farmCosts = async (db: Db, farmId: string) => {
     ],
   });
 
-  // Nothing writes this one yet: the month's Herd Costs arrive with their own ticket, and every reader
-  // below is already right for the day they do.
-  const herd: CostShare[] = [];
+  // What the farm spent on the animals without naming any of them, by the days each stood here.
+  const herdCosts = herdShares({
+    costs: enteredByHand.flatMap((one) =>
+      one.category?.chargedToAnimals && one.side
+        ? [
+            {
+              at: one.occurredAt,
+              side: one.side,
+              bdt: Number(one.amountBdt),
+            },
+          ]
+        : []
+    ),
+    history,
+  });
+  const herd = herdCosts.shares;
 
   const milked: LitresShare[] = sessions.flatMap((session) =>
     session.records.flatMap((record) => {
@@ -342,6 +363,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
     sideOf,
     unallocated: fed.unallocated,
     unallocatedTrips: outings.unallocated,
+    unallocatedHerd: herdCosts.unallocated,
     all: {
       feed: fed.shares,
       doses: dosed,
@@ -365,10 +387,8 @@ export const farmCosts = async (db: Db, farmId: string) => {
 
 type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
 
-/**
- * The shares a report adds up. Trips and Herd Costs are here and still empty: nothing writes them yet, and
- * everything that reads them is already right for the day something does.
- */
+/** The shares a report adds up: what she ate, what she was dosed and visited for, what her arrival and the
+ *  outings cost, and her part of the month's Herd Costs. */
 interface Shares {
   feed: readonly FeedShare[];
   doses: readonly DoseShare[];
@@ -521,6 +541,7 @@ export const costsBySide = (
   const strayTrips = costs.unallocatedTrips.filter((one) =>
     inThePeriod(one.at)
   );
+  const strayHerd = costs.unallocatedHerd.filter((one) => inThePeriod(one.at));
   return {
     dairy: {
       ...roundedCosts(dairy.costs),
@@ -547,6 +568,7 @@ export const costsBySide = (
         unallocated.reduce((sum, one) => sum + one.unpricedKg, 0)
       ),
       tripBdt: roundTaka(strayTrips.reduce((sum, one) => sum + one.bdt, 0)),
+      herdBdt: roundTaka(strayHerd.reduce((sum, one) => sum + one.bdt, 0)),
     },
   };
 };

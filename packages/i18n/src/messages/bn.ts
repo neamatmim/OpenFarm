@@ -888,6 +888,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.purchaseNeedsPriceAndSeller": "কেনার দাম আর বিক্রেতার নাম দিন",
   "refusal.harvestHasNoPrice": "নিজের জমির ফসলের কোনো দাম নেই",
   "refusal.receivedInTheFuture": "যে দিন আসেনি সেদিন খাদ্য আসতে পারে না",
+  "refusal.neverTheAnimals":
+    "মজুরি, বিদ্যুৎ-পানি, মেরামত আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
   "refusal.feedRetired": "এই খাদ্য বাতিল করা হয়েছে",
   "nav.milk": "দুধ",
   "dispatch.title": "খামার থেকে যাওয়া দুধ",
@@ -1031,6 +1033,9 @@ export const bn: Record<MessageKey, string> = {
   "byHand.retireTitle": "“{name}” খাত বাদ দেবেন?",
   "byHand.retireWhy":
     "বাদ দিলে নতুন হিসাব লেখার সময় এই খাত আর বাছা যাবে না। আগে যা লেখা হয়েছে তা যেমন আছে থাকবে।",
+  "byHand.chargedToAnimals": "গরুর হিসাবে যায়",
+  "byHand.chargeToAnimals": "গরুর হিসাবে দিন",
+  "byHand.stopCharging": "গরুর হিসাব থেকে সরান",
   "byHand.retire": "বাদ দিন",
   "byHand.newCategory": "নতুন খাত",
   "byHand.direction": "আয় না ব্যয়",
@@ -1069,6 +1074,8 @@ export const bn: Record<MessageKey, string> = {
   "costs.unpricedNote":
     "{amount} কেজি নিজের জমির ঘাস দাম ছাড়া খাওয়ানো হয়েছে, এখানে এর খরচ নেই",
   "costs.uncostedNote": "{amount}টি ডোজ খামারে না-কেনা ওষুধের, খরচ ধরা হয়নি",
+  "costs.strayHerdNote":
+    "৳{amount} এমন মাসে ওই পাশের গরুর জন্য খরচ হয়েছে যখন সেখানে কোনো গরুই ছিল না, তাই তা কারো হিসাবে যায়নি",
   "costs.strayTripNote":
     "৳{amount} খরচ হয়েছে এমন যাত্রায় যাতে কোনো গরু আসেনি, তাই তা কোনো গরুর হিসাবে যায়নি",
   "costs.unallocatedNote":

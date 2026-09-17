@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   numeric,
@@ -83,6 +84,11 @@ export const moneyCategory = pgTable(
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
+    /** Whether money entered by hand under this Category is charged to the animals of its Side, split by
+     *  the days each stood on the farm that month: a Vet visit that named nobody, lab tests, fly spray.
+     *  The Owner's mark. Wages, utilities, repairs and shed hygiene are never marked — they are the place
+     *  and the people, and they stay the Farm's. */
+    chargedToAnimals: boolean("charged_to_animals").notNull().default(false),
     /** Retired, never removed: a Money Event entered under it last year still names it. */
     retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),

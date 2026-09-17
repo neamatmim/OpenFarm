@@ -283,8 +283,10 @@ export type {
   FeedShare,
   Carried,
   FeedingToCost,
+  HerdCostToSplit,
   TripToSplit,
   UnallocatedFeeding,
+  UnallocatedHerdCost,
   UnallocatedTrip,
 } from "./costs";
 export {
@@ -293,6 +295,7 @@ export {
   costPerLitreOf,
   dosePriceOf,
   feedShares,
+  herdShares,
   marginOf,
   roundedCosts,
   tripShares,

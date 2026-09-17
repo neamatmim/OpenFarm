@@ -88,6 +88,7 @@ const WORDED_REFUSALS = {
   expected_calving_without_pregnancy: "refusal.expectedCalvingWithoutPregnancy",
   farm_identity_incomplete: "refusal.farmIdentityIncomplete",
   feed_retired: "refusal.feedRetired",
+  never_the_animals: "refusal.neverTheAnimals",
   harvest_has_no_price: "refusal.harvestHasNoPrice",
   lot_number_missing: "refusal.lotNumberMissing",
   manager_only: "refusal.managerOnly",

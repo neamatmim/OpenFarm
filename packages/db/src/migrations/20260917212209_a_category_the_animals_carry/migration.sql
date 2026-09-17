@@ -1,0 +1,1 @@
+ALTER TABLE "money_category" ADD COLUMN "charged_to_animals" boolean DEFAULT false NOT NULL;
