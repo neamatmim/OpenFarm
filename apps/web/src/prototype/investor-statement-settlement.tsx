@@ -109,6 +109,13 @@ export const Settlement = () => {
         </p>
       </section>
 
+      <p className="mt-4 text-[12px] leading-relaxed text-neutral-600">
+        <b className="text-neutral-900">কী হয়েছিল:</b> ২২টি গরু কেনা হয়েছিল, গড়ে ৳
+        ৬৪,৫৪৫ দরে। ২০টি বিক্রি হয়েছে, গড়ে ৳ ১,৩১,৯৭৫ দরে; ১টি খামার ওজন-দরে কিনে
+        নিয়েছে; ১টি (F-0229) ১২ ডিসেম্বর ২০২৬ মারা গেছে — তার সব খরচ ভেঞ্চারের ক্ষতি
+        হিসেবেই উপরের হিসাবে আছে।
+      </p>
+
       <section className="mt-4 bg-neutral-50 p-3">
         <h3 className="font-bold">ভাগ · The split</h3>
         <Row
@@ -132,6 +139,13 @@ export const Settlement = () => {
           labelEn="Rounding to the Farm"
           value={taka(rounding)}
           indent
+        />
+        <Row
+          label={`প্রতি ইউনিট: মূলধন ${taka(VENTURE.unitPrice)} → ফেরত`}
+          labelEn="Per Unit"
+          value={taka(perUnitPayout)}
+          rule
+          bold
         />
       </section>
 
