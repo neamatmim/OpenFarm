@@ -12,14 +12,14 @@ Map: [OpenFarm investor-funded fattening projects](../map.md)
 
 ## Question
 
-**Grilling.** Both research notes found forks we must settle before a lawyer can be asked anything useful. This ticket decides the structure the farm *proposes*; [Take the structure to a lawyer and a Shariah scholar](./11-take-the-structure-to-a-lawyer-and-a-shariah-scholar.md) tests it.
+**Grilling.** Both research notes found forks we must settle before a lawyer can be asked anything useful. This ticket decides the structure the farm _proposes_; [Take the structure to a lawyer and a Shariah scholar](./11-take-the-structure-to-a-lawyer-and-a-shariah-scholar.md) tests it.
 
 - **Legal form:**
   - the Owner signs a separate agreement with each investor;
   - one partnership deed per project;
   - a private company (per project, or one for all).
 - **Investor count.** The Companies Act s.4 ceiling is 20 people in one business for gain, and a private company takes at most 50 members. Does "many investors" mean a cap of 20 per project, or a company?
-- **Shariah structure.** *Mudarabah* means investors supply the capital and bear its loss; the farm loses its effort and takes no fee. *Musharakah* means the Owner's cash sits in the pool and loss follows capital. Or no Shariah label at all. Which fits a pool where the Owner may also invest?
+- **Shariah structure.** _Mudarabah_ means investors supply the capital and bear its loss; the farm loses its effort and takes no fee. _Musharakah_ means the Owner's cash sits in the pool and loss follows capital. Or no Shariah label at all. Which fits a pool where the Owner may also invest?
 - **Who investors are.** A closed, known group only (friends, family, people the Owner knows); no public advertising, no referrals. Is that the rule?
 - **Money channels.** Bank channels only, or bKash/Nagad too?
 

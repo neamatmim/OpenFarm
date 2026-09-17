@@ -35,9 +35,9 @@ Researched 2026-09-17. Findings on branch `research/cattle-investment-schemes` a
 - **Loss:** borne by capital unless the farm was negligent. Payout is one sum at the end into a bank account. Investors get a certificate at the start and periodic photo and weight updates.
 - **Fixed returns collapse.** No surviving scheme guarantees a return; every scheme that promised fixed monthly returns collapsed (Nazran, Ponorogo, FURT). iFarmer moved from fixed to "projected" returns.
 - **Rare rules:**
-  - *Unsold animals:* only nusaQu (Indonesia) has one — the farm buys them at the Eid price.
-  - *Early exit:* only WeGro has one — a full refund in the first 20% of the term, then a charge of 2% or Tk 2,500 and no profit.
-  - *Insurance:* Green Delta sells 4–6-month fattening cover.
+  - _Unsold animals:_ only nusaQu (Indonesia) has one — the farm buys them at the Eid price.
+  - _Early exit:_ only WeGro has one — a full refund in the first 20% of the term, then a charge of 2% or Tk 2,500 and no profit.
+  - _Insurance:_ Green Delta sells 4–6-month fattening cover.
 - **Nobody publishes** a rule for an underfunded batch, or a settlement statement.
 - **Forks for us:**
   - Mudarabah, Musharakah (the Owner puts in cash too), or a fixed return (deposit-like, ruled out by the law research);

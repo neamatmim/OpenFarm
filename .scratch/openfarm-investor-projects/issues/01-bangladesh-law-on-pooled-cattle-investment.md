@@ -38,11 +38,12 @@ No licence exists for "a farm pooling investors' money into cattle". The law dra
 - **Contract:** written and stamped at signing. The duty is Tk 2,000–4,000 as a partnership deed or Tk 300 as an agreement; the rates come from a 2022 schedule and need re-checking. No notarisation is required. An unregistered partnership cannot sue on its contracts.
 - **Tax:** income from raising animals is agricultural. 10% is withheld from an individual's profit if the contract reads as a deposit; no withholding section was found for a genuine profit share. Live cattle sales are VAT-exempt; a management fee probably is not.
 - **Shariah (AAOIFI Standards 12 and 13):** profit is a percentage of actual profit and nobody guarantees capital.
-  - *Mudarabah:* investors bear capital loss; the farm loses its effort unless negligent. No fee on top, and the farm's ordinary staff costs are its own.
-  - *Musharakah:* loss is shared by capital share; a managing partner gets a bigger share rather than a fee.
+  - _Mudarabah:_ investors bear capital loss; the farm loses its effort unless negligent. No fee on top, and the farm's ordinary staff costs are its own.
+  - _Musharakah:_ loss is shared by capital share; a managing partner gets a bigger share rather than a fee.
 - **Records:** keep them at least 12 years.
 
 **Constraints on the design:**
+
 - No capital or return promise anywhere, projections included.
 - An investor's result can be negative.
 - Percentages are fixed at signing, changed only by dated amendment.
@@ -53,6 +54,7 @@ No licence exists for "a farm pooling investors' money into cattle". The law dra
 - No sign-up, pay-in or referral features until a lawyer clears them.
 
 **A lawyer's opinion is needed** on:
+
 - whether the contract counts as a deposit;
 - whether investor-facing software needs Bangladesh Bank approval;
 - whether a profit-share right is a security;

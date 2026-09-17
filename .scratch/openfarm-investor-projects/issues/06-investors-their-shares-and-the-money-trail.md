@@ -23,6 +23,7 @@ Map: [OpenFarm investor-funded fattening projects](../map.md)
 - **Refunds and Advances.** How is a Cancelled Venture's refund recorded, and how is the Owner's Advance recorded so that settlement repays it at cost before profit?
 
 Inputs from research:
+
 - Warn when a project reaches 20 investors, and again at 50.
 - Payments go through bank channels only, unless the legal-form ticket decides otherwise.
 - Store each investor's stamped contract.

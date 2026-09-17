@@ -23,6 +23,7 @@ Map: [OpenFarm investor-funded fattening projects](../map.md)
 - **Loose ends before settling:** unpriced feed and uncosted doses block it already; what about an unreconciled Buying Float, a Reimbursement not yet transferred, or a Venture Account balance that doesn't match the bank?
 
 Inputs from research:
+
 - An investor's result can be negative, and the statement must be able to show it.
 - No distribution is made until capital is intact, so any interim payout must be reversible.
 - No scheme publishes a settlement statement, so this one is designed from scratch.
@@ -56,6 +57,7 @@ _Corrected on 2026-09-18: the first version of this sum both subtracted the char
 **The bad case.** Where proceeds cannot repay the Advance in full, it is still repaid before capital returns — it funded that Venture's own feed and medicine — so Investors get back less capital. The statement shows it as its own line.
 
 **Before it can settle**, all four must be true:
+
 - every Animal gone (sold, Internal Sale, or dead and recorded);
 - no unpriced feed and no uncosted doses;
 - every Buying Float reconciled and every Reimbursement transferred;
