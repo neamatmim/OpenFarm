@@ -215,6 +215,8 @@ const setup = async () => {
     sex: "male",
     seller: { name: `হাট ${suffix}` },
     purchasePriceBdt: 50_000,
+    // The haat took its toll on this one; the bull bought later paid none.
+    hasilBdt: 1500,
     weightKg: 250,
     estimatedAgeMonths: 20,
     targetWindowStart: "2039-06-01",
@@ -492,14 +494,14 @@ describe("what an animal costs, and what a litre costs", () => {
       medicineBdt: 100,
       uncostedDoses: 0,
       vetBdt: 500,
-      hasilBdt: 0,
+      hasilBdt: 1500,
       tripBdt: 0,
       herdBdt: 0,
       purchaseBdt: 50_000,
       saleBdt: 60_000,
-      marginBdt: 8950,
+      marginBdt: 7450,
       gainKg: 20,
-      costOfGainBdt: 52.5,
+      costOfGainBdt: 127.5,
       lactation: null,
     });
     expect(soldA).not.toBe("");
@@ -558,7 +560,8 @@ describe("what an animal costs, and what a litre costs", () => {
       medicineBdt: 100,
       uncostedDoses: 1,
       vetBdt: 1000,
-      hasilBdt: 0,
+      // The Hasil paid on Bull A when he came off the lorry, in this period as he was.
+      hasilBdt: 1500,
       tripBdt: 0,
       herdBdt: 0,
     });
@@ -569,10 +572,10 @@ describe("what an animal costs, and what a litre costs", () => {
           tagNumber: world.bullA.tagNumber,
           purchaseBdt: 50_000,
           saleBdt: 60_000,
-          marginBdt: 8950,
+          marginBdt: 7450,
         },
       ],
-      marginBdt: 8950,
+      marginBdt: 7450,
     });
     expect(report.unallocated).toEqual({ feedBdt: 300, unpricedKg: 5 });
 
@@ -585,17 +588,18 @@ describe("what an animal costs, and what a litre costs", () => {
     expect(february.unallocated).toEqual({ feedBdt: 0, unpricedKg: 0 });
   });
 
-  // The Hasil on an animal, her share of the Trips that moved her and her share of the month's Herd Costs
-  // are parts of what she cost from here on. Nothing fills them yet, so every figure is what it was.
-  it("carries the Hasil, the Trips and the Herd Costs as parts of their own, empty for now", async () => {
+  // Her share of the Trips that moved her and of the month's Herd Costs are parts of what she cost from
+  // here on. Nothing fills those two yet.
+  it("carries the Trips and the Herd Costs as parts of their own, empty for now", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     const her = await owner.client.costs.ofAnimal({
       tagNumber: world.bullA.tagNumber,
     });
-    expect(her).toMatchObject({ hasilBdt: 0, tripBdt: 0, herdBdt: 0 });
-    // Bought at 50,000, sold at 60,000, less 450 of feed, 100 of medicine and 500 of the Vet.
-    expect(her.marginBdt).toBe(8950);
-    expect(her.costOfGainBdt).toBe(52.5);
+    expect(her).toMatchObject({ tripBdt: 0, herdBdt: 0 });
+    // Bought at 50,000, sold at 60,000, less 450 of feed, 100 of medicine, 500 of the Vet and
+    // 1,500 of Hasil.
+    expect(her.marginBdt).toBe(7450);
+    expect(her.costOfGainBdt).toBe(127.5);
 
     const cow = await owner.client.costs.ofAnimal({
       tagNumber: world.cow.tagNumber,
@@ -614,6 +618,23 @@ describe("what an animal costs, and what a litre costs", () => {
       herdBdt: 0,
       costPerLitreBdt: 120,
     });
+  });
+
+  // The haat takes its toll per beast, and often on her price: it is hers alone, never spread over the
+  // bulls that came home on the same lorry.
+  it("charges the Hasil to the animal it was paid on, and to nobody else", async () => {
+    const owner = await as("owner", "2039-02-01T04:00:00.000Z");
+    const paid = await owner.client.costs.ofAnimal({
+      tagNumber: world.bullA.tagNumber,
+    });
+    expect(paid.hasilBdt).toBe(1500);
+    const none = await owner.client.costs.ofAnimal({ tagNumber: bullB });
+    expect(none.hasilBdt).toBe(0);
+    // A cow born on the farm was never at a haat.
+    const born = await owner.client.costs.ofAnimal({
+      tagNumber: world.cow.tagNumber,
+    });
+    expect(born.hasilBdt).toBe(0);
   });
 
   it("is the Owner's and the Manager's, and never Barn Staff's or the Vet's", async () => {

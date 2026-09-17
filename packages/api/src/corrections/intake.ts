@@ -6,6 +6,7 @@ import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import {
   bookIntakeMoney,
+  hasilInput,
   purchasePriceInput,
   readIntake,
   sellerInput,
@@ -23,15 +24,20 @@ const loadIntake = (tx: Tx, farmId: string, id: string) =>
       farmId: true,
       animalId: true,
       purchasePriceBdt: true,
+      hasilBdt: true,
       recordedBy: true,
       createdAt: true,
     },
     with: { seller: { columns: { name: true } } },
   });
 
-/** What an Intake's Correction may change: what the farm paid, who sold the animal, and how he was paid. */
+/**
+ * What an Intake's Correction may change: what the farm paid, the haat's toll on her, who sold the animal,
+ * and how he was paid.
+ */
 export const intakeCorrectionInput = correctionInput({
   purchasePriceBdt: changeOf(purchasePriceInput, z.number()),
+  hasilBdt: changeOf(hasilInput, z.number()),
   seller: changeOf(sellerInput, z.string().nullable()),
   paymentMethod: paymentMethodChange,
 });
@@ -54,6 +60,7 @@ export const intakeCorrection: CorrectionKind<
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     purchasePriceBdt: Number(row.purchasePriceBdt),
+    hasilBdt: Number(row.hasilBdt),
     seller: row.seller?.name ?? null,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "intake", row.id),
   }),
@@ -66,6 +73,9 @@ export const intakeCorrection: CorrectionKind<
         ...(to.purchasePriceBdt === undefined
           ? {}
           : { purchasePriceBdt: to.purchasePriceBdt.toFixed(2) }),
+        ...(to.hasilBdt === undefined
+          ? {}
+          : { hasilBdt: to.hasilBdt.toFixed(2) }),
         ...(to.seller === undefined
           ? {}
           : {

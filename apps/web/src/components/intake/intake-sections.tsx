@@ -246,6 +246,12 @@ export const PriceSection = ({ fields, onEdit }: PartProps) => {
           value={fields.purchasePriceBdt}
         />
         <NumberField
+          id="intake-hasil"
+          label={t("intake.hasil")}
+          onChange={(hasilBdt) => onEdit({ hasilBdt })}
+          value={fields.hasilBdt}
+        />
+        <NumberField
           decimal
           id="intake-weight"
           label={t("intake.weight")}

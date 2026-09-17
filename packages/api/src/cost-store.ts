@@ -101,7 +101,14 @@ export const farmCosts = async (db: Db, farmId: string) => {
         lactationStartedAt: true,
       },
       with: {
-        intake: { columns: { purchasePriceBdt: true, weightKg: true } },
+        intake: {
+          columns: {
+            purchasePriceBdt: true,
+            hasilBdt: true,
+            weightKg: true,
+            arrivedAt: true,
+          },
+        },
         sale: { columns: { priceBdt: true, soldAt: true, weightKg: true } },
         weighIns: {
           columns: { weightKg: true },
@@ -230,9 +237,21 @@ export const farmCosts = async (db: Db, farmId: string) => {
     })
   );
 
-  // Nothing writes these yet: the Hasil at an Intake, the Trips that moved her and the month's Herd Costs
-  // each arrive with their own ticket. Every reader below is already right for the day they do.
-  const hasil: CostShare[] = [];
+  // The haat's toll on one beast, charged to her alone from the day she came off the lorry.
+  const hasil: CostShare[] = animals.flatMap((one) =>
+    one.intake && Number(one.intake.hasilBdt) > 0
+      ? [
+          {
+            animalId: one.id,
+            side: sideOf(one, one.intake.arrivedAt),
+            at: one.intake.arrivedAt,
+            bdt: Number(one.intake.hasilBdt),
+          },
+        ]
+      : []
+  );
+  // Nothing writes these two yet: the Trips that moved her and the month's Herd Costs each arrive with
+  // their own ticket. Every reader below is already right for the day they do.
   const trips: CostShare[] = [];
   const herd: CostShare[] = [];
 
@@ -280,8 +299,8 @@ export const farmCosts = async (db: Db, farmId: string) => {
 type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
 
 /**
- * The shares a report adds up. Hasil, Trips and Herd Costs are here and always empty: nothing writes them
- * yet, and everything that reads them is already right for the day something does.
+ * The shares a report adds up. Trips and Herd Costs are here and still empty: nothing writes them yet, and
+ * everything that reads them is already right for the day something does.
  */
 interface Shares {
   feed: readonly FeedShare[];

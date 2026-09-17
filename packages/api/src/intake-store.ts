@@ -54,7 +54,9 @@ export const bookIntakeMoney = async (
   if (!row) {
     return;
   }
-  const priceBdt = Number(row.purchasePriceBdt);
+  // What the farm handed over for her: the price and the haat's toll on her, which is not a second
+  // payment to a second party but part of what she cost.
+  const priceBdt = Number(row.purchasePriceBdt) + Number(row.hasilBdt);
   if (
     priceBdt > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "intake", row.id))
@@ -72,3 +74,6 @@ export const bookIntakeMoney = async (
 
 /** Taka. Whole animals are bought in thousands; the column keeps poisha so finance can too. */
 export const purchasePriceInput = z.number().min(0).max(100_000_000);
+
+/** The haat's toll on one beast, as its slip gives it. Taka, like everything else the arrival cost. */
+export const hasilInput = z.number().min(0).max(10_000_000);

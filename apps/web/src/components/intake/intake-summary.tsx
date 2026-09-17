@@ -151,6 +151,13 @@ export const IntakeSummary = ({
             "—"
           )}
         </Line>
+        <Line label={t("intake.hasil")}>
+          {Number(fields.hasilBdt) > 0
+            ? t("intake.taka", {
+                taka: formatNumber(Number(fields.hasilBdt), language),
+              })
+            : "—"}
+        </Line>
         <Line label={t("money.paidBy")}>
           {t(PAYMENT_METHOD_WORD[fields.paymentMethod])}
         </Line>

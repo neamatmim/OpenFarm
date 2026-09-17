@@ -1,0 +1,1 @@
+ALTER TABLE "intake" ADD COLUMN "hasil_bdt" numeric(12,2) DEFAULT '0' NOT NULL;

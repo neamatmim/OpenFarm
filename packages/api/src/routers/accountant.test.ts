@@ -43,12 +43,14 @@ const setup = async () => {
     pricePerLitreBdt: 50,
     paymentMethod: "bank",
   });
-  // A bull bought for 30,000: over the threshold, and not yet approved.
+  // A bull bought for 30,000 with 900 of Hasil on him: over the threshold, and not yet approved. What the
+  // export shows is what the farm handed over at the haat — 30,900 — on one line, not two.
   const bull = await manager.client.intake.record({
     penId: pen.id,
     sex: "male",
     seller: { name: `গাবতলী ${suffix}` },
     purchasePriceBdt: 30_000,
+    hasilBdt: 900,
     weightKg: 240,
     estimatedAgeMonths: 20,
     targetWindowStart: "2040-06-01",
@@ -148,7 +150,7 @@ describe("the accountant's export", () => {
       `2040-03-05,in,5000.00,দুধ বিক্রি,Milk sales,মিল্ক ভিটা ${suffix},bank,dairy,dispatch,${world.milk.id},CH-2040,not_needed,`
     );
     expect(mine(world.bull.intakeId)).toBe(
-      `2040-03-05,out,30000.00,গরু কেনা,Cattle purchases,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},awaiting_approval,`
+      `2040-03-05,out,30900.00,গরু কেনা,Cattle purchases,গাবতলী ${suffix},cash,fattening,intake,${world.bull.intakeId},${world.bull.tagNumber},awaiting_approval,`
     );
     expect(mine(world.power.id)).toBe(
       `2040-03-05,out,3000.00,বিদ্যুৎ ও পানি,Utilities,পল্লী বিদ্যুৎ ${suffix},bkash,dairy,by_hand,${world.power.id},,not_needed,ফেব্রুয়ারির বিল`
@@ -171,16 +173,17 @@ describe("the accountant's export", () => {
       format: "paper",
     });
     // March 2040 is the only month this file books anything in, so the farm's month is this file's work.
+    // The bull's 900 of Hasil is part of what he cost, so it is in his Category, his Side and the month.
     expect(summary).toMatchObject({
       incomeBdt: 40_000,
-      expenseBdt: 51_000,
-      netBdt: -11_000,
-      awaiting: { count: 2, inBdt: 35_000, outBdt: 30_000 },
+      expenseBdt: 51_900,
+      netBdt: -11_900,
+      awaiting: { count: 2, inBdt: 35_000, outBdt: 30_900 },
     });
     expect(summary?.byCategory).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ nameBn: "দুধ বিক্রি", inBdt: 5000, outBdt: 0 }),
-        expect.objectContaining({ nameBn: "গরু কেনা", inBdt: 0, outBdt: 30_000 }),
+        expect.objectContaining({ nameBn: "গরু কেনা", inBdt: 0, outBdt: 30_900 }),
         expect.objectContaining({ nameBn: "মজুরি", inBdt: 0, outBdt: 12_000 }),
       ])
     );
@@ -191,7 +194,7 @@ describe("the accountant's export", () => {
     );
     expect(summary?.bySide).toEqual([
       { side: "dairy", inBdt: 5000, outBdt: 4000 },
-      { side: "fattening", inBdt: 35_000, outBdt: 31_000 },
+      { side: "fattening", inBdt: 35_000, outBdt: 31_900 },
       { side: null, inBdt: 0, outBdt: 16_000 },
     ]);
     expect(text).toContain(REGISTRATION);
