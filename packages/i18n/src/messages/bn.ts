@@ -1054,6 +1054,9 @@ export const bn: Record<MessageKey, string> = {
   "costs.unallocatedNote":
     "৳{amount} খাদ্য এমন পেনে গেছে যেখানে কোনো পশু লেখা নেই, কারো খরচে ধরা হয়নি",
   "costs.vet": "ভেট ভিজিট",
+  "costs.hasil": "হাটের হাসিল",
+  "costs.trips": "কেনা-বেচার যাত্রা",
+  "costs.herd": "পশুপালের খরচ",
   "costs.costOfGain": "প্রতি কেজি বৃদ্ধির খরচ",
   "costs.thisLactation": "এই দুধের মৌসুম",
   "costs.soldInPeriod": "এই সময়ে বিক্রি হওয়া মোটাতাজা পশু, প্রত্যেকের পুরো সময়ের হিসাব",

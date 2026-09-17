@@ -36,7 +36,10 @@ const useTaka = () => {
   return (amount: number) => `৳${formatNumber(amount, language)}`;
 };
 
-/** Feed, doses and the Vet, however much of each there was — and what the figures leave out. */
+/**
+ * Feed, doses, the Vet, the Hasil, the Trips and the Herd Costs — however much of each there was, and what
+ * the figures leave out.
+ */
 const WhatWasSpent = ({
   costs,
 }: {
@@ -46,6 +49,11 @@ const WhatWasSpent = ({
     medicineBdt: number;
     uncostedDoses: number;
     vetBdt: number;
+    // An answer kept on the phone from before these existed carries none of them: default them, or a
+    // fortnight of cached answers draws ৳NaN.
+    hasilBdt?: number;
+    tripBdt?: number;
+    herdBdt?: number;
   };
 }) => {
   const { t } = useLanguage();
@@ -55,6 +63,9 @@ const WhatWasSpent = ({
       <Line label={t("costs.feed")}>{taka(costs.feedBdt)}</Line>
       <Line label={t("costs.medicine")}>{taka(costs.medicineBdt)}</Line>
       <Line label={t("costs.vet")}>{taka(costs.vetBdt)}</Line>
+      <Line label={t("costs.hasil")}>{taka(costs.hasilBdt ?? 0)}</Line>
+      <Line label={t("costs.trips")}>{taka(costs.tripBdt ?? 0)}</Line>
+      <Line label={t("costs.herd")}>{taka(costs.herdBdt ?? 0)}</Line>
       <Note amount={costs.unpricedKg} word="costs.unpricedNote" />
       <Note amount={costs.uncostedDoses} word="costs.uncostedNote" />
     </>

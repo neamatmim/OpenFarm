@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
 import type {
+  CostShare,
   Costs,
   FeedShare,
   FeedingToCost,
@@ -229,6 +230,12 @@ export const farmCosts = async (db: Db, farmId: string) => {
     })
   );
 
+  // Nothing writes these yet: the Hasil at an Intake, the Trips that moved her and the month's Herd Costs
+  // each arrive with their own ticket. Every reader below is already right for the day they do.
+  const hasil: CostShare[] = [];
+  const trips: CostShare[] = [];
+  const herd: CostShare[] = [];
+
   const milked: LitresShare[] = sessions.flatMap((session) =>
     session.records.flatMap((record) => {
       const animal = byId.get(record.animalId);
@@ -249,24 +256,41 @@ export const farmCosts = async (db: Db, farmId: string) => {
     animals,
     sideOf,
     unallocated: fed.unallocated,
-    all: { feed: fed.shares, doses: dosed, vet: visited, litres: milked },
+    all: {
+      feed: fed.shares,
+      doses: dosed,
+      vet: visited,
+      litres: milked,
+      hasil,
+      trips,
+      herd,
+    },
     ofAnimal: {
       feed: byAnimal(fed.shares),
       doses: byAnimal(dosed),
       vet: byAnimal(visited),
       litres: byAnimal(milked),
+      hasil: byAnimal(hasil),
+      trips: byAnimal(trips),
+      herd: byAnimal(herd),
     },
   };
 };
 
 type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
 
-/** The shares a report adds up. */
+/**
+ * The shares a report adds up. Hasil, Trips and Herd Costs are here and always empty: nothing writes them
+ * yet, and everything that reads them is already right for the day something does.
+ */
 interface Shares {
   feed: readonly FeedShare[];
   doses: readonly DoseShare[];
   vet: readonly VetShare[];
   litres: readonly LitresShare[];
+  hasil: readonly CostShare[];
+  trips: readonly CostShare[];
+  herd: readonly CostShare[];
 }
 
 /** Shares narrowed to those that pass. */
@@ -278,7 +302,14 @@ const narrowed = (
   doses: shares.doses.filter(keep),
   vet: shares.vet.filter(keep),
   litres: shares.litres.filter(keep),
+  hasil: shares.hasil.filter(keep),
+  trips: shares.trips.filter(keep),
+  herd: shares.herd.filter(keep),
 });
+
+/** What one kind of by-the-head share came to. */
+const bdtOf = (shares: readonly CostShare[]): number =>
+  shares.reduce((sum, one) => sum + one.bdt, 0);
 
 /** What a set of shares cost, and the litres it sent to Bulk. */
 const addedUp = (shares: Shares): { costs: Costs; litresToBulk: number } => ({
@@ -292,6 +323,9 @@ const addedUp = (shares: Shares): { costs: Costs; litresToBulk: number } => ({
     uncostedDoses: shares.doses.filter((one) => one.medicineBdt === null)
       .length,
     vetBdt: shares.vet.reduce((sum, one) => sum + one.vetBdt, 0),
+    hasilBdt: bdtOf(shares.hasil),
+    tripBdt: bdtOf(shares.trips),
+    herdBdt: bdtOf(shares.herd),
   },
   litresToBulk: shares.litres.reduce((sum, one) => sum + one.litres, 0),
 });
@@ -347,6 +381,9 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
     doses: costs.ofAnimal.doses.get(animal.id) ?? [],
     vet: costs.ofAnimal.vet.get(animal.id) ?? [],
     litres: costs.ofAnimal.litres.get(animal.id) ?? [],
+    hasil: costs.ofAnimal.hasil.get(animal.id) ?? [],
+    trips: costs.ofAnimal.trips.get(animal.id) ?? [],
+    herd: costs.ofAnimal.herd.get(animal.id) ?? [],
   };
   const whole = addedUp(hers).costs;
   const purchaseBdt = animal.intake

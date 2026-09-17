@@ -278,6 +278,7 @@ export {
   termsUnchanged,
 } from "./money";
 export type {
+  CostShare,
   Costs,
   FeedShare,
   FeedingToCost,
