@@ -630,6 +630,34 @@ describe("what an animal costs, and what a litre costs", () => {
 
   // The haat takes its toll per beast, and often on her price: it is hers alone, never spread over the
   // bulls that came home on the same lorry.
+  // Grass cut from the farm's own fields is not free to whoever eats it: once the Owner says what a kilo
+  // of it is worth, the next cut comes in at that and the animals fed it are charged.
+  it("charges home-grown fodder to the animals that eat it, once it is worth something", async () => {
+    const owner = await as("owner", "2039-02-02T04:00:00.000Z");
+    // Bull B, who is still standing here: nothing is charged to a beast for feed put out after she has
+    // gone, so the bull who sold in January is the wrong one to ask.
+    const before = await owner.client.costs.ofAnimal({ tagNumber: bullB });
+    await owner.client.feed.setFodderPrice({
+      feedItemId: world.grass.id,
+      fodderPriceBdt: 2,
+    });
+    const manager = await as("manager", "2039-02-02T04:00:00.000Z");
+    // A hundred kilos cut at two taka, then twenty of it fed to the pen Bull A stands in.
+    await manager.client.stock.receive({
+      feedItemId: world.grass.id,
+      kind: "harvest",
+      quantity: 100,
+      receivedOn: "2039-02-02",
+      paymentMethod: "cash",
+    });
+    await feed(world.fattening.id, "2039-02-02T06:00:00.000Z", 0, 20);
+    const after = await owner.client.costs.ofAnimal({ tagNumber: bullB });
+    // The store held a thousand kilos worth nothing and now holds a hundred worth two, so a kilo of the
+    // mix is worth a fraction of a taka — and whatever it is, he is charged for it and was not before.
+    expect(after.feedBdt).toBeGreaterThan(before.feedBdt);
+    expect(after.costOfGainBdt ?? 0).toBeGreaterThanOrEqual(0);
+  });
+
   it("charges the Hasil to the animal it was paid on, and to nobody else", async () => {
     const owner = await as("owner", "2039-02-01T04:00:00.000Z");
     const paid = await owner.client.costs.ofAnimal({

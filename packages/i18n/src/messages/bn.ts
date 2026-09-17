@@ -846,6 +846,11 @@ export const bn: Record<MessageKey, string> = {
   "stock.col.value": "মোট দাম",
   "stock.col.lowAt": "কমার সীমা",
   "stock.rowActions": "{name} — আরও কাজ",
+  "stock.setFodderPrice": "নিজের উৎপাদনের দাম",
+  "stock.fodderPriceSaved": "নিজের ফসলের দাম রাখা হলো",
+  "stock.fodderPriceHint":
+    "খামার নিজে ফলালে এর এক এককের দাম কত — কিনলে যা লাগত, মোটামুটি তাই। এরপর থেকে কাটা প্রতিটি চালান এই দামে গুদামে আসে, তাই যে গরু খায় তার হিসাবেই খরচটা ওঠে। খামার যা ফলায় না, তার ঘর ফাঁকা থাক।",
+  "stock.perUnit": "প্রতি {unit} টাকা",
   "stock.setLevel": "কমার সীমা ঠিক করুন",
   "stock.levelHint":
     "গুদামে এর নিচে নামলে ম্যানেজার ও মালিক জানবেন। খালি রাখলে জানানো হবে না।",

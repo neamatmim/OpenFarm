@@ -31,6 +31,8 @@ export interface StockLine {
   retiredAt: Date | null;
   /** Below this much, the Manager is told. Null for a Feed Item nobody watches. */
   lowStockAt: number | null;
+  /** What a kilo is worth when the farm grows it itself. Null for anything it does not grow. */
+  fodderPriceBdt: number | null;
   /** Everything that came in, less everything the Feedings gave. Below nothing when the pens were fed
    *  from feed nobody wrote down arriving — shown, never refused. */
   onHand: number;
@@ -135,6 +137,7 @@ export const stockOnHand = async (
         unit: true,
         retiredAt: true,
         lowStockAt: true,
+        fodderPriceBdt: true,
       },
       orderBy: { nameBn: "asc", id: "asc" },
     }),
@@ -155,6 +158,8 @@ export const stockOnHand = async (
       unit: item.unit,
       retiredAt: item.retiredAt,
       lowStockAt: item.lowStockAt === null ? null : Number(item.lowStockAt),
+      fodderPriceBdt:
+        item.fodderPriceBdt === null ? null : Number(item.fodderPriceBdt),
       ...ledger,
       runningLow:
         item.lowStockAt !== null &&
@@ -521,6 +526,11 @@ export const bookPurchaseMoney = async (
   paymentMethod: PaymentMethod | undefined
 ) => {
   const row = await tx.query.feedIn.findFirst({ where: { id } });
+  // A Harvest is worth something to whoever eats it, but the farm paid nobody for it: it values the
+  // store, and no money moved.
+  if (row?.kind === "harvest") {
+    return;
+  }
   if (row?.priceBdt) {
     await bookMoney(tx, booking, {
       source: "feed_in",
@@ -532,6 +542,16 @@ export const bookPurchaseMoney = async (
     });
   }
 };
+
+/** What a cut lot is worth: the Feed Item's Fodder Price times the kilos, or nothing while the farm has
+ *  put no price on its own fodder. */
+export const fodderValueOf = (
+  item: { fodderPriceBdt: string | null },
+  quantity: number
+): string | null =>
+  item.fodderPriceBdt === null
+    ? null
+    : (Number(item.fodderPriceBdt) * quantity).toFixed(2);
 
 /**
  * A Purchase names what the lot cost and the seller it came from; a Harvest from the farm's own

@@ -26,6 +26,7 @@ import {
   sellerInput,
   adjustmentsOf,
   stockOnHand,
+  fodderValueOf,
 } from "../stock-store";
 
 export const stockRouter = {
@@ -133,7 +134,7 @@ export const stockRouter = {
       }
       const item = await context.db.query.feedItem.findFirst({
         where: { id: input.feedItemId, farmId: context.farm.id },
-        columns: { id: true, retiredAt: true },
+        columns: { id: true, retiredAt: true, fodderPriceBdt: true },
       });
       if (!item) {
         throw new ORPCError("NOT_FOUND", { message: "No such feed" });
@@ -161,7 +162,12 @@ export const stockRouter = {
             feedItemId: item.id,
             kind: input.kind,
             quantity: input.quantity.toFixed(1),
-            priceBdt: input.priceBdt?.toFixed(2) ?? null,
+            // A purchase is worth what the farm paid; a Harvest is worth what the farm says its own
+            // fodder is worth, taken from the Feed Item rather than typed by whoever cut it.
+            priceBdt:
+              input.kind === "harvest"
+                ? fodderValueOf(item, input.quantity)
+                : (input.priceBdt?.toFixed(2) ?? null),
             counterpartyId: sellerId,
             receivedOn,
             recordedBy: context.actor.id,

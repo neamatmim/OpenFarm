@@ -13,8 +13,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
 /** Named again when what is kept changes shape, so a phone never reads back a cache written the old way: the first
  *  one kept every date as a string, and a page drawn from it failed on the first date it wrote out; the next one
  *  came before what an animal costs carried the Hasil, the Trips and the Herd Costs, and the one after it
- *  before her arrival said what the haat took. */
-const CACHE_KEY = "kept-with-the-hasil";
+ *  before her arrival said what the haat took, and the one after that before the store said what the
+ *  farm's own fodder is worth. */
+const CACHE_KEY = "kept-with-what-fodder-is-worth";
 
 /** How a date is written into the kept cache, so it is read back as a date rather than as the string JSON makes of
  *  it. The API's answers carry real dates, and every screen formats them as dates. */

@@ -14,7 +14,12 @@ import { protectedProcedure } from "../index";
 import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf, settleMoneyNotices } from "../money-store";
 import { periodInput, periodOf } from "../period";
-import { requireOnly, requirePersonalSession, requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import { moneyEntryProcedures } from "./money-entries";
 
 /** As much of a period as one screen reads; a busy period says there is more rather than dropping
@@ -46,11 +51,6 @@ const notWaiting = () =>
     message: "That money is not waiting for approval",
     data: { refusal: "not_awaiting_approval" },
   });
-
-const OWNER_ONLY = {
-  message: "Approving money is the Owner's alone",
-  reason: "owner_only",
-} as const;
 
 const VET_ONLY = {
   message: "A visit fee is the Vet's own to enter",

@@ -854,6 +854,11 @@ export const en = {
   "stock.col.value": "Value",
   "stock.col.lowAt": "Running-low level",
   "stock.rowActions": "{name} — more actions",
+  "stock.setFodderPrice": "What it is worth home-grown",
+  "stock.fodderPriceSaved": "What home-grown fodder is worth is saved",
+  "stock.fodderPriceHint":
+    "What a unit of this is worth when the farm grows it itself — roughly what buying it would cost. Every cut from here on comes into the store at it, so the animals that eat it are charged for it. Blank for anything the farm does not grow.",
+  "stock.perUnit": "Taka per {unit}",
   "stock.setLevel": "Set running-low level",
   "stock.levelHint":
     "The Manager and the Owner are told when the store falls below this. Leave it blank to not be told.",
