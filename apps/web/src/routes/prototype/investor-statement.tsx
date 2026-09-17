@@ -18,16 +18,6 @@ const VARIANTS = [
   { key: "C", name: nameC },
 ] as const;
 
-export const Route = createFileRoute("/prototype/investor-statement")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    variant:
-      typeof s.variant === "string" && ["A", "B", "C"].includes(s.variant)
-        ? s.variant
-        : "A",
-  }),
-  component: Page,
-});
-
 const Page = () => {
   const { variant } = Route.useSearch();
   return (
@@ -41,3 +31,13 @@ const Page = () => {
     </div>
   );
 };
+
+export const Route = createFileRoute("/prototype/investor-statement")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    variant:
+      typeof s.variant === "string" && ["A", "B", "C"].includes(s.variant)
+        ? s.variant
+        : "A",
+  }),
+  component: Page,
+});
