@@ -18,7 +18,7 @@ import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useLanguage } from "@/i18n/language-provider";
-import { amount, counterparty } from "@/lib/correcting";
+import { amount, counterparty, figure } from "@/lib/correcting";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -29,12 +29,20 @@ import type { AnimalDetail, AnimalPowers } from "./animal-types";
 const IntakeCorrection = ({
   intake,
 }: {
-  intake: { id: string; purchasePriceBdt: number; sellerName: string | null };
+  intake: {
+    id: string;
+    purchasePriceBdt: number;
+    hasilBdt: number;
+    sellerName: string | null;
+  };
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const correcting = useCorrecting({
     purchasePriceBdt: amount(intake.purchasePriceBdt),
+    // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
+    // mistake is put back to nothing. `amount` would refuse it, and refuse the whole Correction with it.
+    hasilBdt: figure(intake.hasilBdt),
     seller: counterparty(intake.sellerName),
   });
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
@@ -58,6 +66,13 @@ const IntakeCorrection = ({
         onChange={(value) => correcting.set("purchasePriceBdt", value)}
         type="number"
         value={correcting.typed.purchasePriceBdt ?? ""}
+      />
+      <CorrectionAnswer
+        inputMode="numeric"
+        label={t("intake.hasil")}
+        onChange={(value) => correcting.set("hasilBdt", value)}
+        type="number"
+        value={correcting.typed.hasilBdt ?? ""}
       />
       <CorrectionAnswer
         label={t("correct.seller")}
@@ -98,6 +113,13 @@ const HowSheArrived = ({
             taka: formatNumber(intake.purchasePriceBdt, language),
           })}
         </Fact>
+        {intake.hasilBdt > 0 ? (
+          <Fact label={t("intake.hasil")}>
+            {t("intake.taka", {
+              taka: formatNumber(intake.hasilBdt, language),
+            })}
+          </Fact>
+        ) : null}
         <Fact label={t("intake.weight")}>{kg(intake.weightKg)}</Fact>
         <Fact label={t("intake.age")}>
           {t("intake.months", {

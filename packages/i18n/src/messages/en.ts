@@ -1830,6 +1830,7 @@ export const en = {
   "intake.title": "How it arrived",
   "intake.seller": "Seller",
   "intake.price": "Purchase price",
+  "intake.hasil": "Hasil at the haat",
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",
   "intake.targetWeight": "Target weight",

@@ -63,6 +63,12 @@ export const intake = pgTable(
       precision: 12,
       scale: 2,
     }).notNull(),
+    /** The toll the haat took on this beast, as its slip gives it. Part of what she cost the farm and
+     *  charged to her alone, because a haat takes it per animal and often on her price. Zero for one
+     *  bought at the farm gate, and for one born here. */
+    hasilBdt: numeric("hasil_bdt", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
     /** What it weighed when it came off the lorry: the first point every gain is measured from. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     /** Months, as the seller says and the Manager judges. Nobody has a bought-in bull's papers. */

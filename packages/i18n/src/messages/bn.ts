@@ -1780,6 +1780,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.title": "যেভাবে এসেছে",
   "intake.seller": "বিক্রেতা",
   "intake.price": "ক্রয়মূল্য",
+  "intake.hasil": "হাটের হাসিল",
   "intake.weight": "আসার সময়ের ওজন",
   "intake.age": "আনুমানিক বয়স",
   "intake.targetWeight": "লক্ষ্য ওজন",

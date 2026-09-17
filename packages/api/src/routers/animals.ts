@@ -268,6 +268,7 @@ const intakeView = (
     | {
         id: string;
         purchasePriceBdt: string;
+        hasilBdt: string;
         weightKg: string;
         targetWeightKg: string;
         estimatedAgeMonths: number;
@@ -283,6 +284,7 @@ const intakeView = (
     ? {
         id: row.id,
         purchasePriceBdt: Number(row.purchasePriceBdt),
+        hasilBdt: Number(row.hasilBdt),
         weightKg: Number(row.weightKg),
         targetWeightKg: Number(row.targetWeightKg),
         estimatedAgeMonths: row.estimatedAgeMonths,
