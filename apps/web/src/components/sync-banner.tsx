@@ -19,6 +19,16 @@ const FLUSH_EVERY_MS = 15_000;
 /** How often the phone re-reads the herd it works. */
 const HERD_EVERY_MS = 10 * 60_000;
 
+/** A time this phone kept, as a date — or nothing, for one it cannot read. The pill is a line in the top bar; a stored
+ *  time gone wrong says "not yet" rather than taking every page down with it. */
+const readableDate = (kept: unknown): Date | null => {
+  if (typeof kept !== "string") {
+    return null;
+  }
+  const date = new Date(kept);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 /**
  * What this phone is still holding, on every screen a Staff member works from — a calm pill in the top bar: all
  * sent, a count waiting, or what needs the person (signed out, work sent back). Its title carries when the phone
@@ -107,7 +117,7 @@ export const SyncBanner = () => {
 
   const herdAt = useQuery({
     ...herdCacheQuery,
-    select: (herd) => herd.at,
+    select: (herd) => (typeof herd?.at === "string" ? herd.at : null),
   });
 
   const held = state.data;
@@ -135,14 +145,16 @@ export const SyncBanner = () => {
       ? t("outbox.pending", { count: held.pending })
       : t("outbox.allSent");
   })();
-  const sent = held.lastSyncAt
+  const syncedAt = readableDate(held.lastSyncAt);
+  const sent = syncedAt
     ? t("outbox.synced", {
-        ago: formatDate(new Date(held.lastSyncAt), language, "dateTime"),
+        ago: formatDate(syncedAt, language, "dateTime"),
       })
     : t("outbox.never");
-  const fresh = herdAt.data
+  const herdKeptAt = readableDate(herdAt.data);
+  const fresh = herdKeptAt
     ? t("outbox.herdFresh", {
-        ago: formatDate(new Date(herdAt.data), language, "dateTime"),
+        ago: formatDate(herdKeptAt, language, "dateTime"),
       })
     : null;
   let Icon = CloudCheck;

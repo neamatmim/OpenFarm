@@ -68,7 +68,9 @@ export const cachedHerd = async (): Promise<{
  * where it expected the time it was kept, and the page fell over formatting it as a date.
  */
 export const herdCacheQuery = {
-  queryKey: ["herd-cache"] as const,
+  // Not ["herd-cache"]: a phone keeps its answers for a fortnight, and under that key it may still hold the time
+  // alone, from before the two questions became one. Read as the herd, that string's own `.at` is a function.
+  queryKey: ["herd-cache", "herd"] as const,
   queryFn: cachedHerd,
   staleTime: Number.POSITIVE_INFINITY,
 };
