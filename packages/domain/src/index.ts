@@ -358,3 +358,5 @@ export {
   slotsOf,
   turnsOf,
 } from "./step-shape";
+export { monthBefore, monthsFromTo, payoutOf, splitOfProfit } from "./venture";
+export type { Split, ToSplit } from "./venture";

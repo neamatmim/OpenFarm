@@ -44,6 +44,7 @@ import {
   requirePersonalSession,
   requireRole,
 } from "../roles";
+import { settlementOf } from "../settlement-store";
 import {
   balanceAtMonthEnd,
   balanceOf,
@@ -51,7 +52,6 @@ import {
   NEVER_CHECKED,
   bankStandingOf,
   readBankCheck,
-  ownersOverTime,
   readInternalSale,
   whatSheLastWeighed,
   whatTheFloatBought,
@@ -65,6 +65,7 @@ import {
   priceAtWeight,
   stillHersOf,
   windUpEndsOn,
+  ownedThenByOf,
 } from "../venture-store";
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
@@ -234,26 +235,7 @@ const whatItsAnimalsConsumed = async (
   ventureId: string,
   month: string
 ) => {
-  const nowOwned = await context.db.query.animal.findMany({
-    where: { farmId: context.farm.id },
-    columns: { id: true, ownerVentureId: true },
-  });
-  const ownsNow = new Map(nowOwned.map((one) => [one.id, one.ownerVentureId]));
-  const changed = await ownersOverTime(context.db, context.farm.id);
-  const ownedThenBy = (animalId: string, at: Date): string | null => {
-    const hers = changed.get(animalId);
-    if (!hers) {
-      return ownsNow.get(animalId) ?? null;
-    }
-    // The last change on or before that day is who owned her then.
-    let owner = hers[0]?.ventureId ?? null;
-    for (const span of hers) {
-      if (span.from <= at) {
-        owner = span.ventureId;
-      }
-    }
-    return owner;
-  };
+  const ownedThenBy = await ownedThenByOf(context.db, context.farm.id);
   const { from, until } = monthOf(startOfFarmDay(`${month}-01`));
   const costs = await farmCosts(context.db, context.farm.id);
   const consumed = consumedBy(costs, ownedThenBy, ventureId, { from, until });
@@ -1139,6 +1121,28 @@ export const venturesRouter = {
         }
       );
       return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
+    }),
+
+  /**
+   * The close-out of a Venture, shown before anything is done: what its Animals fetched, every charge as
+   * its own line, the Owner's Advance, capital, the profit and what each Investor is owed.
+   *
+   * It comes back with whatever makes it a guess rather than refusing outright, because an Owner told
+   * only "no" has nothing to go and put right — and because she is owed the shape of the answer while she
+   * is chasing the last weigh-in that would finish it.
+   */
+  settlement: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      return await settlementOf(
+        context.db,
+        context.farm.id,
+        row,
+        farmDayOf(context.clock.now())
+      );
     }),
 
   /**

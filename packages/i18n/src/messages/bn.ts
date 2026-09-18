@@ -374,6 +374,12 @@ export const bn: Record<MessageKey, string> = {
   "refusal.neverWeighed": "গরুটির কোনো ওজন নেওয়া হয়নি, তাই দাম ঠিক করার ভিত্তি নেই",
   "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
   "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
+  "refusal.anAnimalStillStands": "এই ভেঞ্চারের একটি গরু এখনও আছে",
+  "refusal.aPriceIsMissing": "যে খাবার বা ওষুধ দেওয়া হয়েছে তার দাম জানা নেই",
+  "refusal.aFloatIsOpen": "হাটের টাকার হিসাব এখনও মেলানো হয়নি",
+  "refusal.aReimbursementIsOwed": "কোনো মাসের ফেরত এখনও পাঠানো হয়নি",
+  "refusal.theBankDisagrees": "কোনো মাস স্টেটমেন্টের সঙ্গে মেলানো হয়নি, বা মেলেনি",
+  "refusal.agreementsDisagree": "এই ভেঞ্চারের চুক্তিগুলোতে ভাগ এক নয়",
   "refusal.weighedAgainSince":
     "আপনি দাম দেখার পর গরুটির ওজন আবার নেওয়া হয়েছে — নতুন দাম দেখুন",
   "refusal.notAFatteningAnimal":
