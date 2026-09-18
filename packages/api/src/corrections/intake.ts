@@ -7,6 +7,7 @@ import type { Tx } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import {
   assertAVentureMayOwnHer,
+  assertSheBelongsWithTheFloat,
   assertTripIsOurs,
   assertVentureIsBuying,
   bookIntakeMoney,
@@ -19,6 +20,7 @@ import {
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import { bookSaleMoney } from "../sale-store";
+import { assertTripIsOpen } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -80,6 +82,9 @@ export const intakeCorrection: CorrectionKind<
   shownAs: { seller: (to) => to.name },
   trail: (tx, row) => readIntake(tx, row.animalId),
   apply: async (tx, row, to, { context, now }) => {
+    // The outing she is on now, and the one she is being moved to: a Float already counted may neither
+    // gain an animal nor lose one, because the sum it was counted against would stop being true.
+    await assertTripIsOpen(tx, row.farmId, row.buyingTripId);
     await assertTripIsOurs(tx, row.farmId, to.buyingTrip ?? undefined);
     if (to.owner !== undefined) {
       await assertVentureIsBuying(tx, row.farmId, to.owner ?? undefined, {
@@ -88,6 +93,10 @@ export const intakeCorrection: CorrectionKind<
       if (to.owner !== null) {
         await assertAVentureMayOwnHer(tx, row.animalId);
       }
+      await assertSheBelongsWithTheFloat(tx, row.farmId, {
+        buyingTripId: to.buyingTrip ?? row.buyingTripId ?? undefined,
+        ventureId: to.owner ?? undefined,
+      });
       // On the Animal, where an owner lives: her Intake says who bought her, but it is she who belongs
       // to somebody. Written before the money is booked again, so what she cost follows her.
       await tx

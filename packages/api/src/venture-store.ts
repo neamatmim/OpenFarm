@@ -2,8 +2,10 @@ import type {
   VentureMovementKind,
   VentureState,
 } from "@OpenFarm/db/schema/venture";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { tripCostOf } from "./trip-store";
 
 /** A Venture's row, as the columns hold it. */
 interface VentureRow {
@@ -33,6 +35,8 @@ const NOBODY: SignedFor = { units: 0, people: 0 };
  *  what it has paid out. Spending and payouts arrive with the buying and settlement work; they are read
  *  as nothing until then, so every reader is already right for the day they do. */
 export interface Held {
+  /** What Floats are out at the haat, unreconciled. Money the farm has let go of and not yet counted. */
+  openFloatBdt: number;
   capitalInBdt: number;
   refundedBdt: number;
   spentBdt: number;
@@ -47,6 +51,7 @@ export const balanceOf = (held: Held) =>
   held.capitalInBdt - held.refundedBdt - held.spentBdt - held.paidOutBdt;
 
 const NOTHING_HELD: Held = {
+  openFloatBdt: 0,
   capitalInBdt: 0,
   refundedBdt: 0,
   spentBdt: 0,
@@ -147,6 +152,9 @@ const WHAT_IT_DOES = {
   // A Float is money out of the account the moment it is drawn: it is in the Manager's hand at the
   // haat, not in the bank, and it is cattle money — it buys cattle or it comes home again.
   float_out: { line: "spentBdt", sign: 1, cattle: 1 },
+  // What came home is the same line and the same budget, moving the other way: the unspent part was
+  // never spent, and it is cattle money still.
+  float_back: { line: "spentBdt", sign: -1, cattle: -1 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
@@ -167,7 +175,12 @@ export const heldByEach = async (
   }
   const movements = await tx.query.ventureMovement.findMany({
     where: { farmId, ventureId: { in: [...ids] } },
-    columns: { ventureId: true, kind: true, amountBdt: true },
+    columns: {
+      ventureId: true,
+      kind: true,
+      amountBdt: true,
+      reconciledAt: true,
+    },
   });
   for (const one of movements) {
     const soFar = held.get(one.ventureId) ?? NOTHING_HELD;
@@ -177,6 +190,9 @@ export const heldByEach = async (
       ...soFar,
       [does.line]: soFar[does.line] + does.sign * taka,
       cattleOutBdt: soFar.cattleOutBdt + does.cattle * taka,
+      openFloatBdt:
+        soFar.openFloatBdt +
+        (one.kind === "float_out" && one.reconciledAt === null ? taka : 0),
     });
   }
   return held;
@@ -195,6 +211,74 @@ export const takenAgainst = async (
   return rows.reduce((sum, one) => sum + Number(one.amountBdt), 0);
 };
 
+/**
+ * That an outing's Buying Float has not been reconciled yet.
+ *
+ * Reconciling says what went out equals the animals, the outing's costs and the cash brought home. An
+ * animal or a cost changed afterwards would make that sum false, and the Owner already signed it.
+ */
+export const assertTripIsOpen = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  tripId: string | null | undefined
+) => {
+  if (!tripId) {
+    return;
+  }
+  const counted = await tx.query.ventureMovement.findFirst({
+    where: {
+      farmId,
+      buyingTripId: tripId,
+      kind: "float_out",
+      reconciledAt: { isNotNull: true },
+    },
+    columns: { id: true },
+  });
+  if (counted) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That outing's Float has been reconciled; it takes nothing more",
+      data: { refusal: "float_already_reconciled" },
+    });
+  }
+};
+
+/**
+ * What a Buying Float has to account for: the Animals it brought home for its Venture — each one's price
+ * and the haat's toll on her — and the outing's own costs, the broker, the lorry and keeping the men.
+ *
+ * Whatever is left of the Float is the cash the Manager should be bringing back.
+ */
+export const whatTheFloatBought = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  { buyingTripId, ventureId }: { buyingTripId: string; ventureId: string }
+) => {
+  const trip = await tx.query.buyingTrip.findFirst({
+    where: { id: buyingTripId, farmId },
+  });
+  const brought = await tx.query.intake.findMany({
+    where: { farmId, buyingTripId },
+    columns: { animalId: true, purchasePriceBdt: true, hasilBdt: true },
+  });
+  const owners = await tx.query.animal.findMany({
+    where: { farmId, id: { in: brought.map((one) => one.animalId) } },
+    columns: { id: true, ownerVentureId: true },
+  });
+  const whose = new Map(owners.map((one) => [one.id, one.ownerVentureId]));
+  const animalsBdt = brought
+    .filter((one) => whose.get(one.animalId) === ventureId)
+    .reduce(
+      (sum, one) => sum + Number(one.purchasePriceBdt) + Number(one.hasilBdt),
+      0
+    );
+  return {
+    animalsBdt,
+    tripBdt: trip ? tripCostOf(trip) : 0,
+    animals: brought.filter((one) => whose.get(one.animalId) === ventureId)
+      .length,
+  };
+};
+
 /** One Venture Movement as the trail records it: whose money, which way, how much and against what
  *  reference. */
 export const readMovement = async (tx: Tx, farmId: string, id: string) => {
@@ -211,6 +295,7 @@ export const readMovement = async (tx: Tx, farmId: string, id: string) => {
         movedOn: row.movedOn,
         reference: row.reference,
         refundsId: row.refundsId,
+        reconciledAt: row.reconciledAt,
       }
     : null;
 };

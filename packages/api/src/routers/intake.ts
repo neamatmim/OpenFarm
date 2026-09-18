@@ -13,6 +13,7 @@ import { farmDay } from "../farm-clock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import {
+  assertSheBelongsWithTheFloat,
   assertTripIsOurs,
   assertVentureIsBuying,
   bookIntakeMoney,
@@ -139,6 +140,10 @@ export const intakeRouter = {
           // words, not by a foreign key after the row exists and a tag number has been spent.
           await assertTripIsOurs(tx, context.farm.id, input.buyingTripId);
           await assertVentureIsBuying(tx, context.farm.id, input.ventureId);
+          await assertSheBelongsWithTheFloat(tx, context.farm.id, {
+            buyingTripId: input.buyingTripId,
+            ventureId: input.ventureId,
+          });
           const made = await insertAnimal(tx, {
             id,
             farmId: context.farm.id,

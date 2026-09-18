@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Tx } from "./audit";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
+import { assertTripIsOpen } from "./venture-store";
 
 /** The arrival as the trail records it: the Animal it made and what the farm paid for it. */
 export const readIntake = async (tx: Tx, animalId: string) => {
@@ -123,11 +124,7 @@ export const bookIntakeMoney = async (
 /** Taka. Whole animals are bought in thousands; the column keeps poisha so finance can too. */
 export const purchasePriceInput = z.number().min(0).max(100_000_000);
 
-/**
- * Refuses an outing that is not this Farm's. An Intake names the Trip it came home on by id, and an id from
- * somewhere else would attach silently: her share would be lost, and another farm's outing would show an
- * animal it never carried.
- */
+/** This Farm's outing, and one still open — a Float already reconciled takes no more animals. */
 export const assertTripIsOurs = async (
   tx: Tx,
   farmId: string,
@@ -142,6 +139,34 @@ export const assertTripIsOurs = async (
   });
   if (!ours) {
     throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+  }
+  await assertTripIsOpen(tx, farmId, tripId);
+};
+
+/**
+ * That an animal bought on a funded outing belongs to the Venture that funded it.
+ *
+ * The Manager went to the haat with one Venture's money, so every beast she brought home on that lorry
+ * was bought with it. One written down as the Farm's, or as another Venture's, would be an animal one
+ * purse paid for and another owns — and the Float could never be made to balance again.
+ */
+export const assertSheBelongsWithTheFloat = async (
+  tx: Tx,
+  farmId: string,
+  { buyingTripId, ventureId }: { buyingTripId?: string; ventureId?: string }
+) => {
+  if (!buyingTripId) {
+    return;
+  }
+  const float = await tx.query.ventureMovement.findFirst({
+    where: { farmId, buyingTripId, kind: "float_out" },
+    columns: { ventureId: true },
+  });
+  if (float && float.ventureId !== ventureId) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That outing went to the haat on another purse's money",
+      data: { refusal: "not_whose_float_bought_her" },
+    });
   }
 };
 

@@ -19,6 +19,7 @@ import {
   tripCostInput,
   tripCostOf,
 } from "../trip-store";
+import { whatTheFloatBought } from "../venture-store";
 
 /** How many outings the form offers to put an arrival on. Newest first; a haat is written up the same week. */
 const OFFERED = 20;
@@ -71,21 +72,41 @@ export const tripsRouter = {
                     amountBdt: Number(one.amountBdt),
                     ventureId: one.ventureId,
                     ventureName: one.venture?.name ?? "",
+                    /** When it was reconciled, or null while it is still out at the haat. */
+                    reconciledAt: one.reconciledAt,
                   },
                 ] as const,
               ]
             : []
         )
       );
-      return rows.map((one) => ({
-        id: one.id,
-        wentTo: one.wentTo,
-        wentOn: one.wentOn,
-        costBdt: tripCostOf(one),
-        animals: one.intakes.length,
-        /** The Buying Float this outing was given, where one was. */
-        float: given.get(one.id) ?? null,
-      }));
+      // What each funded outing has bought, worked out by the one function that also refuses a count
+      // that does not balance — so the sheet and the refusal can never disagree.
+      const bought = new Map(
+        await Promise.all(
+          [...given].map(async ([tripId, float]) => {
+            const sum = await whatTheFloatBought(context.db, context.farm.id, {
+              buyingTripId: tripId,
+              ventureId: float.ventureId,
+            });
+            return [tripId, sum.animalsBdt + sum.tripBdt] as const;
+          })
+        )
+      );
+      return rows.map((one) => {
+        const float = given.get(one.id);
+        return {
+          id: one.id,
+          wentTo: one.wentTo,
+          wentOn: one.wentOn,
+          costBdt: tripCostOf(one),
+          animals: one.intakes.length,
+          /** The Buying Float this outing was given, where one was. */
+          float: float
+            ? { ...float, boughtBdt: bought.get(one.id) ?? 0 }
+            : null,
+        };
+      });
     }),
 
   /**
