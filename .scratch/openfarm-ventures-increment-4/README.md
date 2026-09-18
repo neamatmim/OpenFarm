@@ -2,13 +2,18 @@
 
 Three tickets from [the Ventures spec](../openfarm-investor-projects/spec.md), increment 4. A Venture's animals are standing in the sheds eating the Farm's feed, and this is how the money keeps up with them month by month: what they consumed comes back to the Farm, the Owner is warned before the Running Budget runs dry, and the bank is checked against the books while a mistake is still fresh.
 
-| #   | Ticket                                       | Blocked by |
-| --- | -------------------------------------------- | ---------- |
-| 01  | The monthly Reimbursement                    | —          |
-| 02  | The Running Budget runs low, and the Advance | —          |
-| 03  | The monthly bank check                       | —          |
+| #   | Ticket                                       | Blocked by | Status |
+| --- | -------------------------------------------- | ---------- | ------ |
+| 01  | The monthly Reimbursement                    | —          | done   |
+| 02  | The Running Budget runs low, and the Advance | —          | done   |
+| 03  | The monthly bank check                       | —          | done   |
 
-All three are roots and may be taken in any order, though 01 makes 02's warning easy to demonstrate, since a Reimbursement is what draws the Running Budget down. Work one ticket per `/implement`, clearing context between them. Ticket status lives in each file's `**Status:**` line.
+**All three are done and merged (2026-09-18.)** What each built, and what its review caught, is at the foot of its own file.
+
+Left standing for the increments after this one:
+
+- **Nothing recomputes a Bank Check.** A movement back-dated into a checked month leaves the Venture saying the month agreed against a figure the farm no longer believes.
+- **No correction of a Venture Movement.** A mistyped Advance or capital figure is permanent; the Bank Check is what catches it, but nothing puts it right.
 
 Carried in from increment 3, and not this increment's:
 

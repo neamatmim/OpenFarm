@@ -20,8 +20,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  is, the one after that because a Venture says what its Cattle Budget is holding, and this one because
  *  an outing says what it was given and what it has bought, and this one because a Venture says what it
  *  has been paid for an Animal it let go, and this one because a month's Reimbursement says what it is
- *  made of, and this one because a Venture says what it owes the Owner and whether it is running low. */
-const CACHE_KEY = "kept-with-the-advance";
+ *  made of, the one after that because a Venture says what it owes the Owner and whether it is running
+ *  low, and this one because it says whether the bank agreed. */
+const CACHE_KEY = "kept-with-the-bank-check";
 
 /** How a date is written into the kept cache, so it is read back as a date rather than as the string JSON makes of
  *  it. The API's answers carry real dates, and every screen formats them as dates. */

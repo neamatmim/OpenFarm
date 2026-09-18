@@ -9,6 +9,7 @@ import {
   Banknote,
   Handshake,
   PenLine,
+  Landmark,
   PiggyBank,
   Receipt,
   ScrollText,
@@ -26,6 +27,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { AdvanceSheet } from "@/components/ventures/advance-sheet";
+import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
@@ -59,6 +61,33 @@ const StateBadge = ({ state }: { state: Venture["state"] }) => {
   );
 };
 
+/**
+ * How a Venture's account stands against the bank. A month still out is a warning; nobody having looked
+ * at all is said too, because an account nobody has checked is the one worth checking.
+ */
+const BankStanding = ({
+  bank,
+}: {
+  bank: { lastCheckedMonth: string | null; monthsOut: string[] } | undefined;
+}) => {
+  const { t } = useLanguage();
+  const out = bank?.monthsOut ?? [];
+  if (out.length > 0) {
+    return (
+      <StatusBadge tone="warning">
+        {t("ventures.bankDisagrees", { month: out.join(", ") })}
+      </StatusBadge>
+    );
+  }
+  return bank?.lastCheckedMonth ? (
+    <StatusBadge tone="success">
+      {t("ventures.bankStraight", { month: bank.lastCheckedMonth })}
+    </StatusBadge>
+  ) : (
+    <StatusBadge tone="neutral">{t("ventures.bankNeverChecked")}</StatusBadge>
+  );
+};
+
 /** One Venture: what it is after, what it holds, who has signed for it, and when it means to sell. */
 /** What a Venture's card needs of the figures, whatever shape the answer it was drawn from had. A phone
  *  can be holding a fortnight-old cache written before any of this existed. */
@@ -82,6 +111,7 @@ const VentureCard = ({
   onCountFloat,
   onReimburse,
   onAdvance,
+  onCheckTheBank,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
@@ -91,6 +121,7 @@ const VentureCard = ({
   onCountFloat: (venture: Venture) => void;
   onReimburse: (venture: Venture) => void;
   onAdvance: (venture: Venture) => void;
+  onCheckTheBank: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -113,6 +144,9 @@ const VentureCard = ({
         {money.advancedBdt === 0 ? null : (
           <Line label={t("ventures.owedToYou")}>{taka(money.advancedBdt)}</Line>
         )}
+        <span className="col-span-full">
+          <BankStanding bank={venture.bank} />
+        </span>
         <Line label={t("ventures.outOfTheAccount")}>
           {`${taka(money.spentBdt)} · ${taka(money.paidOutBdt)}`}
         </Line>
@@ -204,6 +238,14 @@ const VentureCard = ({
             {t("ventures.reimburse")}
           </Button>
           <Button
+            onClick={() => onCheckTheBank(venture)}
+            type="button"
+            variant="ghost"
+          >
+            <Landmark aria-hidden data-icon="inline-start" />
+            {t("ventures.checkTheBank")}
+          </Button>
+          <Button
             onClick={() => onAdvance(venture)}
             type="button"
             variant={venture.runningBudgetLow ? "default" : "ghost"}
@@ -267,6 +309,7 @@ const VenturesPage = () => {
   const [counting, setCounting] = useState<Venture | null>(null);
   const [reimbursing, setReimbursing] = useState<Venture | null>(null);
   const [advancing, setAdvancing] = useState<Venture | null>(null);
+  const [checking, setChecking] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -305,6 +348,7 @@ const VenturesPage = () => {
                   onCallOff={setCallingOff}
                   onCountFloat={setCounting}
                   onAdvance={setAdvancing}
+                  onCheckTheBank={setChecking}
                   onReimburse={setReimbursing}
                   onDrawFloat={setDrawing}
                   onSign={setSigning}
@@ -329,6 +373,15 @@ const VenturesPage = () => {
         }}
         open={taking !== null}
         venture={taking}
+      />
+      <BankCheckSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setChecking(null);
+          }
+        }}
+        open={checking !== null}
+        venture={checking}
       />
       <AdvanceSheet
         onOpenChange={(wanted) => {

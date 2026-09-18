@@ -1,4 +1,3 @@
-import { farmDayOf } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -8,19 +7,9 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { lastMonth } from "@/lib/months";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
-
-/** The month before this one, on the farm's own clock: at one in the morning in Dhaka it is still
- *  yesterday in UTC, and a farm reimbursing August would be offered July. */
-const lastMonth = (): string => {
-  const today = farmDayOf(new Date());
-  const year = Number(today.slice(0, 4));
-  const month = Number(today.slice(5, 7));
-  return month === 1
-    ? `${year - 1}-12`
-    : `${year}-${String(month - 1).padStart(2, "0")}`;
-};
 
 /** What a line is called in the reader's own language. */
 const nameOf = (
