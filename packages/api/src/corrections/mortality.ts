@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { correctMortality, readMortality } from "../mortality-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
 const loadMortality = (tx: Tx, farmId: string, id: string) =>
   tx.query.mortality.findFirst({ where: { id, farmId } });
@@ -40,6 +40,9 @@ export const mortalityCorrection: CorrectionKind<
   entity: "mortality",
   table: mortality,
   roles: ["owner", "manager"],
+  // How she left decides whether her Venture ever sold her, and so what its Settlement counted.
+  // How she left, and when — which is what decides whether her Venture ever sold her at all.
+  venturesOf: herVenturesAround((row) => row.happenedAt),
   missing: "No such death or cull",
   load: loadMortality,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),

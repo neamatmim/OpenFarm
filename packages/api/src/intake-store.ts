@@ -1,4 +1,5 @@
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
+import { startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -52,6 +53,46 @@ export const ownerOf = async (tx: Tx, animalId: string) => {
     columns: { ownerVentureId: true },
   });
   return row?.ownerVentureId ?? null;
+};
+
+/**
+ * Whose she was on a given day, and whose she is now — both.
+ *
+ * A Correction to a record from her old owner's time moves what that owner was settled on; one from her
+ * present owner's time moves this one's. Reading only today's owner lets a Correction to a settled
+ * Venture's record slip through under the name of whoever holds her now, which is the whole thing a
+ * settled Venture is protected from.
+ */
+export const herVenturesAround = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId: string,
+  at: Date
+): Promise<readonly string[]> => {
+  const [sales, now] = await Promise.all([
+    tx.query.internalSale.findMany({
+      where: { farmId, animalId },
+      columns: { fromVentureId: true, toVentureId: true, soldOn: true },
+      orderBy: { soldOn: "asc", id: "asc" },
+    }),
+    tx.query.animal.findFirst({
+      where: { id: animalId, farmId },
+      columns: { ownerVentureId: true },
+    }),
+  ]);
+  // Before the first sale she belonged to whoever let her go in it; after each, to whoever took her on.
+  let then =
+    sales.length === 0
+      ? (now?.ownerVentureId ?? null)
+      : (sales[0]?.fromVentureId ?? null);
+  for (const one of sales) {
+    if (startOfFarmDay(one.soldOn) <= at) {
+      then = one.toVentureId;
+    }
+  }
+  return [...new Set([then, now?.ownerVentureId ?? null])].filter(
+    (one) => one !== null
+  );
 };
 
 /** Whose each of these animals is, in one query. */

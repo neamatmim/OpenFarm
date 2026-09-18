@@ -3,6 +3,7 @@ import { sellingTrip } from "@OpenFarm/db/schema/trip";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
+import { theOwnersOf } from "../intake-store";
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import {
@@ -46,6 +47,19 @@ export const sellingTripCorrection: CorrectionKind<
   entity: "selling_trip",
   table: sellingTrip,
   roles: ["owner", "manager"],
+  // An outing's own costs are split across the Animals it carried, so they are charges against every
+  // Venture that had one on the lorry — whether or not anybody bought her.
+  venturesOf: async (tx, row) => {
+    const carried = await tx.query.sellingTripAnimal.findMany({
+      where: { sellingTripId: row.id },
+      columns: { animalId: true },
+    });
+    const hers = await theOwnersOf(
+      tx,
+      carried.map((one) => one.animalId)
+    );
+    return [...new Set(hers.filter((one) => one !== null))];
+  },
   missing: "No such outing",
   load: loadSellingTrip,
   entityIdOf: (row) => row.id,
