@@ -4,7 +4,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Handshake, PenLine } from "lucide-react";
+import { Banknote, Handshake, PenLine, XCircle } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -15,8 +15,10 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
+import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
+import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -43,14 +45,30 @@ const StateBadge = ({ state }: { state: Venture["state"] }) => {
 };
 
 /** One Venture: what it is after, what it holds, who has signed for it, and when it means to sell. */
+/** What a Venture's card needs of the figures, whatever shape the answer it was drawn from had. A phone
+ *  can be holding a fortnight-old cache written before any of this existed. */
+const moneyOf = (venture: Venture) => ({
+  balanceBdt: venture.balanceBdt ?? 0,
+  cattleBudgetHeldBdt: venture.cattleBudgetHeldBdt ?? 0,
+  runningBudgetHeldBdt: venture.runningBudgetHeldBdt ?? 0,
+  spentBdt: venture.spentBdt ?? 0,
+  paidOutBdt: venture.paidOutBdt ?? 0,
+  signedFor: venture.signedFor ?? { units: 0, people: 0 },
+});
+
 const VentureCard = ({
   venture,
   onSign,
+  onTakeCapital,
+  onCallOff,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
+  onTakeCapital: (venture: Venture) => void;
+  onCallOff: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
+  const money = moneyOf(venture);
   const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
   const day = (on: string) => formatDate(startOfFarmDay(on), language, "date");
   return (
@@ -66,6 +84,16 @@ const VentureCard = ({
           {taka(venture.targetCapitalBdt)}
         </Line>
         <Line label={t("ventures.held")}>{taka(venture.capitalInBdt)}</Line>
+        <Line label={t("ventures.balance")}>{taka(money.balanceBdt)}</Line>
+        <Line label={t("ventures.spent")}>
+          {`${taka(money.spentBdt)} · ${taka(money.paidOutBdt)}`}
+        </Line>
+        <Line label={t("ventures.budgetsHeld")}>
+          {t("ventures.budgetSplit", {
+            cattle: formatNumber(money.cattleBudgetHeldBdt, language),
+            running: formatNumber(money.runningBudgetHeldBdt, language),
+          })}
+        </Line>
         <Line label={t("ventures.floor")}>{taka(venture.floorBdt)}</Line>
         <Line label={t("ventures.decideBy")}>{day(venture.decideBy)}</Line>
         <Line label={t("ventures.units")}>
@@ -76,9 +104,9 @@ const VentureCard = ({
         </Line>
         <Line label={t("ventures.signedFor")}>
           {t("ventures.unitsOfUnits", {
-            taken: formatNumber(venture.signedFor.units, language),
+            taken: formatNumber(money.signedFor.units, language),
             units: formatNumber(venture.units, language),
-            people: formatNumber(venture.signedFor.people, language),
+            people: formatNumber(money.signedFor.people, language),
           })}
         </Line>
         <Line label={t("ventures.budgets")}>
@@ -97,7 +125,15 @@ const VentureCard = ({
         </p>
       ) : null}
       {venture.state === "open" ? (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            onClick={() => onCallOff(venture)}
+            type="button"
+            variant="ghost"
+          >
+            <XCircle aria-hidden data-icon="inline-start" />
+            {t("ventures.callOff")}
+          </Button>
           <Button
             onClick={() => onSign(venture)}
             type="button"
@@ -105,6 +141,15 @@ const VentureCard = ({
           >
             <PenLine aria-hidden data-icon="inline-start" />
             {t("ventures.sign")}
+          </Button>
+          <Button
+            disabled={money.signedFor.people === 0}
+            onClick={() => onTakeCapital(venture)}
+            type="button"
+            variant="outline"
+          >
+            <Banknote aria-hidden data-icon="inline-start" />
+            {t("ventures.takeCapital")}
           </Button>
         </div>
       ) : null}
@@ -133,6 +178,8 @@ const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
   const [signing, setSigning] = useState<Venture | null>(null);
+  const [taking, setTaking] = useState<Venture | null>(null);
+  const [callingOff, setCallingOff] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -156,13 +203,37 @@ const VenturesPage = () => {
           <Section id="ventures-list" title={t("ventures.running")}>
             <div className="grid gap-4 lg:grid-cols-2">
               {(ventures.data ?? []).map((one) => (
-                <VentureCard key={one.id} onSign={setSigning} venture={one} />
+                <VentureCard
+                  key={one.id}
+                  onCallOff={setCallingOff}
+                  onSign={setSigning}
+                  onTakeCapital={setTaking}
+                  venture={one}
+                />
               ))}
             </div>
           </Section>
         )}
       </Loaded>
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
+      <TakeCapitalSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setTaking(null);
+          }
+        }}
+        open={taking !== null}
+        venture={taking}
+      />
+      <CallOffSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setCallingOff(null);
+          }
+        }}
+        open={callingOff !== null}
+        venture={callingOff}
+      />
       <SignAgreementSheet
         onOpenChange={(wanted) => {
           if (!wanted) {

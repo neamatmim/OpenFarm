@@ -242,6 +242,36 @@ export const en = {
   "ventures.paper": "The stamped paper",
   "ventures.paperHint":
     "A photo of the signed paper, kept against the Agreement",
+  "ventures.takeCapital": "Capital in",
+  "ventures.capitalHint":
+    "Money arriving for {venture}, against the paper the Investor signed. By bank only.",
+  "ventures.capitalTaken": "The capital is recorded",
+  "ventures.whosePaper": "Whose money",
+  "ventures.whosePaperHint":
+    "Only an Agreement whose stamped photo is on file may take money",
+  "ventures.holdsUnits": "{units} Units",
+  "ventures.noPaperYet": "no photo yet",
+  "ventures.amount": "Amount",
+  "ventures.movedOn": "The day the bank moved it",
+  "ventures.reference": "Bank reference",
+  "ventures.referenceHint":
+    "The transfer, cheque or deposit slip, and what it is numbered",
+  "ventures.balance": "The account should hold",
+  "ventures.spent": "Spent · paid out",
+  "refusal.capitalOverUnits":
+    "That is more than this Agreement's Units are worth",
+  "refusal.refundNotItsMoney":
+    "That refund names money this Venture never took",
+  "ventures.budgetsHeld": "Of that, cattle and running",
+  "ventures.callOff": "Call it off",
+  "ventures.callOffHint":
+    "Nothing is bought and {venture} ends here. Every taka goes back, each with the reference of the transfer that sent it.",
+  "ventures.callOffReason": "Why it is being called off",
+  "ventures.calledOff":
+    "The Venture is called off, and the money is on its way back",
+  "ventures.refundedOn": "Sent back on",
+  "ventures.nothingToSendBack":
+    "No money came in, so there is nothing to send back",
   "investors.title": "Investors",
   "investors.subtitle": "The people whose money is in the farm's Ventures",
   "investors.record": "Record an Investor",
@@ -1000,6 +1030,12 @@ export const en = {
     "The farm already has as many Investors as it may have at a time",
   "refusal.investorExists":
     "This person is written down already, on that same phone number",
+  "refusal.capitalMustBeByBank":
+    "A Venture takes money by bank only — a transfer, a cheque or a deposit slip",
+  "refusal.agreementHasNoPaper":
+    "The photo of the stamped Agreement has to be on file before its money is",
+  "refusal.capitalNotSentBack":
+    "Every taka the Venture took needs a refund with its own reference",
   "refusal.neverTheAnimals":
     "Wages, utilities, repairs and money coming in are never charged to the animals",
   "refusal.feedRetired": "That feed is retired",

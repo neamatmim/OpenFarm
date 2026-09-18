@@ -218,7 +218,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Venture**: One investor-funded run of fattening cattle, from the first Investment Agreement to the last payout: Open, Buying, Fattening, Selling, Settled — or Cancelled, where an under-funded one ends. It carries a target capital, a **Floor**, a decision date, its two budgets and its own **Target Window**, which its Animals inherit. Ventures run alongside the Farm's own cattle in the same Pens. _Avoid_: Project, batch (which is an offline send), scheme, lot
 
-**Cattle Budget**: The part of a Venture's capital meant for buying animals. What it does not spend rolls into the **Running Budget** when buying closes. _Avoid_: Purchase fund, capex
+**Cattle Budget**: The part of a Venture's capital meant for buying animals. What it does not spend rolls into the **Running Budget** when buying closes. The two are a plan for the whole capital, so what a Venture actually holds is read in the same proportion: half the capital in means half of each, never a full Cattle Budget and nothing to feed the animals with. _Avoid_: Purchase fund, capex
 
 **Running Budget**: The part of a Venture's capital held back in the Venture Account for what the animals cost while they stand here: feed, medicine, vet, haat costs. What is left at the end goes back to Investors at settlement. _Avoid_: Working capital, float
 
@@ -251,6 +251,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 **Nominee**: The person an Investor names to receive their capital and share if they die before the Venture settles. Recorded with the Investor, not with any one Agreement, because it is the person the family would come to the Farm about. _Avoid_: Beneficiary, heir, next of kin
 
 **Investment Agreement**: The stamped, signed mudarabah contract between the Owner and one Investor for one **Venture**: the capital, the percentages, the Units taken, the named **Arbitrator** and the **Target Window**, all frozen onto the paper at signing and never moved afterwards, signed afresh for each Venture. The Farm holds a photo of the stamped instrument with its stamp value, date and serial, and no capital is taken without it. _Avoid_: Contract (the general word), deed, terms
+
+**Venture Movement**: One movement of a Venture's own money through its **Venture Account**: capital arriving against an **Investment Agreement**, and the refund that sends it back when the Venture is called off — and, as their own work arrives, the **Buying Float**, the **Advance**, the **Reimbursement** and the payout. Every one carries the day the bank moved it and the reference on the transfer, cheque or deposit slip. Never a **Money Event**, which is the Farm's own income or expense. _Avoid_: Move (which is an Animal changing Pen), transaction, transfer
 
 **Venture Account**: The one bank account, in the Owner's name, that Investors' money moves through: capital in, Venture buying out, payouts out. The Farm's own money never passes through it. Every movement is by bank transfer, cheque or deposit slip, never cash. _Avoid_: Escrow (nobody holds it in trust), wallet, fund
 

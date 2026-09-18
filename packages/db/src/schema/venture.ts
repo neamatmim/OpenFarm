@@ -172,3 +172,50 @@ export const agreementPaper = pgTable("agreement_paper", {
   data: text("data").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
+
+/**
+ * What a Venture Movement is for. Capital in and the refund that undoes it are all this ticket needs;
+ * the Float, the Advance, the Reimbursement and the payout join them as their own work arrives.
+ */
+export const VENTURE_MOVEMENT_KINDS = ["capital_in", "refund"] as const;
+export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
+
+/**
+ * One movement of a Venture's own money through its Venture Account: capital arriving against an
+ * Agreement, and the refund that sends it back when the Venture is called off.
+ *
+ * Never a **Money Event**. A Money Event is the Farm's income or its expense, and none of this is the
+ * Farm's money — it is the Investors', held in the Owner's name, and counting it as the Farm's would
+ * make the books say the farm earned what it only ever looked after.
+ */
+export const ventureMovement = pgTable(
+  "venture_movement",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: VENTURE_MOVEMENT_KINDS }).notNull(),
+    /** Whose money moved, by the paper they signed. Every kind this ticket knows has one. */
+    agreementId: text("agreement_id")
+      .notNull()
+      .references(() => investmentAgreement.id),
+    amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** The day the bank moved it, on the farm's own clock. */
+    movedOn: text("moved_on").notNull(),
+    /** Bank channels only: the transfer, the cheque or the deposit slip, and what it is numbered. */
+    reference: text("reference").notNull(),
+    /** The movement this one sends back, so a refund is tied to the taka it returns. */
+    refundsId: text("refunds_id"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    index("venture_movement_idx").on(table.farmId, table.ventureId),
+    // One refund per movement, so calling a Venture off twice cannot send the same taka back twice.
+    uniqueIndex("venture_movement_refunds_uidx").on(table.refundsId),
+  ]
+);
