@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { feedIn } from "@OpenFarm/db/schema/feed";
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
@@ -18,7 +18,12 @@ import {
   sellerInput,
 } from "../stock-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, somethingChanged } from "./correction";
+import {
+  changeOf,
+  correctionInput,
+  somethingChanged,
+  venturesCharged,
+} from "./correction";
 
 /** A cut lot re-valued for a new quantity, at the price a kilo of it was worth the day it came in. */
 const revalued = (
@@ -58,6 +63,24 @@ export const feedArrivalCorrection: CorrectionKind<
   entity: "feed_in",
   table: feedIn,
   roles: ["owner", "manager"],
+  /**
+   * An arrival is what the costing prices this Feed Item's feedings from: its price and its quantity both
+   * move the item's weighted average, and the average carries forward — so putting either right re-prices
+   * every feeding of that item *since*, of any number of Ventures at once.
+   *
+   * Since when, counting from the earlier of the day it came in on and the day the Correction would move it
+   * to: moving an arrival back carries its reach back with it. Feedings before that read a price this
+   * arrival had no part in.
+   */
+  venturesOf: (tx, row, changes) => {
+    const moved = changes.receivedOn && startOfFarmDay(changes.receivedOn.to);
+    const from = moved && moved < row.receivedOn ? moved : row.receivedOn;
+    return venturesCharged(tx, row.farmId, (costs) =>
+      costs.all.feed.filter(
+        (share) => share.feedItemId === row.feedItemId && share.at >= from
+      )
+    );
+  },
   missing: "No such arrival",
   load: loadArrival,
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),

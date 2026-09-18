@@ -315,6 +315,7 @@ export {
   ARRIVALS,
   arrivalFromMove,
   arrivalOf,
+  covers,
   exitOf,
   penHistoryOf,
   penSpellsOf,

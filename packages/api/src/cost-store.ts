@@ -4,6 +4,7 @@ import type {
   Costs,
   FeedShare,
   FeedingToCost,
+  HerdCostToSplit,
   PenHistoryLine,
 } from "@OpenFarm/domain";
 import {
@@ -61,6 +62,30 @@ interface LitresShare {
 /** Shares gathered under the animal each is charged to. */
 const byAnimal = <T extends { animalId: string }>(shares: readonly T[]) =>
   groupedBy(shares, (one) => one.animalId);
+
+/**
+ * Money entered by hand as a Herd Cost, or nothing where it is charged to no animal at all: a Side left
+ * unsaid, or a Category the Owner never marked as the herd's.
+ *
+ * One rule in one place, because a Correction asks which Ventures a Herd Cost reaches and has to be told
+ * what the costing would say — a condition added here and not there is a charge that moves a settled
+ * Venture's figures with nobody refused.
+ */
+export const herdCostOf = (money: {
+  at: Date;
+  side: Side | null;
+  categoryId: string;
+  chargedToAnimals: boolean;
+  bdt: number;
+}): HerdCostToSplit | null =>
+  money.side !== null && money.chargedToAnimals
+    ? {
+        at: money.at,
+        side: money.side,
+        bdt: money.bdt,
+        categoryId: money.categoryId,
+      }
+    : null;
 
 /** A Feeding's lines as the jsonb column holds them, read without trusting their shape. */
 const linesOf = (lines: unknown): FeedingToCost["lines"] =>
@@ -347,18 +372,16 @@ export const farmCosts = async (db: Db, farmId: string) => {
 
   // What the farm spent on the animals without naming any of them, by the days each stood here.
   const herdCosts = herdShares({
-    costs: enteredByHand.flatMap((one) =>
-      one.category?.chargedToAnimals && one.side
-        ? [
-            {
-              at: one.occurredAt,
-              side: one.side,
-              bdt: Number(one.amountBdt),
-              categoryId: one.categoryId,
-            },
-          ]
-        : []
-    ),
+    costs: enteredByHand.flatMap((one) => {
+      const cost = herdCostOf({
+        at: one.occurredAt,
+        side: one.side,
+        categoryId: one.categoryId,
+        chargedToAnimals: one.category?.chargedToAnimals ?? false,
+        bdt: Number(one.amountBdt),
+      });
+      return cost ? [cost] : [];
+    }),
     history,
   });
   const herd = herdCosts.shares;
@@ -382,6 +405,11 @@ export const farmCosts = async (db: Db, farmId: string) => {
   return {
     animals,
     sideOf,
+    // Where every Animal stood and when, which the splits above were worked out from. Said, so that a
+    // question the shares cannot answer — which animals a Herd Cost would be split across were it moved to
+    // another month, who stood in a Pen the morning a Step was done — is answered from the same history
+    // rather than from a second reading of the Moves.
+    history,
     unallocated: fed.unallocated,
     unallocatedTrips: outings.unallocated,
     unallocatedHerd: herdCosts.unallocated,
@@ -406,7 +434,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
   };
 };
 
-type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
+export type FarmCosts = Awaited<ReturnType<typeof farmCosts>>;
 
 /** The shares a report adds up: what she ate, what she was dosed and visited for, what her arrival and the
  *  outings cost, and her part of the month's Herd Costs. */
