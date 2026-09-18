@@ -1,6 +1,6 @@
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { stepCompletion } from "@OpenFarm/db/schema/instance";
-import { MILK_DESTINATIONS, isClinicalStep } from "@OpenFarm/domain";
+import { MILK_DESTINATIONS, covers, isClinicalStep } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -15,10 +15,11 @@ import {
   stepCompletionInput,
 } from "../entries/step-completion";
 import { alertParams } from "../instances-store";
+import { herVenturesAround as whoseSheWas } from "../intake-store";
 import { requireWorkInScope } from "../scope";
 import { contentOf } from "../sop-content";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, venturesCharged } from "./correction";
 
 const loadStep = async (tx: Tx, farmId: string, id: string) => {
   const row = await tx.query.stepCompletion.findFirst({
@@ -132,6 +133,53 @@ export const stepCorrection: CorrectionKind<
   rolesFor: (row) =>
     isClinicalStep(stepOfCompletion(row)) ? ["vet"] : undefined,
   visitingVet: true,
+  /**
+   * A Step put right moves whatever it fed, weighed or dosed, so it reaches two sets of Ventures at once.
+   *
+   * Whose the work was about: hers, for a Step that names an Animal, and the Pen's as they stood that
+   * moment for a Step that runs once for the whole Pen — those are the mouths a corrected feeding is
+   * re-split across. Asked of the day the person says they did it, which is what the Effect dates what it
+   * writes by.
+   *
+   * And whose ate what it moved the price of. Feed given or counted is quantity out of the store, and what
+   * the next lot in is averaged over is what was standing then — so putting a Step's kilos right moves what
+   * every feeding of that Feed Item *from this moment on* was charged, in whatever Pen it was eaten. That is
+   * the same reach a feed arrival has, and it is asked the same way. The items are taken as the Step holds
+   * them and as the Correction would leave them, because a line may be moved to another item.
+   */
+  venturesOf: async (tx, row, changes) => {
+    const at = row.recordedAt;
+    const hers = row.animalId ?? row.instance.animalId;
+    const { penId } = row.instance;
+    const held = await recordedFactsOf(tx, stepOfCompletion(row), row.id);
+    const wanted = changes.answer?.to;
+    const items = new Set(
+      [
+        ...(held.feeding ?? []),
+        ...(held.counts ?? []),
+        ...(wanted?.feeding ?? []),
+        ...(wanted?.counts ?? []),
+      ].map((line) => line.feedItemId)
+    );
+    // A Step that moved no feed and names one Animal is her question alone, and is spared the costing.
+    if (items.size === 0 && hers) {
+      return whoseSheWas(tx, row.farmId, hers, at);
+    }
+    const [alsoHers, charged] = await Promise.all([
+      hers ? whoseSheWas(tx, row.farmId, hers, at) : [],
+      venturesCharged(tx, row.farmId, ({ all, history }) => [
+        ...(hers
+          ? []
+          : history
+              .filter((line) => line.penId === penId && covers(line, at))
+              .map((line) => ({ animalId: line.animalId, at }))),
+        ...all.feed.filter(
+          (share) => items.has(share.feedItemId) && share.at >= at
+        ),
+      ]),
+    ]);
+    return [...new Set([...alsoHers, ...charged])];
+  },
   missing: "No such step",
   load: loadStep,
   entry: (row) => ({

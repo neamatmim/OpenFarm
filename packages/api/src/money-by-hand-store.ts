@@ -26,6 +26,23 @@ export const readEntered = async (tx: Tx, farmId: string, id: string) => {
 };
 
 /**
+ * Whether a Category charges what is entered under it to the animals — asked of a Category a Correction
+ * would move money *to*, to find out whether that lands it on somebody's Venture. Its own comes back with
+ * the record. False for a Category of another farm's, which charges nothing here.
+ */
+export const chargesTheAnimals = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  categoryId: string
+): Promise<boolean> => {
+  const category = await tx.query.moneyCategory.findFirst({
+    where: { id: categoryId, farmId },
+    columns: { chargedToAnimals: true },
+  });
+  return category?.chargedToAnimals ?? false;
+};
+
+/**
  * The Category money entered by hand goes under: this farm's, one a record does not book, and a wage's
  * month given exactly when it is a wage. A retired Category takes nothing new — but money already under
  * it stays correctable where it is.

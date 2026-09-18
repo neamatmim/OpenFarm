@@ -11,11 +11,14 @@ import { z } from "zod";
 import type { SnapshotValue, Tx } from "../audit";
 import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
+import type { FarmCosts } from "../cost-store";
+import { farmCosts } from "../cost-store";
 import { herVenturesAround as whoseSheWas } from "../intake-store";
 import { tell } from "../notice";
 import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
+import { ownedThenByOf } from "../venture-store";
 
 /**
  * The Ventures one Animal's record touches, as `venturesOf` wants them.
@@ -30,6 +33,38 @@ export const herVenturesAround =
   ) =>
   (tx: Tx, row: Row): Promise<readonly string[]> =>
     whoseSheWas(tx, row.farmId, row.animalId, when(row));
+
+/** One charge a Correction would move: the Animal it is charged to, and the day it was charged to her. */
+interface Charge {
+  animalId: string;
+  at: Date;
+}
+
+/**
+ * The Ventures a record's Correction would move the figures of, where the record names no Animal of its own.
+ *
+ * A feed arrival's price re-prices every feeding of that Feed Item; money charged to the animals is split
+ * across a whole Side; a Step Completion moves whatever it fed or weighed. None of them says a Venture, and
+ * each can move what several were settled on at once — so the question is put to the costing, which carries
+ * every charge with the Animal and the day it landed on, and answered by who owned her *then*.
+ *
+ * That is a full costing load inside the Correction's transaction, and it is the price of an answer that
+ * agrees with what the Settlement was actually worked out from. A Correction is a rare human act.
+ */
+export const venturesCharged = async (
+  tx: Tx,
+  farmId: string,
+  chargesOf: (costs: FarmCosts) => readonly Charge[]
+): Promise<readonly string[]> => {
+  const [costs, ownedThenBy] = await Promise.all([
+    farmCosts(tx, farmId),
+    ownedThenByOf(tx, farmId),
+  ]);
+  const theirs = chargesOf(costs).map((one) =>
+    ownedThenBy(one.animalId, one.at)
+  );
+  return [...new Set(theirs)].filter((one) => one !== null);
+};
 
 /** A Correction carries a reason. Every one of them, whatever is being put right. */
 export const reasonInput = z.string().trim().min(1).max(200);
@@ -150,8 +185,12 @@ export interface CorrectionKind<
    *
    * A lorry takes animals of whichever Ventures had one ready, so a record can belong to more than one;
    * it is refused if any of them has settled.
+   *
+   * Asked the changes as well as the record, because a Correction can carry money *into* a settled
+   * Venture's reach as easily as out of it: money entered by hand under a Category that charges nobody,
+   * moved to one that charges the animals, is a charge against whoever was standing that month.
    */
-  venturesOf?: (tx: Tx, row: Row) => Promise<readonly string[]>;
+  venturesOf?: (tx: Tx, row: Row, changes: C) => Promise<readonly string[]>;
   /** Said when there is no such record on this farm. */
   missing: string;
   /** The record on this farm, or nothing; refuses one that is not this kind's to put right, as money a record booked. */
@@ -365,7 +404,7 @@ export const correct = async <
     if (!row) {
       throw new ORPCError("NOT_FOUND", { message: kind.missing });
     }
-    const theirs = (await kind.venturesOf?.(tx, row)) ?? [];
+    const theirs = (await kind.venturesOf?.(tx, row, input.changes)) ?? [];
     if (theirs.length !== 0) {
       const settled = await tx.query.venture.findMany({
         where: {
@@ -373,13 +412,19 @@ export const correct = async <
           farmId: context.farm.id,
           state: "settled",
         },
-        columns: { id: true },
+        columns: { id: true, name: true },
+        orderBy: { name: "asc", id: "asc" },
       });
       if (settled.length !== 0) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "That Venture is settled; raise a Settlement Adjustment instead",
-          data: { refusal: "venture_is_settled" },
+          data: {
+            refusal: "venture_is_settled",
+            // Which ones, named, so that somebody told no has somewhere to go: a Settlement Adjustment is
+            // raised on one Venture at a time, and a feed arrival's price can stand in the way of several.
+            ventures: settled.map((one) => ({ id: one.id, name: one.name })),
+          },
         });
       }
     }
