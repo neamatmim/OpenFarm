@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -70,3 +71,104 @@ export const venture = pgTable(
   },
   (table) => [index("venture_state_idx").on(table.farmId, table.state)]
 );
+
+/**
+ * Somebody whose money is in a Venture: known to the Owner personally or personally introduced, resident
+ * here, and one of at most twenty at a time, the Owner among them.
+ *
+ * Not a **Counterparty**, who is paid for something. An Investor shares what the Farm makes, and so needs
+ * what paying them and their family needs: a bank account, and a nominee.
+ */
+export const investor = pgTable(
+  "investor",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    address: text("address"),
+    /** The number on their National ID, as the agreement and the tax man ask for it. */
+    nid: text("nid"),
+    /** Where their money goes: bank channels only, so the account is the way to pay them. */
+    bankAccount: text("bank_account"),
+    nomineeName: text("nominee_name"),
+    nomineePhone: text("nominee_phone"),
+    nomineeRelation: text("nominee_relation"),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    // A name is not an identity in Bangladesh — two Md. Abdul Karims are two people, and the farm may
+    // record both. The same name on the same phone is the same person written down twice, and that the
+    // farm will not have.
+    uniqueIndex("investor_person_uidx").on(
+      table.farmId,
+      table.name,
+      table.phone
+    ),
+  ]
+);
+
+/**
+ * What one Investor signed for one Venture: the Units they took, the percentages the profit is split by,
+ * and the Arbitrator both sides named before there was anything to argue about.
+ *
+ * The stamped paper itself is a photo kept beside it. No capital may be taken against an Agreement that
+ * has none.
+ */
+export const investmentAgreement = pgTable(
+  "investment_agreement",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** Whole Units. Everything an Investor is owed divides by these. */
+    units: integer("units").notNull(),
+    /** The split, frozen at signing: what the Investors take of the profit, and what the Farm takes. */
+    investorsPercent: integer("investors_percent").notNull(),
+    /** The Target Window as this paper says it: copied from the Venture at signing and never moved
+     *  afterwards, because what an Investor agreed to is what their own paper reads. */
+    targetWindowStart: text("target_window_start").notNull(),
+    targetWindowEnd: text("target_window_end").notNull(),
+    /** The person both sides named to decide whether the Farm was negligent. */
+    arbitrator: text("arbitrator").notNull(),
+    /** The stamped instrument: what the stamp cost, the day it was stamped, and its serial. */
+    stampValueBdt: numeric("stamp_value_bdt", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    stampedOn: text("stamped_on").notNull(),
+    stampSerial: text("stamp_serial").notNull(),
+    signedBy: text("signed_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("investment_agreement_uidx").on(
+      table.ventureId,
+      table.investorId
+    ),
+  ]
+);
+
+/** The photo of a stamped Investment Agreement. One per Agreement, kept as the Farm's proof of it. */
+export const agreementPaper = pgTable("agreement_paper", {
+  agreementId: text("agreement_id")
+    .primaryKey()
+    .references(() => investmentAgreement.id, { onDelete: "cascade" }),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});

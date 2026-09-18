@@ -92,6 +92,9 @@ export interface Context {
     ventureRunningPercent: number;
     /** The days a Venture keeps selling after its window before the Farm buys the rest. */
     windUpDays: number;
+    /** How many Investors the Farm may have at a time, and where it starts warning. */
+    investorCap: number;
+    investorWarnAt: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

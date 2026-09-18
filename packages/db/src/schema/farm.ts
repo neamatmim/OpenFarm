@@ -96,6 +96,12 @@ export const farm = pgTable("farm", {
   ventureRunningPercent: integer("venture_running_percent")
     .notNull()
     .default(25),
+  /** How many Investors the Farm may have across every Venture that is not settled or cancelled, the
+   *  Owner among them. More than twenty people in one business for gain must be a company (Companies Act
+   *  1994 s.4), so the farm stops at what the lawyer confirms rather than at what anybody remembers. */
+  investorCap: integer("investor_cap").notNull().default(20),
+  /** The number of Investors from which the farm is warned that the cap is near. */
+  investorWarnAt: integer("investor_warn_at").notNull().default(15),
   /** The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is
    *  left, so the Venture settles on time. */
   windUpDays: integer("wind_up_days").notNull().default(30),

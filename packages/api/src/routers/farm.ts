@@ -74,6 +74,9 @@ const parameters = z
     ventureRunningPercent: z.number().int().min(0).max(90).optional(),
     /** The days a Venture keeps selling after its window before the Farm buys the rest. */
     windUpDays: z.number().int().min(0).max(180).optional(),
+    /** How many Investors the Farm may have at a time, and where it starts warning. */
+    investorCap: z.number().int().min(1).max(50).optional(),
+    investorWarnAt: z.number().int().min(1).max(50).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -213,10 +216,18 @@ export const farmRouter = {
       ventureFloorPercent,
       ventureRunningPercent,
       windUpDays,
+      investorCap,
+      investorWarnAt,
       ...withoutMoney
     } = context.farm;
     const planning = context.roles.some((role) => role === "owner")
-      ? { ventureFloorPercent, ventureRunningPercent, windUpDays }
+      ? {
+          ventureFloorPercent,
+          ventureRunningPercent,
+          windUpDays,
+          investorCap,
+          investorWarnAt,
+        }
       : {};
     const readsMoney = context.roles.some(
       (role) => role === "owner" || role === "manager"
@@ -364,7 +375,9 @@ export const farmRouter = {
       const plansAVenture =
         input.ventureFloorPercent !== undefined ||
         input.ventureRunningPercent !== undefined ||
-        input.windUpDays !== undefined;
+        input.windUpDays !== undefined ||
+        input.investorCap !== undefined ||
+        input.investorWarnAt !== undefined;
       if (plansAVenture && !context.roles.some((role) => role === "owner")) {
         throw forbidden({
           message: "A Venture's own figures are the Owner's to set",
@@ -381,6 +394,14 @@ export const farmRouter = {
             message: `"${time}" is not a time of day`,
           });
         }
+      }
+      const cap = input.investorCap ?? context.farm.investorCap;
+      const warnAt = input.investorWarnAt ?? context.farm.investorWarnAt;
+      if (warnAt > cap) {
+        // A warning that only arrives after the refusal has already happened is no warning at all.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The Investor warning comes before the cap, not after it",
+        });
       }
       const opens = input.aiWindowStartHours ?? context.farm.aiWindowStartHours;
       const closes = input.aiWindowEndHours ?? context.farm.aiWindowEndHours;
@@ -442,6 +463,8 @@ export const farmRouter = {
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
                 windUpDays: true,
+                investorCap: true,
+                investorWarnAt: true,
               },
             })) ?? null,
           after: () => Promise.resolve({ ...changes, ...retimed }),

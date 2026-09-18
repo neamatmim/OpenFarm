@@ -1,14 +1,31 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { venture } from "@OpenFarm/db/schema/venture";
+import { farm } from "@OpenFarm/db/schema/farm";
+import {
+  agreementPaper,
+  investmentAgreement,
+  venture,
+} from "@OpenFarm/db/schema/venture";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import {
+  countedInvestors,
+  readAgreement,
+  theFarmsShare,
+  unitsTaken,
+} from "../investor-store";
+import { photoInput } from "../photo-input";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
-import { capitalInBdt, readVenture, ventureView } from "../venture-store";
+import {
+  capitalInBdt,
+  readVenture,
+  signedForEach,
+  ventureView,
+} from "../venture-store";
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
 const money = z.number().min(0).max(1_000_000_000);
@@ -38,19 +55,35 @@ const openInput = z
 /** The plan as it stands once the farm's own parameters have filled in what the Owner did not say. */
 const planned = (
   input: z.infer<typeof openInput>,
-  farm: { ventureFloorPercent: number; ventureRunningPercent: number }
+  settings: { ventureFloorPercent: number; ventureRunningPercent: number }
 ) => ({
   floorBdt:
     input.floorBdt ??
-    Math.round((input.targetCapitalBdt * farm.ventureFloorPercent) / 100),
+    Math.round((input.targetCapitalBdt * settings.ventureFloorPercent) / 100),
   units:
     input.units ??
     Math.max(1, Math.round(input.targetCapitalBdt / input.unitPriceBdt)),
   cattleBudgetBdt:
     input.cattleBudgetBdt ??
     Math.round(
-      (input.targetCapitalBdt * (100 - farm.ventureRunningPercent)) / 100
+      (input.targetCapitalBdt * (100 - settings.ventureRunningPercent)) / 100
     ),
+});
+
+const signInput = z.object({
+  ventureId: z.string(),
+  investorId: z.string(),
+  /** Whole Units, and no more than the Venture has left. */
+  units: z.number().int().min(1).max(10_000),
+  /** What the Investors take of the profit; the Farm takes the rest. */
+  investorsPercent: z.number().int().min(0).max(100),
+  arbitrator: z.string().trim().min(1).max(200),
+  /** What the stamp cost. A stamped instrument with no stamp on it is not one. */
+  stampValueBdt: money.refine((taka) => taka > 0, {
+    message: "A stamped paper has a stamp value",
+  }),
+  stampedOn: farmDay,
+  stampSerial: z.string().trim().min(1).max(60),
 });
 
 /** What a Venture may be moved to by hand, and from where. Everything else moves by what the farm does. */
@@ -69,6 +102,19 @@ const ours = async (context: Context, id: string) => {
   });
   if (!row) {
     throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
+  }
+  return row;
+};
+
+/** This Farm's Investor, or nothing the caller may sign for. Without this, another Farm's Investor could
+ *  be signed onto our Venture: they would count against our cap and never appear on our own list. */
+const theirs = async (context: Context, id: string) => {
+  const row = await context.db.query.investor.findFirst({
+    where: { id, farmId: context.farm.id },
+    columns: { id: true },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
   }
   return row;
 };
@@ -123,11 +169,12 @@ export const venturesRouter = {
         where: { farmId: context.farm.id },
         orderBy: { createdAt: "desc", id: "desc" },
       });
-      const held = await capitalInBdt(
-        context.db,
-        rows.map((one) => one.id)
+      const ids = rows.map((one) => one.id);
+      const held = await capitalInBdt(context.db, ids);
+      const signed = await signedForEach(context.db, context.farm.id, ids);
+      return rows.map((one) =>
+        ventureView(one, held.get(one.id) ?? 0, signed.get(one.id))
       );
-      return rows.map((one) => ventureView(one, held.get(one.id) ?? 0));
     }),
 
   /**
@@ -201,6 +248,169 @@ export const venturesRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(({ context, input }) => moveTo(context, input.id, "fattening")),
+
+  /**
+   * Who has signed for this Venture, and for how much. The stamped paper itself is not sent back — only
+   * whether the farm holds it, which is what may be acted on.
+   */
+  agreements: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.investmentAgreement.findMany({
+        where: { farmId: context.farm.id, ventureId: input.ventureId },
+        orderBy: { createdAt: "asc", id: "asc" },
+      });
+      if (rows.length === 0) {
+        return [];
+      }
+      const papers = await context.db.query.agreementPaper.findMany({
+        where: {
+          farmId: context.farm.id,
+          agreementId: { in: rows.map((one) => one.id) },
+        },
+        columns: { agreementId: true },
+      });
+      const kept = new Set(papers.map((one) => one.agreementId));
+      return rows.map((one) => ({
+        id: one.id,
+        investorId: one.investorId,
+        units: one.units,
+        investorsPercent: one.investorsPercent,
+        farmPercent: theFarmsShare(one.investorsPercent),
+        targetWindow: {
+          start: one.targetWindowStart,
+          end: one.targetWindowEnd,
+        },
+        arbitrator: one.arbitrator,
+        stamp: {
+          valueBdt: Number(one.stampValueBdt),
+          on: one.stampedOn,
+          serial: one.stampSerial,
+        },
+        hasPaper: kept.has(one.id),
+      }));
+    }),
+
+  /**
+   * One Investor signs for one Venture: the Units they take, the split those Units earn, the Arbitrator
+   * both sides name, and the stamped instrument's value, day and serial.
+   *
+   * Refused once the Venture has left Open, so every share is fixed for the run; refused for more Units
+   * than are left; and refused when it would take the farm past the Investors it may have.
+   */
+  sign: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(signInput)
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await ours(context, input.ventureId);
+      await theirs(context, input.investorId);
+      if (row.state !== "open") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture takes signatures only while it is open",
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "investment_agreement",
+          entityId: id,
+          action: "create",
+          after: (tx) => readAgreement(tx, context.farm.id, id),
+        },
+        async (tx) => {
+          // Both counts are made inside the write's own transaction, behind a lock on the Farm row:
+          // the Units left and the Investors standing are only true until the next signature commits,
+          // and a rule that may not be overridden may not be lost to two phones at once either.
+          await tx
+            .select({ id: farm.id })
+            .from(farm)
+            .where(eq(farm.id, context.farm.id))
+            .for("update");
+          const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
+          if (taken + input.units > row.units) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `Only ${row.units - taken} Units of this Venture are left`,
+              data: { refusal: "venture_units_gone" },
+            });
+          }
+          const counted = await countedInvestors(tx, context.farm.id);
+          const newcomer = !counted.unitsOf.has(input.investorId);
+          if (newcomer && counted.standing >= context.farm.investorCap) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `The farm may have ${context.farm.investorCap} Investors at a time`,
+              data: { refusal: "investor_cap_reached" },
+            });
+          }
+          await tx.insert(investmentAgreement).values({
+            id,
+            farmId: context.farm.id,
+            ventureId: input.ventureId,
+            investorId: input.investorId,
+            units: input.units,
+            investorsPercent: input.investorsPercent,
+            // The window the Venture means to sell in, as it stands today, written onto this paper.
+            targetWindowStart: row.targetWindowStart,
+            targetWindowEnd: row.targetWindowEnd,
+            arbitrator: input.arbitrator,
+            stampValueBdt: input.stampValueBdt.toFixed(2),
+            stampedOn: input.stampedOn,
+            stampSerial: input.stampSerial,
+            signedBy: context.actor.id,
+            createdAt: now,
+          });
+        }
+      );
+      return { id };
+    }),
+
+  /** The photo of the stamped paper, kept against its Agreement. Replacing it replaces the one photo. */
+  keepAgreementPaper: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(photoInput.extend({ agreementId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await context.db.query.investmentAgreement.findFirst({
+        where: { id: input.agreementId, farmId: context.farm.id },
+        columns: { id: true },
+      });
+      if (!row) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+      }
+      await audited(context).write(
+        {
+          entity: "investment_agreement",
+          entityId: row.id,
+          action: "update",
+          before: (tx) => readAgreement(tx, context.farm.id, row.id),
+          after: (tx) => readAgreement(tx, context.farm.id, row.id),
+        },
+        (tx) =>
+          tx
+            .insert(agreementPaper)
+            .values({
+              agreementId: row.id,
+              farmId: context.farm.id,
+              contentType: input.contentType,
+              data: input.data,
+              updatedAt: now,
+            })
+            .onConflictDoUpdate({
+              target: agreementPaper.agreementId,
+              set: {
+                contentType: input.contentType,
+                data: input.data,
+                updatedAt: now,
+              },
+            })
+      );
+      return { keptAt: now };
+    }),
 
   /**
    * A Venture called off: the Floor was not met by the day it had to be, so nothing is bought and every

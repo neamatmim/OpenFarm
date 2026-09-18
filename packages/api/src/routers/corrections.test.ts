@@ -426,6 +426,28 @@ describe("what a correction does", () => {
     ]);
   });
 
+  it("reads the trail newest first, even within the one second", async () => {
+    const { instance, clock } = await session("2026-12-18");
+    const staff = await as("staff", clock);
+    await staff.instances.claim({ id: instance.id });
+    const completionId = await recordCow(staff, instance.id, tagOf(0), 10);
+    // No clock.advance: the Correction lands in the same instant as the entry, which is what a farm
+    // phone sending a fix straight after the entry actually does. Ordering by the instant alone would
+    // leave the two rows in whatever order they happen to lie in.
+    await correctStepAsShown(staff, {
+      completionId,
+      evidence: [11],
+      reason: "একই সেকেন্ডে ঠিক করা",
+    });
+
+    const manager = await as("manager", clock);
+    const history = await manager.audit.list({
+      entity: "step_completion",
+      entityId: completionId,
+    });
+    expect(history.map((row) => row.action)).toEqual(["correct", "create"]);
+  });
+
   it("turning an entry into a skip takes its litres away", async () => {
     const { instance, clock } = await session("2026-12-09");
     const staff = await as("staff", clock);

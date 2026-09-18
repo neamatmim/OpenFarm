@@ -42,7 +42,11 @@ export const auditRouter = {
           actorId,
           receivedAt: { gte: from, lt: toExclusive },
         },
-        orderBy: { receivedAt: "desc" },
+        // The id breaks the tie: two events can share a received instant — an entry and the Correction
+        // that follows it in the same second — and uuidv7 carries a counter so ids made in one
+        // millisecond still sort in the order they were made. Without it the trail reads back in
+        // whatever order the rows happen to lie in.
+        orderBy: { receivedAt: "desc", id: "desc" },
         limit: input.limit,
         with: { actor: { columns: { name: true } } },
       });
