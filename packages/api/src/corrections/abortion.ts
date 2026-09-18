@@ -6,7 +6,7 @@ import type { Tx } from "../audit";
 import { assertLostWhenItCouldBe, readAbortion } from "../breeding-store";
 import { requireClinicalInScope } from "../scope";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
 const loadAbortion = (tx: Tx, farmId: string, id: string) =>
   tx.query.abortion.findFirst({ where: { id, farmId } });
@@ -31,6 +31,12 @@ export const abortionCorrection: CorrectionKind<
   table: abortion,
   roles: ["vet"],
   visitingVet: true,
+  // An Abortion is a clinical record of one Animal, and putting it right moves what her Venture's
+  // Settlement counted her as costing.
+  // An Abortion is one Animal's clinical record. Unreachable for a Venture's Animal today — a Venture
+  // owns bought-in fattening stock, which carries no expected calving — and guarded all the same, so that
+  // loosening that invariant cannot quietly open a settled Venture's books.
+  venturesOf: herVenturesAround((row) => row.abortedAt),
   missing: "No such abortion",
   load: loadAbortion,
   entry: (row) => ({

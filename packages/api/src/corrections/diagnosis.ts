@@ -17,7 +17,7 @@ import { pushRaised } from "../push-send";
 import { requireClinicalInScope } from "../scope";
 import { textTheSafetyAlerts } from "../sms-send";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, herVenturesAround } from "./correction";
 
 const loadDiagnosis = (tx: Tx, farmId: string, id: string) =>
   tx.query.diagnosis.findFirst({ where: { id, farmId } });
@@ -52,6 +52,9 @@ export const diagnosisCorrection: CorrectionKind<
   table: diagnosis,
   roles: ["vet"],
   visitingVet: true,
+  // A Diagnosis carries the doses given for it, which are charged to her Venture.
+  // A Diagnosis is the head of the chain her doses hang from, and the Owner's window on it never closes.
+  venturesOf: herVenturesAround((row) => row.diagnosedAt),
   missing: "No such diagnosis",
   load: loadDiagnosis,
   entry: (row) => ({

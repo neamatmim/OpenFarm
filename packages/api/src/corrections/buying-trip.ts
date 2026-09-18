@@ -47,12 +47,12 @@ export const buyingTripCorrection: CorrectionKind<
   roles: ["owner", "manager"],
   // An outing's own costs are split across the Animals it brought in, so they are charges against
   // whichever Venture's Float paid for it.
-  ventureOf: async (tx, row) => {
+  venturesOf: async (tx, row) => {
     const float = await tx.query.ventureMovement.findFirst({
       where: { farmId: row.farmId, buyingTripId: row.id, kind: "float_out" },
       columns: { ventureId: true },
     });
-    return float?.ventureId ?? null;
+    return float ? [float.ventureId] : [];
   },
   missing: "No such outing",
   load: loadTrip,

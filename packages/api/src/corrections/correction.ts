@@ -11,10 +11,25 @@ import { z } from "zod";
 import type { SnapshotValue, Tx } from "../audit";
 import { audited } from "../audit";
 import type { Recorder } from "../completion-store";
+import { herVenturesAround as whoseSheWas } from "../intake-store";
 import { tell } from "../notice";
 import { pickRoleUsed } from "../roles";
 import type { Scope } from "../scope";
 import { workingAs } from "../scope";
+
+/**
+ * The Ventures one Animal's record touches, as `venturesOf` wants them.
+ *
+ * Four kinds answer this way — an Intake, an Abortion, a Diagnosis, a Mortality — because each names a
+ * single Animal. Whose she was when it happened *and* whose she is now: a record from her old owner's
+ * time moves what that owner was settled on, however long ago she changed hands.
+ */
+export const herVenturesAround =
+  <Row extends { farmId: string; animalId: string }>(
+    when: (row: Row) => Date
+  ) =>
+  (tx: Tx, row: Row): Promise<readonly string[]> =>
+    whoseSheWas(tx, row.farmId, row.animalId, when(row));
 
 /** A Correction carries a reason. Every one of them, whatever is being put right. */
 export const reasonInput = z.string().trim().min(1).max(200);
@@ -127,13 +142,16 @@ export interface CorrectionKind<
    *  take, in the same order, so a Correction cannot read a sum a write in flight is about to change. */
   lock?: (tx: Tx, farmId: string) => Promise<void>;
   /**
-   * The Venture whose records this one belongs to, when it belongs to one.
+   * The Ventures whose records this one belongs to, of which there may be none, one or several.
    *
    * A Correction to a settled Venture's records is refused: its figures were frozen at approval and every
    * Investor was paid on them, so late news lands as a Settlement Adjustment instead. A Sale is the one
    * exception and says so itself — it is the news, and refusing it would leave it nowhere to land.
+   *
+   * A lorry takes animals of whichever Ventures had one ready, so a record can belong to more than one;
+   * it is refused if any of them has settled.
    */
-  ventureOf?: (tx: Tx, row: Row) => Promise<string | null>;
+  venturesOf?: (tx: Tx, row: Row) => Promise<readonly string[]>;
   /** Said when there is no such record on this farm. */
   missing: string;
   /** The record on this farm, or nothing; refuses one that is not this kind's to put right, as money a record booked. */
@@ -347,13 +365,17 @@ export const correct = async <
     if (!row) {
       throw new ORPCError("NOT_FOUND", { message: kind.missing });
     }
-    const its = await kind.ventureOf?.(tx, row);
-    if (its) {
-      const venture = await tx.query.venture.findFirst({
-        where: { id: its, farmId: context.farm.id },
-        columns: { state: true },
+    const theirs = (await kind.venturesOf?.(tx, row)) ?? [];
+    if (theirs.length !== 0) {
+      const settled = await tx.query.venture.findMany({
+        where: {
+          id: { in: [...theirs] },
+          farmId: context.farm.id,
+          state: "settled",
+        },
+        columns: { id: true },
       });
-      if (venture?.state === "settled") {
+      if (settled.length !== 0) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "That Venture is settled; raise a Settlement Adjustment instead",

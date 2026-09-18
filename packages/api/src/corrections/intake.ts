@@ -22,7 +22,12 @@ import { bookingOf, paymentMethodOf } from "../money-store";
 import { bookSaleMoney } from "../sale-store";
 import { assertTripIsOpen, lockTheFarm } from "../venture-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput, somethingChanged } from "./correction";
+import {
+  changeOf,
+  correctionInput,
+  herVenturesAround,
+  somethingChanged,
+} from "./correction";
 
 const loadIntake = (tx: Tx, farmId: string, id: string) =>
   tx.query.intake.findFirst({
@@ -71,7 +76,7 @@ export const intakeCorrection: CorrectionKind<
   lock: lockTheFarm,
   // An Intake carries her price, her Hasil and whose she is — every one of them a figure a Settlement
   // was worked out from.
-  ventureOf: (tx, row) => ownerOf(tx, row.animalId),
+  venturesOf: herVenturesAround((row) => row.createdAt),
   missing: "No such intake",
   load: loadIntake,
   entityIdOf: (row) => row.animalId,
