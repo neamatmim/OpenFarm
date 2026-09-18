@@ -107,6 +107,7 @@ describe("the monthly bank check", () => {
     expect(venture?.bank).toMatchObject({
       lastCheckedMonth: "2047-07",
       monthsOut: [],
+      monthsStale: [],
     });
   });
 
@@ -167,6 +168,7 @@ describe("the monthly bank check", () => {
     expect(venture?.bank).toMatchObject({
       lastCheckedMonth: "2047-08",
       monthsOut: [],
+      monthsStale: [],
     });
     // One record for that month, not two: the trail carries the change, the account does not.
     const trail = await owner.client.audit.list({
@@ -178,6 +180,67 @@ describe("the monthly bank check", () => {
     );
     // Read twice, recorded once: the first is the reading, the second is it put right.
     expect(august.map((one) => one.action)).toEqual(["update", "create"]);
+  });
+
+  it("goes stale when the ground under it moves, and every month after it", async () => {
+    const owner = await as("owner", "2047-09-06T04:00:00.000Z");
+    const movements = await owner.client.ventures.movements({ ventureId });
+    const july = movements.find(
+      (one) => one.reference === `TRF-${suffix}-1`
+    )?.id;
+    // Six lakh was typed where five and a half was sent. July is put right — and so, silently, is what
+    // the farm believes about every month that followed it.
+    await owner.client.ventures.correctMovement({
+      id: july ?? "",
+      reason: `স্লিপে সাড়ে পাঁচ লাখ ${suffix}`,
+      changes: { amountBdt: { from: 600_000, to: 550_000 } },
+    });
+
+    const venture = await theVenture(owner);
+    // Both months agreed with a figure nobody holds any more, so neither of them settles anything.
+    expect(venture?.bank).toMatchObject({
+      monthsStale: ["2047-07", "2047-08"],
+      monthsOut: ["2047-07", "2047-08"],
+    });
+    // The month says so where she opens it: what the farm believes now, against what she read it on.
+    const reopened = await owner.client.ventures.expectedAtMonthEnd({
+      ventureId,
+      month: "2047-07",
+    });
+    expect(reopened).toMatchObject({
+      expectedBdt: 550_000,
+      checked: { readBdt: 600_000, expectedBdt: 600_000, stale: true },
+    });
+  });
+
+  it("clears a stale month when the statement is read again", async () => {
+    const owner = await as("owner", "2047-09-07T04:00:00.000Z");
+    await owner.client.ventures.checkTheBank({
+      ventureId,
+      month: "2047-07",
+      readBdt: 550_000,
+      note: `সংশোধনের পর আবার মিলিয়েছি ${suffix}`,
+    });
+    const afterJuly = await theVenture(owner);
+    // July is read again and agrees. August is untouched and still stale: reading one month says
+    // nothing about another.
+    expect(afterJuly?.bank).toMatchObject({
+      monthsStale: ["2047-08"],
+      monthsOut: ["2047-08"],
+    });
+
+    await owner.client.ventures.checkTheBank({
+      ventureId,
+      month: "2047-08",
+      readBdt: 950_000,
+      note: `সংশোধনের পর আবার মিলিয়েছি ${suffix}`,
+    });
+    const afterAugust = await theVenture(owner);
+    expect(afterAugust?.bank).toMatchObject({
+      lastCheckedMonth: "2047-08",
+      monthsStale: [],
+      monthsOut: [],
+    });
   });
 
   it("refuses a month that is not over, and is the Owner's alone", async () => {

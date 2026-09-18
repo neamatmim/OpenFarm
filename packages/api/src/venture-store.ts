@@ -229,6 +229,28 @@ const WHAT_IT_DOES = {
  * What each Venture's account has seen, in one query for the whole list. Capital in and refunds are
  * Venture Movements; spending and payouts are read as nothing until the work that makes them arrives.
  */
+/** One movement folded into what a Venture holds. The only place a movement becomes a figure, so a
+ *  running total and a month-by-month walk cannot come to different answers about the same money. */
+const folded = (
+  soFar: Held,
+  one: {
+    kind: VentureMovementKind;
+    amountBdt: string;
+    reconciledAt: Date | null;
+  }
+): Held => {
+  const does = WHAT_IT_DOES[one.kind];
+  const taka = Number(one.amountBdt);
+  return {
+    ...soFar,
+    [does.line]: soFar[does.line] + does.sign * taka,
+    cattleOutBdt: soFar.cattleOutBdt + does.cattle * taka,
+    openFloatBdt:
+      soFar.openFloatBdt +
+      (one.kind === "float_out" && one.reconciledAt === null ? taka : 0),
+  };
+};
+
 export const heldByEach = async (
   tx: Pick<Tx, "query">,
   farmId: string,
@@ -255,17 +277,10 @@ export const heldByEach = async (
     },
   });
   for (const one of movements) {
-    const soFar = held.get(one.ventureId) ?? NOTHING_HELD;
-    const does = WHAT_IT_DOES[one.kind];
-    const taka = Number(one.amountBdt);
-    held.set(one.ventureId, {
-      ...soFar,
-      [does.line]: soFar[does.line] + does.sign * taka,
-      cattleOutBdt: soFar.cattleOutBdt + does.cattle * taka,
-      openFloatBdt:
-        soFar.openFloatBdt +
-        (one.kind === "float_out" && one.reconciledAt === null ? taka : 0),
-    });
+    held.set(
+      one.ventureId,
+      folded(held.get(one.ventureId) ?? NOTHING_HELD, one)
+    );
   }
   return held;
 };
@@ -436,6 +451,12 @@ export const ownersOverTime = async (
   return owners;
 };
 
+/** The last day a month has, as the farm writes a day. */
+const lastDayOf = (month: string) => {
+  const { until } = monthOf(startOfFarmDay(`${month}-01`));
+  return farmDayOf(new Date(until.getTime() - 1));
+};
+
 /** What the farm thinks a Venture Account held at the end of one month. */
 export const balanceAtMonthEnd = async (
   tx: Pick<Tx, "query">,
@@ -443,25 +464,85 @@ export const balanceAtMonthEnd = async (
   ventureId: string,
   month: string
 ): Promise<number> => {
-  const { until } = monthOf(startOfFarmDay(`${month}-01`));
-  // The last day the month has, as the farm writes a day.
-  const lastDay = farmDayOf(new Date(until.getTime() - 1));
-  const held = await heldByEach(tx, farmId, [ventureId], lastDay);
+  const held = await heldByEach(tx, farmId, [ventureId], lastDayOf(month));
   return roundTaka(balanceOf(held.get(ventureId) ?? NOTHING_HELD));
 };
+
+/**
+ * What the farm believes each of these Ventures held at the end of each of these months, now.
+ *
+ * One ordered read of the movements folded forward, rather than a read per month: months only ever
+ * accumulate, and this is asked for every Venture every time the list is drawn.
+ */
+const balancesAtMonthEnds = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ids: readonly string[],
+  months: readonly string[]
+): Promise<Map<string, Map<string, number>>> => {
+  const inOrder = [...months].toSorted();
+  const answer = new Map(
+    inOrder.map((month) => [month, new Map<string, number>()])
+  );
+  if (ids.length === 0 || inOrder.length === 0) {
+    return answer;
+  }
+  const movements = await tx.query.ventureMovement.findMany({
+    where: { farmId, ventureId: { in: [...ids] } },
+    columns: {
+      ventureId: true,
+      kind: true,
+      amountBdt: true,
+      reconciledAt: true,
+      movedOn: true,
+    },
+    orderBy: { movedOn: "asc", id: "asc" },
+  });
+  const held = new Map(ids.map((id) => [id, NOTHING_HELD]));
+  let at = 0;
+  for (const month of inOrder) {
+    const lastDay = lastDayOf(month);
+    while (at < movements.length && (movements[at]?.movedOn ?? "") <= lastDay) {
+      const one = movements[at];
+      if (one) {
+        held.set(
+          one.ventureId,
+          folded(held.get(one.ventureId) ?? NOTHING_HELD, one)
+        );
+      }
+      at += 1;
+    }
+    answer.set(
+      month,
+      new Map([...held].map(([id, one]) => [id, roundTaka(balanceOf(one))]))
+    );
+  }
+  return answer;
+};
+
+/** Whether a Bank Check still stands: what the farm believes that month ended on now, against what it
+ *  believed when she read the statement. Agreeing with a figure nobody holds any more is not agreeing. */
+export const hasGoneStale = (believedNow: number, believedThen: number) =>
+  roundTaka(believedNow - believedThen) !== 0;
 
 /** How a Venture's account stands against the bank. */
 export interface BankStanding {
   /** The last month anybody read the statement against the books, or nothing if nobody has. */
   lastCheckedMonth: string | null;
-  /** The months still out, oldest first. A month put right stops being one; a month nobody has
-   *  looked at was never one — which is why the last month checked is said as well. */
+  /** The months still out, oldest first — every month a Settlement waits on, whether the statement
+   *  disagreed or the farm has since changed its mind about what the month ended on. A month put right
+   *  stops being one; a month nobody has looked at was never one — which is why the last month checked
+   *  is said as well. */
   monthsOut: string[];
+  /** Those of them the farm has since changed its mind about, oldest first. A different problem from a
+   *  month that disagreed: this one needs the statement read again, that one needs explaining. */
+  monthsStale: string[];
 }
 
 export const NEVER_CHECKED: BankStanding = {
   lastCheckedMonth: null,
   monthsOut: [],
+  monthsStale: [],
 };
 
 /**
@@ -481,14 +562,34 @@ export const bankStandingOf = async (
           where: { farmId, ventureId: { in: [...ids] } },
           orderBy: { forMonth: "asc", id: "asc" },
         });
+  // What the farm believes each checked month ended on today, which is not what it believed when the
+  // statement was read: a movement written or corrected into a month moves that month and every month
+  // after it.
+  const believedNow = await balancesAtMonthEnds(
+    tx,
+    farmId,
+    ids,
+    checks.map((one) => one.forMonth)
+  );
   const standing = new Map<string, BankStanding>();
   for (const one of checks) {
-    const soFar = standing.get(one.ventureId) ?? NEVER_CHECKED;
-    const out = roundTaka(Number(one.readBdt) - Number(one.expectedBdt)) !== 0;
-    standing.set(one.ventureId, {
-      lastCheckedMonth: one.forMonth,
-      monthsOut: out ? [...soFar.monthsOut, one.forMonth] : soFar.monthsOut,
-    });
+    const soFar = standing.get(one.ventureId) ?? {
+      ...NEVER_CHECKED,
+      monthsOut: [],
+      monthsStale: [],
+    };
+    const believedThen = Number(one.expectedBdt);
+    const stale = hasGoneStale(
+      believedNow.get(one.forMonth)?.get(one.ventureId) ?? 0,
+      believedThen
+    );
+    if (stale) {
+      soFar.monthsStale.push(one.forMonth);
+    }
+    if (stale || roundTaka(Number(one.readBdt) - believedThen) !== 0) {
+      soFar.monthsOut.push(one.forMonth);
+    }
+    standing.set(one.ventureId, { ...soFar, lastCheckedMonth: one.forMonth });
   }
   return standing;
 };

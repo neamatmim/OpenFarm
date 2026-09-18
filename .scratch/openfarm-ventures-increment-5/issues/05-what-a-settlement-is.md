@@ -31,3 +31,5 @@ And it is refused while anything makes it a guess: an Animal still standing, an 
 - [ ] The arithmetic is the costing the farm already does, narrowed to that Venture's Animals — no second sum
 - [ ] The Owner's alone
 - [ ] Tests cover a Venture in profit with a rounding remainder that is not zero, one in loss, an Advance repaid in both, and each of the five blocks in turn
+
+**From ticket 02:** what blocks on the bank is two questions, not one. `bank.monthsOut` covers every month that was read and is still out — the statement disagreed, or the farm has since changed its mind about what the month ended on. It does **not** cover a month nobody ever read, which has no Bank Check row at all: for that, `bank.lastCheckedMonth` must reach the last month that is over.

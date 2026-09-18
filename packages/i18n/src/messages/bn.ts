@@ -282,8 +282,12 @@ export const bn: Record<MessageKey, string> = {
     "না মিললে এবং কারণ জানা থাকলে — কোনো চার্জ, বা যে ট্রান্সফার তখনো ঢোকেনি",
   "ventures.bankAgrees": "ব্যাংকের সাথে মিলেছে",
   "ventures.alreadyChecked": "আগে লেখা হয়েছিল ৳{read}",
+  "ventures.checkedAgainst":
+    "এই মাস আপনি ৳{expected} ধরে মিলিয়েছিলেন, খামার এখন তা মনে করে না",
   "ventures.bankDiffers": "লেখা হয়েছে, ৳{difference} পার্থক্য আছে",
   "ventures.bankDisagrees": "{month} মাসে ব্যাংকের সাথে মেলেনি",
+  "ventures.bankStale": "{month} মাসে হিসাব বদলেছে; স্টেটমেন্ট আবার মিলিয়ে দেখুন",
+  "ventures.bankUnreadSince": "{month} মাসের পর কেউ স্টেটমেন্ট মিলিয়ে দেখেননি",
   "ventures.bankStraight": "{month} পর্যন্ত ব্যাংকের সাথে মিলে আছে",
   "ventures.bankNeverChecked": "ব্যাংকের সাথে কখনো মিলিয়ে দেখা হয়নি",
   "ventures.advance": "নিজের টাকা দিন",

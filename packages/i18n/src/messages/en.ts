@@ -284,8 +284,12 @@ export const en = {
     "Where it does not agree and you have found out why — a charge, a transfer that had not cleared",
   "ventures.bankAgrees": "The bank agrees",
   "ventures.alreadyChecked": "Read before as ৳{read}",
+  "ventures.checkedAgainst":
+    "You read this month against ৳{expected}, which is not what the farm believes now",
   "ventures.bankDiffers": "Recorded, and ৳{difference} apart",
   "ventures.bankDisagrees": "The bank did not agree for {month}",
+  "ventures.bankStale": "Something moved in {month}; read the statement again",
+  "ventures.bankUnreadSince": "Nobody has read the statement since {month}",
   "ventures.bankStraight": "Straight with the bank to {month}",
   "ventures.bankNeverChecked": "Never checked against the bank",
   "ventures.advance": "Put your own money in",
