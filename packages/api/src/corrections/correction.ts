@@ -65,6 +65,16 @@ export const changeOf = <
   z.object({ from, to }).optional();
 
 /** What a Correction is asked to do: which record, why, and each value it changes. */
+/**
+ * Whether a Correction changed anything on this row at all.
+ *
+ * A Correction may name only what is not a column of the record — how a Sale was paid for, or whose
+ * animal she is — and Drizzle refuses an update with no values to set. Every kind builds its columns the
+ * same way, so every kind was one such Correction away from a raw database error.
+ */
+export const somethingChanged = (values: object) =>
+  Object.keys(values).length > 0;
+
 export const correctionInput = <Shape extends z.ZodRawShape>(changes: Shape) =>
   z.object({
     id: z.string(),

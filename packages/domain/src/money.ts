@@ -5,17 +5,20 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export type MoneyApproval = "not_needed" | "awaiting" | "approved";
 
-/** What an approval approves: how much, to or from whom, and under what Category. */
+/** What an approval approves: how much, to or from whom, under what Category, and whose money it was. */
 export interface ApprovedTerms {
   amountBdt: number;
   counterpartyId: string | null;
   categoryId: string;
+  /** The Purse: null for the Farm's own money, or the Venture whose it was. */
+  purseVentureId?: string | null;
 }
 
 const sameTerms = (a: ApprovedTerms, b: ApprovedTerms): boolean =>
   a.amountBdt === b.amountBdt &&
   a.counterpartyId === b.counterpartyId &&
-  a.categoryId === b.categoryId;
+  a.categoryId === b.categoryId &&
+  (a.purseVentureId ?? null) === (b.purseVentureId ?? null);
 
 /**
  * Where a Money Event stands with the Owner once its terms are known.
@@ -23,7 +26,8 @@ const sameTerms = (a: ApprovedTerms, b: ApprovedTerms): boolean =>
  * Over the Approval Threshold, money the Owner did not enter waits for the Owner; at or under it, or
  * entered by the Owner, it waits for nobody. An approval is of the terms the Owner read — the amount, who
  * it went to or came from, and its Category — so a Money Event the Owner approved keeps its approval while
- * those stay as they were, and waits again when a Correction changes any of them.
+ * those stay as they were, and waits again when a Correction changes any of them — whose money it was
+ * included, because approving the farm's eighty thousand taka is not approving an Investor's.
  */
 export const approvalOf = ({
   terms,

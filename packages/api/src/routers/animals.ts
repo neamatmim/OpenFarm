@@ -476,6 +476,8 @@ export const animalsRouter = {
               columns: { id: true, name: true },
               with: { shed: { columns: { name: true } } },
             },
+            /** The Venture whose animal she is, where she is not the Farm's own. */
+            owner: { columns: { id: true, name: true } },
             retags: { orderBy: { retaggedAt: "desc", id: "desc" }, limit: 20 },
             // Every pregnancy she lost before calving, as the Vet recorded it.
             abortions: {
@@ -580,6 +582,10 @@ export const animalsRouter = {
       ]);
       return {
         ...whatSheIs,
+        // Whose animal she is, to the people whose business that is: the same reading as what she cost,
+        // because it is the same question. Barn Staff work the shed and are not told whose money is
+        // standing in it; the Vet treats whoever is in front of them.
+        owner: theCost ? (herPage.owner ?? null) : null,
         pen: herPage.pen,
         retags: herPage.retags,
         abortions: herPage.abortions,

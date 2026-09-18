@@ -459,6 +459,7 @@ export const bookMoney = async (
       counterpartyId: true,
       categoryId: true,
       direction: true,
+      purseVentureId: true,
     },
   });
   const id = existing?.id ?? byHand?.id ?? newId(now);
@@ -472,6 +473,11 @@ export const bookMoney = async (
     amountBdt,
     counterpartyId: money.counterpartyId,
     categoryId: placed.categoryId,
+    // Left out of a Correction, the purse stays as it was booked, so the terms are read the same way.
+    purseVentureId:
+      money.purseVentureId === undefined
+        ? (existing?.purseVentureId ?? null)
+        : money.purseVentureId,
   };
   const before = existing
     ? {
@@ -479,6 +485,7 @@ export const bookMoney = async (
           amountBdt: Number(existing.amountBdt),
           counterpartyId: existing.counterpartyId,
           categoryId: existing.categoryId,
+          purseVentureId: existing.purseVentureId,
         },
         approval: existing.approval,
       }

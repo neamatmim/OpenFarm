@@ -21,7 +21,12 @@ import {
   unitsTaken,
 } from "../investor-store";
 import { photoInput } from "../photo-input";
-import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+import {
+  OWNER_ONLY,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import {
   balanceOf,
   heldByEach,
@@ -443,6 +448,24 @@ export const venturesRouter = {
             })
       );
       return { keptAt: now };
+    }),
+
+  /**
+   * The Ventures an animal may be bought for, by name and nothing else.
+   *
+   * The Manager's as well as the Owner's, because the Manager records the Intake and the roles matrix
+   * gives her the owner on it. What a Venture is planned by, what it holds and who is in it stay the
+   * Owner's: this says only which names may be written against a beast today.
+   */
+  buying: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const rows = await context.db.query.venture.findMany({
+        where: { farmId: context.farm.id, state: "buying" },
+        columns: { id: true, name: true },
+        orderBy: { createdAt: "desc", id: "desc" },
+      });
+      return rows;
     }),
 
   /**

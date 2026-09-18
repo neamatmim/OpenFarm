@@ -10,6 +10,7 @@ import {
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { venture } from "./venture";
 
 export const SIDES = ["dairy", "fattening"] as const;
 export const ANIMAL_STATES = [
@@ -95,6 +96,11 @@ export const animal = pgTable(
       .notNull()
       .references(() => pen.id),
     source: text("source", { enum: ANIMAL_SOURCES }).notNull(),
+    /** Whose animal she is: unsaid for the Farm's own, or the **Venture** whose money bought her. One
+     *  owner at a time. Set by her Intake and correctable inside that window; after it, only an
+     *  **Internal Sale** moves her between owners — an Investor's animal may not quietly become the
+     *  Owner's. A Venture owns only bought-in Fattening animals: one born here is the Farm's. */
+    ownerVentureId: text("owner_venture_id").references(() => venture.id),
     breed: text("breed"),
     birthDate: timestamp("birth_date"),
     /** Set when a photo exists; the client uses it to bust its cache. */

@@ -15,6 +15,7 @@ import {
   ArrowRightLeft,
   Camera,
   EllipsisVertical,
+  Handshake,
   HeartCrack,
   MapPin,
   RefreshCw,
@@ -177,6 +178,14 @@ const WhatSheIs = ({ detail }: { detail: AnimalDetail }) => {
         </span>
         {detail.breed ? <span>{detail.breed}</span> : null}
         {age ? <span>{age}</span> : null}
+        {/* Whose animal she is, where she is not the Farm's own. The server says nothing of it to
+            anybody it is not the business of, so what arrives here is already the right answer. */}
+        {detail.owner ? (
+          <span className="inline-flex items-center gap-1">
+            <Handshake aria-hidden className="size-4" />
+            {detail.owner.name}
+          </span>
+        ) : null}
       </p>
       {hasAliases || detail.officialTag || detail.dam ? (
         <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

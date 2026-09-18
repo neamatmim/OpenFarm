@@ -18,7 +18,7 @@ import {
   sellerInput,
 } from "../stock-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 /** A cut lot re-valued for a new quantity, at the price a kilo of it was worth the day it came in. */
 const revalued = (
@@ -81,37 +81,39 @@ export const feedArrivalCorrection: CorrectionKind<
           : (to.priceBdt ?? row.priceBdt) !== null,
       seller: to.seller !== undefined || row.counterpartyId !== null,
     });
-    await tx
-      .update(feedIn)
-      .set({
-        ...(to.quantity === undefined
-          ? {}
-          : {
-              quantity: to.quantity.toFixed(1),
-              // A cut lot is worth its kilos at the price it came in at: fewer kilos, less fodder, and
-              // the price a kilo of it was worth that day is untouched.
-              ...(row.kind === "harvest"
-                ? { priceBdt: revalued(row, to.quantity) }
-                : {}),
-            }),
-        ...(to.priceBdt === undefined
-          ? {}
-          : { priceBdt: to.priceBdt.toFixed(2) }),
-        ...(to.receivedOn === undefined
-          ? {}
-          : { receivedOn: receivedDay(to.receivedOn, now) }),
-        ...(to.seller === undefined
-          ? {}
-          : {
-              counterpartyId: await counterpartyNamed(
-                tx,
-                row.farmId,
-                to.seller,
-                now
-              ),
-            }),
-      })
-      .where(eq(feedIn.id, row.id));
+    const putRight = {
+      ...(to.quantity === undefined
+        ? {}
+        : {
+            quantity: to.quantity.toFixed(1),
+            // A cut lot is worth its kilos at the price it came in at: fewer kilos, less fodder, and
+            // the price a kilo of it was worth that day is untouched.
+            ...(row.kind === "harvest"
+              ? { priceBdt: revalued(row, to.quantity) }
+              : {}),
+          }),
+      ...(to.priceBdt === undefined
+        ? {}
+        : { priceBdt: to.priceBdt.toFixed(2) }),
+      ...(to.receivedOn === undefined
+        ? {}
+        : { receivedOn: receivedDay(to.receivedOn, now) }),
+      ...(to.seller === undefined
+        ? {}
+        : {
+            counterpartyId: await counterpartyNamed(
+              tx,
+              row.farmId,
+              to.seller,
+              now
+            ),
+          }),
+    };
+    // Nothing of the record itself may have changed: a Correction may name only how it was paid
+    // for, and an update with no values to set is a database error rather than a no-op.
+    if (somethingChanged(putRight)) {
+      await tx.update(feedIn).set(putRight).where(eq(feedIn.id, row.id));
+    }
     await bookPurchaseMoney(
       tx,
       bookingOf(context, context.roleUsed, now),

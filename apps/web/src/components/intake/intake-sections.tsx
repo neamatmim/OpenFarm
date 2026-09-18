@@ -234,8 +234,11 @@ export const PriceSection = ({
   fields,
   onEdit,
   trips,
+  ventures,
 }: PartProps & {
   trips: { id: string; wentTo: string; wentOn: Date; animals: number }[];
+  /** The Ventures that are buying: the only ones that may take an animal in. */
+  ventures: { id: string; name: string }[];
 }) => {
   const { t, language } = useLanguage();
   return (
@@ -288,6 +291,26 @@ export const PriceSection = ({
           ))}
         </NativeSelect>
       </FormField>
+      {ventures.length > 0 ? (
+        <FormField
+          hint={t("intake.ownerHint")}
+          id="intake-owner"
+          label={t("intake.owner")}
+        >
+          <NativeSelect
+            id="intake-owner"
+            onChange={(event) => onEdit({ ventureId: event.target.value })}
+            value={fields.ventureId}
+          >
+            <option value="">{t("intake.theFarms")}</option>
+            {ventures.map((one) => (
+              <option key={one.id} value={one.id}>
+                {one.name}
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
+      ) : null}
       <PerKgLine fields={fields} />
       <PaymentMethodField
         id="intake-paid-by"

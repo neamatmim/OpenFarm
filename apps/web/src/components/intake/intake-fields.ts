@@ -14,6 +14,8 @@ export interface IntakeFields {
   /** The outing she came home on, chosen from the ones the farm has written up lately. Blank for an
    *  animal bought at the farm gate, or one nobody wrote a Trip for. */
   buyingTripId: string;
+  /** The Venture whose money bought her, or empty for the Farm's own. */
+  ventureId: string;
   weightKg: string;
   estimatedAgeMonths: string;
   breed: string;
@@ -32,6 +34,7 @@ export const EMPTY: IntakeFields = {
   purchasePriceBdt: "",
   hasilBdt: "",
   buyingTripId: "",
+  ventureId: "",
   weightKg: "",
   estimatedAgeMonths: "",
   breed: "",

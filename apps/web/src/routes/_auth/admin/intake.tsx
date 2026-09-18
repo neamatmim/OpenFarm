@@ -64,6 +64,11 @@ const IntakePage = () => {
   const sheds = useQuery(orpc.herd.list.queryOptions());
   // The outings the farm has written up lately, so an arrival can be put on the one it came home on.
   const trips = useQuery(orpc.trips.list.queryOptions());
+  // The Ventures that may take an animal in. Only the Owner may read them, so a Manager recording an
+  // Intake is simply not asked whose she is — which is right: buying for a Venture is the Owner's call.
+  // Whose she is: the Ventures that are buying, which the Manager may read by name because she is the
+  // one at the haat writing the arrival down.
+  const ventures = useQuery(orpc.ventures.buying.queryOptions());
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
@@ -133,6 +138,7 @@ const IntakePage = () => {
             targetWindowStart: fields.targetWindowStart || undefined,
             targetWindowEnd: fields.targetWindowEnd || undefined,
             buyingTripId: fields.buyingTripId || undefined,
+            ventureId: fields.ventureId || undefined,
             paymentMethod: fields.paymentMethod,
           });
         }}
@@ -150,6 +156,7 @@ const IntakePage = () => {
             fields={fields}
             onEdit={edit}
             trips={trips.data ?? []}
+            ventures={ventures.data ?? []}
           />
           <BuyingTripForm fields={fields} onEdit={edit} />
           <TargetSection fields={fields} onEdit={edit} />

@@ -13,7 +13,7 @@ import {
   readSale,
 } from "../sale-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 const loadSale = (tx: Tx, farmId: string, id: string) =>
   tx.query.sale.findFirst({
@@ -57,24 +57,26 @@ export const saleCorrection: CorrectionKind<
   shownAs: { buyer: (to) => to.name },
   trail: (tx, row) => readSale(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
-    await tx
-      .update(sale)
-      .set({
-        ...(to.priceBdt === undefined
-          ? {}
-          : { priceBdt: to.priceBdt.toFixed(2) }),
-        ...(to.buyer === undefined
-          ? {}
-          : {
-              counterpartyId: await counterpartyNamed(
-                tx,
-                row.farmId,
-                to.buyer,
-                now
-              ),
-            }),
-      })
-      .where(eq(sale.id, row.id));
+    const putRight = {
+      ...(to.priceBdt === undefined
+        ? {}
+        : { priceBdt: to.priceBdt.toFixed(2) }),
+      ...(to.buyer === undefined
+        ? {}
+        : {
+            counterpartyId: await counterpartyNamed(
+              tx,
+              row.farmId,
+              to.buyer,
+              now
+            ),
+          }),
+    };
+    // Nothing of the record itself may have changed: a Correction may name only how it was paid
+    // for, and an update with no values to set is a database error rather than a no-op.
+    if (somethingChanged(putRight)) {
+      await tx.update(sale).set(putRight).where(eq(sale.id, row.id));
+    }
     await bookSaleMoney(
       tx,
       bookingOf(context, context.roleUsed, now),
