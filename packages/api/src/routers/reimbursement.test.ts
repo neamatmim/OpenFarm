@@ -323,6 +323,38 @@ describe("the monthly Reimbursement", () => {
     ).toEqual([100, 400]);
   });
 
+  it("refuses the figure typed over, but not its day or its reference", async () => {
+    const owner = await as("owner", "2047-04-02T05:00:00.000Z");
+    const movements = await owner.client.ventures.movements({ ventureId });
+    const paid = movements.find((one) => one.kind === "reimbursement");
+    // The figure is what that month's costs came to, and the month may not be reimbursed again — so a
+    // figure typed over it is one nothing can be recomputed from.
+    await expect(
+      owner.client.ventures.correctMovement({
+        id: paid?.id ?? "",
+        reason: `কম মনে হচ্ছে ${suffix}`,
+        changes: { amountBdt: { from: 2000, to: 1000 } },
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "reimbursement_is_computed" },
+    });
+
+    // What she typed herself is still hers to put right, and the figure is untouched by it.
+    await owner.client.ventures.correctMovement({
+      id: paid?.id ?? "",
+      reason: `স্লিপ নম্বর ভুল ছিল ${suffix}`,
+      changes: {
+        reference: { from: `REI-${suffix}`, to: `REI-RIGHT-${suffix}` },
+      },
+    });
+    const after = await owner.client.ventures.movements({ ventureId });
+    expect(after.find((one) => one.id === paid?.id)).toMatchObject({
+      amountBdt: 2000,
+      reference: `REI-RIGHT-${suffix}`,
+    });
+  });
+
   it("does not take the same month twice", async () => {
     const owner = await as("owner", "2047-04-03T04:00:00.000Z");
     await expect(

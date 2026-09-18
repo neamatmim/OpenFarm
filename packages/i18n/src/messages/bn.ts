@@ -258,6 +258,18 @@ export const bn: Record<MessageKey, string> = {
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.balance": "হিসাবে থাকার কথা",
   "ventures.drawFloat": "টাকা তুলুন",
+  "ventures.movements": "টাকা আসা-যাওয়া",
+  "ventures.kind.capitalIn": "মূলধন জমা",
+  "ventures.kind.refund": "ফেরত",
+  "ventures.kind.floatOut": "হাটে নেওয়া টাকা",
+  "ventures.kind.floatBack": "হাট থেকে ফেরত টাকা",
+  "ventures.kind.internalBuy": "গরু কেনা",
+  "ventures.kind.internalSell": "গরু বিক্রি",
+  "ventures.kind.reimbursement": "খামারকে ফেরত",
+  "ventures.kind.advance": "আপনার নিজের টাকা",
+  "ventures.correctMovement": "ঠিক করুন",
+  "ventures.correctMovementHint":
+    "এই লেনদেনে যা লেখা আছে — কত, ব্যাংক কোন দিন পাঠিয়েছে, রেফারেন্স। হয়েছিল কি না, তা নয়।",
   "ventures.checkTheBank": "ব্যাংকের সাথে মিলিয়ে দেখুন",
   "ventures.bankCheckHint":
     "মাস শেষে {venture}-এর হিসাবে আসলে কত ছিল, আর খামার কত মনে করে — দুটো মিলিয়ে দেখা।",
@@ -357,6 +369,13 @@ export const bn: Record<MessageKey, string> = {
   "refusal.monthNotOver": "ওই মাস এখনো শেষ হয়নি",
   "refusal.monthBeforeTheVenture": "এই ভেঞ্চার শুরুর আগের মাস",
   "refusal.sayWhatYouFoundOut": "যে মাসে মেলেনি, সে বিষয়ে কী জেনেছেন লিখুন",
+  "refusal.ventureIsSettled":
+    "এই ভেঞ্চারের হিসাব শেষ — যে হিসাবে টাকা দেওয়া হয়েছে তা বদলানোর বদলে বণ্টন সমন্বয় করুন",
+  "refusal.ventureIsCancelled":
+    "এই ভেঞ্চার বাতিল হয়েছে, টাকাও ফেরত গেছে; যা এসেছিল তা এখন আর বদলানো যাবে না",
+  "refusal.oneSideOfASale": "এটি ভেতরের বেচাকেনার এক পাশ — বেচাকেনাটিই ঠিক করতে হবে",
+  "refusal.reimbursementIsComputed":
+    "মাসের ফেরত খরচের হিসাব থেকেই আসে; তারিখ আর রেফারেন্স এখনও আপনি ঠিক করতে পারেন",
   "refusal.sellerCannotTrade": "যে ভেঞ্চার দিচ্ছে, তার গরু দেওয়ার সময় পার হয়ে গেছে",
   "refusal.cashBackNeedsASlip": "ফেরত আসা টাকার জমার তারিখ আর স্লিপ নম্বর দিন",
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",

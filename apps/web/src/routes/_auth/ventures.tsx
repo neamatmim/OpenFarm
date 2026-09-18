@@ -32,6 +32,7 @@ import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
+import { MovementsSheet } from "@/components/ventures/movements-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
 import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
@@ -112,6 +113,7 @@ const VentureCard = ({
   onReimburse,
   onAdvance,
   onCheckTheBank,
+  onSeeMovements,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
@@ -122,6 +124,7 @@ const VentureCard = ({
   onReimburse: (venture: Venture) => void;
   onAdvance: (venture: Venture) => void;
   onCheckTheBank: (venture: Venture) => void;
+  onSeeMovements: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -139,7 +142,16 @@ const VentureCard = ({
         <Line label={t("ventures.target")}>
           {taka(venture.targetCapitalBdt)}
         </Line>
-        <Line label={t("ventures.held")}>{taka(venture.capitalInBdt)}</Line>
+        <Line label={t("ventures.held")}>
+          <button
+            aria-label={t("ventures.movements")}
+            className="rounded-md outline-none hover:underline focus-visible:ring-2"
+            onClick={() => onSeeMovements(venture)}
+            type="button"
+          >
+            {taka(venture.capitalInBdt)}
+          </button>
+        </Line>
         <Line label={t("ventures.balance")}>{taka(money.balanceBdt)}</Line>
         {money.advancedBdt === 0 ? null : (
           <Line label={t("ventures.owedToYou")}>{taka(money.advancedBdt)}</Line>
@@ -310,6 +322,7 @@ const VenturesPage = () => {
   const [reimbursing, setReimbursing] = useState<Venture | null>(null);
   const [advancing, setAdvancing] = useState<Venture | null>(null);
   const [checking, setChecking] = useState<Venture | null>(null);
+  const [seeing, setSeeing] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -349,6 +362,7 @@ const VenturesPage = () => {
                   onCountFloat={setCounting}
                   onAdvance={setAdvancing}
                   onCheckTheBank={setChecking}
+                  onSeeMovements={setSeeing}
                   onReimburse={setReimbursing}
                   onDrawFloat={setDrawing}
                   onSign={setSigning}
@@ -373,6 +387,15 @@ const VenturesPage = () => {
         }}
         open={taking !== null}
         venture={taking}
+      />
+      <MovementsSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setSeeing(null);
+          }
+        }}
+        open={seeing !== null}
+        venture={seeing}
       />
       <BankCheckSheet
         onOpenChange={(wanted) => {
