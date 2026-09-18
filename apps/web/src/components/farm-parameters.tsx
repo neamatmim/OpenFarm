@@ -33,7 +33,9 @@ type NumberKey =
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
-  | "windUpDays";
+  | "windUpDays"
+  | "investorCap"
+  | "investorWarnAt";
 type TextKey = "digestTimes" | "quietFrom" | "quietUntil";
 type Key = NumberKey | TextKey;
 
@@ -141,6 +143,20 @@ const GROUPS: {
         unit: "params.days",
         min: 0,
         max: 180,
+      },
+      {
+        key: "investorCap",
+        label: "params.investorCap",
+        unit: "params.people",
+        min: 1,
+        max: 50,
+      },
+      {
+        key: "investorWarnAt",
+        label: "params.investorWarnAt",
+        unit: "params.people",
+        min: 1,
+        max: 50,
       },
     ],
   },

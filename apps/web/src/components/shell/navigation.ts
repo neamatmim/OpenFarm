@@ -175,6 +175,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Handshake,
         audience: "owner",
       },
+      {
+        to: "/investors",
+        label: "nav.investors",
+        icon: Users,
+        audience: "owner",
+      },
     ],
   },
   {

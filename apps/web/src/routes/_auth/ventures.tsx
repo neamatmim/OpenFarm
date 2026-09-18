@@ -4,7 +4,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Handshake } from "lucide-react";
+import { Handshake, PenLine } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -16,6 +16,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
+import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -41,8 +42,14 @@ const StateBadge = ({ state }: { state: Venture["state"] }) => {
   );
 };
 
-/** One Venture: what it is after, what it holds, and when it means to sell. */
-const VentureCard = ({ venture }: { venture: Venture }) => {
+/** One Venture: what it is after, what it holds, who has signed for it, and when it means to sell. */
+const VentureCard = ({
+  venture,
+  onSign,
+}: {
+  venture: Venture;
+  onSign: (venture: Venture) => void;
+}) => {
   const { t, language } = useLanguage();
   const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
   const day = (on: string) => formatDate(startOfFarmDay(on), language, "date");
@@ -67,6 +74,13 @@ const VentureCard = ({ venture }: { venture: Venture }) => {
             price: formatNumber(venture.unitPriceBdt, language),
           })}
         </Line>
+        <Line label={t("ventures.signedFor")}>
+          {t("ventures.unitsOfUnits", {
+            taken: formatNumber(venture.signedFor.units, language),
+            units: formatNumber(venture.units, language),
+            people: formatNumber(venture.signedFor.people, language),
+          })}
+        </Line>
         <Line label={t("ventures.budgets")}>
           {t("ventures.budgetSplit", {
             cattle: formatNumber(venture.cattleBudgetBdt, language),
@@ -81,6 +95,18 @@ const VentureCard = ({ venture }: { venture: Venture }) => {
         <p className="text-muted-foreground text-xs">
           {venture.cancelledReason}
         </p>
+      ) : null}
+      {venture.state === "open" ? (
+        <div className="flex justify-end">
+          <Button
+            onClick={() => onSign(venture)}
+            type="button"
+            variant="outline"
+          >
+            <PenLine aria-hidden data-icon="inline-start" />
+            {t("ventures.sign")}
+          </Button>
+        </div>
       ) : null}
     </div>
   );
@@ -106,6 +132,7 @@ const Line = ({
 const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
+  const [signing, setSigning] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -129,13 +156,22 @@ const VenturesPage = () => {
           <Section id="ventures-list" title={t("ventures.running")}>
             <div className="grid gap-4 lg:grid-cols-2">
               {(ventures.data ?? []).map((one) => (
-                <VentureCard key={one.id} venture={one} />
+                <VentureCard key={one.id} onSign={setSigning} venture={one} />
               ))}
             </div>
           </Section>
         )}
       </Loaded>
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
+      <SignAgreementSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setSigning(null);
+          }
+        }}
+        open={signing !== null}
+        venture={signing}
+      />
     </Page>
   );
 };

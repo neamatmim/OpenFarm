@@ -18,11 +18,24 @@ interface VentureRow {
   cancelledReason: string | null;
 }
 
+/** What has been signed for a Venture: the Units spoken for, and how many people hold them. */
+export interface SignedFor {
+  units: number;
+  people: number;
+}
+
+const NOBODY: SignedFor = { units: 0, people: 0 };
+
 /**
- * A Venture as a screen reads it: the plan it opened on, what it holds, and the Running Budget, which is
- * whatever the Cattle Budget is not — worked out, never stored, so the two can never drift apart.
+ * A Venture as a screen reads it: the plan it opened on, what it holds, who has signed for it, and the
+ * Running Budget, which is whatever the Cattle Budget is not — worked out, never stored, so the two can
+ * never drift apart.
  */
-export const ventureView = (row: VentureRow, capitalInBdt: number) => ({
+export const ventureView = (
+  row: VentureRow,
+  capitalInBdt: number,
+  signedFor: SignedFor = NOBODY
+) => ({
   id: row.id,
   name: row.name,
   state: row.state,
@@ -35,8 +48,36 @@ export const ventureView = (row: VentureRow, capitalInBdt: number) => ({
   cattleBudgetBdt: Number(row.cattleBudgetBdt),
   runningBudgetBdt: Number(row.targetCapitalBdt) - Number(row.cattleBudgetBdt),
   capitalInBdt,
+  signedFor,
   cancelledReason: row.cancelledReason,
 });
+
+/**
+ * What each Venture has been signed for, in one query rather than one per Venture — the Owner's list draws
+ * every Venture she has ever opened, and a query per card is a query per card.
+ */
+export const signedForEach = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ids: readonly string[]
+): Promise<Map<string, SignedFor>> => {
+  const summary = new Map(ids.map((id) => [id, NOBODY]));
+  if (ids.length === 0) {
+    return summary;
+  }
+  const signed = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: { in: [...ids] } },
+    columns: { ventureId: true, units: true },
+  });
+  for (const one of signed) {
+    const soFar = summary.get(one.ventureId) ?? NOBODY;
+    summary.set(one.ventureId, {
+      units: soFar.units + one.units,
+      people: soFar.people + 1,
+    });
+  }
+  return summary;
+};
 
 /**
  * What each Venture holds of its Investors' capital. Nothing pays in yet — the capital ticket brings that —
@@ -55,5 +96,6 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
     return null;
   }
   const held = await capitalInBdt(tx, [row.id]);
-  return ventureView(row, held.get(row.id) ?? 0);
+  const signed = await signedForEach(tx, farmId, [row.id]);
+  return ventureView(row, held.get(row.id) ?? 0, signed.get(row.id));
 };

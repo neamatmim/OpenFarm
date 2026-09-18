@@ -186,6 +186,9 @@ export const en = {
   "params.ventureRunning":
     "Kept back to feed them, of a Venture\u2019s capital",
   "params.windUp": "Selling after the window closes",
+  "params.investorCap": "Investors at a time, at most",
+  "params.investorWarnAt": "Warn from this many Investors",
+  "params.people": "people",
   "ventures.title": "Ventures",
   "ventures.subtitle":
     "What investors' money is running here: what each Venture is after, what it holds, and when it means to sell.",
@@ -218,6 +221,53 @@ export const en = {
   "ventures.state.selling": "Selling",
   "ventures.state.settled": "Settled",
   "ventures.state.cancelled": "Called off",
+  "ventures.sign": "Sign an Agreement",
+  "ventures.signHint":
+    "The Units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
+  "ventures.signed": "The Agreement is recorded",
+  "ventures.signedFor": "Signed for",
+  "ventures.unitsOfUnits": "{taken} of {units} Units · {people} in",
+  "ventures.investor": "Investor",
+  "ventures.investorHint":
+    "Recorded once, on the Investors page, and used for every Venture they join",
+  "ventures.unitsTaken": "Units taken",
+  "ventures.investorsPercent": "The Investors' percentage",
+  "ventures.splitHint": "The farm takes {farm}%",
+  "ventures.arbitrator": "Arbitrator",
+  "ventures.arbitratorHint":
+    "The person both sides name now, to be asked if they ever disagree",
+  "ventures.stampValue": "Stamp value",
+  "ventures.stampedOn": "Stamped on",
+  "ventures.stampSerial": "Stamp serial",
+  "ventures.paper": "The stamped paper",
+  "ventures.paperHint":
+    "A photo of the signed paper, kept against the Agreement",
+  "investors.title": "Investors",
+  "investors.subtitle": "The people whose money is in the farm's Ventures",
+  "investors.record": "Record an Investor",
+  "investors.recordHint":
+    "Written down once and used for every Venture they join",
+  "investors.recorded": "The Investor is recorded",
+  "investors.name": "Name",
+  "investors.phone": "Phone",
+  "investors.address": "Address",
+  "investors.nid": "NID number",
+  "investors.bank": "Bank account",
+  "investors.bankHint":
+    "How they are paid: the farm pays Investors by bank, never by hand",
+  "investors.nominee": "Nominee",
+  "investors.nomineeHint":
+    "Who the money goes to if they die before the Venture settles",
+  "investors.nomineePhone": "Nominee's phone",
+  "investors.nomineeRelation": "Relation",
+  "investors.nomineeIs": "Nominee: {name}",
+  "investors.holds": "{units} Units",
+  "investors.none": "No Investor is recorded yet",
+  "investors.nearingTheCap":
+    "{standing} Investors of the {cap} the farm may have",
+  "investors.capWhy":
+    "Twenty people in one business for gain is a company. The farm counts everyone in a Venture that has not settled or been called off, and will not take one more.",
+  "nav.investors": "Investors",
   "params.approvalThreshold": "Owner approves spending above",
   "params.aiWindowStart": "AI window opens after heat",
   "params.aiWindowEnd": "AI window closes after heat",
@@ -945,6 +995,11 @@ export const en = {
     "The Floor cannot be more than the capital the Venture is after",
   "refusal.ventureBudgetOverCapital":
     "The Cattle Budget cannot be more than the capital it comes from",
+  "refusal.ventureUnitsGone": "The Venture has fewer Units left than that",
+  "refusal.investorCapReached":
+    "The farm already has as many Investors as it may have at a time",
+  "refusal.investorExists":
+    "This person is written down already, on that same phone number",
   "refusal.neverTheAnimals":
     "Wages, utilities, repairs and money coming in are never charged to the animals",
   "refusal.feedRetired": "That feed is retired",
