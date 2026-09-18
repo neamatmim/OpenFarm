@@ -1,3 +1,5 @@
+import { eq } from "@OpenFarm/db/operators";
+import { farm } from "@OpenFarm/db/schema/farm";
 import type {
   VentureMovementKind,
   VentureState,
@@ -12,6 +14,19 @@ import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { tripCostOf } from "./trip-store";
+
+/**
+ * Every count a Venture's rules make — Units taken, what a budget still holds, what a Float is owed — reads
+ * rows that another request may be writing. One lock on the Farm, taken first by everything that writes a
+ * Venture's money, is what makes those counts still true when the write lands.
+ */
+export const lockTheFarm = async (tx: Tx, farmId: string) => {
+  await tx
+    .select({ id: farm.id })
+    .from(farm)
+    .where(eq(farm.id, farmId))
+    .for("update");
+};
 
 /** A Venture's row, as the columns hold it. */
 interface VentureRow {

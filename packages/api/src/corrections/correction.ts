@@ -123,6 +123,9 @@ export interface CorrectionKind<
   rolesFor?: (row: Row) => readonly RoleName[] | undefined;
   /** Whether a Vet called in for a visit may put it right as the Vet. */
   visitingVet?: boolean;
+  /** Held before the row is, for a kind whose rules count what other records say — the same lock those records
+   *  take, in the same order, so a Correction cannot read a sum a write in flight is about to change. */
+  lock?: (tx: Tx, farmId: string) => Promise<void>;
   /** Said when there is no such record on this farm. */
   missing: string;
   /** The record on this farm, or nothing; refuses one that is not this kind's to put right, as money a record booked. */
@@ -328,6 +331,7 @@ export const correct = async <
   const eventId = uuidv7(now);
   let corrector: Corrector | undefined;
   const outcome = await context.db.transaction(async (tx) => {
+    await kind.lock?.(tx, context.farm.id);
     await tx.execute(
       sql`select 1 from ${kind.table} where ${kind.table.id} = ${input.id} for update`
     );

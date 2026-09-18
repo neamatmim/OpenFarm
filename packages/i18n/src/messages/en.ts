@@ -260,6 +260,18 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a Float",
+  "ventures.movements": "Money in and out",
+  "ventures.kind.capitalIn": "Capital in",
+  "ventures.kind.refund": "Refunded",
+  "ventures.kind.floatOut": "Float to the haat",
+  "ventures.kind.floatBack": "Cash back from the haat",
+  "ventures.kind.internalBuy": "Bought an animal",
+  "ventures.kind.internalSell": "Sold an animal",
+  "ventures.kind.reimbursement": "Reimbursed the farm",
+  "ventures.kind.advance": "Your own money in",
+  "ventures.correctMovement": "Put it right",
+  "ventures.correctMovementHint":
+    "What this movement says — how much, the day the bank moved it, the reference. Not whether it happened.",
   "ventures.checkTheBank": "Check against the bank",
   "ventures.bankCheckHint":
     "What {venture}'s account really held at the end of a month, against what the farm thinks it held.",
@@ -371,6 +383,14 @@ export const en = {
   "refusal.monthBeforeTheVenture": "That month is before this Venture opened",
   "refusal.sayWhatYouFoundOut":
     "Say what you found out about the month that did not agree",
+  "refusal.ventureIsSettled":
+    "That Venture is settled — raise a Settlement Adjustment rather than changing what it was paid on",
+  "refusal.ventureIsCancelled":
+    "That Venture was called off and its money sent back; what came in cannot change now",
+  "refusal.oneSideOfASale":
+    "That is one side of an Internal Sale — the sale itself is what to put right",
+  "refusal.reimbursementIsComputed":
+    "A month's reimbursement is what its costs came to; its day and its reference are still yours to correct",
   "refusal.sellerCannotTrade":
     "The Venture letting her go is past letting animals go",
   "refusal.cashBackNeedsASlip":

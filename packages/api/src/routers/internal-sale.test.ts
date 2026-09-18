@@ -205,6 +205,24 @@ describe("the Internal Sale", () => {
     });
   });
 
+  it("refuses one side of the sale put right on its own", async () => {
+    const owner = await as("owner", "2047-02-06T10:00:00.000Z");
+    const movements = await owner.client.ventures.movements({ ventureId });
+    const bought = movements.find((one) => one.kind === "internal_buy");
+    // A sale is two movements, a price and the Farm's own Money Event. Correcting the Venture's side
+    // alone would leave the Farm's books saying it was paid something else for the same animal.
+    await expect(
+      owner.client.ventures.correctMovement({
+        id: bought?.id ?? "",
+        reason: `দর ভুল ছিল ${suffix}`,
+        changes: { amountBdt: { from: 77_000, to: 70_000 } },
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "one_side_of_a_sale" },
+    });
+  });
+
   it("sends her back the other way, and the money with her", async () => {
     const owner = await as("owner", "2047-02-07T09:00:00.000Z");
     const listed = await owner.client.investors.list();

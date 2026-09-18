@@ -1,6 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { farm } from "@OpenFarm/db/schema/farm";
 import { internalSale } from "@OpenFarm/db/schema/fattening";
 import { animal } from "@OpenFarm/db/schema/herd";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
@@ -22,6 +21,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { correct } from "../corrections/correction";
+import {
+  ventureMovementCorrection,
+  ventureMovementCorrectionInput,
+} from "../corrections/venture-movement";
 import { consumedBy, farmCosts } from "../cost-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -57,6 +61,7 @@ import {
   takenAgainst,
   signedForEach,
   ventureView,
+  lockTheFarm,
 } from "../venture-store";
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
@@ -170,14 +175,6 @@ const theirs = async (context: Context, id: string) => {
  * still true when the write lands. Signings and Floats are rare and the lock is cheap; two phones
  * agreeing on a rule that may not be overridden is not.
  */
-const lockTheFarm = async (tx: Tx, farmId: string) => {
-  await tx
-    .select({ id: farm.id })
-    .from(farm)
-    .where(eq(farm.id, farmId))
-    .for("update");
-};
-
 /**
  * That a Venture may still trade animals: it has started and has not finished. A Venture that is
  * selling is counting what it holds, and one settled or called off has nothing left to move.
@@ -1558,6 +1555,23 @@ export const venturesRouter = {
       );
       return { id, ...consumed };
     }),
+
+  /**
+   * A movement of a Venture's money put right: how much moved, the day the bank moved it, or the
+   * reference on the instrument. A Correction like any other — a reason, and the trail holding what it
+   * said before.
+   *
+   * Refused where the farm has already built something on it: a Float counted home, a month reimbursed,
+   * a Venture settled. Changing a figure underneath a decision somebody has already made is not putting
+   * anything right.
+   */
+  correctMovement: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(ventureMovementCorrectionInput)
+    .handler(({ context, input }) =>
+      correct(context, ventureMovementCorrection, input)
+    ),
 
   /** Every movement of one Venture's money, oldest first: what came in, and what went back. */
   movements: protectedProcedure
