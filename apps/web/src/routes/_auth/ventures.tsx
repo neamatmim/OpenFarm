@@ -39,6 +39,7 @@ import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { lastMonth } from "@/lib/months";
 import { orpc } from "@/utils/orpc";
 
 type Venture = Awaited<ReturnType<typeof orpc.ventures.list.call>>[number];
@@ -63,29 +64,62 @@ const StateBadge = ({ state }: { state: Venture["state"] }) => {
 };
 
 /**
- * How a Venture's account stands against the bank. A month still out is a warning; nobody having looked
- * at all is said too, because an account nobody has checked is the one worth checking.
+ * How a Venture's account stands against the bank: every month still out, and which of them went stale.
+ *
+ * The two are said separately because they are different problems — a stale month needs the statement
+ * read again, a disagreeing one needs explaining — and both are said, because a Venture with one of each
+ * has both to deal with. Straight with the bank is claimed only up to the last month that is over: an
+ * account nobody has read since July is not straight in October, it is unread.
  */
 const BankStanding = ({
   bank,
 }: {
-  bank: { lastCheckedMonth: string | null; monthsOut: string[] } | undefined;
+  bank:
+    | {
+        lastCheckedMonth: string | null;
+        monthsOut: string[];
+        monthsStale?: string[];
+      }
+    | undefined;
 }) => {
   const { t } = useLanguage();
-  const out = bank?.monthsOut ?? [];
-  if (out.length > 0) {
+  // A fortnight-old cache was written before a month could go stale, and says nothing about one.
+  const stale = bank?.monthsStale ?? [];
+  const disagreed = (bank?.monthsOut ?? []).filter(
+    (month) => !stale.includes(month)
+  );
+  if (stale.length > 0 || disagreed.length > 0) {
     return (
-      <StatusBadge tone="warning">
-        {t("ventures.bankDisagrees", { month: out.join(", ") })}
-      </StatusBadge>
+      <div className="flex flex-wrap gap-1">
+        {stale.length > 0 ? (
+          <StatusBadge tone="warning">
+            {t("ventures.bankStale", { month: stale.join(", ") })}
+          </StatusBadge>
+        ) : null}
+        {disagreed.length > 0 ? (
+          <StatusBadge tone="warning">
+            {t("ventures.bankDisagrees", { month: disagreed.join(", ") })}
+          </StatusBadge>
+        ) : null}
+      </div>
     );
   }
-  return bank?.lastCheckedMonth ? (
+  if (!bank?.lastCheckedMonth) {
+    return (
+      <StatusBadge tone="neutral">{t("ventures.bankNeverChecked")}</StatusBadge>
+    );
+  }
+  // Named, and this way round, because the guard against untranslated JSX text takes a closing angle
+  // bracket in an expression for the end of a tag.
+  const readToTheLastMonthOver = lastMonth() <= bank.lastCheckedMonth;
+  return readToTheLastMonthOver ? (
     <StatusBadge tone="success">
       {t("ventures.bankStraight", { month: bank.lastCheckedMonth })}
     </StatusBadge>
   ) : (
-    <StatusBadge tone="neutral">{t("ventures.bankNeverChecked")}</StatusBadge>
+    <StatusBadge tone="neutral">
+      {t("ventures.bankUnreadSince", { month: bank.lastCheckedMonth })}
+    </StatusBadge>
   );
 };
 

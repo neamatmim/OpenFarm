@@ -1211,8 +1211,11 @@ export const venturesRouter = {
         checked: already
           ? {
               readBdt: Number(already.readBdt),
+              /** What the farm believed when she read the statement, which is not `expectedBdt` once
+               *  something has moved in that month since. */
               expectedBdt: Number(already.expectedBdt),
               note: already.note,
+              stale: roundTaka(expectedBdt - Number(already.expectedBdt)) !== 0,
             }
           : null,
       };
@@ -1309,6 +1312,7 @@ export const venturesRouter = {
             already !== undefined &&
             roundTaka(Number(already.readBdt) - Number(already.expectedBdt)) !==
               0;
+          const agreesNow = roundTaka(input.readBdt - expectedBdt) === 0;
           // Said now, not once before: the note she wrote when it disagreed explains the disagreement,
           // and putting the month right is a different thing to explain.
           if (disagreed && !input.note) {
@@ -1337,16 +1341,21 @@ export const venturesRouter = {
                 readBdt: input.readBdt.toFixed(2),
                 expectedBdt: expectedBdt.toFixed(2),
                 // Kept unless she says something new: re-reading a month must not erase what she
-                // found out about it last time.
-                note: input.note ?? already?.note ?? null,
+                // found out about it last time. Dropped once the month agrees, because what she found
+                // out was about a difference that is no longer there.
+                note:
+                  input.note ?? (agreesNow ? null : (already?.note ?? null)),
                 checkedBy: context.actor.id,
                 checkedAt: now,
               },
             });
         }
       );
-      const differenceBdt = roundTaka(input.readBdt - expectedBdt);
-      return { expectedBdt, readBdt: input.readBdt, differenceBdt };
+      return {
+        expectedBdt,
+        readBdt: input.readBdt,
+        differenceBdt: roundTaka(input.readBdt - expectedBdt),
+      };
     }),
 
   /**

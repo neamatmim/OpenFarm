@@ -6,12 +6,14 @@ A Settlement is about to refuse to close while the bank disagrees. It must not b
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [Ventures spec](../../openfarm-investor-projects/spec.md) — increment 4, user story 25; story 62's list of what blocks a Settlement; `CONTEXT.md` — **Bank Check**, **Venture Account**, **Settlement**.
 
-- [ ] A Bank Check is stale when what the farm now believes that month ended on is not what the check was taken against
-- [ ] A stale month counts among the months still out, so nothing that waits on the bank agreeing is satisfied by it
-- [ ] The Venture says which months are stale and which simply disagreed, because they are different problems: one needs the statement read again, the other needs explaining
-- [ ] Reading the month again against the figure the farm now believes clears it
-- [ ] Tests cover a check that agreed then went stale, one that stays agreed while nothing moves, and a stale month read again
+- [x] A Bank Check is stale when what the farm now believes that month ended on is not what the check was taken against
+- [x] A stale month counts among the months still out, so nothing that waits on the bank agreeing is satisfied by it
+- [x] The Venture says which months are stale and which simply disagreed, because they are different problems: one needs the statement read again, the other needs explaining
+- [x] Reading the month again against the figure the farm now believes clears it
+- [x] Tests cover a check that agreed then went stale, one that stays agreed while nothing moves, and a stale month read again
+
+**Left to the Settlement (ticket 05):** a month nobody ever read cannot be stale or out, because there is no Bank Check row for it. That is deliberate — `lastCheckedMonth` is reported so a reader can tell "straight to July" from "everything is checked" — but it means a Settlement must refuse on `lastCheckedMonth` falling short of the last month that is over, as well as on `monthsOut`. The card now says "nobody has read the statement since {month}" rather than claiming straight, so the Owner is not told the account is fine when it is merely unread.

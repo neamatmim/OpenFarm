@@ -13,6 +13,26 @@ import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /**
+ * Said when the month was read against a figure the farm has since changed its mind about: what she
+ * decided then, she decided about something else, so the reading itself is what has to happen again.
+ */
+const WhatItWasReadAgainst = ({
+  checked,
+}: {
+  // `stale` is absent from a fortnight-old cached answer, written before a month could go stale.
+  checked: { expectedBdt: number; stale?: boolean } | null;
+}) => {
+  const { t, language } = useLanguage();
+  return checked?.stale ? (
+    <p className="text-sm text-amber-700 dark:text-amber-500">
+      {t("ventures.checkedAgainst", {
+        expected: formatNumber(checked.expectedBdt, language),
+      })}
+    </p>
+  ) : null;
+};
+
+/**
  * The month's bank check: what the statement said, against what the farm thinks the account held.
  *
  * The difference is worked out as she types, because the point of the act is the difference — and a
@@ -114,6 +134,7 @@ export const BankCheckSheet = ({
           {already.note ? ` · ${already.note}` : ""}
         </p>
       ) : null}
+      <WhatItWasReadAgainst checked={already} />
       <FormField
         hint={t("ventures.readHint")}
         id="check-read"
