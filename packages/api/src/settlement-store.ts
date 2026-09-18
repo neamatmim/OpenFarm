@@ -34,14 +34,34 @@ import {
 type Db = Pick<Database, "query" | "execute">;
 
 /** What each charge against a run is called. */
-export type ChargeWord =
-  | "bought"
-  | "hasil"
-  | "trips"
-  | "feed"
-  | "medicine"
-  | "vet"
-  | "herd";
+export const CHARGE_WORDS = [
+  "bought",
+  "hasil",
+  "trips",
+  "feed",
+  "medicine",
+  "vet",
+  "herd",
+] as const;
+
+/**
+ * The charges a Settlement froze, read back.
+ *
+ * A jsonb column comes out as `unknown`, and a screen cannot label a line it cannot name — so a line
+ * whose word the farm no longer knows is dropped rather than handed on to be rendered as a blank label.
+ */
+const chargesAsWritten = (
+  written: unknown
+): { word: ChargeWord; bdt: number }[] =>
+  (Array.isArray(written) ? written : []).flatMap((one) =>
+    typeof one === "object" &&
+    one !== null &&
+    CHARGE_WORDS.includes((one as { word: string }).word as ChargeWord)
+      ? [one as { word: ChargeWord; bdt: number }]
+      : []
+  );
+
+export type ChargeWord = (typeof CHARGE_WORDS)[number];
 
 /**
  * Something that makes a Settlement a guess rather than a sum, with the word the reader has for it.
@@ -210,6 +230,28 @@ const whatBlocksIt = ({
     blocks.push({ word: "the_bank_disagrees", disagreed, stale, neverRead });
   }
   return blocks;
+};
+
+/**
+ * What each of these Investors is called, by id.
+ *
+ * The one or two who signed, never every Investor the farm has ever had — and always named, because a
+ * screen showing who has been paid and who has not cannot show a uuid at somebody the Owner is about to
+ * telephone.
+ */
+const namesOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  theirs: readonly { investorId: string }[]
+) => {
+  if (theirs.length === 0) {
+    return new Map<string, string>();
+  }
+  const people = await tx.query.investor.findMany({
+    where: { farmId, id: { in: theirs.map((one) => one.investorId) } },
+    columns: { id: true, name: true },
+  });
+  return new Map(people.map((one) => [one.id, one.name]));
 };
 
 /** What one Investor is owed: their capital back, and what their Units took of the profit. */
@@ -539,11 +581,12 @@ export const readSettlement = async (
     return null;
   }
   const { row, shares } = approved;
+  const nameOf = await namesOf(tx, farmId, shares);
   return {
     approvedAt: row.approvedAt,
     proceedsBdt: Number(row.proceedsBdt),
     chargedBdt: Number(row.chargedBdt),
-    charges: row.charges,
+    charges: chargesAsWritten(row.charges),
     profitBdt: Number(row.profitBdt),
     investorsPercent: row.investorsPercent,
     units: row.units,
@@ -559,6 +602,7 @@ export const readSettlement = async (
     shares: shares.map((one) => ({
       agreementId: one.agreementId,
       investorId: one.investorId,
+      name: nameOf.get(one.investorId) ?? "",
       units: one.units,
       capitalBdt: Number(one.capitalBdt),
       shareBdt: Number(one.shareBdt),
