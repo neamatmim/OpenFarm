@@ -43,6 +43,8 @@ export const RECORD_SOURCES = [
   // Category with one direction.
   "internal_sale_in",
   "internal_sale_out",
+  // What a Venture repaid the Farm for what its Animals consumed of what the Farm bought.
+  "reimbursement",
 ] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 

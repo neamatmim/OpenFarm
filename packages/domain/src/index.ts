@@ -297,6 +297,7 @@ export {
   feedShares,
   herdShares,
   marginOf,
+  monthOf,
   roundedCosts,
   tripShares,
 } from "./costs";

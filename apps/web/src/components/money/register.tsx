@@ -40,6 +40,7 @@ const SOURCE_WORD = {
   vet_fee: "money.from.vetFee",
   internal_sale_in: "money.from.internalSaleIn",
   internal_sale_out: "money.from.internalSaleOut",
+  reimbursement: "money.from.reimbursement",
   by_hand: "money.from.byHand",
 } as const satisfies Record<string, MessageKey>;
 

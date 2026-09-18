@@ -258,6 +258,16 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a Float",
+  "ventures.reimburse": "Reimburse the month",
+  "ventures.reimburseHint":
+    "What {venture}'s animals consumed of what the farm bought, moved from the Venture Account to the farm's.",
+  "ventures.reimbursed": "The month is reimbursed",
+  "ventures.whichMonth": "Which month",
+  "ventures.feed": "Feed",
+  "ventures.medicine": "Medicine",
+  "ventures.vet": "Vet",
+  "ventures.herdCosts": "Share of herd costs",
+  "ventures.thatMonth": "That month",
   "ventures.sellInternally": "Move an animal between purses",
   "ventures.internalSaleHint":
     "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
@@ -328,6 +338,10 @@ export const en = {
     "Investor money funds fattening, and a dairy cow is the farm's",
   "refusal.buyerCannotTrade":
     "The Venture taking her on is past taking animals on",
+  "refusal.nothingToReimburse":
+    "Its animals consumed nothing of the farm's that month",
+  "refusal.monthAlreadyReimbursed": "That month has been reimbursed already",
+  "refusal.monthNotOver": "That month is not over yet",
   "refusal.sellerCannotTrade":
     "The Venture letting her go is past letting animals go",
   "refusal.cashBackNeedsASlip":
@@ -1208,6 +1222,7 @@ export const en = {
   "money.from.vetFee": "Vet fee",
   "money.from.internalSaleIn": "Sold to a Venture",
   "money.from.internalSaleOut": "Bought from a Venture",
+  "money.from.reimbursement": "Reimbursed by a Venture",
   "owner.moneyAwaiting": "Money awaiting your approval",
   "drugs.buy": "Medicine bought",
   "drugs.quantity": "How much (as on the box)",
