@@ -37,6 +37,8 @@ interface DoseShare {
   animalId: string;
   side: Side;
   at: Date;
+  /** Which medicine she was given, so a month's doses can be named rather than counted. */
+  drugProductId: string;
   medicineBdt: number | null;
 }
 
@@ -111,6 +113,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       with: {
         intake: {
           columns: {
+            id: true,
             purchasePriceBdt: true,
             hasilBdt: true,
             buyingTripId: true,
@@ -197,7 +200,12 @@ export const farmCosts = async (db: Db, farmId: string) => {
         side: { isNotNull: true },
         purseVentureId: THE_FARMS_PURSE,
       },
-      columns: { amountBdt: true, occurredAt: true, side: true },
+      columns: {
+        amountBdt: true,
+        occurredAt: true,
+        side: true,
+        categoryId: true,
+      },
       with: { category: { columns: { chargedToAnimals: true } } },
     }),
   ]);
@@ -251,6 +259,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
             animalId: one.animalId,
             side: sideOf(animal, one.givenAt),
             at: one.givenAt,
+            drugProductId: one.productId,
             medicineBdt: dosePriceOf(
               purchasesOf.get(one.productId) ?? [],
               one.givenAt
@@ -284,6 +293,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
             animalId: one.id,
             side: sideOf(one, one.intake.arrivedAt),
             at: one.intake.arrivedAt,
+            fromId: one.intake.id,
             bdt: Number(one.intake.hasilBdt),
           },
         ]
@@ -344,6 +354,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
               at: one.occurredAt,
               side: one.side,
               bdt: Number(one.amountBdt),
+              categoryId: one.categoryId,
             },
           ]
         : []
@@ -579,6 +590,93 @@ export const costsBySide = (
       ),
       tripBdt: roundTaka(strayTrips.reduce((sum, one) => sum + one.bdt, 0)),
       herdBdt: roundTaka(strayHerd.reduce((sum, one) => sum + one.bdt, 0)),
+    },
+  };
+};
+
+/** What each thing charged came to, added up by the thing it was. */
+const groupedLines = <Share>(
+  shares: readonly Share[],
+  idOf: (share: Share) => string,
+  takaOf: (share: Share) => number
+): ConsumedLine[] => {
+  const byId = new Map<string, number>();
+  for (const share of shares) {
+    byId.set(idOf(share), (byId.get(idOf(share)) ?? 0) + takaOf(share));
+  }
+  return [...byId]
+    .map(([id, bdt]) => ({ id, bdt: roundTaka(bdt) }))
+    .filter((line) => line.bdt > 0);
+};
+
+/** One line of what a month's consumption was made of: what it was, and what it came to. */
+export interface ConsumedLine {
+  id: string;
+  bdt: number;
+}
+
+/**
+ * What one owner's Animals consumed in a period, and what it was made of.
+ *
+ * Only what the Farm bought for the whole herd and is owed back: feed, medicine and the vet, and the
+ * Animals' share of the month's Herd Costs. Not the Hasil or the Trips — those a Venture paid itself,
+ * out of its own Float, and were never the Farm's to be repaid for.
+ *
+ * The total is the same costing every other reader uses, narrowed to those Animals and those days. The
+ * lines are that same total taken apart, never a second sum.
+ */
+export const consumedBy = (
+  costs: FarmCosts,
+  /** Whose the Animal was on a given day: her owner then, not her owner now. */
+  ownedThenBy: (animalId: string, at: Date) => string | null,
+  ventureId: string,
+  { from, until }: { from: Date; until: Date }
+) => {
+  const theirsThen = (share: { animalId: string; at: Date }) =>
+    ownedThenBy(share.animalId, share.at) === ventureId;
+  const hers = {
+    feed: costs.all.feed.filter(theirsThen),
+    doses: costs.all.doses.filter(theirsThen),
+    vet: costs.all.vet.filter(theirsThen),
+    litres: [],
+    hasil: [],
+    trips: [],
+    herd: costs.all.herd.filter(theirsThen),
+  };
+  const inThePeriod = (at: Date) => at >= from && at < until;
+  const theirs = narrowed(hers, (share) => inThePeriod(share.at));
+  const { costs: summed } = addedUp(theirs);
+  const feedBdt = roundTaka(summed.feedBdt);
+  const medicineBdt = roundTaka(summed.medicineBdt);
+  const vetBdt = roundTaka(summed.vetBdt);
+  const herdBdt = roundTaka(summed.herdBdt);
+  return {
+    feedBdt,
+    medicineBdt,
+    vetBdt,
+    herdBdt,
+    // The sum of the parts as they are shown, not of the parts before they were rounded: four lines
+    // that do not add up to the figure beneath them is the farm arguing with itself in front of an
+    // Investor.
+    totalBdt: roundTaka(feedBdt + medicineBdt + vetBdt + herdBdt),
+    /** What it was made of, so the Owner can read it to an Investor: which Feed Items, which
+     *  medicines, which Categories of Herd Cost, and what each came to. */
+    madeOf: {
+      feed: groupedLines(
+        theirs.feed,
+        (one) => one.feedItemId,
+        (one) => one.feedBdt
+      ),
+      medicine: groupedLines(
+        theirs.doses,
+        (one) => one.drugProductId,
+        (one) => one.medicineBdt ?? 0
+      ),
+      herd: groupedLines(
+        theirs.herd,
+        (one) => one.fromId,
+        (one) => one.bdt
+      ),
     },
   };
 };

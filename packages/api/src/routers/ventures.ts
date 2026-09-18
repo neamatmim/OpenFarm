@@ -10,12 +10,13 @@ import {
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
-import { roundTaka, startOfFarmDay } from "@OpenFarm/domain";
+import { monthOf, roundTaka, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { consumedBy, farmCosts } from "../cost-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
@@ -25,6 +26,7 @@ import {
   theFarmsShare,
   unitsTaken,
 } from "../investor-store";
+import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
 import {
@@ -36,6 +38,7 @@ import {
 import {
   balanceOf,
   heldByEach,
+  ownersOverTime,
   readInternalSale,
   whatSheLastWeighed,
   whatTheFloatBought,
@@ -196,6 +199,93 @@ const assertVentureMayTrade = async (
       },
     });
   }
+};
+
+/** A line of a Reimbursement with the name of the thing it was, in both languages the farm keeps. */
+const named = (
+  lines: readonly { id: string; bdt: number }[],
+  names: Map<string, { bn: string; en: string | null }>
+) =>
+  lines.map((line) => ({
+    ...line,
+    nameBn: names.get(line.id)?.bn ?? "",
+    nameEn: names.get(line.id)?.en ?? null,
+  }));
+
+/**
+ * What one Venture's Animals consumed of what the Farm bought, over one month.
+ *
+ * Charged by who owned her the day she ate it. An Animal sold between purses mid-month is repaid for by
+ * each owner for the days that owner had her; one sold to a buyer and gone is still charged to the
+ * Venture that owned her while she was here.
+ */
+const whatItsAnimalsConsumed = async (
+  context: Context,
+  ventureId: string,
+  month: string
+) => {
+  const nowOwned = await context.db.query.animal.findMany({
+    where: { farmId: context.farm.id },
+    columns: { id: true, ownerVentureId: true },
+  });
+  const ownsNow = new Map(nowOwned.map((one) => [one.id, one.ownerVentureId]));
+  const changed = await ownersOverTime(context.db, context.farm.id);
+  const ownedThenBy = (animalId: string, at: Date): string | null => {
+    const hers = changed.get(animalId);
+    if (!hers) {
+      return ownsNow.get(animalId) ?? null;
+    }
+    // The last change on or before that day is who owned her then.
+    let owner = hers[0]?.ventureId ?? null;
+    for (const span of hers) {
+      if (span.from <= at) {
+        owner = span.ventureId;
+      }
+    }
+    return owner;
+  };
+  const { from, until } = monthOf(startOfFarmDay(`${month}-01`));
+  const costs = await farmCosts(context.db, context.farm.id);
+  const consumed = consumedBy(costs, ownedThenBy, ventureId, { from, until });
+  // Named, not numbered: "which Feed Items, which doses, which Herd Costs" is a list the Owner reads
+  // aloud, and an id is not something anybody can read aloud.
+  const [items, drugs, categories] = await Promise.all([
+    context.db.query.feedItem.findMany({
+      where: { farmId: context.farm.id },
+      columns: { id: true, nameBn: true, nameEn: true },
+    }),
+    context.db.query.drugProduct.findMany({
+      where: { farmId: context.farm.id },
+      columns: { id: true, nameBn: true, nameEn: true },
+    }),
+    context.db.query.moneyCategory.findMany({
+      where: { farmId: context.farm.id },
+      columns: { id: true, nameBn: true, nameEn: true },
+    }),
+  ]);
+  return {
+    ...consumed,
+    madeOf: {
+      feed: named(
+        consumed.madeOf.feed,
+        new Map(
+          items.map((one) => [one.id, { bn: one.nameBn, en: one.nameEn }])
+        )
+      ),
+      medicine: named(
+        consumed.madeOf.medicine,
+        new Map(
+          drugs.map((one) => [one.id, { bn: one.nameBn, en: one.nameEn }])
+        )
+      ),
+      herd: named(
+        consumed.madeOf.herd,
+        new Map(
+          categories.map((one) => [one.id, { bn: one.nameBn, en: one.nameEn }])
+        )
+      ),
+    },
+  };
 };
 
 /** This Farm's Investment Agreement, or nothing the caller may move money against. */
@@ -1055,6 +1145,139 @@ export const venturesRouter = {
         }
       );
       return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
+    }),
+
+  /**
+   * What a Venture's Animals consumed in a month, and what it is made of — before anything is moved, so
+   * the Owner sees the figure and its parts and can read them to an Investor.
+   */
+  consumption: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string(), month: monthInput }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      return await whatItsAnimalsConsumed(context, row.id, input.month);
+    }),
+
+  /**
+   * The month's Reimbursement: what this Venture's Animals ate of the Farm's feed, were dosed with of
+   * the Farm's medicine, cost in vet visits, and their share of the month's Herd Costs — moved from the
+   * Venture Account to the Farm's.
+   *
+   * One act, both sides. A movement out of the Venture, and a Money Event **in** on the Farm's purse
+   * under its own Category — gross, not netted: the Farm's expense when it bought the feed stands, and
+   * the Venture's repayment stands beside it. This is also how home-grown fodder settles, which the Farm
+   * never paid cash for and is genuinely selling.
+   */
+  reimburse: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        month: monthInput,
+        movedOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        reference: z.string().trim().min(1).max(120),
+        /** The figure the Owner read before she committed. Refused when it is not what the farm works
+         *  out now — a Feeding entered late, or a Category re-marked, moves the sum she was shown. */
+        amountBdt: money,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.paymentMethod !== "bank") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture Account moves money by bank only",
+          data: { refusal: "capital_must_be_by_bank" },
+        });
+      }
+      const row = await ours(context, input.ventureId);
+      if (row.state === "settled" || row.state === "cancelled") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture whose run is over pays for nothing more",
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
+      // The month has to be over. Reimbursing a month still running would take a part-month figure and
+      // then lock the rest of it out for good, because a Venture is reimbursed once a month.
+      const { until } = monthOf(startOfFarmDay(`${input.month}-01`));
+      if (until > now) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That month is not over yet",
+          data: { refusal: "month_not_over" },
+        });
+      }
+      const consumed = await whatItsAnimalsConsumed(
+        context,
+        row.id,
+        input.month
+      );
+      if (roundTaka(input.amountBdt) !== consumed.totalBdt) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `That month now comes to ${consumed.totalBdt}`,
+          data: { refusal: "amount_changed", totalBdt: consumed.totalBdt },
+        });
+      }
+      if (consumed.totalBdt <= 0) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Its animals consumed nothing that month",
+          data: { refusal: "nothing_to_reimburse" },
+        });
+      }
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "venture_movement",
+          entityId: id,
+          action: "create",
+          reason: input.month,
+          after: async (tx) => ({
+            ...(await readMovement(tx, context.farm.id, id)),
+            madeOf: consumed.madeOf,
+          }),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const already = await tx.query.ventureMovement.findFirst({
+            where: {
+              farmId: context.farm.id,
+              ventureId: row.id,
+              forMonth: input.month,
+            },
+            columns: { id: true },
+          });
+          if (already) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "That month has been reimbursed already",
+              data: { refusal: "month_already_reimbursed" },
+            });
+          }
+          await tx.insert(ventureMovement).values({
+            id,
+            farmId: context.farm.id,
+            ventureId: row.id,
+            kind: "reimbursement",
+            forMonth: input.month,
+            amountBdt: consumed.totalBdt.toFixed(2),
+            movedOn: input.movedOn,
+            reference: input.reference,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          });
+          // The Farm's side, on the Farm's purse: it bought the feed and is being paid for it.
+          await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
+            source: "reimbursement",
+            sourceId: id,
+            amountBdt: consumed.totalBdt,
+            occurredAt: startOfFarmDay(input.movedOn),
+            counterpartyId: null,
+            paymentMethod: input.paymentMethod,
+          });
+        }
+      );
+      return { id, ...consumed };
     }),
 
   /** Every movement of one Venture's money, oldest first: what came in, and what went back. */

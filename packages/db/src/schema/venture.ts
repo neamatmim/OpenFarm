@@ -177,9 +177,10 @@ export const agreementPaper = pgTable("agreement_paper", {
 
 /**
  * What a Venture Movement is for: capital in, the refund that undoes it, the Buying Float drawn for one
- * trip to the haat, the cash that Float brings home, and the two sides of an **Internal Sale** — a
- * Venture paying for an Animal it takes on, and being paid for one it lets go. The Advance, the
- * Reimbursement and the payout join them as their own work arrives.
+ * trip to the haat, the cash that Float brings home, the two sides of an **Internal Sale** — a Venture
+ * paying for an Animal it takes on, and being paid for one it lets go — and the monthly
+ * **Reimbursement** of what its Animals consumed of what the Farm bought. The Advance and the payout
+ * join them as their own work arrives.
  */
 export const VENTURE_MOVEMENT_KINDS = [
   "capital_in",
@@ -188,6 +189,7 @@ export const VENTURE_MOVEMENT_KINDS = [
   "float_back",
   "internal_buy",
   "internal_sell",
+  "reimbursement",
 ] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
@@ -215,6 +217,9 @@ export const ventureMovement = pgTable(
     agreementId: text("agreement_id").references(() => investmentAgreement.id),
     /** The outing a Buying Float was drawn for. Only a Float has one. */
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
+    /** The month a Reimbursement is for, "YYYY-MM". Only a Reimbursement has one, and a Venture has one
+     *  Reimbursement per month. */
+    forMonth: text("for_month"),
     /** The Internal Sale this is one side of. Only an Internal Sale's movements have one. By id and
      *  not by foreign key: an Internal Sale is an Animal's record and lives with the fattening ones,
      *  and a reference from here would send the schema round in a circle. */
@@ -243,5 +248,10 @@ export const ventureMovement = pgTable(
       .where(sql`${table.kind} = 'float_out'`),
     // One refund per movement, so calling a Venture off twice cannot send the same taka back twice.
     uniqueIndex("venture_movement_refunds_uidx").on(table.refundsId),
+    // One Reimbursement per Venture per month: a month repaid twice is a month an Investor pays for
+    // twice.
+    uniqueIndex("venture_movement_month_uidx")
+      .on(table.farmId, table.ventureId, table.forMonth)
+      .where(sql`${table.kind} = 'reimbursement'`),
   ]
 );

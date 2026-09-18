@@ -2,6 +2,7 @@ import type {
   VentureMovementKind,
   VentureState,
 } from "@OpenFarm/db/schema/venture";
+import { startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -166,6 +167,9 @@ const WHAT_IT_DOES = {
   // gives that money back, and it is the Venture's own proceeds rather than anybody's capital.
   internal_buy: { line: "spentBdt", sign: 1, cattle: 1 },
   internal_sell: { line: "proceedsBdt", sign: 1, cattle: -1 },
+  // What its Animals ate of the Farm's feed, repaid. Running-budget money: it is the cost of keeping
+  // them, not of buying one.
+  reimbursement: { line: "spentBdt", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
@@ -328,6 +332,51 @@ export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
         soldOn: row.soldOn,
       }
     : null;
+};
+
+/**
+ * Who owned each Animal, and from when.
+ *
+ * Her owner today is on her row; every **Internal Sale** before that says who let her go and who took
+ * her on, so her whole history is the sales walked backwards from where she stands now. A month's feed
+ * is charged to whoever owned her the day she ate it — not to whoever happens to own her when the
+ * Reimbursement is made, which would have one Venture repaying days another one's animals ate.
+ */
+export const ownersOverTime = async (
+  tx: Pick<Tx, "query">,
+  farmId: string
+): Promise<Map<string, { from: Date; ventureId: string | null }[]>> => {
+  const sales = await tx.query.internalSale.findMany({
+    where: { farmId },
+    columns: {
+      animalId: true,
+      fromVentureId: true,
+      toVentureId: true,
+      soldOn: true,
+    },
+    orderBy: { soldOn: "asc", id: "asc" },
+  });
+  const byAnimal = new Map<string, typeof sales>();
+  for (const one of sales) {
+    byAnimal.set(one.animalId, [...(byAnimal.get(one.animalId) ?? []), one]);
+  }
+  const owners = new Map<string, { from: Date; ventureId: string | null }[]>();
+  for (const [animalId, hers] of byAnimal) {
+    const [first] = hers;
+    if (!first) {
+      continue;
+    }
+    // Before the first sale she belonged to whoever let her go in it; after each one, to whoever took
+    // her on.
+    owners.set(animalId, [
+      { from: new Date(0), ventureId: first.fromVentureId },
+      ...hers.map((one) => ({
+        from: startOfFarmDay(one.soldOn),
+        ventureId: one.toVentureId,
+      })),
+    ]);
+  }
+  return owners;
 };
 
 /** One Venture Movement as the trail records it: whose money, which way, how much and against what

@@ -9,6 +9,7 @@ import {
   Banknote,
   Handshake,
   PenLine,
+  Receipt,
   ScrollText,
   Truck,
   XCircle,
@@ -28,6 +29,7 @@ import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
+import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
@@ -75,6 +77,7 @@ const VentureCard = ({
   onCallOff,
   onDrawFloat,
   onCountFloat,
+  onReimburse,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
@@ -82,6 +85,7 @@ const VentureCard = ({
   onCallOff: (venture: Venture) => void;
   onDrawFloat: (venture: Venture) => void;
   onCountFloat: (venture: Venture) => void;
+  onReimburse: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -174,6 +178,18 @@ const VentureCard = ({
           </Button>
         </div>
       ) : null}
+      {venture.state === "buying" || venture.state === "fattening" ? (
+        <div className="flex justify-end">
+          <Button
+            onClick={() => onReimburse(venture)}
+            type="button"
+            variant="ghost"
+          >
+            <Receipt aria-hidden data-icon="inline-start" />
+            {t("ventures.reimburse")}
+          </Button>
+        </div>
+      ) : null}
       {venture.state === "buying" ? (
         <div className="flex flex-wrap justify-end gap-2">
           {money.openFloatBdt === 0 ? null : (
@@ -226,6 +242,7 @@ const VenturesPage = () => {
   const [callingOff, setCallingOff] = useState<Venture | null>(null);
   const [drawing, setDrawing] = useState<Venture | null>(null);
   const [counting, setCounting] = useState<Venture | null>(null);
+  const [reimbursing, setReimbursing] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -263,6 +280,7 @@ const VenturesPage = () => {
                   key={one.id}
                   onCallOff={setCallingOff}
                   onCountFloat={setCounting}
+                  onReimburse={setReimbursing}
                   onDrawFloat={setDrawing}
                   onSign={setSigning}
                   onTakeCapital={setTaking}
@@ -286,6 +304,15 @@ const VenturesPage = () => {
         }}
         open={taking !== null}
         venture={taking}
+      />
+      <ReimburseSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setReimbursing(null);
+          }
+        }}
+        open={reimbursing !== null}
+        venture={reimbursing}
       />
       <CountFloatSheet
         onOpenChange={(wanted) => {

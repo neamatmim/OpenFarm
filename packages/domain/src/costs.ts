@@ -18,6 +18,10 @@ export interface FeedShare {
   animalId: string;
   side: Side;
   at: Date;
+  /** Which Feed Item she ate. One share per item rather than per feeding, so what a month cost can be
+   *  read back as the sacks it was made of — an Investor asks what his animals ate, not what the
+   *  total was. */
+  feedItemId: string;
   feedBdt: number;
   /** Home-grown fodder at no price costs nothing — and the farm is told how much of it there was. */
   unpricedKg: number;
@@ -33,6 +37,9 @@ export interface CostShare {
   side: Side;
   at: Date;
   bdt: number;
+  /** What it came from: the Category of a Herd Cost, or the outing or haat a by-the-head cost was
+   *  paid at. Always said, so a month's charges can be named rather than only totalled. */
+  fromId: string;
 }
 
 /** One outing, as its cost is split: what it cost beyond the animals, and who came home on it. */
@@ -85,6 +92,7 @@ export const tripShares = ({
       ...theirs.map((one) => ({
         animalId: one.animalId,
         side: one.side,
+        fromId: trip.id,
         at: one.at,
         bdt: each,
       }))
@@ -98,6 +106,8 @@ export interface HerdCostToSplit {
   at: Date;
   side: Side;
   bdt: number;
+  /** The Category the Owner marked as charged to the animals. */
+  categoryId: string;
 }
 
 /** A month's marked money no animal was standing for: charged to nobody, and said. */
@@ -114,7 +124,7 @@ export interface UnallocatedHerdCost {
 const firstOfMonth = (year: number, month: number): Date =>
   startOfFarmDay(`${year}-${String(month).padStart(2, "0")}-01`);
 
-const monthOf = (at: Date): { from: Date; until: Date } => {
+export const monthOf = (at: Date): { from: Date; until: Date } => {
   const day = farmDayOf(at);
   const year = Number(day.slice(0, 4));
   const month = Number(day.slice(5, 7));
@@ -185,6 +195,7 @@ export const herdShares = ({
           // read into periods she had nothing to do with.
           at: one.since > cost.at ? one.since : cost.at,
           bdt: (cost.bdt * one.ms) / total,
+          fromId: cost.categoryId,
         }))
     );
   }
@@ -219,31 +230,32 @@ export const feedShares = ({
   const shares: FeedShare[] = [];
   const unallocated: UnallocatedFeeding[] = [];
   for (const fed of feedings) {
+    const standing = (byPen.get(fed.penId) ?? []).filter((line) =>
+      covers(line, fed.fedAt)
+    );
     let feedBdt = 0;
     let unpricedKg = 0;
     for (const line of fed.lines) {
       const price = priceOf(line.feedItemId, fed.fedAt);
-      if (price === null) {
-        unpricedKg += line.givenKg;
-      } else {
-        feedBdt += price * line.givenKg;
+      const lineBdt = price === null ? 0 : price * line.givenKg;
+      const lineUnpricedKg = price === null ? line.givenKg : 0;
+      feedBdt += lineBdt;
+      unpricedKg += lineUnpricedKg;
+      // One share per item per animal: the sum is what it always was, and what a month cost can now be
+      // read back as the sacks that made it.
+      for (const who of standing) {
+        shares.push({
+          animalId: who.animalId,
+          side: who.side,
+          at: fed.fedAt,
+          feedItemId: line.feedItemId,
+          feedBdt: lineBdt / standing.length,
+          unpricedKg: lineUnpricedKg / standing.length,
+        });
       }
     }
-    const standing = (byPen.get(fed.penId) ?? []).filter((line) =>
-      covers(line, fed.fedAt)
-    );
     if (standing.length === 0) {
       unallocated.push({ at: fed.fedAt, feedBdt, unpricedKg });
-      continue;
-    }
-    for (const line of standing) {
-      shares.push({
-        animalId: line.animalId,
-        side: line.side,
-        at: fed.fedAt,
-        feedBdt: feedBdt / standing.length,
-        unpricedKg: unpricedKg / standing.length,
-      });
     }
   }
   return { shares, unallocated };

@@ -1,0 +1,2 @@
+ALTER TABLE "venture_movement" ADD COLUMN "for_month" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "venture_movement_month_uidx" ON "venture_movement" ("farm_id","venture_id","for_month") WHERE "kind" = 'reimbursement';

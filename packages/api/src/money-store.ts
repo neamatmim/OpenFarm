@@ -50,6 +50,11 @@ const CATEGORIES: Record<
     nameEn: "Cattle bought from a Venture",
     direction: "out",
   },
+  reimbursement: {
+    nameBn: "ভেঞ্চারের খরচ ফেরত",
+    nameEn: "Reimbursed by a Venture",
+    direction: "in",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",
