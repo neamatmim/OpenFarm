@@ -25,6 +25,9 @@ const KIND_WORD = {
   sale_in: "ventures.kind.saleIn",
   reimbursement: "ventures.kind.reimbursement",
   advance: "ventures.kind.advance",
+  payout: "ventures.kind.payout",
+  advance_repaid: "ventures.kind.advanceRepaid",
+  farm_share: "ventures.kind.farmShare",
 } as const satisfies Record<string, MessageKey>;
 
 /**

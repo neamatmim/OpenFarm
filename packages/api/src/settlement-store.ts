@@ -1,4 +1,12 @@
 import type { Database } from "@OpenFarm/db";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq } from "@OpenFarm/db/operators";
+import {
+  venture as ventureTable,
+  ventureMovement,
+  ventureSettlement,
+  ventureSettlementShare,
+} from "@OpenFarm/db/schema/venture";
 import {
   farmDayOf,
   monthOf,
@@ -8,7 +16,9 @@ import {
   splitOfProfit,
   startOfFarmDay,
 } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
+import type { SnapshotValue, Trail, Tx } from "./audit";
 import { chargedTo, consumedBy, farmCosts } from "./cost-store";
 import type { BankStanding } from "./venture-store";
 import {
@@ -193,6 +203,8 @@ const whatBlocksIt = ({
 
 /** What one Investor is owed: their capital back, and what their Units took of the profit. */
 export interface Payout {
+  /** The paper it is owed under, so an approved share can be traced back to what was signed. */
+  agreementId: string;
   investorId: string;
   name: string;
   units: number;
@@ -308,6 +320,7 @@ export const settlementOf = async (
   const payouts: Payout[] = agreements.map((one) => {
     const capitalBdt = capitalOf(one.id);
     return {
+      agreementId: one.id,
       investorId: one.investorId,
       name: named.get(one.investorId) ?? "",
       units: one.units,
@@ -348,4 +361,211 @@ export const settlementOf = async (
     balanceBdt: roundTaka(balanceOf(what ?? NOTHING_HELD)),
     payouts,
   };
+};
+
+/**
+ * The Settlement written down as it stood, and one row for each Investor it owes.
+ *
+ * The whole point of approving is that the figures stop moving: a late cost or a Correction after this
+ * changes what the costing says and changes nothing here, because what an Investor is shown a year later
+ * has to be what he was shown on the day.
+ */
+export const approveSettlement = async (
+  tx: Tx,
+  farmId: string,
+  ventureId: string,
+  worked: Awaited<ReturnType<typeof settlementOf>>,
+  by: { actorId: string; now: Date }
+) => {
+  if (worked.blocks.length !== 0) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Settlement is not settled enough to approve",
+      data: { refusal: worked.blocks[0]?.word ?? "nothing_to_settle" },
+    });
+  }
+  const already = await tx.query.ventureSettlement.findFirst({
+    where: { farmId, ventureId },
+    columns: { id: true },
+  });
+  if (already) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Venture's Settlement has already been approved",
+      data: { refusal: "already_approved" },
+    });
+  }
+  const id = uuidv7(by.now);
+  await tx.insert(ventureSettlement).values({
+    id,
+    farmId,
+    ventureId,
+    proceedsBdt: worked.proceedsBdt.toFixed(2),
+    chargedBdt: worked.chargedBdt.toFixed(2),
+    charges: worked.charges,
+    profitBdt: worked.profitBdt.toFixed(2),
+    investorsPercent: worked.investorsPercent,
+    units: worked.units,
+    investorsBdt: worked.investorsBdt.toFixed(2),
+    perUnitBdt: worked.perUnitBdt.toFixed(2),
+    roundingBdt: worked.roundingBdt.toFixed(2),
+    farmBdt: worked.farmBdt.toFixed(2),
+    advanceBdt: worked.advanceBdt.toFixed(2),
+    capitalBdt: worked.capitalBdt.toFixed(2),
+    balanceBdt: worked.balanceBdt.toFixed(2),
+    approvedBy: by.actorId,
+    approvedAt: by.now,
+  });
+  for (const one of worked.payouts) {
+    // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
+    await tx.insert(ventureSettlementShare).values({
+      id: uuidv7(by.now),
+      farmId,
+      settlementId: id,
+      agreementId: one.agreementId,
+      investorId: one.investorId,
+      units: one.units,
+      capitalBdt: one.capitalBdt.toFixed(2),
+      shareBdt: one.shareBdt.toFixed(2),
+      payoutBdt: one.payoutBdt.toFixed(2),
+      createdAt: by.now,
+    });
+  }
+  return id;
+};
+
+/** A Venture's approved Settlement and what it owes each Investor, or nothing if nobody has approved. */
+export const approvedSettlementOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+) => {
+  const row = await tx.query.ventureSettlement.findFirst({
+    where: { farmId, ventureId },
+  });
+  if (!row) {
+    return null;
+  }
+  const shares = await tx.query.ventureSettlementShare.findMany({
+    where: { farmId, settlementId: row.id },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  return { row, shares };
+};
+
+/**
+ * Whether everything the Settlement owed has gone out: every Investor paid, and the Owner's own money
+ * back. What moves a Venture to Settled, as a fact rather than a chore.
+ */
+export const nothingLeftToPay = (
+  settlement: {
+    advanceBdt: string;
+    advanceRepaidId: string | null;
+    farmBdt: string;
+    farmSharePaidId: string | null;
+  },
+  shares: readonly { paidMovementId: string | null }[]
+) =>
+  shares.every((one) => one.paidMovementId !== null) &&
+  (Number(settlement.advanceBdt) === 0 ||
+    settlement.advanceRepaidId !== null) &&
+  (Number(settlement.farmBdt) === 0 || settlement.farmSharePaidId !== null);
+
+/**
+ * An approved Settlement as the trail and the screen read it: the figures as they stood, and each
+ * Investor's share with whether it has gone out and whether he has said he had it.
+ */
+export const readSettlement = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+) => {
+  const approved = await approvedSettlementOf(tx, farmId, ventureId);
+  if (!approved) {
+    return null;
+  }
+  const { row, shares } = approved;
+  return {
+    approvedAt: row.approvedAt,
+    proceedsBdt: Number(row.proceedsBdt),
+    chargedBdt: Number(row.chargedBdt),
+    charges: row.charges,
+    profitBdt: Number(row.profitBdt),
+    investorsPercent: row.investorsPercent,
+    units: row.units,
+    investorsBdt: Number(row.investorsBdt),
+    perUnitBdt: Number(row.perUnitBdt),
+    roundingBdt: Number(row.roundingBdt),
+    farmBdt: Number(row.farmBdt),
+    advanceBdt: Number(row.advanceBdt),
+    advanceRepaid: row.advanceRepaidId !== null,
+    farmSharePaid: row.farmSharePaidId !== null,
+    capitalBdt: Number(row.capitalBdt),
+    balanceBdt: Number(row.balanceBdt),
+    shares: shares.map((one) => ({
+      agreementId: one.agreementId,
+      investorId: one.investorId,
+      units: one.units,
+      capitalBdt: Number(one.capitalBdt),
+      shareBdt: Number(one.shareBdt),
+      payoutBdt: Number(one.payoutBdt),
+      paid: one.paidMovementId !== null,
+      acknowledgedAt: one.acknowledgedAt,
+      acknowledgedNote: one.acknowledgedNote,
+    })),
+    /** Whether everything it owed has gone out, which is what makes the Venture Settled. */
+    allPaid: nothingLeftToPay(row, shares),
+  };
+};
+
+/** The Venture reaching Settled once the last of it has gone out. */
+export const reachesSettledOnLastPayout = async (
+  tx: Tx,
+  farmId: string,
+  ventureId: string,
+  trail: Trail,
+  read: (tx: Tx) => Promise<SnapshotValue>
+) => {
+  const approved = await approvedSettlementOf(tx, farmId, ventureId);
+  if (!approved || !nothingLeftToPay(approved.row, approved.shares)) {
+    return;
+  }
+  const before = await read(tx);
+  await tx
+    .update(ventureTable)
+    .set({ state: "settled" })
+    .where(
+      and(eq(ventureTable.id, ventureId), eq(ventureTable.farmId, farmId))
+    );
+  await trail(
+    tx,
+    { entity: "venture", entityId: ventureId, action: "update" },
+    { before, after: await read(tx) }
+  );
+};
+
+/** One payment out of a Venture Account, against an approved Settlement. */
+export const payOut = async (
+  tx: Tx,
+  farmId: string,
+  what: {
+    ventureId: string;
+    kind: "payout" | "advance_repaid" | "farm_share";
+    amountBdt: number;
+    movedOn: string;
+    reference: string;
+  },
+  by: { actorId: string; now: Date }
+) => {
+  const id = uuidv7(by.now);
+  await tx.insert(ventureMovement).values({
+    id,
+    farmId,
+    ventureId: what.ventureId,
+    kind: what.kind,
+    amountBdt: what.amountBdt.toFixed(2),
+    movedOn: what.movedOn,
+    reference: what.reference,
+    recordedBy: by.actorId,
+    createdAt: by.now,
+  });
+  return id;
 };

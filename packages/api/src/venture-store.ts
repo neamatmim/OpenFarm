@@ -247,6 +247,13 @@ const WHAT_IT_DOES = {
   // The Owner's own money, in. It lands in the Running Budget, because it is there to keep the animals
   // fed and not to buy one more of them.
   advance: { line: "advancedBdt", sign: 1, cattle: 0 },
+  // The Settlement paying up. An Investor's capital and his share of the profit leave together, the
+  // Owner's Advance goes back to her at cost, and the Farm's own share leaves for the Farm's books —
+  // none of them a cost of the run, all of them money the account no longer holds. The Farm's money
+  // never stays in a Venture Account.
+  payout: { line: "paidOutBdt", sign: 1, cattle: 0 },
+  advance_repaid: { line: "paidOutBdt", sign: 1, cattle: 0 },
+  farm_share: { line: "paidOutBdt", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
@@ -866,7 +873,17 @@ export const reachesSellingOnASale = async (
     where: { id: ventureId, farmId },
     columns: { state: true },
   });
+  if (row?.state === "settled" || row?.state === "cancelled") {
+    // Its books are closed and its money has gone. An Animal of its cannot be sold, because the taka
+    // would land in an account whose Settlement has already said what it held — and that Settlement is
+    // what every Investor was paid on.
+    throw new ORPCError("BAD_REQUEST", {
+      message: `That Animal belongs to a Venture that is ${row.state}`,
+      data: { refusal: "venture_wrong_state" },
+    });
+  }
   if (row?.state !== "buying" && row?.state !== "fattening") {
+    // Already Selling: it is where a Sale would put it, and there is nothing to record.
     return;
   }
   const before = await readVenture(tx, farmId, ventureId);

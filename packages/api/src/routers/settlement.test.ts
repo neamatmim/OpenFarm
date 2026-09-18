@@ -494,6 +494,218 @@ describe("what a Settlement is", () => {
     });
   });
 
+  it("refuses a payout before anything is approved", async () => {
+    const owner = await as("owner", "2047-04-06T03:00:00.000Z");
+    const agreements = await owner.client.ventures.agreements({ ventureId });
+    await expect(
+      owner.client.ventures.paySettlement({
+        ventureId,
+        agreementId: agreements[0]?.id ?? "",
+        amountBdt: 1_117_600,
+        movedOn: "2047-04-06",
+        paymentMethod: "bank",
+        reference: `PAY-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "not_yet_approved" },
+    });
+  });
+
+  it("freezes the figures on approval, whatever the costing says afterwards", async () => {
+    const owner = await as("owner", "2047-04-06T04:00:00.000Z");
+    await owner.client.ventures.approveSettlement({
+      ventureId,
+      note: `হিসাব চূড়ান্ত ${suffix}`,
+    });
+    const approved = await owner.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    expect(approved).toMatchObject({
+      profitBdt: 196_005,
+      perUnitBdt: 5880,
+      farmBdt: 78_405,
+      advanceBdt: 50_000,
+      allPaid: false,
+    });
+
+    // A late cost lands — the vet's bill for a visit that named one of them. The costing moves; what
+    // was approved does not.
+    const late = await as("owner", "2047-04-07T04:00:00.000Z");
+    const categories = await late.client.money.categories();
+    const charged = categories.find(
+      (one) => one.enterable && one.chargeable && one.direction === "out"
+    );
+    await late.client.money.setChargedToAnimals({
+      categoryId: charged?.id ?? "",
+      chargedToAnimals: true,
+    });
+    await late.client.money.enter({
+      side: "fattening",
+      categoryId: charged?.id ?? "",
+      amountBdt: 9000,
+      occurredOn: "2047-03-11",
+      counterparty: { name: `দোকান ${suffix}` },
+      note: `দেরিতে আসা খরচ ${suffix}`,
+      paymentMethod: "bank",
+    });
+    const stillSays = await late.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    expect(stillSays).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+
+    // Approving twice is two answers to one question.
+    await expect(
+      late.client.ventures.approveSettlement({ ventureId })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "already_approved" },
+    });
+  });
+
+  it("pays each Investor what he is owed, and refuses anything else", async () => {
+    const owner = await as("owner", "2047-04-08T04:00:00.000Z");
+    const approved = await owner.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    const his = approved?.shares[0];
+    // Her own money comes back before any capital does, whatever else is right about the payment.
+    await expect(
+      owner.client.ventures.paySettlement({
+        ventureId,
+        agreementId: his?.agreementId ?? "",
+        amountBdt: 1_117_600,
+        movedOn: "2047-04-08",
+        paymentMethod: "bank",
+        reference: `PAY-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "advance_comes_first" },
+    });
+    await owner.client.ventures.repayAdvance({
+      ventureId,
+      movedOn: "2047-04-08",
+      paymentMethod: "bank",
+      reference: `ADVBACK-${suffix}`,
+    });
+
+    // And not a figure she has typed from memory.
+    await expect(
+      owner.client.ventures.paySettlement({
+        ventureId,
+        agreementId: his?.agreementId ?? "",
+        amountBdt: 1_200_000,
+        movedOn: "2047-04-08",
+        paymentMethod: "bank",
+        reference: `PAY-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "not_what_he_is_owed" },
+    });
+
+    await owner.client.ventures.paySettlement({
+      ventureId,
+      agreementId: his?.agreementId ?? "",
+      amountBdt: 1_117_600,
+      movedOn: "2047-04-08",
+      paymentMethod: "bank",
+      reference: `PAY-${suffix}`,
+    });
+    // Twice for one man is once too many.
+    await expect(
+      owner.client.ventures.paySettlement({
+        ventureId,
+        agreementId: his?.agreementId ?? "",
+        amountBdt: 1_117_600,
+        movedOn: "2047-04-08",
+        paymentMethod: "bank",
+        reference: `PAY2-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "already_paid" },
+    });
+
+    // It went out on a movement of the Venture's money, with the reference it went on.
+    const movements = await owner.client.ventures.movements({ ventureId });
+    expect(movements.find((one) => one.kind === "payout")).toMatchObject({
+      amountBdt: 1_117_600,
+      movedOn: "2047-04-08",
+      reference: `PAY-${suffix}`,
+    });
+  });
+
+  it("takes his word for it, and settles on the last of the money", async () => {
+    const owner = await as("owner", "2047-04-09T04:00:00.000Z");
+    const approved = await owner.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    const his = approved?.shares[0];
+    await owner.client.ventures.acknowledgePayout({
+      ventureId,
+      agreementId: his?.agreementId ?? "",
+      note: `ফোনে বললেন পেয়েছেন ${suffix}`,
+    });
+    const said = await owner.client.ventures.approvedSettlement({ ventureId });
+    expect(said?.shares[0]).toMatchObject({
+      paid: true,
+      acknowledgedNote: `ফোনে বললেন পেয়েছেন ${suffix}`,
+    });
+
+    // Not finished yet: the Farm's own share is still sitting in the account, and the Farm's money
+    // never stays in a Venture Account.
+    const between = await owner.client.ventures.list();
+    expect(between.find((one) => one.id === ventureId)?.state).toBe("selling");
+
+    await owner.client.ventures.takeTheFarmsShare({
+      ventureId,
+      movedOn: "2047-04-09",
+      paymentMethod: "bank",
+      reference: `FARM-${suffix}`,
+    });
+    // The last of the money out, and the Venture is Settled by itself. The account closes at nothing,
+    // which is what a closed account reads.
+    const after = await owner.client.ventures.list();
+    expect(after.find((one) => one.id === ventureId)).toMatchObject({
+      state: "settled",
+      balanceBdt: 0,
+    });
+  });
+
+  it("shuts the doors a settled Venture should have shut", async () => {
+    const owner = await as("owner", "2047-04-10T04:00:00.000Z");
+    // Its books are closed on the figures every Investor was paid on, so nothing may move its money —
+    // and it is shut from the moment the Settlement is approved, not from the moment it is Settled.
+    await expect(
+      owner.client.ventures.advance({
+        ventureId,
+        amountBdt: 1000,
+        movedOn: "2047-04-10",
+        paymentMethod: "bank",
+        reference: `LATE-ADV-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "already_approved" },
+    });
+
+    // And a movement of its money is no longer the Owner's to put right: a Settlement Adjustment is.
+    const movements = await owner.client.ventures.movements({ ventureId });
+    const capital = movements.find((one) => one.kind === "capital_in");
+    await expect(
+      owner.client.ventures.correctMovement({
+        id: capital?.id ?? "",
+        reason: `ভুল ছিল ${suffix}`,
+        changes: { amountBdt: { from: 1_000_000, to: 900_000 } },
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "venture_is_settled" },
+    });
+  });
+
   it("is the Owner's alone", async () => {
     const manager = await as("manager", "2047-03-26T04:00:00.000Z");
     await expect(

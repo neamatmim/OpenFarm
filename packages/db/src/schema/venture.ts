@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -180,7 +181,9 @@ export const agreementPaper = pgTable("agreement_paper", {
  * trip to the haat, the cash that Float brings home, the two sides of an **Internal Sale** — a Venture
  * paying for an Animal it takes on, and being paid for one it lets go — and the monthly
  * **Reimbursement** of what its Animals consumed of what the Farm bought, and the Owner's **Advance**
- * when the Running Budget has run out. The payout joins them as its own work arrives.
+ * when the Running Budget has run out, what a buyer paid for one of its Animals, and — once its Settlement
+ * is approved — each Investor paid what he is owed, the Owner's Advance repaid at cost, and the Farm's own
+ * share of the profit leaving for the Farm's books.
  */
 export const VENTURE_MOVEMENT_KINDS = [
   "capital_in",
@@ -190,6 +193,9 @@ export const VENTURE_MOVEMENT_KINDS = [
   "internal_buy",
   "internal_sell",
   "sale_in",
+  "payout",
+  "advance_repaid",
+  "farm_share",
   "reimbursement",
   "advance",
 ] as const;
@@ -299,6 +305,103 @@ export const ventureBankCheck = pgTable(
       table.farmId,
       table.ventureId,
       table.forMonth
+    ),
+  ]
+);
+
+/**
+ * A Venture's Settlement as the Owner approved it: the figures written down as they stood.
+ *
+ * The whole point of approving is that they stop moving — what an Investor is shown a year later is what
+ * he was shown then, whatever else the farm has learned since. A late cost or a Correction after this is
+ * a **Settlement Adjustment**, which leaves these figures alone.
+ */
+export const ventureSettlement = pgTable(
+  "venture_settlement",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    /** What its Animals fetched, and everything the run was charged. */
+    proceedsBdt: numeric("proceeds_bdt", { precision: 12, scale: 2 }).notNull(),
+    chargedBdt: numeric("charged_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** Every charge as its own line, as the statement showed it: `[{ word, bdt }]` — "bought", "hasil",
+     *  "trips", "feed", "medicine", "vet", "herd". Frozen, never queried and never joined, which is why
+     *  they live here rather than in a table of their own. */
+    charges: jsonb("charges").notNull(),
+    profitBdt: numeric("profit_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** The split as the Agreements froze it, and what it came to. */
+    investorsPercent: integer("investors_percent").notNull(),
+    units: integer("units").notNull(),
+    investorsBdt: numeric("investors_bdt", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    perUnitBdt: numeric("per_unit_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** What flooring left over, which is the Farm's. */
+    roundingBdt: numeric("rounding_bdt", { precision: 12, scale: 2 }).notNull(),
+    farmBdt: numeric("farm_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** The Owner's own money, repaid at cost before any capital returns. */
+    advanceBdt: numeric("advance_bdt", { precision: 12, scale: 2 }).notNull(),
+    capitalBdt: numeric("capital_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** What the account held when it was approved, which everything above adds up to. */
+    balanceBdt: numeric("balance_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** The movement the Owner's Advance went back to her on, once it has. */
+    advanceRepaidId: text("advance_repaid_id"),
+    /** The movement the Farm's own share left on. The Farm's money never stays in a Venture Account. */
+    farmSharePaidId: text("farm_share_paid_id"),
+    approvedBy: text("approved_by").references(() => user.id),
+    approvedAt: timestamp("approved_at").notNull(),
+  },
+  (table) => [
+    // One Settlement per Venture: approving twice is two answers to the same question.
+    uniqueIndex("venture_settlement_uidx").on(table.farmId, table.ventureId),
+  ]
+);
+
+/**
+ * What one Investor is owed by an approved Settlement, and what has happened about it.
+ *
+ * Frozen with the Settlement, then the payout against it and his acknowledgement of it — so that "I never
+ * got it" has an answer that is not somebody's memory.
+ */
+export const ventureSettlementShare = pgTable(
+  "venture_settlement_share",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    settlementId: text("settlement_id")
+      .notNull()
+      .references(() => ventureSettlement.id, { onDelete: "cascade" }),
+    agreementId: text("agreement_id")
+      .notNull()
+      .references(() => investmentAgreement.id),
+    investorId: text("investor_id").notNull(),
+    units: integer("units").notNull(),
+    /** His capital back, what his Units took of the profit, and the two together. */
+    capitalBdt: numeric("capital_bdt", { precision: 12, scale: 2 }).notNull(),
+    shareBdt: numeric("share_bdt", { precision: 12, scale: 2 }).notNull(),
+    payoutBdt: numeric("payout_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** The Venture Movement the money went out on, once it has. */
+    paidMovementId: text("paid_movement_id"),
+    /** When he said he had it, and anything he said about it. */
+    acknowledgedAt: timestamp("acknowledged_at"),
+    acknowledgedNote: text("acknowledged_note"),
+    acknowledgedBy: text("acknowledged_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    // One share per Agreement, not per Investor: the same person may hold two papers on one Venture, and
+    // each is its own promise with its own Units.
+    uniqueIndex("venture_settlement_share_uidx").on(
+      table.settlementId,
+      table.agreementId
     ),
   ]
 );
