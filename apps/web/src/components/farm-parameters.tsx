@@ -35,7 +35,8 @@ type NumberKey =
   | "ventureRunningPercent"
   | "windUpDays"
   | "investorCap"
-  | "investorWarnAt";
+  | "investorWarnAt"
+  | "runningBudgetWarnBdt";
 type TextKey = "digestTimes" | "quietFrom" | "quietUntil";
 type Key = NumberKey | TextKey;
 
@@ -157,6 +158,13 @@ const GROUPS: {
         unit: "params.people",
         min: 1,
         max: 50,
+      },
+      {
+        key: "runningBudgetWarnBdt",
+        label: "params.runningBudgetWarn",
+        unit: "params.taka",
+        min: 0,
+        max: 100_000_000,
       },
     ],
   },

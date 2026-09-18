@@ -356,7 +356,12 @@ export const venturesRouter = {
       const held = await heldByEach(context.db, context.farm.id, ids);
       const signed = await signedForEach(context.db, context.farm.id, ids);
       return rows.map((one) =>
-        ventureView(one, held.get(one.id), signed.get(one.id))
+        ventureView(
+          one,
+          held.get(one.id),
+          signed.get(one.id),
+          context.farm.runningBudgetWarnBdt
+        )
       );
     }),
 
@@ -777,7 +782,12 @@ export const venturesRouter = {
             });
           }
           const held = await heldByEach(tx, context.farm.id, [row.id]);
-          const view = ventureView(standing, held.get(row.id));
+          const view = ventureView(
+            standing,
+            held.get(row.id),
+            undefined,
+            context.farm.runningBudgetWarnBdt
+          );
           if (input.amountBdt > view.cattleBudgetHeldBdt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
@@ -1076,7 +1086,12 @@ export const venturesRouter = {
             // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
             const held = await heldByEach(tx, context.farm.id, [to]);
             const buyer = await ours(context, to);
-            const view = ventureView(buyer, held.get(to));
+            const view = ventureView(
+              buyer,
+              held.get(to),
+              undefined,
+              context.farm.runningBudgetWarnBdt
+            );
             if (priceBdt > view.cattleBudgetHeldBdt) {
               throw new ORPCError("BAD_REQUEST", {
                 message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
@@ -1145,6 +1160,80 @@ export const venturesRouter = {
         }
       );
       return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
+    }),
+
+  /**
+   * The Owner's Advance: her own money into a Venture whose Running Budget has run out, so the animals
+   * keep eating. Interest-free, never a charge against the Venture, and repaid at cost before any
+   * capital returns — which the Settlement will do.
+   *
+   * It is a movement of the Venture's account and never a Money Event: the Farm has not spent anything
+   * and has not earned anything, the Owner has lent her own money to a run she is looking after.
+   */
+  advance: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        amountBdt: money.refine((taka) => taka > 0, {
+          message: "An Advance is money going in",
+        }),
+        movedOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        reference: z.string().trim().min(1).max(120),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.paymentMethod !== "bank") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture Account moves money by bank only",
+          data: { refusal: "capital_must_be_by_bank" },
+        });
+      }
+      const row = await ours(context, input.ventureId);
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "venture_movement",
+          entityId: id,
+          action: "create",
+          after: (tx) => readMovement(tx, context.farm.id, id),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const standing = await tx.query.venture.findFirst({
+            where: { id: row.id, farmId: context.farm.id },
+            columns: { state: true },
+          });
+          // A Venture that has not started buying has eaten nothing, and one whose run is over has
+          // nothing left to feed. An Advance into either would be the Owner's money with no way home:
+          // calling a Venture off returns capital, and only capital.
+          if (
+            standing?.state !== "buying" &&
+            standing?.state !== "fattening" &&
+            standing?.state !== "selling"
+          ) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "A Venture takes an Advance only while it is running",
+              data: { refusal: "venture_wrong_state" },
+            });
+          }
+          await tx.insert(ventureMovement).values({
+            id,
+            farmId: context.farm.id,
+            ventureId: row.id,
+            kind: "advance",
+            amountBdt: input.amountBdt.toFixed(2),
+            movedOn: input.movedOn,
+            reference: input.reference,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          });
+        }
+      );
+      return { id };
     }),
 
   /**
