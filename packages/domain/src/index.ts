@@ -83,6 +83,7 @@ export type {
   WeighIn,
 } from "./fattening";
 export {
+  addDays,
   EID_UL_ADHA,
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,

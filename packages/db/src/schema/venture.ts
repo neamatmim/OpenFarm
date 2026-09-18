@@ -189,6 +189,7 @@ export const VENTURE_MOVEMENT_KINDS = [
   "float_back",
   "internal_buy",
   "internal_sell",
+  "sale_in",
   "reimbursement",
   "advance",
 ] as const;
@@ -196,7 +197,9 @@ export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
 /**
  * One movement of a Venture's own money through its Venture Account: capital arriving against an
- * Agreement, and the refund that sends it back when the Venture is called off.
+ * Agreement, the refund that sends it back when the Venture is called off, the Buying Float and what
+ * comes home from it, either side of an Internal Sale, a month's Reimbursement, the Owner's Advance,
+ * and what a buyer paid for one of its Animals.
  *
  * Never a **Money Event**. A Money Event is the Farm's income or its expense, and none of this is the
  * Farm's money — it is the Investors', held in the Owner's name, and counting it as the Farm's would
@@ -225,6 +228,9 @@ export const ventureMovement = pgTable(
      *  not by foreign key: an Internal Sale is an Animal's record and lives with the fattening ones,
      *  and a reference from here would send the schema round in a circle. */
     internalSaleId: text("internal_sale_id"),
+    /** The Sale a buyer took her away on, whose price landed in this account. Only a Sale's movement
+     *  has one, and by id rather than by foreign key for the same reason an Internal Sale's is. */
+    saleId: text("sale_id"),
     amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),
@@ -249,6 +255,8 @@ export const ventureMovement = pgTable(
       .where(sql`${table.kind} = 'float_out'`),
     // One refund per movement, so calling a Venture off twice cannot send the same taka back twice.
     uniqueIndex("venture_movement_refunds_uidx").on(table.refundsId),
+    // One movement per Sale: what a buyer paid reaches the account once.
+    uniqueIndex("venture_movement_sale_uidx").on(table.saleId),
     // One Reimbursement per Venture per month: a month repaid twice is a month an Investor pays for
     // twice.
     uniqueIndex("venture_movement_month_uidx")

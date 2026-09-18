@@ -62,6 +62,7 @@ import {
   signedForEach,
   ventureView,
   lockTheFarm,
+  stillHersByEach,
 } from "../venture-store";
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
@@ -373,14 +374,14 @@ export const venturesRouter = {
       const held = await heldByEach(context.db, context.farm.id, ids);
       const signed = await signedForEach(context.db, context.farm.id, ids);
       const checked = await bankStandingOf(context.db, context.farm.id, ids);
+      const stillHers = await stillHersByEach(context.db, context.farm.id, ids);
       return rows.map((one) =>
-        ventureView(
-          one,
-          held.get(one.id),
-          signed.get(one.id),
-          context.farm.runningBudgetWarnBdt,
-          checked.get(one.id) ?? NEVER_CHECKED
-        )
+        ventureView(one, held.get(one.id), signed.get(one.id), {
+          warnBelowBdt: context.farm.runningBudgetWarnBdt,
+          bank: checked.get(one.id) ?? NEVER_CHECKED,
+          windUpDays: context.farm.windUpDays,
+          stillHers: stillHers.get(one.id) ?? 0,
+        })
       );
     }),
 
@@ -801,13 +802,12 @@ export const venturesRouter = {
             });
           }
           const held = await heldByEach(tx, context.farm.id, [row.id]);
-          const view = ventureView(
-            standing,
-            held.get(row.id),
-            undefined,
-            context.farm.runningBudgetWarnBdt,
-            NEVER_CHECKED
-          );
+          const view = ventureView(standing, held.get(row.id), undefined, {
+            warnBelowBdt: context.farm.runningBudgetWarnBdt,
+            bank: NEVER_CHECKED,
+            windUpDays: context.farm.windUpDays,
+            stillHers: 0,
+          });
           if (input.amountBdt > view.cattleBudgetHeldBdt) {
             throw new ORPCError("BAD_REQUEST", {
               message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
@@ -1106,13 +1106,12 @@ export const venturesRouter = {
             // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
             const held = await heldByEach(tx, context.farm.id, [to]);
             const buyer = await ours(context, to);
-            const view = ventureView(
-              buyer,
-              held.get(to),
-              undefined,
-              context.farm.runningBudgetWarnBdt,
-              NEVER_CHECKED
-            );
+            const view = ventureView(buyer, held.get(to), undefined, {
+              warnBelowBdt: context.farm.runningBudgetWarnBdt,
+              bank: NEVER_CHECKED,
+              windUpDays: context.farm.windUpDays,
+              stillHers: 0,
+            });
             if (priceBdt > view.cattleBudgetHeldBdt) {
               throw new ORPCError("BAD_REQUEST", {
                 message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,

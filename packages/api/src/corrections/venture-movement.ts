@@ -24,6 +24,7 @@ const findMovement = (tx: Tx, farmId: string, id: string) =>
       agreementId: true,
       buyingTripId: true,
       internalSaleId: true,
+      saleId: true,
       amountBdt: true,
       movedOn: true,
       reference: true,
@@ -65,6 +66,14 @@ const assertNothingRestsOnIt = async (tx: Tx, row: MovementRow) => {
     throw refuse(
       "That is one side of an Internal Sale; the sale itself is what to put right",
       "one_side_of_a_sale"
+    );
+  }
+  if (row.saleId) {
+    // What a buyer paid is written from the Sale and moves when the Sale's price is put right. Changed
+    // here instead, the Venture's account and the Sale would disagree about one payment.
+    throw refuse(
+      "That money comes from a Sale; put the Sale right",
+      "correct_the_record"
     );
   }
   if (row.buyingTripId) {

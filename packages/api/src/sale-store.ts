@@ -5,6 +5,7 @@ import type { Tx } from "./audit";
 import { ownerOf } from "./intake-store";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
+import { bookSaleProceeds } from "./venture-store";
 
 /** The Sale as the trail records it, so a Correction has the whole entry to supersede. */
 export const readSale = async (tx: Tx, id: string) => {
@@ -54,6 +55,7 @@ export const bookSaleMoney = async (
     return;
   }
   const priceBdt = Number(row.priceBdt);
+  const ventureId = await ownerOf(tx, row.animalId);
   if (priceBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
     await bookMoney(tx, booking, {
       source: "sale",
@@ -63,7 +65,26 @@ export const bookSaleMoney = async (
       counterpartyId: row.counterpartyId,
       paymentMethod,
       // What she fetched belongs to whoever owned her, exactly as what she cost did.
-      purseVentureId: await ownerOf(tx, row.animalId),
+      purseVentureId: ventureId,
     });
   }
+  const her = await tx.query.animal.findFirst({
+    where: { id: row.animalId, farmId: row.farmId },
+    columns: { tagNumber: true },
+  });
+  // Asked whether she is a Venture's or not: a Correction saying she was the Farm's all along has a
+  // movement of its own to undo.
+  await bookSaleProceeds(
+    tx,
+    {
+      id: row.id,
+      farmId: row.farmId,
+      ventureId,
+      priceBdt,
+      soldAt: row.soldAt,
+      reference: her?.tagNumber ?? row.id,
+    },
+    booking.now,
+    booking.actorId
+  );
 };

@@ -24,6 +24,7 @@ import {
   salePriceInput,
   readSale,
 } from "../sale-store";
+import { lockTheFarm, reachesSellingOnASale } from "../venture-store";
 
 const tagInput = z.string().trim().min(1).max(32);
 
@@ -123,6 +124,10 @@ export const saleRouter = {
           after: (tx) => readSale(tx, id),
         },
         async (tx) => {
+          // First, as everything that counts a Venture's money does: what she fetches may land in a
+          // Venture Account, and a count read out from under this write is a count that was true a
+          // moment ago.
+          await lockTheFarm(tx, context.farm.id);
           // Live, because an animal who has already left cannot leave again — and a second exit
           // written over the first would lose which one the farm stands behind.
           const her = await loadLiveAnimal(tx, context.farm.id, tagNumber);
@@ -181,6 +186,16 @@ export const saleRouter = {
             now,
             trail: audited(context).recordEvent,
           }));
+          // A Venture keeps up with its own animals rather than waiting to be told: the Manager at the
+          // haat is not asked whose animal this is, and the Owner is not asked to remember.
+          if (her.ownerVentureId) {
+            await reachesSellingOnASale(
+              tx,
+              context.farm.id,
+              her.ownerVentureId,
+              audited(context).recordEvent
+            );
+          }
         }
       );
       return { id, tagNumber, state: "sold" as const, workClosed: closed };

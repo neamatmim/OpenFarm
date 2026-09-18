@@ -1,10 +1,14 @@
-import { eq } from "@OpenFarm/db/operators";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
 import type {
   VentureMovementKind,
   VentureState,
 } from "@OpenFarm/db/schema/venture";
+import { venture, ventureMovement } from "@OpenFarm/db/schema/venture";
 import {
+  addDays,
+  EXIT_STATES,
   farmDayOf,
   monthOf,
   roundTaka,
@@ -12,7 +16,7 @@ import {
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
-import type { Tx } from "./audit";
+import type { SnapshotValue, Tx } from "./audit";
 import { tripCostOf } from "./trip-store";
 
 /**
@@ -102,13 +106,19 @@ export const ventureView = (
   row: VentureRow,
   held: Held | undefined,
   signedFor: SignedFor | undefined,
-  /** The taka below which what is left to keep the animals with is said to be low. Asked for rather
-   *  than defaulted: a default of nothing would quietly answer "not low" everywhere the caller forgot
-   *  it, the trail included. */
-  warnBelowBdt: number,
-  /** How this Venture's account stands against the bank. Asked for, never defaulted: a default would
-   *  quietly answer "never checked" wherever a caller forgot it, the trail included. */
-  bank: BankStanding
+  /** What the farm knows that the Venture's own row does not. Every one of them asked for and none
+   *  defaulted: a default would quietly answer "not low", "never checked" or "none left standing"
+   *  wherever a caller forgot it, the trail included. */
+  alsoKnown: {
+    /** The taka below which what is left to keep the animals with is said to be low. */
+    warnBelowBdt: number;
+    /** How this Venture's account stands against the bank. */
+    bank: BankStanding;
+    /** The days a Venture keeps selling after its Target Window closes. */
+    windUpDays: number;
+    /** How many Animals it still has — neither sold, nor dead, nor culled. */
+    stillHers: number;
+  }
 ) => {
   const what = held ?? NOTHING_HELD;
   const balanceBdt = balanceOf(what);
@@ -158,10 +168,17 @@ export const ventureView = (
       (row.state === "buying" ||
         row.state === "fattening" ||
         row.state === "selling") &&
-      runningBudgetHeldBdt < warnBelowBdt,
+      runningBudgetHeldBdt < alsoKnown.warnBelowBdt,
     signedFor: signedFor ?? NOBODY,
     /** How it stands against the bank: when it was last read, and whether any month is still out. */
-    bank,
+    bank: alsoKnown.bank,
+    /** The last day of the Wind-up Period: the days after the Target Window in which it keeps selling
+     *  before the Farm buys whatever is left. Said while there is still time to do something about a
+     *  slow bull, rather than at the moment everybody's money is late. */
+    windUpEndsOn: addDays(row.targetWindowEnd, alsoKnown.windUpDays),
+    /** How many of its Animals are still standing. Past the wind-up day with any of them standing is
+     *  the Venture that cannot settle on time. */
+    animalsStanding: alsoKnown.stillHers,
     cancelledReason: row.cancelledReason,
   };
 };
@@ -214,6 +231,11 @@ const WHAT_IT_DOES = {
   // gives that money back, and it is the Venture's own proceeds rather than anybody's capital.
   internal_buy: { line: "spentBdt", sign: 1, cattle: 1 },
   internal_sell: { line: "proceedsBdt", sign: 1, cattle: -1 },
+  // A buyer takes her away and pays for her. Not cattle money coming back, as an Internal Sale's
+  // roughly is: an outside Sale returns what she cost and the whole profit of the run with it, and a
+  // Venture that is selling up must not read that as money to go and buy more cattle with. It lands on
+  // the side that keeps the animals, which is what the ones still standing are eating through.
+  sale_in: { line: "proceedsBdt", sign: 1, cattle: 0 },
   // What its Animals ate of the Farm's feed, repaid. Running-budget money: it is the cost of keeping
   // them, not of buying one.
   reimbursement: { line: "spentBdt", sign: 1, cattle: 0 },
@@ -594,6 +616,115 @@ export const bankStandingOf = async (
   return standing;
 };
 
+/**
+ * What a buyer paid for a Venture's Animal, landing in that Venture's account.
+ *
+ * Written from the Sale rather than beside it, so that putting the Sale's price right moves this with
+ * it: two records of one payment that can drift apart are two records an Investor can be shown in turn.
+ * A beast given away fetches nothing and moves nothing.
+ */
+export const bookSaleProceeds = async (
+  tx: Tx,
+  sale: {
+    id: string;
+    farmId: string;
+    /** Whose Animal she was when she left, or nothing for the Farm's own. */
+    ventureId: string | null;
+    priceBdt: number;
+    soldAt: Date;
+    /** What the movement is looked up by. Her tag, and not a slip number: the money came off a buyer
+     *  at the haat, and her tag is what the Owner has to go on. */
+    reference: string;
+  },
+  now: Date,
+  recordedBy: string | null
+) => {
+  const already = await tx.query.ventureMovement.findFirst({
+    where: { farmId: sale.farmId, saleId: sale.id },
+    columns: { id: true },
+  });
+  const itsOwn = sale.priceBdt > 0 ? sale.ventureId : null;
+  if (already && itsOwn === null) {
+    // Not a movement put right but a movement that should never have been written: a Correction saying
+    // she was the Farm's, or that she was given away, says this money never reached the account. That
+    // is not the Investor's capital appearing never to have moved — it is the farm no longer claiming
+    // a payment it does not hold.
+    await tx
+      .delete(ventureMovement)
+      .where(
+        and(
+          eq(ventureMovement.id, already.id),
+          eq(ventureMovement.farmId, sale.farmId)
+        )
+      );
+    return;
+  }
+  if (itsOwn === null) {
+    return;
+  }
+  if (already) {
+    // The Venture as well as the figure: a Correction may say she was another Venture's all along, and
+    // what she fetched belongs where she did.
+    await tx
+      .update(ventureMovement)
+      .set({ ventureId: itsOwn, amountBdt: sale.priceBdt.toFixed(2) })
+      .where(
+        and(
+          eq(ventureMovement.id, already.id),
+          eq(ventureMovement.farmId, sale.farmId)
+        )
+      );
+    return;
+  }
+  await tx.insert(ventureMovement).values({
+    id: uuidv7(now),
+    farmId: sale.farmId,
+    ventureId: itsOwn,
+    kind: "sale_in",
+    saleId: sale.id,
+    amountBdt: sale.priceBdt.toFixed(2),
+    movedOn: farmDayOf(sale.soldAt),
+    reference: sale.reference,
+    recordedBy,
+    createdAt: now,
+  });
+};
+
+/**
+ * How many Animals each Venture still has: neither sold, nor dead, nor culled.
+ *
+ * What a Wind-up Period is measured against: past its last day with any of them still hers is the
+ * Venture that cannot settle on time. Whether a Settlement then refuses is the Settlement's own rule
+ * and not kept here.
+ */
+export const stillHersByEach = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ids: readonly string[]
+): Promise<Map<string, number>> => {
+  const stillHers = new Map(ids.map((id) => [id, 0]));
+  if (ids.length === 0) {
+    return stillHers;
+  }
+  const hers = await tx.query.animal.findMany({
+    where: {
+      farmId,
+      ownerVentureId: { in: [...ids] },
+      state: { notIn: [...EXIT_STATES] },
+    },
+    columns: { ownerVentureId: true },
+  });
+  for (const one of hers) {
+    if (one.ownerVentureId) {
+      stillHers.set(
+        one.ownerVentureId,
+        (stillHers.get(one.ownerVentureId) ?? 0) + 1
+      );
+    }
+  }
+  return stillHers;
+};
+
 /** One bank check as the trail records it. */
 export const readBankCheck = async (tx: Tx, farmId: string, id: string) => {
   const row = await tx.query.ventureBankCheck.findFirst({
@@ -641,14 +772,52 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
   const signed = await signedForEach(tx, farmId, [row.id]);
   const farmRow = await tx.query.farm.findFirst({
     where: { id: farmId },
-    columns: { runningBudgetWarnBdt: true },
+    columns: { runningBudgetWarnBdt: true, windUpDays: true },
   });
-  const standing = await bankStandingOf(tx, farmId, [row.id]);
-  return ventureView(
-    row,
-    held.get(row.id),
-    signed.get(row.id),
-    farmRow?.runningBudgetWarnBdt ?? 0,
-    standing.get(row.id) ?? NEVER_CHECKED
+  const bank = await bankStandingOf(tx, farmId, [row.id]);
+  const stillHers = await stillHersByEach(tx, farmId, [row.id]);
+  return ventureView(row, held.get(row.id), signed.get(row.id), {
+    warnBelowBdt: farmRow?.runningBudgetWarnBdt ?? 0,
+    bank: bank.get(row.id) ?? NEVER_CHECKED,
+    windUpDays: farmRow?.windUpDays ?? 0,
+    stillHers: stillHers.get(row.id) ?? 0,
+  });
+};
+
+/**
+ * A Venture keeping up with its own animals: the first of them sold is what makes it Selling.
+ *
+ * A fact rather than a chore — the Owner is not asked to remember, and the Manager selling at the haat
+ * is not asked to know whose animal she is selling. Nothing to do once it is already Selling, so a
+ * second Sale writes no second event.
+ */
+export const reachesSellingOnASale = async (
+  tx: Tx,
+  farmId: string,
+  ventureId: string,
+  /** How the change is recorded — the Sale's own `recordEvent`, so the move is on the same
+   *  transaction as the Sale that caused it. */
+  trail: (
+    tx: Tx,
+    event: { entity: string; entityId: string; action: "update" },
+    snapshots: { before?: SnapshotValue; after?: SnapshotValue }
+  ) => Promise<string>
+) => {
+  const row = await tx.query.venture.findFirst({
+    where: { id: ventureId, farmId },
+    columns: { state: true },
+  });
+  if (row?.state !== "buying" && row?.state !== "fattening") {
+    return;
+  }
+  const before = await readVenture(tx, farmId, ventureId);
+  await tx
+    .update(venture)
+    .set({ state: "selling" })
+    .where(eq(venture.id, ventureId));
+  await trail(
+    tx,
+    { entity: "venture", entityId: ventureId, action: "update" },
+    { before, after: await readVenture(tx, farmId, ventureId) }
   );
 };
