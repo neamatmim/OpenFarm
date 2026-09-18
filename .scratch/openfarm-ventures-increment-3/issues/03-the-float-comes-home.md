@@ -16,3 +16,5 @@ A reconciliation that does not add up is refused and says by how much, because a
 - [ ] An open Float is visible on the Venture, and a Trip already reconciled may not be reconciled twice
 - [ ] Recording an Intake or a Trip cost after a Float has been reconciled is refused, because the sum it was reconciled against would no longer be true
 - [ ] Tests cover a Float that balances, one short and one over, a double reconciliation, and an Intake arriving late against a closed Float
+
+**From increment 3 ticket 02:** a Venture Movement's effect on the figures is one record per kind — which line it lands on, which way it moves it, and whether it is drawn against the Cattle Budget. The cash that comes home is the same line and the same budget as the Float that took it, moving the other way; entered so, the unspent cattle money goes back to the Cattle Budget rather than leaking into the Running one. Note also that a Trip may be given a Float once, ever — stricter than "one open Float", and deliberate, because a trip funded twice is a trip nobody can reconcile.

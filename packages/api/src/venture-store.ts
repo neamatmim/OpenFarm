@@ -37,6 +37,9 @@ export interface Held {
   refundedBdt: number;
   spentBdt: number;
   paidOutBdt: number;
+  /** Of what has gone out, how much was drawn against the Cattle Budget. A Buying Float is cattle
+   *  money: it buys cattle or it comes home again. */
+  cattleOutBdt: number;
 }
 
 /** What a Venture Account should be holding: everything that came in, less everything that left. */
@@ -48,6 +51,7 @@ const NOTHING_HELD: Held = {
   refundedBdt: 0,
   spentBdt: 0,
   paidOutBdt: 0,
+  cattleOutBdt: 0,
 };
 
 /**
@@ -64,14 +68,19 @@ export const ventureView = (
   // The budgets are a plan for the whole capital, so what has actually arrived is split in the same
   // proportion: a Venture half funded holds half of each, rather than a full Cattle Budget and nothing
   // to feed the animals with.
+  // What of the capital arrived for cattle, less what has already been drawn against it. The plan's
+  // proportion decides what came in for each budget; after that the two are spent from separately, so a
+  // Float to the haat takes nothing from the money that keeps the animals.
   const target = Number(row.targetCapitalBdt);
-  const cattleBudgetHeldBdt =
+  const cameInForCattle =
     target > 0
-      ? Math.min(
-          balanceBdt,
-          Math.round((balanceBdt * Number(row.cattleBudgetBdt)) / target)
+      ? Math.round(
+          ((held.capitalInBdt - held.refundedBdt) *
+            Number(row.cattleBudgetBdt)) /
+            target
         )
       : 0;
+  const cattleBudgetHeldBdt = cameInForCattle - held.cattleOutBdt;
   return {
     id: row.id,
     name: row.name,
@@ -87,9 +96,11 @@ export const ventureView = (
       Number(row.targetCapitalBdt) - Number(row.cattleBudgetBdt),
     ...held,
     balanceBdt,
-    /** What of the balance is meant for buying animals, and what keeps them. */
+    /** What of the balance is meant for buying animals, and what keeps them. Each is read from its own
+     *  side rather than one being the remainder of the other: a figure that is the leftover of another
+     *  figure hides whatever went wrong in whichever of the two nobody was looking at. */
     cattleBudgetHeldBdt,
-    runningBudgetHeldBdt: balanceBdt - cattleBudgetHeldBdt,
+    runningBudgetHeldBdt: balanceBdt - cameInForCattle + held.cattleOutBdt,
     signedFor,
     cancelledReason: row.cancelledReason,
   };
@@ -122,12 +133,24 @@ export const signedForEach = async (
   return summary;
 };
 
-/** Which of a Venture's figures each kind of movement adds to. One line per kind, so a new kind is one
- *  entry here rather than a sum rewritten in three places. */
-const HELD_UNDER = {
-  capital_in: "capitalInBdt",
-  refund: "refundedBdt",
-} as const satisfies Record<VentureMovementKind, keyof Held>;
+/**
+ * What each kind of movement does to a Venture's figures: which line it lands on, which way it moves it,
+ * and whether it is drawn against the Cattle Budget or the Running one. One record per kind, so a new
+ * kind is one entry here and not a sum rewritten in three places.
+ *
+ * The sign is what makes the Float honest when it comes home: the cash brought back is the same line and
+ * the same budget as the Float that took it, moving the other way.
+ */
+const WHAT_IT_DOES = {
+  capital_in: { line: "capitalInBdt", sign: 1, cattle: 0 },
+  refund: { line: "refundedBdt", sign: 1, cattle: 0 },
+  // A Float is money out of the account the moment it is drawn: it is in the Manager's hand at the
+  // haat, not in the bank, and it is cattle money — it buys cattle or it comes home again.
+  float_out: { line: "spentBdt", sign: 1, cattle: 1 },
+} as const satisfies Record<
+  VentureMovementKind,
+  { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
+>;
 
 /**
  * What each Venture's account has seen, in one query for the whole list. Capital in and refunds are
@@ -148,10 +171,12 @@ export const heldByEach = async (
   });
   for (const one of movements) {
     const soFar = held.get(one.ventureId) ?? NOTHING_HELD;
-    const line = HELD_UNDER[one.kind];
+    const does = WHAT_IT_DOES[one.kind];
+    const taka = Number(one.amountBdt);
     held.set(one.ventureId, {
       ...soFar,
-      [line]: soFar[line] + Number(one.amountBdt),
+      [does.line]: soFar[does.line] + does.sign * taka,
+      cattleOutBdt: soFar.cattleOutBdt + does.cattle * taka,
     });
   }
   return held;
@@ -181,6 +206,7 @@ export const readMovement = async (tx: Tx, farmId: string, id: string) => {
         ventureId: row.ventureId,
         kind: row.kind,
         agreementId: row.agreementId,
+        buyingTripId: row.buyingTripId,
         amountBdt: Number(row.amountBdt),
         movedOn: row.movedOn,
         reference: row.reference,

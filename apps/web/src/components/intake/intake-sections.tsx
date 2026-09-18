@@ -1,4 +1,4 @@
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Camera, CircleCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -236,7 +236,14 @@ export const PriceSection = ({
   trips,
   ventures,
 }: PartProps & {
-  trips: { id: string; wentTo: string; wentOn: Date; animals: number }[];
+  trips: {
+    id: string;
+    wentTo: string;
+    wentOn: Date;
+    animals: number;
+    /** What the outing was given to buy with, where it was given one. */
+    float: { ventureId: string; ventureName: string; amountBdt: number } | null;
+  }[];
   /** The Ventures that are buying: the only ones that may take an animal in. */
   ventures: { id: string; name: string }[];
 }) => {
@@ -287,6 +294,12 @@ export const PriceSection = ({
           {trips.map((trip) => (
             <option key={trip.id} value={trip.id}>
               {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
+              {trip.float
+                ? ` · ${trip.float.ventureName} ৳${formatNumber(
+                    trip.float.amountBdt,
+                    language
+                  )}`
+                : ""}
             </option>
           ))}
         </NativeSelect>

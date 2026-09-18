@@ -53,6 +53,21 @@ export const ownerOf = async (tx: Tx, animalId: string) => {
   return row?.ownerVentureId ?? null;
 };
 
+/** Whose each of these animals is, in one query. */
+export const theOwnersOf = async (
+  tx: Pick<Tx, "query">,
+  animalIds: readonly string[]
+): Promise<(string | null)[]> => {
+  if (animalIds.length === 0) {
+    return [];
+  }
+  const rows = await tx.query.animal.findMany({
+    where: { id: { in: [...animalIds] } },
+    columns: { ownerVentureId: true },
+  });
+  return rows.map((one) => one.ownerVentureId);
+};
+
 /**
  * That this animal is one a Venture may own at all: bought in, and on the Fattening side. A calf born
  * here is the Farm's, and so is every cow in the milking herd — Investor money funds Fattening.
