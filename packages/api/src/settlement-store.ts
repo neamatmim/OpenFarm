@@ -33,6 +33,16 @@ import {
 
 type Db = Pick<Database, "query" | "execute">;
 
+/** What each charge against a run is called. */
+export type ChargeWord =
+  | "bought"
+  | "hasil"
+  | "trips"
+  | "feed"
+  | "medicine"
+  | "vet"
+  | "herd";
+
 /**
  * Something that makes a Settlement a guess rather than a sum, with the word the reader has for it.
  *
@@ -288,7 +298,9 @@ export const settlementOf = async (
           .map((one) => Number(one.amountBdt))
       )
   );
-  const charges = [
+  // Named rather than numbered, and named in one place: a screen that has to know what "trips" is
+  // called should fail to compile when a line is added, not print an empty label.
+  const charges: { word: ChargeWord; bdt: number }[] = [
     { word: "bought", bdt: purchaseBdt },
     { word: "hasil", bdt: charged.hasilBdt },
     { word: "trips", bdt: charged.tripBdt },
