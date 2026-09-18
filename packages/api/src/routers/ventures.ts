@@ -50,15 +50,17 @@ import {
 import {
   adjustmentAgainst,
   adjustmentsOf,
+  closeAdjustment,
+  raiseAdjustment,
+  theAdjustment,
+} from "../settlement-adjustment-store";
+import {
   approvedSettlementOf,
   approveSettlement,
-  closeAdjustment,
   payOut,
   reachesSettledOnLastPayout,
-  raiseAdjustment,
   readSettlement,
   settlementOf,
-  theAdjustment,
 } from "../settlement-store";
 import {
   balanceAtMonthEnd,
