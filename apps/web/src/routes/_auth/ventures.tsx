@@ -13,6 +13,7 @@ import {
   Gavel,
   PiggyBank,
   Receipt,
+  Scale,
   ScrollText,
   Truck,
   XCircle,
@@ -37,6 +38,7 @@ import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { MovementsSheet } from "@/components/ventures/movements-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
 import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
+import { SettlementSheet } from "@/components/ventures/settlement-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
@@ -178,6 +180,7 @@ const VentureCard = ({
   onCountFloat,
   onReimburse,
   onBuyWhatIsLeft,
+  onSettle,
   onAdvance,
   onCheckTheBank,
   onSeeMovements,
@@ -190,6 +193,7 @@ const VentureCard = ({
   onCountFloat: (venture: Venture) => void;
   onReimburse: (venture: Venture) => void;
   onBuyWhatIsLeft: (venture: Venture) => void;
+  onSettle: (venture: Venture) => void;
   onAdvance: (venture: Venture) => void;
   onCheckTheBank: (venture: Venture) => void;
   onSeeMovements: (venture: Venture) => void;
@@ -339,6 +343,16 @@ const VentureCard = ({
             <PiggyBank aria-hidden data-icon="inline-start" />
             {t("ventures.advance")}
           </Button>
+          {venture.state === "selling" ? (
+            <Button
+              onClick={() => onSettle(venture)}
+              type="button"
+              variant="ghost"
+            >
+              <Scale aria-hidden data-icon="inline-start" />
+              {t("ventures.settlement")}
+            </Button>
+          ) : null}
           {pastWindUp(venture) ? (
             <Button
               onClick={() => onBuyWhatIsLeft(venture)}
@@ -405,6 +419,7 @@ const VenturesPage = () => {
   const [counting, setCounting] = useState<Venture | null>(null);
   const [reimbursing, setReimbursing] = useState<Venture | null>(null);
   const [windingUp, setWindingUp] = useState<Venture | null>(null);
+  const [settling, setSettling] = useState<Venture | null>(null);
   const [advancing, setAdvancing] = useState<Venture | null>(null);
   const [checking, setChecking] = useState<Venture | null>(null);
   const [seeing, setSeeing] = useState<Venture | null>(null);
@@ -449,6 +464,7 @@ const VenturesPage = () => {
                   onCheckTheBank={setChecking}
                   onSeeMovements={setSeeing}
                   onBuyWhatIsLeft={setWindingUp}
+                  onSettle={setSettling}
                   onReimburse={setReimbursing}
                   onDrawFloat={setDrawing}
                   onSign={setSigning}
@@ -509,6 +525,15 @@ const VenturesPage = () => {
         }}
         open={reimbursing !== null}
         venture={reimbursing}
+      />
+      <SettlementSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setSettling(null);
+          }
+        }}
+        open={settling !== null}
+        venture={settling}
       />
       <BuyWhatIsLeftSheet
         onOpenChange={(wanted) => {
