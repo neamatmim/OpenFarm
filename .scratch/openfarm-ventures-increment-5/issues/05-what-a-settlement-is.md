@@ -33,3 +33,5 @@ And it is refused while anything makes it a guess: an Animal still standing, an 
 - [ ] Tests cover a Venture in profit with a rounding remainder that is not zero, one in loss, an Advance repaid in both, and each of the five blocks in turn
 
 **From ticket 02:** what blocks on the bank is two questions, not one. `bank.monthsOut` covers every month that was read and is still out — the statement disagreed, or the farm has since changed its mind about what the month ended on. It does **not** cover a month nobody ever read, which has no Bank Check row at all: for that, `bank.lastCheckedMonth` must reach the last month that is over.
+
+**From ticket 03:** a Sale of an Animal belonging to a **settled** Venture currently does nothing — `reachesSellingOnASale` returns quietly for any state that is not buying or fattening. Once a Venture can be settled, that has to become a refusal rather than a silence. `stillHersByEach` (venture-store) counts the Animals a Venture still has, which is what "settlement refused while an Animal still stands" is asked of; nothing enforces it yet.

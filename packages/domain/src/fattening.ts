@@ -39,7 +39,7 @@ export interface TargetWindow {
 
 /** `day` plus `days`, as "YYYY-MM-DD". Read as UTC throughout: a calendar day plus two is the
  *  same calendar day plus two whatever clock the reader keeps. */
-const addDays = (day: string, days: number): string => {
+export const addDays = (day: string, days: number): string => {
   const at = new Date(`${day}T00:00:00Z`);
   return new Date(at.getTime() + days * DAY_MS).toISOString().slice(0, 10);
 };

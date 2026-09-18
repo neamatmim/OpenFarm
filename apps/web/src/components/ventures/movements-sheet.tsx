@@ -22,6 +22,7 @@ const KIND_WORD = {
   float_back: "ventures.kind.floatBack",
   internal_buy: "ventures.kind.internalBuy",
   internal_sell: "ventures.kind.internalSell",
+  sale_in: "ventures.kind.saleIn",
   reimbursement: "ventures.kind.reimbursement",
   advance: "ventures.kind.advance",
 } as const satisfies Record<string, MessageKey>;

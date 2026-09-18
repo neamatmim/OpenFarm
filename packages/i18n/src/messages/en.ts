@@ -214,6 +214,9 @@ export const en = {
   "ventures.cattleBudgetOwn": "For buying cattle (or leave it)",
   "ventures.budgets": "Budgets",
   "ventures.budgetSplit": "৳{cattle} cattle · ৳{running} keeping them",
+  "ventures.windUpEnds": "Wind-up ends",
+  "ventures.pastWindUp":
+    "The Wind-up Period is over with {standing} still standing",
   "ventures.window": "Selling window",
   "ventures.windowFrom": "Selling from",
   "ventures.windowTo": "Selling until",
@@ -267,6 +270,7 @@ export const en = {
   "ventures.kind.floatBack": "Cash back from the haat",
   "ventures.kind.internalBuy": "Bought an animal",
   "ventures.kind.internalSell": "Sold an animal",
+  "ventures.kind.saleIn": "A buyer took her away",
   "ventures.kind.reimbursement": "Reimbursed the farm",
   "ventures.kind.advance": "Your own money in",
   "ventures.correctMovement": "Put it right",

@@ -12,6 +12,7 @@ import {
   salePriceInput,
   readSale,
 } from "../sale-store";
+import { lockTheFarm } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -46,6 +47,9 @@ export const saleCorrection: CorrectionKind<
   entity: "sale",
   table: sale,
   roles: ["owner", "manager"],
+  // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
+  // everything that counts a Venture's money does.
+  lock: lockTheFarm,
   missing: "No such sale",
   load: loadSale,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),

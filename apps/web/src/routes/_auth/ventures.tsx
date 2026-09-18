@@ -1,4 +1,4 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -123,6 +123,38 @@ const BankStanding = ({
   );
 };
 
+/**
+ * Said once the Wind-up Period has run out with animals still standing: the Farm is about to have to buy
+ * whatever is left so the Venture can settle on time, and the Owner is owed that news while there are
+ * still days to sell in rather than at the moment everybody's money is late.
+ *
+ * A fortnight-old cache was written before either figure existed, and says nothing about either.
+ */
+const PastWindUp = ({
+  state,
+  endsOn,
+  standing,
+}: {
+  state: string;
+  endsOn?: string;
+  standing?: number;
+}) => {
+  const { t, language } = useLanguage();
+  // Said of a Venture that is selling up. One still fattening has not reached the day it matters on,
+  // and one settled or called off has nothing left to sell.
+  if (state !== "selling" || !(endsOn && standing)) {
+    return null;
+  }
+  const over = endsOn < farmDayOf(new Date());
+  return over ? (
+    <StatusBadge tone="warning">
+      {t("ventures.pastWindUp", {
+        standing: formatNumber(standing, language),
+      })}
+    </StatusBadge>
+  ) : null;
+};
+
 /** One Venture: what it is after, what it holds, who has signed for it, and when it means to sell. */
 /** What a Venture's card needs of the figures, whatever shape the answer it was drawn from had. A phone
  *  can be holding a fortnight-old cache written before any of this existed. */
@@ -236,7 +268,17 @@ const VentureCard = ({
         <Line label={t("ventures.window")}>
           {`${day(venture.targetWindow.start)} – ${day(venture.targetWindow.end)}`}
         </Line>
+        {venture.windUpEndsOn ? (
+          <Line label={t("ventures.windUpEnds")}>
+            {day(venture.windUpEndsOn)}
+          </Line>
+        ) : null}
       </div>
+      <PastWindUp
+        endsOn={venture.windUpEndsOn}
+        standing={venture.animalsStanding}
+        state={venture.state}
+      />
       {venture.cancelledReason ? (
         <p className="text-muted-foreground text-xs">
           {venture.cancelledReason}

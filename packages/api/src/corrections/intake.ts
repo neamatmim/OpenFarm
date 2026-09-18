@@ -20,7 +20,7 @@ import {
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import { bookSaleMoney } from "../sale-store";
-import { assertTripIsOpen } from "../venture-store";
+import { assertTripIsOpen, lockTheFarm } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -66,6 +66,9 @@ export const intakeCorrection: CorrectionKind<
   entity: "animal",
   table: intake,
   roles: ["owner", "manager"],
+  // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
+  // everything that counts a Venture's money does.
+  lock: lockTheFarm,
   missing: "No such intake",
   load: loadIntake,
   entityIdOf: (row) => row.animalId,
