@@ -40,6 +40,16 @@ const CATEGORIES: Record<
     nameEn: "Selling trips",
     direction: "out",
   },
+  internal_sale_in: {
+    nameBn: "ভেঞ্চারের কাছে গরু বিক্রি",
+    nameEn: "Cattle sold to a Venture",
+    direction: "in",
+  },
+  internal_sale_out: {
+    nameBn: "ভেঞ্চার থেকে গরু কেনা",
+    nameEn: "Cattle bought from a Venture",
+    direction: "out",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",

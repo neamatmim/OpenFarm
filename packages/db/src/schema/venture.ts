@@ -177,14 +177,17 @@ export const agreementPaper = pgTable("agreement_paper", {
 
 /**
  * What a Venture Movement is for: capital in, the refund that undoes it, the Buying Float drawn for one
- * trip to the haat, and the cash that Float brings home. The Advance, the Reimbursement and the payout
- * join them as their own work arrives.
+ * trip to the haat, the cash that Float brings home, and the two sides of an **Internal Sale** — a
+ * Venture paying for an Animal it takes on, and being paid for one it lets go. The Advance, the
+ * Reimbursement and the payout join them as their own work arrives.
  */
 export const VENTURE_MOVEMENT_KINDS = [
   "capital_in",
   "refund",
   "float_out",
   "float_back",
+  "internal_buy",
+  "internal_sell",
 ] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
@@ -212,6 +215,10 @@ export const ventureMovement = pgTable(
     agreementId: text("agreement_id").references(() => investmentAgreement.id),
     /** The outing a Buying Float was drawn for. Only a Float has one. */
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
+    /** The Internal Sale this is one side of. Only an Internal Sale's movements have one. By id and
+     *  not by foreign key: an Internal Sale is an Animal's record and lives with the fattening ones,
+     *  and a reference from here would send the schema round in a circle. */
+    internalSaleId: text("internal_sale_id"),
     amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),

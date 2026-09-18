@@ -14,6 +14,7 @@ import { farm } from "./farm";
 import { animal } from "./herd";
 import { stepCompletion } from "./instance";
 import { buyingTrip, sellingTrip } from "./trip";
+import { venture } from "./venture";
 
 /**
  * A person or business the Farm buys from, sells to, or pays.
@@ -235,4 +236,44 @@ export const sale = pgTable(
     uniqueIndex("sale_animal_uidx").on(table.animalId),
     index("sale_day_idx").on(table.farmId, table.soldAt),
   ]
+);
+/**
+ * The Owner's recorded sale of an Animal between the Farm's herd and a Venture, or between two Ventures.
+ *
+ * Priced at her latest **Weigh-in** times a live-weight rate the Owner enters on the day, with a note of
+ * where that rate came from: an Investor asking years later why his bull was worth that is owed a figure
+ * and a reason, not a number somebody chose. The money moves through the **Venture Account**, because it
+ * is a sale and not a book entry, and her owner changes with it.
+ *
+ * Not a **Sale**, which is a buyer taking her away, and not a **Move**, which changes her Pen.
+ */
+export const internalSale = pgTable(
+  "internal_sale",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    animalId: text("animal_id")
+      .notNull()
+      .references(() => animal.id, { onDelete: "cascade" }),
+    /** Who is letting her go, and who is taking her on: a Venture's id, or nothing for the Farm. */
+    fromVentureId: text("from_venture_id").references(() => venture.id),
+    toVentureId: text("to_venture_id").references(() => venture.id),
+    /** What she weighed when the price was struck, and the Weigh-in it was read from. */
+    weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
+    weighInId: text("weigh_in_id").references(() => weighIn.id),
+    /** Taka per kilogramme of live weight, as the Owner entered it that day. */
+    rateBdtPerKg: numeric("rate_bdt_per_kg", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
+    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** Where the rate came from: the haat that morning, a buyer's offer, the last sale. */
+    note: text("note").notNull(),
+    soldOn: text("sold_on").notNull(),
+    recordedBy: text("recorded_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [index("internal_sale_idx").on(table.farmId, table.animalId)]
 );

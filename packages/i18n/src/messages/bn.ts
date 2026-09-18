@@ -257,6 +257,20 @@ export const bn: Record<MessageKey, string> = {
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.balance": "হিসাবে থাকার কথা",
   "ventures.drawFloat": "টাকা তুলুন",
+  "ventures.sellInternally": "গরু এক পার্স থেকে আরেক পার্সে",
+  "ventures.internalSaleHint":
+    "খামারের পাল আর ভেঞ্চারের মধ্যে গরু বিক্রি — দাম তার শেষ ওজন গুণ আপনার দেওয়া দর।",
+  "ventures.soldInternally": "৳{price} দামে বিক্রি হলো, গরুটি হাতবদল হয়েছে",
+  "ventures.whichAnimal": "কোন গরু",
+  "ventures.toPurse": "কে নিচ্ছে",
+  "ventures.toPurseHint": "যে ভেঞ্চার কিনছে বা মোটাতাজা করছে, কেবল সেটিই নিতে পারে",
+  "ventures.rate": "কেজি প্রতি দর",
+  "ventures.rateHint": "জীবন্ত ওজনে, আজকের বাজার অনুযায়ী",
+  "ventures.soldOn": "বিক্রির দিন",
+  "ventures.priceFromWeight": "{weight} কেজি এই দরে · ৳{price}",
+  "ventures.whereTheRateCameFrom": "দর কোথা থেকে",
+  "ventures.whereTheRateCameFromHint":
+    "সকালের হাট, ক্রেতার প্রস্তাব, গত বিক্রি — বছর পরে বিনিয়োগকারী জিজ্ঞেস করলে কারণ দিতে হবে",
   "ventures.countFloat": "হিসাব মেলান",
   "ventures.countFloatHint":
     "যত টাকা তোলা হয়েছিল, তার বিপরীতে কেনা গরু, যাত্রার খরচ আর ফেরত আসা টাকা।",
@@ -294,6 +308,16 @@ export const bn: Record<MessageKey, string> = {
     "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে কম হচ্ছে",
   "refusal.notWhoseFloatBoughtHer":
     "এই যাত্রা অন্য পার্সের টাকায় হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
+  "refusal.sheIsReadyForSale":
+    "গরুটি বিক্রির জন্য তৈরি, তৈরি গরু এক পার্স থেকে আরেক পার্সে যায় না",
+  "refusal.alreadyThatPurse": "গরুটি তো তাদেরই",
+  "refusal.neverWeighed": "গরুটির কোনো ওজন নেওয়া হয়নি, তাই দাম ঠিক করার ভিত্তি নেই",
+  "refusal.weighedAgainSince":
+    "আপনি দাম দেখার পর গরুটির ওজন আবার নেওয়া হয়েছে — নতুন দাম দেখুন",
+  "refusal.notAFatteningAnimal":
+    "বিনিয়োগের টাকা মোটাতাজাকরণে যায়, আর দুধের গাভি খামারের নিজের",
+  "refusal.buyerCannotTrade": "যে ভেঞ্চার নিচ্ছে, তার গরু নেওয়ার সময় পার হয়ে গেছে",
+  "refusal.sellerCannotTrade": "যে ভেঞ্চার দিচ্ছে, তার গরু দেওয়ার সময় পার হয়ে গেছে",
   "refusal.cashBackNeedsASlip": "ফেরত আসা টাকার জমার তারিখ আর স্লিপ নম্বর দিন",
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.callOff": "বাতিল করুন",
@@ -1145,6 +1169,8 @@ export const bn: Record<MessageKey, string> = {
   "money.from.feedIn": "খাদ্য কেনা",
   "money.from.medicinePurchase": "ওষুধ কেনা",
   "money.from.vetFee": "ভেটের ফি",
+  "money.from.internalSaleIn": "ভেঞ্চারের কাছে বিক্রি",
+  "money.from.internalSaleOut": "ভেঞ্চার থেকে কেনা",
   "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় টাকা",
   "drugs.buy": "কেনা ওষুধ",
   "drugs.quantity": "কতটুকু (বাক্সে যেমন লেখা)",

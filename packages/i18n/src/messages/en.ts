@@ -258,6 +258,21 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a Float",
+  "ventures.sellInternally": "Move an animal between purses",
+  "ventures.internalSaleHint":
+    "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
+  "ventures.soldInternally": "Sold for ৳{price}, and she has changed hands",
+  "ventures.whichAnimal": "Which animal",
+  "ventures.toPurse": "Who takes her on",
+  "ventures.toPurseHint":
+    "Only a Venture that is buying or fattening may take one on",
+  "ventures.rate": "Rate per kg",
+  "ventures.rateHint": "Live weight, as the day's market gives it",
+  "ventures.soldOn": "Sold on",
+  "ventures.priceFromWeight": "{weight} kg at that rate · ৳{price}",
+  "ventures.whereTheRateCameFrom": "Where the rate came from",
+  "ventures.whereTheRateCameFromHint":
+    "The haat that morning, a buyer's offer, the last sale — an Investor asking years later is owed a reason",
   "ventures.countFloat": "Count the Float home",
   "ventures.countFloatHint":
     "What went out, against the animals it bought, the outing's own costs and the cash coming back.",
@@ -302,6 +317,19 @@ export const en = {
     "The animals, the outing's costs and the cash back come to less than went out",
   "refusal.notWhoseFloatBoughtHer":
     "That outing went to the haat on another purse's money, so she is that purse's",
+  "refusal.sheIsReadyForSale":
+    "She is ready for sale, and a finished bull is not moved between purses",
+  "refusal.alreadyThatPurse": "She is already theirs",
+  "refusal.neverWeighed":
+    "She has never been weighed, so there is no price anybody could defend",
+  "refusal.weighedAgainSince":
+    "She has been weighed since you read that price — check the new one",
+  "refusal.notAFatteningAnimal":
+    "Investor money funds fattening, and a dairy cow is the farm's",
+  "refusal.buyerCannotTrade":
+    "The Venture taking her on is past taking animals on",
+  "refusal.sellerCannotTrade":
+    "The Venture letting her go is past letting animals go",
   "refusal.cashBackNeedsASlip":
     "Cash coming back needs the day it was deposited and the slip's number",
   "ventures.budgetsHeld": "Of that, cattle and running",
@@ -1178,6 +1206,8 @@ export const en = {
   "money.from.feedIn": "Feed purchase",
   "money.from.medicinePurchase": "Medicine purchase",
   "money.from.vetFee": "Vet fee",
+  "money.from.internalSaleIn": "Sold to a Venture",
+  "money.from.internalSaleOut": "Bought from a Venture",
   "owner.moneyAwaiting": "Money awaiting your approval",
   "drugs.buy": "Medicine bought",
   "drugs.quantity": "How much (as on the box)",

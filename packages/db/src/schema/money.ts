@@ -38,6 +38,11 @@ export const RECORD_SOURCES = [
   "feed_in",
   "medicine_purchase",
   "vet_fee",
+  // The Farm's own side of an Internal Sale. Two sources rather than one, because the same act is money
+  // in when the Farm lets an animal go and money out when it takes one on, and a source carries one
+  // Category with one direction.
+  "internal_sale_in",
+  "internal_sale_out",
 ] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 

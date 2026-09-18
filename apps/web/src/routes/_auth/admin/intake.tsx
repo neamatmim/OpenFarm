@@ -68,7 +68,7 @@ const IntakePage = () => {
   // Intake is simply not asked whose she is — which is right: buying for a Venture is the Owner's call.
   // Whose she is: the Ventures that are buying, which the Manager may read by name because she is the
   // one at the haat writing the arrival down.
-  const ventures = useQuery(orpc.ventures.buying.queryOptions());
+  const ventures = useQuery(orpc.ventures.takingAnimals.queryOptions());
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
@@ -156,7 +156,9 @@ const IntakePage = () => {
             fields={fields}
             onEdit={edit}
             trips={trips.data ?? []}
-            ventures={ventures.data ?? []}
+            ventures={(ventures.data ?? []).filter(
+              (one) => one.state === "buying"
+            )}
           />
           <BuyingTripForm fields={fields} onEdit={edit} />
           <TargetSection fields={fields} onEdit={edit} />
