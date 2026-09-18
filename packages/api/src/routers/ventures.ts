@@ -50,7 +50,6 @@ import {
 import {
   adjustmentAgainst,
   adjustmentsOf,
-  alreadyAdjustedPerUnitBdt,
   approvedSettlementOf,
   approveSettlement,
   closeAdjustment,
@@ -1712,9 +1711,11 @@ export const venturesRouter = {
             context.farm.id,
             approved.row.id
           );
-          const perUnitToPay = roundTaka(
-            perUnitBdt - alreadyAdjustedPerUnitBdt(raised)
-          );
+          // What this one still has to send, as the Adjustments themselves say it: worked out in one
+          // place, so the screen offering to send a figure the farm then refuses cannot happen.
+          const perUnitToPay =
+            raised.find((one) => one.id === adjustment.id)?.perUnitToPayBdt ??
+            0;
           if (perUnitToPay <= 0) {
             throw new ORPCError("BAD_REQUEST", {
               message: "Earlier Adjustments have already paid this out",

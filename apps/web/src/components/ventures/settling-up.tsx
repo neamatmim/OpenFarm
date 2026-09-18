@@ -19,7 +19,7 @@ type Share = Approved["shares"][number];
 
 /** Everything the Settlement screens change, refreshed together: one act moves the Venture, its money
  *  and the Farm's books at once. */
-const useRefresh = () => {
+export const useRefresh = () => {
   const queryClient = useQueryClient();
   return async () => {
     await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
@@ -75,10 +75,11 @@ export const PayOutSheet = ({
 }: {
   what: {
     ventureId: string;
-    kind: "advance" | "share" | "farm";
+    kind: "advance" | "share" | "farm" | "adjustment";
     title: string;
     amountBdt: number;
     agreementId?: string;
+    adjustmentId?: string;
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,7 +91,10 @@ export const PayOutSheet = ({
   // Emptied whenever the sheet is opened for somebody else: a bank reference left over from the last man
   // is a reference against the wrong payment, and the whole point of writing it down is that it is real.
   const [lastFor, setLastFor] = useState<string | null>(null);
-  const who = what === null ? null : `${what.kind}:${what.agreementId ?? ""}`;
+  const who =
+    what === null
+      ? null
+      : `${what.kind}:${what.agreementId ?? ""}:${what.adjustmentId ?? ""}`;
   if (who !== lastFor) {
     setLastFor(who);
     setMovedOn("");
@@ -122,7 +126,17 @@ export const PayOutSheet = ({
       onSuccess: done,
     })
   );
-  const pending = repaying.isPending || paying.isPending || taking.isPending;
+  const adjusting = useMutation(
+    orpc.ventures.payAdjustment.mutationOptions({
+      onError: failed,
+      onSuccess: done,
+    })
+  );
+  const pending =
+    repaying.isPending ||
+    paying.isPending ||
+    taking.isPending ||
+    adjusting.isPending;
   const send = () => {
     if (what === null) {
       return;
@@ -139,6 +153,10 @@ export const PayOutSheet = ({
     }
     if (what.kind === "farm") {
       taking.mutate(where);
+      return;
+    }
+    if (what.kind === "adjustment") {
+      adjusting.mutate({ ...where, adjustmentId: what.adjustmentId ?? "" });
       return;
     }
     paying.mutate({

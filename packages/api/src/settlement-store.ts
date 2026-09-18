@@ -1,6 +1,7 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
+import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
 import {
   venture as ventureTable,
   ventureMovement,
@@ -525,6 +526,7 @@ export const nothingLeftToPay = (
   (Number(settlement.farmBdt) === 0 || settlement.farmSharePaidId !== null);
 
 /** The Adjustments raised against a Venture's Settlement, oldest first. */
+/** The Adjustments raised against a Venture's Settlement, oldest first. */
 /**
  * What earlier Adjustments have already paid out on this Settlement.
  *
@@ -552,19 +554,51 @@ export const adjustmentsOf = async (
     where: { farmId, settlementId },
     orderBy: { raisedAt: "asc", id: "asc" },
   });
-  return rows.map((one) => ({
-    id: one.id,
-    reason: one.reason,
-    raisedAt: one.raisedAt,
-    profitBdt: Number(one.profitBdt),
-    perUnitBdt: Number(one.perUnitBdt),
-    perUnitDifferenceBdt: Number(one.perUnitDifferenceBdt),
-    investorsDifferenceBdt: Number(one.investorsDifferenceBdt),
-    thresholdBdt: Number(one.thresholdBdt),
-    outcome: one.outcome,
-    waivedNote: one.waivedNote,
-    closedAt: one.closedAt,
-  }));
+  // Each Adjustment says what the figures would be against what was frozen, so it carries the ones
+  // before it as well as its own. What is still to send is that, less what every Adjustment already paid
+  // has sent — every one of them, in whatever order they were dealt with, because that is the sum the
+  // farm itself subtracts when it pays. Reading them in the order they were raised instead would offer
+  // to send money again the moment one was paid out of turn.
+  const sentAlready = alreadyAdjustedPerUnitBdt(
+    rows.map((one) => ({
+      outcome: one.outcome,
+      perUnitDifferenceBdt: Number(one.perUnitDifferenceBdt),
+    }))
+  );
+  // What one of them actually sent is what it was worth less what had been sent before *it* — by when it
+  // was dealt with, not when it was raised.
+  const inTheOrderTheyWerePaid = rows
+    .filter((one) => one.outcome === "paid" && one.closedAt !== null)
+    .toSorted(
+      (a, b) => (a.closedAt?.getTime() ?? 0) - (b.closedAt?.getTime() ?? 0)
+    );
+  const sent = new Map<string, number>();
+  let before = 0;
+  for (const one of inTheOrderTheyWerePaid) {
+    const difference = Number(one.perUnitDifferenceBdt);
+    sent.set(one.id, roundTaka(difference - before));
+    before = roundTaka(before + difference);
+  }
+  return rows.map((one) => {
+    const perUnitDifferenceBdt = Number(one.perUnitDifferenceBdt);
+    return {
+      id: one.id,
+      reason: one.reason,
+      raisedAt: one.raisedAt,
+      profitBdt: Number(one.profitBdt),
+      perUnitBdt: Number(one.perUnitBdt),
+      perUnitDifferenceBdt,
+      investorsDifferenceBdt: Number(one.investorsDifferenceBdt),
+      thresholdBdt: Number(one.thresholdBdt),
+      outcome: one.outcome,
+      waivedNote: one.waivedNote,
+      closedAt: one.closedAt,
+      /** What a Unit took of this one, where it was paid. */
+      perUnitPaidBdt: sent.get(one.id) ?? 0,
+      /** What a Unit would take if it were paid now, less what every paid one has already sent. */
+      perUnitToPayBdt: roundTaka(perUnitDifferenceBdt - sentAlready),
+    };
+  });
 };
 
 /**
@@ -719,7 +753,7 @@ export const raiseAdjustment = async (
     against: ReturnType<typeof adjustmentAgainst>;
   },
   by: { actorId: string; now: Date }
-) => {
+): Promise<{ id: string; outcome: AdjustmentOutcome }> => {
   const id = uuidv7(by.now);
   const outcome = outcomeFor(
     what.against.investorsDifferenceBdt,

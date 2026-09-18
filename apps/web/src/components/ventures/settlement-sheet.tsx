@@ -19,12 +19,18 @@ import {
   TagChip,
 } from "@/components/page";
 import {
+  Adjustments,
+  RaiseAdjustmentSheet,
+  WaiveAdjustmentSheet,
+} from "@/components/ventures/adjustments";
+import {
   AcknowledgeSheet,
   PayOutSheet,
   SharePaid,
 } from "@/components/ventures/settling-up";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 type Settlement = Awaited<ReturnType<typeof orpc.ventures.settlement.call>>;
@@ -69,12 +75,6 @@ const BLOCK_WORD = {
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",
   the_bank_disagrees: "refusal.theBankDisagrees",
 } as const satisfies Record<Block["word"], MessageKey>;
-
-/** Taka as the reader reads them, in the reader's own numerals. */
-const useTaka = () => {
-  const { language } = useLanguage();
-  return (amount: number) => `৳${formatNumber(amount, language)}`;
-};
 
 const Line = ({
   label,
@@ -405,8 +405,8 @@ const WhatIsLeftToSend = ({
     title: string;
   }) => void;
 }) => {
-  const { t, language } = useLanguage();
-  const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
+  const { t } = useLanguage();
+  const taka = useTaka();
   return (
     <Section plain title={t("ventures.whatIsLeftToSend")}>
       <div className="flex flex-col gap-2 text-sm">
@@ -507,6 +507,8 @@ const SettlingUp = ({
   heldNowBdt,
   onPay,
   onAcknowledge,
+  onRaise,
+  onWaive,
 }: {
   venture: { id: string; name: string } | null;
   approved: Approved | null;
@@ -517,6 +519,8 @@ const SettlingUp = ({
   heldNowBdt: number | undefined;
   onPay: (what: Parameters<typeof PayOutSheet>[0]["what"]) => void;
   onAcknowledge: (what: Parameters<typeof AcknowledgeSheet>[0]["what"]) => void;
+  onRaise: () => void;
+  onWaive: (what: Parameters<typeof WaiveAdjustmentSheet>[0]["what"]) => void;
 }) => {
   const { t, language } = useLanguage();
   return (
@@ -533,6 +537,24 @@ const SettlingUp = ({
       <WhatItCameTo settlement={figures} />
       <HowItSplits settlement={figures} />
       <WhatTheAccountHolds heldNowBdt={heldNowBdt} settlement={figures} />
+      {approved ? (
+        <Adjustments
+          approved={approved}
+          onPay={(what) =>
+            onPay({
+              ventureId: venture?.id ?? "",
+              kind: "adjustment",
+              title: t("ventures.everyInvestor"),
+              amountBdt: what.amountBdt,
+              adjustmentId: what.adjustmentId,
+            })
+          }
+          onRaise={onRaise}
+          onWaive={(adjustmentId) =>
+            onWaive({ ventureId: venture?.id ?? "", adjustmentId })
+          }
+        />
+      ) : null}
       {approved ? (
         <WhatIsLeftToSend
           approved={approved}
@@ -575,6 +597,9 @@ export const SettlementSheet = ({
     useState<Parameters<typeof PayOutSheet>[0]["what"]>(null);
   const [saying, setSaying] =
     useState<Parameters<typeof AcknowledgeSheet>[0]["what"]>(null);
+  const [raising, setRaising] = useState(false);
+  const [waiving, setWaiving] =
+    useState<Parameters<typeof WaiveAdjustmentSheet>[0]["what"]>(null);
   const working = useQuery({
     ...orpc.ventures.settlement.queryOptions({
       input: { ventureId: venture?.id ?? "" },
@@ -612,6 +637,8 @@ export const SettlementSheet = ({
                 figures={it}
                 onAcknowledge={setSaying}
                 onPay={setPaying}
+                onRaise={() => setRaising(true)}
+                onWaive={setWaiving}
                 heldNowBdt={working.data?.balanceBdt}
                 blocks={working.data?.blocks ?? []}
                 venture={venture}
@@ -637,6 +664,20 @@ export const SettlementSheet = ({
         }}
         open={saying !== null}
         what={saying}
+      />
+      <RaiseAdjustmentSheet
+        onOpenChange={setRaising}
+        open={raising}
+        venture={venture}
+      />
+      <WaiveAdjustmentSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setWaiving(null);
+          }
+        }}
+        open={waiving !== null}
+        what={waiving}
       />
     </Sheet>
   );
