@@ -15,6 +15,8 @@ import { z } from "zod";
 
 import { herRecord } from "../animal-record";
 import { audited } from "../audit";
+import type { ExportedPaper } from "../export-store";
+import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
@@ -110,21 +112,14 @@ const salesWith = async (
   return { rows, first, day: one.soldAt };
 };
 
-/** What the trail records about a paper that went with a buyer. The Registration number is part
- *  of it because every Export is stamped with it (CONTEXT: Export), and because "which
- *  registration did that card quote" is a question an inspector can ask years later. */
-const exportedPaper = (
+/** What the trail records about a paper that went with a buyer: the Export snapshot every paper
+ *  carries, and the tags this one said — a count alone could not be checked against it. */
+const aboutAnimals = (
   farm: FarmIdentity,
-  paper: "receipt" | "transport_card" | "passport" | "withdrawal_summary",
+  paper: ExportedPaper,
   tagNumbers: string[],
   extra: Record<string, unknown> = {}
-) => ({
-  paper,
-  registrationNumber: farm.registrationNumber,
-  // The tags are what the paper said; a count alone could not be checked against it.
-  tagNumbers,
-  ...extra,
-});
+) => exportedPaper(farm, paper, { tagNumbers, ...extra });
 
 export const papersRouter = {
   /**
@@ -182,7 +177,7 @@ export const papersRouter = {
           entity: "animal",
           entityId: her.id,
           action: "export",
-          after: exportedPaper(context.farm, "passport", [her.tagNumber], {
+          after: aboutAnimals(context.farm, "passport", [her.tagNumber], {
             doses: her.doses.length,
           }),
         },
@@ -235,7 +230,7 @@ export const papersRouter = {
           entity: "animal",
           entityId: her.id,
           action: "export",
-          after: exportedPaper(
+          after: aboutAnimals(
             context.farm,
             "withdrawal_summary",
             [her.tagNumber],
@@ -332,7 +327,7 @@ export const papersRouter = {
           entity: "sale",
           entityId: input.saleId,
           action: "export",
-          after: exportedPaper(context.farm, "receipt", tagNumbers, {
+          after: aboutAnimals(context.farm, "receipt", tagNumbers, {
             totalBdt,
           }),
         },
@@ -389,7 +384,7 @@ export const papersRouter = {
           entity: "sale",
           entityId: input.saleId,
           action: "export",
-          after: exportedPaper(context.farm, "transport_card", tagNumbers, {
+          after: aboutAnimals(context.farm, "transport_card", tagNumbers, {
             destination: first.destination,
             vehicle: first.vehicle,
           }),

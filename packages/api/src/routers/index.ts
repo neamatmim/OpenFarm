@@ -18,6 +18,7 @@ import { homeRouter } from "./home";
 import { inspectorRouter } from "./inspector";
 import { instancesRouter } from "./instances";
 import { intakeRouter } from "./intake";
+import { investorStatementsRouter } from "./investor-statements";
 import { investorsRouter } from "./investors";
 import { languageRouter } from "./language";
 import { milkRouter } from "./milk";
@@ -79,6 +80,7 @@ export const appRouter = {
   trips: tripsRouter,
   sellingTrips: sellingTripsRouter,
   ventures: venturesRouter,
+  investorStatements: investorStatementsRouter,
   investors: investorsRouter,
   sops: sopsRouter,
   sync: syncRouter,
