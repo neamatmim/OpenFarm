@@ -40,6 +40,12 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 
 [`spec.md`](./spec.md) — written 2026-09-18 from the ten resolved tickets, `ready-for-agent`, six increments, one test seam. The two open tickets stay open: what an adviser answers changes Farm Parameters and the agreement's wording, not the shape specified.
 
+## What has shipped
+
+**Increment 1 — the widened costing — is built, reviewed and merged** (2026-09-17/18), in `.scratch/openfarm-ventures-increment-1/`: a Fodder Price on home-grown feed, the Hasil on each Intake, Buying and Selling Trips split across the animals they carried, and Herd Costs by animal-days under a Category the Owner marks. Every Animal's Margin, Cost of Gain and Cost per Litre read the wider sum, and the demo farm exercises all of it.
+
+That answers the sequencing question this map was holding open: **the costing shipped ahead of any Venture**, on its own, and improves the Farm's own figures whether or not a Venture ever opens. No Venture code exists yet, and increments 2–6 stay unticketed until the advisers answer.
+
 ## Decisions so far
 
 <!-- one line per closed ticket: gist + link -->
@@ -69,7 +75,6 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 - **Tax and the accountant.** How project money appears in the monthly accountant export, and what the software must withhold or show. The research found 10% withholding if a contract reads as a deposit, and none found for a genuine profit share; VAT is likely on any fee. The advisers in the lawyer task confirm; then waits on how investor money is recorded.
 - **Reaching Investors without a login.** How the statements physically get to them (print, WhatsApp, email) now that their content and cadence are settled.
 - **The Owner's view of Ventures.** Venture tiles and exceptions on the Owner's farm page: a Venture running over cost, a Running Budget nearly gone, animals unsold as the Wind-up Period ends. Waits on settlement.
-- **Sequencing.** The widened costing (Fodder Price, Hasil, trips, Herd Costs) changes every Animal's Margin, including the Farm's own; whether it ships ahead of projects is a sequencing question for the spec.
 
 ## Out of scope
 

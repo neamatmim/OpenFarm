@@ -237,7 +237,7 @@ Investor cap (20) and its warning level (15), Wind-up Period (30 days), default 
 
 ### Sequencing
 
-1. **Costing, widened** — Fodder Price, Hasil, Buying and Selling Trips, Herd Costs and the Category mark; Margin, Cost of Gain and Cost per Litre read the wider sum. No Venture anywhere. Ships on its own and improves the Farm's own numbers.
+1. **Costing, widened** — Fodder Price, Hasil, Buying and Selling Trips, Herd Costs and the Category mark; Margin, Cost of Gain and Cost per Litre read the wider sum. No Venture anywhere. **Shipped 2026-09-18**: six tickets in `.scratch/openfarm-ventures-increment-1/`, all merged, and it did ship on its own ahead of any Venture, as this sequencing intended.
 2. **The Venture, its Investors and its capital** — the tables, the states, agreements and amendments, Units, capital in, refunds, the cap, the balance and its warnings, the Purse on Money Events with every reader filtered.
 3. **Buying** — the Buying Float and its reconciliation, ownership on the Animal set at Intake, the Internal Sale and its bars.
 4. **Living** — monthly Reimbursement and what it is made of, the Running Budget warning, the Advance, the monthly bank check, the Venture's spend and holes.

@@ -13,4 +13,4 @@ No Venture appears anywhere in this increment. It ships on its own, it improves 
 | 05  | A Selling Trip is paid for by the animals taken          | 04         |
 | 06  | Herd costs reach the animals standing that month         | 01         |
 
-Work the frontier — 01 and 02 can start at once — one ticket per `/implement`, clearing context between them. Ticket status lives in each file's `**Status:**` line.
+**All six are done and merged** (2026-09-17/18), each with its answer written on its ticket under "What was built" — including what the two review axes caught, which in four cases was a defect that would have reached the farm. The demo seed exercises every one of them: a ninety-day run books 44 Hasil payments, four Buying Trips, one Selling Trip of six head, three months of Herd Costs and ৳7,93,995 of valued fodder, and not one Money Event for a Harvest.
