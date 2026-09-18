@@ -15,7 +15,10 @@ import { categoryName } from "@/components/money";
 import type { Tone } from "@/components/page";
 import { Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
+
+export { useTaka } from "@/lib/taka";
 
 /** How many kinds of spending the month's money names: the few that matter, not the whole register. */
 const TOP_SPENDING = 4;
@@ -38,11 +41,6 @@ export const thisMonth = () => {
 };
 
 /** Taka as the farm writes it, a loss with its minus. */
-export const useTaka = () => {
-  const { language } = useLanguage();
-  return (amount: number) =>
-    `${amount < 0 ? "−" : ""}৳${formatNumber(Math.abs(Math.round(amount)), language)}`;
-};
 
 /** The words on the way from a panel to the page that holds all of it. */
 export const OpenWords = () => {
