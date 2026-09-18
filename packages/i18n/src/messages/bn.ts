@@ -215,6 +215,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.cattleBudgetOwn": "গরু কেনার জন্য (না লিখলেও চলে)",
   "ventures.budgets": "বাজেট",
   "ventures.budgetSplit": "৳{cattle} গরু · ৳{running} খাওয়ানো",
+  "ventures.buyWhatIsLeft": "বাকিগুলো কিনে নিন",
+  "ventures.buyWhatIsLeftHint":
+    "গুটিয়ে আনার সময় শেষ। {venture}-এ এখনও {standing}টি গরু আছে; সময়মতো হিসাব শেষ করতে খামার ওজন দরে সেগুলো নিয়ে নেবে।",
+  "ventures.boughtWhatWasLeft": "{animals}টি গরু ৳{total} টাকায় কেনা হয়েছে",
   "ventures.windUpEnds": "গুটিয়ে আনার শেষ দিন",
   "ventures.pastWindUp": "গুটিয়ে আনার সময় শেষ, এখনও {standing}টি গরু আছে",
   "ventures.window": "বিক্রির সময়",
@@ -320,6 +324,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.toPurseHint": "যে ভেঞ্চার কিনছে বা মোটাতাজা করছে, কেবল সেটিই নিতে পারে",
   "ventures.rate": "কেজি প্রতি দর",
   "ventures.rateHint": "জীবন্ত ওজনে, আজকের বাজার অনুযায়ী",
+  "ventures.total": "মোট",
+  "ventures.neverWeighed": "ওজন নেওয়া হয়নি",
   "ventures.soldOn": "বিক্রির দিন",
   "ventures.priceFromWeight": "{weight} কেজি এই দরে · ৳{price}",
   "ventures.whereTheRateCameFrom": "দর কোথা থেকে",
@@ -366,6 +372,8 @@ export const bn: Record<MessageKey, string> = {
     "গরুটি বিক্রির জন্য তৈরি, তৈরি গরু এক পার্স থেকে আরেক পার্সে যায় না",
   "refusal.alreadyThatPurse": "গরুটি তো তাদেরই",
   "refusal.neverWeighed": "গরুটির কোনো ওজন নেওয়া হয়নি, তাই দাম ঠিক করার ভিত্তি নেই",
+  "refusal.windUpNotOver": "গুটিয়ে আনার সময় এখনও শেষ হয়নি, বিক্রির দিন আছে",
+  "refusal.nothingLeftToBuy": "এই ভেঞ্চারের আর কোনো গরু কেনার নেই",
   "refusal.weighedAgainSince":
     "আপনি দাম দেখার পর গরুটির ওজন আবার নেওয়া হয়েছে — নতুন দাম দেখুন",
   "refusal.notAFatteningAnimal":

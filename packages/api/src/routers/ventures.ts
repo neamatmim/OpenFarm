@@ -1,7 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
-import { internalSale } from "@OpenFarm/db/schema/fattening";
-import { animal } from "@OpenFarm/db/schema/herd";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
   agreementPaper,
@@ -30,6 +28,7 @@ import { consumedBy, farmCosts } from "../cost-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
+import { recordInternalSale } from "../internal-sale-store";
 import {
   countedInvestors,
   readAgreement,
@@ -63,6 +62,9 @@ import {
   ventureView,
   lockTheFarm,
   stillHersByEach,
+  priceAtWeight,
+  stillHersOf,
+  windUpEndsOn,
 } from "../venture-store";
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
@@ -1092,7 +1094,7 @@ export const venturesRouter = {
               data: { refusal: "never_weighed" },
             });
           }
-          const priceBdt = roundTaka(weighed.weightKg * input.rateBdtPerKg);
+          const priceBdt = priceAtWeight(weighed.weightKg, input.rateBdtPerKg);
           if (roundTaka(input.priceBdt) !== priceBdt) {
             // She was weighed again since the Owner read the figure: the price she is committing to is
             // not the price the farm would strike, and a sale is not something to guess at.
@@ -1101,7 +1103,6 @@ export const venturesRouter = {
               data: { refusal: "weighed_again_since", priceBdt },
             });
           }
-          struck = { weightKg: weighed.weightKg, priceBdt };
           if (to !== null) {
             // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
             const held = await heldByEach(tx, context.farm.id, [to]);
@@ -1119,67 +1120,219 @@ export const venturesRouter = {
               });
             }
           }
-          await tx.insert(internalSale).values({
-            id,
-            farmId: context.farm.id,
-            animalId: her.id,
-            fromVentureId: from,
-            toVentureId: to,
-            weightKg: weighed.weightKg.toFixed(2),
-            weighInId: weighed.id,
-            rateBdtPerKg: input.rateBdtPerKg.toFixed(2),
-            priceBdt: priceBdt.toFixed(2),
-            note: input.note,
-            soldOn: input.soldOn,
-            recordedBy: context.actor.id,
-            createdAt: now,
-          });
-          // One movement per Venture side. Where the Farm is one of the sides it has none: a Venture
-          // Account is the only account here, and the Farm's own books are answered separately.
-          const sides = [
-            to === null
-              ? null
-              : { ventureId: to, kind: "internal_buy" as const },
-            from === null
-              ? null
-              : { ventureId: from, kind: "internal_sell" as const },
-          ].filter((side) => side !== null);
-          for (const side of sides) {
-            // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
-            await tx.insert(ventureMovement).values({
-              id: uuidv7(now),
-              farmId: context.farm.id,
-              ventureId: side.ventureId,
-              kind: side.kind,
-              internalSaleId: id,
-              amountBdt: priceBdt.toFixed(2),
-              movedOn: input.soldOn,
-              reference: input.reference,
-              recordedBy: context.actor.id,
-              createdAt: now,
-            });
-          }
-          // The Farm's own side is a Money Event, because taka really enters or leaves the Farm: it
-          // sold a bull, or it bought one. Only where the Farm is a side — between two Ventures no
-          // money of the Farm's has moved, and its books say nothing.
-          if (from === null || to === null) {
-            await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-              // The Farm letting her go is money in; the Farm taking her on is money out.
-              source: from === null ? "internal_sale_in" : "internal_sale_out",
-              sourceId: id,
-              amountBdt: priceBdt,
-              occurredAt: startOfFarmDay(input.soldOn),
-              counterpartyId: null,
+          struck = await recordInternalSale(
+            tx,
+            bookingOf(context, context.roleUsed, now),
+            {
+              id,
+              animalId: her.id,
+              from,
+              to,
+              weighed,
+              rateBdtPerKg: input.rateBdtPerKg,
+              note: input.note,
+              soldOn: input.soldOn,
               paymentMethod: input.paymentMethod,
-            });
-          }
-          await tx
-            .update(animal)
-            .set({ ownerVentureId: to, updatedAt: now })
-            .where(eq(animal.id, her.id));
+              reference: input.reference,
+            }
+          );
         }
       );
       return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
+    }),
+
+  /**
+   * What a Venture still holds, each with what she last weighed, so the Owner can work the buy-back out
+   * before she commits to it rather than read the total off a receipt.
+   *
+   * An Animal nobody has weighed comes back with nothing where her weight should be, which is the same
+   * answer the buy-back refuses on — said while there is still time to put her on the scale.
+   */
+  whatIsLeft: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      const hers = await stillHersOf(context.db, context.farm.id, row.id);
+      const weights = await Promise.all(
+        hers.map((her) =>
+          whatSheLastWeighed(context.db, context.farm.id, her.id)
+        )
+      );
+      return {
+        windUpEndsOn: windUpEndsOn(
+          row.targetWindowEnd,
+          context.farm.windUpDays
+        ),
+        animals: hers.map((her, at) => ({
+          tagNumber: her.tagNumber,
+          weightKg: weights[at]?.weightKg ?? null,
+        })),
+      };
+    }),
+
+  /**
+   * The buy-back at wind-up: the Wind-up Period has ended, animals are still standing, and the Farm takes
+   * every one of them off the Venture at weight so it can settle on time.
+   *
+   * Its own act at a fixed moment, and not the Owner's discretionary Internal Sale — which is refused
+   * once a Venture is Selling precisely so a finished bull cannot be lifted out of the pool. The
+   * difference is the moment: this happens because the clock says so and takes everything left, where an
+   * Internal Sale is the Owner choosing one animal on a day of her choosing. Priced the same way all the
+   * same, because a price an Investor can check is the same price either way.
+   */
+  buyWhatIsLeft: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        /** Taka per kilogramme of live weight, as the day's market gives it. One rate for the lot: it
+         *  is one act on one day, and each animal's own weight is what makes her price her own. */
+        rateBdtPerKg: z.number().positive().max(100_000),
+        /** Where the rate came from. Asked for, not optional. */
+        note: z.string().trim().min(1).max(300),
+        boughtOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        /** The transfer, cheque or deposit slip the money moved on. */
+        reference: z.string().trim().min(1).max(120),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.paymentMethod !== "bank") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture Account moves money by bank only",
+          data: { refusal: "capital_must_be_by_bank" },
+        });
+      }
+      // Read once for the Audit Event's subject; everything the act turns on is read again under the
+      // lock, because a Venture can be called off between the two.
+      const row = await ours(context, input.ventureId);
+      let bought: { tagNumber: string; weightKg: number; priceBdt: number }[] =
+        [];
+      await audited(context).write(
+        {
+          entity: "venture",
+          entityId: row.id,
+          action: "update",
+          reason: input.note,
+          before: (tx) => readVenture(tx, context.farm.id, row.id),
+          after: (tx) => readVenture(tx, context.farm.id, row.id),
+        },
+        async (tx) => {
+          // Behind the lock every count of a Venture's money takes, and everything the act turns on is
+          // read after it: one of them may be sold at the haat, or the Venture called off, between
+          // reading which are left and buying them.
+          await lockTheFarm(tx, context.farm.id);
+          const held = await tx.query.venture.findFirst({
+            where: { id: row.id, farmId: context.farm.id },
+            columns: { state: true, targetWindowEnd: true },
+          });
+          // A run still going, whichever stage it is at. One that never sold a single bull is exactly
+          // the case the clock exists for — but one called off has sent its money back, and one settled
+          // has closed its books, and neither takes animals off anybody.
+          if (
+            held?.state !== "buying" &&
+            held?.state !== "fattening" &&
+            held?.state !== "selling"
+          ) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `A Venture is bought out while it is running, and this one is ${held?.state}`,
+              data: { refusal: "venture_wrong_state" },
+            });
+          }
+          const endsOn = windUpEndsOn(
+            held.targetWindowEnd,
+            context.farm.windUpDays
+          );
+          if (farmDayOf(now) <= endsOn) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `The Wind-up Period runs to ${endsOn}`,
+              data: { refusal: "wind_up_not_over", endsOn },
+            });
+          }
+          if (input.boughtOn <= endsOn) {
+            // The day it is booked on is what the movements, the Money Event and every month's books
+            // read off. Left free, the Owner could wait a day and then write the buy-back back inside
+            // the very period it is only allowed to happen after.
+            throw new ORPCError("BAD_REQUEST", {
+              message: `The Wind-up Period runs to ${endsOn}, so it cannot have happened on ${input.boughtOn}`,
+              data: { refusal: "wind_up_not_over", endsOn },
+            });
+          }
+          const hers = await stillHersOf(tx, context.farm.id, row.id);
+          if (hers.length === 0) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "This Venture has no animals left to buy",
+              data: { refusal: "nothing_left_to_buy" },
+            });
+          }
+          const taken: typeof bought = [];
+          for (const her of hers) {
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal at a time
+            const weighed = await whatSheLastWeighed(
+              tx,
+              context.farm.id,
+              her.id
+            );
+            if (!weighed) {
+              // Her tag in the message, because a price nobody can defend is worse than a delay. The
+              // Owner is told which animal to put on the scale before she gets here, by the list the
+              // sheet reads from `whatIsLeft` — this is the farm refusing to guess all the same.
+              throw new ORPCError("BAD_REQUEST", {
+                message: `${her.tagNumber} has never been weighed, so there is no price to strike`,
+                data: { refusal: "never_weighed", tagNumber: her.tagNumber },
+              });
+            }
+            const saleId = uuidv7(now);
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal at a time
+            const struck = await recordInternalSale(
+              tx,
+              bookingOf(context, context.roleUsed, now),
+              {
+                id: saleId,
+                animalId: her.id,
+                from: row.id,
+                to: null,
+                weighed,
+                rateBdtPerKg: input.rateBdtPerKg,
+                note: input.note,
+                soldOn: input.boughtOn,
+                paymentMethod: input.paymentMethod,
+                reference: input.reference,
+              }
+            );
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal at a time
+            const after = await readInternalSale(tx, context.farm.id, saleId);
+            // Its own Audit Event, as an Internal Sale made one at a time has: what the Owner is asked
+            // years later is why this bull was worth that, not what the day came to.
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one animal at a time
+            await audited(context).recordEvent(
+              tx,
+              {
+                entity: "internal_sale",
+                entityId: saleId,
+                action: "create",
+                reason: input.note,
+              },
+              { after }
+            );
+            taken.push({
+              tagNumber: her.tagNumber,
+              weightKg: struck.weightKg,
+              priceBdt: struck.priceBdt,
+            });
+          }
+          bought = taken;
+        }
+      );
+      return {
+        animals: bought,
+        totalBdt: roundTaka(bought.reduce((sum, one) => sum + one.priceBdt, 0)),
+        rateBdtPerKg: input.rateBdtPerKg,
+      };
     }),
 
   /**
