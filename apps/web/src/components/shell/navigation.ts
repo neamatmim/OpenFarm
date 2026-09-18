@@ -1,6 +1,7 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import type { LucideIcon } from "lucide-react";
 import {
+  Handshake,
   Activity,
   Archive,
   BookOpenCheck,
@@ -167,6 +168,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "nav.money",
         icon: HandCoins,
         audience: "runsTheFarm",
+      },
+      {
+        to: "/ventures",
+        label: "nav.ventures",
+        icon: Handshake,
+        audience: "owner",
       },
     ],
   },

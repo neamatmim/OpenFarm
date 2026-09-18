@@ -17,7 +17,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
-import { requirePersonalSession, requireRole } from "../roles";
+import { forbidden, requirePersonalSession, requireRole } from "../roles";
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
 
@@ -68,6 +68,12 @@ const parameters = z
     repeatBreederThreshold: z.number().int().min(2).max(10).optional(),
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: z.number().int().min(0).max(100_000_000).optional(),
+    /** What part of a Venture's target capital is the least worth starting on. */
+    ventureFloorPercent: z.number().int().min(0).max(100).optional(),
+    /** What part of a Venture's capital keeps the animals rather than buying them. */
+    ventureRunningPercent: z.number().int().min(0).max(90).optional(),
+    /** The days a Venture keeps selling after its window before the Farm buys the rest. */
+    windUpDays: z.number().int().min(0).max(180).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -200,13 +206,23 @@ export const farmRouter = {
     if (onlyOnAVisit(context) || context.roles.length === 0) {
       return { id: context.farm.id, name: context.farm.name };
     }
-    // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see.
-    const { approvalThresholdBdt, ...withoutMoney } = context.farm;
+    // The Approval Threshold is a money figure, and money is not Barn Staff's or the Vet's to see; the
+    // three a Venture is planned by are the Owner's alone, as a Venture is.
+    const {
+      approvalThresholdBdt,
+      ventureFloorPercent,
+      ventureRunningPercent,
+      windUpDays,
+      ...withoutMoney
+    } = context.farm;
+    const planning = context.roles.some((role) => role === "owner")
+      ? { ventureFloorPercent, ventureRunningPercent, windUpDays }
+      : {};
     const readsMoney = context.roles.some(
       (role) => role === "owner" || role === "manager"
     );
     return readsMoney
-      ? { ...withoutMoney, approvalThresholdBdt }
+      ? { ...withoutMoney, ...planning, approvalThresholdBdt }
       : withoutMoney;
   }),
 
@@ -343,6 +359,18 @@ export const farmRouter = {
     .use(requireRole("owner", "manager"))
     .input(parameters)
     .handler(async ({ context, input }) => {
+      // The three a Venture is planned by are the Owner's to set, as the Venture is hers; the rest are
+      // the running of the farm, which the Manager keeps.
+      const plansAVenture =
+        input.ventureFloorPercent !== undefined ||
+        input.ventureRunningPercent !== undefined ||
+        input.windUpDays !== undefined;
+      if (plansAVenture && !context.roles.some((role) => role === "owner")) {
+        throw forbidden({
+          message: "A Venture's own figures are the Owner's to set",
+          reason: "owner_only",
+        });
+      }
       for (const time of [
         ...(input.digestTimes ?? []),
         input.quietFrom,
@@ -411,6 +439,9 @@ export const farmRouter = {
                 calvingPrepLeadDays: true,
                 repeatBreederThreshold: true,
                 approvalThresholdBdt: true,
+                ventureFloorPercent: true,
+                ventureRunningPercent: true,
+                windUpDays: true,
               },
             })) ?? null,
           after: () => Promise.resolve({ ...changes, ...retimed }),

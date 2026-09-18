@@ -179,6 +179,45 @@ export const en = {
   "params.feedTolerance": "Feed stock tolerance",
   "params.staffCorrection": "Staff may correct for",
   "params.managerCorrection": "Manager may correct for",
+  "params.ventures": "Ventures",
+  "params.venturesHint":
+    "What a Venture is planned by when you open one: the least it is worth starting on, how much of its capital keeps the animals rather than buys them, and how long it keeps selling after its window closes.",
+  "params.ventureFloor": "A Venture\u2019s Floor, of what it is after",
+  "params.ventureRunning":
+    "Kept back to feed them, of a Venture\u2019s capital",
+  "params.windUp": "Selling after the window closes",
+  "ventures.title": "Ventures",
+  "ventures.subtitle":
+    "What investors' money is running here: what each Venture is after, what it holds, and when it means to sell.",
+  "ventures.open": "Open a Venture",
+  "ventures.opened": "The Venture is open",
+  "ventures.openHint":
+    "The Floor is {floor}% of what the Venture is after, and {running}% of its capital is kept back to feed the animals. Both come from the farm's settings.",
+  "ventures.running": "The Ventures",
+  "ventures.none": "No Venture yet",
+  "ventures.name": "What it is called",
+  "ventures.target": "Looking for",
+  "ventures.held": "Held so far",
+  "ventures.floor": "Floor",
+  "ventures.decideBy": "Decide by",
+  "ventures.unitPrice": "One Unit costs",
+  "ventures.units": "Units",
+  "ventures.unitsAt": "{units} at ৳{price}",
+  "ventures.openHintPlain":
+    "The Floor, the Units and the two budgets follow from the farm’s settings unless you say otherwise.",
+  "ventures.unitsOwn": "Units (or leave it)",
+  "ventures.cattleBudgetOwn": "For buying cattle (or leave it)",
+  "ventures.budgets": "Budgets",
+  "ventures.budgetSplit": "৳{cattle} cattle · ৳{running} keeping them",
+  "ventures.window": "Selling window",
+  "ventures.windowFrom": "Selling from",
+  "ventures.windowTo": "Selling until",
+  "ventures.state.open": "Open",
+  "ventures.state.buying": "Buying",
+  "ventures.state.fattening": "Fattening",
+  "ventures.state.selling": "Selling",
+  "ventures.state.settled": "Settled",
+  "ventures.state.cancelled": "Called off",
   "params.approvalThreshold": "Owner approves spending above",
   "params.aiWindowStart": "AI window opens after heat",
   "params.aiWindowEnd": "AI window closes after heat",
@@ -898,6 +937,14 @@ export const en = {
   "refusal.harvestHasNoPrice": "A harvest from our own fields has no price",
   "refusal.receivedInTheFuture":
     "Feed cannot come in on a day that has not come yet",
+  "refusal.ventureWrongState":
+    "The Venture is not where it would have to be for that",
+  "refusal.ventureUnderFloor":
+    "The Venture holds less than the Floor it was opened on",
+  "refusal.ventureFloorOverTarget":
+    "The Floor cannot be more than the capital the Venture is after",
+  "refusal.ventureBudgetOverCapital":
+    "The Cattle Budget cannot be more than the capital it comes from",
   "refusal.neverTheAnimals":
     "Wages, utilities, repairs and money coming in are never charged to the animals",
   "refusal.feedRetired": "That feed is retired",
@@ -946,6 +993,7 @@ export const en = {
     "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
   "refusal.dispatchedInTheFuture": "Milk cannot have left later than now",
   "refusal.periodTooLong": "One report covers a year at most",
+  "nav.ventures": "Ventures",
   "nav.money": "Money",
   "money.subtitle":
     "Every taka in and out, as the farm's own records made it — and what waits for the Owner's approval.",

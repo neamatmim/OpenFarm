@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
@@ -29,7 +30,10 @@ type NumberKey =
   | "dryOffLeadDays"
   | "calvingPrepLeadDays"
   | "repeatBreederThreshold"
-  | "approvalThresholdBdt";
+  | "approvalThresholdBdt"
+  | "ventureFloorPercent"
+  | "ventureRunningPercent"
+  | "windUpDays";
 type TextKey = "digestTimes" | "quietFrom" | "quietUntil";
 type Key = NumberKey | TextKey;
 
@@ -48,6 +52,8 @@ const GROUPS: {
   id: string;
   title: MessageKey;
   hint: MessageKey;
+  /** A group only the Owner is offered: a Venture's figures are hers, as the Venture is. */
+  owner?: boolean;
   fields: FieldSpec[];
 }[] = [
   {
@@ -106,6 +112,35 @@ const GROUPS: {
         unit: "params.taka",
         min: 0,
         max: 100_000_000,
+      },
+    ],
+  },
+  {
+    id: "params-ventures",
+    title: "params.ventures",
+    hint: "params.venturesHint",
+    owner: true,
+    fields: [
+      {
+        key: "ventureFloorPercent",
+        label: "params.ventureFloor",
+        unit: "params.percent",
+        min: 0,
+        max: 100,
+      },
+      {
+        key: "ventureRunningPercent",
+        label: "params.ventureRunning",
+        unit: "params.percent",
+        min: 0,
+        max: 90,
+      },
+      {
+        key: "windUpDays",
+        label: "params.windUp",
+        unit: "params.days",
+        min: 0,
+        max: 180,
       },
     ],
   },
@@ -375,6 +410,7 @@ const ParameterGroup = ({
  */
 export const FarmParameters = () => {
   const t = useT();
+  const isOwner = useIsOwner();
   const farm = useQuery(orpc.farm.current.queryOptions());
 
   if (!farm.data) {
@@ -400,7 +436,7 @@ export const FarmParameters = () => {
         </h2>
         <p className="text-muted-foreground text-sm">{t("params.why")}</p>
       </div>
-      {GROUPS.map((group) => (
+      {GROUPS.filter((group) => !group.owner || isOwner).map((group) => (
         <ParameterGroup group={group} key={group.id} saved={saved} />
       ))}
     </div>
