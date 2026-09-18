@@ -39,8 +39,12 @@ export interface Held {
   /** What Floats are out at the haat, unreconciled. Money the farm has let go of and not yet counted. */
   openFloatBdt: number;
   capitalInBdt: number;
-  /** Money in that is not its Investors' capital: today, what it was paid for an Animal it let go. */
+  /** Money in that is not its Investors' capital: what it was paid for an Animal it let go. */
   proceedsBdt: number;
+  /** What the Owner has put in of her own, interest-free: every Advance added up, before anything is
+   *  repaid. Owed back at cost before any capital returns, and never a charge against the Venture —
+   *  it earns nothing and costs it nothing. */
+  advancedBdt: number;
   refundedBdt: number;
   spentBdt: number;
   paidOutBdt: number;
@@ -52,7 +56,8 @@ export interface Held {
 /** What a Venture Account should be holding: everything that came in, less everything that left. */
 export const balanceOf = (held: Held) =>
   held.capitalInBdt +
-  held.proceedsBdt -
+  held.proceedsBdt +
+  held.advancedBdt -
   held.refundedBdt -
   held.spentBdt -
   held.paidOutBdt;
@@ -61,6 +66,7 @@ const NOTHING_HELD: Held = {
   openFloatBdt: 0,
   capitalInBdt: 0,
   proceedsBdt: 0,
+  advancedBdt: 0,
   refundedBdt: 0,
   spentBdt: 0,
   paidOutBdt: 0,
@@ -74,10 +80,15 @@ const NOTHING_HELD: Held = {
  */
 export const ventureView = (
   row: VentureRow,
-  held: Held = NOTHING_HELD,
-  signedFor: SignedFor = NOBODY
+  held: Held | undefined,
+  signedFor: SignedFor | undefined,
+  /** The taka below which what is left to keep the animals with is said to be low. Asked for rather
+   *  than defaulted: a default of nothing would quietly answer "not low" everywhere the caller forgot
+   *  it, the trail included. */
+  warnBelowBdt: number
 ) => {
-  const balanceBdt = balanceOf(held);
+  const what = held ?? NOTHING_HELD;
+  const balanceBdt = balanceOf(what);
   // The budgets are a plan for the whole capital, so what has actually arrived is split in the same
   // proportion: a Venture half funded holds half of each, rather than a full Cattle Budget and nothing
   // to feed the animals with.
@@ -88,12 +99,15 @@ export const ventureView = (
   const cameInForCattle =
     target > 0
       ? Math.round(
-          ((held.capitalInBdt - held.refundedBdt) *
+          ((what.capitalInBdt - what.refundedBdt) *
             Number(row.cattleBudgetBdt)) /
             target
         )
       : 0;
-  const cattleBudgetHeldBdt = cameInForCattle - held.cattleOutBdt;
+  const cattleBudgetHeldBdt = cameInForCattle - what.cattleOutBdt;
+  // What is left to keep them with: the rest of the balance once the cattle side has its own. An
+  // Advance is the Owner's own money landing on this side, which is why it raises what is left.
+  const runningBudgetHeldBdt = balanceBdt - cameInForCattle + what.cattleOutBdt;
   return {
     id: row.id,
     name: row.name,
@@ -107,14 +121,22 @@ export const ventureView = (
     cattleBudgetBdt: Number(row.cattleBudgetBdt),
     runningBudgetBdt:
       Number(row.targetCapitalBdt) - Number(row.cattleBudgetBdt),
-    ...held,
+    ...what,
     balanceBdt,
-    /** What of the balance is meant for buying animals, and what keeps them. Each is read from its own
-     *  side rather than one being the remainder of the other: a figure that is the leftover of another
-     *  figure hides whatever went wrong in whichever of the two nobody was looking at. */
+    /** What of the balance is meant for buying animals, and what keeps them. The cattle side is read
+     *  from its own money — what came in for it, less what has been drawn against it — and the running
+     *  side is the rest of the balance, so the two always add to what the account should hold. */
     cattleBudgetHeldBdt,
-    runningBudgetHeldBdt: balanceBdt - cameInForCattle + held.cattleOutBdt,
-    signedFor,
+    runningBudgetHeldBdt,
+    /** Whether what is left to keep the animals with has fallen below the level the Owner set. Said of
+     *  a Venture that is running: one not yet buying has spent nothing, and one whose run is over is
+     *  not feeding anybody. */
+    runningBudgetLow:
+      (row.state === "buying" ||
+        row.state === "fattening" ||
+        row.state === "selling") &&
+      runningBudgetHeldBdt < warnBelowBdt,
+    signedFor: signedFor ?? NOBODY,
     cancelledReason: row.cancelledReason,
   };
 };
@@ -170,6 +192,9 @@ const WHAT_IT_DOES = {
   // What its Animals ate of the Farm's feed, repaid. Running-budget money: it is the cost of keeping
   // them, not of buying one.
   reimbursement: { line: "spentBdt", sign: 1, cattle: 0 },
+  // The Owner's own money, in. It lands in the Running Budget, because it is there to keep the animals
+  // fed and not to buy one more of them.
+  advance: { line: "advancedBdt", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
@@ -408,5 +433,14 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
   }
   const held = await heldByEach(tx, farmId, [row.id]);
   const signed = await signedForEach(tx, farmId, [row.id]);
-  return ventureView(row, held.get(row.id), signed.get(row.id));
+  const farmRow = await tx.query.farm.findFirst({
+    where: { id: farmId },
+    columns: { runningBudgetWarnBdt: true },
+  });
+  return ventureView(
+    row,
+    held.get(row.id),
+    signed.get(row.id),
+    farmRow?.runningBudgetWarnBdt ?? 0
+  );
 };

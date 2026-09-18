@@ -95,6 +95,8 @@ export interface Context {
     /** How many Investors the Farm may have at a time, and where it starts warning. */
     investorCap: number;
     investorWarnAt: number;
+    /** How little may be left to keep a Venture's animals with before the farm says so, in taka. */
+    runningBudgetWarnBdt: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

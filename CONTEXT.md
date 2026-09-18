@@ -224,7 +224,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Floor**: The least capital a Venture is worth starting on. Reached by the decision date, it buys what the money allows; missed, every taka is refunded and the Venture is Cancelled. Not a **Tolerance**, which is how far a reading may be off. _Avoid_: Minimum, threshold
 
-**Advance**: The Owner's own money put into a Venture whose Running Budget has run out: interest-free, recorded against that Venture, and repaid at cost from sale proceeds before any profit is split. It earns nothing and is never a charge. _Avoid_: Loan, credit, float
+**Advance**: The Owner's own money put into a Venture whose Running Budget has run out: interest-free, recorded against that Venture, and repaid at cost before any capital returns — even where the Venture lost money, because money put in to feed somebody else's animals comes back before their capital does. Taken only while a Venture is running, since calling one off returns capital and only capital. It earns nothing and is never a charge. _Avoid_: Loan, credit, float
 
 **Internal Sale**: The Owner's recorded sale of an Animal between the Farm's herd and a Venture, or between two Ventures — priced at her latest Weigh-in times a live-weight rate the Owner enters that day, with a note of where the rate came from, and the money moving through the Venture Account by bank. Owner-only and audited, and impossible once the Venture is Selling or the Animal is Ready for Sale. Not a **Move**, which changes her Pen, and not a **Sale**, which is a buyer taking her away. _Avoid_: Transfer, reallocation, book entry
 

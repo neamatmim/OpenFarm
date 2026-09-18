@@ -179,8 +179,8 @@ export const agreementPaper = pgTable("agreement_paper", {
  * What a Venture Movement is for: capital in, the refund that undoes it, the Buying Float drawn for one
  * trip to the haat, the cash that Float brings home, the two sides of an **Internal Sale** — a Venture
  * paying for an Animal it takes on, and being paid for one it lets go — and the monthly
- * **Reimbursement** of what its Animals consumed of what the Farm bought. The Advance and the payout
- * join them as their own work arrives.
+ * **Reimbursement** of what its Animals consumed of what the Farm bought, and the Owner's **Advance**
+ * when the Running Budget has run out. The payout joins them as its own work arrives.
  */
 export const VENTURE_MOVEMENT_KINDS = [
   "capital_in",
@@ -190,6 +190,7 @@ export const VENTURE_MOVEMENT_KINDS = [
   "internal_buy",
   "internal_sell",
   "reimbursement",
+  "advance",
 ] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 

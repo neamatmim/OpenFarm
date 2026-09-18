@@ -190,6 +190,7 @@ export const bn: Record<MessageKey, string> = {
   "params.windUp": "সময় শেষ হওয়ার পর কত দিন বিক্রি চলবে",
   "params.investorCap": "একসাথে সর্বোচ্চ কতজন বিনিয়োগকারী",
   "params.investorWarnAt": "কতজন হলে সতর্ক করবে",
+  "params.runningBudgetWarn": "খাওয়ানোর টাকা এর কম হলে সতর্ক করবে",
   "params.people": "জন",
   "ventures.title": "ভেঞ্চার",
   "ventures.subtitle":
@@ -257,6 +258,14 @@ export const bn: Record<MessageKey, string> = {
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.balance": "হিসাবে থাকার কথা",
   "ventures.drawFloat": "টাকা তুলুন",
+  "ventures.advance": "নিজের টাকা দিন",
+  "ventures.advanceHint":
+    "{venture}-এ আপনার নিজের টাকা, যাতে গরু খেতে থাকে। সুদ নেই, ভেঞ্চারের খরচেও ধরা হয় না, আর মূলধনের আগেই যা দিয়েছেন তা-ই ফেরত পাবেন।",
+  "ventures.advanced": "টাকা দেওয়া লেখা হয়েছে",
+  "ventures.advanceEarnsNothing":
+    "এতে কোনো লাভ নেই, ভেঞ্চারেরও খরচ নেই; যা দিয়েছেন তা-ই সবার আগে ফেরত",
+  "ventures.owedToYou": "আপনার পাওনা",
+  "ventures.runningLow": "চলতি বাজেট কমে এসেছে",
   "ventures.reimburse": "মাসের খরচ ফেরত",
   "ventures.reimburseHint":
     "{venture}-এর গরু খামারের কেনা যা খেয়েছে, তা ভেঞ্চারের হিসাব থেকে খামারের হিসাবে যাবে।",

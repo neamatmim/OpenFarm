@@ -188,6 +188,8 @@ export const en = {
   "params.windUp": "Selling after the window closes",
   "params.investorCap": "Investors at a time, at most",
   "params.investorWarnAt": "Warn from this many Investors",
+  "params.runningBudgetWarn":
+    "Warn when a Venture has less than this to feed with",
   "params.people": "people",
   "ventures.title": "Ventures",
   "ventures.subtitle":
@@ -258,6 +260,14 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a Float",
+  "ventures.advance": "Put your own money in",
+  "ventures.advanceHint":
+    "Your own money into {venture} so the animals keep eating. Interest-free, never a charge against them, and back at cost before any capital returns.",
+  "ventures.advanced": "The Advance is recorded",
+  "ventures.advanceEarnsNothing":
+    "It earns nothing and costs the Venture nothing; it comes back first, at what you put in",
+  "ventures.owedToYou": "Owed to you",
+  "ventures.runningLow": "The running budget is low",
   "ventures.reimburse": "Reimburse the month",
   "ventures.reimburseHint":
     "What {venture}'s animals consumed of what the farm bought, moved from the Venture Account to the farm's.",

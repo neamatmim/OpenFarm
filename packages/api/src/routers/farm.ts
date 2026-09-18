@@ -77,6 +77,7 @@ const parameters = z
     /** How many Investors the Farm may have at a time, and where it starts warning. */
     investorCap: z.number().int().min(1).max(50).optional(),
     investorWarnAt: z.number().int().min(1).max(50).optional(),
+    runningBudgetWarnBdt: z.number().int().min(0).max(100_000_000).optional(),
   })
   .refine(
     (value) => Object.values(value).some((entry) => entry !== undefined),
@@ -107,6 +108,20 @@ const identity = z
     (value) => Object.values(value).some((entry) => entry !== undefined),
     { message: "Nothing to change" }
   );
+
+/** The Parameters a Venture is planned and watched by, which are the Owner's to set as the Venture is
+ *  hers. The rest are the running of the farm, which the Manager keeps. */
+const A_VENTURES_OWN = [
+  "ventureFloorPercent",
+  "ventureRunningPercent",
+  "windUpDays",
+  "investorCap",
+  "investorWarnAt",
+  "runningBudgetWarnBdt",
+] as const;
+
+const aVenturesOwn = (input: z.infer<typeof parameters>): boolean =>
+  A_VENTURES_OWN.some((key) => input[key] !== undefined);
 
 /** One advisory lock key for "creating the farm", so concurrent first-run submissions serialise. */
 const BOOTSTRAP_LOCK = 7001;
@@ -218,6 +233,7 @@ export const farmRouter = {
       windUpDays,
       investorCap,
       investorWarnAt,
+      runningBudgetWarnBdt,
       ...withoutMoney
     } = context.farm;
     const planning = context.roles.some((role) => role === "owner")
@@ -227,6 +243,7 @@ export const farmRouter = {
           windUpDays,
           investorCap,
           investorWarnAt,
+          runningBudgetWarnBdt,
         }
       : {};
     const readsMoney = context.roles.some(
@@ -370,15 +387,10 @@ export const farmRouter = {
     .use(requireRole("owner", "manager"))
     .input(parameters)
     .handler(async ({ context, input }) => {
-      // The three a Venture is planned by are the Owner's to set, as the Venture is hers; the rest are
-      // the running of the farm, which the Manager keeps.
-      const plansAVenture =
-        input.ventureFloorPercent !== undefined ||
-        input.ventureRunningPercent !== undefined ||
-        input.windUpDays !== undefined ||
-        input.investorCap !== undefined ||
-        input.investorWarnAt !== undefined;
-      if (plansAVenture && !context.roles.some((role) => role === "owner")) {
+      if (
+        aVenturesOwn(input) &&
+        !context.roles.some((role) => role === "owner")
+      ) {
         throw forbidden({
           message: "A Venture's own figures are the Owner's to set",
           reason: "owner_only",
@@ -465,6 +477,7 @@ export const farmRouter = {
                 windUpDays: true,
                 investorCap: true,
                 investorWarnAt: true,
+                runningBudgetWarnBdt: true,
               },
             })) ?? null,
           after: () => Promise.resolve({ ...changes, ...retimed }),

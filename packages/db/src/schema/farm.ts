@@ -102,6 +102,13 @@ export const farm = pgTable("farm", {
   investorCap: integer("investor_cap").notNull().default(20),
   /** The number of Investors from which the farm is warned that the cap is near. */
   investorWarnAt: integer("investor_warn_at").notNull().default(15),
+  /** How little may be left to keep a Venture's animals with before the farm says so, in taka. A figure
+   *  and not a proportion: the animals eat what they eat whatever the Venture raised, and a Venture
+   *  funded short would otherwise be warned later than one funded full. The Owner is told while an
+   *  Advance is still a decision rather than an emergency at the feed store. */
+  runningBudgetWarnBdt: integer("running_budget_warn_bdt")
+    .notNull()
+    .default(50_000),
   /** The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is
    *  left, so the Venture settles on time. */
   windUpDays: integer("wind_up_days").notNull().default(30),

@@ -9,6 +9,7 @@ import {
   Banknote,
   Handshake,
   PenLine,
+  PiggyBank,
   Receipt,
   ScrollText,
   Truck,
@@ -24,6 +25,7 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
+import { AdvanceSheet } from "@/components/ventures/advance-sheet";
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
@@ -65,6 +67,7 @@ const moneyOf = (venture: Venture) => ({
   cattleBudgetHeldBdt: venture.cattleBudgetHeldBdt ?? 0,
   runningBudgetHeldBdt: venture.runningBudgetHeldBdt ?? 0,
   spentBdt: venture.spentBdt ?? 0,
+  advancedBdt: venture.advancedBdt ?? 0,
   openFloatBdt: venture.openFloatBdt ?? 0,
   paidOutBdt: venture.paidOutBdt ?? 0,
   signedFor: venture.signedFor ?? { units: 0, people: 0 },
@@ -78,6 +81,7 @@ const VentureCard = ({
   onDrawFloat,
   onCountFloat,
   onReimburse,
+  onAdvance,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
@@ -86,6 +90,7 @@ const VentureCard = ({
   onDrawFloat: (venture: Venture) => void;
   onCountFloat: (venture: Venture) => void;
   onReimburse: (venture: Venture) => void;
+  onAdvance: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -105,6 +110,9 @@ const VentureCard = ({
         </Line>
         <Line label={t("ventures.held")}>{taka(venture.capitalInBdt)}</Line>
         <Line label={t("ventures.balance")}>{taka(money.balanceBdt)}</Line>
+        {money.advancedBdt === 0 ? null : (
+          <Line label={t("ventures.owedToYou")}>{taka(money.advancedBdt)}</Line>
+        )}
         <Line label={t("ventures.outOfTheAccount")}>
           {`${taka(money.spentBdt)} · ${taka(money.paidOutBdt)}`}
         </Line>
@@ -113,6 +121,11 @@ const VentureCard = ({
             {taka(money.openFloatBdt)}
           </Line>
         )}
+        {venture.runningBudgetLow ? (
+          <span className="col-span-full">
+            <StatusBadge tone="warning">{t("ventures.runningLow")}</StatusBadge>
+          </span>
+        ) : null}
         <Line label={t("ventures.budgetsHeld")}>
           {t("ventures.budgetSplit", {
             cattle: formatNumber(money.cattleBudgetHeldBdt, language),
@@ -178,8 +191,10 @@ const VentureCard = ({
           </Button>
         </div>
       ) : null}
-      {venture.state === "buying" || venture.state === "fattening" ? (
-        <div className="flex justify-end">
+      {venture.state === "buying" ||
+      venture.state === "fattening" ||
+      venture.state === "selling" ? (
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
             onClick={() => onReimburse(venture)}
             type="button"
@@ -187,6 +202,14 @@ const VentureCard = ({
           >
             <Receipt aria-hidden data-icon="inline-start" />
             {t("ventures.reimburse")}
+          </Button>
+          <Button
+            onClick={() => onAdvance(venture)}
+            type="button"
+            variant={venture.runningBudgetLow ? "default" : "ghost"}
+          >
+            <PiggyBank aria-hidden data-icon="inline-start" />
+            {t("ventures.advance")}
           </Button>
         </div>
       ) : null}
@@ -243,6 +266,7 @@ const VenturesPage = () => {
   const [drawing, setDrawing] = useState<Venture | null>(null);
   const [counting, setCounting] = useState<Venture | null>(null);
   const [reimbursing, setReimbursing] = useState<Venture | null>(null);
+  const [advancing, setAdvancing] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -280,6 +304,7 @@ const VenturesPage = () => {
                   key={one.id}
                   onCallOff={setCallingOff}
                   onCountFloat={setCounting}
+                  onAdvance={setAdvancing}
                   onReimburse={setReimbursing}
                   onDrawFloat={setDrawing}
                   onSign={setSigning}
@@ -304,6 +329,15 @@ const VenturesPage = () => {
         }}
         open={taking !== null}
         venture={taking}
+      />
+      <AdvanceSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setAdvancing(null);
+          }
+        }}
+        open={advancing !== null}
+        venture={advancing}
       />
       <ReimburseSheet
         onOpenChange={(wanted) => {

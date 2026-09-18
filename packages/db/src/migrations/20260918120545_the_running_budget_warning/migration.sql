@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "running_budget_warn_bdt" integer DEFAULT 50000 NOT NULL;
