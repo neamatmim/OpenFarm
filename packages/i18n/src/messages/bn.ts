@@ -257,6 +257,17 @@ export const bn: Record<MessageKey, string> = {
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.balance": "হিসাবে থাকার কথা",
   "ventures.drawFloat": "টাকা তুলুন",
+  "ventures.countFloat": "হিসাব মেলান",
+  "ventures.countFloatHint":
+    "যত টাকা তোলা হয়েছিল, তার বিপরীতে কেনা গরু, যাত্রার খরচ আর ফেরত আসা টাকা।",
+  "ventures.floatCounted": "হিসাব মিলেছে",
+  "ventures.floatSum":
+    "৳{went} তোলা হয়েছিল · গরু আর খরচ ৳{bought} · ফেরত আসার কথা ৳{back}",
+  "ventures.cashBack": "ফেরত আনা টাকা",
+  "ventures.cashBackHint": "যা বেঁচেছে, ব্যাংকে জমা হবে",
+  "ventures.depositedOn": "জমার তারিখ",
+  "ventures.slip": "জমার স্লিপ",
+  "ventures.openFloat": "হাটে আছে",
   "ventures.floatHint":
     "হাটে নেওয়ার টাকা — গরুর বাজেটে থাকা ৳{cattle} থেকে। হিসাবের বাকিটা গরু পালতে লাগবে।",
   "ventures.floatDrawn": "টাকা তোলা হয়েছে",
@@ -275,6 +286,15 @@ export const bn: Record<MessageKey, string> = {
   "refusal.cattleBudgetShort": "গরুর বাজেটে এত টাকা নেই — হিসাবের বাকিটা গরু পালার জন্য",
   "refusal.floatAlreadyDrawn": "এই যাত্রার জন্য টাকা আগেই দেওয়া হয়েছে",
   "refusal.tripIsAnotherVentures": "এই যাত্রা অন্য ভেঞ্চারের গরু আনছে",
+  "refusal.floatAlreadyReconciled":
+    "এই যাত্রার হিসাব মিলিয়ে ফেলা হয়েছে, আর কিছু যোগ করা যাবে না",
+  "refusal.floatOver":
+    "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে বেশি হচ্ছে",
+  "refusal.floatShort":
+    "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে কম হচ্ছে",
+  "refusal.notWhoseFloatBoughtHer":
+    "এই যাত্রা অন্য পার্সের টাকায় হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
+  "refusal.cashBackNeedsASlip": "ফেরত আসা টাকার জমার তারিখ আর স্লিপ নম্বর দিন",
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.callOff": "বাতিল করুন",
   "ventures.callOffHint":

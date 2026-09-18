@@ -176,14 +176,15 @@ export const agreementPaper = pgTable("agreement_paper", {
 });
 
 /**
- * What a Venture Movement is for. Capital in, the refund that undoes it, and the Buying Float drawn for
- * one trip to the haat; the cash the Float brings home, the Advance, the Reimbursement and the payout
+ * What a Venture Movement is for: capital in, the refund that undoes it, the Buying Float drawn for one
+ * trip to the haat, and the cash that Float brings home. The Advance, the Reimbursement and the payout
  * join them as their own work arrives.
  */
 export const VENTURE_MOVEMENT_KINDS = [
   "capital_in",
   "refund",
   "float_out",
+  "float_back",
 ] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
@@ -216,8 +217,14 @@ export const ventureMovement = pgTable(
     movedOn: text("moved_on").notNull(),
     /** Bank channels only: the transfer, the cheque or the deposit slip, and what it is numbered. */
     reference: text("reference").notNull(),
-    /** The movement this one sends back, so a refund is tied to the taka it returns. */
+    /** The movement this one sends back: a refund is tied to the capital it returns, and the cash off a
+     *  Buying Float to the Float that took it to the haat. */
     refundsId: text("refunds_id"),
+    /** When a Buying Float was reconciled, and by whom: what went out, counted against the animals it
+     *  bought, the outing's own costs and the cash brought home. Only a Float has them, and until it
+     *  has them the Float is open. */
+    reconciledAt: timestamp("reconciled_at"),
+    reconciledBy: text("reconciled_by").references(() => user.id),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
   },

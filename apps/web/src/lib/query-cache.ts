@@ -17,8 +17,9 @@ const KEEP_FOR_MS = 14 * 24 * 60 * 60 * 1000;
  *  farm's own fodder is worth, and this one because a Venture now carries who has signed for it and what
  *  its account holds — a card drawn from the older shape had no figures to write out — and this one
  *  because every Money Event now names its Purse, the one after that because an Animal says whose she
- *  is, and this one because a Venture says what its Cattle Budget is holding. */
-const CACHE_KEY = "kept-with-the-buying-float";
+ *  is, the one after that because a Venture says what its Cattle Budget is holding, and this one because
+ *  an outing says what it was given and what it has bought. */
+const CACHE_KEY = "kept-with-the-float-counted-home";
 
 /** How a date is written into the kept cache, so it is read back as a date rather than as the string JSON makes of
  *  it. The API's answers carry real dates, and every screen formats them as dates. */

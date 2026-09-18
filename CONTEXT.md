@@ -238,7 +238,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Reimbursement**: The monthly transfer from a Venture Account to the Farm's, for what that Venture's animals consumed of feed and medicine the Farm bought. The Farm buys for the whole herd; the purse is put right once a month. _Avoid_: Recharge, settlement (which is a Venture ending), invoice
 
-**Buying Float**: Cash drawn from the Venture Account for one Buying Trip and reconciled when it returns: the float out equals the Animals bought, plus the trip's costs, plus the cash brought back with its deposit slip. _Avoid_: Advance (which is the Owner's own money), petty cash, imprest
+**Buying Float**: Cash drawn from the Venture Account for one Buying Trip and reconciled when it returns: the float out equals the Animals bought, plus the trip's costs, plus the cash brought back with its deposit slip. One per outing, ever. Every Animal on a funded outing belongs to the Venture that funded it — the lorry went on one purse's money. **Open** until it is reconciled, and until then the Venture says so and a Settlement may not close over it; once reconciled the outing takes no further Animal and no change to what it cost, because the sum has been signed. _Avoid_: Advance (which is the Owner's own money), petty cash, imprest
 
 **Wind-up Period**: The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is left as an **Internal Sale**, so the Venture settles on time. A Farm Parameter, 30 days by default. Not a **Grace**, which is how late an SOP Instance may run. _Avoid_: Extension, overtime, grace
 

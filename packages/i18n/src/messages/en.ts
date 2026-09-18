@@ -258,6 +258,17 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a Float",
+  "ventures.countFloat": "Count the Float home",
+  "ventures.countFloatHint":
+    "What went out, against the animals it bought, the outing's own costs and the cash coming back.",
+  "ventures.floatCounted": "The Float is counted",
+  "ventures.floatSum":
+    "৳{went} went out · ৳{bought} in animals and costs · ৳{back} should come back",
+  "ventures.cashBack": "Cash brought back",
+  "ventures.cashBackHint": "What is left of the Float, going into the bank",
+  "ventures.depositedOn": "Deposited on",
+  "ventures.slip": "Deposit slip",
+  "ventures.openFloat": "Out at the haat",
   "ventures.floatHint":
     "Money for the haat, out of the ৳{cattle} the Cattle Budget is holding. The rest of the account keeps the animals.",
   "ventures.floatDrawn": "The Float is drawn",
@@ -283,6 +294,16 @@ export const en = {
   "refusal.floatAlreadyDrawn": "That outing has been given money already",
   "refusal.tripIsAnotherVentures":
     "That outing is bringing another Venture's animals home",
+  "refusal.floatAlreadyReconciled":
+    "That outing's Float has been counted; it takes nothing more",
+  "refusal.floatOver":
+    "The animals, the outing's costs and the cash back come to more than went out",
+  "refusal.floatShort":
+    "The animals, the outing's costs and the cash back come to less than went out",
+  "refusal.notWhoseFloatBoughtHer":
+    "That outing went to the haat on another purse's money, so she is that purse's",
+  "refusal.cashBackNeedsASlip":
+    "Cash coming back needs the day it was deposited and the slip's number",
   "ventures.budgetsHeld": "Of that, cattle and running",
   "ventures.callOff": "Call it off",
   "ventures.callOffHint":

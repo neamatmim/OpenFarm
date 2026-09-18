@@ -6,6 +6,7 @@ import type { Tx } from "../audit";
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import { bookTripMoney, readTrip, tripCostInput } from "../trip-store";
+import { assertTripIsOpen } from "../venture-store";
 import type { CorrectionKind } from "./correction";
 import { changeOf, correctionInput, somethingChanged } from "./correction";
 
@@ -58,6 +59,7 @@ export const buyingTripCorrection: CorrectionKind<
   }),
   trail: (tx, row) => readTrip(tx, row.farmId, row.id),
   apply: async (tx, row, to, { context, now }) => {
+    await assertTripIsOpen(tx, row.farmId, row.id);
     const putRight = {
       ...(to.wentTo === undefined ? {} : { wentTo: to.wentTo }),
       ...(to.brokerBdt === undefined

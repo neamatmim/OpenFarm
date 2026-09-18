@@ -8,6 +8,7 @@ import {
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
+import { roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -32,6 +33,7 @@ import {
 import {
   balanceOf,
   heldByEach,
+  whatTheFloatBought,
   readMovement,
   readVenture,
   takenAgainst,
@@ -679,6 +681,117 @@ export const venturesRouter = {
         }
       );
       return { id };
+    }),
+
+  /**
+   * The Float counted when the trip comes home: what went out equals the Animals it bought for this
+   * Venture, plus the outing's own costs, plus the cash brought back and deposited.
+   *
+   * A reconciliation that does not add up is refused, and says by how much and which way — a Float that
+   * nearly balances is a Float nobody has actually counted. Once it is counted the outing is closed: no
+   * animal and no cost may be added to it afterwards, because the sum it was counted against would stop
+   * being true.
+   */
+  reconcileFloat: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        buyingTripId: z.string(),
+        /** What came back and went into the bank. Nothing, when the whole Float was spent. */
+        cashBackBdt: money,
+        /** The day it was deposited, and the slip's number. Left out when nothing came back. */
+        movedOn: farmDay.optional(),
+        reference: z.string().trim().max(120).optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.cashBackBdt > 0 && !(input.movedOn && input.reference)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Cash coming back needs the day and the deposit slip",
+          data: { refusal: "cash_back_needs_a_slip" },
+        });
+      }
+      const id = uuidv7(now);
+      let counted = { animalsBdt: 0, tripBdt: 0, animals: 0 };
+      await audited(context).write(
+        {
+          entity: "venture_movement",
+          entityId: id,
+          action: "create",
+          // What the Float was counted against, kept with the act rather than only returned to the
+          // screen: an auditor years later asks what the Owner signed, not what she was shown.
+          after: async (tx) => ({
+            ...(await readMovement(tx, context.farm.id, id)),
+            countedAgainst: counted,
+          }),
+        },
+        async (tx) => {
+          // Everything inside the write, behind the lock every count of a Venture's money takes: the
+          // sum is only true until the next animal or the next cost lands on the outing.
+          await lockTheFarm(tx, context.farm.id);
+          const float = await tx.query.ventureMovement.findFirst({
+            where: {
+              farmId: context.farm.id,
+              buyingTripId: input.buyingTripId,
+              kind: "float_out",
+            },
+          });
+          if (!float) {
+            throw new ORPCError("NOT_FOUND", {
+              message: "That outing was never given a Float",
+            });
+          }
+          if (float.reconciledAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "That Float has been reconciled already",
+              data: { refusal: "float_already_reconciled" },
+            });
+          }
+          const bought = await whatTheFloatBought(tx, context.farm.id, {
+            buyingTripId: input.buyingTripId,
+            ventureId: float.ventureId,
+          });
+          counted = bought;
+          const accountedFor = roundTaka(
+            bought.animalsBdt + bought.tripBdt + input.cashBackBdt
+          );
+          const outBdt = roundTaka(Number(float.amountBdt));
+          if (accountedFor !== outBdt) {
+            const gapBdt = roundTaka(Math.abs(accountedFor - outBdt));
+            throw new ORPCError("BAD_REQUEST", {
+              message: `That is ${gapBdt} ${
+                accountedFor > outBdt ? "more than" : "short of"
+              } the Float`,
+              data: {
+                refusal: accountedFor > outBdt ? "float_over" : "float_short",
+                gapBdt,
+              },
+            });
+          }
+          // The homecoming is its own movement even when nothing came back, because the record that the
+          // Float was counted, and against what, is the point of counting it.
+          await tx.insert(ventureMovement).values({
+            id,
+            farmId: context.farm.id,
+            ventureId: float.ventureId,
+            kind: "float_back",
+            buyingTripId: input.buyingTripId,
+            amountBdt: input.cashBackBdt.toFixed(2),
+            movedOn: input.movedOn ?? float.movedOn,
+            reference: input.reference ?? "",
+            refundsId: float.id,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          });
+          await tx
+            .update(ventureMovement)
+            .set({ reconciledAt: now, reconciledBy: context.actor.id })
+            .where(eq(ventureMovement.id, float.id));
+        }
+      );
+      return { ...counted, cashBackBdt: input.cashBackBdt };
     }),
 
   /**
