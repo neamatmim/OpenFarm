@@ -272,6 +272,9 @@ export const bn: Record<MessageKey, string> = {
   "ventures.kind.internalBuy": "গরু কেনা",
   "ventures.kind.internalSell": "গরু বিক্রি",
   "ventures.kind.saleIn": "ক্রেতা নিয়ে গেছে",
+  "ventures.kind.payout": "বিনিয়োগকারীকে দেওয়া হয়েছে",
+  "ventures.kind.advanceRepaid": "আপনার নিজের টাকা ফেরত",
+  "ventures.kind.farmShare": "খামারের লাভের ভাগ",
   "ventures.kind.reimbursement": "খামারকে ফেরত",
   "ventures.kind.advance": "আপনার নিজের টাকা",
   "ventures.correctMovement": "ঠিক করুন",
@@ -380,6 +383,17 @@ export const bn: Record<MessageKey, string> = {
   "refusal.aReimbursementIsOwed": "কোনো মাসের ফেরত এখনও পাঠানো হয়নি",
   "refusal.theBankDisagrees": "কোনো মাস স্টেটমেন্টের সঙ্গে মেলানো হয়নি, বা মেলেনি",
   "refusal.agreementsDisagree": "এই ভেঞ্চারের চুক্তিগুলোতে ভাগ এক নয়",
+  "refusal.alreadyApproved": "এই ভেঞ্চারের হিসাব আগেই অনুমোদন হয়েছে",
+  "refusal.notYetApproved": "হিসাব অনুমোদনের আগে কিছু পাওনা হয় না",
+  "refusal.alreadyPaid": "এটি আগেই পাঠানো হয়েছে",
+  "refusal.notWhatHeIsOwed": "এই হিসাবে তাঁর পাওনা এটি নয়",
+  "refusal.notYetPaid": "যে টাকা পাঠানোই হয়নি, তা তিনি পাবেন কী করে",
+  "refusal.noAdvanceToRepay": "এই ভেঞ্চারে আপনি নিজের টাকা দেননি",
+  "refusal.noFarmShareToTake": "এই ভেঞ্চারে খামারের নেওয়ার মতো কিছু নেই",
+  "refusal.advanceComesFirst": "মূলধনের আগে আপনার নিজের টাকা ফেরত যায়",
+  "refusal.alreadyAcknowledged": "তিনি আগেই বলেছেন যে পেয়েছেন",
+  "refusal.nothingToPayHim":
+    "তিনি যা দিয়েছিলেন তার চেয়ে বেশি লোকসান হয়েছে, পাঠানোর মতো কিছু নেই",
   "refusal.weighedAgainSince":
     "আপনি দাম দেখার পর গরুটির ওজন আবার নেওয়া হয়েছে — নতুন দাম দেখুন",
   "refusal.notAFatteningAnimal":

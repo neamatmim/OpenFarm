@@ -275,6 +275,9 @@ export const en = {
   "ventures.kind.internalBuy": "Bought an animal",
   "ventures.kind.internalSell": "Sold an animal",
   "ventures.kind.saleIn": "A buyer took her away",
+  "ventures.kind.payout": "Paid out to an Investor",
+  "ventures.kind.advanceRepaid": "Your own money back",
+  "ventures.kind.farmShare": "The Farm's share of the profit",
   "ventures.kind.reimbursement": "Reimbursed the farm",
   "ventures.kind.advance": "Your own money in",
   "ventures.correctMovement": "Put it right",
@@ -397,6 +400,19 @@ export const en = {
     "A month has not been read against the statement, or did not agree",
   "refusal.agreementsDisagree":
     "This Venture's Agreements were signed on different splits",
+  "refusal.alreadyApproved":
+    "This Venture's Settlement has already been approved",
+  "refusal.notYetApproved": "Nothing is owed until the Settlement is approved",
+  "refusal.alreadyPaid": "That has already gone out",
+  "refusal.notWhatHeIsOwed": "That is not what this Settlement owes him",
+  "refusal.notYetPaid": "He cannot have had money nobody has sent him",
+  "refusal.noAdvanceToRepay": "You put nothing of your own into this Venture",
+  "refusal.noFarmShareToTake": "This Venture made the Farm nothing to take",
+  "refusal.advanceComesFirst":
+    "Your own money comes back before any capital does",
+  "refusal.alreadyAcknowledged": "He has already said he had it",
+  "refusal.nothingToPayHim":
+    "The run lost more than he put in, so there is nothing to send him",
   "refusal.weighedAgainSince":
     "She has been weighed since you read that price — check the new one",
   "refusal.notAFatteningAnimal":
