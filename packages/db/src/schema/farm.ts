@@ -112,6 +112,11 @@ export const farm = pgTable("farm", {
   /** The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is
    *  left, so the Venture settles on time. */
   windUpDays: integer("wind_up_days").notNull().default(30),
+  /** The taka above which a Settlement Adjustment has to be paid or waived rather than only noted: a
+   *  hundred taka should not cost a trip to the bank. */
+  adjustmentThresholdBdt: integer("adjustment_threshold_bdt")
+    .notNull()
+    .default(500),
   /** The taka above which a Money Event the Owner did not enter waits for the Owner's approval. */
   approvalThresholdBdt: integer("approval_threshold_bdt")
     .notNull()

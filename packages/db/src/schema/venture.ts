@@ -405,3 +405,69 @@ export const ventureSettlementShare = pgTable(
     ),
   ]
 );
+
+/** What became of a Settlement Adjustment: noted only, waiting to be dealt with, paid, or waived. */
+export const ADJUSTMENT_OUTCOMES = [
+  "noted",
+  "outstanding",
+  "paid",
+  "waived",
+] as const;
+export type AdjustmentOutcome = (typeof ADJUSTMENT_OUTCOMES)[number];
+
+/**
+ * A Correction or a late cost landing after a Settlement was approved.
+ *
+ * The Settlement's own figures stand and money already paid is never chased. This says what each
+ * Investor's share would be now, and — above the figure the Farm sets — what was done about it: a
+ * supplementary payout, or a waiver the Owner writes down and stands behind. Below that figure it is
+ * noted and nothing moves, because a hundred taka should not cost a trip to the bank.
+ */
+export const settlementAdjustment = pgTable(
+  "venture_settlement_adjustment",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    settlementId: text("settlement_id")
+      .notNull()
+      .references(() => ventureSettlement.id, { onDelete: "cascade" }),
+    /** What arrived late, in the Owner's words. Asked for: an Investor reading this years later is owed
+     *  a reason and not only a figure. */
+    reason: text("reason").notNull(),
+    /** What the run would come to now, worked out the same way the Settlement was. */
+    profitBdt: numeric("profit_bdt", { precision: 12, scale: 2 }).notNull(),
+    perUnitBdt: numeric("per_unit_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** What that is against the frozen figures: what one Unit gained or lost by the late news, and what
+     *  every Unit did together. Negative where the news was bad. */
+    perUnitDifferenceBdt: numeric("per_unit_difference_bdt", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    investorsDifferenceBdt: numeric("investors_difference_bdt", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    /** The figure it was judged against, frozen with it: turning the Farm Parameter afterwards must not
+     *  change what an Adjustment already decided about itself. */
+    thresholdBdt: numeric("threshold_bdt", {
+      precision: 12,
+      scale: 2,
+    }).notNull(),
+    outcome: text("outcome", { enum: ADJUSTMENT_OUTCOMES }).notNull(),
+    /** What the Owner said when she waived it, which she stands behind. */
+    waivedNote: text("waived_note"),
+    /** When it stopped being outstanding, and who made it stop. */
+    closedAt: timestamp("closed_at"),
+    closedBy: text("closed_by").references(() => user.id),
+    raisedBy: text("raised_by").references(() => user.id),
+    raisedAt: timestamp("raised_at").notNull(),
+  },
+  (table) => [
+    index("venture_settlement_adjustment_idx").on(
+      table.farmId,
+      table.settlementId
+    ),
+  ]
+);

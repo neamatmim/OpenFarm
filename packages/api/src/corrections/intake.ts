@@ -69,6 +69,9 @@ export const intakeCorrection: CorrectionKind<
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.
   lock: lockTheFarm,
+  // An Intake carries her price, her Hasil and whose she is — every one of them a figure a Settlement
+  // was worked out from.
+  ventureOf: (tx, row) => ownerOf(tx, row.animalId),
   missing: "No such intake",
   load: loadIntake,
   entityIdOf: (row) => row.animalId,

@@ -126,6 +126,14 @@ export interface CorrectionKind<
   /** Held before the row is, for a kind whose rules count what other records say — the same lock those records
    *  take, in the same order, so a Correction cannot read a sum a write in flight is about to change. */
   lock?: (tx: Tx, farmId: string) => Promise<void>;
+  /**
+   * The Venture whose records this one belongs to, when it belongs to one.
+   *
+   * A Correction to a settled Venture's records is refused: its figures were frozen at approval and every
+   * Investor was paid on them, so late news lands as a Settlement Adjustment instead. A Sale is the one
+   * exception and says so itself — it is the news, and refusing it would leave it nowhere to land.
+   */
+  ventureOf?: (tx: Tx, row: Row) => Promise<string | null>;
   /** Said when there is no such record on this farm. */
   missing: string;
   /** The record on this farm, or nothing; refuses one that is not this kind's to put right, as money a record booked. */
@@ -338,6 +346,20 @@ export const correct = async <
     const row = await kind.load(tx, context.farm.id, input.id);
     if (!row) {
       throw new ORPCError("NOT_FOUND", { message: kind.missing });
+    }
+    const its = await kind.ventureOf?.(tx, row);
+    if (its) {
+      const venture = await tx.query.venture.findFirst({
+        where: { id: its, farmId: context.farm.id },
+        columns: { state: true },
+      });
+      if (venture?.state === "settled") {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "That Venture is settled; raise a Settlement Adjustment instead",
+          data: { refusal: "venture_is_settled" },
+        });
+      }
     }
     const working = workingToCorrect(context, kind, row, now);
     const role = working.roleUsed;

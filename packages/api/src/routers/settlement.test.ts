@@ -58,6 +58,8 @@ let feedItemId = "";
 let tripId = "";
 let feedSopId = "";
 const tags: string[] = [];
+const saleIds: string[] = [];
+const intakeIds: string[] = [];
 
 const theSettlement = async (owner: Owner, which = ventureId) =>
   await owner.client.ventures.settlement({ ventureId: which });
@@ -156,6 +158,7 @@ beforeAll(async () => {
       targetWindowEnd: plan.targetWindowEnd,
     });
     tags.push(her.tagNumber);
+    intakeIds.push(her.intakeId);
   };
   await broughtIn();
   await broughtIn();
@@ -302,7 +305,7 @@ describe("what a Settlement is", () => {
       [1, 202_500],
     ] as const) {
       // oxlint-disable-next-line no-await-in-loop -- one lorry at a time
-      await selling.client.sale.record({
+      const sold = await selling.client.sale.record({
         tagNumber: tags[at] ?? "",
         buyer: { name: `ক্রেতা ${at} ${suffix}` },
         priceBdt,
@@ -312,6 +315,7 @@ describe("what a Settlement is", () => {
         driver: `চালক ${suffix}`,
         paymentMethod: "bank",
       });
+      saleIds.push(sold.id);
     }
 
     const owner = await as("owner", "2047-03-25T04:00:00.000Z");
@@ -691,6 +695,19 @@ describe("what a Settlement is", () => {
       data: { refusal: "already_approved" },
     });
 
+    // Nor is an Intake of one of its animals, whose price and Hasil the Settlement was worked out
+    // from — the words say what to do instead.
+    await expect(
+      owner.client.intake.correct({
+        id: intakeIds[0] ?? "",
+        reason: `দাম ভুল ছিল ${suffix}`,
+        changes: { purchasePriceBdt: { from: 80_000, to: 70_000 } },
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "venture_is_settled" },
+    });
+
     // And a movement of its money is no longer the Owner's to put right: a Settlement Adjustment is.
     const movements = await owner.client.ventures.movements({ ventureId });
     const capital = movements.find((one) => one.kind === "capital_in");
@@ -703,6 +720,220 @@ describe("what a Settlement is", () => {
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       data: { refusal: "venture_is_settled" },
+    });
+  });
+
+  it("notes a small Adjustment and moves nothing", async () => {
+    const owner = await as("owner", "2047-04-11T04:00:00.000Z");
+    // Her line for what is worth a trip to the bank.
+    await owner.client.farm.setParameters({ adjustmentThresholdBdt: 10_000 });
+    // A vet's bill that was in a pocket: two hundred taka against one of the bulls.
+    const late = await as("owner", "2047-04-11T05:00:00.000Z");
+    const categories = await late.client.money.categories();
+    const charged = categories.find(
+      (one) => one.enterable && one.chargeable && one.direction === "out"
+    );
+    await late.client.money.enter({
+      side: "fattening",
+      categoryId: charged?.id ?? "",
+      amountBdt: 200,
+      occurredOn: "2047-03-12",
+      counterparty: { name: `ডাক্তার ${suffix}` },
+      note: `পকেটে পড়ে ছিল ${suffix}`,
+      paymentMethod: "bank",
+    });
+    const raised = await late.client.ventures.raiseAdjustment({
+      ventureId,
+      reason: `দেরিতে আসা ভেটের বিল ${suffix}`,
+    });
+    // An Adjustment is measured against the figures that were frozen, not against the last Adjustment,
+    // so it carries everything that has landed since — the nine thousand from before and this two
+    // hundred. Five and a half thousand across the Units, which is under her line: written down, and
+    // nothing moves.
+    expect(raised.outcome).toBe("noted");
+
+    const settlement = await late.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    // And the Settlement's own figures have not moved a taka.
+    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement?.adjustments[0]).toMatchObject({
+      outcome: "noted",
+      reason: `দেরিতে আসা ভেটের বিল ${suffix}`,
+    });
+  });
+
+  it("notes a large one the Investors lost by, and chases nobody", async () => {
+    const owner = await as("owner", "2047-04-12T04:00:00.000Z");
+    const categories = await owner.client.money.categories();
+    const charged = categories.find(
+      (one) => one.enterable && one.chargeable && one.direction === "out"
+    );
+    // Twenty thousand this time: well over her line, and all of it bad news.
+    await owner.client.money.enter({
+      side: "fattening",
+      categoryId: charged?.id ?? "",
+      amountBdt: 20_000,
+      occurredOn: "2047-03-13",
+      counterparty: { name: `দোকান দুই ${suffix}` },
+      note: `বড় বিল ${suffix}`,
+      paymentMethod: "bank",
+    });
+    const raised = await owner.client.ventures.raiseAdjustment({
+      ventureId,
+      reason: `দেরিতে আসা বড় খরচ ${suffix}`,
+    });
+    // Over her line, but downward: money already paid is never chased, so there is nothing anybody can
+    // do about it and it would be ceremony to leave it waiting to be waived.
+    expect(raised.outcome).toBe("noted");
+    await expect(
+      owner.client.ventures.payAdjustment({
+        ventureId,
+        adjustmentId: raised.id,
+        movedOn: "2047-04-12",
+        paymentMethod: "bank",
+        reference: `ADJ-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "adjustment_is_closed" },
+    });
+
+    const settlement = await owner.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    // And the Settlement's own figures have not moved through any of it.
+    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+  });
+
+  it("pays one the Investors gained by, out of the Farm's own books", async () => {
+    const owner = await as("owner", "2047-04-13T04:00:00.000Z");
+    // The buyer had underpaid and made it up: the Sale is put right upwards, months after settling.
+    await owner.client.sale.correct({
+      id: saleIds[0] ?? "",
+      reason: `ক্রেতা বাকি টাকা দিয়েছে ${suffix}`,
+      changes: { priceBdt: { from: 202_505, to: 260_000 } },
+    });
+    const raised = await owner.client.ventures.raiseAdjustment({
+      ventureId,
+      reason: `বিক্রির দাম সংশোধন ${suffix}`,
+    });
+    expect(raised.outcome).toBe("outstanding");
+
+    const before = await owner.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    const paid = await owner.client.ventures.payAdjustment({
+      ventureId,
+      adjustmentId: raised.id,
+      movedOn: "2047-04-13",
+      paymentMethod: "bank",
+      reference: `ADJPAY-${suffix}`,
+    });
+    expect(paid.paidBdt).toBeGreaterThan(0);
+
+    // On the Farm's own books, because the Venture Account closed when the Settlement was paid out.
+    const after = await owner.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    const supplementary = after.events.filter(
+      (one) => one.source === "settlement_adjustment"
+    );
+    expect(supplementary).toHaveLength(1);
+    expect(after.events.length).toBe(before.events.length + 1);
+
+    const settlement = await owner.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    // And after everything — noted, waived and paid — the Settlement still says what it always said.
+    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement?.adjustments.map((one) => one.outcome)).toEqual([
+      "noted",
+      "noted",
+      "paid",
+    ]);
+  });
+
+  it("does not pay the same good news twice", async () => {
+    const owner = await as("owner", "2047-04-14T04:00:00.000Z");
+    const paidAlready = await owner.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    const before = paidAlready.events
+      .filter((one) => one.source === "settlement_adjustment")
+      .reduce((sum, one) => sum + one.amountBdt, 0);
+
+    // A second piece of late news, worth much less than the first.
+    await owner.client.sale.correct({
+      id: saleIds[1] ?? "",
+      reason: `আরেকটু বেশি এসেছে ${suffix}`,
+      changes: { priceBdt: { from: 202_500, to: 212_500 } },
+    });
+    const raised = await owner.client.ventures.raiseAdjustment({
+      ventureId,
+      reason: `দ্বিতীয় সংশোধন ${suffix}`,
+    });
+    const paid = await owner.client.ventures.payAdjustment({
+      ventureId,
+      adjustmentId: raised.id,
+      movedOn: "2047-04-14",
+      paymentMethod: "bank",
+      reference: `ADJPAY2-${suffix}`,
+    });
+
+    // Ten thousand of new proceeds, sixty per cent of it to the Investors: six thousand, floored across
+    // twenty Units. Not the whole difference since the Settlement, which the first payout already sent.
+    expect(paid.paidBdt).toBeLessThan(10_000);
+    const after = await owner.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    const total = after.events
+      .filter((one) => one.source === "settlement_adjustment")
+      .reduce((sum, one) => sum + one.amountBdt, 0);
+    expect(total - before).toBe(paid.paidBdt);
+  });
+
+  it("lets the Owner waive one she would rather not send", async () => {
+    const owner = await as("owner", "2047-04-15T04:00:00.000Z");
+    // More good news, over her line — and she decides it is not worth a trip to the bank after all.
+    await owner.client.sale.correct({
+      id: saleIds[1] ?? "",
+      reason: `আরও কিছু এসেছে ${suffix}`,
+      changes: { priceBdt: { from: 212_500, to: 245_000 } },
+    });
+    const raised = await owner.client.ventures.raiseAdjustment({
+      ventureId,
+      reason: `তৃতীয় সংশোধন ${suffix}`,
+    });
+    expect(raised.outcome).toBe("outstanding");
+    await owner.client.ventures.waiveAdjustment({
+      ventureId,
+      adjustmentId: raised.id,
+      note: `খামার বহন করবে ${suffix}`,
+    });
+    // Once dealt with, it stays dealt with.
+    await expect(
+      owner.client.ventures.waiveAdjustment({
+        ventureId,
+        adjustmentId: raised.id,
+        note: `আবার ${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "adjustment_is_closed" },
+    });
+    const settlement = await owner.client.ventures.approvedSettlement({
+      ventureId,
+    });
+    // Through noted, paid and waived alike, the Settlement says what it always said.
+    expect(settlement).toMatchObject({ profitBdt: 196_005, perUnitBdt: 5880 });
+    expect(settlement?.adjustments.at(-1)).toMatchObject({
+      outcome: "waived",
+      waivedNote: `খামার বহন করবে ${suffix}`,
     });
   });
 

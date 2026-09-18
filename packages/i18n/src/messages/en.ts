@@ -186,6 +186,7 @@ export const en = {
   "params.ventureRunning":
     "Kept back to feed them, of a Venture\u2019s capital",
   "params.windUp": "Selling after the window closes",
+  "params.adjustmentThreshold": "Worth adjusting a settlement over",
   "params.investorCap": "Investors at a time, at most",
   "params.investorWarnAt": "Warn from this many Investors",
   "params.runningBudgetWarn":
@@ -413,6 +414,11 @@ export const en = {
   "refusal.alreadyAcknowledged": "He has already said he had it",
   "refusal.nothingToPayHim":
     "The run lost more than he put in, so there is nothing to send him",
+  "refusal.adjustmentIsClosed": "That Adjustment has already been dealt with",
+  "refusal.nothingHasChanged":
+    "Nothing has changed since this Settlement was approved",
+  "refusal.nothingToPayOnIt":
+    "Nothing is owed on this Adjustment; waive it instead",
   "refusal.weighedAgainSince":
     "She has been weighed since you read that price — check the new one",
   "refusal.notAFatteningAnimal":
@@ -1315,6 +1321,7 @@ export const en = {
   "money.from.internalSaleIn": "Sold to a Venture",
   "money.from.internalSaleOut": "Bought from a Venture",
   "money.from.reimbursement": "Reimbursed by a Venture",
+  "money.from.settlementAdjustment": "A Settlement Adjustment",
   "owner.moneyAwaiting": "Money awaiting your approval",
   "drugs.buy": "Medicine bought",
   "drugs.quantity": "How much (as on the box)",

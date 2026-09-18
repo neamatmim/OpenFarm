@@ -27,6 +27,7 @@ import {
   ventureMovementCorrectionInput,
 } from "../corrections/venture-movement";
 import { consumedBy, farmCosts } from "../cost-store";
+import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
@@ -47,12 +48,18 @@ import {
   requireRole,
 } from "../roles";
 import {
+  adjustmentAgainst,
+  adjustmentsOf,
+  alreadyAdjustedPerUnitBdt,
   approvedSettlementOf,
   approveSettlement,
+  closeAdjustment,
   payOut,
   reachesSettledOnLastPayout,
+  raiseAdjustment,
   readSettlement,
   settlementOf,
+  theAdjustment,
 } from "../settlement-store";
 import {
   balanceAtMonthEnd,
@@ -1567,6 +1574,247 @@ export const venturesRouter = {
         }
       );
       return { acknowledged: true as const };
+    }),
+
+  /**
+   * Something that landed after the Settlement was approved, written down as an Adjustment.
+   *
+   * The Settlement's own figures never move and money already paid is never chased. This says what each
+   * Investor's share would be now, and whether anything has to be done about it: above the figure the
+   * Farm sets, a supplementary payout or a waiver; below it, noted and nothing moves, because a hundred
+   * taka should not cost a trip to the bank.
+   */
+  raiseAdjustment: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        /** What arrived late, in the Owner's words. An Investor reading this years later is owed a
+         *  reason and not only a figure. */
+        reason: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await ours(context, input.ventureId);
+      return await audited(context).write(
+        {
+          entity: "venture_settlement",
+          entityId: row.id,
+          action: "update",
+          reason: input.reason,
+          before: (tx) => readSettlement(tx, context.farm.id, row.id),
+          after: (tx) => readSettlement(tx, context.farm.id, row.id),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const approved = await approvedSettlementOf(
+            tx,
+            context.farm.id,
+            row.id
+          );
+          if (!approved) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Nothing to adjust until the Settlement is approved",
+              data: { refusal: "not_yet_approved" },
+            });
+          }
+          // Worked out the same way the Settlement was, so the two figures are comparable at all.
+          const worked = await settlementOf(
+            tx,
+            context.farm.id,
+            row,
+            farmDayOf(now)
+          );
+          const against = adjustmentAgainst(approved.row, worked);
+          if (against.investorsDifferenceBdt === 0) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Nothing has changed since this Settlement was approved",
+              data: { refusal: "nothing_has_changed" },
+            });
+          }
+          return await raiseAdjustment(
+            tx,
+            context.farm.id,
+            approved.row.id,
+            {
+              reason: input.reason,
+              thresholdBdt: context.farm.adjustmentThresholdBdt,
+              against,
+            },
+            { actorId: context.actor.id, now }
+          );
+        }
+      );
+    }),
+
+  /**
+   * An outstanding Adjustment paid on top of what was settled: one supplementary payout for each
+   * Investor whose Units gained by the late news, against the paper he holds.
+   */
+  payAdjustment: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        adjustmentId: z.string(),
+        movedOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        reference: z.string().trim().min(1).max(120),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await ours(context, input.ventureId);
+      assertByBank(input.paymentMethod);
+      return await audited(context).write(
+        {
+          entity: "venture_settlement",
+          entityId: row.id,
+          action: "update",
+          before: (tx) => readSettlement(tx, context.farm.id, row.id),
+          after: (tx) => readSettlement(tx, context.farm.id, row.id),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const approved = await approvedSettlementOf(
+            tx,
+            context.farm.id,
+            row.id
+          );
+          if (!approved) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Nothing to adjust until the Settlement is approved",
+              data: { refusal: "not_yet_approved" },
+            });
+          }
+          const adjustment = await theAdjustment(
+            tx,
+            context.farm.id,
+            approved.row.id,
+            input.adjustmentId
+          );
+          const perUnitBdt = Number(adjustment.perUnitDifferenceBdt);
+          if (perUnitBdt <= 0) {
+            // The late news was bad. Nothing is chased: an Investor paid on figures the farm gave him
+            // keeps what he was paid, so there is nothing to send and this is waived, not paid.
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Nothing is owed on this Adjustment; waive it instead",
+              data: { refusal: "nothing_to_pay_on_it" },
+            });
+          }
+          // Less whatever earlier Adjustments already sent: each one restates the whole difference
+          // since the Settlement, so paying all of it again would send the same good news twice.
+          const raised = await adjustmentsOf(
+            tx,
+            context.farm.id,
+            approved.row.id
+          );
+          const perUnitToPay = roundTaka(
+            perUnitBdt - alreadyAdjustedPerUnitBdt(raised)
+          );
+          if (perUnitToPay <= 0) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Earlier Adjustments have already paid this out",
+              data: { refusal: "nothing_to_pay_on_it" },
+            });
+          }
+          // The Farm's own money, on the Farm's own books: the Venture Account closed when the
+          // Settlement was paid out, and news landing after that is the Farm's to make good. One event
+          // for each Investor, named, because "what did he get and on what reference" is the whole
+          // reason the Settlement's own payouts are recorded one by one.
+          const people = await tx.query.investor.findMany({
+            where: { farmId: context.farm.id },
+            columns: { id: true, name: true },
+          });
+          const nameOf = new Map(people.map((one) => [one.id, one.name]));
+          const booking = bookingOf(context, context.roleUsed, now);
+          let paidBdt = 0;
+          for (const his of approved.shares) {
+            const amountBdt = roundTaka(perUnitToPay * his.units);
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
+            const counterpartyId = await counterpartyNamed(
+              tx,
+              context.farm.id,
+              { name: nameOf.get(his.investorId) ?? his.investorId },
+              now
+            );
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one Investor at a time
+            await bookMoney(tx, booking, {
+              source: "settlement_adjustment",
+              sourceId: `${adjustment.id}:${his.agreementId}`,
+              amountBdt,
+              occurredAt: startOfFarmDay(input.movedOn),
+              counterpartyId,
+              paymentMethod: input.paymentMethod,
+            });
+            paidBdt += amountBdt;
+          }
+          await closeAdjustment(
+            tx,
+            context.farm.id,
+            adjustment.id,
+            { outcome: "paid" },
+            { actorId: context.actor.id, now }
+          );
+          return { paidBdt };
+        }
+      );
+    }),
+
+  /**
+   * An outstanding Adjustment waived: the Owner deciding it is not worth moving money over, in words
+   * she writes down and stands behind.
+   */
+  waiveAdjustment: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        adjustmentId: z.string(),
+        /** Why she is letting it go. Asked for, not optional: a waiver nobody explained is a decision
+         *  nobody can answer for later. */
+        note: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await ours(context, input.ventureId);
+      await audited(context).write(
+        {
+          entity: "venture_settlement",
+          entityId: row.id,
+          action: "update",
+          reason: input.note,
+          before: (tx) => readSettlement(tx, context.farm.id, row.id),
+          after: (tx) => readSettlement(tx, context.farm.id, row.id),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          const approved = await approvedSettlementOf(
+            tx,
+            context.farm.id,
+            row.id
+          );
+          const adjustment = await theAdjustment(
+            tx,
+            context.farm.id,
+            approved?.row.id ?? "",
+            input.adjustmentId
+          );
+          await closeAdjustment(
+            tx,
+            context.farm.id,
+            adjustment.id,
+            { outcome: "waived", waivedNote: input.note },
+            { actorId: context.actor.id, now }
+          );
+        }
+      );
+      return { waived: true as const };
     }),
 
   /**
