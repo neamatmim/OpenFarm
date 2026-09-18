@@ -38,6 +38,8 @@ export interface Held {
   /** What Floats are out at the haat, unreconciled. Money the farm has let go of and not yet counted. */
   openFloatBdt: number;
   capitalInBdt: number;
+  /** Money in that is not its Investors' capital: today, what it was paid for an Animal it let go. */
+  proceedsBdt: number;
   refundedBdt: number;
   spentBdt: number;
   paidOutBdt: number;
@@ -48,11 +50,16 @@ export interface Held {
 
 /** What a Venture Account should be holding: everything that came in, less everything that left. */
 export const balanceOf = (held: Held) =>
-  held.capitalInBdt - held.refundedBdt - held.spentBdt - held.paidOutBdt;
+  held.capitalInBdt +
+  held.proceedsBdt -
+  held.refundedBdt -
+  held.spentBdt -
+  held.paidOutBdt;
 
 const NOTHING_HELD: Held = {
   openFloatBdt: 0,
   capitalInBdt: 0,
+  proceedsBdt: 0,
   refundedBdt: 0,
   spentBdt: 0,
   paidOutBdt: 0,
@@ -155,6 +162,10 @@ const WHAT_IT_DOES = {
   // What came home is the same line and the same budget, moving the other way: the unspent part was
   // never spent, and it is cattle money still.
   float_back: { line: "spentBdt", sign: -1, cattle: -1 },
+  // An Animal taken on is bought with cattle money, exactly as one bought at the haat is; one let go
+  // gives that money back, and it is the Venture's own proceeds rather than anybody's capital.
+  internal_buy: { line: "spentBdt", sign: 1, cattle: 1 },
+  internal_sell: { line: "proceedsBdt", sign: 1, cattle: -1 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }
@@ -277,6 +288,46 @@ export const whatTheFloatBought = async (
     animals: brought.filter((one) => whose.get(one.animalId) === ventureId)
       .length,
   };
+};
+
+/**
+ * What an Internal Sale is priced on: her latest Weigh-in. An Animal nobody has weighed has no price
+ * anybody could defend, and the farm would rather refuse than let the Owner pick a number.
+ */
+export const whatSheLastWeighed = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animalId: string
+) => {
+  const weighed = await tx.query.weighIn.findFirst({
+    where: { farmId, animalId },
+    orderBy: { weighedAt: "desc", id: "desc" },
+    columns: { id: true, weightKg: true, weighedAt: true },
+  });
+  return weighed
+    ? {
+        id: weighed.id,
+        weightKg: Number(weighed.weightKg),
+        weighedAt: weighed.weighedAt,
+      }
+    : null;
+};
+
+/** One Internal Sale as the trail records it: who let her go, who took her on, and on what figures. */
+export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
+  const row = await tx.query.internalSale.findFirst({ where: { id, farmId } });
+  return row
+    ? {
+        animalId: row.animalId,
+        fromVentureId: row.fromVentureId,
+        toVentureId: row.toVentureId,
+        weightKg: Number(row.weightKg),
+        rateBdtPerKg: Number(row.rateBdtPerKg),
+        priceBdt: Number(row.priceBdt),
+        note: row.note,
+        soldOn: row.soldOn,
+      }
+    : null;
 };
 
 /** One Venture Movement as the trail records it: whose money, which way, how much and against what

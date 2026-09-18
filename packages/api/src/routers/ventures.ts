@@ -1,6 +1,8 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
+import { internalSale } from "@OpenFarm/db/schema/fattening";
+import { animal } from "@OpenFarm/db/schema/herd";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
   agreementPaper,
@@ -8,7 +10,7 @@ import {
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
-import { roundTaka } from "@OpenFarm/domain";
+import { roundTaka, startOfFarmDay } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -23,6 +25,7 @@ import {
   theFarmsShare,
   unitsTaken,
 } from "../investor-store";
+import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
 import {
   OWNER_ONLY,
@@ -33,6 +36,8 @@ import {
 import {
   balanceOf,
   heldByEach,
+  readInternalSale,
+  whatSheLastWeighed,
   whatTheFloatBought,
   readMovement,
   readVenture,
@@ -158,6 +163,39 @@ const lockTheFarm = async (tx: Tx, farmId: string) => {
     .from(farm)
     .where(eq(farm.id, farmId))
     .for("update");
+};
+
+/**
+ * That a Venture may still trade animals: it has started and has not finished. A Venture that is
+ * selling is counting what it holds, and one settled or called off has nothing left to move.
+ */
+const assertVentureMayTrade = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  id: string | null,
+  side: "buyer" | "seller"
+) => {
+  if (id === null) {
+    return;
+  }
+  const row = await tx.query.venture.findFirst({
+    where: { id, farmId },
+    columns: { state: true },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
+  }
+  if (row.state !== "buying" && row.state !== "fattening") {
+    // Which side is at fault, because "the Venture is not where it would have to be" is no help when
+    // there are two of them.
+    throw new ORPCError("BAD_REQUEST", {
+      message: `The ${side}'s Venture is ${row.state}, and does not trade animals`,
+      data: {
+        refusal:
+          side === "buyer" ? "buyer_cannot_trade" : "seller_cannot_trade",
+      },
+    });
+  }
 };
 
 /** This Farm's Investment Agreement, or nothing the caller may move money against. */
@@ -464,18 +502,22 @@ export const venturesRouter = {
     }),
 
   /**
-   * The Ventures an animal may be bought for, by name and nothing else.
+   * The Ventures an Animal may be written against, by name and the state they are in: one still buying
+   * takes an Intake, and one buying or fattening takes an Internal Sale.
    *
    * The Manager's as well as the Owner's, because the Manager records the Intake and the roles matrix
    * gives her the owner on it. What a Venture is planned by, what it holds and who is in it stay the
    * Owner's: this says only which names may be written against a beast today.
    */
-  buying: protectedProcedure
+  takingAnimals: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {
       const rows = await context.db.query.venture.findMany({
-        where: { farmId: context.farm.id, state: "buying" },
-        columns: { id: true, name: true },
+        where: {
+          farmId: context.farm.id,
+          state: { in: ["buying", "fattening"] },
+        },
+        columns: { id: true, name: true, state: true },
         orderBy: { createdAt: "desc", id: "desc" },
       });
       return rows;
@@ -820,6 +862,199 @@ export const venturesRouter = {
             reference: row.reference,
           }
         : null;
+    }),
+
+  /**
+   * An Animal sold between the Farm's herd and a Venture, or between two Ventures.
+   *
+   * Priced at her latest Weigh-in times a live-weight rate the Owner enters that day, with a note of
+   * where the rate came from — an Investor asking years later why his bull was worth that is owed a
+   * figure and a reason. The money moves through the Venture Account, because it is a sale and not a
+   * book entry, and her owner changes with it.
+   *
+   * Refused once the Venture is selling and refused for an Animal who is Ready for Sale: a finished
+   * bull may not be lifted out of the pool at the moment she becomes worth having.
+   */
+  sellInternally: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        tagNumber: z.string().trim().min(1).max(20),
+        /** Who takes her on: a Venture, or left out for the Farm's own herd. */
+        toVentureId: z.string().optional(),
+        /** Taka per kilogramme of live weight, as the day's market gives it. */
+        rateBdtPerKg: z.number().positive().max(100_000),
+        /** Where the rate came from. Asked for, not optional. */
+        note: z.string().trim().min(1).max(300),
+        soldOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        /** The transfer, cheque or deposit slip the money moved on. */
+        reference: z.string().trim().min(1).max(120),
+        /** The price the Owner read before she committed. Refused when it is not the price the farm
+         *  works out, because she may be looking at a weight taken before this morning's round. */
+        priceBdt: z.number().positive().max(100_000_000),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.paymentMethod !== "bank") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture Account moves money by bank only",
+          data: { refusal: "capital_must_be_by_bank" },
+        });
+      }
+      const id = uuidv7(now);
+      let struck = { weightKg: 0, priceBdt: 0 };
+      await audited(context).write(
+        {
+          entity: "internal_sale",
+          entityId: id,
+          action: "create",
+          reason: input.note,
+          after: (tx) => readInternalSale(tx, context.farm.id, id),
+        },
+        async (tx) => {
+          // Everything inside the write, behind the lock every count of a Venture's money takes: she
+          // may be marked Ready for Sale, or a Venture moved on, between reading and writing.
+          await lockTheFarm(tx, context.farm.id);
+          const her = await tx.query.animal.findFirst({
+            where: {
+              farmId: context.farm.id,
+              tagNumber: input.tagNumber.toUpperCase(),
+            },
+            columns: {
+              id: true,
+              side: true,
+              state: true,
+              source: true,
+              ownerVentureId: true,
+            },
+          });
+          if (!her) {
+            throw new ORPCError("NOT_FOUND", { message: "No such animal" });
+          }
+          if (her.side !== "fattening") {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "Investor money funds Fattening, and a Dairy cow is the Farm's",
+              data: { refusal: "not_a_fattening_animal" },
+            });
+          }
+          if (her.source !== "bought") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "A Venture owns bought-in animals and no others",
+              data: { refusal: "not_a_ventures_animal" },
+            });
+          }
+          if (her.state === "ready_for_sale") {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "She is ready for sale, and a finished bull is not moved between purses",
+              data: { refusal: "she_is_ready_for_sale" },
+            });
+          }
+          const from = her.ownerVentureId;
+          const to = input.toVentureId ?? null;
+          if (from === to) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "She is already theirs",
+              data: { refusal: "already_that_purse" },
+            });
+          }
+          await assertVentureMayTrade(tx, context.farm.id, from, "seller");
+          await assertVentureMayTrade(tx, context.farm.id, to, "buyer");
+          const weighed = await whatSheLastWeighed(tx, context.farm.id, her.id);
+          if (!weighed) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "She has never been weighed, so there is no price to strike",
+              data: { refusal: "never_weighed" },
+            });
+          }
+          const priceBdt = roundTaka(weighed.weightKg * input.rateBdtPerKg);
+          if (roundTaka(input.priceBdt) !== priceBdt) {
+            // She was weighed again since the Owner read the figure: the price she is committing to is
+            // not the price the farm would strike, and a sale is not something to guess at.
+            throw new ORPCError("BAD_REQUEST", {
+              message: `She last weighed ${weighed.weightKg} kg, so the price is ${priceBdt}`,
+              data: { refusal: "weighed_again_since", priceBdt },
+            });
+          }
+          struck = { weightKg: weighed.weightKg, priceBdt };
+          if (to !== null) {
+            // The buyer pays out of what it holds for cattle, exactly as it would at the haat.
+            const held = await heldByEach(tx, context.farm.id, [to]);
+            const buyer = await ours(context, to);
+            const view = ventureView(buyer, held.get(to));
+            if (priceBdt > view.cattleBudgetHeldBdt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
+                data: { refusal: "cattle_budget_short" },
+              });
+            }
+          }
+          await tx.insert(internalSale).values({
+            id,
+            farmId: context.farm.id,
+            animalId: her.id,
+            fromVentureId: from,
+            toVentureId: to,
+            weightKg: weighed.weightKg.toFixed(2),
+            weighInId: weighed.id,
+            rateBdtPerKg: input.rateBdtPerKg.toFixed(2),
+            priceBdt: priceBdt.toFixed(2),
+            note: input.note,
+            soldOn: input.soldOn,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          });
+          // One movement per Venture side. Where the Farm is one of the sides it has none: a Venture
+          // Account is the only account here, and the Farm's own books are answered separately.
+          const sides = [
+            to === null
+              ? null
+              : { ventureId: to, kind: "internal_buy" as const },
+            from === null
+              ? null
+              : { ventureId: from, kind: "internal_sell" as const },
+          ].filter((side) => side !== null);
+          for (const side of sides) {
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
+            await tx.insert(ventureMovement).values({
+              id: uuidv7(now),
+              farmId: context.farm.id,
+              ventureId: side.ventureId,
+              kind: side.kind,
+              internalSaleId: id,
+              amountBdt: priceBdt.toFixed(2),
+              movedOn: input.soldOn,
+              reference: input.reference,
+              recordedBy: context.actor.id,
+              createdAt: now,
+            });
+          }
+          // The Farm's own side is a Money Event, because taka really enters or leaves the Farm: it
+          // sold a bull, or it bought one. Only where the Farm is a side — between two Ventures no
+          // money of the Farm's has moved, and its books say nothing.
+          if (from === null || to === null) {
+            await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
+              // The Farm letting her go is money in; the Farm taking her on is money out.
+              source: from === null ? "internal_sale_in" : "internal_sale_out",
+              sourceId: id,
+              amountBdt: priceBdt,
+              occurredAt: startOfFarmDay(input.soldOn),
+              counterpartyId: null,
+              paymentMethod: input.paymentMethod,
+            });
+          }
+          await tx
+            .update(animal)
+            .set({ ownerVentureId: to, updatedAt: now })
+            .where(eq(animal.id, her.id));
+        }
+      );
+      return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
     }),
 
   /** Every movement of one Venture's money, oldest first: what came in, and what went back. */

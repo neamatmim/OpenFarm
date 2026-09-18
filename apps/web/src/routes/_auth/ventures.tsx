@@ -5,6 +5,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  ArrowRightLeft,
   Banknote,
   Handshake,
   PenLine,
@@ -25,6 +26,7 @@ import {
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
+import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
@@ -218,6 +220,7 @@ const Line = ({
 const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
+  const [sellingInternally, setSellingInternally] = useState(false);
   const [signing, setSigning] = useState<Venture | null>(null);
   const [taking, setTaking] = useState<Venture | null>(null);
   const [callingOff, setCallingOff] = useState<Venture | null>(null);
@@ -228,10 +231,20 @@ const VenturesPage = () => {
     <Page>
       <PageHeader
         actions={
-          <Button onClick={() => setOpening(true)} type="button">
-            <Handshake aria-hidden data-icon="inline-start" />
-            {t("ventures.open")}
-          </Button>
+          <>
+            <Button
+              onClick={() => setSellingInternally(true)}
+              type="button"
+              variant="outline"
+            >
+              <ArrowRightLeft aria-hidden data-icon="inline-start" />
+              {t("ventures.sellInternally")}
+            </Button>
+            <Button onClick={() => setOpening(true)} type="button">
+              <Handshake aria-hidden data-icon="inline-start" />
+              {t("ventures.open")}
+            </Button>
+          </>
         }
         description={t("ventures.subtitle")}
         title={t("ventures.title")}
@@ -261,6 +274,10 @@ const VenturesPage = () => {
         )}
       </Loaded>
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
+      <InternalSaleSheet
+        onOpenChange={setSellingInternally}
+        open={sellingInternally}
+      />
       <TakeCapitalSheet
         onOpenChange={(wanted) => {
           if (!wanted) {
