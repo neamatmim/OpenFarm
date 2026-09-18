@@ -14,6 +14,7 @@ import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import {
   assertTripIsOurs,
+  assertVentureIsBuying,
   bookIntakeMoney,
   hasilInput,
   purchasePriceInput,
@@ -41,6 +42,8 @@ const recordInput = z
     hasilBdt: hasilInput.optional(),
     /** The outing she came home on, when the farm wrote one. */
     buyingTripId: z.string().optional(),
+    /** Whose animal she is: the Venture whose money bought her, or left out for the Farm's own. */
+    ventureId: z.string().optional(),
     weightKg: weight,
     /** Months, as the seller says and the Manager judges. Asked for, not optional: a bull with
      *  no age is a bull whose gain nobody can read. */
@@ -132,6 +135,10 @@ export const intakeRouter = {
           after: (tx) => readIntake(tx, id),
         },
         async (tx) => {
+          // Asked before she is written down: what may refuse her should refuse her in the farm's own
+          // words, not by a foreign key after the row exists and a tag number has been spent.
+          await assertTripIsOurs(tx, context.farm.id, input.buyingTripId);
+          await assertVentureIsBuying(tx, context.farm.id, input.ventureId);
           const made = await insertAnimal(tx, {
             id,
             farmId: context.farm.id,
@@ -145,11 +152,11 @@ export const intakeRouter = {
               breed: input.breed,
               officialTag: input.officialTag,
             },
+            extra: { ownerVentureId: input.ventureId ?? null },
             now,
             reason: "intake",
           });
           ({ tagNumber } = made);
-          await assertTripIsOurs(tx, context.farm.id, input.buyingTripId);
           const sellerId = await counterpartyNamed(
             tx,
             context.farm.id,

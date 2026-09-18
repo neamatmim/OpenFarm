@@ -15,7 +15,7 @@ import {
 import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 const loadDispatch = (tx: Tx, farmId: string, id: string) =>
   tx.query.dispatch.findFirst({ where: { id, farmId } });
@@ -75,29 +75,31 @@ export const dispatchCorrection: CorrectionKind<
     if (to.dispatchedAt !== undefined) {
       assertNotLater(to.dispatchedAt, now);
     }
-    await tx
-      .update(dispatch)
-      .set({
-        ...(to.dispatchedAt === undefined
-          ? {}
-          : { dispatchedAt: to.dispatchedAt }),
-        ...(to.litres === undefined ? {} : { litres: to.litres.toFixed(2) }),
-        ...(to.challan === undefined ? {} : { challan: to.challan }),
-        ...(to.pricePerLitreBdt === undefined
-          ? {}
-          : { pricePerLitreBdt: to.pricePerLitreBdt.toFixed(2) }),
-        ...(to.fatPercent === undefined
-          ? {}
-          : { fatPercent: twoPlaces(to.fatPercent) }),
-        ...(to.snfPercent === undefined
-          ? {}
-          : { snfPercent: twoPlaces(to.snfPercent) }),
-        ...(to.note === undefined ? {} : { note: to.note }),
-        ...(to.buyer === undefined
-          ? {}
-          : await buyerOnTheDay(tx, row.farmId, to.buyer, now)),
-      })
-      .where(eq(dispatch.id, row.id));
+    const putRight = {
+      ...(to.dispatchedAt === undefined
+        ? {}
+        : { dispatchedAt: to.dispatchedAt }),
+      ...(to.litres === undefined ? {} : { litres: to.litres.toFixed(2) }),
+      ...(to.challan === undefined ? {} : { challan: to.challan }),
+      ...(to.pricePerLitreBdt === undefined
+        ? {}
+        : { pricePerLitreBdt: to.pricePerLitreBdt.toFixed(2) }),
+      ...(to.fatPercent === undefined
+        ? {}
+        : { fatPercent: twoPlaces(to.fatPercent) }),
+      ...(to.snfPercent === undefined
+        ? {}
+        : { snfPercent: twoPlaces(to.snfPercent) }),
+      ...(to.note === undefined ? {} : { note: to.note }),
+      ...(to.buyer === undefined
+        ? {}
+        : await buyerOnTheDay(tx, row.farmId, to.buyer, now)),
+    };
+    // Nothing of the record itself may have changed: a Correction may name only how it was paid
+    // for, and an update with no values to set is a database error rather than a no-op.
+    if (somethingChanged(putRight)) {
+      await tx.update(dispatch).set(putRight).where(eq(dispatch.id, row.id));
+    }
     await bookDispatchMoney(
       tx,
       bookingOf(context, context.roleUsed, now),

@@ -16,6 +16,9 @@ export const readIntake = async (tx: Tx, animalId: string) => {
       side: true,
       state: true,
       penId: true,
+      // Whose she is, so a Correction that moves her between owners has a before and an after that
+      // differ. Without it the trail would record the act and show nothing changed by it.
+      ownerVentureId: true,
     },
     with: { intake: true },
   });
@@ -40,6 +43,32 @@ export const sellerInput = z.object({
   address: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(20).optional(),
 });
+
+/** Whose animal she is, as her row says it: a Venture's id, or nothing for the Farm's own. */
+export const ownerOf = async (tx: Tx, animalId: string) => {
+  const row = await tx.query.animal.findFirst({
+    where: { id: animalId },
+    columns: { ownerVentureId: true },
+  });
+  return row?.ownerVentureId ?? null;
+};
+
+/**
+ * That this animal is one a Venture may own at all: bought in, and on the Fattening side. A calf born
+ * here is the Farm's, and so is every cow in the milking herd — Investor money funds Fattening.
+ */
+export const assertAVentureMayOwnHer = async (tx: Tx, animalId: string) => {
+  const her = await tx.query.animal.findFirst({
+    where: { id: animalId },
+    columns: { side: true, source: true },
+  });
+  if (her && (her.side !== "fattening" || her.source !== "bought")) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Venture owns bought-in Fattening animals and no others",
+      data: { refusal: "not_a_ventures_animal" },
+    });
+  }
+};
 
 /**
  * Books what the farm paid for an animal as the Intake now says it. A bull given to the farm costs
@@ -69,6 +98,9 @@ export const bookIntakeMoney = async (
       occurredAt: row.arrivedAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,
+      // Whose money bought her. A Venture's buying is its own cost from the first beast, and the
+      // Farm's books never carry a taka of it.
+      purseVentureId: await ownerOf(tx, row.animalId),
     });
   }
 };
@@ -95,6 +127,42 @@ export const assertTripIsOurs = async (
   });
   if (!ours) {
     throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+  }
+};
+
+/**
+ * The Venture an arrival is bought for, checked before anything is written: this Farm's, and buying.
+ * A Venture that has not started buying has no business owning cattle, and one that has finished has
+ * its Investors' shares fixed against the animals it already holds.
+ */
+export const assertVentureIsBuying = async (
+  tx: Tx,
+  farmId: string,
+  ventureId: string | undefined,
+  { correcting = false } = {}
+) => {
+  if (ventureId === undefined) {
+    return;
+  }
+  const ours = await tx.query.venture.findFirst({
+    where: { id: ventureId, farmId },
+    columns: { state: true },
+  });
+  if (!ours) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
+  }
+  // Buying to take an animal in. Putting a slip right is a different question: the Venture was buying
+  // when she arrived, and by the time the mistake is noticed it may have moved on to fattening — the
+  // Correction Window is thirty days and a Venture does not wait that long. What a Correction may never
+  // do is hand her to a Venture whose books are closed.
+  const allowed = correcting ? ["buying", "fattening", "selling"] : ["buying"];
+  if (!allowed.includes(ours.state)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: correcting
+        ? "That Venture's run is over"
+        : "A Venture takes animals only while it is buying",
+      data: { refusal: "venture_wrong_state" },
+    });
   }
 };
 

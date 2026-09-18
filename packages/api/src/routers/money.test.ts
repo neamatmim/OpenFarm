@@ -151,6 +151,17 @@ describe("money from the farm's records", () => {
     expect(await moneyOf(sold.id)).toEqual([
       expect.objectContaining({ amountBdt: 19_000, paymentMethod: "bkash" }),
     ]);
+    // How he paid, and nothing else. Every Correction of a record's money may name the payment method
+    // alone, and that alone changes no column of the Sale itself.
+    await manager.client.sale.correct({
+      id: sold.id,
+      changes: { paymentMethod: { from: "bkash", to: "bank" } },
+      reason: "ব্যাংকেই এসেছিল",
+    });
+    expect(await moneyOf(sold.id)).toEqual([
+      expect.objectContaining({ amountBdt: 19_000, paymentMethod: "bank" }),
+    ]);
+
     // A year on, past the Manager's window, the Owner can still put the same Sale right.
     const yearOn = await as("owner", "2038-02-25T04:00:00.000Z");
     await yearOn.client.sale.correct({

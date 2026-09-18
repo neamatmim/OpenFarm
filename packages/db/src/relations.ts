@@ -68,6 +68,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.animal.id,
       to: r.readySetAside.animalId,
     }),
+    /** The Venture whose animal she is, where she is not the Farm's own. */
+    owner: r.one.venture({
+      from: r.animal.ownerVentureId,
+      to: r.venture.id,
+    }),
   },
   service: {
     animal: r.one.animal({

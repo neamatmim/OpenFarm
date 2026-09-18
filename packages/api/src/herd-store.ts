@@ -99,6 +99,7 @@ export const animalSummaryColumns = {
   state: true,
   penId: true,
   source: true,
+  ownerVentureId: true,
   breed: true,
   birthDate: true,
   photoUpdatedAt: true,
@@ -332,6 +333,8 @@ export const walkTo = async (
       state: AnimalState;
       lactationNumber: number;
       expectedCalvingAt: Date | null;
+      /** Whose animal she is, where she is not the Farm's own. */
+      ownerVentureId?: string | null;
     };
     toPenId: string;
     /** The Side she lands on; her own, unless she is crossing. */
@@ -373,6 +376,16 @@ export const walkTo = async (
   if (!state) {
     throw new ORPCError("BAD_REQUEST", {
       message: `An animal in state ${beast.state} cannot move to the ${toSide} side`,
+    });
+  }
+  if (crossing && toSide === "dairy" && beast.ownerVentureId) {
+    // A Venture owns bought-in Fattening cattle and nothing else. Walking one of its animals across to
+    // Dairy would make her a Dairy cow an Investor owns, which is not a thing the arrangement has —
+    // and it would change whose she is without anybody selling her. She goes by Internal Sale or not
+    // at all.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A Venture's animal cannot cross to the Dairy side",
+      data: { refusal: "venture_owns_her" },
     });
   }
   // Expected Calving is a forecast of Dairy work, and Fattening has none for her to do.

@@ -2,6 +2,7 @@ import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
+import { ownerOf } from "./intake-store";
 import type { Booking } from "./money-store";
 import { bookMoney, moneySnapshotOf } from "./money-store";
 
@@ -45,7 +46,8 @@ export const bookSaleMoney = async (
   tx: Tx,
   booking: Booking,
   id: string,
-  paymentMethod: PaymentMethod | undefined
+  /** Left out, the Money Event keeps the method it was booked with. */
+  paymentMethod?: PaymentMethod
 ) => {
   const row = await tx.query.sale.findFirst({ where: { id } });
   if (!row) {
@@ -60,6 +62,8 @@ export const bookSaleMoney = async (
       occurredAt: row.soldAt,
       counterpartyId: row.counterpartyId,
       paymentMethod,
+      // What she fetched belongs to whoever owned her, exactly as what she cost did.
+      purseVentureId: await ownerOf(tx, row.animalId),
     });
   }
 };

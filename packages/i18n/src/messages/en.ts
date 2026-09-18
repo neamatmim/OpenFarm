@@ -265,6 +265,10 @@ export const en = {
     "That refund names money this Venture never took",
   "refusal.wageIsTheFarms":
     "A wage is the farm's own — the farm provides the people",
+  "refusal.ventureOwnsHer":
+    "She belongs to a Venture, and a Venture's animal cannot cross to the dairy side",
+  "refusal.notAVenturesAnimal":
+    "A Venture owns bought-in fattening animals and no others",
   "ventures.budgetsHeld": "Of that, cattle and running",
   "ventures.callOff": "Call it off",
   "ventures.callOffHint":
@@ -2013,6 +2017,10 @@ export const en = {
     "The outing is written up, and this arrival came home on it",
   "intake.tripChosen": "This arrival is on the outing chosen above.",
   "intake.noTrip": "No outing — bought at the farm gate",
+  "intake.owner": "Whose animal she is",
+  "intake.ownerHint":
+    "The Venture whose money bought her. Only a Venture that is buying may take one in.",
+  "intake.theFarms": "The farm's own",
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",
   "intake.targetWeight": "Target weight",

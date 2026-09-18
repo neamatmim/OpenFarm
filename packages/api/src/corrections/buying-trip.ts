@@ -7,7 +7,7 @@ import { paymentMethodChange } from "../money-inputs";
 import { bookingOf, paymentMethodOf } from "../money-store";
 import { bookTripMoney, readTrip, tripCostInput } from "../trip-store";
 import type { CorrectionKind } from "./correction";
-import { changeOf, correctionInput } from "./correction";
+import { changeOf, correctionInput, somethingChanged } from "./correction";
 
 const loadTrip = (tx: Tx, farmId: string, id: string) =>
   tx.query.buyingTrip.findFirst({
@@ -58,19 +58,24 @@ export const buyingTripCorrection: CorrectionKind<
   }),
   trail: (tx, row) => readTrip(tx, row.farmId, row.id),
   apply: async (tx, row, to, { context, now }) => {
-    await tx
-      .update(buyingTrip)
-      .set({
-        ...(to.wentTo === undefined ? {} : { wentTo: to.wentTo }),
-        ...(to.brokerBdt === undefined
-          ? {}
-          : { brokerBdt: to.brokerBdt.toFixed(2) }),
-        ...(to.transportBdt === undefined
-          ? {}
-          : { transportBdt: to.transportBdt.toFixed(2) }),
-        ...(to.keepBdt === undefined ? {} : { keepBdt: to.keepBdt.toFixed(2) }),
-      })
-      .where(eq(buyingTrip.id, row.id));
+    const putRight = {
+      ...(to.wentTo === undefined ? {} : { wentTo: to.wentTo }),
+      ...(to.brokerBdt === undefined
+        ? {}
+        : { brokerBdt: to.brokerBdt.toFixed(2) }),
+      ...(to.transportBdt === undefined
+        ? {}
+        : { transportBdt: to.transportBdt.toFixed(2) }),
+      ...(to.keepBdt === undefined ? {} : { keepBdt: to.keepBdt.toFixed(2) }),
+    };
+    // Nothing of the record itself may have changed: a Correction may name only how it was paid
+    // for, and an update with no values to set is a database error rather than a no-op.
+    if (somethingChanged(putRight)) {
+      await tx
+        .update(buyingTrip)
+        .set(putRight)
+        .where(eq(buyingTrip.id, row.id));
+    }
     await bookTripMoney(
       tx,
       bookingOf(context, context.roleUsed, now),

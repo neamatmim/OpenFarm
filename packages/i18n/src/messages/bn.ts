@@ -261,6 +261,9 @@ export const bn: Record<MessageKey, string> = {
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",
+  "refusal.ventureOwnsHer":
+    "এই গরু একটি ভেঞ্চারের, আর ভেঞ্চারের গরু দুধের দিকে যেতে পারে না",
+  "refusal.notAVenturesAnimal": "ভেঞ্চার কেবল কিনে আনা মোটাতাজাকরণের গরুরই মালিক হয়",
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.callOff": "বাতিল করুন",
   "ventures.callOffHint":
@@ -1946,6 +1949,10 @@ export const bn: Record<MessageKey, string> = {
   "intake.tripRecorded": "যাত্রা লেখা হলো, এবং এই গরু সেই যাত্রাতেই এসেছে",
   "intake.tripChosen": "এই গরু উপরে বেছে নেওয়া যাত্রায় এসেছে।",
   "intake.noTrip": "কোনো যাত্রা নয় — খামার থেকেই কেনা",
+  "intake.owner": "গরুটি কার",
+  "intake.ownerHint":
+    "যে ভেঞ্চারের টাকায় কেনা। যে ভেঞ্চার কিনছে, কেবল সেটিই গরু নিতে পারে।",
+  "intake.theFarms": "খামারের নিজের",
   "intake.weight": "আসার সময়ের ওজন",
   "intake.age": "আনুমানিক বয়স",
   "intake.targetWeight": "লক্ষ্য ওজন",

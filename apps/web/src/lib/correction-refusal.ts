@@ -102,6 +102,8 @@ const WORDED_REFUSALS = {
   capital_over_units: "refusal.capitalOverUnits",
   refund_not_its_money: "refusal.refundNotItsMoney",
   wage_is_the_farms: "refusal.wageIsTheFarms",
+  venture_owns_her: "refusal.ventureOwnsHer",
+  not_a_ventures_animal: "refusal.notAVenturesAnimal",
   harvest_has_no_price: "refusal.harvestHasNoPrice",
   lot_number_missing: "refusal.lotNumberMissing",
   manager_only: "refusal.managerOnly",
