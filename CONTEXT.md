@@ -234,7 +234,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Unit**: One fixed-price share of a Venture. The Venture sets the price and how many there are; an Investor holds whole Units, and capital, profit and loss all divide by Units held. Fixed once the Venture starts Buying. _Avoid_: Share (the general word), stake, slot
 
-**Purse**: Whose money a Money Event moved: the Farm's or one named Venture's. The Farm's reports and the accountant export read the Farm's purse alone, so money that was never the Farm's never shows as its income or its cost. _Avoid_: Account, fund, source
+**Purse**: Whose money a Money Event moved: the Farm's or one named Venture's. Carried on the Money Event itself, unsaid for the Farm's own — so everything recorded before Ventures existed is the Farm's, and every figure the farm already had is unchanged. The Farm's reports, the money list and the accountant export read the Farm's purse alone, so money that was never the Farm's never shows as its income or its cost — and what the Farm's animals are charged reads it alone too, because a Venture's cost belongs to that Venture's own animals. Money waiting for the Owner's approval is not a figure but work, and she is shown all of it, told whose it is. A wage is the Farm's whatever else is true: the Farm provides the labour, and one in any other purse is refused. _Avoid_: Account, fund, source
 
 **Reimbursement**: The monthly transfer from a Venture Account to the Farm's, for what that Venture's animals consumed of feed and medicine the Farm bought. The Farm buys for the whole herd; the purse is put right once a month. _Avoid_: Recharge, settlement (which is a Venture ending), invoice
 

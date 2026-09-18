@@ -93,6 +93,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.moneyEvent.id,
       to: r.moneyReceipt.moneyEventId,
     }),
+    /** The Venture whose money this was, where it was not the Farm's. */
+    purse: r.one.venture({
+      from: r.moneyEvent.purseVentureId,
+      to: r.venture.id,
+    }),
   },
   medicinePurchase: {
     product: r.one.drugProduct({

@@ -16,6 +16,7 @@ import {
 } from "@OpenFarm/db/schema/money";
 import type { ApprovedTerms, MoneyApproval } from "@OpenFarm/domain";
 import { approvalOf, roundTaka, termsUnchanged } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { tell } from "./notice";
@@ -216,6 +217,12 @@ const placedUnder = async (
 };
 
 /** The money a farm record carries, as that record says it. */
+/**
+ * The Farm's own purse, as a reader asks for it. Every reader of the Farm's money says this and not the
+ * shape behind it, so the next reader that forgets is visible as the one that does not say it.
+ */
+export const THE_FARMS_PURSE = { isNull: true } as const;
+
 export interface MoneyOfARecord {
   source: MoneySource;
   sourceId: string;
@@ -225,6 +232,10 @@ export interface MoneyOfARecord {
   /** How it was paid. Left out of a Correction, it stays as it was booked; left out of a first
    *  booking, cash. */
   paymentMethod?: PaymentMethod;
+  /** Whose money moved: left out or null, the Farm's own; a Venture's id, that Venture's. Set by the
+   *  record that knows — an Intake of a Venture's Animal, a Sale of one. The Farm's reports read the
+   *  Farm's purse alone, so this is what keeps the two from mixing. */
+  purseVentureId?: string | null;
 }
 
 /** What an entry made by hand carries beyond a record's money: its own id as the Money Event's, the
@@ -337,6 +348,11 @@ const moneyFieldsOf = ({
   ...(money.paymentMethod === undefined
     ? {}
     : { paymentMethod: money.paymentMethod }),
+  // Left out of a Correction, the purse stays as it was booked: whose money it was is not something a
+  // correction to the amount should quietly change.
+  ...(money.purseVentureId === undefined
+    ? {}
+    : { purseVentureId: money.purseVentureId }),
   approval,
   ...(approval === "approved" ? {} : { approvedBy: null, approvedAt: null }),
   ...(byHand
@@ -420,6 +436,15 @@ export const bookMoney = async (
   byHand?: EnteredByHand
 ): Promise<{ id: string; approval: string }> => {
   const { farm, now } = booking;
+  if (byHand?.wageMonth && money.purseVentureId) {
+    // A wage is the Farm's, whatever else is true: the Farm provides the labour, which is the whole of
+    // what it brings to a Venture. The unique index behind "one wage per person per month" counts the
+    // Farm's purse as nothing, so a wage in another purse would slip past it unseen.
+    throw new ORPCError("BAD_REQUEST", {
+      message: "A wage is the Farm's own, never a Venture's",
+      data: { refusal: "wage_is_the_farms" },
+    });
+  }
   const amountBdt = roundTaka(money.amountBdt);
   const existing = await tx.query.moneyEvent.findFirst({
     where: {

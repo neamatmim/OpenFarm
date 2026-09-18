@@ -12,10 +12,16 @@ import { farmDay } from "../farm-clock";
 import { requireAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { amountInput, paymentMethodInput } from "../money-inputs";
-import { bookMoney, bookingOf, settleMoneyNotices } from "../money-store";
+import {
+  THE_FARMS_PURSE,
+  bookMoney,
+  bookingOf,
+  settleMoneyNotices,
+} from "../money-store";
 import { periodInput, periodOf } from "../period";
 import {
   OWNER_ONLY,
+  forbidden,
   requireOnly,
   requirePersonalSession,
   requireRole,
@@ -66,16 +72,35 @@ export const moneyRouter = {
    *
    * The Owner's and the Manager's, from their own phones (roles matrix: Money Events — Owner R, Manager
    * C R U). Barn Staff never see money, and the Vet sees only their own fees.
+   *
+   * A Venture's own money is the Owner's alone, like every other Venture surface, so asking for one by
+   * name is refused for anybody else — the Manager keeps the farm's register, not the Investors' money.
    */
   list: protectedProcedure
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
-    .input(z.object(periodInput))
+    .input(
+      z.object({
+        ...periodInput,
+        /** Whose money to read. Left out, the Farm's own. */
+        ventureId: z.string().optional(),
+      })
+    )
     .handler(async ({ context, input }) => {
       const { from, until } = periodOf(input);
+      if (
+        input.ventureId !== undefined &&
+        !context.roles.some((role) => role === "owner")
+      ) {
+        throw forbidden(OWNER_ONLY);
+      }
       const rows = await context.db.query.moneyEvent.findMany({
         where: {
           farmId: context.farm.id,
+          // Whose money: the Farm's own unless a Venture is asked for by name. The two never appear in
+          // one list, because a list that mixed them would add up to a figure that is nobody's.
+          purseVentureId:
+            input.ventureId === undefined ? THE_FARMS_PURSE : input.ventureId,
           occurredAt: { gte: from, lt: until },
         },
         with: {
@@ -83,6 +108,7 @@ export const moneyRouter = {
           counterparty: { columns: { name: true } },
           approver: { columns: { name: true } },
           receipt: { columns: { moneyEventId: true } },
+          purse: { columns: { name: true } },
         },
         orderBy: { occurredAt: "desc", id: "desc" },
         limit: LISTED + 1,
@@ -105,6 +131,10 @@ export const moneyRouter = {
         note: row.note,
         wageMonth: row.wageMonth,
         side: row.side,
+        /** Whose money it was, where it was not the Farm's. */
+        purse: row.purse
+          ? { id: row.purseVentureId, name: row.purse.name }
+          : null,
         hasReceipt: row.receipt !== null,
       }));
       return { events, more: rows.length > LISTED };

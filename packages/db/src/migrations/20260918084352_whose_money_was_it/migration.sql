@@ -1,0 +1,2 @@
+ALTER TABLE "money_event" ADD COLUMN "purse_venture_id" text;--> statement-breakpoint
+ALTER TABLE "money_event" ADD CONSTRAINT "money_event_purse_venture_id_venture_id_fkey" FOREIGN KEY ("purse_venture_id") REFERENCES "venture"("id");

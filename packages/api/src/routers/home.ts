@@ -332,10 +332,15 @@ export const homeRouter = {
         // Money the Owner has to approve, oldest first: the longer it has waited, the longer somebody
         // has been paid, or not, without the Owner's say.
         context.db.query.moneyEvent.findMany({
+          // Every purse, and this one on purpose. The Purse keeps a Venture's money out of what the Farm
+          // counts as its income and its cost — but money waiting for the Owner is not a figure, it is
+          // work. A Venture's Intake over the Approval Threshold waits for her exactly as the Farm's
+          // does, and a queue that hid it would leave it waiting for nobody. The row says whose it is.
           where: { farmId, approval: "awaiting" },
           with: {
             category: { columns: { nameBn: true, nameEn: true } },
             counterparty: { columns: { name: true } },
+            purse: { columns: { name: true } },
           },
           orderBy: { recordedAt: "asc", id: "asc" },
           limit: QUEUE_LIMIT,
@@ -417,6 +422,8 @@ export const homeRouter = {
             counterpartyName: row.counterparty?.name ?? null,
             source: row.source,
             occurredAt: row.occurredAt,
+            /** Whose money is waiting, where it is not the Farm's. */
+            purseName: row.purse?.name ?? null,
           })),
           /** The Registration coming up for renewal, or run out, and the work raised for it. */
           registrationRenewal: await renewalDue(context.db, context.farm, now),

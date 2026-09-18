@@ -116,7 +116,12 @@ const MoneyGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
       rows={needsYou.moneyAwaiting.map((row) => (
         <QueueRow
           key={row.id}
-          meta={row.counterpartyName ?? undefined}
+          meta={
+            // Whose money is waiting, where it is not the Farm's: she is approving somebody else's
+            // spending, and ought to be told so before she approves it.
+            [row.counterpartyName, row.purseName].filter(Boolean).join(" · ") ||
+            undefined
+          }
           title={
             <Link className="hover:underline" to="/money">
               {categoryName(row, language)} ·{" "}

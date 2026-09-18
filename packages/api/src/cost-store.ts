@@ -25,6 +25,7 @@ import {
   tripShares,
 } from "@OpenFarm/domain";
 
+import { THE_FARMS_PURSE } from "./money-store";
 import { movementsByItem } from "./stock-store";
 import { tripCostOf } from "./trip-store";
 
@@ -186,7 +187,16 @@ export const farmCosts = async (db: Db, farmId: string) => {
     db.query.sellingTripAnimal.findMany({}),
     // Money the farm entered by hand under a Category the Owner marked as charged to the animals.
     db.query.moneyEvent.findMany({
-      where: { farmId, source: "by_hand", side: { isNotNull: true } },
+      // The Farm's purse alone: this money is split across the Animals of its Side, and a Venture's own
+      // cost split that way would charge the Farm's animals for somebody else's spending. A Venture's
+      // hand-entered cost belongs to that Venture's own Animals, which is the buying increment's to do —
+      // until then nothing writes one, and one written today would be charged to nobody.
+      where: {
+        farmId,
+        source: "by_hand",
+        side: { isNotNull: true },
+        purseVentureId: THE_FARMS_PURSE,
+      },
       columns: { amountBdt: true, occurredAt: true, side: true },
       with: { category: { columns: { chargedToAnimals: true } } },
     }),

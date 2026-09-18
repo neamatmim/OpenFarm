@@ -257,11 +257,14 @@ export const en = {
   "ventures.referenceHint":
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
+  "money.purseWas": "{venture}'s money",
   "ventures.spent": "Spent · paid out",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":
     "That refund names money this Venture never took",
+  "refusal.wageIsTheFarms":
+    "A wage is the farm's own — the farm provides the people",
   "ventures.budgetsHeld": "Of that, cattle and running",
   "ventures.callOff": "Call it off",
   "ventures.callOffHint":
