@@ -132,6 +132,9 @@ const Detail = ({ event }: { event: MoneyEvent }) => {
     t(SOURCE_WORD[event.source]),
     t(PAYMENT_METHOD_WORD[event.paymentMethod]),
     event.wageMonth ? t("byHand.wageFor", { month: event.wageMonth }) : "",
+    // Whose money, where it was not the Farm's. Said on the entry itself, because a register that
+    // mixed two purses without saying so would add up to a figure that is nobody's.
+    event.purse ? t("money.purseWas", { venture: event.purse.name }) : "",
     event.note ?? "",
   ].filter(Boolean);
   return <>{parts.join(" · ")}</>;

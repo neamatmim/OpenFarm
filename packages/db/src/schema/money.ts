@@ -15,6 +15,7 @@ import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { drugProduct } from "./health";
 import { SIDES, animal } from "./herd";
+import { venture } from "./venture";
 
 /** Which way money went: into the farm, or out of it. */
 export const MONEY_DIRECTIONS = ["in", "out"] as const;
@@ -130,6 +131,10 @@ export const moneyEvent = pgTable(
     wageMonth: text("wage_month"),
     /** The Side money entered by hand belongs to, when it belongs to one; null for the whole farm. */
     side: text("side", { enum: SIDES }),
+    /** The **Purse** whose money this was: null for the Farm's own, or the Venture it belonged to. The
+     *  Farm's reports read the Farm's purse alone, so money that was never the Farm's is never counted
+     *  as its income or its cost. Everything recorded before Ventures existed is the Farm's. */
+    purseVentureId: text("purse_venture_id").references(() => venture.id),
     approval: text("approval", { enum: MONEY_APPROVALS }).notNull(),
     approvedBy: text("approved_by").references(() => user.id),
     approvedAt: timestamp("approved_at"),
@@ -142,6 +147,11 @@ export const moneyEvent = pgTable(
     index("money_event_day_idx").on(table.farmId, table.occurredAt),
     index("money_event_approval_idx").on(table.farmId, table.approval),
     // One wage per person per month. Entries that are not wages carry no month, and do not collide.
+    //
+    // The Purse is deliberately not in here. Postgres counts NULLs as distinct, and the Farm's purse is
+    // NULL, so adding it would stop the Farm's own wages colliding at all — the one thing this index is
+    // for. A wage is the Farm's anyway: the Farm provides the labour, which is the whole of what it
+    // brings to a Venture.
     uniqueIndex("money_event_wage_uidx").on(
       table.farmId,
       table.counterpartyId,

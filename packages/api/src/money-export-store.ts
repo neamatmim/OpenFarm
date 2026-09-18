@@ -9,6 +9,8 @@ import type {
 } from "@OpenFarm/domain";
 import { penHistoryOf, sidesOverTime } from "@OpenFarm/domain";
 
+import { THE_FARMS_PURSE } from "./money-store";
+
 type Db = Pick<Database, "query">;
 
 /** One Money Event as the accountant's CSV lists it and the summary adds it up. */
@@ -193,7 +195,13 @@ export const moneyForTheAccountant = async (
   { from, until }: { from: Date; until: Date }
 ): Promise<ExportedMoney[]> => {
   const events = await db.query.moneyEvent.findMany({
-    where: { farmId, occurredAt: { gte: from, lt: until } },
+    // The Farm's purse alone. A Venture's money passes through an account in the Owner's name and was
+    // never the Farm's income or its cost; in the Farm's books it would be a lie.
+    where: {
+      farmId,
+      purseVentureId: THE_FARMS_PURSE,
+      occurredAt: { gte: from, lt: until },
+    },
     with: {
       category: { columns: { nameBn: true, nameEn: true } },
       counterparty: { columns: { name: true } },

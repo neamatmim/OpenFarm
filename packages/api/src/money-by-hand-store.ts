@@ -80,6 +80,9 @@ export const assertWageNotYetEntered = async (
     return;
   }
   const already = await tx.query.moneyEvent.findFirst({
+    // Every purse, not just the Farm's, so this agrees with the unique index that backs it: a wage is
+    // the Farm's by definition — the Farm provides the labour — and one person is paid once for a month
+    // whoever the money is thought to belong to.
     where: {
       farmId,
       counterpartyId: wage.counterpartyId,

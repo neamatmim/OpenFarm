@@ -256,9 +256,11 @@ export const bn: Record<MessageKey, string> = {
   "ventures.reference": "ব্যাংক রেফারেন্স",
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.balance": "হিসাবে থাকার কথা",
+  "money.purseWas": "{venture}-এর টাকা",
   "ventures.spent": "খরচ · ফেরত দেওয়া",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
+  "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.callOff": "বাতিল করুন",
   "ventures.callOffHint":
