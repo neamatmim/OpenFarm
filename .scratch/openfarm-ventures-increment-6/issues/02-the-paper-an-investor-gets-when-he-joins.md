@@ -24,6 +24,7 @@ The percentages, the window and the Arbitrator are read from **his Agreement**, 
 - [ ] The terms come from his own Agreement, so a Venture whose terms were amended prints what is in force for him
 - [ ] Capital that arrived in more than one movement is shown as what arrived, each with its own day and reference, rather than as one total nobody can check against a bank line
 - [ ] It is refused before any capital has arrived, because there is nothing to acknowledge
+- [ ] A man holding two Agreements on one Venture gets what each is for, rather than the first one silently
 - [ ] It carries the letterhead, the footer and no projection, from ticket 01
 - [ ] Tests cover a paper against a two-movement capital arrival, one against an amended Agreement, the refusal before capital, and the Audit Event
 
@@ -32,6 +33,8 @@ The percentages, the window and the Arbitrator are read from **his Agreement**, 
 **Read the capital from the Venture Movements, not from a total.** `ventures.movements({ ventureId })` (`routers/ventures.ts:2405`) returns `{ id, kind, agreementId, investorId, amountBdt, movedOn, reference, … }` — the day the bank moved it and the reference on the transfer, which is what makes this paper checkable against his own bank statement. The terms come from `ventures.agreements({ ventureId })` (`:572`), which returns `units`, `investorsPercent`, `farmPercent`, `targetWindow`, `arbitrator` and the stamp's `valueBdt`, `on` and `serial` — everything the seven lines and the stamp block need. The Investor's own details and his nominee come from `investors.list` (`routers/investors.ts:39`).
 
 **Nothing on the reading side is keyed on one Investor, and that is this ticket's real work.** `agreements` and `movements` both return **every** Investor on the Venture, and `investors.list` returns every Investor on the farm. Assembled as they stand, a joining letter would be filtered on the client from a payload carrying other men's Units and other men's money — which breaks the one rule the verdict was most emphatic about. The narrowing belongs on the server: a procedure that takes the Venture and the Investor and returns his own, so that what leaves the farm for one man never contained another's. There is no `investors.get` and no statement procedure today; grep for `statement` in `packages/api/src` finds only the bank's.
+
+**The paper is per Agreement, not per man.** An **Investment Agreement** belongs to one Investor and one Venture (story 5), but nothing stops one man signing twice on the same Venture — the Settlement's own share table is keyed on the Agreement for exactly that reason (`db/schema/venture.ts:372`: "the same person may hold two papers on one Venture"). Each Agreement froze its own Units, percentages, window and Arbitrator, so two of them are two sets of terms and belong on two sheets.
 
 **An amendment is a photo plus the terms in force from a date** (story 8: "the system to show which terms were in force when"). `ventures.agreements` returns the frozen terms and `hasPaper`, but not a history of amendments. Confirm how an amendment is stored before writing the reading — if the terms in force on a date are not queryable, this ticket says so plainly rather than printing today's as though they had always been.
 
