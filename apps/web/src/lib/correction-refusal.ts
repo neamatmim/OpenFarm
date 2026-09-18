@@ -114,6 +114,8 @@ const WORDED_REFUSALS = {
   she_is_ready_for_sale: "refusal.sheIsReadyForSale",
   already_that_purse: "refusal.alreadyThatPurse",
   never_weighed: "refusal.neverWeighed",
+  wind_up_not_over: "refusal.windUpNotOver",
+  nothing_left_to_buy: "refusal.nothingLeftToBuy",
   weighed_again_since: "refusal.weighedAgainSince",
   not_a_fattening_animal: "refusal.notAFatteningAnimal",
   buyer_cannot_trade: "refusal.buyerCannotTrade",

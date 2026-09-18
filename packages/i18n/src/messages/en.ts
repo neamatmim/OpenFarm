@@ -214,6 +214,10 @@ export const en = {
   "ventures.cattleBudgetOwn": "For buying cattle (or leave it)",
   "ventures.budgets": "Budgets",
   "ventures.budgetSplit": "৳{cattle} cattle · ৳{running} keeping them",
+  "ventures.buyWhatIsLeft": "Buy what is left",
+  "ventures.buyWhatIsLeftHint":
+    "The Wind-up Period is over. {venture} still holds {standing}, and the Farm takes them at weight so it can settle on time.",
+  "ventures.boughtWhatWasLeft": "Bought {animals} for ৳{total}",
   "ventures.windUpEnds": "Wind-up ends",
   "ventures.pastWindUp":
     "The Wind-up Period is over with {standing} still standing",
@@ -324,6 +328,8 @@ export const en = {
     "Only a Venture that is buying or fattening may take one on",
   "ventures.rate": "Rate per kg",
   "ventures.rateHint": "Live weight, as the day's market gives it",
+  "ventures.total": "Total",
+  "ventures.neverWeighed": "Never weighed",
   "ventures.soldOn": "Sold on",
   "ventures.priceFromWeight": "{weight} kg at that rate · ৳{price}",
   "ventures.whereTheRateCameFrom": "Where the rate came from",
@@ -378,6 +384,9 @@ export const en = {
   "refusal.alreadyThatPurse": "She is already theirs",
   "refusal.neverWeighed":
     "She has never been weighed, so there is no price anybody could defend",
+  "refusal.windUpNotOver":
+    "The Wind-up Period has not ended; there are still days to sell in",
+  "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
   "refusal.weighedAgainSince":
     "She has been weighed since you read that price — check the new one",
   "refusal.notAFatteningAnimal":

@@ -10,6 +10,7 @@ import {
   Handshake,
   PenLine,
   Landmark,
+  Gavel,
   PiggyBank,
   Receipt,
   ScrollText,
@@ -28,6 +29,7 @@ import {
 } from "@/components/page";
 import { AdvanceSheet } from "@/components/ventures/advance-sheet";
 import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
+import { BuyWhatIsLeftSheet } from "@/components/ventures/buy-what-is-left-sheet";
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
@@ -124,32 +126,30 @@ const BankStanding = ({
 };
 
 /**
+ * Whether the Wind-up Period has run out with Animals still hers.
+ *
+ * The one condition, so the warning and the act it calls for cannot disagree — being told the run is
+ * over while the button that ends it is not there would be worse than not being told. Written without a
+ * closing angle bracket because the guard against untranslated JSX text reads one as the end of a tag.
+ *
+ * A fortnight-old cached answer was written before either figure existed and says nothing about either.
+ */
+const pastWindUp = (venture: Venture) =>
+  venture.state === "selling" &&
+  (venture.animalsStanding ?? 0) !== 0 &&
+  (venture.windUpEndsOn ?? "9999-12-31") < farmDayOf(new Date());
+
+/**
  * Said once the Wind-up Period has run out with animals still standing: the Farm is about to have to buy
  * whatever is left so the Venture can settle on time, and the Owner is owed that news while there are
  * still days to sell in rather than at the moment everybody's money is late.
- *
- * A fortnight-old cache was written before either figure existed, and says nothing about either.
  */
-const PastWindUp = ({
-  state,
-  endsOn,
-  standing,
-}: {
-  state: string;
-  endsOn?: string;
-  standing?: number;
-}) => {
+const PastWindUp = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
-  // Said of a Venture that is selling up. One still fattening has not reached the day it matters on,
-  // and one settled or called off has nothing left to sell.
-  if (state !== "selling" || !(endsOn && standing)) {
-    return null;
-  }
-  const over = endsOn < farmDayOf(new Date());
-  return over ? (
+  return pastWindUp(venture) ? (
     <StatusBadge tone="warning">
       {t("ventures.pastWindUp", {
-        standing: formatNumber(standing, language),
+        standing: formatNumber(venture.animalsStanding ?? 0, language),
       })}
     </StatusBadge>
   ) : null;
@@ -177,6 +177,7 @@ const VentureCard = ({
   onDrawFloat,
   onCountFloat,
   onReimburse,
+  onBuyWhatIsLeft,
   onAdvance,
   onCheckTheBank,
   onSeeMovements,
@@ -188,6 +189,7 @@ const VentureCard = ({
   onDrawFloat: (venture: Venture) => void;
   onCountFloat: (venture: Venture) => void;
   onReimburse: (venture: Venture) => void;
+  onBuyWhatIsLeft: (venture: Venture) => void;
   onAdvance: (venture: Venture) => void;
   onCheckTheBank: (venture: Venture) => void;
   onSeeMovements: (venture: Venture) => void;
@@ -274,11 +276,7 @@ const VentureCard = ({
           </Line>
         ) : null}
       </div>
-      <PastWindUp
-        endsOn={venture.windUpEndsOn}
-        standing={venture.animalsStanding}
-        state={venture.state}
-      />
+      <PastWindUp venture={venture} />
       {venture.cancelledReason ? (
         <p className="text-muted-foreground text-xs">
           {venture.cancelledReason}
@@ -341,6 +339,16 @@ const VentureCard = ({
             <PiggyBank aria-hidden data-icon="inline-start" />
             {t("ventures.advance")}
           </Button>
+          {pastWindUp(venture) ? (
+            <Button
+              onClick={() => onBuyWhatIsLeft(venture)}
+              type="button"
+              variant="default"
+            >
+              <Gavel aria-hidden data-icon="inline-start" />
+              {t("ventures.buyWhatIsLeft")}
+            </Button>
+          ) : null}
         </div>
       ) : null}
       {venture.state === "buying" ? (
@@ -396,6 +404,7 @@ const VenturesPage = () => {
   const [drawing, setDrawing] = useState<Venture | null>(null);
   const [counting, setCounting] = useState<Venture | null>(null);
   const [reimbursing, setReimbursing] = useState<Venture | null>(null);
+  const [windingUp, setWindingUp] = useState<Venture | null>(null);
   const [advancing, setAdvancing] = useState<Venture | null>(null);
   const [checking, setChecking] = useState<Venture | null>(null);
   const [seeing, setSeeing] = useState<Venture | null>(null);
@@ -439,6 +448,7 @@ const VenturesPage = () => {
                   onAdvance={setAdvancing}
                   onCheckTheBank={setChecking}
                   onSeeMovements={setSeeing}
+                  onBuyWhatIsLeft={setWindingUp}
                   onReimburse={setReimbursing}
                   onDrawFloat={setDrawing}
                   onSign={setSigning}
@@ -499,6 +509,15 @@ const VenturesPage = () => {
         }}
         open={reimbursing !== null}
         venture={reimbursing}
+      />
+      <BuyWhatIsLeftSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setWindingUp(null);
+          }
+        }}
+        open={windingUp !== null}
+        venture={windingUp}
       />
       <CountFloatSheet
         onOpenChange={(wanted) => {

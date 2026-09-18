@@ -97,6 +97,11 @@ const NOTHING_HELD: Held = {
   cattleOutBdt: 0,
 };
 
+/** The last day of a Venture's Wind-up Period: the days after its Target Window in which it keeps
+ *  selling, before the Farm buys whatever is left. */
+export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
+  addDays(targetWindowEnd, windUpDays);
+
 /**
  * A Venture as a screen reads it: the plan it opened on, what it holds, who has signed for it, and the
  * Running Budget, which is whatever the Cattle Budget is not — worked out, never stored, so the two can
@@ -175,7 +180,7 @@ export const ventureView = (
     /** The last day of the Wind-up Period: the days after the Target Window in which it keeps selling
      *  before the Farm buys whatever is left. Said while there is still time to do something about a
      *  slow bull, rather than at the moment everybody's money is late. */
-    windUpEndsOn: addDays(row.targetWindowEnd, alsoKnown.windUpDays),
+    windUpEndsOn: windUpEndsOn(row.targetWindowEnd, alsoKnown.windUpDays),
     /** How many of its Animals are still standing. Past the wind-up day with any of them standing is
      *  the Venture that cannot settle on time. */
     animalsStanding: alsoKnown.stillHers,
@@ -697,6 +702,26 @@ export const bookSaleProceeds = async (
  * Venture that cannot settle on time. Whether a Settlement then refuses is the Settlement's own rule
  * and not kept here.
  */
+/** Which Animals a Venture still has, by tag: neither sold, nor dead, nor culled. */
+export const stillHersOf = (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+) =>
+  tx.query.animal.findMany({
+    where: {
+      farmId,
+      ownerVentureId: ventureId,
+      state: { notIn: [...EXIT_STATES] },
+    },
+    columns: { id: true, tagNumber: true },
+    orderBy: { tagNumber: "asc", id: "asc" },
+  });
+
+/** What one Animal is worth at a live-weight rate, as the farm rounds it. */
+export const priceAtWeight = (weightKg: number, rateBdtPerKg: number) =>
+  roundTaka(weightKg * rateBdtPerKg);
+
 export const stillHersByEach = async (
   tx: Pick<Tx, "query">,
   farmId: string,
