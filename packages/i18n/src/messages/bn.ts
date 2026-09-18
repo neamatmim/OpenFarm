@@ -242,6 +242,31 @@ export const bn: Record<MessageKey, string> = {
   "ventures.stampSerial": "স্ট্যাম্পের সিরিয়াল",
   "ventures.paper": "স্ট্যাম্প করা কাগজ",
   "ventures.paperHint": "সই করা কাগজের ছবি, চুক্তির সাথে রাখা থাকবে",
+  "ventures.takeCapital": "টাকা জমা",
+  "ventures.capitalHint":
+    "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা টাকা। কেবল ব্যাংকে।",
+  "ventures.capitalTaken": "টাকা জমা লেখা হয়েছে",
+  "ventures.whosePaper": "কার টাকা",
+  "ventures.whosePaperHint":
+    "যে চুক্তির স্ট্যাম্প করা ছবি জমা আছে, কেবল তার টাকাই নেওয়া যায়",
+  "ventures.holdsUnits": "{units} ইউনিট",
+  "ventures.noPaperYet": "ছবি জমা হয়নি",
+  "ventures.amount": "পরিমাণ",
+  "ventures.movedOn": "ব্যাংক যেদিন পাঠিয়েছে",
+  "ventures.reference": "ব্যাংক রেফারেন্স",
+  "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
+  "ventures.balance": "হিসাবে থাকার কথা",
+  "ventures.spent": "খরচ · ফেরত দেওয়া",
+  "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
+  "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
+  "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
+  "ventures.callOff": "বাতিল করুন",
+  "ventures.callOffHint":
+    "{venture}-এ আর কিছু কেনা হবে না, এখানেই শেষ। সব টাকা ফেরত যাবে, প্রতিটির আলাদা রেফারেন্সসহ।",
+  "ventures.callOffReason": "কেন বাতিল হচ্ছে",
+  "ventures.calledOff": "ভেঞ্চার বাতিল হলো, টাকা ফেরত যাচ্ছে",
+  "ventures.refundedOn": "ফেরত পাঠানোর দিন",
+  "ventures.nothingToSendBack": "কোনো টাকা আসেনি, তাই ফেরত দেওয়ার কিছু নেই",
   "investors.title": "বিনিয়োগকারী",
   "investors.subtitle": "খামারের ভেঞ্চারে যাঁদের টাকা আছে",
   "investors.record": "বিনিয়োগকারী যোগ করুন",
@@ -981,6 +1006,11 @@ export const bn: Record<MessageKey, string> = {
     "একসাথে যতজন বিনিয়োগকারী রাখা যায়, খামারে এখন ততজনই আছেন",
   "refusal.investorExists":
     "এই নাম আর এই ফোন নম্বরে একজন বিনিয়োগকারী আগেই লেখা আছে",
+  "refusal.capitalMustBeByBank":
+    "ভেঞ্চারের টাকা ব্যাংকেই আসতে হবে — ট্রান্সফার, চেক বা জমার স্লিপ",
+  "refusal.agreementHasNoPaper": "স্ট্যাম্প করা চুক্তির ছবি আগে জমা দিন, তারপর টাকা",
+  "refusal.capitalNotSentBack":
+    "ভেঞ্চার যত টাকা নিয়েছে, প্রতিটির আলাদা রেফারেন্সসহ ফেরত দিতে হবে",
   "refusal.neverTheAnimals":
     "মজুরি, বিদ্যুৎ-পানি, মেরামত আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
   "refusal.feedRetired": "এই খাদ্য বাতিল করা হয়েছে",

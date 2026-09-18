@@ -1,10 +1,12 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { farm } from "@OpenFarm/db/schema/farm";
+import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
   agreementPaper,
   investmentAgreement,
   venture,
+  ventureMovement,
 } from "@OpenFarm/db/schema/venture";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -21,8 +23,11 @@ import {
 import { photoInput } from "../photo-input";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import {
-  capitalInBdt,
+  balanceOf,
+  heldByEach,
+  readMovement,
   readVenture,
+  takenAgainst,
   signedForEach,
   ventureView,
 } from "../venture-store";
@@ -86,6 +91,20 @@ const signInput = z.object({
   stampSerial: z.string().trim().min(1).max(60),
 });
 
+const capitalInput = z.object({
+  agreementId: z.string(),
+  amountBdt: money.refine((taka) => taka > 0, {
+    message: "Capital in is money arriving",
+  }),
+  /** The day the bank moved it, on the farm's own clock. */
+  movedOn: farmDay,
+  /** The farm's own word for how money moved. The door takes all three so it can refuse two of them in
+   *  the reader's own language: a schema that only knew "bank" would answer cash with a type error. */
+  paymentMethod: z.enum(PAYMENT_METHODS),
+  /** The transfer, cheque or deposit slip, and what it is numbered. */
+  reference: z.string().trim().min(1).max(120),
+});
+
 /** What a Venture may be moved to by hand, and from where. Everything else moves by what the farm does. */
 const MOVES = {
   buying: "open",
@@ -119,6 +138,18 @@ const theirs = async (context: Context, id: string) => {
   return row;
 };
 
+/** This Farm's Investment Agreement, or nothing the caller may move money against. */
+const theAgreement = async (context: Context, id: string) => {
+  const row = await context.db.query.investmentAgreement.findFirst({
+    where: { id, farmId: context.farm.id },
+    columns: { id: true, ventureId: true, units: true },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+  }
+  return row;
+};
+
 /** Moves a Venture on, from the one state it may be moved from, and says why not when it may not. */
 const moveTo = async (
   context: Context,
@@ -133,8 +164,10 @@ const moveTo = async (
     });
   }
   if (to === "buying") {
-    const held = await capitalInBdt(context.db, [row.id]);
-    if ((held.get(row.id) ?? 0) < Number(row.floorBdt)) {
+    const held = await heldByEach(context.db, context.farm.id, [row.id]);
+    // What it holds, not what once arrived: money sent back is not money to start on.
+    const standing = held.get(row.id);
+    if ((standing ? balanceOf(standing) : 0) < Number(row.floorBdt)) {
       throw new ORPCError("BAD_REQUEST", {
         message: "The Venture holds less than its Floor",
         data: { refusal: "venture_under_floor" },
@@ -170,10 +203,10 @@ export const venturesRouter = {
         orderBy: { createdAt: "desc", id: "desc" },
       });
       const ids = rows.map((one) => one.id);
-      const held = await capitalInBdt(context.db, ids);
+      const held = await heldByEach(context.db, context.farm.id, ids);
       const signed = await signedForEach(context.db, context.farm.id, ids);
       return rows.map((one) =>
-        ventureView(one, held.get(one.id) ?? 0, signed.get(one.id))
+        ventureView(one, held.get(one.id), signed.get(one.id))
       );
     }),
 
@@ -413,17 +446,147 @@ export const venturesRouter = {
     }),
 
   /**
+   * The Investors' capital as it lands: which paper it came against, how much, the day the bank moved
+   * it and the reference on the instrument.
+   *
+   * Never a Money Event. This is the Venture's money passing through an account in the Owner's name,
+   * and the Farm's books would be lying if they counted it as income.
+   */
+  takeCapital: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(capitalInput)
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.paymentMethod !== "bank") {
+        // A Venture Account takes bank transfers, cheques and deposit slips. Cash nobody can prove is
+        // exactly what an Investor's family would ask about years later.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture takes capital by bank only",
+          data: { refusal: "capital_must_be_by_bank" },
+        });
+      }
+      const agreement = await theAgreement(context, input.agreementId);
+      const row = await ours(context, agreement.ventureId);
+      if (row.state !== "open") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture takes capital only while it is open",
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
+      const owed = agreement.units * Number(row.unitPriceBdt);
+      const paidAlready = await takenAgainst(
+        context.db,
+        context.farm.id,
+        agreement.id
+      );
+      if (paidAlready + input.amountBdt > owed) {
+        // Capital divides by Units, so a Unit paid for twice would take twice its share of the profit
+        // while holding one share of the Venture.
+        throw new ORPCError("BAD_REQUEST", {
+          message: `This Agreement is for ${owed - paidAlready} more taka`,
+          data: { refusal: "capital_over_units" },
+        });
+      }
+      const paper = await context.db.query.agreementPaper.findFirst({
+        where: { agreementId: agreement.id, farmId: context.farm.id },
+        columns: { agreementId: true },
+      });
+      if (!paper) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The stamped Agreement is not on file yet",
+          data: { refusal: "agreement_has_no_paper" },
+        });
+      }
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "venture_movement",
+          entityId: id,
+          action: "create",
+          after: (tx) => readMovement(tx, context.farm.id, id),
+        },
+        (tx) =>
+          tx.insert(ventureMovement).values({
+            id,
+            farmId: context.farm.id,
+            ventureId: agreement.ventureId,
+            kind: "capital_in",
+            agreementId: agreement.id,
+            amountBdt: input.amountBdt.toFixed(2),
+            movedOn: input.movedOn,
+            reference: input.reference,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          })
+      );
+      return { id };
+    }),
+
+  /** Every movement of one Venture's money, oldest first: what came in, and what went back. */
+  movements: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.ventureMovement.findMany({
+        where: { farmId: context.farm.id, ventureId: input.ventureId },
+        orderBy: { movedOn: "asc", id: "asc" },
+      });
+      if (rows.length === 0) {
+        return [];
+      }
+      const agreements = await context.db.query.investmentAgreement.findMany({
+        where: {
+          farmId: context.farm.id,
+          id: { in: rows.map((one) => one.agreementId) },
+        },
+        columns: { id: true, investorId: true },
+      });
+      const whose = new Map(
+        agreements.map((one) => [one.id, one.investorId] as const)
+      );
+      return rows.map((one) => ({
+        id: one.id,
+        kind: one.kind,
+        agreementId: one.agreementId,
+        investorId: whose.get(one.agreementId) ?? null,
+        amountBdt: Number(one.amountBdt),
+        movedOn: one.movedOn,
+        reference: one.reference,
+        refundsId: one.refundsId,
+      }));
+    }),
+
+  /**
    * A Venture called off: the Floor was not met by the day it had to be, so nothing is bought and every
    * taka goes back. Only from Open — once an animal has been bought with the money, it is not a plan any
-   * more. The refunds themselves arrive with the capital ticket.
+   * more.
+   *
+   * Every capital movement it took needs its own refund, with the day and the reference of the transfer
+   * that sent it: the Venture ends when the money is on its way back, not before.
    */
   cancel: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(
-      z.object({ id: z.string(), reason: z.string().trim().min(1).max(400) })
+      z.object({
+        id: z.string(),
+        reason: z.string().trim().min(1).max(400),
+        refunds: z
+          .array(
+            z.object({
+              movementId: z.string(),
+              movedOn: farmDay,
+              reference: z.string().trim().min(1).max(120),
+            })
+          )
+          .max(200)
+          .default([]),
+      })
     )
     .handler(async ({ context, input }) => {
+      const now = context.clock.now();
       const row = await ours(context, input.id);
       if (row.state !== "open") {
         throw new ORPCError("BAD_REQUEST", {
@@ -431,7 +594,12 @@ export const venturesRouter = {
           data: { refusal: "venture_wrong_state" },
         });
       }
-      await audited(context).write(
+      const sendingBack = new Map(
+        input.refunds.map((one) => [one.movementId, one] as const)
+      );
+      const auditing = audited(context);
+      let sentBack = 0;
+      await auditing.write(
         {
           entity: "venture",
           entityId: row.id,
@@ -440,12 +608,70 @@ export const venturesRouter = {
           before: (tx) => readVenture(tx, context.farm.id, row.id),
           after: (tx) => readVenture(tx, context.farm.id, row.id),
         },
-        (tx) =>
-          tx
+        async (tx) => {
+          // Read inside the transaction: capital committing while the Owner filled the refunds in would
+          // otherwise be left behind in a Venture that is already called off.
+          const taken = await tx.query.ventureMovement.findMany({
+            where: {
+              farmId: context.farm.id,
+              ventureId: row.id,
+              kind: "capital_in",
+            },
+          });
+          const unaccounted = taken.filter((one) => !sendingBack.has(one.id));
+          if (unaccounted.length > 0) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `${unaccounted.length} capital movements have no refund`,
+              data: { refusal: "capital_not_sent_back" },
+            });
+          }
+          const itsOwn = new Set(taken.map((one) => one.id));
+          if (input.refunds.some((one) => !itsOwn.has(one.movementId))) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "A refund names money this Venture never took",
+              data: { refusal: "refund_not_its_money" },
+            });
+          }
+          const refunds = taken.map((one) => ({
+            id: uuidv7(now),
+            farmId: context.farm.id,
+            ventureId: row.id,
+            kind: "refund" as const,
+            agreementId: one.agreementId,
+            amountBdt: one.amountBdt,
+            movedOn: sendingBack.get(one.id)?.movedOn ?? "",
+            reference: sendingBack.get(one.id)?.reference ?? "",
+            refundsId: one.id,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          }));
+          if (refunds.length > 0) {
+            await tx.insert(ventureMovement).values(refunds);
+          }
+          // One Audit Event per refund: "where is my money" is answered by the trail, a line per
+          // transfer. They go one at a time because they share the transaction the cancel holds.
+          for (const one of refunds) {
+            // oxlint-disable-next-line no-await-in-loop -- one transaction, one statement at a time
+            const after = await readMovement(tx, context.farm.id, one.id);
+            // oxlint-disable-next-line no-await-in-loop -- as above
+            await auditing.recordEvent(
+              tx,
+              {
+                entity: "venture_movement",
+                entityId: one.id,
+                action: "create",
+                reason: input.reason,
+              },
+              { after }
+            );
+          }
+          sentBack = refunds.length;
+          await tx
             .update(venture)
             .set({ state: "cancelled", cancelledReason: input.reason })
-            .where(eq(venture.id, row.id))
+            .where(eq(venture.id, row.id));
+        }
       );
-      return { state: "cancelled" as const };
+      return { state: "cancelled" as const, refunded: sentBack };
     }),
 };
