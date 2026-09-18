@@ -41,6 +41,36 @@ export const recordExport = (
     () => Promise.resolve()
   );
 
+/** The papers filed against the record they are about rather than under a period: an Animal's, and an
+ *  Investor's. */
+export type ExportedPaper =
+  | "receipt"
+  | "transport_card"
+  | "passport"
+  | "withdrawal_summary"
+  | "joining_letter"
+  | "progress_statement"
+  | "settlement_statement";
+
+/**
+ * What the trail records about a paper filed against its own record. The Registration number is part of it
+ * because every Export is stamped with it (CONTEXT: Export), and because "which registration did that card
+ * quote" is a question an inspector can ask years later — and "which Venture was that sheet about" is the
+ * same question an Investor asks.
+ *
+ * One shape for all of them, because a second helper beside this one is a second answer to what an Export
+ * snapshot holds.
+ */
+export const exportedPaper = (
+  farm: { registrationNumber: string | null },
+  paper: ExportedPaper,
+  extra: Record<string, unknown> = {}
+) => ({
+  paper,
+  registrationNumber: farm.registrationNumber,
+  ...extra,
+});
+
 /** A paper the farm hands to somebody outside it carries the Registration number; a farm that has not written
  *  it down is told what is missing rather than handed a paper with a hole in it. */
 export const assertRegistered = (

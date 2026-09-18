@@ -13,17 +13,17 @@ Generating one is an **Export** — an Audit Event in the same write, stamped wi
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [Ventures spec](../../openfarm-investor-projects/spec.md) — increment 6, user stories 82–85, and the **Statements** decisions; [the prototype verdict](../../openfarm-investor-projects/issues/08-prototype-investor-statements.md); `CONTEXT.md` — **Export**, **Farm Identity**, **Registration**, **Investor**, **Venture**, **Unit**.
 
-- [ ] A word for these three papers is decided and written into `CONTEXT.md`, with what each of the three is and what they share
-- [ ] The letterhead, the one-Investor rule, the footer and the no-projection rule live in one place that all three papers take, not copied into each
-- [ ] The narrowing to one Investor happens on the server: what a procedure returns for one man never carries another man's name, Units, capital or payout, so no paper can leak by being assembled carelessly
-- [ ] Generating any of the three writes an Audit Event naming the Investor, the Venture and which paper it was
-- [ ] The Owner alone may generate one
-- [ ] A paper is refused for an Investor who has no Agreement with that Venture, rather than printing an empty one
-- [ ] Tests cover the Audit Event written for each of the three, the refusal for an Investor who is not in that Venture, the Manager refused, and a paper carrying the footer
+- [x] A word for these three papers is decided and written into `CONTEXT.md`, with what each of the three is and what they share
+- [x] The letterhead, the one-Investor rule, the footer and the no-projection rule live in one place that all three papers take, not copied into each
+- [x] The narrowing to one Investor happens on the server: what a procedure returns for one man never carries another man's name, Units, capital or payout, so no paper can leak by being assembled carelessly
+- [x] Generating any of the three writes an Audit Event naming the Investor, the Venture and which paper it was
+- [x] The Owner alone may generate one
+- [x] A paper is refused for an Investor who has no Agreement with that Venture, rather than printing an empty one
+- [~] Tests cover the Audit Event written for each of the three, the refusal for an Investor who is not in that Venture, the Manager refused, and a paper carrying the footer
 
 ## Checked before starting
 
@@ -44,3 +44,23 @@ Both helpers carry a closed union of paper names (`ExportedReport` at `export-st
 **The vocabulary needs deciding, and "Statement" is not free.** `CONTEXT.md` has no term for these three papers. It does list _statement_ under **Bank Check**'s _Avoid_, for the bank's own statement — a different real thing that also belongs to a Venture, and one the Settlement already refuses to close over. Whatever word is chosen has to be readable in a sentence beside "the bank's statement" without either being mistaken for the other. Say it in `CONTEXT.md` before writing it into code; see the three Bangla names the prototype settled — যোগদানপত্র, অগ্রগতি, হিসাব নিকাশ.
 
 **Say Average Daily Gain in full.** `CONTEXT.md` lists "ADG on its own" under _Avoid_. The prototype ticket writes ADG throughout; the code and the papers should not.
+
+## What was decided while building
+
+**Built with ticket 02, because a surface with no paper on it cannot be tested.** This ticket's last criterion asked for the Audit Event of "each of the three", which only the three can prove — and the repo's testing decisions put the seam at the oRPC router, so shipping scaffolding with no procedure over it would have been untested code by construction. The যোগদানপত্র went in beside it and proves the surface end to end; the criterion is marked partial because the other two papers will each add their own Export test. Nothing about the surface is waiting on them.
+
+**The word is Investor Statement**, and it was not a fresh choice: the spec's **Statements** section and the roles matrix row ("Investor statement — generate, issue, record acknowledgement") both already say it, and both are CONFIRMED by the Owner. `CONTEXT.md` now carries it with the three Bangla names, and says in its own last line what it is not — the bank's statement, which is what a **Bank Check** reads a month against. That was the collision this ticket flagged, and naming it inside the entry is what keeps the two readable side by side.
+
+**`exportedPaper` moved out of `routers/papers.ts` and into `export-store.ts`,** beside `recordExport`, and lost its `tagNumbers` argument to a caller-supplied `extra`. The animals' papers keep their tags through a four-line `aboutAnimals` wrapper in the router that still says why the tags are there. One place now knows what an Export snapshot holds, which is what this ticket asked for rather than a third helper beside two.
+
+**The narrowing is keyed on the Agreement, not the Investor** — `hisStanding(tx, farmId, agreementId)` in `investor-statement-store.ts`. That is the natural key for a paper (one man, one Venture, one set of frozen terms), and it also sidesteps the contradiction found while building: see the note on ticket 02.
+
+**A test caught the percentages printing in Arabic numerals** in the middle of a Bangla sentence — `৬০%` was coming out `60%`. The fix was the reader's own formatter, and then a review pointed out the deeper version of the same thing: the reader is the *Owner at the screen*, and an English-preferring Owner would have printed `বিনিয়োগকারী 60%` and an English date inside a Bangla sentence. The seven terms are whole sentences a man reads for his own terms, so they pin Bangla whoever prints them, exactly as the transport card pins its own. The bilingual labels around them are unchanged. The wording moved to `investor-statement-words.ts`, beside `paper-words.ts`, because `routers/papers.ts` carries no Bangla and this router should not either.
+
+**The shared surface got shared properly.** The first version exported the footer alone and let `joiningLetter` compose the letterhead itself, which a review correctly called out: the criterion asks for a surface the next two papers *take*, and what was there was one they would each have to remember. `investorStatement({ farm, title, body, producedBy, producedAt })` now wraps every statement in letterhead, title, body, footer — so none of the three can be written without the footer, which is the point of it.
+
+**Refunds: a joining letter could say the Farm held money it had already sent back.** The capital read asked for `capital_in` alone, so an Agreement on a cancelled Venture — every taka refunded — still passed the "has capital arrived" check and printed a total. It now reads both kinds, prints a refund as its own line marked ফেরত, totals what the Farm actually holds, and refuses with `capital_returned` when that is nothing. A test walks a Venture called off for missing its Floor; removing the refund read turns that one test red and leaves the other ten green.
+
+## Left as it is, on purpose
+
+**No screen.** Neither this ticket nor 02 has a UI criterion, and none of increment 6's six tickets does — the papers are reachable through the API and recorded on the trail, but nobody can print one yet. `PaperId` in `apps/web/src/components/paper.tsx` is a closed union and would need an entry; adding one with no screen behind it would be three dead lines. The screens want a ticket of their own, and whoever writes it should know that a fortnight-old cached answer can reach it — see the Screens note in the release map.

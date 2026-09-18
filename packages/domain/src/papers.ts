@@ -629,3 +629,162 @@ export const herdSummary = (summary: HerdSummary): string =>
     "",
     `${summary.producedAt} · ${summary.producedBy}`,
   ].join("\n");
+
+/**
+ * The footer every **Investor Statement** carries, in both languages.
+ *
+ * On all three papers, every time, because an Investor reads one of these and nothing else: there is no
+ * portal and no login, so the terms have to be in front of him whenever the Farm tells him anything at
+ * all. Said here once so that the three cannot come to say it three ways.
+ */
+export const NO_GUARANTEE_LINES = [
+  "কোনো মুনাফার নিশ্চয়তা নেই। ক্ষতি হলে তা মূলধন থেকে যাবে।",
+  "No return is guaranteed. A loss comes off capital.",
+] as const;
+
+/** What every **Investor Statement** is wrapped in, whichever of the three it is. */
+export interface StatementSheet {
+  farm: FarmIdentity;
+  /** The sheet's own title, Bangla with the English alongside. */
+  title: string;
+  /** Its own lines, between the letterhead and the footer. A null is left out. */
+  body: (string | null)[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * An Investor Statement, whichever of the three it is: the **Farm Identity** letterhead, the sheet's own
+ * title, what it has to say, and then the footer.
+ *
+ * One wrapper so that the three cannot come to disagree about what a statement looks like, and so that
+ * none of them can be written without the footer — an Investor reads one of these and nothing else, and
+ * the terms have to be in front of him every time (CONTEXT: Investor Statement).
+ */
+export const investorStatement = (sheet: StatementSheet): string =>
+  [
+    ...farmOfOriginLines(sheet.farm),
+    "",
+    sheet.title,
+    "",
+    ...sheet.body,
+    "",
+    ...NO_GUARANTEE_LINES,
+    "",
+    `${sheet.producedAt} · ${sheet.producedBy}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+/** One movement of his capital as a paper prints it: what moved, which way, when, and on what reference. */
+export interface CapitalLine {
+  /** Money he put in, or money the Farm sent back when the Venture was called off. */
+  kind: "received" | "returned";
+  /** Taka, formatted for the reader. */
+  amount: string;
+  /** The day the bank moved it, as the reader reads it. */
+  on: string;
+  reference: string;
+}
+
+/**
+ * যোগদানপত্র — what one Investor is handed when his money lands.
+ *
+ * The terms come off his own **Investment Agreement** rather than off the Venture, because each paper
+ * froze its own at signing and a man who signed before an amendment agreed to what his paper says.
+ */
+export interface JoiningLetter {
+  farm: FarmIdentity;
+  /** Him, and the person his family would come to the Farm about. */
+  him: {
+    name: string;
+    phone: string;
+    address: string | null;
+    nid: string | null;
+    nominee: {
+      name: string;
+      phone: string | null;
+      relation: string | null;
+    } | null;
+  };
+  ventureName: string;
+  /** Taka, formatted. */
+  unitPrice: string;
+  /** Whole Units, formatted for the reader. */
+  units: string;
+  capital: CapitalLine[];
+  /** Taka, formatted. What the farm holds of his: received less returned, never typed. */
+  totalCapital: string;
+  /** The seven plain lines of what he agreed to, already worded by the caller. */
+  terms: string[];
+  /** The stamped instrument this paper points at, as the schema groups it: what the stamp cost, the day
+   *  it was stamped, and its serial. */
+  stamp: { value: string; on: string; serial: string };
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * The paper an Investor gets when he joins: that the Farm has his money, and what he has agreed to.
+ *
+ * Every arrival is printed with its own day and bank reference rather than summed into one figure,
+ * because the whole use of this sheet is that a man can hold it beside his own bank statement and see
+ * the same lines. A total nobody can check against anything is not an acknowledgement.
+ */
+export const joiningLetter = (letter: JoiningLetter): string => {
+  if (letter.capital.length === 0) {
+    throw new Error(
+      "a joining letter cannot acknowledge capital that has not arrived"
+    );
+  }
+  return investorStatement({
+    farm: letter.farm,
+    title: "যোগদানপত্র / Investor joining letter",
+    producedBy: letter.producedBy,
+    producedAt: letter.producedAt,
+    body: [
+      field("বিনিয়োগকারী", "Investor", letter.him.name),
+      letter.him.address?.trim()
+        ? field("ঠিকানা", "Address", letter.him.address)
+        : null,
+      field("মোবাইল", "Phone", letter.him.phone),
+      letter.him.nid?.trim()
+        ? field("জাতীয় পরিচয়পত্র", "NID", letter.him.nid)
+        : null,
+      letter.him.nominee
+        ? field(
+            "নমিনি",
+            "Nominee",
+            [
+              letter.him.nominee.name,
+              letter.him.nominee.relation?.trim() || null,
+              letter.him.nominee.phone?.trim() || null,
+            ]
+              .filter((part) => part !== null)
+              .join(" · ")
+          )
+        : null,
+      "",
+      field("ভেঞ্চার", "Venture", letter.ventureName),
+      field("প্রতি ইউনিট", "Unit price", `${letter.unitPrice} টাকা`),
+      field("ইউনিট", "Units held", letter.units),
+      "",
+      "প্রাপ্ত মূলধন / Capital received",
+      ...letter.capital.map(
+        (one) =>
+          `  ${one.on} · ${one.amount} টাকা · ${one.reference}${one.kind === "returned" ? " · ফেরত / returned" : ""}`
+      ),
+      field("মোট", "Total", `${letter.totalCapital} টাকা`),
+      "",
+      "শর্তাবলি / Terms",
+      ...letter.terms.map((one) => `  ${one}`),
+      "",
+      field("স্ট্যাম্প মূল্য", "Stamp value", `${letter.stamp.value} টাকা`),
+      field("স্ট্যাম্পের তারিখ", "Stamped on", letter.stamp.on),
+      field("স্ট্যাম্প সিরিয়াল", "Stamp serial", letter.stamp.serial),
+      "",
+      "বিনিয়োগকারীর স্বাক্ষর / Investor: ____________________",
+      "খামারির স্বাক্ষর / For the Farm: ____________________",
+    ],
+  });
+};
