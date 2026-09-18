@@ -70,11 +70,16 @@ the minute between the two.
 
 ## Afterwards
 
-Open the app and look at three things:
+Open the app and look at four things:
 
 1. **Today** — the day's work is there.
 2. **To check** — the sign-off queue loads.
 3. **Settings → Being told** — this device can still agree to be told.
+4. **A bought-in bull's money tab** — her Hasil, her share of the outing that brought her,
+   and her part of the month's Herd Costs read as figures rather than zeros. All three at
+   zero after a few days of real work means something did not take. Set the Fodder Price on
+   the home-grown Feed Items first, or the farm's own grass still costs the animals nothing
+   and every Margin reads high.
 
 If the first is empty and it should not be, the scheduler has not been triggered: opening
 the app does that, so open it again.
