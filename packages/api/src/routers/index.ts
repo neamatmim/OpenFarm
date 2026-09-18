@@ -36,6 +36,7 @@ import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
 import { syncRouter } from "./sync";
 import { tripsRouter } from "./trips";
+import { venturesRouter } from "./ventures";
 import { vetCasesRouter } from "./vet-cases";
 import { withdrawalsRouter } from "./withdrawals";
 
@@ -76,6 +77,7 @@ export const appRouter = {
   sale: saleRouter,
   trips: tripsRouter,
   sellingTrips: sellingTripsRouter,
+  ventures: venturesRouter,
   sops: sopsRouter,
   sync: syncRouter,
   vetCases: vetCasesRouter,

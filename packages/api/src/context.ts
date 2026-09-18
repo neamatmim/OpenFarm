@@ -86,6 +86,12 @@ export interface Context {
     repeatBreederThreshold: number;
     /** The taka above which a Money Event waits for the Owner. */
     approvalThresholdBdt: number;
+    /** What part of a Venture's target capital is the least worth starting on. */
+    ventureFloorPercent: number;
+    /** What part of a Venture's capital keeps the animals rather than buying them. */
+    ventureRunningPercent: number;
+    /** The days a Venture keeps selling after its window before the Farm buys the rest. */
+    windUpDays: number;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

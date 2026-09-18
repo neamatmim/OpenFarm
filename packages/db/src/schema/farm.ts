@@ -88,6 +88,17 @@ export const farm = pgTable("farm", {
   repeatBreederThreshold: integer("repeat_breeder_threshold")
     .notNull()
     .default(3),
+  /** What part of a Venture's target capital is the least worth starting on, as a percentage. A plan that
+   *  raises less than this buys too few animals to be the run anybody signed for. */
+  ventureFloorPercent: integer("venture_floor_percent").notNull().default(70),
+  /** What part of a Venture's capital is kept back to feed and treat the animals, as a percentage; the
+   *  rest is the Cattle Budget. */
+  ventureRunningPercent: integer("venture_running_percent")
+    .notNull()
+    .default(25),
+  /** The days after a Venture's Target Window in which it keeps selling before the Farm buys whatever is
+   *  left, so the Venture settles on time. */
+  windUpDays: integer("wind_up_days").notNull().default(30),
   /** The taka above which a Money Event the Owner did not enter waits for the Owner's approval. */
   approvalThresholdBdt: integer("approval_threshold_bdt")
     .notNull()
