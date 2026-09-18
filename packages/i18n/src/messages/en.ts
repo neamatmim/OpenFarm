@@ -260,6 +260,22 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
   "ventures.drawFloat": "Draw a Float",
+  "ventures.checkTheBank": "Check against the bank",
+  "ventures.bankCheckHint":
+    "What {venture}'s account really held at the end of a month, against what the farm thinks it held.",
+  "ventures.farmThinks": "The farm thinks it held ৳{expected}",
+  "ventures.whatTheStatementSaid": "What the statement said",
+  "ventures.readHint": "The closing balance on the bank's own statement",
+  "ventures.difference": "Difference: ৳{difference}",
+  "ventures.whatYouFoundOut": "What you found out",
+  "ventures.whatYouFoundOutHint":
+    "Where it does not agree and you have found out why — a charge, a transfer that had not cleared",
+  "ventures.bankAgrees": "The bank agrees",
+  "ventures.alreadyChecked": "Read before as ৳{read}",
+  "ventures.bankDiffers": "Recorded, and ৳{difference} apart",
+  "ventures.bankDisagrees": "The bank did not agree for {month}",
+  "ventures.bankStraight": "Straight with the bank to {month}",
+  "ventures.bankNeverChecked": "Never checked against the bank",
   "ventures.advance": "Put your own money in",
   "ventures.advanceHint":
     "Your own money into {venture} so the animals keep eating. Interest-free, never a charge against them, and back at cost before any capital returns.",
@@ -352,6 +368,9 @@ export const en = {
     "Its animals consumed nothing of the farm's that month",
   "refusal.monthAlreadyReimbursed": "That month has been reimbursed already",
   "refusal.monthNotOver": "That month is not over yet",
+  "refusal.monthBeforeTheVenture": "That month is before this Venture opened",
+  "refusal.sayWhatYouFoundOut":
+    "Say what you found out about the month that did not agree",
   "refusal.sellerCannotTrade":
     "The Venture letting her go is past letting animals go",
   "refusal.cashBackNeedsASlip":

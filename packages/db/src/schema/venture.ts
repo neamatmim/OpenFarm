@@ -256,3 +256,41 @@ export const ventureMovement = pgTable(
       .where(sql`${table.kind} = 'reimbursement'`),
   ]
 );
+
+/**
+ * What the Venture Account really held at a month's end, read off the bank's own statement, beside what
+ * the farm thought it should hold.
+ *
+ * A mistake caught in weeks is one somebody can still remember; the same mistake found at settlement is
+ * a figure nobody can unpick with Investors waiting. A month that disagrees is kept as disagreeing — the
+ * Owner writes down what she found out about it rather than quietly making it agree — and a Settlement
+ * will not close over one.
+ */
+export const ventureBankCheck = pgTable(
+  "venture_bank_check",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    /** The month it is of, "YYYY-MM". One check per Venture per month. */
+    forMonth: text("for_month").notNull(),
+    /** What the statement said, and what the farm thought at the moment she read it. */
+    readBdt: numeric("read_bdt", { precision: 12, scale: 2 }).notNull(),
+    expectedBdt: numeric("expected_bdt", { precision: 12, scale: 2 }).notNull(),
+    /** What she found out about a difference, where she has found out anything. */
+    note: text("note"),
+    checkedBy: text("checked_by").references(() => user.id),
+    checkedAt: timestamp("checked_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("venture_bank_check_uidx").on(
+      table.farmId,
+      table.ventureId,
+      table.forMonth
+    ),
+  ]
+);

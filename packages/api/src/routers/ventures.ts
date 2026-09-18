@@ -6,11 +6,17 @@ import { animal } from "@OpenFarm/db/schema/herd";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
   agreementPaper,
+  ventureBankCheck,
   investmentAgreement,
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
-import { monthOf, roundTaka, startOfFarmDay } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  monthOf,
+  roundTaka,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -36,8 +42,12 @@ import {
   requireRole,
 } from "../roles";
 import {
+  balanceAtMonthEnd,
   balanceOf,
   heldByEach,
+  NEVER_CHECKED,
+  bankStandingOf,
+  readBankCheck,
   ownersOverTime,
   readInternalSale,
   whatSheLastWeighed,
@@ -288,6 +298,16 @@ const whatItsAnimalsConsumed = async (
   };
 };
 
+/**
+ * One bank check has one id, made of the Farm, the Venture and the month rather than the clock.
+ *
+ * A month is read once and put right afterwards, never recorded twice — and an id minted per call would
+ * let two readings race into a row one of them then updates under the other's id, leaving the trail with
+ * a create that points at nothing.
+ */
+const idOfTheMonth = (farmId: string, ventureId: string, month: string) =>
+  `${farmId}:${ventureId}:${month}`;
+
 /** This Farm's Investment Agreement, or nothing the caller may move money against. */
 const theAgreement = async (context: Context, id: string) => {
   const row = await context.db.query.investmentAgreement.findFirst({
@@ -355,12 +375,14 @@ export const venturesRouter = {
       const ids = rows.map((one) => one.id);
       const held = await heldByEach(context.db, context.farm.id, ids);
       const signed = await signedForEach(context.db, context.farm.id, ids);
+      const checked = await bankStandingOf(context.db, context.farm.id, ids);
       return rows.map((one) =>
         ventureView(
           one,
           held.get(one.id),
           signed.get(one.id),
-          context.farm.runningBudgetWarnBdt
+          context.farm.runningBudgetWarnBdt,
+          checked.get(one.id) ?? NEVER_CHECKED
         )
       );
     }),
@@ -786,7 +808,8 @@ export const venturesRouter = {
             standing,
             held.get(row.id),
             undefined,
-            context.farm.runningBudgetWarnBdt
+            context.farm.runningBudgetWarnBdt,
+            NEVER_CHECKED
           );
           if (input.amountBdt > view.cattleBudgetHeldBdt) {
             throw new ORPCError("BAD_REQUEST", {
@@ -1090,7 +1113,8 @@ export const venturesRouter = {
               buyer,
               held.get(to),
               undefined,
-              context.farm.runningBudgetWarnBdt
+              context.farm.runningBudgetWarnBdt,
+              NEVER_CHECKED
             );
             if (priceBdt > view.cattleBudgetHeldBdt) {
               throw new ORPCError("BAD_REQUEST", {
@@ -1160,6 +1184,172 @@ export const venturesRouter = {
         }
       );
       return { id, ...struck, rateBdtPerKg: input.rateBdtPerKg };
+    }),
+
+  /**
+   * What the farm thinks a Venture Account held at a month's end, so the Owner has something to hold the
+   * bank's statement against before she writes anything down.
+   */
+  expectedAtMonthEnd: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string(), month: monthInput }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      const expectedBdt = await balanceAtMonthEnd(
+        context.db,
+        context.farm.id,
+        row.id,
+        input.month
+      );
+      const already = await context.db.query.ventureBankCheck.findFirst({
+        where: {
+          farmId: context.farm.id,
+          ventureId: row.id,
+          forMonth: input.month,
+        },
+      });
+      return {
+        expectedBdt,
+        checked: already
+          ? {
+              readBdt: Number(already.readBdt),
+              expectedBdt: Number(already.expectedBdt),
+              note: already.note,
+            }
+          : null,
+      };
+    }),
+
+  /**
+   * The month's bank check: what the Venture Account really held, off the bank's own statement, against
+   * what the farm thinks it should have held.
+   *
+   * A month that disagrees is kept as disagreeing. The Owner writes down what she found out about it
+   * rather than making it agree, and a Settlement will not close over one — a mistake caught in weeks is
+   * one somebody can still remember, and the same mistake at settlement is a figure nobody can unpick.
+   */
+  checkTheBank: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        month: monthInput,
+        /** What the statement said. Signed, because a statement can read below nothing and the farm
+         *  would rather be told than have the figure refused. */
+        readBdt: z.number().min(-1_000_000_000).max(1_000_000_000),
+        /** What she has found out about a difference, where she has found out anything. */
+        note: z.string().trim().max(400).optional(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await ours(context, input.ventureId);
+      const { until } = monthOf(startOfFarmDay(`${input.month}-01`));
+      if (until > now) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That month is not over yet",
+          data: { refusal: "month_not_over" },
+        });
+      }
+      if (input.month < farmDayOf(row.createdAt).slice(0, 7)) {
+        // A month the Venture did not exist in would read straight against nothing, and a Venture
+        // nobody has really checked would look as though somebody had.
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That month is before this Venture opened",
+          data: { refusal: "month_before_the_venture" },
+        });
+      }
+      let expectedBdt = 0;
+      // Read for the label alone: whether the trail calls this a first reading or a month put right.
+      // What is written is decided inside the lock, so a race can mislabel the act but never the row.
+      const readBefore = await context.db.query.ventureBankCheck.findFirst({
+        where: { id: idOfTheMonth(context.farm.id, row.id, input.month) },
+        columns: { id: true },
+      });
+      await audited(context).write(
+        {
+          entity: "venture_bank_check",
+          entityId: idOfTheMonth(context.farm.id, row.id, input.month),
+          action: readBefore ? "update" : "create",
+          reason: input.note,
+          before: (tx) =>
+            readBankCheck(
+              tx,
+              context.farm.id,
+              idOfTheMonth(context.farm.id, row.id, input.month)
+            ),
+          after: (tx) =>
+            readBankCheck(
+              tx,
+              context.farm.id,
+              idOfTheMonth(context.farm.id, row.id, input.month)
+            ),
+        },
+        async (tx) => {
+          // Inside the write, behind the lock its neighbours take: the figure the farm believes is only
+          // true until the next movement commits, and two readings of one month must not race into two
+          // rows.
+          await lockTheFarm(tx, context.farm.id);
+          expectedBdt = await balanceAtMonthEnd(
+            tx,
+            context.farm.id,
+            row.id,
+            input.month
+          );
+          const already = await tx.query.ventureBankCheck.findFirst({
+            where: {
+              farmId: context.farm.id,
+              ventureId: row.id,
+              forMonth: input.month,
+            },
+          });
+          // A month found to disagree does not come right by being typed again. She may put a misread
+          // figure right, but she says what she found out when she does — that is the difference
+          // between correcting a reading and quietly making a problem go away.
+          const disagreed =
+            already !== undefined &&
+            roundTaka(Number(already.readBdt) - Number(already.expectedBdt)) !==
+              0;
+          // Said now, not once before: the note she wrote when it disagreed explains the disagreement,
+          // and putting the month right is a different thing to explain.
+          if (disagreed && !input.note) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "Say what you found out about the month that did not agree",
+              data: { refusal: "say_what_you_found_out" },
+            });
+          }
+          await tx
+            .insert(ventureBankCheck)
+            .values({
+              id: idOfTheMonth(context.farm.id, row.id, input.month),
+              farmId: context.farm.id,
+              ventureId: row.id,
+              forMonth: input.month,
+              readBdt: input.readBdt.toFixed(2),
+              expectedBdt: expectedBdt.toFixed(2),
+              note: input.note ?? null,
+              checkedBy: context.actor.id,
+              checkedAt: now,
+            })
+            .onConflictDoUpdate({
+              target: ventureBankCheck.id,
+              set: {
+                readBdt: input.readBdt.toFixed(2),
+                expectedBdt: expectedBdt.toFixed(2),
+                // Kept unless she says something new: re-reading a month must not erase what she
+                // found out about it last time.
+                note: input.note ?? already?.note ?? null,
+                checkedBy: context.actor.id,
+                checkedAt: now,
+              },
+            });
+        }
+      );
+      const differenceBdt = roundTaka(input.readBdt - expectedBdt);
+      return { expectedBdt, readBdt: input.readBdt, differenceBdt };
     }),
 
   /**

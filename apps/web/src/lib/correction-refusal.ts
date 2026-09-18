@@ -120,6 +120,8 @@ const WORDED_REFUSALS = {
   nothing_to_reimburse: "refusal.nothingToReimburse",
   month_already_reimbursed: "refusal.monthAlreadyReimbursed",
   month_not_over: "refusal.monthNotOver",
+  month_before_the_venture: "refusal.monthBeforeTheVenture",
+  say_what_you_found_out: "refusal.sayWhatYouFoundOut",
   seller_cannot_trade: "refusal.sellerCannotTrade",
   cash_back_needs_a_slip: "refusal.cashBackNeedsASlip",
   harvest_has_no_price: "refusal.harvestHasNoPrice",

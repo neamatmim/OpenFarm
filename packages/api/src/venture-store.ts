@@ -2,7 +2,12 @@ import type {
   VentureMovementKind,
   VentureState,
 } from "@OpenFarm/db/schema/venture";
-import { startOfFarmDay } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  monthOf,
+  roundTaka,
+  startOfFarmDay,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -85,7 +90,10 @@ export const ventureView = (
   /** The taka below which what is left to keep the animals with is said to be low. Asked for rather
    *  than defaulted: a default of nothing would quietly answer "not low" everywhere the caller forgot
    *  it, the trail included. */
-  warnBelowBdt: number
+  warnBelowBdt: number,
+  /** How this Venture's account stands against the bank. Asked for, never defaulted: a default would
+   *  quietly answer "never checked" wherever a caller forgot it, the trail included. */
+  bank: BankStanding
 ) => {
   const what = held ?? NOTHING_HELD;
   const balanceBdt = balanceOf(what);
@@ -137,6 +145,8 @@ export const ventureView = (
         row.state === "selling") &&
       runningBudgetHeldBdt < warnBelowBdt,
     signedFor: signedFor ?? NOBODY,
+    /** How it stands against the bank: when it was last read, and whether any month is still out. */
+    bank,
     cancelledReason: row.cancelledReason,
   };
 };
@@ -207,14 +217,21 @@ const WHAT_IT_DOES = {
 export const heldByEach = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  ids: readonly string[]
+  ids: readonly string[],
+  /** The last day to count, on the farm's own calendar. Left out, everything: what the account holds
+   *  today. Given, what it held at the end of that day — which is what a bank statement is of. */
+  until?: string
 ): Promise<Map<string, Held>> => {
   const held = new Map(ids.map((id) => [id, NOTHING_HELD]));
   if (ids.length === 0) {
     return held;
   }
   const movements = await tx.query.ventureMovement.findMany({
-    where: { farmId, ventureId: { in: [...ids] } },
+    where: {
+      farmId,
+      ventureId: { in: [...ids] },
+      ...(until === undefined ? {} : { movedOn: { lte: until } }),
+    },
     columns: {
       ventureId: true,
       kind: true,
@@ -404,6 +421,79 @@ export const ownersOverTime = async (
   return owners;
 };
 
+/** What the farm thinks a Venture Account held at the end of one month. */
+export const balanceAtMonthEnd = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string,
+  month: string
+): Promise<number> => {
+  const { until } = monthOf(startOfFarmDay(`${month}-01`));
+  // The last day the month has, as the farm writes a day.
+  const lastDay = farmDayOf(new Date(until.getTime() - 1));
+  const held = await heldByEach(tx, farmId, [ventureId], lastDay);
+  return roundTaka(balanceOf(held.get(ventureId) ?? NOTHING_HELD));
+};
+
+/** How a Venture's account stands against the bank. */
+export interface BankStanding {
+  /** The last month anybody read the statement against the books, or nothing if nobody has. */
+  lastCheckedMonth: string | null;
+  /** The months still out, oldest first. A month put right stops being one; a month nobody has
+   *  looked at was never one — which is why the last month checked is said as well. */
+  monthsOut: string[];
+}
+
+export const NEVER_CHECKED: BankStanding = {
+  lastCheckedMonth: null,
+  monthsOut: [],
+};
+
+/**
+ * How each Venture's account stands against the bank: every month that is still out, not only the last
+ * one read. An August that agreed says nothing about a July that did not, and a Settlement is owed the
+ * whole answer rather than the most recent one.
+ */
+export const bankStandingOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ids: readonly string[]
+): Promise<Map<string, BankStanding>> => {
+  const checks =
+    ids.length === 0
+      ? []
+      : await tx.query.ventureBankCheck.findMany({
+          where: { farmId, ventureId: { in: [...ids] } },
+          orderBy: { forMonth: "asc", id: "asc" },
+        });
+  const standing = new Map<string, BankStanding>();
+  for (const one of checks) {
+    const soFar = standing.get(one.ventureId) ?? NEVER_CHECKED;
+    const out = roundTaka(Number(one.readBdt) - Number(one.expectedBdt)) !== 0;
+    standing.set(one.ventureId, {
+      lastCheckedMonth: one.forMonth,
+      monthsOut: out ? [...soFar.monthsOut, one.forMonth] : soFar.monthsOut,
+    });
+  }
+  return standing;
+};
+
+/** One bank check as the trail records it. */
+export const readBankCheck = async (tx: Tx, farmId: string, id: string) => {
+  const row = await tx.query.ventureBankCheck.findFirst({
+    where: { id, farmId },
+  });
+  return row
+    ? {
+        ventureId: row.ventureId,
+        forMonth: row.forMonth,
+        readBdt: Number(row.readBdt),
+        expectedBdt: Number(row.expectedBdt),
+        note: row.note,
+      }
+    : null;
+};
+
 /** One Venture Movement as the trail records it: whose money, which way, how much and against what
  *  reference. */
 export const readMovement = async (tx: Tx, farmId: string, id: string) => {
@@ -437,10 +527,12 @@ export const readVenture = async (tx: Tx, farmId: string, id: string) => {
     where: { id: farmId },
     columns: { runningBudgetWarnBdt: true },
   });
+  const standing = await bankStandingOf(tx, farmId, [row.id]);
   return ventureView(
     row,
     held.get(row.id),
     signed.get(row.id),
-    farmRow?.runningBudgetWarnBdt ?? 0
+    farmRow?.runningBudgetWarnBdt ?? 0,
+    standing.get(row.id) ?? NEVER_CHECKED
   );
 };
