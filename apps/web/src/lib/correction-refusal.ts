@@ -116,6 +116,12 @@ const WORDED_REFUSALS = {
   never_weighed: "refusal.neverWeighed",
   wind_up_not_over: "refusal.windUpNotOver",
   nothing_left_to_buy: "refusal.nothingLeftToBuy",
+  an_animal_still_stands: "refusal.anAnimalStillStands",
+  a_price_is_missing: "refusal.aPriceIsMissing",
+  a_float_is_open: "refusal.aFloatIsOpen",
+  a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",
+  the_bank_disagrees: "refusal.theBankDisagrees",
+  agreements_disagree: "refusal.agreementsDisagree",
   weighed_again_since: "refusal.weighedAgainSince",
   not_a_fattening_animal: "refusal.notAFatteningAnimal",
   buyer_cannot_trade: "refusal.buyerCannotTrade",
@@ -169,6 +175,21 @@ export const wordedRefusal = (
     ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS])
     : null;
 };
+
+/**
+ * A worded refusal that arrived as data rather than as an error — a Settlement's blocks, which are shown
+ * beside the figures rather than thrown, because an Owner told only "no" has nothing to go and put right.
+ *
+ * The same one word list, so a word cannot exist on the server and be unsayable on the screen.
+ */
+export const wordFor = (
+  word: string,
+  t: (key: MessageKey, params?: MessageParams) => string,
+  params?: MessageParams
+): string | null =>
+  word in WORDED_REFUSALS
+    ? t(WORDED_REFUSALS[word as keyof typeof WORDED_REFUSALS], params)
+    : null;
 
 /** Why a Correction was not taken, in the reader's language — its window, its Role, a value changed since, nothing
  *  changed, or the kind's own word — or nothing, when the error was about something else. */

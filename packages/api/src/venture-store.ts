@@ -750,6 +750,40 @@ export const stillHersByEach = async (
   return stillHers;
 };
 
+/**
+ * Whose an Animal was on a given day — her owner then, not her owner now.
+ *
+ * What every sum narrowed to a Venture is filtered by: a month's feed belongs to whoever owned her that
+ * month, and reading it off today's owner charges one Investor for another's animal for good.
+ */
+export const ownedThenByOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string
+): Promise<(animalId: string, at: Date) => string | null> => {
+  const nowOwned = await tx.query.animal.findMany({
+    where: { farmId },
+    columns: { id: true, ownerVentureId: true },
+  });
+  const ownsNow = new Map(nowOwned.map((one) => [one.id, one.ownerVentureId]));
+  const changed = await ownersOverTime(tx, farmId);
+  const ownerAt = (animalId: string, at: Date): string | null => {
+    const hers = changed.get(animalId);
+    if (!hers) {
+      // Never sold between purses, so she has belonged to the same owner throughout.
+      return ownsNow.get(animalId) ?? null;
+    }
+    // The last change on or before that day is who owned her then.
+    let owner = hers[0]?.ventureId ?? null;
+    for (const span of hers) {
+      if (span.from <= at) {
+        owner = span.ventureId;
+      }
+    }
+    return owner;
+  };
+  return ownerAt;
+};
+
 /** One bank check as the trail records it. */
 export const readBankCheck = async (tx: Tx, farmId: string, id: string) => {
   const row = await tx.query.ventureBankCheck.findFirst({

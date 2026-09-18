@@ -1,0 +1,503 @@
+import { penAssignment } from "@OpenFarm/db/schema/herd";
+import type { SopContent } from "@OpenFarm/domain";
+import {
+  FakeClock,
+  scratchDb,
+  theFarm,
+  thePerson,
+} from "@OpenFarm/test-harness";
+import { beforeAll, describe, expect, it } from "vitest";
+
+import { createTestClient } from "../test/client";
+import { appRouter } from "./index";
+
+/**
+ * What a Settlement is, and what blocks it: the close-out of a Venture shown before anything is done, and
+ * refused in words while anything about it is still a guess.
+ */
+const suffix = `settle-${Date.now()}`;
+
+const as = (role: "owner" | "manager" | "staff", instant: string) =>
+  createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
+
+const plan = {
+  targetCapitalBdt: 1_000_000,
+  floorBdt: 0,
+  decideBy: "2047-01-20",
+  targetWindowStart: "2047-03-17",
+  targetWindowEnd: "2047-03-19",
+  unitPriceBdt: 50_000,
+  units: 20,
+  cattleBudgetBdt: 800_000,
+};
+
+const feedSop = (): SopContent => ({
+  name: { bn: `খাওয়ানো ${suffix}`, en: "Feeding" },
+  purpose: { bn: "পেনে খাবার দেওয়া" },
+  triggers: [{ kind: "schedule", times: ["06:00"] }],
+  assignedRole: "staff",
+  checkerRole: null,
+  graceMinutes: 120,
+  steps: [
+    {
+      id: "feed",
+      text: { bn: "খাওয়ান" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+      effect: { kind: "feeding" },
+    },
+  ],
+});
+
+type Owner = Awaited<ReturnType<typeof as>>;
+
+let penId = "";
+let ventureId = "";
+let feedItemId = "";
+let tripId = "";
+let feedSopId = "";
+const tags: string[] = [];
+
+const theSettlement = async (owner: Owner, which = ventureId) =>
+  await owner.client.ventures.settlement({ ventureId: which });
+
+const wordsOf = (blocks: readonly { word: string }[]) =>
+  blocks.map((one) => one.word);
+
+/** A Venture signed for, paid into and buying. */
+const funded = async (owner: Owner, which: number) => {
+  const venture = await owner.client.ventures.open({
+    name: `ভেঞ্চার ${which} ${suffix}`,
+    ...plan,
+  });
+  const person = await owner.client.investors.record({
+    name: `বিনিয়োগকারী ${which} ${suffix}`,
+    phone: `0192${String(which).padStart(7, "0")}`,
+  });
+  const agreement = await owner.client.ventures.sign({
+    ventureId: venture.id,
+    investorId: person.id,
+    units: 20,
+    investorsPercent: 60,
+    arbitrator: `মাওলানা ${suffix}`,
+    stampValueBdt: 300,
+    stampedOn: "2047-01-02",
+    stampSerial: `AA ${which} ${suffix}`,
+  });
+  await owner.client.ventures.keepAgreementPaper({
+    agreementId: agreement.id,
+    contentType: "image/jpeg",
+    data: "aGVsbG8=",
+  });
+  await owner.client.ventures.takeCapital({
+    agreementId: agreement.id,
+    amountBdt: 1_000_000,
+    movedOn: "2047-01-03",
+    paymentMethod: "bank",
+    reference: `TRF-${suffix}-${which}`,
+  });
+  await owner.client.ventures.startBuying({ id: venture.id });
+  return venture.id;
+};
+
+beforeAll(async () => {
+  const owner = await as("owner", "2047-01-01T04:00:00.000Z");
+  const shed = await owner.client.herd.createShed({ name: suffix });
+  const pen = await owner.client.herd.createPen({
+    shedId: shed.id,
+    name: `ফ্যাটেনিং ${suffix}`,
+  });
+  penId = pen.id;
+  await as("staff", "2047-01-01T04:00:00.000Z");
+  await scratchDb()
+    .insert(penAssignment)
+    .values({
+      id: `pa-${suffix}`,
+      farmId: theFarm().id,
+      userId: thePerson("staff").id,
+      penId: pen.id,
+    })
+    .onConflictDoNothing();
+
+  ventureId = await funded(owner, 1);
+
+  // Two bulls bought on the Venture's own Float, so their price and the outing's costs are its charges.
+  const manager = await as("manager", "2047-01-04T05:00:00.000Z");
+  const buying = await as("owner", "2047-01-04T04:00:00.000Z");
+  const trip = await buying.client.trips.record({
+    wentTo: `হাট ${suffix}`,
+    wentOn: "2047-01-04",
+    brokerBdt: 2000,
+    transportBdt: 3000,
+    keepBdt: 0,
+  });
+  tripId = trip.id;
+  await buying.client.ventures.drawFloat({
+    ventureId,
+    buyingTripId: trip.id,
+    amountBdt: 200_000,
+    movedOn: "2047-01-04",
+    paymentMethod: "bank",
+    reference: `FLT-${suffix}`,
+  });
+  const broughtIn = async () => {
+    const her = await manager.client.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceBdt: 80_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      ventureId,
+      arrivedAt: new Date("2047-01-04T05:00:00.000Z"),
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+    });
+    tags.push(her.tagNumber);
+  };
+  await broughtIn();
+  await broughtIn();
+
+  // Feed, so there is something for a month's Reimbursement to be about.
+  const feeding = await as("manager", "2047-01-05T05:00:00.000Z");
+  const item = await feeding.client.feed.addItem({
+    name: { bn: `দানাদার ${suffix}` },
+  });
+  feedItemId = item.id;
+  await feeding.client.stock.receive({
+    feedItemId,
+    kind: "purchase",
+    quantity: 5000,
+    priceBdt: 200_000,
+    seller: { name: `ডিলার ${suffix}` },
+    receivedOn: "2047-01-05",
+  });
+  const ration = await feeding.client.feed.saveRation({
+    name: { bn: `রেশন ${suffix}` },
+    items: [{ feedItemId, kgPerAnimalPerDay: 5 }],
+  });
+  await feeding.client.feed.assignRation({
+    penId,
+    rationId: ration.rationId,
+  });
+  const sop = await owner.client.sops.create({ content: feedSop() });
+  feedSopId = sop.definitionId;
+  const scheduler = await as("owner", "2047-01-06T06:30:00.000Z");
+  await scheduler.client.instances.ensureDue();
+  const today = await scheduler.client.instances.today({ penId });
+  const instance = today.find((one) => one.definitionId === sop.definitionId);
+  const staff = await as("staff", "2047-01-06T06:30:00.000Z");
+  await staff.client.instances.claim({ id: instance?.id ?? "" });
+  // A thousand kilos at forty taka: forty thousand of feed, charged to the two of them.
+  await staff.client.instances.completeStep({
+    instanceId: instance?.id ?? "",
+    stepId: "feed",
+    evidence: [true],
+    feeding: [{ feedItemId, givenKg: 1000 }],
+  });
+});
+
+describe("what a Settlement is", () => {
+  it("says everything that makes it a guess, and still shows the figures", async () => {
+    const owner = await as("owner", "2047-02-05T04:00:00.000Z");
+    const settlement = await theSettlement(owner);
+    // Both bulls still standing, the Float not counted home, January not reimbursed and never read
+    // against the bank.
+    expect(wordsOf(settlement.blocks)).toEqual([
+      "an_animal_still_stands",
+      "a_float_is_open",
+      "a_reimbursement_is_owed",
+      "the_bank_disagrees",
+    ]);
+    // And the figures come all the same, because she is owed the shape of the answer while she works.
+    expect(settlement.charges.map((one) => one.word)).toEqual([
+      "bought",
+      "hasil",
+      "trips",
+      "feed",
+      "medicine",
+      "vet",
+      "herd",
+    ]);
+    expect(settlement.units).toBe(20);
+    expect(settlement.investorsPercent).toBe(60);
+  });
+
+  it("charges the run what its animals cost, whichever purse paid", async () => {
+    const owner = await as("owner", "2047-02-06T04:00:00.000Z");
+    const settlement = await theSettlement(owner);
+    const line = (word: string) =>
+      settlement.charges.find((one) => one.word === word)?.bdt;
+    // Two bulls at eighty thousand, out of its own Float.
+    expect(line("bought")).toBe(160_000);
+    // The outing's broker and lorry, split between the two of them.
+    expect(line("trips")).toBe(5000);
+    // A thousand kilos at forty taka, which the Farm bought and will be reimbursed for.
+    expect(line("feed")).toBe(40_000);
+  });
+
+  it("clears every block, and then adds up exactly", async () => {
+    // The Float comes home: two hundred thousand went out, a hundred and sixty bought the bulls and
+    // five thousand was the outing's own cost, so thirty-five thousand comes back.
+    const counting = await as("owner", "2047-02-01T04:00:00.000Z");
+    await counting.client.ventures.reconcileFloat({
+      buyingTripId: tripId,
+      cashBackBdt: 35_000,
+      movedOn: "2047-02-01",
+      reference: `DEP-${suffix}`,
+    });
+    // January's feed is repaid.
+    const paying = await as("owner", "2047-02-02T04:00:00.000Z");
+    await paying.client.ventures.reimburse({
+      ventureId,
+      month: "2047-01",
+      movedOn: "2047-02-02",
+      paymentMethod: "bank",
+      reference: `REI-${suffix}`,
+      amountBdt: 40_000,
+    });
+    // The Owner's own money goes in to keep them, and comes back at cost before any capital does.
+    await paying.client.ventures.advance({
+      ventureId,
+      amountBdt: 50_000,
+      movedOn: "2047-02-02",
+      paymentMethod: "bank",
+      reference: `ADV-${suffix}`,
+    });
+
+    // Both months read against the statement.
+    const reading = await as("owner", "2047-03-01T04:00:00.000Z");
+    await reading.client.ventures.checkTheBank({
+      ventureId,
+      month: "2047-01",
+      readBdt: 800_000,
+    });
+    await reading.client.ventures.checkTheBank({
+      ventureId,
+      month: "2047-02",
+      readBdt: 845_000,
+    });
+
+    // They eat again in March, the month she means to settle in — a month that cannot be reimbursed
+    // until it is over, and so a month the Settlement must not quietly promise its way past.
+    const scheduler = await as("owner", "2047-03-10T06:30:00.000Z");
+    await scheduler.client.instances.ensureDue();
+    const due = await scheduler.client.instances.today({ penId });
+    const instance = due.find((one) => one.definitionId === feedSopId);
+    const eating = await as("staff", "2047-03-10T06:30:00.000Z");
+    await eating.client.instances.claim({ id: instance?.id ?? "" });
+    await eating.client.instances.completeStep({
+      instanceId: instance?.id ?? "",
+      stepId: "feed",
+      evidence: [true],
+      feeding: [{ feedItemId, givenKg: 100 }],
+    });
+
+    // And both bulls go to a buyer, for four lakh five thousand and five taka between them.
+    const selling = await as("manager", "2047-03-18T05:00:00.000Z");
+    for (const [at, priceBdt] of [
+      [0, 202_505],
+      [1, 202_500],
+    ] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one lorry at a time
+      await selling.client.sale.record({
+        tagNumber: tags[at] ?? "",
+        buyer: { name: `ক্রেতা ${at} ${suffix}` },
+        priceBdt,
+        weightKg: 340,
+        destination: `ঢাকা ${suffix}`,
+        vehicle: `ঢাকা মেট্রো ${suffix}`,
+        driver: `চালক ${suffix}`,
+        paymentMethod: "bank",
+      });
+    }
+
+    const owner = await as("owner", "2047-03-25T04:00:00.000Z");
+    const settlement = await theSettlement(owner);
+    // March's feed is owed to the Farm and cannot be paid until March is over. A Settlement that let
+    // that through would promise the Investors money the account still has to part with.
+    expect(wordsOf(settlement.blocks)).toEqual(["a_reimbursement_is_owed"]);
+    expect(settlement.blocks[0]).toMatchObject({ months: ["2047-03"] });
+  });
+
+  it("adds up exactly once nothing at all is owed", async () => {
+    // March ends, its feed is repaid and its statement read.
+    const april = await as("owner", "2047-04-01T04:00:00.000Z");
+    await april.client.ventures.reimburse({
+      ventureId,
+      month: "2047-03",
+      movedOn: "2047-04-01",
+      paymentMethod: "bank",
+      reference: `REI2-${suffix}`,
+      amountBdt: 4000,
+    });
+    await april.client.ventures.checkTheBank({
+      ventureId,
+      month: "2047-03",
+      readBdt: 1_250_005,
+    });
+
+    const owner = await as("owner", "2047-04-05T04:00:00.000Z");
+    const settlement = await theSettlement(owner);
+    expect(settlement.blocks).toEqual([]);
+    expect(settlement).toMatchObject({
+      proceedsBdt: 405_005,
+      chargedBdt: 209_000,
+      profitBdt: 196_005,
+      // Sixty per cent of one lakh ninety-six thousand and five is a hundred and seventeen thousand
+      // six hundred and three, which will not divide twenty ways in whole taka: three taka is left
+      // over and it is the Farm's.
+      investorsBdt: 117_603,
+      perUnitBdt: 5880,
+      roundingBdt: 3,
+      farmBdt: 78_405,
+      advanceBdt: 50_000,
+      capitalBdt: 1_000_000,
+    });
+    expect(settlement.payouts).toEqual([
+      expect.objectContaining({
+        units: 20,
+        capitalBdt: 1_000_000,
+        shareBdt: 117_600,
+        payoutBdt: 1_117_600,
+      }),
+    ]);
+
+    // The whole of it: what the Owner is owed back, what the Investors are paid, and the Farm's share
+    // are exactly what the account holds. A Settlement that does not is one that cannot be paid — and
+    // it only holds because nothing is owed, which is what every block above is for.
+    const owedOut =
+      settlement.advanceBdt +
+      settlement.payouts.reduce((sum, one) => sum + one.payoutBdt, 0) +
+      settlement.farmBdt;
+    expect(owedOut).toBe(settlement.balanceBdt);
+  });
+
+  it("says a price is missing, and shows a loss as a loss", async () => {
+    // A second run, fed on the farm's own harvested fodder, which has no price until somebody sets one.
+    const owner = await as("owner", "2047-04-01T04:00:00.000Z");
+    const second = await funded(owner, 2);
+    const manager = await as("manager", "2047-04-02T05:00:00.000Z");
+    const trip = await owner.client.trips.record({
+      wentTo: `হাট দুই ${suffix}`,
+      wentOn: "2047-04-01",
+      brokerBdt: 0,
+      transportBdt: 0,
+      keepBdt: 0,
+    });
+    await owner.client.ventures.drawFloat({
+      ventureId: second,
+      buyingTripId: trip.id,
+      amountBdt: 100_000,
+      movedOn: "2047-04-01",
+      paymentMethod: "bank",
+      reference: `FLT2-${suffix}`,
+    });
+    const her = await manager.client.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceBdt: 100_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      ventureId: second,
+      arrivedAt: new Date("2047-04-02T05:00:00.000Z"),
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+    });
+    // The farm's own fodder: harvested, never bought, so the store holds kilos at no price at all and
+    // nothing can say what a kilo of it cost.
+    const fodder = await manager.client.feed.addItem({
+      name: { bn: `নিজের খড় ${suffix}` },
+    });
+    await manager.client.stock.receive({
+      feedItemId: fodder.id,
+      kind: "harvest",
+      quantity: 2000,
+      receivedOn: "2047-04-02",
+    });
+    const ration = await manager.client.feed.saveRation({
+      name: { bn: `রেশন দুই ${suffix}` },
+      items: [{ feedItemId: fodder.id, kgPerAnimalPerDay: 5 }],
+    });
+    await manager.client.feed.assignRation({
+      penId,
+      rationId: ration.rationId,
+    });
+    const scheduler = await as("owner", "2047-04-02T06:30:00.000Z");
+    await scheduler.client.instances.ensureDue();
+    const due = await scheduler.client.instances.today({ penId });
+    const instance = due.find((one) => one.definitionId === feedSopId);
+    const staff = await as("staff", "2047-04-02T06:30:00.000Z");
+    await staff.client.instances.claim({ id: instance?.id ?? "" });
+    await staff.client.instances.completeStep({
+      instanceId: instance?.id ?? "",
+      stepId: "feed",
+      evidence: [true],
+      feeding: [{ feedItemId: fodder.id, givenKg: 300 }],
+    });
+
+    // The Owner's own money in this one as well, so an Advance is seen coming back out of a run that
+    // lost money as well as one that made money.
+    const advancing = await as("owner", "2047-04-02T07:00:00.000Z");
+    await advancing.client.ventures.advance({
+      ventureId: second,
+      amountBdt: 10_000,
+      movedOn: "2047-04-02",
+      paymentMethod: "bank",
+      reference: `ADV2-${suffix}`,
+    });
+
+    const blocked = await theSettlement(owner, second);
+    // Three hundred kilos nobody can put a price on, she is still standing, and the Float that bought
+    // her has not been counted home.
+    expect(wordsOf(blocked.blocks)).toEqual([
+      "an_animal_still_stands",
+      "a_price_is_missing",
+      "a_float_is_open",
+    ]);
+
+    // She goes for well under what she cost, and the run loses money.
+    const selling = await as("manager", "2047-04-03T05:00:00.000Z");
+    await selling.client.sale.record({
+      tagNumber: her.tagNumber,
+      buyer: { name: `ক্রেতা দুই ${suffix}` },
+      priceBdt: 60_000,
+      weightKg: 210,
+      destination: `ঢাকা ${suffix}`,
+      vehicle: `ঢাকা মেট্রো ${suffix}`,
+      driver: `চালক ${suffix}`,
+      paymentMethod: "bank",
+    });
+    const after = await as("owner", "2047-04-04T04:00:00.000Z");
+    const settlement = await theSettlement(after, second);
+    // Forty thousand less than she cost, and it reads as a loss rather than as nothing.
+    expect(settlement).toMatchObject({
+      proceedsBdt: 60_000,
+      chargedBdt: 100_000,
+      profitBdt: -40_000,
+      investorsBdt: -24_000,
+      perUnitBdt: -1200,
+      farmBdt: -16_000,
+      // Repaid at cost, out of a run that lost money: the Owner's taka went in to feed their animals.
+      advanceBdt: 10_000,
+    });
+    // It comes off the capital the Investor gets back, by the Units he holds.
+    expect(settlement.payouts[0]).toMatchObject({
+      units: 20,
+      capitalBdt: 1_000_000,
+      shareBdt: -24_000,
+      payoutBdt: 976_000,
+    });
+  });
+
+  it("is the Owner's alone", async () => {
+    const manager = await as("manager", "2047-03-26T04:00:00.000Z");
+    await expect(
+      manager.client.ventures.settlement({ ventureId })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});

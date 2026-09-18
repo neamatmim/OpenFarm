@@ -387,6 +387,16 @@ export const en = {
   "refusal.windUpNotOver":
     "The Wind-up Period has not ended; there are still days to sell in",
   "refusal.nothingLeftToBuy": "This Venture has no animals left to buy",
+  "refusal.anAnimalStillStands": "An Animal of this Venture is still standing",
+  "refusal.aPriceIsMissing":
+    "Feed was given or a dose used that nothing can put a price on",
+  "refusal.aFloatIsOpen": "A Buying Float has not been counted home",
+  "refusal.aReimbursementIsOwed":
+    "A month's Reimbursement has not been transferred",
+  "refusal.theBankDisagrees":
+    "A month has not been read against the statement, or did not agree",
+  "refusal.agreementsDisagree":
+    "This Venture's Agreements were signed on different splits",
   "refusal.weighedAgainSince":
     "She has been weighed since you read that price — check the new one",
   "refusal.notAFatteningAnimal":

@@ -610,6 +610,50 @@ const groupedLines = <Share>(
 };
 
 /** One line of what a month's consumption was made of: what it was, and what it came to. */
+/** One line of what a month's consumption was made of: what it was, and what it came to. */
+/** Whose an Animal was on a given day: her owner then, not her owner now. */
+type OwnedThenBy = (animalId: string, at: Date) => string | null;
+
+/**
+ * The shares of one Venture's Animals, as they were its Animals at the time.
+ *
+ * `withItsOwn` keeps the Hasil and the Trips it paid itself out of its own Float: a Settlement asks what
+ * the run cost whichever purse the taka came from, where a Reimbursement asks only what the Farm bought
+ * and is owed back.
+ */
+const hersThen = (
+  costs: FarmCosts,
+  ownedThenBy: OwnedThenBy,
+  ventureId: string,
+  withItsOwn: boolean
+): Shares => {
+  const theirsThen = (share: { animalId: string; at: Date }) =>
+    ownedThenBy(share.animalId, share.at) === ventureId;
+  return {
+    feed: costs.all.feed.filter(theirsThen),
+    doses: costs.all.doses.filter(theirsThen),
+    vet: costs.all.vet.filter(theirsThen),
+    litres: [],
+    hasil: withItsOwn ? costs.all.hasil.filter(theirsThen) : [],
+    trips: withItsOwn ? costs.all.trips.filter(theirsThen) : [],
+    herd: costs.all.herd.filter(theirsThen),
+  };
+};
+
+/**
+ * Everything a Venture's Animals were charged over the whole run, whoever paid it.
+ *
+ * The same costing narrowed to the Animals that were this Venture's at the time — its Hasil and its
+ * Trips too, which `consumedBy` leaves out because a Reimbursement is only about what the Farm bought and
+ * is owed back. A Settlement is a different question: what did this run cost, whichever purse the taka
+ * came out of. Never a second sum — the same shares, filtered.
+ */
+export const chargedTo = (
+  costs: FarmCosts,
+  ownedThenBy: OwnedThenBy,
+  ventureId: string
+) => roundedCosts(addedUp(hersThen(costs, ownedThenBy, ventureId, true)).costs);
+
 export interface ConsumedLine {
   id: string;
   bdt: number;
@@ -632,17 +676,7 @@ export const consumedBy = (
   ventureId: string,
   { from, until }: { from: Date; until: Date }
 ) => {
-  const theirsThen = (share: { animalId: string; at: Date }) =>
-    ownedThenBy(share.animalId, share.at) === ventureId;
-  const hers = {
-    feed: costs.all.feed.filter(theirsThen),
-    doses: costs.all.doses.filter(theirsThen),
-    vet: costs.all.vet.filter(theirsThen),
-    litres: [],
-    hasil: [],
-    trips: [],
-    herd: costs.all.herd.filter(theirsThen),
-  };
+  const hers = hersThen(costs, ownedThenBy, ventureId, false);
   const inThePeriod = (at: Date) => at >= from && at < until;
   const theirs = narrowed(hers, (share) => inThePeriod(share.at));
   const { costs: summed } = addedUp(theirs);
