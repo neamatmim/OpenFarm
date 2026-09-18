@@ -4,7 +4,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Banknote, Handshake, PenLine, XCircle } from "lucide-react";
+import { Banknote, Handshake, PenLine, Truck, XCircle } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -16,6 +16,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
+import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
@@ -61,11 +62,13 @@ const VentureCard = ({
   onSign,
   onTakeCapital,
   onCallOff,
+  onDrawFloat,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
   onTakeCapital: (venture: Venture) => void;
   onCallOff: (venture: Venture) => void;
+  onDrawFloat: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -85,7 +88,7 @@ const VentureCard = ({
         </Line>
         <Line label={t("ventures.held")}>{taka(venture.capitalInBdt)}</Line>
         <Line label={t("ventures.balance")}>{taka(money.balanceBdt)}</Line>
-        <Line label={t("ventures.spent")}>
+        <Line label={t("ventures.outOfTheAccount")}>
           {`${taka(money.spentBdt)} · ${taka(money.paidOutBdt)}`}
         </Line>
         <Line label={t("ventures.budgetsHeld")}>
@@ -153,6 +156,18 @@ const VentureCard = ({
           </Button>
         </div>
       ) : null}
+      {venture.state === "buying" ? (
+        <div className="flex justify-end">
+          <Button
+            onClick={() => onDrawFloat(venture)}
+            type="button"
+            variant="outline"
+          >
+            <Truck aria-hidden data-icon="inline-start" />
+            {t("ventures.drawFloat")}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -180,6 +195,7 @@ const VenturesPage = () => {
   const [signing, setSigning] = useState<Venture | null>(null);
   const [taking, setTaking] = useState<Venture | null>(null);
   const [callingOff, setCallingOff] = useState<Venture | null>(null);
+  const [drawing, setDrawing] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   return (
     <Page>
@@ -206,6 +222,7 @@ const VenturesPage = () => {
                 <VentureCard
                   key={one.id}
                   onCallOff={setCallingOff}
+                  onDrawFloat={setDrawing}
                   onSign={setSigning}
                   onTakeCapital={setTaking}
                   venture={one}
@@ -224,6 +241,15 @@ const VenturesPage = () => {
         }}
         open={taking !== null}
         venture={taking}
+      />
+      <DrawFloatSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setDrawing(null);
+          }
+        }}
+        open={drawing !== null}
+        venture={drawing}
       />
       <CallOffSheet
         onOpenChange={(wanted) => {

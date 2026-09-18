@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { buyingTrip } from "@OpenFarm/db/schema/fattening";
+import { buyingTrip } from "@OpenFarm/db/schema/trip";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -51,12 +51,40 @@ export const tripsRouter = {
         limit: OFFERED,
         with: { intakes: { columns: { id: true } } },
       });
+      // What each outing was given, and by whom. The Manager reads it because she is the one taking it
+      // to the haat; she may see what is in her hand without being able to draw it.
+      const floats = await context.db.query.ventureMovement.findMany({
+        where: {
+          farmId: context.farm.id,
+          kind: "float_out",
+          buyingTripId: { in: rows.map((one) => one.id) },
+        },
+        with: { venture: { columns: { name: true } } },
+      });
+      const given = new Map(
+        floats.flatMap((one) =>
+          one.buyingTripId
+            ? [
+                [
+                  one.buyingTripId,
+                  {
+                    amountBdt: Number(one.amountBdt),
+                    ventureId: one.ventureId,
+                    ventureName: one.venture?.name ?? "",
+                  },
+                ] as const,
+              ]
+            : []
+        )
+      );
       return rows.map((one) => ({
         id: one.id,
         wentTo: one.wentTo,
         wentOn: one.wentOn,
         costBdt: tripCostOf(one),
         animals: one.intakes.length,
+        /** The Buying Float this outing was given, where one was. */
+        float: given.get(one.id) ?? null,
       }));
     }),
 

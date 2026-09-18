@@ -218,7 +218,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Venture**: One investor-funded run of fattening cattle, from the first Investment Agreement to the last payout: Open, Buying, Fattening, Selling, Settled — or Cancelled, where an under-funded one ends. It carries a target capital, a **Floor**, a decision date, its two budgets and its own **Target Window**, which its Animals inherit. Ventures run alongside the Farm's own cattle in the same Pens. _Avoid_: Project, batch (which is an offline send), scheme, lot
 
-**Cattle Budget**: The part of a Venture's capital meant for buying animals. What it does not spend rolls into the **Running Budget** when buying closes. The two are a plan for the whole capital, so what a Venture actually holds is read in the same proportion: half the capital in means half of each, never a full Cattle Budget and nothing to feed the animals with. _Avoid_: Purchase fund, capex
+**Cattle Budget**: The part of a Venture's capital meant for buying animals. What it does not spend rolls into the **Running Budget** when buying closes. The two are a plan for the whole capital, so what arrives is divided between them in the same proportion — half the capital in means half of each, never a full Cattle Budget and nothing to feed the animals with. After that they are spent from separately: a **Buying Float** comes off the Cattle Budget alone, and takes nothing from what keeps the animals. _Avoid_: Purchase fund, capex
 
 **Running Budget**: The part of a Venture's capital held back in the Venture Account for what the animals cost while they stand here: feed, medicine, vet, haat costs. What is left at the end goes back to Investors at settlement. _Avoid_: Working capital, float
 

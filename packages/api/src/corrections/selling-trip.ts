@@ -1,5 +1,5 @@
 import { eq } from "@OpenFarm/db/operators";
-import { sellingTrip } from "@OpenFarm/db/schema/fattening";
+import { sellingTrip } from "@OpenFarm/db/schema/trip";
 import { z } from "zod";
 
 import type { Tx } from "../audit";

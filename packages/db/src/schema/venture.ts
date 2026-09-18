@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -10,6 +11,7 @@ import {
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { buyingTrip } from "./trip";
 
 /**
  * Where a Venture is in its life. Open while the Agreements are signed and the capital arrives; Buying once
@@ -174,10 +176,15 @@ export const agreementPaper = pgTable("agreement_paper", {
 });
 
 /**
- * What a Venture Movement is for. Capital in and the refund that undoes it are all this ticket needs;
- * the Float, the Advance, the Reimbursement and the payout join them as their own work arrives.
+ * What a Venture Movement is for. Capital in, the refund that undoes it, and the Buying Float drawn for
+ * one trip to the haat; the cash the Float brings home, the Advance, the Reimbursement and the payout
+ * join them as their own work arrives.
  */
-export const VENTURE_MOVEMENT_KINDS = ["capital_in", "refund"] as const;
+export const VENTURE_MOVEMENT_KINDS = [
+  "capital_in",
+  "refund",
+  "float_out",
+] as const;
 export type VentureMovementKind = (typeof VENTURE_MOVEMENT_KINDS)[number];
 
 /**
@@ -199,10 +206,11 @@ export const ventureMovement = pgTable(
       .notNull()
       .references(() => venture.id, { onDelete: "cascade" }),
     kind: text("kind", { enum: VENTURE_MOVEMENT_KINDS }).notNull(),
-    /** Whose money moved, by the paper they signed. Every kind this ticket knows has one. */
-    agreementId: text("agreement_id")
-      .notNull()
-      .references(() => investmentAgreement.id),
+    /** Whose money moved, by the paper they signed: capital in and the refund that undoes it. A Float
+     *  is the Venture's own money going to the haat and belongs to no one Investor, so it has none. */
+    agreementId: text("agreement_id").references(() => investmentAgreement.id),
+    /** The outing a Buying Float was drawn for. Only a Float has one. */
+    buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
     amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),
@@ -215,6 +223,10 @@ export const ventureMovement = pgTable(
   },
   (table) => [
     index("venture_movement_idx").on(table.farmId, table.ventureId),
+    // One Float per outing: a trip given money twice is a trip nobody can reconcile.
+    uniqueIndex("venture_movement_float_uidx")
+      .on(table.buyingTripId)
+      .where(sql`${table.kind} = 'float_out'`),
     // One refund per movement, so calling a Venture off twice cannot send the same taka back twice.
     uniqueIndex("venture_movement_refunds_uidx").on(table.refundsId),
   ]

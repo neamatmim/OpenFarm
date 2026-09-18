@@ -19,4 +19,5 @@ export * from "./push";
 export * from "./review";
 export * from "./sop";
 export * from "./sync";
+export * from "./trip";
 export * from "./venture";

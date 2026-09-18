@@ -83,6 +83,14 @@ export const relations = defineRelations(schema, (r) => ({
     /** The farm's own bull, for a natural service. */
     sire: r.one.animal({ from: r.service.sireAnimalId, to: r.animal.id }),
   },
+  ventureMovement: {
+    /** The Venture whose money moved. */
+    venture: r.one.venture({
+      from: r.ventureMovement.ventureId,
+      to: r.venture.id,
+      optional: false,
+    }),
+  },
   moneyEvent: {
     category: r.one.moneyCategory({
       from: r.moneyEvent.categoryId,

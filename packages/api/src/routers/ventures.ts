@@ -11,9 +11,11 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { theOwnersOf } from "../intake-store";
 import {
   countedInvestors,
   readAgreement,
@@ -141,6 +143,19 @@ const theirs = async (context: Context, id: string) => {
     throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
   }
   return row;
+};
+
+/**
+ * Holds the Farm's row for the rest of this transaction, so counts made against a Venture's money are
+ * still true when the write lands. Signings and Floats are rare and the lock is cheap; two phones
+ * agreeing on a rule that may not be overridden is not.
+ */
+const lockTheFarm = async (tx: Tx, farmId: string) => {
+  await tx
+    .select({ id: farm.id })
+    .from(farm)
+    .where(eq(farm.id, farmId))
+    .for("update");
 };
 
 /** This Farm's Investment Agreement, or nothing the caller may move money against. */
@@ -364,11 +379,7 @@ export const venturesRouter = {
           // Both counts are made inside the write's own transaction, behind a lock on the Farm row:
           // the Units left and the Investors standing are only true until the next signature commits,
           // and a rule that may not be overridden may not be lost to two phones at once either.
-          await tx
-            .select({ id: farm.id })
-            .from(farm)
-            .where(eq(farm.id, context.farm.id))
-            .for("update");
+          await lockTheFarm(tx, context.farm.id);
           const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
           if (taken + input.units > row.units) {
             throw new ORPCError("BAD_REQUEST", {
@@ -546,6 +557,158 @@ export const venturesRouter = {
       return { id };
     }),
 
+  /**
+   * The Buying Float: money drawn from a Venture Account for one Buying Trip, so the Manager goes to the
+   * haat with money that is accounted for. By bank, like every movement of a Venture's money.
+   *
+   * Refused unless the Venture is buying, refused for more than its Cattle Budget is holding — feed
+   * money is not spent on one more bull — and refused for a trip that has been given money already,
+   * because a trip funded twice is a trip nobody can reconcile.
+   */
+  drawFloat: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        buyingTripId: z.string(),
+        amountBdt: money.refine((taka) => taka > 0, {
+          message: "A Float is money going out",
+        }),
+        movedOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        reference: z.string().trim().min(1).max(120),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      if (input.paymentMethod !== "bank") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture Account moves money by bank only",
+          data: { refusal: "capital_must_be_by_bank" },
+        });
+      }
+      const row = await ours(context, input.ventureId);
+      if (row.state !== "buying") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture draws a Float only while it is buying",
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
+      const trip = await context.db.query.buyingTrip.findFirst({
+        where: { id: input.buyingTripId, farmId: context.farm.id },
+        columns: { id: true },
+      });
+      if (!trip) {
+        throw new ORPCError("NOT_FOUND", { message: "No such outing" });
+      }
+      // An outing already bringing another Venture's animals home cannot be funded by this one: the
+      // reconciliation counts the Animals bought on the trip for the Venture that paid, and money and
+      // animals pointing at different Ventures is a sum nobody could ever make balance.
+      const brought = await context.db.query.intake.findMany({
+        where: { farmId: context.farm.id, buyingTripId: input.buyingTripId },
+        columns: { animalId: true },
+      });
+      const owners = await theOwnersOf(
+        context.db,
+        brought.map((one) => one.animalId)
+      );
+      if (owners.some((owner) => owner !== null && owner !== row.id)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That outing is bringing another Venture's animals home",
+          data: { refusal: "trip_is_another_ventures" },
+        });
+      }
+      const id = uuidv7(now);
+      await audited(context).write(
+        {
+          entity: "venture_movement",
+          entityId: id,
+          action: "create",
+          after: (tx) => readMovement(tx, context.farm.id, id),
+        },
+        async (tx) => {
+          // Counted inside the write, behind the same lock every other Venture count takes: what the
+          // Cattle Budget holds is only true until the next Float commits.
+          await lockTheFarm(tx, context.farm.id);
+          const standing = await tx.query.venture.findFirst({
+            where: { id: row.id, farmId: context.farm.id },
+          });
+          if (!standing || standing.state !== "buying") {
+            // Read again inside the lock: a Venture moved on or called off while this was being filled
+            // in would otherwise still hand out money.
+            throw new ORPCError("BAD_REQUEST", {
+              message: "A Venture draws a Float only while it is buying",
+              data: { refusal: "venture_wrong_state" },
+            });
+          }
+          const held = await heldByEach(tx, context.farm.id, [row.id]);
+          const view = ventureView(standing, held.get(row.id));
+          if (input.amountBdt > view.cattleBudgetHeldBdt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `The Cattle Budget is holding ${view.cattleBudgetHeldBdt}`,
+              data: { refusal: "cattle_budget_short" },
+            });
+          }
+          const already = await tx.query.ventureMovement.findFirst({
+            where: {
+              farmId: context.farm.id,
+              buyingTripId: input.buyingTripId,
+              kind: "float_out",
+            },
+            columns: { id: true },
+          });
+          if (already) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "That outing has been given a Float already",
+              data: { refusal: "float_already_drawn" },
+            });
+          }
+          await tx.insert(ventureMovement).values({
+            id,
+            farmId: context.farm.id,
+            ventureId: row.id,
+            kind: "float_out",
+            buyingTripId: input.buyingTripId,
+            amountBdt: input.amountBdt.toFixed(2),
+            movedOn: input.movedOn,
+            reference: input.reference,
+            recordedBy: context.actor.id,
+            createdAt: now,
+          });
+        }
+      );
+      return { id };
+    }),
+
+  /**
+   * What a Buying Trip was given, and from which Venture. The Manager's as well as the Owner's: she is
+   * the one taking it to the haat, and she may see what is in her hand without being able to draw it.
+   */
+  floatOf: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ buyingTripId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await context.db.query.ventureMovement.findFirst({
+        where: {
+          farmId: context.farm.id,
+          buyingTripId: input.buyingTripId,
+          kind: "float_out",
+        },
+        with: { venture: { columns: { name: true } } },
+      });
+      return row
+        ? {
+            id: row.id,
+            ventureId: row.ventureId,
+            ventureName: row.venture?.name ?? "",
+            amountBdt: Number(row.amountBdt),
+            movedOn: row.movedOn,
+            reference: row.reference,
+          }
+        : null;
+    }),
+
   /** Every movement of one Venture's money, oldest first: what came in, and what went back. */
   movements: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -559,13 +722,17 @@ export const venturesRouter = {
       if (rows.length === 0) {
         return [];
       }
-      const agreements = await context.db.query.investmentAgreement.findMany({
-        where: {
-          farmId: context.farm.id,
-          id: { in: rows.map((one) => one.agreementId) },
-        },
-        columns: { id: true, investorId: true },
-      });
+      // Only the movements that belong to one Investor's paper have one; a Float belongs to none.
+      const papers = rows.flatMap((one) =>
+        one.agreementId ? [one.agreementId] : []
+      );
+      const agreements =
+        papers.length === 0
+          ? []
+          : await context.db.query.investmentAgreement.findMany({
+              where: { farmId: context.farm.id, id: { in: papers } },
+              columns: { id: true, investorId: true },
+            });
       const whose = new Map(
         agreements.map((one) => [one.id, one.investorId] as const)
       );
@@ -573,7 +740,10 @@ export const venturesRouter = {
         id: one.id,
         kind: one.kind,
         agreementId: one.agreementId,
-        investorId: whose.get(one.agreementId) ?? null,
+        investorId: one.agreementId
+          ? (whose.get(one.agreementId) ?? null)
+          : null,
+        buyingTripId: one.buyingTripId,
         amountBdt: Number(one.amountBdt),
         movedOn: one.movedOn,
         reference: one.reference,

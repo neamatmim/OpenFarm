@@ -257,8 +257,17 @@ export const en = {
   "ventures.referenceHint":
     "The transfer, cheque or deposit slip, and what it is numbered",
   "ventures.balance": "The account should hold",
+  "ventures.drawFloat": "Draw a Float",
+  "ventures.floatHint":
+    "Money for the haat, out of the ৳{cattle} the Cattle Budget is holding. The rest of the account keeps the animals.",
+  "ventures.floatDrawn": "The Float is drawn",
+  "ventures.floatTrip": "Which outing",
+  "ventures.floatTripHint":
+    "One Float per outing, so it can be counted when it comes home",
+  "ventures.floatMost": "At most ৳{cattle}",
   "money.purseWas": "{venture}'s money",
   "ventures.spent": "Spent · paid out",
+  "ventures.outOfTheAccount": "Out of the account · paid out",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":
@@ -269,6 +278,11 @@ export const en = {
     "She belongs to a Venture, and a Venture's animal cannot cross to the dairy side",
   "refusal.notAVenturesAnimal":
     "A Venture owns bought-in fattening animals and no others",
+  "refusal.cattleBudgetShort":
+    "The Cattle Budget is not holding that much — the rest of the account keeps the animals",
+  "refusal.floatAlreadyDrawn": "That outing has been given money already",
+  "refusal.tripIsAnotherVentures":
+    "That outing is bringing another Venture's animals home",
   "ventures.budgetsHeld": "Of that, cattle and running",
   "ventures.callOff": "Call it off",
   "ventures.callOffHint":

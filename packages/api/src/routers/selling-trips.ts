@@ -1,5 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { sellingTrip, sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
+import { sellingTripAnimal } from "@OpenFarm/db/schema/fattening";
+import { sellingTrip } from "@OpenFarm/db/schema/trip";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
