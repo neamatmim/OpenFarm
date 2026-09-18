@@ -4,6 +4,7 @@ import { and, eq } from "@OpenFarm/db/operators";
 import {
   venture as ventureTable,
   ventureMovement,
+  settlementAdjustment,
   ventureSettlement,
   ventureSettlementShare,
 } from "@OpenFarm/db/schema/venture";
@@ -469,6 +470,49 @@ export const nothingLeftToPay = (
     settlement.advanceRepaidId !== null) &&
   (Number(settlement.farmBdt) === 0 || settlement.farmSharePaidId !== null);
 
+/** The Adjustments raised against a Venture's Settlement, oldest first. */
+/**
+ * What earlier Adjustments have already paid out on this Settlement.
+ *
+ * Each Adjustment says what the figures would be now against what was frozen, so the second carries the
+ * first's news as well as its own. Paying the whole of it again would send the same good news twice.
+ */
+export const alreadyAdjustedPerUnitBdt = (
+  raised: readonly { outcome: string; perUnitDifferenceBdt: number }[]
+) => {
+  let perUnit = 0;
+  for (const one of raised) {
+    if (one.outcome === "paid") {
+      perUnit += one.perUnitDifferenceBdt;
+    }
+  }
+  return roundTaka(perUnit);
+};
+
+export const adjustmentsOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  settlementId: string
+) => {
+  const rows = await tx.query.settlementAdjustment.findMany({
+    where: { farmId, settlementId },
+    orderBy: { raisedAt: "asc", id: "asc" },
+  });
+  return rows.map((one) => ({
+    id: one.id,
+    reason: one.reason,
+    raisedAt: one.raisedAt,
+    profitBdt: Number(one.profitBdt),
+    perUnitBdt: Number(one.perUnitBdt),
+    perUnitDifferenceBdt: Number(one.perUnitDifferenceBdt),
+    investorsDifferenceBdt: Number(one.investorsDifferenceBdt),
+    thresholdBdt: Number(one.thresholdBdt),
+    outcome: one.outcome,
+    waivedNote: one.waivedNote,
+    closedAt: one.closedAt,
+  }));
+};
+
 /**
  * An approved Settlement as the trail and the screen read it: the figures as they stood, and each
  * Investor's share with whether it has gone out and whether he has said he had it.
@@ -513,6 +557,8 @@ export const readSettlement = async (
     })),
     /** Whether everything it owed has gone out, which is what makes the Venture Settled. */
     allPaid: nothingLeftToPay(row, shares),
+    /** What has landed late since, and what was done about each of them. */
+    adjustments: await adjustmentsOf(tx, farmId, row.id),
   };
 };
 
@@ -569,3 +615,123 @@ export const payOut = async (
   });
   return id;
 };
+
+/**
+ * What a Settlement would come to now, against what it was approved on.
+ *
+ * The Settlement's own figures never move: this is the difference the late news makes, which is what an
+ * Adjustment is of. A share that fell is not collected back — an Investor paid on figures the farm gave
+ * him keeps what he was paid — so only a rise is ever a payment.
+ */
+export const adjustmentAgainst = (
+  frozen: { perUnitBdt: string; units: number },
+  now: { perUnitBdt: number; profitBdt: number }
+) => {
+  const perUnitDifferenceBdt = roundTaka(
+    now.perUnitBdt - Number(frozen.perUnitBdt)
+  );
+  return {
+    profitBdt: now.profitBdt,
+    perUnitBdt: now.perUnitBdt,
+    perUnitDifferenceBdt,
+    investorsDifferenceBdt: roundTaka(perUnitDifferenceBdt * frozen.units),
+  };
+};
+
+/**
+ * What an Adjustment must have done about it: noted only, or dealt with.
+ *
+ * Only news that leaves the Investors better off is ever outstanding. Money already paid is never
+ * chased, so a share that fell has nothing that can be done about it — calling it outstanding would
+ * leave the Owner waiving money she was never going to collect. Below the figure the Farm set nothing
+ * moves either, because a hundred taka should not cost a trip to the bank. Either way it is written
+ * down, because an Investor is owed the news whichever way it went.
+ */
+export const outcomeFor = (
+  investorsDifferenceBdt: number,
+  thresholdBdt: number
+) => (investorsDifferenceBdt > thresholdBdt ? "outstanding" : "noted");
+
+/** An Adjustment written down: what arrived late, what it does to the figures, and what must be done. */
+export const raiseAdjustment = async (
+  tx: Tx,
+  farmId: string,
+  settlementId: string,
+  what: {
+    reason: string;
+    thresholdBdt: number;
+    against: ReturnType<typeof adjustmentAgainst>;
+  },
+  by: { actorId: string; now: Date }
+) => {
+  const id = uuidv7(by.now);
+  const outcome = outcomeFor(
+    what.against.investorsDifferenceBdt,
+    what.thresholdBdt
+  );
+  await tx.insert(settlementAdjustment).values({
+    id,
+    farmId,
+    settlementId,
+    reason: what.reason,
+    profitBdt: what.against.profitBdt.toFixed(2),
+    perUnitBdt: what.against.perUnitBdt.toFixed(2),
+    perUnitDifferenceBdt: what.against.perUnitDifferenceBdt.toFixed(2),
+    investorsDifferenceBdt: what.against.investorsDifferenceBdt.toFixed(2),
+    thresholdBdt: what.thresholdBdt.toFixed(2),
+    // Below the figure the Farm set, there is nothing to do and it says so at once.
+    outcome,
+    closedAt: outcome === "noted" ? by.now : null,
+    closedBy: outcome === "noted" ? by.actorId : null,
+    raisedBy: by.actorId,
+    raisedAt: by.now,
+  });
+  return { id, outcome };
+};
+
+/** One Adjustment of this Settlement's, or nothing the caller may act on. */
+export const theAdjustment = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  settlementId: string,
+  id: string
+) => {
+  // Scoped to the Settlement it was raised against, not only to the farm: an Adjustment of one Venture
+  // paid through another would send one Venture's figure times the other's Units.
+  const row = await tx.query.settlementAdjustment.findFirst({
+    where: { id, farmId, settlementId },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Adjustment" });
+  }
+  if (row.outcome !== "outstanding") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "That Adjustment has already been dealt with",
+      data: { refusal: "adjustment_is_closed" },
+    });
+  }
+  return row;
+};
+
+/** An Adjustment closed: paid on top of what was settled, or waived in words the Owner stands behind. */
+export const closeAdjustment = (
+  tx: Tx,
+  farmId: string,
+  id: string,
+  how: { outcome: "paid" | "waived"; waivedNote?: string },
+  by: { actorId: string; now: Date }
+) =>
+  tx
+    .update(settlementAdjustment)
+    .set({
+      outcome: how.outcome,
+      waivedNote: how.waivedNote ?? null,
+      closedAt: by.now,
+      closedBy: by.actorId,
+    })
+    .where(
+      and(
+        eq(settlementAdjustment.id, id),
+        eq(settlementAdjustment.farmId, farmId)
+      )
+    );

@@ -41,6 +41,7 @@ const SOURCE_WORD = {
   internal_sale_in: "money.from.internalSaleIn",
   internal_sale_out: "money.from.internalSaleOut",
   reimbursement: "money.from.reimbursement",
+  settlement_adjustment: "money.from.settlementAdjustment",
   by_hand: "money.from.byHand",
 } as const satisfies Record<string, MessageKey>;
 

@@ -34,6 +34,7 @@ type NumberKey =
   | "ventureFloorPercent"
   | "ventureRunningPercent"
   | "windUpDays"
+  | "adjustmentThresholdBdt"
   | "investorCap"
   | "investorWarnAt"
   | "runningBudgetWarnBdt";
@@ -144,6 +145,13 @@ const GROUPS: {
         unit: "params.days",
         min: 0,
         max: 180,
+      },
+      {
+        key: "adjustmentThresholdBdt",
+        label: "params.adjustmentThreshold",
+        unit: "params.taka",
+        min: 0,
+        max: 1_000_000,
       },
       {
         key: "investorCap",

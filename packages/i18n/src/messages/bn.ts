@@ -188,6 +188,7 @@ export const bn: Record<MessageKey, string> = {
   "params.ventureFloor": "ভেঞ্চারের সর্বনিম্ন সীমা, লক্ষ্যের কত ভাগ",
   "params.ventureRunning": "খাওয়ানোর জন্য রাখা, ভেঞ্চারের মূলধনের কত ভাগ",
   "params.windUp": "সময় শেষ হওয়ার পর কত দিন বিক্রি চলবে",
+  "params.adjustmentThreshold": "যত টাকার সমন্বয় করার মতো",
   "params.investorCap": "একসাথে সর্বোচ্চ কতজন বিনিয়োগকারী",
   "params.investorWarnAt": "কতজন হলে সতর্ক করবে",
   "params.runningBudgetWarn": "খাওয়ানোর টাকা এর কম হলে সতর্ক করবে",
@@ -394,6 +395,9 @@ export const bn: Record<MessageKey, string> = {
   "refusal.alreadyAcknowledged": "তিনি আগেই বলেছেন যে পেয়েছেন",
   "refusal.nothingToPayHim":
     "তিনি যা দিয়েছিলেন তার চেয়ে বেশি লোকসান হয়েছে, পাঠানোর মতো কিছু নেই",
+  "refusal.adjustmentIsClosed": "এই সমন্বয়ের নিষ্পত্তি আগেই হয়েছে",
+  "refusal.nothingHasChanged": "অনুমোদনের পর হিসাবের কিছু বদলায়নি",
+  "refusal.nothingToPayOnIt": "এই সমন্বয়ে পাওনা কিছু নেই; বরং মকুব করুন",
   "refusal.weighedAgainSince":
     "আপনি দাম দেখার পর গরুটির ওজন আবার নেওয়া হয়েছে — নতুন দাম দেখুন",
   "refusal.notAFatteningAnimal":
@@ -1266,6 +1270,7 @@ export const bn: Record<MessageKey, string> = {
   "money.from.internalSaleIn": "ভেঞ্চারের কাছে বিক্রি",
   "money.from.internalSaleOut": "ভেঞ্চার থেকে কেনা",
   "money.from.reimbursement": "ভেঞ্চারের খরচ ফেরত",
+  "money.from.settlementAdjustment": "হিসাব সমন্বয়",
   "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় টাকা",
   "drugs.buy": "কেনা ওষুধ",
   "drugs.quantity": "কতটুকু (বাক্সে যেমন লেখা)",

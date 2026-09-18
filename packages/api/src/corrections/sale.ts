@@ -50,6 +50,9 @@ export const saleCorrection: CorrectionKind<
   // Putting one of these right can move a Venture Movement, so it takes the Farm lock first, as
   // everything that counts a Venture's money does.
   lock: lockTheFarm,
+  // No `ventureOf`, on purpose. A Sale put right after a Settlement is the late news itself — refusing
+  // it would leave what a buyer really paid nowhere to land — and what it changes is shown as a
+  // Settlement Adjustment rather than moving the frozen figures.
   missing: "No such sale",
   load: loadSale,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),

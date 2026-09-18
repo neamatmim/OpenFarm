@@ -55,6 +55,11 @@ const CATEGORIES: Record<
     nameEn: "Reimbursed by a Venture",
     direction: "in",
   },
+  settlement_adjustment: {
+    nameBn: "হিসাব সমন্বয়ে বাড়তি দেওয়া",
+    nameEn: "Paid on a Settlement Adjustment",
+    direction: "out",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",
