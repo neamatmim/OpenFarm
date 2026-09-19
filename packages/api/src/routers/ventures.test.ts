@@ -186,4 +186,28 @@ describe("a Venture", () => {
       roleUsed: "owner",
     });
   });
+
+  it("starts a new Agreement's split at a figure the Owner sets, not one in the code", async () => {
+    // Story 100: an adviser's answer should be a setting rather than a release. The split is the figure
+    // most likely to come back changed, and it was the one Parameter of the six that did not exist.
+    const owner = await as("owner", "2044-08-24T04:00:00.000Z");
+    const asItStood = await owner.client.farm.current();
+    expect(asItStood).toMatchObject({ ventureInvestorsPercent: 60 });
+
+    await owner.client.farm.setParameters({ ventureInvestorsPercent: 55 });
+    const moved = await as("owner", "2044-08-24T05:00:00.000Z");
+    expect(await moved.client.farm.current()).toMatchObject({
+      ventureInvestorsPercent: 55,
+    });
+
+    // A Venture's own Parameters are the Owner's, as a Venture is.
+    const manager = await as("manager", "2044-08-24T06:00:00.000Z");
+    await expect(
+      manager.client.farm.setParameters({ ventureInvestorsPercent: 90 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    // And it is a starting point, never a rule: an Agreement may still be signed on another figure, and
+    // what the paper says is what the Settlement divides on.
+    await owner.client.farm.setParameters({ ventureInvestorsPercent: 60 });
+  });
 });

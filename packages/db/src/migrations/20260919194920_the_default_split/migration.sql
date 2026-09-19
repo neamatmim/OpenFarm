@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "venture_investors_percent" integer DEFAULT 60 NOT NULL;

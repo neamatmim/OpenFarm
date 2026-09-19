@@ -33,6 +33,7 @@ type NumberKey =
   | "approvalThresholdBdt"
   | "ventureFloorPercent"
   | "ventureRunningPercent"
+  | "ventureInvestorsPercent"
   | "windUpDays"
   | "adjustmentThresholdBdt"
   | "investorCap"
@@ -138,6 +139,13 @@ const GROUPS: {
         unit: "params.percent",
         min: 0,
         max: 90,
+      },
+      {
+        key: "ventureInvestorsPercent",
+        label: "params.ventureInvestors",
+        unit: "params.percent",
+        min: 0,
+        max: 100,
       },
       {
         key: "windUpDays",

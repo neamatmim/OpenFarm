@@ -72,6 +72,8 @@ const parameters = z
     ventureFloorPercent: z.number().int().min(0).max(100).optional(),
     /** What part of a Venture's capital keeps the animals rather than buying them. */
     ventureRunningPercent: z.number().int().min(0).max(90).optional(),
+    /** Where a new Investment Agreement's split starts. A default, never a rule. */
+    ventureInvestorsPercent: z.number().int().min(0).max(100).optional(),
     /** The days a Venture keeps selling after its window before the Farm buys the rest. */
     windUpDays: z.number().int().min(0).max(180).optional(),
     adjustmentThresholdBdt: z.number().int().min(0).max(1_000_000).optional(),
@@ -115,6 +117,7 @@ const identity = z
 const A_VENTURES_OWN = [
   "ventureFloorPercent",
   "ventureRunningPercent",
+  "ventureInvestorsPercent",
   "windUpDays",
   "adjustmentThresholdBdt",
   "investorCap",
@@ -232,6 +235,7 @@ export const farmRouter = {
       approvalThresholdBdt,
       ventureFloorPercent,
       ventureRunningPercent,
+      ventureInvestorsPercent,
       windUpDays,
       adjustmentThresholdBdt,
       investorCap,
@@ -243,6 +247,7 @@ export const farmRouter = {
       ? {
           ventureFloorPercent,
           ventureRunningPercent,
+          ventureInvestorsPercent,
           windUpDays,
           adjustmentThresholdBdt,
           investorCap,
@@ -478,6 +483,7 @@ export const farmRouter = {
                 approvalThresholdBdt: true,
                 ventureFloorPercent: true,
                 ventureRunningPercent: true,
+                ventureInvestorsPercent: true,
                 windUpDays: true,
                 adjustmentThresholdBdt: true,
                 investorCap: true,

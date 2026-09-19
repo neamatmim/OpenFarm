@@ -1,3 +1,4 @@
+import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -48,8 +49,17 @@ export const SignAgreementSheet = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+  // Where the farm starts a new Agreement. A starting point and nothing more: what is typed here is what
+  // the Investor signs, and what he signed is what governs afterwards.
+  const farm = useQuery(orpc.farm.current.queryOptions());
+  // The farm answers with less than its Parameters to somebody they are not for, so the figure is read
+  // only where it is actually there rather than assumed onto every shape of the answer.
+  const startsAt =
+    farm.data && "ventureInvestorsPercent" in farm.data
+      ? farm.data.ventureInvestorsPercent
+      : undefined;
   const [terms, setTerms] = useState<Terms>(NOTHING_SIGNED);
   const [paper, setPaper] = useState<Photo | null>(null);
   const investors = useQuery(orpc.investors.list.queryOptions());
@@ -75,12 +85,18 @@ export const SignAgreementSheet = ({
     })
   );
   const units = Number(terms.units);
-  const percent = Number(terms.investorsPercent);
+  // Nothing typed yet reads as the farm's own starting point, so the field always shows the figure that
+  // would actually be signed. Clearing it goes back to that rather than to a blank the Owner might miss.
+  const split =
+    terms.investorsPercent === "" && startsAt !== undefined
+      ? String(startsAt)
+      : terms.investorsPercent;
+  const percent = Number(split);
   const ready =
     venture !== null &&
     terms.investorId !== "" &&
     units > 0 &&
-    terms.investorsPercent !== "" &&
+    split !== "" &&
     aSplit(percent) &&
     terms.arbitrator.trim() !== "" &&
     Number(terms.stampValueBdt) > 0 &&
@@ -144,7 +160,9 @@ export const SignAgreementSheet = ({
         </FormField>
         <FormField
           hint={t("ventures.splitHint", {
-            farm: terms.investorsPercent === "" ? "—" : String(100 - percent),
+            // In the reader's own numerals: the sentence around it is Bangla, and it now shows from the
+            // moment the sheet opens rather than only once somebody has typed.
+            farm: split === "" ? "—" : formatNumber(100 - percent, language),
           })}
           id="agreement-percent"
           label={t("ventures.investorsPercent")}
@@ -158,7 +176,7 @@ export const SignAgreementSheet = ({
               setTerms({ ...terms, investorsPercent: event.target.value })
             }
             type="number"
-            value={terms.investorsPercent}
+            value={split}
           />
         </FormField>
       </div>

@@ -90,6 +90,8 @@ export interface Context {
     ventureFloorPercent: number;
     /** What part of a Venture's capital keeps the animals rather than buying them. */
     ventureRunningPercent: number;
+    /** Where a new Investment Agreement's split starts. A default, never a rule. */
+    ventureInvestorsPercent: number;
     /** The days a Venture keeps selling after its window before the Farm buys the rest. */
     windUpDays: number;
     /** The taka above which a Settlement Adjustment has to be paid or waived rather than only noted. */

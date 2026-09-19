@@ -91,6 +91,13 @@ export const farm = pgTable("farm", {
   /** What part of a Venture's target capital is the least worth starting on, as a percentage. A plan that
    *  raises less than this buys too few animals to be the run anybody signed for. */
   ventureFloorPercent: integer("venture_floor_percent").notNull().default(70),
+  /** What share of a Venture's profit the Investors take, as a percentage, where the Owner starts when
+   *  she writes a new Investment Agreement. A starting point and nothing more: what each Investor signed
+   *  is what governs, an Amendment is the only thing that moves it, and changing this never reaches a
+   *  paper already signed. Here so that an adviser's answer is a setting rather than a release. */
+  ventureInvestorsPercent: integer("venture_investors_percent")
+    .notNull()
+    .default(60),
   /** What part of a Venture's capital is kept back to feed and treat the animals, as a percentage; the
    *  rest is the Cattle Budget. */
   ventureRunningPercent: integer("venture_running_percent")

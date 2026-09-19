@@ -191,6 +191,8 @@ export const en = {
   "params.ventureFloor": "A Venture\u2019s Floor, of what it is after",
   "params.ventureRunning":
     "Kept back to feed them, of a Venture\u2019s capital",
+  "params.ventureInvestors":
+    "The Investors’ share of the profit, where a new agreement starts",
   "params.windUp": "Selling after the window closes",
   "params.adjustmentThreshold": "Worth adjusting a settlement over",
   "params.investorCap": "Investors at a time, at most",
