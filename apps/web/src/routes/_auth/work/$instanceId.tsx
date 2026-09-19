@@ -58,6 +58,7 @@ import {
   StickyAction,
   TagChip,
 } from "@/components/page";
+import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import {
   correctionRefusalMessage,
@@ -1291,22 +1292,16 @@ const RenewalFields = ({
       </div>
       <div className="space-y-1">
         <Label htmlFor="renewal-certificate">{t("renewal.certificate")}</Label>
-        <input
-          accept="image/*"
-          capture="environment"
-          className="text-sm"
+        <PhotoField
+          chosen={certificateTaken}
           id="renewal-certificate"
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              onCertificate(await shrink(file));
+          onPhoto={(photo) => {
+            if (photo) {
+              onCertificate(photo);
             }
           }}
-          type="file"
+          takeLabel="renewal.certificateTake"
         />
-        {certificateTaken ? (
-          <p className="text-success text-sm">{t("renewal.taken")}</p>
-        ) : null}
       </div>
     </div>
   );

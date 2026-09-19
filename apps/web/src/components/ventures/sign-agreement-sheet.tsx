@@ -1,13 +1,12 @@
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CircleCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Photo } from "@/lib/photo";
-import { shrink } from "@/lib/photo";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -215,42 +214,11 @@ export const SignAgreementSheet = ({
         id="agreement-paper"
         label={t("ventures.paper")}
       >
-        <div className="flex flex-wrap items-center gap-3">
-          {/* The browser's own file button speaks the browser's language; this one speaks the farm's —
-              and says whether the photo is on, which is the thing she is refused capital for missing. */}
-          <label
-            className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:border-ring flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-[3px] md:min-h-9"
-            htmlFor="agreement-paper"
-          >
-            <Camera aria-hidden className="size-4" />
-            {t("ventures.paperTake")}
-          </label>
-          <p className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 text-sm">
-            {paper ? (
-              <CircleCheck
-                aria-hidden
-                className="text-success size-4 shrink-0"
-              />
-            ) : null}
-            <span className="truncate">
-              {paper ? t("ventures.paperOn") : t("ventures.paperNone")}
-            </span>
-          </p>
-        </div>
-        <Input
-          accept="image/*"
-          capture="environment"
-          className="sr-only"
+        <PhotoField
+          chosen={paper !== null}
           id="agreement-paper"
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            try {
-              setPaper(file ? await shrink(file) : null);
-            } catch {
-              toast.error(t("common.error"));
-            }
-          }}
-          type="file"
+          onPhoto={setPaper}
+          takeLabel="ventures.paperTake"
         />
       </FormField>
     </FormSheet>

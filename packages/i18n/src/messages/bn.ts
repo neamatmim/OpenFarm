@@ -302,8 +302,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.stampSerial": "স্ট্যাম্পের সিরিয়াল",
   "ventures.paper": "স্ট্যাম্প করা কাগজ",
   "ventures.paperTake": "কাগজের ছবি তুলুন",
-  "ventures.paperOn": "ছবি যোগ হয়েছে",
-  "ventures.paperNone": "এখনো ছবি নেই",
+  "photo.added": "ছবি যোগ হয়েছে",
+  "photo.none": "এখনো ছবি নেই",
+  "byHand.receiptTake": "রসিদের ছবি তুলুন",
+  "renewal.certificateTake": "সনদের ছবি তুলুন",
   "ventures.paperHint": "সই করা কাগজের ছবি, চুক্তির সাথে রাখা থাকবে",
   "ventures.takeCapital": "টাকা জমা",
   "ventures.capitalHint":

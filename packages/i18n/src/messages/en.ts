@@ -315,8 +315,10 @@ export const en = {
   /** The farm's own words on the file button, and whether the stamped paper is on yet — capital is
    *  refused without it, so she is told here rather than at the refusal. */
   "ventures.paperTake": "Photograph the paper",
-  "ventures.paperOn": "Photo added",
-  "ventures.paperNone": "No photo yet",
+  "photo.added": "Photo added",
+  "photo.none": "No photo yet",
+  "byHand.receiptTake": "Photograph the receipt",
+  "renewal.certificateTake": "Photograph the certificate",
   "ventures.paperHint":
     "A photo of the signed paper, kept against the Agreement",
   "ventures.takeCapital": "Capital in",

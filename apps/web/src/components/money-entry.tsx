@@ -24,10 +24,10 @@ import {
 import { categoryName, useRefusalToast } from "@/components/money";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
+import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
 import type { Photo } from "@/lib/photo";
-import { shrink } from "@/lib/photo";
 import { orpc } from "@/utils/orpc";
 
 const SIDE_WORD = {
@@ -81,22 +81,17 @@ const ReceiptField = ({
   onChange: (receipt: Photo | null) => void;
 }) => {
   const { t } = useLanguage();
+  const [chosen, setChosen] = useState(false);
   return (
     <FormField id={id} label={t("byHand.receipt")}>
-      <Input
-        accept="image/*"
-        capture="environment"
-        className="cursor-pointer"
+      <PhotoField
+        chosen={chosen}
         id={id}
-        onChange={async (event) => {
-          const file = event.target.files?.[0];
-          try {
-            onChange(file ? await shrink(file) : null);
-          } catch {
-            toast.error(t("common.error"));
-          }
+        onPhoto={(photo) => {
+          setChosen(photo !== null);
+          onChange(photo);
         }}
-        type="file"
+        takeLabel="byHand.receiptTake"
       />
     </FormField>
   );
