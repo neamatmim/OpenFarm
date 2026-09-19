@@ -41,10 +41,14 @@ Each occasion raises the work of sending; it does not send anything by itself. T
 
 **That last one made an import cycle, and breaking it improved the seam.** `venture-store` telling anybody meant importing the notices, which import `venture-store` back. `reachesSellingOnASale` now returns whether it moved and the Sale's own router does the telling. A store that reaches back into the notices is a store doing two jobs.
 
+**Three things a review caught after the first commit.** The occasion was going into the Owner's message as the word the code keeps — `(buying_closed)` in the middle of a Bangla sentence — and is now worded like a paper's labels. An **Open** Venture counted as running, so one that had taken money but bought nothing would have been told it owed a progress paper about animals it had not got; only Buying, Fattening and Selling do now. And the sweep opened a transaction and wrote an Audit Event saying "nothing raised" every time anybody opened the app: it asks what is untold first, as the low-stock sweep does, and a farm with nothing to say now writes nothing.
+
 **"Issue" is still not a recorded act, and this ticket did not make it one.** The roles matrix says the Owner generates, issues and records acknowledgement; ticket 01 records the generating as an Export. What issuing and acknowledging mean for a paper handed over in person is not settled anywhere, and guessing at it here would have put a state machine on the trail that nobody had asked for. This ticket is the telling, and says so.
 
 ## Left as it is, on purpose
 
 **A month nobody opens the app in is a month never told about.** The sweep raises the _current_ month, so a farm that went a whole month without anybody opening the app would skip that telling rather than catch up on it. That is how the low-stock and withdrawal sweeps behave too, and on a farm where the day is turned every morning it costs nothing — but it is a choice, not an oversight.
+
+**A Wind-up Period of nought days is never told about.** `windUpDays` is a Farm Parameter and may be set to zero, which makes the window empty — the day after the Target Window closes is already past the last day of the wind-up. Nothing is lost by it (there is no wind-up to hear about), but it is worth knowing before somebody reads the silence as a bug.
 
 **The settled case is covered by a cancelled Venture rather than a settled one.** Both are `RUNNING`-excluded by the same list and the same guard, and cancelling is three lines of test against the two hundred a full settlement needs. The criterion is marked partial to say so rather than to claim more than was run.

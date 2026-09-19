@@ -23,7 +23,7 @@ import {
   recentHappenings,
   renewalSlotsFor,
 } from "./instances-store";
-import { tellAboutPapersDue } from "./investor-statement-notice";
+import { papersToTell, tellAboutPapersDue } from "./investor-statement-notice";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
@@ -244,34 +244,31 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
  * app, and a farm with no Venture running must not open a transaction for it.
  */
 const tellAboutPapers = async (context: Turning, now: Date) => {
-  const running = await context.db.query.venture.findMany({
-    where: {
-      farmId: context.farm.id,
-      state: { in: ["open", "buying", "fattening", "selling"] },
-    },
-    columns: { id: true },
-  });
-  const [anyOfThem] = running;
-  if (!anyOfThem) {
+  const due = await papersToTell(
+    context.db,
+    context.farm.id,
+    now,
+    context.farm.windUpDays
+  );
+  const [first] = due;
+  // Nothing anybody has yet to hear: no transaction, no trail entry. Everyone calls this on opening
+  // the app, and a farm whose Ventures have all been told about this month has nothing to say.
+  if (!first) {
     return;
   }
   let raised = 0;
   await audited(context).write(
     {
+      // Keyed on the first Venture it has something to say about, with the count in the payload — as
+      // the low-stock sweep keys itself on the first Feed Item.
       entity: "venture",
-      entityId: anyOfThem.id,
+      entityId: first.venture.id,
       action: "update",
-      // Read after the raising, as the low-stock sweep's is: what the trail records is how many
-      // tellings this turn of the day actually wrote, not how many it considered.
+      // Read after the raising: what the trail records is how many tellings this turn actually wrote.
       after: () => Promise.resolve({ investorStatementsDue: raised }),
     },
     async (tx) => {
-      raised = await tellAboutPapersDue(
-        tx,
-        context.farm.id,
-        now,
-        context.farm.windUpDays
-      );
+      raised = await tellAboutPapersDue(tx, context.farm.id, due, now);
     }
   );
 };

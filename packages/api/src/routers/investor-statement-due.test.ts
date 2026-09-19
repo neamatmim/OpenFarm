@@ -36,10 +36,17 @@ let unsignedId = "";
 let penId = "";
 let tagNumber = "";
 
-/** The Owner's own list, narrowed to the tellings about statements. */
-const papersDue = async (owner: Client) => {
-  const alerts = await owner.client.alerts.mine();
-  return alerts.filter((one) => one.kind === "investor_statement_due");
+/**
+ * The Owner's own list, narrowed to one Venture's tellings.
+ *
+ * Asked by the Venture rather than read off the whole inbox: the inbox is capped, and a test that
+ * filtered a capped list would start failing the day another notice crowded it out.
+ */
+const papersDue = async (owner: Client, which: string) => {
+  const alerts = await owner.client.alerts.mine({ about: which });
+  return alerts
+    .filter((one) => one.kind === "investor_statement_due")
+    .map((one) => (one.params as { occasion?: string }).occasion);
 };
 
 beforeAll(async () => {
@@ -84,12 +91,14 @@ beforeAll(async () => {
   });
   await owner.client.ventures.startBuying({ id: ventureId });
 
-  // A second Venture nobody has signed: it has no Investors, so it owes nobody a paper.
+  // A second Venture nobody has signed, moved on to Buying all the same — its Floor is nothing — so
+  // that the silence about it is about having no Investors and not about its state.
   const nobodys = await owner.client.ventures.open({
     name: `স্বাক্ষরহীন ${suffix}`,
     ...plan,
   });
   unsignedId = nobodys.id;
+  await owner.client.ventures.startBuying({ id: unsignedId });
 
   // One bull, so the run has something to sell.
   const buying = await as("owner", "2054-01-04T04:00:00.000Z");
@@ -131,22 +140,17 @@ beforeAll(async () => {
   });
 });
 
-const occasionsOf = (
-  alerts: { entityId: string; params: unknown }[],
-  which: string
-) =>
-  alerts
-    .filter((one) => one.entityId.startsWith(`${which}:`))
-    .map((one) => (one.params as { occasion?: string }).occasion);
-
 describe("hearing that a paper is due", () => {
   it("tells the Owner when buying closes", async () => {
     const owner = await as("owner", "2054-01-10T04:00:00.000Z");
     await owner.client.ventures.startFattening({ id: ventureId });
-    const due = await papersDue(owner);
-    expect(occasionsOf(due, ventureId)).toContain("buying_closed");
+    // Said in words a person reads, not as the word the code keeps.
+    expect(await papersDue(owner, ventureId)).toContain(
+      "পশু কেনা শেষ / buying closed"
+    );
     // And it names the Venture and how many are waiting, so she knows the size of the evening's post.
-    const told = due.find(
+    const inbox = await owner.client.alerts.mine({ about: ventureId });
+    const told = inbox.find(
       (one) => one.entityId === `${ventureId}:buying_closed`
     );
     expect(told?.params).toMatchObject({
@@ -155,7 +159,7 @@ describe("hearing that a paper is due", () => {
     });
   });
 
-  it("tells her at the first Sale, and only at the first", async () => {
+  it("tells her at the first Sale", async () => {
     const selling = await as("manager", "2054-02-18T05:00:00.000Z");
     await selling.client.sale.record({
       tagNumber,
@@ -168,30 +172,26 @@ describe("hearing that a paper is due", () => {
       paymentMethod: "bank",
     });
     const owner = await as("owner", "2054-02-18T06:00:00.000Z");
-    const due = await papersDue(owner);
-    expect(
-      occasionsOf(due, ventureId).filter((one) => one === "first_sale")
-    ).toHaveLength(1);
+    const due = await papersDue(owner, ventureId);
+    expect(due.filter((one) => one === "প্রথম বিক্রি / first sale")).toHaveLength(
+      1
+    );
   });
 
   it("raises the month once, however often the day is turned", async () => {
     const owner = await as("owner", "2054-02-20T04:00:00.000Z");
     await owner.client.alerts.sweep();
     await owner.client.alerts.sweep();
-    const due = await papersDue(owner);
+    const due = await papersDue(owner, ventureId);
     // February raised once, whatever opened the app and however many times.
-    expect(
-      occasionsOf(due, ventureId).filter((one) => one === "2054-02")
-    ).toHaveLength(1);
+    expect(due.filter((one) => one === "2054-02")).toHaveLength(1);
   });
 
   it("raises the next month as its own telling", async () => {
     const owner = await as("owner", "2054-03-05T04:00:00.000Z");
     await owner.client.alerts.sweep();
-    const due = await papersDue(owner);
-    const months = occasionsOf(due, ventureId).filter((one) =>
-      one?.startsWith("2054-")
-    );
+    const due = await papersDue(owner, ventureId);
+    const months = due.filter((one) => one?.startsWith("2054-"));
     expect(months).toContain("2054-02");
     expect(months).toContain("2054-03");
   });
@@ -200,15 +200,35 @@ describe("hearing that a paper is due", () => {
     // The Target Window closed on the 19th of February; the wind-up runs thirty days past it.
     const owner = await as("owner", "2054-03-05T04:00:00.000Z");
     await owner.client.alerts.sweep();
-    const due = await papersDue(owner);
-    expect(occasionsOf(due, ventureId)).toContain("wind_up");
+    expect(await papersDue(owner, ventureId)).toContain(
+      "গুটিয়ে আনার সময় / wind-up"
+    );
   });
 
   it("says nothing about a Venture nobody has signed", async () => {
     const owner = await as("owner", "2054-03-05T04:00:00.000Z");
     await owner.client.alerts.sweep();
-    const due = await papersDue(owner);
-    expect(occasionsOf(due, unsignedId)).toEqual([]);
+    // It is Buying like the other one, so the silence is about there being nobody to send a paper to.
+    const list = await owner.client.ventures.list();
+    expect(list.find((one) => one.id === unsignedId)?.state).toBe("buying");
+    expect(await papersDue(owner, unsignedId)).toEqual([]);
+  });
+
+  it("writes nothing to the trail once everybody has been told", async () => {
+    const owner = await as("owner", "2054-03-06T04:00:00.000Z");
+    await owner.client.alerts.sweep();
+    const before = await owner.client.audit.list({
+      entity: "venture",
+      entityId: ventureId,
+    });
+    // A second turn of the same day: everything March has to say has been said, so the sweep must
+    // not open a transaction to record having said nothing.
+    await owner.client.alerts.sweep();
+    const after = await owner.client.audit.list({
+      entity: "venture",
+      entityId: ventureId,
+    });
+    expect(after).toHaveLength(before.length);
   });
 
   it("says nothing about a run that has been called off", async () => {
@@ -265,9 +285,9 @@ describe("hearing that a paper is due", () => {
     const april = await as("owner", "2054-04-02T04:00:00.000Z");
     await april.client.alerts.sweep();
     // April comes round and brings it nothing: a Venture that is over owes nobody anything.
-    expect(occasionsOf(await papersDue(april), doomed.id)).toEqual([]);
+    expect(await papersDue(april, doomed.id)).toEqual([]);
     // And the one still running is still told, so the silence is about the cancelled run and not
     // about the sweep having stopped.
-    expect(occasionsOf(await papersDue(april), ventureId)).toContain("2054-04");
+    expect(await papersDue(april, ventureId)).toContain("2054-04");
   });
 });
