@@ -85,7 +85,7 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 
 - **Tax and the accountant.** How project money appears in the monthly accountant export, and what the software must withhold or show. The research found 10% withholding if a contract reads as a deposit, and none found for a genuine profit share; VAT is likely on any fee. The advisers in the lawyer task confirm; then waits on how investor money is recorded.
 - **Reaching Investors without a login.** How the statements physically get to them (print, WhatsApp, email) now that their content and cadence are settled.
-- **The Owner's view of Ventures.** Venture tiles and exceptions on the Owner's farm page: a Venture running over cost, a Running Budget nearly gone, animals unsold as the Wind-up Period ends. **No longer blocked** — settlement shipped 2026-09-18. `ventures.herd` (`routers/ventures.ts`) already returns the whole progress reading to Owner and Manager and nothing calls it.
+- **The Owner's view of Ventures.** Venture tiles and exceptions on the Owner's farm page: a Venture running over cost, a Running Budget nearly gone, animals unsold as the Wind-up Period ends. No longer blocked — settlement shipped 2026-09-18 — and now **ticketed and grounded** as [finishing ticket 09](../openfarm-ventures-finishing/issues/09-the-owners-farm-page-says-nothing-about-ventures.md): `farm.tsx` does not contain the word "venture" once, and every figure it would need is already on `ventures.list`. `ventures.herd` (`routers/ventures.ts`) also returns the whole progress reading to Owner and Manager and still nothing calls it.
 
 ## Out of scope
 
