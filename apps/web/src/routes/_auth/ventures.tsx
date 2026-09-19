@@ -174,6 +174,20 @@ const moneyOf = (venture: Venture) => ({
 });
 
 /**
+ * Whether the run is still on.
+ *
+ * What is left of each budget is a question about a Venture that is still feeding animals. Once the
+ * payouts have gone the balance is nearly nothing while the cattle side still counts its whole share,
+ * so the figure turns deeply negative — a settled run read "৳-1,83,359 to feed with", which is not a
+ * thing that happened to it. The server draws the same line for the low-budget warning, saying "one
+ * whose run is over is not feeding anybody"; this is that line, one row further down the card.
+ */
+const stillRunning = (venture: Venture) =>
+  venture.state === "buying" ||
+  venture.state === "fattening" ||
+  venture.state === "selling";
+
+/**
  * Whether anybody is owed one of the three papers.
  *
  * Asked of the Agreements rather than of the Venture's state, because the first of the three is wanted
@@ -258,12 +272,14 @@ const VentureCard = ({
             <StatusBadge tone="warning">{t("ventures.runningLow")}</StatusBadge>
           </span>
         ) : null}
-        <Line label={t("ventures.budgetsHeld")}>
-          {t("ventures.budgetSplit", {
-            cattle: formatNumber(money.cattleBudgetHeldBdt, language),
-            running: formatNumber(money.runningBudgetHeldBdt, language),
-          })}
-        </Line>
+        {stillRunning(venture) ? (
+          <Line label={t("ventures.budgetsHeld")}>
+            {t("ventures.budgetSplit", {
+              cattle: formatNumber(money.cattleBudgetHeldBdt, language),
+              running: formatNumber(money.runningBudgetHeldBdt, language),
+            })}
+          </Line>
+        ) : null}
         <Line label={t("ventures.floor")}>{taka(venture.floorBdt)}</Line>
         <Line label={t("ventures.decideBy")}>{day(venture.decideBy)}</Line>
         <Line label={t("ventures.units")}>
