@@ -1,3 +1,4 @@
+import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import type { HisStanding } from "./investor-statement-store";
@@ -80,3 +81,48 @@ export const chargeWords = (word: ChargeWord): string => CHARGE_LABELS[word];
  *  nobody else's: the rest of the Units are other men's business. */
 export const shareOfUnits = (his: number, all: number): number =>
   all > 0 ? Math.round((his * 100) / all) : 0;
+
+/** What became of the cattle, in lines a man reads rather than a table he decodes. */
+export const herdStoryWords = (
+  story: {
+    boughtCount: number;
+    averageBoughtBdt: number | null;
+    soldCount: number;
+    averageSoldBdt: number | null;
+    boughtBackCount: number;
+    diedCount: number;
+  },
+  said: (value: number) => string
+): string[] =>
+  [
+    `কেনা হয়েছে / Bought: ${said(story.boughtCount)}${
+      story.averageBoughtBdt === null
+        ? ""
+        : ` · গড়ে ${said(story.averageBoughtBdt)} টাকা`
+    }`,
+    `বিক্রি হয়েছে / Sold: ${said(story.soldCount)}${
+      story.averageSoldBdt === null
+        ? ""
+        : ` · গড়ে ${said(story.averageSoldBdt)} টাকা`
+    }`,
+    story.boughtBackCount > 0
+      ? `খামার কিনে নিয়েছে / Bought back by the Farm: ${said(story.boughtBackCount)}`
+      : null,
+    `মারা গেছে / Lost: ${said(story.diedCount)}`,
+  ].filter((line) => line !== null);
+
+/**
+ * What became of one Settlement Adjustment, said rather than spelled out as the word the database keeps.
+ *
+ * Exhaustive against the stored outcomes, so a fifth one fails to compile here rather than printing an
+ * English enum into the middle of a Bangla sheet.
+ */
+const ADJUSTMENT_OUTCOMES = {
+  noted: "লেখা আছে / noted",
+  outstanding: "বাকি আছে / outstanding",
+  paid: "পাঠানো হয়েছে / paid",
+  waived: "মওকুফ / waived",
+} as const satisfies Record<AdjustmentOutcome, string>;
+
+export const adjustmentWords = (outcome: AdjustmentOutcome): string =>
+  ADJUSTMENT_OUTCOMES[outcome];

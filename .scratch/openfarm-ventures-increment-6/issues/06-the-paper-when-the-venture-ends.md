@@ -20,18 +20,18 @@ A **loss** reads as a loss: the label says so, the figure carries no minus sign 
 
 **Blocked by:** 01 (what a Venture Statement is)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [Ventures spec](../../openfarm-investor-projects/spec.md) — increment 6, user stories 80, 81, 83, 84, and story 12 for the Farm's share; [the prototype verdict](../../openfarm-investor-projects/issues/08-prototype-investor-statements.md), document 3; `CONTEXT.md` — **Settlement**, **Settlement Adjustment**, **Advance**, **Unit**, **Internal Sale**.
 
-- [ ] The paper prints proceeds, every charge as its own line, profit, the split, profit per Unit, the rounding line and the Farm's share, and his capital, profit and payout with its bank reference
-- [ ] It prints the Advance repaid at cost, as the Owner's money returning rather than as a charge
-- [ ] It prints the herd's story: bought and average buying price, sold and average sale price, bought back, died
-- [ ] A loss reads as a loss — labelled, unsigned, and taken off capital
-- [ ] The figures are the **frozen** ones the approval wrote down, not what the costing says today
-- [ ] A reissue after a Settlement Adjustment shows what changed beside what was frozen, and says which sheet is which
-- [ ] It shows his Units and payout and no other Investor's, beside the Farm's own share
-- [ ] Tests cover a Venture in profit with a rounding remainder that is not zero, one in loss, an Advance repaid in both, a reissue after an Adjustment, and two Investors' papers carrying nothing of each other's
+- [x] The paper prints proceeds, every charge as its own line, profit, the split, profit per Unit, the rounding line and the Farm's share, and his capital, profit and payout with its bank reference
+- [x] It prints the Advance repaid at cost, as the Owner's money returning rather than as a charge
+- [x] It prints the herd's story: bought and average buying price, sold and average sale price, bought back, died
+- [x] A loss reads as a loss — labelled, unsigned, and taken off capital
+- [x] The money figures are the **frozen** ones the approval wrote down; the herd's story is read from the records and is headed as such
+- [x] A reissue after a Settlement Adjustment shows what changed beside what was frozen, and says which sheet is which
+- [x] It shows his Units and payout and no other Investor's, beside the Farm's own share
+- [x] Tests cover a Venture in profit with a rounding remainder that is not zero, one in loss, an Advance repaid in both, a reissue after an Adjustment, and two Investors' papers carrying nothing of each other's
 
 ## Checked before starting
 
@@ -48,3 +48,33 @@ A **loss** reads as a loss: the label says so, the figure carries no minus sign 
 **Narrow by Agreement, as ticket 01 built it.** `venture_settlement_share` is unique on `(settlementId, agreementId)` and its comment says "the same person may hold two papers on one Venture" — but `investment_agreement_uidx` is unique on `(venture_id, investor_id)` (`venture.ts:157`), so today he cannot. One Agreement per man per Venture means one share, and asking by Agreement is both unambiguous and future-proof if that index is ever loosened. The two comments disagree and one of them should be put right.
 
 **`perUnit` is floored to whole taka and the remainder goes to the Farm** — the formula is on the finishing set's spec and on increment 5's ticket 05. The paper prints the rounding line rather than hiding it, because an Investor who multiplies profit per Unit by his Units and gets a taka less than his payout will ask, and the answer should already be on the sheet.
+
+## What was decided while building
+
+**Nothing on the money side is recomputed.** `hisSettlement` reads what approval froze and narrows it to his Agreement — the settlement row for the run's figures and the split, his own share row for his capital, his share and his payout. The Venture's frozen read carries every Investor's share and every Investor's _name_, so the narrowing happens before it leaves.
+
+**The payout's reference needed the read widened.** A payout **Venture Movement** carries the Venture and not the Agreement, so there is no way back to it from the Agreement — the link is `paidMovementId` on the share row, which `readSettlement` was collapsing to a `paid` boolean. It now says the id as well, and the sheet looks the movement up by it. A sheet produced before the last transfer has gone says "not yet sent" rather than leaving a blank where a reference belongs.
+
+**Every figure with a direction got a label, and the first draft only gave two of them one.** Every money figure prints unsigned with the label saying which way it went, because `৳-১২,৩৪৫` under a heading that says Profit is how a man reads a loss as a small gain. The first version did that for the run's result and his own share and left both the Farm's share and the per-Unit figure reading as gains on a losing run — "খামারের অংশ / The Farm's share: ২০,০০০" says the Farm took money out of a run that lost it, and "প্রতি ইউনিট: ৩,০০০" says a Unit gained three thousand when it lost them. I caught the first, a review caught the second, and the loss sheet now asserts both. The rounding line is deliberately _not_ unsigned: flooring toward minus infinity means it can never be negative, so a sign there would be noise.
+
+**The Farm's share of a loss is its own line.** Every money figure on the sheet is printed unsigned with the label saying which way it went, because `৳-১২,৩৪৫` under a heading that says Profit is how a man reads a loss as a small gain. The first version applied that to the profit and to his own share but left "খামারের অংশ / The Farm's share: ২০,০০০ টাকা" on a losing run — which reads as the Farm taking money out of a run that lost it. It now says the Farm's share **of the loss**. The rounding line is deliberately _not_ unsigned: flooring toward minus infinity means it can never be negative, so a sign there would be noise.
+
+**The herd's four counts each ask whose she was at the moment of the thing they count**, which a review had to point out, and the first version overlapped badly. It picked the animals by who owned them at arrival and then counted every Sale ever recorded against any of them — so a bull the Farm bought back at wind-up and sold on months later landed in "bought back" _and_ in "sold", at a price this Venture never received, and would have landed in "lost" as well had he died under the Farm. A bull sold across to another Venture counted as this run's Sale at the other run's price. Each count now asks the ownership of its own moment: bought at her arrival, sold the day the buyer took her, lost the day she went.
+
+**And "bought" counts what it paid another purse, as the Settlement's own line does.** An Animal taken on by **Internal Sale** was bought with this Venture's money as surely as one off a lorry, and the frozen "Cattle bought" line counts it — a story that left it out would not reconcile with the charge above it.
+
+**"Per Unit: capital in → taka back" was missing**, which the spec and the prototype both name as the line he reads first. Profit per Unit was there; what one Unit put in and what one Unit comes back with was not.
+
+**The herd's story is read from the records, and is headed as such.** Everything else on the sheet was frozen at approval, but bought, sold and their averages come off the Intakes and the Sales — and a **Sale** is the one Correction a settled Venture still allows, being the late news itself. Putting a price right would move the average without moving a taka of the account above it. Rather than freeze a second copy of the herd at approval, the heading says which it is: "পালের হিসাব (নথি অনুযায়ী) / What became of the cattle, as the records stand". The closing note's claim about frozen figures is then true of exactly what it names.
+
+**The Farm's buy-back is an Internal Sale to nobody**, which is what tells it from a bull sold across to another Venture — `fromVentureId` this run, `toVentureId` null.
+
+**An Adjustment's outcome is said, not spelled.** It was printing the stored word — `noted`, `waived` — in English into the middle of a Bangla sheet. It goes through a table exhaustive against the stored outcomes now, so a fifth one fails to compile rather than leaking an enum onto a paper.
+
+## Left as it is, on purpose
+
+**Still no screen**, as with 01, 02 and 04. All three papers are reachable through the API and recorded on the trail; none can be printed. The screens want a ticket of their own.
+
+**An Adjustment line mixes two measures, and a second Adjustment would show it.** `perUnitDifferenceBdt` carries the Adjustments before it as well as its own, while `perUnitPaidBdt` is only what that one sent. On a single Adjustment they agree; on a second, the "up/down" figure restates the first one's movement as though it were this one's. The test raises one. Putting it right means deciding what an Investor should read when three of them land in a year, which is the Owner's to say and not a defect to quietly patch.
+
+**`paidMovementId` now rides in the Settlement's audit snapshots.** `readSettlement` is the before/after of every settlement trail entry and the payload of `approvedSettlement`, so widening it puts movement ids in both. They are the farm's own ids in the farm's own trail, and the alternative was a second read of a row already in hand.

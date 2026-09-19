@@ -1,5 +1,10 @@
-import { joiningLetter, progressStatement } from "@OpenFarm/domain";
+import {
+  joiningLetter,
+  progressStatement,
+  settlementStatement,
+} from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
@@ -7,14 +12,18 @@ import { assertRegistered, exportedPaper } from "../export-store";
 import { protectedProcedure } from "../index";
 import {
   assertCapitalHeld,
+  hisSettlement,
   hisStanding,
   theVentureOf,
+  theirHerdStory,
   theirPhotographs,
   theirSpend,
 } from "../investor-statement-store";
 import {
+  adjustmentWords,
   chargeWords,
   gainWords,
+  herdStoryWords,
   joiningTerms,
   shareOfUnits,
 } from "../investor-statement-words";
@@ -189,5 +198,113 @@ export const investorStatementsRouter = {
         () => Promise.resolve()
       );
       return { text, photos, agreementId: standing.agreement.id };
+    }),
+
+  /**
+   * হিসাব নিকাশ — the sheet an Investor checks the whole run against, and the document the arrangement
+   * finally rests on. If he cannot follow it line by line to his own payout, the Farm has not accounted
+   * to him.
+   *
+   * Every figure is the one approval **froze**, never what the costing says today. That is the whole
+   * point of approving: the figures were written down as they stood and every Investor was paid on them,
+   * which is why a Correction that would move them is refused in favour of a Settlement Adjustment. A
+   * sheet that recomputed would undo all of it quietly.
+   *
+   * Reissued as often as she likes. An Adjustment does not rewrite this paper — it appears at the foot of
+   * it, beside the frozen figures, so a man holding two sheets can see the Farm did not restate the first.
+   */
+  settlement: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ agreementId: z.string() }))
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "an investor's settlement statement");
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const standing = await hisStanding(
+        context.db,
+        context.farm.id,
+        input.agreementId
+      );
+      const [settled, story] = await Promise.all([
+        hisSettlement(context.db, context.farm.id, standing),
+        theirHerdStory(context.db, context.farm.id, standing.venture.id),
+      ]);
+      if (!settled) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "That Venture's Settlement has not been approved",
+          data: { refusal: "not_settled_yet" },
+        });
+      }
+      const said = (value: number) => formatNumber(value, language);
+      // Unsigned, always: the label says which way it went, because a minus sign after the taka mark is
+      // how a loss gets read as a small profit.
+      const unsigned = (value: number) => said(Math.abs(value));
+      const day = (farmDay: string) =>
+        formatDate(new Date(`${farmDay}T00:00:00Z`), language, "date");
+      // Capital returned, by the Units it returns to.
+      const perUnitIn =
+        settled.units > 0 ? settled.capitalBdt / settled.units : 0;
+      const text = settlementStatement({
+        farm: context.farm,
+        investorName: standing.him.name,
+        ventureName: standing.venture.name,
+        approvedOn: formatDate(settled.approvedAt, language, "date"),
+        proceeds: said(settled.proceedsBdt),
+        charges: settled.charges.map((one) => ({
+          label: chargeWords(one.word),
+          amount: said(one.bdt),
+        })),
+        charged: said(settled.chargedBdt),
+        result: unsigned(settled.profitBdt),
+        inProfit: settled.profitBdt >= 0,
+        investorsPercent: said(settled.investorsPercent),
+        units: said(settled.units),
+        perUnit: unsigned(settled.perUnitBdt),
+        perUnitRose: settled.perUnitBdt >= 0,
+        // What one Unit put in and what one Unit comes back with, which is the line he reads first.
+        perUnitIn: said(perUnitIn),
+        perUnitBack: said(perUnitIn + settled.perUnitBdt),
+        rounding: said(settled.roundingBdt),
+        farmShare: unsigned(settled.farmBdt),
+        farmShareRose: settled.farmBdt >= 0,
+        advance: settled.advanceBdt > 0 ? said(settled.advanceBdt) : null,
+        advanceRepaid: settled.advanceRepaid,
+        his: {
+          units: said(settled.his.units),
+          capital: said(settled.his.capitalBdt),
+          share: unsigned(settled.his.shareBdt),
+          shareRose: settled.his.shareBdt >= 0,
+          payout: said(settled.his.payoutBdt),
+          reference: settled.his.reference,
+          paidOn: settled.his.paidOn ? day(settled.his.paidOn) : null,
+        },
+        herd: herdStoryWords(story, said),
+        adjustments: settled.adjustments.map((one) => ({
+          reason: one.reason,
+          raisedAt: formatDate(one.raisedAt, language, "date"),
+          outcome: adjustmentWords(one.outcome),
+          amount: unsigned(one.differenceBdt),
+          rose: one.differenceBdt >= 0,
+          paid: said(one.paidBdt),
+        })),
+        producedBy: context.actor.name,
+        producedAt: formatDate(now, language, "dateTime"),
+      });
+      await audited(context).write(
+        {
+          entity: "investment_agreement",
+          entityId: standing.agreement.id,
+          action: "export",
+          after: exportedPaper(context.farm, "settlement_statement", {
+            ventureId: standing.venture.id,
+            investorId: standing.him.id,
+            payoutBdt: settled.his.payoutBdt,
+            adjustments: settled.adjustments.length,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      return { text, agreementId: standing.agreement.id };
     }),
 };

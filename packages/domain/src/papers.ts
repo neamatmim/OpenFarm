@@ -911,3 +911,170 @@ export const progressStatement = (sheet: ProgressStatement): string =>
       ),
     ],
   });
+
+/** One Settlement Adjustment as his closing sheet says it. */
+export interface StatementAdjustment {
+  reason: string;
+  raisedAt: string;
+  outcome: string;
+  /** What his Units are worth of it, unsigned, and which way it went. */
+  amount: string;
+  rose: boolean;
+  paid: string;
+}
+
+/** হিসাব নিকাশ — the sheet an Investor checks the whole run against. */
+export interface SettlementStatement {
+  farm: FarmIdentity;
+  producedBy: string;
+  producedAt: string;
+  investorName: string;
+  ventureName: string;
+  approvedOn: string;
+  proceeds: string;
+  charges: SpendLine[];
+  charged: string;
+  /**
+   * The run's profit, unsigned, and whether it was one. A minus sign tucked in after the taka mark is
+   * how a loss gets read as a small profit; the label says which it is instead.
+   */
+  result: string;
+  inProfit: boolean;
+  /** How it divides: the Investors' percentage, the Units, what a Unit took, the rounding to the Farm,
+   *  and the Farm's own management share. */
+  investorsPercent: string;
+  units: string;
+  perUnit: string;
+  /** Whether a Unit gained. On a losing run it lost, and the label has to say so as the others do. */
+  perUnitRose: boolean;
+  /** What one Unit put in and what one Unit got back — the line he reads first. */
+  perUnitIn: string;
+  perUnitBack: string;
+  rounding: string;
+  farmShare: string;
+  /** Whether the Farm's share was a share of profit. On a losing run the Farm bears its part too, and a
+   *  figure labelled "the Farm's share" beside a loss would read as the Farm taking money. */
+  farmShareRose: boolean;
+  /** The Owner's own money back at cost, which was never a charge against the run. */
+  advance: string | null;
+  advanceRepaid: boolean;
+  /** His: Units, capital in, what his Units took, and what went out to him. */
+  his: {
+    units: string;
+    capital: string;
+    share: string;
+    shareRose: boolean;
+    payout: string;
+    reference: string | null;
+    paidOn: string | null;
+  };
+  /** What became of the cattle, already worded. */
+  herd: string[];
+  adjustments: StatementAdjustment[];
+}
+
+/**
+ * The closing sheet. If he cannot follow it line by line to his own payout, the Farm has not accounted
+ * to him — so every figure the payout was worked out from is on it, in the order it was worked out.
+ *
+ * A loss reads as a loss. The label changes, the figure carries no sign, and a share that went the wrong
+ * way is shown as coming off his capital rather than being added to it. `৳-১২,৩৪৫` under a heading that
+ * says Profit is how a man reads a loss as a small gain.
+ */
+export const settlementStatement = (sheet: SettlementStatement): string =>
+  investorStatement({
+    farm: sheet.farm,
+    title: "হিসাব নিকাশ / Settlement statement",
+    producedBy: sheet.producedBy,
+    producedAt: sheet.producedAt,
+    body: [
+      field("বিনিয়োগকারী", "Investor", sheet.investorName),
+      field("ভেঞ্চার", "Venture", sheet.ventureName),
+      field("হিসাব অনুমোদিত", "Approved on", sheet.approvedOn),
+      "",
+      "যা পাওয়া গেল / What the animals fetched",
+      field("  মোট বিক্রি", "Proceeds", `${sheet.proceeds} টাকা`),
+      "",
+      "যা খরচ হলো / What the run was charged",
+      ...sheet.charges.map((one) => `  ${one.label}: ${one.amount} টাকা`),
+      field("  মোট খরচ", "Total charged", `${sheet.charged} টাকা`),
+      "",
+      sheet.inProfit
+        ? field("লাভ", "Profit", `${sheet.result} টাকা`)
+        : field("ক্ষতি", "Loss", `${sheet.result} টাকা`),
+      "",
+      "ভাগ / How it divides",
+      field(
+        "  বিনিয়োগকারীদের অংশ",
+        "Investors' share",
+        `${sheet.investorsPercent}%`
+      ),
+      field("  মোট ইউনিট", "Units", sheet.units),
+      sheet.perUnitRose
+        ? field("  প্রতি ইউনিট মুনাফা", "Profit per Unit", `${sheet.perUnit} টাকা`)
+        : field("  প্রতি ইউনিট ক্ষতি", "Loss per Unit", `${sheet.perUnit} টাকা`),
+      // The line he reads before any other: one Unit in, one Unit back.
+      field(
+        "  প্রতি ইউনিট",
+        "Per Unit",
+        `${sheet.perUnitIn} টাকা দিয়ে ${sheet.perUnitBack} টাকা / ${sheet.perUnitIn} in, ${sheet.perUnitBack} back`
+      ),
+      field("  ভগ্নাংশ খামারে", "Rounding to the Farm", `${sheet.rounding} টাকা`),
+      sheet.farmShareRose
+        ? field("  খামারের অংশ", "The Farm's share", `${sheet.farmShare} টাকা`)
+        : field(
+            "  খামারের ভাগের ক্ষতি",
+            "The Farm's share of the loss",
+            `${sheet.farmShare} টাকা`
+          ),
+      sheet.advance
+        ? field(
+            "  মালিকের অগ্রিম ফেরত",
+            "Owner's Advance repaid",
+            `${sheet.advance} টাকা${sheet.advanceRepaid ? "" : " · এখনো যায়নি / not yet sent"}`
+          )
+        : null,
+      "",
+      "আপনার হিসাব / Yours",
+      field("  ইউনিট", "Units held", sheet.his.units),
+      field("  মূলধন ফেরত", "Capital returned", `${sheet.his.capital} টাকা`),
+      sheet.his.shareRose
+        ? field(
+            "  মুনাফার অংশ",
+            "Your share of the profit",
+            `${sheet.his.share} টাকা`
+          )
+        : field(
+            "  ক্ষতির অংশ (মূলধন থেকে)",
+            "Your share of the loss, off capital",
+            `${sheet.his.share} টাকা`
+          ),
+      field("  মোট প্রাপ্য", "Your payout", `${sheet.his.payout} টাকা`),
+      sheet.his.reference
+        ? field(
+            "  পাঠানো হয়েছে",
+            "Sent",
+            `${sheet.his.paidOn} · ${sheet.his.reference}`
+          )
+        : field("  পাঠানো হয়েছে", "Sent", "এখনো যায়নি / not yet sent"),
+      "",
+      // Read from the records rather than frozen with the account: a **Sale** is the one Correction a
+      // settled Venture still allows, being the late news itself, and putting a price right would move
+      // the average below without moving a taka of the account above. The heading says which it is.
+      "পালের হিসাব (নথি অনুযায়ী) / What became of the cattle, as the records stand",
+      ...sheet.herd.map((one) => `  ${one}`),
+      ...(sheet.adjustments.length === 0
+        ? []
+        : [
+            "",
+            "বণ্টন সমন্বয় / Settlement Adjustments",
+            ...sheet.adjustments.flatMap((one) => [
+              `  ${one.raisedAt} · ${one.reason}`,
+              `    ${one.rose ? "বেড়েছে / up" : "কমেছে / down"} ${one.amount} টাকা · ${one.outcome} · পাঠানো ${one.paid} টাকা`,
+            ]),
+          ]),
+      "",
+      "এই হিসাব অনুমোদনের দিনেই স্থির করা হয়েছে। পরে কিছু এলে তা বণ্টন সমন্বয় হিসেবে আসবে, এই কাগজ বদলে নয়।",
+      "These figures were frozen on the day this settlement was approved. Anything arriving later comes as a Settlement Adjustment, not by this sheet being rewritten.",
+    ],
+  });
