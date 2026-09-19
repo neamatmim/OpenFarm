@@ -67,6 +67,7 @@ import { theirProgress } from "../venture-herd-store";
 import {
   balanceAtMonthEnd,
   balanceOf,
+  budgetsOf,
   heldByEach,
   NEVER_CHECKED,
   bankStandingOf,
@@ -89,6 +90,10 @@ import {
 
 /** Taka. A Venture is planned in lakhs; the column keeps poisha so the money can be added up. */
 const money = z.number().min(0).max(1_000_000_000);
+
+/** The states in which a Venture has animals somebody is looking after. One still Open has bought
+ *  nothing; a settled or cancelled one has nothing left to feed. */
+const AT_WORK = ["buying", "fattening", "selling"] as const;
 
 const openInput = z
   .object({
@@ -506,6 +511,58 @@ export const venturesRouter = {
           stillHers: stillHers.get(one.id) ?? 0,
         })
       );
+    }),
+
+  /**
+   * The Ventures the Manager is looking after cattle for, and what the roles matrix gives him of each:
+   * the budgets, what has gone against them, what is left, and what is going wrong.
+   *
+   * Its own procedure rather than `ventures.list` narrowed on the way out, because a field the client
+   * merely does not draw is still a field the client was sent — and what is kept back here is who
+   * trusted the Owner with money, how much each of them put in, and what any of them is owed. He is
+   * told nothing about an Investor, a Unit, a split, a payout or what the run made.
+   *
+   * Only the runs with animals to look after. A Venture still Open has bought nothing and a settled or
+   * cancelled one has nothing left to feed, and neither is work he can do anything about today.
+   */
+  running: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const rows = await context.db.query.venture.findMany({
+        where: { farmId: context.farm.id, state: { in: [...AT_WORK] } },
+        orderBy: { createdAt: "desc", id: "desc" },
+      });
+      const ids = rows.map((one) => one.id);
+      const [held, stillHers] = await Promise.all([
+        heldByEach(context.db, context.farm.id, ids),
+        stillHersByEach(context.db, context.farm.id, ids),
+      ]);
+      return rows.map((row) => {
+        const budgets = budgetsOf(row, held.get(row.id));
+        return {
+          id: row.id,
+          name: row.name,
+          state: row.state,
+          /** What its capital was planned as, and what is left of each side of it. */
+          cattleBudgetBdt: budgets.cattleBudgetBdt,
+          runningBudgetBdt: budgets.runningBudgetBdt,
+          cattleBudgetHeldBdt: budgets.cattleBudgetHeldBdt,
+          runningBudgetHeldBdt: budgets.runningBudgetHeldBdt,
+          /** What its animals have cost it so far. */
+          spentBdt: roundTaka(held.get(row.id)?.spentBdt ?? 0),
+          runningBudgetLow:
+            budgets.runningBudgetHeldBdt < context.farm.runningBudgetWarnBdt,
+          targetWindow: {
+            start: row.targetWindowStart,
+            end: row.targetWindowEnd,
+          },
+          windUpEndsOn: windUpEndsOn(
+            row.targetWindowEnd,
+            context.farm.windUpDays
+          ),
+          animalsStanding: stillHers.get(row.id) ?? 0,
+        };
+      });
     }),
 
   /**

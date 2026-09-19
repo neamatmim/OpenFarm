@@ -192,6 +192,16 @@ export const en = {
   "params.runningBudgetWarn":
     "Warn when a Venture has less than this to feed with",
   "params.people": "people",
+  /** The Ventures the Manager is looking after cattle for. Budgets, spend and warnings only — whose
+   *  money it is never reaches this screen. */
+  "venturesAtWork.title": "Ventures",
+  "venturesAtWork.hint":
+    "The Ventures whose cattle you are looking after, and what each has left to feed them with.",
+  "venturesAtWork.feedingLeft": "{left} left to feed with",
+  "venturesAtWork.spent": "{spent} spent",
+  "venturesAtWork.standing": "{standing} cattle standing",
+  "venturesAtWork.sellingBy": "selling by {day}",
+  "venturesAtWork.runningLow": "Feeding money is low",
   /** What a Venture wants the Owner for, on her own page. A stale bank month and one that disagreed
    *  are said apart: one needs the statement read again, the other needs explaining. */
   "ventureTrouble.title": "Ventures needing you",

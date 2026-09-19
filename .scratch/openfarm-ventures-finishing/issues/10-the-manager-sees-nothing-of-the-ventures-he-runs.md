@@ -6,19 +6,19 @@ them, and there is no screen anywhere that tells him a Venture exists.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [The roles matrix](../../openfarm-investor-projects/assets/venture-roles-matrix.md), three rows
 quoted below. [Ventures spec](../../openfarm-investor-projects/spec.md), "Who may do what" — the Manager
 sees the work and never the money between the Owner and her Investors. `CONTEXT.md` — **Venture**,
 **Running Budget**, **Reimbursement**.
 
-- [ ] A Manager can see, for a Venture, what the matrix gives him: its budgets, what it has spent, and
+- [x] A Manager can see, for a Venture, what the matrix gives him: its budgets, what it has spent, and
       what is going wrong — and none of what it does not
-- [ ] An Animal's own page says which Venture owns her, to everyone the matrix says may read it
-- [ ] Nothing on any of it names an Investor, a Unit, a split, a payout or a Venture's result
-- [ ] A Staff member and a Vet see no change anywhere
-- [ ] Somebody opens it as the Manager — not as the Owner — and looks at it
+- [x] An Animal's own page says which Venture owns her, to everyone the matrix says may read it
+- [x] Nothing on any of it names an Investor, a Unit, a split, a payout or a Venture's result
+- [x] A Staff member and a Vet see no change anywhere
+- [x] Somebody opens it as the Manager — not as the Owner — and looks at it
 
 ## Checked before starting
 
@@ -42,12 +42,21 @@ the Manager may call, it was written for him, and `grep -rn "ventures.herd" apps
 Increment 6's ticket 07 already flagged it: "If a Venture card should show how the cattle are doing
 without producing a paper, it is already there and unclaimed."
 
-**An Animal's page never says whose she is.** `apps/web/src/routes/_auth/animals/$tagNumber.tsx` does not
-contain the word "venture", and neither does `routers/animals.ts` — `ownerVentureId` is written at
-Intake (`routers/intake.ts:160`) and read afterwards only by `sale.ts` and `ventures.ts`. So a Manager
-standing at a bull cannot tell whether she is the Farm's or an Investor's, though the matrix gives him
-**C R U** on exactly that fact. Widening the animal read is part of this work; decide whether Staff and
-Vet see it too — the matrix says they do not.
+**An Animal's page already says whose she is, and this ticket was wrong twice about it.**
+`animals.byTag` loads `owner: { columns: { id: true, name: true } }` and returns
+`owner: theCost ? (herPage.owner ?? null) : null` (`routers/animals.ts:480,588`), where
+`readsWhatSheCost` is `owner || manager` (`scope.ts:140`) — and
+`apps/web/src/components/animal/animal-profile.tsx:183` draws it, with a comment already saying "the
+server says nothing of it to anybody it is not the business of, so what arrives here is already the
+right answer." Read as the Manager on the seeded farm, F-0021's header says **ঈদ ২০২৭ ভেঞ্চার**. Staff
+and the Vet get `null` and see nothing.
+
+_(Corrected twice, 2026-09-19. The ticket first said the server sent nothing — written on a grep of
+`routers/animals.ts` for `ownerVentureId`, which the relational query calls `owner`. It then said the
+page never drew it — written on a grep of `$tagNumber.tsx` for "venture", when the drawing is in
+`animal-profile.tsx` and the field is `owner`. The repo's own rule covers this: verify a bug before
+carrying it. A grep for one spelling in one file is not a verification, and saying it twice did not make
+it truer. **This criterion was already met before any of this work started.**)_
 
 **What he must not see is most of the file.** Investors, Units, the split, payouts and the result are
 Owner-only, and `ventures.list` carries all of them (`signedFor`, `capitalInBdt`, `paidOutBdt`). So this
@@ -71,3 +80,33 @@ it as the Owner, because reading it as the Owner is how a screen that leaks gets
 the trouble list were each drawn for the wrong Ventures because the condition was the Venture's _state_
 rather than what the thing is for. Ask what the Manager needs to know, then ask which Ventures can be in
 that condition.
+
+## What was decided while building
+
+**Half of this ticket was already built, and the ticket was wrong twice about it** — see the correction
+above. The Animal's page has said whose she is all along, to the Owner and the Manager and to nobody
+else. Read as the Manager on the seeded farm, F-0021's header says **ঈদ ২০২৭ ভেঞ্চার**.
+
+**A panel on his own page**, chosen by the Owner (2026-09-19) over a section on the fattening board or a
+page of his own: he sees it when he opens the app rather than having to remember to go anywhere, and it
+mirrors the panel the Owner now has on hers.
+
+**`ventures.running` is its own procedure, not `ventures.list` narrowed on the way out.** A field the
+client merely does not draw is still a field the client was sent, and what is kept back is who trusted
+the Owner with money, how much each put in and what any of them is owed. It carries the name, the state,
+both budgets planned and left, what has been spent, the Running Budget warning, the Target Window, the
+wind-up day and how many animals still stand — and nothing else.
+
+**Proved by switching it off.** The test asserts the answer has no `signedFor`, `capitalInBdt`,
+`paidOutBdt`, `balanceBdt`, `unitPriceBdt`, `units`, `targetCapitalBdt` or `floorBdt`. Adding
+`unitPriceBdt` back to the handler turns it red; it was added, seen red, and removed again.
+
+**Only the runs with animals to look after.** `AT_WORK` is buying, fattening and selling: one still Open
+has bought nothing and one that is over has nothing left to feed, and neither is work he can do anything
+about today. The seeded settled Venture is correctly absent from his list, and the Open one in
+`ventures.test.ts` is asserted off it.
+
+**`ventures.herd` is still unclaimed.** It returns the per-Animal reading — weights, gains, days to the
+window — and this panel does not use it: what the matrix gives the Manager is budgets, spend and
+warnings, and the per-Animal rows are the same animals `/fattening` already lists. Folding the two
+together is a real piece of work and a different one; it stays unclaimed rather than half-used.
