@@ -32,6 +32,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
 import { recordInternalSale } from "../internal-sale-store";
+import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
 import {
   countedInvestors,
   readAgreement,
@@ -386,7 +387,20 @@ const moveTo = async (
       before: (tx) => readVenture(tx, context.farm.id, row.id),
       after: (tx) => readVenture(tx, context.farm.id, row.id),
     },
-    (tx) => tx.update(venture).set({ state: to }).where(eq(venture.id, row.id))
+    async (tx) => {
+      await tx.update(venture).set({ state: to }).where(eq(venture.id, row.id));
+      // Buying closing is one of the four moments an Investor hears at: his money has become animals,
+      // and what the Cattle Budget did not spend has rolled into what keeps them.
+      if (to === "fattening") {
+        await tellTheOwnerAPaperIsDue(
+          tx,
+          context.farm.id,
+          { ...row, state: to },
+          { kind: "buying_closed" },
+          context.clock.now()
+        );
+      }
+    }
   );
   return { state: to };
 };

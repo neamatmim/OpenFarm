@@ -14,6 +14,7 @@ import { saleCorrection, saleCorrectionInput } from "../corrections/sale";
 import { counterpartyNamed } from "../counterparty-store";
 import { leaves, loadLiveAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { fatteningRows } from "../ready-store";
@@ -189,12 +190,28 @@ export const saleRouter = {
           // A Venture keeps up with its own animals rather than waiting to be told: the Manager at the
           // haat is not asked whose animal this is, and the Owner is not asked to remember.
           if (her.ownerVentureId) {
-            await reachesSellingOnASale(
+            const started = await reachesSellingOnASale(
               tx,
               context.farm.id,
               her.ownerVentureId,
               audited(context).recordEvent
             );
+            if (started) {
+              // The first Sale: one of the four moments an Investor hears at.
+              const its = await tx.query.venture.findFirst({
+                where: { id: her.ownerVentureId, farmId: context.farm.id },
+                columns: { id: true, name: true, state: true },
+              });
+              if (its) {
+                await tellTheOwnerAPaperIsDue(
+                  tx,
+                  context.farm.id,
+                  its,
+                  { kind: "first_sale" },
+                  now
+                );
+              }
+            }
           }
         }
       );

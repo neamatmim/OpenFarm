@@ -61,6 +61,9 @@ export const DELIVERY = {
   // Ninety days is time enough: the Owner reads it with the evening's post (notification channels: DLS
   // renewal due → Owner, digest).
   registration_renewal_due: { when: "digest" },
+  // An Investor's paper is owed, not overdue: the Owner writes it when she sits down to the evening's
+  // post, and a phone that buzzes for a letter is a phone nobody answers for a withdrawal.
+  investor_statement_due: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -132,6 +135,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     digest: "digest.withdrawalChanged",
   },
   low_stock: { app: "alerts.lowStock", digest: "digest.lowStock" },
+  investor_statement_due: {
+    app: "alerts.investorStatementDue",
+    digest: "digest.investorStatementDue",
+  },
   money_awaiting_approval: {
     app: "alerts.moneyAwaiting",
     digest: "digest.moneyAwaiting",

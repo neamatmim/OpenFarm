@@ -903,7 +903,7 @@ export const reachesSellingOnASale = async (
   }
   if (row?.state !== "buying" && row?.state !== "fattening") {
     // Already Selling: it is where a Sale would put it, and there is nothing to record.
-    return;
+    return false;
   }
   const before = await readVenture(tx, farmId, ventureId);
   await tx
@@ -915,4 +915,9 @@ export const reachesSellingOnASale = async (
     { entity: "venture", entityId: ventureId, action: "update" },
     { before, after: await readVenture(tx, farmId, ventureId) }
   );
+  // Said rather than acted on here: the run turning back into money is one of the four moments an
+  // Investor hears at, and this is the one place that knows it was the *first* Sale — the state only
+  // moves once. Telling him is the caller's, because a store that told anybody would have to reach
+  // back into the notices and make a circle of the imports.
+  return true;
 };
