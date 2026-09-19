@@ -15,6 +15,7 @@ import { useEffect } from "react";
 
 import { ManagerQueue } from "@/components/home/manager-queue";
 import { PenProgress } from "@/components/home/pen-progress";
+import { VenturesAtWork } from "@/components/home/ventures-at-work";
 import {
   EmptyState,
   Notice,
@@ -212,6 +213,8 @@ const ManagerHome = () => {
             </RecordList>
           )}
         </Section>
+
+        <VenturesAtWork />
       </div>
     </Page>
   );

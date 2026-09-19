@@ -152,6 +152,29 @@ describe("a Venture", () => {
     );
   });
 
+  it("keeps a Venture nobody has bought for off the Manager's list", async () => {
+    // It is still Open: it has taken no money and bought no animal, so there is nothing on it he can
+    // look after today. He may ask, and is told about nothing.
+    const manager = await as("manager", "2044-08-22T06:00:00.000Z");
+    const running = await manager.client.ventures.running();
+    expect(running.map((one) => one.id)).not.toContain(first);
+    // Not because the list is empty — the ones that did start buying are on it.
+    expect(running.length).toBeGreaterThan(0);
+    // And it is still not the Barn Staff's or the Vet's business that Ventures exist at all.
+    const others = await Promise.all(
+      (["staff", "vet"] as const).map((role) =>
+        as(role, "2044-08-22T07:00:00.000Z")
+      )
+    );
+    await Promise.all(
+      others.map((other) =>
+        expect(other.client.ventures.running()).rejects.toMatchObject({
+          code: "FORBIDDEN",
+        })
+      )
+    );
+  });
+
   it("leaves the trail with what it said before and after", async () => {
     const owner = await as("owner", "2044-08-23T04:00:00.000Z");
     const trail = await owner.client.audit.list({

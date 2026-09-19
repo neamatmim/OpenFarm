@@ -392,6 +392,41 @@ describe("what a Venture's animals are doing", () => {
   });
 });
 
+describe("what the Manager may see of a Venture", () => {
+  it("shows him the work and none of the money between her and her Investors", async () => {
+    // Its animals are his to look after, so the budgets, what has gone against them and what is going
+    // wrong are his. Who paid for them, and what any of them is owed, is not.
+    const manager = await asManager("2052-02-20T06:00:00.000Z");
+    const running = await manager.client.ventures.running();
+    const mine = running.find((one) => one.id === firstVenture);
+    expect(mine).toMatchObject({
+      name: `ভেঞ্চার 1 ${suffix}`,
+      cattleBudgetBdt: expect.any(Number),
+      runningBudgetBdt: expect.any(Number),
+      spentBdt: expect.any(Number),
+      runningBudgetLow: expect.any(Boolean),
+      animalsStanding: 3,
+    });
+    // Asked of the answer itself and not of the screen: a field the client merely does not draw is
+    // still a field the client was sent.
+    for (const secret of [
+      "signedFor",
+      "capitalInBdt",
+      "paidOutBdt",
+      "balanceBdt",
+      "unitPriceBdt",
+      "units",
+      "targetCapitalBdt",
+      "floorBdt",
+    ]) {
+      expect(mine).not.toHaveProperty(secret);
+    }
+    // The Owner may read the same thing, because she may do anything he does.
+    const owner = await at("2052-02-20T06:30:00.000Z");
+    expect(await owner.client.ventures.running()).toHaveLength(running.length);
+  });
+});
+
 describe("অগ্রগতি — the sheet while the run goes on", () => {
   /** His Agreement on the first Venture, and the other man's on the second. */
   const hisAgreement = async () => {
