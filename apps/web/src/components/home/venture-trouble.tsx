@@ -11,6 +11,7 @@ import {
   ROW_LINK,
 } from "@/components/home/queue";
 import { useLanguage } from "@/i18n/language-provider";
+import { saidMonth } from "@/lib/months";
 import type { VentureNeedingHer, VentureTrouble } from "@/lib/ventures";
 
 /**
@@ -44,11 +45,15 @@ const SAYS: {
   },
   bank_stale: {
     key: "ventureTrouble.bankStale",
-    parts: (trouble) => ({ months: trouble.months.join(", ") }),
+    parts: (trouble, language) => ({
+      months: trouble.months.map((one) => saidMonth(one, language)).join(", "),
+    }),
   },
   bank_disagrees: {
     key: "ventureTrouble.bankDisagrees",
-    parts: (trouble) => ({ months: trouble.months.join(", ") }),
+    parts: (trouble, language) => ({
+      months: trouble.months.map((one) => saidMonth(one, language)).join(", "),
+    }),
   },
 };
 
