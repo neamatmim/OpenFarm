@@ -60,6 +60,11 @@ const CATEGORIES: Record<
     nameEn: "Paid on a Settlement Adjustment",
     direction: "out",
   },
+  farm_share: {
+    nameBn: "ভেঞ্চার পরিচালনার ভাগ",
+    nameEn: "The Farm's share of a Venture",
+    direction: "in",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",

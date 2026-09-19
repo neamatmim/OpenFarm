@@ -10,6 +10,7 @@ import {
   venture,
   ventureMovement,
 } from "@OpenFarm/db/schema/venture";
+import type { PaymentMethod } from "@OpenFarm/domain";
 import {
   farmDayOf,
   monthOf,
@@ -435,11 +436,16 @@ interface GoingOut {
  * pay. What differs is who is owed and what it marks off, which is all `owed` decides.
  */
 const sendItOut = async (
-  context: Context & { actor: { id: string } },
+  // Narrower than `Context` on two counts, because the Farm's share is booked onto the Farm's own
+  // books and a booking needs both: somebody did this, and it was done in a Role.
+  context: Context & {
+    actor: { id: string };
+    roleUsed: NonNullable<Context["roleUsed"]>;
+  },
   input: {
     ventureId: string;
     movedOn: string;
-    paymentMethod: string;
+    paymentMethod: PaymentMethod;
     reference: string;
   },
   kind: "payout" | "advance_repaid" | "farm_share",
@@ -481,6 +487,20 @@ const sendItOut = async (
         { actorId: context.actor.id, now }
       );
       await going.mark(tx, movementId);
+      // The Farm's share is the one part of a Settlement that is the Farm's own earnings, so it lands
+      // on the Farm's books as income. An Investor's payout and the Owner's Advance coming back are
+      // not: that money was never the Farm's, and counting it would read a run's whole proceeds as the
+      // Farm's own.
+      if (kind === "farm_share") {
+        await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
+          source: "farm_share",
+          sourceId: movementId,
+          amountBdt: going.amountBdt,
+          occurredAt: startOfFarmDay(input.movedOn),
+          counterpartyId: null,
+          paymentMethod: input.paymentMethod,
+        });
+      }
       await reachesSettledOnLastPayout(
         tx,
         context.farm.id,

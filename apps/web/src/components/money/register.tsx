@@ -42,8 +42,9 @@ const SOURCE_WORD = {
   internal_sale_out: "money.from.internalSaleOut",
   reimbursement: "money.from.reimbursement",
   settlement_adjustment: "money.from.settlementAdjustment",
+  farm_share: "money.from.farmShare",
   by_hand: "money.from.byHand",
-} as const satisfies Record<string, MessageKey>;
+} as const satisfies Record<MoneyEvent["source"], MessageKey>;
 
 export type MoneyList = Awaited<ReturnType<typeof orpc.money.list.call>>;
 type MoneyEvent = MoneyList["events"][number];

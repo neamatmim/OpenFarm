@@ -663,7 +663,11 @@ describe("what a Settlement is", () => {
     const between = await owner.client.ventures.list();
     expect(between.find((one) => one.id === ventureId)?.state).toBe("selling");
 
-    await owner.client.ventures.takeTheFarmsShare({
+    const booksBefore = await owner.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    const took = await owner.client.ventures.takeTheFarmsShare({
       ventureId,
       movedOn: "2047-04-09",
       paymentMethod: "bank",
@@ -676,6 +680,21 @@ describe("what a Settlement is", () => {
       state: "settled",
       balanceBdt: 0,
     });
+
+    // And it arrives where it was going: what the Farm managed the run for is the Farm's earnings, so
+    // it is income on the Farm's own books. An Investor's payout is not, and never was — that is his
+    // own capital and profit going home.
+    const books = await owner.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    const earned = books.events.filter((one) => one.source === "farm_share");
+    expect(earned).toHaveLength(1);
+    expect(earned[0]).toMatchObject({
+      direction: "in",
+      amountBdt: took.paidBdt,
+    });
+    expect(books.events.length).toBe(booksBefore.events.length + 1);
   });
 
   it("shuts the doors a settled Venture should have shut", async () => {

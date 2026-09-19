@@ -1455,6 +1455,7 @@ export const en = {
   "money.from.internalSaleIn": "Sold to a Venture",
   "money.from.internalSaleOut": "Bought from a Venture",
   "money.from.reimbursement": "Reimbursed by a Venture",
+  "money.from.farmShare": "The farm's share of a Venture",
   "money.from.settlementAdjustment": "A Settlement Adjustment",
   "owner.moneyAwaiting": "Money awaiting your approval",
   "drugs.buy": "Medicine bought",

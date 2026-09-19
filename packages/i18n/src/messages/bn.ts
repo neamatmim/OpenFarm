@@ -1383,6 +1383,7 @@ export const bn: Record<MessageKey, string> = {
   "money.from.internalSaleIn": "ভেঞ্চারের কাছে বিক্রি",
   "money.from.internalSaleOut": "ভেঞ্চার থেকে কেনা",
   "money.from.reimbursement": "ভেঞ্চারের খরচ ফেরত",
+  "money.from.farmShare": "ভেঞ্চার পরিচালনার ভাগ",
   "money.from.settlementAdjustment": "হিসাব সমন্বয়",
   "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় টাকা",
   "drugs.buy": "কেনা ওষুধ",

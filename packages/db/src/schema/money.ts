@@ -48,6 +48,10 @@ export const RECORD_SOURCES = [
   // A supplementary payout on a Settlement Adjustment. The Farm's own money: the Venture Account closed
   // when the Settlement was paid, and news landing after that is the Farm's to make good.
   "settlement_adjustment",
+  // What the Farm earned for managing a Venture, taken out of its account at Settlement. The one part
+  // of a Settlement that is the Farm's income — an Investor's payout is his own capital and profit
+  // going home, and is never the Farm's.
+  "farm_share",
 ] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 
