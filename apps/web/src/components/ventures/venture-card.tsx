@@ -2,6 +2,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import {
   Banknote,
   FileText,
@@ -18,6 +19,7 @@ import {
   Wheat,
   XCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { StatusBadge } from "@/components/page";
@@ -38,7 +40,7 @@ const TONES = {
   cancelled: "neutral",
 } as const;
 
-const StateBadge = ({ state }: { state: Venture["state"] }) => {
+export const StateBadge = ({ state }: { state: Venture["state"] }) => {
   const { t } = useLanguage();
   return (
     <StatusBadge tone={TONES[state]}>
@@ -55,7 +57,7 @@ const StateBadge = ({ state }: { state: Venture["state"] }) => {
  * has both to deal with. Straight with the bank is claimed only up to the last month that is over: an
  * account nobody has read since July is not straight in October, it is unread.
  */
-const BankStanding = ({
+export const BankStanding = ({
   bank,
   lastMonthOver,
 }: {
@@ -105,7 +107,7 @@ const BankStanding = ({
 
 /** What a Venture's card needs of the figures, whatever shape the answer it was drawn from had. A phone
  *  can be holding a fortnight-old cache written before any of this existed. */
-const moneyOf = (venture: Venture) => ({
+export const moneyOf = (venture: Venture) => ({
   balanceBdt: venture.balanceBdt ?? 0,
   cattleBudgetHeldBdt: venture.cattleBudgetHeldBdt ?? 0,
   runningBudgetHeldBdt: venture.runningBudgetHeldBdt ?? 0,
@@ -153,6 +155,7 @@ const termsCanStillMove = (venture: Venture) => venture.state !== "settled";
 /** Everything one card can ask the page to open. One object rather than sixteen props, so a new act is
  *  one line here and one line there rather than a fourth row of buttons. */
 export interface VentureActs {
+  details: (venture: Venture) => void;
   sign: (venture: Venture) => void;
   takeCapital: (venture: Venture) => void;
   callOff: (venture: Venture) => void;
@@ -171,7 +174,13 @@ export interface VentureActs {
   startFattening: (venture: Venture) => void;
 }
 
-const Line = ({ label, children }: { label: string; children: ReactNode }) => (
+export const Line = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) => (
   <div className="flex justify-between gap-2 py-0.5">
     <span className="text-muted-foreground">{label}</span>
     <span className="font-medium tabular-nums">{children}</span>
@@ -184,7 +193,7 @@ const Line = ({ label, children }: { label: string; children: ReactNode }) => (
  * Its own component because the card was over the complexity the linter allows, and because these are
  * one idea: the act is there, and here is what stands in front of it. A dim button is not a reason.
  */
-const WhatStopsHer = ({ venture }: { venture: Venture }) => {
+export const WhatStopsHer = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   if (venture.state === "open") {
     const short = venture.floorBdt - venture.capitalInBdt;
@@ -287,7 +296,7 @@ const MoneyLines = ({
  * Under the figures rather than among them, because these do not change while the run is on — the Owner
  * reads them when she is asked about them, not every time she opens the page.
  */
-const Terms = ({ venture }: { venture: Venture }) => {
+export const Terms = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const day = (on: string) => formatDate(startOfFarmDay(on), language, "date");
   const said = [
@@ -317,7 +326,7 @@ const Terms = ({ venture }: { venture: Venture }) => {
 
 /** What is wrong, or worth knowing, about this run: the bank, a Running Budget nearly gone, and animals
  *  still standing with the Wind-up Period over. */
-const CardBadges = ({
+export const CardBadges = ({
   venture,
   lastMonthOver,
 }: {
@@ -342,103 +351,138 @@ const CardBadges = ({
   );
 };
 
+/** One act a card or a row draws as a button of its own. */
+interface PrimaryAct {
+  label: string;
+  icon: LucideIcon;
+  handleSelect: () => void;
+  variant?: "default" | "outline";
+  disabled?: boolean;
+}
+
 /**
  * The one or two acts a run is waiting for, by where it stands: the act that moves it along, and the one
- * beside it somebody reaches for in the same breath. Everything else a Venture can do is in the menu at
- * the head of the card, so a card is never four rows of buttons again.
+ * beside it somebody reaches for in the same breath. Everything else a Venture can do is in the menu
+ * beside its name, so a card is never four rows of buttons again.
+ *
+ * Said as a list rather than as buttons, because a card has room for their words and a table row has not:
+ * the same acts in the same order, drawn twice over.
  */
-const PrimaryActs = ({
+export const primaryActsOf = (
+  venture: Venture,
+  acts: VentureActs,
+  t: (key: MessageKey, params?: MessageParams) => string
+): PrimaryAct[] => {
+  const money = moneyOf(venture);
+  if (venture.state === "open") {
+    return [
+      {
+        label: t("ventures.sign"),
+        icon: PenLine,
+        variant: "outline",
+        handleSelect: () => acts.sign(venture),
+      },
+      {
+        label: t("ventures.startBuying"),
+        icon: ShoppingCart,
+        disabled: venture.capitalInBdt < venture.floorBdt,
+        handleSelect: () => acts.startBuying(venture),
+      },
+    ];
+  }
+  if (venture.state === "buying") {
+    return [
+      {
+        label: t("ventures.drawFloat"),
+        icon: Truck,
+        variant: "outline",
+        handleSelect: () => acts.drawFloat(venture),
+      },
+      {
+        label: t("ventures.startFattening"),
+        icon: Wheat,
+        disabled: money.openFloatBdt !== 0,
+        handleSelect: () => acts.startFattening(venture),
+      },
+    ];
+  }
+  if (venture.state === "fattening" || venture.state === "selling") {
+    const said: PrimaryAct[] = [
+      {
+        label: t("ventures.reimburse"),
+        icon: Receipt,
+        variant: "outline",
+        handleSelect: () => acts.reimburse(venture),
+      },
+    ];
+    if (pastWindUp(venture)) {
+      said.push({
+        label: t("ventures.buyWhatIsLeft"),
+        icon: Gavel,
+        handleSelect: () => acts.buyWhatIsLeft(venture),
+      });
+    }
+    if (venture.state === "selling") {
+      said.push({
+        label: t("ventures.settlement"),
+        icon: Scale,
+        handleSelect: () => acts.settle(venture),
+      });
+    }
+    return said;
+  }
+  if (venture.state === "settled") {
+    return [
+      {
+        label: t("ventures.settlement"),
+        icon: Scale,
+        variant: "outline",
+        handleSelect: () => acts.settle(venture),
+      },
+    ];
+  }
+  return [];
+};
+
+/**
+ * Those acts as buttons.
+ *
+ * `compact` is the table's: the icon alone with its words for a screen reader, since "Reimburse the
+ * month's spending" is a sentence and a row has no width for one — it ran off the side of the table the
+ * first time it was drawn.
+ */
+export const PrimaryActs = ({
   venture,
   acts,
+  compact = false,
 }: {
   venture: Venture;
   acts: VentureActs;
+  compact?: boolean;
 }) => {
   const { t } = useLanguage();
-  const money = moneyOf(venture);
-  if (venture.state === "open") {
-    return (
-      <>
+  return (
+    <>
+      {primaryActsOf(venture, acts, t).map((act) => (
         <Button
-          onClick={() => acts.sign(venture)}
+          aria-label={compact ? act.label : undefined}
+          disabled={act.disabled}
+          key={act.label}
+          onClick={act.handleSelect}
+          size={compact ? "icon" : undefined}
+          title={compact ? act.label : undefined}
           type="button"
-          variant="outline"
+          variant={act.variant ?? "default"}
         >
-          <PenLine aria-hidden data-icon="inline-start" />
-          {t("ventures.sign")}
+          <act.icon
+            aria-hidden
+            data-icon={compact ? undefined : "inline-start"}
+          />
+          {compact ? null : act.label}
         </Button>
-        <Button
-          disabled={venture.capitalInBdt < venture.floorBdt}
-          onClick={() => acts.startBuying(venture)}
-          type="button"
-        >
-          <ShoppingCart aria-hidden data-icon="inline-start" />
-          {t("ventures.startBuying")}
-        </Button>
-      </>
-    );
-  }
-  if (venture.state === "buying") {
-    return (
-      <>
-        <Button
-          onClick={() => acts.drawFloat(venture)}
-          type="button"
-          variant="outline"
-        >
-          <Truck aria-hidden data-icon="inline-start" />
-          {t("ventures.drawFloat")}
-        </Button>
-        <Button
-          disabled={money.openFloatBdt !== 0}
-          onClick={() => acts.startFattening(venture)}
-          type="button"
-        >
-          <Wheat aria-hidden data-icon="inline-start" />
-          {t("ventures.startFattening")}
-        </Button>
-      </>
-    );
-  }
-  if (venture.state === "fattening" || venture.state === "selling") {
-    return (
-      <>
-        <Button
-          onClick={() => acts.reimburse(venture)}
-          type="button"
-          variant="outline"
-        >
-          <Receipt aria-hidden data-icon="inline-start" />
-          {t("ventures.reimburse")}
-        </Button>
-        {pastWindUp(venture) ? (
-          <Button onClick={() => acts.buyWhatIsLeft(venture)} type="button">
-            <Gavel aria-hidden data-icon="inline-start" />
-            {t("ventures.buyWhatIsLeft")}
-          </Button>
-        ) : null}
-        {venture.state === "selling" ? (
-          <Button onClick={() => acts.settle(venture)} type="button">
-            <Scale aria-hidden data-icon="inline-start" />
-            {t("ventures.settlement")}
-          </Button>
-        ) : null}
-      </>
-    );
-  }
-  if (venture.state === "settled") {
-    return (
-      <Button
-        onClick={() => acts.settle(venture)}
-        type="button"
-        variant="outline"
-      >
-        <Scale aria-hidden data-icon="inline-start" />
-        {t("ventures.settlement")}
-      </Button>
-    );
-  }
-  return null;
+      ))}
+    </>
+  );
 };
 
 /**
@@ -448,13 +492,18 @@ const PrimaryActs = ({
  * rather than off the state alone, because starting from the state is how the Statements button and the
  * Settlement button each came to be drawn for the wrong runs.
  */
-const actsInTheMenu = (
+export const actsInTheMenu = (
   venture: Venture,
   acts: VentureActs,
   t: (key: MessageKey, params?: MessageParams) => string
 ): RowAction[] => {
   const money = moneyOf(venture);
   const inTheMenu: RowAction[] = [
+    {
+      label: t("ventures.details"),
+      icon: ScrollText,
+      handleSelect: () => acts.details(venture),
+    },
     {
       label: t("ventures.movements"),
       icon: ScrollText,
@@ -537,15 +586,23 @@ export const VentureCard = ({
   venture,
   acts,
   lastMonthOver,
+  bare = false,
 }: {
   venture: Venture;
   acts: VentureActs;
   /** The last month that is over, so "straight with the bank" is claimed only up to it. */
   lastMonthOver: string;
+  /** Inside a list that already draws a line between its rows, where a card in a card is noise. */
+  bare?: boolean;
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="bg-card flex flex-col gap-3 rounded-xl border p-4 text-sm md:p-5">
+    <div
+      className={cn(
+        "flex flex-col gap-3 text-sm",
+        !bare && "bg-card rounded-xl border p-4 md:p-5"
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold tracking-tight">
           {venture.name}
