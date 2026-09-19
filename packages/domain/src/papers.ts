@@ -788,3 +788,126 @@ export const joiningLetter = (letter: JoiningLetter): string => {
     ],
   });
 };
+
+/** One Animal on the progress sheet, everything already worded for the reader. */
+export interface ProgressAnimal {
+  tagNumber: string;
+  /** Kilogrammes off the lorry, and at her latest reading. */
+  intake: string;
+  latest: string;
+  /** Her own daily gain, or the words for a beast nobody has weighed since she came. */
+  gain: string;
+}
+
+/** One line of where the money has gone: what it is called, and what it came to. */
+export interface SpendLine {
+  label: string;
+  amount: string;
+}
+
+/** অগ্রগতি — how one Investor's animals are doing, and where his money has gone. */
+export interface ProgressStatement {
+  farm: FarmIdentity;
+  investorName: string;
+  ventureName: string;
+  /** His Units, and what share of the Venture they are — his own, never anybody else's. */
+  units: string;
+  share: string;
+  /** Standing, sold and lost, formatted for the reader. */
+  standing: string;
+  sold: string;
+  died: string;
+  /** Averages over the animals that have been weighed, and how many that is. */
+  weighed: string;
+  averageIntake: string | null;
+  averageLatest: string | null;
+  /** The herd's daily gain, or nothing where nobody has been weighed yet. */
+  herdGain: string | null;
+  daysToWindow: string;
+  animals: ProgressAnimal[];
+  spend: SpendLine[];
+  spendTotal: string;
+  budgets: {
+    /** What the plan set aside for buying animals, and what of it is not yet drawn against. */
+    cattle: { planned: string; left: string };
+    /** What the plan set aside for keeping them, and what keeping them has cost so far. */
+    running: { planned: string; spent: string };
+  };
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * The sheet an Investor is sent while the run goes on: what his animals weigh, and what his money has
+ * gone on.
+ *
+ * The spend is at Category level and no finer. He is owed a true account of where the money went — "trust
+ * us" is what every scheme that went wrong said — but a unit price per kilogramme or a supplier's name is
+ * the Farm's buying, not his business.
+ *
+ * No projection. The days to the window are a count of days; there is no weight he will reach and no
+ * price he will get, because he keeps this sheet and would read either as a promise.
+ */
+export const progressStatement = (sheet: ProgressStatement): string =>
+  investorStatement({
+    farm: sheet.farm,
+    title: "অগ্রগতি / Progress statement",
+    producedBy: sheet.producedBy,
+    producedAt: sheet.producedAt,
+    body: [
+      field("বিনিয়োগকারী", "Investor", sheet.investorName),
+      field("ভেঞ্চার", "Venture", sheet.ventureName),
+      field("ইউনিট", "Units held", `${sheet.units} (${sheet.share}%)`),
+      "",
+      "পশুর অবস্থা / The cattle",
+      field("  দাঁড়িয়ে আছে", "Standing", sheet.standing),
+      field("  বিক্রি হয়েছে", "Sold", sheet.sold),
+      field("  মারা গেছে", "Lost", sheet.died),
+      field("  ওজন নেওয়া হয়েছে", "Weighed", sheet.weighed),
+      sheet.averageIntake
+        ? field(
+            "  গড় ওজন (শুরুতে)",
+            "Average weight at intake",
+            `${sheet.averageIntake} কেজি`
+          )
+        : null,
+      sheet.averageLatest
+        ? field(
+            "  গড় ওজন (এখন)",
+            "Average weight now",
+            `${sheet.averageLatest} কেজি`
+          )
+        : null,
+      sheet.herdGain
+        ? field("  দৈনিক বৃদ্ধি", "Daily gain", `${sheet.herdGain} কেজি`)
+        : null,
+      field(
+        "  লক্ষ্য সময় বাকি",
+        "Days to the window",
+        `${sheet.daysToWindow} দিন`
+      ),
+      "",
+      "যে পশুগুলো আছে / The animals standing",
+      "  ট্যাগ · শুরুর ওজন · এখনকার ওজন · দৈনিক বৃদ্ধি / Tag · at intake · now · daily gain",
+      ...sheet.animals.map(
+        (one) =>
+          `  ${one.tagNumber} · ${one.intake} কেজি · ${one.latest} কেজি · ${one.gain}`
+      ),
+      "",
+      "খরচ / What the money has gone on",
+      ...sheet.spend.map((one) => `  ${one.label}: ${one.amount} টাকা`),
+      field("  মোট", "Total", `${sheet.spendTotal} টাকা`),
+      "",
+      "বাজেট / The budgets",
+      field(
+        "  পশু কেনার বাজেট",
+        "Cattle budget",
+        `${sheet.budgets.cattle.planned} টাকা · বাকি ${sheet.budgets.cattle.left} টাকা`
+      ),
+      field(
+        "  পরিচালনার বাজেট",
+        "Running budget",
+        `${sheet.budgets.running.planned} টাকা · খরচ হয়েছে ${sheet.budgets.running.spent} টাকা`
+      ),
+    ],
+  });

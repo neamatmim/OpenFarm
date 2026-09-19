@@ -81,37 +81,45 @@ const tags: string[] = [];
 
 type Client = Awaited<ReturnType<typeof at>>;
 
-const aVenture = async (owner: Client, which: number) => {
+const aVenture = async (owner: Client, which: number, splits: number[]) => {
   const venture = await owner.client.ventures.open({
     name: `ভেঞ্চার ${which} ${suffix}`,
     ...plan,
   });
-  const person = await owner.client.investors.record({
-    name: `বিনিয়োগকারী ${which} ${suffix}`,
-    phone: `0198${String(which).padStart(7, "0")}`,
-  });
-  const agreement = await owner.client.ventures.sign({
-    ventureId: venture.id,
-    investorId: person.id,
-    units: 10,
-    investorsPercent: 60,
-    arbitrator: `মাওলানা ${suffix}`,
-    stampValueBdt: 300,
-    stampedOn: "2052-01-02",
-    stampSerial: `AA ${which} ${suffix}`,
-  });
-  await owner.client.ventures.keepAgreementPaper({
-    agreementId: agreement.id,
-    contentType: "image/jpeg",
-    data: "aGVsbG8=",
-  });
-  await owner.client.ventures.takeCapital({
-    agreementId: agreement.id,
-    amountBdt: 500_000,
-    movedOn: "2052-01-03",
-    paymentMethod: "bank",
-    reference: `TRF-${which}-${suffix}`,
-  });
+  // Everybody signs before buying starts, because Units are fixed once it does.
+  for (const [at_, units] of splits.entries()) {
+    const who = `${which}-${at_ + 1}`;
+    // oxlint-disable-next-line no-await-in-loop -- one man signs at a time
+    const person = await owner.client.investors.record({
+      name: `বিনিয়োগকারী ${who} ${suffix}`,
+      phone: `0198${which}${String(at_).padStart(6, "0")}`,
+    });
+    // oxlint-disable-next-line no-await-in-loop -- one paper at a time
+    const agreement = await owner.client.ventures.sign({
+      ventureId: venture.id,
+      investorId: person.id,
+      units,
+      investorsPercent: 60,
+      arbitrator: `মাওলানা ${suffix}`,
+      stampValueBdt: 300,
+      stampedOn: "2052-01-02",
+      stampSerial: `AA ${who} ${suffix}`,
+    });
+    // oxlint-disable-next-line no-await-in-loop
+    await owner.client.ventures.keepAgreementPaper({
+      agreementId: agreement.id,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    // oxlint-disable-next-line no-await-in-loop
+    await owner.client.ventures.takeCapital({
+      agreementId: agreement.id,
+      amountBdt: units * plan.unitPriceBdt,
+      movedOn: "2052-01-03",
+      paymentMethod: "bank",
+      reference: `TRF-${who}-${suffix}`,
+    });
+  }
   await owner.client.ventures.startBuying({ id: venture.id });
   return venture.id;
 };
@@ -137,14 +145,24 @@ const weigh = async (day: string, readings: [number, number][]) => {
 
 beforeAll(async () => {
   const owner = await at("2052-01-01T04:00:00.000Z");
+  // Every Export is stamped with the Registration number, so the farm has to have written one down.
+  await owner.client.farm.setIdentity({
+    address: `গ্রাম: শিমুলিয়া, সাভার, ঢাকা ${suffix}`,
+    phone: "+8801711000099",
+    registrationNumber: `DLS/SAV/2052/${suffix}`,
+    registrationOffice: "উপজেলা প্রাণিসম্পদ দপ্তর, সাভার",
+    registrationExpiresOn: "2054-03-31",
+  });
   const shed = await owner.client.herd.createShed({ name: suffix });
   const pen = await owner.client.herd.createPen({
     shedId: shed.id,
     name: `ফ্যাটেনিং ${suffix}`,
   });
   penId = pen.id;
-  firstVenture = await aVenture(owner, 1);
-  secondVenture = await aVenture(owner, 2);
+  // Two men on the first Venture — six Units and four — so a sheet for one has the other's name,
+  // Units and money within reach of a careless read.
+  firstVenture = await aVenture(owner, 1, [6, 4]);
+  secondVenture = await aVenture(owner, 2, [10]);
 
   // Six bulls, all onto the first Venture's books, all at 200 kg on 4 January.
   const buying = await at("2052-01-04T04:00:00.000Z");
@@ -371,5 +389,120 @@ describe("what a Venture's animals are doing", () => {
     });
     expect(theirs.standingCount).toBe(3);
     expect(JSON.stringify(theirs)).not.toContain("বিনিয়োগকারী");
+  });
+});
+
+describe("অগ্রগতি — the sheet while the run goes on", () => {
+  /** His Agreement on the first Venture, and the other man's on the second. */
+  const hisAgreement = async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const agreements = await owner.client.ventures.agreements({
+      ventureId: firstVenture,
+    });
+    return agreements[0]?.id ?? "";
+  };
+
+  it("says how his animals are doing and where his money has gone", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { text } = await owner.client.investorStatements.progress({
+      agreementId: await hisAgreement(),
+    });
+    expect(text).toContain("অগ্রগতি / Progress statement");
+    expect(text).toContain(`বিনিয়োগকারী 1-1 ${suffix}`);
+    // Six Units of the ten this Venture has: sixty per cent, and not a word about who holds the four.
+    expect(text).toContain("৬ (৬০%)");
+    // Three standing, one sold to a buyer, one lost.
+    expect(text).toContain("দাঁড়িয়ে আছে / Standing: ৩");
+    expect(text).toContain("মারা গেছে / Lost: ১");
+    // The bulls it has actually weighed, and what they average.
+    expect(text).toContain("ওজন নেওয়া হয়েছে / Weighed: ২");
+    expect(text).toContain("২২৪.৫");
+  });
+
+  it("names a beast nobody has weighed rather than showing her as flat", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { text } = await owner.client.investorStatements.progress({
+      agreementId: await hisAgreement(),
+    });
+    expect(text).toContain("ওজন নেওয়া হয়নি / not weighed");
+  });
+
+  it("shows the spend by Category against both budgets, and no finer", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { text } = await owner.client.investorStatements.progress({
+      agreementId: await hisAgreement(),
+    });
+    // The Settlement's own seven words, so the sheet he gets now adds up the way the sheet at the end
+    // will. Six bulls at sixty thousand is three lakh sixty.
+    expect(text).toContain("পশু কেনা / Cattle bought: ৩,৬০,০০০");
+    expect(text).toContain("খাবার / Feed");
+    // Four lakh came in for buying. Three lakh sixty went out on the Float and stayed out — six bulls
+    // at sixty thousand — and then one of them was sold across to the other Venture for ১,১৪,০০০,
+    // which comes back to the cattle side. Four lakh less ২,৪৬,০০০ drawn leaves ১,৫৪,০০০.
+    expect(text).toContain(
+      "পশু কেনার বাজেট / Cattle budget: ৪,০০,০০০ টাকা · বাকি ১,৫৪,০০০ টাকা"
+    );
+    // And one lakh set aside for keeping them, of which nothing has gone yet — nobody has fed or
+    // dosed these bulls. What the account *holds* against this budget is another figure entirely:
+    // a quarter of a lakh of sale money is sitting in it, and printing that as "left" would tell a
+    // man there is more of his running budget left than there ever was.
+    expect(text).toContain(
+      "পরিচালনার বাজেট / Running budget: ১,০০,০০০ টাকা · খরচ হয়েছে ০ টাকা"
+    );
+    // Never the Farm's buying: no seller, no price a kilo.
+    expect(text).not.toContain(`ব্যাপারী ${suffix}`);
+    expect(text).not.toContain("প্রতি কেজি");
+  });
+
+  it("carries no projection, and never another Investor", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { text } = await owner.client.investorStatements.progress({
+      agreementId: await hisAgreement(),
+    });
+    // The man holding the other four Units of this very Venture is none of his business, and neither
+    // is the one on the second Venture.
+    expect(text).not.toContain(`বিনিয়োগকারী 1-2 ${suffix}`);
+    expect(text).not.toContain(`বিনিয়োগকারী 2-1 ${suffix}`);
+    expect(text).not.toContain(`TRF-1-2-${suffix}`);
+    expect(text).toContain("কোনো মুনাফার নিশ্চয়তা নেই");
+    // Days to the window is a count; nothing says what a bull will weigh or fetch.
+    expect(text).toContain("লক্ষ্য সময় বাকি / Days to the window: ৪১ দিন");
+  });
+
+  it("sends the photographs beside the sheet rather than inside it", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const { text, photos } = await owner.client.investorStatements.progress({
+      agreementId: await hisAgreement(),
+    });
+    // One of the standing bulls has been photographed. The sheet itself stays a plain string — the
+    // face travels with it for whatever draws it.
+    expect(photos).toHaveLength(1);
+    expect(photos[0]).toMatchObject({
+      tagNumber: tags[0],
+      contentType: "image/jpeg",
+    });
+    expect(text).not.toContain("aGVsbG8=");
+  });
+
+  it("records the Export, and is the Owner's alone", async () => {
+    const agreementId = await hisAgreement();
+    const owner = await at("2052-02-21T04:00:00.000Z");
+    await owner.client.investorStatements.progress({ agreementId });
+    const trail = await owner.client.audit.list({
+      entity: "investment_agreement",
+      entityId: agreementId,
+    });
+    expect(
+      trail.find(
+        (event) =>
+          event.action === "export" &&
+          (event.after as { paper?: string })?.paper === "progress_statement"
+      )
+    ).toBeDefined();
+
+    const manager = await asManager("2052-02-21T04:00:00.000Z");
+    await expect(
+      manager.client.investorStatements.progress({ agreementId })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
