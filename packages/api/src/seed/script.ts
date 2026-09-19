@@ -44,7 +44,11 @@ const keepTheStore = ({ farm, days, on }: Script) => {
   const { start, today, random } = farm;
   // What the farm's own fodder is worth to whoever eats it, said before the first cut comes in: the
   // fields are the farm's, but the grass is not free to the animals standing in front of it.
-  on(start, "07:30", "what our own fodder is worth", async (f) => {
+  //
+  // Before the napier at 06:30, and it used to be after. A Harvest keeps the price in force when it was
+  // recorded, so that one cut stayed unpriced for good — harmless in the farm's own reports, and enough
+  // to stop a Venture ever settling, because a Settlement will not close over feed nobody has priced.
+  on(start, "05:30", "what our own fodder is worth", async (f) => {
     for (const [key, price] of [
       ["napier", 3],
       ["silage", 6.5],

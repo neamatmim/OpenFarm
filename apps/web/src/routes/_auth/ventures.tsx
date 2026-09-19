@@ -357,16 +357,6 @@ const VentureCard = ({
             <PiggyBank aria-hidden data-icon="inline-start" />
             {t("ventures.advance")}
           </Button>
-          {venture.state === "selling" ? (
-            <Button
-              onClick={() => onSettle(venture)}
-              type="button"
-              variant="ghost"
-            >
-              <Scale aria-hidden data-icon="inline-start" />
-              {t("ventures.settlement")}
-            </Button>
-          ) : null}
           {pastWindUp(venture) ? (
             <Button
               onClick={() => onBuyWhatIsLeft(venture)}
@@ -403,6 +393,19 @@ const VentureCard = ({
       ) : null}
       {hasPapersToGive(venture) ? (
         <div className="flex flex-wrap justify-end gap-2">
+          {/* Kept after the books are shut, not only while they are being shut: what a Venture was
+              settled at, who has been paid and who has said so are the questions asked *afterwards*,
+              and until now a settled run had no way back to any of them. */}
+          {venture.state === "selling" || venture.state === "settled" ? (
+            <Button
+              onClick={() => onSettle(venture)}
+              type="button"
+              variant="ghost"
+            >
+              <Scale aria-hidden data-icon="inline-start" />
+              {t("ventures.settlement")}
+            </Button>
+          ) : null}
           <Button
             onClick={() => onStatements(venture)}
             type="button"

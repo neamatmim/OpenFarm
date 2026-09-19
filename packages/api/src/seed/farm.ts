@@ -17,6 +17,7 @@ import {
   stockTheFarm,
   writeThePlaybook,
 } from "./standing";
+import { openTheVentures, runTheVentures } from "./ventures";
 import { VISITING_VET, callInAVisitingVet } from "./visit";
 
 /** How far back the farm's life goes before today. */
@@ -46,11 +47,17 @@ export const seedFarm = async (db: Database) => {
     count: 14,
     pen: "quarantine",
   });
+  step("two Ventures, their Investors and their cattle");
+  const ventures = await openTheVentures(farm, herd);
   step(`${herd.cows.size} dairy animals, ${herd.bulls.size} bulls`);
   step(`${HISTORY_DAYS} days of the farm`);
-  await liveTheDays(farm, herd, scriptTheDays(farm, herd), (line) =>
-    step(line)
-  );
+  const happenings = scriptTheDays(farm, herd);
+  runTheVentures(farm, ventures, (day, time, what, run) => {
+    if (day >= farm.start && day <= farm.today) {
+      happenings.push({ day, time, what, run });
+    }
+  });
+  await liveTheDays(farm, herd, happenings, (line) => step(line));
   step("a visiting vet called in about a lame cow");
   await callInAVisitingVet(farm, db, clock, today);
 
