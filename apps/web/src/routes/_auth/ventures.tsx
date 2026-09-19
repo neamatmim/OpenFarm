@@ -16,7 +16,13 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  Section,
+} from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { AdvanceSheet } from "@/components/ventures/advance-sheet";
@@ -36,7 +42,8 @@ import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
 import { StatementsSheet } from "@/components/ventures/statements-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import type { VentureActs } from "@/components/ventures/venture-card";
-import { VentureCard } from "@/components/ventures/venture-card";
+import { VentureDetailsSheet } from "@/components/ventures/venture-details-sheet";
+import { VenturesTable } from "@/components/ventures/ventures-table";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { lastMonth } from "@/lib/months";
@@ -102,8 +109,8 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
   ];
 };
 
-/** The Ventures on one tab, as cards two abreast where there is room. */
-const VentureCards = ({
+/** The Ventures on one tab, as a table where there is room and as cards on a phone. */
+const VentureList = ({
   ventures,
   acts,
   emptyWord,
@@ -113,21 +120,17 @@ const VentureCards = ({
   emptyWord: MessageKey;
 }) => {
   const { t } = useLanguage();
-  const lastMonthOver = lastMonth();
   if (ventures.length === 0) {
     return <EmptyState bare icon={Handshake} title={t(emptyWord)} />;
   }
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      {ventures.map((one) => (
-        <VentureCard
-          acts={acts}
-          key={one.id}
-          lastMonthOver={lastMonthOver}
-          venture={one}
-        />
-      ))}
-    </div>
+    <Section>
+      <VenturesTable
+        acts={acts}
+        lastMonthOver={lastMonth()}
+        ventures={ventures}
+      />
+    </Section>
   );
 };
 
@@ -157,6 +160,7 @@ const VenturesPage = () => {
   const [papering, setPapering] = useState<Venture | null>(null);
   const [amending, setAmending] = useState<Venture | null>(null);
   const [weighingUp, setWeighingUp] = useState<Venture | null>(null);
+  const [reading, setReading] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   const queryClient = useQueryClient();
   /**
@@ -180,6 +184,7 @@ const VenturesPage = () => {
     )
   );
   const acts: VentureActs = {
+    details: setReading,
     sign: setSigning,
     takeCapital: setTaking,
     callOff: setCallingOff,
@@ -253,7 +258,7 @@ const VenturesPage = () => {
                 label: t("ventures.tab.running"),
                 icon: Handshake,
                 content: (
-                  <VentureCards
+                  <VentureList
                     acts={acts}
                     emptyWord="ventures.noneRunning"
                     ventures={on("running")}
@@ -265,7 +270,7 @@ const VenturesPage = () => {
                 label: t("ventures.state.settled"),
                 icon: Scale,
                 content: (
-                  <VentureCards
+                  <VentureList
                     acts={acts}
                     emptyWord="ventures.noneSettled"
                     ventures={on("settled")}
@@ -277,7 +282,7 @@ const VenturesPage = () => {
                 label: t("ventures.state.cancelled"),
                 icon: XCircle,
                 content: (
-                  <VentureCards
+                  <VentureList
                     acts={acts}
                     emptyWord="ventures.noneCalledOff"
                     ventures={on("cancelled")}
@@ -289,6 +294,15 @@ const VenturesPage = () => {
           />
         )}
       </Loaded>
+      <VentureDetailsSheet
+        lastMonthOver={lastMonth()}
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setReading(null);
+          }
+        }}
+        venture={reading}
+      />
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
       <InternalSaleSheet
         onOpenChange={setSellingInternally}

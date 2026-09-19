@@ -10,6 +10,7 @@ import { useState } from "react";
 import { InvestorDetails } from "@/components/investors/investor-details";
 import type { Investor } from "@/components/investors/investor-types";
 import { matching } from "@/components/investors/investor-types";
+import { InvestorsTable } from "@/components/investors/investors-table";
 import { RecordInvestorSheet } from "@/components/investors/record-investor-sheet";
 import {
   EmptyState,
@@ -17,13 +18,10 @@ import {
   Notice,
   Page,
   PageHeader,
-  RecordList,
-  RecordRow,
   Section,
-  TagChip,
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
-import { FilterBar, RowMenu, SummaryFigures } from "@/components/page-kit";
+import { FilterBar, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -67,55 +65,6 @@ const useInvestorFigures = (list: InvestorList | undefined): Figure[] => {
       icon: Users,
     },
   ];
-};
-
-/** One Investor: who they are, how they are reached, what they hold across the Ventures still running —
- *  and, behind the menu at the end of the row, everything else the farm wrote down about them. */
-const InvestorRow = ({
-  investor,
-  onDetails,
-}: {
-  investor: Investor;
-  onDetails: (investor: Investor) => void;
-}) => {
-  const { t, language } = useLanguage();
-  return (
-    <RecordRow
-      meta={
-        <>
-          <span>{investor.phone}</span>
-          {investor.address ? <span>{investor.address}</span> : null}
-          {investor.nominee ? (
-            <span>
-              {t("investors.nomineeIs", { name: investor.nominee.name })}
-            </span>
-          ) : null}
-        </>
-      }
-      title={investor.name}
-      trailing={
-        <div className="flex items-center gap-2">
-          {investor.unitsHeld > 0 ? (
-            <TagChip>
-              {t("investors.holds", {
-                units: formatNumber(investor.unitsHeld, language),
-              })}
-            </TagChip>
-          ) : null}
-          <RowMenu
-            actions={[
-              {
-                label: t("investors.details"),
-                icon: IdCard,
-                handleSelect: () => onDetails(investor),
-              },
-            ]}
-            label={investor.name}
-          />
-        </div>
-      }
-    />
-  );
 };
 
 /**
@@ -184,15 +133,7 @@ const InvestorsPage = () => {
             {shown.length === 0 ? (
               <EmptyState bare icon={Search} title={t("investors.noneFound")} />
             ) : (
-              <RecordList>
-                {shown.map((one) => (
-                  <InvestorRow
-                    investor={one}
-                    key={one.id}
-                    onDetails={setShowing}
-                  />
-                ))}
-              </RecordList>
+              <InvestorsTable investors={shown} onDetails={setShowing} />
             )}
           </Section>
         )}
