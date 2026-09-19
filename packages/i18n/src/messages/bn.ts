@@ -562,7 +562,6 @@ export const bn: Record<MessageKey, string> = {
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.tab.running": "চলমান",
   "ventures.col.venture": "ভেঞ্চার",
-  "ventures.col.bank": "ব্যাংক",
   "ventures.details": "এই ভেঞ্চারের সব কিছু",
   "ventures.figure.running": "চলমান ভেঞ্চার",
   "ventures.figure.held": "জমা পুঁজি",

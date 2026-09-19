@@ -447,38 +447,33 @@ export const primaryActsOf = (
 /**
  * Those acts as buttons.
  *
- * `compact` is the table's: the icon alone with its words for a screen reader, since "Reimburse the
- * month's spending" is a sentence and a row has no width for one — it ran off the side of the table the
- * first time it was drawn.
+ * `dense` is the table's: the same words, smaller, and free to take a second line — a row is narrower
+ * than a card and "Reimburse the month's spending" is a sentence, but a button whose words are hidden is
+ * a button somebody has to hover to understand.
  */
 export const PrimaryActs = ({
   venture,
   acts,
-  compact = false,
+  dense = false,
 }: {
   venture: Venture;
   acts: VentureActs;
-  compact?: boolean;
+  dense?: boolean;
 }) => {
   const { t } = useLanguage();
   return (
     <>
       {primaryActsOf(venture, acts, t).map((act) => (
         <Button
-          aria-label={compact ? act.label : undefined}
           disabled={act.disabled}
           key={act.label}
           onClick={act.handleSelect}
-          size={compact ? "icon" : undefined}
-          title={compact ? act.label : undefined}
+          size={dense ? "sm" : undefined}
           type="button"
           variant={act.variant ?? "default"}
         >
-          <act.icon
-            aria-hidden
-            data-icon={compact ? undefined : "inline-start"}
-          />
-          {compact ? null : act.label}
+          <act.icon aria-hidden data-icon="inline-start" />
+          {act.label}
         </Button>
       ))}
     </>

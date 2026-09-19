@@ -32,10 +32,16 @@ interface Cell {
   row: { original: VentureRow };
 }
 
-/** The name, and under it where the run stands — so a row says what it is before it says what it holds. */
+/**
+ * The name, and under it everything about where the run stands: its state, how the bank sits, and what is
+ * wrong with it.
+ *
+ * All in the one column because they are one question — how is this Venture doing — and because a column
+ * of its own for the bank took the width the acts at the end of the row needed for their words.
+ */
 const VentureCell = ({ row }: Cell) => {
   const { t } = useLanguage();
-  const { venture, acts } = row.original;
+  const { venture, acts, lastMonthOver } = row.original;
   return (
     <span className="flex min-w-0 flex-col items-start gap-1">
       <button
@@ -46,7 +52,10 @@ const VentureCell = ({ row }: Cell) => {
       >
         {venture.name}
       </button>
-      <StateBadge state={venture.state} />
+      <span className="flex flex-wrap items-center gap-1">
+        <StateBadge state={venture.state} />
+        <CardBadges lastMonthOver={lastMonthOver} venture={venture} />
+      </span>
     </span>
   );
 };
@@ -91,22 +100,13 @@ const SignedCell = ({ row }: Cell) => {
   );
 };
 
-/** How the account stands against the bank, and anything else wrong with the run said beside it: the same
- *  badges the card shows, because a row and a card disagreeing about a Venture is worse than either. */
-const BankCell = ({ row }: Cell) => (
-  <CardBadges
-    lastMonthOver={row.original.lastMonthOver}
-    venture={row.original.venture}
-  />
-);
-
 /** The act the run is waiting for, and the menu holding everything else it can do. */
 const ActsCell = ({ row }: Cell) => {
   const { t } = useLanguage();
   const { venture, acts } = row.original;
   return (
-    <div className="flex items-center justify-end gap-1">
-      <PrimaryActs acts={acts} compact venture={venture} />
+    <div className="flex flex-wrap items-center justify-end gap-1">
+      <PrimaryActs acts={acts} dense venture={venture} />
       <RowMenu
         actions={actsInTheMenu(venture, acts, t)}
         label={t("ventures.moreFor", { venture: venture.name })}
@@ -121,7 +121,7 @@ const ventureColumns = column.columns([
     id: "venture",
     header: listHeader("ventures.col.venture"),
     cell: VentureCell,
-    meta: { className: "min-w-48" },
+    meta: { className: "min-w-64" },
   }),
   column.accessor((row) => row.venture.capitalInBdt, {
     id: "held",
@@ -141,16 +141,11 @@ const ventureColumns = column.columns([
     cell: SignedCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => row.venture.bank?.lastCheckedMonth ?? "", {
-    id: "bank",
-    header: listHeader("ventures.col.bank"),
-    cell: BankCell,
-  }),
   column.display({
     id: "acts",
     header: ActionsHeader,
     cell: ActsCell,
-    meta: { align: "end", className: "w-32" },
+    meta: { align: "end", className: "w-64" },
   }),
 ]);
 
@@ -187,5 +182,5 @@ export const VenturesTable = ({
     data: ventures.map((venture) => ({ venture, acts, lastMonthOver })),
     getRowId: (row) => row.venture.id,
   });
-  return <DataTable card={ventureCard} minWidth="60rem" table={table} />;
+  return <DataTable card={ventureCard} minWidth="64rem" table={table} />;
 };

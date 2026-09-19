@@ -618,7 +618,6 @@ export const en = {
   "ventures.budgetsHeld": "Of that, cattle and running",
   "ventures.tab.running": "Running",
   "ventures.col.venture": "Venture",
-  "ventures.col.bank": "The bank",
   "ventures.details": "Everything about this Venture",
   "ventures.figure.running": "Ventures running",
   "ventures.figure.held": "Capital held",
