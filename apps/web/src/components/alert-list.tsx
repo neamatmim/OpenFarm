@@ -5,6 +5,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   BellRing,
@@ -24,6 +25,15 @@ import { orpc } from "@/utils/orpc";
  *  pocket, the evening's post and the two that go by text all read. */
 const messageFor = (kind: string): MessageKey | null =>
   kind in SAYS ? SAYS[kind as AlertKind].app : null;
+
+/** Which Venture, how many are waiting and what brought it round, for the notice that Investors are due
+ *  their paper. The occasion arrives already worded, because the word the code keeps would print
+ *  `buying_closed` into the middle of a Bangla sentence. */
+const papersDue = (raw: Record<string, unknown>) => ({
+  venture: String(raw.venture ?? ""),
+  investors: Number(raw.investors ?? 0),
+  occasion: String(raw.occasion ?? ""),
+});
 
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
  *  rather than the type system's; read defensively and in the reader's language. */
@@ -60,6 +70,7 @@ const paramsOf = (
     category: String(
       (bangla ? raw.categoryBn : raw.categoryEn) ?? raw.categoryBn ?? ""
     ),
+    ...papersDue(raw),
     /** When the Registration runs out, for the notice about its renewal. */
     date:
       typeof raw.expiresOn === "string"
@@ -110,6 +121,39 @@ const NoticeWords = ({
         <span className="text-muted-foreground block">{t(because)}</span>
       ) : null}
     </>
+  );
+};
+
+/** Which Venture a notice is about, read as defensively as the rest of the snapshotted params are. */
+const ventureOf = (params: unknown): string | null => {
+  const id = (params as { ventureId?: unknown } | null)?.ventureId;
+  return typeof id === "string" && id !== "" ? id : null;
+};
+
+/**
+ * Where a notice leads, for the one kind that has somewhere to send her.
+ *
+ * Most notices have nowhere to go — the sentence is the whole of what they have to say, and "got it" is
+ * the only answer they want. This one is different: it says a paper is owed, and the paper is made on a
+ * screen she would otherwise have to go and find. One kind on purpose; a general table of routes would
+ * be a mechanism built for a single caller.
+ */
+const WhereItLeads = ({
+  notice,
+}: {
+  notice: { kind: string; params: unknown };
+}) => {
+  const { t } = useLanguage();
+  const ventureId =
+    notice.kind === "investor_statement_due" ? ventureOf(notice.params) : null;
+  return ventureId === null ? null : (
+    <Link
+      className="text-primary mt-1 block text-sm font-medium hover:underline"
+      search={{ statements: ventureId }}
+      to="/ventures"
+    >
+      {t("alerts.makeThePaper")}
+    </Link>
   );
 };
 
@@ -206,6 +250,7 @@ export const AlertList = () => {
               <NoticeIcon kind={notice.kind} />
               <p className="min-w-0 flex-1 text-sm">
                 <NoticeWords notice={notice} />
+                <WhereItLeads notice={notice} />
               </p>
               <Button
                 className="h-11 shrink-0 md:h-8"

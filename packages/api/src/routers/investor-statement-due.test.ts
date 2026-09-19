@@ -183,17 +183,18 @@ describe("hearing that a paper is due", () => {
     await owner.client.alerts.sweep();
     await owner.client.alerts.sweep();
     const due = await papersDue(owner, ventureId);
-    // February raised once, whatever opened the app and however many times.
-    expect(due.filter((one) => one === "2054-02")).toHaveLength(1);
+    // February raised once, whatever opened the app and however many times — and said the way a person
+    // says a month, rather than as the `YYYY-MM` the notice's own id is built from.
+    expect(due.filter((one) => one === "ফেব্রুয়ারি ২০৫৪")).toHaveLength(1);
   });
 
   it("raises the next month as its own telling", async () => {
     const owner = await as("owner", "2054-03-05T04:00:00.000Z");
     await owner.client.alerts.sweep();
     const due = await papersDue(owner, ventureId);
-    const months = due.filter((one) => one?.startsWith("2054-"));
-    expect(months).toContain("2054-02");
-    expect(months).toContain("2054-03");
+    const months = due.filter((one) => one?.endsWith("২০৫৪"));
+    expect(months).toContain("ফেব্রুয়ারি ২০৫৪");
+    expect(months).toContain("মার্চ ২০৫৪");
   });
 
   it("tells her once the Wind-up Period has begun", async () => {
@@ -288,6 +289,6 @@ describe("hearing that a paper is due", () => {
     expect(await papersDue(april, doomed.id)).toEqual([]);
     // And the one still running is still told, so the silence is about the cancelled run and not
     // about the sweep having stopped.
-    expect(await papersDue(april, ventureId)).toContain("2054-04");
+    expect(await papersDue(april, ventureId)).toContain("এপ্রিল ২০৫৪");
   });
 });

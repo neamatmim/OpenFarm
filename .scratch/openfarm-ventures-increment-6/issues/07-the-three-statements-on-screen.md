@@ -12,17 +12,17 @@ And the telling that already reaches her — `investor_statement_due`, raised on
 
 **Blocked by:** None — 01 to 06 are done and merged.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [Ventures spec](../../openfarm-investor-projects/spec.md) — increment 6, user stories 79 and 85; the [roles matrix](../../openfarm-investor-projects/assets/venture-roles-matrix.md) row "Investor statement — generate, issue, record acknowledgement: Owner alone"; `CONTEXT.md` — **Investor Statement**, **Export**.
 
-- [ ] A Venture's Agreements are listed by the Investor's name before its Settlement is approved, because two of the three papers are wanted while the run is on and nothing lists them today
-- [ ] The Owner can produce each of the three papers for one named Investor, from the Venture she is looking at
-- [ ] The progress sheet shows the animals' photographs beside its text, and reads properly for an Animal nobody has photographed
-- [ ] A paper that cannot be made yet says why in words she can act on — no capital arrived, the Settlement is not approved — rather than a refusal code
-- [ ] Only the Owner sees any of it, and nothing on screen carries one Investor's figures into another's view
-- [ ] The `investor_statement_due` notice leads to the place the paper is made
-- [ ] Somebody opens the page and looks at all three before this is called done
+- [x] A Venture's Agreements are listed by the Investor's name before its Settlement is approved, because two of the three papers are wanted while the run is on and nothing lists them today
+- [x] The Owner can produce each of the three papers for one named Investor, from the Venture she is looking at
+- [x] The progress sheet shows the animals' photographs beside its text, and reads properly for an Animal nobody has photographed
+- [x] A paper that cannot be made yet says why in words she can act on — no capital arrived, the Settlement is not approved — rather than a refusal code
+- [x] Only the Owner sees any of it, and nothing on screen carries one Investor's figures into another's view
+- [x] The `investor_statement_due` notice leads to the place the paper is made
+- [x] Somebody opens the page and looks at all three before this is called done
 
 ## Checked before starting
 
@@ -55,3 +55,43 @@ Watch where they are put, though: `<Paper>`'s print rules are keyed on `#${id}` 
 **Two things about the strings.** They live in `packages/i18n/src/messages/{en,bn}.ts` and go in together, in the same commit, every time — the check script enforces that Bangla covers every English key. And `apps/web/src/i18n/untranslated-text.test.ts` reads a `>` inside a JSX expression as a closing tag: `ventures.tsx` carries two comments warning about it because it has bitten that file twice. Write `lastMonth() <= x` rather than the other way round, or name the boolean.
 
 **There is a throwaway prototype worth looking at first.** `/prototype/investor-statement?variant=A|B|C` (`apps/web/src/routes/prototype/investor-statement.tsx`) renders all three with invented content. It is not wired to the API and its own README says to rewrite it properly — but it is what the Owner reacted to, so it is the nearest thing to a picture of what she expects.
+
+## What was decided while building
+
+**`<Paper>` did gain a prop, and this ticket said it would not.** Line 41 above records that changing
+`<Paper>` was "considered and declined" — but line 43 requires the photographs to print *inside* the
+`#id` section, and there is no way to put them there from outside the component. The declined thing was
+making a paper JSX instead of a string, and that was kept: every paper is still a plain multi-line
+string, and `photographs` is an optional prop beside the text. Raising it here rather than leaving it in
+a code comment, because the ticket says the opposite.
+
+**The button is asked of the Agreements, not of the Venture's state.** It was first put in the block
+that draws for a running Venture, which is wrong: the যোগদানপত্র is wanted while the Venture is still
+**Open**, because capital arrives before an animal is bought. `hasPapersToGive` asks whether anybody has
+signed and the run was not called off — which also covers a **Settled** Venture, whose Investors may
+want their হিসাব নিকাশ again.
+
+**The notice leads somewhere, and nothing in this app did before.** `alert-list.tsx` drew every notice
+as a sentence and a "got it"; there was no kind→route table to copy, so criterion 6 was new work rather
+than a wiring-up. It is one kind on purpose: `/ventures?statements=<ventureId>`, read by the route and
+cleared from the address when the sheet closes, the same shape `?sell=` already uses on `/sale`.
+
+**Three defects only opening the page could have found.** None of them was in this ticket's own code:
+
+- The **অগ্রগতি** printed its column header — `ট্যাগ · শুরুর ওজন · …` — over no rows at all for a
+  Venture that has bought nothing yet, which is every Venture for the first days of its run. It now
+  says so in words.
+- The **notice printed its own placeholders**: `{venture}: {investors} জন …`. `paramsOf` in
+  `alert-list.tsx` is a fixed table of the facts each kind carries, and nobody added this kind's three
+  when the notice was built in ticket 05.
+- The **month occasion read `2026-09`** — Arabic numerals in the middle of a Bangla sentence, the same
+  defect the seven joining terms had. It is now worded: `সেপ্টেম্বর ২০২৬`.
+
+**The English labels were renamed against the glossary.** `CONTEXT.md` warns under **Bank Check** that
+"statement" is the bank's own paper, and the Venture's **Settlement** button sits on the same card — so
+a bare "Statements" and "Settlement" collided with two other things. They read "Investor statements" and
+"Settlement statement" now. The Bangla was already the glossary's own three words.
+
+**Still open, and still the Owner's** — the three questions written on tickets 04, 05 and 06 were not
+touched: the bull sold across to another Venture, the Adjustment line's mixed measures, and "issue" and
+"acknowledge" not being recorded acts. Nothing on this screen says *Send*, for that last reason.

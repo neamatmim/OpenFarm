@@ -419,6 +419,23 @@ describe("অগ্রগতি — the sheet while the run goes on", () => {
     expect(text).toContain("২২৪.৫");
   });
 
+  it("says in words that a Venture has bought nothing yet", async () => {
+    // A third Venture, signed and paid into and buying, with not one animal on it — which is every
+    // Venture for the first days of its run, and which the Owner can ask a sheet of, because the
+    // joining letter is wanted at exactly that moment and sits beside this button.
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const empty = await aVenture(owner, 3, [10]);
+    const agreements = await owner.client.ventures.agreements({
+      ventureId: empty,
+    });
+    const { text } = await owner.client.investorStatements.progress({
+      agreementId: agreements[0]?.id ?? "",
+    });
+    expect(text).toContain("এখনো কোনো পশু নেই / none yet");
+    // And no column header standing over nothing, which is what she was shown before.
+    expect(text).not.toContain("ট্যাগ · শুরুর ওজন");
+  });
+
   it("names a beast nobody has weighed rather than showing her as flat", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const { text } = await owner.client.investorStatements.progress({

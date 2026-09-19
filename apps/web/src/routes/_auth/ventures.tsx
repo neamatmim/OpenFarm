@@ -3,10 +3,11 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRightLeft,
   Banknote,
+  FileText,
   Handshake,
   PenLine,
   Landmark,
@@ -40,6 +41,7 @@ import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
 import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
 import { SettlementSheet } from "@/components/ventures/settlement-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
+import { StatementsSheet } from "@/components/ventures/statements-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
@@ -171,6 +173,16 @@ const moneyOf = (venture: Venture) => ({
   signedFor: venture.signedFor ?? { units: 0, people: 0 },
 });
 
+/**
+ * Whether anybody is owed one of the three papers.
+ *
+ * Asked of the Agreements rather than of the Venture's state, because the first of the three is wanted
+ * while it is still Open — capital arrives before an animal is bought — and the last of them is wanted
+ * after it has settled. A run that was called off has refunded every taka and owes nobody a paper.
+ */
+const hasPapersToGive = (venture: Venture) =>
+  moneyOf(venture).signedFor.people !== 0 && venture.state !== "cancelled";
+
 const VentureCard = ({
   venture,
   onSign,
@@ -184,6 +196,7 @@ const VentureCard = ({
   onAdvance,
   onCheckTheBank,
   onSeeMovements,
+  onStatements,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
@@ -197,6 +210,7 @@ const VentureCard = ({
   onAdvance: (venture: Venture) => void;
   onCheckTheBank: (venture: Venture) => void;
   onSeeMovements: (venture: Venture) => void;
+  onStatements: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -387,6 +401,18 @@ const VentureCard = ({
           </Button>
         </div>
       ) : null}
+      {hasPapersToGive(venture) ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            onClick={() => onStatements(venture)}
+            type="button"
+            variant="ghost"
+          >
+            <FileText aria-hidden data-icon="inline-start" />
+            {t("statements.title")}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -423,7 +449,17 @@ const VenturesPage = () => {
   const [advancing, setAdvancing] = useState<Venture | null>(null);
   const [checking, setChecking] = useState<Venture | null>(null);
   const [seeing, setSeeing] = useState<Venture | null>(null);
+  const [papering, setPapering] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
+  const { statements } = Route.useSearch();
+  const navigate = useNavigate();
+  // The notice that her Investors are due a paper names the Venture and sends her here with it in the
+  // address, so she lands on the buttons rather than going looking. Read off the list rather than kept
+  // in state: the list is what arrives, and a Venture whose id the address names but the list does not
+  // hold — a stale link, another farm's — opens nothing.
+  const asked = statements
+    ? (ventures.data?.find((one) => one.id === statements) ?? null)
+    : null;
   return (
     <Page>
       <PageHeader
@@ -463,6 +499,7 @@ const VenturesPage = () => {
                   onAdvance={setAdvancing}
                   onCheckTheBank={setChecking}
                   onSeeMovements={setSeeing}
+                  onStatements={setPapering}
                   onBuyWhatIsLeft={setWindingUp}
                   onSettle={setSettling}
                   onReimburse={setReimbursing}
@@ -571,6 +608,20 @@ const VenturesPage = () => {
         open={callingOff !== null}
         venture={callingOff}
       />
+      <StatementsSheet
+        onOpenChange={(next) => {
+          if (next) {
+            return;
+          }
+          setPapering(null);
+          // The address said whose papers she came for; once the sheet is closed it has been answered.
+          if (statements !== undefined) {
+            navigate({ replace: true, search: {}, to: "/ventures" });
+          }
+        }}
+        open={papering !== null || asked !== null}
+        venture={papering ?? asked}
+      />
       <SignAgreementSheet
         onOpenChange={(wanted) => {
           if (!wanted) {
@@ -588,4 +639,9 @@ export const Route = createFileRoute("/_auth/ventures")({
   /** The Owner's alone: nobody else is shown a screen that would only refuse them. */
   beforeLoad: onlyFor("owner"),
   component: VenturesPage,
+  /** Which Venture's papers she came for, when the notice that they are due sent her here. */
+  validateSearch: (search: Record<string, unknown>): { statements?: string } =>
+    typeof search.statements === "string" && search.statements !== ""
+      ? { statements: search.statements }
+      : {},
 });

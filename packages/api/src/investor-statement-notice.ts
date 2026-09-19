@@ -1,5 +1,6 @@
 import type { Database } from "@OpenFarm/db";
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { formatDate } from "@OpenFarm/i18n";
 
 import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
@@ -49,8 +50,15 @@ const OCCASION_WORDS = {
   wind_up: "গুটিয়ে আনার সময় / wind-up",
 } as const;
 
+/** Said in Bangla whoever is reading, as a paper's own labels are and as the three worded occasions
+ *  above already were: the month is kept as `YYYY-MM` because the notice's id is built from it, and
+ *  printing that shape would drop Arabic numerals into the middle of a Bangla sentence. */
+const BANGLA = "bn" as const;
+
 const said = (occasion: Occasion): string =>
-  occasion.kind === "month" ? occasion.month : OCCASION_WORDS[occasion.kind];
+  occasion.kind === "month"
+    ? formatDate(startOfFarmDay(`${occasion.month}-01`), BANGLA, "monthYear")
+    : OCCASION_WORDS[occasion.kind];
 
 /**
  * The Ventures whose Investors can be owed a progress paper.
