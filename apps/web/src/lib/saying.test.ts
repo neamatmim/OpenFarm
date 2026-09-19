@@ -35,8 +35,9 @@ describe("saying why the farm refused", () => {
   });
 
   it("falls back to what the server said when the farm has no word for it", () => {
-    // Seventeen of the farm's refusals have no wording of their own — a cow already sold, a hold that may not be made
+    // Sixteen of the farm's refusals have no wording of their own — a cow already sold, a hold that may not be made
     // longer. The person must still be told something, and the server's English is better than silence.
+    // Which sixteen is pinned in `i18n/unworded-refusals.test.ts`, so a seventeenth cannot arrive unnoticed.
     expect(
       sayWhy(refused("already_sold", "She has already been sold"), t)
     ).toBe("She has already been sold");
