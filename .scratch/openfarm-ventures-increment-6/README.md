@@ -12,10 +12,13 @@ Three documents, their shapes settled by [the prototype verdict](../openfarm-inv
 | 04  | অগ্রগতি — the paper while the Venture runs            | 01, 03     |
 | 05  | When the progress paper goes out                      | 04         |
 | 06  | হিসাব নিকাশ — the paper when the Venture ends         | 01         |
+| 07  | The three statements on screen                        | —          |
 
 Two roots — 01, which is the surface all three sit on, and 03, which is the reading the progress paper needs and which no screen answers today. Work one ticket per `/implement`, clearing context between them. Ticket status lives in each file's `**Status:**` line.
 
-**Two things found while writing these, both of which will bite whoever starts.** First: **nothing on the reading side is keyed on one Investor.** `ventures.agreements`, `ventures.movements` and the Settlement's payout rows each return every Investor on the Venture, names included, so a statement assembled from them as they stand would send one man a payload holding his neighbour's money. Ticket 01 narrows it on the server, once, for the two papers that need it. Second: **a paper here is a plain multi-line string**, and the shared `<Paper>` component renders that string plus at most one image — so the progress sheet's photo-per-Animal table does not fit the format the other fifteen papers use. Ticket 04 has to choose how, and the choice is worth making before any of it is built.
+**01 to 06 are done and merged (2026-09-19).** All three papers exist, are narrowed to one Investor, and write their Export to the trail; `investor_statement_due` tells the Owner on the four occasions. **07 was written afterwards** and is the gap the six left: none of the three can be reached by anybody, because none of the six had a UI criterion. It was added rather than folded into them so that what was built and what was not stays readable.
+
+**Two things found while writing 01 to 06, both of which bit.** First: **nothing on the reading side is keyed on one Investor.** `ventures.agreements`, `ventures.movements` and the Settlement's payout rows each return every Investor on the Venture, names included, so a statement assembled from them as they stand would send one man a payload holding his neighbour's money. Ticket 01 narrowed it on the server, once, for the papers that need it. Second: **a paper here is a plain multi-line string**, and the shared `<Paper>` component renders that string plus at most one image — so the progress sheet's photo-per-Animal table does not fit the format the other fifteen papers use. The Owner chose: the photographs travel beside the sheet and every paper stays a string, which leaves ticket 07 only the laying out.
 
 **Settled before any of this is written, and not to be re-decided:**
 
