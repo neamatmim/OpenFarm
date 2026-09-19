@@ -691,7 +691,9 @@ export interface CapitalLine {
  * যোগদানপত্র — what one Investor is handed when his money lands.
  *
  * The terms come off his own **Investment Agreement** rather than off the Venture, because each paper
- * froze its own at signing and a man who signed before an amendment agreed to what his paper says.
+ * froze its own at signing and two men on one Venture may hold different ones. Where a dated amendment
+ * has moved them since, what is printed is what was in force — and the paper says so underneath, so that
+ * two letters printed months apart do not simply disagree with each other in a man's hands.
  */
 export interface JoiningLetter {
   farm: FarmIdentity;
@@ -717,6 +719,9 @@ export interface JoiningLetter {
   totalCapital: string;
   /** The seven plain lines of what he agreed to, already worded by the caller. */
   terms: string[];
+  /** The day of the amendment those terms come from, as the reader reads it, or nothing while the paper
+   *  still stands as it was signed. */
+  amendedOn: string | null;
   /** The stamped instrument this paper points at, as the schema groups it: what the stamp cost, the day
    *  it was stamped, and its serial. */
   stamp: { value: string; on: string; serial: string };
@@ -778,6 +783,9 @@ export const joiningLetter = (letter: JoiningLetter): string => {
       "",
       "শর্তাবলি / Terms",
       ...letter.terms.map((one) => `  ${one}`),
+      letter.amendedOn
+        ? `  (${letter.amendedOn} তারিখের সংশোধনী অনুযায়ী / as amended on ${letter.amendedOn})`
+        : null,
       "",
       field("স্ট্যাম্প মূল্য", "Stamp value", `${letter.stamp.value} টাকা`),
       field("স্ট্যাম্পের তারিখ", "Stamped on", letter.stamp.on),

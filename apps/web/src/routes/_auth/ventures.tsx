@@ -34,6 +34,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { AdvanceSheet } from "@/components/ventures/advance-sheet";
+import { AmendSheet } from "@/components/ventures/amend-sheet";
 import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
 import { BuyWhatIsLeftSheet } from "@/components/ventures/buy-what-is-left-sheet";
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
@@ -185,6 +186,15 @@ const hasPapersToGive = (venture: Venture) =>
   moneyOf(venture).signedFor.people !== 0 && venture.state !== "cancelled";
 
 /**
+ * Whether the terms can still move.
+ *
+ * Once a Settlement is approved every Investor has been paid on the split and the window as they then
+ * stood, so the farm refuses an amendment — and a button that can only ever be refused is worse than no
+ * button, because somebody fills the whole form before hearing it.
+ */
+const termsCanStillMove = (venture: Venture) => venture.state !== "settled";
+
+/**
  * Why the button that moves a Venture along is dim, and what pressing it will cost her.
  *
  * Its own component because the card was over the complexity the linter allows, and because these are
@@ -234,6 +244,7 @@ const VentureCard = ({
   onCheckTheBank,
   onSeeMovements,
   onStatements,
+  onAmend,
   onStartBuying,
   onStartFattening,
 }: {
@@ -250,6 +261,7 @@ const VentureCard = ({
   onCheckTheBank: (venture: Venture) => void;
   onSeeMovements: (venture: Venture) => void;
   onStatements: (venture: Venture) => void;
+  onAmend: (venture: Venture) => void;
   onStartBuying: (venture: Venture) => void;
   onStartFattening: (venture: Venture) => void;
 }) => {
@@ -468,6 +480,16 @@ const VentureCard = ({
               {t("ventures.settlement")}
             </Button>
           ) : null}
+          {termsCanStillMove(venture) ? (
+            <Button
+              onClick={() => onAmend(venture)}
+              type="button"
+              variant="ghost"
+            >
+              <PenLine aria-hidden data-icon="inline-start" />
+              {t("ventures.amend")}
+            </Button>
+          ) : null}
           <Button
             onClick={() => onStatements(venture)}
             type="button"
@@ -515,6 +537,7 @@ const VenturesPage = () => {
   const [checking, setChecking] = useState<Venture | null>(null);
   const [seeing, setSeeing] = useState<Venture | null>(null);
   const [papering, setPapering] = useState<Venture | null>(null);
+  const [amending, setAmending] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   const queryClient = useQueryClient();
   /**
@@ -589,6 +612,7 @@ const VenturesPage = () => {
                   onStartFattening={(fattening_) =>
                     fattening.mutate({ id: fattening_.id })
                   }
+                  onAmend={setAmending}
                   onStatements={setPapering}
                   onBuyWhatIsLeft={setWindingUp}
                   onSettle={setSettling}
@@ -697,6 +721,15 @@ const VenturesPage = () => {
         }}
         open={callingOff !== null}
         venture={callingOff}
+      />
+      <AmendSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setAmending(null);
+          }
+        }}
+        open={amending !== null}
+        venture={amending}
       />
       <StatementsSheet
         onOpenChange={(next) => {

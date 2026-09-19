@@ -228,6 +228,27 @@ describe("what a Settlement is", () => {
     expect(settlement.investorsPercent).toBe(60);
   });
 
+  it("divides on the terms in force, not on the terms that were signed", async () => {
+    // An amendment that moved the paper and not the money would be worse than no amendment at all: the
+    // যোগদানপত্র would promise a man fifty-five while the Settlement quietly paid him sixty.
+    const owner = await as("owner", "2047-02-05T05:00:00.000Z");
+    const third = await funded(owner, 3);
+    await owner.client.ventures.amend({
+      ventureId: third,
+      investorsPercent: 55,
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+      signedOn: "2047-02-04",
+      reason: `সবাই মিলে ভাগ বদলেছি ${suffix}`,
+      contentType: "image/jpeg",
+      data: "aGVsbG8=",
+    });
+    const settlement = await theSettlement(owner, third);
+    expect(settlement.investorsPercent).toBe(55);
+    // And two Agreements are not in disagreement merely because one amendment moved them both.
+    expect(wordsOf(settlement.blocks)).not.toContain("agreements_disagree");
+  });
+
   it("charges the run what its animals cost, whichever purse paid", async () => {
     const owner = await as("owner", "2047-02-06T04:00:00.000Z");
     const settlement = await theSettlement(owner);
@@ -725,6 +746,24 @@ describe("what a Settlement is", () => {
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       data: { refusal: "venture_is_settled" },
+    });
+
+    // Nor may the terms move any more. Every Investor has been paid on the split and the window as
+    // they stood at approval; an amendment afterwards would restate what the money already did.
+    await expect(
+      owner.client.ventures.amend({
+        ventureId,
+        investorsPercent: 50,
+        targetWindowStart: plan.targetWindowStart,
+        targetWindowEnd: plan.targetWindowEnd,
+        signedOn: "2047-04-10",
+        reason: `দেরিতে সংশোধন ${suffix}`,
+        contentType: "image/jpeg",
+        data: "aGVsbG8=",
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "already_approved" },
     });
 
     // And a movement of its money is no longer the Owner's to put right: a Settlement Adjustment is.

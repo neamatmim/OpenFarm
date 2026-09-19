@@ -307,6 +307,22 @@ export const bn: Record<MessageKey, string> = {
   "byHand.receiptTake": "রসিদের ছবি তুলুন",
   "renewal.certificateTake": "সনদের ছবি তুলুন",
   "ventures.paperHint": "সই করা কাগজের ছবি, চুক্তির সাথে রাখা থাকবে",
+  "ventures.amend": "চুক্তি সংশোধন",
+  "ventures.amendHint":
+    "একটি কাগজ, {venture}-এর প্রত্যেক বিনিয়োগকারীর সই করা। প্রত্যেকে শুরুতে যা সই করেছিলেন, তা পাশেই থাকবে।",
+  "ventures.amendShare": "বিনিয়োগকারীদের ভাগ (%)",
+  "ventures.amendSplitHint": "এখন থেকে মুনাফার কত অংশ তাঁরা পাবেন।",
+  "ventures.amendSignedOn": "সবাই যেদিন সই করেছেন",
+  "ventures.amendSignedHint":
+    "কোন দিন কী চালু ছিল তা এই তারিখেই ঠিক হয়, কবে লেখা হলো তাতে নয়।",
+  "ventures.amendReason": "কেন বদলালো",
+  "ventures.amendReasonHint": "বছর পরে মতভেদ হলে প্রথমে এটিই জিজ্ঞেস করা হবে।",
+  "ventures.amendPaper": "সই করা সংশোধনী",
+  "ventures.amendPaperHint": "সবাই যে কাগজে নাম দিয়েছেন তার ছবি।",
+  "ventures.amended": "চুক্তি সংশোধন হয়েছে: {count}টি",
+  "ventures.nobodyHasSigned":
+    "এই ভেঞ্চারে এখনো কেউ চুক্তিতে সই করেননি, তাই সংশোধনের কিছু নেই।",
+  "ventures.windowOutOfOrder": "বিক্রি শুরুর আগে শেষ হতে পারে না।",
   "ventures.startBuying": "কেনা শুরু করুন",
   "ventures.startBuyingHint":
     "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি টাকাও নেই।",

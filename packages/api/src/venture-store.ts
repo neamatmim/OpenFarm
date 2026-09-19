@@ -524,6 +524,90 @@ const lastDayOf = (month: string) => {
   return farmDayOf(new Date(until.getTime() - 1));
 };
 
+/** An Agreement's terms as some day read them: the split and the window, and whether a paper moved them. */
+export interface TermsInForce {
+  investorsPercent: number;
+  targetWindowStart: string;
+  targetWindowEnd: string;
+  /** The day the amendment that set these was signed, where one did. */
+  amendedOn: string | null;
+  /** The act that moved them, which is what the photograph of the signed paper is filed under. */
+  amendedId: string | null;
+}
+
+/**
+ * What an Agreement said on a given day: the latest amendment signed on or before it, or the paper as
+ * it was signed.
+ *
+ * Asked by day rather than by "now", because that is the question a dispute asks — what had this man
+ * agreed to when the thing happened. The original row is never edited, so falling back to it is always
+ * an answer.
+ */
+export const termsInForceOn = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  agreementId: string,
+  on: string
+): Promise<TermsInForce | null> => {
+  const agreement = await tx.query.investmentAgreement.findFirst({
+    where: { farmId, id: agreementId },
+    columns: {
+      investorsPercent: true,
+      targetWindowStart: true,
+      targetWindowEnd: true,
+    },
+  });
+  if (!agreement) {
+    return null;
+  }
+  const amended = await tx.query.agreementAmendment.findMany({
+    where: { farmId, agreementId, signedOn: { lte: on } },
+    // Newest first, and `id` behind the day so two papers signed on one day still order the same way
+    // every time they are read.
+    orderBy: { signedOn: "desc", id: "desc" },
+    limit: 1,
+  });
+  const [latest] = amended;
+  return latest
+    ? {
+        investorsPercent: latest.investorsPercent,
+        targetWindowStart: latest.targetWindowStart,
+        targetWindowEnd: latest.targetWindowEnd,
+        amendedOn: latest.signedOn,
+        amendedId: latest.amendedId,
+      }
+    : { ...agreement, amendedOn: null, amendedId: null };
+};
+
+/**
+ * What every Agreement on a Venture said on a given day, by Agreement.
+ *
+ * Read on both sides of an amendment, so the trail carries the terms as they stood and the terms they
+ * became rather than two copies of a Venture row this act never touches. Ordered, because a trail two
+ * people compare has to read the same way twice.
+ */
+export const termsAcrossOn = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string,
+  on: string
+): Promise<Record<string, TermsInForce>> => {
+  const signed = await tx.query.investmentAgreement.findMany({
+    where: { farmId, ventureId },
+    columns: { id: true },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  const said = await Promise.all(
+    signed.map(
+      async (one) =>
+        [one.id, await termsInForceOn(tx, farmId, one.id, on)] as const
+    )
+  );
+  return Object.fromEntries(
+    said.filter((pair): pair is [string, TermsInForce] => pair[1] !== null)
+  );
+};
+
 /** What the farm thinks a Venture Account held at the end of one month. */
 export const balanceAtMonthEnd = async (
   tx: Pick<Tx, "query">,

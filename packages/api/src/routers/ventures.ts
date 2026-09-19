@@ -2,7 +2,9 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { PAYMENT_METHODS } from "@OpenFarm/db/schema/money";
 import {
+  agreementAmendment,
   agreementPaper,
+  amendmentPaper,
   ventureSettlementShare,
   ventureSettlement,
   ventureBankCheck,
@@ -70,6 +72,8 @@ import {
   balanceOf,
   budgetsOf,
   heldByEach,
+  termsAcrossOn,
+  termsInForceOn,
   NEVER_CHECKED,
   bankStandingOf,
   readBankCheck,
@@ -782,6 +786,140 @@ export const venturesRouter = {
       return { id };
     }),
 
+  /**
+   * One paper amending every Agreement on a Venture: the split, the Target Window, the day everybody
+   * signed it, why, and a photograph of it.
+   *
+   * One act because it is one piece of paper — story 7 says an amendment is "signed by every Investor
+   * in that Venture", so a Venture cannot be half amended and this writes every row or none. What each
+   * Agreement said before is never edited: the original stays legible beside what it became, which is
+   * what lets the farm answer what a man had agreed to on the day a thing happened.
+   *
+   * Refused once the Settlement is approved: those figures are what everybody was paid on.
+   */
+  amend: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      photoInput.extend({
+        ventureId: z.string(),
+        investorsPercent: z.number().int().min(0).max(100),
+        targetWindowStart: farmDay,
+        targetWindowEnd: farmDay,
+        /** The day every Investor signed it, which is what decides what was in force when. */
+        signedOn: farmDay,
+        reason: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const row = await ours(context, input.ventureId);
+      if (input.targetWindowStart > input.targetWindowEnd) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Target Window needs its days in order",
+          data: { refusal: "window_out_of_order" },
+        });
+      }
+      const amendedId = uuidv7();
+      const amended = await audited(context).write(
+        {
+          entity: "venture",
+          entityId: row.id,
+          action: "update",
+          reason: input.reason,
+          // The same question on both sides of the act: what every Agreement said on the day they
+          // signed. A Venture row read twice would say nothing, because an amendment never touches it.
+          before: (tx) =>
+            termsAcrossOn(tx, context.farm.id, row.id, input.signedOn),
+          after: (tx) =>
+            termsAcrossOn(tx, context.farm.id, row.id, input.signedOn),
+        },
+        async (tx) => {
+          await lockTheFarm(tx, context.farm.id);
+          await assertNotSettledUp(tx, context.farm.id, row.id);
+          const signed = await tx.query.investmentAgreement.findMany({
+            where: { farmId: context.farm.id, ventureId: row.id },
+            columns: { id: true },
+            orderBy: { createdAt: "asc", id: "asc" },
+          });
+          if (signed.length === 0) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Nobody has signed for this Venture yet",
+              data: { refusal: "nobody_has_signed" },
+            });
+          }
+          await tx.insert(agreementAmendment).values(
+            signed.map((one) => ({
+              id: uuidv7(),
+              farmId: context.farm.id,
+              agreementId: one.id,
+              amendedId,
+              signedOn: input.signedOn,
+              investorsPercent: input.investorsPercent,
+              targetWindowStart: input.targetWindowStart,
+              targetWindowEnd: input.targetWindowEnd,
+              reason: input.reason,
+              amendedBy: context.actor.id,
+              createdAt: now,
+            }))
+          );
+          // One photograph of one piece of paper, kept once and pointed at by every row.
+          await tx.insert(amendmentPaper).values({
+            amendedId,
+            farmId: context.farm.id,
+            contentType: input.contentType,
+            data: input.data,
+            updatedAt: now,
+          });
+          return signed.length;
+        }
+      );
+      return { id: amendedId, agreements: amended };
+    }),
+
+  /**
+   * What one Agreement said on a given day: the latest amendment signed on or before it, or the paper
+   * as it was signed.
+   *
+   * Asked by day rather than by "now" because that is the question that gets asked — what had this man
+   * agreed to when the thing happened. A paper printed for him reads this, not the row.
+   */
+  termsOn: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ agreementId: z.string(), on: farmDay }))
+    .handler(async ({ context, input }) => {
+      const mine = await context.db.query.investmentAgreement.findFirst({
+        where: { id: input.agreementId, farmId: context.farm.id },
+        columns: { id: true },
+      });
+      if (!mine) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+      }
+      const terms = await termsInForceOn(
+        context.db,
+        context.farm.id,
+        mine.id,
+        input.on
+      );
+      if (!terms) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Agreement" });
+      }
+      // Whether the signed amendment is on file, the way `agreements` reports the stamped paper: the
+      // photograph itself never leaves the database, but a dispute needs to know the farm has one.
+      const paper = terms.amendedId
+        ? await context.db.query.amendmentPaper.findFirst({
+            where: { amendedId: terms.amendedId, farmId: context.farm.id },
+            columns: { amendedId: true },
+          })
+        : null;
+      return {
+        ...terms,
+        paperKept: paper !== null,
+        farmPercent: theFarmsShare(terms.investorsPercent),
+      };
+    }),
+
   /** The photo of the stamped paper, kept against its Agreement. Replacing it replaces the one photo. */
   keepAgreementPaper: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -1406,7 +1544,10 @@ export const venturesRouter = {
             context.farm.id,
             row.id,
             worked,
-            { actorId: context.actor.id, now }
+            {
+              actorId: context.actor.id,
+              now,
+            }
           );
           // A Venture that owes nobody anything is finished the moment it is approved, and must not be
           // left in Selling for ever waiting for a payment that will never be made.

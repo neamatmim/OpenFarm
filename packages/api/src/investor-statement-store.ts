@@ -13,6 +13,7 @@ import {
   heldByEach,
   ownedThenByOf,
   signedForEach,
+  termsInForceOn,
 } from "./venture-store";
 
 /** The terms one Agreement froze at signing: what he agreed to, which is not what the Venture says today. */
@@ -22,6 +23,8 @@ export interface HisAgreement {
   investorsPercent: number;
   targetWindowStart: string;
   targetWindowEnd: string;
+  /** The day a paper everybody signed moved these, where one did. */
+  amendedOn: string | null;
   arbitrator: string;
   stampValueBdt: number;
   stampedOn: string;
@@ -98,7 +101,9 @@ const noSuchAgreement = () =>
 export const hisStanding = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  agreementId: string
+  agreementId: string,
+  /** The day the paper is being made. What it prints is what was in force then, not at signing. */
+  on: string
 ): Promise<HisStanding> => {
   const agreement = await tx.query.investmentAgreement.findFirst({
     where: { id: agreementId, farmId },
@@ -132,6 +137,12 @@ export const hisStanding = async (
     columns: { kind: true, amountBdt: true, movedOn: true, reference: true },
     orderBy: { movedOn: "asc", id: "asc" },
   });
+  const terms = (await termsInForceOn(tx, farmId, agreement.id, on)) ?? {
+    investorsPercent: agreement.investorsPercent,
+    targetWindowStart: agreement.targetWindowStart,
+    targetWindowEnd: agreement.targetWindowEnd,
+    amendedOn: null,
+  };
   const capital: HisCapital[] = moved.map((one) => ({
     kind: one.kind === "refund" ? "returned" : "received",
     amountBdt: Number(one.amountBdt),
@@ -161,9 +172,12 @@ export const hisStanding = async (
     agreement: {
       id: agreement.id,
       units: agreement.units,
-      investorsPercent: agreement.investorsPercent,
-      targetWindowStart: agreement.targetWindowStart,
-      targetWindowEnd: agreement.targetWindowEnd,
+      // The terms as the day reads them. An amendment everybody signed moved the split or the window,
+      // and a paper that printed what he signed at the start would be telling him the wrong deal.
+      investorsPercent: terms.investorsPercent,
+      targetWindowStart: terms.targetWindowStart,
+      targetWindowEnd: terms.targetWindowEnd,
+      amendedOn: terms.amendedOn,
       arbitrator: agreement.arbitrator,
       stampValueBdt: Number(agreement.stampValueBdt),
       stampedOn: agreement.stampedOn,

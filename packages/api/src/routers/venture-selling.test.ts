@@ -1,4 +1,4 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -105,6 +105,172 @@ beforeAll(async () => {
   await broughtIn();
   await broughtIn();
   await owner.client.ventures.startFattening({ id: ventureId });
+});
+
+/** The terms each Agreement was on, off one side of an Audit Event. */
+const said = (side: unknown) =>
+  Object.values(side as Record<string, { investorsPercent: number }>);
+
+describe("amending what everybody signed", () => {
+  const PAPER = { contentType: "image/jpeg", data: "aGVsbG8=" } as const;
+
+  it("moves the terms on every Agreement at once, and leaves the originals alone", async () => {
+    const owner = await as("owner", "2047-02-01T04:00:00.000Z");
+    const before = await owner.client.ventures.agreements({ ventureId });
+    expect(before[0]).toMatchObject({ investorsPercent: 60 });
+
+    // One paper, signed by everybody on the tenth, moving the split and the window.
+    const done = await owner.client.ventures.amend({
+      ventureId,
+      investorsPercent: 55,
+      targetWindowStart: "2047-05-01",
+      targetWindowEnd: "2047-05-10",
+      signedOn: "2047-02-10",
+      reason: `ঈদ পিছিয়েছে, সবাই মিলে সময় বদলেছি ${suffix}`,
+      ...PAPER,
+    });
+    expect(done.agreements).toBe(before.length);
+
+    // The Agreement itself is untouched: what he signed at the start is still legible.
+    const after = await owner.client.ventures.agreements({ ventureId });
+    expect(after[0]).toMatchObject({
+      investorsPercent: 60,
+      targetWindow: {
+        start: plan.targetWindowStart,
+        end: plan.targetWindowEnd,
+      },
+    });
+  });
+
+  it("leaves a trail that says what the terms were and what they became", async () => {
+    // The act never edits the Venture row, so a trail that read it twice would show two identical
+    // snapshots and answer nothing. Both sides read what every Agreement said on the day they signed.
+    const [event] = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "venture", entityId: ventureId, action: "update" },
+      orderBy: { receivedAt: "desc", id: "desc" },
+      limit: 1,
+    });
+    expect(event?.reason).toContain("ঈদ পিছিয়েছে");
+    expect(said(event?.before).length).toBeGreaterThan(0);
+    for (const terms of said(event?.before)) {
+      expect(terms.investorsPercent).toBe(60);
+    }
+    for (const terms of said(event?.after)) {
+      expect(terms.investorsPercent).toBe(55);
+    }
+  });
+
+  it("says what was in force on a day, which is the question a dispute asks", async () => {
+    const owner = await as("owner", "2047-02-20T04:00:00.000Z");
+    const [his] = await owner.client.ventures.agreements({ ventureId });
+    const onThe = (day: string) =>
+      owner.client.ventures.termsOn({ agreementId: his?.id ?? "", on: day });
+
+    // The day before everybody signed, the paper still read sixty.
+    expect(await onThe("2047-02-09")).toMatchObject({
+      investorsPercent: 60,
+      amendedOn: null,
+    });
+    // On the day itself, and after it, it reads what they agreed.
+    expect(await onThe("2047-02-10")).toMatchObject({
+      investorsPercent: 55,
+      targetWindowEnd: "2047-05-10",
+      amendedOn: "2047-02-10",
+    });
+    expect(await onThe("2047-06-01")).toMatchObject({ investorsPercent: 55 });
+  });
+
+  it("takes the later of two signed on one day, and says the same twice", async () => {
+    // Two papers can honestly carry one date. Ordering on the day alone would then leave the answer to
+    // whatever the database felt like returning, and a paper reprinted next week could read differently
+    // from the one a man is holding. `id` behind the day is what stops that.
+    const owner = await as("owner", "2047-02-19T04:00:00.000Z");
+    const [his] = await owner.client.ventures.agreements({ ventureId });
+    const sameDay = async (percent: number) => {
+      await owner.client.ventures.amend({
+        ventureId,
+        investorsPercent: percent,
+        targetWindowStart: "2047-05-01",
+        targetWindowEnd: "2047-05-10",
+        signedOn: "2047-02-18",
+        reason: `একই দিনে দুটি কাগজ ${percent} ${suffix}`,
+        ...PAPER,
+      });
+    };
+    await sameDay(52);
+    await sameDay(51);
+    const asked = () =>
+      owner.client.ventures.termsOn({
+        agreementId: his?.id ?? "",
+        on: "2047-02-18",
+      });
+    // The second one written is the one in force, and it is still the one in force when asked again.
+    expect(await asked()).toMatchObject({ investorsPercent: 51 });
+    expect(await asked()).toMatchObject({ investorsPercent: 51 });
+    // And the farm holds the signed paper behind it.
+    expect(await asked()).toMatchObject({ paperKept: true });
+
+    // Put back, so the tests that follow read the amendment they were written about.
+    await owner.client.ventures.amend({
+      ventureId,
+      investorsPercent: 55,
+      targetWindowStart: "2047-05-01",
+      targetWindowEnd: "2047-05-10",
+      signedOn: "2047-02-19",
+      reason: `আগের শর্তে ফেরত ${suffix}`,
+      ...PAPER,
+    });
+  });
+
+  it("prints on his যোগদানপত্র what is in force, not what he signed", async () => {
+    // The thing increment 6 left waiting: a Venture amended afterwards must print the terms the
+    // amendment left standing, or the paper tells a man a deal nobody is on any more.
+    // Every paper carries the farm's Registration number, so the farm has to have written one down —
+    // and a client reads the farm as it stood when it was made, so the writing happens on an earlier one.
+    const writing = await as("owner", "2047-02-20T04:30:00.000Z");
+    await writing.client.farm.setIdentity({
+      address: `গ্রাম: বিক্রি ${suffix}`,
+      registrationNumber: `DLS/SELL/${suffix}`.slice(0, 40),
+      phone: "01711-000555",
+    });
+    const owner = await as("owner", "2047-02-20T05:00:00.000Z");
+    const [his] = await owner.client.ventures.agreements({ ventureId });
+    const { text } = await owner.client.investorStatements.joining({
+      agreementId: his?.id ?? "",
+    });
+    // Fifty-five and forty-five, in Bangla numerals, and not the sixty he put his name to.
+    expect(text).toContain("৫৫%");
+    expect(text).toContain("৪৫%");
+    expect(text).not.toContain("৬০%");
+  });
+
+  it("is the Owner's alone, and wants a reason", async () => {
+    const manager = await as("manager", "2047-02-21T04:00:00.000Z");
+    await expect(
+      manager.client.ventures.amend({
+        ventureId,
+        investorsPercent: 50,
+        targetWindowStart: "2047-05-01",
+        targetWindowEnd: "2047-05-10",
+        signedOn: "2047-02-21",
+        reason: `যা খুশি ${suffix}`,
+        ...PAPER,
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const owner = await as("owner", "2047-02-21T05:00:00.000Z");
+    await expect(
+      owner.client.ventures.amend({
+        ventureId,
+        investorsPercent: 50,
+        targetWindowStart: "2047-05-01",
+        targetWindowEnd: "2047-05-10",
+        signedOn: "2047-02-21",
+        reason: "   ",
+        ...PAPER,
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
 });
 
 describe("the two budgets once buying is over", () => {

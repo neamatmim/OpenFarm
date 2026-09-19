@@ -163,6 +163,63 @@ export const investmentAgreement = pgTable(
 );
 
 /** The photo of a stamped Investment Agreement. One per Agreement, kept as the Farm's proof of it. */
+/**
+ * One paper amending a Venture's Agreements: the terms it changed, the day everybody signed it, and the
+ * photograph of it.
+ *
+ * One physical paper signed by every Investor in the Venture, written down as one row per Agreement —
+ * which is what makes "the agreement in force at a time is the latest amendment on or before it" a
+ * question with an answer. The Agreement itself is never edited: what an Investor signed at the start
+ * stays legible beside what it became.
+ *
+ * Only what story 7 lets move: the split and the Target Window. Units are fixed once a Venture starts
+ * buying, and the cap, the capital already taken and every share worked out since all rest on them.
+ */
+export const agreementAmendment = pgTable(
+  "agreement_amendment",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    agreementId: text("agreement_id")
+      .notNull()
+      .references(() => investmentAgreement.id, { onDelete: "cascade" }),
+    /** The one act these rows were written by, so a Venture's amendment reads as one paper again. */
+    amendedId: text("amended_id").notNull(),
+    /** The day every Investor signed it. What was in force on a day is decided by this, not by when
+     *  somebody got round to typing it in. */
+    signedOn: text("signed_on").notNull(),
+    investorsPercent: integer("investors_percent").notNull(),
+    targetWindowStart: text("target_window_start").notNull(),
+    targetWindowEnd: text("target_window_end").notNull(),
+    /** Why it was amended, in the Owner's own words — a dispute years later asks this first. */
+    reason: text("reason").notNull(),
+    amendedBy: text("amended_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    // One amendment per Agreement per act: the same paper may not be written against a man twice.
+    uniqueIndex("agreement_amendment_uidx").on(
+      table.agreementId,
+      table.amendedId
+    ),
+  ]
+);
+
+/** The photograph of an amendment, kept once for the one paper everybody signed. */
+export const amendmentPaper = pgTable("amendment_paper", {
+  amendedId: text("amended_id").primaryKey(),
+  farmId: text("farm_id")
+    .notNull()
+    .references(() => farm.id, { onDelete: "cascade" }),
+  contentType: text("content_type").notNull(),
+  /** Downscaled on the device before upload, base64. */
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+/** The photo of a stamped Investment Agreement, kept beside the paper it is a picture of. */
 export const agreementPaper = pgTable("agreement_paper", {
   agreementId: text("agreement_id")
     .primaryKey()

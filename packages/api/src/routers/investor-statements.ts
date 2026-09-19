@@ -1,4 +1,5 @@
 import {
+  farmDayOf,
   joiningLetter,
   progressStatement,
   settlementStatement,
@@ -53,7 +54,8 @@ export const investorStatementsRouter = {
       const standing = await hisStanding(
         context.db,
         context.farm.id,
-        input.agreementId
+        input.agreementId,
+        farmDayOf(now)
       );
       assertCapitalHeld(standing);
       const day = (farmDay: string) =>
@@ -73,6 +75,9 @@ export const investorStatementsRouter = {
         })),
         totalCapital: taka(standing.capitalBdt),
         terms: joiningTerms(standing, context.farm.windUpDays),
+        amendedOn: standing.agreement.amendedOn
+          ? day(standing.agreement.amendedOn)
+          : null,
         stamp: {
           value: taka(standing.agreement.stampValueBdt),
           on: day(standing.agreement.stampedOn),
@@ -121,7 +126,8 @@ export const investorStatementsRouter = {
       const standing = await hisStanding(
         context.db,
         context.farm.id,
-        input.agreementId
+        input.agreementId,
+        farmDayOf(now)
       );
       const venture = await theVentureOf(
         context.db,
@@ -224,7 +230,8 @@ export const investorStatementsRouter = {
       const standing = await hisStanding(
         context.db,
         context.farm.id,
-        input.agreementId
+        input.agreementId,
+        farmDayOf(now)
       );
       const [settled, story] = await Promise.all([
         hisSettlement(context.db, context.farm.id, standing),

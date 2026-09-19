@@ -321,6 +321,25 @@ export const en = {
   "renewal.certificateTake": "Photograph the certificate",
   "ventures.paperHint":
     "A photo of the signed paper, kept against the Agreement",
+  /** One paper amending every Agreement on a Venture. The split and the window only: Units are fixed
+   *  once buying starts, and everything worked out since rests on them. */
+  "ventures.amend": "Amend the agreements",
+  "ventures.amendHint":
+    "One paper, signed by every Investor in {venture}. What each of them signed at the start is kept beside it.",
+  "ventures.amendShare": "The Investors' share (%)",
+  "ventures.amendSplitHint": "What they take of the profit from now on.",
+  "ventures.amendSignedOn": "The day they all signed",
+  "ventures.amendSignedHint":
+    "What was in force on any day is decided by this, not by when it was typed in.",
+  "ventures.amendReason": "Why it changed",
+  "ventures.amendReasonHint": "A dispute years later asks this first.",
+  "ventures.amendPaper": "The signed amendment",
+  "ventures.amendPaperHint":
+    "A photo of the paper everybody put their name to.",
+  "ventures.amended": "Agreements amended: {count}",
+  "ventures.nobodyHasSigned":
+    "No investor has signed for this venture yet, so there is nothing to amend.",
+  "ventures.windowOutOfOrder": "Selling cannot end before it starts.",
   /** Moving a Venture along. Two acts with no form: she says buying has started, and later that it is
    *  over. Units are fixed the moment the first one is pressed. */
   "ventures.startBuying": "Start buying",
