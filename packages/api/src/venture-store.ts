@@ -107,6 +107,43 @@ export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
  * Running Budget, which is whatever the Cattle Budget is not — worked out, never stored, so the two can
  * never drift apart.
  */
+/**
+ * A Venture's two budgets: what the plan says each is, and what is left of each.
+ *
+ * The budgets are a plan for the whole capital, so what has actually arrived is split in the same
+ * proportion — a Venture half funded holds half of each, rather than a full Cattle Budget and nothing to
+ * feed the animals with. After that the two are spent from separately, so a **Buying Float** to the haat
+ * takes nothing from the money that keeps the animals.
+ *
+ * Worked out here rather than inside the Venture's own view, because an Investor's progress statement
+ * needs these four figures and nothing else the view carries — and a second copy of this arithmetic is
+ * how his paper and the Owner's screen would come to disagree about what is left.
+ */
+export const budgetsOf = (
+  row: Pick<VentureRow, "targetCapitalBdt" | "cattleBudgetBdt">,
+  held: Held | undefined
+) => {
+  const what = held ?? NOTHING_HELD;
+  const target = Number(row.targetCapitalBdt);
+  // What of the capital arrived for cattle, less what has already been drawn against it.
+  const cameInForCattle =
+    target > 0
+      ? Math.round(
+          ((what.capitalInBdt - what.refundedBdt) *
+            Number(row.cattleBudgetBdt)) /
+            target
+        )
+      : 0;
+  return {
+    cattleBudgetBdt: Number(row.cattleBudgetBdt),
+    runningBudgetBdt: target - Number(row.cattleBudgetBdt),
+    cattleBudgetHeldBdt: cameInForCattle - what.cattleOutBdt,
+    // What is left to keep them with: the rest of the balance once the cattle side has its own. An
+    // Advance is the Owner's own money landing on this side, which is why it raises what is left.
+    runningBudgetHeldBdt: balanceOf(what) - cameInForCattle + what.cattleOutBdt,
+  };
+};
+
 export const ventureView = (
   row: VentureRow,
   held: Held | undefined,
@@ -127,25 +164,8 @@ export const ventureView = (
 ) => {
   const what = held ?? NOTHING_HELD;
   const balanceBdt = balanceOf(what);
-  // The budgets are a plan for the whole capital, so what has actually arrived is split in the same
-  // proportion: a Venture half funded holds half of each, rather than a full Cattle Budget and nothing
-  // to feed the animals with.
-  // What of the capital arrived for cattle, less what has already been drawn against it. The plan's
-  // proportion decides what came in for each budget; after that the two are spent from separately, so a
-  // Float to the haat takes nothing from the money that keeps the animals.
-  const target = Number(row.targetCapitalBdt);
-  const cameInForCattle =
-    target > 0
-      ? Math.round(
-          ((what.capitalInBdt - what.refundedBdt) *
-            Number(row.cattleBudgetBdt)) /
-            target
-        )
-      : 0;
-  const cattleBudgetHeldBdt = cameInForCattle - what.cattleOutBdt;
-  // What is left to keep them with: the rest of the balance once the cattle side has its own. An
-  // Advance is the Owner's own money landing on this side, which is why it raises what is left.
-  const runningBudgetHeldBdt = balanceBdt - cameInForCattle + what.cattleOutBdt;
+  const budgets = budgetsOf(row, held);
+  const { cattleBudgetHeldBdt, runningBudgetHeldBdt } = budgets;
   return {
     id: row.id,
     name: row.name,
@@ -156,9 +176,8 @@ export const ventureView = (
     targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },
     unitPriceBdt: Number(row.unitPriceBdt),
     units: row.units,
-    cattleBudgetBdt: Number(row.cattleBudgetBdt),
-    runningBudgetBdt:
-      Number(row.targetCapitalBdt) - Number(row.cattleBudgetBdt),
+    cattleBudgetBdt: budgets.cattleBudgetBdt,
+    runningBudgetBdt: budgets.runningBudgetBdt,
     ...what,
     balanceBdt,
     /** What of the balance is meant for buying animals, and what keeps them. The cattle side is read

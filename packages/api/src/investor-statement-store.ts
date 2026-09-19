@@ -1,6 +1,17 @@
+import type { Database } from "@OpenFarm/db";
+import { roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { farmCosts } from "./cost-store";
+import type { ChargeWord } from "./settlement-store";
+import { whatItWasCharged } from "./settlement-store";
+import {
+  budgetsOf,
+  heldByEach,
+  ownedThenByOf,
+  signedForEach,
+} from "./venture-store";
 
 /** The terms one Agreement froze at signing: what he agreed to, which is not what the Venture says today. */
 export interface HisAgreement {
@@ -185,4 +196,128 @@ export const assertCapitalHeld = (standing: HisStanding) => {
       data: { refusal: "capital_returned" },
     });
   }
+};
+
+/** What a Venture's run has cost so far, by the same seven words the Settlement will freeze. */
+export interface TheirSpend {
+  charges: { word: ChargeWord; bdt: number }[];
+  chargedBdt: number;
+  /** The Units actually signed for, which is what a share of this Venture divides by — not the Units
+   *  the plan offered, which an under-subscribed Venture never sold. */
+  signedUnits: number;
+  cattleBudgetBdt: number;
+  runningBudgetBdt: number;
+  /** What of the money that came in for buying animals has not been drawn against. */
+  cattleBudgetLeftBdt: number;
+  /**
+   * What keeping the animals has cost so far: feed, medicine, the vet and their share of the Herd
+   * Costs, off the charge lines above.
+   *
+   * Spent rather than left, and the difference matters on a paper. What the Venture Account *holds*
+   * against the Running Budget is the Owner's screen's answer and includes what its Animals have
+   * fetched — so once selling starts it reads as more left than the budget ever was, which is nonsense
+   * on a sheet a man keeps. What has gone on keeping them is a figure he can check against the lines
+   * printed right above it.
+   */
+  runningSpentBdt: number;
+}
+
+/** The charge words that are the Running Budget's: what the animals cost while they stand here. */
+const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
+
+/**
+ * Where a Venture's money has gone so far, and what is left of each budget.
+ *
+ * The charge lines are the Settlement's own — `chargeLinesOf`, the same seven words off the same costing
+ * — so that what an Investor is shown while the run goes on adds up the same way as what he is shown
+ * when it ends. A progress sheet that totalled differently from the settlement sheet would be the farm
+ * arguing with itself in front of the man whose money it is.
+ *
+ * Both purses, because the costing covers both: what the Venture's own Float paid at the haat, and what
+ * the Farm bought for the whole herd and is repaid for through the monthly **Reimbursement**. A sum off
+ * the Venture's own Money Events alone would understate feed and medicine badly.
+ */
+export const theirSpend = async (
+  tx: Pick<Tx, "query"> & { execute: Database["execute"] },
+  farmId: string,
+  venture: { id: string; targetCapitalBdt: string; cattleBudgetBdt: string }
+): Promise<TheirSpend> => {
+  const [costs, ownedThenBy, held, signed, paidIn] = await Promise.all([
+    farmCosts(tx, farmId),
+    ownedThenByOf(tx, farmId),
+    heldByEach(tx, farmId, [venture.id]),
+    signedForEach(tx, farmId, [venture.id]),
+    tx.query.ventureMovement.findMany({
+      where: { farmId, ventureId: venture.id },
+      columns: { kind: true, amountBdt: true },
+    }),
+  ]);
+  const { charges } = whatItWasCharged(costs, ownedThenBy, venture.id, paidIn);
+  const budgets = budgetsOf(venture, held.get(venture.id));
+  return {
+    charges,
+    // The sum of the lines as they are shown, not of the figures behind them — as the Settlement does
+    // it, because lines that do not add up to the total beneath them is the farm arguing with itself.
+    chargedBdt: roundTaka(charges.reduce((sum, one) => sum + one.bdt, 0)),
+    signedUnits: signed.get(venture.id)?.units ?? 0,
+    cattleBudgetBdt: budgets.cattleBudgetBdt,
+    runningBudgetBdt: budgets.runningBudgetBdt,
+    cattleBudgetLeftBdt: budgets.cattleBudgetHeldBdt,
+    runningSpentBdt: roundTaka(
+      charges
+        .filter((one) => KEEPING_THEM.has(one.word))
+        .reduce((sum, one) => sum + one.bdt, 0)
+    ),
+  };
+};
+
+/** The Venture a statement is about, as the readings behind it need it. */
+export const theVentureOf = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+) => {
+  const row = await tx.query.venture.findFirst({
+    where: { id: ventureId, farmId },
+  });
+  if (!row) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such Venture",
+      data: { refusal: "no_such_venture" },
+    });
+  }
+  return row;
+};
+
+/**
+ * The photographs of the animals a sheet lists, to travel beside it.
+ *
+ * Asked only of the animals the sheet says have one, so a Venture nobody has photographed sends nothing
+ * rather than a query per beast. Base64 in the payload is what the farm holds and what a screen renders;
+ * a sheet of twenty is twenty of them, which is the reason the sheet lists only the standing animals.
+ */
+export const theirPhotographs = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  animals: readonly { tagNumber: string }[]
+): Promise<{ tagNumber: string; contentType: string; data: string }[]> => {
+  if (animals.length === 0) {
+    return [];
+  }
+  const tags = animals.map((one) => one.tagNumber);
+  const rows = await tx.query.animal.findMany({
+    where: { farmId, tagNumber: { in: tags } },
+    columns: { id: true, tagNumber: true },
+  });
+  const photos = await tx.query.animalPhoto.findMany({
+    where: { farmId, animalId: { in: rows.map((one) => one.id) } },
+    columns: { animalId: true, contentType: true, data: true },
+  });
+  const named = new Map(rows.map((one) => [one.id, one.tagNumber]));
+  return photos.flatMap((one) => {
+    const tagNumber = named.get(one.animalId);
+    return tagNumber
+      ? [{ tagNumber, contentType: one.contentType, data: one.data }]
+      : [];
+  });
 };

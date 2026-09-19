@@ -14,16 +14,16 @@ The spend is the part that was argued over and kept: an Investor is owed a true 
 
 **Blocked by:** 01 (what a Venture Statement is), 03 (what an Investor's animals are doing)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [Ventures spec](../../openfarm-investor-projects/spec.md) — increment 6, user stories 76, 77, 78, 82, 83, 84; [the prototype verdict](../../openfarm-investor-projects/issues/08-prototype-investor-statements.md), document 2; `CONTEXT.md` — **Cattle Budget**, **Running Budget**, **Unit**, **Purse**, **Reimbursement**.
 
-- [ ] The paper prints the herd figures, his Units and share, and the spend by Category against both budgets with what is left of each
-- [ ] It shows his holding and no other Investor's, and no Investor list
-- [ ] Spend is at Category level only — no unit price per kilogramme and no supplier name anywhere on it
-- [ ] No projected weight and no projected price
-- [ ] It carries the letterhead, the footer and the Export's Audit Event, from ticket 01
-- [ ] Tests cover a Venture with two Investors, asserting that neither one's paper carries anything of the other's
+- [~] The paper prints the herd figures, his Units and share, and the spend by Category against both budgets — what is **left** of the Cattle Budget, and what the Running Budget has been **spent** on
+- [x] It shows his holding and no other Investor's, and no Investor list
+- [x] Spend is at Category level only — no unit price per kilogramme and no supplier name anywhere on it
+- [x] No projected weight and no projected price
+- [x] It carries the letterhead, the footer and the Export's Audit Event, from ticket 01
+- [x] Tests cover a Venture with two Investors, asserting that neither one's paper carries anything of the other's
 
 ## Checked before starting
 
@@ -40,3 +40,23 @@ The spend is the part that was argued over and kept: an Investor is owed a true 
 **The photos themselves are ready.** `animalPhoto` (`db/schema/herd.ts:218`) holds base64 in Postgres, one row per Animal, and `animals.photo({ tagNumber })` (`routers/animals.ts:1040`) serves `{ contentType, data }`. `apps/web/src/components/animal-photo.tsx` shows the render: `src={\`data:${contentType};base64,${data}\`}`, with the query enabled only when `photoUpdatedAt` is set. A sheet of twenty animals means twenty base64 images in one payload — worth a thought about size before it is built.
 
 **Two budgets, spent from separately** (`CONTEXT.md` — **Cattle Budget**): a **Buying Float** comes off the Cattle Budget alone, and what buying does not spend rolls into the Running Budget when buying closes. The "what is left" figures have to respect that roll-over or they will not agree with the Venture's own screen.
+
+## What was decided while building
+
+**The photographs travel beside the sheet, not inside it — the Owner's call, asked before building.** Of the three ways out this ticket named, she took the one that changes nothing: `investorStatements.progress` returns `{ text, photos, agreementId }`, the sheet stays a plain multi-line string like every other paper the farm writes, and `<Paper>` is untouched. Nothing is dropped — an Investor who cannot visit the shed still gets the faces — and how they are laid out is the screen ticket's to decide, which is where that decision belongs. The alternatives both cost something now for a screen that does not exist: extending the shared component all fifteen Release 1 papers render through, or making this one sheet the only paper that is not a string and so the only one that cannot be produced again years later and read the same.
+
+**The spend lines are the Settlement's own seven words, not a fourth grouping.** `whatItWasCharged` came out of `settlementOf` and both now call it, so what an Investor is shown while the run goes on adds up exactly the way what he is shown at the end does — the same words, off the same costing, never a second sum. The prototype's "cattle, feed, medicine and vet, other" is those seven read aloud; inventing a mapping between them would have been one more place for the two sheets to drift apart, and "other" would have had to say which of the seven it gathered.
+
+**`budgetsOf` came out of `ventureView` for the same reason.** The paper needs four figures — the two budgets and what is left of each — and `ventureView` would only give them alongside bank standing, a wind-up day and a count of standing animals, every one of which it insists on being told and none of which a paper wants. Copying the proportion arithmetic instead is how his sheet and her screen would have come to disagree about what is left to feed the animals with.
+
+**"What is left" is only honest of one of the two budgets, and a review caught the other reading as nonsense.** What the Venture Account holds against the Running Budget is the Owner's screen's answer, and it includes what the Animals have fetched — so once selling starts it says there is more of the running budget left than the budget ever was. True of the account; absurd on a sheet a man keeps. The Cattle Budget's "left" is sound, because it is what came in for buying less what has been drawn against it, and a bull sold across to another Venture properly returns money to that side. So the sheet prints what is left of the Cattle Budget and what keeping the animals has **cost** — a figure he can add up from the seven lines printed directly above it. The criterion is marked partial rather than quietly reworded.
+
+**The share divides by the Units signed for, not the Units the plan offered.** The Settlement divides profit by the signed Units, so a paper dividing by the plan's would promise an under-subscribed Venture's Investor a smaller share than his payout actually pays. Both are the same number in the test's story, which is fully subscribed, so the fix ships without a test that could catch it — worth knowing if anybody touches it.
+
+**The table lists the standing animals.** A man wants to know what is in the shed his money paid for; the ones that have gone are the counts above it, which say how many were sold and how many were lost. Their weights in the table would read as animals he still has.
+
+## Left as it is, on purpose
+
+**The head count and the "cattle bought" line answer different questions, and the sheet does not say so.** A bull the Venture bought and later sold across to another is not in the counts — she is not its animal any more — but the money it paid for her is in what it spent, because it did pay it. Both figures are right; sitting on one page they invite the question "six bulls' worth of money, five head?". Putting her on the sheet as gone-across, or showing what the other Venture paid for her, is a decision about what an Investor should be told rather than a defect, and it is the Owner's to make. Raised rather than guessed at.
+
+**Still no screen.** As with 01 and 02, nothing in increment 6 has a UI criterion, so the sheet and its photographs are reachable through the API and recorded on the trail but nobody can print one. The screens want a ticket of their own, and this one now hands them the photographs to lay out.

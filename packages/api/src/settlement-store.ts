@@ -19,6 +19,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { SnapshotValue, Trail, Tx } from "./audit";
+import type { FarmCosts } from "./cost-store";
 import { chargedTo, consumedBy, farmCosts } from "./cost-store";
 import { adjustmentsOf } from "./settlement-adjustment-store";
 import type { BankStanding } from "./venture-store";
@@ -279,6 +280,52 @@ export interface Payout {
  * Blocked is not refused: the figures come back with the reasons they cannot be acted on, because an
  * Owner told only "no" has nothing to go and put right.
  */
+/**
+ * What a Venture's run has been charged, as its own lines.
+ *
+ * Named rather than numbered, and named in one place: a screen that has to know what "trips" is called
+ * should fail to compile when a line is added, not print an empty label. Shared with the progress
+ * statement, so what an Investor is shown while the run goes on adds up the same way as what he is shown
+ * when it ends — the same seven words, off the same costing, never a second sum.
+ */
+export const whatItWasCharged = (
+  costs: FarmCosts,
+  ownedThenBy: (animalId: string, at: Date) => string | null,
+  ventureId: string,
+  /** Its own money movements, for what it paid another purse to take an Animal on. */
+  paidIn: readonly { kind: string; amountBdt: string }[]
+) => {
+  const charged = chargedTo(costs, ownedThenBy, ventureId);
+  // What it paid to take its Animals on: their price at the haat where its own Float bought them, and
+  // what it paid another purse for one bought in.
+  const purchaseBdt = roundTaka(
+    sumOf(
+      costs.animals.map((one) =>
+        one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId
+          ? Number(one.intake.purchasePriceBdt)
+          : 0
+      )
+    ) +
+      sumOf(
+        paidIn
+          .filter((one) => one.kind === "internal_buy")
+          .map((one) => Number(one.amountBdt))
+      )
+  );
+  const charges: { word: ChargeWord; bdt: number }[] = [
+    { word: "bought", bdt: purchaseBdt },
+    { word: "hasil", bdt: charged.hasilBdt },
+    { word: "trips", bdt: charged.tripBdt },
+    { word: "feed", bdt: charged.feedBdt },
+    { word: "medicine", bdt: charged.medicineBdt },
+    { word: "vet", bdt: charged.vetBdt },
+    { word: "herd", bdt: charged.herdBdt },
+  ];
+  // The narrowed shares come back with the lines: a Settlement reads them again for the unpriced feed
+  // and the uncosted doses that make it a guess, and summing them twice would be summing them twice.
+  return { charged, charges };
+};
+
 export const settlementOf = async (
   db: Db,
   farmId: string,
@@ -323,34 +370,12 @@ export const settlementOf = async (
 
   // ---- what the run made ----
   const proceedsBdt = roundTaka(what?.proceedsBdt ?? 0);
-  const charged = chargedTo(costs, ownedThenBy, venture.id);
-  // What it paid to take its Animals on: their price at the haat where its own Float bought them, and
-  // what it paid another purse for one bought in.
-  const purchaseBdt = roundTaka(
-    sumOf(
-      costs.animals.map((one) =>
-        one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === venture.id
-          ? Number(one.intake.purchasePriceBdt)
-          : 0
-      )
-    ) +
-      sumOf(
-        paidIn
-          .filter((one) => one.kind === "internal_buy")
-          .map((one) => Number(one.amountBdt))
-      )
+  const { charged, charges } = whatItWasCharged(
+    costs,
+    ownedThenBy,
+    venture.id,
+    paidIn
   );
-  // Named rather than numbered, and named in one place: a screen that has to know what "trips" is
-  // called should fail to compile when a line is added, not print an empty label.
-  const charges: { word: ChargeWord; bdt: number }[] = [
-    { word: "bought", bdt: purchaseBdt },
-    { word: "hasil", bdt: charged.hasilBdt },
-    { word: "trips", bdt: charged.tripBdt },
-    { word: "feed", bdt: charged.feedBdt },
-    { word: "medicine", bdt: charged.medicineBdt },
-    { word: "vet", bdt: charged.vetBdt },
-    { word: "herd", bdt: charged.herdBdt },
-  ];
   // The sum of the lines as they are shown, not of the figures behind them: lines that do not add up to
   // the total beneath them is the farm arguing with itself in front of an Investor.
   const chargedBdt = roundTaka(sumOf(charges.map((one) => one.bdt)));
