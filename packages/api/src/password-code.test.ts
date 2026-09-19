@@ -2,6 +2,7 @@ import { createAuth } from "@OpenFarm/auth";
 import {
   FakeClock,
   createTestPrincipal,
+  inviteWaitingFor,
   scratchDb,
   theFarm,
 } from "@OpenFarm/test-harness";
@@ -24,6 +25,8 @@ let userId = "";
 beforeAll(async () => {
   // The Farm itself, which the harness seeds with the first person on it.
   await createTestPrincipal("owner", clock.now());
+  // Invited first, as the door requires: an account is opened only for somebody the farm asked for.
+  await inviteWaitingFor(EMAIL, clock.now());
   const signedUp = await auth.api.signUpEmail({
     body: { name: "ভুলে যাওয়া", email: EMAIL, password: FIRST },
   });
@@ -80,13 +83,9 @@ describe("a forgotten password", () => {
   });
 
   it("is only ever issued for somebody who works on this farm", async () => {
-    const stranger = await auth.api.signUpEmail({
-      body: {
-        name: "অচেনা",
-        email: "stranger@test.openfarm",
-        password: "not-of-this-farm",
-      },
-    });
+    // Somebody with an account and no Role on this farm. Seeded rather than signed up, because the door
+    // no longer opens an account for anybody the farm has not asked for.
+    const stranger = await createTestPrincipal("newcomer", clock.now());
     const owner = await createTestClient(appRouter, { as: "owner", clock });
 
     await expect(

@@ -4,7 +4,11 @@ import {
   user as userTable,
 } from "@OpenFarm/db/schema/auth";
 import { shedPhone, staffPin } from "@OpenFarm/db/schema/device";
-import { farm as farmTable, roleAssignment } from "@OpenFarm/db/schema/farm";
+import {
+  farm as farmTable,
+  invite as inviteTable,
+  roleAssignment,
+} from "@OpenFarm/db/schema/farm";
 import { expect } from "vitest";
 
 import { DAY } from "./clock";
@@ -75,6 +79,35 @@ export const thePerson = (
     name: NAME_OF[role],
     email: `${role}.${file}@test.openfarm`,
   };
+};
+
+/**
+ * An invite this farm is waiting on, so that an account may be opened against that address.
+ *
+ * The door only lets an account be made for somebody the farm asked for, which is how a real newcomer
+ * arrives: invited first, then they open the account, then they take up the Roles with the code. A test
+ * that signs somebody up without this is asking the farm to do something it refuses.
+ *
+ * The Owner must already exist — an invite says who wrote it.
+ */
+export const inviteWaitingFor = async (
+  email: string,
+  now: Date
+): Promise<void> => {
+  await scratchDb()
+    .insert(inviteTable)
+    .values({
+      id: `invite-${email}`,
+      farmId: theFarm().id,
+      email: email.toLowerCase(),
+      name: NAME_OF.newcomer,
+      roles: ["staff"],
+      status: "pending",
+      invitedBy: thePerson("owner").id,
+      invitedByRole: "owner",
+      createdAt: now,
+    })
+    .onConflictDoNothing();
 };
 
 /** Which Role each Principal holds on the Farm. Null for the newcomer, who holds none. */

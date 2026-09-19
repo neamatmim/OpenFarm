@@ -11,6 +11,52 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 /**
+ * The other half of the door: an account is opened by somebody the farm is waiting for, and by nobody else.
+ *
+ * The farm takes other people's money. A stranger who opens an account here gets nothing — no Role, no Farm,
+ * nothing to look at — but the door standing open is the thing itself, not what comes through it: a farm that
+ * accepts investment and lets the public sign up is describable as a platform, and that is a question nobody
+ * wants asked. So the account is made only where the farm has already said whose it will be.
+ *
+ * Two ways in, and no third. Before any Farm exists, whoever is setting the farm up opens the first account —
+ * there is nobody yet to invite them. Afterwards, an account is opened only against an invite the Owner or a
+ * Manager wrote for that address, and only while it is still open; the code they were handed separately is
+ * what then takes it up, so this is a narrower door than the invite, not a way around it.
+ */
+const turnAwayWhoWasNotAsked = (db: Database) =>
+  createAuthMiddleware(async (ctx) => {
+    if (ctx.path !== "/sign-up/email") {
+      return;
+    }
+    const email = ctx.body?.email;
+    if (typeof email !== "string") {
+      return;
+    }
+    const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
+    if (!theFarm) {
+      // Nobody has set the farm up yet, so there is nobody who could have invited them.
+      return;
+    }
+    // By the address alone, not by which Farm the invite is on: one database holds one farm, and the address
+    // is what the invite was written against.
+    const asked = await db.query.invite.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        status: { in: ["pending", "approved"] },
+        acceptedAt: { isNull: true },
+      },
+      columns: { id: true },
+    });
+    if (asked) {
+      return;
+    }
+    // Said in Bangla because nobody here has an account to have chosen a language on.
+    throw new APIError("FORBIDDEN", {
+      message: translate(DEFAULT_LANGUAGE, "auth.notInvited"),
+    });
+  });
+
+/**
  * The door: somebody whose Membership has ended does not sign in.
  *
  * Every request they made would be refused anyway — the farm checks it on the way into each one — but being let
@@ -44,7 +90,21 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
     });
   });
 
-/** The farm's own auth. Given a database for a test to run it against a scratch one; the farm's otherwise. */
+/**
+ * The door, both questions at once: who may open an account, and who may still come in.
+ *
+ * One hook because Better Auth takes one, and each question answers for its own path and leaves every other
+ * request alone.
+ */
+const theDoor = (db: Database) => {
+  const signingUp = turnAwayWhoWasNotAsked(db);
+  const signingIn = turnAwayWhoNoLongerWorksHere(db);
+  return createAuthMiddleware(async (ctx) => {
+    await signingUp(ctx);
+    await signingIn(ctx);
+  });
+};
+
 /**
  * Where a reset token is caught on its way out.
  *
@@ -54,6 +114,7 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
  */
 const catching = new AsyncLocalStorage<{ token?: string }>();
 
+/** The farm's own auth. Given a database for a test to run it against a scratch one; the farm's otherwise. */
 export const createAuth = (against?: Database) => {
   const db = against ?? createDb(env.DATABASE_URL);
 
@@ -89,7 +150,7 @@ export const createAuth = (against?: Database) => {
     },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    hooks: { before: turnAwayWhoNoLongerWorksHere(db) },
+    hooks: { before: theDoor(db) },
     plugins: [tanstackStartCookies()],
   });
 };

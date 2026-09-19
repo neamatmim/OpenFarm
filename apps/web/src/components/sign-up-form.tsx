@@ -78,7 +78,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("auth.createAccount")}
         </h1>
-        <p className="text-muted-foreground text-sm">{t("auth.formHint")}</p>
+        <p className="text-muted-foreground text-sm">{t("auth.signUpHint")}</p>
       </div>
 
       <form

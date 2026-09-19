@@ -3,6 +3,7 @@ export { scratchDb } from "./database";
 export {
   createTestDevice,
   createTestPrincipal,
+  inviteWaitingFor,
   theFarm,
   thePerson,
   theShedPhone,

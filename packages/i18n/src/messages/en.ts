@@ -29,12 +29,16 @@ export const en = {
   "auth.myAccount": "My account",
   "auth.welcomeBack": "Welcome back",
   "auth.createAccount": "Create account",
+  /** Said on the sign-up form only. The farm opens accounts against an invite, so somebody nobody asked for
+   *  is told here rather than after filling the whole form in. */
+  "auth.signUpHint":
+    "For somebody the farm has invited. Open the account with the address you were invited on, then enter the code you were given.",
   "auth.name": "Name",
   "auth.email": "Email",
   "auth.password": "Password",
   "auth.submitting": "Submitting…",
   "auth.signUp": "Sign up",
-  "auth.needAccount": "Need an account? Sign up",
+  "auth.needAccount": "Invited? Open your account",
   "auth.haveAccount": "Already have an account? Sign in",
   "auth.forgotPassword": "Forgotten your password?",
   "auth.forgotTitle": "Set a new password",
@@ -47,6 +51,8 @@ export const en = {
   "auth.signInSuccess": "Signed in",
   "auth.noLongerHere":
     "You no longer work on this farm. Ask the Owner if this is wrong.",
+  "auth.notInvited":
+    "The farm has not invited this address. Ask the owner to invite you, then open the account with the code you are given.",
   "auth.signUpSuccess": "Account created",
   "auth.invalidEmail": "Enter a valid email address",
   "auth.showPassword": "Show password",
