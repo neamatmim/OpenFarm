@@ -1,0 +1,375 @@
+import { and } from "@OpenFarm/db/operators";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
+import { sopDefinition } from "@OpenFarm/db/schema/sop";
+import type { SopContent } from "@OpenFarm/domain";
+import { FakeClock, scratchDb } from "@OpenFarm/test-harness";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { createTestClient } from "../test/client";
+import { appRouter } from "./index";
+
+/**
+ * What a Venture's cattle are doing — the reading অগ্রগতি is made from.
+ *
+ * Six bulls and two Ventures, arranged so that every fact this has to tell apart is in the story: one
+ * weighed and photographed, one nobody has weighed since he came off the lorry, one who died, one sold
+ * across to the second Venture partway through, one weighed later and gaining more slowly, and one sold
+ * to a buyer.
+ *
+ * The two standing weighed bulls gain at different rates over different spans on purpose. Anything less
+ * and the herd's own rate would agree with the average of theirs, and the one design decision this
+ * reading turns on would have no test that could fail.
+ *
+ * Every expected figure is worked by hand from the readings. A test that recomputes the answer the way
+ * the code does can never disagree with it.
+ */
+const suffix = `herd-${Date.now()}`;
+
+const at = (instant: string) =>
+  createTestClient(appRouter, { as: "owner", clock: new FakeClock(instant) });
+
+const asManager = (instant: string) =>
+  createTestClient(appRouter, { as: "manager", clock: new FakeClock(instant) });
+
+const plan = {
+  targetCapitalBdt: 500_000,
+  floorBdt: 0,
+  decideBy: "2052-01-03",
+  targetWindowStart: "2052-04-01",
+  targetWindowEnd: "2052-04-10",
+  unitPriceBdt: 50_000,
+  units: 10,
+  cattleBudgetBdt: 400_000,
+};
+
+/** The round that puts a bull on the scale, and nothing else. */
+const weighInSop = (): SopContent => ({
+  name: { bn: `ওজন ${suffix}` },
+  purpose: { bn: "প্রতিটি পশুর ওজন নেওয়া" },
+  triggers: [{ kind: "schedule", times: ["07:00"] }],
+  appliesTo: { side: "fattening", states: ["quarantine", "fattening"] },
+  assignedRole: "manager",
+  checkerRole: null,
+  graceMinutes: 240,
+  steps: [
+    {
+      id: "weigh",
+      text: { bn: "ক্রাশে তুলে ওজন নিন" },
+      repeatPerAnimal: true,
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "কেজি" },
+          min: 20,
+          max: 1200,
+        },
+      ],
+      skipReasons: [{ bn: "ক্রাশে ওঠেনি" }],
+      effect: { kind: "weigh_in" },
+    },
+  ],
+});
+
+let firstVenture = "";
+let secondVenture = "";
+let penId = "";
+let sopId = "";
+/** Six bulls: weighed, never weighed, died, sold across to the other Venture, weighed later and more
+ *  slowly, and one sold to a buyer. */
+const tags: string[] = [];
+
+type Client = Awaited<ReturnType<typeof at>>;
+
+const aVenture = async (owner: Client, which: number) => {
+  const venture = await owner.client.ventures.open({
+    name: `ভেঞ্চার ${which} ${suffix}`,
+    ...plan,
+  });
+  const person = await owner.client.investors.record({
+    name: `বিনিয়োগকারী ${which} ${suffix}`,
+    phone: `0198${String(which).padStart(7, "0")}`,
+  });
+  const agreement = await owner.client.ventures.sign({
+    ventureId: venture.id,
+    investorId: person.id,
+    units: 10,
+    investorsPercent: 60,
+    arbitrator: `মাওলানা ${suffix}`,
+    stampValueBdt: 300,
+    stampedOn: "2052-01-02",
+    stampSerial: `AA ${which} ${suffix}`,
+  });
+  await owner.client.ventures.keepAgreementPaper({
+    agreementId: agreement.id,
+    contentType: "image/jpeg",
+    data: "aGVsbG8=",
+  });
+  await owner.client.ventures.takeCapital({
+    agreementId: agreement.id,
+    amountBdt: 500_000,
+    movedOn: "2052-01-03",
+    paymentMethod: "bank",
+    reference: `TRF-${which}-${suffix}`,
+  });
+  await owner.client.ventures.startBuying({ id: venture.id });
+  return venture.id;
+};
+
+/** One round of the scale, weighing whichever bulls the caller names. */
+const weigh = async (day: string, readings: [number, number][]) => {
+  const manager = await asManager(`${day}T07:30:00.000Z`);
+  await manager.client.instances.ensureDue();
+  const today = await manager.client.instances.today({ penId });
+  const instance = today.find((one) => one.definitionId === sopId);
+  const id = instance?.id ?? "";
+  await manager.client.instances.claim({ id });
+  for (const [index, kg] of readings) {
+    // oxlint-disable-next-line no-await-in-loop -- one animal at a time, as a round is walked
+    await manager.client.instances.completeStep({
+      instanceId: id,
+      stepId: "weigh",
+      animalTag: tags[index] ?? "",
+      evidence: [kg],
+    });
+  }
+};
+
+beforeAll(async () => {
+  const owner = await at("2052-01-01T04:00:00.000Z");
+  const shed = await owner.client.herd.createShed({ name: suffix });
+  const pen = await owner.client.herd.createPen({
+    shedId: shed.id,
+    name: `ফ্যাটেনিং ${suffix}`,
+  });
+  penId = pen.id;
+  firstVenture = await aVenture(owner, 1);
+  secondVenture = await aVenture(owner, 2);
+
+  // Six bulls, all onto the first Venture's books, all at 200 kg on 4 January.
+  const buying = await at("2052-01-04T04:00:00.000Z");
+  const trip = await buying.client.trips.record({
+    wentTo: `হাট ${suffix}`,
+    wentOn: "2052-01-04",
+    brokerBdt: 0,
+    transportBdt: 0,
+    keepBdt: 0,
+  });
+  await buying.client.ventures.drawFloat({
+    ventureId: firstVenture,
+    buyingTripId: trip.id,
+    amountBdt: 400_000,
+    movedOn: "2052-01-04",
+    paymentMethod: "bank",
+    reference: `FLT-${suffix}`,
+  });
+  const manager = await asManager("2052-01-04T05:00:00.000Z");
+  for (let which = 0; which < 6; which += 1) {
+    // oxlint-disable-next-line no-await-in-loop -- one beast off the lorry at a time
+    const her = await manager.client.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী ${suffix}` },
+      purchasePriceBdt: 60_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      ventureId: firstVenture,
+      arrivedAt: new Date("2052-01-04T05:00:00.000Z"),
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+    });
+    tags.push(her.tagNumber);
+  }
+  await buying.client.ventures.reconcileFloat({
+    buyingTripId: trip.id,
+    // Four lakh out, three lakh sixty spent on six bulls, forty thousand home again.
+    cashBackBdt: 40_000,
+    movedOn: "2052-01-04",
+    reference: `DEP-${suffix}`,
+  });
+
+  const sop = await owner.client.sops.create({ content: weighInSop() });
+  sopId = sop.definitionId;
+
+  // A photograph of the first bull, so the sheet knows there is a face to leave room for. Nobody has
+  // photographed the others.
+  const photographing = await asManager("2052-01-05T05:00:00.000Z");
+  await photographing.client.animals.setPhoto({
+    tagNumber: tags[0] ?? "",
+    contentType: "image/jpeg",
+    data: "aGVsbG8=",
+  });
+
+  // 1 February, twenty-eight days on: four of them go on the scale at 228 kg — a kilo a day each. The
+  // second bull never goes on it at all, and the fifth waits a fortnight.
+  await weigh("2052-02-01", [
+    [0, 228],
+    [2, 228],
+    [3, 228],
+    [5, 228],
+  ]);
+
+  // 15 February, forty-two days on: the fifth reaches 221, which is half a kilo a day. Two standing
+  // bulls now gain at different rates over different spans, which is what tells the herd's own rate
+  // from the average of theirs.
+  await weigh("2052-02-15", [[4, 221]]);
+
+  // The third dies on the 5th of February.
+  const losing = await asManager("2052-02-05T05:00:00.000Z");
+  await losing.client.animals.recordMortality({
+    tagNumber: tags[2] ?? "",
+    kind: "died",
+    cause: `পেট ফাঁপা ${suffix}`,
+    disposal: "buried",
+  });
+
+  // And on the 10th the fourth is sold across to the second Venture, at her latest weight.
+  const selling = await at("2052-02-10T04:00:00.000Z");
+  await selling.client.ventures.sellInternally({
+    tagNumber: tags[3] ?? "",
+    toVentureId: secondVenture,
+    rateBdtPerKg: 500,
+    note: `হাটের দর ${suffix}`,
+    soldOn: "2052-02-10",
+    paymentMethod: "bank",
+    reference: `INT-${suffix}`,
+    priceBdt: 228 * 500,
+  });
+
+  // And the sixth goes to a buyer on the 18th — after the Internal Sale, because the first Sale moves
+  // the Venture to Selling and a Venture that is Selling will not trade an animal across.
+  const toABuyer = await asManager("2052-02-18T05:00:00.000Z");
+  await toABuyer.client.sale.record({
+    tagNumber: tags[5] ?? "",
+    buyer: { name: `ক্রেতা ${suffix}` },
+    priceBdt: 250_000,
+    weightKg: 228,
+    destination: `ঢাকা ${suffix}`,
+    vehicle: `ঢাকা মেট্রো ${suffix}`,
+    driver: `চালক ${suffix}`,
+    paymentMethod: "bank",
+  });
+});
+
+/**
+ * This file's SOP applies to the whole Fattening side, so the scheduler raises a round of it in every
+ * Pen on the farm that holds one — including the Pens of every other test file, since the database is
+ * shared. Retiring it stops new ones; what it already raised has to be shut, or every later
+ * `ensureDue` anywhere drags this round along with it.
+ */
+afterAll(async () => {
+  const { eq, inArray } = await import("@OpenFarm/db/operators");
+  const db = scratchDb();
+  await db
+    .update(sopDefinition)
+    .set({ retiredAt: new Date() })
+    .where(eq(sopDefinition.id, sopId));
+  await db
+    .update(sopInstance)
+    .set({ state: "missed" })
+    .where(
+      and(
+        eq(sopInstance.definitionId, sopId),
+        inArray(sopInstance.state, ["due", "in_progress"])
+      )
+    );
+});
+
+describe("what a Venture's animals are doing", () => {
+  it("counts who stands, who died and who was sold away", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    // Six came in. One died, one went to a buyer, and one went across to the other Venture and is no
+    // longer on this paper at all, because whose she is, is asked of the day it is printed.
+    expect(theirs.standingCount).toBe(3);
+    expect(theirs.diedCount).toBe(1);
+    expect(theirs.soldCount).toBe(1);
+    expect(theirs.animals).toHaveLength(5);
+  });
+
+  it("moves an internally sold animal onto the Venture that now owns her", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: secondVenture,
+    });
+    expect(theirs.standingCount).toBe(1);
+    expect(theirs.animals.map((one) => one.tagNumber)).toEqual([tags[3]]);
+  });
+
+  it("tells an animal nobody has weighed from one that has not grown", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    const weighed = theirs.animals.find((one) => one.tagNumber === tags[0]);
+    const never = theirs.animals.find((one) => one.tagNumber === tags[1]);
+    // 200 kg to 228 kg over twenty-eight days is a kilo a day.
+    expect(weighed).toMatchObject({
+      intakeKg: 200,
+      latestKg: 228,
+      dailyGainKg: 1,
+    });
+    // She came off the lorry at 200 and nobody has put her on the scale since. Her latest weight is
+    // what she arrived at, and her gain is *not known* rather than nothing.
+    expect(never).toMatchObject({ intakeKg: 200, latestKg: 200 });
+    expect(never?.dailyGainKg).toBeNull();
+    expect(never?.overDays).toBeNull();
+  });
+
+  it("averages over the animals standing, and works the herd's gain from the whole herd", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    // Three stand, but only two have been on the scale, and the averages say so and are over those
+    // two: 200 each at Intake, 228 and 221 now. The bull nobody weighed is in neither, so "now" is
+    // not quietly flattened by an arrival weight that is not a reading.
+    expect(theirs.weighedCount).toBe(2);
+    expect(theirs.averageIntakeKg).toBe(200);
+    expect(theirs.averageLatestKg).toBe(224.5);
+    // Forty-nine kilogrammes on over seventy days on feed — 28 kg in 28 days and 21 kg in 42. The
+    // herd's own rate, which is 0.7; the mean of the two animals' rates would be 0.75, and this test
+    // fails if anybody makes it that.
+    expect(theirs.gainKgPerDay).toBe(0.7);
+  });
+
+  it("counts the days to the window and never projects past it", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    // 20 February to 1 April.
+    expect(theirs.daysToWindow).toBe(41);
+    const printed = JSON.stringify(theirs);
+    expect(printed).not.toContain("projected");
+    expect(printed).not.toContain("reachesTarget");
+    expect(printed).not.toContain("onTrack");
+  });
+
+  it("says whether the farm holds a photograph of her, without carrying one", async () => {
+    const owner = await at("2052-02-20T04:00:00.000Z");
+    const theirs = await owner.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    // One of them has been photographed and the rest have not, and the sheet has to read properly
+    // either way — nothing obliges a photograph at Intake.
+    const photographed = theirs.animals.find(
+      (one) => one.tagNumber === tags[0]
+    );
+    const not = theirs.animals.find((one) => one.tagNumber === tags[1]);
+    expect(photographed?.hasPhoto).toBe(true);
+    expect(not?.hasPhoto).toBe(false);
+  });
+
+  it("is the Manager's to read as well, and says nothing of Investors", async () => {
+    const manager = await asManager("2052-02-20T04:00:00.000Z");
+    const theirs = await manager.client.ventures.herd({
+      ventureId: firstVenture,
+    });
+    expect(theirs.standingCount).toBe(3);
+    expect(JSON.stringify(theirs)).not.toContain("বিনিয়োগকারী");
+  });
+});
