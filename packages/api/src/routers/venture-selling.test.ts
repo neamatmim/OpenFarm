@@ -334,3 +334,39 @@ describe("selling a Venture's animals", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("the lorry that took them to the haat", () => {
+  it("is charged to the animals it carried, by who owned them then", async () => {
+    // The Farm pays the lorry and the men who went, as it pays the feed merchant — and the Venture
+    // pays it back at the end of the month, because getting its animals to the haat is its cost and
+    // not the Farm's. Nothing else moves that money: the Buying Float was closed months ago.
+    const manager = await as("manager", "2047-05-02T05:00:00.000Z");
+    await manager.client.sellingTrips.record({
+      wentTo: `হাট ${suffix}`,
+      transportBdt: 8000,
+      keepBdt: 1000,
+      animals: [...tags],
+      wentOn: new Date("2047-05-02T05:00:00.000Z"),
+      paymentMethod: "cash",
+    });
+
+    const owner = await as("owner", "2047-06-02T04:00:00.000Z");
+    const month = await owner.client.ventures.consumption({
+      ventureId,
+      month: "2047-05",
+    });
+    // Nine thousand for the lorry, split evenly over the two it carried — and only one of them was
+    // the Venture's by then, a Correction above having said the other was the Farm's all along. So the
+    // Venture owes her half and not a taka more: whose an animal was is asked at the moment of the
+    // cost, never now.
+    expect(month.tripsBdt).toBe(4500);
+    // Said as its own line, named for where it went, so she can read it aloud rather than find it
+    // inside a total.
+    expect(month.madeOf.trips).toEqual([
+      expect.objectContaining({ bdt: 4500, nameBn: `হাট ${suffix}` }),
+    ]);
+    expect(month.totalBdt).toBe(
+      month.feedBdt + month.medicineBdt + month.vetBdt + month.herdBdt + 4500
+    );
+  });
+});

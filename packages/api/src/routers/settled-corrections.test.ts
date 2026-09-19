@@ -213,8 +213,23 @@ beforeAll(async () => {
   });
   saleId = sold.id;
 
-  // Both months read against the bank, and the Settlement approved and paid out.
+  // The lorry that took her is paid back to the Farm, as the feed would be: a Settlement will not
+  // close over an outing the Farm paid for and was never repaid.
   const reading = await as("owner", "2048-03-01T04:00:00.000Z");
+  const owed = await reading.client.ventures.consumption({
+    ventureId,
+    month: "2048-02",
+  });
+  await reading.client.ventures.reimburse({
+    ventureId,
+    month: "2048-02",
+    amountBdt: owed.totalBdt,
+    movedOn: "2048-03-01",
+    paymentMethod: "bank",
+    reference: `RMB-${suffix}`,
+  });
+
+  // Both months read against the bank, and the Settlement approved and paid out.
   await reading.client.ventures.checkTheBank({
     ventureId,
     month: "2048-01",
@@ -223,6 +238,8 @@ beforeAll(async () => {
   await reading.client.ventures.checkTheBank({
     ventureId,
     month: "2048-02",
+    // Unchanged: the money went back to the Farm on the first of March, so February ended on what
+    // it ended on.
     readBdt: 600_000,
   });
   const settling = await as("owner", "2048-03-02T04:00:00.000Z");

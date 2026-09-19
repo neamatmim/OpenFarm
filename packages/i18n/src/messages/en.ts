@@ -415,13 +415,17 @@ export const en = {
   "ventures.owedToYou": "Owed to you",
   "ventures.runningLow": "The running budget is low",
   "ventures.reimburse": "Reimburse the month",
+  /** Not "consumed" any more: a lorry to the haat is on this now, and a lorry is not eaten. */
   "ventures.reimburseHint":
-    "What {venture}'s animals consumed of what the farm bought, moved from the Venture Account to the farm's.",
+    "What {venture}'s animals cost of what the farm paid for, moved from the Venture Account to the farm's.",
   "ventures.reimbursed": "The month is reimbursed",
   "ventures.whichMonth": "Which month",
   "ventures.feed": "Feed",
   "ventures.medicine": "Medicine",
   "ventures.vet": "Vet",
+  /** The lorry that took a Venture's animals to the haat. Its own line on the month, because the Farm
+   *  pays it and the Venture pays the Farm back — a Buying Trip came out of the Buying Float instead. */
+  "ventures.sellingTrips": "Selling trips",
   "ventures.herdCosts": "Share of herd costs",
   "ventures.thatMonth": "That month",
   "ventures.sellInternally": "Move an animal between purses",

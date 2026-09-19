@@ -210,7 +210,14 @@ export const farmCosts = async (db: Db, farmId: string) => {
     }),
     db.query.sellingTrip.findMany({
       where: { farmId },
-      columns: { id: true, transportBdt: true, keepBdt: true, wentOn: true },
+      columns: {
+        id: true,
+        transportBdt: true,
+        keepBdt: true,
+        wentOn: true,
+        // Where it went, so a month's charges can name the outing rather than only total it.
+        wentTo: true,
+      },
     }),
     db.query.sellingTripAnimal.findMany({}),
     // Money the farm entered by hand under a Category the Owner marked as charged to the animals.
@@ -422,6 +429,17 @@ export const farmCosts = async (db: Db, farmId: string) => {
       trips: outings.shares,
       herd,
     },
+    /**
+     * Which outings were Selling Trips, and what each was called.
+     *
+     * The two kinds of outing are charged the same way and shown on one line, but they are paid for
+     * quite differently: a Buying Trip comes out of the Buying Float, drawn before the lorry goes and
+     * counted against it the same evening, while a Selling Trip happens long after that Float is shut.
+     * So the monthly Reimbursement has to be able to tell them apart, and this is what tells it.
+     */
+    sellingTrips: new Map(
+      sellingTrips.map((one) => [one.id, one.wentTo] as const)
+    ),
     ofAnimal: {
       feed: byAnimal(fed.shares),
       doses: byAnimal(dosed),
@@ -637,17 +655,19 @@ const groupedLines = <Share>(
     .filter((line) => line.bdt > 0);
 };
 
-/** One line of what a month's consumption was made of: what it was, and what it came to. */
-/** One line of what a month's consumption was made of: what it was, and what it came to. */
 /** Whose an Animal was on a given day: her owner then, not her owner now. */
 type OwnedThenBy = (animalId: string, at: Date) => string | null;
 
 /**
  * The shares of one Venture's Animals, as they were its Animals at the time.
  *
- * `withItsOwn` keeps the Hasil and the Trips it paid itself out of its own Float: a Settlement asks what
- * the run cost whichever purse the taka came from, where a Reimbursement asks only what the Farm bought
- * and is owed back.
+ * `withItsOwn` keeps what the Venture paid for itself out of its own Buying Float — the Hasil the haat
+ * took, and the Buying Trip that brought them home. A Settlement asks what the run cost whichever purse
+ * the taka came from; a Reimbursement asks only what the Farm paid for and is owed back.
+ *
+ * A **Selling Trip** is on both sides of that line and is kept either way. It happens long after the
+ * Float is shut, so the Farm pays the lorry and the men who went, and it is owed that back like the
+ * feed.
  */
 const hersThen = (
   costs: FarmCosts,
@@ -657,13 +677,19 @@ const hersThen = (
 ): Shares => {
   const theirsThen = (share: { animalId: string; at: Date }) =>
     ownedThenBy(share.animalId, share.at) === ventureId;
+  // A Settlement asks for every outing whoever paid; a Reimbursement asks only for the ones the Farm
+  // is out of pocket for, which is the Selling Trips.
+  const theFarmPaidForIt = (share: { fromId: string }) =>
+    withItsOwn || costs.sellingTrips.has(share.fromId);
   return {
     feed: costs.all.feed.filter(theirsThen),
     doses: costs.all.doses.filter(theirsThen),
     vet: costs.all.vet.filter(theirsThen),
     litres: [],
     hasil: withItsOwn ? costs.all.hasil.filter(theirsThen) : [],
-    trips: withItsOwn ? costs.all.trips.filter(theirsThen) : [],
+    trips: costs.all.trips.filter(
+      (share) => theirsThen(share) && theFarmPaidForIt(share)
+    ),
     herd: costs.all.herd.filter(theirsThen),
   };
 };
@@ -682,6 +708,7 @@ export const chargedTo = (
   ventureId: string
 ) => roundedCosts(addedUp(hersThen(costs, ownedThenBy, ventureId, true)).costs);
 
+/** One line of what a month's consumption was made of: what it was, and what it came to. */
 export interface ConsumedLine {
   id: string;
   bdt: number;
@@ -691,8 +718,13 @@ export interface ConsumedLine {
  * What one owner's Animals consumed in a period, and what it was made of.
  *
  * Only what the Farm bought for the whole herd and is owed back: feed, medicine and the vet, and the
- * Animals' share of the month's Herd Costs. Not the Hasil or the Trips — those a Venture paid itself,
- * out of its own Float, and were never the Farm's to be repaid for.
+ * Animals' share of the month's Herd Costs, and the Selling Trips that carried them.
+ *
+ * Not the Hasil and not a Buying Trip: those came out of the Venture's own Buying Float, drawn before
+ * the lorry went and counted against it the same evening, so they were never the Farm's to be repaid
+ * for. A **Selling Trip** is different and used not to be here at all — it happens long after that
+ * Float is shut, the Farm pays the lorry and the men who went, and until 2026-09-19 nothing ever paid
+ * the Farm back for it while the Settlement charged the Investors for it all the same.
  *
  * The total is the same costing every other reader uses, narrowed to those Animals and those days. The
  * lines are that same total taken apart, never a second sum.
@@ -712,15 +744,18 @@ export const consumedBy = (
   const medicineBdt = roundTaka(summed.medicineBdt);
   const vetBdt = roundTaka(summed.vetBdt);
   const herdBdt = roundTaka(summed.herdBdt);
+  // Already only the outings the Farm paid for: `hersThen` left the Buying Trips behind.
+  const tripsBdt = roundTaka(bdtOf(theirs.trips));
   return {
     feedBdt,
     medicineBdt,
     vetBdt,
     herdBdt,
-    // The sum of the parts as they are shown, not of the parts before they were rounded: four lines
+    tripsBdt,
+    // The sum of the parts as they are shown, not of the parts before they were rounded: five lines
     // that do not add up to the figure beneath them is the farm arguing with itself in front of an
     // Investor.
-    totalBdt: roundTaka(feedBdt + medicineBdt + vetBdt + herdBdt),
+    totalBdt: roundTaka(feedBdt + medicineBdt + vetBdt + herdBdt + tripsBdt),
     /** What it was made of, so the Owner can read it to an Investor: which Feed Items, which
      *  medicines, which Categories of Herd Cost, and what each came to. */
     madeOf: {
@@ -736,6 +771,12 @@ export const consumedBy = (
       ),
       herd: groupedLines(
         theirs.herd,
+        (one) => one.fromId,
+        (one) => one.bdt
+      ),
+      /** Which outings, so the line reads "the haat at Gabtoli" rather than an id. */
+      trips: groupedLines(
+        theirs.trips,
         (one) => one.fromId,
         (one) => one.bdt
       ),

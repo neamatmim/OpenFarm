@@ -9,7 +9,7 @@ So a settled Venture's account does not read nothing, which is what `CONTEXT.md`
 > the last of the money going out is what makes the Venture Settled. The Farm's own share of the profit
 > leaves too … so a settled account reads nothing.
 
-**Status:** ready-for-owner — the fix is a decision about money, not a bug to be patched quietly.
+**Status:** done — the Owner chose the first of the three ways out (2026-09-19).
 
 **Spec:** `CONTEXT.md` — **Settlement**, **Reimbursement**, **Venture Movement**;
 [Ventures spec](../../openfarm-investor-projects/spec.md), "What a Venture is charged" and "Two purses".
@@ -74,3 +74,80 @@ than quietly stranding money in an account the glossary says reads nothing.
   same procedure the app uses, and pays for it in cash as the Farm's own trips are paid for.
 - Nothing in the 1150-test suite catches it, because no test both charges a Selling Trip to a Venture
   and then reads the account balance after settling.
+
+## What was decided, and what was built
+
+**The Owner chose the first way out (2026-09-19): the Reimbursement widens.** A Selling Trip is paid
+back the month after it happens, beside the feed, the medicine, the vet and the Herd Costs. The
+Settlement was left alone and the Farm absorbs nothing.
+
+**Where the rule now lives.** `hersThen` (`cost-store.ts`) is the one place that decides what a
+Reimbursement is owed as against what a Settlement charges. Its `withItsOwn` branch now reads: the Hasil
+and the **Buying Trip** came out of the Venture's own Float and are a Settlement's business only; a
+**Selling Trip** is kept either way, because it happens long after that Float is shut and the Farm pays
+the lorry. `chargedTo` is untouched, so every trip is still charged exactly once and no settled figure
+moved on account of this.
+
+**Told apart by `FarmCosts.sellingTrips`**, a map of outing id to where it went. The two kinds of outing
+share one `CostShare` list and one line on the Settlement, so something had to distinguish them; the map
+also gives the Reimbursement sheet a name to print instead of an id.
+
+**Whose animal she was is asked at the moment of the cost.** A lorry's cost splits over everyone it
+carried, and only the animals that were the Venture's *on the day it went* fall to the Venture. The test
+proves it: a ৳৯,০০০ outing carrying two bulls, one of them bought back by the Farm beforehand, leaves
+the Venture owing ৳৪,৫০০ and not a taka more.
+
+**Proved end to end on the seeded farm.** কোরবানি ২০২৬ settles as before, and its account now reads
+**৳০.০১** where it read **৳৯,০০১.০১**. Its Selling Trip cost ৳৯,০০১ and is now reimbursed in the August
+paperwork, before the books close in September.
+
+**One paisa is still there, and it is not this.** Read at exact numeric precision the settled account
+holds `0.01` — one paisa, not float drift. It is left because a Reimbursement is rounded to whole taka
+(`roundTaka`) while what the animals consumed carries paisa, so a paisa of consumption is never asked
+for. That is a pre-existing artifact — it was inside the ৳৯,০০১.০১ all along — and rounding it away
+quietly would be exactly the sort of change this ticket said not to make. Whether a Reimbursement should
+carry paisa, or the Settlement should sweep the last of it up with the Farm's remainder, is its own
+small question and its own ticket.
+
+**Two test files had to pay the trip.** `settled-corrections.test.ts` could no longer approve its
+Settlement, which is the change working: a Settlement now refuses to close over an outing the Farm paid
+for and was never repaid. Its setup reimburses the month now. The figures in `settlement.test.ts` were
+deliberately left alone — adding a Selling Trip to that arc shifts nine hand-worked numbers chosen so
+the rounding remainder is not zero and one Venture ends in loss, and breaking that to test this would
+have cost more than it told anybody.
+
+## What the review caught
+
+**Nothing proved the defect was fixed.** The first cut tested only a readout: that `consumption` now
+returns a trips line. The ticket's actual complaint was that a Settlement closes over an unpaid lorry
+and leaves money behind, and neither was asserted anywhere — the edit to `settled-corrections.test.ts`
+was a fixture keeping an old test green, not an assertion. `venture-pays-for-its-lorry.test.ts` now runs
+one clean arc end to end: a ৳৭,৫০০ lorry is the whole of what February owes; `approveSettlement`
+refuses with `a_reimbursement_is_owed` naming that month; and once it is paid, the payouts sent and the
+Farm's share taken, the account reads **nothing**. That last assertion is the defect itself.
+
+**The glossary said something no longer true.** `CONTEXT.md`'s **Reimbursement** entry enumerated feed,
+medicine, vet fees and Herd Costs. Option 1 changes what the term means, so the entry now says Selling
+Trips too — and says why a Buying Trip and the Hasil are not on it.
+
+**"Consumed" stopped fitting, exactly as this ticket predicted.** The words the Owner reads said "what
+{venture}'s animals consumed of what the farm bought" — and in Bangla "যা খেয়েছে", what they ate. A
+lorry is not eaten. Both now read "what her animals cost of what the farm paid for". The identifiers
+(`consumedBy`, `ventures.consumption`) are **kept**, deliberately: renaming a procedure the web app
+calls plus three internals, to chase one line item, would make the change harder to read than the thing
+it fixes. Written here rather than left silent.
+
+**The label avoided the defined term.** "Trips to the haat" is now "Selling trips", which is what
+`CONTEXT.md` calls it.
+
+**A comment in the new test was wrong about its own fixture.** It said the second bull had been "bought
+back by the Farm"; it was a **Correction** saying she was never the Venture's — a different act
+entirely. Checked against the test above it and corrected, and the test renamed from "is what the month
+owes" to what it actually proves: that a lorry is charged to the animals it carried, by who owned them
+then.
+
+**Considered and kept: the kind is re-derived from a map.** `tripShares` merges Buying and Selling
+outings and drops which was which, so `FarmCosts.sellingTrips` exists to tell them apart again. Carrying
+a `kind` on `CostShare` would mean putting it on the Hasil and the Herd Costs too, where it means
+nothing; splitting `all.trips` in two would fork a list that `chargedTo` and `ofAnimal` both want whole.
+The predicate is named `theFarmPaidForIt` now, which is the thing that was actually hard to read.

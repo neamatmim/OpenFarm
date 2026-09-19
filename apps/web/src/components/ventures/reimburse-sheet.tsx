@@ -65,8 +65,13 @@ const WhatItIsMadeOf = ({
         medicineBdt: number;
         vetBdt: number;
         herdBdt: number;
+        tripsBdt: number;
         totalBdt: number;
-        madeOf: { feed: readonly Named[]; herd: readonly Named[] };
+        madeOf: {
+          feed: readonly Named[];
+          herd: readonly Named[];
+          trips: readonly Named[];
+        };
       }
     | undefined;
   language: Language;
@@ -85,6 +90,10 @@ const WhatItIsMadeOf = ({
         {taka(consumed?.herdBdt ?? 0)}
       </Line>
       <MadeOf language={language} lines={consumed?.madeOf.herd ?? []} />
+      <Line label={t("ventures.sellingTrips")}>
+        {taka(consumed?.tripsBdt ?? 0)}
+      </Line>
+      <MadeOf language={language} lines={consumed?.madeOf.trips ?? []} />
       <div className="mt-1 border-t pt-1 font-medium">
         <Line label={t("ventures.thatMonth")}>
           {taka(consumed?.totalBdt ?? 0)}

@@ -334,6 +334,16 @@ const whatItsAnimalsConsumed = async (
           categories.map((one) => [one.id, { bn: one.nameBn, en: one.nameEn }])
         )
       ),
+      /** Where each outing went. One name, not two: a haat is called what it is called. */
+      trips: named(
+        consumed.madeOf.trips,
+        new Map(
+          [...costs.sellingTrips].map(([id, wentTo]) => [
+            id,
+            { bn: wentTo, en: null },
+          ])
+        )
+      ),
     },
   };
 };
