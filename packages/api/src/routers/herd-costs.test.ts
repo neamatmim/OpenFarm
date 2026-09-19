@@ -185,14 +185,32 @@ describe("Herd Costs", () => {
     const standard = categories.filter((one) => one.key !== null);
     expect(standard.length).toBeGreaterThan(0);
     expect(standard.every((one) => !one.chargedToAnimals)).toBe(true);
-    // And wages, utilities and repairs may not even be marked: they are the place and the people.
-    const wages = categories.find((one) => one.key === "wages");
-    await expect(
-      owner.client.money.setChargedToAnimals({
-        categoryId: wages?.id ?? "",
-        chargedToAnimals: true,
-      })
-    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("will not charge the animals for the place, the people or the kit", async () => {
+    // The six story 45 names, and the same six CONTEXT.md's Herd Cost entry names. Each is a standard
+    // Category so that a farm records it without inventing a name the mark would then let through.
+    const owner = await as("owner", "2043-03-02T04:30:00.000Z");
+    const categories = await owner.client.money.categories();
+    const theFarms = ["wages", "utilities", "repairs", "hygiene", "equipment"];
+
+    // Asked of all five at once: a loop that stops at the first failure names one and hides four.
+    const marking = theFarms.map(async (key) => {
+      const one = categories.find((each) => each.key === key);
+      expect(one, `no standard Category for ${key}`).toBeDefined();
+      expect(one?.chargeable, `${key} may be marked`).toBe(false);
+      await expect(
+        owner.client.money.setChargedToAnimals({
+          categoryId: one?.id ?? "",
+          chargedToAnimals: true,
+        }),
+        `${key} was marked`
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        data: { refusal: "never_the_animals" },
+      });
+    });
+    await Promise.all(marking);
   });
 
   it("charges a month with nobody standing to nobody, and says so", async () => {

@@ -70,6 +70,8 @@ export const CATEGORY_KEYS = [
   "wages",
   "utilities",
   "repairs",
+  "hygiene",
+  "equipment",
   "transport",
   "manure_sales",
 ] as const;

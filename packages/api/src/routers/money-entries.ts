@@ -203,7 +203,7 @@ export const moneyEntryProcedures = {
         !(mayBeEnteredByHand(existing.key) && mayBeChargedToAnimals(existing))
       ) {
         throw refusedByHand(
-          "Wages, utilities, repairs, money coming in and money a record books are never the animals' to carry",
+          "Wages, utilities, repairs, shed hygiene, equipment, money coming in and money a record books are never the animals' to carry",
           "never_the_animals"
         );
       }

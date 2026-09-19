@@ -75,6 +75,12 @@ const CATEGORIES: Record<
   wages: { nameBn: "মজুরি", nameEn: "Wages", direction: "out" },
   utilities: { nameBn: "বিদ্যুৎ ও পানি", nameEn: "Utilities", direction: "out" },
   repairs: { nameBn: "মেরামত", nameEn: "Repairs", direction: "out" },
+  hygiene: {
+    nameBn: "শেড পরিষ্কার",
+    nameEn: "Shed hygiene",
+    direction: "out",
+  },
+  equipment: { nameBn: "যন্ত্রপাতি", nameEn: "Equipment", direction: "out" },
   transport: { nameBn: "পরিবহন", nameEn: "Transport", direction: "out" },
   manure_sales: {
     nameBn: "গোবর বিক্রি",
@@ -103,11 +109,21 @@ export const mayBeRetired = (key: CategoryKey | null): boolean =>
 export const mayBeEnteredByHand = (key: CategoryKey | null): boolean =>
   key === null || key === "vet_fee" || !KEPT_BY_RECORDS.has(key);
 
-/** The standard Categories the animals never carry: the place and the people, which are the Farm's. */
+/**
+ * The standard Categories the animals never carry: the place, the people and the kit, which are the
+ * Farm's and are how it earns its share.
+ *
+ * All five have a key for this reason. Shed hygiene and equipment are as much the Farm's as wages are —
+ * spec story 45 and CONTEXT.md's **Herd Cost** both say so — but until they were standard Categories a
+ * farm had to invent its own to record them, and a farm's own Category may be marked. The key is what
+ * lets this list reach them, and `isStandardName` is what stops the same name being added around it.
+ */
 const NEVER_THE_ANIMALS: ReadonlySet<CategoryKey> = new Set<CategoryKey>([
   "wages",
   "utilities",
   "repairs",
+  "hygiene",
+  "equipment",
 ]);
 
 /**

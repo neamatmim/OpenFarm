@@ -1378,7 +1378,7 @@ export const en = {
   "refusal.capitalNotSentBack":
     "Every taka the Venture took needs a refund with its own reference",
   "refusal.neverTheAnimals":
-    "Wages, utilities, repairs and money coming in are never charged to the animals",
+    "Wages, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
   "refusal.feedRetired": "That feed is retired",
   "nav.feed": "Feed",
   "nav.milk": "Milk",
