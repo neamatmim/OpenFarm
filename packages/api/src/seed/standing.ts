@@ -2,6 +2,7 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
+import { farmDayOf } from "@OpenFarm/domain";
 
 import type { PlaybookKey } from "./playbook";
 import { playbook } from "./playbook";
@@ -334,7 +335,16 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     });
   }
 
-  const medicines: [string, { bn: string; en: string }, number, number][] = [
+  // Name, withdrawal days for milk and meat, then what a box of it cost and how many doses came in it.
+  // Bought as well as named: a dose nobody has costed charges the animal nothing, and a Venture whose
+  // animals carry one will not settle — the farm refuses to close books over medicine nobody priced.
+  const medicines: [
+    string,
+    { bn: string; en: string },
+    number,
+    number,
+    { priceBdt: number; doses: number; quantity: string },
+  ][] = [
     [
       "oxytet",
       {
@@ -343,51 +353,85 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
       },
       7,
       28,
+      { priceBdt: 2400, doses: 40, quantity: "৪টি ১০০ মিলি ভায়াল" },
     ],
     [
       "penstrep",
       { bn: "পেনিসিলিন-স্ট্রেপটোমাইসিন", en: "Penicillin-Streptomycin" },
       3,
       30,
+      { priceBdt: 1800, doses: 36, quantity: "৬টি ভায়াল" },
     ],
-    ["ceftiofur", { bn: "সেফটিওফার ইনজেকশন", en: "Ceftiofur injection" }, 0, 8],
+    [
+      "ceftiofur",
+      { bn: "সেফটিওফার ইনজেকশন", en: "Ceftiofur injection" },
+      0,
+      8,
+      { priceBdt: 3200, doses: 20, quantity: "২টি ভায়াল" },
+    ],
     [
       "meloxicam",
       { bn: "মেলোক্সিক্যাম ইনজেকশন", en: "Meloxicam injection" },
       5,
       15,
+      { priceBdt: 1500, doses: 30, quantity: "৩টি ৩০ মিলি ভায়াল" },
     ],
     [
       "intramammary",
       { bn: "ওলানের টিউব (ক্লক্সাসিলিন)", en: "Intramammary tube (Cloxacillin)" },
       4,
       7,
+      { priceBdt: 2100, doses: 24, quantity: "২৪টি টিউব" },
     ],
     [
       "calcium",
       { bn: "ক্যালসিয়াম বোরোগ্লুকোনেট", en: "Calcium borogluconate" },
       0,
       0,
+      { priceBdt: 1600, doses: 16, quantity: "১৬টি বোতল" },
     ],
     [
       "fmd",
       { bn: "এফএমডি টিকা (ট্রাইভ্যালেন্ট)", en: "FMD vaccine (trivalent)" },
       0,
       21,
+      { priceBdt: 9000, doses: 120, quantity: "৬টি ২০-ডোজ ভায়াল" },
     ],
-    ["lsd", { bn: "লাম্পি স্কিন টিকা", en: "Lumpy skin disease vaccine" }, 0, 21],
+    [
+      "lsd",
+      { bn: "লাম্পি স্কিন টিকা", en: "Lumpy skin disease vaccine" },
+      0,
+      21,
+      { priceBdt: 7500, doses: 100, quantity: "৫টি ২০-ডোজ ভায়াল" },
+    ],
     [
       "albendazole",
       { bn: "অ্যালবেনডাজল কৃমিনাশক", en: "Albendazole drench" },
       3,
       14,
+      { priceBdt: 2800, doses: 90, quantity: "৯০টি বোলাস" },
     ],
   ];
-  for (const [key, name, milk, meat] of medicines) {
+  for (const [key, name, milk, meat, bought] of medicines) {
     const product = await as.vet.drugs.add({
       name,
       milkWithdrawalDays: milk,
       meatWithdrawalDays: meat,
+    });
+    // Bought as well as named, so a dose costs the animal something. What a box cost and how many
+    // doses were in it is the only way the farm can say what one injection was worth.
+    await as.manager.drugs.purchase({
+      drugProductId: product.id,
+      quantity: bought.quantity,
+      doses: bought.doses,
+      priceBdt: bought.priceBdt,
+      seller: {
+        name: "মেডিসিন কর্নার",
+        address: "সাভার বাজার, ঢাকা",
+        phone: "01712-556677",
+      },
+      purchasedOn: farmDayOf(farm.clock.now()),
+      paymentMethod: "cash",
     });
     farm.drugs[key] = product.id;
   }

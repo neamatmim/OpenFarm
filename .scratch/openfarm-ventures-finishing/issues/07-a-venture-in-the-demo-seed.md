@@ -7,21 +7,21 @@ opened without a Venture that has finished.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Spec:** [Ventures spec](../../openfarm-investor-projects/spec.md) — the seed is not specified, but every
 figure it produces has to be one the spec's rules allow. [The map](../../openfarm-investor-projects/map.md),
 "Not yet specified", lists this and calls it the cheapest thing on that list.
 
-- [ ] `pnpm db:seed` builds at least one Venture part-way through its run and one that has Settled
-- [ ] Both are built by driving the API with the farm's clock, as everything else in the seed is — no rows
+- [x] `pnpm db:seed` builds at least one Venture part-way through its run and one that has Settled
+- [x] Both are built by driving the API with the farm's clock, as everything else in the seed is — no rows
       written by hand
-- [ ] The settled one passes all five of the Settlement's blocks honestly, rather than having them avoided
-- [ ] Its Investors have been paid and at least one has acknowledged, so the payout screen has both states
-- [ ] Venture cattle stand in the same Pens as the Farm's own, because that is the arrangement the whole
+- [x] The settled one passes all five of the Settlement's blocks honestly, rather than having them avoided
+- [x] Its Investors have been paid and at least one has acknowledged, so the payout screen has both states
+- [x] Venture cattle stand in the same Pens as the Farm's own, because that is the arrangement the whole
       costing was widened for
-- [ ] Somebody opens the Settlement, payout and Adjustment screens and looks at them
-- [ ] The seed's own closing instructions tell you how to run the app on it, correctly
+- [x] Somebody opens the Settlement, payout and Adjustment screens and looks at them
+- [x] The seed's own closing instructions tell you how to run the app on it, correctly
 
 ## Checked before starting
 
@@ -93,3 +93,54 @@ the statements sheet, 2026-09-19 — gave up three defects in a sitting, so budg
 
 **Watch the runtime.** The seed takes about 310s today. A settled Venture is a second herd with its own
 weigh-ins, so keep its animals few — six or eight — and do not give it a Playbook of its own.
+
+## What was decided while building
+
+**Two Ventures.** **কোরবানি ২০২৬** opens ten days before the history window, buys six bulls, runs the
+ninety days, sells them at the haat before the month turns and settles on the fourth of the next —
+৳২,১৪,৭৪০ profit, split ৳১,২৮,৮৪৪ to three Investors and ৳৮৫,৯০৮ to the Farm, all three paid and **two
+of the three acknowledged**, deliberately, so the payout screen shows both halves of what it is for.
+**ঈদ ২০২৭** is still Fattening with five bulls, an Owner's Advance of ৳৬০,০০০ outstanding and its Target
+Window next February.
+
+**When a Venture may settle is not a free choice.** A Settlement covers every month it ran **including
+the one it is settled in**, and a month still running cannot be reimbursed — so a Venture whose animals
+were still eating this month can never close at all. Its animals have to be gone before the month turns.
+`closingDays()` works the selling and settling days back from the first of the current month for exactly
+that reason, rather than counting back from today.
+
+**Four things the app refused, and was right to.** Each cost a run and each was a real rule:
+
+- **`float_over`** — the Float has to cover the beasts **and the day itself**, the broker and the lorry
+  and keeping the men. `reconcileFloat` balances to the taka.
+- **A Venture left in Buying never reaches Selling.** `startFattening` is not automatic.
+- **`ready.confirm` refuses a beast inside her meat withdrawal.** The lumpy-skin vaccine keeps one off
+  the market for twenty-one days, so the Venture's selling day has to clear the campaign at `start + 40`.
+- **`a_price_is_missing`** — twice, for two different reasons, both of them pre-existing seed bugs that
+  only a Settlement could have exposed. See below.
+
+**Two bugs in the seed itself, neither of which mattered until something settled.**
+
+- The **Fodder Price was set at 07:30 and the first napier cut came in at 06:30 the same day**. A Harvest
+  keeps the price in force when it was recorded, so 1810 kg stayed unpriced for good. Harmless in the
+  farm's own reports; enough to stop any Venture ever settling. The comment above it already said "said
+  before the first cut comes in" — the intent was right and the time was wrong.
+- **The seed named its medicines but never bought any.** `drugs.add` gives a product its withdrawal
+  days; only `drugs.purchase` gives a dose a cost. Every dose the farm had ever given charged the animal
+  nothing, so eighteen of them sat uncosted on the Venture's bulls. The medicines now arrive with a
+  price and a dose count, which also means every Margin on the farm is truer than it was.
+
+**The Settlement was unreachable once a Venture settled.** `ventures.tsx` only drew the button while the
+state was `selling` — so the approved figures, the payouts and the Acknowledgements, which are the
+questions asked *afterwards*, had no way back to them. The same mistake as the Statements button, made
+in the same file, for the same reason: the row was chosen by the Venture's state rather than by what the
+thing is for. Fixed here, because it is the reason this ticket's last criterion could not be met.
+
+**And the screens gave up a real one.** A settled Venture's account held ৳৯,০০১.০১, where the glossary
+says "a settled account reads nothing". It is its Selling Trip, to the taka: charged in the Settlement,
+paid by the Farm, and reimbursed by nobody. Written up as
+[ticket 08](./08-nothing-ever-pays-for-a-ventures-selling-trip.md), and left for the Owner, because
+which of the three ways out is right is a decision about money rather than a bug to patch.
+
+**The runtime did not suffer.** 266s against about 310s before, with eleven more animals — the medicine
+purchases and the Venture paperwork cost less than the noise between runs.

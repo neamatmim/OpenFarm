@@ -103,7 +103,16 @@ const main = async () => {
   console.log(
     "Run the app on it (the same URL as apps/web/.env, with the database renamed):"
   );
-  console.log(`  DATABASE_URL=${shown.toString()} pnpm dev\n`);
+  // Handed to the web process itself, not to the root script: `DATABASE_URL=… pnpm dev` does not
+  // reach it, so the app comes up on the developer's own database and every page refuses a session
+  // that belongs to the other one.
+  console.log(
+    `  cd apps/web && DATABASE_URL=${shown.toString()} pnpm exec vp dev\n`
+  );
+  console.log(
+    "Signing in for the first time? Clear this site's storage — a cookie from the other database\n" +
+      "holds a session that is not in this one.\n"
+  );
   process.exit(0);
 };
 
