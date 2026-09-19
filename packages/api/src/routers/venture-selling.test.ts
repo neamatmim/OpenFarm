@@ -107,6 +107,26 @@ beforeAll(async () => {
   await owner.client.ventures.startFattening({ id: ventureId });
 });
 
+describe("the two budgets once buying is over", () => {
+  it("gives what buying did not spend to the animals' keep", async () => {
+    // The Cattle Budget is a plan for the part of the capital meant to buy with. Once buying closes
+    // there is nothing left to buy — so what it did not spend is feeding money, and saying otherwise
+    // would warn her that a Venture is short of keep while most of its capital sits idle beside it.
+    const owner = await as("owner", "2047-01-06T04:00:00.000Z");
+    const venture = await theVenture(owner);
+    expect(venture?.state).toBe("fattening");
+    expect(venture?.cattleBudgetHeldBdt).toBe(0);
+    // Stated as the rule rather than as a figure: once the cattle side is closed the whole of what the
+    // account holds is there to keep them with.
+    expect(venture?.runningBudgetHeldBdt).toBe(venture?.balanceBdt);
+    // And the plan itself does not move — what it was set up as is a fact about it for ever.
+    expect(venture).toMatchObject({
+      cattleBudgetBdt: 800_000,
+      runningBudgetBdt: 200_000,
+    });
+  });
+});
+
 describe("selling a Venture's animals", () => {
   it("says when the Wind-up Period ends", async () => {
     const owner = await as("owner", "2047-01-05T04:00:00.000Z");
@@ -189,10 +209,11 @@ describe("selling a Venture's animals", () => {
     expect(venture).toMatchObject({
       proceedsBdt: 250_000,
       balanceBdt: 1_250_000,
-      // Not money to go and buy more cattle with: the Cattle Budget is where it was, and what the
-      // animals still standing are eating through is what rose.
-      cattleBudgetHeldBdt: 800_000,
-      runningBudgetHeldBdt: 450_000,
+      // Not money to go and buy more cattle with, and by now not money the Cattle Budget is holding
+      // either: buying closed long ago, so the whole of the account is there to keep them with. What
+      // they fetched lands on that side with the rest.
+      cattleBudgetHeldBdt: 0,
+      runningBudgetHeldBdt: 1_250_000,
     });
     // And it reads as a movement of the Venture's money like any other.
     const movements = await owner.client.ventures.movements({ ventureId });

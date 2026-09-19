@@ -321,6 +321,17 @@ export const en = {
   "renewal.certificateTake": "Photograph the certificate",
   "ventures.paperHint":
     "A photo of the signed paper, kept against the Agreement",
+  /** Moving a Venture along. Two acts with no form: she says buying has started, and later that it is
+   *  over. Units are fixed the moment the first one is pressed. */
+  "ventures.startBuying": "Start buying",
+  "ventures.startBuyingHint":
+    "Once buying starts the Units are fixed: no new Investor, and no top-up.",
+  "ventures.floorNotMetYet": "৳{short} short of the Floor",
+  "ventures.buyingStarted": "The Venture is buying",
+  "ventures.startFattening": "Buying is done",
+  "ventures.floatStillOut":
+    "Bring the haat money home first — a Float still out cannot be counted afterwards.",
+  "ventures.fatteningStarted": "The Venture is fattening",
   "ventures.takeCapital": "Capital in",
   "ventures.capitalHint":
     "Money arriving for {venture}, against the paper the Investor signed. By bank only.",

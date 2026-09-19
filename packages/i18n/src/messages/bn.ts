@@ -307,6 +307,15 @@ export const bn: Record<MessageKey, string> = {
   "byHand.receiptTake": "রসিদের ছবি তুলুন",
   "renewal.certificateTake": "সনদের ছবি তুলুন",
   "ventures.paperHint": "সই করা কাগজের ছবি, চুক্তির সাথে রাখা থাকবে",
+  "ventures.startBuying": "কেনা শুরু করুন",
+  "ventures.startBuyingHint":
+    "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি টাকাও নেই।",
+  "ventures.floorNotMetYet": "সর্বনিম্ন সীমার চেয়ে ৳{short} কম",
+  "ventures.buyingStarted": "ভেঞ্চারে গরু কেনা শুরু হলো",
+  "ventures.startFattening": "কেনা শেষ",
+  "ventures.floatStillOut":
+    "আগে হাটের টাকা ফেরত এনে হিসাব মেলান — টাকা বাইরে থাকলে পরে আর মেলানো যাবে না।",
+  "ventures.fatteningStarted": "ভেঞ্চার এখন মোটাতাজাকরণে",
   "ventures.takeCapital": "টাকা জমা",
   "ventures.capitalHint":
     "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা টাকা। কেবল ব্যাংকে।",

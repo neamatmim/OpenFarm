@@ -33,7 +33,7 @@ export const lockTheFarm = async (tx: Tx, farmId: string) => {
 };
 
 /** A Venture's row, as the columns hold it. */
-interface VentureRow {
+export interface VentureRow {
   id: string;
   name: string;
   state: VentureState;
@@ -120,7 +120,7 @@ export const windUpEndsOn = (targetWindowEnd: string, windUpDays: number) =>
  * how his paper and the Owner's screen would come to disagree about what is left.
  */
 export const budgetsOf = (
-  row: Pick<VentureRow, "targetCapitalBdt" | "cattleBudgetBdt">,
+  row: Pick<VentureRow, "targetCapitalBdt" | "cattleBudgetBdt" | "state">,
   held: Held | undefined
 ) => {
   const what = held ?? NOTHING_HELD;
@@ -134,13 +134,27 @@ export const budgetsOf = (
             target
         )
       : 0;
+  // Once buying closes there is nothing left to buy, so what the Cattle Budget did not spend is
+  // feeding money — the glossary says so of a Cattle Budget, and a Venture told it is short of keep
+  // while most of its capital sits idle on the other side would be told a thing that is not true.
+  const stillBuying = row.state === "open" || row.state === "buying";
+  /** What the cattle side was drawn against, whether or not there is still buying to do with it. */
+  const cattleBudgetDrawnAgainstBdt = cameInForCattle - what.cattleOutBdt;
+  const cattleBudgetHeldBdt = stillBuying ? cattleBudgetDrawnAgainstBdt : 0;
   return {
+    // What it was planned as, which is a fact about the Venture for ever and does not move.
     cattleBudgetBdt: Number(row.cattleBudgetBdt),
     runningBudgetBdt: target - Number(row.cattleBudgetBdt),
-    cattleBudgetHeldBdt: cameInForCattle - what.cattleOutBdt,
+    cattleBudgetHeldBdt,
+    /**
+     * The same figure without the roll-over, for a reader asking what an Investor's buying money did
+     * rather than what there is left to spend. An Investor's **অগ্রগতি** asks the first question: told
+     * "nothing left" of a Cattle Budget that simply closed, he would read it as all of it spent.
+     */
+    cattleBudgetDrawnAgainstBdt,
     // What is left to keep them with: the rest of the balance once the cattle side has its own. An
     // Advance is the Owner's own money landing on this side, which is why it raises what is left.
-    runningBudgetHeldBdt: balanceOf(what) - cameInForCattle + what.cattleOutBdt,
+    runningBudgetHeldBdt: balanceOf(what) - cattleBudgetHeldBdt,
   };
 };
 

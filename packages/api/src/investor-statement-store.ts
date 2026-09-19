@@ -7,6 +7,7 @@ import type { Tx } from "./audit";
 import { farmCosts } from "./cost-store";
 import type { ChargeWord } from "./settlement-store";
 import { readSettlement, whatItWasCharged } from "./settlement-store";
+import type { VentureRow } from "./venture-store";
 import {
   budgetsOf,
   heldByEach,
@@ -247,7 +248,13 @@ const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
 export const theirSpend = async (
   tx: Pick<Tx, "query"> & { execute: Database["execute"] },
   farmId: string,
-  venture: { id: string; targetCapitalBdt: string; cattleBudgetBdt: string }
+  venture: {
+    id: string;
+    targetCapitalBdt: string;
+    cattleBudgetBdt: string;
+    /** Which side of the run it is on: what buying did not spend is feeding money once it closes. */
+    state: VentureRow["state"];
+  }
 ): Promise<TheirSpend> => {
   const [costs, ownedThenBy, held, signed, paidIn] = await Promise.all([
     farmCosts(tx, farmId),
@@ -269,7 +276,7 @@ export const theirSpend = async (
     signedUnits: signed.get(venture.id)?.units ?? 0,
     cattleBudgetBdt: budgets.cattleBudgetBdt,
     runningBudgetBdt: budgets.runningBudgetBdt,
-    cattleBudgetLeftBdt: budgets.cattleBudgetHeldBdt,
+    cattleBudgetLeftBdt: budgets.cattleBudgetDrawnAgainstBdt,
     runningSpentBdt: roundTaka(
       charges
         .filter((one) => KEEPING_THEM.has(one.word))

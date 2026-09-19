@@ -1,8 +1,9 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRightLeft,
@@ -16,10 +17,13 @@ import {
   Receipt,
   Scale,
   ScrollText,
+  ShoppingCart,
   Truck,
+  Wheat,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   EmptyState,
@@ -46,6 +50,7 @@ import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { lastMonth } from "@/lib/months";
+import { sayWhy } from "@/lib/saying";
 import type { Venture } from "@/lib/ventures";
 import { monthsStillOut, pastWindUp } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -179,6 +184,42 @@ const stillRunning = (venture: Venture) =>
 const hasPapersToGive = (venture: Venture) =>
   moneyOf(venture).signedFor.people !== 0 && venture.state !== "cancelled";
 
+/**
+ * Why the button that moves a Venture along is dim, and what pressing it will cost her.
+ *
+ * Its own component because the card was over the complexity the linter allows, and because these are
+ * one idea: the act is there, and here is what stands in front of it. A dim button is not a reason.
+ */
+const WhatStopsHer = ({
+  venture,
+  money,
+}: {
+  venture: Venture;
+  money: ReturnType<typeof moneyOf>;
+}) => {
+  const { t, language } = useLanguage();
+  if (venture.state === "open") {
+    const short = venture.floorBdt - venture.capitalInBdt;
+    return (
+      <p className="text-muted-foreground text-right text-sm">
+        {short > 0
+          ? t("ventures.floorNotMetYet", {
+              short: formatNumber(short, language),
+            })
+          : t("ventures.startBuyingHint")}
+      </p>
+    );
+  }
+  if (venture.state === "buying" && money.openFloatBdt !== 0) {
+    return (
+      <p className="text-muted-foreground text-right text-sm">
+        {t("ventures.floatStillOut")}
+      </p>
+    );
+  }
+  return null;
+};
+
 const VentureCard = ({
   venture,
   onSign,
@@ -193,6 +234,8 @@ const VentureCard = ({
   onCheckTheBank,
   onSeeMovements,
   onStatements,
+  onStartBuying,
+  onStartFattening,
 }: {
   venture: Venture;
   onSign: (venture: Venture) => void;
@@ -207,6 +250,8 @@ const VentureCard = ({
   onCheckTheBank: (venture: Venture) => void;
   onSeeMovements: (venture: Venture) => void;
   onStatements: (venture: Venture) => void;
+  onStartBuying: (venture: Venture) => void;
+  onStartFattening: (venture: Venture) => void;
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
@@ -325,6 +370,15 @@ const VentureCard = ({
             <Banknote aria-hidden data-icon="inline-start" />
             {t("ventures.takeCapital")}
           </Button>
+          <Button
+            disabled={venture.capitalInBdt < venture.floorBdt}
+            onClick={() => onStartBuying(venture)}
+            type="button"
+            variant="default"
+          >
+            <ShoppingCart aria-hidden data-icon="inline-start" />
+            {t("ventures.startBuying")}
+          </Button>
         </div>
       ) : null}
       {venture.state === "buying" ||
@@ -387,8 +441,18 @@ const VentureCard = ({
             <Truck aria-hidden data-icon="inline-start" />
             {t("ventures.drawFloat")}
           </Button>
+          <Button
+            disabled={money.openFloatBdt !== 0}
+            onClick={() => onStartFattening(venture)}
+            type="button"
+            variant="default"
+          >
+            <Wheat aria-hidden data-icon="inline-start" />
+            {t("ventures.startFattening")}
+          </Button>
         </div>
       ) : null}
+      <WhatStopsHer money={money} venture={venture} />
       {hasPapersToGive(venture) ? (
         <div className="flex flex-wrap justify-end gap-2">
           {/* Kept after the books are shut, not only while they are being shut: what a Venture was
@@ -452,6 +516,27 @@ const VenturesPage = () => {
   const [seeing, setSeeing] = useState<Venture | null>(null);
   const [papering, setPapering] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
+  const queryClient = useQueryClient();
+  /**
+   * Moving a Venture along. Two acts with no form to fill: she says buying has started, and later that
+   * it is over. Until now neither had a button at all and a Venture opened on a screen could never
+   * leave Open — so nothing downstream of it could happen either.
+   */
+  const moved = (said: MessageKey) => ({
+    onError: (error: unknown) => toast.error(sayWhy(error, t)),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+      toast.success(t(said));
+    },
+  });
+  const moving = useMutation(
+    orpc.ventures.startBuying.mutationOptions(moved("ventures.buyingStarted"))
+  );
+  const fattening = useMutation(
+    orpc.ventures.startFattening.mutationOptions(
+      moved("ventures.fatteningStarted")
+    )
+  );
   const { statements } = Route.useSearch();
   const navigate = useNavigate();
   // The notice that her Investors are due a paper names the Venture and sends her here with it in the
@@ -500,6 +585,10 @@ const VenturesPage = () => {
                   onAdvance={setAdvancing}
                   onCheckTheBank={setChecking}
                   onSeeMovements={setSeeing}
+                  onStartBuying={(moving_) => moving.mutate({ id: moving_.id })}
+                  onStartFattening={(fattening_) =>
+                    fattening.mutate({ id: fattening_.id })
+                  }
                   onStatements={setPapering}
                   onBuyWhatIsLeft={setWindingUp}
                   onSettle={setSettling}
