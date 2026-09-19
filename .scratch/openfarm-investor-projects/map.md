@@ -4,7 +4,7 @@ Label: wayfinder:map
 
 Tracker: local-markdown (`.scratch/openfarm-investor-projects/`)
 
-Charted: 2026-09-17
+Charted: 2026-09-17 · Last read against the code: 2026-09-19
 
 ## Destination
 
@@ -42,9 +42,18 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 
 ## What has shipped
 
-**Increment 1 — the widened costing — is built, reviewed and merged** (2026-09-17/18), in `.scratch/openfarm-ventures-increment-1/`: a Fodder Price on home-grown feed, the Hasil on each Intake, Buying and Selling Trips split across the animals they carried, and Herd Costs by animal-days under a Category the Owner marks. Every Animal's Margin, Cost of Gain and Cost per Litre read the wider sum, and the demo farm exercises all of it.
+**All six increments are built, reviewed and merged** (2026-09-17 to 2026-09-19), a ticket set per increment under `.scratch/openfarm-ventures-increment-{1..6}/`, plus a seventh set of six in `.scratch/openfarm-ventures-finishing/`. Thirty-seven tickets in all; every one is `done`.
 
-That answers the sequencing question this map was holding open: **the costing shipped ahead of any Venture**, on its own, and improves the Farm's own figures whether or not a Venture ever opens. No Venture code exists yet, and increments 2–6 stay unticketed until the advisers answer.
+1. **The widened costing** (6 tickets, 2026-09-18) — a Fodder Price on home-grown feed, the Hasil on each Intake, Buying and Selling Trips split across the animals they carried, and Herd Costs by animal-days under a Category the Owner marks. Every Animal's Margin, Cost of Gain and Cost per Litre read the wider sum. It shipped ahead of any Venture, on its own, as the sequencing intended — and the demo farm exercises all of it.
+2. **The Venture, its Investors and its capital** (4 tickets) — the tables and states, Investment Agreements, Units, capital in and refunds, the twenty-Investor cap, and the **Purse** on every Money Event with each reader filtered.
+3. **Buying** (4 tickets) — the Buying Float and its reconciliation, ownership set on the Animal at Intake, the Internal Sale and its bars.
+4. **Living** (3 tickets) — the monthly Reimbursement, the Running Budget warning, the Owner's Advance, and the monthly Bank Check.
+5. **Ending** (7 tickets) — Selling, the Wind-up Period, the buy-back, the Settlement with its five blocks, approval, payouts, Acknowledgements and Adjustments.
+6. **The statements** (7 tickets, 2026-09-19) — the three papers, each narrowed to one Investor, each an **Export** with its Audit Event; the telling on the four occasions; and the screen they are made from.
+
+**The finishing set** (6 tickets, 2026-09-18/19) closed what the increments left: Adjustments lifted out of the settlement store, a settled Venture refusing the Corrections that would move its figures, a Correction that reaches every Venture it touches, and the Settlement, its payouts and its Adjustments on screen.
+
+**Caveat worth carrying.** Most of these screens were shipped without anybody looking at them. The first one that was opened — the statements sheet, 2026-09-19 — turned up three defects in a sitting, none of them in the code under review: a column header over no rows, a notice printing its own `{placeholders}`, and a month rendered `2026-09` inside a Bangla sentence. The Settlement, payout and Adjustment screens have still never been opened. **The demo seed makes no Venture**, which is why: there is nothing to look at without building one by hand through the UI first.
 
 ## Decisions so far
 
@@ -74,7 +83,8 @@ That answers the sequencing question this map was holding open: **the costing sh
 
 - **Tax and the accountant.** How project money appears in the monthly accountant export, and what the software must withhold or show. The research found 10% withholding if a contract reads as a deposit, and none found for a genuine profit share; VAT is likely on any fee. The advisers in the lawyer task confirm; then waits on how investor money is recorded.
 - **Reaching Investors without a login.** How the statements physically get to them (print, WhatsApp, email) now that their content and cadence are settled.
-- **The Owner's view of Ventures.** Venture tiles and exceptions on the Owner's farm page: a Venture running over cost, a Running Budget nearly gone, animals unsold as the Wind-up Period ends. Waits on settlement.
+- **The Owner's view of Ventures.** Venture tiles and exceptions on the Owner's farm page: a Venture running over cost, a Running Budget nearly gone, animals unsold as the Wind-up Period ends. **No longer blocked** — settlement shipped 2026-09-18. `ventures.herd` (`routers/ventures.ts`) already returns the whole progress reading to Owner and Manager and nothing calls it.
+- **A Venture in the demo seed.** Nothing under `packages/api/src/seed/` makes a Venture, Investor, Agreement or Settlement, so no Venture screen can be looked at without twenty minutes of hand-building. It is the cheapest thing on this list and it unblocks looking at the six screens nobody has seen.
 
 ## Out of scope
 
