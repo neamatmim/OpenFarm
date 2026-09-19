@@ -28,6 +28,7 @@ import {
   bankStandingOf,
   heldByEach,
   NEVER_CHECKED,
+  NOTHING_HELD,
   ownedThenByOf,
   stillHersOf,
   termsInForceOn,
@@ -86,17 +87,6 @@ export type Block =
       /** Nobody ever opened the statement for it. */
       neverRead: string[];
     };
-
-const NOTHING_HELD = {
-  openFloatBdt: 0,
-  capitalInBdt: 0,
-  proceedsBdt: 0,
-  advancedBdt: 0,
-  refundedBdt: 0,
-  spentBdt: 0,
-  paidOutBdt: 0,
-  cattleOutBdt: 0,
-};
 
 /** Added up. */
 const sumOf = (figures: readonly number[]) => {

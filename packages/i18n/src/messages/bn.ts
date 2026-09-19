@@ -489,6 +489,7 @@ export const bn: Record<MessageKey, string> = {
   "money.purseWas": "{venture}-এর টাকা",
   "ventures.spent": "খরচ · ফেরত দেওয়া",
   "ventures.outOfTheAccount": "হিসাব থেকে গেছে · ফেরত দেওয়া",
+  "ventures.reimbursedSoFar": "খামারকে খরচ ফেরত দেওয়া হয়েছে",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
   "refusal.wageIsTheFarms": "মজুরি খামারের নিজের — লোক খামারই দেয়",

@@ -270,9 +270,14 @@ describe("the Running Budget", () => {
     // after. Only the feed she bought for the whole herd is in her books for that month.
     expect(money.events.every((one) => one.source === "feed_in")).toBe(true);
     // And it is not among what the Venture has spent, which is its animals' and nothing else: her
-    // fifty thousand went in, and the figure that says what the Venture spent did not move.
+    // fifty thousand went in, and neither figure that says where the money went moved for it. The
+    // Float it drew and the month it paid the Farm back are separate questions and separate lines.
     const venture = await theVenture(owner);
-    expect(venture).toMatchObject({ advancedBdt: 50_000, spentBdt: 964_000 });
+    expect(venture).toMatchObject({
+      advancedBdt: 50_000,
+      spentBdt: 800_000,
+      reimbursedBdt: 164_000,
+    });
   });
 
   it("is refused in cash, and refused once the run is over", async () => {

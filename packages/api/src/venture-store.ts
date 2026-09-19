@@ -71,6 +71,10 @@ export interface Held {
   advancedBdt: number;
   refundedBdt: number;
   spentBdt: number;
+  /** What it has paid the Farm back for what its animals consumed: every **Reimbursement** added up.
+   *  Its own line rather than part of what was spent, because the Farm paying for the feed all month
+   *  and taking it back once is a different question from what the Venture spent at the haat. */
+  reimbursedBdt: number;
   paidOutBdt: number;
   /** Of what has gone out, how much was drawn against the Cattle Budget. A Buying Float is cattle
    *  money: it buys cattle or it comes home again. */
@@ -84,15 +88,18 @@ export const balanceOf = (held: Held) =>
   held.advancedBdt -
   held.refundedBdt -
   held.spentBdt -
+  held.reimbursedBdt -
   held.paidOutBdt;
 
-const NOTHING_HELD: Held = {
+/** A Venture that has held nothing yet, and the one shape every reader of `Held` starts from. */
+export const NOTHING_HELD: Held = {
   openFloatBdt: 0,
   capitalInBdt: 0,
   proceedsBdt: 0,
   advancedBdt: 0,
   refundedBdt: 0,
   spentBdt: 0,
+  reimbursedBdt: 0,
   paidOutBdt: 0,
   cattleOutBdt: 0,
 };
@@ -276,7 +283,7 @@ const WHAT_IT_DOES = {
   sale_in: { line: "proceedsBdt", sign: 1, cattle: 0 },
   // What its Animals ate of the Farm's feed, repaid. Running-budget money: it is the cost of keeping
   // them, not of buying one.
-  reimbursement: { line: "spentBdt", sign: 1, cattle: 0 },
+  reimbursement: { line: "reimbursedBdt", sign: 1, cattle: 0 },
   // The Owner's own money, in. It lands in the Running Budget, because it is there to keep the animals
   // fed and not to buy one more of them.
   advance: { line: "advancedBdt", sign: 1, cattle: 0 },

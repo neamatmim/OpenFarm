@@ -276,8 +276,10 @@ describe("the monthly Reimbursement", () => {
   it("moves it out of the Venture and into the Farm's books, both sides at once", async () => {
     const owner = await as("owner", "2047-04-02T04:00:00.000Z");
     const before = await owner.client.ventures.list();
-    const heldBefore =
-      before.find((one) => one.id === ventureId)?.balanceBdt ?? 0;
+    const was = before.find((one) => one.id === ventureId);
+    const heldBefore = was?.balanceBdt ?? 0;
+    const spentBefore = was?.spentBdt ?? 0;
+    const reimbursedBefore = was?.reimbursedBdt ?? 0;
 
     await owner.client.ventures.reimburse({
       ventureId,
@@ -294,6 +296,10 @@ describe("the monthly Reimbursement", () => {
     expect(venture).toMatchObject({
       balanceBdt: heldBefore - 2000,
       cattleBudgetHeldBdt: 500_000,
+      // Its own figure, and not folded into what the Venture spent at the haat: what it paid the Farm
+      // back is the question an Investor asks, and buying is a different one.
+      reimbursedBdt: reimbursedBefore + 2000,
+      spentBdt: spentBefore,
     });
 
     // And in on the Farm's own books, gross: the feed it bought is still its expense.

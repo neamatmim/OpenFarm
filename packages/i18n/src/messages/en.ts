@@ -521,6 +521,9 @@ export const en = {
   "money.purseWas": "{venture}'s money",
   "ventures.spent": "Spent · paid out",
   "ventures.outOfTheAccount": "Out of the account · paid out",
+  /** What a Venture has paid the Farm back for what its animals consumed. Left off a Venture that has
+   *  never had a month, rather than shown as a zero. */
+  "ventures.reimbursedSoFar": "Paid back to the farm",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":

@@ -155,6 +155,7 @@ const moneyOf = (venture: Venture) => ({
   cattleBudgetHeldBdt: venture.cattleBudgetHeldBdt ?? 0,
   runningBudgetHeldBdt: venture.runningBudgetHeldBdt ?? 0,
   spentBdt: venture.spentBdt ?? 0,
+  reimbursedBdt: venture.reimbursedBdt ?? 0,
   advancedBdt: venture.advancedBdt ?? 0,
   openFloatBdt: venture.openFloatBdt ?? 0,
   paidOutBdt: venture.paidOutBdt ?? 0,
@@ -301,6 +302,11 @@ const VentureCard = ({
         <Line label={t("ventures.outOfTheAccount")}>
           {`${taka(money.spentBdt)} · ${taka(money.paidOutBdt)}`}
         </Line>
+        {money.reimbursedBdt === 0 ? null : (
+          <Line label={t("ventures.reimbursedSoFar")}>
+            {taka(money.reimbursedBdt)}
+          </Line>
+        )}
         {money.openFloatBdt === 0 ? null : (
           <Line label={t("ventures.openFloat")}>
             {taka(money.openFloatBdt)}
