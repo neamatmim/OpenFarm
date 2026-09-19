@@ -102,12 +102,14 @@ the Venture owing ৳৪,৫০০ and not a taka more.
 paperwork, before the books close in September.
 
 **One paisa is still there, and it is not this.** Read at exact numeric precision the settled account
-holds `0.01` — one paisa, not float drift. It is left because a Reimbursement is rounded to whole taka
-(`roundTaka`) while what the animals consumed carries paisa, so a paisa of consumption is never asked
-for. That is a pre-existing artifact — it was inside the ৳৯,০০১.০১ all along — and rounding it away
-quietly would be exactly the sort of change this ticket said not to make. Whether a Reimbursement should
-carry paisa, or the Settlement should sweep the last of it up with the Farm's remainder, is its own
-small question and its own ticket.
+holds `0.01` — one paisa, not float drift. It was inside the ৳৯,০০১.০১ all along, and rounding it away
+quietly would be exactly the sort of change this ticket said not to make. Its own ticket now:
+[12](./12-a-settled-account-keeps-a-paisa.md).
+
+_(Corrected 2026-09-19: this paragraph first blamed `roundTaka` for rounding to whole taka while
+consumption carried paisa. It rounds to the **paisa** — `Math.round(amount * 100) / 100`. The real cause
+is the order of the rounding, worked out in full on ticket 12: a month sums parts that are already
+rounded, on purpose, and the Settlement rounds once over the whole run.)_
 
 **Two test files had to pay the trip.** `settled-corrections.test.ts` could no longer approve its
 Settlement, which is the change working: a Settlement now refuses to close over an outing the Farm paid
