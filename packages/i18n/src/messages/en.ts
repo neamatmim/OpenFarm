@@ -524,6 +524,13 @@ export const en = {
   /** What a Venture has paid the Farm back for what its animals consumed. Left off a Venture that has
    *  never had a month, rather than shown as a zero. */
   "ventures.reimbursedSoFar": "Paid back to the farm",
+  "ventures.economics": "Which bull earned",
+  "ventures.herdMargin": "The herd's margin",
+  "ventures.herdCostOfGain": "Each kilogram they put on",
+  "ventures.soldAndUnsold": "Sold · not sold",
+  "ventures.costOfGainIs": "{rate} a kilogram",
+  "ventures.boughtAndSold": "Bought {bought} · sold {sold}",
+  "ventures.noAnimalsYet": "No animals on this venture yet",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
   "refusal.refundNotItsMoney":

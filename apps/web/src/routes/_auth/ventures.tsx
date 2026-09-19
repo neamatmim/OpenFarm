@@ -18,6 +18,7 @@ import {
   Scale,
   ScrollText,
   ShoppingCart,
+  TrendingUp,
   Truck,
   Wheat,
   XCircle,
@@ -40,6 +41,7 @@ import { BuyWhatIsLeftSheet } from "@/components/ventures/buy-what-is-left-sheet
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
+import { EconomicsSheet } from "@/components/ventures/economics-sheet";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { MovementsSheet } from "@/components/ventures/movements-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
@@ -245,6 +247,7 @@ const VentureCard = ({
   onCheckTheBank,
   onSeeMovements,
   onStatements,
+  onEconomics,
   onAmend,
   onStartBuying,
   onStartFattening,
@@ -262,6 +265,7 @@ const VentureCard = ({
   onCheckTheBank: (venture: Venture) => void;
   onSeeMovements: (venture: Venture) => void;
   onStatements: (venture: Venture) => void;
+  onEconomics: (venture: Venture) => void;
   onAmend: (venture: Venture) => void;
   onStartBuying: (venture: Venture) => void;
   onStartFattening: (venture: Venture) => void;
@@ -497,6 +501,14 @@ const VentureCard = ({
             </Button>
           ) : null}
           <Button
+            onClick={() => onEconomics(venture)}
+            type="button"
+            variant="ghost"
+          >
+            <TrendingUp aria-hidden data-icon="inline-start" />
+            {t("ventures.economics")}
+          </Button>
+          <Button
             onClick={() => onStatements(venture)}
             type="button"
             variant="ghost"
@@ -544,6 +556,7 @@ const VenturesPage = () => {
   const [seeing, setSeeing] = useState<Venture | null>(null);
   const [papering, setPapering] = useState<Venture | null>(null);
   const [amending, setAmending] = useState<Venture | null>(null);
+  const [weighingUp, setWeighingUp] = useState<Venture | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   const queryClient = useQueryClient();
   /**
@@ -620,6 +633,7 @@ const VenturesPage = () => {
                   }
                   onAmend={setAmending}
                   onStatements={setPapering}
+                  onEconomics={setWeighingUp}
                   onBuyWhatIsLeft={setWindingUp}
                   onSettle={setSettling}
                   onReimburse={setReimbursing}
@@ -736,6 +750,15 @@ const VenturesPage = () => {
         }}
         open={amending !== null}
         venture={amending}
+      />
+      <EconomicsSheet
+        onOpenChange={(next) => {
+          if (!next) {
+            setWeighingUp(null);
+          }
+        }}
+        open={weighingUp !== null}
+        venture={weighingUp}
       />
       <StatementsSheet
         onOpenChange={(next) => {

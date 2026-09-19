@@ -576,6 +576,67 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
 };
 
 /**
+ * What a Venture's cattle earned: each of them, and the herd together.
+ *
+ * A **Margin** is the Animal's own sum and not the owner's — `CONTEXT.md` says "the same sum for every
+ * Animal, whoever owns her" — so this narrows the farm's costing to her animals rather than working
+ * anything out a second way. A beast still standing has no Margin at all, because she has not earned
+ * anything yet; she still has a **Cost of Gain**, because she has eaten and grown.
+ *
+ * The herd's Cost of Gain is everything charged to all of them over everything they put on, not the mean
+ * of their rates. `theirProgress` made the same choice for daily gain and said why: averaging rates lets
+ * a bull who arrived last week count for as much as one who has been here since January.
+ *
+ * Added from the figures as each line shows them, so the total is what the column comes to rather than
+ * something a paisa away from it.
+ */
+/** Everything charged to one animal, as her own line shows it. */
+const chargedOf = (one: Costs) =>
+  one.feedBdt +
+  one.medicineBdt +
+  one.vetBdt +
+  one.hasilBdt +
+  one.tripBdt +
+  one.herdBdt;
+
+export const economicsOfHerd = (
+  costs: FarmCosts,
+  animalIds: ReadonlySet<string>
+) => {
+  const each = costs.animals
+    .filter((one) => animalIds.has(one.id))
+    .map((one) => ({
+      tagNumber: one.tagNumber,
+      ...economicsOfAnimal(costs, one),
+    }));
+  const chargedBdt = roundTaka(
+    each.reduce((sum, one) => sum + chargedOf(one), 0)
+  );
+  const gainKg = roundKg(each.reduce((sum, one) => sum + (one.gainKg ?? 0), 0));
+  const sold = each.filter((one) => one.marginBdt !== null);
+  return {
+    // Worst first: the question is which bull did not earn, and he is the one worth finding. A beast
+    // with no Margin yet is not the worst of them — she is not in the running — so she follows.
+    animals: each.toSorted((a, b) => {
+      if (a.marginBdt === null || b.marginBdt === null) {
+        return Number(a.marginBdt === null) - Number(b.marginBdt === null);
+      }
+      return a.marginBdt - b.marginBdt;
+    }),
+    soldCount: sold.length,
+    /** Everyone else: those still standing, and any that died. Neither has earned a Margin. */
+    unsoldCount: each.length - sold.length,
+    chargedBdt,
+    gainKg,
+    marginBdt:
+      sold.length === 0
+        ? null
+        : roundTaka(sold.reduce((sum, one) => sum + (one.marginBdt ?? 0), 0)),
+    costOfGainBdt: gainKg > 0 ? roundTaka(chargedBdt / gainKg) : null,
+  };
+};
+
+/**
  * A period added up by Side. What each Side's animals were fed, dosed and visited for in the period, and
  * the litres the Dairy side sent to Bulk in it with what a litre cost. Apart from those, the fattening
  * animals sold in the period, each with her whole-life Margin — a different sum from the period's feed,

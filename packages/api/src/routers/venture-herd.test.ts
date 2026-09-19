@@ -308,6 +308,44 @@ describe("what a Venture's animals are doing", () => {
     expect(theirs.animals).toHaveLength(5);
   });
 
+  it("says which bull earned and which did not, worst first", async () => {
+    // Story 50. Six came in; one is the other Venture's now, so five are on this paper, and only the one
+    // that went to a buyer has earned anything at all.
+    const owner = await at("2052-02-20T05:00:00.000Z");
+    const theirs = await owner.client.ventures.economics({
+      ventureId: firstVenture,
+    });
+
+    expect(theirs.animals).toHaveLength(5);
+    expect(theirs.soldCount).toBe(1);
+    expect(theirs.unsoldCount).toBe(4);
+
+    // A Margin belongs to the sold one alone: the rest have not earned anything yet, and a beast that
+    // died never will.
+    const withMargin = theirs.animals.filter((one) => one.marginBdt !== null);
+    expect(withMargin).toHaveLength(1);
+    expect(theirs.marginBdt).toBe(withMargin[0]?.marginBdt);
+
+    // Worst first, and the ones with nothing to compare come last rather than reading as the worst.
+    expect(theirs.animals.at(0)?.marginBdt).not.toBeNull();
+    expect(theirs.animals.at(-1)?.marginBdt).toBeNull();
+
+    // They put weight on here; nobody has fed them on this farm, so there is nothing charged and each
+    // kilogram cost nothing. What a Venture's Cost of Gain is made of is proved where there are real
+    // costs to make it of — see settlement.test.ts.
+    expect(theirs.gainKg).toBeGreaterThan(0);
+    expect(theirs.chargedBdt).toBe(0);
+    expect(theirs.costOfGainBdt).toBe(0);
+  });
+
+  it("is the Owner's alone, as the money side of a Venture is", async () => {
+    // The Manager reads what they weigh, because he looks after them; what a beast made is hers.
+    const manager = await asManager("2052-02-20T06:00:00.000Z");
+    await expect(
+      manager.client.ventures.economics({ ventureId: firstVenture })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("moves an internally sold animal onto the Venture that now owns her", async () => {
     const owner = await at("2052-02-20T04:00:00.000Z");
     const theirs = await owner.client.ventures.herd({

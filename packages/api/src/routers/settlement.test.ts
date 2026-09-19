@@ -249,6 +249,28 @@ describe("what a Settlement is", () => {
     expect(wordsOf(settlement.blocks)).not.toContain("agreements_disagree");
   });
 
+  it("charges a herd nobody has weighed, and will not rate it", async () => {
+    // Story 50. These bulls have really been bought, carried and fed, so there is something charged to
+    // them — but nobody has put them on the scale since they arrived, so nothing is known to have been
+    // gained. A rate over no gain is not zero and not infinity: it is unanswerable, and says so.
+    const owner = await as("owner", "2047-02-05T06:00:00.000Z");
+    const theirs = await owner.client.ventures.economics({ ventureId });
+
+    expect(theirs.animals).toHaveLength(2);
+    expect(theirs.chargedBdt).toBeGreaterThan(0);
+    expect(theirs.gainKg).toBe(0);
+    expect(theirs.costOfGainBdt).toBeNull();
+    expect(theirs.animals.every((one) => one.costOfGainBdt === null)).toBe(
+      true
+    );
+
+    // Neither has been sold, so neither has earned a Margin yet and the herd has none either.
+    expect(theirs.soldCount).toBe(0);
+    expect(theirs.unsoldCount).toBe(2);
+    expect(theirs.marginBdt).toBeNull();
+    expect(theirs.animals.every((one) => one.marginBdt === null)).toBe(true);
+  });
+
   it("charges the run what its animals cost, whichever purse paid", async () => {
     const owner = await as("owner", "2047-02-06T04:00:00.000Z");
     const settlement = await theSettlement(owner);

@@ -29,7 +29,7 @@ import {
   ventureMovementCorrection,
   ventureMovementCorrectionInput,
 } from "../corrections/venture-movement";
-import { consumedBy, farmCosts } from "../cost-store";
+import { consumedBy, economicsOfHerd, farmCosts } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -2522,6 +2522,30 @@ export const venturesRouter = {
         row,
         context.clock.now()
       );
+    }),
+
+  /**
+   * Which of a Venture's bulls earned and which did not: each one's Margin and Cost of Gain, and the
+   * herd's own.
+   *
+   * The Owner's alone. The Manager reads the herd's weights because he looks after them every day; what
+   * a beast made is the money side of a Venture, and that is hers. An Investor never sees it either —
+   * he is told what the whole run cost and what it fetched, not which bull disappointed.
+   */
+  economics: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      const [costs, mine] = await Promise.all([
+        farmCosts(context.db, context.farm.id),
+        context.db.query.animal.findMany({
+          where: { farmId: context.farm.id, ownerVentureId: row.id },
+          columns: { id: true },
+        }),
+      ]);
+      return economicsOfHerd(costs, new Set(mine.map((one) => one.id)));
     }),
 
   /**
