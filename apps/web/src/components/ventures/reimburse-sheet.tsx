@@ -1,8 +1,8 @@
-import type { Language } from "@OpenFarm/i18n";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
@@ -54,6 +54,22 @@ const MadeOf = ({
   </>
 );
 
+/** A month nobody has asked about yet: every figure nothing, every list empty. */
+const NOTHING_YET = {
+  feedBdt: 0,
+  medicineBdt: 0,
+  vetBdt: 0,
+  herdBdt: 0,
+  tripsBdt: 0,
+  totalBdt: 0,
+  madeOf: {
+    feed: [] as readonly Named[],
+    medicine: [] as readonly Named[],
+    herd: [] as readonly Named[],
+    trips: [] as readonly Named[],
+  },
+};
+
 /** The month's figure and its parts, each total with the things that made it under it. */
 const WhatItIsMadeOf = ({
   consumed,
@@ -69,6 +85,7 @@ const WhatItIsMadeOf = ({
         totalBdt: number;
         madeOf: {
           feed: readonly Named[];
+          medicine: readonly Named[];
           herd: readonly Named[];
           trips: readonly Named[];
         };
@@ -78,26 +95,40 @@ const WhatItIsMadeOf = ({
 }) => {
   const { t } = useLanguage();
   const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
+  // Defaulted once rather than at every figure: the month is either answered or it is not, and ten
+  // separate fallbacks only made the same statement ten times.
+  const said = consumed ?? NOTHING_YET;
+  // One head and the things that made it, five times over. The Vet's fee names nobody — a visit is
+  // charged to the animals it named, and the visit is the thing.
+  const heads: { label: MessageKey; bdt: number; lines: readonly Named[] }[] = [
+    { label: "ventures.feed", bdt: said.feedBdt, lines: said.madeOf.feed },
+    {
+      label: "ventures.medicine",
+      bdt: said.medicineBdt,
+      lines: said.madeOf.medicine,
+    },
+    { label: "ventures.vet", bdt: said.vetBdt, lines: [] },
+    {
+      label: "ventures.herdCosts",
+      bdt: said.herdBdt,
+      lines: said.madeOf.herd,
+    },
+    {
+      label: "ventures.sellingTrips",
+      bdt: said.tripsBdt,
+      lines: said.madeOf.trips,
+    },
+  ];
   return (
     <div className="bg-muted flex flex-col gap-1 rounded-md px-3 py-2 text-sm">
-      <Line label={t("ventures.feed")}>{taka(consumed?.feedBdt ?? 0)}</Line>
-      <MadeOf language={language} lines={consumed?.madeOf.feed ?? []} />
-      <Line label={t("ventures.medicine")}>
-        {taka(consumed?.medicineBdt ?? 0)}
-      </Line>
-      <Line label={t("ventures.vet")}>{taka(consumed?.vetBdt ?? 0)}</Line>
-      <Line label={t("ventures.herdCosts")}>
-        {taka(consumed?.herdBdt ?? 0)}
-      </Line>
-      <MadeOf language={language} lines={consumed?.madeOf.herd ?? []} />
-      <Line label={t("ventures.sellingTrips")}>
-        {taka(consumed?.tripsBdt ?? 0)}
-      </Line>
-      <MadeOf language={language} lines={consumed?.madeOf.trips ?? []} />
+      {heads.map((head) => (
+        <Fragment key={head.label}>
+          <Line label={t(head.label)}>{taka(head.bdt)}</Line>
+          <MadeOf language={language} lines={head.lines} />
+        </Fragment>
+      ))}
       <div className="mt-1 border-t pt-1 font-medium">
-        <Line label={t("ventures.thatMonth")}>
-          {taka(consumed?.totalBdt ?? 0)}
-        </Line>
+        <Line label={t("ventures.thatMonth")}>{taka(said.totalBdt)}</Line>
       </div>
     </div>
   );
