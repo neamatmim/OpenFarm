@@ -62,6 +62,7 @@ import {
   readSettlement,
   settlementOf,
 } from "../settlement-store";
+import { theirProgress } from "../venture-herd-store";
 import {
   balanceAtMonthEnd,
   balanceOf,
@@ -2253,6 +2254,32 @@ export const venturesRouter = {
         }
       );
       return { id };
+    }),
+
+  /**
+   * What a Venture's cattle are doing: how many stand, how many have gone, what they weighed off the
+   * lorry and what they weigh now, what they are putting on in a day, and how many days until the
+   * Target Window opens.
+   *
+   * The Manager reads it as well as the Owner — the roles matrix gives them a Venture's figures, and
+   * this is figures about animals they look after every day. What it does not carry is a single word
+   * about Investors or what any of them holds.
+   *
+   * No projection in any of it. The fattening board works out where a rate lands a bull at the window
+   * and whether that makes his target, and the Owner is welcome to that; this is the reading an
+   * Investor's paper is made from, and a future weight on a sheet he keeps reads as a promise.
+   */
+  herd: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ ventureId: z.string() }))
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.ventureId);
+      return await theirProgress(
+        context.db,
+        context.farm.id,
+        row,
+        context.clock.now()
+      );
     }),
 
   /**
