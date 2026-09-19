@@ -888,11 +888,18 @@ export const progressStatement = (sheet: ProgressStatement): string =>
       ),
       "",
       "যে পশুগুলো আছে / The animals standing",
-      "  ট্যাগ · শুরুর ওজন · এখনকার ওজন · দৈনিক বৃদ্ধি / Tag · at intake · now · daily gain",
-      ...sheet.animals.map(
-        (one) =>
-          `  ${one.tagNumber} · ${one.intake} কেজি · ${one.latest} কেজি · ${one.gain}`
-      ),
+      // A column header standing over nothing is a heading the reader has to work out the meaning of.
+      // Said in words instead — a Venture can be read before it has bought anything, because the
+      // joining letter is wanted while it is still Open and the sheet that makes it makes this one too.
+      ...(sheet.animals.length === 0
+        ? ["  এখনো কোনো পশু নেই / none yet"]
+        : [
+            "  ট্যাগ · শুরুর ওজন · এখনকার ওজন · দৈনিক বৃদ্ধি / Tag · at intake · now · daily gain",
+            ...sheet.animals.map(
+              (one) =>
+                `  ${one.tagNumber} · ${one.intake} কেজি · ${one.latest} কেজি · ${one.gain}`
+            ),
+          ]),
       "",
       "খরচ / What the money has gone on",
       ...sheet.spend.map((one) => `  ${one.label}: ${one.amount} টাকা`),

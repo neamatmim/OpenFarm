@@ -192,6 +192,26 @@ export const en = {
   "params.runningBudgetWarn":
     "Warn when a Venture has less than this to feed with",
   "params.people": "people",
+  /** "Investor statements" in full, and the third paper named for what it is: a bare "Statements" or
+   *  "Settlement" would collide with the bank's statement a Bank Check reads and with the Venture's own
+   *  Settlement, whose button sits on the same card. */
+  "statements.title": "Investor statements",
+  "statements.hint":
+    "The three papers an Investor receives. Each is for one person and shows nobody else's business; each is recorded as an Export.",
+  "statements.unitsHeld": "{units} Units",
+  "statements.joining": "Joining letter",
+  "statements.progress": "Progress",
+  "statements.settlement": "Settlement statement",
+  "statements.photoOf": "The animal tagged {tag}",
+  "statements.noCapitalYet":
+    "No capital has arrived against that agreement yet, so there is nothing to acknowledge",
+  "statements.capitalReturned":
+    "That agreement's capital has been refunded, so the Farm holds none of it",
+  "statements.notSettledYet":
+    "That Venture's Settlement has not been approved yet",
+  "statements.noSuchAgreement": "No such agreement on this farm",
+  "statements.farmNotRegistered":
+    "Write the farm's DLS registration number down first — every paper carries it",
   "ventures.title": "Ventures",
   "ventures.subtitle":
     "What investors' money is running here: what each Venture is after, what it holds, and when it means to sell.",
@@ -1751,6 +1771,8 @@ export const en = {
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
   "alerts.investorStatementDue":
     "{venture}: {investors} Investors are due their progress statement ({occasion})",
+  /** The one notice that leads somewhere: the screen where the paper it is about is made. */
+  "alerts.makeThePaper": "Make the papers",
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
   "nav.farm": "The farm",

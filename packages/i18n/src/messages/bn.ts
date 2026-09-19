@@ -193,6 +193,22 @@ export const bn: Record<MessageKey, string> = {
   "params.investorWarnAt": "কতজন হলে সতর্ক করবে",
   "params.runningBudgetWarn": "খাওয়ানোর টাকা এর কম হলে সতর্ক করবে",
   "params.people": "জন",
+  "statements.title": "কাগজপত্র",
+  "statements.hint":
+    "বিনিয়োগকারী যে তিনটি কাগজ পান। প্রতিটি একজনের জন্য, অন্য কারো কিছু তাতে থাকে না; প্রতিটিই এক্সপোর্ট হিসেবে লেখা থাকে।",
+  "statements.unitsHeld": "{units} ইউনিট",
+  "statements.joining": "যোগদানপত্র",
+  "statements.progress": "অগ্রগতি",
+  "statements.settlement": "হিসাব নিকাশ",
+  "statements.photoOf": "{tag} ট্যাগের পশু",
+  "statements.noCapitalYet":
+    "এই চুক্তির বিপরীতে এখনো কোনো মূলধন আসেনি, তাই স্বীকার করার কিছু নেই",
+  "statements.capitalReturned":
+    "এই চুক্তির মূলধন ফেরত দেওয়া হয়েছে, খামারের কাছে কিছু নেই",
+  "statements.notSettledYet": "এই ভেঞ্চারের হিসাব এখনো অনুমোদিত হয়নি",
+  "statements.noSuchAgreement": "এই খামারে এমন কোনো চুক্তি নেই",
+  "statements.farmNotRegistered":
+    "আগে খামারের ডিএলএস নিবন্ধন নম্বর লিখুন — প্রতিটি কাগজে তা থাকে",
   "ventures.title": "ভেঞ্চার",
   "ventures.subtitle":
     "বিনিয়োগকারীর টাকায় যা চলছে: কোন ভেঞ্চার কত খুঁজছে, কত উঠেছে, আর কবে বিক্রির কথা।",
@@ -1682,6 +1698,7 @@ export const bn: Record<MessageKey, string> = {
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
   "alerts.investorStatementDue":
     "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
+  "alerts.makeThePaper": "কাগজ তৈরি করুন",
   "push.withdrawalChangedTitle": "আটকে রাখার সময় বদলেছে",
   "push.withdrawalChangedBody": "{tag} — খামারের অ্যাপ দেখুন",
   "nav.farm": "খামার",
