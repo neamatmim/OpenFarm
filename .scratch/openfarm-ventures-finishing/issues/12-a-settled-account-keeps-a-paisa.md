@@ -7,7 +7,7 @@ figure by rounding in a different order, and disagree by fractions.
 `CONTEXT.md` says of a **Settlement**: "the last of the money going out is what makes the Venture
 Settled … so a settled account reads nothing."
 
-**Status:** ready-for-owner — every way out moves somebody's money, even if only by a paisa.
+**Status:** done — the Owner chose the first of the three ways out (2026-09-20).
 
 **Spec:** `CONTEXT.md` — **Settlement**, **Reimbursement**.
 
@@ -65,3 +65,30 @@ favoured — but a settled account never lands on nothing except by luck.
   from the same account and left this behind. The paisa was inside that number all along.
 - No test asserts a settled balance of exactly zero except `settlement.test.ts`, whose figures are
   round by construction and so never meet this.
+
+## What was decided, and what was built
+
+**The Owner chose the Settlement sweeping it** (2026-09-20). The paisa joins `roundingBdt`, the
+remainder the per-Unit flooring already leaves to the Farm, and leaves on the same line of the same
+statement. One existing idea doing one more job.
+
+**A taka is not swept.** The sweep is the account's own remainder — what it would still hold once the
+Owner's Advance and every payout had left — and it is folded in only while it is under a taka. Anything
+larger is not paisa drift: it is the run's charges genuinely disagreeing with the money that moved, and a
+Settlement that quietly moved it would be hiding the thing the Owner has to go and find. `sweptUp` is the
+whole of that judgement and `settlement-rounding.test.ts` pins it, proved by forcing the guard open and
+watching the taka case go red.
+
+**The bound is what stops it ballooning.** Before a run is over the account still holds what the animals
+are eating through, so "what is left" is not a remainder at all — an unbounded sweep would have handed
+the Farm most of a running Venture's capital as its share. That is the trap in this ticket and the reason
+for the threshold, rather than tidiness.
+
+**কোরবানি ২০২৬ keeps its paisa, and should.** Its Settlement was approved on 2026-09-05 and approval
+freezes every figure — that is the whole point of approving, and a Correction landing afterwards is
+refused in favour of a Settlement Adjustment. So the demo farm still reads ৳০.০১ and will for ever. Runs
+settled from now on land on nothing.
+
+**`CONTEXT.md` now says what it does rather than what it wished.** The **Settlement** entry said "a
+settled account reads nothing", which was not true; it says so exactly now, names the paisa and says
+where it goes.

@@ -7,6 +7,7 @@ import {
   ventureSettlement,
   ventureSettlementShare,
 } from "@OpenFarm/db/schema/venture";
+import type { Split } from "@OpenFarm/domain";
 import {
   farmDayOf,
   monthOf,
@@ -87,6 +88,40 @@ export type Block =
       /** Nobody ever opened the statement for it. */
       neverRead: string[];
     };
+
+/**
+ * A rounding difference is smaller than a taka.
+ *
+ * A month's Reimbursement is the sum of five parts each already rounded, because five lines that do not
+ * add up to the figure beneath them is the farm arguing with itself in front of an Investor. A Settlement
+ * adds the raw shares over the whole run and rounds once. Round-then-sum and sum-then-round are not the
+ * same, and over a run of months they drift by paisa.
+ *
+ * So paisa are swept and taka are not. Anything larger than this is not rounding — it is a real
+ * disagreement between what the run was charged and what actually left the account, and the Farm
+ * quietly absorbing it would be the farm hiding its own mistake.
+ */
+const A_ROUNDING_BDT = 1;
+
+/**
+ * The split with the account's own remainder folded into it: the paisa joins the taka the flooring
+ * already left over, and both go to the Farm on the one line that has always said so.
+ *
+ * Left alone when the remainder is a taka or more. That is not rounding, and a Settlement that quietly
+ * moved it would be hiding something the Owner needs to go and find.
+ */
+export const sweptUp = (
+  split: Pick<Split, "roundingBdt" | "farmBdt">,
+  overBdt: number
+): Pick<Split, "roundingBdt" | "farmBdt"> => {
+  const isRounding = Math.abs(overBdt) < A_ROUNDING_BDT;
+  return {
+    roundingBdt: isRounding
+      ? roundTaka(split.roundingBdt + overBdt)
+      : split.roundingBdt,
+    farmBdt: isRounding ? roundTaka(split.farmBdt + overBdt) : split.farmBdt,
+  };
+};
 
 /** Added up. */
 const sumOf = (figures: readonly number[]) => {
@@ -411,6 +446,19 @@ export const settlementOf = async (
     };
   });
 
+  // What the account would still be holding once the Owner's own money and every payout had left it. It
+  // is the paisa the two roundings differ by, and it goes where the other remainder already goes: to the
+  // Farm, on its own line, so that a settled account reads nothing.
+  const advanceBdt = roundTaka(what?.advancedBdt ?? 0);
+  const balanceBdt = roundTaka(balanceOf(what ?? NOTHING_HELD));
+  const overBdt = roundTaka(
+    balanceBdt -
+      advanceBdt -
+      sumOf(payouts.map((one) => one.payoutBdt)) -
+      split.farmBdt
+  );
+  const swept = sweptUp(split, overBdt);
+
   const blocks = whatBlocksIt({
     agreements,
     charged,
@@ -433,13 +481,14 @@ export const settlementOf = async (
     investorsPercent,
     units,
     ...split,
+    ...swept,
     /** Repaid at cost out of the Venture's cash before any capital returns, even where the run lost
      *  money: the Owner's own taka went in to feed their animals, and it is not a charge — what it paid
      *  for is already among the charges. */
-    advanceBdt: roundTaka(what?.advancedBdt ?? 0),
+    advanceBdt,
     capitalBdt: roundTaka((what?.capitalInBdt ?? 0) - (what?.refundedBdt ?? 0)),
     /** What the account holds, which is what everything above has to add up to. */
-    balanceBdt: roundTaka(balanceOf(what ?? NOTHING_HELD)),
+    balanceBdt,
     payouts,
   };
 };
