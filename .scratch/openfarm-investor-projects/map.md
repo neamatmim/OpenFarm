@@ -53,7 +53,9 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 
 **The finishing set** (6 tickets, 2026-09-18/19) closed what the increments left: Adjustments lifted out of the settlement store, a settled Venture refusing the Corrections that would move its figures, a Correction that reaches every Venture it touches, and the Settlement, its payouts and its Adjustments on screen.
 
-**Caveat worth carrying.** Most of these screens were shipped without anybody looking at them. The first one that was opened — the statements sheet, 2026-09-19 — turned up three defects in a sitting, none of them in the code under review: a column header over no rows, a notice printing its own `{placeholders}`, and a month rendered `2026-09` inside a Bangla sentence. The Settlement, payout and Adjustment screens have still never been opened. **The demo seed makes no Venture**, which is why: there is nothing to look at without building one by hand through the UI first.
+**Two Ventures are now in the demo seed** (2026-09-19): কোরবানি ২০২৬, settled and paid out, and ঈদ ২০২৭, still fattening, both built by driving the same procedures the Owner would. So any Venture screen can be looked at with one seed run. Doing that immediately found that the **Settlement was unreachable once a Venture settled** — the button was drawn only while `selling` — and one real defect in the money: [nothing ever pays for a Venture's Selling Trip](../openfarm-ventures-finishing/issues/08-nothing-ever-pays-for-a-ventures-selling-trip.md), which is the Owner's to decide.
+
+**Caveat worth carrying.** Most of these screens were shipped without anybody looking at them. The first one that was opened — the statements sheet, 2026-09-19 — turned up three defects in a sitting, none of them in the code under review: a column header over no rows, a notice printing its own `{placeholders}`, and a month rendered `2026-09` inside a Bangla sentence. The Settlement, payout and Adjustment screens were opened for the first time on 2026-09-19, once the seed made a Venture to look at. Most of the rest — movements, reimburse, advance, bank check, the Float sheets, the Internal Sale, the buy-back — still have not been.
 
 ## Decisions so far
 
@@ -84,7 +86,6 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 - **Tax and the accountant.** How project money appears in the monthly accountant export, and what the software must withhold or show. The research found 10% withholding if a contract reads as a deposit, and none found for a genuine profit share; VAT is likely on any fee. The advisers in the lawyer task confirm; then waits on how investor money is recorded.
 - **Reaching Investors without a login.** How the statements physically get to them (print, WhatsApp, email) now that their content and cadence are settled.
 - **The Owner's view of Ventures.** Venture tiles and exceptions on the Owner's farm page: a Venture running over cost, a Running Budget nearly gone, animals unsold as the Wind-up Period ends. **No longer blocked** — settlement shipped 2026-09-18. `ventures.herd` (`routers/ventures.ts`) already returns the whole progress reading to Owner and Manager and nothing calls it.
-- **A Venture in the demo seed.** Nothing under `packages/api/src/seed/` makes a Venture, Investor, Agreement or Settlement, so no Venture screen can be looked at without twenty minutes of hand-building. It is the cheapest thing on this list and it unblocks looking at the six screens nobody has seen.
 
 ## Out of scope
 
