@@ -193,6 +193,13 @@ export const bn: Record<MessageKey, string> = {
   "params.investorWarnAt": "কতজন হলে সতর্ক করবে",
   "params.runningBudgetWarn": "খাওয়ানোর টাকা এর কম হলে সতর্ক করবে",
   "params.people": "জন",
+  "ventureTrouble.title": "যেসব ভেঞ্চারে আপনাকে লাগবে",
+  "ventureTrouble.runningBudgetLow": "খাওয়ানোর টাকা কমে আসছে — ৳{left} বাকি",
+  "ventureTrouble.pastWindUp": "গুটিয়ে আনার সময় শেষ, তবু {standing}টি গরু অবিক্রীত",
+  "ventureTrouble.bankStale":
+    "{months} মাস আবার মিলিয়ে দেখতে হবে — ওই মাসগুলো নিয়ে খামারের হিসাব বদলেছে",
+  "ventureTrouble.bankDisagrees":
+    "{months} মাসে ব্যাংকের সাথে মেলেনি — কী জেনেছেন লিখুন",
   "statements.title": "কাগজপত্র",
   "statements.hint":
     "বিনিয়োগকারী যে তিনটি কাগজ পান। প্রতিটি একজনের জন্য, অন্য কারো কিছু তাতে থাকে না; প্রতিটিই এক্সপোর্ট হিসেবে লেখা থাকে।",

@@ -1,4 +1,4 @@
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -46,9 +46,9 @@ import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { lastMonth } from "@/lib/months";
+import type { Venture } from "@/lib/ventures";
+import { monthsStillOut, pastWindUp } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
-
-type Venture = Awaited<ReturnType<typeof orpc.ventures.list.call>>[number];
 
 /** Where a Venture stands, in a word the Owner reads at a glance. */
 const TONES = {
@@ -89,11 +89,7 @@ const BankStanding = ({
     | undefined;
 }) => {
   const { t } = useLanguage();
-  // A fortnight-old cache was written before a month could go stale, and says nothing about one.
-  const stale = bank?.monthsStale ?? [];
-  const disagreed = (bank?.monthsOut ?? []).filter(
-    (month) => !stale.includes(month)
-  );
+  const { stale, disagreed } = monthsStillOut(bank);
   if (stale.length > 0 || disagreed.length > 0) {
     return (
       <div className="flex flex-wrap gap-1">
@@ -128,20 +124,6 @@ const BankStanding = ({
     </StatusBadge>
   );
 };
-
-/**
- * Whether the Wind-up Period has run out with Animals still hers.
- *
- * The one condition, so the warning and the act it calls for cannot disagree — being told the run is
- * over while the button that ends it is not there would be worse than not being told. Written without a
- * closing angle bracket because the guard against untranslated JSX text reads one as the end of a tag.
- *
- * A fortnight-old cached answer was written before either figure existed and says nothing about either.
- */
-const pastWindUp = (venture: Venture) =>
-  venture.state === "selling" &&
-  (venture.animalsStanding ?? 0) !== 0 &&
-  (venture.windUpEndsOn ?? "9999-12-31") < farmDayOf(new Date());
 
 /**
  * Said once the Wind-up Period has run out with animals still standing: the Farm is about to have to buy
