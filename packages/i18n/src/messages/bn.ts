@@ -1675,9 +1675,13 @@ export const bn: Record<MessageKey, string> = {
   "alerts.withdrawalChanged": "{tag} — দুধ আটকে রাখার সময় বদলেছে",
   "digest.withdrawalChanged": "{count}টি পশুর আটকে রাখার সময় বদলেছে",
   "digest.lowStock": "{count}টি খাদ্য কমে আসছে",
+  "digest.investorStatementDue":
+    "{count}টি ভেঞ্চারের বিনিয়োগকারীদের অগ্রগতিপত্র পাওনা",
   "digest.moneyAwaiting": "{count}টি টাকার হিসাব আপনার অনুমোদনের অপেক্ষায়",
   "alerts.moneyAwaiting": "{category}: ৳{amount} আপনার অনুমোদনের অপেক্ষায়",
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
+  "alerts.investorStatementDue":
+    "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
   "push.withdrawalChangedTitle": "আটকে রাখার সময় বদলেছে",
   "push.withdrawalChangedBody": "{tag} — খামারের অ্যাপ দেখুন",
   "nav.farm": "খামার",

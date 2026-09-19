@@ -104,6 +104,15 @@ export interface NoticeFacts {
     categoryEn: string | null;
   };
   registration_renewal_due: { expiresOn: string | null };
+  investor_statement_due: {
+    ventureId: string;
+    venture: string;
+    /** How many Investors are waiting, so the Owner knows the size of the evening's post. */
+    investors: number;
+    /** Which occasion it is: a month as "YYYY-MM", or what happened — buying closing, the first Sale,
+     *  the Wind-up Period starting. */
+    occasion: string;
+  };
   entry_rejected: { count: number; reason: string };
 }
 
@@ -142,6 +151,9 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   money_awaiting_approval: { audience: [theOwner], entity: "money_event" },
   // The Registration is in the Owner's name, and renewing it is theirs to do.
   registration_renewal_due: { audience: [theOwner], entity: "sop_instance" },
+  // Whose money it is, is the Owner's business and nobody else's — the Manager reads a Venture's
+  // figures but never its Investors. And producing the paper is the Owner's act besides.
+  investor_statement_due: { audience: [theOwner], entity: "venture" },
   // Their own phone is holding the entries, so it is their own news.
   entry_rejected: { audience: ["whoseActItWas"], entity: "sync_batch" },
 };

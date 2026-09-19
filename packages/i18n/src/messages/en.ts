@@ -1744,9 +1744,13 @@ export const en = {
   "alerts.withdrawalChanged": "{tag} — her withdrawal has changed",
   "digest.withdrawalChanged": "{count} withdrawals changed",
   "digest.lowStock": "{count} feeds running low",
+  "digest.investorStatementDue":
+    "{count} Ventures owe their Investors a statement",
   "digest.moneyAwaiting": "{count} Money Events awaiting your approval",
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
+  "alerts.investorStatementDue":
+    "{venture}: {investors} Investors are due their progress statement ({occasion})",
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
   "nav.farm": "The farm",

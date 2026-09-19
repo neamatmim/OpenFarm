@@ -23,6 +23,7 @@ import {
   recentHappenings,
   renewalSlotsFor,
 } from "./instances-store";
+import { tellAboutPapersDue } from "./investor-statement-notice";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
@@ -235,6 +236,46 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
   );
 };
 
+/**
+ * Tells the Owner which Ventures owe their Investors a progress statement: the month, and the day a
+ * **Wind-up Period** begins. The other two occasions are raised by the acts that cause them.
+ *
+ * Silent when there is nothing to say, which is the steady state — everyone calls this on opening the
+ * app, and a farm with no Venture running must not open a transaction for it.
+ */
+const tellAboutPapers = async (context: Turning, now: Date) => {
+  const running = await context.db.query.venture.findMany({
+    where: {
+      farmId: context.farm.id,
+      state: { in: ["open", "buying", "fattening", "selling"] },
+    },
+    columns: { id: true },
+  });
+  const [anyOfThem] = running;
+  if (!anyOfThem) {
+    return;
+  }
+  let raised = 0;
+  await audited(context).write(
+    {
+      entity: "venture",
+      entityId: anyOfThem.id,
+      action: "update",
+      // Read after the raising, as the low-stock sweep's is: what the trail records is how many
+      // tellings this turn of the day actually wrote, not how many it considered.
+      after: () => Promise.resolve({ investorStatementsDue: raised }),
+    },
+    async (tx) => {
+      raised = await tellAboutPapersDue(
+        tx,
+        context.farm.id,
+        now,
+        context.farm.windUpDays
+      );
+    }
+  );
+};
+
 /** The Instance the sweep's Audit Event is keyed on: the first it has something to say
  *  about, with the rest named in the event's payload. */
 const first = (pending: {
@@ -249,6 +290,7 @@ export const theSweep = async (context: Turning) => {
   // having nothing to say is the steady state and must not silence them.
   await tellAboutWithdrawals(context, now);
   await tellAboutLowStock(context, now);
+  await tellAboutPapers(context, now);
   const pending = await findPendingNotices(context.db, context.farm, now);
   // A sweep with nothing to say is not an event, and opens no transaction: everyone
   // calls this on opening the app, and in steady state there is nothing new to say.

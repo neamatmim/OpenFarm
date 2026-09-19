@@ -15,5 +15,6 @@ export const ALERT_KINDS = [
   "low_stock",
   "money_awaiting_approval",
   "registration_renewal_due",
+  "investor_statement_due",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
