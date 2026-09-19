@@ -196,7 +196,9 @@ export const StatTile = ({
     </div>
     <div
       className={cn(
-        "text-2xl leading-none font-semibold tracking-tight tabular-nums sm:text-3xl md:text-4xl",
+        // Wrapped, not clipped: a Venture's balance carries its paisa, and the longest figure the farm
+        // has ran off the side of its tile rather than taking a second line.
+        "text-2xl leading-tight font-semibold tracking-tight break-words tabular-nums sm:text-3xl md:text-4xl",
         TILE_TONE[tone]
       )}
     >
