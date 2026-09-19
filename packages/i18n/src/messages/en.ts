@@ -450,6 +450,10 @@ export const en = {
   "ventures.rate": "Rate per kg",
   "ventures.rateHint": "Live weight, as the day's market gives it",
   "ventures.total": "Total",
+  /** Said before she fills the form, not after the farm refuses it: a price is struck off a weight, so
+   *  one animal nobody has weighed stops the whole buy-back. */
+  "ventures.weighThemFirst":
+    "Put {tags} on the scale first — a price is struck off her weight, and the farm strikes none it cannot defend.",
   "ventures.neverWeighed": "Never weighed",
   "ventures.soldOn": "Sold on",
   "ventures.priceFromWeight": "{weight} kg at that rate · ৳{price}",

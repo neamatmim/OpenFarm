@@ -429,6 +429,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.rate": "কেজি প্রতি দর",
   "ventures.rateHint": "জীবন্ত ওজনে, আজকের বাজার অনুযায়ী",
   "ventures.total": "মোট",
+  "ventures.weighThemFirst":
+    "আগে {tags}-এর ওজন নিন — ওজন থেকেই দাম ঠিক হয়, আর যে দামের পক্ষে কিছু বলা যায় না খামার তা ঠিক করে না।",
   "ventures.neverWeighed": "ওজন নেওয়া হয়নি",
   "ventures.soldOn": "বিক্রির দিন",
   "ventures.priceFromWeight": "{weight} কেজি এই দরে · ৳{price}",

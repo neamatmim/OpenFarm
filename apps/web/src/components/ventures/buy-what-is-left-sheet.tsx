@@ -102,8 +102,15 @@ export const BuyWhatIsLeftSheet = ({
     })
   );
   const rateBdtPerKg = Number(rate);
+  // The farm strikes no price it cannot defend: an Animal nobody has weighed has none, and the server
+  // refuses the whole act over one of them. Said and stopped here rather than after she has typed a
+  // rate, a reason, a day and a bank reference for nothing — the sheet has known since it opened.
+  const unweighed = (left.data?.animals ?? []).filter(
+    (one) => one.weightKg === null
+  );
   const ready =
     venture !== null &&
+    unweighed.length === 0 &&
     rate !== "" &&
     !Number.isNaN(rateBdtPerKg) &&
     rateBdtPerKg !== 0 &&
@@ -134,6 +141,13 @@ export const BuyWhatIsLeftSheet = ({
       title={t("ventures.buyWhatIsLeft")}
     >
       <WhatIsLeft animals={left.data?.animals ?? []} rate={rateBdtPerKg} />
+      {unweighed.length === 0 ? null : (
+        <p className="border-warning/35 bg-warning-surface/40 rounded-md border p-3 text-sm">
+          {t("ventures.weighThemFirst", {
+            tags: unweighed.map((one) => one.tagNumber).join(", "),
+          })}
+        </p>
+      )}
       <FormField
         hint={t("ventures.rateHint")}
         id="wind-up-rate"
