@@ -1,11 +1,12 @@
 import type { Database } from "@OpenFarm/db";
-import { roundTaka } from "@OpenFarm/domain";
+import type { AdjustmentOutcome } from "@OpenFarm/db/schema/venture";
+import { exitOf, roundTaka } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { farmCosts } from "./cost-store";
 import type { ChargeWord } from "./settlement-store";
-import { whatItWasCharged } from "./settlement-store";
+import { readSettlement, whatItWasCharged } from "./settlement-store";
 import {
   budgetsOf,
   heldByEach,
@@ -222,6 +223,12 @@ export interface TheirSpend {
   runningSpentBdt: number;
 }
 
+/** An average in taka, or nothing at all where there is nothing to average. */
+const meanTaka = (values: number[]) =>
+  values.length === 0
+    ? null
+    : roundTaka(values.reduce((sum, one) => sum + one, 0) / values.length);
+
 /** The charge words that are the Running Budget's: what the animals cost while they stand here. */
 const KEEPING_THEM = new Set<ChargeWord>(["feed", "medicine", "vet", "herd"]);
 
@@ -320,4 +327,200 @@ export const theirPhotographs = async (
       ? [{ tagNumber, contentType: one.contentType, data: one.data }]
       : [];
   });
+};
+
+/** What became of the herd over the whole run, as the closing sheet tells it. */
+export interface TheirHerdStory {
+  boughtCount: number;
+  averageBoughtBdt: number | null;
+  soldCount: number;
+  averageSoldBdt: number | null;
+  boughtBackCount: number;
+  diedCount: number;
+}
+
+/** One Settlement Adjustment as his own sheet says it: what it was about, and what it came to for him. */
+export interface HisAdjustment {
+  reason: string;
+  raisedAt: Date;
+  outcome: AdjustmentOutcome;
+  /** What his Units are worth of it, and what of that has actually reached him. */
+  differenceBdt: number;
+  paidBdt: number;
+}
+
+/** His own line of an approved Settlement, and the Venture's figures it was worked out from. */
+export interface HisSettlement {
+  approvedAt: Date;
+  proceedsBdt: number;
+  charges: { word: ChargeWord; bdt: number }[];
+  chargedBdt: number;
+  profitBdt: number;
+  investorsPercent: number;
+  units: number;
+  perUnitBdt: number;
+  roundingBdt: number;
+  farmBdt: number;
+  advanceBdt: number;
+  advanceRepaid: boolean;
+  /** Capital returned to all of them, which is what a Unit's own capital divides out of. Follows from
+   *  the Units and the unit price he already holds, so it discloses nothing of anybody else. */
+  capitalBdt: number;
+  /** His: what his Units took, what came back, and what went out to him. */
+  his: {
+    units: number;
+    capitalBdt: number;
+    shareBdt: number;
+    payoutBdt: number;
+    /** The reference the money went out on, or nothing while it has not. */
+    reference: string | null;
+    paidOn: string | null;
+  };
+  adjustments: HisAdjustment[];
+}
+
+/**
+ * His own line of a Settlement, off the figures the approval froze.
+ *
+ * Never recomputed. Approving wrote the figures down as they stood and every Investor was paid on them,
+ * so what he is shown a year later has to be what he was shown on the day — which is why the Corrections
+ * that would move them are refused in favour of an Adjustment. A sheet that worked the sum out afresh
+ * would quietly undo all of that.
+ *
+ * Narrowed to his Agreement before it leaves: the frozen read carries every Investor's share row and
+ * every Investor's name, and none of that is his business.
+ */
+export const hisSettlement = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  standing: HisStanding
+): Promise<HisSettlement | null> => {
+  const settled = await readSettlement(tx, farmId, standing.venture.id);
+  if (!settled) {
+    return null;
+  }
+  const his = settled.shares.find(
+    (one) => one.agreementId === standing.agreement.id
+  );
+  if (!his) {
+    return null;
+  }
+  // The reference is on the movement the money went out on, not on the share row, so a sheet produced
+  // before the last transfer has gone says so rather than printing a blank where a reference belongs.
+  const paid = his.paidMovementId
+    ? await tx.query.ventureMovement.findFirst({
+        where: { farmId, id: his.paidMovementId },
+        columns: { reference: true, movedOn: true },
+      })
+    : null;
+  return {
+    approvedAt: settled.approvedAt,
+    proceedsBdt: settled.proceedsBdt,
+    charges: settled.charges,
+    chargedBdt: settled.chargedBdt,
+    profitBdt: settled.profitBdt,
+    investorsPercent: settled.investorsPercent,
+    units: settled.units,
+    perUnitBdt: settled.perUnitBdt,
+    roundingBdt: settled.roundingBdt,
+    farmBdt: settled.farmBdt,
+    advanceBdt: settled.advanceBdt,
+    advanceRepaid: settled.advanceRepaid,
+    capitalBdt: settled.capitalBdt,
+    his: {
+      units: his.units,
+      capitalBdt: his.capitalBdt,
+      shareBdt: his.shareBdt,
+      payoutBdt: his.payoutBdt,
+      reference: paid?.reference ?? null,
+      paidOn: paid?.movedOn ?? null,
+    },
+    // What each Adjustment is worth to him, which is what his Units take of it. Never another man's.
+    adjustments: settled.adjustments.map((one) => ({
+      reason: one.reason,
+      raisedAt: one.raisedAt,
+      outcome: one.outcome,
+      differenceBdt: roundTaka(one.perUnitDifferenceBdt * his.units),
+      paidBdt: roundTaka(one.perUnitPaidBdt * his.units),
+    })),
+  };
+};
+
+/**
+ * What became of a Venture's cattle over the whole run: how many it bought and at what average, how many
+ * went to a buyer and at what average, how many the Farm bought back at wind-up, and how many it lost.
+ *
+ * The result with a story attached. An Investor reading a profit figure alone learns nothing about why it
+ * is what it is; four bulls bought at sixty and sold at ninety is an answer he can weigh.
+ *
+ * Each of the four asks whose she was at the moment of the thing it counts, so that they cannot overlap:
+ * bought at her arrival, sold on the day the buyer took her, lost on the day she went. The Farm's
+ * buy-back at wind-up is an **Internal Sale** to nobody, which is what tells it from a bull sold across
+ * to another Venture — and neither of those is a Sale.
+ */
+export const theirHerdStory = async (
+  tx: Pick<Tx, "query"> & { execute: Database["execute"] },
+  farmId: string,
+  ventureId: string
+): Promise<TheirHerdStory> => {
+  const [costs, ownedThenBy, internal] = await Promise.all([
+    farmCosts(tx, farmId),
+    ownedThenByOf(tx, farmId),
+    tx.query.internalSale.findMany({
+      where: { farmId },
+      columns: {
+        animalId: true,
+        fromVentureId: true,
+        toVentureId: true,
+        priceBdt: true,
+        soldOn: true,
+      },
+    }),
+  ]);
+  const byId = new Map(costs.animals.map((one) => [one.id, one]));
+  // Every event asks whose she was at *that* moment, which is the only way the four counts do not
+  // overlap. A bull the Farm bought back at wind-up and sold on afterwards was not this Venture's when
+  // the buyer took him, and a bull sold across to another Venture was that Venture's from the day he
+  // went — counting either as this run's Sale would put a price on the sheet it never received.
+  const bought: number[] = [];
+  const sold: number[] = [];
+  let boughtBackCount = 0;
+  let diedCount = 0;
+
+  for (const one of costs.animals) {
+    if (one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId) {
+      bought.push(Number(one.intake.purchasePriceBdt));
+    }
+    if (one.sale && ownedThenBy(one.id, one.sale.soldAt) === ventureId) {
+      sold.push(Number(one.sale.priceBdt));
+    }
+    const exit = exitOf(one);
+    if (
+      exit &&
+      (one.state === "died" || one.state === "culled") &&
+      ownedThenBy(one.id, exit.at) === ventureId
+    ) {
+      diedCount += 1;
+    }
+  }
+  for (const one of internal) {
+    // Taken on from another purse: bought with this Venture's money as surely as one off a lorry, and
+    // the Settlement's own "bought" line counts it, so the story must too.
+    if (one.toVentureId === ventureId && byId.has(one.animalId)) {
+      bought.push(Number(one.priceBdt));
+    }
+    // Let go to the Farm, which is the wind-up buy-back: it takes every Animal still standing at one
+    // rate on one day, and it is not a Sale.
+    if (one.fromVentureId === ventureId && one.toVentureId === null) {
+      boughtBackCount += 1;
+    }
+  }
+  return {
+    boughtCount: bought.length,
+    averageBoughtBdt: meanTaka(bought),
+    soldCount: sold.length,
+    averageSoldBdt: meanTaka(sold),
+    boughtBackCount,
+    diedCount,
+  };
 };

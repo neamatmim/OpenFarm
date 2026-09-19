@@ -590,6 +590,10 @@ export const readSettlement = async (
       shareBdt: Number(one.shareBdt),
       payoutBdt: Number(one.payoutBdt),
       paid: one.paidMovementId !== null,
+      /** The Venture Movement his money went out on, for whoever has to print the reference it went
+       *  on — a payout movement carries the Venture and not the Agreement, so this is the only way
+       *  back to it. */
+      paidMovementId: one.paidMovementId,
       acknowledgedAt: one.acknowledgedAt,
       acknowledgedNote: one.acknowledgedNote,
     })),
