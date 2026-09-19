@@ -301,6 +301,9 @@ export const bn: Record<MessageKey, string> = {
   "ventures.stampedOn": "স্ট্যাম্পের তারিখ",
   "ventures.stampSerial": "স্ট্যাম্পের সিরিয়াল",
   "ventures.paper": "স্ট্যাম্প করা কাগজ",
+  "ventures.paperTake": "কাগজের ছবি তুলুন",
+  "ventures.paperOn": "ছবি যোগ হয়েছে",
+  "ventures.paperNone": "এখনো ছবি নেই",
   "ventures.paperHint": "সই করা কাগজের ছবি, চুক্তির সাথে রাখা থাকবে",
   "ventures.takeCapital": "টাকা জমা",
   "ventures.capitalHint":
@@ -310,6 +313,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.whosePaperHint":
     "যে চুক্তির স্ট্যাম্প করা ছবি জমা আছে, কেবল তার টাকাই নেওয়া যায়",
   "ventures.holdsUnits": "{units} ইউনিট",
+  "ventures.paperMissing": "স্ট্যাম্প করা কাগজের অপেক্ষায়",
+  "ventures.paperMissingHint":
+    "যে চুক্তির ছবি খামারের কাছে নেই, তার টাকা নেওয়া যায় না। এখানে ছবি যোগ করে তারপরই টাকা জমা দিন।",
+  "ventures.paperKept": "চুক্তির সাথে কাগজ যোগ হয়েছে",
   "ventures.noPaperYet": "ছবি জমা হয়নি",
   "ventures.amount": "পরিমাণ",
   "ventures.movedOn": "ব্যাংক যেদিন পাঠিয়েছে",

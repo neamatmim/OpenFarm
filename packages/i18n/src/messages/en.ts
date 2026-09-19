@@ -312,6 +312,11 @@ export const en = {
   "ventures.stampedOn": "Stamped on",
   "ventures.stampSerial": "Stamp serial",
   "ventures.paper": "The stamped paper",
+  /** The farm's own words on the file button, and whether the stamped paper is on yet — capital is
+   *  refused without it, so she is told here rather than at the refusal. */
+  "ventures.paperTake": "Photograph the paper",
+  "ventures.paperOn": "Photo added",
+  "ventures.paperNone": "No photo yet",
   "ventures.paperHint":
     "A photo of the signed paper, kept against the Agreement",
   "ventures.takeCapital": "Capital in",
@@ -322,6 +327,12 @@ export const en = {
   "ventures.whosePaperHint":
     "Only an Agreement whose stamped photo is on file may take money",
   "ventures.holdsUnits": "{units} Units",
+  /** The way back from signing without the stamped photo: without it capital is refused for good, and
+   *  one Investor may hold only one Agreement per Venture, so there is no signing again. */
+  "ventures.paperMissing": "Waiting on the stamped paper",
+  "ventures.paperMissingHint":
+    "Capital cannot be taken against an agreement the farm holds no photo of. Add it here and take the money straight after.",
+  "ventures.paperKept": "The paper is on the agreement",
   "ventures.noPaperYet": "no photo yet",
   "ventures.amount": "Amount",
   "ventures.movedOn": "The day the bank moved it",

@@ -1,12 +1,14 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Camera } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { shrink } from "@/lib/photo";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -22,6 +24,81 @@ const NOTHING_YET: Arrival = {
   amountBdt: "",
   movedOn: "",
   reference: "",
+};
+
+/**
+ * The stamped paper, attached to an Agreement signed without one.
+ *
+ * Offered here because here is where she finds out: the option above is disabled and says so, and until
+ * now that was the end of the road. One Investor holds at most one Agreement per Venture, no Agreement
+ * can be undone, and no other screen would take the photograph — so a forgotten photo shut that man's
+ * capital out for good and the only way back was a call nobody can make from a phone.
+ */
+const PaperlessAgreements = ({
+  agreements,
+}: {
+  agreements: { id: string; investorId: string }[];
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const nameOf = useInvestorNames();
+  const keeping = useMutation(
+    orpc.ventures.keepAgreementPaper.mutationOptions({
+      onError: (error) => toast.error(sayWhy(error, t)),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+        toast.success(t("ventures.paperKept"));
+      },
+    })
+  );
+  if (agreements.length === 0) {
+    return null;
+  }
+  return (
+    <div className="border-warning/35 bg-warning-surface/40 flex flex-col gap-2 rounded-md border p-3">
+      <p className="text-sm font-medium">{t("ventures.paperMissing")}</p>
+      {agreements.map((one) => (
+        <div className="flex flex-wrap items-center gap-3" key={one.id}>
+          <span className="min-w-0 flex-1 truncate text-sm">
+            {nameOf(one.investorId)}
+          </span>
+          {/* The farm's own words on the button, as everywhere else a photograph is taken. */}
+          <label
+            className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-[3px] md:min-h-9"
+            htmlFor={`capital-paper-${one.id}`}
+          >
+            <Camera aria-hidden className="size-4" />
+            {t("ventures.paperTake")}
+          </label>
+          <input
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            disabled={keeping.isPending}
+            id={`capital-paper-${one.id}`}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) {
+                return;
+              }
+              try {
+                keeping.mutate({
+                  agreementId: one.id,
+                  ...(await shrink(file)),
+                });
+              } catch {
+                toast.error(t("common.error"));
+              }
+            }}
+            type="file"
+          />
+        </div>
+      ))}
+      <p className="text-muted-foreground text-sm">
+        {t("ventures.paperMissingHint")}
+      </p>
+    </div>
+  );
 };
 
 /**
@@ -108,6 +185,9 @@ export const TakeCapitalSheet = ({
           ))}
         </NativeSelect>
       </FormField>
+      <PaperlessAgreements
+        agreements={(agreements.data ?? []).filter((one) => !one.hasPaper)}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="capital-amount" label={t("ventures.amount")}>
           <Input
