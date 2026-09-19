@@ -192,6 +192,17 @@ export const en = {
   "params.runningBudgetWarn":
     "Warn when a Venture has less than this to feed with",
   "params.people": "people",
+  /** What a Venture wants the Owner for, on her own page. A stale bank month and one that disagreed
+   *  are said apart: one needs the statement read again, the other needs explaining. */
+  "ventureTrouble.title": "Ventures needing you",
+  "ventureTrouble.runningBudgetLow":
+    "Running low on feeding money — ৳{left} left",
+  "ventureTrouble.pastWindUp":
+    "The wind-up period is over with {standing} cattle still unsold",
+  "ventureTrouble.bankStale":
+    "The bank needs reading again for {months} — the farm changed its mind about those months",
+  "ventureTrouble.bankDisagrees":
+    "The bank did not agree for {months} — say what you found out",
   /** "Investor statements" in full, and the third paper named for what it is: a bare "Statements" or
    *  "Settlement" would collide with the bank's statement a Bank Check reads and with the Venture's own
    *  Settlement, whose button sits on the same card. */

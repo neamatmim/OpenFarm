@@ -140,5 +140,8 @@ export const QueueGroup = ({
 };
 
 /** The link at the head of a queue to the page that holds all of it. */
+/** A row's title that opens what it is about, the whole row being the tap. */
+export const ROW_LINK = "after:absolute after:inset-0 hover:underline";
+
 export const MORE_LINK =
   "text-primary inline-flex min-h-9 items-center gap-1 font-medium underline-offset-4 hover:underline";

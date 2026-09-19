@@ -22,6 +22,7 @@ import {
   Opens,
   QueueGroup,
   QueueRow,
+  ROW_LINK,
 } from "@/components/home/queue";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { ProgressBar, StatusBadge, TagChip } from "@/components/page";
@@ -51,9 +52,6 @@ export const decisionsWaiting = (needsYou: NeedsYou): number =>
 /** The taka the money awaiting approval comes to, whichever way it goes. */
 export const moneyAwaitingTotal = (needsYou: NeedsYou): number =>
   needsYou.moneyAwaiting.reduce((sum, row) => sum + row.amountBdt, 0);
-
-/** A row's title that opens what it is about, the whole row being the tap. */
-const ROW_LINK = "after:absolute after:inset-0 hover:underline";
 
 /** The act at the end of a row: on a phone, big enough for a thumb. */
 const ROW_ACT = "relative h-11 md:h-8";

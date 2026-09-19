@@ -30,6 +30,7 @@ import {
   moneyAwaitingTotal,
 } from "@/components/home/owner-queue";
 import { MORE_LINK } from "@/components/home/queue";
+import { VentureTroubles } from "@/components/home/venture-trouble";
 import {
   EmptyState,
   Notice,
@@ -42,6 +43,7 @@ import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
 type OwnerAnswer = Awaited<ReturnType<typeof orpc.home.owner.call>>;
@@ -209,11 +211,35 @@ const MilkPanel = ({ tiles }: { tiles: OwnerAnswer["tiles"] }) => {
 };
 
 /** The Owner's day once the farm has answered. */
+/**
+ * The green word, said only when the farm has actually been asked everything it is said about.
+ *
+ * Its own component rather than a condition written inline where it is used: the guard against
+ * untranslated JSX text reads whatever sits between one tag and the next as text, so a boolean operator
+ * there — or a comment explaining one — fails the suite.
+ */
+const AllFine = ({ shown }: { shown: boolean }) => {
+  const { t } = useLanguage();
+  return shown ? (
+    <StatusBadge tone="success">{t("owner.allFine")}</StatusBadge>
+  ) : null;
+};
+
 const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const { t, language } = useLanguage();
   const { needsYou, tiles } = data;
   const figures = useFarmFigures(data);
-  const waiting = decisionsWaiting(needsYou);
+  // Asked here rather than folded into `home.owner`, because whether a Wind-up Period has run out is
+  // worked out where it is read — a cached `true` would tell her a run is over on the strength of a
+  // date that has since moved. Owner-only already, and a farm with no Venture gets an empty list.
+  const ventures = useQuery(orpc.ventures.list.queryOptions());
+  const troubled = venturesNeedingHer(ventures.data);
+  // Counted into the badge, so "all fine" cannot be said over a Venture that is not — and not claimed
+  // at all while the answer is still coming or did not come. An empty list is an answer; no answer is
+  // not, and a green "everything is fine" resting on a request that failed is the worst of the three.
+  const heardAboutVentures = ventures.isSuccess;
+  const waiting = decisionsWaiting(needsYou) + troubled.length;
+  const allFine = waiting === 0 && heardAboutVentures;
 
   return (
     <Page width="wide">
@@ -234,7 +260,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
               })}
             </StatusBadge>
           ) : (
-            <StatusBadge tone="success">{t("owner.allFine")}</StatusBadge>
+            <AllFine shown={allFine} />
           )
         }
         title={t("owner.title")}
@@ -245,7 +271,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           <Section id="needs-you" title={t("owner.needsYou")}>
-            {waiting === 0 ? (
+            {waiting === 0 && allFine ? (
               <EmptyState
                 bare
                 description={t("owner.allFineHint")}
@@ -253,7 +279,10 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
                 title={t("owner.allFine")}
               />
             ) : (
-              <OwnerDecisions needsYou={needsYou} />
+              <div className="flex flex-col gap-6">
+                <VentureTroubles ventures={troubled} />
+                <OwnerDecisions needsYou={needsYou} />
+              </div>
             )}
           </Section>
           <Section
