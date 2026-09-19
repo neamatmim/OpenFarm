@@ -2,7 +2,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
   CorrectionAnswer,
   CorrectionDialog,
   useCorrecting,
+  CorrectionChoice,
 } from "@/components/correction-dialog";
 import { WhatSheCost } from "@/components/costs";
 import { Section } from "@/components/page";
@@ -18,6 +19,7 @@ import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { SaleCorrection } from "@/components/sale-correction";
 import { useLanguage } from "@/i18n/language-provider";
+import type { Answer } from "@/lib/correcting";
 import { amount, counterparty, figure } from "@/lib/correcting";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -25,9 +27,29 @@ import { orpc } from "@/utils/orpc";
 import { Fact, FactGrid } from "./animal-facts";
 import type { AnimalDetail, AnimalPowers } from "./animal-types";
 
-/** The Manager puts right what a bought-in animal cost, or who sold her. */
+/**
+ * Whose animal she is, as a Correction answers it: a Venture, or the Farm's own.
+ *
+ * Its own answer rather than `choice`, because here **nothing is a real answer**: the Farm owning her
+ * is not the absence of an owner, it is an owner. So every option is a value and the sentinel stands
+ * for the Farm rather than for "unchanged" — which `same` decides instead.
+ */
+const THE_FARMS = "the-farms-own";
+
+const whoseSheIs = (
+  held: string | null
+): Answer<string | null, string | null> => ({
+  holds: held,
+  shows: held ?? THE_FARMS,
+  sends: (typed) => (typed === THE_FARMS ? null : typed),
+  same: (typed) => (typed === THE_FARMS ? held === null : typed === held),
+  couldBeSent: () => true,
+});
+
+/** The Manager puts right what a bought-in animal cost, who sold her, or whose she is. */
 const IntakeCorrection = ({
   intake,
+  owner,
 }: {
   intake: {
     id: string;
@@ -35,15 +57,22 @@ const IntakeCorrection = ({
     hasilBdt: number;
     sellerName: string | null;
   };
+  /** The Venture she is on now, where she is not the Farm's own. */
+  owner: { id: string; name: string } | null;
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  // The runs an animal may be moved onto. `ventures.running` is exactly the three states a Correction
+  // may hand her to — buying, fattening, selling — and is the one Venture reading a Manager may make,
+  // which matters because putting a slip at the haat right is his to do.
+  const running = useQuery(orpc.ventures.running.queryOptions());
   const correcting = useCorrecting({
     purchasePriceBdt: amount(intake.purchasePriceBdt),
     // Nothing is a real answer here: an animal bought at the farm gate paid no toll, and one typed by
     // mistake is put back to nothing. `amount` would refuse it, and refuse the whole Correction with it.
     hasilBdt: figure(intake.hasilBdt),
     seller: counterparty(intake.sellerName),
+    owner: whoseSheIs(owner?.id ?? null),
   });
   const correct = useMutation(orpc.intake.correct.mutationOptions({}));
   return (
@@ -79,6 +108,22 @@ const IntakeCorrection = ({
         onChange={(value) => correcting.set("seller", value)}
         value={correcting.typed.seller ?? ""}
       />
+      {/* Only where there is somewhere to move her to. A farm that has never run a Venture is not
+          asked whose its animals are. */}
+      {(running.data ?? []).length === 0 && owner === null ? null : (
+        <CorrectionChoice
+          label={t("correct.whoseSheIs")}
+          onChange={(value) => correcting.set("owner", value)}
+          options={[
+            { value: THE_FARMS, label: t("correct.theFarmsOwn") },
+            ...(running.data ?? []).map((one) => ({
+              value: one.id,
+              label: one.name,
+            })),
+          ]}
+          value={correcting.typed.owner ?? THE_FARMS}
+        />
+      )}
     </CorrectionDialog>
   );
 };
@@ -89,9 +134,11 @@ const IntakeCorrection = ({
  */
 const HowSheArrived = ({
   intake,
+  owner,
   mayCorrect,
 }: {
   intake: NonNullable<AnimalDetail["intake"]>;
+  owner: AnimalDetail["owner"];
   mayCorrect: boolean;
 }) => {
   const { t, language } = useLanguage();
@@ -99,7 +146,9 @@ const HowSheArrived = ({
     t("intake.kg", { kg: formatNumber(value, language) });
   return (
     <Section
-      action={mayCorrect ? <IntakeCorrection intake={intake} /> : null}
+      action={
+        mayCorrect ? <IntakeCorrection intake={intake} owner={owner} /> : null
+      }
       title={t("intake.title")}
     >
       <FactGrid>
@@ -275,7 +324,11 @@ export const MoneyPapersTab = ({
       <HowSheLeft mayCorrect={powers.runsTheFarm} sale={detail.sale} />
     ) : null}
     {detail.intake ? (
-      <HowSheArrived intake={detail.intake} mayCorrect={powers.runsTheFarm} />
+      <HowSheArrived
+        intake={detail.intake}
+        mayCorrect={powers.runsTheFarm}
+        owner={detail.owner}
+      />
     ) : null}
     <WhatSheCost tagNumber={detail.tagNumber} />
     {powers.seesPapers ? <HerPapers tagNumber={detail.tagNumber} /> : null}

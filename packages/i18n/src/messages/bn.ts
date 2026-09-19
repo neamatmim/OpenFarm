@@ -2001,6 +2001,8 @@ export const bn: Record<MessageKey, string> = {
   "animals.manageHint":
     "ছবি, কোথায় আছে, অবস্থা আর ট্যাগ — প্রতিটি পরিবর্তন অডিট লগে থাকে।",
   "pregnancy.expectedOn": "সম্ভাব্য প্রসবের তারিখ",
+  "correct.whoseSheIs": "কার গরু",
+  "correct.theFarmsOwn": "খামারের নিজের",
   "correct.seller": "বিক্রেতার নাম",
   "correct.windowOwn":
     "{role} নিজের এন্ট্রি করার পর {span} পর্যন্ত সংশোধন করতে পারেন",

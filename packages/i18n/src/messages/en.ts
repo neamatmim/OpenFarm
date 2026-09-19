@@ -2099,6 +2099,10 @@ export const en = {
   "animals.manageHint":
     "Her photo, where she stands, her State and her tag — each change in the audit trail.",
   "pregnancy.expectedOn": "Expected to calve on",
+  /** Whose animal she is, put right inside the Correction Window — a slip at the haat, where she was
+   *  written to the wrong purse. The Farm owning her is an answer, not the absence of one. */
+  "correct.whoseSheIs": "Whose she is",
+  "correct.theFarmsOwn": "The farm's own",
   "correct.seller": "Seller's name",
   "correct.windowOwn":
     "A {role} may put their own entry right for {span} after making it",
