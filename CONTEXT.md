@@ -338,6 +338,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Withdrawal Summary**: The one-page answer to the question a buyer actually asks: what an Animal has had in the last thirty days, and whether her meat is clear today. Read from the same Withdrawal record the Sale is gated on, so the paper and the gate cannot disagree. _Avoid_: Health certificate (the farm certifies nothing), clearance
 
+**Retention**: How long the farm keeps what it has written down. **Twelve years** for everything a **Venture** is made of — its **Investment Agreements** and their **Amendments**, every **Venture Movement**, its **Settlement** and every payout and **Settlement Adjustment** under it, and the **Investor Statements** it produced. Twelve because it is the longest period that applies, a company's books under the Companies Act 1994 s.181(5), and it swallows VAT's five years and the six assessment years income tax may reach back through. An Investor disputing a payout years later has to meet the evidence rather than a gap. Nothing is purged and no record of a Venture is deleted; where one is, it is named in `venture-records-are-kept.test.ts` and had to be argued for first. Not the same as an **Audit Event**, which is how a change is remembered — retention is how long the thing itself stays. _Avoid_: Archival, purge, expiry
+
 **Export**: Any report or document the system generates for someone outside it. Always an Audit Event; always stamped with farm, Registration number, time and user. _Avoid_: Download, print-out, report (a Report is what it shows; an Export is the act)
 
 ## Notifications
