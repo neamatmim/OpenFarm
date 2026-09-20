@@ -24,7 +24,7 @@ export const linesOf = (value: unknown): RationLine[] => {
  * yesterday's Ration even if the Manager changed it this morning — the same rule the Playbook
  * has (ADR 0001), for the same reason: what the farm did has to stay explicable.
  */
-export const rationInForceAt = async (
+const rationInForceAt = async (
   db: Pick<Database, "query"> | Tx,
   rationId: string,
   at: Date
@@ -39,7 +39,7 @@ export const rationInForceAt = async (
 
 /** The animals a Ration is worked out for: everything standing in the Pen that has not left
  *  the farm. A sold cow keeps her Pen, and feeding for her would be feeding a ghost. */
-export const animalsInPen = async (
+const animalsInPen = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
   penId: string
@@ -51,6 +51,8 @@ export const animalsInPen = async (
   return rows.filter((row) => isOnTheFarm(row)).length;
 };
 
+/** One line of what a Pen is owed. Exported because it is the shape `feedingTargetForPen` answers
+ *  with, and the routers' own types are written in terms of it, though nobody names it. */
 export interface FeedingTargetLine extends RationLine {
   nameBn: string;
   unit: string;
@@ -58,13 +60,13 @@ export interface FeedingTargetLine extends RationLine {
   quantity: number;
 }
 
-export interface FeedNamed {
+interface FeedNamed {
   nameBn: string;
   unit: string;
 }
 
 /** One session's Feeding Target per Feed Item, with everything it was worked out from. */
-export const feedingTargetFor = (
+const feedingTargetFor = (
   lines: RationLine[],
   feeds: Map<string, FeedNamed>,
   animals: number,
@@ -82,6 +84,14 @@ export const feedingTargetFor = (
  * moment, the animals standing there, and how often the Playbook feeds them. Null when the
  * Pen is on no Ration, or when nothing in the Playbook feeds it yet — both are things a
  * screen should say rather than dress up as a zero.
+ */
+/**
+ * What a Pen is owed at one feeding, and what each line of it is called.
+ *
+ * The one way in, with the Ration in force on the day, the animals standing in the Pen, the Playbook's
+ * sessions and the Feed Items' names all worked out behind it. Those were exported once and nothing
+ * outside this file ever asked for them: an interface of seven where two were wanted, and five ways to
+ * get half an answer.
  */
 export const feedingTargetForPen = async (
   db: Pick<Database, "query"> | Tx,
@@ -141,7 +151,7 @@ export const feedingTargetForPen = async (
  *
  * Null when nothing in the Playbook feeds anything yet.
  */
-export const sessionsPerDayForPen = async (
+const sessionsPerDayForPen = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
   penId: string
@@ -176,7 +186,7 @@ export const sessionsPerDayForPen = async (
 };
 
 /** The farm's Feed Items by id, for putting names and units on a Ration's figures. */
-export const feedsById = async (
+const feedsById = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string
 ): Promise<Map<string, FeedNamed>> => {
