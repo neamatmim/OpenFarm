@@ -1,6 +1,7 @@
-import type { PenSpellOf } from "@OpenFarm/domain";
-import { arrivalOf, exitOf, penHistoryOf, penSpellsOf } from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
+
+import type { PenSpellOf } from "./pen-history";
+import { arrivalOf, exitOf, penHistoryOf, penSpellsOf } from "./pen-history";
 
 // Where she stood, how she came to be here and how she left, worked out from her Moves and her State. No database: these
 // are the three facts every reader of her record used to work out for itself, and the gaps were where two disagreed.

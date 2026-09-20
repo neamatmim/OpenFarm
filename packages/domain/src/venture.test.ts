@@ -1,5 +1,6 @@
-import { payoutOf, splitOfProfit } from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
+
+import { payoutOf, splitOfProfit } from "./venture";
 
 describe("splitting a Venture's profit", () => {
   it("gives the Investors their percentage and the Farm the rest", () => {

@@ -1,9 +1,9 @@
 import type { SopContent, Step } from "@OpenFarm/domain";
+import { maySkip } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import type { Context } from "./context";
-import { effectOf } from "./effects/effect";
 import { isOnTheFarm } from "./instances-store";
 import { lateEntry } from "./late";
 import type { Scope } from "./scope";
@@ -116,11 +116,6 @@ export const assertMayWork = (
     throw lateEntry("Someone else is working on this");
   }
 };
-
-/** Which Steps may be skipped with a reason: one done animal by animal, where the animal is the thing being skipped —
- *  and a Step whose Effect says it may be, as a dose and a second service do. */
-const maySkip = (step: Step): boolean =>
-  step.repeatPerAnimal || effectOf(step)?.maySkip === true;
 
 /** Whether a slot has an answer in it. Spaces are not an answer: a required note filled with
  *  nothing is a required note nobody filled in. */

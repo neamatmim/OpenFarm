@@ -1,4 +1,7 @@
-import type { Bilingual, Step, StepShape, WordsFor } from "@OpenFarm/domain";
+import { describe, expect, expectTypeOf, it } from "vitest";
+
+import type { Bilingual, Step } from "./sop";
+import type { StepShape, WordsFor } from "./step-shape";
 import {
   CALVING_STEP,
   DLS_REPORT_STEP,
@@ -8,8 +11,7 @@ import {
   draftFrom,
   problemsAgainst,
   slotsOf,
-} from "@OpenFarm/domain";
-import { describe, expect, expectTypeOf, it } from "vitest";
+} from "./step-shape";
 
 // What a shaped Step asks for is said once, and three readers take it from there: publishing checks a Step
 // against it, the phone drafts from it, and an Effect reads a slot by name. These are about the first two

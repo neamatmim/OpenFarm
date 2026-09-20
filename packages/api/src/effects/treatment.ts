@@ -215,6 +215,5 @@ const giveTheDose = async (
 /** A Step that gives a dose — of a Prescription's course, or of a Campaign. May be skipped: "the bottle was empty". */
 export const treatmentEffect: EffectKind<TreatmentFacts> = {
   kind: "treatment",
-  maySkip: true,
   apply: giveTheDose,
 };

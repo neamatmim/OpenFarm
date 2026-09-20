@@ -224,11 +224,6 @@ export interface EffectKind<Facts> {
    * right is the Correction's to decide. Nobody but the procedure's gate, when unsaid.
    */
   recordableBy?: { roles: readonly RoleName[]; refusal: Refusal };
-  /**
-   * Whether its Step may be skipped with a reason even when it is not done animal by animal — a dose ("the bottle was
-   * empty"), a second service a heat did not need. A per-animal Step may always skip the animal.
-   */
-  maySkip?: boolean;
   apply: (tx: Tx, facts: Facts) => Promise<EffectResult>;
   /**
    * What it recorded beside the Evidence — the feed given, the store counted, the day renewed to — as a Step's answer

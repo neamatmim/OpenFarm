@@ -278,6 +278,7 @@ export {
   describeChanges,
   isClinicalStep,
   isClosingStep,
+  maySkip,
   raisesItsOwnWork,
   sessionsPerDayOf,
   findMissingBangla,
