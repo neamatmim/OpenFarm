@@ -916,10 +916,9 @@ export const isClosingStep = (content: SopContent, step: Step): boolean =>
  * Step recorded as given. A service, because the farm serves some cows a second time in a heat and
  * not others, so the AI work carries a second service Step that "once was enough" has to pass.
  */
-const EFFECTS_THAT_MAY_SKIP: ReadonlySet<StepEffect["kind"]> = new Set([
-  "treatment",
-  "service",
-]);
+const EFFECTS_THAT_MAY_SKIP: ReadonlySet<StepEffect["kind"]> = new Set<
+  StepEffect["kind"]
+>(["treatment", "service"]);
 
 /**
  * Whether a Step may be skipped with a reason.

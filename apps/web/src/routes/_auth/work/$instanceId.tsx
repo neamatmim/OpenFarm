@@ -1,5 +1,6 @@
 import type { FactsAsShown } from "@OpenFarm/api/effects/effect";
 import type {
+  Bilingual,
   Evidence,
   MilkDestination,
   SopChange,
@@ -11,7 +12,6 @@ import {
   isClosingStep,
   isFinished,
   mayTransition,
-  maySkip,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import {
@@ -75,6 +75,7 @@ import {
   recordStep,
 } from "@/lib/record-offline";
 import { sayWhy } from "@/lib/saying";
+import { skipReasonsOffered } from "@/lib/skipping";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -1484,7 +1485,7 @@ const everythingAsked = (step: Step, values: Entered, photos: Taken): boolean =>
 /** Skipping an animal: the Version's own reasons, and nothing typed into a free box. A
  *  Correction still has to say why, because changing a recorded fact is the person speaking. */
 const SkipSheet = ({
-  step,
+  reasons,
   animalTag,
   correcting,
   reason,
@@ -1492,7 +1493,8 @@ const SkipSheet = ({
   onSkip,
   onBack,
 }: {
-  step: Step;
+  /** What this Step may be skipped with, as the button that opened this was drawn from. */
+  reasons: Bilingual[];
   /** The animal being skipped, named above the reasons so nobody skips the wrong cow. */
   animalTag?: string;
   correcting: boolean;
@@ -1535,7 +1537,7 @@ const SkipSheet = ({
         </div>
       ) : null}
       <div className="flex flex-col gap-2">
-        {step.skipReasons.map((skip) => (
+        {reasons.map((skip) => (
           <Button
             className="h-auto min-h-14 w-full justify-start py-2 text-start text-lg whitespace-normal"
             disabled={correcting && !reason.trim()}
@@ -1753,10 +1755,11 @@ const EvidenceSheet = ({
   );
   const recordsMilk = step.effect?.kind === "milk_record";
   const feedsThePen = step.effect?.kind === "feeding";
-  // Asked of the domain, not worked out here: the server refuses a skip by the same rule, and when
-  // this screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew
-  // no button at all.
-  const skippable = maySkip(step);
+  // Asked of one place, not worked out here: the server refuses a skip by the same rule, and when this
+  // screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew no
+  // button at all. The reasons rather than a yes, so the button and the sheet cannot differ on them.
+  const skipReasons = skipReasonsOffered(step);
+  const skippable = skipReasons.length > 0;
   // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
   const recorded = factsOf(existing);
   const [given, setGiven] = useState<Typed>(() =>
@@ -1819,7 +1822,7 @@ const EvidenceSheet = ({
         onReason={setReason}
         onSkip={onRecord}
         reason={reason}
-        step={step}
+        reasons={skipReasons}
       />
     );
   }

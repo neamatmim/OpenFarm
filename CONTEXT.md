@@ -60,6 +60,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Step Completion**: The recorded act of doing one Step (once per animal if the Step repeats): who, when, and the Evidence. _Avoid_: Tick, log, entry (the general word — a Step Completion is one kind of **Entry**)
 
+**Skipped**: A Step passed over with one of the reasons its Version wrote against it, rather than done — a dose the medicine ran out for, a second service a heat did not need. A Step done animal by animal may always skip the animal; a Step done once for the Pen only where its Effect allows it. Said of a **Step**, never of an **Instance**: an Instance nobody did becomes **Missed**. A Step with no reasons written against it cannot be skipped, because the reason is chosen from that list and there is nowhere to type another.
+
 **Evidence**: What a Step requires to count as done: a tick, a number with unit, a choice from a list, a photo, or a note. Required or optional per Step. _Avoid_: Proof, data, field
 
 **Step Shape**: What a Step that feeds a later act has to ask for, and in what order. Most Steps are the Owner's to word as they like; a few are not, because what a Service, a Calving, a Pregnancy Check, a DLS report or a Campaign's Lot Number records is read back by the farm afterwards. A Shape names each answer it asks for — what kind it is, whether the Step must insist on it, may not, or the farm decides, and for a choice the fixed words the record reads back under whatever the farm calls them. Said once: the phone drafts a Step from it, publishing refuses one that does not keep it, and the Effect reads each answer by its name. _Avoid_: Schema, contract, form
