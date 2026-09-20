@@ -1,7 +1,8 @@
-import { index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { taka } from "./taka";
 
 // The farm's outings have a module of their own because they belong to nobody in particular: a Trip may
 // carry the Farm's animals and two Ventures', and both the fattening records and a Venture's money point
@@ -23,17 +24,11 @@ export const buyingTrip = pgTable(
     /** Where it went, as the farm says it: a haat's name, or a village's. */
     wentTo: text("went_to").notNull(),
     /** What the broker took for finding the animals. */
-    brokerBdt: numeric("broker_bdt", { precision: 12, scale: 2 })
-      .notNull()
-      .default("0"),
+    brokerBdt: taka("broker_bdt").notNull().default(0),
     /** The lorry home. */
-    transportBdt: numeric("transport_bdt", { precision: 12, scale: 2 })
-      .notNull()
-      .default("0"),
+    transportBdt: taka("transport_bdt").notNull().default(0),
     /** Keeping the men who went: their food, and a night's lodging when the haat runs late. */
-    keepBdt: numeric("keep_bdt", { precision: 12, scale: 2 })
-      .notNull()
-      .default("0"),
+    keepBdt: taka("keep_bdt").notNull().default(0),
     wentOn: timestamp("went_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
@@ -59,13 +54,9 @@ export const sellingTrip = pgTable(
     /** Where it went, as the farm says it. */
     wentTo: text("went_to").notNull(),
     /** The lorry, both ways. */
-    transportBdt: numeric("transport_bdt", { precision: 12, scale: 2 })
-      .notNull()
-      .default("0"),
+    transportBdt: taka("transport_bdt").notNull().default(0),
     /** The stall or the space, and keeping the men who went. */
-    keepBdt: numeric("keep_bdt", { precision: 12, scale: 2 })
-      .notNull()
-      .default("0"),
+    keepBdt: taka("keep_bdt").notNull().default(0),
     wentOn: timestamp("went_on").notNull(),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),

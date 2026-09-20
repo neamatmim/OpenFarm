@@ -54,7 +54,7 @@ export const bookSaleMoney = async (
   if (!row) {
     return;
   }
-  const priceBdt = Number(row.priceBdt);
+  const { priceBdt } = row;
   const ventureId = await ownerOf(tx, row.animalId);
   if (priceBdt > 0 || (await moneySnapshotOf(tx, row.farmId, "sale", row.id))) {
     await bookMoney(tx, booking, {

@@ -341,7 +341,7 @@ export const whatItWasCharged = (
     sumOf(
       costs.animals.map((one) =>
         one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId
-          ? Number(one.intake.purchasePriceBdt)
+          ? one.intake.purchasePriceBdt
           : 0
       )
     ) +

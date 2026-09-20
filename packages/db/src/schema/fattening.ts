@@ -13,6 +13,7 @@ import { user } from "./auth";
 import { farm } from "./farm";
 import { animal } from "./herd";
 import { stepCompletion } from "./instance";
+import { taka } from "./taka";
 import { buyingTrip, sellingTrip } from "./trip";
 import { venture } from "./venture";
 
@@ -65,16 +66,11 @@ export const intake = pgTable(
      *  gate, or one nobody wrote a Trip for. */
     buyingTripId: text("buying_trip_id").references(() => buyingTrip.id),
     /** What the farm paid, in taka. One of the two money events in a fattening animal's life. */
-    purchasePriceBdt: numeric("purchase_price_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
+    purchasePriceBdt: taka("purchase_price_bdt").notNull(),
     /** The toll the haat took on this beast, as its slip gives it. Part of what she cost the farm and
      *  charged to her alone, because a haat takes it per animal and often on her price. Zero for one
      *  bought at the farm gate, and for one born here. */
-    hasilBdt: numeric("hasil_bdt", { precision: 12, scale: 2 })
-      .notNull()
-      .default("0"),
+    hasilBdt: taka("hasil_bdt").notNull().default(0),
     /** What it weighed when it came off the lorry: the first point every gain is measured from. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
     /** Months, as the seller says and the Manager judges. Nobody has a bought-in bull's papers. */
@@ -217,7 +213,7 @@ export const sale = pgTable(
     counterpartyId: text("counterparty_id")
       .notNull()
       .references(() => counterparty.id),
-    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }).notNull(),
+    priceBdt: taka("price_bdt").notNull(),
     /** What she weighed on the day. Not her last Weigh-in: a beast loses weight on a lorry and
      *  the price was struck on this figure. */
     weightKg: numeric("weight_kg", { precision: 7, scale: 2 }).notNull(),
@@ -268,7 +264,7 @@ export const internalSale = pgTable(
       precision: 10,
       scale: 2,
     }).notNull(),
-    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }).notNull(),
+    priceBdt: taka("price_bdt").notNull(),
     /** Where the rate came from: the haat that morning, a buyer's offer, the last sale. */
     note: text("note").notNull(),
     soldOn: text("sold_on").notNull(),

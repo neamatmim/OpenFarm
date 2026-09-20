@@ -431,10 +431,7 @@ export const whatTheFloatBought = async (
   const whose = new Map(owners.map((one) => [one.id, one.ownerVentureId]));
   const animalsBdt = brought
     .filter((one) => whose.get(one.animalId) === ventureId)
-    .reduce(
-      (sum, one) => sum + Number(one.purchasePriceBdt) + Number(one.hasilBdt),
-      0
-    );
+    .reduce((sum, one) => sum + one.purchasePriceBdt + one.hasilBdt, 0);
   return {
     animalsBdt,
     tripBdt: trip ? tripCostOf(trip) : 0,
@@ -476,7 +473,7 @@ export const readInternalSale = async (tx: Tx, farmId: string, id: string) => {
         toVentureId: row.toVentureId,
         weightKg: Number(row.weightKg),
         rateBdtPerKg: Number(row.rateBdtPerKg),
-        priceBdt: Number(row.priceBdt),
+        priceBdt: row.priceBdt,
         note: row.note,
         soldOn: row.soldOn,
       }

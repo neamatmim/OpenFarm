@@ -14,13 +14,10 @@ type TripSource = "buying_trip" | "selling_trip";
 /** What an outing cost the farm, its parts added up. A selling outing has no broker of its own: a broker's
  *  fee for one sale is recorded on that Sale. */
 export const tripCostOf = (trip: {
-  brokerBdt?: string;
-  transportBdt: string;
-  keepBdt: string;
-}): number =>
-  Number(trip.brokerBdt ?? 0) +
-  Number(trip.transportBdt) +
-  Number(trip.keepBdt);
+  brokerBdt?: number;
+  transportBdt: number;
+  keepBdt: number;
+}): number => (trip.brokerBdt ?? 0) + trip.transportBdt + trip.keepBdt;
 
 /** What an outing's row and its animals come to, however the farm went: the trail's word for either kind. */
 const snapshotOf = async (
@@ -29,8 +26,8 @@ const snapshotOf = async (
     id: string;
     farmId: string;
     wentTo: string;
-    transportBdt: string;
-    keepBdt: string;
+    transportBdt: number;
+    keepBdt: number;
     wentOn: Date;
   },
   source: TripSource,
@@ -55,10 +52,10 @@ const bookOuting = async (
     | {
         id: string;
         farmId: string;
-        transportBdt: string;
-        keepBdt: string;
+        transportBdt: number;
+        keepBdt: number;
         wentOn: Date;
-        brokerBdt?: string;
+        brokerBdt?: number;
       }
     | undefined,
   source: TripSource,

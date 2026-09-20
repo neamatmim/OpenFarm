@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { feedIn } from "@OpenFarm/db/schema/feed";
-import { farmDayOf, startOfFarmDay } from "@OpenFarm/domain";
+import { farmDayOf, roundTaka, startOfFarmDay } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
@@ -27,14 +27,14 @@ import {
 
 /** A cut lot re-valued for a new quantity, at the price a kilo of it was worth the day it came in. */
 const revalued = (
-  row: { quantity: string; priceBdt: string | null },
+  row: { quantity: string; priceBdt: number | null },
   quantity: number
-): string | null => {
+): number | null => {
   const was = Number(row.quantity);
   if (row.priceBdt === null || was === 0) {
     return row.priceBdt;
   }
-  return ((Number(row.priceBdt) / was) * quantity).toFixed(2);
+  return roundTaka((row.priceBdt / was) * quantity);
 };
 
 const loadArrival = (tx: Tx, farmId: string, id: string) =>
@@ -86,7 +86,7 @@ export const feedArrivalCorrection: CorrectionKind<
   entry: (row) => ({ enteredAt: row.recordedAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     quantity: Number(row.quantity),
-    priceBdt: row.priceBdt === null ? null : Number(row.priceBdt),
+    priceBdt: row.priceBdt === null ? null : row.priceBdt,
     seller: row.seller?.name ?? null,
     receivedOn: farmDayOf(row.receivedOn),
     paymentMethod: await paymentMethodOf(tx, row.farmId, "feed_in", row.id),
@@ -115,9 +115,7 @@ export const feedArrivalCorrection: CorrectionKind<
               ? { priceBdt: revalued(row, to.quantity) }
               : {}),
           }),
-      ...(to.priceBdt === undefined
-        ? {}
-        : { priceBdt: to.priceBdt.toFixed(2) }),
+      ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
       ...(to.receivedOn === undefined
         ? {}
         : { receivedOn: receivedDay(to.receivedOn, now) }),

@@ -277,7 +277,7 @@ export const papersRouter = {
       });
       return rows.map(({ animal: beast, buyer, ...row }) => ({
         ...row,
-        priceBdt: Number(row.priceBdt),
+        priceBdt: row.priceBdt,
         weightKg: Number(row.weightKg),
         tagNumber: beast.tagNumber,
         buyerName: buyer.name,
@@ -307,9 +307,9 @@ export const papersRouter = {
       const animals = rows.map((row) => ({
         tagNumber: row.animal.tagNumber,
         weight: formatNumber(Number(row.weightKg), language),
-        price: formatNumber(Number(row.priceBdt), language),
+        price: formatNumber(row.priceBdt, language),
       }));
-      const totalBdt = rows.reduce((sum, row) => sum + Number(row.priceBdt), 0);
+      const totalBdt = rows.reduce((sum, row) => sum + row.priceBdt, 0);
       const text = saleReceipt({
         farm: context.farm,
         buyerName: first.buyer.name,

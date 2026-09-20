@@ -61,9 +61,9 @@ export const buyingTripCorrection: CorrectionKind<
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
     wentTo: row.wentTo,
-    brokerBdt: Number(row.brokerBdt),
-    transportBdt: Number(row.transportBdt),
-    keepBdt: Number(row.keepBdt),
+    brokerBdt: row.brokerBdt,
+    transportBdt: row.transportBdt,
+    keepBdt: row.keepBdt,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "buying_trip", row.id),
   }),
   trail: (tx, row) => readTrip(tx, row.farmId, row.id),
@@ -71,13 +71,11 @@ export const buyingTripCorrection: CorrectionKind<
     await assertTripIsOpen(tx, row.farmId, row.id);
     const putRight = {
       ...(to.wentTo === undefined ? {} : { wentTo: to.wentTo }),
-      ...(to.brokerBdt === undefined
-        ? {}
-        : { brokerBdt: to.brokerBdt.toFixed(2) }),
+      ...(to.brokerBdt === undefined ? {} : { brokerBdt: to.brokerBdt }),
       ...(to.transportBdt === undefined
         ? {}
-        : { transportBdt: to.transportBdt.toFixed(2) }),
-      ...(to.keepBdt === undefined ? {} : { keepBdt: to.keepBdt.toFixed(2) }),
+        : { transportBdt: to.transportBdt }),
+      ...(to.keepBdt === undefined ? {} : { keepBdt: to.keepBdt }),
     };
     // Nothing of the record itself may have changed: a Correction may name only how it was paid
     // for, and an update with no values to set is a database error rather than a no-op.

@@ -132,7 +132,7 @@ const saleView = (
   row:
     | {
         id: string;
-        priceBdt: string;
+        priceBdt: number;
         weightKg: string;
         destination: string;
         vehicle: string;
@@ -147,7 +147,7 @@ const saleView = (
   row
     ? {
         id: row.id,
-        priceBdt: Number(row.priceBdt),
+        priceBdt: row.priceBdt,
         weightKg: Number(row.weightKg),
         destination: row.destination,
         vehicle: row.vehicle,
@@ -267,8 +267,8 @@ const intakeView = (
   row:
     | {
         id: string;
-        purchasePriceBdt: string;
-        hasilBdt: string;
+        purchasePriceBdt: number;
+        hasilBdt: number;
         buyingTrip: { id: string; wentTo: string } | null;
         weightKg: string;
         targetWeightKg: string;
@@ -284,8 +284,8 @@ const intakeView = (
   row
     ? {
         id: row.id,
-        purchasePriceBdt: Number(row.purchasePriceBdt),
-        hasilBdt: Number(row.hasilBdt),
+        purchasePriceBdt: row.purchasePriceBdt,
+        hasilBdt: row.hasilBdt,
         buyingTrip: row.buyingTrip
           ? { id: row.buyingTrip.id, wentTo: row.buyingTrip.wentTo }
           : null,

@@ -57,7 +57,7 @@ export const saleCorrection: CorrectionKind<
   load: loadSale,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
-    priceBdt: Number(row.priceBdt),
+    priceBdt: row.priceBdt,
     buyer: row.buyer.name,
     paymentMethod: await paymentMethodOf(tx, row.farmId, "sale", row.id),
   }),
@@ -65,9 +65,7 @@ export const saleCorrection: CorrectionKind<
   trail: (tx, row) => readSale(tx, row.id),
   apply: async (tx, row, to, { context, now }) => {
     const putRight = {
-      ...(to.priceBdt === undefined
-        ? {}
-        : { priceBdt: to.priceBdt.toFixed(2) }),
+      ...(to.priceBdt === undefined ? {} : { priceBdt: to.priceBdt }),
       ...(to.buyer === undefined
         ? {}
         : {

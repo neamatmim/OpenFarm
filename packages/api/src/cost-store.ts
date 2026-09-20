@@ -278,7 +278,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
       id: one.id,
       drugProductId: one.drugProductId,
       purchasedOn: one.purchasedOn,
-      priceBdt: Number(one.priceBdt),
+      priceBdt: one.priceBdt,
       doses: one.doses,
     })),
     (one) => one.drugProductId
@@ -319,14 +319,14 @@ export const farmCosts = async (db: Db, farmId: string) => {
 
   // The haat's toll on one beast, charged to her alone from the day she came off the lorry.
   const hasil: CostShare[] = animals.flatMap((one) =>
-    one.intake && Number(one.intake.hasilBdt) > 0
+    one.intake && one.intake.hasilBdt > 0
       ? [
           {
             animalId: one.id,
             side: sideOf(one, one.intake.arrivedAt),
             at: one.intake.arrivedAt,
             fromId: one.intake.id,
-            bdt: Number(one.intake.hasilBdt),
+            bdt: one.intake.hasilBdt,
           },
         ]
       : []
@@ -559,10 +559,8 @@ export const economicsOfAnimal = (costs: FarmCosts, animal: FarmAnimal) => {
     herd: costs.ofAnimal.herd.get(animal.id) ?? [],
   };
   const whole = addedUp(hers).costs;
-  const purchaseBdt = animal.intake
-    ? Number(animal.intake.purchasePriceBdt)
-    : null;
-  const saleBdt = animal.sale ? Number(animal.sale.priceBdt) : null;
+  const purchaseBdt = animal.intake ? animal.intake.purchasePriceBdt : null;
+  const saleBdt = animal.sale ? animal.sale.priceBdt : null;
   const gainKg = gainOf(animal);
   return {
     ...roundedCosts(whole),

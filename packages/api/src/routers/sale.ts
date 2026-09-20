@@ -164,7 +164,7 @@ export const saleRouter = {
             farmId: context.farm.id,
             animalId: her.id,
             counterpartyId: buyerId,
-            priceBdt: input.priceBdt.toFixed(2),
+            priceBdt: input.priceBdt,
             weightKg: input.weightKg.toFixed(2),
             destination: input.destination,
             vehicle: input.vehicle,
