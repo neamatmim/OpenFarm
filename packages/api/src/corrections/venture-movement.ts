@@ -161,7 +161,7 @@ const assertWithinItsUnits = async (
     columns: { amountBdt: true },
   });
   const owed = (agreement?.units ?? 0) * Number(plan?.unitPriceBdt ?? 0);
-  const already = paid.reduce((sum, one) => sum + Number(one.amountBdt), 0);
+  const already = paid.reduce((sum, one) => sum + one.amountBdt, 0);
   if (already + amountBdt > owed) {
     throw refuse(
       `This Agreement is for ${owed - already} more taka`,
@@ -196,7 +196,7 @@ export const ventureMovementCorrection: CorrectionKind<
   entry: null,
   shown: (_tx, row) =>
     Promise.resolve({
-      amountBdt: Number(row.amountBdt),
+      amountBdt: row.amountBdt,
       movedOn: row.movedOn,
       reference: row.reference,
     }),
@@ -207,9 +207,7 @@ export const ventureMovementCorrection: CorrectionKind<
       await assertWithinItsUnits(tx, row, to.amountBdt);
     }
     const putRight = {
-      ...(to.amountBdt === undefined
-        ? {}
-        : { amountBdt: to.amountBdt.toFixed(2) }),
+      ...(to.amountBdt === undefined ? {} : { amountBdt: to.amountBdt }),
       ...(to.movedOn === undefined ? {} : { movedOn: to.movedOn }),
       ...(to.reference === undefined ? {} : { reference: to.reference }),
     };

@@ -44,14 +44,14 @@ export interface VentureRow {
   id: string;
   name: string;
   state: VentureState;
-  targetCapitalBdt: string;
-  floorBdt: string;
+  targetCapitalBdt: number;
+  floorBdt: number;
   decideBy: string;
   targetWindowStart: string;
   targetWindowEnd: string;
-  unitPriceBdt: string;
+  unitPriceBdt: number;
   units: number;
-  cattleBudgetBdt: string;
+  cattleBudgetBdt: number;
   cancelledReason: string | null;
 }
 
@@ -138,13 +138,12 @@ export const budgetsOf = (
   held: Held | undefined
 ) => {
   const what = held ?? NOTHING_HELD;
-  const target = Number(row.targetCapitalBdt);
+  const target = row.targetCapitalBdt;
   // What of the capital arrived for cattle, less what has already been drawn against it.
   const cameInForCattle =
     target > 0
       ? Math.round(
-          ((what.capitalInBdt - what.refundedBdt) *
-            Number(row.cattleBudgetBdt)) /
+          ((what.capitalInBdt - what.refundedBdt) * row.cattleBudgetBdt) /
             target
         )
       : 0;
@@ -157,8 +156,8 @@ export const budgetsOf = (
   const cattleBudgetHeldBdt = stillBuying ? cattleBudgetDrawnAgainstBdt : 0;
   return {
     // What it was planned as, which is a fact about the Venture for ever and does not move.
-    cattleBudgetBdt: Number(row.cattleBudgetBdt),
-    runningBudgetBdt: target - Number(row.cattleBudgetBdt),
+    cattleBudgetBdt: row.cattleBudgetBdt,
+    runningBudgetBdt: target - row.cattleBudgetBdt,
     cattleBudgetHeldBdt,
     /**
      * The same figure without the roll-over, for a reader asking what an Investor's buying money did
@@ -198,11 +197,11 @@ export const ventureView = (
     id: row.id,
     name: row.name,
     state: row.state,
-    targetCapitalBdt: Number(row.targetCapitalBdt),
-    floorBdt: Number(row.floorBdt),
+    targetCapitalBdt: row.targetCapitalBdt,
+    floorBdt: row.floorBdt,
     decideBy: row.decideBy,
     targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },
-    unitPriceBdt: Number(row.unitPriceBdt),
+    unitPriceBdt: row.unitPriceBdt,
     units: row.units,
     cattleBudgetBdt: budgets.cattleBudgetBdt,
     runningBudgetBdt: budgets.runningBudgetBdt,
@@ -313,12 +312,12 @@ const folded = (
   soFar: Held,
   one: {
     kind: VentureMovementKind;
-    amountBdt: string;
+    amountBdt: number;
     reconciledAt: Date | null;
   }
 ): Held => {
   const does = WHAT_IT_DOES[one.kind];
-  const taka = Number(one.amountBdt);
+  const taka = one.amountBdt;
   return {
     ...soFar,
     [does.line]: soFar[does.line] + does.sign * taka,
@@ -373,7 +372,7 @@ export const takenAgainst = async (
     where: { farmId, agreementId, kind: "capital_in" },
     columns: { amountBdt: true },
   });
-  return rows.reduce((sum, one) => sum + Number(one.amountBdt), 0);
+  return rows.reduce((sum, one) => sum + one.amountBdt, 0);
 };
 
 /**
@@ -807,7 +806,7 @@ export const bookSaleProceeds = async (
     // what she fetched belongs where she did.
     await tx
       .update(ventureMovement)
-      .set({ ventureId: itsOwn, amountBdt: sale.priceBdt.toFixed(2) })
+      .set({ ventureId: itsOwn, amountBdt: sale.priceBdt })
       .where(
         and(
           eq(ventureMovement.id, already.id),
@@ -822,7 +821,7 @@ export const bookSaleProceeds = async (
     ventureId: itsOwn,
     kind: "sale_in",
     saleId: sale.id,
-    amountBdt: sale.priceBdt.toFixed(2),
+    amountBdt: sale.priceBdt,
     movedOn: farmDayOf(sale.soldAt),
     reference: sale.reference,
     recordedBy,
@@ -945,7 +944,7 @@ export const readMovement = async (tx: Tx, farmId: string, id: string) => {
         kind: row.kind,
         agreementId: row.agreementId,
         buyingTripId: row.buyingTripId,
-        amountBdt: Number(row.amountBdt),
+        amountBdt: row.amountBdt,
         movedOn: row.movedOn,
         reference: row.reference,
         refundsId: row.refundsId,

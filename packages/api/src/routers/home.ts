@@ -415,6 +415,7 @@ export const homeRouter = {
             })),
           moneyAwaiting: moneyAwaiting.map((row) => ({
             id: row.id,
+            // A Money Event, whose column is still `numeric` and so still arrives as a string.
             amountBdt: Number(row.amountBdt),
             direction: row.direction,
             categoryBn: row.category.nameBn,

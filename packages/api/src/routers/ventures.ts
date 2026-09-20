@@ -391,7 +391,7 @@ const moveTo = async (
     const held = await heldByEach(context.db, context.farm.id, [row.id]);
     // What it holds, not what once arrived: money sent back is not money to start on.
     const standing = held.get(row.id);
-    if ((standing ? balanceOf(standing) : 0) < Number(row.floorBdt)) {
+    if ((standing ? balanceOf(standing) : 0) < row.floorBdt) {
       throw new ORPCError("BAD_REQUEST", {
         message: "The Venture holds less than its Floor",
         data: { refusal: "venture_under_floor" },
@@ -637,14 +637,14 @@ export const venturesRouter = {
             id,
             farmId: context.farm.id,
             name: input.name,
-            targetCapitalBdt: input.targetCapitalBdt.toFixed(2),
-            floorBdt: plan.floorBdt.toFixed(2),
+            targetCapitalBdt: input.targetCapitalBdt,
+            floorBdt: plan.floorBdt,
             decideBy: input.decideBy,
             targetWindowStart: input.targetWindowStart,
             targetWindowEnd: input.targetWindowEnd,
-            unitPriceBdt: input.unitPriceBdt.toFixed(2),
+            unitPriceBdt: input.unitPriceBdt,
             units: plan.units,
-            cattleBudgetBdt: plan.cattleBudgetBdt.toFixed(2),
+            cattleBudgetBdt: plan.cattleBudgetBdt,
             openedBy: context.actor.id,
             openedByRole: context.roleUsed,
             createdAt: now,
@@ -706,7 +706,7 @@ export const venturesRouter = {
         },
         arbitrator: one.arbitrator,
         stamp: {
-          valueBdt: Number(one.stampValueBdt),
+          valueBdt: one.stampValueBdt,
           on: one.stampedOn,
           serial: one.stampSerial,
         },
@@ -774,7 +774,7 @@ export const venturesRouter = {
             targetWindowStart: row.targetWindowStart,
             targetWindowEnd: row.targetWindowEnd,
             arbitrator: input.arbitrator,
-            stampValueBdt: input.stampValueBdt.toFixed(2),
+            stampValueBdt: input.stampValueBdt,
             stampedOn: input.stampedOn,
             stampSerial: input.stampSerial,
             signedBy: context.actor.id,
@@ -1014,7 +1014,7 @@ export const venturesRouter = {
           data: { refusal: "venture_wrong_state" },
         });
       }
-      const owed = agreement.units * Number(row.unitPriceBdt);
+      const owed = agreement.units * row.unitPriceBdt;
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -1060,7 +1060,7 @@ export const venturesRouter = {
             ventureId: agreement.ventureId,
             kind: "capital_in",
             agreementId: agreement.id,
-            amountBdt: input.amountBdt.toFixed(2),
+            amountBdt: input.amountBdt,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -1178,7 +1178,7 @@ export const venturesRouter = {
             ventureId: row.id,
             kind: "float_out",
             buyingTripId: input.buyingTripId,
-            amountBdt: input.amountBdt.toFixed(2),
+            amountBdt: input.amountBdt,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -1264,7 +1264,7 @@ export const venturesRouter = {
           const accountedFor = roundTaka(
             bought.animalsBdt + bought.tripBdt + input.cashBackBdt
           );
-          const outBdt = roundTaka(Number(float.amountBdt));
+          const outBdt = roundTaka(float.amountBdt);
           if (accountedFor !== outBdt) {
             const gapBdt = roundTaka(Math.abs(accountedFor - outBdt));
             throw new ORPCError("BAD_REQUEST", {
@@ -1285,7 +1285,7 @@ export const venturesRouter = {
             ventureId: float.ventureId,
             kind: "float_back",
             buyingTripId: input.buyingTripId,
-            amountBdt: input.cashBackBdt.toFixed(2),
+            amountBdt: input.cashBackBdt,
             movedOn: input.movedOn ?? float.movedOn,
             reference: input.reference ?? "",
             refundsId: float.id,
@@ -1322,7 +1322,7 @@ export const venturesRouter = {
             id: row.id,
             ventureId: row.ventureId,
             ventureName: row.venture?.name ?? "",
-            amountBdt: Number(row.amountBdt),
+            amountBdt: row.amountBdt,
             movedOn: row.movedOn,
             reference: row.reference,
           }
@@ -2470,7 +2470,7 @@ export const venturesRouter = {
             farmId: context.farm.id,
             ventureId: standing.id,
             kind: "advance",
-            amountBdt: input.amountBdt.toFixed(2),
+            amountBdt: input.amountBdt,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -2640,7 +2640,7 @@ export const venturesRouter = {
             ventureId: row.id,
             kind: "reimbursement",
             forMonth: input.month,
-            amountBdt: consumed.totalBdt.toFixed(2),
+            amountBdt: consumed.totalBdt,
             movedOn: input.movedOn,
             reference: input.reference,
             recordedBy: context.actor.id,
@@ -2712,7 +2712,7 @@ export const venturesRouter = {
           ? (whose.get(one.agreementId) ?? null)
           : null,
         buyingTripId: one.buyingTripId,
-        amountBdt: Number(one.amountBdt),
+        amountBdt: one.amountBdt,
         movedOn: one.movedOn,
         reference: one.reference,
         refundsId: one.refundsId,

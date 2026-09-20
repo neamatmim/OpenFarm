@@ -86,7 +86,7 @@ export const recordInternalSale = async (
       ventureId: side.ventureId,
       kind: side.kind,
       internalSaleId: hand.id,
-      amountBdt: priceBdt.toFixed(2),
+      amountBdt: priceBdt,
       movedOn: hand.soldOn,
       reference: hand.reference,
       recordedBy: actorId,

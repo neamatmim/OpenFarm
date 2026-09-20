@@ -69,7 +69,7 @@ export const tripsRouter = {
                 [
                   one.buyingTripId,
                   {
-                    amountBdt: Number(one.amountBdt),
+                    amountBdt: one.amountBdt,
                     ventureId: one.ventureId,
                     ventureName: one.venture?.name ?? "",
                     /** When it was reconciled, or null while it is still out at the haat. */

@@ -332,7 +332,7 @@ export const whatItWasCharged = (
   ownedThenBy: (animalId: string, at: Date) => string | null,
   ventureId: string,
   /** Its own money movements, for what it paid another purse to take an Animal on. */
-  paidIn: readonly { kind: string; amountBdt: string }[]
+  paidIn: readonly { kind: string; amountBdt: number }[]
 ) => {
   const charged = chargedTo(costs, ownedThenBy, ventureId);
   // What it paid to take its Animals on: their price at the haat where its own Float bought them, and
@@ -348,7 +348,7 @@ export const whatItWasCharged = (
       sumOf(
         paidIn
           .filter((one) => one.kind === "internal_buy")
-          .map((one) => Number(one.amountBdt))
+          .map((one) => one.amountBdt)
       )
   );
   const charges: { word: ChargeWord; bdt: number }[] = [
@@ -443,7 +443,7 @@ export const settlementOf = async (
             (one) =>
               one.kind === "capital_in" && one.agreementId === agreementId
           )
-          .map((one) => Number(one.amountBdt))
+          .map((one) => one.amountBdt)
       )
     );
   const payouts: Payout[] = agreements.map((one) => {
@@ -711,7 +711,7 @@ export const payOut = async (
     farmId,
     ventureId: what.ventureId,
     kind: what.kind,
-    amountBdt: what.amountBdt.toFixed(2),
+    amountBdt: what.amountBdt,
     movedOn: what.movedOn,
     reference: what.reference,
     recordedBy: by.actorId,

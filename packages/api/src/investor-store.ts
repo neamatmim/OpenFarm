@@ -99,7 +99,7 @@ export const readAgreement = async (tx: Tx, farmId: string, id: string) => {
     targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },
     arbitrator: row.arbitrator,
     stamp: {
-      valueBdt: Number(row.stampValueBdt),
+      valueBdt: row.stampValueBdt,
       on: row.stampedOn,
       serial: row.stampSerial,
     },
