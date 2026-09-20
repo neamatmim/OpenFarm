@@ -18,6 +18,7 @@ import {
   hasEnded,
   isRunning,
   mayMoveTo,
+  RUNNING_STATES,
   monthOf,
   roundTaka,
   startOfFarmDay,
@@ -69,6 +70,7 @@ import {
   readSettlement,
   settlementOf,
 } from "../settlement-store";
+import { actOnVenture } from "../venture-act";
 import { theirProgress } from "../venture-herd-store";
 import {
   balanceAtMonthEnd,
@@ -1127,29 +1129,22 @@ export const venturesRouter = {
         });
       }
       const id = uuidv7(now);
-      await audited(context).write(
-        {
+      await actOnVenture(context, {
+        ventureId: row.id,
+        // Read again inside the lock: a Venture moved on or called off while this was being filled in
+        // would otherwise still hand out money.
+        from: ["buying"],
+        wrongState: "A Venture draws a Float only while it is buying",
+        refusedOnceSettled: true,
+        trail: {
           entity: "venture_movement",
           entityId: id,
           action: "create",
           after: (tx) => readMovement(tx, context.farm.id, id),
         },
-        async (tx) => {
+        apply: async (tx, standing) => {
           // Counted inside the write, behind the same lock every other Venture count takes: what the
           // Cattle Budget holds is only true until the next Float commits.
-          await lockTheFarm(tx, context.farm.id);
-          await assertNotSettledUp(tx, context.farm.id, row.id);
-          const standing = await tx.query.venture.findFirst({
-            where: { id: row.id, farmId: context.farm.id },
-          });
-          if (!standing || standing.state !== "buying") {
-            // Read again inside the lock: a Venture moved on or called off while this was being filled
-            // in would otherwise still hand out money.
-            throw new ORPCError("BAD_REQUEST", {
-              message: "A Venture draws a Float only while it is buying",
-              data: { refusal: "venture_wrong_state" },
-            });
-          }
           const held = await heldByEach(tx, context.farm.id, [row.id]);
           const view = ventureView(standing, held.get(row.id), undefined, {
             warnBelowBdt: context.farm.runningBudgetWarnBdt,
@@ -1189,8 +1184,8 @@ export const venturesRouter = {
             recordedBy: context.actor.id,
             createdAt: now,
           });
-        }
-      );
+        },
+      });
       return { id };
     }),
 
@@ -2454,35 +2449,26 @@ export const venturesRouter = {
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       assertByBank(input.paymentMethod);
-      const row = await ours(context, input.ventureId);
       const id = uuidv7(now);
-      await audited(context).write(
-        {
+      await actOnVenture(context, {
+        ventureId: input.ventureId,
+        // A Venture that has not started buying has eaten nothing, and one whose run is over has
+        // nothing left to feed. An Advance into either would be the Owner's money with no way home:
+        // calling a Venture off returns capital, and only capital.
+        from: RUNNING_STATES,
+        wrongState: "A Venture takes an Advance only while it is running",
+        refusedOnceSettled: true,
+        trail: {
           entity: "venture_movement",
           entityId: id,
           action: "create",
           after: (tx) => readMovement(tx, context.farm.id, id),
         },
-        async (tx) => {
-          await lockTheFarm(tx, context.farm.id);
-          await assertNotSettledUp(tx, context.farm.id, row.id);
-          const standing = await tx.query.venture.findFirst({
-            where: { id: row.id, farmId: context.farm.id },
-            columns: { state: true },
-          });
-          // A Venture that has not started buying has eaten nothing, and one whose run is over has
-          // nothing left to feed. An Advance into either would be the Owner's money with no way home:
-          // calling a Venture off returns capital, and only capital.
-          if (!(standing && isRunning(standing.state))) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "A Venture takes an Advance only while it is running",
-              data: { refusal: "venture_wrong_state" },
-            });
-          }
+        apply: async (tx, venture) => {
           await tx.insert(ventureMovement).values({
             id,
             farmId: context.farm.id,
-            ventureId: row.id,
+            ventureId: venture.id,
             kind: "advance",
             amountBdt: input.amountBdt.toFixed(2),
             movedOn: input.movedOn,
@@ -2490,8 +2476,8 @@ export const venturesRouter = {
             recordedBy: context.actor.id,
             createdAt: now,
           });
-        }
-      );
+        },
+      });
       return { id };
     }),
 
