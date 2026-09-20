@@ -279,6 +279,7 @@ export {
   isClinicalStep,
   isClosingStep,
   maySkip,
+  missingEvidence,
   raisesItsOwnWork,
   sessionsPerDayOf,
   findMissingBangla,

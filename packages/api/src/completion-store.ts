@@ -1,5 +1,5 @@
 import type { SopContent, Step } from "@OpenFarm/domain";
-import { maySkip } from "@OpenFarm/domain";
+import { maySkip, missingEvidence } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -117,15 +117,6 @@ export const assertMayWork = (
   }
 };
 
-/** Whether a slot has an answer in it. Spaces are not an answer: a required note filled with
- *  nothing is a required note nobody filled in. */
-const filledIn = (value: unknown): boolean => {
-  if (typeof value === "string") {
-    return value.trim() !== "";
-  }
-  return !(value === undefined || value === null);
-};
-
 /** A Step is either skipped with a reason — only where a reason means something — or done with
  *  everything the Version marks required. Checked per slot, not by count: a Step with an
  *  optional note and a required number is not satisfied by filling only the note. A photo
@@ -146,21 +137,11 @@ export const assertEvidenceComplete = (
     }
     return;
   }
-  const missing = step.evidence
-    .map((item, index) => ({ item, index }))
-    .filter(({ item, index }) => {
-      if (!item.required) {
-        return false;
-      }
-      if (item.type === "photo") {
-        return !hasPhotoAt(index);
-      }
-      return !filledIn(evidence[index]);
-    });
+  const missing = missingEvidence(step, evidence, hasPhotoAt);
   if (missing.length > 0) {
     throw new ORPCError("BAD_REQUEST", {
       message: "This step needs everything marked required",
-      data: { missing: missing.map(({ index }) => index) },
+      data: { missing },
     });
   }
 };
