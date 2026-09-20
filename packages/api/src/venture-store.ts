@@ -23,6 +23,9 @@ import { ORPCError } from "@orpc/server";
 import type { SnapshotValue, Tx } from "./audit";
 import { tripCostOf } from "./trip-store";
 
+/** Struck in the domain, because the screen that shows the Owner the price strikes it too. */
+export { priceAtWeight } from "@OpenFarm/domain";
+
 /**
  * Every count a Venture's rules make — Units taken, what a budget still holds, what a Float is owed — reads
  * rows that another request may be writing. One lock on the Farm, taken first by everything that writes a
@@ -851,8 +854,6 @@ export const stillHersOf = (
   });
 
 /** What one Animal is worth at a live-weight rate, as the farm rounds it. */
-export const priceAtWeight = (weightKg: number, rateBdtPerKg: number) =>
-  roundTaka(weightKg * rateBdtPerKg);
 
 export const stillHersByEach = async (
   tx: Pick<Tx, "query">,

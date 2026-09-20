@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { payoutOf, splitOfProfit } from "./venture";
+import { payoutOf, priceAtWeight, splitOfProfit } from "./venture";
 
 describe("splitting a Venture's profit", () => {
   it("gives the Investors their percentage and the Farm the rest", () => {
@@ -81,5 +81,23 @@ describe("what one Investor is paid", () => {
 
   it("takes a loss off the capital they get back", () => {
     expect(payoutOf(500_000, 10, -3000)).toBe(470_000);
+  });
+});
+
+describe("what a weight is worth at a rate", () => {
+  it("is her kilos by the taka a kilo, to the paisa", () => {
+    expect(priceAtWeight(364, 300)).toBe(109_200);
+    expect(priceAtWeight(364.5, 301.5)).toBe(109_896.75);
+  });
+
+  it("keeps the paisa rather than the fractions of one", () => {
+    // The farm banks taka and paisa and nothing finer, and the server strikes the same figure before it
+    // will take the sale — a third decimal here would refuse the Owner over arithmetic.
+    expect(priceAtWeight(333.333, 3)).toBe(1000);
+    expect(priceAtWeight(1, 0.005)).toBe(0.01);
+  });
+
+  it("is nothing for an animal nobody has weighed", () => {
+    expect(priceAtWeight(0, 300)).toBe(0);
   });
 });

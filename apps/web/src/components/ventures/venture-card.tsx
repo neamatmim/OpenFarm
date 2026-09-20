@@ -132,6 +132,18 @@ export const moneyOf = (venture: Venture) => ({
 const stillRunning = (venture: Venture) => isRunning(venture.state);
 
 /**
+ * How far a Venture still is from its Floor, and so whether buying may start.
+ *
+ * Said once because the card says it twice over: the line telling her what stands in the way, and the
+ * button that is dim until it does not. The farm judges on what the account **holds** — "money sent
+ * back is not money to start on" — and on a Venture still Open nothing has gone back, so what arrived
+ * is what it holds. Should a refund ever reach one before it starts buying, this is the line to move
+ * onto the balance, and the server will already be refusing what this still offers.
+ */
+const shortOfFloor = (venture: Venture) =>
+  venture.floorBdt - venture.capitalInBdt;
+
+/**
  * Whether anybody is owed one of the three papers.
  *
  * Asked of the Agreements rather than of the Venture's state, because the first of the three is wanted
@@ -194,7 +206,7 @@ export const Line = ({
 export const WhatStopsHer = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   if (venture.state === "open") {
-    const short = venture.floorBdt - venture.capitalInBdt;
+    const short = shortOfFloor(venture);
     return (
       <p className="text-muted-foreground text-right text-sm">
         {short > 0
@@ -384,7 +396,7 @@ export const primaryActsOf = (
       {
         label: t("ventures.startBuying"),
         icon: ShoppingCart,
-        disabled: venture.capitalInBdt < venture.floorBdt,
+        disabled: shortOfFloor(venture) > 0,
         handleSelect: () => acts.startBuying(venture),
       },
     ];
