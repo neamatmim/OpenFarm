@@ -61,7 +61,6 @@ import {
   requireAnimal,
 } from "../herd-store";
 import { protectedProcedure } from "../index";
-import { causeOf, heatKeyOf } from "../instances-store";
 import {
   mortalityOf,
   readMortality,
@@ -76,6 +75,7 @@ import {
   requireAnimalInScope,
   requireLookUp,
 } from "../scope";
+import { causeOf, heatKeyOf } from "../work-cause";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */

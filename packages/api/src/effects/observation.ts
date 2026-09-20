@@ -5,7 +5,7 @@ import { HEAT } from "@OpenFarm/domain";
 
 import type { Trail, Tx } from "../audit";
 import { callOffWorkRaisedBy } from "../herd-store";
-import { heatKeyOf } from "../instances-store";
+import { heatKeyOf } from "../work-cause";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, choiceIn } from "./evidence";
 

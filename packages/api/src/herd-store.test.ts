@@ -21,9 +21,9 @@ import {
   walkByStep,
   walkTo,
 } from "./herd-store";
-import { calvingCauseOf, calvingKeyOf } from "./instances-store";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
+import { calvingCauseOf, calvingKeyOf } from "./work-cause";
 
 // Everything that can happen to where an Animal is and what she is, held to one list of what must follow: the Move
 // written, her Side and State, when she reached it, the work raised about her, and her Expected Calving. Each row is one
