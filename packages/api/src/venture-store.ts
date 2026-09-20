@@ -10,6 +10,10 @@ import {
   addDays,
   EXIT_STATES,
   farmDayOf,
+  hasEnded,
+  isRunning,
+  isStillBuying,
+  mayMoveTo,
   monthOf,
   roundTaka,
   startOfFarmDay,
@@ -144,7 +148,7 @@ export const budgetsOf = (
   // Once buying closes there is nothing left to buy, so what the Cattle Budget did not spend is
   // feeding money — the glossary says so of a Cattle Budget, and a Venture told it is short of keep
   // while most of its capital sits idle on the other side would be told a thing that is not true.
-  const stillBuying = row.state === "open" || row.state === "buying";
+  const stillBuying = isStillBuying(row.state);
   /** What the cattle side was drawn against, whether or not there is still buying to do with it. */
   const cattleBudgetDrawnAgainstBdt = cameInForCattle - what.cattleOutBdt;
   const cattleBudgetHeldBdt = stillBuying ? cattleBudgetDrawnAgainstBdt : 0;
@@ -210,10 +214,7 @@ export const ventureView = (
      *  a Venture that is running: one not yet buying has spent nothing, and one whose run is over is
      *  not feeding anybody. */
     runningBudgetLow:
-      (row.state === "buying" ||
-        row.state === "fattening" ||
-        row.state === "selling") &&
-      runningBudgetHeldBdt < alsoKnown.warnBelowBdt,
+      isRunning(row.state) && runningBudgetHeldBdt < alsoKnown.warnBelowBdt,
     signedFor: signedFor ?? NOBODY,
     /** How it stands against the bank: when it was last read, and whether any month is still out. */
     bank: alsoKnown.bank,
@@ -997,7 +998,7 @@ export const reachesSellingOnASale = async (
     where: { id: ventureId, farmId },
     columns: { state: true },
   });
-  if (row?.state === "settled" || row?.state === "cancelled") {
+  if (row && hasEnded(row.state)) {
     // Its books are closed and its money has gone. An Animal of its cannot be sold, because the taka
     // would land in an account whose Settlement has already said what it held — and that Settlement is
     // what every Investor was paid on.
@@ -1006,7 +1007,7 @@ export const reachesSellingOnASale = async (
       data: { refusal: "venture_wrong_state" },
     });
   }
-  if (row?.state !== "buying" && row?.state !== "fattening") {
+  if (!(row && mayMoveTo(row.state, "selling"))) {
     // Already Selling: it is where a Sale would put it, and there is nothing to record.
     return false;
   }
