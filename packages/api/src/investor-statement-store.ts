@@ -145,7 +145,7 @@ export const hisStanding = async (
   };
   const capital: HisCapital[] = moved.map((one) => ({
     kind: one.kind === "refund" ? "returned" : "received",
-    amountBdt: Number(one.amountBdt),
+    amountBdt: one.amountBdt,
     movedOn: one.movedOn,
     reference: one.reference,
   }));
@@ -153,7 +153,7 @@ export const hisStanding = async (
     venture: {
       id: venture.id,
       name: venture.name,
-      unitPriceBdt: Number(venture.unitPriceBdt),
+      unitPriceBdt: venture.unitPriceBdt,
     },
     him: {
       id: investor.id,
@@ -179,7 +179,7 @@ export const hisStanding = async (
       targetWindowEnd: terms.targetWindowEnd,
       amendedOn: terms.amendedOn,
       arbitrator: agreement.arbitrator,
-      stampValueBdt: Number(agreement.stampValueBdt),
+      stampValueBdt: agreement.stampValueBdt,
       stampedOn: agreement.stampedOn,
       stampSerial: agreement.stampSerial,
     },
@@ -264,8 +264,8 @@ export const theirSpend = async (
   farmId: string,
   venture: {
     id: string;
-    targetCapitalBdt: string;
-    cattleBudgetBdt: string;
+    targetCapitalBdt: number;
+    cattleBudgetBdt: number;
     /** Which side of the run it is on: what buying did not spend is feeding money once it closes. */
     state: VentureRow["state"];
   }

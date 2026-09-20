@@ -3,7 +3,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   text,
   timestamp,
@@ -46,27 +45,18 @@ export const venture = pgTable(
     name: text("name").notNull(),
     state: text("state", { enum: VENTURE_STATES }).notNull().default("open"),
     /** What the Owner is looking to raise, and the least it is worth starting on. */
-    targetCapitalBdt: numeric("target_capital_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
-    floorBdt: numeric("floor_bdt", { precision: 12, scale: 2 }).notNull(),
+    targetCapitalBdt: taka("target_capital_bdt").notNull(),
+    floorBdt: taka("floor_bdt").notNull(),
     /** The day the Floor must be met by, as a calendar names it. */
     decideBy: text("decide_by").notNull(),
     /** The period the Venture means to sell in; its Animals inherit it. */
     targetWindowStart: text("target_window_start").notNull(),
     targetWindowEnd: text("target_window_end").notNull(),
     /** What one Unit costs, and how many there are. An Investor holds whole Units. */
-    unitPriceBdt: numeric("unit_price_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
+    unitPriceBdt: taka("unit_price_bdt").notNull(),
     units: integer("units").notNull(),
     /** The part of the capital meant for buying animals; the rest is the Running Budget. */
-    cattleBudgetBdt: numeric("cattle_budget_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
+    cattleBudgetBdt: taka("cattle_budget_bdt").notNull(),
     /** Why a Venture was called off, in the Owner's words. */
     cancelledReason: text("cancelled_reason"),
     openedBy: text("opened_by").references(() => user.id),
@@ -146,10 +136,7 @@ export const investmentAgreement = pgTable(
     /** The person both sides named to decide whether the Farm was negligent. */
     arbitrator: text("arbitrator").notNull(),
     /** The stamped instrument: what the stamp cost, the day it was stamped, and its serial. */
-    stampValueBdt: numeric("stamp_value_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
+    stampValueBdt: taka("stamp_value_bdt").notNull(),
     stampedOn: text("stamped_on").notNull(),
     stampSerial: text("stamp_serial").notNull(),
     signedBy: text("signed_by").references(() => user.id),
@@ -295,7 +282,7 @@ export const ventureMovement = pgTable(
     /** The Sale a buyer took her away on, whose price landed in this account. Only a Sale's movement
      *  has one, and by id rather than by foreign key for the same reason an Internal Sale's is. */
     saleId: text("sale_id"),
-    amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
+    amountBdt: taka("amount_bdt").notNull(),
     /** The day the bank moved it, on the farm's own clock. */
     movedOn: text("moved_on").notNull(),
     /** Bank channels only: the transfer, the cheque or the deposit slip, and what it is numbered. */
