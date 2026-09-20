@@ -525,6 +525,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.aFloatIsOpen": "হাটের টাকার হিসাব এখনও মেলানো হয়নি",
   "refusal.aReimbursementIsOwed": "কোনো মাসের ফেরত এখনও পাঠানো হয়নি",
   "refusal.theBankDisagrees": "কোনো মাস স্টেটমেন্টের সঙ্গে মেলানো হয়নি, বা মেলেনি",
+  "refusal.nobodyHasSigned": "এই ভেঞ্চারে কেউ সই করেননি",
   "refusal.agreementsDisagree": "এই ভেঞ্চারের চুক্তিগুলোতে ভাগ এক নয়",
   "refusal.alreadyApproved": "এই ভেঞ্চারের হিসাব আগেই অনুমোদন হয়েছে",
   "refusal.notYetApproved": "হিসাব অনুমোদনের আগে কিছু পাওনা হয় না",
