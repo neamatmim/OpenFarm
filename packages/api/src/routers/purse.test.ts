@@ -65,7 +65,7 @@ const theVenturesOwnSpend = async (
       id,
       farmId: theFarm().id,
       direction: "out",
-      amountBdt: amountBdt.toFixed(2),
+      amountBdt,
       occurredAt: new Date("2046-10-10T04:00:00.000Z"),
       categoryId: charged?.categoryId ?? categoryId,
       side: charged?.side,

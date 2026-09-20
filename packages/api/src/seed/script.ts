@@ -493,7 +493,7 @@ const keepTheBooks = ({ farm, on }: Script) => {
       for (const row of waiting) {
         await f.as.owner.money.approve({
           id: row.id,
-          amountBdt: Number(row.amountBdt),
+          amountBdt: row.amountBdt,
         });
       }
     });

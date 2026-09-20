@@ -383,7 +383,7 @@ const moneyFieldsOf = ({
   approval: MoneyApproval;
   byHand: EnteredByHand | undefined;
 }) => ({
-  amountBdt: amountBdt.toFixed(2),
+  amountBdt,
   occurredAt: money.occurredAt,
   counterpartyId: money.counterpartyId,
   ...(money.paymentMethod === undefined
@@ -523,7 +523,7 @@ export const bookMoney = async (
   const before = existing
     ? {
         terms: {
-          amountBdt: Number(existing.amountBdt),
+          amountBdt: existing.amountBdt,
           counterpartyId: existing.counterpartyId,
           categoryId: existing.categoryId,
           purseVentureId: existing.purseVentureId,

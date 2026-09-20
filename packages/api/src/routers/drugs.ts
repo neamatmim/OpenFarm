@@ -190,7 +190,7 @@ export const drugsRouter = {
             drugProductId: product.id,
             quantity: input.quantity,
             doses: input.doses,
-            priceBdt: input.priceBdt.toFixed(2),
+            priceBdt: input.priceBdt,
             counterpartyId: sellerId,
             purchasedOn,
             recordedBy: context.actor.id,

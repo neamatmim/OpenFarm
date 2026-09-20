@@ -91,10 +91,10 @@ describe("money from the farm's records", () => {
     });
     const corrected = trail.find((event) => event.action === "correct");
     expect(corrected?.before).toMatchObject({
-      money: expect.objectContaining({ amountBdt: "5500.00" }),
+      money: expect.objectContaining({ amountBdt: 5500 }),
     });
     expect(corrected?.after).toMatchObject({
-      money: expect.objectContaining({ amountBdt: "6600.00" }),
+      money: expect.objectContaining({ amountBdt: 6600 }),
     });
   });
 
