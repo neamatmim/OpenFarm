@@ -385,29 +385,26 @@ export const ventureSettlement = pgTable(
       .notNull()
       .references(() => venture.id, { onDelete: "cascade" }),
     /** What its Animals fetched, and everything the run was charged. */
-    proceedsBdt: numeric("proceeds_bdt", { precision: 12, scale: 2 }).notNull(),
-    chargedBdt: numeric("charged_bdt", { precision: 12, scale: 2 }).notNull(),
+    proceedsBdt: taka("proceeds_bdt").notNull(),
+    chargedBdt: taka("charged_bdt").notNull(),
     /** Every charge as its own line, as the statement showed it: `[{ word, bdt }]` — "bought", "hasil",
      *  "trips", "feed", "medicine", "vet", "herd". Frozen, never queried and never joined, which is why
      *  they live here rather than in a table of their own. */
     charges: jsonb("charges").notNull(),
-    profitBdt: numeric("profit_bdt", { precision: 12, scale: 2 }).notNull(),
+    profitBdt: taka("profit_bdt").notNull(),
     /** The split as the Agreements froze it, and what it came to. */
     investorsPercent: integer("investors_percent").notNull(),
     units: integer("units").notNull(),
-    investorsBdt: numeric("investors_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
-    perUnitBdt: numeric("per_unit_bdt", { precision: 12, scale: 2 }).notNull(),
+    investorsBdt: taka("investors_bdt").notNull(),
+    perUnitBdt: taka("per_unit_bdt").notNull(),
     /** What flooring left over, which is the Farm's. */
-    roundingBdt: numeric("rounding_bdt", { precision: 12, scale: 2 }).notNull(),
-    farmBdt: numeric("farm_bdt", { precision: 12, scale: 2 }).notNull(),
+    roundingBdt: taka("rounding_bdt").notNull(),
+    farmBdt: taka("farm_bdt").notNull(),
     /** The Owner's own money, repaid at cost before any capital returns. */
-    advanceBdt: numeric("advance_bdt", { precision: 12, scale: 2 }).notNull(),
-    capitalBdt: numeric("capital_bdt", { precision: 12, scale: 2 }).notNull(),
+    advanceBdt: taka("advance_bdt").notNull(),
+    capitalBdt: taka("capital_bdt").notNull(),
     /** What the account held when it was approved, which everything above adds up to. */
-    balanceBdt: numeric("balance_bdt", { precision: 12, scale: 2 }).notNull(),
+    balanceBdt: taka("balance_bdt").notNull(),
     /** The movement the Owner's Advance went back to her on, once it has. */
     advanceRepaidId: text("advance_repaid_id"),
     /** The movement the Farm's own share left on. The Farm's money never stays in a Venture Account. */
@@ -443,9 +440,9 @@ export const ventureSettlementShare = pgTable(
     investorId: text("investor_id").notNull(),
     units: integer("units").notNull(),
     /** His capital back, what his Units took of the profit, and the two together. */
-    capitalBdt: numeric("capital_bdt", { precision: 12, scale: 2 }).notNull(),
-    shareBdt: numeric("share_bdt", { precision: 12, scale: 2 }).notNull(),
-    payoutBdt: numeric("payout_bdt", { precision: 12, scale: 2 }).notNull(),
+    capitalBdt: taka("capital_bdt").notNull(),
+    shareBdt: taka("share_bdt").notNull(),
+    payoutBdt: taka("payout_bdt").notNull(),
     /** The Venture Movement the money went out on, once it has. */
     paidMovementId: text("paid_movement_id"),
     /** When he said he had it, and anything he said about it. */
@@ -495,24 +492,15 @@ export const settlementAdjustment = pgTable(
      *  a reason and not only a figure. */
     reason: text("reason").notNull(),
     /** What the run would come to now, worked out the same way the Settlement was. */
-    profitBdt: numeric("profit_bdt", { precision: 12, scale: 2 }).notNull(),
-    perUnitBdt: numeric("per_unit_bdt", { precision: 12, scale: 2 }).notNull(),
+    profitBdt: taka("profit_bdt").notNull(),
+    perUnitBdt: taka("per_unit_bdt").notNull(),
     /** What that is against the frozen figures: what one Unit gained or lost by the late news, and what
      *  every Unit did together. Negative where the news was bad. */
-    perUnitDifferenceBdt: numeric("per_unit_difference_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
-    investorsDifferenceBdt: numeric("investors_difference_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
+    perUnitDifferenceBdt: taka("per_unit_difference_bdt").notNull(),
+    investorsDifferenceBdt: taka("investors_difference_bdt").notNull(),
     /** The figure it was judged against, frozen with it: turning the Farm Parameter afterwards must not
      *  change what an Adjustment already decided about itself. */
-    thresholdBdt: numeric("threshold_bdt", {
-      precision: 12,
-      scale: 2,
-    }).notNull(),
+    thresholdBdt: taka("threshold_bdt").notNull(),
     outcome: text("outcome", { enum: ADJUSTMENT_OUTCOMES }).notNull(),
     /** What the Owner said when she waived it, which she stands behind. */
     waivedNote: text("waived_note"),

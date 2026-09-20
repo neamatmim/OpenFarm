@@ -541,19 +541,19 @@ export const approveSettlement = async (
     id,
     farmId,
     ventureId,
-    proceedsBdt: worked.proceedsBdt.toFixed(2),
-    chargedBdt: worked.chargedBdt.toFixed(2),
+    proceedsBdt: worked.proceedsBdt,
+    chargedBdt: worked.chargedBdt,
     charges: worked.charges,
-    profitBdt: worked.profitBdt.toFixed(2),
+    profitBdt: worked.profitBdt,
     investorsPercent: worked.investorsPercent,
     units: worked.units,
-    investorsBdt: worked.investorsBdt.toFixed(2),
-    perUnitBdt: worked.perUnitBdt.toFixed(2),
-    roundingBdt: worked.roundingBdt.toFixed(2),
-    farmBdt: worked.farmBdt.toFixed(2),
-    advanceBdt: worked.advanceBdt.toFixed(2),
-    capitalBdt: worked.capitalBdt.toFixed(2),
-    balanceBdt: worked.balanceBdt.toFixed(2),
+    investorsBdt: worked.investorsBdt,
+    perUnitBdt: worked.perUnitBdt,
+    roundingBdt: worked.roundingBdt,
+    farmBdt: worked.farmBdt,
+    advanceBdt: worked.advanceBdt,
+    capitalBdt: worked.capitalBdt,
+    balanceBdt: worked.balanceBdt,
     approvedBy: by.actorId,
     approvedAt: by.now,
   });
@@ -566,9 +566,9 @@ export const approveSettlement = async (
       agreementId: one.agreementId,
       investorId: one.investorId,
       units: one.units,
-      capitalBdt: one.capitalBdt.toFixed(2),
-      shareBdt: one.shareBdt.toFixed(2),
-      payoutBdt: one.payoutBdt.toFixed(2),
+      capitalBdt: one.capitalBdt,
+      shareBdt: one.shareBdt,
+      payoutBdt: one.payoutBdt,
       createdAt: by.now,
     });
   }
@@ -600,17 +600,16 @@ export const approvedSettlementOf = async (
  */
 export const nothingLeftToPay = (
   settlement: {
-    advanceBdt: string;
+    advanceBdt: number;
     advanceRepaidId: string | null;
-    farmBdt: string;
+    farmBdt: number;
     farmSharePaidId: string | null;
   },
   shares: readonly { paidMovementId: string | null }[]
 ) =>
   shares.every((one) => one.paidMovementId !== null) &&
-  (Number(settlement.advanceBdt) === 0 ||
-    settlement.advanceRepaidId !== null) &&
-  (Number(settlement.farmBdt) === 0 || settlement.farmSharePaidId !== null);
+  (settlement.advanceBdt === 0 || settlement.advanceRepaidId !== null) &&
+  (settlement.farmBdt === 0 || settlement.farmSharePaidId !== null);
 
 /**
  * An approved Settlement as the trail and the screen read it: the figures as they stood, and each
@@ -629,29 +628,29 @@ export const readSettlement = async (
   const nameOf = await namesOf(tx, farmId, shares);
   return {
     approvedAt: row.approvedAt,
-    proceedsBdt: Number(row.proceedsBdt),
-    chargedBdt: Number(row.chargedBdt),
+    proceedsBdt: row.proceedsBdt,
+    chargedBdt: row.chargedBdt,
     charges: chargesAsWritten(row.charges),
-    profitBdt: Number(row.profitBdt),
+    profitBdt: row.profitBdt,
     investorsPercent: row.investorsPercent,
     units: row.units,
-    investorsBdt: Number(row.investorsBdt),
-    perUnitBdt: Number(row.perUnitBdt),
-    roundingBdt: Number(row.roundingBdt),
-    farmBdt: Number(row.farmBdt),
-    advanceBdt: Number(row.advanceBdt),
+    investorsBdt: row.investorsBdt,
+    perUnitBdt: row.perUnitBdt,
+    roundingBdt: row.roundingBdt,
+    farmBdt: row.farmBdt,
+    advanceBdt: row.advanceBdt,
     advanceRepaid: row.advanceRepaidId !== null,
     farmSharePaid: row.farmSharePaidId !== null,
-    capitalBdt: Number(row.capitalBdt),
-    balanceBdt: Number(row.balanceBdt),
+    capitalBdt: row.capitalBdt,
+    balanceBdt: row.balanceBdt,
     shares: shares.map((one) => ({
       agreementId: one.agreementId,
       investorId: one.investorId,
       name: nameOf.get(one.investorId) ?? "",
       units: one.units,
-      capitalBdt: Number(one.capitalBdt),
-      shareBdt: Number(one.shareBdt),
-      payoutBdt: Number(one.payoutBdt),
+      capitalBdt: one.capitalBdt,
+      shareBdt: one.shareBdt,
+      payoutBdt: one.payoutBdt,
       paid: one.paidMovementId !== null,
       /** The Venture Movement his money went out on, for whoever has to print the reference it went
        *  on — a payout movement carries the Venture and not the Agreement, so this is the only way

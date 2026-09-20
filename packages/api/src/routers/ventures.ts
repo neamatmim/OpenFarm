@@ -1603,7 +1603,7 @@ export const venturesRouter = {
       sendItOut(context, input, "payout", (approved) => {
         if (
           approved.row.advanceRepaidId === null &&
-          Number(approved.row.advanceBdt) !== 0
+          approved.row.advanceBdt !== 0
         ) {
           throw new ORPCError("BAD_REQUEST", {
             message: "Your own money comes back before any capital does",
@@ -1624,7 +1624,7 @@ export const venturesRouter = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = Number(his.payoutBdt);
+        const owed = his.payoutBdt;
         if (owed <= 0) {
           // The run lost more than he put in, so there is nothing to send him. What he owes back is a
           // conversation, not a movement of the Venture's money.
@@ -1678,7 +1678,7 @@ export const venturesRouter = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = Number(approved.row.advanceBdt);
+        const owed = approved.row.advanceBdt;
         if (owed === 0) {
           throw new ORPCError("BAD_REQUEST", {
             message: "You put nothing of your own into this Venture",
@@ -1726,7 +1726,7 @@ export const venturesRouter = {
             data: { refusal: "already_paid" },
           });
         }
-        const owed = Number(approved.row.farmBdt);
+        const owed = approved.row.farmBdt;
         if (owed <= 0) {
           throw new ORPCError("BAD_REQUEST", {
             message: "This Venture made the Farm nothing to take",
@@ -1940,7 +1940,7 @@ export const venturesRouter = {
             approved.row.id,
             input.adjustmentId
           );
-          const perUnitBdt = Number(adjustment.perUnitDifferenceBdt);
+          const perUnitBdt = adjustment.perUnitDifferenceBdt;
           if (perUnitBdt <= 0) {
             // The late news was bad. Nothing is chased: an Investor paid on figures the farm gave him
             // keeps what he was paid, so there is nothing to send and this is waived, not paid.
@@ -2464,11 +2464,11 @@ export const venturesRouter = {
           action: "create",
           after: (tx) => readMovement(tx, context.farm.id, id),
         },
-        apply: async (tx, venture) => {
+        apply: async (tx, standing) => {
           await tx.insert(ventureMovement).values({
             id,
             farmId: context.farm.id,
-            ventureId: venture.id,
+            ventureId: standing.id,
             kind: "advance",
             amountBdt: input.amountBdt.toFixed(2),
             movedOn: input.movedOn,
