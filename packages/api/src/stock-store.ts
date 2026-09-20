@@ -8,6 +8,7 @@ import type { StockMovement } from "@OpenFarm/domain";
 import {
   lastFellBelow,
   roundKg,
+  roundTaka,
   startOfFarmDay,
   stockLedger,
 } from "@OpenFarm/domain";
@@ -96,7 +97,7 @@ export const movementsByItem = async (
       kind: "in",
       at: one.receivedOn,
       quantity: Number(one.quantity),
-      priceBdt: one.priceBdt === null ? null : Number(one.priceBdt),
+      priceBdt: one.priceBdt === null ? null : one.priceBdt,
     });
   }
   for (const one of counts) {
@@ -158,8 +159,7 @@ export const stockOnHand = async (
       unit: item.unit,
       retiredAt: item.retiredAt,
       lowStockAt: item.lowStockAt === null ? null : Number(item.lowStockAt),
-      fodderPriceBdt:
-        item.fodderPriceBdt === null ? null : Number(item.fodderPriceBdt),
+      fodderPriceBdt: item.fodderPriceBdt === null ? null : item.fodderPriceBdt,
       ...ledger,
       runningLow:
         item.lowStockAt !== null &&
@@ -535,7 +535,7 @@ export const bookPurchaseMoney = async (
     await bookMoney(tx, booking, {
       source: "feed_in",
       sourceId: row.id,
-      amountBdt: Number(row.priceBdt),
+      amountBdt: row.priceBdt,
       occurredAt: row.receivedOn,
       counterpartyId: row.counterpartyId,
       paymentMethod,
@@ -546,12 +546,12 @@ export const bookPurchaseMoney = async (
 /** What a cut lot is worth: the Feed Item's Fodder Price times the kilos, or nothing while the farm has
  *  put no price on its own fodder. */
 export const fodderValueOf = (
-  item: { fodderPriceBdt: string | null },
+  item: { fodderPriceBdt: number | null },
   quantity: number
-): string | null =>
+): number | null =>
   item.fodderPriceBdt === null
     ? null
-    : (Number(item.fodderPriceBdt) * quantity).toFixed(2);
+    : roundTaka(item.fodderPriceBdt * quantity);
 
 /**
  * A Purchase names what the lot cost and the seller it came from; a Harvest from the farm's own

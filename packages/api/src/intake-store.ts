@@ -143,7 +143,7 @@ export const bookIntakeMoney = async (
   }
   // What the farm handed over for her: the price and the haat's toll on her, which is not a second
   // payment to a second party but part of what she cost.
-  const priceBdt = Number(row.purchasePriceBdt) + Number(row.hasilBdt);
+  const priceBdt = row.purchasePriceBdt + row.hasilBdt;
   if (
     priceBdt > 0 ||
     (await moneySnapshotOf(tx, row.farmId, "intake", row.id))

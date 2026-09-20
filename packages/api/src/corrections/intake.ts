@@ -83,8 +83,8 @@ export const intakeCorrection: CorrectionKind<
   supersedes: false,
   entry: (row) => ({ enteredAt: row.createdAt, enteredBy: row.recordedBy }),
   shown: async (tx, row) => ({
-    purchasePriceBdt: Number(row.purchasePriceBdt),
-    hasilBdt: Number(row.hasilBdt),
+    purchasePriceBdt: row.purchasePriceBdt,
+    hasilBdt: row.hasilBdt,
     buyingTrip: row.buyingTripId,
     owner: await ownerOf(tx, row.animalId),
     seller: row.seller?.name ?? null,
@@ -118,10 +118,8 @@ export const intakeCorrection: CorrectionKind<
     const putRight = {
       ...(to.purchasePriceBdt === undefined
         ? {}
-        : { purchasePriceBdt: to.purchasePriceBdt.toFixed(2) }),
-      ...(to.hasilBdt === undefined
-        ? {}
-        : { hasilBdt: to.hasilBdt.toFixed(2) }),
+        : { purchasePriceBdt: to.purchasePriceBdt }),
+      ...(to.hasilBdt === undefined ? {} : { hasilBdt: to.hasilBdt }),
       ...(to.buyingTrip === undefined ? {} : { buyingTripId: to.buyingTrip }),
       ...(to.seller === undefined
         ? {}

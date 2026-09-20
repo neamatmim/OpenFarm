@@ -66,8 +66,7 @@ export const feedRouter = {
       // every other figure is.
       return rows.map((row) => ({
         ...row,
-        fodderPriceBdt:
-          row.fodderPriceBdt === null ? null : Number(row.fodderPriceBdt),
+        fodderPriceBdt: row.fodderPriceBdt,
       }));
     }),
 
@@ -131,8 +130,7 @@ export const feedRouter = {
       if (!existing) {
         throw new ORPCError("NOT_FOUND", { message: "No such feed" });
       }
-      const fodderPriceBdt =
-        input.fodderPriceBdt === null ? null : input.fodderPriceBdt.toFixed(2);
+      const { fodderPriceBdt } = input;
       await audited(context).write(
         {
           entity: "feed_item",

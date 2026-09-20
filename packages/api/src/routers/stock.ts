@@ -70,7 +70,7 @@ export const stockRouter = {
           kind: row.kind,
           quantity,
           maunds: feedItem.unit === "kg" ? maundsOf(quantity) : null,
-          priceBdt: row.priceBdt === null ? null : Number(row.priceBdt),
+          priceBdt: row.priceBdt,
           sellerName: seller?.name ?? null,
           receivedOn: row.receivedOn,
           recordedAt: row.recordedAt,
@@ -167,7 +167,7 @@ export const stockRouter = {
             priceBdt:
               input.kind === "harvest"
                 ? fodderValueOf(item, input.quantity)
-                : (input.priceBdt?.toFixed(2) ?? null),
+                : (input.priceBdt ?? null),
             counterpartyId: sellerId,
             receivedOn,
             recordedBy: context.actor.id,

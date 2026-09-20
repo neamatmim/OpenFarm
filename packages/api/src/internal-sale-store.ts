@@ -62,7 +62,7 @@ export const recordInternalSale = async (
     weightKg: hand.weighed.weightKg.toFixed(2),
     weighInId: hand.weighed.id,
     rateBdtPerKg: hand.rateBdtPerKg.toFixed(2),
-    priceBdt: priceBdt.toFixed(2),
+    priceBdt,
     note: hand.note,
     soldOn: hand.soldOn,
     recordedBy: actorId,

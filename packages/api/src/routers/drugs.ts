@@ -226,7 +226,7 @@ export const drugsRouter = {
         id: row.id,
         quantity: row.quantity,
         doses: row.doses,
-        priceBdt: Number(row.priceBdt),
+        priceBdt: row.priceBdt,
         sellerName: row.seller.name,
         purchasedOn: row.purchasedOn,
       }));

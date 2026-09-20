@@ -13,6 +13,7 @@ import { user } from "./auth";
 import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { pen } from "./herd";
+import { taka } from "./taka";
 
 /** Something the Farm feeds, in kilos. Home-grown fodder is a Feed Item too. Retired rather
  *  than removed: a Ration the farm fed in March still names it. */
@@ -33,7 +34,7 @@ export const feedItem = pgTable(
     /** What a kilo of this is worth when the farm grows it itself: roughly what buying it would cost.
      *  A Harvest comes into the store at it, so the animals that eat home-grown fodder are charged for
      *  it. Null for anything the farm does not grow, which comes in at what it was bought for. */
-    fodderPriceBdt: numeric("fodder_price_bdt", { precision: 12, scale: 2 }),
+    fodderPriceBdt: taka("fodder_price_bdt"),
     retiredAt: timestamp("retired_at"),
     createdBy: text("created_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
@@ -181,7 +182,7 @@ export const feedIn = pgTable(
     /** In the Feed Item's own unit. */
     quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
     /** What the whole lot cost, in taka. Null for a harvest. */
-    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }),
+    priceBdt: taka("price_bdt"),
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The farm's day it came in. */

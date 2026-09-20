@@ -510,10 +510,10 @@ export const theirHerdStory = async (
 
   for (const one of costs.animals) {
     if (one.intake && ownedThenBy(one.id, one.intake.arrivedAt) === ventureId) {
-      bought.push(Number(one.intake.purchasePriceBdt));
+      bought.push(one.intake.purchasePriceBdt);
     }
     if (one.sale && ownedThenBy(one.id, one.sale.soldAt) === ventureId) {
-      sold.push(Number(one.sale.priceBdt));
+      sold.push(one.sale.priceBdt);
     }
     const exit = exitOf(one);
     if (
@@ -528,7 +528,7 @@ export const theirHerdStory = async (
     // Taken on from another purse: bought with this Venture's money as surely as one off a lorry, and
     // the Settlement's own "bought" line counts it, so the story must too.
     if (one.toVentureId === ventureId && byId.has(one.animalId)) {
-      bought.push(Number(one.priceBdt));
+      bought.push(one.priceBdt);
     }
     // Let go to the Farm, which is the wind-up buy-back: it takes every Animal still standing at one
     // rate on one day, and it is not a Sale.
