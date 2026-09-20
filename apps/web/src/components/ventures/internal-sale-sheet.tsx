@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -27,6 +28,7 @@ export const InternalSaleSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+  const refreshTheBooks = useRefreshTheBooks();
   const [tagNumber, setTagNumber] = useState("");
   const [toVentureId, setToVentureId] = useState("");
   const [rate, setRate] = useState("");
@@ -49,7 +51,7 @@ export const InternalSaleSheet = ({
         setSoldOn("");
         setReference("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+        await refreshTheBooks();
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         toast.success(
           t("ventures.soldInternally", {

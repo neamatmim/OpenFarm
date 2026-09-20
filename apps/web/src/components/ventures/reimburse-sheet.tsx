@@ -1,6 +1,6 @@
 import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth } from "@/lib/months";
+import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -154,7 +155,7 @@ export const ReimburseSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
+  const refreshTheBooks = useRefreshTheBooks();
   const [month, setMonth] = useState(lastMonth);
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
@@ -176,8 +177,7 @@ export const ReimburseSheet = ({
         setMovedOn("");
         setReference("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
+        await refreshTheBooks();
         toast.success(t("ventures.reimbursed"));
       },
     })
