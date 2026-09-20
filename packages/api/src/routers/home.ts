@@ -7,6 +7,7 @@ import {
   roundLitres,
   underMeatWithdrawal,
   underMilkWithdrawal,
+  farmDayOf,
 } from "@OpenFarm/domain";
 
 import { repeatBreedersOn } from "../breeding-store";
@@ -14,7 +15,6 @@ import { protectedProcedure } from "../index";
 import {
   alertParams,
   daysWork,
-  farmDayOf,
   farmDayRange,
   findLate,
   heldByWithdrawal,

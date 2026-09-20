@@ -1,10 +1,10 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import { isQuiet, wakesTheFarm } from "@OpenFarm/domain";
+import { farmDayOf, isQuiet, wakesTheFarm } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import { audited } from "./audit";
 import type { Context } from "./context";
-import { farmDayOf, minuteOfFarmDay } from "./instances-store";
+import { minuteOfFarmDay } from "./instances-store";
 import type { RaisedAlert } from "./instances-store";
 import type { Told } from "./push-store";
 import { carryTheDigest, claimTheDigest, pushAlerts } from "./push-store";

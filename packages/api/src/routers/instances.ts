@@ -7,6 +7,7 @@ import {
   minutesOverdue,
   sessionsPerDayOf,
   underMilkWithdrawal,
+  farmDayOf,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -36,7 +37,6 @@ import {
   workAwaitingSignOff,
   alertParams,
   animalsForInstance,
-  farmDayOf,
   farmDayRange,
   findLate,
   raiseDueInstances,
