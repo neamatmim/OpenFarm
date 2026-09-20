@@ -2376,8 +2376,7 @@ export const venturesRouter = {
           // between correcting a reading and quietly making a problem go away.
           const disagreed =
             already !== undefined &&
-            roundTaka(Number(already.readBdt) - Number(already.expectedBdt)) !==
-              0;
+            roundTaka(already.readBdt - already.expectedBdt) !== 0;
           const agreesNow = roundTaka(input.readBdt - expectedBdt) === 0;
           // Said now, not once before: the note she wrote when it disagreed explains the disagreement,
           // and putting the month right is a different thing to explain.

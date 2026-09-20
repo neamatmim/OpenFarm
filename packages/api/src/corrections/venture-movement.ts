@@ -160,7 +160,7 @@ const assertWithinItsUnits = async (
     },
     columns: { amountBdt: true },
   });
-  const owed = (agreement?.units ?? 0) * Number(plan?.unitPriceBdt ?? 0);
+  const owed = (agreement?.units ?? 0) * (plan?.unitPriceBdt ?? 0);
   const already = paid.reduce((sum, one) => sum + one.amountBdt, 0);
   if (already + amountBdt > owed) {
     throw refuse(
