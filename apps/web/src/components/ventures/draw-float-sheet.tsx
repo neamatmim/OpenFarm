@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -41,6 +42,7 @@ export const DrawFloatSheet = ({
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const [drawing, setDrawing] = useState<Drawing>(NOTHING_YET);
+  useFreshFor(venture?.id, () => setDrawing(NOTHING_YET));
   const trips = useQuery(orpc.trips.list.queryOptions());
   const drawingIt = useMutation(
     orpc.ventures.drawFloat.mutationOptions({

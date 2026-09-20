@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -34,6 +35,12 @@ export const CountFloatSheet = ({
   const [cashBack, setCashBack] = useState("");
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
+  useFreshFor(venture?.id, () => {
+    setBuyingTripId("");
+    setCashBack("");
+    setMovedOn("");
+    setReference("");
+  });
   const trips = useQuery(orpc.trips.list.queryOptions());
   const counting = useMutation(
     orpc.ventures.reconcileFloat.mutationOptions({

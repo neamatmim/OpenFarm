@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth } from "@/lib/months";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
@@ -157,6 +158,11 @@ export const ReimburseSheet = ({
   const [month, setMonth] = useState(lastMonth);
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
+  useFreshFor(venture?.id, () => {
+    setMonth(lastMonth());
+    setMovedOn("");
+    setReference("");
+  });
   const consumed = useQuery({
     ...orpc.ventures.consumption.queryOptions({
       input: { ventureId: venture?.id ?? "", month },

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -29,6 +30,11 @@ export const AdvanceSheet = ({
   const [amount, setAmount] = useState("");
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
+  useFreshFor(venture?.id, () => {
+    setAmount("");
+    setMovedOn("");
+    setReference("");
+  });
   const advancing = useMutation(
     orpc.ventures.advance.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),

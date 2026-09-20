@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -81,6 +82,12 @@ export const BuyWhatIsLeftSheet = ({
   const [note, setNote] = useState("");
   const [boughtOn, setBoughtOn] = useState("");
   const [reference, setReference] = useState("");
+  useFreshFor(venture?.id, () => {
+    setRate("");
+    setNote("");
+    setBoughtOn("");
+    setReference("");
+  });
   const buying = useMutation(
     orpc.ventures.buyWhatIsLeft.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),

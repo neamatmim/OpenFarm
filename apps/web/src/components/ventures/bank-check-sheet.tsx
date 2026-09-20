@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth } from "@/lib/months";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -52,15 +53,12 @@ export const BankCheckSheet = ({
   const [month, setMonth] = useState(lastMonth);
   const [read, setRead] = useState("");
   const [note, setNote] = useState("");
-  // A sheet opened on another Venture starts clean: the last statement figure typed is not this
-  // account's, and leaving it in the box is how a wrong figure gets recorded.
-  const [openedOn, setOpenedOn] = useState<string | null>(null);
-  if (venture && venture.id !== openedOn) {
-    setOpenedOn(venture.id);
+  // This sheet worked it out first; the reason is now in `useFreshFor`, where the other nine read it.
+  useFreshFor(venture?.id, () => {
     setRead("");
     setNote("");
     setMonth(lastMonth());
-  }
+  });
   const expected = useQuery({
     ...orpc.ventures.expectedAtMonthEnd.queryOptions({
       input: { ventureId: venture?.id ?? "", month },
