@@ -29,6 +29,7 @@ import {
   SharePaid,
 } from "@/components/ventures/settling-up";
 import { useLanguage } from "@/i18n/language-provider";
+import { saidMonth } from "@/lib/months";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -131,17 +132,21 @@ const WhatTheBankSays = ({
 }: {
   block: Extract<Block, { word: "the_bank_disagrees" }>;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  // Worded, not joined raw: "2026-08" inside a Bangla sentence is the defect `saidMonth` exists for,
+  // and the Venture's own card has said আগস্ট ২০২৬ for it all along.
+  const months = (list: string[]) =>
+    list.map((month) => saidMonth(month, language)).join(", ");
   const said = [
     block.neverRead.length === 0
       ? null
-      : t("ventures.neverRead", { months: block.neverRead.join(", ") }),
+      : t("ventures.neverRead", { months: months(block.neverRead) }),
     block.stale.length === 0
       ? null
-      : t("ventures.wentStale", { months: block.stale.join(", ") }),
+      : t("ventures.wentStale", { months: months(block.stale) }),
     block.disagreed.length === 0
       ? null
-      : t("ventures.didNotAgree", { months: block.disagreed.join(", ") }),
+      : t("ventures.didNotAgree", { months: months(block.disagreed) }),
   ].filter((one) => one !== null);
   return (
     <>
@@ -194,7 +199,11 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
       return <span>{taka(block.openFloatBdt)}</span>;
     }
     case "a_reimbursement_is_owed": {
-      return <span>{block.months.join(", ")}</span>;
+      return (
+        <span>
+          {block.months.map((month) => saidMonth(month, language)).join(", ")}
+        </span>
+      );
     }
     case "the_bank_disagrees": {
       return <WhatTheBankSays block={block} />;

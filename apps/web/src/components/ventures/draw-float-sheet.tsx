@@ -49,6 +49,10 @@ export const DrawFloatSheet = ({
         setDrawing(NOTHING_YET);
         onOpenChange(false);
         await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+        // The outing this Float was drawn against is no longer one that needs funding, and this sheet's
+        // own list is the Trips. Without this it goes on offering the outing until something else asks
+        // for them again, and the farm is refused for drawing a Float it has already drawn.
+        await queryClient.invalidateQueries({ queryKey: orpc.trips.key() });
         toast.success(t("ventures.floatDrawn"));
       },
     })
