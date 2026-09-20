@@ -194,9 +194,6 @@ const recordTheService = async (
 /** A Step that records a Service. */
 export const serviceEffect: EffectKind<ServiceFacts> = {
   kind: "service",
-  // The farm serves some cows a second time in a heat and not others, so the AI work carries a second service Step that
-  // "once was enough" has to be able to pass.
-  maySkip: true,
   recordableBy: {
     roles: ["owner", "manager"],
     refusal: {

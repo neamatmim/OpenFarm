@@ -909,6 +909,35 @@ export const isClosingStep = (content: SopContent, step: Step): boolean =>
   content.steps.at(-1)?.id === step.id &&
   content.steps.length > 1;
 
+/**
+ * The Effects whose Step may be skipped though it is not done animal by animal.
+ *
+ * A dose, because the bottle is sometimes empty and the farm would rather be told so than have the
+ * Step recorded as given. A service, because the farm serves some cows a second time in a heat and
+ * not others, so the AI work carries a second service Step that "once was enough" has to pass.
+ */
+const EFFECTS_THAT_MAY_SKIP: ReadonlySet<StepEffect["kind"]> = new Set([
+  "treatment",
+  "service",
+]);
+
+/**
+ * Whether a Step may be skipped with a reason.
+ *
+ * A Step done animal by animal may always skip the animal, because the animal is the thing being
+ * skipped. A Step done once may still be skippable if its Effect says so.
+ *
+ * Said here rather than in the server, because both sides ask it and they disagreed: the server
+ * allowed the Effect's skip and the phone drew its button on `repeatPerAnimal` alone, so the seeded
+ * Playbook's dose Step — written with two skip reasons, ওষুধ শেষ among them — offered nobody on a
+ * phone a way to say the medicine had run out.
+ */
+export const maySkip = (
+  step: Pick<Step, "repeatPerAnimal" | "effect">
+): boolean =>
+  step.repeatPerAnimal ||
+  (step.effect !== undefined && EFFECTS_THAT_MAY_SKIP.has(step.effect.kind));
+
 /** One thing that is different between two Versions of an SOP, in the terms somebody who
  *  does the work would put it. Rendered by the reader's app in their own language. */
 export type SopChange =

@@ -11,6 +11,7 @@ import {
   isClosingStep,
   isFinished,
   mayTransition,
+  maySkip,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import {
@@ -1752,6 +1753,10 @@ const EvidenceSheet = ({
   );
   const recordsMilk = step.effect?.kind === "milk_record";
   const feedsThePen = step.effect?.kind === "feeding";
+  // Asked of the domain, not worked out here: the server refuses a skip by the same rule, and when
+  // this screen had its own the two disagreed — a dose Step written with "ওষুধ শেষ" against it drew
+  // no button at all.
+  const skippable = maySkip(step);
   // A Correction starts from what was fed, not from what the Ration owed: saving it unchanged keeps what went out.
   const recorded = factsOf(existing);
   const [given, setGiven] = useState<Typed>(() =>
@@ -1906,7 +1911,7 @@ const EvidenceSheet = ({
           <Button variant="ghost" className="h-14 text-base" onClick={onCancel}>
             {t("work.back")}
           </Button>
-          {step.repeatPerAnimal ? (
+          {skippable ? (
             <Button
               variant="outline"
               className="h-14 text-base"
@@ -1917,7 +1922,7 @@ const EvidenceSheet = ({
             </Button>
           ) : null}
           <Button
-            className={`h-14 text-lg ${step.repeatPerAnimal ? "" : "col-span-2"}`}
+            className={`h-14 text-lg ${skippable ? "" : "col-span-2"}`}
             disabled={
               cannotFeed ||
               !count.complete ||
