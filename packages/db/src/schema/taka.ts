@@ -17,6 +17,6 @@ import { customType } from "drizzle-orm/pg-core";
 export const taka = (name: string) =>
   customType<{ data: number; driverData: string }>({
     dataType: () => "numeric(12, 2)",
-    fromDriver: (value: string) => Number(value),
+    fromDriver: Number,
     toDriver: (value: number) => value.toFixed(2),
   })(name);

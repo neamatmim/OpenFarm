@@ -53,7 +53,7 @@ export const adjustmentsOf = async (
   const sentAlready = alreadyAdjustedPerUnitBdt(
     rows.map((one) => ({
       outcome: one.outcome,
-      perUnitDifferenceBdt: Number(one.perUnitDifferenceBdt),
+      perUnitDifferenceBdt: one.perUnitDifferenceBdt,
     }))
   );
   // What one of them actually sent is what it was worth less what had been sent before *it* — by when it
@@ -66,21 +66,21 @@ export const adjustmentsOf = async (
   const sent = new Map<string, number>();
   let before = 0;
   for (const one of inTheOrderTheyWerePaid) {
-    const difference = Number(one.perUnitDifferenceBdt);
+    const difference = one.perUnitDifferenceBdt;
     sent.set(one.id, roundTaka(difference - before));
     before = roundTaka(before + difference);
   }
   return rows.map((one) => {
-    const perUnitDifferenceBdt = Number(one.perUnitDifferenceBdt);
+    const { perUnitDifferenceBdt } = one;
     return {
       id: one.id,
       reason: one.reason,
       raisedAt: one.raisedAt,
-      profitBdt: Number(one.profitBdt),
-      perUnitBdt: Number(one.perUnitBdt),
+      profitBdt: one.profitBdt,
+      perUnitBdt: one.perUnitBdt,
       perUnitDifferenceBdt,
-      investorsDifferenceBdt: Number(one.investorsDifferenceBdt),
-      thresholdBdt: Number(one.thresholdBdt),
+      investorsDifferenceBdt: one.investorsDifferenceBdt,
+      thresholdBdt: one.thresholdBdt,
       outcome: one.outcome,
       waivedNote: one.waivedNote,
       closedAt: one.closedAt,
@@ -100,12 +100,10 @@ export const adjustmentsOf = async (
  * him keeps what he was paid — so only a rise is ever a payment.
  */
 export const adjustmentAgainst = (
-  frozen: { perUnitBdt: string; units: number },
+  frozen: { perUnitBdt: number; units: number },
   now: { perUnitBdt: number; profitBdt: number }
 ) => {
-  const perUnitDifferenceBdt = roundTaka(
-    now.perUnitBdt - Number(frozen.perUnitBdt)
-  );
+  const perUnitDifferenceBdt = roundTaka(now.perUnitBdt - frozen.perUnitBdt);
   return {
     profitBdt: now.profitBdt,
     perUnitBdt: now.perUnitBdt,
@@ -150,11 +148,11 @@ export const raiseAdjustment = async (
     farmId,
     settlementId,
     reason: what.reason,
-    profitBdt: what.against.profitBdt.toFixed(2),
-    perUnitBdt: what.against.perUnitBdt.toFixed(2),
-    perUnitDifferenceBdt: what.against.perUnitDifferenceBdt.toFixed(2),
-    investorsDifferenceBdt: what.against.investorsDifferenceBdt.toFixed(2),
-    thresholdBdt: what.thresholdBdt.toFixed(2),
+    profitBdt: what.against.profitBdt,
+    perUnitBdt: what.against.perUnitBdt,
+    perUnitDifferenceBdt: what.against.perUnitDifferenceBdt,
+    investorsDifferenceBdt: what.against.investorsDifferenceBdt,
+    thresholdBdt: what.thresholdBdt,
     // Below the figure the Farm set, there is nothing to do and it says so at once.
     outcome,
     closedAt: outcome === "noted" ? by.now : null,
