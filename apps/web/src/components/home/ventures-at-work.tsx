@@ -5,6 +5,7 @@ import { Handshake } from "lucide-react";
 
 import { RecordList, RecordRow, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -22,11 +23,11 @@ import { orpc } from "@/utils/orpc";
 export const VenturesAtWork = () => {
   const { t, language } = useLanguage();
   const ventures = useQuery(orpc.ventures.running.queryOptions());
+  const taka = useTaka();
   const rows = ventures.data ?? [];
   if (rows.length === 0) {
     return null;
   }
-  const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
   return (
     <Section
       className="min-w-0"

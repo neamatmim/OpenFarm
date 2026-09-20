@@ -28,6 +28,7 @@ import { categoryName, useApproveMoney } from "@/components/money";
 import { ProgressBar, StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** The Owner's exception list as the farm answers it. */
@@ -97,11 +98,12 @@ const RenewalRow = ({
 /** Money waiting on the Owner: what it all comes to beside how many, the first few approved where they stand. */
 const MoneyGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const approveMoney = useApproveMoney();
   return (
     <QueueGroup
       aside={t("owner.moneyTotal", {
-        taka: `৳${formatNumber(moneyAwaitingTotal(needsYou), language)}`,
+        taka: taka(moneyAwaitingTotal(needsYou)),
       })}
       firstShown={MONEY_FIRST_SHOWN}
       icon={HandCoins}

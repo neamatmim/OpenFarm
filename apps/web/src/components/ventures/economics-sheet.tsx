@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { EmptyState, RecordList, RecordRow } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -37,8 +38,11 @@ export const EconomicsSheet = ({
     }),
     enabled: venture !== null,
   });
-  const taka = (bdt: number) => `৳${formatNumber(bdt, language)}`;
+  const taka = useTaka();
+  const rate = useTakaToThePaisa();
   const orDash = (bdt: number | null) => (bdt === null ? "—" : taka(bdt));
+  // A cost of gain is a rate, not a sum: rounded to the taka, two different ones print the same.
+  const rateOrDash = (bdt: number | null) => (bdt === null ? "—" : rate(bdt));
   const { data } = herd;
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
@@ -66,7 +70,7 @@ export const EconomicsSheet = ({
                   {t("ventures.herdCostOfGain")}
                 </span>
                 <span className="text-right font-medium tabular-nums">
-                  {orDash(data.costOfGainBdt)}
+                  {rateOrDash(data.costOfGainBdt)}
                 </span>
                 <span className="text-muted-foreground">
                   {t("ventures.soldAndUnsold")}
@@ -86,7 +90,7 @@ export const EconomicsSheet = ({
                       <>
                         <span>
                           {t("ventures.costOfGainIs", {
-                            rate: orDash(one.costOfGainBdt),
+                            rate: rateOrDash(one.costOfGainBdt),
                           })}
                         </span>
                         <span>

@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,7 @@ import { useInvestorNames } from "@/components/investors/investor-names";
 import { RecordList, RecordRow } from "@/components/page";
 import { CorrectMovement } from "@/components/ventures/correct-movement";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** What each kind of movement is called, in the reader's own language. */
@@ -46,6 +47,7 @@ export const MovementsSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const nameOf = useInvestorNames();
   const movements = useQuery({
     ...orpc.ventures.movements.queryOptions({
@@ -78,10 +80,7 @@ export const MovementsSheet = ({
                     ) : null}
                   </>
                 }
-                title={`${t(KIND_WORD[one.kind])} · ৳${formatNumber(
-                  one.amountBdt,
-                  language
-                )}`}
+                title={`${t(KIND_WORD[one.kind])} · ${taka(one.amountBdt)}`}
                 trailing={<CorrectMovement movement={one} />}
               />
             ))}

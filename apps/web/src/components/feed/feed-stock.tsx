@@ -19,6 +19,7 @@ import { EmptyState, StatusBadge } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 import type { StockLine, StockStanding } from "./feed-types";
@@ -218,6 +219,7 @@ const stockColumns = column.columns([
 /** A Feed Item on a phone: its name and standing on one line, what the store holds large beneath. */
 const StockCard = ({ row }: { row: StockRow }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const value = valueOf(row);
   return (
     <div className="flex items-start justify-between gap-3">
@@ -235,7 +237,7 @@ const StockCard = ({ row }: { row: StockRow }) => {
             : `${t("stock.averagePrice", {
                 taka: formatNumber(row.averagePriceBdt, language),
                 unit: row.unit,
-              })} · ৳${formatNumber(Math.round(value ?? 0), language)}`}
+              })} · ${taka(value ?? 0)}`}
           {row.lowStockAt === null
             ? ""
             : ` · ${t("stock.col.lowAt")} ${formatNumber(row.lowStockAt, language)} ${row.unit}`}

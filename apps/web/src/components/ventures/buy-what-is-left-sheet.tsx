@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -24,6 +25,7 @@ const WhatIsLeft = ({
   rate: number;
 }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const priced = Number.isNaN(rate) ? 0 : rate;
   const total = animals.reduce(
     (sum, one) => sum + Math.round((one.weightKg ?? 0) * priced),
@@ -37,16 +39,15 @@ const WhatIsLeft = ({
           <span className="tabular-nums">
             {one.weightKg === null
               ? t("ventures.neverWeighed")
-              : `${formatNumber(one.weightKg, language)} · ৳${formatNumber(
-                  Math.round(one.weightKg * priced),
-                  language
+              : `${formatNumber(one.weightKg, language)} · ${taka(
+                  one.weightKg * priced
                 )}`}
           </span>
         </div>
       ))}
       <div className="mt-1 flex justify-between gap-2 border-t pt-1 font-medium">
         <span>{t("ventures.total")}</span>
-        <span className="tabular-nums">{`৳${formatNumber(total, language)}`}</span>
+        <span className="tabular-nums">{taka(total)}</span>
       </div>
     </div>
   );

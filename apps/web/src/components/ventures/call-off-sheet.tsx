@@ -1,4 +1,3 @@
-import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +8,7 @@ import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** The day and the reference of the transfer that sends one movement's money back. */
@@ -36,7 +36,8 @@ export const CallOffSheet = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
+  const taka = useTaka();
   const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
   const [sentBack, setSentBack] = useState<Record<string, SentBack>>({});
@@ -112,10 +113,7 @@ export const CallOffSheet = ({
             key={one.id}
           >
             <p className="text-sm font-medium">
-              {`${nameOf(one.investorId)} · ৳${formatNumber(
-                one.amountBdt,
-                language
-              )} · ${one.reference}`}
+              {`${nameOf(one.investorId)} · ${taka(one.amountBdt)} · ${one.reference}`}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField

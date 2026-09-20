@@ -32,6 +32,7 @@ import { Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["stock", "arrivals", "counts", "rations", "items"] as const;
@@ -47,6 +48,7 @@ const shortOf = (lines: StockLine[]) =>
  *  and what feed was bought this month. */
 const useStoreFigures = (lines: StockLine[], arrivals: Arrival[]): Figure[] => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const live = lines.filter((line) => !line.retiredAt);
   const short = shortOf(lines);
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
@@ -73,13 +75,13 @@ const useStoreFigures = (lines: StockLine[], arrivals: Arrival[]): Figure[] => {
     },
     {
       label: t("feed.kpi.value"),
-      value: `৳${formatNumber(Math.round(worth), language)}`,
+      value: taka(worth),
       hint: t("feed.kpi.valueHint"),
       icon: Coins,
     },
     {
       label: t("feed.kpi.bought"),
-      value: `৳${formatNumber(Math.round(spent), language)}`,
+      value: taka(spent),
       hint: t("feed.kpi.boughtHint", {
         count: formatNumber(bought.length, language),
       }),

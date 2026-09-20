@@ -29,6 +29,7 @@ import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["register", "costs", "accountant", "categories"] as const;
@@ -43,7 +44,7 @@ const firstOfTheMonth = () =>
 const useMoneyFigures = (list: MoneyList | undefined): Figure[] => {
   const { t, language } = useLanguage();
   const rows = list?.events ?? [];
-  const taka = (n: number) => `৳${formatNumber(n, language)}`;
+  const taka = useTaka();
   const moneyIn = rows
     .filter((row) => row.direction === "in")
     .reduce((sum, row) => sum + row.amountBdt, 0);

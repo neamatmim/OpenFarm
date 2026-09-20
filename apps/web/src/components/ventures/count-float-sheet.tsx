@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -27,6 +28,7 @@ export const CountFloatSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const queryClient = useQueryClient();
   const [buyingTripId, setBuyingTripId] = useState("");
   const [cashBack, setCashBack] = useState("");
@@ -93,9 +95,8 @@ export const CountFloatSheet = ({
           <option value="">—</option>
           {stillOut.map((one) => (
             <option key={one.id} value={one.id}>
-              {`${one.wentTo} · ${formatDate(one.wentOn, language, "date")} · ৳${formatNumber(
-                one.float?.amountBdt ?? 0,
-                language
+              {`${one.wentTo} · ${formatDate(one.wentOn, language, "date")} · ${taka(
+                one.float?.amountBdt ?? 0
               )}`}
             </option>
           ))}

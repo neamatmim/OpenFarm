@@ -245,13 +245,13 @@ export const bn: Record<MessageKey, string> = {
   "ventures.decideBy": "সিদ্ধান্তের দিন",
   "ventures.unitPrice": "এক ইউনিটের দাম",
   "ventures.units": "ইউনিট",
-  "ventures.unitsAt": "{units}টি, প্রতিটি ৳{price}",
+  "ventures.unitsAt": "{units}টি, প্রতিটি {price}",
   "ventures.openHintPlain":
     "সর্বনিম্ন সীমা, ইউনিট আর দুই বাজেট খামারের সেটিংস থেকেই আসে, যদি না আপনি নিজে লেখেন।",
   "ventures.unitsOwn": "ইউনিট (না লিখলেও চলে)",
   "ventures.cattleBudgetOwn": "গরু কেনার জন্য (না লিখলেও চলে)",
   "ventures.budgets": "বাজেট",
-  "ventures.budgetSplit": "৳{cattle} গরু · ৳{running} খাওয়ানো",
+  "ventures.budgetSplit": "{cattle} গরু · {running} খাওয়ানো",
   "ventures.buyWhatIsLeft": "বাকিগুলো কিনে নিন",
   "ventures.buyWhatIsLeftHint":
     "গুটিয়ে আনার সময় শেষ। {venture}-এ এখনও {standing}টি গরু আছে; সময়মতো হিসাব শেষ করতে খামার ওজন দরে সেগুলো নিয়ে নেবে।",

@@ -1,5 +1,4 @@
 import type { Language, MessageKey } from "@OpenFarm/i18n";
-import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
@@ -9,6 +8,7 @@ import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { lastMonth } from "@/lib/months";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** What a line is called in the reader's own language. */
@@ -44,15 +44,18 @@ const MadeOf = ({
 }: {
   lines: readonly Named[];
   language: Language;
-}) => (
-  <>
-    {lines.map((one) => (
-      <Line key={one.id} label={`· ${nameOf(one, language)}`}>
-        {`৳${formatNumber(one.bdt, language)}`}
-      </Line>
-    ))}
-  </>
-);
+}) => {
+  const taka = useTaka();
+  return (
+    <>
+      {lines.map((one) => (
+        <Line key={one.id} label={`· ${nameOf(one, language)}`}>
+          {taka(one.bdt)}
+        </Line>
+      ))}
+    </>
+  );
+};
 
 /** A month nobody has asked about yet: every figure nothing, every list empty. */
 const NOTHING_YET = {
@@ -94,7 +97,7 @@ const WhatItIsMadeOf = ({
   language: Language;
 }) => {
   const { t } = useLanguage();
-  const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
+  const taka = useTaka();
   // Defaulted once rather than at every figure: the month is either answered or it is not, and ten
   // separate fallbacks only made the same statement ten times.
   const said = consumed ?? NOTHING_YET;

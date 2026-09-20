@@ -14,6 +14,7 @@ import {
   moneyOf,
 } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 
 /** One figure of a Venture's money, as the sheet lists them. */
@@ -42,7 +43,7 @@ export const VentureDetailsSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
+  const taka = useTaka();
   const money = venture ? moneyOf(venture) : null;
   return (
     <Sheet onOpenChange={onOpenChange} open={venture !== null}>

@@ -27,6 +27,7 @@ import type { RowAction } from "@/components/page-kit";
 import { RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
+import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { monthsStillOut, pastWindUp } from "@/lib/ventures";
 
@@ -230,7 +231,7 @@ const MoneyLines = ({
 }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
-  const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
+  const taka = useTaka();
   const held = (
     <button
       aria-label={t("ventures.movements")}
@@ -261,8 +262,8 @@ const MoneyLines = ({
       {stillRunning(venture) ? (
         <Line label={t("ventures.budgetsHeld")}>
           {t("ventures.budgetSplit", {
-            cattle: formatNumber(money.cattleBudgetHeldBdt, language),
-            running: formatNumber(money.runningBudgetHeldBdt, language),
+            cattle: taka(money.cattleBudgetHeldBdt),
+            running: taka(money.runningBudgetHeldBdt),
           })}
         </Line>
       ) : null}
@@ -295,17 +296,18 @@ const MoneyLines = ({
  */
 export const Terms = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   const day = (on: string) => formatDate(startOfFarmDay(on), language, "date");
   const said = [
     `${t("ventures.units")}: ${t("ventures.unitsAt", {
       units: formatNumber(venture.units, language),
-      price: formatNumber(venture.unitPriceBdt, language),
+      price: taka(venture.unitPriceBdt),
     })}`,
     `${t("ventures.budgets")}: ${t("ventures.budgetSplit", {
-      cattle: formatNumber(venture.cattleBudgetBdt, language),
-      running: formatNumber(venture.runningBudgetBdt, language),
+      cattle: taka(venture.cattleBudgetBdt),
+      running: taka(venture.runningBudgetBdt),
     })}`,
-    `${t("ventures.floor")}: ৳${formatNumber(venture.floorBdt, language)}`,
+    `${t("ventures.floor")}: ${taka(venture.floorBdt)}`,
     `${t("ventures.decideBy")}: ${day(venture.decideBy)}`,
     `${t("ventures.window")}: ${day(venture.targetWindow.start)} – ${day(
       venture.targetWindow.end
