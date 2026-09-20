@@ -1013,29 +1013,6 @@ export const venturesRouter = {
         });
       }
       const owed = agreement.units * Number(row.unitPriceBdt);
-      const paidAlready = await takenAgainst(
-        context.db,
-        context.farm.id,
-        agreement.id
-      );
-      if (paidAlready + input.amountBdt > owed) {
-        // Capital divides by Units, so a Unit paid for twice would take twice its share of the profit
-        // while holding one share of the Venture.
-        throw new ORPCError("BAD_REQUEST", {
-          message: `This Agreement is for ${owed - paidAlready} more taka`,
-          data: { refusal: "capital_over_units" },
-        });
-      }
-      const paper = await context.db.query.agreementPaper.findFirst({
-        where: { agreementId: agreement.id, farmId: context.farm.id },
-        columns: { agreementId: true },
-      });
-      if (!paper) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "The stamped Agreement is not on file yet",
-          data: { refusal: "agreement_has_no_paper" },
-        });
-      }
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -1044,8 +1021,38 @@ export const venturesRouter = {
           action: "create",
           after: (tx) => readMovement(tx, context.farm.id, id),
         },
-        (tx) =>
-          tx.insert(ventureMovement).values({
+        async (tx) => {
+          // Counted inside the write's own transaction and behind a lock on the Farm row, as signing
+          // counts its Units: what an Agreement has taken is only true until the next payment commits,
+          // and two arriving together each read a figure that still leaves room for the other. Capital
+          // divides by Units, so a Unit paid for twice would take twice its share of the profit while
+          // holding one share of the Venture.
+          await lockTheFarm(tx, context.farm.id);
+          const paidAlready = await takenAgainst(
+            tx,
+            context.farm.id,
+            agreement.id
+          );
+          if (paidAlready + input.amountBdt > owed) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: `This Agreement is for ${owed - paidAlready} more taka`,
+              data: { refusal: "capital_over_units" },
+            });
+          }
+          // Asked after the count, which is the order these two were refused in before the count moved
+          // inside the lock: a payment that is both unpapered and over its Units hears the same of the
+          // two things it heard before.
+          const paper = await tx.query.agreementPaper.findFirst({
+            where: { agreementId: agreement.id, farmId: context.farm.id },
+            columns: { agreementId: true },
+          });
+          if (!paper) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "The stamped Agreement is not on file yet",
+              data: { refusal: "agreement_has_no_paper" },
+            });
+          }
+          await tx.insert(ventureMovement).values({
             id,
             farmId: context.farm.id,
             ventureId: agreement.ventureId,
@@ -1056,7 +1063,8 @@ export const venturesRouter = {
             reference: input.reference,
             recordedBy: context.actor.id,
             createdAt: now,
-          })
+          });
+        }
       );
       return { id };
     }),
