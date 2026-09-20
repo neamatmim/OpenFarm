@@ -26,7 +26,7 @@ import type { Tx, Trail } from "./audit";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving, nothingFollowed } from "./calving-work";
 import { entersState } from "./herd-store";
-import { ATTEMPT_KEY_PREFIX, attemptKeyOf } from "./instances-store";
+import { ATTEMPT_KEY_PREFIX, attemptKeyOf } from "./work-cause";
 import { callOffWork } from "./work-transitions";
 
 /** The Farm Parameters a pregnancy is timed by: how long a cow carries, and how long before her

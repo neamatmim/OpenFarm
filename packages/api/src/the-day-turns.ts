@@ -15,7 +15,6 @@ import {
   dueSlotsFor,
   findPendingNotices,
   happeningSlotsFor,
-  heatThatRaised,
   minuteOfFarmDay,
   postDueAt,
   raiseDueInstances,
@@ -31,6 +30,7 @@ import { textTheSafetyAlerts } from "./sms-send";
 import { contentOf } from "./sop-content";
 import { lowStockToTell, raiseLowStockAlerts, runningLow } from "./stock-store";
 import { endExpiredVisits } from "./visits-store";
+import { heatThatRaised } from "./work-cause";
 
 const MINUTE_MS = 60_000;
 

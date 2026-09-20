@@ -8,7 +8,7 @@ import {
   calvingCauseParts,
   calvingKeyOf,
   calvingWorkPrefix,
-} from "./instances-store";
+} from "./work-cause";
 import { callOffWork, raiseWorkAgain } from "./work-transitions";
 
 /** What following a changed Expected Calving did to the work about her, for the trail. */
