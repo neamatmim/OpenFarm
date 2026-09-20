@@ -1,7 +1,20 @@
+import { roundTaka } from "./money";
+
 /**
  * The arithmetic of closing a Venture out. Here in the domain rather than in the API, because the sum an
  * Investor is shown on a statement and the sum the farm pays out have to be the same sum.
  */
+
+/**
+ * What an Animal is worth at a rate: her last weight by the taka a kilo, to the paisa.
+ *
+ * Said here because both sides strike it — the farm to write the Internal Sale, and the screen to show
+ * the Owner what she is committing to before she agrees. The server strikes it again from the weight it
+ * holds and refuses a figure that disagrees, so a screen doing its own arithmetic would refuse her over
+ * a rounding rather than over a re-weighing, which is the only thing that refusal is for.
+ */
+export const priceAtWeight = (weightKg: number, rateBdtPerKg: number): number =>
+  roundTaka(weightKg * rateBdtPerKg);
 
 /**
  * The months from one to another, both included, as "YYYY-MM". A Venture is asked about every month it

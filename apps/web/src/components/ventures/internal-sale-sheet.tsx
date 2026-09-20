@@ -1,4 +1,4 @@
-import { roundTaka } from "@OpenFarm/domain";
+import { priceAtWeight } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
@@ -62,8 +62,9 @@ export const InternalSaleSheet = ({
   const weighed = her.data?.weighIns?.at(0);
   const weightKg = weighed ? Number(weighed.weightKg) : 0;
   const rateBdtPerKg = Number(rate);
-  // The same rounding the farm does, so what she reads is what she commits to.
-  const priceBdt = roundTaka(weightKg * rateBdtPerKg);
+  // Struck by the same function the farm strikes it with, so what she reads is what she commits to and
+  // a refusal means she was weighed again, not that two roundings disagreed.
+  const priceBdt = priceAtWeight(weightKg, rateBdtPerKg);
   const ready =
     tagNumber.trim() !== "" &&
     weightKg > 0 &&

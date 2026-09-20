@@ -373,7 +373,13 @@ export {
   slotsOf,
   turnsOf,
 } from "./step-shape";
-export { monthBefore, monthsFromTo, payoutOf, splitOfProfit } from "./venture";
+export {
+  monthBefore,
+  monthsFromTo,
+  payoutOf,
+  priceAtWeight,
+  splitOfProfit,
+} from "./venture";
 export type { Split, ToSplit } from "./venture";
 export type {
   EndedState,
