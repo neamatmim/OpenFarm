@@ -75,6 +75,7 @@ const BLOCK_WORD = {
   a_float_is_open: "refusal.aFloatIsOpen",
   a_reimbursement_is_owed: "refusal.aReimbursementIsOwed",
   the_bank_disagrees: "refusal.theBankDisagrees",
+  nobody_has_signed: "refusal.nobodyHasSigned",
 } as const satisfies Record<Block["word"], MessageKey>;
 
 const Line = ({
@@ -207,6 +208,10 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
     }
     case "the_bank_disagrees": {
       return <WhatTheBankSays block={block} />;
+    }
+    // Its title says the whole of it: there is nobody to settle with.
+    case "nobody_has_signed": {
+      return null;
     }
     default: {
       return (

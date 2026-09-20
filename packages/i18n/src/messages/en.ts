@@ -570,6 +570,7 @@ export const en = {
     "A month's Reimbursement has not been transferred",
   "refusal.theBankDisagrees":
     "A month has not been read against the statement, or did not agree",
+  "refusal.nobodyHasSigned": "Nobody has signed for this Venture",
   "refusal.agreementsDisagree":
     "This Venture's Agreements were signed on different splits",
   "refusal.alreadyApproved":

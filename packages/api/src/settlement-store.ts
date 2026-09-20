@@ -74,6 +74,8 @@ export type ChargeWord = (typeof CHARGE_WORDS)[number];
  * the same time: told only "refused", she has nothing to go and put right.
  */
 export type Block =
+  /** Nobody has signed for it, so there is nobody to settle with. */
+  | { word: "nobody_has_signed" }
   | { word: "agreements_disagree"; percents: number[] }
   | { word: "an_animal_still_stands"; tagNumbers: string[] }
   | { word: "a_price_is_missing"; unpricedKg: number; uncostedDoses: number }
@@ -189,6 +191,17 @@ const whatBlocksIt = ({
   withTheBank,
 }: Grounds): Block[] => {
   const blocks: Block[] = [];
+  // Asked first, because every other question here passes for a Venture nothing has happened to: one
+  // that has bought nothing has no Animal standing, no Float open, no month owed and no price missing.
+  // So a Venture opened this morning settles for nothing at all, reaches Settled, and is then frozen
+  // against signing anybody, taking a taka or being called off — dead on the day it was opened.
+  //
+  // Asked of the Agreements and not of the state, because a run can end badly: one whose animals all
+  // died never reaches Selling, and what is left of its Running Budget is still its Investors' to be
+  // given back.
+  if (agreements.length === 0) {
+    blocks.push({ word: "nobody_has_signed" });
+  }
   // Every Agreement of one Venture is signed on the same split. Two that disagree is a paper problem
   // the farm cannot divide its way out of, so it says so rather than picking one.
   const percents = new Set(agreements.map((one) => one.investorsPercent));
