@@ -310,7 +310,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
               animalId,
               side: sideOf(animal, fee.visitedOn),
               at: fee.visitedOn,
-              vetBdt: Number(fee.amountBdt) / fee.animals.length,
+              vetBdt: fee.amountBdt / fee.animals.length,
             },
           ]
         : [];
@@ -385,7 +385,7 @@ export const farmCosts = async (db: Db, farmId: string) => {
         side: one.side,
         categoryId: one.categoryId,
         chargedToAnimals: one.category?.chargedToAnimals ?? false,
-        bdt: Number(one.amountBdt),
+        bdt: one.amountBdt,
       });
       return cost ? [cost] : [];
     }),

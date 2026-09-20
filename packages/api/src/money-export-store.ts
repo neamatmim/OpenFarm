@@ -212,7 +212,7 @@ export const moneyForTheAccountant = async (
   return events.map((one) => {
     const fact = facts.get(one.sourceId);
     const byHand = one.source === "by_hand";
-    const amountBdt = Number(one.amountBdt);
+    const { amountBdt } = one;
     return {
       id: one.id,
       occurredAt: one.occurredAt,

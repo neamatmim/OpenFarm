@@ -2,7 +2,6 @@ import {
   boolean,
   index,
   integer,
-  numeric,
   pgTable,
   primaryKey,
   text,
@@ -15,6 +14,7 @@ import { ROLES, farm } from "./farm";
 import { counterparty } from "./fattening";
 import { drugProduct } from "./health";
 import { SIDES, animal } from "./herd";
+import { taka } from "./taka";
 import { venture } from "./venture";
 
 /** Which way money went: into the farm, or out of it. */
@@ -130,7 +130,7 @@ export const moneyEvent = pgTable(
       .notNull()
       .references(() => farm.id, { onDelete: "cascade" }),
     direction: text("direction", { enum: MONEY_DIRECTIONS }).notNull(),
-    amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
+    amountBdt: taka("amount_bdt").notNull(),
     /** When the money moved, as the record that caused it says. */
     occurredAt: timestamp("occurred_at").notNull(),
     categoryId: text("category_id")
@@ -208,7 +208,7 @@ export const medicinePurchase = pgTable(
     /** How much, as the box or the shop says it: "10 vials", "500 ml". */
     quantity: text("quantity").notNull(),
     doses: integer("doses").notNull(),
-    priceBdt: numeric("price_bdt", { precision: 12, scale: 2 }).notNull(),
+    priceBdt: taka("price_bdt").notNull(),
     counterpartyId: text("counterparty_id")
       .notNull()
       .references(() => counterparty.id),
@@ -241,7 +241,7 @@ export const vetFee = pgTable(
     vetId: text("vet_id")
       .notNull()
       .references(() => user.id),
-    amountBdt: numeric("amount_bdt", { precision: 12, scale: 2 }).notNull(),
+    amountBdt: taka("amount_bdt").notNull(),
     /** The farm's day of the visit. */
     visitedOn: timestamp("visited_on").notNull(),
     note: text("note"),

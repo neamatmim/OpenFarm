@@ -117,7 +117,7 @@ export const moneyRouter = {
         id: row.id,
         occurredAt: row.occurredAt,
         direction: row.direction,
-        amountBdt: Number(row.amountBdt),
+        amountBdt: row.amountBdt,
         categoryKey: row.category.key,
         categoryBn: row.category.nameBn,
         categoryEn: row.category.nameEn,
@@ -163,12 +163,12 @@ export const moneyRouter = {
       if (waiting.approval !== "awaiting") {
         throw notWaiting();
       }
-      if (Number(waiting.amountBdt) !== input.amountBdt) {
+      if (waiting.amountBdt !== input.amountBdt) {
         throw new ORPCError("BAD_REQUEST", {
           message: "The amount has been corrected since it was read",
           data: {
             refusal: "amount_changed",
-            amountBdt: Number(waiting.amountBdt),
+            amountBdt: waiting.amountBdt,
           },
         });
       }
@@ -194,7 +194,7 @@ export const moneyRouter = {
               and(
                 eq(moneyEvent.id, waiting.id),
                 eq(moneyEvent.approval, "awaiting"),
-                eq(moneyEvent.amountBdt, input.amountBdt.toFixed(2))
+                eq(moneyEvent.amountBdt, input.amountBdt)
               )
             )
             .returning({ id: moneyEvent.id });
@@ -253,7 +253,7 @@ export const moneyRouter = {
             id,
             farmId: context.farm.id,
             vetId: context.actor.id,
-            amountBdt: input.amountBdt.toFixed(2),
+            amountBdt: input.amountBdt,
             visitedOn,
             note: input.note ?? null,
             recordedAt: now,
@@ -299,7 +299,7 @@ export const moneyRouter = {
       });
       return rows.map((row) => ({
         id: row.id,
-        amountBdt: Number(row.amountBdt),
+        amountBdt: row.amountBdt,
         visitedOn: row.visitedOn,
         note: row.note,
         tagNumbers: row.animals.map((one) => one.animal.tagNumber).toSorted(),

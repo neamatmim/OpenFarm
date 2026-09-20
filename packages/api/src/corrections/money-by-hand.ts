@@ -158,7 +158,7 @@ export const moneyByHandCorrection: CorrectionKind<
   shown: (_tx, row) =>
     Promise.resolve({
       categoryId: row.categoryId,
-      amountBdt: Number(row.amountBdt),
+      amountBdt: row.amountBdt,
       occurredOn: farmDayOf(row.occurredAt),
       counterparty: row.counterparty?.name ?? null,
       paymentMethod: row.paymentMethod,
@@ -193,7 +193,7 @@ export const moneyByHandCorrection: CorrectionKind<
       {
         source: "by_hand",
         sourceId: row.id,
-        amountBdt: to.amountBdt ?? Number(row.amountBdt),
+        amountBdt: to.amountBdt ?? row.amountBdt,
         occurredAt:
           to.occurredOn === undefined
             ? row.occurredAt
