@@ -15,6 +15,9 @@ import {
 import type { PaymentMethod } from "@OpenFarm/domain";
 import {
   farmDayOf,
+  hasEnded,
+  isRunning,
+  mayMoveTo,
   monthOf,
   roundTaka,
   startOfFarmDay,
@@ -169,12 +172,6 @@ const capitalInput = z.object({
   /** The transfer, cheque or deposit slip, and what it is numbered. */
   reference: z.string().trim().min(1).max(120),
 });
-
-/** What a Venture may be moved to by hand, and from where. Everything else moves by what the farm does. */
-const MOVES = {
-  buying: "open",
-  fattening: "buying",
-} as const;
 
 /** The context a gated handler has: the Role is settled and the Farm is certain. */
 type Context = Parameters<typeof audited>[0] & { farm: { id: string } };
@@ -375,16 +372,16 @@ const theAgreement = async (context: Context, id: string) => {
   return row;
 };
 
-/** Moves a Venture on, from the one state it may be moved from, and says why not when it may not. */
+/** Moves a Venture on by hand, and says why not when the lifecycle does not allow it. */
 const moveTo = async (
   context: Context,
   id: string,
-  to: keyof typeof MOVES
-): Promise<{ state: keyof typeof MOVES }> => {
+  to: "buying" | "fattening"
+): Promise<{ state: "buying" | "fattening" }> => {
   const row = await ours(context, id);
-  if (row.state !== MOVES[to]) {
+  if (!mayMoveTo(row.state, to)) {
     throw new ORPCError("BAD_REQUEST", {
-      message: `A Venture goes to ${to} from ${MOVES[to]}, and this one is ${row.state}`,
+      message: `A Venture that is ${row.state} does not go to ${to}`,
       data: { refusal: "venture_wrong_state" },
     });
   }
@@ -2151,11 +2148,7 @@ export const venturesRouter = {
           // A run still going, whichever stage it is at. One that never sold a single bull is exactly
           // the case the clock exists for — but one called off has sent its money back, and one settled
           // has closed its books, and neither takes animals off anybody.
-          if (
-            held?.state !== "buying" &&
-            held?.state !== "fattening" &&
-            held?.state !== "selling"
-          ) {
+          if (!(held && isRunning(held.state))) {
             throw new ORPCError("BAD_REQUEST", {
               message: `A Venture is bought out while it is running, and this one is ${held?.state}`,
               data: { refusal: "venture_wrong_state" },
@@ -2472,11 +2465,7 @@ export const venturesRouter = {
           // A Venture that has not started buying has eaten nothing, and one whose run is over has
           // nothing left to feed. An Advance into either would be the Owner's money with no way home:
           // calling a Venture off returns capital, and only capital.
-          if (
-            standing?.state !== "buying" &&
-            standing?.state !== "fattening" &&
-            standing?.state !== "selling"
-          ) {
+          if (!(standing && isRunning(standing.state))) {
             throw new ORPCError("BAD_REQUEST", {
               message: "A Venture takes an Advance only while it is running",
               data: { refusal: "venture_wrong_state" },
@@ -2590,7 +2579,7 @@ export const venturesRouter = {
       const now = context.clock.now();
       assertByBank(input.paymentMethod);
       const row = await ours(context, input.ventureId);
-      if (row.state === "settled" || row.state === "cancelled") {
+      if (hasEnded(row.state)) {
         throw new ORPCError("BAD_REQUEST", {
           message: "A Venture whose run is over pays for nothing more",
           data: { refusal: "venture_wrong_state" },

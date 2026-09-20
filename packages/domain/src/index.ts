@@ -375,3 +375,18 @@ export {
 } from "./step-shape";
 export { monthBefore, monthsFromTo, payoutOf, splitOfProfit } from "./venture";
 export type { Split, ToSplit } from "./venture";
+export type {
+  EndedState,
+  RunningState,
+  VentureState,
+} from "./venture-lifecycle";
+export {
+  ENDED_STATES,
+  RUNNING_STATES,
+  VENTURE_STATES,
+  hasEnded,
+  isRunning,
+  isStillBuying,
+  mayMoveTo,
+  nextVentureStates,
+} from "./venture-lifecycle";

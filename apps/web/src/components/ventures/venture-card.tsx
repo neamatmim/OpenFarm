@@ -1,4 +1,4 @@
-import { startOfFarmDay } from "@OpenFarm/domain";
+import { isRunning, startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -125,13 +125,10 @@ export const moneyOf = (venture: Venture) => ({
  * What is left of each budget is a question about a Venture that is still feeding animals. Once the
  * payouts have gone the balance is nearly nothing while the cattle side still counts its whole share,
  * so the figure turns deeply negative — a settled run read "৳-1,83,359 to feed with", which is not a
- * thing that happened to it. The server draws the same line for the low-budget warning, saying "one
- * whose run is over is not feeding anybody"; this is that line, one row further down the card.
+ * thing that happened to it. The server draws the same line for its low-budget warning, and now from
+ * the same function, which is why this one is `isRunning` and not a third spelling of it.
  */
-const stillRunning = (venture: Venture) =>
-  venture.state === "buying" ||
-  venture.state === "fattening" ||
-  venture.state === "selling";
+const stillRunning = (venture: Venture) => isRunning(venture.state);
 
 /**
  * Whether anybody is owed one of the three papers.

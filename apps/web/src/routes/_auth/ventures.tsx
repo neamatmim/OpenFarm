@@ -1,3 +1,4 @@
+import { hasEnded } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -55,17 +56,16 @@ import { orpc } from "@/utils/orpc";
 const TABS = ["running", "settled", "cancelled"] as const;
 type Tab = (typeof TABS)[number];
 
-/** Which tab a Venture belongs on: the runs still on, the ones whose books are shut, and the ones that
- *  never started. Open counts as running — a Venture taking capital is very much the Owner's business. */
-const tabOf = (venture: Venture): Tab => {
-  if (venture.state === "settled") {
-    return "settled";
-  }
-  if (venture.state === "cancelled") {
-    return "cancelled";
-  }
-  return "running";
-};
+/**
+ * Which tab a Venture belongs on: the runs still on, the ones whose books are shut, and the ones that
+ * never started.
+ *
+ * Deliberately not the domain's `isRunning`, which is about a Venture that is spending — this tab
+ * counts an Open one too, because a Venture taking capital is very much the Owner's business. The two
+ * differ by exactly that state, and each says so, which is the part that used to be left unsaid.
+ */
+const tabOf = (venture: Venture): Tab =>
+  hasEnded(venture.state) ? venture.state : "running";
 
 /**
  * The four figures the Ventures are read by: how many runs are on, what their Investors have put in, what
