@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { useReadsMoney } from "@/components/money";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka, useTakaToThePaisa } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const Line = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -33,12 +34,6 @@ const Note = ({
       {t(word, { amount: formatNumber(amount, language) })}
     </p>
   ) : null;
-};
-
-/** Taka in the reader's digits. */
-const useTaka = () => {
-  const { language } = useLanguage();
-  return (amount: number) => `৳${formatNumber(amount, language)}`;
 };
 
 /**
@@ -86,6 +81,7 @@ const WhatWasSpent = ({
 export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const rate = useTakaToThePaisa();
   const readsMoney = useReadsMoney();
   const costs = useQuery({
     ...orpc.costs.ofAnimal.queryOptions({ input: { tagNumber } }),
@@ -97,6 +93,10 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
   const her = costs.data;
   const orDash = (amount: number | null) =>
     amount === null ? "—" : taka(amount);
+  // A cost of gain and a cost per litre are rates, not sums: rounded to the taka, two different ones
+  // print the same.
+  const rateOrDash = (amount: number | null) =>
+    amount === null ? "—" : rate(amount);
   return (
     <section className="surface flex flex-col p-4 text-sm md:p-5">
       <h2 className="mb-2 text-base font-semibold tracking-tight md:text-lg">
@@ -110,7 +110,9 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
           <Line label={t("costs.margin")}>
             {her.marginBdt === null ? t("costs.notSold") : taka(her.marginBdt)}
           </Line>
-          <Line label={t("costs.costOfGain")}>{orDash(her.costOfGainBdt)}</Line>
+          <Line label={t("costs.costOfGain")}>
+            {rateOrDash(her.costOfGainBdt)}
+          </Line>
         </>
       ) : null}
       {her.lactation ? (
@@ -123,7 +125,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
             {formatNumber(her.lactation.litresToBulk, language)}
           </Line>
           <Line label={t("costs.perLitre")}>
-            {orDash(her.lactation.costPerLitreBdt)}
+            {rateOrDash(her.lactation.costPerLitreBdt)}
           </Line>
         </>
       ) : null}
@@ -152,6 +154,7 @@ const CostCard = ({
 export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const rate = useTakaToThePaisa();
   const report = useQuery(
     orpc.costs.bySide.queryOptions({ input: { from, to } })
   );
@@ -169,7 +172,7 @@ export const CostsBySide = ({ from, to }: { from: string; to: string }) => {
             {formatNumber(dairy.litresToBulk, language)}
           </Line>
           <Line label={t("costs.perLitre")}>
-            {dairy.costPerLitreBdt === null ? "—" : taka(dairy.costPerLitreBdt)}
+            {dairy.costPerLitreBdt === null ? "—" : rate(dairy.costPerLitreBdt)}
           </Line>
         </CostCard>
         <CostCard title={t("animals.side.fattening")}>
