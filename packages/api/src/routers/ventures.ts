@@ -2276,12 +2276,12 @@ export const venturesRouter = {
         expectedBdt,
         checked: already
           ? {
-              readBdt: Number(already.readBdt),
+              readBdt: already.readBdt,
               /** What the farm believed when she read the statement, which is not `expectedBdt` once
                *  something has moved in that month since. */
-              expectedBdt: Number(already.expectedBdt),
+              expectedBdt: already.expectedBdt,
               note: already.note,
-              stale: roundTaka(expectedBdt - Number(already.expectedBdt)) !== 0,
+              stale: roundTaka(expectedBdt - already.expectedBdt) !== 0,
             }
           : null,
       };
@@ -2395,8 +2395,8 @@ export const venturesRouter = {
               farmId: context.farm.id,
               ventureId: row.id,
               forMonth: input.month,
-              readBdt: input.readBdt.toFixed(2),
-              expectedBdt: expectedBdt.toFixed(2),
+              readBdt: input.readBdt,
+              expectedBdt,
               note: input.note ?? null,
               checkedBy: context.actor.id,
               checkedAt: now,
@@ -2404,8 +2404,8 @@ export const venturesRouter = {
             .onConflictDoUpdate({
               target: ventureBankCheck.id,
               set: {
-                readBdt: input.readBdt.toFixed(2),
-                expectedBdt: expectedBdt.toFixed(2),
+                readBdt: input.readBdt,
+                expectedBdt,
                 // Kept unless she says something new: re-reading a month must not erase what she
                 // found out about it last time. Dropped once the month agrees, because what she found
                 // out was about a difference that is no longer there.

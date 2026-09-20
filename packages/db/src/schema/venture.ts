@@ -12,6 +12,7 @@ import {
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { taka } from "./taka";
 import { buyingTrip } from "./trip";
 
 /**
@@ -350,8 +351,8 @@ export const ventureBankCheck = pgTable(
     /** The month it is of, "YYYY-MM". One check per Venture per month. */
     forMonth: text("for_month").notNull(),
     /** What the statement said, and what the farm thought at the moment she read it. */
-    readBdt: numeric("read_bdt", { precision: 12, scale: 2 }).notNull(),
-    expectedBdt: numeric("expected_bdt", { precision: 12, scale: 2 }).notNull(),
+    readBdt: taka("read_bdt").notNull(),
+    expectedBdt: taka("expected_bdt").notNull(),
     /** What she found out about a difference, where she has found out anything. */
     note: text("note"),
     checkedBy: text("checked_by").references(() => user.id),

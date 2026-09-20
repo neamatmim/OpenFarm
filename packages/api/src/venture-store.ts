@@ -740,7 +740,7 @@ export const bankStandingOf = async (
       monthsOut: [],
       monthsStale: [],
     };
-    const believedThen = Number(one.expectedBdt);
+    const believedThen = one.expectedBdt;
     const stale = hasGoneStale(
       believedNow.get(one.forMonth)?.get(one.ventureId) ?? 0,
       believedThen
@@ -748,7 +748,7 @@ export const bankStandingOf = async (
     if (stale) {
       soFar.monthsStale.push(one.forMonth);
     }
-    if (stale || roundTaka(Number(one.readBdt) - believedThen) !== 0) {
+    if (stale || roundTaka(one.readBdt - believedThen) !== 0) {
       soFar.monthsOut.push(one.forMonth);
     }
     standing.set(one.ventureId, { ...soFar, lastCheckedMonth: one.forMonth });
@@ -926,8 +926,8 @@ export const readBankCheck = async (tx: Tx, farmId: string, id: string) => {
     ? {
         ventureId: row.ventureId,
         forMonth: row.forMonth,
-        readBdt: Number(row.readBdt),
-        expectedBdt: Number(row.expectedBdt),
+        readBdt: row.readBdt,
+        expectedBdt: row.expectedBdt,
         note: row.note,
       }
     : null;
