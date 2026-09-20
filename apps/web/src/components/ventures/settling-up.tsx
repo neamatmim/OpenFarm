@@ -2,13 +2,14 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -16,16 +17,6 @@ type Approved = NonNullable<
   Awaited<ReturnType<typeof orpc.ventures.approvedSettlement.call>>
 >;
 type Share = Approved["shares"][number];
-
-/** Everything the Settlement screens change, refreshed together: one act moves the Venture, its money
- *  and the Farm's books at once. */
-export const useRefresh = () => {
-  const queryClient = useQueryClient();
-  return async () => {
-    await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-    await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
-  };
-};
 
 /** The day and the bank reference a payment went out on — asked for every time money leaves. */
 const WhenAndWhat = ({
@@ -85,7 +76,7 @@ export const PayOutSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const refresh = useRefresh();
+  const refresh = useRefreshTheBooks();
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
   // Emptied whenever the sheet is opened for somebody else: a bank reference left over from the last man
@@ -201,7 +192,7 @@ export const AcknowledgeSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const refresh = useRefresh();
+  const refresh = useRefreshTheBooks();
   const [note, setNote] = useState("");
   // Emptied when it is somebody else being written down: one man recorded as saying another's words is
   // worse than nothing written at all.

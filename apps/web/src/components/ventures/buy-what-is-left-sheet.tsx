@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
+import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -72,6 +73,7 @@ export const BuyWhatIsLeftSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
+  const refreshTheBooks = useRefreshTheBooks();
   const left = useQuery({
     ...orpc.ventures.whatIsLeft.queryOptions({
       input: { ventureId: venture?.id ?? "" },
@@ -97,8 +99,7 @@ export const BuyWhatIsLeftSheet = ({
         setBoughtOn("");
         setReference("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
+        await refreshTheBooks();
         await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         toast.success(
           t("ventures.boughtWhatWasLeft", {
