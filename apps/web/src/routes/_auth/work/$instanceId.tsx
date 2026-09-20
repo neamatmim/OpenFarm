@@ -12,6 +12,7 @@ import {
   isClosingStep,
   isFinished,
   mayTransition,
+  missingEvidence,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import {
@@ -1471,17 +1472,6 @@ const outsideItsRange = (step: Step, values: Entered): string | null => {
 
 /** Has everything the Version asks for been given? A tick needs no answer to be true, and a
  *  photo is answered by the camera rather than by a value. */
-const everythingAsked = (step: Step, values: Entered, photos: Taken): boolean =>
-  step.evidence.every((item, index) => {
-    if (!item.required || item.type === "tick") {
-      return true;
-    }
-    if (item.type === "photo") {
-      return Boolean(photos[index]);
-    }
-    return values[index] !== undefined && values[index] !== "";
-  });
-
 /** Skipping an animal: the Version's own reasons, and nothing typed into a free box. A
  *  Correction still has to say why, because changing a recorded fact is the person speaking. */
 const SkipSheet = ({
@@ -1786,7 +1776,12 @@ const EvidenceSheet = ({
   });
 
   const firstOutOfRange = () => outsideItsRange(step, values);
-  const ready = renewing.readyWith(everythingAsked(step, values, photos));
+  // Asked of the answers as they will be sent, and by the farm's own rule: the button is offered when
+  // the farm would take it, not when the boxes merely look filled.
+  const ready = renewing.readyWith(
+    missingEvidence(step, assembled, (slot) => Boolean(photos[slot])).length ===
+      0
+  );
 
   const submit = (force: boolean) => {
     const outside = firstOutOfRange();

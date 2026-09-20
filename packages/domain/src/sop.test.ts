@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Step } from "./sop";
-import { maySkip } from "./sop";
+import { maySkip, missingEvidence } from "./sop";
 
 // Which Steps may be skipped is asked by two readers — the server, refusing a skip it does not allow,
 // and the phone, deciding whether to draw the button at all. They used to answer differently. These are
@@ -44,5 +44,71 @@ describe("which Steps may be skipped", () => {
     expect(maySkip(doneOnce({ kind: "milk_record" }))).toBe(false);
     expect(maySkip(doneOnce({ kind: "bulk_total" }))).toBe(false);
     expect(maySkip(doneOnce({ kind: "weigh_in" }))).toBe(false);
+  });
+});
+
+/** A Step asking for exactly the slots named, in that order. */
+const asking = (
+  ...evidence: { type: Step["evidence"][number]["type"]; required: boolean }[]
+): Pick<Step, "evidence"> => ({ evidence });
+
+const noPhotos = () => false;
+
+describe("what a Step is still missing", () => {
+  it("counts a required note filled with spaces as unfilled", () => {
+    // The farm has always refused this. The phone used to offer the button for it, because it asked
+    // whether the box was empty rather than whether anything had been said in it.
+    expect(
+      missingEvidence(
+        asking({ type: "note", required: true }),
+        ["  "],
+        noPhotos
+      )
+    ).toEqual([0]);
+    expect(
+      missingEvidence(
+        asking({ type: "note", required: true }),
+        ["ঠিক আছে"],
+        noPhotos
+      )
+    ).toEqual([]);
+  });
+
+  it("asks per slot, not by count", () => {
+    // An optional note and a required number: filling only the note satisfies nothing.
+    const step = asking(
+      { type: "note", required: false },
+      { type: "number", required: true }
+    );
+    expect(missingEvidence(step, ["said", ""], noPhotos)).toEqual([1]);
+  });
+
+  it("takes a tick that was ticked, and false is an answer", () => {
+    expect(
+      missingEvidence(
+        asking({ type: "tick", required: true }),
+        [true],
+        noPhotos
+      )
+    ).toEqual([]);
+    expect(
+      missingEvidence(
+        asking({ type: "tick", required: true }),
+        [false],
+        noPhotos
+      )
+    ).toEqual([]);
+  });
+
+  it("looks for a photograph where one is asked for, not in the answers", () => {
+    const step = asking({ type: "photo", required: true });
+    expect(missingEvidence(step, [""], noPhotos)).toEqual([0]);
+    expect(missingEvidence(step, [""], () => true)).toEqual([]);
+  });
+
+  it("asks nothing of a slot the Version did not require", () => {
+    expect(
+      missingEvidence(asking({ type: "note", required: false }), [""], noPhotos)
+    ).toEqual([]);
   });
 });

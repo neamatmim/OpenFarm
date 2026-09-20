@@ -921,6 +921,43 @@ const EFFECTS_THAT_MAY_SKIP: ReadonlySet<StepEffect["kind"]> = new Set<
 >(["treatment", "service"]);
 
 /**
+ * Whether a slot has an answer in it.
+ *
+ * Spaces are not an answer: a required note filled with nothing is a required note nobody filled in.
+ */
+const filledIn = (value: unknown): boolean => {
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+  return !(value === undefined || value === null);
+};
+
+/**
+ * The required slots of a Step that still have no answer, by their place in its Evidence.
+ *
+ * Asked per slot and not by count: a Step with an optional note and a required number is not satisfied
+ * by filling only the note. A photograph arrives as a Step photo of its own, so the Step is asked
+ * whether it has one for that slot rather than looking in the answers.
+ *
+ * Said here because the farm refuses on it and the phone decides whether to offer the button on it, and
+ * they had drifted: the phone asked whether a box was empty and the farm asked whether it was blank, so
+ * a required note holding two spaces offered a button the farm would refuse.
+ */
+export const missingEvidence = (
+  step: Pick<Step, "evidence">,
+  answers: readonly unknown[],
+  hasPhotoAt: (slot: number) => boolean
+): number[] =>
+  step.evidence
+    .map((item, index) => ({ item, index }))
+    .filter(
+      ({ item, index }) =>
+        item.required &&
+        (item.type === "photo" ? !hasPhotoAt(index) : !filledIn(answers[index]))
+    )
+    .map(({ index }) => index);
+
+/**
  * Whether a Step may be skipped with a reason.
  *
  * A Step done animal by animal may always skip the animal, because the animal is the thing being
