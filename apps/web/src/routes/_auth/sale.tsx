@@ -24,6 +24,7 @@ import type { Sold } from "@/components/sale/todays-sales";
 import { TodaysSales } from "@/components/sale/todays-sales";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["ready", "sold", "trip"] as const;
@@ -45,8 +46,9 @@ const SaleFigures = ({
   const taken = sold?.reduce((sum, one) => sum + one.priceBdt, 0);
   const weighed = sold?.reduce((sum, one) => sum + one.weightKg, 0) ?? 0;
   const buyers = new Set(sold?.map((one) => one.buyerName)).size;
+  const said = useTaka();
   const taka = (value: number | undefined) =>
-    value === undefined ? "—" : `৳${formatNumber(Math.round(value), language)}`;
+    value === undefined ? "—" : said(value);
   return (
     <SummaryFigures
       figures={[

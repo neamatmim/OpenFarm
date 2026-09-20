@@ -18,6 +18,7 @@ import {
   moneyOf,
 } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 
 /** One Venture as the table reads it: the Venture itself, what the page can do to it, and the month the
@@ -62,7 +63,8 @@ const VentureCell = ({ row }: Cell) => {
 
 /** What the Investors have put in — the way to every movement of it, as it is on the card. */
 const HeldCell = ({ row }: Cell) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
+  const taka = useTaka();
   const { venture, acts } = row.original;
   return (
     <button
@@ -71,16 +73,16 @@ const HeldCell = ({ row }: Cell) => {
       onClick={() => acts.seeMovements(venture)}
       type="button"
     >
-      {`৳${formatNumber(venture.capitalInBdt, language)}`}
+      {taka(venture.capitalInBdt)}
     </button>
   );
 };
 
 const BalanceCell = ({ row }: Cell) => {
-  const { language } = useLanguage();
+  const taka = useTaka();
   return (
     <span className="tabular-nums">
-      {`৳${formatNumber(moneyOf(row.original.venture).balanceBdt, language)}`}
+      {taka(moneyOf(row.original.venture).balanceBdt)}
     </span>
   );
 };

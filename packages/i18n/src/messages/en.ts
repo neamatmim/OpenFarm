@@ -257,13 +257,13 @@ export const en = {
   "ventures.decideBy": "Decide by",
   "ventures.unitPrice": "One Unit costs",
   "ventures.units": "Units",
-  "ventures.unitsAt": "{units} at ৳{price}",
+  "ventures.unitsAt": "{units} at {price}",
   "ventures.openHintPlain":
     "The Floor, the Units and the two budgets follow from the farm’s settings unless you say otherwise.",
   "ventures.unitsOwn": "Units (or leave it)",
   "ventures.cattleBudgetOwn": "For buying cattle (or leave it)",
   "ventures.budgets": "Budgets",
-  "ventures.budgetSplit": "৳{cattle} cattle · ৳{running} keeping them",
+  "ventures.budgetSplit": "{cattle} cattle · {running} keeping them",
   "ventures.buyWhatIsLeft": "Buy what is left",
   "ventures.buyWhatIsLeftHint":
     "The Wind-up Period is over. {venture} still holds {standing}, and the Farm takes them at weight so it can settle on time.",

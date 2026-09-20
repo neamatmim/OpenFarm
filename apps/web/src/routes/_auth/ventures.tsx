@@ -49,6 +49,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { lastMonth } from "@/lib/months";
 import { sayWhy } from "@/lib/saying";
+import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { venturesNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -83,7 +84,7 @@ const useVentureFigures = (ventures: Venture[] | undefined): Figure[] => {
   const balance = running.reduce((sum, one) => sum + (one.balanceBdt ?? 0), 0);
   const needHer = venturesNeedingHer(ventures).length;
   const loading = <Skeleton className="h-8 w-24" />;
-  const taka = (amount: number) => `৳${formatNumber(amount, language)}`;
+  const taka = useTaka();
   return [
     {
       label: t("ventures.figure.running"),

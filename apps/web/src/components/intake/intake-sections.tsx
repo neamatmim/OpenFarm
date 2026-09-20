@@ -1,4 +1,4 @@
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Camera, CircleCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { useTaka } from "@/lib/taka";
 
 import type { IntakeFields } from "./intake-fields";
 import { PricePerKg } from "./intake-summary";
@@ -248,6 +249,7 @@ export const PriceSection = ({
   ventures: { id: string; name: string }[];
 }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   return (
     <Section
       description={t("intake.groupPriceHint")}
@@ -295,10 +297,7 @@ export const PriceSection = ({
             <option key={trip.id} value={trip.id}>
               {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
               {trip.float
-                ? ` · ${trip.float.ventureName} ৳${formatNumber(
-                    trip.float.amountBdt,
-                    language
-                  )}`
+                ? ` · ${trip.float.ventureName} ${taka(trip.float.amountBdt)}`
                 : ""}
             </option>
           ))}

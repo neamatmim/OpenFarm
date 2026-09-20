@@ -20,6 +20,7 @@ import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount as amountArrived, day, figure } from "@/lib/correcting";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 import type { Adjustment, Arrival, FeedItemRow } from "./feed-types";
@@ -188,6 +189,7 @@ const arrivalColumns = arrivalColumn.columns([
 /** A lot on a phone: what and how much on top, when, what it cost and from whom beneath. */
 const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
   const { t, language } = useLanguage();
+  const taka = useTaka();
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -211,7 +213,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
           {formatDate(row.receivedOn, language)}
           {row.priceBdt === null
             ? ""
-            : ` · ৳${formatNumber(row.priceBdt, language)} · ${row.sellerName ?? ""}`}
+            : ` · ${taka(row.priceBdt)} · ${row.sellerName ?? ""}`}
         </span>
       </div>
       {row.mayCorrect ? <ArrivalCorrection arrival={row} /> : null}
