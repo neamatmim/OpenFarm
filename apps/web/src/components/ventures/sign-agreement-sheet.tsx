@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -36,6 +37,24 @@ const NOTHING_SIGNED: Terms = {
 };
 
 /**
+ * Whether the paper is filled in enough to be signed: somebody to sign it, Units to take, a whole
+ * percentage between none and all, an Arbitrator both sides name, and a stamp with a value, a day and a
+ * serial. The photograph is not among them — a stamped paper the farm has not photographed yet is still
+ * a signed one, and the Agreement sheet says so separately.
+ */
+const fitToSign = (
+  terms: Terms,
+  { units, percent }: { units: number; percent: number }
+) =>
+  terms.investorId !== "" &&
+  units > 0 &&
+  aSplit(percent) &&
+  terms.arbitrator.trim() !== "" &&
+  Number(terms.stampValueBdt) > 0 &&
+  terms.stampedOn !== "" &&
+  terms.stampSerial.trim() !== "";
+
+/**
  * One Investment Agreement: the Units this person takes of this Venture, the split those Units earn, the
  * Arbitrator both sides name, and the stamped instrument — its value, day and serial, with a photo of the
  * paper itself, because the paper is what a court would ask for.
@@ -62,6 +81,10 @@ export const SignAgreementSheet = ({
       : undefined;
   const [terms, setTerms] = useState<Terms>(NOTHING_SIGNED);
   const [paper, setPaper] = useState<Photo | null>(null);
+  useFreshFor(venture?.id, () => {
+    setTerms(NOTHING_SIGNED);
+    setPaper(null);
+  });
   const investors = useQuery(orpc.investors.list.queryOptions());
   const keeping = useMutation(
     orpc.ventures.keepAgreementPaper.mutationOptions()
@@ -93,15 +116,7 @@ export const SignAgreementSheet = ({
       : terms.investorsPercent;
   const percent = Number(split);
   const ready =
-    venture !== null &&
-    terms.investorId !== "" &&
-    units > 0 &&
-    split !== "" &&
-    aSplit(percent) &&
-    terms.arbitrator.trim() !== "" &&
-    Number(terms.stampValueBdt) > 0 &&
-    terms.stampedOn !== "" &&
-    terms.stampSerial.trim() !== "";
+    venture !== null && split !== "" && fitToSign(terms, { units, percent });
   return (
     <FormSheet
       description={t("ventures.signHint", { venture: venture?.name ?? "" })}

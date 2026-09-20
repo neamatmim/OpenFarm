@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
 import { sayWhy } from "@/lib/saying";
 import type { OwnWords } from "@/lib/saying";
@@ -50,6 +51,14 @@ export const AmendSheet = ({
   const [signedOn, setSignedOn] = useState("");
   const [reason, setReason] = useState("");
   const [paper, setPaper] = useState<Photo | null>(null);
+  useFreshFor(venture?.id, () => {
+    setPercent("");
+    setFrom("");
+    setTo("");
+    setSignedOn("");
+    setReason("");
+    setPaper(null);
+  });
   const amending = useMutation(
     orpc.ventures.amend.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t, WHY_NOT)),

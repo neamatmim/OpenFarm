@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -41,6 +42,10 @@ export const CallOffSheet = ({
   const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
   const [sentBack, setSentBack] = useState<Record<string, SentBack>>({});
+  useFreshFor(venture?.id, () => {
+    setReason("");
+    setSentBack({});
+  });
   const movements = useQuery({
     ...orpc.ventures.movements.queryOptions({
       input: { ventureId: venture?.id ?? "" },

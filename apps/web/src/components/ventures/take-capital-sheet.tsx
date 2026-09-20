@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useFreshFor } from "@/lib/fresh-for";
 import { shrink } from "@/lib/photo";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
@@ -120,6 +121,7 @@ export const TakeCapitalSheet = ({
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
   const [arrival, setArrival] = useState<Arrival>(NOTHING_YET);
+  useFreshFor(venture?.id, () => setArrival(NOTHING_YET));
   const agreements = useQuery({
     ...orpc.ventures.agreements.queryOptions({
       input: { ventureId: venture?.id ?? "" },
