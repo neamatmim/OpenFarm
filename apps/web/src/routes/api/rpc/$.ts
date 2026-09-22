@@ -99,6 +99,11 @@ const answer = async (request: Request) => {
     return rpcResult.response;
   }
 
+  // The reference lists every procedure the farm has. It is for whoever is building the app, so a running farm
+  // does not hand it to anybody who asks.
+  if (process.env.NODE_ENV === "production") {
+    return new Response("Not found", { status: 404 });
+  }
   const apiResult = await apiHandler.handle(request, {
     prefix: "/api/rpc/api-reference",
     context,
