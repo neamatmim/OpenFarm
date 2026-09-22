@@ -63,6 +63,31 @@ export const rolesOf = async (
   return rows.map((row) => row.role);
 };
 
+/**
+ * Whether this caller may reach into somebody's way in — their PIN, a password code, where they are signed in.
+ * The Owner may for anybody on the farm; a Manager only for Barn Staff, because each of these is a way to act as
+ * the person or to turn them out, and a Manager who could do it to the Owner could approve his own spending.
+ * One rule for all four, so no one of them is loosened without the others.
+ */
+export const accessIsTheirsToGive = async (
+  tx: Reading,
+  farmId: string,
+  userId: string,
+  by: { role: RoleName | null },
+  refused: string
+): Promise<void> => {
+  const held = await rolesOf(tx, farmId, userId);
+  if (held.length === 0) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "That person is not on this farm",
+    });
+  }
+  const staffOnly = held.every((role) => role === "staff");
+  if (by.role === "manager" && !staffOnly) {
+    throw new ORPCError("FORBIDDEN", { message: refused });
+  }
+};
+
 /** What the farm calls somebody and whether they still work here — what the trail records either side of a
  *  change. Nothing for somebody the farm has never heard of.
  *
@@ -421,22 +446,13 @@ export const setPin = async (
   by: Acting,
   now: Date
 ): Promise<void> => {
-  const person = await tx.query.user.findFirst({
-    where: { id: userId },
-    columns: { id: true },
-    with: { roles: { where: { farmId, ...ACTIVE_ROLE } } },
-  });
-  if (!person || person.roles.length === 0) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "That person is not on this farm",
-    });
-  }
-  const staffOnly = person.roles.every((role) => role.role === "staff");
-  if (by.role === "manager" && !staffOnly) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "A Manager may only set a PIN for Barn Staff",
-    });
-  }
+  await accessIsTheirsToGive(
+    tx,
+    farmId,
+    userId,
+    by,
+    "A Manager may only set a PIN for Barn Staff"
+  );
   const set = {
     ...credential,
     setBy: by.id,
@@ -746,19 +762,13 @@ export const writePasswordCode = async (
   by: Acting,
   now: Date
 ): Promise<void> => {
-  const held = await rolesOf(tx, farmId, userId);
-  if (held.length === 0) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "That person is not on this farm",
-    });
-  }
-  // The code is a way into their account, so a Manager hands one only to those he could set a PIN for.
-  const staffOnly = held.every((role) => role === "staff");
-  if (by.role === "manager" && !staffOnly) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "A Manager may only issue a password code for Barn Staff",
-    });
-  }
+  await accessIsTheirsToGive(
+    tx,
+    farmId,
+    userId,
+    by,
+    "A Manager may only issue a password code for Barn Staff"
+  );
   const values = {
     farmId,
     userId,

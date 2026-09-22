@@ -18,6 +18,7 @@ import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   acceptInvite,
+  accessIsTheirsToGive,
   approveInvite,
   endMembership,
   newInviteCode,
@@ -652,9 +653,16 @@ export const peopleRouter = {
     .use(requireRole("owner", "manager"))
     .use(requirePersonalSession())
     .input(z.object({ userId: z.string() }))
-    .handler(({ context, input }) =>
-      signedInOn(context.db, input.userId, context.clock.now())
-    ),
+    .handler(async ({ context, input }) => {
+      await accessIsTheirsToGive(
+        context.db,
+        context.farm.id,
+        input.userId,
+        { role: context.roleUsed },
+        "A Manager may only see where Barn Staff are signed in"
+      );
+      return signedInOn(context.db, input.userId, context.clock.now());
+    }),
 
   /** Signs them out of one of them, and leaves the rest alone. */
   signOut: protectedProcedure
@@ -670,7 +678,16 @@ export const peopleRouter = {
           action: "update",
           after: { signedOutOf: input.sessionId },
         },
-        (tx) => signOutOf(tx, input.userId, input.sessionId, now)
+        async (tx) => {
+          await accessIsTheirsToGive(
+            tx,
+            context.farm.id,
+            input.userId,
+            { role: context.roleUsed },
+            "A Manager may only sign Barn Staff out"
+          );
+          await signOutOf(tx, input.userId, input.sessionId, now);
+        }
       );
       return { userId: input.userId, sessionId: input.sessionId };
     }),
