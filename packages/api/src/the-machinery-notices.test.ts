@@ -26,11 +26,13 @@ const clock = new FakeClock("2049-03-10T06:00:00.000Z");
 const now = clock.now();
 
 /** Everything here is written inside a transaction that is then thrown away: copies are of the whole database and
- *  not any one farm's, and another file reading the copy history must not find these. */
+ *  not any one farm's, and another file reading the copy history must not find these. For the same reason the
+ *  history other files have written is cleared first, inside the same transaction, so each test reads its own. */
 const ROLLED_BACK = new Error("rolled back");
 const inside = async (run: (tx: Tx) => Promise<void>): Promise<void> => {
   try {
     await scratchDb().transaction(async (tx) => {
+      await tx.delete(backupRun);
       await run(tx);
       throw ROLLED_BACK;
     });
