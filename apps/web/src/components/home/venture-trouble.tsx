@@ -81,12 +81,16 @@ const TroubleLine = ({ trouble }: { trouble: VentureTrouble }) => {
  */
 export const VentureTroubles = ({
   ventures,
+  headless,
 }: {
   ventures: VentureNeedingHer[];
+  /** Under a tab that already names it. */
+  headless?: boolean;
 }) => {
   const { t } = useLanguage();
   return (
     <QueueGroup
+      headless={headless}
       icon={Handshake}
       label={t("ventureTrouble.title")}
       more={
