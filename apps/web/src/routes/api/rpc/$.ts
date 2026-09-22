@@ -10,6 +10,8 @@ import { ZodToJsonSchemaConverter } from "@orpc/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import type { RequestLogger } from "evlog";
 
+import { whyRefused } from "@/lib/rpc-door";
+
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
     onError((error) => {
@@ -44,34 +46,22 @@ const apiHandler = new OpenAPIHandler(appRouter, {
   ],
 });
 
-/**
- * A request sent from another website's page. The browser attaches the farm's sign-in cookie to it, and nothing else
- * would stop that page acting as the person signed in, so it is refused before anything is read. A procedure answers
- * a GET as readily as a POST, so a link followed from another site is refused too. Requests with no Origin — a
- * phone's own app, a script on the server — are not from a page at all.
- */
-const fromAnotherSite = (request: Request): boolean => {
-  if (request.headers.get("sec-fetch-site") === "cross-site") {
-    return true;
-  }
-  if (request.method === "GET" || request.method === "HEAD") {
-    return false;
-  }
-  const origin = request.headers.get("origin");
-  if (!origin) {
-    return false;
-  }
-  const trusted = new Set([new URL(request.url).origin]);
-  if (process.env.BETTER_AUTH_URL) {
-    trusted.add(new URL(process.env.BETTER_AUTH_URL).origin);
-  }
-  return !trusted.has(origin);
-};
+/** The farm's own public address, besides whatever address this request was sent to. */
+const trustedOrigins = process.env.BETTER_AUTH_URL
+  ? [process.env.BETTER_AUTH_URL]
+  : [];
 
 /** Answers a request; one the browser gave up on — a page moving on before its reply came — is not an error. */
 const handle = async ({ request }: { request: Request }) => {
-  if (fromAnotherSite(request)) {
+  const refused = whyRefused(request, trustedOrigins);
+  if (refused === "another-site") {
     return new Response("Forbidden", { status: 403 });
+  }
+  if (refused === "not-by-link") {
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "POST" },
+    });
   }
   try {
     return await answer(request);

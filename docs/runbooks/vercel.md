@@ -35,15 +35,15 @@ The repository pins Node.js 24 and pnpm 12.3.4. Vercel reads both from the root
 Add these under **Project → Settings → Environment Variables** before the first
 build. Mark secrets as Sensitive.
 
-| Name                 | Required | Value                                                    |
-| -------------------- | -------- | -------------------------------------------------------- |
-| `DATABASE_URL`       | Yes      | Pooled TLS PostgreSQL URL in Singapore                   |
-| `BETTER_AUTH_SECRET` | Yes      | Unique random value, at least 32 characters              |
-| `BETTER_AUTH_URL`    | Yes      | Canonical production origin, such as `https://farm.tld`  |
-| `CRON_SECRET`        | Yes      | A second unique random value, at least 32 characters     |
-| `NODE_ENV`           | Yes      | `production`                                             |
-| `VAPID_*`            | No       | Web Push credentials from `.env.example`                 |
-| `SMS_GATEWAY_*`      | No       | SMS provider credentials from `.env.example`             |
+| Name                 | Required | Value                                                   |
+| -------------------- | -------- | ------------------------------------------------------- |
+| `DATABASE_URL`       | Yes      | Pooled TLS PostgreSQL URL in Singapore                  |
+| `BETTER_AUTH_SECRET` | Yes      | Unique random value, at least 32 characters             |
+| `BETTER_AUTH_URL`    | Yes      | Canonical production origin, such as `https://farm.tld` |
+| `CRON_SECRET`        | Yes      | A second unique random value, at least 32 characters    |
+| `NODE_ENV`           | Yes      | `production`                                            |
+| `VAPID_*`            | No       | Web Push credentials from `.env.example`                |
+| `SMS_GATEWAY_*`      | No       | SMS provider credentials from `.env.example`            |
 
 Generate the two secrets separately:
 
@@ -64,10 +64,12 @@ OpenFarm automatically trusts the current Vercel preview origin for Better Auth.
 Migrations are deliberately not part of the Vercel build. Running them in every
 preview build would let concurrent or untrusted branches change a shared
 database. Apply them once before the first deploy and before promoting future
-schema changes:
+schema changes. Use the provider's **direct** (unpooled) URL here, not the pooled one
+the app uses: a transaction-mode pooler may hand each statement of a migration to a
+different server connection.
 
 ```sh
-DATABASE_URL='postgresql://POOLED_PRODUCTION_URL' \
+DATABASE_URL='postgresql://DIRECT_PRODUCTION_URL' \
   pnpm --filter @OpenFarm/db db:migrate:deploy
 ```
 
