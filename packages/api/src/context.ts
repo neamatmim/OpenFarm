@@ -53,6 +53,9 @@ export interface Context {
   device: Device | null;
   /** Why the phone's token did not resolve, so its own screen can say what to do. */
   deviceStatus: DeviceStatus;
+  /** Where the request came from, as the proxy in front of the app tells it — so a stranger's wrong guesses are
+   *  counted against the stranger, not the farm. Null when nothing says. */
+  callerAddress: string | null;
   /** Who this write is attributed to, whichever principal it arrived by. */
   actor: Actor | null;
   clock: Clock;
@@ -230,10 +233,12 @@ export const buildContext = async ({
   sms = silentSms,
   pushKey = null,
   farmId = null,
+  callerAddress = null,
 }: {
   session: Session | null;
   device?: DeviceSession | null;
   deviceStatus?: DeviceStatus;
+  callerAddress?: string | null;
   clock: Clock;
   db: Database;
   push?: PushTransport;
@@ -253,6 +258,7 @@ export const buildContext = async ({
     roleUsed: null,
     scope: { kind: "nothing" },
     deviceStatus,
+    callerAddress,
   } as const;
   const actingUserId = session?.user.id ?? device?.activeUserId ?? null;
   const deviceInfo = device
@@ -322,6 +328,11 @@ export const buildContext = async ({
   };
 };
 
+/** The caller's address as Better Auth's sign-in limit reads it: the first hop the proxy wrote down. The app is
+ *  only ever reached through that proxy, which is what makes the header worth believing. */
+const callerAddressOf = (req: Request): string | null =>
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+
 export const createContext = async ({
   req,
   clock = systemClock,
@@ -337,6 +348,7 @@ export const createContext = async ({
   sms?: SmsTransport;
   pushKey?: string | null;
 }): Promise<Context> => {
+  const callerAddress = callerAddressOf(req);
   const token = req.headers.get(DEVICE_TOKEN_HEADER);
   if (token) {
     const resolved = await resolveDeviceSession(
@@ -348,6 +360,7 @@ export const createContext = async ({
     return buildContext({
       session: null,
       device: resolved?.device ?? null,
+      callerAddress,
       clock,
       db,
       push,
@@ -357,6 +370,7 @@ export const createContext = async ({
   }
   return buildContext({
     session: await auth.api.getSession({ headers: req.headers }),
+    callerAddress,
     clock,
     db,
     push,

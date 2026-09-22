@@ -104,8 +104,10 @@ export const devicesRouter = {
     .input(z.object({ code: z.string().trim().min(4).max(16) }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      // Enrolment codes are long and short-lived; this stops a script walking through them anyway.
-      if (lockedOut("claim", now, CODE_ATTEMPTS)) {
+      // Enrolment codes are long and short-lived; this stops a script walking through them anyway. Counted per
+      // caller: one key for everybody let ten junk requests shut every new phone out for a quarter of an hour.
+      const guesses = `claim:${context.callerAddress ?? "unknown"}`;
+      if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message: "Too many wrong codes — wait fifteen minutes",
         });
@@ -119,7 +121,7 @@ export const devicesRouter = {
         !phone.enrolmentExpiresAt ||
         phone.enrolmentExpiresAt <= now
       ) {
-        countFailure("claim", now, CODE_ATTEMPTS);
+        countFailure(guesses, now, CODE_ATTEMPTS);
         throw new ORPCError("NOT_FOUND", { message: "That code is not valid" });
       }
       const token = randomToken();
