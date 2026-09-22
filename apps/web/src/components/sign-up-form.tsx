@@ -16,7 +16,7 @@ import { authClient } from "@/lib/auth-client";
 import Loader from "./loader";
 
 const NAME_MIN = 2;
-const PASSWORD_MIN = 8;
+const PASSWORD_MIN = 12;
 
 const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   const navigate = useNavigate({

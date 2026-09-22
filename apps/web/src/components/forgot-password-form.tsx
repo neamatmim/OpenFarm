@@ -12,7 +12,7 @@ import { useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
-const PASSWORD_MIN = 8;
+const PASSWORD_MIN = 12;
 
 /**
  * Setting a password with the code the farm handed over, which is done signed out — somebody who has forgotten

@@ -165,9 +165,11 @@ export const stepCorrection: CorrectionKind<
     if (items.size === 0 && hers) {
       return whoseSheWas(tx, row.farmId, hers, at);
     }
-    const [alsoHers, charged] = await Promise.all([
-      hers ? whoseSheWas(tx, row.farmId, hers, at) : [],
-      venturesCharged(tx, row.farmId, ({ all, history }) => [
+    const alsoHers = hers ? await whoseSheWas(tx, row.farmId, hers, at) : [];
+    const charged = await venturesCharged(
+      tx,
+      row.farmId,
+      ({ all, history }) => [
         ...(hers
           ? []
           : history
@@ -176,8 +178,8 @@ export const stepCorrection: CorrectionKind<
         ...all.feed.filter(
           (share) => items.has(share.feedItemId) && share.at >= at
         ),
-      ]),
-    ]);
+      ]
+    );
     return [...new Set([...alsoHers, ...charged])];
   },
   missing: "No such step",

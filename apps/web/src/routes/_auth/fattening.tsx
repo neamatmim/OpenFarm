@@ -1,5 +1,5 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -66,10 +66,10 @@ const BoardFigures = ({ rows }: { rows: BoardRow[] }) => {
 const IntakeButton = () => {
   const { t } = useLanguage();
   return (
-    <Button nativeButton={false} render={<Link to="/admin/intake" />}>
+    <Link className={buttonVariants()} to="/admin/intake">
       <ClipboardPlus aria-hidden data-icon="inline-start" />
       {t("nav.intake")}
-    </Button>
+    </Link>
   );
 };
 

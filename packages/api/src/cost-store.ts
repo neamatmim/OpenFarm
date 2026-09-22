@@ -111,136 +111,123 @@ const linesOf = (lines: unknown): FeedingToCost["lines"] =>
  * who stood in it.
  */
 export const farmCosts = async (db: Db, farmId: string) => {
-  const [
-    animals,
-    moves,
-    feedings,
-    movements,
-    doses,
-    purchases,
-    fees,
-    sessions,
-    buyingTrips,
-    sellingTrips,
-    takenOnSellingTrips,
-    enteredByHand,
-  ] = await Promise.all([
-    db.query.animal.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        tagNumber: true,
-        side: true,
-        state: true,
-        stateChangedAt: true,
-        lactationStartedAt: true,
-      },
-      with: {
-        intake: {
-          columns: {
-            id: true,
-            purchasePriceBdt: true,
-            hasilBdt: true,
-            buyingTripId: true,
-            weightKg: true,
-            arrivedAt: true,
-          },
-        },
-        sale: { columns: { priceBdt: true, soldAt: true, weightKg: true } },
-        weighIns: {
-          columns: { weightKg: true },
-          orderBy: { weighedAt: "desc", id: "desc" },
-          limit: 1,
+  // Callers may hand this function a transaction. PostgreSQL gives that transaction one client, so these reads
+  // must stay sequential even though a pool-backed call could run them concurrently.
+  const animals = await db.query.animal.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      tagNumber: true,
+      side: true,
+      state: true,
+      stateChangedAt: true,
+      lactationStartedAt: true,
+    },
+    with: {
+      intake: {
+        columns: {
+          id: true,
+          purchasePriceBdt: true,
+          hasilBdt: true,
+          buyingTripId: true,
+          weightKg: true,
+          arrivedAt: true,
         },
       },
-    }),
-    db.query.animalMove.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        animalId: true,
-        toPenId: true,
-        toSide: true,
-        movedAt: true,
+      sale: { columns: { priceBdt: true, soldAt: true, weightKg: true } },
+      weighIns: {
+        columns: { weightKg: true },
+        orderBy: { weighedAt: "desc", id: "desc" },
+        limit: 1,
       },
-    }),
-    db.query.feeding.findMany({
-      where: { farmId },
-      columns: { penId: true, fedAt: true, lines: true },
-    }),
-    movementsByItem(db, farmId),
-    db.query.treatment.findMany({
-      where: { farmId, givenAt: { isNotNull: true } },
-      columns: { animalId: true, productId: true, givenAt: true },
-    }),
-    db.query.medicinePurchase.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        drugProductId: true,
-        purchasedOn: true,
-        priceBdt: true,
-        doses: true,
+    },
+  });
+  const moves = await db.query.animalMove.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      animalId: true,
+      toPenId: true,
+      toSide: true,
+      movedAt: true,
+    },
+  });
+  const feedings = await db.query.feeding.findMany({
+    where: { farmId },
+    columns: { penId: true, fedAt: true, lines: true },
+  });
+  const movements = await movementsByItem(db, farmId);
+  const doses = await db.query.treatment.findMany({
+    where: { farmId, givenAt: { isNotNull: true } },
+    columns: { animalId: true, productId: true, givenAt: true },
+  });
+  const purchases = await db.query.medicinePurchase.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      drugProductId: true,
+      purchasedOn: true,
+      priceBdt: true,
+      doses: true,
+    },
+  });
+  const fees = await db.query.vetFee.findMany({
+    where: { farmId },
+    columns: { amountBdt: true, visitedOn: true },
+    with: { animals: { columns: { animalId: true } } },
+  });
+  const sessions = await db.query.milkingSession.findMany({
+    where: { farmId },
+    columns: { dueAt: true },
+    with: {
+      records: {
+        where: { destination: "bulk" },
+        columns: { animalId: true, litres: true },
       },
-    }),
-    db.query.vetFee.findMany({
-      where: { farmId },
-      columns: { amountBdt: true, visitedOn: true },
-      with: { animals: { columns: { animalId: true } } },
-    }),
-    db.query.milkingSession.findMany({
-      where: { farmId },
-      columns: { dueAt: true },
-      with: {
-        records: {
-          where: { destination: "bulk" },
-          columns: { animalId: true, litres: true },
-        },
-      },
-    }),
-    db.query.buyingTrip.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        brokerBdt: true,
-        transportBdt: true,
-        keepBdt: true,
-        wentOn: true,
-      },
-    }),
-    db.query.sellingTrip.findMany({
-      where: { farmId },
-      columns: {
-        id: true,
-        transportBdt: true,
-        keepBdt: true,
-        wentOn: true,
-        // Where it went, so a month's charges can name the outing rather than only total it.
-        wentTo: true,
-      },
-    }),
-    db.query.sellingTripAnimal.findMany({}),
-    // Money the farm entered by hand under a Category the Owner marked as charged to the animals.
-    db.query.moneyEvent.findMany({
-      // The Farm's purse alone: this money is split across the Animals of its Side, and a Venture's own
-      // cost split that way would charge the Farm's animals for somebody else's spending. A Venture's
-      // hand-entered cost belongs to that Venture's own Animals, which is the buying increment's to do —
-      // until then nothing writes one, and one written today would be charged to nobody.
-      where: {
-        farmId,
-        source: "by_hand",
-        side: { isNotNull: true },
-        purseVentureId: THE_FARMS_PURSE,
-      },
-      columns: {
-        amountBdt: true,
-        occurredAt: true,
-        side: true,
-        categoryId: true,
-      },
-      with: { category: { columns: { chargedToAnimals: true } } },
-    }),
-  ]);
+    },
+  });
+  const buyingTrips = await db.query.buyingTrip.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      brokerBdt: true,
+      transportBdt: true,
+      keepBdt: true,
+      wentOn: true,
+    },
+  });
+  const sellingTrips = await db.query.sellingTrip.findMany({
+    where: { farmId },
+    columns: {
+      id: true,
+      transportBdt: true,
+      keepBdt: true,
+      wentOn: true,
+      // Where it went, so a month's charges can name the outing rather than only total it.
+      wentTo: true,
+    },
+  });
+  const takenOnSellingTrips = await db.query.sellingTripAnimal.findMany({});
+  // Money the farm entered by hand under a Category the Owner marked as charged to the animals.
+  const enteredByHand = await db.query.moneyEvent.findMany({
+    // The Farm's purse alone: this money is split across the Animals of its Side, and a Venture's own
+    // cost split that way would charge the Farm's animals for somebody else's spending. A Venture's
+    // hand-entered cost belongs to that Venture's own Animals, which is the buying increment's to do —
+    // until then nothing writes one, and one written today would be charged to nobody.
+    where: {
+      farmId,
+      source: "by_hand",
+      side: { isNotNull: true },
+      purseVentureId: THE_FARMS_PURSE,
+    },
+    columns: {
+      amountBdt: true,
+      occurredAt: true,
+      side: true,
+      categoryId: true,
+    },
+    with: { category: { columns: { chargedToAnimals: true } } },
+  });
 
   // When each animal left, as her record says it: her Pen history ends there, so nothing is charged to a cow
   // for feed put out after she had gone.

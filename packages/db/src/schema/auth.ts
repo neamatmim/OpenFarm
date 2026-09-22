@@ -1,4 +1,6 @@
 import {
+  bigint,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -6,6 +8,15 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+/** Shared rate-limit counters. Memory storage is not safe when serverless
+ * instances scale independently, so Better Auth keeps its counters here. */
+export const rateLimit = pgTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),

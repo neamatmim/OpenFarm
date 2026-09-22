@@ -76,19 +76,28 @@ export const AppSidebar = ({
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium"
-                      isActive={isHere(item.to, pathname)}
-                      render={<Link onClick={close} to={item.to} />}
-                      tooltip={t(item.label)}
-                    >
-                      <item.icon aria-hidden />
-                      <span>{t(item.label)}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {group.items.map((item) => {
+                  const here = isHere(item.to, pathname);
+                  return (
+                    <SidebarMenuItem key={item.to}>
+                      <SidebarMenuButton
+                        className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center data-active:font-medium"
+                        isActive={here}
+                        render={
+                          <Link
+                            aria-current={here ? "page" : undefined}
+                            onClick={close}
+                            to={item.to}
+                          />
+                        }
+                        tooltip={t(item.label)}
+                      >
+                        <item.icon aria-hidden />
+                        <span>{t(item.label)}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -100,7 +109,15 @@ export const AppSidebar = ({
             <SidebarMenuButton
               className="h-9 gap-3 px-3 text-sm group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center"
               isActive={isHere("/settings", pathname)}
-              render={<Link onClick={close} to="/settings" />}
+              render={
+                <Link
+                  aria-current={
+                    isHere("/settings", pathname) ? "page" : undefined
+                  }
+                  onClick={close}
+                  to="/settings"
+                />
+              }
               tooltip={t("nav.settings")}
             >
               <Settings aria-hidden />

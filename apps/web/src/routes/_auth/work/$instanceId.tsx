@@ -20,7 +20,7 @@ import {
   formatDigits,
   numberAsTyped,
 } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -222,13 +222,9 @@ const WorkNotShown = ({ error }: { error: Error | null }) => {
     <Page width="narrow">
       <Notice
         action={
-          <Button
-            nativeButton={false}
-            render={<Link to="/today" />}
-            variant="outline"
-          >
+          <Link className={buttonVariants({ variant: "outline" })} to="/today">
             {t("nav.today")}
-          </Button>
+          </Link>
         }
         title={missing ? t("common.notFound") : t("common.loadFailed")}
         tone="danger"
@@ -561,15 +557,17 @@ const WorkPage = () => {
       <Page className="max-w-4xl pb-2">
         <WorkHeader name={content.name} pen={pen} tally={tally} />
         <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
-        <Button
-          className="h-12 w-full sm:w-fit"
-          nativeButton={false}
-          render={<Link search={{}} to="/today" />}
-          variant="outline"
+        <Link
+          className={buttonVariants({
+            className: "h-12 w-full sm:w-fit",
+            variant: "outline",
+          })}
+          search={{}}
+          to="/today"
         >
           <ChevronLeft data-icon="inline-start" />
           {t("nav.today")}
-        </Button>
+        </Link>
       </Page>
     );
   }

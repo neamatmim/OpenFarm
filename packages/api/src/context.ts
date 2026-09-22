@@ -152,7 +152,8 @@ const defaultPush = (): PushTransport => {
 };
 
 let productionDb: Database | undefined;
-const defaultDb = (): Database => {
+/** The process-wide database pool used by requests, the scheduler, and readiness checks. */
+export const productionDatabase = (): Database => {
   productionDb ??= createDb(env.DATABASE_URL);
   return productionDb;
 };
@@ -160,7 +161,7 @@ const defaultDb = (): Database => {
 /** The database and the ways a notice leaves the farm, as the running server has them — for work the server does on
  *  its own timer rather than for a request. */
 export const productionWiring = () => ({
-  db: defaultDb(),
+  db: productionDatabase(),
   push: defaultPush(),
   sms: defaultSms(),
 });
@@ -324,7 +325,7 @@ export const buildContext = async ({
 export const createContext = async ({
   req,
   clock = systemClock,
-  db = defaultDb(),
+  db = productionDatabase(),
   push = defaultPush(),
   sms = defaultSms(),
   pushKey = env.VAPID_PUBLIC_KEY ?? null,

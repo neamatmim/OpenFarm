@@ -1,4 +1,4 @@
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -113,9 +113,9 @@ const UserMenu = () => {
 
   if (!session) {
     return (
-      <Button render={<Link to="/login" />} variant="outline">
+      <Link className={buttonVariants({ variant: "outline" })} to="/login">
         {t("auth.signIn")}
-      </Button>
+      </Link>
     );
   }
 

@@ -1,5 +1,5 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -157,13 +157,10 @@ const ManagerHome = () => {
     <Page>
       <PageHeader
         actions={
-          <Button
-            nativeButton={false}
-            render={<Link search={{}} to="/today" />}
-          >
+          <Link className={buttonVariants()} search={{}} to="/today">
             <ClipboardList data-icon="inline-start" />
             {t("nav.today")}
-          </Button>
+          </Link>
         }
         description={t("home.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}

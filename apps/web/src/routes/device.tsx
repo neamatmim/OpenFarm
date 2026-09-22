@@ -451,8 +451,9 @@ const DeviceScreen = () => (
   <div className="flex min-h-svh flex-col">
     <PublicHeader />
     <main
-      className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 sm:items-center sm:pt-0"
+      className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 outline-none sm:items-center sm:pt-0"
       id="main"
+      tabIndex={-1}
     >
       <DevicePage />
     </main>

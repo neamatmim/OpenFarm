@@ -1,5 +1,5 @@
 import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -147,14 +147,13 @@ const CardPage = () => {
     <Page className="max-w-screen-xl">
       <div className="no-print flex flex-wrap items-center justify-between gap-3">
         {keepsPlaybook ? (
-          <Button
-            nativeButton={false}
-            render={<Link to="/admin/sops" />}
-            variant="ghost"
+          <Link
+            className={buttonVariants({ variant: "ghost" })}
+            to="/admin/sops"
           >
             <ArrowLeft aria-hidden data-icon="inline-start" />
             {t("sop.backToPlaybook")}
-          </Button>
+          </Link>
         ) : (
           <span />
         )}

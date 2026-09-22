@@ -371,39 +371,39 @@ export const settlementOf = async (
   venture: { id: string; createdAt: Date },
   today: string
 ) => {
-  const [costs, ownedThenBy, held, bank, standing] = await Promise.all([
-    farmCosts(db, farmId),
-    ownedThenByOf(db, farmId),
-    heldByEach(db, farmId, [venture.id]),
-    bankStandingOf(db, farmId, [venture.id]),
-    stillHersOf(db, farmId, venture.id),
-  ]);
+  // Approval works this out inside a transaction. Its PostgreSQL client may only execute one query at a time.
+  const costs = await farmCosts(db, farmId);
+  const ownedThenBy = await ownedThenByOf(db, farmId);
+  const held = await heldByEach(db, farmId, [venture.id]);
+  const bank = await bankStandingOf(db, farmId, [venture.id]);
+  const standing = await stillHersOf(db, farmId, venture.id);
   const what = held.get(venture.id);
-  const [signed, paidIn] = await Promise.all([
-    db.query.investmentAgreement.findMany({
-      where: { farmId, ventureId: venture.id },
-      orderBy: { createdAt: "asc", id: "asc" },
-    }),
-    db.query.ventureMovement.findMany({
-      where: { farmId, ventureId: venture.id },
-      columns: {
-        kind: true,
-        agreementId: true,
-        forMonth: true,
-        amountBdt: true,
-      },
-    }),
-  ]);
+  const signed = await db.query.investmentAgreement.findMany({
+    where: { farmId, ventureId: venture.id },
+    orderBy: { createdAt: "asc", id: "asc" },
+  });
+  const paidIn = await db.query.ventureMovement.findMany({
+    where: { farmId, ventureId: venture.id },
+    columns: {
+      kind: true,
+      agreementId: true,
+      forMonth: true,
+      amountBdt: true,
+    },
+  });
   // The split a Venture divides on is the one in force today, not the one on the original paper. An
   // amendment moves what everybody agreed to, and a Settlement that read past it would pay a man one
   // share while his যোগদানপত্র promised him another. Everything else — his Units, his Investor, his
   // stamp — is what he signed, and never moves.
-  const agreements = await Promise.all(
-    signed.map(async (one) => {
-      const terms = await termsInForceOn(db, farmId, one.id, today);
-      return terms ? { ...one, investorsPercent: terms.investorsPercent } : one;
-    })
-  );
+  const agreements = [];
+  for (const one of signed) {
+    // A transaction has one PostgreSQL client, so its reads must not overlap.
+    // oxlint-disable-next-line no-await-in-loop
+    const terms = await termsInForceOn(db, farmId, one.id, today);
+    agreements.push(
+      terms ? { ...one, investorsPercent: terms.investorsPercent } : one
+    );
+  }
   // The one or two people who signed, not every Investor the farm has ever had.
   const people =
     agreements.length === 0

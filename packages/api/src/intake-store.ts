@@ -69,17 +69,15 @@ export const herVenturesAround = async (
   animalId: string,
   at: Date
 ): Promise<readonly string[]> => {
-  const [sales, now] = await Promise.all([
-    tx.query.internalSale.findMany({
-      where: { farmId, animalId },
-      columns: { fromVentureId: true, toVentureId: true, soldOn: true },
-      orderBy: { soldOn: "asc", id: "asc" },
-    }),
-    tx.query.animal.findFirst({
-      where: { id: animalId, farmId },
-      columns: { ownerVentureId: true },
-    }),
-  ]);
+  const sales = await tx.query.internalSale.findMany({
+    where: { farmId, animalId },
+    columns: { fromVentureId: true, toVentureId: true, soldOn: true },
+    orderBy: { soldOn: "asc", id: "asc" },
+  });
+  const now = await tx.query.animal.findFirst({
+    where: { id: animalId, farmId },
+    columns: { ownerVentureId: true },
+  });
   // Before the first sale she belonged to whoever let her go in it; after each, to whoever took her on.
   let then =
     sales.length === 0

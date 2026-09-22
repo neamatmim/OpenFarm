@@ -1,6 +1,6 @@
 import { underMeatWithdrawal } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -78,10 +78,10 @@ const ReadyFigures = ({
 const SaleButton = () => {
   const { t } = useLanguage();
   return (
-    <Button nativeButton={false} render={<Link to="/sale" />} variant="outline">
+    <Link className={buttonVariants({ variant: "outline" })} to="/sale">
       <Store aria-hidden data-icon="inline-start" />
       {t("sale.title")}
-    </Button>
+    </Link>
   );
 };
 
@@ -107,13 +107,12 @@ const SuggestionsBody = ({
     return (
       <EmptyState
         action={
-          <Button
-            nativeButton={false}
-            render={<Link to="/fattening" />}
-            variant="outline"
+          <Link
+            className={buttonVariants({ variant: "outline" })}
+            to="/fattening"
           >
             {t("nav.fattening")}
-          </Button>
+          </Link>
         }
         description={t("ready.noneHint")}
         icon={Beef}

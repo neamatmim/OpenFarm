@@ -7,6 +7,8 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    /** Vercel sends this as a bearer token when invoking its generated cron route. */
+    CRON_SECRET: z.string().min(32).optional(),
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
@@ -28,3 +30,16 @@ export const env = createEnv({
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
 });
+
+if (
+  env.NODE_ENV === "production" &&
+  !env.BETTER_AUTH_URL.startsWith("https://")
+) {
+  throw new Error("BETTER_AUTH_URL must use HTTPS in production");
+}
+
+if (env.NODE_ENV === "production" && process.env.VERCEL && !env.CRON_SECRET) {
+  throw new Error(
+    "CRON_SECRET is required for production deployments on Vercel"
+  );
+}

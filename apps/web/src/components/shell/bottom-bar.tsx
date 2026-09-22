@@ -18,7 +18,7 @@ const tab =
 export const BottomBar = ({ role }: { role: Role }) => {
   const t = useT();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { setOpenMobile } = useSidebar();
+  const { openMobile, setOpenMobile } = useSidebar();
 
   return (
     <nav
@@ -53,11 +53,22 @@ export const BottomBar = ({ role }: { role: Role }) => {
         );
       })}
       <button
-        className={cn(tab, "text-muted-foreground hover:text-foreground")}
+        aria-expanded={openMobile}
+        className={cn(
+          tab,
+          openMobile
+            ? "text-primary"
+            : "text-muted-foreground hover:text-foreground"
+        )}
         onClick={() => setOpenMobile(true)}
         type="button"
       >
-        <span className="grid h-7 w-12 place-items-center rounded-full">
+        <span
+          className={cn(
+            "grid h-7 w-12 place-items-center rounded-full transition-colors",
+            openMobile && "bg-secondary"
+          )}
+        >
           <Menu aria-hidden className="size-5" />
         </span>
         <span>{t("nav.more")}</span>

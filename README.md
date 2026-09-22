@@ -66,12 +66,12 @@ DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/openfarm_seed pnpm run de
 
 Every account shares the password `OpenFarm@2026`:
 
-| Role    | Email                   |
-| ------- | ----------------------- |
-| Owner   | `owner@openfarm.test`   |
-| Manager | `manager@openfarm.test` |
-| Vet     | `vet@openfarm.test`     |
-| Staff   | `staff@openfarm.test`, `staff2@openfarm.test`, `staff3@openfarm.test` |
+| Role         | Email                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Owner        | `owner@openfarm.test`                                                                              |
+| Manager      | `manager@openfarm.test`                                                                            |
+| Vet          | `vet@openfarm.test`                                                                                |
+| Staff        | `staff@openfarm.test`, `staff2@openfarm.test`, `staff3@openfarm.test`                              |
 | Visiting vet | `visitingvet@openfarm.test` — sees only the lame cow the Manager opened a case on, for a fortnight |
 
 The Shed Phone PINs are `1357`, `2468` and `3690` for the three Staff members.
@@ -104,8 +104,21 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 ## Deployment
 
+### Vercel
+
+The app includes a TanStack Start/Nitro Vercel target, Singapore function
+region, protected scheduled task, durable scheduler health, and serverless-safe
+auth rate limiting. Follow the [Vercel deployment runbook](docs/runbooks/vercel.md).
+
+Production requires a paid Vercel team because the farm schedule runs every
+five minutes, plus managed PostgreSQL with a pooled connection URL and
+point-in-time recovery.
+
 ### Docker Compose
 
+- Set a strong `POSTGRES_PASSWORD` in the shell or the root `.env` file before running Compose.
+- Put the app secrets and public URL in `apps/web/.env`; production requires an HTTPS
+  `BETTER_AUTH_URL`.
 - Target: web + server
 - Config: `docker-compose.yml` (app Dockerfiles live in `apps/*/Dockerfile`)
 - Build images: pnpm run docker:build
@@ -142,6 +155,7 @@ OpenFarm/
 - `pnpm run build`: Build all applications
 - `pnpm run dev:web`: Start only the web application
 - `pnpm run check-types`: Check TypeScript types across all apps
+- `pnpm run release:check`: Run the production type, test, and build gate
 - `pnpm run db:push`: Push schema changes to database
 - `pnpm run db:generate`: Generate database client/types
 - `pnpm run db:migrate`: Run database migrations
