@@ -1,4 +1,8 @@
 import type { Database } from "@OpenFarm/db";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { eq } from "@OpenFarm/db/operators";
+import type { RoleName } from "@OpenFarm/db/schema/farm";
+import { ration, rationVersion } from "@OpenFarm/db/schema/feed";
 import type { RationLine, SopContent } from "@OpenFarm/domain";
 import { perSessionKg, sessionsPerDayOf } from "@OpenFarm/domain";
 import { z } from "zod";
@@ -17,6 +21,56 @@ const lineSchema = z.object({
 export const linesOf = (value: unknown): RationLine[] => {
   const parsed = z.array(lineSchema).safeParse(value);
   return parsed.success ? parsed.data : [];
+};
+
+/**
+ * Publishes a Ration's next Version and makes it the one in force: number one for a Ration just made. Never an edit —
+ * what a Pen was fed in March can still be shown in June (ADR 0001).
+ */
+export const publishRationVersion = async (
+  tx: Tx,
+  {
+    farmId,
+    rationId,
+    items,
+    note,
+    actorId,
+    roleUsed,
+    now,
+  }: {
+    farmId: string;
+    rationId: string;
+    items: RationLine[];
+    note: string | null;
+    actorId: string;
+    roleUsed: RoleName;
+    now: Date;
+  }
+): Promise<number> => {
+  const [previous] = await tx.query.rationVersion.findMany({
+    where: { rationId },
+    columns: { number: true },
+    orderBy: { number: "desc" },
+    limit: 1,
+  });
+  const number = (previous?.number ?? 0) + 1;
+  const versionId = uuidv7(now);
+  await tx.insert(rationVersion).values({
+    id: versionId,
+    farmId,
+    rationId,
+    number,
+    items,
+    note,
+    publishedBy: actorId,
+    publishedByRole: roleUsed,
+    publishedAt: now,
+  });
+  await tx
+    .update(ration)
+    .set({ currentVersionId: versionId })
+    .where(eq(ration.id, rationId));
+  return number;
 };
 
 /**

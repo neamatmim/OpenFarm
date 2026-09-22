@@ -1,5 +1,10 @@
-import type { Evidence, SopContent } from "@OpenFarm/domain";
-import { HEAT } from "@OpenFarm/domain";
+/**
+ * The Standard Playbook: the SOPs OpenFarm offers a farm to start from. None of it is the farm's until the Owner
+ * adopts one — reads it, names the farm's own Pen or product where it asks for one, and publishes it. Until then it
+ * raises no work, because it is not in the database at all.
+ */
+import { HEAT } from "./breeding";
+import type { Evidence, SopContent } from "./sop";
 
 const choice = (
   required: boolean,
@@ -222,7 +227,7 @@ const dryOff = (): SopContent => ({
   ],
 });
 
-const calvingPrep = (calvingPenId: string): SopContent => ({
+const calvingPrep = (calvingPenId: string | undefined): SopContent => ({
   name: { bn: "প্রসবের প্রস্তুতি", en: "Calving preparation" },
   purpose: {
     bn: "প্রসবের কয়েক দিন আগে গাভীকে পরিষ্কার প্রসব পেনে নিন",
@@ -238,7 +243,12 @@ const calvingPrep = (calvingPenId: string): SopContent => ({
       id: "walk",
       text: { bn: "প্রসব পেনে নিন", en: "Walk her to the calving pen" },
       repeatPerAnimal: true,
-      evidence: [choice(true, [[calvingPenId, "প্রসব পেন", "Calving pen"]])],
+      evidence: [
+        choice(
+          true,
+          calvingPenId ? [[calvingPenId, "প্রসব পেন", "Calving pen"]] : []
+        ),
+      ],
       skipReasons: [{ bn: "পাওয়া যায়নি", en: "Not found" }],
       effect: { kind: "move" },
     },
@@ -327,8 +337,15 @@ const weighIn = (): SopContent => ({
   ],
 });
 
+/** A campaign's dose of the product the farm named. Named nothing, it is a prescribed dose's shape, which the
+ *  Playbook refuses to publish without a Prescription to raise it: the Owner is told to choose the product. */
+const campaignDose = (productId: string | undefined) =>
+  productId
+    ? { kind: "treatment" as const, productId }
+    : { kind: "treatment" as const };
+
 const vaccination = (
-  productId: string,
+  productId: string | undefined,
   bn: string,
   en: string
 ): SopContent => ({
@@ -361,12 +378,12 @@ const vaccination = (
       skipReasons: [
         { bn: "অসুস্থ — পরে দেওয়া হবে", en: "Unwell — to be given later" },
       ],
-      effect: { kind: "treatment", productId },
+      effect: campaignDose(productId),
     },
   ],
 });
 
-const deworming = (productId: string): SopContent => ({
+const deworming = (productId: string | undefined): SopContent => ({
   ...vaccination(productId, "কৃমিনাশক খাওয়ানো", "Deworming"),
   purpose: {
     bn: "পেনের প্রতিটি পশুকে ওজন অনুযায়ী কৃমিনাশক খাওয়ান",
@@ -384,7 +401,7 @@ const deworming = (productId: string): SopContent => ({
       skipReasons: [
         { bn: "অসুস্থ — পরে দেওয়া হবে", en: "Unwell — to be given later" },
       ],
-      effect: { kind: "treatment", productId },
+      effect: campaignDose(productId),
     },
   ],
 });
@@ -542,13 +559,29 @@ export type PlaybookKey =
   | "stockCount"
   | "biosecurity";
 
-/** The farm's Playbook: everything the farm does, as the Owner wrote it down. */
-export const playbook = (ids: {
-  calvingPenId: string;
-  fmdVaccineId: string;
-  lsdVaccineId: string;
-  dewormerId: string;
-}): Record<PlaybookKey, SopContent> => ({
+/** What a standard SOP asks of the farm before it can be published: the farm's own calving Pen, or the product on
+ *  its Drug List a campaign gives. Left blank, the SOP is refused publishing and says why. */
+export type StandardSopNeed =
+  | "calvingPen"
+  | "fmdVaccine"
+  | "lsdVaccine"
+  | "dewormer";
+
+export const STANDARD_SOP_NEEDS: Partial<Record<PlaybookKey, StandardSopNeed>> =
+  {
+    calvingPrep: "calvingPen",
+    fmdVaccination: "fmdVaccine",
+    lsdVaccination: "lsdVaccine",
+    deworming: "dewormer",
+  };
+
+/** The farm's own Pen or product for each need, where it has named one. */
+export type StandardSopChoices = Partial<Record<StandardSopNeed, string>>;
+
+/** The Standard Playbook, with whatever the farm has named filled in and anything it has not left blank. */
+export const standardPlaybook = (
+  chosen: StandardSopChoices = {}
+): Record<PlaybookKey, SopContent> => ({
   morningMilking: milkingSession("05:30", "সকালের দোহন", "Morning milking"),
   eveningMilking: milkingSession("16:30", "বিকেলের দোহন", "Evening milking"),
   feeding: feeding(),
@@ -556,20 +589,20 @@ export const playbook = (ids: {
   insemination: artificialInsemination(),
   pregnancyCheck: pregnancyCheck(),
   dryOff: dryOff(),
-  calvingPrep: calvingPrep(ids.calvingPenId),
+  calvingPrep: calvingPrep(chosen.calvingPen),
   calvingRecord: calvingRecord(),
   weighIn: weighIn(),
   fmdVaccination: vaccination(
-    ids.fmdVaccineId,
+    chosen.fmdVaccine,
     "ক্ষুরা রোগের (এফএমডি) টিকা",
     "FMD vaccination"
   ),
   lsdVaccination: vaccination(
-    ids.lsdVaccineId,
+    chosen.lsdVaccine,
     "লাম্পি স্কিন রোগের টিকা",
     "Lumpy skin vaccination"
   ),
-  deworming: deworming(ids.dewormerId),
+  deworming: deworming(chosen.dewormer),
   treatmentDose: treatmentDose(),
   burial: burial(),
   dlsReport: dlsReport(),

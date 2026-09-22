@@ -3,10 +3,12 @@
  * The three months, as a script: the routine that fills every day and the things that made those months this
  * farm's own. Each builder adds its part to the list of happenings the days are lived through.
  */
+import type { StandardDrugKey } from "@OpenFarm/domain";
+import { ROUND_WORDS } from "@OpenFarm/domain";
+
 import type { Cow, Herd } from "./herd";
 import { takeInBulls } from "./herd";
 import type { Happening } from "./history";
-import { ROUND_WORDS } from "./playbook";
 import type { ApiClient } from "./runtime";
 import { DAY, addDays, onFarm } from "./runtime";
 import type { FeedSeller } from "./shared";
@@ -605,7 +607,7 @@ interface Case {
   disease: { bn: string; en: string };
   note: string;
   course: {
-    drug: string;
+    drug: StandardDrugKey;
     dose: string;
     route: "intramammary" | "intramuscular" | "intravenous" | "subcutaneous";
     times: string[];

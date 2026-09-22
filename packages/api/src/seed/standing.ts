@@ -2,10 +2,20 @@
 import type { Database } from "@OpenFarm/db";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
-import { farmDayOf } from "@OpenFarm/domain";
+import type {
+  PlaybookKey,
+  StandardDrugKey,
+  StandardFeedKey,
+  StandardRationKey,
+} from "@OpenFarm/domain";
+import {
+  STANDARD_DRUGS,
+  STANDARD_FEED_ITEMS,
+  STANDARD_RATIONS,
+  farmDayOf,
+  standardPlaybook,
+} from "@OpenFarm/domain";
 
-import type { PlaybookKey } from "./playbook";
-import { playbook } from "./playbook";
 import type { Account, ApiClient, Random, SeedClock } from "./runtime";
 import { addDays, clientOf, onFarm, openAccount } from "./runtime";
 
@@ -80,18 +90,7 @@ export const SHEDS: { name: string; pens: [PenKey, string][] }[] = [
   { name: "হাসপাতাল শেড", pens: [["isolation", "আইসোলেশন পেন"]] },
 ];
 
-export const FEEDS = {
-  napier: { bn: "নেপিয়ার ঘাস", en: "Napier grass" },
-  straw: { bn: "ধানের খড়", en: "Rice straw" },
-  silage: { bn: "ভুট্টার সাইলেজ", en: "Maize silage" },
-  bran: { bn: "গমের ভুসি", en: "Wheat bran" },
-  mustardCake: { bn: "সরিষার খৈল", en: "Mustard oil cake" },
-  maize: { bn: "ভাঙা ভুট্টা", en: "Crushed maize" },
-  pulseHusk: { bn: "ডালের ভুসি", en: "Pulse husk" },
-  concentrate: { bn: "ডেইরি কনসেনট্রেট", en: "Dairy concentrate" },
-  minerals: { bn: "মিনারেল মিক্সচার", en: "Mineral mixture" },
-} as const;
-export type FeedKey = keyof typeof FEEDS;
+export type FeedKey = StandardFeedKey;
 
 export interface Farm {
   db: Database;
@@ -102,7 +101,7 @@ export interface Farm {
   as: Record<PersonKey, ApiClient>;
   pens: Record<PenKey, string>;
   feeds: Record<FeedKey, string>;
-  drugs: Record<string, string>;
+  drugs: Partial<Record<StandardDrugKey, string>>;
   sops: Record<PlaybookKey, string>;
   /** The Pens each person works, so work goes to somebody whose Pen it is. */
   crews: Partial<Record<PersonKey, Set<string>>>;
@@ -219,12 +218,59 @@ export const openTheFarm = async (
 /** The farm's own Category for what it spends on the animals without naming any of them. */
 export const HERD_SUNDRIES = "পালের টুকিটাকি";
 
-/** The store's items, the Rations each Pen is fed, the medicine chest and the farm's notifiable list. */
+/** Which Pens each standard Ration is fed to. */
+const FED: [StandardRationKey, PenKey[]][] = [
+  ["milking", ["milking1", "milking2"]],
+  ["dry", ["dry", "calving"]],
+  ["heifer", ["heifers"]],
+  ["calf", ["calves"]],
+  ["fattening", ["bullsA", "bullsB", "quarantine"]],
+  ["sick", ["isolation"]],
+];
+
+/** What the Vet wrote off each label — days for milk, then meat — and what a box of it cost and how many doses came
+ *  in it. */
+const MEDICINES: [
+  StandardDrugKey,
+  number,
+  number,
+  { priceBdt: number; doses: number; quantity: string },
+][] = [
+  [
+    "oxytet",
+    7,
+    28,
+    { priceBdt: 2400, doses: 40, quantity: "৪টি ১০০ মিলি ভায়াল" },
+  ],
+  ["penstrep", 3, 30, { priceBdt: 1800, doses: 36, quantity: "৬টি ভায়াল" }],
+  ["ceftiofur", 0, 8, { priceBdt: 3200, doses: 20, quantity: "২টি ভায়াল" }],
+  [
+    "meloxicam",
+    5,
+    15,
+    { priceBdt: 1500, doses: 30, quantity: "৩টি ৩০ মিলি ভায়াল" },
+  ],
+  ["intramammary", 4, 7, { priceBdt: 2100, doses: 24, quantity: "২৪টি টিউব" }],
+  ["calcium", 0, 0, { priceBdt: 1600, doses: 16, quantity: "১৬টি বোতল" }],
+  ["fmd", 0, 21, { priceBdt: 9000, doses: 120, quantity: "৬টি ২০-ডোজ ভায়াল" }],
+  ["lsd", 0, 21, { priceBdt: 7500, doses: 100, quantity: "৫টি ২০-ডোজ ভায়াল" }],
+  ["albendazole", 3, 14, { priceBdt: 2800, doses: 90, quantity: "৯০টি বোলাস" }],
+];
+
+/**
+ * The farm starts with the standard lists, as a new Owner is offered at Setup, and then makes them its own: the
+ * Rations put on Pens, the store watched, the Vet's withdrawal days written off the labels and the medicines bought.
+ */
 export const stockTheFarm = async (farm: Farm): Promise<void> => {
   const { as } = farm;
-  for (const [key, name] of Object.entries(FEEDS)) {
-    const item = await as.manager.feed.addItem({ name, unit: "kg" });
-    farm.feeds[key as FeedKey] = item.id;
+  await as.owner.farm.startWithStandard({
+    kinds: ["feed", "rations", "health"],
+  });
+
+  const items = await as.manager.feed.items();
+  for (const [key, name] of Object.entries(STANDARD_FEED_ITEMS)) {
+    farm.feeds[key as FeedKey] =
+      items.find((item) => item.nameBn === name.bn)?.id ?? "";
   }
 
   // What the farm spends on the animals without naming any of them — fly spray, lime, a lab test. The
@@ -239,85 +285,15 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     chargedToAnimals: true,
   });
 
-  const rations: [PenKey[], { bn: string; en: string }, [FeedKey, number][]][] =
-    [
-      [
-        ["milking1", "milking2"],
-        { bn: "দোহনকালীন গাভীর রেশন", en: "Milking cow ration" },
-        [
-          ["napier", 25],
-          ["straw", 4],
-          ["silage", 8],
-          ["concentrate", 6],
-          ["mustardCake", 1],
-          ["minerals", 0.1],
-        ],
-      ],
-      [
-        ["dry", "calving"],
-        { bn: "শুকনো ও গর্ভবতী গাভীর রেশন", en: "Dry and close-up cow ration" },
-        [
-          ["napier", 20],
-          ["straw", 5],
-          ["bran", 2],
-          ["mustardCake", 0.5],
-          ["minerals", 0.1],
-        ],
-      ],
-      [
-        ["heifers"],
-        { bn: "বকনার রেশন", en: "Heifer ration" },
-        [
-          ["napier", 15],
-          ["straw", 3],
-          ["bran", 1.5],
-          ["minerals", 0.05],
-        ],
-      ],
-      [
-        ["calves"],
-        { bn: "বাছুরের রেশন", en: "Calf ration" },
-        [
-          ["napier", 3],
-          ["bran", 0.8],
-          ["concentrate", 0.5],
-        ],
-      ],
-      [
-        ["bullsA", "bullsB", "quarantine"],
-        { bn: "মোটাতাজাকরণ রেশন", en: "Fattening ration" },
-        [
-          ["napier", 12],
-          ["straw", 3],
-          ["maize", 3],
-          ["bran", 2],
-          ["mustardCake", 1],
-          ["pulseHusk", 1.5],
-          ["minerals", 0.08],
-        ],
-      ],
-      [
-        ["isolation"],
-        { bn: "অসুস্থ পশুর নরম রেশন", en: "Sick animal soft ration" },
-        [
-          ["napier", 10],
-          ["bran", 1],
-          ["minerals", 0.05],
-        ],
-      ],
-    ];
-  for (const [penKeys, name, lines] of rations) {
-    const ration = await as.manager.feed.saveRation({
-      name,
-      items: lines.map(([key, kg]) => ({
-        feedItemId: farm.feeds[key],
-        kgPerAnimalPerDay: kg,
-      })),
-    });
+  const rations = await as.manager.feed.rations();
+  for (const [key, penKeys] of FED) {
+    const ration = rations.find(
+      (one) => one.name.bn === STANDARD_RATIONS[key].name.bn
+    );
     for (const penKey of penKeys) {
       await as.manager.feed.assignRation({
         penId: farm.pens[penKey],
-        rationId: ration.rationId,
+        rationId: ration?.id ?? "",
       });
     }
   }
@@ -335,93 +311,19 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     });
   }
 
-  // Name, withdrawal days for milk and meat, then what a box of it cost and how many doses came in it.
   // Bought as well as named: a dose nobody has costed charges the animal nothing, and a Venture whose
   // animals carry one will not settle — the farm refuses to close books over medicine nobody priced.
-  const medicines: [
-    string,
-    { bn: string; en: string },
-    number,
-    number,
-    { priceBdt: number; doses: number; quantity: string },
-  ][] = [
-    [
-      "oxytet",
-      {
-        bn: "অক্সিটেট্রাসাইক্লিন ২০% ইনজেকশন",
-        en: "Oxytetracycline 20% LA injection",
-      },
-      7,
-      28,
-      { priceBdt: 2400, doses: 40, quantity: "৪টি ১০০ মিলি ভায়াল" },
-    ],
-    [
-      "penstrep",
-      { bn: "পেনিসিলিন-স্ট্রেপটোমাইসিন", en: "Penicillin-Streptomycin" },
-      3,
-      30,
-      { priceBdt: 1800, doses: 36, quantity: "৬টি ভায়াল" },
-    ],
-    [
-      "ceftiofur",
-      { bn: "সেফটিওফার ইনজেকশন", en: "Ceftiofur injection" },
-      0,
-      8,
-      { priceBdt: 3200, doses: 20, quantity: "২টি ভায়াল" },
-    ],
-    [
-      "meloxicam",
-      { bn: "মেলোক্সিক্যাম ইনজেকশন", en: "Meloxicam injection" },
-      5,
-      15,
-      { priceBdt: 1500, doses: 30, quantity: "৩টি ৩০ মিলি ভায়াল" },
-    ],
-    [
-      "intramammary",
-      { bn: "ওলানের টিউব (ক্লক্সাসিলিন)", en: "Intramammary tube (Cloxacillin)" },
-      4,
-      7,
-      { priceBdt: 2100, doses: 24, quantity: "২৪টি টিউব" },
-    ],
-    [
-      "calcium",
-      { bn: "ক্যালসিয়াম বোরোগ্লুকোনেট", en: "Calcium borogluconate" },
-      0,
-      0,
-      { priceBdt: 1600, doses: 16, quantity: "১৬টি বোতল" },
-    ],
-    [
-      "fmd",
-      { bn: "এফএমডি টিকা (ট্রাইভ্যালেন্ট)", en: "FMD vaccine (trivalent)" },
-      0,
-      21,
-      { priceBdt: 9000, doses: 120, quantity: "৬টি ২০-ডোজ ভায়াল" },
-    ],
-    [
-      "lsd",
-      { bn: "লাম্পি স্কিন টিকা", en: "Lumpy skin disease vaccine" },
-      0,
-      21,
-      { priceBdt: 7500, doses: 100, quantity: "৫টি ২০-ডোজ ভায়াল" },
-    ],
-    [
-      "albendazole",
-      { bn: "অ্যালবেনডাজল কৃমিনাশক", en: "Albendazole drench" },
-      3,
-      14,
-      { priceBdt: 2800, doses: 90, quantity: "৯০টি বোলাস" },
-    ],
-  ];
-  for (const [key, name, milk, meat, bought] of medicines) {
-    const product = await as.vet.drugs.add({
-      name,
+  const products = await as.vet.drugs.list();
+  for (const [key, milk, meat, bought] of MEDICINES) {
+    const id =
+      products.find((one) => one.nameBn === STANDARD_DRUGS[key].bn)?.id ?? "";
+    await as.vet.drugs.setWithdrawal({
+      id,
       milkWithdrawalDays: milk,
       meatWithdrawalDays: meat,
     });
-    // Bought as well as named, so a dose costs the animal something. What a box cost and how many
-    // doses were in it is the only way the farm can say what one injection was worth.
     await as.manager.drugs.purchase({
-      drugProductId: product.id,
+      drugProductId: id,
       quantity: bought.quantity,
       doses: bought.doses,
       priceBdt: bought.priceBdt,
@@ -433,35 +335,23 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
       purchasedOn: farmDayOf(farm.clock.now()),
       paymentMethod: "cash",
     });
-    farm.drugs[key] = product.id;
+    farm.drugs[key] = id;
   }
-  for (const key of ["fmd", "lsd"]) {
+  for (const key of ["fmd", "lsd"] as const) {
     await as.vet.drugs.markVaccine({
       id: farm.drugs[key] ?? "",
       vaccine: true,
     });
   }
-
-  const notifiable: [string, string][] = [
-    ["ক্ষুরা রোগ", "Foot-and-mouth disease"],
-    ["তড়কা", "Anthrax"],
-    ["লাম্পি স্কিন ডিজিজ", "Lumpy skin disease"],
-    ["গলাফোলা", "Haemorrhagic septicaemia"],
-    ["বাদলা", "Black quarter"],
-    ["ব্রুসেলোসিস", "Brucellosis"],
-  ];
-  for (const [bn, en] of notifiable) {
-    await as.vet.notifiable.add({ name: { bn, en } });
-  }
 };
 
 /** The Owner writes the Playbook down. */
 export const writeThePlaybook = async (farm: Farm): Promise<void> => {
-  const contents = playbook({
-    calvingPenId: farm.pens.calving,
-    fmdVaccineId: farm.drugs.fmd ?? "",
-    lsdVaccineId: farm.drugs.lsd ?? "",
-    dewormerId: farm.drugs.albendazole ?? "",
+  const contents = standardPlaybook({
+    calvingPen: farm.pens.calving,
+    fmdVaccine: farm.drugs.fmd,
+    lsdVaccine: farm.drugs.lsd,
+    dewormer: farm.drugs.albendazole,
   });
   for (const [key, content] of Object.entries(contents)) {
     const made = await farm.as.owner.sops.create({

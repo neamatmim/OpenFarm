@@ -162,6 +162,22 @@ export const bn: Record<MessageKey, string> = {
   "setup.create": "খামার তৈরি করুন",
   "setup.done": "খামার প্রস্তুত",
   "setup.goOn": "খামারে যান",
+  "setup.standard.title": "প্রচলিত তালিকা দিয়ে শুরু করুন",
+  "setup.standard.intro":
+    "খালি গুদামের বদলে খামার কী নিয়ে শুরু করবে তাতে টিক দিন। যে নাম খামারে আগেই আছে সেটি যেমন আছে তেমনই থাকবে, আর সবকিছু পরে বদলানো যাবে।",
+  "setup.standard.feed": "খাদ্য উপাদান",
+  "setup.standard.feedHint": "প্রচলিত {count}টি খাদ্য, কেজিতে — দাম বা মজুদ ছাড়া",
+  "setup.standard.rations": "রেশন",
+  "setup.standard.rationsHint":
+    "{count}টি রেশন, এখনো কোনো পেনে দেওয়া নয়। রেশনে যে খাদ্যের নাম আছে সেগুলোও সাথে আসবে।",
+  "setup.standard.health": "ওষুধের তালিকা ও যে রোগ জানাতে হয়",
+  "setup.standard.healthHint":
+    "{drugs}টি ওষুধ — আটকে রাখার সময় লিখে ভেট সম্পূর্ণ করবেন — আর ডিএলএস-কে জানাতে হয় এমন {diseases}টি রোগ",
+  "setup.standard.playbook":
+    "প্রচলিত কার্যপ্রণালীগুলো প্লেবুকে অপেক্ষা করছে — একটি একটি করে পড়ে প্রকাশ করুন।",
+  "setup.standard.start": "এগুলো দিয়ে শুরু করুন",
+  "setup.standard.skip": "খালি শুরু করুন",
+  "setup.standard.done": "খামারে প্রচলিত তালিকা যোগ হয়েছে",
   "common.error": "কিছু একটা ভুল হয়েছে",
   "common.loadFailed": "এটি আনা যায়নি — সংযোগ দেখুন",
   "params.title": "খামারের প্যারামিটার",
@@ -1059,6 +1075,18 @@ export const bn: Record<MessageKey, string> = {
   "sop.version": "সংস্করণ {number}",
   "sop.col.version": "সংস্করণ",
   "sop.new": "নতুন কার্যপ্রণালী",
+  "sop.standard.title": "প্রচলিত কার্যপ্রণালী",
+  "sop.standard.hint":
+    "OpenFarm-এর দেওয়া কার্যপ্রণালী, শুরু করার জন্য। আপনি পড়ে প্রকাশ না করা পর্যন্ত কোনোটিই কাজ তোলে না।",
+  "sop.standard.adopt": "পড়ে প্রকাশ করুন",
+  "sop.standard.need.calvingPen": "প্রসব পেন",
+  "sop.standard.need.fmdVaccine": "এফএমডি টিকা",
+  "sop.standard.need.lsdVaccine": "লাম্পি স্কিন টিকা",
+  "sop.standard.need.dewormer": "কৃমিনাশক",
+  "sop.standard.choose": "বেছে নিন…",
+  "sop.standard.noPens": "খামারে এখনো কোনো পেন নেই",
+  "sop.standard.noProducts":
+    "ওষুধের তালিকার কোনোটিই এখনো দেওয়া যাবে না — আগে ভেট আটকে রাখার সময় লিখবেন",
   "sop.edit": "সম্পাদনা",
   "sop.publish": "প্রকাশ করুন",
   "sop.propose": "পরিবর্তনের প্রস্তাব",

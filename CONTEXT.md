@@ -10,6 +10,10 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Playbook**: The farm's full set of SOPs taken together. Refers to the collection, never to an individual procedure.
 
+**Standard Playbook**: The SOPs OpenFarm offers a farm to start from. None is in the farm's Playbook until the Owner adopts it — reads it, names the farm's own Pen or product where it asks for one, and publishes it — so none raises work before then. A standard SOP the farm already has by name is not offered again. _Avoid_: Template, default SOPs
+
+**Standard Lists**: The Feed Items, Rations, Drug List products and notifiable diseases the Owner may start the farm with at Setup instead of an empty store. Names and kilos only: a price, a stock level, the Pen a Ration feeds and a product's withdrawal days are the farm's own facts, and the days the Vet's alone — so a standard product waits on the Drug List, not prescribable, until the Vet writes them. A name the farm already uses is left as the farm's, and starting twice adds nothing. Like the standard Categories, which every farm is given without asking. _Avoid_: Seed data, defaults, presets
+
 **Dairy**: The side of the farm that keeps cows for milk. _Avoid_: Milk production, milking (milking is an activity within Dairy)
 
 **Fattening**: The side of the farm that buys or raises cattle to gain weight and sells them for beef. _Avoid_: Beef, finishing, feedlot
