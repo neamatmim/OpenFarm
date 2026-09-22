@@ -68,6 +68,7 @@ export const QueueGroup = ({
   more,
   aside,
   firstShown = FIRST_SHOWN,
+  headless = false,
 }: {
   label: string;
   tone: Tone;
@@ -80,6 +81,8 @@ export const QueueGroup = ({
   aside?: ReactNode;
   /** How many rows show before "show all", where a queue's rows are better read by their total. */
   firstShown?: number;
+  /** Under a tab that already says its name, icon and count: only what the rows come to and the way to the list. */
+  headless?: boolean;
 }) => {
   const { t, language } = useLanguage();
   const [all, setAll] = useState(false);
@@ -91,20 +94,24 @@ export const QueueGroup = ({
   const Chevron = all ? ChevronUp : ChevronDown;
   return (
     <div className="flex flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pb-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              "grid size-7 shrink-0 place-items-center rounded-md",
-              ICON_TONE[tone]
-            )}
-          >
-            <Icon aria-hidden className="size-4" />
-          </span>
-          <h3 className="text-sm font-semibold">{label}</h3>
-          <StatusBadge tone={tone}>
-            {formatNumber(rows.length, language)}
-          </StatusBadge>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pb-1 empty:hidden">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 empty:hidden">
+          {headless ? null : (
+            <>
+              <span
+                className={cn(
+                  "grid size-7 shrink-0 place-items-center rounded-md",
+                  ICON_TONE[tone]
+                )}
+              >
+                <Icon aria-hidden className="size-4" />
+              </span>
+              <h3 className="text-sm font-semibold">{label}</h3>
+              <StatusBadge tone={tone}>
+                {formatNumber(rows.length, language)}
+              </StatusBadge>
+            </>
+          )}
           {aside ? (
             <span className="text-muted-foreground text-sm tabular-nums">
               {aside}

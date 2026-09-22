@@ -24,13 +24,14 @@ import {
 } from "@/components/home/farm-panels";
 import { MilkWeek } from "@/components/home/milk-week";
 import {
+  DECISION_KINDS,
   FarmToday,
-  OwnerDecisions,
+  NeedsYouTabs,
   decisionsWaiting,
   moneyAwaitingTotal,
 } from "@/components/home/owner-queue";
+import type { DecisionKind } from "@/components/home/owner-queue";
 import { MORE_LINK } from "@/components/home/queue";
-import { VentureTroubles } from "@/components/home/venture-trouble";
 import {
   EmptyState,
   Notice,
@@ -229,6 +230,8 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const { t, language } = useLanguage();
   const { needsYou, tiles } = data;
   const figures = useFarmFigures(data);
+  const { needs } = Route.useSearch();
+  const navigate = Route.useNavigate();
   // Asked here rather than folded into `home.owner`, because whether a Wind-up Period has run out is
   // worked out where it is read — a cached `true` would tell her a run is over on the strength of a
   // date that has since moved. Owner-only already, and a farm with no Venture gets an empty list.
@@ -279,10 +282,14 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
                 title={t("owner.allFine")}
               />
             ) : (
-              <div className="flex flex-col gap-6">
-                <VentureTroubles ventures={troubled} />
-                <OwnerDecisions needsYou={needsYou} />
-              </div>
+              <NeedsYouTabs
+                chosen={needs}
+                needsYou={needsYou}
+                onChoose={(kind) =>
+                  navigate({ replace: true, search: { needs: kind } })
+                }
+                ventures={troubled}
+              />
             )}
           </Section>
           <Section
@@ -308,4 +315,11 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
 export const Route = createFileRoute("/_auth/farm")({
   beforeLoad: onlyFor("owner"),
   component: OwnerHome,
+  // Which kind of decision the Owner was reading, so the page comes back as it was left.
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { needs?: DecisionKind } =>
+    DECISION_KINDS.includes(search.needs as DecisionKind)
+      ? { needs: search.needs as DecisionKind }
+      : {},
 });

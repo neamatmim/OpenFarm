@@ -12,9 +12,11 @@ import {
   FileBadge,
   Gavel,
   HandCoins,
+  Handshake,
   Milk,
   Wheat,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -24,17 +26,26 @@ import {
   QueueRow,
   ROW_LINK,
 } from "@/components/home/queue";
+import { VentureTroubles } from "@/components/home/venture-trouble";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { ProgressBar, StatusBadge, TagChip } from "@/components/page";
+import { PageTabs } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
+import type { VentureNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
 /** The Owner's exception list as the farm answers it. */
 export type NeedsYou = Awaited<
   ReturnType<typeof orpc.home.owner.call>
 >["needsYou"];
+
+/** One kind of decision, drawn under its own heading or under a tab that already gives it one. */
+interface GroupProps {
+  needsYou: NeedsYou;
+  headless?: boolean;
+}
 
 /** The day's work as the farm counts it. */
 type Tiles = Awaited<ReturnType<typeof orpc.home.owner.call>>["tiles"];
@@ -96,7 +107,7 @@ const RenewalRow = ({
 };
 
 /** Money waiting on the Owner: what it all comes to beside how many, the first few approved where they stand. */
-const MoneyGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
+const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const approveMoney = useApproveMoney();
@@ -106,6 +117,7 @@ const MoneyGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
         taka: taka(moneyAwaitingTotal(needsYou)),
       })}
       firstShown={MONEY_FIRST_SHOWN}
+      headless={headless}
       icon={HandCoins}
       label={t("owner.moneyAwaiting")}
       more={
@@ -153,7 +165,7 @@ const MoneyGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
 };
 
 /** Playbook proposals, approved and published where they stand. */
-const ProposalGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
+const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const approve = useMutation(
@@ -165,6 +177,7 @@ const ProposalGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
   );
   return (
     <QueueGroup
+      headless={headless}
       icon={BookOpenCheck}
       label={t("owner.proposals")}
       more={
@@ -201,10 +214,11 @@ const ProposalGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
 };
 
 /** Entries the farm could not settle by itself, each opening the work it belongs to. */
-const ReviewGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
+const ReviewGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
   return (
     <QueueGroup
+      headless={headless}
       icon={Gavel}
       label={t("home.needsReview")}
       more={
@@ -249,62 +263,216 @@ const ReviewGroup = ({ needsYou }: { needsYou: NeedsYou }) => {
   );
 };
 
-/**
- * What only the Owner can settle, and nothing else: the Registration, work waiting on their own word, Playbook
- * proposals, money awaiting approval, and entries needing a decision. A proposal and a sum of money are approved where
- * they stand; everything else opens what it is about.
- */
-export const OwnerDecisions = ({ needsYou }: { needsYou: NeedsYou }) => {
+/** The Registration running out, where it is. */
+const RenewalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
   return (
-    <div className="flex flex-col gap-6">
-      <QueueGroup
-        icon={FileBadge}
-        label={t("owner.registrationRenewal")}
-        rows={
-          needsYou.registrationRenewal
-            ? [
-                <RenewalRow
-                  key="renewal"
-                  renewal={needsYou.registrationRenewal}
-                />,
-              ]
-            : []
-        }
-        tone="warning"
-      />
+    <QueueGroup
+      headless={headless}
+      icon={FileBadge}
+      label={t("owner.registrationRenewal")}
+      rows={
+        needsYou.registrationRenewal
+          ? [
+              <RenewalRow
+                key="renewal"
+                renewal={needsYou.registrationRenewal}
+              />,
+            ]
+          : []
+      }
+      tone="warning"
+    />
+  );
+};
 
-      <QueueGroup
-        icon={BadgeCheck}
-        label={t("owner.approvals")}
-        more={
-          <Link className={MORE_LINK} to="/admin/sign-off">
-            {t("home.openList")}
-          </Link>
-        }
-        rows={needsYou.approvals.map((row) => (
-          <QueueRow
-            key={row.id}
-            meta={row.pen ?? t("work.wholeFarm")}
-            title={
-              <Link
-                className={ROW_LINK}
-                params={{ instanceId: row.id }}
-                to="/work/$instanceId"
-              >
-                {row.sopBn}
-              </Link>
-            }
-            trailing={<Opens />}
+/** Work waiting on the Owner's own Sign-off, each opening the work. */
+const ApprovalGroup = ({ needsYou, headless }: GroupProps) => {
+  const { t } = useLanguage();
+  return (
+    <QueueGroup
+      headless={headless}
+      icon={BadgeCheck}
+      label={t("owner.approvals")}
+      more={
+        <Link className={MORE_LINK} to="/admin/sign-off">
+          {t("home.openList")}
+        </Link>
+      }
+      rows={needsYou.approvals.map((row) => (
+        <QueueRow
+          key={row.id}
+          meta={row.pen ?? t("work.wholeFarm")}
+          title={
+            <Link
+              className={ROW_LINK}
+              params={{ instanceId: row.id }}
+              to="/work/$instanceId"
+            >
+              {row.sopBn}
+            </Link>
+          }
+          trailing={<Opens />}
+        />
+      ))}
+      tone="info"
+    />
+  );
+};
+
+/** The kinds of thing only the Owner can settle, in the order they are read. */
+export const DECISION_KINDS = [
+  "ventures",
+  "registration",
+  "approvals",
+  "proposals",
+  "money",
+  "review",
+] as const;
+export type DecisionKind = (typeof DECISION_KINDS)[number];
+
+/** A kind of decision as a tab: what it is called and how many wait. */
+interface Kind {
+  value: DecisionKind;
+  label: string;
+  icon: LucideIcon;
+  count: number;
+}
+
+/** One kind's list, under its own heading or under a tab that already gives it one. */
+const KindList = ({
+  kind,
+  needsYou,
+  ventures,
+  headless,
+}: {
+  kind: DecisionKind;
+  needsYou: NeedsYou;
+  ventures: VentureNeedingHer[];
+  headless: boolean;
+}) => {
+  switch (kind) {
+    case "ventures": {
+      return <VentureTroubles headless={headless} ventures={ventures} />;
+    }
+    case "registration": {
+      return <RenewalGroup headless={headless} needsYou={needsYou} />;
+    }
+    case "approvals": {
+      return <ApprovalGroup headless={headless} needsYou={needsYou} />;
+    }
+    case "proposals": {
+      return <ProposalGroup headless={headless} needsYou={needsYou} />;
+    }
+    case "money": {
+      return <MoneyGroup headless={headless} needsYou={needsYou} />;
+    }
+    case "review": {
+      return <ReviewGroup headless={headless} needsYou={needsYou} />;
+    }
+    default: {
+      return null;
+    }
+  }
+};
+
+/**
+ * What only the Owner can settle, and nothing else: the Ventures that want them, the Registration, work waiting on
+ * their own word, Playbook proposals, money awaiting approval, and entries needing a decision. A proposal and a sum of
+ * money are approved where they stand; everything else opens what it is about.
+ *
+ * One tab to a kind, and only for a kind with something in it: the row of tabs, each with its count, is the whole of
+ * what waits read at a glance, and one kind at a time below it keeps a long pile of money from pushing the rest off
+ * the screen. A single kind needs no tabs — a row of one is furniture — and is drawn as it always was.
+ */
+export const NeedsYouTabs = ({
+  needsYou,
+  ventures,
+  chosen,
+  onChoose,
+}: {
+  needsYou: NeedsYou;
+  ventures: VentureNeedingHer[];
+  /** The tab the address asks for, which may name a kind that has since emptied. */
+  chosen: DecisionKind | undefined;
+  onChoose: (kind: DecisionKind) => void;
+}) => {
+  const { t } = useLanguage();
+  const kinds: Kind[] = [
+    {
+      value: "ventures",
+      label: t("nav.ventures"),
+      icon: Handshake,
+      count: ventures.length,
+    },
+    {
+      value: "registration",
+      label: t("owner.registrationRenewal"),
+      icon: FileBadge,
+      count: needsYou.registrationRenewal ? 1 : 0,
+    },
+    {
+      value: "approvals",
+      label: t("nav.signOff"),
+      icon: BadgeCheck,
+      count: needsYou.approvals.length,
+    },
+    {
+      value: "proposals",
+      label: t("owner.proposals"),
+      icon: BookOpenCheck,
+      count: needsYou.proposals.length,
+    },
+    {
+      value: "money",
+      label: t("nav.money"),
+      icon: HandCoins,
+      count: needsYou.moneyAwaiting.length,
+    },
+    {
+      value: "review",
+      label: t("home.needsReview"),
+      icon: Gavel,
+      count: needsYou.needsReview.length,
+    },
+  ];
+  const waiting = kinds.filter((kind) => kind.count > 0);
+  const [only] = waiting;
+  if (!only) {
+    return null;
+  }
+  if (waiting.length === 1) {
+    return (
+      <KindList
+        headless={false}
+        kind={only.value}
+        needsYou={needsYou}
+        ventures={ventures}
+      />
+    );
+  }
+  // The kind asked for while it still has something in it; once it empties — the last sum approved — the first that
+  // does, rather than an empty tab.
+  const shown = waiting.find((kind) => kind.value === chosen) ?? only;
+  return (
+    <PageTabs
+      onChange={onChoose}
+      tabs={waiting.map((kind) => ({
+        value: kind.value,
+        label: kind.label,
+        icon: kind.icon,
+        count: kind.count,
+        content: (
+          <KindList
+            headless
+            kind={kind.value}
+            needsYou={needsYou}
+            ventures={ventures}
           />
-        ))}
-        tone="info"
-      />
-
-      <ProposalGroup needsYou={needsYou} />
-      <MoneyGroup needsYou={needsYou} />
-      <ReviewGroup needsYou={needsYou} />
-    </div>
+        ),
+      }))}
+      value={shown.value}
+    />
   );
 };
 
