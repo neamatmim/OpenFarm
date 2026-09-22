@@ -50,9 +50,11 @@ Without systemd, `deploy/crontab.example` is the same two jobs at the same times
 Either way the job reads `/etc/openfarm/backup.env` — root-owned, readable only by the
 service user, holding `DATABASE_URL`, `BACKUP_AGE_RECIPIENT` and `BACKUP_DESTINATION`.
 
-**Then check the app.** Admin → Backups is the only thing that will tell you the timer is
-doing its job, and a timer that exists but fails every night looks exactly like a timer that
-works until somebody looks.
+**Then check the app.** Admin → Backups is where you see the timer doing its job, and a timer
+that exists but fails every night looks exactly like a timer that works until somebody looks.
+Once the first copy is in, the farm watches too: when no copy has succeeded for a day and a
+half, the Owner gets an Alert in the app and on her phone, once for each gap. A farm that has
+never taken a copy is not told — that is the checklist's job.
 
 ## Restoring
 
