@@ -164,6 +164,9 @@ export const createAuth = (against?: Database) => {
       window: 60,
       max: 100,
       customRules: {
+        // Every screen asks whether its person is still signed in, and the phones on the farm's Wi-Fi share one
+        // address: counting those questions locked the shed out on a busy morning. They guess nothing.
+        "/get-session": false,
         "/sign-in/email": { window: 60, max: 5 },
         "/sign-up/email": { window: 60, max: 3 },
         "/request-password-reset": { window: 60, max: 3 },
