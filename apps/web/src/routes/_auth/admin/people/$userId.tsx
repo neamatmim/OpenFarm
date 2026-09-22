@@ -20,6 +20,7 @@ import { AccessTab } from "@/components/people/person-access";
 import { SignInsTab, TrainingTab } from "@/components/people/person-sign-ins";
 import { useT } from "@/i18n/language-provider";
 import { words } from "@/lib/correcting";
+import { reachesTheirAccess } from "@/lib/their-access";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["access", "signIns", "training"] as const;
@@ -72,6 +73,7 @@ const PersonPage = () => {
   const isSelf = me.data?.id === userId;
   const them = person.data;
   const gone = Boolean(them?.disabledAt);
+  const seesSignIns = reachesTheirAccess(isOwner, them?.roles ?? []);
 
   return (
     <Page className="max-w-5xl" width="default">
@@ -134,12 +136,17 @@ const PersonPage = () => {
                     />
                   ),
                 },
-                {
-                  value: "signIns",
-                  label: t("people.tab.signIns"),
-                  icon: MonitorSmartphone,
-                  content: <SignInsTab userId={userId} />,
-                },
+                // Where somebody is signed in is shown only to whoever may sign them out of it.
+                ...(seesSignIns
+                  ? [
+                      {
+                        value: "signIns" as const,
+                        label: t("people.tab.signIns"),
+                        icon: MonitorSmartphone,
+                        content: <SignInsTab userId={userId} />,
+                      },
+                    ]
+                  : []),
                 {
                   value: "training",
                   label: t("people.tab.training"),
@@ -147,7 +154,7 @@ const PersonPage = () => {
                   content: <TrainingTab training={them.training ?? []} />,
                 },
               ]}
-              value={tab}
+              value={tab === "signIns" && !seesSignIns ? "access" : tab}
             />
           </>
         ) : null}

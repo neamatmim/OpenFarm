@@ -35,6 +35,7 @@ import { FormDialog, FormField } from "@/components/page-kit";
 import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
+import { reachesTheirAccess } from "@/lib/their-access";
 import { orpc } from "@/utils/orpc";
 
 import { OneTimeCode } from "./one-time-code";
@@ -726,9 +727,8 @@ export const AccessTab = ({
         ) : null}
         {isOwner ? <RolesRow roles={roles} userId={userId} /> : null}
         {gone || visitUntil ? null : <PensRow held={penIds} userId={userId} />}
-        {/* A PIN and a password code are both ways in: the Owner's to give anybody, a Manager's only to Barn Staff,
-            as the server has it. */}
-        {isOwner || roles.every((role) => role === "staff") ? (
+        {/* A PIN and a password code are both ways in, shown only to whoever may give them. */}
+        {reachesTheirAccess(isOwner, roles) ? (
           <>
             <PinRow userId={userId} />
             <PasswordRow name={name} userId={userId} />

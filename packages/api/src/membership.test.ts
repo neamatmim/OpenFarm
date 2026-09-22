@@ -26,6 +26,8 @@ import {
   signedInOn,
   writeInvite,
 } from "./membership";
+import { appRouter } from "./routers/index";
+import { createTestClient } from "./test/client";
 
 const farmId = theFarm().id;
 const now = new FakeClock("2046-04-01T04:00:00.000Z").now();
@@ -131,6 +133,28 @@ describe("what a Manager may do", () => {
         setPin(tx, farmId, thePerson("owner").id, credential, manager(), now)
       )
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("sees where Barn Staff are signed in and signs them out, and nobody above them", async () => {
+    const theOwner = await createTestPrincipal("owner", now);
+    const staff = await createTestPrincipal("staff", now);
+    const asManager = await createTestClient(appRouter, { as: "manager" });
+
+    // Where the Owner is signed in names her phone and the address it was on; ending it turns her out mid-task.
+    await expect(
+      asManager.client.people.signedInOn({ userId: theOwner.user.id })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      asManager.client.people.signOut({
+        userId: theOwner.user.id,
+        sessionId: theOwner.session.id,
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const where = await asManager.client.people.signedInOn({
+      userId: staff.user.id,
+    });
+    expect(where.map((one) => one.id)).toContain(staff.session.id);
   });
 
   it("invites Barn Staff and calls in a visiting Vet, and writes no other invitation", async () => {
