@@ -1,11 +1,27 @@
-import { productionWiring } from "@OpenFarm/api/context";
-import { runTheSchedule, startTheSchedule } from "@OpenFarm/api/scheduler";
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 
-// The farm's clock runs on the server from the moment it starts: the day's work raised, late work and ending
-// withdrawals told about, the digest carried — whether or not anybody has the app open.
-startTheSchedule(() => runTheSchedule(productionWiring()));
+const withSecurityHeaders = (response: Response): Response => {
+  const headers = new Headers(response.headers);
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "DENY");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "permissions-policy",
+    "geolocation=(), microphone=(), payment=(), usb=()"
+  );
+  if (process.env.NODE_ENV === "production") {
+    headers.set(
+      "strict-transport-security",
+      "max-age=31536000; includeSubDomains"
+    );
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+};
 
 export default createServerEntry({
-  fetch: (request) => handler.fetch(request),
+  fetch: async (request) => withSecurityHeaders(await handler.fetch(request)),
 });

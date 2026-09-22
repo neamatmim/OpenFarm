@@ -599,7 +599,7 @@ export const peopleRouter = {
       z.object({
         email: z.email().trim().toLowerCase(),
         code: z.string().trim().min(4).max(32),
-        newPassword: z.string().min(8).max(128),
+        newPassword: z.string().min(12).max(128),
       })
     )
     .handler(async ({ context, input }) => {

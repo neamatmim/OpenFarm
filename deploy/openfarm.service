@@ -1,0 +1,29 @@
+[Unit]
+Description=OpenFarm web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openfarm
+Group=openfarm
+WorkingDirectory=/srv/openfarm/app
+EnvironmentFile=/etc/openfarm/app.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3001
+ExecStart=/usr/bin/node /srv/openfarm/app/server/index.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

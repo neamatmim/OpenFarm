@@ -63,8 +63,7 @@ describe("the farm's schedule, on the server", () => {
     expect(today.some((row) => row.definitionId === sop.definitionId)).toBe(
       true
     );
-    expect(scheduleStatus().lastRanAt?.toISOString()).toBe(
-      clock.now().toISOString()
-    );
+    const status = await scheduleStatus(scratchDb());
+    expect(status.lastRanAt?.toISOString()).toBe(clock.now().toISOString());
   });
 });

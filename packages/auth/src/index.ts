@@ -114,6 +114,24 @@ const theDoor = (db: Database) => {
  */
 const catching = new AsyncLocalStorage<{ token?: string }>();
 
+const asHttpsOrigin = (hostname: string | undefined): string | null =>
+  hostname ? `https://${hostname}` : null;
+
+const previewOrigin =
+  process.env.VERCEL_ENV === "preview"
+    ? asHttpsOrigin(process.env.VERCEL_URL)
+    : null;
+
+const trustedOrigins = [
+  env.BETTER_AUTH_URL,
+  previewOrigin,
+  process.env.VERCEL_ENV === "preview"
+    ? asHttpsOrigin(process.env.VERCEL_BRANCH_URL)
+    : null,
+].filter((origin): origin is string => origin !== null);
+
+const authBaseUrl = previewOrigin ?? env.BETTER_AUTH_URL;
+
 /** The farm's own auth. Given a database for a test to run it against a scratch one; the farm's otherwise. */
 export const createAuth = (against?: Database) => {
   const db = against ?? createDb(env.DATABASE_URL);
@@ -134,9 +152,29 @@ export const createAuth = (against?: Database) => {
         },
       },
     },
-    trustedOrigins: [env.BETTER_AUTH_URL],
+    trustedOrigins,
+    rateLimit: {
+      // One farm runs one app process. Pin the limiter on in every environment so a
+      // production-mode mistake cannot silently turn brute-force protection off.
+      enabled: true,
+      // Vercel and multi-process Node deployments do not share memory. Keeping
+      // counters in PostgreSQL makes the limit apply to the deployment, not one
+      // warm process.
+      storage: "database",
+      window: 60,
+      max: 100,
+      customRules: {
+        "/sign-in/email": { window: 60, max: 5 },
+        "/sign-up/email": { window: 60, max: 3 },
+        "/request-password-reset": { window: 60, max: 3 },
+        "/reset-password": { window: 60, max: 3 },
+      },
+    },
     emailAndPassword: {
       enabled: true,
+      minPasswordLength: 12,
+      maxPasswordLength: 128,
+      resetPasswordTokenExpiresIn: 15 * 60,
       // A password set in the shed is a good moment to turn out whoever is still signed in as them.
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: ({ token }) => {
@@ -149,7 +187,17 @@ export const createAuth = (against?: Database) => {
       },
     },
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_URL,
+    baseURL: authBaseUrl,
+    session: {
+      expiresIn: 7 * 24 * 60 * 60,
+      updateAge: 24 * 60 * 60,
+      freshAge: 60 * 60,
+    },
+    advanced: {
+      // Local HTTP remains usable in development; production cookies are never sent
+      // over plaintext even if a reverse proxy is misconfigured.
+      useSecureCookies: env.NODE_ENV === "production",
+    },
     hooks: { before: theDoor(db) },
     plugins: [tanstackStartCookies()],
   });

@@ -174,7 +174,7 @@ export const farmRouter = {
    *  failing — so a silent schedule is something the Owner can see rather than discover. */
   schedule: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(() => scheduleStatus()),
+    .handler(({ context }) => scheduleStatus(context.db)),
 
   bootstrap: protectedProcedure
     .input(z.object({ name: z.string().trim().min(1) }))

@@ -1,30 +1,43 @@
 name: OpenFarm
 
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: migrator
+    env_file:
+      - path: apps/web/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/OpenFarm
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     init: true
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     env_file:
       - path: apps/web/.env
         required: false
     environment:
-      BETTER_AUTH_URL: http://localhost:3001
-      CORS_ORIGIN: http://localhost:3001
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/OpenFarm
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/OpenFarm
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:3001/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+          "fetch('http://localhost:3001/api/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 5s
@@ -38,9 +51,9 @@ services:
     environment:
       POSTGRES_DB: OpenFarm
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - OpenFarm_postgres_data:/var/lib/postgresql
     healthcheck:
