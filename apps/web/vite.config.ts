@@ -1,3 +1,5 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
+
 import type {
   DATABASE_IS_BEHIND,
   databaseIsBehind,
@@ -36,6 +38,36 @@ const refuseAnOldDatabase = (): Plugin => ({
   },
 });
 
+/**
+ * A request the browser gave up on is not an error, in development as the RPC route already says it is not. Nitro's
+ * dev middleware hands on whatever reading the request threw, and a browser that closes a request mid-body — a page
+ * refreshing its list once the day is raised, cancelling the answer it no longer wants — makes Node throw `aborted`.
+ * Vite then paints that over every open page as though the page had broken. Registered after Vite's own middleware
+ * and before its error handler, so any other error still reaches it.
+ */
+const aGivenUpRequestIsNotAnError = (): Plugin => ({
+  name: "openfarm:a-given-up-request-is-not-an-error",
+  apply: "serve",
+  configureServer: (server) => () => {
+    server.middlewares.use(
+      (
+        thrown: NodeJS.ErrnoException,
+        request: IncomingMessage,
+        response: ServerResponse,
+        passOn: (thrown?: unknown) => void
+      ) => {
+        // Connect knows an error handler by its four parameters, not their names.
+        const givenUp = thrown.code === "ECONNRESET" && request.destroyed;
+        if (!givenUp) {
+          passOn(thrown);
+          return;
+        }
+        response.destroy();
+      }
+    );
+  },
+});
+
 export default defineConfig(({ command }) => ({
   // The deploy artifact has no workspace node_modules tree. Development still
   // externalizes Node-oriented CommonJS packages such as `pg`, which Vite's
@@ -49,6 +81,7 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     refuseAnOldDatabase(),
+    aGivenUpRequestIsNotAnError(),
     tailwindcss(),
     tanstackStart(),
     // Nitro defaults to node-server for Docker/systemd and detects Vercel's
