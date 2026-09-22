@@ -1661,6 +1661,12 @@ export const en = {
   "digest.registrationRenewal": "The Registration is due for renewal",
   "alerts.registrationRenewal":
     "The Registration runs out on {date}: its renewal is on your list",
+  "digest.dayNotTurning": "The farm's schedule has stopped",
+  "alerts.dayNotTurning":
+    "The farm's schedule has not run cleanly since {since}: work may not be raised and notices may not go. See Copies of the farm.",
+  "digest.backupOverdue": "The farm is not being copied",
+  "alerts.backupOverdue":
+    "No copy of the farm has succeeded since {since}. See Copies of the farm.",
   "refusal.workInNoPen":
     "This step records a Pen's work, and this work is in no Pen",
   "renewal.issuedOn": "The renewed certificate was issued on",
@@ -2242,6 +2248,12 @@ export const en = {
   "push.digestTitle": "Today on the farm",
   "push.digestBody": "{count} things waiting",
   "push.overdueTitle": "Work is late",
+  "push.dayNotTurningTitle": "The farm's schedule has stopped",
+  "push.dayNotTurningBody":
+    "Work may not be raised and notices may not go. Open the app to see.",
+  "push.backupOverdueTitle": "The farm is not being copied",
+  "push.backupOverdueBody":
+    "No copy has succeeded in over a day and a half. Open Copies of the farm to see why.",
   "push.escalatedTitle": "Still not done",
   "push.sentBackTitle": "Sent back to you",
   "push.needsReviewTitle": "Needs a look",

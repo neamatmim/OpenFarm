@@ -114,6 +114,10 @@ export interface NoticeFacts {
     occasion: string;
   };
   entry_rejected: { count: number; reason: string };
+  /** When the Day Turning last turned whole, as an ISO instant: the screen says it in the reader's own date. */
+  day_not_turning: { since: string };
+  /** When a copy last succeeded — or, for a farm whose copies have never once worked, when the first was tried. */
+  backup_overdue: { since: string };
 }
 
 /** The farm's own list of who hears what, beside the delivery table that says when. */
@@ -156,6 +160,10 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   investor_statement_due: { audience: [theOwner], entity: "venture" },
   // Their own phone is holding the entries, so it is their own news.
   entry_rejected: { audience: ["whoseActItWas"], entity: "sync_batch" },
+  // The farm's own machinery is the Owner's: she holds every root credential, and the Manager cannot reach the
+  // server, the database or the backups to put either right (deploy runbook).
+  day_not_turning: { audience: [theOwner], entity: "scheduler_state" },
+  backup_overdue: { audience: [theOwner], entity: "backup_run" },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */

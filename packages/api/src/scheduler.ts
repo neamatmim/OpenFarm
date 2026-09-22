@@ -1,12 +1,22 @@
 import type { Database } from "@OpenFarm/db";
 import { schedulerState } from "@OpenFarm/db/schema/scheduler";
 
+import { audited } from "./audit";
 import type { Clock } from "./clock";
 import { systemClock } from "./clock";
 import { buildContext } from "./context";
 import type { PushTransport } from "./push";
+import { pushRaised } from "./push-send";
 import type { SmsTransport } from "./sms";
+import type { Turning } from "./the-day-turns";
 import { theDayTurns } from "./the-day-turns";
+import type { Quiet } from "./the-machinery-notices";
+import {
+  backupGap,
+  dayNotTurning,
+  tellTheOwnerAboutTheMachinery,
+  untold,
+} from "./the-machinery-notices";
 
 export interface ScheduleStatus {
   lastRanAt: Date | null;
@@ -78,6 +88,44 @@ const markFinished = async (
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+/**
+ * Tells the Owner the farm's own machinery has gone quiet, once for each stretch of it, and pushes it at once.
+ *
+ * Nothing written when there is nothing new to say, which is every turn but the first of a stretch. A telling that
+ * fails does not fail the turn: the Owner's systems page still says what the schedule and the copies are doing.
+ */
+const tellTheOwnerIfItHasGoneQuiet = async (
+  context: Turning,
+  found: readonly (Quiet | null)[]
+): Promise<void> => {
+  const now = context.clock.now();
+  try {
+    const fresh = await untold(
+      context.db,
+      context.farm.id,
+      found.filter((one): one is Quiet => one !== null)
+    );
+    const [first] = fresh;
+    if (!first) {
+      return;
+    }
+    const raised = await audited(context).write(
+      {
+        entity:
+          first.kind === "backup_overdue" ? "backup_run" : "scheduler_state",
+        entityId: first.id,
+        action: "update",
+        after: { toldTheOwner: fresh.map((one) => one.kind) },
+      },
+      (tx) => tellTheOwnerAboutTheMachinery(tx, context.farm.id, fresh, now)
+    );
+    await pushRaised(context, raised, now);
+  } catch (error) {
+    // oxlint-disable-next-line no-console
+    console.error("telling the Owner the farm has gone quiet", error);
+  }
+};
+
 const turnFarmDay = async ({
   db,
   clock,
@@ -93,6 +141,8 @@ const turnFarmDay = async ({
 }): Promise<{ ok: boolean; error?: string }> => {
   const startedAt = clock.now();
   try {
+    // Read before this turn stamps itself: how long the farm has gone without a clean turn is the last one's.
+    const { lastOkAt } = await scheduleStatus(db);
     await markStarted(db, startedAt);
     const context = await buildContext({
       session: null,
@@ -106,6 +156,10 @@ const turnFarmDay = async ({
     if (farm) {
       const turned = await theDayTurns({ ...context, farm });
       const turnError = turned.wentWrong.join("; ") || null;
+      await tellTheOwnerIfItHasGoneQuiet({ ...context, farm }, [
+        dayNotTurning({ failed: turnError !== null, lastOkAt, now: startedAt }),
+        await backupGap(db, startedAt),
+      ]);
       if (turnError) {
         throw new Error(turnError);
       }
