@@ -17,7 +17,7 @@ A written spec for **OpenFarm Release 1**: an SOP-driven operations system for o
 - **Farm facts** (decided during charting, not re-litigated): single farm, modelled so a second could exist later; Bangla default + English; roles Owner / Farm Manager / Barn Staff / Vet; cloud-hosted, phones lose signal in the barns; nothing systematic today so no migration; no hardware feeds in R1; no deadline — quality first.
 - **Release 1 scope** — reaffirmed by the Owner after push-back: animal register, SOP engine, health/medicine, audit & roles, milk recording, fattening weights & sale, breeding, feed & inventory, finance. Sequencing _within_ R1 is the last ticket.
 - **Stack**: TanStack Start + oRPC v2 + Drizzle/Postgres + Better Auth is preferred but open — a decision (e.g. offline) may change it. Record any such change as an ADR under `docs/adr/` (0001 SOP versioning, 0002 offline outbox, 0003 Shed Phones exist).
-- **Research branches**: research findings land on `research/<name>` branches at `docs/research/<name>.md`; the ticket links them.
+- **Research branches**: research findings are written on a `research/<name>` branch at `docs/research/<name>.md` and merged to main; the ticket links them.
 - Assets produced by tickets go in `.scratch/openfarm-release-1/assets/` and are linked from the ticket, never pasted in.
 
 ## Decisions so far
@@ -70,9 +70,9 @@ A written spec for **OpenFarm Release 1**: an SOP-driven operations system for o
 
 - [List the Playbook](./issues/01-list-the-playbook.md) — 26 SOPs confirmed complete (7 daily, 7 health, 5 reproduction, 3 fattening, 4 management); all three trigger kinds needed; milking 2×/day, feeding 2×/day, weigh-in fortnightly; roles as drafted. List in `assets/playbook-list.md`.
 
-- [Bangladesh regulatory requirements for cattle, medicine and milk](./issues/02-bangladesh-regulatory-requirements.md) — few explicit farm duties: DLS registration, written notifiable-disease reporting, no drugs in feed, prescription-only antibiotics, keep milk buyer invoices. No national cattle ID (farm numbering is primary); no statutory withdrawal table (per-product from label); slaughter rules look back 30 days/6 months; retention guideline 3 years. Findings on `research/bangladesh-regulatory`.
+- [Bangladesh regulatory requirements for cattle, medicine and milk](./issues/02-bangladesh-regulatory-requirements.md) — few explicit farm duties: DLS registration, written notifiable-disease reporting, no drugs in feed, prescription-only antibiotics, keep milk buyer invoices. No national cattle ID (farm numbering is primary); no statutory withdrawal table (per-product from label); slaughter rules look back 30 days/6 months; retention guideline 3 years. Findings in `docs/research/bangladesh-regulatory.md`.
 
-- [Offline-first capture options on the OpenFarm stack](./issues/03-offline-capture-options.md) — recommended: outbox-first on the existing stack (TanStack DB + `@tanstack/offline-transactions`, idempotent writes via oRPC/Drizzle, installed PWA); PowerSync only if rich offline reads are needed; Zero/Replicache/Triplit/Jazz/LiveStore/Instant ruled out. Findings on `research/offline-capture`.
+- [Offline-first capture options on the OpenFarm stack](./issues/03-offline-capture-options.md) — recommended: outbox-first on the existing stack (TanStack DB + `@tanstack/offline-transactions`, idempotent writes via oRPC/Drizzle, installed PWA); PowerSync only if rich offline reads are needed; Zero/Replicache/Triplit/Jazz/LiveStore/Instant ruled out. Findings in `docs/research/offline-capture.md`.
 
 ## Not yet specified
 

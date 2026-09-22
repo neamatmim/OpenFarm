@@ -22,7 +22,7 @@ Resolved when the approach, offline scope, and conflict rules are written down. 
 
 ## Answer
 
-Decided with the Owner on 2026-09-10, on the basis of [Offline-first capture options](./03-offline-capture-options.md) (branch `research/offline-capture`).
+Decided with the Owner on 2026-09-10, on the basis of [Offline-first capture options](./03-offline-capture-options.md) (`docs/research/offline-capture.md`).
 
 ### Approach — outbox on the existing stack; **no stack change**
 

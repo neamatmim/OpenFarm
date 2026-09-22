@@ -25,7 +25,7 @@ Primary sources only (acts, BSEC/Bangladesh Bank rules and circulars, NBR, AAOIF
 
 ## Answer
 
-Researched 2026-09-17. Findings on branch `research/bangladesh-pooled-investment` at `docs/research/bangladesh-pooled-investment.md`. They are cited to bdlaws, BSEC and AAOIFI; the 2026 Bangladesh Bank crackdown comes from news reports only.
+Researched 2026-09-17. Findings in `docs/research/bangladesh-pooled-investment.md`. They are cited to bdlaws, BSEC and AAOIFI; the 2026 Bangladesh Bank crackdown comes from news reports only.
 
 No licence exists for "a farm pooling investors' money into cattle". The law draws lines around it:
 

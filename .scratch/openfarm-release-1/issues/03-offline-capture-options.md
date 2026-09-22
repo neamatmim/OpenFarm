@@ -25,7 +25,7 @@ End with a comparison table and a recommendation ranked by fit for _this_ stack 
 
 ## Answer
 
-Findings: `docs/research/offline-capture.md` on branch **`research/offline-capture`** (commit `12c2b23`). Read with `git show research/offline-capture:docs/research/offline-capture.md`.
+Findings: [`docs/research/offline-capture.md`](../../../docs/research/offline-capture.md), merged to main on 2026-09-22 (written as commit `12c2b23`).
 
 **Ranked recommendation**
 

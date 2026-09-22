@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 
-Source: the wayfinder map [`map.md`](./map.md) (10 of 12 tickets resolved, 2026-09-18), its tickets in [`issues/`](./issues/), the roles matrix in [`assets/`](./assets/), the glossary [`CONTEXT.md`](../../CONTEXT.md), the research on branches `research/bangladesh-pooled-investment` and `research/cattle-investment-schemes`, and the statement prototype on `prototype/investor-statements`. Where this spec and a ticket's Answer disagree, the ticket wins and this spec has a bug. Vocabulary is the glossary's; capitalised terms are defined there.
+Source: the wayfinder map [`map.md`](./map.md) (10 of 12 tickets resolved, 2026-09-18), its tickets in [`issues/`](./issues/), the roles matrix in [`assets/`](./assets/), the glossary [`CONTEXT.md`](../../CONTEXT.md), the research in `docs/research/bangladesh-pooled-investment.md` and `docs/research/cattle-investment-schemes.md`, and the statement prototype on `prototype/investor-statements`. Where this spec and a ticket's Answer disagree, the ticket wins and this spec has a bug. Vocabulary is the glossary's; capitalised terms are defined there.
 
 **Two tickets are open by design.** [Take the structure to a lawyer and a Shariah scholar](./issues/11-take-the-structure-to-a-lawyer-and-a-shariah-scholar.md) and [What the advisers' answers change](./issues/12-what-the-advisers-answers-change.md). Everything below about the **wording** of an Investment Agreement, the **twenty-Investor cap**, and **tax** is provisional until they answer. Nothing below waits on them to be built: the cap is a Farm Parameter, and the agreement is a stored photo rather than generated text.
 
@@ -268,6 +268,6 @@ Investor cap (20) and its warning level (15), Wind-up Period (30 days), default 
 ## Further Notes
 
 - The two open map tickets are the only outstanding decisions; both are about advice rather than software, and their answers change Farm Parameters, the agreement's wording and possibly tax — not the shape built here.
-- The research notes are on `research/bangladesh-pooled-investment` (what the law allows, with citations) and `research/cattle-investment-schemes` (what other schemes publish). Both label what could not be verified.
+- The research notes are in `docs/research/bangladesh-pooled-investment.md` (what the law allows, with citations) and `docs/research/cattle-investment-schemes.md` (what other schemes publish). Both label what could not be verified.
 - The statement prototype is on `prototype/investor-statements` (`/prototype/investor-statement?variant=A|B|C`) and as a canvas at https://claude.ai/artifact/FifJiMPFWJpfJQ5RRVkZ6h. It is throwaway; the documents get built properly.
 - Increment 1 is worth shipping even if no Venture ever opens, and is the only part that cannot be affected by the advisers.
