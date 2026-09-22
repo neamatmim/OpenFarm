@@ -604,12 +604,13 @@ export const termsAcrossOn = async (
     columns: { id: true },
     orderBy: { createdAt: "asc", id: "asc" },
   });
-  const said = await Promise.all(
-    signed.map(
-      async (one) =>
-        [one.id, await termsInForceOn(tx, farmId, one.id, on)] as const
-    )
-  );
+  const said: [string, TermsInForce | null][] = [];
+  for (const one of signed) {
+    // A transaction has one PostgreSQL client, so its reads must not overlap.
+    // oxlint-disable-next-line no-await-in-loop
+    const terms = await termsInForceOn(tx, farmId, one.id, on);
+    said.push([one.id, terms]);
+  }
   return Object.fromEntries(
     said.filter((pair): pair is [string, TermsInForce] => pair[1] !== null)
   );

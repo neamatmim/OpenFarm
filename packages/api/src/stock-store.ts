@@ -57,35 +57,38 @@ export const movementsByItem = async (
   farmId: string,
   { excludingCount }: { excludingCount?: string } = {}
 ): Promise<Map<string, StockMovement[]>> => {
-  const [arrivals, given, counts] = await Promise.all([
-    db.query.feedIn.findMany({
-      where: { farmId },
-      columns: {
-        feedItemId: true,
-        quantity: true,
-        priceBdt: true,
-        receivedOn: true,
-      },
-    }),
-    // A Feeding's lines are in each Feed Item's own unit; `givenKg` is the name the line was given
-    // when every Ration was in kilos.
-    db.execute<{ feed_item_id: string; fed_at: Date; given: string }>(
-      sql`select line->>'feedItemId' as feed_item_id,
-                 ${feeding.fedAt} as fed_at,
-                 (line->>'givenKg')::numeric as given
-            from ${feeding}, jsonb_array_elements(${feeding.lines}) as line
-           where ${feeding.farmId} = ${farmId}`
-    ),
-    db.query.stockCount.findMany({
-      where: { farmId },
-      columns: {
-        feedItemId: true,
-        completionId: true,
-        counted: true,
-        countedAt: true,
-      },
-    }),
-  ]);
+  // Corrections call this inside a transaction. Its PostgreSQL client may only execute one query at a time.
+  const arrivals = await db.query.feedIn.findMany({
+    where: { farmId },
+    columns: {
+      feedItemId: true,
+      quantity: true,
+      priceBdt: true,
+      receivedOn: true,
+    },
+  });
+  // A Feeding's lines are in each Feed Item's own unit; `givenKg` is the name the line was given
+  // when every Ration was in kilos.
+  const given = await db.execute<{
+    feed_item_id: string;
+    fed_at: Date;
+    given: string;
+  }>(
+    sql`select line->>'feedItemId' as feed_item_id,
+               ${feeding.fedAt} as fed_at,
+               (line->>'givenKg')::numeric as given
+          from ${feeding}, jsonb_array_elements(${feeding.lines}) as line
+         where ${feeding.farmId} = ${farmId}`
+  );
+  const counts = await db.query.stockCount.findMany({
+    where: { farmId },
+    columns: {
+      feedItemId: true,
+      completionId: true,
+      counted: true,
+      countedAt: true,
+    },
+  });
   const byItem = new Map<string, StockMovement[]>();
   const add = (feedItemId: string, movement: StockMovement) => {
     const list = byItem.get(feedItemId) ?? [];

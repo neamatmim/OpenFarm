@@ -56,10 +56,8 @@ export const venturesCharged = async (
   farmId: string,
   chargesOf: (costs: FarmCosts) => readonly Charge[]
 ): Promise<readonly string[]> => {
-  const [costs, ownedThenBy] = await Promise.all([
-    farmCosts(tx, farmId),
-    ownedThenByOf(tx, farmId),
-  ]);
+  const costs = await farmCosts(tx, farmId);
+  const ownedThenBy = await ownedThenByOf(tx, farmId);
   const theirs = chargesOf(costs).map((one) =>
     ownedThenBy(one.animalId, one.at)
   );

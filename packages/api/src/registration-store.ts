@@ -196,16 +196,14 @@ export const renewRegistration = async (
       data: { refusal: "renewal_needs_expiry" },
     });
   }
-  const [standing, already] = await Promise.all([
-    tx.query.farm.findFirst({
-      where: { id: farmId },
-      columns: { registrationExpiresOn: true },
-    }),
-    tx.query.registrationRenewal.findFirst({
-      where: { completionId },
-      columns: { id: true, previousExpiresOn: true, expiresOn: true },
-    }),
-  ]);
+  const standing = await tx.query.farm.findFirst({
+    where: { id: farmId },
+    columns: { registrationExpiresOn: true },
+  });
+  const already = await tx.query.registrationRenewal.findFirst({
+    where: { completionId },
+    columns: { id: true, previousExpiresOn: true, expiresOn: true },
+  });
   // A correction measures against the expiry this renewal replaced, not the one it wrote.
   const previousExpiresOn = already
     ? already.previousExpiresOn
