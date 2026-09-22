@@ -13,7 +13,10 @@ export default defineConfig({
   noExternals: true,
   // Named here rather than scanned: Nitro 3 does not read `server/` on its own, and until this line the
   // development log drain was never built, so development wrote no log files.
-  plugins: [here("server/plugins/evlog-drain.ts")],
+  plugins: [
+    here("server/plugins/env-check.ts"),
+    here("server/plugins/evlog-drain.ts"),
+  ],
   experimental: {
     asyncContext: true,
     tasks: true,
