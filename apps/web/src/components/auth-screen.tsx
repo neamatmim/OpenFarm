@@ -65,8 +65,9 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
         <PublicHeader brandOnPhoneOnly />
         {/* Held off the bottom by the header's own height, so the form is centred on the same line as the promise. */}
         <main
-          className="flex flex-1 items-center justify-center px-4 pb-16"
+          className="flex flex-1 items-center justify-center px-4 pb-16 outline-none"
           id="main"
+          tabIndex={-1}
         >
           <div className="w-full max-w-md">{children}</div>
         </main>

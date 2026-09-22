@@ -1,4 +1,4 @@
-import { Button } from "@OpenFarm/ui/components/button";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -60,9 +60,12 @@ const AnimalPage = () => {
       <Page>
         <EmptyState
           action={
-            <Button render={<Link to="/animals" />} variant="outline">
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              to="/animals"
+            >
               {t("nav.animals")}
-            </Button>
+            </Link>
           }
           icon={SearchX}
           title={t("animals.notFound")}

@@ -1,6 +1,6 @@
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -245,10 +245,10 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
     <Page width="wide">
       <PageHeader
         actions={
-          <Button nativeButton={false} render={<Link to="/money" />}>
+          <Link className={buttonVariants()} to="/money">
             <Wallet aria-hidden data-icon="inline-start" />
             {t("nav.money")}
-          </Button>
+          </Link>
         }
         description={t("owner.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}

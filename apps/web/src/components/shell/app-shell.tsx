@@ -5,7 +5,6 @@ import { useMatches } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
-import { useT } from "@/i18n/language-provider";
 import { useShedPhoneKeeper } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
@@ -49,7 +48,6 @@ const useSidebarOpen = () => {
  * itself decides its width and layout; the shell only frames it.
  */
 export const AppShell = ({ children }: { children: ReactNode }) => {
-  const t = useT();
   useShedPhoneKeeper();
   const me = useQuery(orpc.people.me.queryOptions());
   const focused = useMatches({
@@ -60,12 +58,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <SidebarProvider onOpenChange={setSidebarOpen} open={sidebarOpen}>
-      <a
-        className="bg-primary text-primary-foreground sr-only z-50 rounded-md px-3 py-2 focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
-        href="#main"
-      >
-        {t("shell.skip")}
-      </a>
       <AppSidebar farmName={me.data?.farm?.name ?? null} roles={roles} />
       <SidebarInset className="min-w-0">
         <TopBar />

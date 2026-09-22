@@ -1,5 +1,5 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
+import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { Store } from "lucide-react";
 
@@ -127,13 +127,9 @@ export const ReadyToGo = ({
     return (
       <EmptyState
         action={
-          <Button
-            nativeButton={false}
-            render={<Link to="/ready" />}
-            variant="outline"
-          >
+          <Link className={buttonVariants({ variant: "outline" })} to="/ready">
             {t("nav.ready")}
-          </Button>
+          </Link>
         }
         description={t("sale.noneReadyHint")}
         icon={Store}
