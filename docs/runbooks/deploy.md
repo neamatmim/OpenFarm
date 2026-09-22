@@ -80,6 +80,10 @@ Migrations run before the new app starts, never after. Every migration in this r
 additive or backfills what it adds, so the old app keeps working against the new schema for
 the minute between the two.
 
+Started against a database a migration was forgotten for, the new app refuses: it prints which
+migration is missing and exits 1, so `systemctl status openfarm` shows it failed rather than running.
+Migrate and restart. A database it cannot reach does not stop it; readiness reports that one.
+
 ## Installing the app service once
 
 The release directory contains only `apps/web/.output`, copied to `/srv/openfarm/app` as
