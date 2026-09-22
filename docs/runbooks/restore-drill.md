@@ -24,7 +24,7 @@ is one disk away from losing its own records, and that is the number to watch.
 The machine that takes the nightly copy needs four things on its PATH: `pg_dump`, `psql`,
 [`age`](https://github.com/FiloSottile/age) and [`rclone`](https://rclone.org).
 
-A machine doing a *restore* needs those, plus `pnpm` and a checkout of this repo with
+A machine doing a _restore_ needs those, plus `pnpm` and a checkout of this repo with
 `pnpm install` run — the last step of a restore is a check that lives in the repo.
 
 Both scripts look for their tools by name and stop before they start, because a job that
@@ -36,6 +36,10 @@ a dump of the whole farm lying in a temporary directory.
 Nothing takes a copy until something is scheduled to. On a host with systemd:
 
 ```sh
+# The timers run the scripts from here; a deploy copies only the app, so this is done once
+# and again whenever scripts/ changes.
+sudo install -d -o root -g root -m 0755 /srv/openfarm/scripts
+sudo install -o root -g root -m 0755 scripts/backup.sh scripts/restore.sh /srv/openfarm/scripts/
 sudo cp deploy/openfarm-backup.* deploy/openfarm-backup-monthly.* /etc/systemd/system/
 sudo systemctl enable --now openfarm-backup.timer openfarm-backup-monthly.timer
 systemctl list-timers 'openfarm-backup*'      # and see them listed
@@ -90,16 +94,16 @@ Once a quarter, and after any change to the database provider.
 Every one of these is the Owner's, and every one needs a way back. The password manager is
 the thing that makes the rest recoverable, so it is the one to protect hardest.
 
-| Depends on | If it is lost |
-| --- | --- |
-| Password manager | Everything else is recovered *from* here. Keep the recovery kit off-line and somewhere else; without it nothing below can be re-established. |
-| Managed PostgreSQL (PITR) | Restore from PITR first, the nightly copy second. A new database means a new `DATABASE_URL` in the app's environment. |
-| App host | Rebuild from `docs/runbooks/deploy.md`; the app holds no state of its own. |
+| Depends on                       | If it is lost                                                                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Password manager                 | Everything else is recovered _from_ here. Keep the recovery kit off-line and somewhere else; without it nothing below can be re-established.                                  |
+| Managed PostgreSQL (PITR)        | Restore from PITR first, the nightly copy second. A new database means a new `DATABASE_URL` in the app's environment.                                                         |
+| App host                         | Rebuild from `docs/runbooks/deploy.md`; the app holds no state of its own.                                                                                                    |
 | Off-site storage (rclone remote) | Its credentials live in rclone's config on the backup host, **and a copy in the password manager**. Without that copy no backup can be fetched after the backup host is gone. |
-| Backup key (age) | The private half is the only thing that can read a backup. Lost, every existing copy is unreadable — take a fresh one the same day and write the loss down. |
-| Web-push keys | Generate new ones. Every browser silently stops being told until each agrees again in Settings; the in-app Alert carries on regardless. |
-| SMS gateway (increments 2–3) | Not used yet. When it is: account with the provider, credentials in the password manager, and the farm pays the bill in BDT. |
-| DNS and TLS | Re-point the record at the new host; the host issues its own certificate. Until then phones cannot sync, and their Outboxes hold the work. |
+| Backup key (age)                 | The private half is the only thing that can read a backup. Lost, every existing copy is unreadable — take a fresh one the same day and write the loss down.                   |
+| Web-push keys                    | Generate new ones. Every browser silently stops being told until each agrees again in Settings; the in-app Alert carries on regardless.                                       |
+| SMS gateway (increments 2–3)     | Not used yet. When it is: account with the provider, credentials in the password manager, and the farm pays the bill in BDT.                                                  |
+| DNS and TLS                      | Re-point the record at the new host; the host issues its own certificate. Until then phones cannot sync, and their Outboxes hold the work.                                    |
 
 ## When it is not a drill
 
