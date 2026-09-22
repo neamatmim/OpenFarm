@@ -34,6 +34,8 @@ interface Options {
   /** A second Shed Phone, rather than the one the file's tests share. What a phone has
    *  sent is counted per phone, so a test that sends batches may want one to itself. */
   phone?: { id: string; name: string };
+  /** The address the proxy says the request came from. Omitted, it says nothing. */
+  from?: string;
 }
 
 const deviceStatusOf = (
@@ -57,6 +59,7 @@ export const createTestClient = async <T extends Router<Context>>(
     onShedPhone = false,
     locked = false,
     phone,
+    from,
     push,
     sms,
   }: Options
@@ -76,6 +79,7 @@ export const createTestClient = async <T extends Router<Context>>(
         : { user: principal.user, session: principal.session },
     device,
     deviceStatus: deviceStatusOf(device, locked),
+    callerAddress: from ?? null,
     clock,
     db: scratchDb(),
     push,

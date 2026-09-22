@@ -32,6 +32,35 @@ describe("enrolling a Shed Phone", () => {
     });
   });
 
+  it("a stranger's wrong codes lock out the stranger, not the farm's next phone", async () => {
+    const WRONG_CODES_ALLOWED = 10;
+    const stranger = await createTestClient(appRouter, {
+      as: null,
+      from: "198.51.100.7",
+    });
+    for (let tries = 0; tries < WRONG_CODES_ALLOWED; tries += 1) {
+      // Counted one at a time, as a script walking the codes would send them.
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        stranger.client.devices.claim({ code: "NOTACODE00" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    }
+    await expect(
+      stranger.client.devices.claim({ code: "NOTACODE00" })
+    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+
+    // The Manager, standing in the shed with a new phone, is somebody else.
+    const manager = await createTestClient(appRouter, {
+      as: "manager",
+      from: "203.0.113.20",
+    });
+    const enrolled = await manager.client.devices.enrol({
+      name: `after-a-stranger-${Date.now()}`,
+    });
+    const claimed = await manager.client.devices.claim({ code: enrolled.code });
+    expect(claimed.device.id).toBe(enrolled.id);
+  });
+
   it("refuses an expired code", async () => {
     const clock = new FakeClock("2026-09-11T05:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
