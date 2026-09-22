@@ -192,13 +192,20 @@ export const attemptsThatFailed = <
   }
   return attempts.flatMap(
     (
-      attempt,
-      index
+      attempt
     ): (Served & {
       why: FailedBecause;
     })[] => {
       const word = latestWord.get(attempt.id);
-      const servedAgain = index < attempts.length - 1;
+      // Served again in a later heat of *her own* — not merely followed by something in the list.
+      // Her last attempt is still waiting for its check, and the next cow's attempt must not answer
+      // it: this is given one cow's services, but it is generic over the animal and sorts by it, so
+      // it reads as though a herd were welcome.
+      const servedAgain = attempts.some(
+        (other) =>
+          other.animalId === attempt.animalId &&
+          other.servedAt > attempt.servedAt
+      );
       if (word === "negative") {
         return [{ ...attempt, why: "checked_negative" }];
       }
