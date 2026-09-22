@@ -6,7 +6,7 @@ import { sql } from "@OpenFarm/db/operators";
 import { scratchDb } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
-import { schemaIsCurrent } from "./readiness";
+import { databaseIsBehind, isBehind, schemaIsCurrent } from "./readiness";
 
 // A server is ready when its database has every table the code was built for. The check has to know which migration
 // is newest, and a constant that falls behind the folder would pass every database that is itself behind.
@@ -45,5 +45,54 @@ describe("whether the database is the one this code was built for", () => {
       })
     ).rejects.toBeInstanceOf(RolledBackError);
     expect(seen).toBe(false);
+  });
+});
+
+// A server refuses to start against a database behind its code, and only that: one it cannot reach still starts, and
+// readiness says so, as before.
+
+const NOBODY_LISTENS = "postgresql://postgres:password@127.0.0.1:1/nowhere";
+
+describe("whether a server refuses its database", () => {
+  it("starts against a database that has every migration", async () => {
+    expect(await isBehind(scratchDb())).toBe(false);
+  });
+
+  it("refuses a database the newest migration was never applied to", async () => {
+    let behind: boolean | undefined;
+    await expect(
+      scratchDb().transaction(async (tx) => {
+        await tx.execute(
+          sql`delete from drizzle.__drizzle_migrations where name = ${LATEST_MIGRATION}`
+        );
+        behind = await isBehind(tx);
+        throw new RolledBackError();
+      })
+    ).rejects.toBeInstanceOf(RolledBackError);
+    expect(behind).toBe(true);
+  });
+
+  it("refuses a database no migration has ever run against", async () => {
+    let behind: boolean | undefined;
+    // The record of migrations taken away, as a database that never had one: the question then fails, and that failure
+    // is itself the answer.
+    await expect(
+      scratchDb().transaction(async (tx) => {
+        await tx.execute(
+          sql`alter table drizzle.__drizzle_migrations rename to forgotten`
+        );
+        behind = await isBehind(tx);
+        throw new RolledBackError();
+      })
+    ).rejects.toBeInstanceOf(RolledBackError);
+    expect(behind).toBe(true);
+  });
+
+  it("does not refuse a database it cannot reach", async () => {
+    expect(await databaseIsBehind(NOBODY_LISTENS)).toBe(false);
+  });
+
+  it("asks the database at an address, on its own connection", async () => {
+    expect(await databaseIsBehind(process.env.DATABASE_URL ?? "")).toBe(false);
   });
 });

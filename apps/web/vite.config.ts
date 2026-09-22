@@ -1,8 +1,40 @@
+import type {
+  DATABASE_IS_BEHIND,
+  databaseIsBehind,
+} from "@OpenFarm/api/readiness";
+import type { env } from "@OpenFarm/env/server";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
-import { defineConfig } from "vite-plus";
+import { defineConfig, runnerImport } from "vite-plus";
+import type { Plugin } from "vite-plus";
+
+/**
+ * The development server refuses a database behind the code before it listens, as the built server does as it
+ * starts. Left to Nitro's plugin, the refusal happened in a worker Nitro kept restarting, behind a server that went on
+ * answering 500 — which is how a sign-in that failed for want of a table looked like a broken sign-in.
+ *
+ * Loaded through Vite rather than imported: the workspace packages are TypeScript this config cannot read directly.
+ */
+const refuseAnOldDatabase = (): Plugin => ({
+  name: "openfarm:refuse-an-old-database",
+  apply: "serve",
+  configureServer: async (server) => {
+    // Its own runner, not the server's: Nitro owns the server's SSR environment and it is not runnable from here.
+    const through = { configFile: false as const, root: server.config.root };
+    const [{ module: config }, { module: readiness }] = await Promise.all([
+      runnerImport<{ env: typeof env }>("@OpenFarm/env/server", through),
+      runnerImport<{
+        DATABASE_IS_BEHIND: typeof DATABASE_IS_BEHIND;
+        databaseIsBehind: typeof databaseIsBehind;
+      }>("@OpenFarm/api/readiness", through),
+    ]);
+    if (await readiness.databaseIsBehind(config.env.DATABASE_URL)) {
+      throw new Error(readiness.DATABASE_IS_BEHIND);
+    }
+  },
+});
 
 export default defineConfig(({ command }) => ({
   // The deploy artifact has no workspace node_modules tree. Development still
@@ -16,6 +48,7 @@ export default defineConfig(({ command }) => ({
     tsconfigPaths: true,
   },
   plugins: [
+    refuseAnOldDatabase(),
     tailwindcss(),
     tanstackStart(),
     // Nitro defaults to node-server for Docker/systemd and detects Vercel's
