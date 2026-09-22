@@ -1,4 +1,5 @@
 import { createContext } from "@OpenFarm/api/context";
+import type { Context } from "@OpenFarm/api/context";
 import { appRouter } from "@OpenFarm/api/routers/index";
 import { OpenAPIGenerator } from "@orpc/openapi";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
@@ -7,6 +8,7 @@ import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod";
 import { createFileRoute } from "@tanstack/react-router";
+import type { RequestLogger } from "evlog";
 
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
@@ -82,8 +84,23 @@ const handle = async ({ request }: { request: Request }) => {
   }
 };
 
+/**
+ * Puts who is asking on this request's log line — by id, never by name or email — from the context already built,
+ * so the session is not looked up a second time to say it. evlog's Nitro module keeps the line on the request.
+ */
+const nameTheCaller = (request: Request, context: Context) => {
+  const { log } =
+    (request as Request & { context?: { log?: RequestLogger } }).context ?? {};
+  log?.set({
+    actor: context.actor?.id ?? null,
+    role: context.roleUsed ?? null,
+    shedPhone: context.device?.id ?? null,
+  });
+};
+
 const answer = async (request: Request) => {
   const context = await createContext({ req: request });
+  nameTheCaller(request, context);
   const rpcResult = await rpcHandler.handle(request, {
     prefix: "/api/rpc",
     context,
