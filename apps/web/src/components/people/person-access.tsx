@@ -726,9 +726,14 @@ export const AccessTab = ({
         ) : null}
         {isOwner ? <RolesRow roles={roles} userId={userId} /> : null}
         {gone || visitUntil ? null : <PensRow held={penIds} userId={userId} />}
-        {/* The PIN is the Owner's or the Manager's to set, as the server has it. */}
-        <PinRow userId={userId} />
-        <PasswordRow name={name} userId={userId} />
+        {/* A PIN and a password code are both ways in: the Owner's to give anybody, a Manager's only to Barn Staff,
+            as the server has it. */}
+        {isOwner || roles.every((role) => role === "staff") ? (
+          <>
+            <PinRow userId={userId} />
+            <PasswordRow name={name} userId={userId} />
+          </>
+        ) : null}
       </div>
     </Section>
     {/* Taking somebody's access away, or giving it back, is the Owner's alone. */}

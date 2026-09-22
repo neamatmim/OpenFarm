@@ -752,6 +752,13 @@ export const writePasswordCode = async (
       message: "That person is not on this farm",
     });
   }
+  // The code is a way into their account, so a Manager hands one only to those he could set a PIN for.
+  const staffOnly = held.every((role) => role === "staff");
+  if (by.role === "manager" && !staffOnly) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "A Manager may only issue a password code for Barn Staff",
+    });
+  }
   const values = {
     farmId,
     userId,
