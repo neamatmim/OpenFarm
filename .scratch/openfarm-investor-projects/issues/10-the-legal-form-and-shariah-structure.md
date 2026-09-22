@@ -23,7 +23,7 @@ Map: [OpenFarm investor-funded fattening projects](../map.md)
 - **Who investors are.** A closed, known group only (friends, family, people the Owner knows); no public advertising, no referrals. Is that the rule?
 - **Money channels.** Bank channels only, or bKash/Nagad too?
 
-Inputs: `docs/research/bangladesh-pooled-investment.md` on `research/bangladesh-pooled-investment` and `docs/research/cattle-investment-schemes.md` on `research/cattle-investment-schemes`.
+Inputs: `docs/research/bangladesh-pooled-investment.md` and `docs/research/cattle-investment-schemes.md`.
 
 ## Answer
 

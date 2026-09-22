@@ -26,7 +26,7 @@ Cite the published terms and pages each fact comes from. Say where a scheme fail
 
 ## Answer
 
-Researched 2026-09-17. Findings on branch `research/cattle-investment-schemes` at `docs/research/cattle-investment-schemes.md`. It has a comparison table. Some foreign prospectus terms and some search-snippet figures were not re-checked, and are labelled as such.
+Researched 2026-09-17. Findings in `docs/research/cattle-investment-schemes.md`. It has a comparison table. Some foreign prospectus terms and some search-snippet figures were not re-checked, and are labelled as such.
 
 - **The common structure:** investors buy fixed-price shares in a batch and supply all the capital. The farm manages and shares the profit; where a split is published, investors get 30–50%. Examples:
   - **WeGro:** Tk 200,000 per unit, 4 months, 40% to investors, paid 3–6 business days after the end.

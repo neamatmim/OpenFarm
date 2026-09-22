@@ -33,7 +33,7 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
   - Feed and inventory: cost by weighted-average price, split by animal-days.
   - Audit trail and correction rules: sale corrections are Owner-only.
 - **Skills**: `/grilling` + `/domain-modeling` for grilling tickets; `/research` (background agent) for research tickets; `/prototype` for the prototype ticket.
-- **Research** findings land on `research/<name>` branches at `docs/research/<name>.md`; the ticket links them.
+- **Research** findings are written on a `research/<name>` branch at `docs/research/<name>.md` and merged to main; the ticket links them.
 - Assets produced by tickets go in `.scratch/openfarm-investor-projects/assets/` and are linked from the ticket, never pasted in.
 
 ## Spec
@@ -77,9 +77,9 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
 
 - [The legal form and Shariah structure of a project](./issues/10-the-legal-form-and-shariah-structure.md) — Mudarabah, with the Owner as mudarib signing a separate stamped Investment Agreement with each Investor, one per project; at most 20 Investors across all running projects, the Owner included; a known circle resident in Bangladesh, no advertising or referrals; bank channels only through a dedicated Venture Account; the Owner's own capital treated as an Investor's, with the farm's share a separate line; the software an internal ledger and statement printer, never a place to transact. Proposed, pending the lawyer.
 
-- [Bangladesh law on pooling investors' money into a cattle project](./issues/01-bangladesh-law-on-pooled-cattle-investment.md) — no licence fits; the lines are no repaid capital or promised return (else banking or finance business), no platform taking public money, more than 20 people means a company, and no referrals. A closed group sharing real profit and loss is allowed, under a stamped written contract. The design must never promise capital or a return, must allow negative results, and needs a lawyer before any money is taken. Findings on `research/bangladesh-pooled-investment`.
+- [Bangladesh law on pooling investors' money into a cattle project](./issues/01-bangladesh-law-on-pooled-cattle-investment.md) — no licence fits; the lines are no repaid capital or promised return (else banking or finance business), no platform taking public money, more than 20 people means a company, and no referrals. A closed group sharing real profit and loss is allowed, under a stamped written contract. The design must never promise capital or a return, must allow negative results, and needs a lawyer before any money is taken. Findings in `docs/research/bangladesh-pooled-investment.md`.
 
-- [How cattle-investment and agri-crowdfunding schemes are structured](./issues/02-how-cattle-investment-schemes-are-structured.md) — fixed-price shares in a batch, investors put in all the capital, investors get 30–50% of profit, loss borne by capital, one payout at the end, photo and weight updates. Every fixed-return scheme collapsed. Nobody publishes rules for underfunding or a settlement statement. Findings on `research/cattle-investment-schemes`.
+- [How cattle-investment and agri-crowdfunding schemes are structured](./issues/02-how-cattle-investment-schemes-are-structured.md) — fixed-price shares in a batch, investors put in all the capital, investors get 30–50% of profit, loss borne by capital, one payout at the end, photo and weight updates. Every fixed-return scheme collapsed. Nobody publishes rules for underfunding or a settlement statement. Findings in `docs/research/cattle-investment-schemes.md`.
 
 - [What a project is charged for](./issues/05-what-a-project-is-charged-for.md) — the project pays for the animal and what goes into her; the Farm pays for the place and the people. One way of costing for every Animal, adding Fodder Price on Harvests, per-Animal Hasil, Buying/Selling Trips split per head (selling per head taken), and Herd Costs by animal-days via an Owner-set mark on the Category. Wages, utilities, hygiene, equipment and store loss stay the Farm's. Spend is live; unpriced doses and feed block settlement.
 
