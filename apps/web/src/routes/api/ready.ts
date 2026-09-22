@@ -1,28 +1,31 @@
 import { productionDatabase } from "@OpenFarm/api/context";
+import { schemaIsCurrent } from "@OpenFarm/api/readiness";
 import { createFileRoute } from "@tanstack/react-router";
+
+const unavailable = () =>
+  Response.json(
+    { status: "unavailable" },
+    {
+      status: 503,
+      headers: {
+        "cache-control": "no-store",
+        "retry-after": "5",
+      },
+    }
+  );
 
 const ready = async (): Promise<Response> => {
   try {
-    // This deliberately reads an application table rather than only SELECT 1:
-    // a reachable database with unapplied migrations is not ready to serve.
-    await productionDatabase().query.farm.findFirst({
-      columns: { id: true },
-    });
+    // Not only SELECT 1: a reachable database that has not applied the newest migration is not ready to serve.
+    if (!(await schemaIsCurrent(productionDatabase()))) {
+      return unavailable();
+    }
     return Response.json(
       { status: "ready" },
       { headers: { "cache-control": "no-store" } }
     );
   } catch {
-    return Response.json(
-      { status: "unavailable" },
-      {
-        status: 503,
-        headers: {
-          "cache-control": "no-store",
-          "retry-after": "5",
-        },
-      }
-    );
+    return unavailable();
   }
 };
 

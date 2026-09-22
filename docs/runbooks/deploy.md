@@ -63,7 +63,8 @@ pnpm --filter @OpenFarm/db db:migrate:deploy
 rsync -a --delete apps/web/.output/ openfarm@HOST:/srv/openfarm/app/
 ssh openfarm@HOST 'sudo systemctl restart openfarm'
 
-# Readiness checks the database and an application table, so it also catches a missing migration.
+# Readiness asks the database whether it has applied the newest migration this build expects, so it
+# fails on a database that is unreachable and on one a migration was forgotten for.
 curl --fail --silent --show-error --max-time 10 https://farm.example.com/api/ready
 
 ```
