@@ -58,6 +58,18 @@ const TABS = ["running", "settled", "cancelled"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
+ * The acts that open a sheet about one Venture — which is every act but the two that are a single
+ * mutation each, said and done with no form to fill.
+ *
+ * Taken from `VentureActs` rather than listed again, so a new act is a compiler error here until it is
+ * either given a sheet or named as one of the two that needs none.
+ */
+type ActOnOneVenture = Exclude<
+  keyof VentureActs,
+  "startBuying" | "startFattening"
+>;
+
+/**
  * Which tab a Venture belongs on: the runs still on, the ones whose books are shut, and the ones that
  * never started.
  *
@@ -147,21 +159,17 @@ const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
   const [sellingInternally, setSellingInternally] = useState(false);
-  const [signing, setSigning] = useState<Venture | null>(null);
-  const [taking, setTaking] = useState<Venture | null>(null);
-  const [callingOff, setCallingOff] = useState<Venture | null>(null);
-  const [drawing, setDrawing] = useState<Venture | null>(null);
-  const [counting, setCounting] = useState<Venture | null>(null);
-  const [reimbursing, setReimbursing] = useState<Venture | null>(null);
-  const [windingUp, setWindingUp] = useState<Venture | null>(null);
-  const [settling, setSettling] = useState<Venture | null>(null);
-  const [advancing, setAdvancing] = useState<Venture | null>(null);
-  const [checking, setChecking] = useState<Venture | null>(null);
-  const [seeing, setSeeing] = useState<Venture | null>(null);
-  const [papering, setPapering] = useState<Venture | null>(null);
-  const [amending, setAmending] = useState<Venture | null>(null);
-  const [weighingUp, setWeighingUp] = useState<Venture | null>(null);
-  const [reading, setReading] = useState<Venture | null>(null);
+  /**
+   * Which sheet is over the list, and the Venture it was opened on.
+   *
+   * One slot, because one sheet is open at a time. Fifteen separate slots could each hold a Venture at
+   * once, and the page has no meaning for two — nor for a sheet holding last week's Venture behind the
+   * one on show, which is what a slot nobody cleared amounted to.
+   */
+  const [staged, setStaged] = useState<{
+    act: ActOnOneVenture;
+    venture: Venture;
+  } | null>(null);
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   const queryClient = useQueryClient();
   /**
@@ -184,25 +192,42 @@ const VenturesPage = () => {
       moved("ventures.fatteningStarted")
     )
   );
+  const opens = (act: ActOnOneVenture) => (venture: Venture) =>
+    setStaged({ act, venture });
   const acts: VentureActs = {
-    details: setReading,
-    sign: setSigning,
-    takeCapital: setTaking,
-    callOff: setCallingOff,
-    drawFloat: setDrawing,
-    countFloat: setCounting,
-    reimburse: setReimbursing,
-    buyWhatIsLeft: setWindingUp,
-    settle: setSettling,
-    advance: setAdvancing,
-    checkTheBank: setChecking,
-    seeMovements: setSeeing,
-    statements: setPapering,
-    economics: setWeighingUp,
-    amend: setAmending,
+    details: opens("details"),
+    sign: opens("sign"),
+    takeCapital: opens("takeCapital"),
+    callOff: opens("callOff"),
+    drawFloat: opens("drawFloat"),
+    countFloat: opens("countFloat"),
+    reimburse: opens("reimburse"),
+    buyWhatIsLeft: opens("buyWhatIsLeft"),
+    settle: opens("settle"),
+    advance: opens("advance"),
+    checkTheBank: opens("checkTheBank"),
+    seeMovements: opens("seeMovements"),
+    statements: opens("statements"),
+    economics: opens("economics"),
+    amend: opens("amend"),
     startBuying: (one) => moving.mutate({ id: one.id }),
     startFattening: (one) => fattening.mutate({ id: one.id }),
   };
+  /** The Venture a sheet is showing, which is a Venture only while that sheet is the one on show. */
+  const stagedOn = (act: ActOnOneVenture): Venture | null =>
+    staged?.act === act ? staged.venture : null;
+  /** Closing is the sheets' only say over what is staged; opening is the cards'. */
+  const closes = (wanted: boolean) => {
+    if (!wanted) {
+      setStaged(null);
+    }
+  };
+  /** Everything a sheet about one Venture is given. */
+  const staging = (act: ActOnOneVenture) => ({
+    onOpenChange: closes,
+    open: staged?.act === act,
+    venture: stagedOn(act),
+  });
   const { tab = "running", statements } = Route.useSearch();
   const navigate = useNavigate();
   const all = ventures.data ?? [];
@@ -297,132 +322,32 @@ const VenturesPage = () => {
       </Loaded>
       <VentureDetailsSheet
         lastMonthOver={lastMonth()}
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setReading(null);
-          }
-        }}
-        venture={reading}
+        onOpenChange={closes}
+        venture={stagedOn("details")}
       />
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
       <InternalSaleSheet
         onOpenChange={setSellingInternally}
         open={sellingInternally}
       />
-      <TakeCapitalSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setTaking(null);
-          }
-        }}
-        open={taking !== null}
-        venture={taking}
-      />
-      <MovementsSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setSeeing(null);
-          }
-        }}
-        open={seeing !== null}
-        venture={seeing}
-      />
-      <BankCheckSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setChecking(null);
-          }
-        }}
-        open={checking !== null}
-        venture={checking}
-      />
-      <AdvanceSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setAdvancing(null);
-          }
-        }}
-        open={advancing !== null}
-        venture={advancing}
-      />
-      <ReimburseSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setReimbursing(null);
-          }
-        }}
-        open={reimbursing !== null}
-        venture={reimbursing}
-      />
-      <SettlementSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setSettling(null);
-          }
-        }}
-        open={settling !== null}
-        venture={settling}
-      />
-      <BuyWhatIsLeftSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setWindingUp(null);
-          }
-        }}
-        open={windingUp !== null}
-        venture={windingUp}
-      />
-      <CountFloatSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setCounting(null);
-          }
-        }}
-        open={counting !== null}
-        venture={counting}
-      />
-      <DrawFloatSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setDrawing(null);
-          }
-        }}
-        open={drawing !== null}
-        venture={drawing}
-      />
-      <CallOffSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setCallingOff(null);
-          }
-        }}
-        open={callingOff !== null}
-        venture={callingOff}
-      />
-      <AmendSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setAmending(null);
-          }
-        }}
-        open={amending !== null}
-        venture={amending}
-      />
-      <EconomicsSheet
-        onOpenChange={(next) => {
-          if (!next) {
-            setWeighingUp(null);
-          }
-        }}
-        open={weighingUp !== null}
-        venture={weighingUp}
-      />
+      <TakeCapitalSheet {...staging("takeCapital")} />
+      <MovementsSheet {...staging("seeMovements")} />
+      <BankCheckSheet {...staging("checkTheBank")} />
+      <AdvanceSheet {...staging("advance")} />
+      <ReimburseSheet {...staging("reimburse")} />
+      <SettlementSheet {...staging("settle")} />
+      <BuyWhatIsLeftSheet {...staging("buyWhatIsLeft")} />
+      <CountFloatSheet {...staging("countFloat")} />
+      <DrawFloatSheet {...staging("drawFloat")} />
+      <CallOffSheet {...staging("callOff")} />
+      <AmendSheet {...staging("amend")} />
+      <EconomicsSheet {...staging("economics")} />
       <StatementsSheet
         onOpenChange={(next) => {
           if (next) {
             return;
           }
-          setPapering(null);
+          setStaged(null);
           // The address said whose papers she came for; once the sheet is closed it has been answered —
           // and the tab she was reading is kept, because closing a sheet is not leaving the page.
           if (statements !== undefined) {
@@ -433,18 +358,12 @@ const VenturesPage = () => {
             });
           }
         }}
-        open={papering !== null || asked !== null}
-        venture={papering ?? asked}
+        // The one sheet with two ways in: her own button, and a notice that named the Venture in the
+        // address. Whichever brought her, the sheet is the same one.
+        open={staged?.act === "statements" || asked !== null}
+        venture={stagedOn("statements") ?? asked}
       />
-      <SignAgreementSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setSigning(null);
-          }
-        }}
-        open={signing !== null}
-        venture={signing}
-      />
+      <SignAgreementSheet {...staging("sign")} />
     </Page>
   );
 };
