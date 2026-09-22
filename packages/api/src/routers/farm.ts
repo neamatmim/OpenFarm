@@ -3,6 +3,7 @@ import { eq, sql } from "@OpenFarm/db/operators";
 import { farm, roleAssignment } from "@OpenFarm/db/schema/farm";
 import {
   MAX_GRACE_MINUTES,
+  STANDARD_KINDS,
   identityView,
   startOfFarmDay,
 } from "@OpenFarm/domain";
@@ -20,6 +21,7 @@ import { certificatesOf, keepCertificate } from "../registration-store";
 import { forbidden, requirePersonalSession, requireRole } from "../roles";
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
+import { startWithStandard } from "../standard-store";
 
 /** The Farm Parameters, as a set that grows a row at a time as the increments needing them
  *  land. Each is a number the Manager may tune, never a rule hidden in the code. */
@@ -220,6 +222,30 @@ export const farmRouter = {
       );
       return { id: farmId, name: input.name };
     }),
+
+  /**
+   * Starts the farm with the standard lists instead of an empty store: the Feed Items, the Rations they make, and the
+   * Drug List and notifiable diseases. The Owner's, as setting the farm up is. Whatever the farm already has by name
+   * is left alone, so asking twice adds nothing the second time. The Standard Playbook is not here: an SOP raises
+   * work, and each one is the Owner's to read and publish.
+   */
+  startWithStandard: protectedProcedure
+    .use(requireRole("owner"))
+    .use(requirePersonalSession())
+    .input(z.object({ kinds: z.array(z.enum(STANDARD_KINDS)).min(1) }))
+    .handler(({ context, input }) =>
+      startWithStandard(
+        context.db,
+        audited(context).recordEvent,
+        {
+          farmId: context.farm.id,
+          actorId: context.actor.id,
+          roleUsed: context.roleUsed,
+          now: context.clock.now(),
+        },
+        input.kinds
+      )
+    ),
   current: protectedProcedure.handler(({ context }) => {
     if (!context.farm) {
       return null;

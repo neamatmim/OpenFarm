@@ -161,6 +161,23 @@ export const en = {
   "setup.create": "Create the farm",
   "setup.done": "The farm is ready",
   "setup.goOn": "Go to the farm",
+  "setup.standard.title": "Start with the standard lists",
+  "setup.standard.intro":
+    "Tick what the farm starts with instead of an empty store. Anything it already has by name is left as it is, and all of it can be changed later.",
+  "setup.standard.feed": "Feed Items",
+  "setup.standard.feedHint":
+    "{count} common feeds, in kg — no prices, no stock",
+  "setup.standard.rations": "Rations",
+  "setup.standard.rationsHint":
+    "{count} Rations, not yet fed to any Pen. They bring the Feed Items they name.",
+  "setup.standard.health": "Drug List and notifiable diseases",
+  "setup.standard.healthHint":
+    "{drugs} medicines for the Vet to finish with their withdrawal days, and the {diseases} diseases the DLS must be told of",
+  "setup.standard.playbook":
+    "The standard procedures wait in the Playbook, for you to read and publish one at a time.",
+  "setup.standard.start": "Start with these",
+  "setup.standard.skip": "Start empty",
+  "setup.standard.done": "The farm has its standard lists",
   "common.error": "Something went wrong",
   "common.loadFailed": "Could not load this — check the connection",
   "params.title": "Farm parameters",
@@ -1126,6 +1143,18 @@ export const en = {
   "sop.version": "Version {number}",
   "sop.col.version": "Version",
   "sop.new": "New procedure",
+  "sop.standard.title": "Standard procedures",
+  "sop.standard.hint":
+    "Procedures OpenFarm offers to start from. None raises work until you have read it and published it.",
+  "sop.standard.adopt": "Read and publish",
+  "sop.standard.need.calvingPen": "The calving Pen",
+  "sop.standard.need.fmdVaccine": "The FMD vaccine",
+  "sop.standard.need.lsdVaccine": "The lumpy skin vaccine",
+  "sop.standard.need.dewormer": "The dewormer",
+  "sop.standard.choose": "Choose…",
+  "sop.standard.noPens": "The farm has no Pens yet",
+  "sop.standard.noProducts":
+    "Nothing on the Drug List may be given yet — the Vet writes its withdrawal days first",
   "sop.edit": "Edit",
   "sop.publish": "Publish",
   "sop.propose": "Propose a change",

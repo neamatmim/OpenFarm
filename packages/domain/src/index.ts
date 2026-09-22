@@ -397,3 +397,28 @@ export {
   mayMoveTo,
   nextVentureStates,
 } from "./venture-lifecycle";
+export type {
+  PlaybookKey,
+  StandardSopChoices,
+  StandardSopNeed,
+} from "./standard-playbook";
+export {
+  ROUND_WORDS,
+  STANDARD_SOP_NEEDS,
+  standardPlaybook,
+} from "./standard-playbook";
+export type {
+  StandardDrugKey,
+  StandardFeedKey,
+  StandardKind,
+  StandardRation,
+  StandardRationKey,
+} from "./standard";
+export {
+  STANDARD_DRUGS,
+  STANDARD_DRUG_FOR,
+  STANDARD_FEED_ITEMS,
+  STANDARD_KINDS,
+  STANDARD_NOTIFIABLE_DISEASES,
+  STANDARD_RATIONS,
+} from "./standard";

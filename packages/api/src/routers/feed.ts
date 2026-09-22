@@ -1,18 +1,17 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
-import {
-  feedItem,
-  penRation,
-  ration,
-  rationVersion,
-} from "@OpenFarm/db/schema/feed";
+import { feedItem, penRation, ration } from "@OpenFarm/db/schema/feed";
 import { findRationProblems } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { feedingTargetForPen, linesOf } from "../feed-store";
+import {
+  feedingTargetForPen,
+  linesOf,
+  publishRationVersion,
+} from "../feed-store";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import {
@@ -310,29 +309,15 @@ export const feedRouter = {
               createdAt: now,
             });
           }
-          const [previous] = await tx.query.rationVersion.findMany({
-            where: { rationId },
-            columns: { number: true },
-            orderBy: { number: "desc" },
-            limit: 1,
-          });
-          number = (previous?.number ?? 0) + 1;
-          const versionId = uuidv7(now);
-          await tx.insert(rationVersion).values({
-            id: versionId,
+          number = await publishRationVersion(tx, {
             farmId: context.farm.id,
             rationId,
-            number,
             items: input.items,
             note: input.note ?? null,
-            publishedBy: context.actor.id,
-            publishedByRole: context.roleUsed,
-            publishedAt: now,
+            actorId: context.actor.id,
+            roleUsed: context.roleUsed,
+            now,
           });
-          await tx
-            .update(ration)
-            .set({ currentVersionId: versionId })
-            .where(eq(ration.id, rationId));
         }
       );
       return { rationId, number };

@@ -16,6 +16,7 @@ import { contentOf, raisedByHand } from "@/components/playbook/playbook-types";
 import { ProceduresTab } from "@/components/playbook/procedures-tab";
 import { ProposalsTab } from "@/components/playbook/proposals-tab";
 import { SopEditor } from "@/components/playbook/sop-editor";
+import { StandardSops } from "@/components/playbook/standard-sops";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { emptySop } from "@/lib/sop-draft";
@@ -209,13 +210,26 @@ const SopsPage = () => {
             icon: BookOpen,
             content: (
               <Loaded query={sops}>
-                <ProceduresTab
-                  isOwner={isOwner}
-                  onEdit={(definitionId, content) =>
-                    setDraft({ content, definitionId })
-                  }
-                  sops={sops.data ?? []}
-                />
+                <div className="flex flex-col gap-6">
+                  <ProceduresTab
+                    isOwner={isOwner}
+                    onEdit={(definitionId, content) =>
+                      setDraft({ content, definitionId })
+                    }
+                    sops={sops.data ?? []}
+                  />
+                  {/* Publishing is the Owner's; anybody else would only be proposing a procedure that is not there. */}
+                  {isOwner ? (
+                    <StandardSops
+                      onAdopt={(content) =>
+                        setDraft({ content, definitionId: null })
+                      }
+                      pens={pens}
+                      products={products}
+                      sops={sops.data ?? []}
+                    />
+                  ) : null}
+                </div>
               </Loaded>
             ),
           },

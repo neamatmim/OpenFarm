@@ -1,9 +1,9 @@
 /* oxlint-disable no-await-in-loop */
+import type { PlaybookKey } from "@OpenFarm/domain";
 import { OPEN_INSTANCE_STATES } from "@OpenFarm/domain";
 
 import type { Herd } from "./herd";
 import { dailyYield } from "./herd";
-import type { PlaybookKey } from "./playbook";
 import type { ApiClient } from "./runtime";
 import { DAY, addDays, onFarm } from "./runtime";
 import type { Farm, PersonKey } from "./standing";
