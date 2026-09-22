@@ -92,4 +92,21 @@ describe("a forgotten password", () => {
       owner.client.people.newPasswordCode({ userId: stranger.user.id })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
+
+  it("is handed out by a Manager only to Barn Staff, as a PIN is", async () => {
+    // A code is a way into somebody's account. One a Manager could mint for the Owner would let him sign in as
+    // her and approve his own spending.
+    const theOwner = await createTestPrincipal("owner", clock.now());
+    const theVet = await createTestPrincipal("vet", clock.now());
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+
+    await expect(
+      manager.client.people.newPasswordCode({ userId: theOwner.user.id })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      manager.client.people.newPasswordCode({ userId: theVet.user.id })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const { code } = await manager.client.people.newPasswordCode({ userId });
+    expect(code).toHaveLength(8);
+  });
 });
