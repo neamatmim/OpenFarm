@@ -61,7 +61,6 @@ describe("the standard lists", () => {
   it("has Rations the farm could save by hand", () => {
     for (const one of Object.values(STANDARD_RATIONS)) {
       const problems = findRationProblems({
-        name: one.name,
         items: one.items.map(([key, kg]) => ({
           feedItemId: key,
           kgPerAnimalPerDay: kg,
