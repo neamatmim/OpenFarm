@@ -4,7 +4,6 @@ import type {
   Evidence,
   MilkDestination,
   SopChange,
-  SopContent,
   Step,
 } from "@OpenFarm/domain";
 import {
@@ -370,7 +369,7 @@ const WorkPage = () => {
   const {
     content,
     animals: fromFarm,
-    completions,
+    completions: recorded,
     state,
     feeding,
     fed,
@@ -378,31 +377,15 @@ const WorkPage = () => {
     renewal,
     changed,
     runningOn,
-  } = instance.data as unknown as {
-    content: SopContent;
-    animals: Animal[];
-    completions: Completion[];
-    state: string;
-    /** What this Pen is owed this session, for a Playbook entry that feeds. */
-    feeding: {
-      items: {
-        feedItemId: string;
-        nameBn: string;
-        unit: string;
-        quantity: number;
-      }[];
-    } | null;
-    /** What the Pen was actually given, once somebody has recorded it. */
-    fed: { shortfallPercent: number; flaggedAt: string | null } | null;
-    /** What to count, for a Playbook entry that counts the store — never what it is thought to hold. */
-    stockCount: StockCountBoard | null;
-    /** When the Registration runs out now, for the Step that renews it. */
-    renewal: { expiresOn: string | null } | null;
-    /** What changed in the Version this work runs on, until they have done it once. */
-    changed: Changed | null;
-    /** The Version number this work runs on, when the Playbook has since moved on. */
-    runningOn: number | null;
-  };
+  } = instance.data;
+  // The farm holds a Step's answers as a blob, so it says `unknown` of them and means it. This is the
+  // one thing the board has to assert about what it is given, and it asserts only this: everything else
+  // — including whether a Registration's expiry is a date or a string — is the router's own word,
+  // which is the point of asking it rather than describing it.
+  const completions: Completion[] = recorded.map((one) => ({
+    ...one,
+    evidence: one.evidence as (boolean | number | string)[],
+  }));
   // The Gate the tile renders comes from whichever the phone has: what the farm said this
   // time, or what it last cached. The farm decides again when the entry lands.
   const cached = new Map(
@@ -1195,11 +1178,11 @@ interface StockCountBoard {
 }
 
 /** The farm day a year after the Registration runs out now: where a renewed certificate usually lands. */
-const aYearOn = (expiresOn: string | null): string => {
+const aYearOn = (expiresOn: Date | null): string => {
   if (!expiresOn) {
     return "";
   }
-  const day = formatDayField(new Date(expiresOn));
+  const day = formatDayField(expiresOn);
   const [year, ...rest] = day.split("-");
   return [String(Number(year) + 1), ...rest].join("-");
 };
@@ -1212,7 +1195,7 @@ const aYearOn = (expiresOn: string | null): string => {
  */
 const useRenewal = (
   step: Step,
-  board: { expiresOn: string | null } | null | undefined,
+  board: { expiresOn: Date | null } | null | undefined,
   correcting: boolean,
   recorded: FactsAsShown["renewal"]
 ) => {
@@ -1719,7 +1702,7 @@ const EvidenceSheet = ({
   /** What to count, for a Step that counts the store. */
   stockCount?: StockCountBoard | null;
   /** When the Registration runs out now, for the Step that renews it. */
-  renewal?: { expiresOn: string | null } | null;
+  renewal?: { expiresOn: Date | null } | null;
   onCancel: () => void;
   onRecord: (payload: RecordPayload) => void;
 }) => {
