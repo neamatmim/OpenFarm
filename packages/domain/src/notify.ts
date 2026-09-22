@@ -64,6 +64,11 @@ export const DELIVERY = {
   // An Investor's paper is owed, not overdue: the Owner writes it when she sits down to the evening's
   // post, and a phone that buzzes for a letter is a phone nobody answers for a withdrawal.
   investor_statement_due: { when: "digest" },
+  // The farm's own machinery going quiet: nothing raising the day's work, or nothing copying the records off the
+  // machine. The Owner hears at once, because every hour of either is an hour nobody else will notice — but not by
+  // text and not at night: it is not a cow or a deadline, and the records are still there in the morning.
+  day_not_turning: { when: "immediate" },
+  backup_overdue: { when: "immediate" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -146,6 +151,16 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   registration_renewal_due: {
     app: "alerts.registrationRenewal",
     digest: "digest.registrationRenewal",
+  },
+  day_not_turning: {
+    app: "alerts.dayNotTurning",
+    push: { title: "push.dayNotTurningTitle", body: "push.dayNotTurningBody" },
+    digest: "digest.dayNotTurning",
+  },
+  backup_overdue: {
+    app: "alerts.backupOverdue",
+    push: { title: "push.backupOverdueTitle", body: "push.backupOverdueBody" },
+    digest: "digest.backupOverdue",
   },
 };
 

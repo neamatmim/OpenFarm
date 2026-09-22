@@ -1567,6 +1567,12 @@ export const bn: Record<MessageKey, string> = {
   "digest.registrationRenewal": "নিবন্ধন নবায়নের সময় হয়েছে",
   "alerts.registrationRenewal":
     "নিবন্ধনের মেয়াদ শেষ {date}: নবায়নের কাজ আপনার তালিকায়",
+  "digest.dayNotTurning": "খামারের সময়সূচি থেমে গেছে",
+  "alerts.dayNotTurning":
+    "{since} থেকে খামারের সময়সূচি ঠিকমতো চলেনি: কাজ তৈরি না-ও হতে পারে, খবর না-ও যেতে পারে। খামারের কপি পাতায় দেখুন।",
+  "digest.backupOverdue": "খামারের কপি নেওয়া হচ্ছে না",
+  "alerts.backupOverdue":
+    "{since} থেকে খামারের কোনো কপি সফল হয়নি। খামারের কপি পাতায় দেখুন।",
   "refusal.workInNoPen": "এই ধাপ একটি পেনের কাজ লেখে, আর এই কাজ কোনো পেনে নয়",
   "renewal.issuedOn": "নবায়িত সনদ ইস্যুর তারিখ",
   "nav.inspector": "পরিদর্শন",
@@ -2129,6 +2135,12 @@ export const bn: Record<MessageKey, string> = {
   "push.digestTitle": "আজকের খবর",
   "push.digestBody": "{count}টি বিষয় অপেক্ষা করছে",
   "push.overdueTitle": "কাজ দেরি হয়েছে",
+  "push.dayNotTurningTitle": "খামারের সময়সূচি থেমে গেছে",
+  "push.dayNotTurningBody":
+    "কাজ তৈরি না-ও হতে পারে, খবর না-ও যেতে পারে। অ্যাপ খুলে দেখুন।",
+  "push.backupOverdueTitle": "খামারের কপি নেওয়া হচ্ছে না",
+  "push.backupOverdueBody":
+    "দেড় দিনের বেশি কোনো কপি সফল হয়নি। কারণ দেখতে খামারের কপি পাতা খুলুন।",
   "push.escalatedTitle": "এখনো হয়নি",
   "push.sentBackTitle": "আপনাকে ফেরত পাঠানো হয়েছে",
   "push.needsReviewTitle": "দেখা দরকার",

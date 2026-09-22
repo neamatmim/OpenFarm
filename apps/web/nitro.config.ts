@@ -15,6 +15,7 @@ export default defineConfig({
   // development log drain was never built, so development wrote no log files.
   plugins: [
     here("server/plugins/env-check.ts"),
+    here("server/plugins/exit-when-it-cannot-serve.ts"),
     here("server/plugins/evlog-drain.ts"),
   ],
   experimental: {
