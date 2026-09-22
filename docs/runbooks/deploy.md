@@ -39,7 +39,14 @@ is the part that is easy to believe was done and was not:
 - [ ] A first restore drill has been done. A backup nobody has restored is a hope.
 - [ ] TLS terminates in front of the app and plain HTTP redirects to HTTPS. The app binds to
       `127.0.0.1:3001`; it must not be exposed directly to the internet.
+- [ ] The proxy **sets** `X-Forwarded-For` to the address it saw, rather than adding to what
+      the caller sent (nginx: `proxy_set_header X-Forwarded-For $remote_addr;`). Sign-in and
+      Shed Phone enrolment count wrong guesses per address, read from that header; a proxy
+      that appends lets a script name a new address on every try.
 - [ ] `/api/health` returns 200 and `/api/ready` returns 200 through the public hostname.
+- [ ] **The Owner signs up the moment the app is up.** Until a Farm exists the door is open,
+      and whoever opens the app first and creates the Farm becomes its Owner. Once it exists,
+      an account opens only for somebody the farm invited.
 
 ```sh
 # The push keys, generated once and kept for ever.
