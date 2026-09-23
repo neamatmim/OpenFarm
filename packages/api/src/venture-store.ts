@@ -335,6 +335,18 @@ const folded = (
   };
 };
 
+/**
+ * Which way one kind of movement moves what the account holds: in, or out.
+ *
+ * Asked of `folded` and `balanceOf` themselves rather than listed again, so a screen that adds a Venture's
+ * movements up line by line cannot reach a different balance from the one the farm keeps.
+ */
+export const directionOf = (kind: VentureMovementKind): "in" | "out" =>
+  balanceOf(folded(NOTHING_HELD, { kind, amountBdt: 1, reconciledAt: null })) >
+  0
+    ? "in"
+    : "out";
+
 export const heldByEach = async (
   tx: Pick<Tx, "query">,
   farmId: string,

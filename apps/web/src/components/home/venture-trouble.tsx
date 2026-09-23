@@ -83,9 +83,8 @@ const TroubleLine = ({ trouble }: { trouble: VentureTrouble }) => {
  * Nothing at all when none of them does, and nothing at all on a farm with no Venture: `QueueGroup`
  * draws no heading over no rows, so a farm that never took anybody's money sees no change here.
  *
- * Each row leads to `/ventures` and no further. The act itself is a button on the Venture's own card —
- * check the bank, buy what is left — and there is no route to one Venture to land on: the whole screen
- * is one list of cards with sheets. Getting her to the card is as close as the app can take her today.
+ * Each row leads to that Venture's own page, where the act the trouble asks for — check the bank, buy what
+ * is left, bring in the rest or call it off — is a button at its head.
  */
 export const VentureTroubles = ({
   ventures,
@@ -119,7 +118,11 @@ export const VentureTroubles = ({
             </span>
           }
           title={
-            <Link className={ROW_LINK} to="/ventures">
+            <Link
+              className={ROW_LINK}
+              params={{ ventureId: one.id }}
+              to="/ventures/$ventureId"
+            >
               {one.name}
             </Link>
           }

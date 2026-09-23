@@ -3,7 +3,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRightLeft,
@@ -15,7 +15,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   EmptyState,
@@ -26,29 +25,14 @@ import {
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
-import { AdvanceSheet } from "@/components/ventures/advance-sheet";
-import { AmendSheet } from "@/components/ventures/amend-sheet";
-import { BankCheckSheet } from "@/components/ventures/bank-check-sheet";
-import { BuyWhatIsLeftSheet } from "@/components/ventures/buy-what-is-left-sheet";
-import { CallOffSheet } from "@/components/ventures/call-off-sheet";
-import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
-import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
-import { EconomicsSheet } from "@/components/ventures/economics-sheet";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
-import { MovementsSheet } from "@/components/ventures/movements-sheet";
 import { OpenVentureSheet } from "@/components/ventures/open-venture-sheet";
-import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
-import { SettlementSheet } from "@/components/ventures/settlement-sheet";
-import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
-import { StatementsSheet } from "@/components/ventures/statements-sheet";
-import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
+import { useVentureActs } from "@/components/ventures/use-venture-acts";
 import type { VentureActs } from "@/components/ventures/venture-card";
-import { VentureDetailsSheet } from "@/components/ventures/venture-details-sheet";
 import { VenturesTable } from "@/components/ventures/ventures-table";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { lastMonth } from "@/lib/months";
-import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { venturesNeedingHer } from "@/lib/ventures";
@@ -56,18 +40,6 @@ import { orpc } from "@/utils/orpc";
 
 const TABS = ["running", "settled", "cancelled"] as const;
 type Tab = (typeof TABS)[number];
-
-/**
- * The acts that open a sheet about one Venture — which is every act but the two that are a single
- * mutation each, said and done with no form to fill.
- *
- * Taken from `VentureActs` rather than listed again, so a new act is a compiler error here until it is
- * either given a sheet or named as one of the two that needs none.
- */
-type ActOnOneVenture = Exclude<
-  keyof VentureActs,
-  "startBuying" | "startFattening"
->;
 
 /**
  * Which tab a Venture belongs on: the runs still on, the ones whose books are shut, and the ones that
@@ -159,87 +131,9 @@ const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
   const [sellingInternally, setSellingInternally] = useState(false);
-  /**
-   * Which sheet is over the list, and the Venture it was opened on.
-   *
-   * One slot, because one sheet is open at a time. Fifteen separate slots could each hold a Venture at
-   * once, and the page has no meaning for two — nor for a sheet holding last week's Venture behind the
-   * one on show, which is what a slot nobody cleared amounted to.
-   */
-  const [staged, setStaged] = useState<{
-    act: ActOnOneVenture;
-    venture: Venture;
-  } | null>(null);
-  const ventures = useQuery(orpc.ventures.list.queryOptions());
-  const queryClient = useQueryClient();
-  /**
-   * Moving a Venture along. Two acts with no form to fill: she says buying has started, and later that
-   * it is over. Until now neither had a button at all and a Venture opened on a screen could never
-   * leave Open — so nothing downstream of it could happen either.
-   */
-  const moved = (said: MessageKey) => ({
-    onError: (error: unknown) => toast.error(sayWhy(error, t)),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-      toast.success(t(said));
-    },
-  });
-  const moving = useMutation(
-    orpc.ventures.startBuying.mutationOptions(moved("ventures.buyingStarted"))
-  );
-  const fattening = useMutation(
-    orpc.ventures.startFattening.mutationOptions(
-      moved("ventures.fatteningStarted")
-    )
-  );
-  const opens = (act: ActOnOneVenture) => (venture: Venture) =>
-    setStaged({ act, venture });
-  const acts: VentureActs = {
-    details: opens("details"),
-    sign: opens("sign"),
-    takeCapital: opens("takeCapital"),
-    callOff: opens("callOff"),
-    drawFloat: opens("drawFloat"),
-    countFloat: opens("countFloat"),
-    reimburse: opens("reimburse"),
-    buyWhatIsLeft: opens("buyWhatIsLeft"),
-    settle: opens("settle"),
-    advance: opens("advance"),
-    checkTheBank: opens("checkTheBank"),
-    seeMovements: opens("seeMovements"),
-    statements: opens("statements"),
-    economics: opens("economics"),
-    amend: opens("amend"),
-    // Once, however often it is pressed while the first is on its way: a second press lands on a Venture that
-    // has already moved and comes back refused, straight after the toast saying it worked.
-    startBuying: (one) => {
-      if (!moving.isPending) {
-        moving.mutate({ id: one.id });
-      }
-    },
-    startFattening: (one) => {
-      if (!fattening.isPending) {
-        fattening.mutate({ id: one.id });
-      }
-    },
-  };
-  /** The Venture a sheet is showing, which is a Venture only while that sheet is the one on show. */
-  const stagedOn = (act: ActOnOneVenture): Venture | null =>
-    staged?.act === act ? staged.venture : null;
-  /** Closing is the sheets' only say over what is staged; opening is the cards'. */
-  const closes = (wanted: boolean) => {
-    if (!wanted) {
-      setStaged(null);
-    }
-  };
-  /** Everything a sheet about one Venture is given. */
-  const staging = (act: ActOnOneVenture) => ({
-    onOpenChange: closes,
-    open: staged?.act === act,
-    venture: stagedOn(act),
-  });
   const { tab = "running", statements } = Route.useSearch();
   const navigate = useNavigate();
+  const ventures = useQuery(orpc.ventures.list.queryOptions());
   const all = ventures.data ?? [];
   const on = (which: Tab) => all.filter((one) => tabOf(one) === which);
   const figures = useVentureFigures(ventures.data);
@@ -250,6 +144,20 @@ const VenturesPage = () => {
   const asked = statements
     ? (all.find((one) => one.id === statements) ?? null)
     : null;
+  const { acts, sheets } = useVentureActs({
+    papersAskedFor: asked,
+    // The address said whose papers she came for; once the sheet is closed it has been answered — and the
+    // tab she was reading is kept, because closing a sheet is not leaving the page.
+    onPapersClosed: () => {
+      if (statements !== undefined) {
+        navigate({
+          replace: true,
+          search: tab === "running" ? {} : { tab },
+          to: "/ventures",
+        });
+      }
+    },
+  });
   return (
     <Page>
       <PageHeader
@@ -330,50 +238,12 @@ const VenturesPage = () => {
           />
         )}
       </Loaded>
-      <VentureDetailsSheet
-        lastMonthOver={lastMonth()}
-        onOpenChange={closes}
-        venture={stagedOn("details")}
-      />
       <OpenVentureSheet onOpenChange={setOpening} open={opening} />
       <InternalSaleSheet
         onOpenChange={setSellingInternally}
         open={sellingInternally}
       />
-      <TakeCapitalSheet {...staging("takeCapital")} />
-      <MovementsSheet {...staging("seeMovements")} />
-      <BankCheckSheet {...staging("checkTheBank")} />
-      <AdvanceSheet {...staging("advance")} />
-      <ReimburseSheet {...staging("reimburse")} />
-      <SettlementSheet {...staging("settle")} />
-      <BuyWhatIsLeftSheet {...staging("buyWhatIsLeft")} />
-      <CountFloatSheet {...staging("countFloat")} />
-      <DrawFloatSheet {...staging("drawFloat")} />
-      <CallOffSheet {...staging("callOff")} />
-      <AmendSheet {...staging("amend")} />
-      <EconomicsSheet {...staging("economics")} />
-      <StatementsSheet
-        onOpenChange={(next) => {
-          if (next) {
-            return;
-          }
-          setStaged(null);
-          // The address said whose papers she came for; once the sheet is closed it has been answered —
-          // and the tab she was reading is kept, because closing a sheet is not leaving the page.
-          if (statements !== undefined) {
-            navigate({
-              replace: true,
-              search: tab === "running" ? {} : { tab },
-              to: "/ventures",
-            });
-          }
-        }}
-        // The one sheet with two ways in: her own button, and a notice that named the Venture in the
-        // address. Whichever brought her, the sheet is the same one.
-        open={staged?.act === "statements" || asked !== null}
-        venture={stagedOn("statements") ?? asked}
-      />
-      <SignAgreementSheet {...staging("sign")} />
+      {sheets}
     </Page>
   );
 };
@@ -384,7 +254,7 @@ interface VenturesSearch {
   statements?: string;
 }
 
-export const Route = createFileRoute("/_auth/ventures")({
+export const Route = createFileRoute("/_auth/ventures/")({
   /** The Owner's alone: nobody else is shown a screen that would only refuse them. */
   beforeLoad: onlyFor("owner"),
   component: VenturesPage,

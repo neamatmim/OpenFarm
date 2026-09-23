@@ -193,11 +193,14 @@ export interface VentureActs {
 export const Line = ({
   label,
   children,
+  className,
 }: {
   label: string;
   children: ReactNode;
+  /** A Venture's own page reads them as a ruled list, with room between the rules. */
+  className?: string;
 }) => (
-  <div className="flex justify-between gap-2 py-0.5">
+  <div className={cn("flex justify-between gap-2 py-0.5", className)}>
     <span className="text-muted-foreground">{label}</span>
     <span className="font-medium tabular-nums">{children}</span>
   </div>
@@ -530,21 +533,25 @@ export const PrimaryActs = ({
 export const actsInTheMenu = (
   venture: Venture,
   acts: VentureActs,
-  t: (key: MessageKey, params?: MessageParams) => string
+  t: (key: MessageKey, params?: MessageParams) => string,
+  /** On the Venture's own page, where going to it and its money are already on show. */
+  { onItsOwnPage = false }: { onItsOwnPage?: boolean } = {}
 ): RowAction[] => {
   const money = moneyOf(venture);
-  const inTheMenu: RowAction[] = [
-    {
-      label: t("ventures.details"),
-      icon: ScrollText,
-      handleSelect: () => acts.details(venture),
-    },
-    {
-      label: t("ventures.movements"),
-      icon: ScrollText,
-      handleSelect: () => acts.seeMovements(venture),
-    },
-  ];
+  const inTheMenu: RowAction[] = onItsOwnPage
+    ? []
+    : [
+        {
+          label: t("ventures.details"),
+          icon: ScrollText,
+          handleSelect: () => acts.details(venture),
+        },
+        {
+          label: t("ventures.movements"),
+          icon: ScrollText,
+          handleSelect: () => acts.seeMovements(venture),
+        },
+      ];
   if (venture.state === "open") {
     const nobodySigned = money.signedFor.people === 0;
     inTheMenu.push({
