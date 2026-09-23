@@ -20,6 +20,8 @@ const NOTHING_BOUGHT = {
   doses: "",
   price: "",
   seller: "",
+  lotNumber: "",
+  expiresOn: "",
 };
 
 type Typed = typeof NOTHING_BOUGHT;
@@ -83,12 +85,18 @@ export const BuyMedicineSheet = ({
   );
   const set = (key: keyof Typed) => (value: string) =>
     setTyped((current) => ({ ...current, [key]: value }));
+  // Medicine is not taken in without the day it may be used until: that day is what the store is warned about
+  // and what a dose given after it is said of. Both are the farm's own days, so they sort as text.
+  const expiredWhenBought =
+    typed.expiresOn !== "" && typed.expiresOn < purchasedOn;
   const complete =
     chosen !== undefined &&
     typed.quantity.trim() !== "" &&
     Number(typed.doses) > 0 &&
     Number(typed.price) > 0 &&
-    typed.seller.trim() !== "";
+    typed.seller.trim() !== "" &&
+    typed.expiresOn !== "" &&
+    !expiredWhenBought;
 
   return (
     <FormSheet
@@ -106,6 +114,8 @@ export const BuyMedicineSheet = ({
           seller: { name: typed.seller.trim() },
           purchasedOn,
           paymentMethod,
+          lotNumber: typed.lotNumber.trim() || undefined,
+          expiresOn: typed.expiresOn,
         });
       }}
       open={open}
@@ -184,6 +194,37 @@ export const BuyMedicineSheet = ({
                 onChange={(event) => setPurchasedOn(event.target.value)}
                 type="date"
                 value={purchasedOn}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField id="buy-lot" label={t("lots.lotNumber")}>
+              <Input
+                autoComplete="off"
+                id="buy-lot"
+                maxLength={60}
+                onChange={(event) => set("lotNumber")(event.target.value)}
+                value={typed.lotNumber}
+              />
+            </FormField>
+            <FormField
+              hint={
+                expiredWhenBought
+                  ? t("refusal.expiredWhenBought")
+                  : t("lots.expiresOnHint")
+              }
+              id="buy-expires"
+              label={t("lots.expiresOn")}
+            >
+              <Input
+                aria-invalid={expiredWhenBought}
+                id="buy-expires"
+                min={purchasedOn}
+                onChange={(event) => set("expiresOn")(event.target.value)}
+                required
+                type="date"
+                value={typed.expiresOn}
               />
             </FormField>
           </div>

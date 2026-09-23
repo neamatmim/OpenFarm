@@ -217,6 +217,12 @@ export const medicinePurchase = pgTable(
       .references(() => counterparty.id),
     /** The farm's day it was bought. */
     purchasedOn: timestamp("purchased_on").notNull(),
+    /** The Lot Number printed on the box, which traces a dose back to what was in it. Null for medicine
+     *  written down before the farm asked. */
+    lotNumber: text("lot_number"),
+    /** The last day the box says it may be used, as the farm's own day ("2039-08-31"). What the store is
+     *  warned about, and what a dose given after it is said of. */
+    expiresOn: text("expires_on"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
     recordedAt: timestamp("recorded_at").notNull(),

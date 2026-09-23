@@ -98,6 +98,7 @@ const WORDED_REFUSALS = {
   investor_cap_reached: "refusal.investorCapReached",
   investor_exists: "refusal.investorExists",
   investor_already_signed: "refusal.investorAlreadySigned",
+  expired_when_bought: "refusal.expiredWhenBought",
   no_farm_loss_to_cover: "refusal.noFarmLossToCover",
   investor_retired: "refusal.investorRetired",
   investor_still_in: "refusal.investorStillIn",

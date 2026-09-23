@@ -187,6 +187,11 @@ export const feedIn = pgTable(
     counterpartyId: text("counterparty_id").references(() => counterparty.id),
     /** The farm's day it came in. */
     receivedOn: timestamp("received_on").notNull(),
+    /** The Lot Number on the bag, where there is one — bagged concentrate and premix carry one, hay and a
+     *  harvest do not. */
+    lotNumber: text("lot_number"),
+    /** The last day the bag says it may be fed, as the farm's own day, where it says one. */
+    expiresOn: text("expires_on"),
     recordedBy: text("recorded_by").references(() => user.id),
     recordedByRole: text("recorded_by_role", { enum: ROLES }).notNull(),
     recordedAt: timestamp("recorded_at").notNull(),

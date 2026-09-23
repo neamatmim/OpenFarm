@@ -8,6 +8,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { LotAndExpiry } from "@/components/expiry";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -57,6 +58,13 @@ const PerDoseCell = ({ row }: { row: { original: Purchase } }) => {
   );
 };
 
+const LotCell = ({ row }: { row: { original: Purchase } }) => (
+  <LotAndExpiry
+    expiresOn={row.original.expiresOn}
+    lotNumber={row.original.lotNumber}
+  />
+);
+
 const column = createListColumns<Purchase>();
 const purchaseColumns = column.columns([
   column.accessor((one) => new Date(one.purchasedOn).getTime(), {
@@ -82,6 +90,12 @@ const purchaseColumns = column.columns([
     meta: { align: "end" },
   }),
   column.accessor("sellerName", { header: listHeader("drugs.seller") }),
+  // Sorted by the day it expires, soonest first, which is the order the store should be using it in.
+  column.accessor((one) => one.expiresOn ?? "9999-12-31", {
+    id: "lot",
+    header: listHeader("lots.col.lot"),
+    cell: LotCell,
+  }),
 ]);
 
 /** A purchase on a phone: the day and who sold it, what it cost large, how much and how many doses beneath. */
@@ -106,6 +120,7 @@ const PurchaseCard = ({ row }: { row: Purchase }) => {
           ? ""
           : ` · ${t("drugs.perDose", { taka: formatNumber(each, language) })}`}
       </span>
+      <LotAndExpiry expiresOn={row.expiresOn} lotNumber={row.lotNumber} />
     </div>
   );
 };

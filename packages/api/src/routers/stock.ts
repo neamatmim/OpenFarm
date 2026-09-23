@@ -13,6 +13,7 @@ import {
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { paymentMethodInput } from "../money-inputs";
 import { bookingOf } from "../money-store";
 import { requireRole } from "../roles";
@@ -73,6 +74,8 @@ export const stockRouter = {
           priceBdt: row.priceBdt,
           sellerName: seller?.name ?? null,
           receivedOn: row.receivedOn,
+          lotNumber: row.lotNumber,
+          expiresOn: row.expiresOn,
           recordedAt: row.recordedAt,
         };
       });
@@ -110,6 +113,7 @@ export const stockRouter = {
         receivedOn: farmDay,
         /** How the seller was paid, for a purchase. */
         paymentMethod: paymentMethodInput,
+        ...lotFields,
       })
     )
     .handler(async ({ context, input }) => {
@@ -124,6 +128,7 @@ export const stockRouter = {
         seller: input.seller !== undefined,
       });
       const receivedOn = receivedDay(input.receivedOn, now);
+      assertNotExpiredWhenBought(input.expiresOn, input.receivedOn);
       const id = input.id ?? newId(now);
       const already = await context.db.query.feedIn.findFirst({
         where: { id, farmId: context.farm.id },
@@ -170,6 +175,8 @@ export const stockRouter = {
                 : (input.priceBdt ?? null),
             counterpartyId: sellerId,
             receivedOn,
+            lotNumber: input.lotNumber ?? null,
+            expiresOn: input.expiresOn ?? null,
             recordedBy: context.actor.id,
             recordedByRole,
             recordedAt: now,

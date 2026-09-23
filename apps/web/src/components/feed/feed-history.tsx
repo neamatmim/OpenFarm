@@ -16,6 +16,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { LotAndExpiry } from "@/components/expiry";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -143,6 +144,13 @@ const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
 const SellerCell = ({ row }: { row: { original: ArrivalRow } }) =>
   row.original.sellerName ?? <span className="text-muted-foreground">—</span>;
 
+const LotCell = ({ row }: { row: { original: ArrivalRow } }) => (
+  <LotAndExpiry
+    expiresOn={row.original.expiresOn}
+    lotNumber={row.original.lotNumber}
+  />
+);
+
 const CorrectCell = ({ row }: { row: { original: ArrivalRow } }) =>
   row.original.mayCorrect ? <ArrivalCorrection arrival={row.original} /> : null;
 
@@ -177,6 +185,11 @@ const arrivalColumns = arrivalColumn.columns([
     id: "seller",
     header: listHeader("stock.seller"),
     cell: SellerCell,
+  }),
+  arrivalColumn.accessor((one) => one.expiresOn ?? "9999-12-31", {
+    id: "lot",
+    header: listHeader("lots.col.lot"),
+    cell: LotCell,
   }),
   arrivalColumn.display({
     id: "correct",
@@ -215,6 +228,7 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
             ? ""
             : ` · ${taka(row.priceBdt)} · ${row.sellerName ?? ""}`}
         </span>
+        <LotAndExpiry expiresOn={row.expiresOn} lotNumber={row.lotNumber} />
       </div>
       {row.mayCorrect ? <ArrivalCorrection arrival={row} /> : null}
     </div>
