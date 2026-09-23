@@ -203,6 +203,18 @@ describe("the Internal Sale", () => {
       balanceBdt: heldBefore - 77_000,
       spentBdt: 77_000,
     });
+    // Both sides of the money name her, so each leads to her page.
+    const movements = await owner.client.ventures.movements({ ventureId });
+    expect(
+      movements.find((one) => one.kind === "internal_buy")?.tagNumber
+    ).toBe(hers.tagNumber);
+    const money = await owner.client.money.list({
+      from: "2047-02-06",
+      to: "2047-02-06",
+    });
+    expect(
+      money.events.find((one) => one.source === "internal_sale_in")?.tagNumber
+    ).toBe(hers.tagNumber);
   });
 
   it("refuses one side of the sale put right on its own", async () => {

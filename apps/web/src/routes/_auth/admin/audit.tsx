@@ -163,7 +163,7 @@ const AuditPage = () => {
 
       <Loaded query={log} skeleton={<Skeleton className="h-96 rounded-xl" />}>
         {log.data?.length ? (
-          <AuditTrail events={log.data} />
+          <AuditTrail events={log.data} seesPeople={seesAll} />
         ) : (
           <EmptyState icon={History} title={t("audit.empty")} />
         )}

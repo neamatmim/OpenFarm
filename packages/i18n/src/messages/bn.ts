@@ -696,6 +696,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.relationInWords": "সম্পর্কটি লিখুন",
   "investors.section.who": "পরিচয়",
   "investors.section.money": "টাকা কোথায় যাবে",
+  "investors.section.ventures": "যেসব ভেঞ্চারে আছেন",
+  "investors.noVentures": "এখনো কোনো ভেঞ্চারে নেই।",
   "investors.bankPlaceholder": "হিসাবের নাম, হিসাব নম্বর, ব্যাংক ও শাখা",
   "investors.copyAccount": "কপি করুন",
   "investors.copied": "কপি হয়েছে",
@@ -1984,6 +1986,8 @@ export const bn: Record<MessageKey, string> = {
   "alerts.investorStatementDue":
     "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
   "alerts.makeThePaper": "কাগজ তৈরি করুন",
+  "alerts.openTheWork": "কাজটি খুলুন",
+  "alerts.openHer": "{tag} দেখুন",
   "push.withdrawalChangedTitle": "আটকে রাখার সময় বদলেছে",
   "push.withdrawalChangedBody": "{tag} — খামারের অ্যাপ দেখুন",
   "nav.farm": "খামারের অবস্থা",

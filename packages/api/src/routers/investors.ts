@@ -103,7 +103,43 @@ export const investorsRouter = {
         where: { farmId: context.farm.id },
         orderBy: { name: "asc", id: "asc" },
       });
-      const counted = await countedInvestors(context.db, context.farm.id);
+      const [counted, signed, ventures] = await Promise.all([
+        countedInvestors(context.db, context.farm.id),
+        context.db.query.investmentAgreement.findMany({
+          where: { farmId: context.farm.id },
+          columns: { investorId: true, ventureId: true, units: true },
+          orderBy: { createdAt: "desc", id: "desc" },
+        }),
+        context.db.query.venture.findMany({
+          where: { farmId: context.farm.id },
+          columns: { id: true, name: true, state: true },
+        }),
+      ]);
+      // Every Venture each person signed into, the latest first, running or long settled — so their
+      // record leads to each run their money went to.
+      const ventureOf = new Map(ventures.map((one) => [one.id, one]));
+      const theirs = new Map<
+        string,
+        {
+          id: string;
+          name: string;
+          state: (typeof ventures)[number]["state"];
+          units: number;
+        }[]
+      >();
+      for (const one of signed) {
+        const run = ventureOf.get(one.ventureId);
+        if (run) {
+          const list = theirs.get(one.investorId) ?? [];
+          list.push({
+            id: run.id,
+            name: run.name,
+            state: run.state,
+            units: one.units,
+          });
+          theirs.set(one.investorId, list);
+        }
+      }
       return {
         /** How many people are in, and how many the farm may have. Said once, beside the list rather
          *  than on it, so a farm with nobody in it still knows where it stands. */
@@ -126,6 +162,8 @@ export const investorsRouter = {
             : null,
           /** The Units this person holds across the Ventures still running. */
           unitsHeld: counted.unitsOf.get(one.id) ?? 0,
+          /** The Ventures they signed into, the latest first, with the Units of each Agreement. */
+          ventures: theirs.get(one.id) ?? [],
           /** When they were retired, or nothing while the farm may still sign them. */
           retiredAt: one.retiredAt,
         })),

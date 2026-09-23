@@ -388,6 +388,10 @@ describe("selling a Venture's animals", () => {
     expect(sales.map((one) => one.amountBdt).toSorted((a, b) => a - b)).toEqual(
       [120_000, 130_000]
     );
+    // Each names the animal it was for, so the row leads to her.
+    expect(sales.map((one) => one.tagNumber).toSorted()).toEqual(
+      tags.slice(0, 2).toSorted()
+    );
   });
 
   it("moves with the Sale when the Sale's price is put right", async () => {

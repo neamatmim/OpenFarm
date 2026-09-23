@@ -19,6 +19,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { TagLink } from "@/components/fattening/fattening-words";
 import { EmptyState, Notice, PeriodFilter, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
@@ -114,10 +115,9 @@ interface RegisterControls {
 /** A day a register was read for, kept on one line so a column of them reads down. */
 const ONE_LINE = { className: "whitespace-nowrap" };
 
+/** Her tag, which opens her page: an inspector's question about a line is answered from her whole record. */
 const TagCell = ({ row }: { row: { original: { tagNumber: string } } }) => (
-  <span className="font-mono font-semibold tabular-nums">
-    {row.original.tagNumber}
-  </span>
+  <TagLink tagNumber={row.original.tagNumber} />
 );
 
 /** A dash for what a register has no word for. */

@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { TagLink } from "@/components/fattening/fattening-words";
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { CorrectEntered, ReceiptLink } from "@/components/money-entry";
@@ -174,7 +175,10 @@ const MoneyCard = ({ row }: { row: MoneyRow }) => {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 font-medium">{row.what}</span>
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="font-medium">{row.what}</span>
+          {event.tagNumber ? <TagLink tagNumber={event.tagNumber} /> : null}
+        </span>
         <Amount className="text-lg leading-tight" event={event} />
       </div>
       <span className="text-muted-foreground text-xs">
@@ -208,7 +212,12 @@ const DateCell = ({ row }: { row: { original: MoneyRow } }) => (
 /** What the entry is: its Category, and where it came from and how it was paid beneath. */
 const WhatCell = ({ row }: { row: { original: MoneyRow } }) => (
   <div className="flex flex-col gap-0.5">
-    <span className="font-medium">{row.original.what}</span>
+    <span className="flex flex-wrap items-center gap-2">
+      <span className="font-medium">{row.original.what}</span>
+      {row.original.event.tagNumber ? (
+        <TagLink tagNumber={row.original.event.tagNumber} />
+      ) : null}
+    </span>
     <span className="text-muted-foreground text-xs">
       <Detail event={row.original.event} />
     </span>

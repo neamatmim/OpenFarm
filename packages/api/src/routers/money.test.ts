@@ -109,7 +109,18 @@ describe("money from the farm's records", () => {
       counterpartyName: `গাবতলী হাট ${suffix}`,
       paymentMethod: "bank",
       approval: "not_needed",
+      // The entry names the bull it bought, so the register leads to his page.
+      tagNumber: bull.tagNumber,
     });
+    // And the trail of his arrival names him too, where it only knew him by his id.
+    const reader = await as("owner", "2037-02-01T05:00:00.000Z");
+    const arrived = await reader.client.audit.list({
+      entity: "animal",
+      entityId: bull.id,
+    });
+    expect(arrived).toEqual([
+      expect.objectContaining({ entityId: bull.id, tagNumber: bull.tagNumber }),
+    ]);
 
     const manager = await as("manager", "2037-02-20T04:00:00.000Z");
     // The Manager put the price in wrong: the same Money Event is put right, not a second one booked.
@@ -134,6 +145,7 @@ describe("money from the farm's records", () => {
     expect(await moneyOf(sold.id)).toEqual([
       expect.objectContaining({
         source: "sale",
+        tagNumber: bull.tagNumber,
         direction: "in",
         amountBdt: 19_500,
         // Nobody said, and the farm's gate is cash unless somebody says otherwise.

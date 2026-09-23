@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from "@OpenFarm/ui/components/sheet";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { Link } from "@tanstack/react-router";
 import { ChevronRight, Eye } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -46,6 +47,79 @@ const RecordName = ({ entity }: { entity: string }) => {
   return entityKey ? t(entityKey) : entity;
 };
 
+const LINK_CLASS = "w-fit hover:underline";
+
+/**
+ * The record an Audit Event is about, leading to its page where it has one: an Animal by her tag, a Venture, a
+ * piece of Work, a procedure's card, and a person — the last only for whoever may open the farm's people.
+ */
+const RecordLink = ({
+  event,
+  seesPeople,
+}: {
+  event: AuditEvent;
+  seesPeople: boolean;
+}) => {
+  const name = <RecordName entity={event.entity} />;
+  const { entity, entityId, tagNumber, instanceId } = event;
+  if (entity === "animal" && tagNumber) {
+    return (
+      <Link
+        className={LINK_CLASS}
+        params={{ tagNumber }}
+        to="/animals/$tagNumber"
+      >
+        {name} {tagNumber}
+      </Link>
+    );
+  }
+  if (entity === "venture") {
+    return (
+      <Link
+        className={LINK_CLASS}
+        params={{ ventureId: entityId }}
+        to="/ventures/$ventureId"
+      >
+        {name}
+      </Link>
+    );
+  }
+  if (instanceId) {
+    return (
+      <Link
+        className={LINK_CLASS}
+        params={{ instanceId }}
+        to="/work/$instanceId"
+      >
+        {name}
+      </Link>
+    );
+  }
+  if (entity === "sop") {
+    return (
+      <Link
+        className={LINK_CLASS}
+        params={{ definitionId: entityId }}
+        to="/cards/$definitionId"
+      >
+        {name}
+      </Link>
+    );
+  }
+  if (entity === "user" && seesPeople) {
+    return (
+      <Link
+        className={LINK_CLASS}
+        params={{ userId: entityId }}
+        to="/admin/people/$userId"
+      >
+        {name}
+      </Link>
+    );
+  }
+  return name;
+};
+
 /** What was done, as a word with its colour. */
 const ActionBadge = ({ event }: { event: AuditEvent }) => {
   const t = useT();
@@ -71,12 +145,29 @@ const Why = ({ event }: { event: AuditEvent }) => {
   );
 };
 
-/** Who did it, in which Role: the System, where no person did. */
-const Who = ({ event }: { event: AuditEvent }) => {
+/** Who did it, in which Role: the System, where no person did. Their page, for whoever may open the farm's people. */
+const Who = ({
+  event,
+  seesPeople,
+}: {
+  event: AuditEvent;
+  seesPeople: boolean;
+}) => {
   const t = useT();
+  const { actor, actorId } = event;
   return (
     <div className="flex flex-col gap-0.5">
-      <span>{event.actor?.name ?? t("audit.system")}</span>
+      {actor && actorId && seesPeople ? (
+        <Link
+          className={LINK_CLASS}
+          params={{ userId: actorId }}
+          to="/admin/people/$userId"
+        >
+          {actor.name}
+        </Link>
+      ) : (
+        <span>{actor?.name ?? t("audit.system")}</span>
+      )}
       {event.roleUsed ? (
         <span className="text-muted-foreground text-xs">
           {t(`role.${event.roleUsed}`)}
@@ -88,6 +179,7 @@ const Who = ({ event }: { event: AuditEvent }) => {
 
 interface TrailRow extends AuditEvent {
   handleOpen: (id: string) => void;
+  seesPeople: boolean;
 }
 
 const WhenCell = ({ row }: { row: { original: TrailRow } }) => (
@@ -97,7 +189,7 @@ const WhenCell = ({ row }: { row: { original: TrailRow } }) => (
 );
 
 const WhoCell = ({ row }: { row: { original: TrailRow } }) => (
-  <Who event={row.original} />
+  <Who event={row.original} seesPeople={row.original.seesPeople} />
 );
 
 const ActionCell = ({ row }: { row: { original: TrailRow } }) => (
@@ -106,7 +198,7 @@ const ActionCell = ({ row }: { row: { original: TrailRow } }) => (
 
 const RecordCell = ({ row }: { row: { original: TrailRow } }) => (
   <span className="font-medium">
-    <RecordName entity={row.original.entity} />
+    <RecordLink event={row.original} seesPeople={row.original.seesPeople} />
   </span>
 );
 
@@ -279,9 +371,11 @@ const ChangedFields = ({ event }: { event: AuditEvent }) => {
  *  the record said before and after, folded away until somebody asks. */
 const EventSheet = ({
   event,
+  seesPeople,
   onOpenChange,
 }: {
   event: AuditEvent | undefined;
+  seesPeople: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
@@ -310,13 +404,13 @@ const EventSheet = ({
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4 text-sm">
             <dl className="grid gap-3 sm:grid-cols-2">
               <Particular label={t("audit.who")}>
-                <Who event={event} />
+                <Who event={event} seesPeople={seesPeople} />
               </Particular>
               <Particular label={t("audit.action")}>
                 <ActionBadge event={event} />
               </Particular>
               <Particular label={t("audit.entity")}>
-                <RecordName entity={event.entity} />
+                <RecordLink event={event} seesPeople={seesPeople} />
               </Particular>
               <Particular label={t("audit.reason")}>
                 <Why event={event} />
@@ -359,11 +453,22 @@ const EventSheet = ({
  * The trail as a table where there is room and as cards on a phone, a page at a time: when, who, what was done to
  * which record and why, sortable by any of them. Each event opens whole beside the list.
  */
-export const AuditTrail = ({ events }: { events: AuditEvent[] }) => {
+export const AuditTrail = ({
+  events,
+  seesPeople,
+}: {
+  events: AuditEvent[];
+  /** Whether the reader may open the farm's people, so a name in the trail leads to its person. */
+  seesPeople: boolean;
+}) => {
   const [open, setOpen] = useState<string | null>(null);
   const table = useListTable({
     columns: trailColumns,
-    data: events.map((event) => ({ ...event, handleOpen: setOpen })),
+    data: events.map((event) => ({
+      ...event,
+      handleOpen: setOpen,
+      seesPeople,
+    })),
     getRowId: (event) => event.id,
   });
   return (
@@ -376,6 +481,7 @@ export const AuditTrail = ({ events }: { events: AuditEvent[] }) => {
       />
       <EventSheet
         event={events.find((event) => event.id === open)}
+        seesPeople={seesPeople}
         onOpenChange={(next) => {
           if (!next) {
             setOpen(null);

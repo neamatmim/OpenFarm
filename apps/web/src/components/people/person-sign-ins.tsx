@@ -1,6 +1,7 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { BookOpenCheck, LogOut, Monitor, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
@@ -264,6 +265,8 @@ export const TrainingTab = ({
 }: {
   training: {
     id: string;
+    /** The procedure taught, whose card its name opens. */
+    definitionId: string;
     sopName: { bn: string };
     versionNumber: number;
     trainedAt: Date;
@@ -292,7 +295,15 @@ export const TrainingTab = ({
                 number: row.versionNumber,
                 date: formatDate(new Date(row.trainedAt), language, "date"),
               })}
-              title={row.sopName.bn}
+              title={
+                <Link
+                  className="hover:underline"
+                  params={{ definitionId: row.definitionId }}
+                  to="/cards/$definitionId"
+                >
+                  {row.sopName.bn}
+                </Link>
+              }
             />
           ))}
         </RecordList>

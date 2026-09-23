@@ -11,13 +11,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  Loaded,
-  Notice,
-  Section,
-  StatusBadge,
-  TagChip,
-} from "@/components/page";
+import { TagLink } from "@/components/fattening/fattening-words";
+import { Loaded, Notice, Section, StatusBadge } from "@/components/page";
 import {
   Adjustments,
   RaiseAdjustmentSheet,
@@ -168,8 +163,9 @@ const WhatItIsAbout = ({ block }: { block: Block }) => {
     case "an_animal_still_stands": {
       return (
         <span className="flex flex-wrap gap-1">
+          {/* Each a way to her page, where what stands in the way is dealt with. */}
           {block.tagNumbers.map((tag) => (
-            <TagChip key={tag}>{tag}</TagChip>
+            <TagLink key={tag} tagNumber={tag} />
           ))}
         </span>
       );

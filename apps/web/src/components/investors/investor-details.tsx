@@ -10,6 +10,7 @@ import {
 } from "@OpenFarm/ui/components/sheet";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import type { Investor } from "@/components/investors/investor-types";
 import { StatusBadge, TagChip } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
+import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -113,6 +115,48 @@ const BankAccount = ({ account }: { account: string }) => {
         {copied ? t("investors.copied") : t("investors.copyAccount")}
       </Button>
     </div>
+  );
+};
+
+/** Every Venture their money went to, the latest first — each leading to its page, with the Units they signed for
+ *  and where the run stands. */
+const TheirVentures = ({ investor }: { investor: Investor | null }) => {
+  const { t, language } = useLanguage();
+  // A list cached before this was said has no ventures on it: nothing to lead to yet, rather than a broken line.
+  const ventures = investor?.ventures ?? [];
+  return (
+    <section className="border-t pt-5">
+      <h3 className="text-base font-semibold">
+        {t("investors.section.ventures")}
+      </h3>
+      {ventures.length === 0 ? (
+        <p className="text-muted-foreground mt-4 text-sm">
+          {t("investors.noVentures")}
+        </p>
+      ) : (
+        <ul className="mt-4 flex flex-col divide-y rounded-lg border">
+          {ventures.map((one) => (
+            <li key={one.id}>
+              <Link
+                className="hover:bg-muted/50 focus-visible:ring-ring flex items-center justify-between gap-3 px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset"
+                params={{ ventureId: one.id }}
+                to="/ventures/$ventureId"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate font-medium">{one.name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {t("investors.holds", {
+                      units: formatNumber(one.units, language),
+                    })}
+                  </span>
+                </span>
+                <StateBadge state={one.state} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 };
 
@@ -268,6 +312,7 @@ export const InvestorDetails = ({
               {phoneLink(investor?.nominee?.phone)}
             </Detail>
           </DetailSection>
+          <TheirVentures investor={investor} />
         </div>
         {investor ? (
           <InvestorActions investor={investor} onEdit={onEdit} />

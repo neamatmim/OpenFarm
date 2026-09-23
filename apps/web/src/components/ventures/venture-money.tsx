@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollText } from "lucide-react";
 import { useState } from "react";
 
+import { TagLink } from "@/components/fattening/fattening-words";
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { EmptyState, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
@@ -154,6 +155,9 @@ export const VentureMoney = ({ venture }: { venture: Venture }) => {
                 <TableCell>
                   <span className="flex flex-col">
                     <span>{t(KIND_WORD[one.kind])}</span>
+                    {one.tagNumber ? (
+                      <TagLink tagNumber={one.tagNumber} />
+                    ) : null}
                     {one.investorId ? (
                       <span className="text-muted-foreground text-xs">
                         {nameOf(one.investorId)}

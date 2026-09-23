@@ -75,6 +75,43 @@ export const auditRouter = {
         limit: input.limit,
         with: { actor: { columns: { name: true } } },
       });
-      return rows;
+      // An Animal's page is found by her tag, not her id: the tag of each one the trail names, gone or not,
+      // so an event about her leads to her.
+      const idsOf = (entity: string) => [
+        ...new Set(
+          rows.flatMap((row) => (row.entity === entity ? [row.entityId] : []))
+        ),
+      ];
+      const animalIds = idsOf("animal");
+      // Work is named by its id, but not everything written under its name is a piece of it: the day's
+      // raising of work is recorded as one event for the whole schedule. Only work that exists leads anywhere.
+      const workIds = idsOf("sop_instance");
+      const [animals, work] = await Promise.all([
+        animalIds.length === 0
+          ? []
+          : context.db.query.animal.findMany({
+              where: { farmId: context.farm.id, id: { in: animalIds } },
+              columns: { id: true, tagNumber: true },
+            }),
+        workIds.length === 0
+          ? []
+          : context.db.query.sopInstance.findMany({
+              where: { farmId: context.farm.id, id: { in: workIds } },
+              columns: { id: true },
+            }),
+      ]);
+      const tagOf = new Map(animals.map((one) => [one.id, one.tagNumber]));
+      const isWork = new Set(work.map((one) => one.id));
+      return rows.map((row) => ({
+        ...row,
+        /** Her tag, where the event is about an Animal. */
+        tagNumber:
+          row.entity === "animal" ? (tagOf.get(row.entityId) ?? null) : null,
+        /** The work, where the event is about a piece of it that exists. */
+        instanceId:
+          row.entity === "sop_instance" && isWork.has(row.entityId)
+            ? row.entityId
+            : null,
+      }));
     }),
 };

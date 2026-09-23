@@ -4,6 +4,7 @@ import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { CircleCheck, Gavel } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -52,11 +53,22 @@ interface ReviewCell {
   row: { original: ReviewRow };
 }
 
-/** What happened, in the farm's words for the reason. */
+/** What happened, in the farm's words for the reason — opening the work it came from, where it came from one. */
 const WhatHappened = ({ row }: { row: OpenReview }) => {
   const { t } = useLanguage();
   const key = messageFor(row.reason);
-  return <span className="font-medium">{key ? t(key) : row.reason}</span>;
+  const said = key ? t(key) : row.reason;
+  return row.instanceId ? (
+    <Link
+      className="font-medium underline-offset-4 hover:underline"
+      params={{ instanceId: row.instanceId }}
+      to="/work/$instanceId"
+    >
+      {said}
+    </Link>
+  ) : (
+    <span className="font-medium">{said}</span>
+  );
 };
 
 const ResolveButton = ({ row }: { row: ReviewRow }) => {

@@ -24,6 +24,7 @@ import {
   workAwaitingSignOff,
 } from "../instances-store";
 import { renewalDue } from "../registration-store";
+import { withTheirWork } from "../review-store";
 import { requireRole } from "../roles";
 import { runningLow } from "../stock-store";
 
@@ -66,7 +67,6 @@ export const homeRouter = {
         late,
         awaitingSignOff,
         review,
-        completions,
         animals,
         herd,
         today,
@@ -81,14 +81,6 @@ export const homeRouter = {
         ),
         workAwaitingSignOff(context.db, farmId, context.roles, QUEUE_LIMIT),
         openReviews(context.db, farmId, QUEUE_LIMIT),
-        // The work each of those entries belongs to, so the row reaches it rather than
-        // dropping somebody on a list to search.
-        context.db.query.stepCompletion.findMany({
-          where: { farmId },
-          columns: { id: true, instanceId: true },
-          orderBy: { receivedAt: "desc" },
-          limit: QUEUE_LIMIT * 4,
-        }),
         heldByWithdrawal(context.db, farmId, now),
         // The animals standing in each Pen, for the line that says how big the job is.
         context.db.query.animal.findMany({
@@ -189,12 +181,8 @@ export const homeRouter = {
             // when it fell due, which is the Alert's question rather than this queue's.
             completedAt: instance.completedAt,
           })),
-          needsReview: review.map((row) => ({
-            ...row,
-            instanceId:
-              completions.find((one) => one.id === row.entityId)?.instanceId ??
-              null,
-          })),
+          // Each with the work it came from, looked up for exactly these rows.
+          needsReview: await withTheirWork(context.db, farmId, review),
           /** Cows whose milk may not go to the tank today, soonest to come off first: a
            *  Withdrawal ending is the one a Manager has to plan around. */
           withdrawal: underWithdrawal
@@ -262,7 +250,6 @@ export const homeRouter = {
         late,
         proposals,
         review,
-        completions,
         held,
         today,
         mortalities,
@@ -284,12 +271,6 @@ export const homeRouter = {
           limit: QUEUE_LIMIT,
         }),
         openReviews(context.db, farmId, QUEUE_LIMIT),
-        context.db.query.stepCompletion.findMany({
-          where: { farmId },
-          columns: { id: true, instanceId: true },
-          orderBy: { receivedAt: "desc" },
-          limit: QUEUE_LIMIT * 4,
-        }),
         heldByWithdrawal(context.db, farmId, now),
         daysWork(context.db, farmId, now),
         // What the farm has lost lately. The register an inspector reads is increment 7's; the
@@ -395,12 +376,8 @@ export const homeRouter = {
             completedAt: instance.completedAt,
           })),
           proposals,
-          needsReview: review.map((row) => ({
-            ...row,
-            instanceId:
-              completions.find((one) => one.id === row.entityId)?.instanceId ??
-              null,
-          })),
+          // Each with the work it came from, looked up for exactly these rows.
+          needsReview: await withTheirWork(context.db, farmId, review),
           lowStock,
           endingWithdrawal: held
             .filter(
