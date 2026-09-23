@@ -1,8 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { IdCard } from "lucide-react";
 
 import {
-  ActionsHeader,
   DataTable,
   createListColumns,
   listHeader,
@@ -10,7 +8,6 @@ import {
 } from "@/components/data-table";
 import type { Investor } from "@/components/investors/investor-types";
 import { TagChip } from "@/components/page";
-import { RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 
 /** One Investor as the table reads them, with the one thing the page can do from their row. */
@@ -23,18 +20,26 @@ interface Cell {
   row: { original: InvestorRow };
 }
 
-/** Who they are, and where they live under it — what the Owner recognises somebody by. */
+/** Who they are, and where they live under it — what the Owner recognises somebody by. The name opens
+ *  everything on file about them, as a Tag Number opens an animal: it is the only thing done from the row,
+ *  so it is not hidden behind a menu of one. */
 const NameCell = ({ row }: Cell) => {
-  const { investor } = row.original;
+  const { investor, onDetails } = row.original;
   return (
-    <span className="flex min-w-0 flex-col gap-0.5">
-      <span className="font-medium">{investor.name}</span>
+    <button
+      className="group flex min-w-0 flex-col gap-0.5 text-start outline-none"
+      onClick={() => onDetails(investor)}
+      type="button"
+    >
+      <span className="font-medium underline-offset-4 group-hover:underline group-focus-visible:underline">
+        {investor.name}
+      </span>
       {investor.address ? (
         <span className="text-muted-foreground text-sm">
           {investor.address}
         </span>
       ) : null}
-    </span>
+    </button>
   );
 };
 
@@ -65,25 +70,6 @@ const UnitsCell = ({ row }: Cell) => {
   );
 };
 
-const ActionCell = ({ row }: Cell) => {
-  const { t } = useLanguage();
-  const { investor, onDetails } = row.original;
-  return (
-    <div className="flex justify-end">
-      <RowMenu
-        actions={[
-          {
-            label: t("investors.details"),
-            icon: IdCard,
-            handleSelect: () => onDetails(investor),
-          },
-        ]}
-        label={investor.name}
-      />
-    </div>
-  );
-};
-
 const column = createListColumns<InvestorRow>();
 const investorColumns = column.columns([
   column.accessor((row) => row.investor.name, {
@@ -108,21 +94,19 @@ const investorColumns = column.columns([
     cell: UnitsCell,
     meta: { align: "end" },
   }),
-  column.display({
-    id: "action",
-    header: ActionsHeader,
-    cell: ActionCell,
-    meta: { align: "end", className: "w-16" },
-  }),
 ]);
 
-/** One Investor on a phone: who they are, how they are reached and what they hold, with their row's menu
- *  where the table would have put it. */
+/** One Investor on a phone: who they are, how they are reached and what they hold. The whole card opens
+ *  them, the way a thumb expects a card to. */
 const InvestorCard = ({ row }: { row: InvestorRow }) => {
   const { t, language } = useLanguage();
-  const { investor } = row;
+  const { investor, onDetails } = row;
   return (
-    <div className="flex items-start justify-between gap-3">
+    <button
+      className="flex w-full items-start justify-between gap-3 text-start"
+      onClick={() => onDetails(investor)}
+      type="button"
+    >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="font-medium">{investor.name}</span>
         <span className="text-muted-foreground text-xs">
@@ -144,8 +128,7 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
           </TagChip>
         ) : null}
       </div>
-      <ActionCell row={{ original: row }} />
-    </div>
+    </button>
   );
 };
 
