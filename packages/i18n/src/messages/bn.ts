@@ -636,6 +636,8 @@ export const bn: Record<MessageKey, string> = {
     "এক ব্যবসায় বিশজন মানুষ থাকলে সেটা কোম্পানি হয়ে যায়। যে ভেঞ্চারের হিসাব শেষ হয়নি বা বাতিল হয়নি, তার সবাইকে খামার গোনে, আর একজনও বেশি নেয় না।",
   "investors.inARun": "চলমান ভেঞ্চারে",
   "investors.ofTheCap": "{cap}-এর মধ্যে {standing}",
+  "investors.capHint":
+    "খামারের সেটিংয়ে ঠিক করা সীমা — এক ব্যবসায় বিশজন মানুষ থাকলে সেটা কোম্পানি হয়ে যায়",
   "investors.unitsHeld": "হাতে থাকা ইউনিট",
   "investors.recordedCount": "খাতায় যত নাম",
   "investors.search": "নাম বা ফোন খুঁজুন",

@@ -51,6 +51,9 @@ const useInvestorFigures = (list: InvestorList | undefined): Figure[] => {
             cap: formatNumber(list.cap, language),
           })
         : loading,
+      // Where the second number comes from, said before the warning is: below the warning line nothing else
+      // on the page explains it.
+      hint: t("investors.capHint"),
       icon: BadgeCheck,
       tone: list?.nearingTheCap ? "warning" : "neutral",
     },

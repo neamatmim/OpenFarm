@@ -697,6 +697,8 @@ export const en = {
     "Twenty people in one business for gain is a company. The farm counts everyone in a Venture that has not settled or been called off, and will not take one more.",
   "investors.inARun": "In a running Venture",
   "investors.ofTheCap": "{standing} of {cap}",
+  "investors.capHint":
+    "The Investor Cap, a farm setting: twenty people in one business for gain is a company",
   "investors.unitsHeld": "Units held",
   "investors.recordedCount": "Names on file",
   "investors.search": "Search a name or a phone",
