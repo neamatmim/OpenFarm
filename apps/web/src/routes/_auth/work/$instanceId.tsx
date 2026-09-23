@@ -554,7 +554,7 @@ const WorkPage = () => {
   // Closed as Missed or Called Off: nothing more is recorded on it, so it offers nothing to tap — only why.
   if (isClosed(state)) {
     return (
-      <Page className="max-w-4xl pb-2">
+      <Page className="mx-auto max-w-4xl pb-2">
         <WorkHeader name={content.name} pen={pen} tally={tally} />
         <WorkNotices runningOn={runningOn} shortFed={shortFed} state={state} />
         <Link
@@ -573,7 +573,7 @@ const WorkPage = () => {
   }
 
   return (
-    <Page className="max-w-4xl gap-5 pb-2 md:gap-6">
+    <Page className="mx-auto max-w-4xl gap-5 pb-2 md:gap-6">
       <WorkHeader name={content.name} pen={pen} tally={tally} />
       <AssignWork
         assignedRole={instance.data.assignedRole}

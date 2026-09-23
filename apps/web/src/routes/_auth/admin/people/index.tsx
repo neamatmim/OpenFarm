@@ -203,7 +203,7 @@ const PeoplePage = () => {
     filter.standing !== "";
 
   return (
-    <Page width="default">
+    <Page>
       <PageHeader
         actions={
           <Button onClick={() => setInviting(true)} type="button">

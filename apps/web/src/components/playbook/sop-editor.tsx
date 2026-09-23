@@ -225,7 +225,7 @@ export const SopEditor = ({
   const { t } = useLanguage();
   const title = isNew ? t("sop.new") : content.name.bn || t("sop.edit");
   return (
-    <Page className="max-w-4xl">
+    <Page>
       <PageHeader
         actions={
           <Button onClick={onCancel} type="button" variant="ghost">

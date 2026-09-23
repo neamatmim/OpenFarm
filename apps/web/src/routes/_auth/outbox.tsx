@@ -150,7 +150,7 @@ const OutboxPage = () => {
   });
 
   return (
-    <Page width="narrow">
+    <Page>
       <PageHeader
         description={t("outbox.heldHint")}
         title={t("outbox.heldTitle")}

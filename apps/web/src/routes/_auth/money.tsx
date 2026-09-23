@@ -109,7 +109,7 @@ const MoneyPage = () => {
   ).length;
 
   return (
-    <Page width="wide">
+    <Page>
       <PageHeader
         actions={
           entersMoney ? (

@@ -162,7 +162,7 @@ const OwnerHome = () => {
   // thing it had — the sync banner above already says how old it is.
   if (!home.data) {
     return (
-      <Page width="wide">
+      <Page>
         <PageHeader title={t("owner.title")} />
         {home.isError ? (
           <Notice title={t("common.error")} tone="danger" />
@@ -245,7 +245,7 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
   const allFine = waiting === 0 && heardAboutVentures;
 
   return (
-    <Page width="wide">
+    <Page>
       <PageHeader
         actions={
           <Link className={buttonVariants()} to="/money">

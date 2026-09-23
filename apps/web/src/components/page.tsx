@@ -36,13 +36,15 @@ const TONE_ICON: Record<Tone, LucideIcon> = {
   info: Info,
 };
 
+/** Every working page runs the full width beside the sidebar, so its title stands in the same place on every page and
+ *  a wide screen is used rather than left as two empty bands. Only a single card of a flow — joining, setting up, a
+ *  step of the day's work — keeps to a column in the middle, where one line of it is read at a time. */
 const WIDTH = {
-  narrow: "max-w-2xl",
-  default: "max-w-6xl",
-  wide: "max-w-screen-2xl",
+  narrow: "mx-auto max-w-2xl",
+  default: "",
 } as const;
 
-/** A page's frame: its width — narrow for a form, default for most, wide for registers — and its rhythm. */
+/** A page's frame: its width — the full width, or narrow for a single card of a flow — and its rhythm. */
 export const Page = ({
   children,
   width = "default",
@@ -54,7 +56,7 @@ export const Page = ({
 }) => (
   <div
     className={cn(
-      "mx-auto flex w-full flex-col gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8",
+      "flex w-full flex-col gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8",
       WIDTH[width],
       className
     )}
