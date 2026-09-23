@@ -108,6 +108,9 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
                 <TableHead className="text-end">
                   {t("ventures.page.fetched")}
                 </TableHead>
+                <TableHead className="text-end">
+                  {t("ventures.herdCostOfGain")}
+                </TableHead>
                 <TableHead className="pe-4 text-end md:pe-5">
                   {t("ventures.page.margin")}
                 </TableHead>
@@ -149,6 +152,12 @@ export const VentureAnimals = ({ venture }: { venture: Venture }) => {
                     </TableCell>
                     <TableCell className="text-end tabular-nums">
                       {orDash(one.saleBdt)}
+                    </TableCell>
+                    {/* What each kilogram she put on cost: the figure the run is judged by, per animal. */}
+                    <TableCell className="text-end tabular-nums">
+                      {one.costOfGainBdt === null
+                        ? "—"
+                        : rate(one.costOfGainBdt)}
                     </TableCell>
                     <TableCell
                       className={cn(

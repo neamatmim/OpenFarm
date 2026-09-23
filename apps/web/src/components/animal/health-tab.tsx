@@ -1,13 +1,16 @@
 import { formatDate } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { Eye, Stethoscope } from "lucide-react";
+import { ClipboardPlus, Eye, Stethoscope } from "lucide-react";
+import { useState } from "react";
 
 import { DoseTable } from "@/components/animal-histories";
 import type { Course } from "@/components/course";
 import { CourseLine } from "@/components/course";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { VetCases } from "@/components/vet-cases";
+import { DiagnosisSheet } from "@/components/vet/diagnosis-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 
 import type { AnimalDetail, AnimalPowers } from "./animal-types";
@@ -164,12 +167,29 @@ export const HealthTab = ({
   powers: AnimalPowers;
 }) => {
   const { t } = useLanguage();
+  const [diagnosing, setDiagnosing] = useState(false);
   const nothingYet =
     detail.observations.length === 0 &&
     detail.diagnoses.length === 0 &&
     detail.treatments.length === 0;
+  // The Vet who came to her records what they found here, rather than going to their own page and choosing her again.
+  const mayDiagnose = powers.isVet && powers.stillHere;
   return (
     <div className="flex flex-col gap-6">
+      {mayDiagnose ? (
+        <div className="flex justify-end">
+          <Button onClick={() => setDiagnosing(true)} type="button">
+            <ClipboardPlus aria-hidden data-icon="inline-start" />
+            {t("vet.diagnoseHer")}
+          </Button>
+          <DiagnosisSheet
+            animalTag={detail.tagNumber}
+            onOpenChange={setDiagnosing}
+            open={diagnosing}
+            seen={null}
+          />
+        </div>
+      ) : null}
       {nothingYet ? (
         <EmptyState icon={Stethoscope} title={t("animals.healthNone")} />
       ) : null}

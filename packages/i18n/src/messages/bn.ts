@@ -352,7 +352,6 @@ export const bn: Record<MessageKey, string> = {
     "কেনা শুরুর আগে আরও ৳{short} জমা হতে হবে (সর্বনিম্ন সীমা ৳{floor})।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
   "ventures.decisionDue": "সিদ্ধান্ত {day}-এর মধ্যে",
-  "ventures.signFirst": "আগে চুক্তি সই করুন",
   "ventures.ofTheFloor": "সর্বনিম্ন সীমা {floor}",
   "ventures.signedWithoutPaper":
     "সই হয়েছে, কিন্তু চুক্তির ছবি রাখা যায়নি — টাকা জমা থেকে ছবি যোগ করুন",
@@ -368,16 +367,9 @@ export const bn: Record<MessageKey, string> = {
   "ventures.capitalHint":
     "{venture}-এর জন্য বিনিয়োগকারীর সই করা কাগজের বিপরীতে আসা টাকা। কেবল ব্যাংকে।",
   "ventures.capitalTaken": "টাকা জমা লেখা হয়েছে",
-  "ventures.whosePaper": "কার টাকা",
-  "ventures.whosePaperHint":
-    "যে চুক্তির স্ট্যাম্প করা ছবি জমা আছে, কেবল তার টাকাই নেওয়া যায়",
   "ventures.holdsUnits": "{units} ইউনিট",
-  "ventures.paperMissing": "স্ট্যাম্প করা কাগজের অপেক্ষায়",
-  "ventures.paperMissingHint":
-    "যে চুক্তির ছবি খামারের কাছে নেই, তার টাকা নেওয়া যায় না। এখানে ছবি যোগ করে তারপরই টাকা জমা দিন।",
+  "ventures.capitalLeft": "আরও {taka} জমা দেওয়া যায়",
   "ventures.paperKept": "চুক্তির সাথে কাগজ যোগ হয়েছে",
-  "ventures.noPaperYet": "ছবি জমা হয়নি",
-  "ventures.paidInFull": "পুরো টাকা জমা",
   "ventures.amount": "পরিমাণ",
   "ventures.movedOn": "ব্যাংক যেদিন পাঠিয়েছে",
   "ventures.reference": "ব্যাংক রেফারেন্স",
@@ -386,6 +378,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.approved": "অনুমোদিত — হিসাব আর বদলাবে না",
   "ventures.approvedOn": "{day} অনুমোদিত",
   "ventures.whatIsLeftToSend": "যা এখনও পাঠানো বাকি",
+  "ventures.payoutsOnTheirRows":
+    "প্রত্যেক বিনিয়োগকারীর পাওনা বিনিয়োগকারী ট্যাবে তাঁর সারি থেকে পাঠান।",
   "ventures.send": "পাঠিয়ে দিন",
   "ventures.paid": "পাঠানো হয়েছে",
   "ventures.allPaid": "সব টাকা পাঠানো হয়ে গেছে",
@@ -529,12 +523,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.spent": "খরচ · ফেরত দেওয়া",
   "ventures.outOfTheAccount": "হিসাব থেকে গেছে · ফেরত দেওয়া",
   "ventures.reimbursedSoFar": "খামারকে খরচ ফেরত দেওয়া হয়েছে",
-  "ventures.economics": "কোন গরু লাভ দিল",
   "ventures.herdMargin": "পুরো পালের মুনাফা",
   "ventures.herdCostOfGain": "প্রতি কেজি বাড়াতে খরচ",
-  "ventures.soldAndUnsold": "বিক্রি হয়েছে · হয়নি",
-  "ventures.costOfGainIs": "কেজিপ্রতি {rate}",
-  "ventures.boughtAndSold": "কেনা {bought} · বিক্রি {sold}",
   "ventures.noAnimalsYet": "এই ভেঞ্চারে এখনো কোনো গরু নেই",
   "refusal.capitalOverUnits": "এই চুক্তির ইউনিটের দামের চেয়ে বেশি টাকা",
   "refusal.refundNotItsMoney": "এই ভেঞ্চার এই টাকা কখনো নেয়নি",
@@ -635,6 +625,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.page.splitIs": "{investors}% · খামার {farm}%",
   "ventures.page.paidOfOwed": "জমা / পাওনা",
   "ventures.page.paper": "চুক্তির কাগজ",
+  "ventures.page.payout": "পাওনা",
   "ventures.page.paperKept": "ছবি আছে",
   "ventures.page.paperMissing": "ছবি নেই",
   "ventures.page.standing": "আছে",
@@ -763,7 +754,7 @@ export const bn: Record<MessageKey, string> = {
   "params.saved": "প্যারামিটার সংরক্ষিত হয়েছে",
   "sighting.report": "যা দেখছেন জানান",
   "sighting.hint":
-    "কোনো পরিদর্শনের কাজ নেই, কিন্তু কিছু সমস্যা চোখে পড়েছে — বা গরম হয়েছে। ভেট এটি দেখবেন, আর গরম হলে প্রজননের কাজ শুরু হবে।",
+    "কোনো রাউন্ডের কাজ নেই, কিন্তু কিছু সমস্যা চোখে পড়েছে — বা গরম হয়েছে। ভেট এটি দেখবেন, আর গরম হলে প্রজননের কাজ শুরু হবে।",
   "sighting.what": "কী দেখেছেন?",
   "sighting.note": "আরও কিছু বলার থাকলে (ঐচ্ছিক)",
   "sighting.noteNeeded": "কী দেখেছেন লিখুন",
@@ -1620,6 +1611,7 @@ export const bn: Record<MessageKey, string> = {
   "drugs.dosesOnHand": "{doses} ডোজ",
   "drugs.runningLow": "কমে আসছে",
   "drugs.setLowStock": "মজুদের সীমা ঠিক করুন",
+  "drugs.whatWasBought": "কেনার হিসাব",
   "drugs.lowStockHint":
     "এর চেয়ে কম ডোজ থাকলে মজুদ কমে আসছে বলে জানানো হবে। ফাঁকা রাখলে কিছু জানানো হবে না।",
   "drugs.lowStockSaved": "সীমা রাখা হলো",
@@ -2045,7 +2037,8 @@ export const bn: Record<MessageKey, string> = {
   "vet.waiting": "উত্তরের অপেক্ষায়",
   "vet.nothingWaiting": "সব দেখা হয়েছে",
   "vet.mine": "আপনার সিদ্ধান্ত",
-  "vet.onItsOwn": "পরিদর্শন ছাড়া রোগ লিখুন",
+  "vet.onItsOwn": "পর্যবেক্ষণ ছাড়া রোগ লিখুন",
+  "vet.diagnoseHer": "রোগ নির্ণয় লিখুন",
   "vet.tagNumber": "পশুর ট্যাগ",
   "vet.noAnimalToDiagnose": "এখন খামারে আপনার দেখার মতো কোনো গরু নেই",
   "vet.noneMine": "আপনি এখনও কিছু লেখেননি",
@@ -2059,9 +2052,9 @@ export const bn: Record<MessageKey, string> = {
   "vet.saveCorrection": "সংশোধন সংরক্ষণ",
   "vet.corrected": "সংশোধন হয়েছে",
   "vet.subtitle":
-    "পরিদর্শনে যা দেখা গেছে কিন্তু কেউ উত্তর দেননি, আপনার সিদ্ধান্ত, আর আপনার দেওয়া চিকিৎসার কোর্স।",
+    "রাউন্ডে যা দেখা গেছে কিন্তু কেউ উত্তর দেননি, আপনার সিদ্ধান্ত, আর আপনার দেওয়া চিকিৎসার কোর্স।",
   "vet.tab.repeat": "গর্ভ ধরছে না",
-  "vet.kpi.waitingHint": "পরিদর্শনে দেখা, উত্তর হয়নি",
+  "vet.kpi.waitingHint": "রাউন্ডে দেখা, উত্তর হয়নি",
   "vet.kpi.mine": "সাম্প্রতিক সিদ্ধান্ত",
   "vet.kpi.mineHint": "গত দুই সপ্তাহে আপনার লেখা রোগ",
   "vet.kpi.owed": "যে ডোজ এখনও দিতে হবে",
@@ -2069,7 +2062,7 @@ export const bn: Record<MessageKey, string> = {
   "vet.kpi.casesHint": "যে পশুর জন্য আপনাকে ডাকা হয়েছে",
   "vet.kpi.repeatHint": "সিদ্ধান্তের অপেক্ষায়",
   "vet.answerHint":
-    "পরিদর্শনে যা দেখা গেছে তার উত্তর। এটি আপনার নিজের কাজ, আপনার নামে লেখা হবে।",
+    "রাউন্ডে যা দেখা গেছে তার উত্তর। এটি আপনার নিজের কাজ, আপনার নামে লেখা হবে।",
   "vet.onItsOwnHint":
     "এক পশুর জন্য এসে অন্য পশুতে কিছু পেলে: ট্যাগ দিয়ে তাকে চিহ্নিত করুন।",
   "vet.noRepeatBreeders": "কোনো গাভী সিদ্ধান্তের অপেক্ষায় নেই",

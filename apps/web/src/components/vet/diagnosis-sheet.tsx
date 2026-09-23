@@ -60,21 +60,25 @@ const WhatWasSeen = ({ seen }: { seen: Seen }) => {
  */
 export const DiagnosisSheet = ({
   seen,
+  animalTag,
   open,
   onOpenChange,
 }: {
   /** What is being answered; none for a Diagnosis on its own. */
   seen: Seen | null;
+  /** Opened from her own page: the animal is her, and is not chosen again. */
+  animalTag?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
   const onError = useRefusal();
-  const [tagNumber, setTagNumber] = useState("");
+  const [tagNumber, setTagNumber] = useState(animalTag ?? "");
   const [conclusion, setConclusion] = useState(emptyConclusion);
   const idPrefix = seen?.id ?? "own";
-  // Only for a Diagnosis on its own, and only once the sheet is open: answering a round already names the animal.
-  const choosing = open && seen === null;
+  // Only for a Diagnosis on its own, only once the sheet is open, and only where nobody has named her yet: answering
+  // a round names the animal, and so does her own page.
+  const choosing = open && seen === null && animalTag === undefined;
   const herd = useQuery({
     ...orpc.animals.list.queryOptions({ input: {} }),
     enabled: choosing,
@@ -96,7 +100,7 @@ export const DiagnosisSheet = ({
   const record = useMutation(
     orpc.diagnoses.record.mutationOptions({
       onSuccess: () => {
-        setTagNumber("");
+        setTagNumber(animalTag ?? "");
         setConclusion(emptyConclusion);
         toast.success(t("vet.recorded"));
         onOpenChange(false);
@@ -130,9 +134,13 @@ export const DiagnosisSheet = ({
       submitLabel={t("vet.record")}
       title={seen ? t("vet.record") : t("vet.onItsOwn")}
     >
-      {seen ? (
-        <WhatWasSeen seen={seen} />
-      ) : (
+      {seen ? <WhatWasSeen seen={seen} /> : null}
+      {seen === null && animalTag ? (
+        <p className="bg-muted rounded-md px-3 py-2 text-sm">
+          <AnimalLink tagNumber={animalTag} />
+        </p>
+      ) : null}
+      {seen === null && animalTag === undefined ? (
         <FormField id="own-tag" label={t("vet.tagNumber")}>
           <SearchablePicker
             empty={t("vet.noAnimalToDiagnose")}
@@ -144,7 +152,7 @@ export const DiagnosisSheet = ({
             value={tagNumber}
           />
         </FormField>
-      )}
+      ) : null}
       <FormField id={`disease-${idPrefix}`} label={t("vet.disease")}>
         <Input
           autoComplete="off"

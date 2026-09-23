@@ -11,7 +11,6 @@ import { BuyWhatIsLeftSheet } from "@/components/ventures/buy-what-is-left-sheet
 import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
-import { EconomicsSheet } from "@/components/ventures/economics-sheet";
 import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
 import { SettlementSheet } from "@/components/ventures/settlement-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
@@ -84,7 +83,6 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
     settle: opens("settle"),
     advance: opens("advance"),
     checkTheBank: opens("checkTheBank"),
-    economics: opens("economics"),
     amend: opens("amend"),
     // Once, however often it is pressed while the first is on its way: a second press lands on a Venture that
     // has already moved and comes back refused, straight after the toast saying it worked.
@@ -131,7 +129,6 @@ export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
       <DrawFloatSheet {...staging("drawFloat")} />
       <CallOffSheet {...staging("callOff")} />
       <AmendSheet {...staging("amend")} />
-      <EconomicsSheet {...staging("economics")} />
       <SignAgreementSheet {...staging("sign")} />
     </>
   );

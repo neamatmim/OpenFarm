@@ -375,7 +375,6 @@ export const en = {
     "৳{short} more has to come in before buying can start (Floor ৳{floor}).",
   "ventures.noUnitsLeft": "Every Unit is signed for.",
   "ventures.decisionDue": "Decide by {day}",
-  "ventures.signFirst": "Sign an Agreement first",
   "ventures.ofTheFloor": "of a {floor} Floor",
   "ventures.signedWithoutPaper":
     "Signed, but the paper's photo did not save; add it from Capital in",
@@ -391,18 +390,11 @@ export const en = {
   "ventures.capitalHint":
     "Money arriving for {venture}, against the paper the Investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
-  "ventures.whosePaper": "Whose money",
-  "ventures.whosePaperHint":
-    "Only an Agreement whose stamped photo is on file may take money",
   "ventures.holdsUnits": "{units} Units",
+  "ventures.capitalLeft": "{taka} left to pay in",
   /** The way back from signing without the stamped photo: without it capital is refused for good, and
    *  one Investor may hold only one Agreement per Venture, so there is no signing again. */
-  "ventures.paperMissing": "Waiting on the stamped paper",
-  "ventures.paperMissingHint":
-    "Capital cannot be taken against an agreement the farm holds no photo of. Add it here and take the money straight after.",
   "ventures.paperKept": "The paper is on the agreement",
-  "ventures.noPaperYet": "no photo yet",
-  "ventures.paidInFull": "paid in full",
   "ventures.amount": "Amount",
   "ventures.movedOn": "The day the bank moved it",
   "ventures.reference": "Bank reference",
@@ -412,6 +404,8 @@ export const en = {
   "ventures.approved": "Approved — the figures are fixed now",
   "ventures.approvedOn": "Approved {day}",
   "ventures.whatIsLeftToSend": "What is left to send",
+  "ventures.payoutsOnTheirRows":
+    "Each Investor's payout is sent from his row on the Investors tab.",
   "ventures.send": "Send it",
   "ventures.paid": "Sent",
   "ventures.allPaid": "Everything has gone out",
@@ -564,12 +558,8 @@ export const en = {
   /** What a Venture has paid the Farm back for what its animals consumed. Left off a Venture that has
    *  never had a month, rather than shown as a zero. */
   "ventures.reimbursedSoFar": "Paid back to the farm",
-  "ventures.economics": "Which bull earned",
   "ventures.herdMargin": "The herd's margin",
   "ventures.herdCostOfGain": "Each kilogram they put on",
-  "ventures.soldAndUnsold": "Sold · not sold",
-  "ventures.costOfGainIs": "{rate} a kilogram",
-  "ventures.boughtAndSold": "Bought {bought} · sold {sold}",
   "ventures.noAnimalsYet": "No animals on this venture yet",
   "refusal.capitalOverUnits":
     "That is more than this Agreement's Units are worth",
@@ -692,6 +682,7 @@ export const en = {
   "ventures.page.splitIs": "{investors}% · Farm {farm}%",
   "ventures.page.paidOfOwed": "Paid / owed",
   "ventures.page.paper": "The paper",
+  "ventures.page.payout": "Payout",
   "ventures.page.paperKept": "Photo kept",
   "ventures.page.paperMissing": "No photo yet",
   "ventures.page.standing": "Still here",
@@ -1705,6 +1696,7 @@ export const en = {
   "drugs.dosesOnHand": "{doses} doses",
   "drugs.runningLow": "Running low",
   "drugs.setLowStock": "Set the low-stock level",
+  "drugs.whatWasBought": "What was bought",
   "drugs.lowStockHint":
     "Below this many doses the store says it is running low. Leave it blank to watch nothing.",
   "drugs.lowStockSaved": "The level is saved",
@@ -2152,6 +2144,7 @@ export const en = {
   "vet.nothingWaiting": "Everything the rounds saw has been answered",
   "vet.mine": "What you concluded",
   "vet.onItsOwn": "Record without an observation",
+  "vet.diagnoseHer": "Record a diagnosis",
   "vet.tagNumber": "Animal tag",
   "vet.noAnimalToDiagnose":
     "No animal on the farm is yours to diagnose just now",

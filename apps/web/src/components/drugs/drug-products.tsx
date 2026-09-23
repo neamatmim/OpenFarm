@@ -10,6 +10,7 @@ import {
   PackagePlus,
   Pill,
   Plus,
+  ShoppingCart,
   Syringe,
 } from "lucide-react";
 import { useState } from "react";
@@ -53,6 +54,8 @@ interface ProductActions {
   handleRetire: (product: DrugProduct) => void;
   handleBringBack: (product: DrugProduct) => void;
   handleBuy: (productId: string) => void;
+  /** What was bought of it: the Bought tab, with it chosen. */
+  handleBought: (productId: string) => void;
   handleLevel: (product: DrugProduct) => void;
 }
 
@@ -254,6 +257,14 @@ const menuFor = (
         handleSelect: () => actions.handleLevel(product),
       }
     );
+  }
+  // What was bought of it — retired ones too, whose history still stands — without choosing it again on the tab.
+  if (actions.mayBuy) {
+    menu.push({
+      label: t("drugs.whatWasBought"),
+      icon: ShoppingCart,
+      handleSelect: () => actions.handleBought(product.id),
+    });
   }
   if (!actions.isVet) {
     return menu;
@@ -642,12 +653,14 @@ export const ProductsTab = ({
   mayAdd,
   mayBuy,
   onBuy,
+  onBought,
 }: {
   products: DrugProduct[];
   isVet: boolean;
   mayAdd: boolean;
   mayBuy: boolean;
   onBuy: (productId: string) => void;
+  onBought: (productId: string) => void;
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
@@ -680,6 +693,7 @@ export const ProductsTab = ({
     handleRetire: setRetiring,
     handleBringBack: (product) => bringBack.mutate({ id: product.id }),
     handleBuy: onBuy,
+    handleBought: onBought,
     handleLevel: setLevelFor,
   };
   const table = useListTable({

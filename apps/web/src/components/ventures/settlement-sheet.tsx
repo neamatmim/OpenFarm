@@ -23,11 +23,7 @@ import {
   RaiseAdjustmentSheet,
   WaiveAdjustmentSheet,
 } from "@/components/ventures/adjustments";
-import {
-  AcknowledgeSheet,
-  PayOutSheet,
-  SharePaid,
-} from "@/components/ventures/settling-up";
+import { PayOutSheet } from "@/components/ventures/settling-up";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
@@ -394,14 +390,13 @@ const Approve = ({ ventureId }: { ventureId: string }) => {
  * What is left to send, once the Settlement is approved.
  *
  * In the order the money really goes: the Owner's own back first, because she put it in to feed their
- * animals and it returns at cost before any capital does; then each Investor; then the Farm's own share,
- * which leaves for the Farm's books so the account closes at nothing.
+ * animals and it returns at cost before any capital does; then each Investor — from his own row on the Investors
+ * tab; then the Farm's own share, which leaves for the Farm's books so the account closes at nothing.
  */
 const WhatIsLeftToSend = ({
   ventureId,
   approved,
   onPay,
-  onAcknowledge,
 }: {
   ventureId: string;
   approved: Approved;
@@ -411,11 +406,6 @@ const WhatIsLeftToSend = ({
     title: string;
     amountBdt: number;
     agreementId?: string;
-  }) => void;
-  onAcknowledge: (what: {
-    ventureId: string;
-    agreementId: string;
-    title: string;
   }) => void;
 }) => {
   const { t } = useLanguage();
@@ -474,39 +464,13 @@ const WhatIsLeftToSend = ({
             </span>
           </div>
         )}
-        {approved.shares.map((one) => (
-          <div
-            className="flex items-center justify-between gap-2"
-            key={one.agreementId}
-          >
-            <span>{one.name}</span>
-            <span className="flex items-center gap-2">
-              <span className="tabular-nums">{taka(one.payoutBdt)}</span>
-              <SharePaid
-                advanceFirst={
-                  approved.advanceBdt !== 0 && !approved.advanceRepaid
-                }
-                onAcknowledge={() =>
-                  onAcknowledge({
-                    ventureId,
-                    agreementId: one.agreementId,
-                    title: one.name,
-                  })
-                }
-                onPay={() =>
-                  onPay({
-                    ventureId,
-                    kind: "share",
-                    title: one.name,
-                    amountBdt: one.payoutBdt,
-                    agreementId: one.agreementId,
-                  })
-                }
-                share={one}
-              />
-            </span>
-          </div>
-        ))}
+        {/* Each Investor's payout is sent from his own row on the Investors tab, beside his Units and his papers:
+            the sheet does not list the same men again. */}
+        {approved.shares.length === 0 ? null : (
+          <p className="text-muted-foreground">
+            {t("ventures.payoutsOnTheirRows")}
+          </p>
+        )}
         {approved.farmBdt <= 0 || approved.farmSharePaid ? null : (
           <div className="flex items-center justify-between gap-2">
             <span>{t("ventures.theFarms")}</span>
@@ -550,7 +514,6 @@ const SettlingUp = ({
   blocks,
   heldNowBdt,
   onPay,
-  onAcknowledge,
   onRaise,
   onWaive,
 }: {
@@ -562,7 +525,6 @@ const SettlingUp = ({
   /** What the account holds today, which the frozen figures stop telling after approval. */
   heldNowBdt: number | undefined;
   onPay: (what: Parameters<typeof PayOutSheet>[0]["what"]) => void;
-  onAcknowledge: (what: Parameters<typeof AcknowledgeSheet>[0]["what"]) => void;
   onRaise: () => void;
   onWaive: (what: Parameters<typeof WaiveAdjustmentSheet>[0]["what"]) => void;
 }) => {
@@ -602,7 +564,6 @@ const SettlingUp = ({
       {approved ? (
         <WhatIsLeftToSend
           approved={approved}
-          onAcknowledge={onAcknowledge}
           onPay={onPay}
           ventureId={venture?.id ?? ""}
         />
@@ -639,8 +600,6 @@ export const SettlementSheet = ({
   const { t } = useLanguage();
   const [paying, setPaying] =
     useState<Parameters<typeof PayOutSheet>[0]["what"]>(null);
-  const [saying, setSaying] =
-    useState<Parameters<typeof AcknowledgeSheet>[0]["what"]>(null);
   const [raising, setRaising] = useState(false);
   const [waiving, setWaiving] =
     useState<Parameters<typeof WaiveAdjustmentSheet>[0]["what"]>(null);
@@ -679,7 +638,6 @@ export const SettlementSheet = ({
               <SettlingUp
                 approved={approved}
                 figures={it}
-                onAcknowledge={setSaying}
                 onPay={setPaying}
                 onRaise={() => setRaising(true)}
                 onWaive={setWaiving}
@@ -699,15 +657,6 @@ export const SettlementSheet = ({
         }}
         open={paying !== null}
         what={paying}
-      />
-      <AcknowledgeSheet
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setSaying(null);
-          }
-        }}
-        open={saying !== null}
-        what={saying}
       />
       <RaiseAdjustmentSheet
         onOpenChange={setRaising}

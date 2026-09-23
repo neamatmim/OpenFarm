@@ -12,6 +12,7 @@ import {
 } from "@OpenFarm/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
 import { Banknote, FileText, PenLine, Users } from "lucide-react";
+import { useState } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
@@ -23,6 +24,11 @@ import {
   ProducedPaper,
   useInvestorPapers,
 } from "@/components/ventures/investor-papers";
+import {
+  AcknowledgeSheet,
+  PayOutSheet,
+  SharePaid,
+} from "@/components/ventures/settling-up";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import { moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
@@ -127,6 +133,19 @@ export const VentureInvestors = ({
   const signed = moneyOf(venture).signedFor;
   const unitsLeft = venture.units - signed.units;
   const papers = useInvestorPapers();
+  // Once the Settlement is approved, what each man is owed from it and whether it has gone — sent from his row,
+  // as his capital and his papers are.
+  const frozen = useQuery(orpc.ventures.approvedSettlement.queryOptions(input));
+  const approved = frozen.data ?? null;
+  const shareOf = new Map(
+    (approved?.shares ?? []).map((one) => [one.agreementId, one] as const)
+  );
+  const advanceFirst =
+    approved !== null && approved.advanceBdt !== 0 && !approved.advanceRepaid;
+  const [paying, setPaying] =
+    useState<Parameters<typeof PayOutSheet>[0]["what"]>(null);
+  const [saying, setSaying] =
+    useState<Parameters<typeof AcknowledgeSheet>[0]["what"]>(null);
   const open = venture.state === "open";
   const cancelled = venture.state === "cancelled";
   const settled = venture.settlementApproved ?? false;
@@ -171,6 +190,11 @@ export const VentureInvestors = ({
                   {t("ventures.page.paidOfOwed")}
                 </TableHead>
                 <TableHead>{t("ventures.page.paper")}</TableHead>
+                {approved ? (
+                  <TableHead className="text-end">
+                    {t("ventures.page.payout")}
+                  </TableHead>
+                ) : null}
                 <TableHead className="pe-4 md:pe-5">
                   <span className="sr-only">{t("common.col.actions")}</span>
                 </TableHead>
@@ -179,6 +203,7 @@ export const VentureInvestors = ({
             <TableBody>
               {rows.map((one) => {
                 const owed = one.units * venture.unitPriceBdt;
+                const share = shareOf.get(one.id);
                 const hasPaid = paid.get(one.id) ?? 0;
                 return (
                   <TableRow key={one.id}>
@@ -217,8 +242,35 @@ export const VentureInvestors = ({
                         </StatusBadge>
                       )}
                     </TableCell>
+                    {approved ? (
+                      <TableCell className="text-end tabular-nums">
+                        {share ? taka(share.payoutBdt) : "—"}
+                      </TableCell>
+                    ) : null}
                     <TableCell className="pe-4 md:pe-5">
                       <div className="flex flex-wrap items-center justify-end gap-2">
+                        {share ? (
+                          <SharePaid
+                            advanceFirst={advanceFirst}
+                            onAcknowledge={() =>
+                              setSaying({
+                                ventureId: venture.id,
+                                agreementId: one.id,
+                                title: share.name,
+                              })
+                            }
+                            onPay={() =>
+                              setPaying({
+                                ventureId: venture.id,
+                                kind: "share",
+                                title: share.name,
+                                amountBdt: share.payoutBdt,
+                                agreementId: one.id,
+                              })
+                            }
+                            share={share}
+                          />
+                        ) : null}
                         {/* Capital is taken against the stamped paper, while the run is still gathering it. */}
                         {open &&
                         one.hasPaper &&
@@ -257,6 +309,24 @@ export const VentureInvestors = ({
           </Table>
         </div>
       )}
+      <PayOutSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setPaying(null);
+          }
+        }}
+        open={paying !== null}
+        what={paying}
+      />
+      <AcknowledgeSheet
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setSaying(null);
+          }
+        }}
+        open={saying !== null}
+        what={saying}
+      />
       {papers.produced ? (
         <div className="mt-4">
           <ProducedPaper produced={papers.produced} />

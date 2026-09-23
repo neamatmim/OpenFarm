@@ -1,4 +1,3 @@
-import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -6,11 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
-import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
-import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
+import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { useRefused } from "@/lib/refused";
+import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 interface Arrival {
@@ -25,53 +24,6 @@ const NOTHING_YET: Arrival = {
   amountBdt: "",
   movedOn: "",
   reference: "",
-};
-
-/**
- * The stamped paper, attached to an Agreement signed without one.
- *
- * Offered here because here is where she finds out: the option above is disabled and says so, and until
- * now that was the end of the road. One Investor holds at most one Agreement per Venture, no Agreement
- * can be undone, and no other screen would take the photograph — so a forgotten photo shut that man's
- * capital out for good and the only way back was a call nobody can make from a phone.
- */
-const PaperlessAgreements = ({
-  agreements,
-}: {
-  agreements: { id: string; investorId: string }[];
-}) => {
-  const { t } = useLanguage();
-  const nameOf = useInvestorNames();
-  if (agreements.length === 0) {
-    return null;
-  }
-  return (
-    <div className="border-warning/35 bg-warning-surface/40 flex flex-col gap-2 rounded-md border p-3">
-      <p className="text-sm font-medium">{t("ventures.paperMissing")}</p>
-      {agreements.map((one) => (
-        <div className="flex flex-wrap items-center gap-3" key={one.id}>
-          <span className="min-w-0 flex-1 truncate text-sm">
-            {nameOf(one.investorId)}
-          </span>
-          <AgreementPaperButton agreementId={one.id} idPrefix="capital" />
-        </div>
-      ))}
-      <p className="text-muted-foreground text-sm">
-        {t("ventures.paperMissingHint")}
-      </p>
-    </div>
-  );
-};
-
-/** Why a paper is not to be chosen, as the option says it — paid up, or not yet papered — or nothing. */
-const whyNotThisPaper = (
-  one: { capitalLeftBdt: number; hasPaper: boolean },
-  t: (key: MessageKey) => string
-): string => {
-  if (one.capitalLeftBdt === 0) {
-    return ` · ${t("ventures.paidInFull")}`;
-  }
-  return one.hasPaper ? "" : ` · ${t("ventures.noPaperYet")}`;
 };
 
 /**
@@ -107,6 +59,7 @@ export const TakeCapitalSheet = ({
     enabled: venture !== null,
   });
   const nameOf = useInvestorNames();
+  const taka = useTaka();
   const taking = useMutation(
     orpc.ventures.takeCapital.mutationOptions({
       onError: refused,
@@ -116,6 +69,9 @@ export const TakeCapitalSheet = ({
         toast.success(t("ventures.capitalTaken"));
       },
     })
+  );
+  const paper = (agreements.data ?? []).find(
+    (one) => one.id === arrival.agreementId
   );
   const amount = Number(arrival.amountBdt);
   const ready =
@@ -142,40 +98,15 @@ export const TakeCapitalSheet = ({
       submitLabel={t("ventures.takeCapital")}
       title={t("ventures.takeCapital")}
     >
-      <FormField
-        hint={t("ventures.whosePaperHint")}
-        id="capital-agreement"
-        label={t("ventures.whosePaper")}
-      >
-        <NativeSelect
-          id="capital-agreement"
-          onChange={(event) =>
-            setArrival({ ...arrival, agreementId: event.target.value })
-          }
-          value={arrival.agreementId}
-        >
-          <option value="">—</option>
-          {(agreements.data ?? []).map((one) => {
-            // Paid up, or not yet papered: either way the farm would refuse capital on it, so it is not chosen.
-            const paidUp = one.capitalLeftBdt === 0;
-            const why = whyNotThisPaper(one, t);
-            return (
-              <option
-                disabled={!one.hasPaper || paidUp}
-                key={one.id}
-                value={one.id}
-              >
-                {`${nameOf(one.investorId)} · ${t("ventures.holdsUnits", {
-                  units: formatNumber(one.units, language),
-                })}${why}`}
-              </option>
-            );
-          })}
-        </NativeSelect>
-      </FormField>
-      <PaperlessAgreements
-        agreements={(agreements.data ?? []).filter((one) => !one.hasPaper)}
-      />
+      {/* Whose paper it comes against is the row it was opened from: said, not asked again. */}
+      {paper ? (
+        <p className="bg-muted rounded-md px-3 py-2 text-sm">
+          <span className="font-medium">{nameOf(paper.investorId)}</span>
+          {` · ${t("ventures.holdsUnits", {
+            units: formatNumber(paper.units, language),
+          })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftBdt) })}`}
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="capital-amount" label={t("ventures.amount")}>
           <Input
