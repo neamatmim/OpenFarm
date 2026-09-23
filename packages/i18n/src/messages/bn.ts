@@ -2316,7 +2316,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.tripKeep": "খাওয়া ও থাকা",
   "intake.recordTrip": "যাত্রা লিখুন",
   "intake.tripRecorded": "যাত্রা লেখা হলো, এবং এই গরু সেই যাত্রাতেই এসেছে",
-  "intake.tripChosen": "এই গরু উপরে বেছে নেওয়া যাত্রায় এসেছে।",
+  "intake.newTrip": "নতুন যাত্রা",
   "intake.noTrip": "কোনো যাত্রা নয় — খামার থেকেই কেনা",
   "intake.owner": "গরুটি কার",
   "intake.ownerHint":

@@ -1,6 +1,7 @@
 import { formatDate } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { Camera, CircleCheck } from "lucide-react";
+import { Camera, CircleCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Section } from "@/components/page";
@@ -240,6 +241,7 @@ export const PriceSection = ({
   onEdit,
   trips,
   ventures,
+  onNewTrip,
 }: PartProps & {
   trips: {
     id: string;
@@ -251,6 +253,8 @@ export const PriceSection = ({
   }[];
   /** The Ventures that are buying: the only ones that may take an animal in. */
   ventures: { id: string; name: string }[];
+  /** Write up an outing that is not on the list yet: the first of its animals to be taken in. */
+  onNewTrip: () => void;
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
@@ -291,21 +295,33 @@ export const PriceSection = ({
         />
       </div>
       <FormField id="intake-trip" label={t("intake.trip")}>
-        <NativeSelect
-          id="intake-trip"
-          onChange={(event) => onEdit({ buyingTripId: event.target.value })}
-          value={fields.buyingTripId}
-        >
-          <option value="">{t("intake.noTrip")}</option>
-          {trips.map((trip) => (
-            <option key={trip.id} value={trip.id}>
-              {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
-              {trip.float
-                ? ` · ${trip.float.ventureName} ${taka(trip.float.amountBdt)}`
-                : ""}
-            </option>
-          ))}
-        </NativeSelect>
+        <div className="flex gap-2">
+          <NativeSelect
+            className="min-w-0 flex-1"
+            id="intake-trip"
+            onChange={(event) => onEdit({ buyingTripId: event.target.value })}
+            value={fields.buyingTripId}
+          >
+            <option value="">{t("intake.noTrip")}</option>
+            {trips.map((trip) => (
+              <option key={trip.id} value={trip.id}>
+                {trip.wentTo} · {formatDate(trip.wentOn, language, "date")}
+                {trip.float
+                  ? ` · ${trip.float.ventureName} ${taka(trip.float.amountBdt)}`
+                  : ""}
+              </option>
+            ))}
+          </NativeSelect>
+          <Button
+            className="h-11 shrink-0 md:h-9"
+            onClick={onNewTrip}
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden data-icon="inline-start" />
+            {t("intake.newTrip")}
+          </Button>
+        </div>
       </FormField>
       {ventures.length > 0 ? (
         <FormField
