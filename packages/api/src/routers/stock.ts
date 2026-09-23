@@ -39,7 +39,9 @@ export const stockRouter = {
    */
   onHand: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(({ context }) => stockOnHand(context.db, context.farm.id)),
+    .handler(({ context }) =>
+      stockOnHand(context.db, context.farm.id, context.clock.now())
+    ),
 
   /**
    * Everything that came into the store, newest first: what, how much — in maunds as well, for feed
