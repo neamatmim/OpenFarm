@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MoveDialog } from "@/components/animal/move-dialog";
 import {
   FormDialog,
   FormField,
@@ -13,7 +14,6 @@ import {
 } from "@/components/page-kit";
 import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
-import { queueMove } from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -30,88 +30,6 @@ interface ActProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-/** To another Pen — with signal the farm answers now; without it the Move waits on the phone rather than being lost. */
-const MoveDialog = ({
-  detail,
-  open,
-  onOpenChange,
-  pens,
-}: ActProps & { pens: PenChoice[] }) => {
-  const { t } = useLanguage();
-  const onError = useRefused();
-  const [toPenId, setToPenId] = useState("");
-  const [reason, setReason] = useState("");
-  const finished = () => {
-    setToPenId("");
-    setReason("");
-    onOpenChange(false);
-  };
-  const move = useMutation(
-    orpc.animals.move.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("animals.moved"));
-        finished();
-      },
-      onError,
-    })
-  );
-  const handleSubmit = async () => {
-    const wanted = {
-      tagNumber: detail.tagNumber,
-      toPenId,
-      reason: reason || undefined,
-    };
-    if (navigator.onLine) {
-      move.mutate(wanted);
-      return;
-    }
-    try {
-      await queueMove(wanted);
-      toast.success(t("animals.moveQueued"));
-      finished();
-    } catch (error) {
-      onError(error as Error);
-    }
-  };
-  return (
-    <FormDialog
-      description={`${t("animals.pen")}: ${detail.pen.shed.name} / ${detail.pen.name}`}
-      onOpenChange={onOpenChange}
-      onSubmit={handleSubmit}
-      open={open}
-      pending={move.isPending}
-      ready={toPenId !== ""}
-      submitLabel={t("animals.move")}
-      title={`${t("animals.move")} · ${detail.tagNumber}`}
-    >
-      <FormField id="act-move-pen" label={t("animals.moveTo")}>
-        <NativeSelect
-          id="act-move-pen"
-          onChange={(event) => setToPenId(event.target.value)}
-          required
-          value={toPenId}
-        >
-          <option value="">—</option>
-          {pens
-            .filter((pen) => pen.id !== detail.penId)
-            .map((pen) => (
-              <option key={pen.id} value={pen.id}>
-                {pen.shedName} / {pen.name}
-              </option>
-            ))}
-        </NativeSelect>
-      </FormField>
-      <FormField id="act-move-reason" label={t("animals.reason")}>
-        <Input
-          id="act-move-reason"
-          onChange={(event) => setReason(event.target.value)}
-          value={reason}
-        />
-      </FormField>
-    </FormDialog>
-  );
-};
 
 /** Her State, to one the farm allows from where she is now. */
 const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
@@ -529,7 +447,16 @@ export const AnimalActs = ({
   const shared = { detail, onOpenChange: handleOpenChange };
   return (
     <>
-      <MoveDialog {...shared} open={act === "move"} pens={movePens} />
+      <MoveDialog
+        animal={{
+          tagNumber: detail.tagNumber,
+          penId: detail.penId,
+          penName: `${detail.pen.shed.name} / ${detail.pen.name}`,
+        }}
+        onOpenChange={handleOpenChange}
+        open={act === "move"}
+        pens={movePens}
+      />
       <StateDialog {...shared} open={act === "state"} />
       <RetagDialog {...shared} open={act === "retag"} />
       <MortalitySheet {...shared} open={act === "mortality"} />

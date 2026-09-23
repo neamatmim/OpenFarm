@@ -220,16 +220,20 @@ export {
 export type {
   FeedingEntryLine,
   FeedingLine,
+  BandStanding,
   LeftoverStanding,
   LeftoverTally,
   RationLine,
   StockMovement,
   WeighedAnimal,
+  WeightBand,
 } from "./feed";
 export {
   KG_DECIMALS,
   MAUND_KG,
   MAX_KG_PER_100KG_PER_DAY,
+  bandStanding,
+  findBandProblems,
   MAX_KG_PER_ANIMAL_PER_DAY,
   SESSIONS_TO_JUDGE,
   WASTING_LEFTOVER_PERCENT,

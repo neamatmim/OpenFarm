@@ -14,6 +14,7 @@ import {
 import { FatteningBoard } from "@/components/fattening/fattening-board";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
+import { OutOfBand } from "@/components/fattening/out-of-band";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -134,6 +135,7 @@ const FatteningPage = () => {
     <Page>
       {header}
       <BoardFigures rows={rows} />
+      <OutOfBand />
       <FatteningBoard rows={rows} />
     </Page>
   );

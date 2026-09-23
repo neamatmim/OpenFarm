@@ -60,6 +60,11 @@ export const ration = pgTable(
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
     currentVersionId: text("current_version_id"),
+    /** The weights it is written for — a grower's 150 to 250 kg — so a bull grown out of it, or one too small for it,
+     *  is pointed out to be moved. On the Ration rather than a Version: it says who should eat it, not what they are
+     *  fed, and moving it rewrites no Feeding. Null at either end for an end left open. */
+    weightFromKg: numeric("weight_from_kg", { precision: 7, scale: 1 }),
+    weightToKg: numeric("weight_to_kg", { precision: 7, scale: 1 }),
     retiredAt: timestamp("retired_at"),
     createdAt: timestamp("created_at").notNull(),
   },
