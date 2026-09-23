@@ -162,19 +162,21 @@ const menuFor = (
   if (!actions.isVet) {
     return menu;
   }
-  menu.push(
-    {
+  // Not while the days are waiting to be written: the row has them as a button of its own then, and one act
+  // offered twice on one row is one too many.
+  if (standingOf(product) !== "waiting") {
+    menu.push({
       label: t("drugs.save"),
       icon: CalendarClock,
       handleSelect: () => actions.handleDays(product),
-    },
-    {
-      label: t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine"),
-      icon: Syringe,
-      disabled: actions.busy,
-      handleSelect: () => actions.handleVaccine(product),
-    }
-  );
+    });
+  }
+  menu.push({
+    label: t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine"),
+    icon: Syringe,
+    disabled: actions.busy,
+    handleSelect: () => actions.handleVaccine(product),
+  });
   if (product.retiredAt) {
     menu.push({
       label: t("drugs.bringBack"),

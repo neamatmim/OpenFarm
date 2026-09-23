@@ -16,13 +16,10 @@ import {
   Camera,
   EllipsisVertical,
   Handshake,
-  HeartCrack,
   MapPin,
   RefreshCw,
-  Shovel,
   Skull,
   Tag,
-  TimerOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -83,6 +80,22 @@ const MoreActs = ({
   if (actions.length === 0) {
     return null;
   }
+  // One act is a button with its own name, not "more" opening onto a list of one.
+  const [only] = actions;
+  if (actions.length === 1 && only) {
+    const Icon = only.icon;
+    return (
+      <Button
+        className={only.destructive ? "text-danger" : undefined}
+        onClick={only.handleSelect}
+        type="button"
+        variant="outline"
+      >
+        {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+        {only.label}
+      </Button>
+    );
+  }
   const safe = actions.filter((action) => !action.destructive);
   const destructive = actions.filter((action) => action.destructive);
   return (
@@ -118,12 +131,15 @@ interface MenuAct {
   destructive?: boolean;
 }
 
-/** The acts in her menu this person may do, in the order the barn reaches for them. */
+/**
+ * The acts in her menu this person may do, in the order the barn reaches for them.
+ *
+ * Only what has no button of its own elsewhere on her page: cutting a withdrawal short is a button on the
+ * withdrawal it shortens, a disposal on the death it follows, an abortion on her breeding — each where the thing it
+ * changes is shown, and offered once.
+ */
 const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
   const { t } = useLanguage();
-  const held = Boolean(
-    detail.milkWithdrawalUntil || detail.meatWithdrawalUntil
-  );
   const acts: MenuAct[] = [
     {
       act: "state",
@@ -136,27 +152,6 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
       label: t("animals.retag"),
       icon: Tag,
       offered: powers.mayHandle,
-    },
-    {
-      act: "shorten",
-      label: t("withdrawal.shorten"),
-      icon: TimerOff,
-      offered: powers.fullVet && held,
-    },
-    {
-      act: "abortion",
-      label: t("abortion.record"),
-      icon: HeartCrack,
-      offered: powers.isVet && detail.expectedCalvingAt !== null,
-    },
-    {
-      act: "disposal",
-      label: t("mortality.recordDisposal"),
-      icon: Shovel,
-      offered:
-        powers.runsTheFarm &&
-        detail.mortality !== null &&
-        detail.mortality.disposal === null,
     },
     {
       act: "mortality",

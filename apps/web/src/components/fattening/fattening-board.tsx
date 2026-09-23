@@ -1,7 +1,8 @@
 import { formatNumber } from "@OpenFarm/i18n";
+import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useNavigate } from "@tanstack/react-router";
-import { Beef, CalendarCheck, PawPrint, Store } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Beef, Store } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -13,8 +14,7 @@ import {
 } from "@/components/data-table";
 import { GainFigures, WeightAgainstTarget } from "@/components/gain";
 import { EmptyState, ProgressBar } from "@/components/page";
-import type { RowAction } from "@/components/page-kit";
-import { FilterBar, NativeSelect, RowMenu } from "@/components/page-kit";
+import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 
 import type { BoardRow, Standing } from "./fattening-types";
@@ -29,42 +29,27 @@ import {
 /** How many animals the board shows before the next page. */
 const BOARD_PAGE = 20;
 
-/** Where somebody goes from one animal on the board: her own page, and — by where she is — the suggestions for sale
- *  or the sale itself. */
-const BoardRowMenu = ({ row }: { row: BoardRow }) => {
+/**
+ * The one thing done from a row of the board: selling her, once she is Ready for Sale.
+ *
+ * Nothing else earns a place here. Her own page is her Tag Number, already a link; the suggestions for sale are
+ * a page of their own in the sidebar, not something about her. A menu that held those was a click to find a
+ * link that was on the screen already.
+ */
+const SellHer = ({ row }: { row: BoardRow }) => {
   const { t } = useLanguage();
-  const navigate = useNavigate();
-  const actions: RowAction[] = [
-    {
-      label: t("gain.openAnimal"),
-      icon: PawPrint,
-      handleSelect: () =>
-        navigate({
-          to: "/animals/$tagNumber",
-          params: { tagNumber: row.tagNumber },
-        }),
-    },
-  ];
-  if (row.state === "fattening") {
-    actions.push({
-      label: t("gain.toReady"),
-      icon: CalendarCheck,
-      handleSelect: () => navigate({ to: "/ready" }),
-    });
-  }
-  if (row.state === "ready_for_sale") {
-    actions.push({
-      label: t("sale.record"),
-      icon: Store,
-      handleSelect: () =>
-        navigate({ to: "/sale", search: { sell: row.tagNumber } }),
-    });
+  if (row.state !== "ready_for_sale") {
+    return null;
   }
   return (
-    <RowMenu
-      actions={actions}
-      label={t("gain.rowActions", { tag: row.tagNumber })}
-    />
+    <Link
+      className={buttonVariants({ size: "sm", variant: "outline" })}
+      search={{ sell: row.tagNumber }}
+      to="/sale"
+    >
+      <Store aria-hidden data-icon="inline-start" />
+      {t("sale.record")}
+    </Link>
   );
 };
 
@@ -117,9 +102,9 @@ const RecentCell = ({ row }: BoardCell) => (
   <GainFigures basis={row.original.recent} />
 );
 
-const MenuCell = ({ row }: BoardCell) => (
+const SellCell = ({ row }: BoardCell) => (
   <div className="flex justify-end">
-    <BoardRowMenu row={row.original} />
+    <SellHer row={row.original} />
   </div>
 );
 
@@ -167,10 +152,10 @@ const boardColumns = column.columns([
     meta: { align: "end" },
   }),
   column.display({
-    id: "menu",
+    id: "sell",
     header: ActionsHeader,
-    cell: MenuCell,
-    meta: { align: "end", className: "w-12" },
+    cell: SellCell,
+    meta: { align: "end" },
   }),
 ]);
 
@@ -228,7 +213,7 @@ const BoardCard = ({ row }: { row: BoardRow }) => {
         </span>
         <RatesLine recent={row.recent} sinceIntake={row.sinceIntake} />
       </div>
-      <BoardRowMenu row={row} />
+      <SellHer row={row} />
     </div>
   );
 };
