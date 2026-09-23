@@ -82,11 +82,10 @@ const useListFigures = (products: DrugProduct[]): Figure[] => {
 const DrugsPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { tab = "products" } = Route.useSearch();
+  const { tab = "products", product: historyFor = "" } = Route.useSearch();
   const me = useQuery(orpc.people.me.queryOptions());
   const drugs = useQuery(orpc.drugs.list.queryOptions());
   const [buying, setBuying] = useState<{ productId?: string } | null>(null);
-  const [historyFor, setHistoryFor] = useState("");
   // A vet called in for a visit reads the Drug List to prescribe from; keeping it is the farm's own Vet's.
   const visiting = me.data?.scopes.vet?.kind === "cases";
   const isVet = (me.data?.roles.includes("vet") ?? false) && !visiting;
@@ -103,6 +102,9 @@ const DrugsPage = () => {
         isVet={isVet}
         mayAdd={!visiting}
         mayBuy={buys}
+        onBought={(productId) =>
+          navigate({ search: { tab: "bought", product: productId } })
+        }
         onBuy={(productId) => setBuying({ productId })}
         products={products}
       />
@@ -156,7 +158,12 @@ const DrugsPage = () => {
               content: (
                 <Loaded query={drugs}>
                   <PurchasesTab
-                    onProductChange={setHistoryFor}
+                    onProductChange={(productId) =>
+                      navigate({
+                        replace: true,
+                        search: { tab: "bought", product: productId },
+                      })
+                    }
                     productId={historyFor}
                     products={products}
                   />
@@ -198,9 +205,16 @@ export const Route = createFileRoute("/_auth/drugs")({
     }
   },
   component: DrugsPage,
-  /** Which tab, kept in the address so the page comes back as it was left. */
-  validateSearch: (search: Record<string, unknown>): { tab?: Tab } =>
-    TABS.includes(search.tab as Tab) && search.tab !== "products"
-      ? { tab: search.tab as Tab }
-      : {},
+  /** Which tab — and on the Bought tab, whose purchases — kept in the address, so the page comes back as it was left
+   *  and a product's row can open its history. */
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { tab?: Tab; product?: string } => {
+    if (!(TABS.includes(search.tab as Tab) && search.tab !== "products")) {
+      return {};
+    }
+    return typeof search.product === "string" && search.product !== ""
+      ? { tab: search.tab as Tab, product: search.product }
+      : { tab: search.tab as Tab };
+  },
 });

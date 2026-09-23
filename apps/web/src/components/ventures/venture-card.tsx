@@ -5,7 +5,6 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import {
-  Banknote,
   Gavel,
   Landmark,
   PenLine,
@@ -14,7 +13,6 @@ import {
   Scale,
   ScrollText,
   ShoppingCart,
-  TrendingUp,
   Truck,
   Wheat,
   XCircle,
@@ -181,7 +179,6 @@ export interface VentureActs {
   settle: (venture: Venture) => void;
   advance: (venture: Venture) => void;
   checkTheBank: (venture: Venture) => void;
-  economics: (venture: Venture) => void;
   amend: (venture: Venture) => void;
   startBuying: (venture: Venture) => void;
   startFattening: (venture: Venture) => void;
@@ -531,16 +528,8 @@ export const actsInTheMenu = (
 ): RowAction[] => {
   const money = moneyOf(venture);
   const inTheMenu: RowAction[] = [];
-  if (venture.state === "open") {
-    const nobodySigned = money.signedFor.people === 0;
-    inTheMenu.push({
-      label: t("ventures.takeCapital"),
-      icon: Banknote,
-      disabled: nobodySigned,
-      hint: nobodySigned ? t("ventures.signFirst") : undefined,
-      handleSelect: () => acts.takeCapital(venture),
-    });
-  }
+  // Capital is taken from each Investor's row on the Investors tab, against his own paper — not chosen again
+  // here from a list of the same people.
   // Asked of the Float, not of the state: the first Sale moves a run from buying to selling with a Float
   // still out, and that Float then stands in the way of its Settlement.
   if (money.openFloatBdt !== 0) {
@@ -573,20 +562,14 @@ export const actsInTheMenu = (
       handleSelect: () => acts.reimburse(venture),
     });
   }
-  if (hasPapersToGive(venture)) {
-    // Each Investor's papers are in his row on the Investors tab, beside his Units and what he has paid.
+  // Each Investor's papers are in his row on the Investors tab, and what each animal made in hers on the Animals
+  // tab: neither is a sheet of its own.
+  if (hasPapersToGive(venture) && termsCanStillMove(venture)) {
     inTheMenu.push({
-      label: t("ventures.economics"),
-      icon: TrendingUp,
-      handleSelect: () => acts.economics(venture),
+      label: t("ventures.amend"),
+      icon: PenLine,
+      handleSelect: () => acts.amend(venture),
     });
-    if (termsCanStillMove(venture)) {
-      inTheMenu.push({
-        label: t("ventures.amend"),
-        icon: PenLine,
-        handleSelect: () => acts.amend(venture),
-      });
-    }
   }
   if (venture.state === "open") {
     inTheMenu.push({

@@ -16,13 +16,20 @@ import { orpc } from "@/utils/orpc";
  * Manager for a Pen, now. It lands on today's list like any other, and asking twice for the same Pen on the same day
  * raises it once.
  */
-export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
+export const RaiseWork = ({
+  definitionId,
+  penId,
+}: {
+  definitionId?: string;
+  /** Raised from a page already narrowed to one Pen: that Pen, chosen already — still hers to change. */
+  penId?: string;
+}) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
   const ids = useId();
   const [open, setOpen] = useState(false);
   const [sop, setSop] = useState(definitionId ?? "");
-  const [pen, setPen] = useState("");
+  const [pen, setPen] = useState(penId ?? "");
   const sops = useQuery({ ...orpc.sops.list.queryOptions(), enabled: open });
   const sheds = useQuery({ ...orpc.herd.list.queryOptions(), enabled: open });
   const raise = useMutation(
@@ -30,7 +37,7 @@ export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
       onSuccess: ({ raised }) => {
         toast.success(raised > 0 ? t("work.raised") : t("work.raisedAlready"));
         setOpen(false);
-        setPen("");
+        setPen(penId ?? "");
       },
       onError: refused,
     })

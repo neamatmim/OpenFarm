@@ -346,7 +346,7 @@ const TodayPage = () => {
   return (
     <Page>
       <PageHeader
-        actions={runsTheFarm ? <RaiseWork /> : undefined}
+        actions={runsTheFarm ? <RaiseWork key={pen} penId={pen} /> : undefined}
         description={t("work.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
         meta={
