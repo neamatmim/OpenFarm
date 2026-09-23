@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { feeding } from "@OpenFarm/db/schema/feed";
 import type { FeedingLine } from "@OpenFarm/domain";
-import { isShortFed, roundKg, shortfallPercent } from "@OpenFarm/domain";
+import { isShortFed, roundFeedKg, shortfallPercent } from "@OpenFarm/domain";
 
 import type { Tx } from "../audit";
 import { feedingTargetForPen } from "../feed-store";
@@ -62,8 +62,8 @@ const feedThePen = async (
     feedItemId: line.feedItemId,
     // A line by weight in a Pen nobody weighed owed no figure, and nothing owed is never short.
     targetKg: line.quantity ?? 0,
-    givenKg: roundKg(given.get(line.feedItemId)?.givenKg ?? 0),
-    leftoverKg: roundKg(given.get(line.feedItemId)?.leftoverKg ?? 0),
+    givenKg: roundFeedKg(given.get(line.feedItemId)?.givenKg ?? 0),
+    leftoverKg: roundFeedKg(given.get(line.feedItemId)?.leftoverKg ?? 0),
   }));
   const short = shortfallPercent(lines);
   const flagged = isShortFed(lines, input.feedTolerancePercent);
@@ -133,8 +133,8 @@ export const feedingEffect: EffectKind<FeedingFacts> = {
           feeding: lines
             .map((line) => ({
               feedItemId: line.feedItemId,
-              givenKg: roundKg(line.givenKg),
-              leftoverKg: roundKg(line.leftoverKg ?? 0),
+              givenKg: roundFeedKg(line.givenKg),
+              leftoverKg: roundFeedKg(line.leftoverKg ?? 0),
             }))
             .toSorted((a, b) => a.feedItemId.localeCompare(b.feedItemId)),
         }

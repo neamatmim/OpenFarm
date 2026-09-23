@@ -10,6 +10,7 @@ import {
   herdWeightOf,
   leftoverPercent,
   leftoverStanding,
+  roundFeedKg,
   sessionKgOf,
 } from "./feed";
 
@@ -189,5 +190,36 @@ describe("a Ration's weight band", () => {
       "band.fromKg: a weight above nothing",
     ]);
     expect(findBandProblems(grower)).toEqual([]);
+  });
+});
+
+// Feed as the farm weighs it: the barn scale for a kilo or more, a small scale for salt and minerals.
+
+describe("a quantity of feed", () => {
+  it("is weighed to 100 g from a kilo up", () => {
+    expect(roundFeedKg(14.14)).toBe(14.1);
+    expect(roundFeedKg(1.04)).toBe(1);
+  });
+
+  it("is weighed to 10 g under a kilo, so a pen of two is not told half its salt is nothing", () => {
+    // Thirty grams a head, two head, fed twice: thirty grams a feeding.
+    expect(roundFeedKg((0.03 * 2) / 2)).toBe(0.03);
+    // Fifty grams of minerals stays fifty, where the barn scale made it a hundred.
+    expect(roundFeedKg(0.05)).toBe(0.05);
+  });
+
+  it("never rounds a need away", () => {
+    expect(roundFeedKg(0.004)).toBe(0.01);
+    expect(roundFeedKg(0)).toBe(0);
+  });
+
+  it("gives a pen of two bulls its salt at every feeding", () => {
+    expect(
+      sessionKgOf(
+        { feedItemId: "salt", kgPerAnimalPerDay: 0.03 },
+        { animals: 2, weightKg: 500 },
+        2
+      )
+    ).toBe(0.03);
   });
 });

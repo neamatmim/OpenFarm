@@ -191,8 +191,8 @@ describe("a Ration by weight", () => {
     });
     // Three kilos a day for every hundred, fed twice: 3 × 7.5 ÷ 2 = 11.25, to the barn scale's 100 g.
     expect(quantityOf(target, world.items.napier.id)).toBe(11.3);
-    // A tenth of a kilo a head, three head, fed twice.
-    expect(quantityOf(target, world.items.minerals.id)).toBe(0.2);
+    // A tenth of a kilo a head, three head, fed twice: 150 g, weighed on the small scale rather than rounded up.
+    expect(quantityOf(target, world.items.minerals.id)).toBe(0.15);
   });
 
   it("follows the scale once they are weighed", async () => {

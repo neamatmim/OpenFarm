@@ -17,6 +17,23 @@ const KG_SCALE = 10 ** KG_DECIMALS;
 export const roundKg = (value: number): number =>
   Math.round(value * KG_SCALE) / KG_SCALE;
 
+/** Under a kilo, feed is weighed on a small scale: ten grams is as fine as salt and minerals are measured. */
+const SMALL_SCALE_KG = 1;
+const SMALL_SCALE = 100;
+
+/**
+ * A quantity of feed as the farm weighs it: a kilo or more on the barn scale, to the nearest 100 g; less than that on a
+ * small scale, to the nearest 10 g. And a need is never rounded away: thirty grams of salt for two bulls is thirty
+ * grams, not the nothing a barn scale would read, and a feeder told nothing gives nothing.
+ */
+export const roundFeedKg = (value: number): number => {
+  if (value >= SMALL_SCALE_KG) {
+    return roundKg(value);
+  }
+  const grams = Math.round(value * SMALL_SCALE) / SMALL_SCALE;
+  return value > 0 && grams === 0 ? 1 / SMALL_SCALE : grams;
+};
+
 /** The most one animal can sensibly be given of one Item in a day. */
 export const MAX_KG_PER_ANIMAL_PER_DAY = 100;
 
@@ -58,7 +75,7 @@ export const perSessionKg = (
   if (sessionsPerDay < 1) {
     throw new Error("A ration is fed at least once a day");
   }
-  return roundKg((kgPerAnimalPerDay * animals) / sessionsPerDay);
+  return roundFeedKg((kgPerAnimalPerDay * animals) / sessionsPerDay);
 };
 
 /** One animal as feeding weighs her: her latest Weigh-in, or what she weighed at her Intake, and when. */
@@ -127,7 +144,7 @@ export const sessionKgOf = (
   if (sessionsPerDay < 1) {
     throw new Error("A ration is fed at least once a day");
   }
-  return roundKg(
+  return roundFeedKg(
     (line.kgPer100KgPerDay * herd.weightKg) / PER_WEIGHT_KG / sessionsPerDay
   );
 };

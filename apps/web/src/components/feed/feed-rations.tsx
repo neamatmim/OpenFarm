@@ -182,7 +182,8 @@ const RationDialog = ({
                           [item.id]: event.target.value,
                         }))
                       }
-                      step="0.1"
+                      // Salt goes in grams a head, and a line by weight in hundredths: any figure the farm writes.
+                      step="any"
                       type="number"
                       value={kg[item.id] ?? ""}
                     />

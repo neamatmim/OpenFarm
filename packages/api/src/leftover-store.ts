@@ -4,7 +4,7 @@ import {
   leftoverPercent,
   leftoverStanding,
   priceHistory,
-  roundKg,
+  roundFeedKg,
   roundTaka,
 } from "@OpenFarm/domain";
 
@@ -184,8 +184,8 @@ export const leftoversOf = async (
       (sum, one, index) => sum + one.kg * (priced[index] ?? 0),
       0
     );
-    const givenKg = roundKg(tally.givenKg);
-    const leftoverKg = roundKg(tally.leftoverKg);
+    const givenKg = roundFeedKg(tally.givenKg);
+    const leftoverKg = roundFeedKg(tally.leftoverKg);
     return {
       penId: tally.penId,
       penName: pen ? `${pen.shed.name} / ${pen.name}` : "",
