@@ -304,6 +304,7 @@ export const instancesRouter = {
               shortfallPercent: true,
               flaggedAt: true,
               animals: true,
+              herdWeightKg: true,
             },
           })
         : null;
@@ -368,7 +369,14 @@ export const instancesRouter = {
         runningOn: supersededBy,
         milkingSession: milkingSession ?? null,
         feeding,
-        fed: fed ?? null,
+        // The Pen's weight as its lines by weight were worked out from, turned from the numeric column at the edge.
+        fed: fed
+          ? {
+              ...fed,
+              herdWeightKg:
+                fed.herdWeightKg === null ? null : Number(fed.herdWeightKg),
+            }
+          : null,
         // What the Registration runs out on now, for the Step that renews it to a later day.
         renewal: content.steps.some(
           (step) => step.effect?.kind === "registration_renewal"

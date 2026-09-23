@@ -1,3 +1,6 @@
+import type { RationLine } from "@OpenFarm/domain";
+import { isByWeight } from "@OpenFarm/domain";
+
 import type { orpc } from "@/utils/orpc";
 
 /** A Feed Item as the page holds it. */
@@ -8,14 +11,18 @@ export interface FeedItemRow {
   retiredAt: Date | null;
 }
 
-/** A Ration: its name, its version, what one animal gets of each Feed Item in a day, and the Pens on it. */
+/** A Ration: its name, its version, what each Feed Item is in a day — by the head or by weight — and the Pens on it. */
 export interface RationRow {
   id: string;
   name: { bn: string; en: string | null };
   number: number | null;
-  items: { feedItemId: string; kgPerAnimalPerDay: number }[];
+  items: RationLine[];
   penIds: string[];
 }
+
+/** A line's figure, whichever way it counts: kilos a head, or kilos per hundred kilos of body weight. */
+export const amountOf = (line: RationLine): number =>
+  isByWeight(line) ? line.kgPer100KgPerDay : line.kgPerAnimalPerDay;
 
 export type StockLine = Awaited<
   ReturnType<typeof orpc.stock.onHand.call>

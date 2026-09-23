@@ -192,9 +192,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Feed Item**: Something the Farm feeds, tracked in a unit (kg by default). Home-grown fodder is a Feed Item too. _Avoid_: Ingredient, feed type, commodity
 
-**Ration**: A named, versioned list of Feed Items with kg per animal per day. Pens are put on one; several Pens may share it, and changing it is one change. _Avoid_: Diet, feeding plan, formula
+**Ration**: A named, versioned list of Feed Items, each line so many kg a day either for every animal or for every 100 kg of body weight — grass, straw and concentrate grow with the animals, salt and minerals go by the head. Pens are put on one; several Pens may share it, and changing it is one change. _Avoid_: Diet, feeding plan, formula
 
-**Feeding Target**: What one session of feeding calls for in one Pen — the Ration in force, times the animals standing there, divided by how often they are fed. Worked out, never typed. Not a **Target Window**, which is Fattening's date range. _Avoid_: Quota, allowance, plan
+**Feeding Target**: What one session of feeding calls for in one Pen — the Ration in force, times the animals standing there or what the Pen weighs, divided by how often they are fed. The Pen's weight is each animal's latest Weigh-in the farm did not doubt, or her Intake weight, with anybody never weighed counted at the average of the rest; as weighed, never projected, and a Pen nobody has weighed owes no figure by weight until it is. Worked out, never typed. Not a **Target Window**, which is Fattening's date range. _Avoid_: Quota, allowance, plan
 
 **Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, and the **Leftover** of each. Consumes Stock. Its cost — each Feed Item's price at the time, times what was given — is charged evenly to the Animals standing in the Pen when it was fed; fodder at no price costs nothing. _Avoid_: Feed log, feed entry
 

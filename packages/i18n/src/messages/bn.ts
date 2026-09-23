@@ -1404,7 +1404,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.itemsDescription":
     "খামারে যা খাওয়ানো হয়। বাদ দিলেও যে রেশনে ছিল সেখানে নাম থেকে যায়।",
   "feed.rationsDescription":
-    "প্রতিটি রেশন একটি পশুর এক দিনের খাবার। কোন পেনে কোনটি চলবে এখানে ঠিক করুন।",
+    "প্রতিটি রেশন এক দিনের খাবার — প্রতিটি খাবার প্রতি পশুকে, না প্রতি ১০০ কেজি ওজনে। কোন পেনে কোনটি চলবে এখানে ঠিক করুন।",
   "feed.targetDescription":
     "যে পেন বেছে নেবেন, তার এই বেলার খাবার — দাঁড়িয়ে থাকা পশু গুনে হিসাব করা।",
   "feed.rationLines": "{count}টি উপাদান",
@@ -1422,7 +1422,19 @@ export const bn: Record<MessageKey, string> = {
   "feed.noRation": "এই পেনের কোনো রেশন নেই",
   "feed.setRation": "রেশন সংরক্ষণ করুন",
   "feed.rationName": "রেশনের নাম",
-  "feed.kgPerAnimal": "প্রতি পশু প্রতি দিন (কেজি)",
+  "feed.kgPerAnimal": "দিনে কতটা — প্রতি পশুকে, না প্রতি ১০০ কেজি ওজনে",
+  "feed.basis.head": "প্রতি পশু",
+  "feed.basis.weight": "প্রতি ১০০ কেজি ওজনে",
+  "feed.basisOf": "{item} কীভাবে হিসাব হবে",
+  "feed.perHundred": "প্রতি ১০০ কেজিতে {amount} {unit}",
+  "feed.workingByWeight":
+    "প্রতি ১০০ কেজিতে {perHundred} কেজি × {weight} কেজি ÷ দিনে {sessions} বার",
+  "feed.herdWeight": "পেনের ওজন {weight} কেজি — {weighed}টির ওজন নেওয়া",
+  "feed.herdUnweighed": "{unweighed}টির ওজন নেওয়া হয়নি, গড় ধরে হিসাব",
+  "feed.herdOldest": "সবচেয়ে পুরনো ওজন {days} দিন আগের",
+  "feed.weighFirst": "আগে পেনের পশুদের ওজন নিন",
+  "work.typeWhatWentOut":
+    "এই পেনের কারও ওজন নেওয়া হয়নি, তাই এর লক্ষ্য নেই — কতটা দিলেন লিখুন।",
   "feed.rations": "রেশনসমূহ",
   "feed.newRation": "নতুন রেশন",
   "feed.assign": "এই পেনে দিন",

@@ -20,10 +20,34 @@ export const roundKg = (value: number): number =>
 /** The most one animal can sensibly be given of one Item in a day. */
 export const MAX_KG_PER_ANIMAL_PER_DAY = 100;
 
-export interface RationLine {
-  feedItemId: string;
-  kgPerAnimalPerDay: number;
-}
+/** The most of one Item a day for every hundred kilos an animal weighs — a fattening bull eats about three. */
+export const MAX_KG_PER_100KG_PER_DAY = 20;
+
+/** How many kilos of body weight a line by weight is stated for. */
+const PER_WEIGHT_KG = 100;
+
+/**
+ * One line of a Ration: so much of a Feed Item for each animal a day, or so much for every hundred kilos of body weight
+ * a day. Each line says which: salt and minerals go by the head, while grass, straw and concentrate grow with the
+ * animals. A line written before a Ration could go by weight is by the head.
+ */
+export type RationLine =
+  | {
+      feedItemId: string;
+      kgPerAnimalPerDay: number;
+      kgPer100KgPerDay?: undefined;
+    }
+  | {
+      feedItemId: string;
+      kgPer100KgPerDay: number;
+      kgPerAnimalPerDay?: undefined;
+    };
+
+/** A line that grows with the animals' weight. */
+export const isByWeight = (
+  line: RationLine
+): line is Extract<RationLine, { kgPer100KgPerDay: number }> =>
+  line.kgPer100KgPerDay !== undefined;
 
 /** One Feed Item's share of one session, for the animals actually standing in the Pen. */
 export const perSessionKg = (
@@ -36,6 +60,93 @@ export const perSessionKg = (
   }
   return roundKg((kgPerAnimalPerDay * animals) / sessionsPerDay);
 };
+
+/** One animal as feeding weighs her: her latest Weigh-in, or what she weighed at her Intake, and when. */
+export interface WeighedAnimal {
+  weightKg: number | null;
+  weighedAt: Date | null;
+}
+
+/**
+ * What a Pen weighs, as a Ration by weight is fed on: every animal's latest weight, and an animal nobody has weighed
+ * counted at the average of those who have been — so one calf born last night does not stop the Pen being fed.
+ * Nothing when nobody in the Pen was ever weighed: a figure made up for the whole Pen is not a weight.
+ *
+ * As weighed, never projected: the oldest weight used is said beside it, so a Pen fed on last month's scale reading
+ * shows it, and weighing it again is the remedy.
+ */
+export const herdWeightOf = (
+  animals: readonly WeighedAnimal[]
+): {
+  weightKg: number | null;
+  weighed: number;
+  unweighed: number;
+  oldestWeighedAt: Date | null;
+} => {
+  const known = animals.flatMap((one) =>
+    one.weightKg !== null && one.weightKg > 0
+      ? [{ weightKg: one.weightKg, weighedAt: one.weighedAt }]
+      : []
+  );
+  const unweighed = animals.length - known.length;
+  if (known.length === 0) {
+    return { weightKg: null, weighed: 0, unweighed, oldestWeighedAt: null };
+  }
+  let total = 0;
+  let oldest: Date | null = null;
+  for (const one of known) {
+    total += one.weightKg;
+    if (one.weighedAt && (!oldest || one.weighedAt < oldest)) {
+      oldest = one.weighedAt;
+    }
+  }
+  return {
+    weightKg: roundKg(total + (total / known.length) * unweighed),
+    weighed: known.length,
+    unweighed,
+    oldestWeighedAt: oldest,
+  };
+};
+
+/**
+ * One Feed Item's share of one session: by the head for the animals standing there, or by weight for what the Pen
+ * weighs. Nothing for a line by weight in a Pen nobody has weighed — the screen says to weigh it, rather than a zero
+ * that reads as "give none".
+ */
+export const sessionKgOf = (
+  line: RationLine,
+  herd: { animals: number; weightKg: number | null },
+  sessionsPerDay: number
+): number | null => {
+  if (!isByWeight(line)) {
+    return perSessionKg(line.kgPerAnimalPerDay, herd.animals, sessionsPerDay);
+  }
+  if (herd.weightKg === null) {
+    return null;
+  }
+  if (sessionsPerDay < 1) {
+    throw new Error("A ration is fed at least once a day");
+  }
+  return roundKg(
+    (line.kgPer100KgPerDay * herd.weightKg) / PER_WEIGHT_KG / sessionsPerDay
+  );
+};
+
+/** What a line calls for in a day, and the most it may: by the head or by weight, whichever it is. */
+const dailyOf = (line: RationLine) =>
+  isByWeight(line)
+    ? {
+        amount: line.kgPer100KgPerDay,
+        most: MAX_KG_PER_100KG_PER_DAY,
+        field: "kgPer100KgPerDay",
+        per: "per 100 kg of body weight",
+      }
+    : {
+        amount: line.kgPerAnimalPerDay,
+        most: MAX_KG_PER_ANIMAL_PER_DAY,
+        field: "kgPerAnimalPerDay",
+        per: "an animal",
+      };
 
 /** What is wrong with a Ration, in the Manager's terms rather than the parser's. */
 export const findRationProblems = (ration: {
@@ -51,13 +162,10 @@ export const findRationProblems = (ration: {
       problems.push(`items[${index}]: that feed is already in this ration`);
     }
     seen.add(line.feedItemId);
-    if (
-      !Number.isFinite(line.kgPerAnimalPerDay) ||
-      line.kgPerAnimalPerDay <= 0 ||
-      line.kgPerAnimalPerDay > MAX_KG_PER_ANIMAL_PER_DAY
-    ) {
+    const { amount, most, field, per } = dailyOf(line);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > most) {
       problems.push(
-        `items[${index}].kgPerAnimalPerDay: between nothing and ${MAX_KG_PER_ANIMAL_PER_DAY} kg a day`
+        `items[${index}].${field}: between nothing and ${most} kg a day ${per}`
       );
     }
   }

@@ -1,0 +1,1 @@
+ALTER TABLE "feeding" ADD COLUMN "herd_weight_kg" numeric(9,1);

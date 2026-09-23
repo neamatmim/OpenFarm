@@ -3,8 +3,8 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ration, rationVersion } from "@OpenFarm/db/schema/feed";
-import type { RationLine, SopContent } from "@OpenFarm/domain";
-import { perSessionKg, sessionsPerDayOf } from "@OpenFarm/domain";
+import type { RationLine, SopContent, WeighedAnimal } from "@OpenFarm/domain";
+import { herdWeightOf, sessionKgOf, sessionsPerDayOf } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
@@ -13,10 +13,10 @@ import { isOnTheFarm } from "./instances-store";
 /** A Ration Version's lines as they come back out of jsonb. Parsed rather than asserted:
  *  what the column holds was written by an older version of this code, and trusting it
  *  blindly is how a screen ends up dividing by a string. */
-const lineSchema = z.object({
-  feedItemId: z.string(),
-  kgPerAnimalPerDay: z.number(),
-});
+const lineSchema = z.union([
+  z.object({ feedItemId: z.string(), kgPer100KgPerDay: z.number() }),
+  z.object({ feedItemId: z.string(), kgPerAnimalPerDay: z.number() }),
+]);
 
 export const linesOf = (value: unknown): RationLine[] => {
   const parsed = z.array(lineSchema).safeParse(value);
@@ -92,27 +92,56 @@ const rationInForceAt = async (
 };
 
 /** The animals a Ration is worked out for: everything standing in the Pen that has not left
- *  the farm. A sold cow keeps her Pen, and feeding for her would be feeding a ghost. */
+ *  the farm. A sold cow keeps her Pen, and feeding for her would be feeding a ghost.
+ *
+ *  Each as the scale last said, for a Ration by weight: her latest Weigh-in the farm did not doubt, or what she
+ *  weighed at her Intake. A reading flagged as doubtful is kept on her record, but the feed does not follow it. */
 const animalsInPen = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
   penId: string
-): Promise<number> => {
+): Promise<WeighedAnimal[]> => {
   const rows = await db.query.animal.findMany({
     where: { farmId, penId },
     columns: { state: true },
+    with: {
+      weighIns: {
+        where: { flaggedNote: { isNull: true } },
+        columns: { weightKg: true, weighedAt: true },
+        orderBy: { weighedAt: "desc", id: "desc" },
+        limit: 1,
+      },
+      intake: { columns: { weightKg: true, arrivedAt: true } },
+    },
   });
-  return rows.filter((row) => isOnTheFarm(row)).length;
+  return rows
+    .filter((row) => isOnTheFarm(row))
+    .map((row) => {
+      const [latest] = row.weighIns;
+      if (latest) {
+        return {
+          weightKg: Number(latest.weightKg),
+          weighedAt: latest.weighedAt,
+        };
+      }
+      return row.intake?.weightKg
+        ? {
+            weightKg: Number(row.intake.weightKg),
+            weighedAt: row.intake.arrivedAt,
+          }
+        : { weightKg: null, weighedAt: null };
+    });
 };
 
 /** One line of what a Pen is owed. Exported because it is the shape `feedingTargetForPen` answers
  *  with, and the routers' own types are written in terms of it, though nobody names it. */
-export interface FeedingTargetLine extends RationLine {
+export type FeedingTargetLine = RationLine & {
   nameBn: string;
   unit: string;
-  /** What this session calls for, for the animals actually standing in the Pen. */
-  quantity: number;
-}
+  /** What this session calls for, for the animals actually standing in the Pen and what they weigh; nothing for a
+   *  line by weight in a Pen nobody has weighed. */
+  quantity: number | null;
+};
 
 interface FeedNamed {
   nameBn: string;
@@ -123,14 +152,14 @@ interface FeedNamed {
 const feedingTargetFor = (
   lines: RationLine[],
   feeds: Map<string, FeedNamed>,
-  animals: number,
+  herd: { animals: number; weightKg: number | null },
   sessionsPerDay: number
 ): FeedingTargetLine[] =>
   lines.map((line) => ({
     ...line,
     nameBn: feeds.get(line.feedItemId)?.nameBn ?? "",
     unit: feeds.get(line.feedItemId)?.unit ?? "kg",
-    quantity: perSessionKg(line.kgPerAnimalPerDay, animals, sessionsPerDay),
+    quantity: sessionKgOf(line, herd, sessionsPerDay),
   }));
 
 /**
@@ -162,6 +191,8 @@ export const feedingTargetForPen = async (
   name: { bn: string; en: string | null };
   number: number;
   animals: number;
+  /** What the Pen weighs as the Ration by weight is fed on, and how that was known. */
+  herd: ReturnType<typeof herdWeightOf>;
   sessionsPerDay: number;
   items: FeedingTargetLine[];
 } | null> => {
@@ -181,18 +212,21 @@ export const feedingTargetForPen = async (
   if (sessionsPerDay === null) {
     return null;
   }
-  const animals = await animalsInPen(db, farmId, penId);
+  const standing = await animalsInPen(db, farmId, penId);
+  const animals = standing.length;
+  const herd = herdWeightOf(standing);
   return {
     rationId: assigned.ration.id,
     rationVersionId: version.id,
     name: { bn: assigned.ration.nameBn, en: assigned.ration.nameEn },
     number: version.number,
     animals,
+    herd,
     sessionsPerDay,
     items: feedingTargetFor(
       linesOf(version.items),
       await feedsById(db, farmId),
-      animals,
+      { animals, weightKg: herd.weightKg },
       sessionsPerDay
     ),
   };

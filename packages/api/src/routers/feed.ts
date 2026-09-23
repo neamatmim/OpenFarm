@@ -37,8 +37,14 @@ const rationInput = z.object({
   /** Omitted for a new Ration; given to publish the next Version of one that exists. */
   rationId: z.string().optional(),
   name: bilingual,
+  // Each line by the head, or by every hundred kilos of body weight.
   items: z
-    .array(z.object({ feedItemId: z.string(), kgPerAnimalPerDay: z.number() }))
+    .array(
+      z.union([
+        z.object({ feedItemId: z.string(), kgPerAnimalPerDay: z.number() }),
+        z.object({ feedItemId: z.string(), kgPer100KgPerDay: z.number() }),
+      ])
+    )
     .min(1),
   note: z.string().trim().max(400).optional(),
 });
@@ -404,7 +410,13 @@ export const feedRouter = {
       if (!found) {
         // A Pen on no Ration, or a Playbook that does not feed yet: things the screen says,
         // not zeros it shows.
-        return { ration: null, animals: 0, sessionsPerDay: 0, items: [] };
+        return {
+          ration: null,
+          animals: 0,
+          herd: null,
+          sessionsPerDay: 0,
+          items: [],
+        };
       }
       return {
         ration: {
@@ -414,6 +426,7 @@ export const feedRouter = {
           number: found.number,
         },
         animals: found.animals,
+        herd: found.herd,
         sessionsPerDay: found.sessionsPerDay,
         items: found.items,
       };
