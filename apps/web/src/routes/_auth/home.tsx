@@ -1,12 +1,10 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   CircleCheck,
   ClipboardCheck,
-  ClipboardList,
   Inbox,
   Milk,
   Warehouse,
@@ -155,13 +153,8 @@ const ManagerHome = () => {
 
   return (
     <Page>
+      {/* No button to today's work here: it is in the sidebar, and the work-done figure below is a link to it. */}
       <PageHeader
-        actions={
-          <Link className={buttonVariants()} search={{}} to="/today">
-            <ClipboardList data-icon="inline-start" />
-            {t("nav.today")}
-          </Link>
-        }
         description={t("home.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
         title={t("home.title")}

@@ -1,17 +1,9 @@
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
-import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  CircleCheck,
-  Hourglass,
-  Milk,
-  Scale,
-  Tractor,
-  Wallet,
-} from "lucide-react";
+import { CircleCheck, Hourglass, Milk, Scale, Tractor } from "lucide-react";
 
 import {
   FatteningPanel,
@@ -246,13 +238,9 @@ const OwnerDay = ({ data }: { data: OwnerAnswer }) => {
 
   return (
     <Page>
+      {/* No button to the money here: it is in the sidebar and the bottom bar, and the figure of what waits on
+          her is a link to it. */}
       <PageHeader
-        actions={
-          <Link className={buttonVariants()} to="/money">
-            <Wallet aria-hidden data-icon="inline-start" />
-            {t("nav.money")}
-          </Link>
-        }
         description={t("owner.subtitle")}
         eyebrow={formatDate(new Date(), language, "date")}
         meta={

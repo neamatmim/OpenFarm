@@ -249,8 +249,31 @@ const RowActionItem = ({ action }: { action: RowAction }) => {
   );
 };
 
+/**
+ * The one act a row can do, as a button of its own: a menu that only ever opens onto one item is a click to find
+ * a button that could have been on the row.
+ */
+const RowActionButton = ({ action }: { action: RowAction }) => {
+  const Icon = action.icon;
+  return (
+    <Button
+      className={cn(action.destructive && "text-danger hover:text-danger")}
+      disabled={action.disabled}
+      onClick={action.handleSelect}
+      size="sm"
+      title={action.hint}
+      type="button"
+      variant="outline"
+    >
+      {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+      {action.label}
+    </Button>
+  );
+};
+
 /** The menu at the end of a row, for everything a row can do beyond its one main act. Nothing is drawn when there is
- *  nothing to do. */
+ *  nothing to do, and a button rather than a menu when there is only one thing — whoever is looking, since what a
+ *  row offers often depends on who is looking at it. */
 export const RowMenu = ({
   label,
   actions,
@@ -261,6 +284,10 @@ export const RowMenu = ({
 }) => {
   if (actions.length === 0) {
     return null;
+  }
+  const [only] = actions;
+  if (actions.length === 1 && only) {
+    return <RowActionButton action={only} />;
   }
   const safe = actions.filter((action) => !action.destructive);
   const destructive = actions.filter((action) => action.destructive);

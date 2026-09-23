@@ -1,4 +1,6 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { startOfFarmDay } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import {
   ActionsHeader,
@@ -54,10 +56,82 @@ const VentureCell = ({ row }: Cell) => {
       >
         {venture.name}
       </button>
-      <span className="flex flex-wrap items-center gap-1">
+      {/* Free to wrap inside, so a long badge is what the column bends around rather than what sets its width. */}
+      <span className="flex flex-wrap items-center gap-1 [&_[data-slot=badge]]:text-start [&_[data-slot=badge]]:whitespace-normal">
         <StateBadge state={venture.state} />
         <CardBadges lastMonthOver={lastMonthOver} venture={venture} />
       </span>
+      {/* What stands in the way of a dim button, said under the run it is about rather than squeezed under
+          the buttons, where the column would have to be as wide as the sentence. */}
+      <span className="[&_p]:max-w-none [&_p]:text-left">
+        <WhatStopsHer dense venture={venture} />
+      </span>
+    </span>
+  );
+};
+
+/** What the run is looking for: the capital its Units add up to. */
+const TargetCell = ({ row }: Cell) => {
+  const taka = useTaka();
+  return (
+    <span className="tabular-nums">
+      {taka(row.original.venture.targetCapitalBdt)}
+    </span>
+  );
+};
+
+/** How many animals it keeps now. Nothing yet while it is Open, and nothing to keep once it was called off. */
+const AnimalsCell = ({ row }: Cell) => {
+  const { language } = useLanguage();
+  const { venture } = row.original;
+  if (venture.state === "open" || venture.state === "cancelled") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="tabular-nums">
+      {formatNumber(venture.animalsStanding ?? 0, language)}
+    </span>
+  );
+};
+
+/** The day an Open run has to be decided by. Once it is buying the day is behind it, and a date that no longer
+ *  asks anything of her is left out rather than read as a deadline. */
+const DecideByCell = ({ row }: Cell) => {
+  const { language } = useLanguage();
+  const { venture } = row.original;
+  if (venture.state !== "open") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="tabular-nums">
+      {formatDate(startOfFarmDay(venture.decideBy), language, "date")}
+    </span>
+  );
+};
+
+/**
+ * The selling window, as short as it will go: "17–27 February 2027" within one month, both dates in full
+ * across two. Written out whole it is the widest cell in the row, and the row has to fit a laptop.
+ */
+const saidWindow = (
+  window: { start: string; end: string },
+  language: Language
+) => {
+  const start = startOfFarmDay(window.start);
+  const end = startOfFarmDay(window.end);
+  const sameMonth = window.start.slice(0, 7) === window.end.slice(0, 7);
+  if (!sameMonth) {
+    return `${formatDate(start, language, "date")} – ${formatDate(end, language, "date")}`;
+  }
+  const day = (on: string) => formatNumber(Number(on.slice(8, 10)), language);
+  return `${day(window.start)}–${day(window.end)} ${formatDate(end, language, "monthYear")}`;
+};
+
+const WindowCell = ({ row }: Cell) => {
+  const { language } = useLanguage();
+  return (
+    <span className="tabular-nums">
+      {saidWindow(row.original.venture.targetWindow, language)}
     </span>
   );
 };
@@ -120,21 +194,21 @@ const PeopleCell = ({ row }: Cell) => {
   );
 };
 
-/** The act the run is waiting for, the menu holding everything else it can do, and — under them, as on
- *  the card — what stands in the way of a dim one. A greyed-out button with no reason reads as broken. */
+/** The act the run is waiting for, and the menu holding everything else it can do. What stands in the way of
+ *  a dim one is said under the run's name. */
 const ActsCell = ({ row }: Cell) => {
   const { t } = useLanguage();
   const { venture, acts } = row.original;
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center justify-end gap-1">
+    <div className="flex items-start justify-end gap-1">
+      {/* One above the other, so the column is as wide as one button rather than two. */}
+      <div className="flex flex-col items-stretch gap-1">
         <PrimaryActs acts={acts} dense venture={venture} />
-        <RowMenu
-          actions={actsInTheMenu(venture, acts, t)}
-          label={t("ventures.moreFor", { venture: venture.name })}
-        />
       </div>
-      <WhatStopsHer dense venture={venture} />
+      <RowMenu
+        actions={actsInTheMenu(venture, acts, t)}
+        label={t("ventures.moreFor", { venture: venture.name })}
+      />
     </div>
   );
 };
@@ -145,37 +219,66 @@ const ventureColumns = column.columns([
     id: "venture",
     header: listHeader("ventures.col.venture"),
     cell: VentureCell,
-    meta: { className: "min-w-64" },
+    meta: { className: "min-w-56" },
+  }),
+  column.accessor((row) => row.venture.targetCapitalBdt, {
+    id: "target",
+    header: listHeader("ventures.target"),
+    cell: TargetCell,
+    meta: { align: "end", className: "whitespace-nowrap" },
   }),
   column.accessor((row) => row.venture.capitalInBdt, {
     id: "held",
     header: listHeader("ventures.held"),
     cell: HeldCell,
-    meta: { align: "end" },
+    meta: { align: "end", className: "whitespace-nowrap" },
   }),
   column.accessor((row) => moneyOf(row.venture).balanceBdt, {
     id: "balance",
     header: listHeader("ventures.balance"),
     cell: BalanceCell,
-    meta: { align: "end" },
+    meta: { align: "end", className: "whitespace-nowrap" },
   }),
   column.accessor((row) => moneyOf(row.venture).signedFor.units, {
     id: "units",
     header: listHeader("ventures.col.unitsSigned"),
     cell: UnitsCell,
-    meta: { align: "end" },
+    meta: { align: "end", className: "whitespace-nowrap" },
   }),
   column.accessor((row) => moneyOf(row.venture).signedFor.people, {
     id: "people",
     header: listHeader("ventures.col.people"),
     cell: PeopleCell,
-    meta: { align: "end" },
+    meta: { align: "end", className: "whitespace-nowrap" },
+  }),
+  column.accessor((row) => row.venture.animalsStanding ?? 0, {
+    id: "animals",
+    header: listHeader("ventures.col.animals"),
+    cell: AnimalsCell,
+    meta: { align: "end", className: "whitespace-nowrap" },
+  }),
+  column.accessor((row) => row.venture.decideBy, {
+    id: "decideBy",
+    header: listHeader("ventures.decideBy"),
+    cell: DecideByCell,
+    meta: { className: "whitespace-nowrap" },
+  }),
+  column.accessor((row) => row.venture.targetWindow.start, {
+    id: "window",
+    header: listHeader("ventures.window"),
+    cell: WindowCell,
+    meta: { className: "whitespace-nowrap" },
   }),
   column.display({
     id: "acts",
     header: ActionsHeader,
     cell: ActsCell,
-    meta: { align: "end", className: "w-80" },
+    // Pinned to the right edge: when the figures scroll on a narrow screen, the act the run is waiting for
+    // stays in reach instead of scrolling away with them.
+    meta: {
+      align: "end",
+      className: "bg-card sticky right-0 z-10 w-36 border-l",
+    },
   }),
 ]);
 
@@ -212,5 +315,6 @@ export const VenturesTable = ({
     data: ventures.map((venture) => ({ venture, acts, lastMonthOver })),
     getRowId: (row) => row.venture.id,
   });
-  return <DataTable card={ventureCard} minWidth="64rem" table={table} />;
+  // As narrow as the row can honestly go — a 1366-pixel laptop's page, beside the sidebar — before it scrolls.
+  return <DataTable card={ventureCard} minWidth="60rem" table={table} />;
 };

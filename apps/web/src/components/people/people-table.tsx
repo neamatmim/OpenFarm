@@ -3,8 +3,8 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { KeyRound, UserRound, UserRoundCheck } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { KeyRound, UserRoundCheck } from "lucide-react";
 
 import {
   ActionsHeader,
@@ -87,30 +87,16 @@ const ApproveButton = ({ row }: { row: PersonRow }) => {
   );
 };
 
-/** Everything else a row can do: open their page, or give somebody still to sign up a new code. */
+/** What a row can do beyond approving: give somebody still to sign up a new code. Their page is their name,
+ *  already a link, so it is not offered twice. */
 const PersonRowMenu = ({ row }: { row: PersonRow }) => {
   const t = useT();
-  const navigate = useNavigate();
-  const { standing, actions, userId } = row;
+  const { standing, actions } = row;
   const { handleNewCode } = actions;
   return (
     <RowMenu
-      actions={[
-        ...(userId
-          ? [
-              {
-                label: t("people.open"),
-                icon: UserRound,
-                handleSelect: () => {
-                  void navigate({
-                    to: "/admin/people/$userId",
-                    params: { userId },
-                  });
-                },
-              },
-            ]
-          : []),
-        ...(standing.kind === "waitingToSignUp"
+      actions={
+        standing.kind === "waitingToSignUp"
           ? [
               {
                 label: t("people.newCode"),
@@ -119,8 +105,8 @@ const PersonRowMenu = ({ row }: { row: PersonRow }) => {
                 handleSelect: () => handleNewCode(standing.inviteId),
               },
             ]
-          : []),
-      ]}
+          : []
+      }
       label={t("people.rowActions", { name: row.name })}
     />
   );
