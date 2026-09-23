@@ -1,27 +1,28 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import type { LucideIcon } from "lucide-react";
 import {
-  Handshake,
   Activity,
   Archive,
   BookOpenCheck,
+  BriefcaseBusiness,
   Building2,
   ClipboardCheck,
   ClipboardList,
   Eye,
   FileBadge,
   HandCoins,
+  Handshake,
   HeartPulse,
   House,
   LayoutDashboard,
   Milk,
+  PawPrint,
   Pill,
   ScrollText,
   ShieldAlert,
   Smartphone,
   Stethoscope,
   Store,
-  Tractor,
   TrendingUp,
   Truck,
   Users,
@@ -55,8 +56,9 @@ export interface NavGroup {
 
 /**
  * Every destination, grouped the way the farm's work is: the day, the herd, its health, milk and feed, money,
- * what an inspector asks for, and running the farm's own system. Filtered by the Roles a person holds — a filter for
- * finding things, never the permission itself; every screen and procedure still checks.
+ * what an inspector asks for, and running the farm's own system — its identity and parameters among it. Filtered by
+ * the Roles a person holds — a filter for finding things, never the permission itself; every screen and procedure
+ * still checks.
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -100,7 +102,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: "/animals",
         label: "nav.animals",
-        icon: Tractor,
+        icon: PawPrint,
         audience: "anyone",
       },
       {
@@ -178,7 +180,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: "/investors",
         label: "nav.investors",
-        icon: Users,
+        icon: BriefcaseBusiness,
         audience: "owner",
       },
     ],
@@ -193,12 +195,6 @@ export const NAV_GROUPS: NavGroup[] = [
         audience: "runsTheFarm",
       },
       {
-        to: "/admin/farm",
-        label: "nav.identity",
-        icon: Building2,
-        audience: "runsTheFarm",
-      },
-      {
         to: "/admin/audit",
         label: "nav.audit",
         icon: ScrollText,
@@ -209,6 +205,12 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "nav.group.admin",
     items: [
+      {
+        to: "/admin/farm",
+        label: "nav.identity",
+        icon: Building2,
+        audience: "runsTheFarm",
+      },
       {
         to: "/admin/sops",
         label: "nav.sops",
@@ -314,11 +316,21 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
       icon: ClipboardCheck,
       audience: "runsTheFarm",
     },
-    { to: "/animals", label: "nav.animals", icon: Tractor, audience: "anyone" },
+    {
+      to: "/animals",
+      label: "nav.animals",
+      icon: PawPrint,
+      audience: "anyone",
+    },
   ],
   vet: [
     { to: "/vet", label: "nav.vet", icon: HeartPulse, audience: "vet" },
-    { to: "/animals", label: "nav.animals", icon: Tractor, audience: "anyone" },
+    {
+      to: "/animals",
+      label: "nav.animals",
+      icon: PawPrint,
+      audience: "anyone",
+    },
     {
       to: "/drugs",
       label: "nav.drugs",
@@ -333,7 +345,12 @@ export const BOTTOM_BAR: Record<Role, NavItem[]> = {
       icon: ClipboardList,
       audience: "anyone",
     },
-    { to: "/animals", label: "nav.animals", icon: Tractor, audience: "anyone" },
+    {
+      to: "/animals",
+      label: "nav.animals",
+      icon: PawPrint,
+      audience: "anyone",
+    },
   ],
 };
 
