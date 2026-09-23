@@ -222,6 +222,8 @@ export interface RowAction {
   /** Drawn in the danger colour, after a line: an act that takes something away. */
   destructive?: boolean;
   disabled?: boolean;
+  /** Why a dim act is dim, said under it: a greyed-out line with no reason reads as broken. */
+  hint?: string;
 }
 
 /** One act in a row's menu, with its icon; an act that takes something away in the danger colour. */
@@ -235,7 +237,14 @@ const RowActionItem = ({ action }: { action: RowAction }) => {
       onClick={handleSelect}
     >
       {Icon ? <Icon aria-hidden /> : null}
-      {action.label}
+      {action.hint ? (
+        <span className="flex flex-col">
+          <span>{action.label}</span>
+          <span className="text-muted-foreground text-xs">{action.hint}</span>
+        </span>
+      ) : (
+        action.label
+      )}
     </DropdownMenuItem>
   );
 };

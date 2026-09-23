@@ -1,5 +1,6 @@
+import { startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey, MessageParams, Language } from "@OpenFarm/i18n";
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
 import { Handshake } from "lucide-react";
 
@@ -31,6 +32,13 @@ const SAYS: {
     ) => MessageParams;
   };
 } = {
+  decision_due: {
+    key: "ventureTrouble.decisionDue",
+    parts: (trouble, language) => ({
+      day: formatDate(startOfFarmDay(trouble.decideBy), language),
+      short: formatNumber(trouble.shortBdt, language),
+    }),
+  },
   running_budget_low: {
     key: "ventureTrouble.runningBudgetLow",
     parts: (trouble, language) => ({

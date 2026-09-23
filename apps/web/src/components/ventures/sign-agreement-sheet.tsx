@@ -44,10 +44,13 @@ const NOTHING_SIGNED: Terms = {
  */
 const fitToSign = (
   terms: Terms,
-  { units, percent }: { units: number; percent: number }
+  { units, percent, left }: { units: number; percent: number; left: number }
 ) =>
   terms.investorId !== "" &&
   units > 0 &&
+  // Named, and this way round, because the guard against untranslated JSX text reads a closing angle
+  // bracket in an expression as the end of a tag.
+  left >= units &&
   aSplit(percent) &&
   terms.arbitrator.trim() !== "" &&
   Number(terms.stampValueBdt) > 0 &&
@@ -86,6 +89,20 @@ export const SignAgreementSheet = ({
     setPaper(null);
   });
   const investors = useQuery(orpc.investors.list.queryOptions());
+  // Who has signed this Venture already, and for how much: a second Agreement for the same person is
+  // refused, and Units beyond what is left are too, so the form offers neither.
+  const signedSoFar = useQuery({
+    ...orpc.ventures.agreements.queryOptions({
+      input: { ventureId: venture?.id ?? "" },
+    }),
+    enabled: venture !== null,
+  });
+  const alreadyIn = new Set(
+    (signedSoFar.data ?? []).map((one) => one.investorId)
+  );
+  const left =
+    (venture?.units ?? 0) -
+    (signedSoFar.data ?? []).reduce((sum, one) => sum + one.units, 0);
   const keeping = useMutation(
     orpc.ventures.keepAgreementPaper.mutationOptions()
   );
@@ -94,9 +111,15 @@ export const SignAgreementSheet = ({
       onError: (error) => toast.error(sayWhy(error, t)),
       onSuccess: async (signed) => {
         // The photo goes up against the Agreement it proves, so it is kept once there is an id to keep
-        // it against. A signature without its photo is still a signature; the Owner can add it later.
+        // it against. A signature without its photo is still a signature; the Owner can add it later —
+        // so a photo that fails to go up is said, and the sheet still closes. Left open and filled in, it
+        // invites the same signature a second time.
         if (paper) {
-          await keeping.mutateAsync({ agreementId: signed.id, ...paper });
+          try {
+            await keeping.mutateAsync({ agreementId: signed.id, ...paper });
+          } catch {
+            toast.warning(t("ventures.signedWithoutPaper"));
+          }
         }
         setTerms(NOTHING_SIGNED);
         setPaper(null);
@@ -116,7 +139,9 @@ export const SignAgreementSheet = ({
       : terms.investorsPercent;
   const percent = Number(split);
   const ready =
-    venture !== null && split !== "" && fitToSign(terms, { units, percent });
+    venture !== null &&
+    split !== "" &&
+    fitToSign(terms, { units, percent, left });
   return (
     <FormSheet
       description={t("ventures.signHint", { venture: venture?.name ?? "" })}
@@ -152,9 +177,10 @@ export const SignAgreementSheet = ({
           value={terms.investorId}
         >
           <option value="">—</option>
-          {/* A retired Investor is not signed for anything until the Owner brings them back. */}
+          {/* A retired Investor is not signed for anything until the Owner brings them back, and somebody who has
+              signed this Venture already signs no second Agreement for it. */}
           {(investors.data?.people ?? [])
-            .filter((one) => !one.retiredAt)
+            .filter((one) => !(one.retiredAt || alreadyIn.has(one.id)))
             .map((one) => (
               <option key={one.id} value={one.id}>
                 {one.name}
@@ -163,11 +189,17 @@ export const SignAgreementSheet = ({
         </NativeSelect>
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="agreement-units" label={t("ventures.unitsTaken")}>
+        <FormField
+          hint={t("ventures.unitsLeft", {
+            left: formatNumber(Math.max(left, 0), language),
+          })}
+          id="agreement-units"
+          label={t("ventures.unitsTaken")}
+        >
           <Input
             id="agreement-units"
             inputMode="numeric"
-            max={venture?.units}
+            max={Math.max(left, 0)}
             min={1}
             onChange={(event) =>
               setTerms({ ...terms, units: event.target.value })
