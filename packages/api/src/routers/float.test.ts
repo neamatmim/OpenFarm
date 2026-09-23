@@ -278,4 +278,40 @@ describe("the Buying Float", () => {
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
+
+  it("finds a Venture's Float still out, however many outings came after it", async () => {
+    // The lately-made list stops at twenty outings. A Float drawn for one older than that has to be
+    // counted home all the same — until it is, the run cannot finish buying or settle.
+    const owner = await as("owner", "2046-12-20T04:00:00.000Z");
+    const longRun = await funded(owner, 50, 500_000);
+    const early = await outing(owner, 500);
+    await owner.client.ventures.drawFloat({
+      ventureId: longRun,
+      buyingTripId: early,
+      amountBdt: 100_000,
+      movedOn: "2046-12-05",
+      paymentMethod: "bank",
+      reference: `FLT-${suffix}-early`,
+    });
+    for (let which = 501; which <= 521; which += 1) {
+      // oxlint-disable-next-line no-await-in-loop -- one outing after another, as a season of haats is
+      await owner.client.trips.record({
+        wentTo: `পরের হাট ${which} ${suffix}`,
+        wentOn: "2046-12-10",
+        brokerBdt: 0,
+        transportBdt: 0,
+        keepBdt: 0,
+      });
+    }
+
+    const lately = await owner.client.trips.list();
+    expect(lately.map((one) => one.id)).not.toContain(early);
+    const stillOut = await owner.client.trips.list({ openFloatsOf: longRun });
+    expect(stillOut.map((one) => one.id)).toEqual([early]);
+    expect(stillOut[0]?.float).toMatchObject({
+      ventureId: longRun,
+      amountBdt: 100_000,
+      reconciledAt: null,
+    });
+  });
 });

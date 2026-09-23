@@ -83,6 +83,9 @@ export interface Held {
    *  and taking it back once is a different question from what the Venture spent at the haat. */
   reimbursedBdt: number;
   paidOutBdt: number;
+  /** What the Farm paid in to carry its share of a loss the Settlement split. Its own line, because it is
+   *  neither capital nor proceeds: counting it as proceeds would move the very profit it answers. */
+  farmCoveredBdt: number;
   /** Of what has gone out, how much was drawn against the Cattle Budget. A Buying Float is cattle
    *  money: it buys cattle or it comes home again. */
   cattleOutBdt: number;
@@ -92,7 +95,8 @@ export interface Held {
 export const balanceOf = (held: Held) =>
   held.capitalInBdt +
   held.proceedsBdt +
-  held.advancedBdt -
+  held.advancedBdt +
+  held.farmCoveredBdt -
   held.refundedBdt -
   held.spentBdt -
   held.reimbursedBdt -
@@ -108,6 +112,7 @@ export const NOTHING_HELD: Held = {
   spentBdt: 0,
   reimbursedBdt: 0,
   paidOutBdt: 0,
+  farmCoveredBdt: 0,
   cattleOutBdt: 0,
 };
 
@@ -297,6 +302,8 @@ const WHAT_IT_DOES = {
   payout: { line: "paidOutBdt", sign: 1, cattle: 0 },
   advance_repaid: { line: "paidOutBdt", sign: 1, cattle: 0 },
   farm_share: { line: "paidOutBdt", sign: 1, cattle: 0 },
+  // The Farm's share of a loss, paid in so the payouts the Settlement wrote down can all be made.
+  farm_loss_in: { line: "farmCoveredBdt", sign: 1, cattle: 0 },
 } as const satisfies Record<
   VentureMovementKind,
   { line: keyof Held; sign: 1 | -1; cattle: 0 | 1 | -1 }

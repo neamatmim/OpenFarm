@@ -58,6 +58,34 @@ const fitToSign = (
   terms.stampSerial.trim() !== "";
 
 /**
+ * Who may still sign one Venture, and how many of its Units are left for them.
+ *
+ * Nobody retired, and nobody who has signed it already: a second Agreement for the same person is refused,
+ * and so are Units beyond what is left, so the form offers neither. `nobodyLeft` is said only once the list
+ * has answered, so a sheet still loading does not tell the Owner everybody has signed.
+ */
+const useWhoMaySign = (venture: { id: string; units: number } | null) => {
+  const investors = useQuery(orpc.investors.list.queryOptions());
+  const signedSoFar = useQuery({
+    ...orpc.ventures.agreements.queryOptions({
+      input: { ventureId: venture?.id ?? "" },
+    }),
+    enabled: venture !== null,
+  });
+  const signed = signedSoFar.data ?? [];
+  const alreadyIn = new Set(signed.map((one) => one.investorId));
+  const signable = (investors.data?.people ?? []).filter(
+    (one) => !(one.retiredAt || alreadyIn.has(one.id))
+  );
+  return {
+    signable,
+    left:
+      (venture?.units ?? 0) - signed.reduce((sum, one) => sum + one.units, 0),
+    nobodyLeft: investors.isSuccess && signable.length === 0,
+  };
+};
+
+/**
  * One Investment Agreement: the Units this person takes of this Venture, the split those Units earn, the
  * Arbitrator both sides name, and the stamped instrument — its value, day and serial, with a photo of the
  * paper itself, because the paper is what a court would ask for.
@@ -88,21 +116,7 @@ export const SignAgreementSheet = ({
     setTerms(NOTHING_SIGNED);
     setPaper(null);
   });
-  const investors = useQuery(orpc.investors.list.queryOptions());
-  // Who has signed this Venture already, and for how much: a second Agreement for the same person is
-  // refused, and Units beyond what is left are too, so the form offers neither.
-  const signedSoFar = useQuery({
-    ...orpc.ventures.agreements.queryOptions({
-      input: { ventureId: venture?.id ?? "" },
-    }),
-    enabled: venture !== null,
-  });
-  const alreadyIn = new Set(
-    (signedSoFar.data ?? []).map((one) => one.investorId)
-  );
-  const left =
-    (venture?.units ?? 0) -
-    (signedSoFar.data ?? []).reduce((sum, one) => sum + one.units, 0);
+  const { signable, left, nobodyLeft } = useWhoMaySign(venture);
   const keeping = useMutation(
     orpc.ventures.keepAgreementPaper.mutationOptions()
   );
@@ -165,7 +179,11 @@ export const SignAgreementSheet = ({
       title={t("ventures.sign")}
     >
       <FormField
-        hint={t("ventures.investorHint")}
+        hint={
+          nobodyLeft
+            ? t("ventures.nobodyLeftToSign")
+            : t("ventures.investorHint")
+        }
         id="agreement-investor"
         label={t("ventures.investor")}
       >
@@ -179,13 +197,11 @@ export const SignAgreementSheet = ({
           <option value="">—</option>
           {/* A retired Investor is not signed for anything until the Owner brings them back, and somebody who has
               signed this Venture already signs no second Agreement for it. */}
-          {(investors.data?.people ?? [])
-            .filter((one) => !(one.retiredAt || alreadyIn.has(one.id)))
-            .map((one) => (
-              <option key={one.id} value={one.id}>
-                {one.name}
-              </option>
-            ))}
+          {signable.map((one) => (
+            <option key={one.id} value={one.id}>
+              {one.name}
+            </option>
+          ))}
         </NativeSelect>
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">

@@ -408,7 +408,7 @@ const WhatIsLeftToSend = ({
   approved: Approved;
   onPay: (what: {
     ventureId: string;
-    kind: "advance" | "share" | "farm";
+    kind: "advance" | "share" | "farm" | "farmLoss";
     title: string;
     amountBdt: number;
     agreementId?: string;
@@ -421,9 +421,37 @@ const WhatIsLeftToSend = ({
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
+  // Said as its own name because the guard against untranslated JSX text reads a comparison's angle bracket
+  // as the end of a tag.
+  const farmOwesALoss = approved.farmBdt < 0;
   return (
     <Section plain title={t("ventures.whatIsLeftToSend")}>
       <div className="flex flex-col gap-2 text-sm">
+        {/* First, because it comes first: until the Farm has put in its share of a loss, the account holds
+            less than the payouts under it add up to. */}
+        {!farmOwesALoss || approved.farmSharePaid ? null : (
+          <div className="flex items-center justify-between gap-2">
+            <span>{t("ventures.farmsLoss")}</span>
+            <span className="flex items-center gap-2">
+              <span className="tabular-nums">{taka(-approved.farmBdt)}</span>
+              <Button
+                onClick={() =>
+                  onPay({
+                    ventureId,
+                    kind: "farmLoss",
+                    title: t("ventures.farmsLoss"),
+                    amountBdt: -approved.farmBdt,
+                  })
+                }
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {t("ventures.payIn")}
+              </Button>
+            </span>
+          </div>
+        )}
         {approved.advanceBdt === 0 || approved.advanceRepaid ? null : (
           <div className="flex items-center justify-between gap-2">
             <span>{t("ventures.owedToYou")}</span>

@@ -45,11 +45,43 @@ export const tripsRouter = {
    */
   list: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(async ({ context }) => {
+    .input(
+      z
+        .object({
+          /** Instead of the latest outings, every one still holding this Venture's Float, however old — the
+           *  ones it has to count home before it can finish buying or settle. */
+          openFloatsOf: z.string().min(1).optional(),
+        })
+        .optional()
+    )
+    .handler(async ({ context, input }) => {
+      const stillOut = input?.openFloatsOf
+        ? await context.db.query.ventureMovement.findMany({
+            where: {
+              farmId: context.farm.id,
+              ventureId: input.openFloatsOf,
+              kind: "float_out",
+              reconciledAt: { isNull: true },
+            },
+            columns: { buyingTripId: true },
+          })
+        : null;
+      if (stillOut?.length === 0) {
+        return [];
+      }
       const rows = await context.db.query.buyingTrip.findMany({
-        where: { farmId: context.farm.id },
+        where: stillOut
+          ? {
+              farmId: context.farm.id,
+              id: {
+                in: stillOut.flatMap((one) =>
+                  one.buyingTripId ? [one.buyingTripId] : []
+                ),
+              },
+            }
+          : { farmId: context.farm.id },
         orderBy: { wentOn: "desc", id: "desc" },
-        limit: OFFERED,
+        limit: stillOut ? undefined : OFFERED,
         with: { intakes: { columns: { id: true } } },
       });
       // What each outing was given, and by whom. The Manager reads it because she is the one taking it

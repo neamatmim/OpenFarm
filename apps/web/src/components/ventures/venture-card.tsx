@@ -458,7 +458,11 @@ export const primaryActsOf = (
         handleSelect: () => acts.buyWhatIsLeft(venture),
       });
     }
-    if (venture.state === "selling") {
+    // A fattening run with no animal left — every one of them died — never reaches Selling, and is settled
+    // from where it stands: what is left of its money is still its Investors'.
+    const nothingLeftStanding =
+      venture.state === "fattening" && (venture.animalsStanding ?? 0) === 0;
+    if (venture.state === "selling" || nothingLeftStanding) {
       said.push({
         label: t("ventures.settlement"),
         icon: Scale,

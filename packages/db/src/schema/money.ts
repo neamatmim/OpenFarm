@@ -52,6 +52,9 @@ export const RECORD_SOURCES = [
   // of a Settlement that is the Farm's income — an Investor's payout is his own capital and profit
   // going home, and is never the Farm's.
   "farm_share",
+  // The Farm's share of a Venture's loss, paid into its account at Settlement: the mirror of `farm_share`,
+  // and money out of the Farm's own books, because it is the Farm carrying its part of a run that lost.
+  "farm_loss",
 ] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 
