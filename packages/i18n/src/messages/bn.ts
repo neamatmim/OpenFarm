@@ -625,6 +625,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.section.who": "পরিচয়",
   "investors.section.money": "টাকা কোথায় যাবে",
   "investors.bankPlaceholder": "হিসাবের নাম, হিসাব নম্বর, ব্যাংক ও শাখা",
+  "investors.copyAccount": "কপি করুন",
+  "investors.copied": "কপি হয়েছে",
   "investors.nomineeIs": "নমিনি: {name}",
   "investors.holds": "{units} ইউনিট",
   "investors.none": "এখনো কোনো বিনিয়োগকারী লেখা হয়নি",

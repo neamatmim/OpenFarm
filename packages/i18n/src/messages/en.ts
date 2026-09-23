@@ -686,6 +686,8 @@ export const en = {
   "investors.section.who": "Who they are",
   "investors.section.money": "Where their money goes",
   "investors.bankPlaceholder": "Account name, account number, bank and branch",
+  "investors.copyAccount": "Copy",
+  "investors.copied": "Copied",
   "investors.nomineeIs": "Nominee: {name}",
   "investors.holds": "{units} Units",
   "investors.none": "No Investor is recorded yet",
