@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { findRationProblems } from "./feed";
+import type { WeightBand } from "./feed";
+import { findBandProblems, findRationProblems } from "./feed";
 import { findPublishBlockers } from "./sop";
 import {
   STANDARD_DRUGS,
   STANDARD_FEED_ITEMS,
   STANDARD_NOTIFIABLE_DISEASES,
   STANDARD_RATIONS,
+  rationLineOf,
 } from "./standard";
 import type { PlaybookKey } from "./standard-playbook";
 import { STANDARD_SOP_NEEDS, standardPlaybook } from "./standard-playbook";
@@ -57,18 +59,65 @@ describe("the Standard Playbook", () => {
   });
 });
 
+/** A band open at both ends: a Ration for any weight. */
+const OPEN: WeightBand = { fromKg: null, toKg: null };
+
+/** The fattening Rations, lightest first: the calf's, then the bull's by weight. */
+const FATTENING_BY_WEIGHT = [
+  "calf",
+  "bullStarter",
+  "bullGrower",
+  "bullFinisher",
+  "bullLateFinisher",
+  "heavyBull",
+] as const;
+
+/** The heaviest Eid bull the farm plans for. */
+const HEAVIEST_KG = 1000;
+
+/** The most mustard cake an adult takes in a day (NDDB 2012). */
+const MOST_CAKE_KG = 1.5;
+
 describe("the standard lists", () => {
   it("has Rations the farm could save by hand", () => {
     for (const one of Object.values(STANDARD_RATIONS)) {
-      const problems = findRationProblems({
-        items: one.items.map(([key, kg]) => ({
-          feedItemId: key,
-          kgPerAnimalPerDay: kg,
-        })),
-      });
+      const band: WeightBand = "band" in one ? one.band : OPEN;
+      const problems = [
+        ...findRationProblems({
+          items: one.items.map((line) => rationLineOf(line, (key) => key)),
+        }),
+        ...findBandProblems(band),
+      ];
       expect({ ration: one.name.en, problems }).toEqual({
         ration: one.name.en,
         problems: [],
+      });
+    }
+  });
+
+  // Calf to the heaviest Eid bull, one Ration's band ends where the next begins: no weight falls between two.
+  it("feeds a fattening bull of any weight on exactly one Ration", () => {
+    const bands = FATTENING_BY_WEIGHT.map((key) => STANDARD_RATIONS[key].band);
+    expect(bands[0]?.fromKg).toBeNull();
+    expect(bands.at(-1)?.toKg).toBeNull();
+    for (const [index, band] of bands.slice(1).entries()) {
+      expect(band.fromKg).toBe(bands[index]?.toKg);
+    }
+  });
+
+  // NDDB 2012: an adult takes 1–1.5 kg of mustard cake a day, and no more.
+  it("keeps mustard cake under a kilo and a half a day, whatever the bull weighs", () => {
+    for (const key of FATTENING_BY_WEIGHT) {
+      const ration = STANDARD_RATIONS[key];
+      const heaviest = ration.band.toKg ?? HEAVIEST_KG;
+      const cake = ration.items.find(([feed]) => feed === "mustardCake");
+      const perDay =
+        cake?.[2] === "per100kg"
+          ? (cake[1] * heaviest) / 100
+          : (cake?.[1] ?? 0);
+      expect({ key, underTheMost: perDay <= MOST_CAKE_KG }).toEqual({
+        key,
+        underTheMost: true,
       });
     }
   });

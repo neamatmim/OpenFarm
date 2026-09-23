@@ -27,8 +27,9 @@ import {
   shelfCount,
   shelfReason,
 } from "./shared";
-import { HERD_SUNDRIES } from "./standing";
+import { HERD_SUNDRIES, meatDaysOf } from "./standing";
 import type { Farm, PenKey } from "./standing";
+import { closingDays } from "./ventures";
 import "./responders";
 
 interface Script {
@@ -75,6 +76,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
       ["maize", "purchase", 1500, 36, FEED_SELLERS.bazaar],
       ["pulseHusk", "purchase", 800, 30, FEED_SELLERS.bazaar],
       ["minerals", "purchase", 100, 140, FEED_SELLERS.mill],
+      ["salt", "purchase", 60, 42, FEED_SELLERS.bazaar],
       ["straw", "purchase", 3000, 9, FEED_SELLERS.straw],
       ["silage", "harvest", 12_000, undefined, undefined],
       ["napier", "harvest", 6000, undefined, undefined],
@@ -122,6 +124,7 @@ const keepTheStore = ({ farm, days, on }: Script) => {
         ["bran", 950, random.int(46, 51), FEED_SELLERS.bazaar],
         ["maize", 750, random.int(34, 39), FEED_SELLERS.bazaar],
         ["pulseHusk", 380, random.int(28, 33), FEED_SELLERS.bazaar],
+        ["salt", 15, random.int(40, 45), FEED_SELLERS.bazaar],
         ["straw", 2300, random.int(8, 11), FEED_SELLERS.straw],
       ];
       // The last order of minerals did not come, so the store is running low on them now.
@@ -332,8 +335,22 @@ const fattenTheBulls = ({ farm, on }: Script) => {
   }
 };
 
-/** FMD before the rains, deworming, and lumpy skin. */
+/** Days to spare between a campaign's meat withdrawal ending and the Venture's bulls being made ready. */
+const CLEAR_OF_THE_SALE_DAYS = 2;
+
+/**
+ * FMD before the rains, deworming, and lumpy skin — the last on day forty, or earlier where the seed is run late in a
+ * month: the finished Venture's bulls are made ready eight days before the month turns, and the farm will not confirm
+ * one inside the lumpy-skin vaccine's withdrawal. Worked out rather than hoped for, because the ready day moves with
+ * the calendar and the campaign did not, and a seed run after the 22nd of any month used to stop there.
+ */
 const runTheCampaigns = ({ farm, on }: Script) => {
+  const { readyOn } = closingDays(farm.today);
+  const lsdLatest = addDays(
+    readyOn,
+    -(meatDaysOf("lsd") + CLEAR_OF_THE_SALE_DAYS)
+  );
+  const lsdOn = [addDays(farm.start, 40), lsdLatest].toSorted()[0] ?? lsdLatest;
   const campaigns: [
     number,
     "fmdVaccination" | "lsdVaccination" | "deworming",
@@ -346,7 +363,7 @@ const runTheCampaigns = ({ farm, on }: Script) => {
     ],
     [24, "deworming", ["heifers", "calves", "bullsA", "bullsB"]],
     [
-      40,
+      daysBetween(farm.start, lsdOn),
       "lsdVaccination",
       ["milking1", "milking2", "dry", "heifers", "bullsA", "bullsB"],
     ],

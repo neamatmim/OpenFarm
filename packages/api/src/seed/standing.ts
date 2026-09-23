@@ -224,7 +224,10 @@ const FED: [StandardRationKey, PenKey[]][] = [
   ["dry", ["dry", "calving"]],
   ["heifer", ["heifers"]],
   ["calf", ["calves"]],
-  ["fattening", ["bullsA", "bullsB", "quarantine"]],
+  // By weight: the bulls bought in on the arrival Ration, the lighter pen on the grower's, the heavier on the finisher's.
+  ["arrival", ["quarantine"]],
+  ["bullGrower", ["bullsB"]],
+  ["bullFinisher", ["bullsA"]],
   ["sick", ["isolation"]],
 ];
 
@@ -256,6 +259,10 @@ const MEDICINES: [
   ["lsd", 0, 21, { priceBdt: 7500, doses: 100, quantity: "৫টি ২০-ডোজ ভায়াল" }],
   ["albendazole", 3, 14, { priceBdt: 2800, doses: 90, quantity: "৯০টি বোলাস" }],
 ];
+
+/** The days the Vet wrote for meat off a medicine's label: what keeps a beast it was given to off the butcher's lorry. */
+export const meatDaysOf = (key: StandardDrugKey): number =>
+  MEDICINES.find(([drug]) => drug === key)?.[2] ?? 0;
 
 /**
  * The farm starts with the standard lists, as a new Owner is offered at Setup, and then makes them its own: the

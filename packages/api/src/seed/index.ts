@@ -119,12 +119,14 @@ const main = async () => {
 try {
   await main();
 } catch (error: unknown) {
-  const said = error as {
-    message?: string;
-    data?: unknown;
-    cause?: { issues?: unknown; invalidData?: unknown };
-  };
-  console.error(said.message ?? error);
+  // Where it stopped, then what refused it: a step of the three months wraps the farm's own refusal.
+  let refusal: unknown = error;
+  while ((refusal as { cause?: unknown }).cause instanceof Error) {
+    console.error((refusal as Error).message);
+    refusal = (refusal as { cause: unknown }).cause;
+  }
+  const said = refusal as { message?: string; data?: unknown };
+  console.error(said.message ?? refusal);
   const issues = (
     said.data as
       | { issues?: { path?: unknown[]; message?: string }[] }
@@ -138,7 +140,7 @@ try {
     console.error(JSON.stringify(said.data, null, 2));
   }
   console.error(
-    (error as Error).stack
+    (refusal as Error).stack
       ?.split("\n")
       .filter((line) => line.includes("/seed/"))
       .join("\n")

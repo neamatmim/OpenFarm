@@ -10,10 +10,11 @@ import {
   STANDARD_FEED_ITEMS,
   STANDARD_NOTIFIABLE_DISEASES,
   STANDARD_RATIONS,
+  rationLineOf,
 } from "@OpenFarm/domain";
 
 import type { Trail, Tx } from "./audit";
-import { publishRationVersion } from "./feed-store";
+import { bandColumns, publishRationVersion } from "./feed-store";
 
 /** Who is starting the farm with the standard lists, and when. */
 interface Starter {
@@ -106,6 +107,8 @@ const addRations = async (
   };
   const added: string[] = [];
   for (const one of Object.values(STANDARD_RATIONS)) {
+    // Written for any weight, unless the standard says which.
+    const band = "band" in one ? one.band : { fromKg: null, toKg: null };
     const [made] = await tx
       .insert(ration)
       .values({
@@ -113,6 +116,7 @@ const addRations = async (
         farmId: starter.farmId,
         nameBn: one.name.bn,
         nameEn: one.name.en,
+        ...bandColumns(band),
         createdAt: starter.now,
       })
       .onConflictDoNothing()
@@ -120,15 +124,12 @@ const addRations = async (
     if (!made) {
       continue;
     }
-    const lines = one.items.map(([key, kg]) => ({
-      feedItemId: idOf(key),
-      kgPerAnimalPerDay: kg,
-    }));
+    const lines = one.items.map((line) => rationLineOf(line, idOf));
     const number = await publishRationVersion(tx, {
       farmId: starter.farmId,
       rationId: made.id,
       items: lines,
-      note: null,
+      note: "note" in one ? one.note : null,
       actorId: starter.actorId,
       roleUsed: starter.roleUsed,
       now: starter.now,
@@ -138,7 +139,7 @@ const addRations = async (
       entity: "ration",
       entityId: made.id,
       action: "create",
-      after: { name: one.name.bn, number, items: lines },
+      after: { name: one.name.bn, number, items: lines, band },
     });
     added.push(one.name.bn);
   }

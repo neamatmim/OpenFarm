@@ -4,6 +4,7 @@
  * DLS must be told of. Names only — a price, a stock level, a Pen a Ration is fed to and a product's withdrawal days
  * are the farm's own facts, and the days the Vet's alone.
  */
+import type { RationLine, WeightBand } from "./feed";
 import type { StandardSopNeed } from "./standard-playbook";
 
 interface Named {
@@ -21,14 +22,55 @@ export const STANDARD_FEED_ITEMS = {
   pulseHusk: { bn: "ডালের ভুসি", en: "Pulse husk" },
   concentrate: { bn: "ডেইরি কনসেনট্রেট", en: "Dairy concentrate" },
   minerals: { bn: "মিনারেল মিক্সচার", en: "Mineral mixture" },
+  salt: { bn: "লবণ", en: "Salt" },
 } as const satisfies Record<string, Named>;
 export type StandardFeedKey = keyof typeof STANDARD_FEED_ITEMS;
 
-/** A Ration as the standard gives it: kg of each Feed Item per animal per day. */
+/** One line of a standard Ration: so many kg a day for each animal, or — marked — for every 100 kg of body weight. */
+export type StandardLine =
+  | readonly [StandardFeedKey, number]
+  | readonly [StandardFeedKey, number, "per100kg"];
+
+/** A Ration as the standard gives it: its lines, the weights it is written for, and what it was worked out from. */
 export interface StandardRation {
   name: Named;
-  items: [StandardFeedKey, number][];
+  items: readonly StandardLine[];
+  band?: WeightBand;
+  /** Said with its first Version, so a farm reading it later knows where the figures came from. */
+  note?: string;
 }
+
+/** A standard line as the farm's Ration keeps it, once its Feed Item has an id on this farm. */
+export const rationLineOf = (
+  [key, kg, per]: StandardLine,
+  idOf: (key: StandardFeedKey) => string
+): RationLine =>
+  per === "per100kg"
+    ? { feedItemId: idOf(key), kgPer100KgPerDay: kg }
+    : { feedItemId: idOf(key), kgPerAnimalPerDay: kg };
+
+/**
+ * The fattening Rations by weight, 100 kg to 1000 kg, worked out from published standards rather than guessed:
+ *
+ * - Dry matter a day falls as a bull grows: about 2.9% of body weight at 125 kg down to 2.0% past 500 kg — ICAR 2013
+ *   (2.5–3.0% for young stock) and NASEM 2016 via Univ. of Arkansas MP391 (about 2.0% for bulls of 635–816 kg).
+ * - Concentrate is 45–55% of that dry matter: BLRI/BAU trials found 55:45 concentrate to roughage the cheapest for
+ *   the same gain (Rashid et al. 2015, JAST 5:286), and ICAR puts the ceiling at 60% against acidosis.
+ * - Crude protein 13.7% for the youngest down to 11% for the heaviest — above the temperate tables, as Bangladeshi
+ *   trials formulate (12.5–14.5%; Joya et al. 2026 find tropical calves need more than NRC 1996).
+ * - Mustard cake stays under 1–1.5 kg a day even for a 1000 kg bull (NDDB 2012); minerals 50 g a head for growing
+ *   stock (NDDB), salt about 25–60 g.
+ * - Feeds as analysed in the region: napier 17% dry matter and 10.5% protein, rice straw 92% and 4%, crushed maize
+ *   89% and 9.5%, wheat bran 89% and 15.5%, mustard cake 92% and 36%, pulse husk 89% and 16.7% (Feedipedia, NDDB
+ *   2012, Siddque et al. 2015).
+ *
+ * Under 100 kg a calf lives on milk and calf starter, which is the calf's Ration, by the head. A bull bought in eats
+ * the arrival Ration first, at 30% concentrate: cattle are stepped up to grain over three weeks at least (Merck).
+ * Starting points, to be checked against the farm's own feed and the Vet — the Leftovers and the Average Daily Gain
+ * say whether they suit.
+ */
+const BY_WEIGHT_NOTE =
+  "প্রকাশিত খাদ্যমান (ICAR, NASEM, BLRI/BAU গবেষণা, NDDB) থেকে হিসাব করা; খাবার প্রতি ১০০ কেজি ওজনে, মিনারেল ও লবণ প্রতি পশু। নিজের খাবার আর ভেটের সাথে মিলিয়ে নিন।";
 
 export const STANDARD_RATIONS = {
   milking: {
@@ -68,18 +110,98 @@ export const STANDARD_RATIONS = {
       ["bran", 0.8],
       ["concentrate", 0.5],
     ],
+    // Milk and calf starter, by the head. A fattening calf past 100 kg is pointed out for the bull starter.
+    band: { fromKg: null, toKg: 100 },
   },
-  fattening: {
-    name: { bn: "মোটাতাজাকরণ রেশন", en: "Fattening ration" },
+  // Bought in: mostly grass and straw for the first two or three weeks, while the rumen learns grain.
+  arrival: {
+    name: { bn: "নতুন আসা ষাঁড়ের রেশন", en: "New arrival ration" },
     items: [
-      ["napier", 12],
-      ["straw", 3],
-      ["maize", 3],
-      ["bran", 2],
-      ["mustardCake", 1],
-      ["pulseHusk", 1.5],
-      ["minerals", 0.08],
+      ["napier", 5.65, "per100kg"],
+      ["straw", 0.85, "per100kg"],
+      ["maize", 0.2, "per100kg"],
+      ["bran", 0.3, "per100kg"],
+      ["mustardCake", 0.2, "per100kg"],
+      ["pulseHusk", 0.15, "per100kg"],
+      ["minerals", 0.05],
+      ["salt", 0.03],
     ],
+    note: BY_WEIGHT_NOTE,
+  },
+  bullStarter: {
+    name: { bn: "ষাঁড় শুরুর রেশন", en: "Bull starter ration" },
+    items: [
+      ["napier", 5.65, "per100kg"],
+      ["straw", 0.7, "per100kg"],
+      ["maize", 0.35, "per100kg"],
+      ["bran", 0.45, "per100kg"],
+      ["mustardCake", 0.45, "per100kg"],
+      ["pulseHusk", 0.2, "per100kg"],
+      ["minerals", 0.04],
+      ["salt", 0.025],
+    ],
+    band: { fromKg: 100, toKg: 150 },
+    note: BY_WEIGHT_NOTE,
+  },
+  bullGrower: {
+    name: { bn: "বাড়ন্ত ষাঁড়ের রেশন", en: "Bull grower ration" },
+    items: [
+      ["napier", 4.8, "per100kg"],
+      ["straw", 0.75, "per100kg"],
+      ["maize", 0.4, "per100kg"],
+      ["bran", 0.4, "per100kg"],
+      ["mustardCake", 0.35, "per100kg"],
+      ["pulseHusk", 0.2, "per100kg"],
+      ["minerals", 0.05],
+      ["salt", 0.035],
+    ],
+    band: { fromKg: 150, toKg: 250 },
+    note: BY_WEIGHT_NOTE,
+  },
+  bullFinisher: {
+    name: { bn: "ষাঁড় মোটাতাজাকরণ রেশন ১", en: "Bull finisher ration 1" },
+    items: [
+      ["napier", 3.7, "per100kg"],
+      ["straw", 0.7, "per100kg"],
+      ["maize", 0.55, "per100kg"],
+      ["bran", 0.4, "per100kg"],
+      ["mustardCake", 0.2, "per100kg"],
+      ["pulseHusk", 0.2, "per100kg"],
+      ["minerals", 0.06],
+      ["salt", 0.04],
+    ],
+    band: { fromKg: 250, toKg: 350 },
+    note: BY_WEIGHT_NOTE,
+  },
+  bullLateFinisher: {
+    name: { bn: "ষাঁড় মোটাতাজাকরণ রেশন ২", en: "Bull finisher ration 2" },
+    items: [
+      ["napier", 3.05, "per100kg"],
+      ["straw", 0.55, "per100kg"],
+      ["maize", 0.65, "per100kg"],
+      ["bran", 0.35, "per100kg"],
+      ["mustardCake", 0.2, "per100kg"],
+      ["pulseHusk", 0.2, "per100kg"],
+      ["minerals", 0.08],
+      ["salt", 0.05],
+    ],
+    band: { fromKg: 350, toKg: 500 },
+    note: BY_WEIGHT_NOTE,
+  },
+  heavyBull: {
+    name: { bn: "বড় ষাঁড়ের রেশন", en: "Heavy bull ration" },
+    items: [
+      ["napier", 2.4, "per100kg"],
+      ["straw", 0.55, "per100kg"],
+      ["maize", 0.6, "per100kg"],
+      ["bran", 0.3, "per100kg"],
+      ["mustardCake", 0.1, "per100kg"],
+      ["pulseHusk", 0.2, "per100kg"],
+      ["minerals", 0.1],
+      ["salt", 0.06],
+    ],
+    band: { fromKg: 500, toKg: null },
+    note: BY_WEIGHT_NOTE,
   },
   sick: {
     name: { bn: "অসুস্থ পশুর নরম রেশন", en: "Sick animal soft ration" },

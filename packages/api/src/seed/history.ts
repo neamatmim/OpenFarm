@@ -295,6 +295,16 @@ const closeWhatWasMissed = async (farm: Farm, day: string) => {
 };
 
 /** Something the farm did on a day that is not answering the Playbook: a lorry arriving, a campaign raised. */
+/** Runs one step of the three months, and says which one when it fails: a refusal alone does not say whose it was,
+ *  and finding out means living the months again. */
+const saying = async <T>(what: string, run: () => Promise<T>): Promise<T> => {
+  try {
+    return await run();
+  } catch (error) {
+    throw new Error(`The seed stopped at ${what}`, { cause: error });
+  }
+};
+
 export interface Happening {
   day: string;
   time: string;
@@ -345,7 +355,9 @@ export const liveTheDays = async (
       if (nextEvent && eventAt <= workAt) {
         events.shift();
         farm.clock.set(new Date(eventAt));
-        await nextEvent.run(farm, herd);
+        await saying(`${day} ${nextEvent.time}, ${nextEvent.what}`, () =>
+          nextEvent.run(farm, herd)
+        );
         farm.clock.set(new Date(eventAt + MINUTE));
         await farm.as.manager.instances.ensureDue();
         continue;
@@ -358,9 +370,12 @@ export const liveTheDays = async (
       if (farm.random.chance(0.012)) {
         continue;
       }
-      const outcome = await doTheWork(farm, herd, nextWork, { day, signOff });
+      const outcome = await saying(
+        `${day}, work ${nextWork.id} due ${nextWork.dueAt.toISOString()}`,
+        () => doTheWork(farm, herd, nextWork, { day, signOff })
+      );
       for (const followUp of herd.followUps.splice(0)) {
-        await followUp();
+        await saying(`${day}, a follow-up of work ${nextWork.id}`, followUp);
       }
       if (outcome === "done") {
         done += 1;
