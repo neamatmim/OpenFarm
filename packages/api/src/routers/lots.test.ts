@@ -420,6 +420,42 @@ describe("the store warns", () => {
     ).toEqual([expect.objectContaining({ what: "medicine", left: 10 })]);
   });
 
+  it("says a Lot is going off on the list by the same warning the Manager is told by", async () => {
+    const store = await aStore("warn-days");
+    const owner = await as("owner", "2038-04-01T03:00:00.000Z");
+    // The farm warns sixty days ahead, not the thirty a new farm starts with.
+    await owner.client.farm.setParameters({ expiryWarnDays: 60 });
+    try {
+      // Forty-six days before the June Lot's day: inside sixty, outside thirty.
+      const instant = "2038-05-15T04:00:00.000Z";
+      await sweepAt(instant);
+      const told = await toldTo("manager", "lot_expiring");
+      expect(
+        told.filter(
+          (one) =>
+            one.itemId === store.product.id && one.lotNumber === "EARLY-1"
+        )
+      ).toHaveLength(1);
+
+      // The list the Manager then opens says the same of that Lot, and nothing of the one due next year.
+      const reading = await as("manager", instant);
+      const list = await reading.client.drugs.list();
+      const lots = list.find((one) => one.id === store.product.id)?.stock.lots;
+      expect(lots).toEqual([
+        expect.objectContaining({ lotNumber: "EARLY-1", standing: "soon" }),
+        expect.objectContaining({ lotNumber: "LATE-1", standing: "fine" }),
+      ]);
+      const purchases = await reading.client.drugs.purchases({
+        drugProductId: store.product.id,
+      });
+      expect(purchases.find((one) => one.id === store.early.id)?.standing).toBe(
+        "soon"
+      );
+    } finally {
+      await owner.client.farm.setParameters({ expiryWarnDays: 30 });
+    }
+  });
+
   it("tells the Manager when a product runs under its level, once", async () => {
     const store = await aStore("low");
     await store.manager.client.drugs.setLowStock({

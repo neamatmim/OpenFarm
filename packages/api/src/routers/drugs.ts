@@ -4,11 +4,11 @@ import { drugProduct } from "@OpenFarm/db/schema/health";
 import { medicinePurchase } from "@OpenFarm/db/schema/money";
 import {
   MAX_WITHDRAWAL_DAYS,
-  farmDayOf,
   mayBePrescribed,
   startOfFarmDay,
   whyNotPrescribable,
 } from "@OpenFarm/domain";
+import { expiryStanding, expiryWindow, runsLow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -111,33 +111,33 @@ export const drugsRouter = {
         orderBy: { nameBn: "asc" },
         with: { setBy: { columns: { name: true } } },
       });
-      const stock = await medicineStockOf(context.db, context.farm.id);
-      // The farm's own day, which the Lots' days sort against as text.
-      const today = farmDayOf(context.clock.now());
-      /** Doses still on the shelf from Lots already past their day. */
-      const expiredOnHand = (productId: string) =>
-        (stock.get(productId)?.lots ?? [])
-          .filter((lot) => lot.expiresOn !== null && lot.expiresOn < today)
-          .reduce((sum, lot) => sum + lot.left, 0);
-      return rows.map(({ setBy, ...row }) => ({
-        ...row,
-        /** What the store holds of it, in doses and by Lot, and whether that is under the level set for it. */
-        stock: {
-          ...(stock.get(row.id) ?? noMedicine()),
-          expiredOnHand: expiredOnHand(row.id),
-          lowStockAt: row.lowStockAt,
-          runningLow:
-            row.lowStockAt !== null &&
-            !row.retiredAt &&
-            (stock.get(row.id)?.onHand ?? 0) < row.lowStockAt,
-        },
-        /** Who said what the days are: evidence, so it is shown and not only stored. */
-        daysSetByName: setBy?.name ?? null,
-        prescribable: mayBePrescribed(row),
-        /** Why not — the same answer the refusal will give, because it is the same
-         *  question. A reason rather than a sentence: the words belong to the reader. */
-        whyNot: whyNotPrescribable(row),
-      }));
+      const stock = await medicineStockOf(
+        context.db,
+        context.farm.id,
+        expiryWindow(context.clock.now(), context.farm.expiryWarnDays)
+      );
+      return rows.map(({ setBy, ...row }) => {
+        const held = stock.get(row.id) ?? noMedicine();
+        return {
+          ...row,
+          /** What the store holds of it, in doses and by Lot, and whether that is under the level set for it. */
+          stock: {
+            ...held,
+            lowStockAt: row.lowStockAt,
+            runningLow: runsLow({
+              onHand: held.onHand,
+              level: row.lowStockAt,
+              retired: row.retiredAt !== null,
+            }),
+          },
+          /** Who said what the days are: evidence, so it is shown and not only stored. */
+          daysSetByName: setBy?.name ?? null,
+          prescribable: mayBePrescribed(row),
+          /** Why not — the same answer the refusal will give, because it is the same
+           *  question. A reason rather than a sentence: the words belong to the reader. */
+          whyNot: whyNotPrescribable(row),
+        };
+      });
     }),
 
   /**
@@ -248,10 +248,15 @@ export const drugsRouter = {
         orderBy: { purchasedOn: "desc", id: "desc" },
         limit: 100,
       });
-      const stock = await medicineStockOf(context.db, context.farm.id);
-      const lots = stock.get(input.drugProductId)?.lots;
-      const leftOf = new Map(
-        (lots ?? []).map((one) => [one.purchaseId, one.left] as const)
+      const window = expiryWindow(
+        context.clock.now(),
+        context.farm.expiryWarnDays
+      );
+      const stock = await medicineStockOf(context.db, context.farm.id, window);
+      const lotOf = new Map(
+        (stock.get(input.drugProductId)?.lots ?? []).map(
+          (one) => [one.purchaseId, one] as const
+        )
       );
       return rows.map((row) => ({
         id: row.id,
@@ -263,7 +268,10 @@ export const drugsRouter = {
         lotNumber: row.lotNumber,
         expiresOn: row.expiresOn,
         /** Doses of this Lot still in the store, the first to expire taken first. */
-        left: leftOf.get(row.id) ?? row.doses,
+        left: lotOf.get(row.id)?.left ?? row.doses,
+        /** Where it stands against its day, by the farm's own warning. */
+        standing:
+          lotOf.get(row.id)?.standing ?? expiryStanding(row.expiresOn, window),
       }));
     }),
 

@@ -1,6 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { FEED_IN_KINDS, feedIn } from "@OpenFarm/db/schema/feed";
 import { maundsOf } from "@OpenFarm/domain";
+import { expiryStanding, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -40,7 +41,11 @@ export const stockRouter = {
   onHand: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>
-      stockOnHand(context.db, context.farm.id, context.clock.now())
+      stockOnHand(
+        context.db,
+        context.farm.id,
+        expiryWindow(context.clock.now(), context.farm.expiryWarnDays)
+      )
     ),
 
   /**
@@ -63,10 +68,14 @@ export const stockRouter = {
         orderBy: { receivedOn: "desc", id: "desc" },
         limit: 200,
       });
-      const lines = await stockOnHand(context.db, context.farm.id);
-      const leftOf = new Map(
+      const window = expiryWindow(
+        context.clock.now(),
+        context.farm.expiryWarnDays
+      );
+      const lines = await stockOnHand(context.db, context.farm.id, window);
+      const lotOf = new Map(
         lines.flatMap((line) =>
-          line.lots.map((one) => [one.arrivalId, one.left] as const)
+          line.lots.map((one) => [one.arrivalId, one] as const)
         )
       );
       return rows.map(({ feedItem, seller, ...row }) => {
@@ -85,7 +94,11 @@ export const stockRouter = {
           lotNumber: row.lotNumber,
           expiresOn: row.expiresOn,
           /** What is left of this delivery in the store; nothing once it is all fed out. */
-          left: leftOf.get(row.id) ?? 0,
+          left: lotOf.get(row.id)?.left ?? 0,
+          /** Where it stands against its day, by the farm's own warning. */
+          standing:
+            lotOf.get(row.id)?.standing ??
+            expiryStanding(row.expiresOn, window),
           recordedAt: row.recordedAt,
         };
       });

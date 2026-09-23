@@ -176,15 +176,18 @@ const MenuCell = ({ row }: { row: { original: StockRow } }) => (
  *  is the one the day belongs to, so the bag can be found. */
 const NextExpiry = ({ line }: { line: StockLine }) => {
   const { t, language } = useLanguage();
-  const next = (line.lots ?? []).find((one) => one.expiresOn);
   const expired = line.expiredLeft ?? 0;
-  if (!(next || expired > 0)) {
+  if (!(line.nextExpiresOn || expired > 0)) {
     return <span className="text-muted-foreground">—</span>;
   }
   return (
     <span className="flex flex-col items-start gap-1">
-      {next ? (
-        <LotAndExpiry expiresOn={next.expiresOn} lotNumber={next.lotNumber} />
+      {line.nextExpiresOn ? (
+        <LotAndExpiry
+          expiresOn={line.nextExpiresOn}
+          lotNumber={line.nextLotNumber ?? null}
+          standing={line.nextStanding}
+        />
       ) : null}
       {/* Feed already past its day, still in the store: the bags nobody should be feeding. */}
       {expired > 0 ? (

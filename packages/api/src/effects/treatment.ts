@@ -1,7 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { treatment } from "@OpenFarm/db/schema/health";
-import { farmDayOf } from "@OpenFarm/domain";
+import { expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
@@ -174,15 +174,14 @@ const tellIfItsLotHadExpired = async (
   if (!dose?.givenAt) {
     return;
   }
+  // Read on the day it was given: only whether the Lot had passed its day is asked, so no warning is wanted.
   const lot = await lotOfTheLatestDose(
     tx,
     input.instance.farmId,
-    dose.productId
+    dose.productId,
+    expiryWindow(dose.givenAt, 0)
   );
-  // The farm's own days, which sort as text. A Lot may still be used on its last day.
-  const givenOn = farmDayOf(dose.givenAt);
-  const pastItsDay = lot?.expiresOn ? lot.expiresOn < givenOn : false;
-  if (!(lot?.expiresOn && pastItsDay)) {
+  if (!(lot?.expiresOn && lot.standing === "expired")) {
     return;
   }
   await tell(
