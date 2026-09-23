@@ -17,7 +17,6 @@ import {
   Wheat,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { toast } from "sonner";
 
 import {
   MORE_LINK,
@@ -31,7 +30,7 @@ import { categoryName, useApproveMoney } from "@/components/money";
 import { ProgressBar, StatusBadge, TagChip } from "@/components/page";
 import { PageTabs } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import type { VentureNeedingHer } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
@@ -167,9 +166,10 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
 /** Playbook proposals, approved and published where they stand. */
 const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const approve = useMutation(
     orpc.sops.approveProposal.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (

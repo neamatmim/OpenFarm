@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type EntryState = (typeof ENTRY_STATES)[number];
@@ -38,6 +38,7 @@ export const RegisterAnimal = ({
   variant?: "default" | "outline";
 }) => {
   const t = useT();
+  const refused = useRefused();
   const ids = useId();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -56,7 +57,7 @@ export const RegisterAnimal = ({
         setForm(blank);
         await navigate({ to: "/animals/$tagNumber", params: { tagNumber } });
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

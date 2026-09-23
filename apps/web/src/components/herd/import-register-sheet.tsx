@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Notice } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** What the last import came to: how many were added, and every row the farm would not take, with its line. */
@@ -65,6 +65,7 @@ export const ImportRegisterSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [csv, setCsv] = useState("");
   const importRegister = useMutation(
     orpc.animals.importRegister.mutationOptions({
@@ -75,7 +76,7 @@ export const ImportRegisterSheet = ({
           onOpenChange(false);
         }
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

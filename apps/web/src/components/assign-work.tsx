@@ -8,7 +8,7 @@ import { useId } from "react";
 import { toast } from "sonner";
 
 import { useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 const SELECT =
@@ -32,6 +32,7 @@ export const AssignWork = ({
   state: string;
 }) => {
   const t = useT();
+  const refused = useRefused();
   const id = useId();
   const me = useQuery(orpc.people.me.queryOptions());
   const runsTheFarm = (me.data?.roles ?? []).some(
@@ -48,7 +49,7 @@ export const AssignWork = ({
       onSuccess: () => {
         toast.success(t("work.assigned"));
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

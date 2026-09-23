@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { RecordList, RecordRow, Section } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** Calling a visiting Vet in, in a dialog: which Vet, and why they are called. */
@@ -25,6 +25,7 @@ const OpenCaseDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const t = useT();
+  const refused = useRefused();
   const ids = useId();
   const [vetId, setVetId] = useState("");
   const [reason, setReason] = useState("");
@@ -36,7 +37,7 @@ const OpenCaseDialog = ({
         setVetId("");
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -90,6 +91,7 @@ export const VetCases = ({
   mayCall: boolean;
 }) => {
   const t = useT();
+  const refused = useRefused();
   const [calling, setCalling] = useState(false);
   const cases = useQuery({
     ...orpc.vetCases.forAnimal.queryOptions({ input: { tagNumber } }),
@@ -104,7 +106,7 @@ export const VetCases = ({
       onSuccess: () => {
         toast.success(t("cases.closed"));
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

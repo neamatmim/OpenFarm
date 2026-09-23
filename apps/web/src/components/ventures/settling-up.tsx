@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Approved = NonNullable<
@@ -102,6 +102,7 @@ export const PayOutSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
   // Emptied whenever the sheet is opened for somebody else: a bank reference left over from the last man
@@ -122,7 +123,7 @@ export const PayOutSheet = ({
     onOpenChange(false);
     toast.success(t("ventures.paid"));
   };
-  const failed = (error: unknown) => toast.error(sayWhy(error, t));
+  const failed = refused;
   const repaying = useMutation(
     orpc.ventures.repayAdvance.mutationOptions({
       onError: failed,
@@ -219,6 +220,7 @@ export const AcknowledgeSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [note, setNote] = useState("");
   // Emptied when it is somebody else being written down: one man recorded as saying another's words is
   // worse than nothing written at all.
@@ -229,7 +231,7 @@ export const AcknowledgeSheet = ({
   }
   const saying = useMutation(
     orpc.ventures.acknowledgePayout.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setNote("");
         onOpenChange(false);

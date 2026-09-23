@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 import { Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
 import { shrink } from "@/lib/photo";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -23,6 +23,7 @@ export const Certificate = ({
   updatedAt: Date | null;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const photo = useQuery({
     ...orpc.farm.certificate.queryOptions(),
     enabled: updatedAt !== null,
@@ -32,10 +33,7 @@ export const Certificate = ({
       onSuccess: () => {
         toast.success(t("certificate.taken"));
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   return (

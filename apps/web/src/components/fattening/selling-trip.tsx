@@ -11,7 +11,7 @@ import { Section } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 interface Day {
@@ -36,6 +36,7 @@ const orNothing = (value: string) =>
  */
 export const SellingTripForm = () => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [day, setDay] = useState<Day>(NOTHING_YET);
   const [taken, setTaken] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -45,7 +46,7 @@ export const SellingTripForm = () => {
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
   const record = useMutation(
     orpc.sellingTrips.record.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setDay(NOTHING_YET);
         setTaken([]);

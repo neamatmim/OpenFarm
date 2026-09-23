@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import { worthOf } from "./milk-types";
@@ -97,6 +97,7 @@ export const DispatchSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [form, setForm] = useState(NOTHING_TYPED);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const record = useMutation(
@@ -106,10 +107,7 @@ export const DispatchSheet = ({
         toast.success(t("dispatch.recorded"));
         onOpenChange(false);
       },
-      onError: (error: Error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   const handleType = (name: keyof Typed, value: string) =>

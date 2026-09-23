@@ -1,10 +1,8 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
-import { toast } from "sonner";
 
 import { TagChip } from "@/components/page";
-import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import type { orpc } from "@/utils/orpc";
 
 /** Something a round saw that nobody has answered. */
@@ -21,10 +19,7 @@ const REFUSALS: Record<string, MessageKey> = {
 };
 
 /** The refusal in the reader's own language: this screen's own words for what only it meets, then the farm's. */
-export const useRefusal = () => {
-  const { t } = useLanguage();
-  return (error: Error) => toast.error(sayWhy(error, t, REFUSALS));
-};
+export const useRefusal = () => useRefused(REFUSALS);
 
 /** An animal's Tag Number, as the way to her page. */
 export const AnimalLink = ({ tagNumber }: { tagNumber: string }) => (

@@ -17,7 +17,7 @@ import {
 import { EmptyState, Loaded, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -152,13 +152,14 @@ const lateCard = (row: LateRow) => <LateCard row={row} />;
  */
 export const LateTab = ({ late }: { late: Asked<LateWork> }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const inFlight = useInFlight();
   const [closing, setClosing] = useState<LateWork | null>(null);
   const closeAsMissed = useMutation(
     orpc.instances.closeAsMissed.mutationOptions({
       onMutate: ({ id }) => inFlight.start(id),
       onSettled: (_data, _error, { id }) => inFlight.end(id),
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         toast.success(t("signOff.closedMissed"));
         setClosing(null);

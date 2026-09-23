@@ -19,7 +19,7 @@ import {
   Section,
 } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type SignIn = Awaited<ReturnType<typeof orpc.people.signedInOn.call>>[number];
@@ -217,6 +217,7 @@ const SignInTable = ({
  *  browser in a shop. Not Shed Phones, which the farm enrols and revokes as devices. */
 export const SignInsTab = ({ userId }: { userId: string }) => {
   const t = useT();
+  const refused = useRefused();
   const where = useQuery(
     orpc.people.signedInOn.queryOptions({ input: { userId } })
   );
@@ -225,7 +226,7 @@ export const SignInsTab = ({ userId }: { userId: string }) => {
       onSuccess: () => {
         toast.success(t("people.signedOut"));
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (

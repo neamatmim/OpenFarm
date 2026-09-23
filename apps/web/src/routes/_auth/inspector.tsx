@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type {
   AskedPeriod,
@@ -43,7 +42,7 @@ import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { Paper } from "@/components/paper";
 import type { PaperId } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 const PAPER_OF: Record<InspectorRegister, PaperId> = {
@@ -308,6 +307,7 @@ const RegistrationNotices = ({ view }: { view: View }) => {
  */
 const InspectorPage = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "registration" } = Route.useSearch();
   const view = useQuery(orpc.inspector.view.queryOptions());
@@ -343,10 +343,7 @@ const InspectorPage = () => {
             ?.scrollIntoView({ behavior: "smooth", block: "start" })
         );
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   const figures = useInspectorFigures(view.data, certificateId !== undefined);

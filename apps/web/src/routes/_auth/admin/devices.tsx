@@ -11,7 +11,7 @@ import { EmptyState, Loaded, Page, PageHeader } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { OneTimeCode } from "@/components/people/one-time-code";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** The enrolment code a new phone is given, with its name and how long it lasts. */
@@ -32,6 +32,7 @@ const EnrolDialog = ({
   onEnrolled: (enrolment: Enrolment) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [name, setName] = useState("");
   const enrol = useMutation(
     orpc.devices.enrol.mutationOptions({
@@ -44,7 +45,7 @@ const EnrolDialog = ({
         setName("");
         onOpenChange(false);
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -78,6 +79,7 @@ const EnrolDialog = ({
  */
 const DevicesPage = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [adding, setAdding] = useState(false);
   const [enrolment, setEnrolment] = useState<Enrolment | null>(null);
   const phones = useQuery(orpc.devices.list.queryOptions());
@@ -87,7 +89,7 @@ const DevicesPage = () => {
       onSuccess: () => {
         toast.success(t("device.revoked"));
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

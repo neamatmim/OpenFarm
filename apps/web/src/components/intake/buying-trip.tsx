@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields } from "./intake-fields";
@@ -42,12 +42,13 @@ export const BuyingTripSheet = ({
   onRecorded: (tripId: string) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [outing, setOuting] = useState<Outing>(NOTHING_YET);
   const [paymentMethod, setPaymentMethod] =
     useState<IntakeFields["paymentMethod"]>("cash");
   const record = useMutation(
     orpc.trips.record.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: (made) => {
         setOuting(NOTHING_YET);
         onOpenChange(false);

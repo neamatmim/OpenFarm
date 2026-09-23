@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { DrugProduct } from "./drug-types";
@@ -62,6 +62,7 @@ export const BuyMedicineSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [chosenId, setChosenId] = useState(productId ?? "");
   const [typed, setTyped] = useState(NOTHING_BOUGHT);
   const [purchasedOn, setPurchasedOn] = useState(() => farmDayOf(new Date()));
@@ -75,10 +76,7 @@ export const BuyMedicineSheet = ({
         toast.success(t("drugs.bought"));
         onOpenChange(false);
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   const set = (key: keyof Typed) => (value: string) =>

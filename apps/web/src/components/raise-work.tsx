@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -17,6 +17,7 @@ import { orpc } from "@/utils/orpc";
  */
 export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const ids = useId();
   const [open, setOpen] = useState(false);
   const [sop, setSop] = useState(definitionId ?? "");
@@ -30,7 +31,7 @@ export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
         setOpen(false);
         setPen("");
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

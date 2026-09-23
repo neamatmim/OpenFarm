@@ -9,7 +9,7 @@ import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 interface Terms {
@@ -100,6 +100,7 @@ export const SignAgreementSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   // Where the farm starts a new Agreement. A starting point and nothing more: what is typed here is what
   // the Investor signs, and what he signed is what governs afterwards.
   const farm = useQuery(orpc.farm.current.queryOptions());
@@ -121,7 +122,7 @@ export const SignAgreementSheet = ({
   );
   const signing = useMutation(
     orpc.ventures.sign.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: async (signed) => {
         // The photo goes up against the Agreement it proves, so it is kept once there is an id to keep
         // it against. A signature without its photo is still a signature; the Owner can add it later —

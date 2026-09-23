@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -71,6 +71,7 @@ export const BuyWhatIsLeftSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const left = useQuery({
     ...orpc.ventures.whatIsLeft.queryOptions({
       input: { ventureId: venture?.id ?? "" },
@@ -89,7 +90,7 @@ export const BuyWhatIsLeftSheet = ({
   });
   const buying = useMutation(
     orpc.ventures.buyWhatIsLeft.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: (done) => {
         setRate("");
         setNote("");

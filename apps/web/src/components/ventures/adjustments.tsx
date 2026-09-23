@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -46,6 +46,7 @@ export const RaiseAdjustmentSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [reason, setReason] = useState("");
   // Emptied when it is a different Venture being written up: a reason typed for one run is not a reason
   // for another.
@@ -56,7 +57,7 @@ export const RaiseAdjustmentSheet = ({
   }
   const raising = useMutation(
     orpc.ventures.raiseAdjustment.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: (done) => {
         setReason("");
         onOpenChange(false);
@@ -104,6 +105,7 @@ export const WaiveAdjustmentSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [note, setNote] = useState("");
   // Emptied when it is another Adjustment being let go: one reason standing behind the wrong decision is
   // worse than no reason at all.
@@ -114,7 +116,7 @@ export const WaiveAdjustmentSheet = ({
   }
   const waiving = useMutation(
     orpc.ventures.waiveAdjustment.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setNote("");
         onOpenChange(false);

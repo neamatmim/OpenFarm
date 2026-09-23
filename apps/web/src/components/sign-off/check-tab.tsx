@@ -17,7 +17,7 @@ import {
 import { EmptyState, Loaded } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -157,13 +157,14 @@ const checkCard = (row: CheckRow) => <CheckCard row={row} />;
  */
 export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const inFlight = useInFlight();
   const [sendingBack, setSendingBack] = useState<ToCheck | null>(null);
   const tracked = {
     onMutate: ({ id }: { id: string }) => inFlight.start(id),
     onSettled: (_data: unknown, _error: unknown, { id }: { id: string }) =>
       inFlight.end(id),
-    onError: (error: Error) => toast.error(sayWhy(error, t)),
+    onError: refused,
   };
   const approve = useMutation(
     orpc.instances.approve.mutationOptions({

@@ -21,7 +21,7 @@ import { StatementsSheet } from "@/components/ventures/statements-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
@@ -55,6 +55,7 @@ export const useVentureActs = ({
   onPapersClosed?: () => void;
 } = {}): { acts: VentureActs; sheets: ReactNode } => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const navigate = useNavigate();
   const [staged, setStaged] = useState<{
     act: ActOnOneVenture;
@@ -65,7 +66,7 @@ export const useVentureActs = ({
    * over.
    */
   const moved = (said: MessageKey) => ({
-    onError: (error: unknown) => toast.error(sayWhy(error, t)),
+    onError: refused,
     onSuccess: () => {
       toast.success(t(said));
     },

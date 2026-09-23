@@ -15,7 +15,7 @@ import {
 import { Notice, Page, PageHeader } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Identity = Awaited<ReturnType<typeof orpc.farm.identity.call>>;
@@ -37,6 +37,7 @@ interface Registration {
 /** Saving the farm's identity, a part at a time: a field the part does not hold is left as it is. */
 const useSaveIdentity = (onSaved: () => void) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   return useMutation(
     orpc.farm.setIdentity.mutationOptions({
       onSuccess: () => {
@@ -44,7 +45,7 @@ const useSaveIdentity = (onSaved: () => void) => {
         // Back to the record: what the farm holds is the answer, not what was typed at it.
         onSaved();
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 };

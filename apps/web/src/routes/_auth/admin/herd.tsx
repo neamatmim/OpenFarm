@@ -13,7 +13,7 @@ import { ShedCard } from "@/components/herd/shed-card";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** Which name is being written: a new Shed, a new Pen in a Shed, or a new name for one the farm has. */
@@ -68,6 +68,7 @@ const useNamingWords = (naming: Naming | null) => {
  */
 const HerdPage = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const animals = useQuery(orpc.animals.list.queryOptions({ input: {} }));
   const [naming, setNaming] = useState<Naming | null>(null);
@@ -78,7 +79,7 @@ const HerdPage = () => {
     toast.success(t("work.saved"));
     setNaming(null);
   };
-  const onError = (error: Error) => toast.error(sayWhy(error, t));
+  const onError = refused;
   const createShed = useMutation(
     orpc.herd.createShed.mutationOptions({ onSuccess: done, onError })
   );

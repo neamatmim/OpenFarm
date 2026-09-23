@@ -18,7 +18,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { useIsOwner, categoryName, useRefusalToast } from "@/components/money";
+import { useIsOwner, categoryName } from "@/components/money";
 import { SegmentedControl, StatusBadge } from "@/components/page";
 import {
   ConfirmDialog,
@@ -27,6 +27,7 @@ import {
   RowMenu,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Category = Awaited<ReturnType<typeof orpc.money.categories.call>>[number];
@@ -191,7 +192,7 @@ const AddCategoryDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const onError = useRefusalToast();
+  const onError = useRefused();
   const [nameBn, setNameBn] = useState("");
   const [direction, setDirection] = useState<Direction>("out");
   const add = useMutation(
@@ -243,7 +244,7 @@ const AddCategoryDialog = ({
 /** The farm's Categories: the standard ones, the farm's own, and the retired — kept by the Owner and the Manager. */
 export const CategoriesTab = () => {
   const { t, language } = useLanguage();
-  const onError = useRefusalToast();
+  const onError = useRefused();
   const categories = useQuery(orpc.money.categories.queryOptions());
   const [adding, setAdding] = useState(false);
   const [retiring, setRetiring] = useState<{ id: string; name: string } | null>(

@@ -18,7 +18,7 @@ import { ProposalsTab } from "@/components/playbook/proposals-tab";
 import { SopEditor } from "@/components/playbook/sop-editor";
 import { StandardSops } from "@/components/playbook/standard-sops";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { emptySop } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
 
@@ -65,6 +65,7 @@ const usePlaybookFigures = (
  */
 const SopsPage = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "procedures" } = Route.useSearch();
   const [draft, setDraft] = useState<{
@@ -91,7 +92,7 @@ const SopsPage = () => {
   const proposals = useQuery(orpc.sops.proposals.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
 
-  const onError = (error: Error) => toast.error(sayWhy(error, t));
+  const onError = refused;
   const onPublished = (result: { number: number }) => {
     toast.success(t("sop.published", { number: result.number }));
     setDraft(null);

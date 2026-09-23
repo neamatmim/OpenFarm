@@ -10,7 +10,7 @@ import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth } from "@/lib/months";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -49,6 +49,7 @@ export const BankCheckSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [month, setMonth] = useState(lastMonth);
   const [read, setRead] = useState("");
   const [note, setNote] = useState("");
@@ -66,7 +67,7 @@ export const BankCheckSheet = ({
   });
   const checking = useMutation(
     orpc.ventures.checkTheBank.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: (done) => {
         setRead("");
         setNote("");

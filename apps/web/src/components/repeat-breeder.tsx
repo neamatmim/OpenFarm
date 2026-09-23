@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { StatusBadge, TagChip } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** A Repeat Breeder as the queue reads her. */
@@ -48,6 +48,7 @@ const DecisionDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const t = useT();
+  const refused = useRefused();
   const [decision, setDecision] =
     useState<RepeatBreederDecision>("serve_again");
   const [note, setNote] = useState("");
@@ -58,10 +59,7 @@ const DecisionDialog = ({
         toast.success(t("repeatBreeder.answered"));
         onOpenChange(false);
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   const decisionId = `decision-${tagNumber}`;

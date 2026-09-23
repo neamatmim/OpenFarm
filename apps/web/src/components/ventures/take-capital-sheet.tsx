@@ -10,7 +10,7 @@ import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { shrink } from "@/lib/photo";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 interface Arrival {
@@ -41,10 +41,11 @@ const PaperlessAgreements = ({
   agreements: { id: string; investorId: string }[];
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const nameOf = useInvestorNames();
   const keeping = useMutation(
     orpc.ventures.keepAgreementPaper.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         toast.success(t("ventures.paperKept"));
       },
@@ -117,6 +118,7 @@ export const TakeCapitalSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [arrival, setArrival] = useState<Arrival>(NOTHING_YET);
   useFreshFor(venture?.id, () => setArrival(NOTHING_YET));
   const agreements = useQuery({
@@ -128,7 +130,7 @@ export const TakeCapitalSheet = ({
   const nameOf = useInvestorNames();
   const taking = useMutation(
     orpc.ventures.takeCapital.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setArrival(NOTHING_YET);
         onOpenChange(false);

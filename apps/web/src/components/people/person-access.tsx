@@ -34,7 +34,7 @@ import { Section, StatusBadge } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { RoleChoice, toggled } from "@/components/role-choice";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { reachesTheirAccess } from "@/lib/their-access";
 import { orpc } from "@/utils/orpc";
 
@@ -91,12 +91,12 @@ const ChangeButton = ({
 
 /** Whatever the farm answers for one change about one person: say it, and read them again. */
 const useSaying = () => {
-  const t = useT();
+  const refused = useRefused();
   return {
     said: (message: string) => () => {
       toast.success(message);
     },
-    onError: (error: Error) => toast.error(sayWhy(error, t)),
+    onError: refused,
   };
 };
 
@@ -541,11 +541,12 @@ const PinRow = ({ userId }: { userId: string }) => {
  *  anybody: one somebody else has seen is one that signs work in their name. */
 const PasswordRow = ({ userId, name }: { userId: string; name: string }) => {
   const t = useT();
+  const refused = useRefused();
   const [code, setCode] = useState<string | null>(null);
   const issue = useMutation(
     orpc.people.newPasswordCode.mutationOptions({
       onSuccess: (given) => setCode(given.code),
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (

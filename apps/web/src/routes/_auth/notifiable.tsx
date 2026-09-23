@@ -23,7 +23,7 @@ import {
 } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Disease = Awaited<ReturnType<typeof orpc.notifiable.list.call>>[number];
@@ -191,6 +191,7 @@ const AddDiseaseDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [note, setNote] = useState("");
@@ -203,7 +204,7 @@ const AddDiseaseDialog = ({
         toast.success(t("notifiable.added"));
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -266,6 +267,7 @@ const TakeOffDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [why, setWhy] = useState("");
   const retire = useMutation(
     orpc.notifiable.retire.mutationOptions({
@@ -273,7 +275,7 @@ const TakeOffDialog = ({
         toast.success(t("notifiable.takenOff"));
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (

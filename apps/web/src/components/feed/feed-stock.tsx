@@ -19,7 +19,7 @@ import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { FormDialog, FormField, RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -348,6 +348,7 @@ const FigureDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const held = line === null ? null : ofLine(line, kind);
   const [value, setValue] = useState(held === null ? "" : String(held));
   const words = WORDS[kind];
@@ -369,7 +370,7 @@ const FigureDialog = ({
         const typed = value.trim() === "" ? null : Number(value);
         const done = {
           onSuccess: onSaved,
-          onError: (error: Error) => toast.error(sayWhy(error, t)),
+          onError: refused,
         };
         if (kind === "level") {
           level.mutate({ feedItemId: line.feedItemId, threshold: typed }, done);

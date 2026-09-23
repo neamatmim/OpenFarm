@@ -30,7 +30,7 @@ import {
 } from "@/components/ventures/settling-up";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -370,9 +370,10 @@ const WhatEachIsOwed = ({ settlement }: { settlement: Figures }) => {
 /** Approving, which is what makes the figures stop moving. Offered only once nothing is in the way. */
 const Approve = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const approving = useMutation(
     orpc.ventures.approveSettlement.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         toast.success(t("ventures.approved"));
       },

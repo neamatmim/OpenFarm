@@ -8,7 +8,7 @@ import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import { lastMonth } from "@/lib/months";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -154,6 +154,7 @@ export const ReimburseSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [month, setMonth] = useState(lastMonth);
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
@@ -170,7 +171,7 @@ export const ReimburseSheet = ({
   });
   const reimbursing = useMutation(
     orpc.ventures.reimburse.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setMovedOn("");
         setReference("");
