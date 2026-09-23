@@ -1,10 +1,11 @@
 import type { Database } from "@OpenFarm/db";
+import type { NoticeFacts } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 
 import { holdersOf } from "./alerts-store";
 import type { Tx } from "./audit";
 import { medicineStockOf } from "./medicine-stock";
-import type { NoticeFacts, Raised } from "./notice";
+import type { Raised } from "./notice";
 import { rememberingPeople, tell } from "./notice";
 import { stockOnHand } from "./stock-store";
 

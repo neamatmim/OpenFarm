@@ -1,6 +1,6 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import { SAYS } from "@OpenFarm/domain";
-import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
+import { SAYS, noticeFilling } from "@OpenFarm/domain";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
 /** One text message. Short on purpose: it carries the news, and the app carries the detail. */
@@ -40,7 +40,8 @@ const inATextMessage = (kind: AlertKind): MessageKey | undefined =>
  *  by text at all. */
 export const smsFor = (
   kind: AlertKind,
-  params: MessageParams,
+  /** The facts the notice was raised with, as the farm stores them. */
+  facts: unknown,
   person: { language?: string | null } | null
 ): SmsMessage | null => {
   const key = inATextMessage(kind);
@@ -48,5 +49,5 @@ export const smsFor = (
     return null;
   }
   const lang = resolveLanguage(person);
-  return { text: translate(lang, key, params), lang };
+  return { text: translate(lang, key, noticeFilling(kind, facts, lang)), lang };
 };

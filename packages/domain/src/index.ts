@@ -184,6 +184,8 @@ export {
   mayCorrect,
 } from "./corrections";
 export { ALERT_KINDS, REVIEW_REASONS } from "./alerts";
+export type { LotFacts, NoticeFacts, WorkFacts } from "./notice-facts";
+export { hoursLate, noticeFilling } from "./notice-words";
 export type { QuietHours } from "./notify";
 export {
   DELIVERY,

@@ -1,6 +1,6 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import { ALERT_KINDS, SAYS, goesNow } from "@OpenFarm/domain";
-import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
+import { ALERT_KINDS, SAYS, goesNow, noticeFilling } from "@OpenFarm/domain";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
 import { resolveLanguage, translate } from "@OpenFarm/i18n";
 
 /** What one browser is told. Small on purpose: a push carries the news, and the app carries
@@ -56,24 +56,6 @@ export const travelsByPush = (kind: string): boolean =>
   goesNow(kind as AlertKind) &&
   inAPocket(kind as AlertKind) !== undefined;
 
-const MINUTES_PER_HOUR = 60;
-
-/** The Alert's snapshotted params, as a message wants them. */
-const wording = (params: unknown, bangla: boolean): MessageParams => {
-  const raw = (params ?? {}) as Record<string, unknown>;
-  return {
-    sop: String((bangla ? raw.sopBn : raw.sopEn) ?? raw.sopBn ?? ""),
-    pen: String(raw.pen ?? ""),
-    reason: String(raw.reason ?? ""),
-    hours: Math.max(
-      1,
-      Math.round(Number(raw.minutesOverdue ?? 0) / MINUTES_PER_HOUR)
-    ),
-    /** The animal, for the one pocket notice about a dose she was given. */
-    tag: String(raw.tag ?? ""),
-  };
-};
-
 /**
  * One Alert, written for one person. The language is theirs, not the farm's: a Vet who reads
  * English and a milker who reads Bangla get the same news in different words, and a message
@@ -84,7 +66,7 @@ export const messageFor = (
   language: string | null
 ): PushMessage => {
   const reader: Language = resolveLanguage({ language });
-  const params = wording(alert.params, reader === "bn");
+  const params = noticeFilling(alert.kind, alert.params, reader);
   const said = inAPocket(alert.kind as AlertKind);
   return {
     lang: reader,
