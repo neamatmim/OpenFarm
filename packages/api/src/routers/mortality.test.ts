@@ -173,6 +173,7 @@ describe("a death and a cull", () => {
     // The milker who found her does not decide she is gone from the herd, and neither does the
     // Vet who treated her: an exit is the farm's own act.
     for (const role of ["staff", "vet"] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one role at a time
       const them = await createTestClient(appRouter, { as: role, clock });
       // oxlint-disable-next-line no-await-in-loop
       await expect(them.client.animals.recordMortality(exit)).rejects.toThrow();
@@ -201,6 +202,13 @@ describe("a death and a cull", () => {
     await expect(
       manager.client.animals.recordMortality({ ...exit, kind: "died" })
     ).rejects.toThrow(/has left the farm/u);
+    // With the word the screens say it by, rather than the server's English.
+    await expect(
+      manager.client.animals.retag({
+        tagNumber: cow.tagNumber,
+        reason: "ট্যাগ হারিয়েছে",
+      })
+    ).rejects.toMatchObject({ data: { refusal: "she_is_gone" } });
   });
 
   it("writes it down the way the farm writes everything down", async () => {

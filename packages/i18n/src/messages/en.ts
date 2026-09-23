@@ -594,7 +594,7 @@ export const en = {
   "refusal.notWhoseFloatBoughtHer":
     "That outing went to the haat on another purse's money, so she is that purse's",
   "refusal.sheIsGone":
-    "She has been sold, has died or was culled, so there is no animal to move",
+    "She has left the farm — sold, died or culled — and nothing more can be written of her",
   "refusal.sheIsReadyForSale":
     "She is ready for sale, and a finished bull is not moved between purses",
   "refusal.alreadyThatPurse": "She is already theirs",

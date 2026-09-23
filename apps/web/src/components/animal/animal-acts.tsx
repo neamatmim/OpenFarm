@@ -1,9 +1,5 @@
 import type { Disposal, MortalityKind } from "@OpenFarm/domain";
-import {
-  DISPOSALS,
-  MORTALITY_KINDS,
-  allowedNextStates,
-} from "@OpenFarm/domain";
+import { DISPOSALS, MORTALITY_KINDS, statesSetByHand } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -159,7 +155,7 @@ const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
           value={nextState}
         >
           <option value="">—</option>
-          {allowedNextStates(detail.state).map((one) => (
+          {statesSetByHand(detail.state).map((one) => (
             <option key={one} value={one}>
               {t(`state.${one}`)}
             </option>

@@ -1,3 +1,4 @@
+import { isExitState, statesSetByHand } from "@OpenFarm/domain";
 import { useQuery } from "@tanstack/react-query";
 
 import type { client } from "@/utils/orpc";
@@ -73,6 +74,8 @@ export type AnimalAct =
 /** What one person may do to her, worked out once for the page: every button and menu item reads from here, so a
  *  control the farm would refuse is never offered — a dead end in the barn. */
 export interface AnimalPowers {
+  /** Still on the farm: one sold, dead or culled has her record put right, and nothing added to it. */
+  stillHere: boolean;
   /** Report what was seen of her: anybody who handles her, and a Vet. */
   mayReport: boolean;
   mayMove: boolean;
@@ -91,6 +94,19 @@ export interface AnimalPowers {
   mayMovePurse: boolean;
 }
 
+/** Whether there is a State she may simply be set to: a Fattening bull's next steps are each a record of their own —
+ *  Ready on its page, a Sale, a Mortality — and are not offered to be refused. */
+const hasAStateToSet = (detail: AnimalDetail | undefined): boolean =>
+  detail !== undefined && statesSetByHand(detail.state).length > 0;
+
+/** Whether an Internal Sale would take her: a bought Fattening animal still being fattened, and weighed. */
+const movesBetweenPurses = (detail: AnimalDetail | undefined): boolean =>
+  detail !== undefined &&
+  detail.side === "fattening" &&
+  detail.source === "bought" &&
+  (detail.state === "quarantine" || detail.state === "fattening") &&
+  (detail.weighIns?.length ?? 0) > 0;
+
 /** Everything one person may do to her, from their Roles and Scopes. */
 export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
   const me = useQuery(orpc.people.me.queryOptions());
@@ -98,27 +114,25 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
     powersOf(me.data?.roles, me.data?.scopes.vet?.kind === "cases");
   const pens = usePens(me.data);
   const ownPens = pensOf(me.data?.scopes.staff);
+  // Sold, died or culled: nothing more is written of her — her record is put right, never added to — so nothing that
+  // would add to it is offered, only to be refused.
+  const stillHere = detail !== undefined && !isExitState(detail.state);
   const powers: AnimalPowers = {
-    mayReport: mayHandle || isVet,
+    stillHere,
+    mayReport: stillHere && (mayHandle || isVet),
     mayMove:
-      detail !== undefined &&
+      stillHere &&
       (runsTheFarm || (mayHandle && ownPens.includes(detail.penId))),
     movePens: runsTheFarm
       ? pens
       : pens.filter((pen) => ownPens.includes(pen.id)),
-    mayChangeState: runsTheFarm || fullVet,
-    mayHandle,
+    mayChangeState: (runsTheFarm || fullVet) && hasAStateToSet(detail),
+    mayHandle: stillHere && mayHandle,
     runsTheFarm,
     isVet,
     fullVet,
     seesPapers,
-    mayMovePurse:
-      isOwner &&
-      detail !== undefined &&
-      detail.side === "fattening" &&
-      detail.source === "bought" &&
-      (detail.state === "quarantine" || detail.state === "fattening") &&
-      (detail.weighIns?.length ?? 0) > 0,
+    mayMovePurse: isOwner && movesBetweenPurses(detail),
   };
   return powers;
 };

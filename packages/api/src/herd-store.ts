@@ -135,6 +135,8 @@ export const loadLiveAnimal = async (
   if (isExitState(row.state)) {
     throw new ORPCError("BAD_REQUEST", {
       message: `Animal ${tagNumber} has left the farm (${row.state}) and cannot be changed`,
+      // The same word an Internal Sale refuses her with: she is gone, and nothing more is written of her.
+      data: { refusal: "she_is_gone" },
     });
   }
   return row;

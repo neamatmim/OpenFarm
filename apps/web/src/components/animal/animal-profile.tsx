@@ -163,7 +163,8 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
       act: "mortality",
       label: t("mortality.record"),
       icon: Skull,
-      offered: powers.runsTheFarm && detail.mortality === null,
+      offered:
+        powers.runsTheFarm && powers.stillHere && detail.mortality === null,
       destructive: true,
     },
   ];
