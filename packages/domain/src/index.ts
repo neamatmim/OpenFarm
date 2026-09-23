@@ -220,6 +220,8 @@ export {
 export type {
   FeedingEntryLine,
   FeedingLine,
+  LeftoverStanding,
+  LeftoverTally,
   RationLine,
   StockMovement,
 } from "./feed";
@@ -227,9 +229,13 @@ export {
   KG_DECIMALS,
   MAUND_KG,
   MAX_KG_PER_ANIMAL_PER_DAY,
+  SESSIONS_TO_JUDGE,
+  WASTING_LEFTOVER_PERCENT,
   findRationProblems,
   isShortFed,
   lastFellBelow,
+  leftoverPercent,
+  leftoverStanding,
   maundsOf,
   perSessionKg,
   roundKg,

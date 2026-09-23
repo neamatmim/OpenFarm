@@ -14,6 +14,7 @@ import {
 } from "../feed-store";
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
+import { leftoversOf } from "../leftover-store";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -21,6 +22,11 @@ import {
   requireRole,
 } from "../roles";
 import { requirePenInScope } from "../scope";
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How far back the Leftovers are read: a week, as the store is counted, or longer to see a pattern. */
+const LEFTOVER_PERIODS = [7, 14, 30] as const;
 
 const bilingual = z.object({
   bn: z.string().trim().min(1).max(80),
@@ -411,5 +417,27 @@ export const feedRouter = {
         sessionsPerDay: found.sessionsPerDay,
         items: found.items,
       };
+    }),
+
+  /**
+   * What each Pen left in the trough of each Feed Item over the last days, what that feed cost, and where it stands —
+   * so a Ration giving more than a Pen eats is seen and cut, and one never leaving a scrap is looked at. Priced, so
+   * the Owner's and the Manager's alone, as the farm's money is.
+   */
+  leftovers: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z
+        .object({
+          days: z
+            .union(LEFTOVER_PERIODS.map((days) => z.literal(days)))
+            .default(7),
+        })
+        .default({ days: 7 })
+    )
+    .handler(async ({ context, input }) => {
+      const until = context.clock.now();
+      const since = new Date(until.getTime() - input.days * ONE_DAY_MS);
+      return await leftoversOf(context.db, context.farm.id, { since, until });
     }),
 };
