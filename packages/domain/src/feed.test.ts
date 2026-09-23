@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAX_KG_PER_100KG_PER_DAY,
+  bandStanding,
+  findBandProblems,
   SESSIONS_TO_JUDGE,
   WASTING_LEFTOVER_PERCENT,
   findRationProblems,
@@ -156,5 +158,36 @@ describe("a Ration by weight", () => {
     ).toEqual([
       `items[0].kgPer100KgPerDay: between nothing and ${MAX_KG_PER_100KG_PER_DAY} kg a day per 100 kg of body weight`,
     ]);
+  });
+});
+
+// A Ration's weight band: a grower's 150 to 250 kg, where the finisher takes over at 250.
+
+describe("a Ration's weight band", () => {
+  const grower = { fromKg: 150, toKg: 250 };
+
+  it("says a bull has outgrown it the moment the next one takes over", () => {
+    expect(bandStanding(249.9, grower)).toBe("fits");
+    expect(bandStanding(250, grower)).toBe("outgrown");
+  });
+
+  it("says a bull is too light for it below where it starts", () => {
+    expect(bandStanding(150, grower)).toBe("fits");
+    expect(bandStanding(149, grower)).toBe("too_light");
+  });
+
+  it("leaves an open end open", () => {
+    expect(bandStanding(900, { fromKg: 350, toKg: null })).toBe("fits");
+    expect(bandStanding(40, { fromKg: null, toKg: 150 })).toBe("fits");
+  });
+
+  it("refuses a band nobody fits", () => {
+    expect(findBandProblems({ fromKg: 250, toKg: 150 })).toEqual([
+      "band: From must be below To",
+    ]);
+    expect(findBandProblems({ fromKg: 0, toKg: null })).toEqual([
+      "band.fromKg: a weight above nothing",
+    ]);
+    expect(findBandProblems(grower)).toEqual([]);
   });
 });

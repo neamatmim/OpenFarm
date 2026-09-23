@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { outOfTheirBand } from "../band-store";
 import { protectedProcedure } from "../index";
 import { fatteningRows } from "../ready-store";
 import { requireRole } from "../roles";
@@ -36,4 +37,15 @@ export const fatteningRouter = {
         })
       );
     }),
+
+  /**
+   * The bulls the scale says are in the wrong Pen for their size — grown past the weight band of their Pen's Ration,
+   * or not yet up to it — each with the Pens whose Ration their weight fits. The Owner's and the Manager's, who move
+   * them.
+   */
+  outOfBand: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(
+      async ({ context }) => await outOfTheirBand(context.db, context.farm.id)
+    ),
 };

@@ -1,4 +1,4 @@
-import type { RationLine } from "@OpenFarm/domain";
+import type { RationLine, WeightBand } from "@OpenFarm/domain";
 import { isByWeight } from "@OpenFarm/domain";
 
 import type { orpc } from "@/utils/orpc";
@@ -17,6 +17,8 @@ export interface RationRow {
   name: { bn: string; en: string | null };
   number: number | null;
   items: RationLine[];
+  /** The weights it is written for; both ends open for a Ration that suits any weight. */
+  band: WeightBand;
   penIds: string[];
 }
 

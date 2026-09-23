@@ -132,6 +132,50 @@ export const sessionKgOf = (
   );
 };
 
+/**
+ * The weights a Ration is written for — a grower's 150 to 250 kg, a finisher's from 250 — so a bull the scale says has
+ * grown out of it, or one too small for the bulls he is penned with, is pointed out to be moved. From is where it
+ * starts and To where the next one takes over: a bull of exactly 250 kg belongs to the finisher. Either end may be
+ * open: a starter has no From, a last finisher no To.
+ */
+export interface WeightBand {
+  fromKg: number | null;
+  toKg: number | null;
+}
+
+/** Where a weight stands against a Ration's band: in it, grown past it, or not yet up to it. */
+export type BandStanding = "fits" | "outgrown" | "too_light";
+
+export const bandStanding = (
+  weightKg: number,
+  { fromKg, toKg }: WeightBand
+): BandStanding => {
+  if (toKg !== null && weightKg >= toKg) {
+    return "outgrown";
+  }
+  if (fromKg !== null && weightKg < fromKg) {
+    return "too_light";
+  }
+  return "fits";
+};
+
+/** A band that says nothing is no band; one whose From is not below its To fits nobody. */
+export const findBandProblems = ({ fromKg, toKg }: WeightBand): string[] => {
+  const problems: string[] = [];
+  for (const [field, value] of [
+    ["fromKg", fromKg],
+    ["toKg", toKg],
+  ] as const) {
+    if (value !== null && !(Number.isFinite(value) && value > 0)) {
+      problems.push(`band.${field}: a weight above nothing`);
+    }
+  }
+  if (fromKg !== null && toKg !== null && fromKg >= toKg) {
+    problems.push("band: From must be below To");
+  }
+  return problems;
+};
+
 /** What a line calls for in a day, and the most it may: by the head or by weight, whichever it is. */
 const dailyOf = (line: RationLine) =>
   isByWeight(line)

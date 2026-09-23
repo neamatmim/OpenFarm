@@ -3,7 +3,12 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
 import { ration, rationVersion } from "@OpenFarm/db/schema/feed";
-import type { RationLine, SopContent, WeighedAnimal } from "@OpenFarm/domain";
+import type {
+  RationLine,
+  SopContent,
+  WeighedAnimal,
+  WeightBand,
+} from "@OpenFarm/domain";
 import { herdWeightOf, sessionKgOf, sessionsPerDayOf } from "@OpenFarm/domain";
 import { z } from "zod";
 
@@ -22,6 +27,21 @@ export const linesOf = (value: unknown): RationLine[] => {
   const parsed = z.array(lineSchema).safeParse(value);
   return parsed.success ? parsed.data : [];
 };
+
+/** A Ration's weight band as its numeric columns keep it, turned at the edge. */
+export const bandOf = (row: {
+  weightFromKg: string | null;
+  weightToKg: string | null;
+}): WeightBand => ({
+  fromKg: row.weightFromKg === null ? null : Number(row.weightFromKg),
+  toKg: row.weightToKg === null ? null : Number(row.weightToKg),
+});
+
+/** A weight band as the numeric columns take it. */
+export const bandColumns = ({ fromKg, toKg }: WeightBand) => ({
+  weightFromKg: fromKg === null ? null : String(fromKg),
+  weightToKg: toKg === null ? null : String(toKg),
+});
 
 /**
  * Publishes a Ration's next Version and makes it the one in force: number one for a Ration just made. Never an edit —
@@ -91,11 +111,36 @@ const rationInForceAt = async (
   return version ?? null;
 };
 
+/**
+ * What the scale last said of each Animal, as feeding and her Ration's weight band both read her: her latest Weigh-in
+ * the farm did not doubt, or what she weighed at her Intake. A reading flagged as doubtful is kept on her record, but
+ * neither the feed nor the band follows it. Asked for with her in one read; `weighedAs` turns the answer.
+ */
+export const AS_WEIGHED = {
+  weighIns: {
+    where: { flaggedNote: { isNull: true } },
+    columns: { weightKg: true, weighedAt: true },
+    orderBy: { weighedAt: "desc", id: "desc" },
+    limit: 1,
+  },
+  intake: { columns: { weightKg: true, arrivedAt: true } },
+} as const;
+
+export const weighedAs = (row: {
+  weighIns: readonly { weightKg: string; weighedAt: Date }[];
+  intake: { weightKg: string | null; arrivedAt: Date } | null;
+}): WeighedAnimal => {
+  const [latest] = row.weighIns;
+  if (latest) {
+    return { weightKg: Number(latest.weightKg), weighedAt: latest.weighedAt };
+  }
+  return row.intake?.weightKg
+    ? { weightKg: Number(row.intake.weightKg), weighedAt: row.intake.arrivedAt }
+    : { weightKg: null, weighedAt: null };
+};
+
 /** The animals a Ration is worked out for: everything standing in the Pen that has not left
- *  the farm. A sold cow keeps her Pen, and feeding for her would be feeding a ghost.
- *
- *  Each as the scale last said, for a Ration by weight: her latest Weigh-in the farm did not doubt, or what she
- *  weighed at her Intake. A reading flagged as doubtful is kept on her record, but the feed does not follow it. */
+ *  the farm, each as the scale last said. A sold cow keeps her Pen, and feeding for her would be feeding a ghost. */
 const animalsInPen = async (
   db: Pick<Database, "query"> | Tx,
   farmId: string,
@@ -104,33 +149,9 @@ const animalsInPen = async (
   const rows = await db.query.animal.findMany({
     where: { farmId, penId },
     columns: { state: true },
-    with: {
-      weighIns: {
-        where: { flaggedNote: { isNull: true } },
-        columns: { weightKg: true, weighedAt: true },
-        orderBy: { weighedAt: "desc", id: "desc" },
-        limit: 1,
-      },
-      intake: { columns: { weightKg: true, arrivedAt: true } },
-    },
+    with: AS_WEIGHED,
   });
-  return rows
-    .filter((row) => isOnTheFarm(row))
-    .map((row) => {
-      const [latest] = row.weighIns;
-      if (latest) {
-        return {
-          weightKg: Number(latest.weightKg),
-          weighedAt: latest.weighedAt,
-        };
-      }
-      return row.intake?.weightKg
-        ? {
-            weightKg: Number(row.intake.weightKg),
-            weighedAt: row.intake.arrivedAt,
-          }
-        : { weightKg: null, weighedAt: null };
-    });
+  return rows.filter((row) => isOnTheFarm(row)).map(weighedAs);
 };
 
 /** One line of what a Pen is owed. Exported because it is the shape `feedingTargetForPen` answers

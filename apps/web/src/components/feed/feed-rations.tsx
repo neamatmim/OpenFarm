@@ -1,5 +1,5 @@
-import type { RationLine } from "@OpenFarm/domain";
-import { isByWeight } from "@OpenFarm/domain";
+import type { RationLine, WeightBand } from "@OpenFarm/domain";
+import { findBandProblems, isByWeight } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -14,8 +14,17 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
+import { bandSaid } from "./band-words";
 import type { FeedItemRow, RationRow } from "./feed-types";
 import { amountOf } from "./feed-types";
+
+/** A Ration's band, open at both ends where it has none — or where the list was cached before Rations had bands. */
+const bandOfRow = (ration: RationRow | null): WeightBand =>
+  ration?.band ?? { fromKg: null, toKg: null };
+
+/** A weight typed into a band's box, or an open end where nothing was. */
+const kgOrNone = (typed: string): number | null =>
+  typed.trim() === "" ? null : Number(typed);
 
 /** How a line counts: by the head, or by every hundred kilos of body weight. */
 type Basis = "head" | "weight";
@@ -66,6 +75,14 @@ const RationDialog = ({
       ])
     )
   );
+  const written = bandOfRow(ration);
+  const [fromKg, setFromKg] = useState(
+    written.fromKg === null ? "" : String(written.fromKg)
+  );
+  const [toKg, setToKg] = useState(
+    written.toKg === null ? "" : String(written.toKg)
+  );
+  const band = { fromKg: kgOrNone(fromKg), toKg: kgOrNone(toKg) };
   const [basis, setBasis] = useState<Record<string, Basis>>(() =>
     Object.fromEntries(
       (ration?.items ?? []).map((line) => [
@@ -103,11 +120,16 @@ const RationDialog = ({
             ...(english.trim() ? { en: english.trim() } : {}),
           },
           items: lines,
+          band,
         })
       }
       open={open}
       pending={save.isPending}
-      ready={lines.length > 0 && name.trim() !== ""}
+      ready={
+        lines.length > 0 &&
+        name.trim() !== "" &&
+        findBandProblems(band).length === 0
+      }
       submitLabel={t("feed.setRation")}
       title={ration ? t("feed.editRation") : t("feed.newRation")}
     >
@@ -185,6 +207,38 @@ const RationDialog = ({
                 </li>
               ))}
             </ul>
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm font-medium">
+              {t("feed.band")}
+            </legend>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor={idFor("from")}>{t("feed.bandFrom")}</Label>
+                <Input
+                  id={idFor("from")}
+                  inputMode="decimal"
+                  min={0}
+                  onChange={(event) => setFromKg(event.target.value)}
+                  type="number"
+                  value={fromKg}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={idFor("to")}>{t("feed.bandTo")}</Label>
+                <Input
+                  id={idFor("to")}
+                  inputMode="decimal"
+                  min={0}
+                  onChange={(event) => setToKg(event.target.value)}
+                  type="number"
+                  value={toKg}
+                />
+              </div>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {t("feed.bandHint")}
+            </p>
           </fieldset>
         </>
       )}
@@ -318,6 +372,7 @@ const RationCard = ({
       onError: refused,
     })
   );
+  const band = bandSaid(bandOfRow(ration), { t, language });
   const names = new Map(items.map((item) => [item.id, item]));
   const onChosenPen = ration.penIds.includes(chosenPenId);
   return (
@@ -331,6 +386,7 @@ const RationCard = ({
             {t("feed.pensOn", {
               count: formatNumber(ration.penIds.length, language),
             })}
+            {band ? ` · ${band}` : ""}
           </span>
         </div>
         <Button

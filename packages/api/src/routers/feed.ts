@@ -1,13 +1,15 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
 import { feedItem, penRation, ration } from "@OpenFarm/db/schema/feed";
-import { findRationProblems } from "@OpenFarm/domain";
+import { findBandProblems, findRationProblems } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import {
+  bandColumns,
+  bandOf,
   feedingTargetForPen,
   linesOf,
   publishRationVersion,
@@ -47,6 +49,10 @@ const rationInput = z.object({
     )
     .min(1),
   note: z.string().trim().max(400).optional(),
+  /** The weights it is written for, either end open. Left out, a Ration keeps the band it had — and a new one has none. */
+  band: z
+    .object({ fromKg: z.number().nullable(), toKg: z.number().nullable() })
+    .optional(),
 });
 
 /** What a Ration says right now, for the trail to record as the before and the after. */
@@ -60,6 +66,7 @@ const readRation = async (tx: Tx, rationId: string) => {
         name: row.nameBn,
         number: row.currentVersion.number,
         items: linesOf(row.currentVersion.items),
+        band: bandOf(row),
       }
     : null;
 };
@@ -254,6 +261,7 @@ export const feedRouter = {
         retiredAt: row.retiredAt,
         number: row.currentVersion?.number ?? null,
         items: linesOf(row.currentVersion?.items),
+        band: bandOf(row),
         penIds: row.pens.map((assignment) => assignment.penId),
       }));
     }),
@@ -266,7 +274,10 @@ export const feedRouter = {
     .use(requireRole("owner", "manager"))
     .input(rationInput)
     .handler(async ({ context, input }) => {
-      const problems = findRationProblems(input);
+      const problems = [
+        ...findRationProblems(input),
+        ...(input.band ? findBandProblems(input.band) : []),
+      ];
       if (problems.length > 0) {
         throw new ORPCError("BAD_REQUEST", {
           message: `This ration cannot be saved — ${problems.join("; ")}`,
@@ -309,7 +320,11 @@ export const feedRouter = {
             }
             await tx
               .update(ration)
-              .set({ nameBn: input.name.bn, nameEn: input.name.en ?? null })
+              .set({
+                nameBn: input.name.bn,
+                nameEn: input.name.en ?? null,
+                ...(input.band ? bandColumns(input.band) : {}),
+              })
               .where(eq(ration.id, rationId));
           } else {
             rationId = uuidv7(now);
@@ -318,6 +333,7 @@ export const feedRouter = {
               farmId: context.farm.id,
               nameBn: input.name.bn,
               nameEn: input.name.en ?? null,
+              ...(input.band ? bandColumns(input.band) : {}),
               createdAt: now,
             });
           }
