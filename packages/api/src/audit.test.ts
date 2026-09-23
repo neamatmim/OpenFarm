@@ -179,4 +179,53 @@ describe("audit events", () => {
     });
     expect(nextDay).toEqual([]);
   });
+
+  it("keeps who trusted the Owner with money, and how much, from the Manager's trail", async () => {
+    const clock = new FakeClock("2026-09-15T04:00:00.000Z");
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const { id } = await owner.client.investors.record({
+      name: `গোপন বিনিয়োগকারী ${Date.now()}`,
+      phone: "01830000001",
+      nid: "1984000000001",
+      bankAccount: "IBBL 2050 1234 5678",
+    });
+    await owner.client.ventures.open({
+      name: `গোপন ভেঞ্চার ${Date.now()}`,
+      targetCapitalBdt: 2_000_000,
+      floorBdt: 0,
+      decideBy: "2046-08-15",
+      targetWindowStart: "2047-05-17",
+      targetWindowEnd: "2047-05-19",
+      unitPriceBdt: 50_000,
+      units: 40,
+      cattleBudgetBdt: 1_500_000,
+    });
+
+    // Asked for by name, by the one record, or not at all, the Manager is shown none of it: the investors
+    // page and every Venture's money are the Owner's alone, and the trail is not a way round them.
+    await expect(
+      manager.client.audit.list({ entity: "investor" })
+    ).resolves.toEqual([]);
+    await expect(
+      manager.client.audit.list({ entity: "investor", entityId: id })
+    ).resolves.toEqual([]);
+    const everything = await manager.client.audit.list({
+      fromDay: "2026-09-15",
+      toDay: "2026-09-15",
+      limit: 200,
+    });
+    expect(
+      everything.filter((one) => ["investor", "venture"].includes(one.entity))
+    ).toEqual([]);
+
+    // The Owner still reads it all.
+    const theirs = await owner.client.audit.list({
+      entity: "investor",
+      entityId: id,
+    });
+    expect(theirs[0]?.after).toMatchObject({
+      bankAccount: "IBBL 2050 1234 5678",
+    });
+  });
 });
