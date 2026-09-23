@@ -15,6 +15,7 @@ import {
   FormSheet,
   NativeSelect,
 } from "@/components/page-kit";
+import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueMove } from "@/lib/record-offline";
 import { useRefused } from "@/lib/refused";
@@ -524,14 +525,12 @@ export const AnimalActs = ({
   movePens: PenChoice[];
   onClose: () => void;
 }) => {
-  const shared = {
-    detail,
-    onOpenChange: (open: boolean) => {
-      if (!open) {
-        onClose();
-      }
-    },
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+    }
   };
+  const shared = { detail, onOpenChange: handleOpenChange };
   return (
     <>
       <MoveDialog {...shared} open={act === "move"} pens={movePens} />
@@ -541,6 +540,12 @@ export const AnimalActs = ({
       <DisposalDialog {...shared} open={act === "disposal"} />
       <AbortionDialog {...shared} open={act === "abortion"} />
       <ShortenDialog {...shared} open={act === "shorten"} />
+      <InternalSaleSheet
+        key={detail.tagNumber}
+        onOpenChange={handleOpenChange}
+        open={act === "purse"}
+        startWith={{ tagNumber: detail.tagNumber }}
+      />
     </>
   );
 };

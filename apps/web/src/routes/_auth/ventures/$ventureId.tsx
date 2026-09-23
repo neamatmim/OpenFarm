@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  ArrowRightLeft,
   Banknote,
   Beef,
   CalendarClock,
@@ -17,10 +18,12 @@ import {
   Wallet,
   Wheat,
 } from "lucide-react";
+import { useState } from "react";
 
 import { EmptyState, Page, PageHeader } from "@/components/page";
-import type { Figure } from "@/components/page-kit";
+import type { Figure, RowAction } from "@/components/page-kit";
 import { PageTabs, RowMenu, SummaryFigures } from "@/components/page-kit";
+import { InternalSaleSheet } from "@/components/ventures/internal-sale-sheet";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useVentureActs } from "@/components/ventures/use-venture-acts";
 import { VentureAnimals } from "@/components/ventures/venture-animals";
@@ -142,6 +145,22 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
   const navigate = useNavigate();
   const { acts, sheets } = useVentureActs();
   const figures = useFiguresOf(venture);
+  const [movingIn, setMovingIn] = useState(false);
+  // A run buying or fattening may take a bull on from the Farm or another run: offered here with this one chosen.
+  const takesAnimals =
+    venture.state === "buying" || venture.state === "fattening";
+  const menu: RowAction[] = [
+    ...actsInTheMenu(venture, acts, t, { onItsOwnPage: true }),
+    ...(takesAnimals
+      ? [
+          {
+            label: t("ventures.sellInternally"),
+            icon: ArrowRightLeft,
+            handleSelect: () => setMovingIn(true),
+          },
+        ]
+      : []),
+  ];
   return (
     <Page>
       <Link
@@ -156,7 +175,7 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
           <>
             <PrimaryActs acts={acts} venture={venture} />
             <RowMenu
-              actions={actsInTheMenu(venture, acts, t, { onItsOwnPage: true })}
+              actions={menu}
               label={t("ventures.moreFor", { venture: venture.name })}
             />
           </>
@@ -209,6 +228,12 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
         value={tab}
       />
       {sheets}
+      <InternalSaleSheet
+        key={venture.id}
+        onOpenChange={setMovingIn}
+        open={movingIn}
+        startWith={{ toVentureId: venture.id }}
+      />
     </Page>
   );
 };

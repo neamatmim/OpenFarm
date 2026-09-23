@@ -488,6 +488,12 @@ export const bn: Record<MessageKey, string> = {
     "খামারের পাল আর ভেঞ্চারের মধ্যে গরু বিক্রি — দাম তার শেষ ওজন গুণ আপনার দেওয়া দর।",
   "ventures.soldInternally": "৳{price} দামে বিক্রি হলো, গরুটি হাতবদল হয়েছে",
   "ventures.whichAnimal": "কোন গরু",
+  "ventures.findTheAnimal": "ট্যাগ বা পেনের নাম লিখে খুঁজুন",
+  "ventures.movableDetail": "{pen} · {purse} · {date}-এ {weight} কেজি",
+  "ventures.noneMovable":
+    "এখন কোনো গরু সরানো যায় না: শুধু কেনা মোটাতাজা গরু, যার ওজন নেওয়া হয়েছে, যে খামারে আছে এবং এখনো বিক্রির জন্য তৈরি নয়",
+  "ventures.choosePurse": "কে নিচ্ছে বেছে নিন",
+  "picker.noMatch": "লেখার সাথে কিছু মেলেনি",
   "ventures.toPurse": "কে নিচ্ছে",
   "ventures.toPurseHint": "যে ভেঞ্চার কিনছে বা মোটাতাজা করছে, কেবল সেটিই নিতে পারে",
   "ventures.rate": "কেজি প্রতি দর",
@@ -546,6 +552,8 @@ export const bn: Record<MessageKey, string> = {
     "গরু, যাত্রার খরচ আর ফেরত আসা টাকা মিলিয়ে যা তোলা হয়েছিল তার চেয়ে কম হচ্ছে",
   "refusal.notWhoseFloatBoughtHer":
     "এই যাত্রা অন্য পার্সের টাকায় হাটে গিয়েছিল, তাই গরুটি সেই পার্সের",
+  "refusal.sheIsGone":
+    "গরুটি বিক্রি হয়ে গেছে, মারা গেছে বা বাদ দেওয়া হয়েছে — সরানোর মতো গরু নেই",
   "refusal.sheIsReadyForSale":
     "গরুটি বিক্রির জন্য তৈরি, তৈরি গরু এক পার্স থেকে আরেক পার্সে যায় না",
   "refusal.alreadyThatPurse": "গরুটি তো তাদেরই",

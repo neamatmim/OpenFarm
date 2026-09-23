@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
-import { venture } from "@OpenFarm/db/schema/venture";
+import { venture as ventureTable } from "@OpenFarm/db/schema/venture";
 import type { SopContent } from "@OpenFarm/domain";
 import {
   FakeClock,
@@ -317,6 +317,34 @@ describe("the Internal Sale", () => {
     });
   });
 
+  it("refuses a bull that has died: there is no animal left to move", async () => {
+    const owner = await as("owner", "2047-02-12T04:00:00.000Z");
+    const hers = await bull("2047-02-12T05:00:00.000Z");
+    await weigh("2047-02-13", [[hers.tagNumber, 260]]);
+    await owner.client.animals.recordMortality({
+      tagNumber: hers.tagNumber,
+      kind: "died",
+      cause: `বুক ফুলে মারা গেছে ${suffix}`,
+      disposal: "buried",
+    });
+    const later = await as("owner", "2047-02-13T09:00:00.000Z");
+    await expect(
+      later.client.ventures.sellInternally({
+        tagNumber: hers.tagNumber,
+        toVentureId: ventureId,
+        rateBdtPerKg: 300,
+        note: `দর ${suffix}`,
+        soldOn: "2047-02-13",
+        paymentMethod: "bank",
+        reference: `INT-DEAD-${suffix}`,
+        priceBdt: 78_000,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "she_is_gone" },
+    });
+  });
+
   it("refuses a Venture that is selling, and one she already belongs to", async () => {
     const hers = await bull("2047-02-12T05:00:00.000Z");
     await weigh("2047-02-13", [[hers.tagNumber, 230]]);
@@ -438,9 +466,9 @@ describe("the Internal Sale", () => {
     // Nothing moves a Venture to selling by hand — the first Sale of one of its Animals does, and that
     // is increment 5's. The row is set straight so the bar this ticket promises can be tested at all.
     await scratchDb()
-      .update(venture)
+      .update(ventureTable)
       .set({ state: "selling" })
-      .where(eq(venture.id, winding));
+      .where(eq(ventureTable.id, winding));
     // A Venture counting what it holds does not take one more bull on.
     await expect(
       later.client.ventures.sellInternally({
@@ -495,5 +523,58 @@ describe("the Internal Sale", () => {
         priceBdt: 1,
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("the animals the Owner is offered to move", () => {
+  it("are the bought Fattening animals still here, weighed, and not yet ready — with their purse and weight", async () => {
+    const owner = await as("owner", "2047-03-01T04:00:00.000Z");
+    const weighed = await bull("2047-03-01T05:00:00.000Z");
+    const unweighed = await bull("2047-03-01T05:10:00.000Z");
+    const gone = await bull("2047-03-01T05:20:00.000Z");
+    await weigh("2047-03-02", [
+      [weighed.tagNumber, 240],
+      [gone.tagNumber, 250],
+    ]);
+    await owner.client.animals.recordMortality({
+      tagNumber: gone.tagNumber,
+      kind: "died",
+      cause: `মারা গেছে ${suffix}`,
+      disposal: "buried",
+    });
+
+    const later = await as("owner", "2047-03-02T09:00:00.000Z");
+    const offered = await later.client.ventures.movableAnimals();
+    const tags = new Set(offered.map((one) => one.tagNumber));
+    expect(
+      offered.find((one) => one.tagNumber === weighed.tagNumber)
+    ).toMatchObject({
+      purse: null,
+      weightKg: 240,
+    });
+    // Nothing to strike a price on, and nothing left to move.
+    expect(tags.has(unweighed.tagNumber)).toBe(false);
+    expect(tags.has(gone.tagNumber)).toBe(false);
+    // And none offered is one the sale would refuse for being ready, dairy or born here.
+    expect(
+      offered.every((one) => ["quarantine", "fattening"].includes(one.state))
+    ).toBe(true);
+  });
+
+  it("names the Venture a bull already belongs to", async () => {
+    const owner = await as("owner", "2047-03-03T04:00:00.000Z");
+    const offered = await owner.client.ventures.movableAnimals();
+    const theirs = offered.filter((one) => one.purse?.id === ventureId);
+    expect(theirs.length).toBeGreaterThan(0);
+    expect(theirs[0]?.purse?.name).toContain(suffix);
+  });
+
+  it("is the Owner's alone to read", async () => {
+    const manager = await as("manager", "2047-03-03T04:00:00.000Z");
+    await expect(
+      manager.client.ventures.movableAnimals()
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });
