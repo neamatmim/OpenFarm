@@ -9,7 +9,7 @@ import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import type { OwnWords } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -44,6 +44,7 @@ export const AmendSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused(WHY_NOT);
   const [percent, setPercent] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -60,7 +61,7 @@ export const AmendSheet = ({
   });
   const amending = useMutation(
     orpc.ventures.amend.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t, WHY_NOT)),
+      onError: refused,
       onSuccess: ({ agreements }) => {
         setPercent("");
         setFrom("");

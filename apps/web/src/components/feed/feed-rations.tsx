@@ -5,12 +5,11 @@ import { Label } from "@OpenFarm/ui/components/label";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Pencil, Plus, Utensils } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow, RationRow } from "./feed-types";
@@ -33,6 +32,7 @@ const RationDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const inRation = new Set(
     (ration?.items ?? []).map((line) => line.feedItemId)
   );
@@ -54,7 +54,7 @@ const RationDialog = ({
       onSuccess: () => {
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const lines = offered
@@ -212,9 +212,10 @@ const RationCard = ({
   onEdit: () => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const assign = useMutation(
     orpc.feed.assignRation.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const names = new Map(items.map((item) => [item.id, item]));

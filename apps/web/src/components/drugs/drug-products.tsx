@@ -32,7 +32,7 @@ import {
   RowMenu,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { DrugProduct } from "./drug-types";
@@ -458,6 +458,7 @@ const DaysDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [milk, setMilk] = useState(
     daysTyped(product?.milkWithdrawalDays ?? null)
   );
@@ -470,7 +471,7 @@ const DaysDialog = ({
         toast.success(t("drugs.daysSaved"));
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -541,6 +542,7 @@ const AddProductDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [name, setName] = useState("");
   const add = useMutation(
     orpc.drugs.add.mutationOptions({
@@ -549,7 +551,7 @@ const AddProductDialog = ({
         toast.success(t("drugs.added"));
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -587,6 +589,7 @@ const LevelDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const held = product?.stock?.lowStockAt ?? product?.lowStockAt ?? null;
   const [value, setValue] = useState(held === null ? "" : String(held));
   const save = useMutation(
@@ -595,7 +598,7 @@ const LevelDialog = ({
         toast.success(t("drugs.lowStockSaved"));
         onOpenChange(false);
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -654,11 +657,12 @@ export const ProductsTab = ({
   onBuy: (productId: string) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [adding, setAdding] = useState(false);
   const [daysFor, setDaysFor] = useState<DrugProduct | null>(null);
   const [retiring, setRetiring] = useState<DrugProduct | null>(null);
   const [levelFor, setLevelFor] = useState<DrugProduct | null>(null);
-  const onError = (error: Error) => toast.error(sayWhy(error, t));
+  const onError = refused;
   const retire = useMutation(
     orpc.drugs.retire.mutationOptions({
       onSuccess: () => {

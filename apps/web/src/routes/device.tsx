@@ -42,7 +42,7 @@ import {
 import { phoneOutbox } from "@/lib/outbox-client";
 import { currentListener } from "@/lib/push";
 import { handOverThisPhone } from "@/lib/query-cache";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { lockAndPutAway, lockOnTheFarm } from "@/lib/shed-phone";
 import { orpc } from "@/utils/orpc";
 
@@ -153,6 +153,7 @@ const PinPad = ({
  *  Everything after enrolment works with no signal (ADR 0003). */
 const DevicePage = () => {
   const t = useT();
+  const refused = useRefused();
   const token = useSyncExternalStore(
     subscribeDevice,
     getDeviceToken,
@@ -201,7 +202,7 @@ const DevicePage = () => {
         setCode("");
         toast.success(t("device.enrolled"));
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

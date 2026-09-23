@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useIsOwner } from "@/components/money";
 import { Section } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type NumberKey =
@@ -388,6 +388,7 @@ const ParameterGroup = ({
   saved: Values;
 }) => {
   const t = useT();
+  const refused = useRefused();
   const [draft, setDraft] = useState<Draft | null>(null);
   const save = useMutation(
     orpc.farm.setParameters.mutationOptions({
@@ -395,7 +396,7 @@ const ParameterGroup = ({
         toast.success(t("params.saved"));
         setDraft(null);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const values = draft ?? {};

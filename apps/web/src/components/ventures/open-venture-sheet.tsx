@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 interface Plan {
@@ -55,11 +55,12 @@ export const OpenVentureSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [plan, setPlan] = useState<Plan>(NOTHING_YET);
   const farm = useQuery(orpc.farm.current.queryOptions());
   const opening = useMutation(
     orpc.ventures.open.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setPlan(NOTHING_YET);
         onOpenChange(false);

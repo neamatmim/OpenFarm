@@ -12,7 +12,6 @@ import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ClipboardList, FileSpreadsheet, Printer, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 
 import {
   DataTable,
@@ -24,6 +23,7 @@ import { EmptyState, Notice, PeriodFilter, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { wordedRefusal } from "@/lib/correction-refusal";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
+import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -501,7 +501,7 @@ export type HealthRegisterName =
 
 /** Saving a register as a CSV, named for the register and the period it covers. */
 const useCsv = () => {
-  const { t } = useLanguage();
+  const refused = useRefused();
   return useMutation(
     orpc.inspector.print.mutationOptions({
       onSuccess: ({ csv, period }, { register }) =>
@@ -509,10 +509,7 @@ const useCsv = () => {
           `${register.replaceAll("_", "-")}-${period?.from}-${period?.to}.csv`,
           csv ?? ""
         ),
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
 };

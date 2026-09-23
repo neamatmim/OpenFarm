@@ -3,7 +3,6 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
 import { Archive, Plus, Wheat } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -15,7 +14,7 @@ import {
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow } from "./feed-types";
@@ -116,6 +115,7 @@ const AddItemDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [name, setName] = useState("");
   const [english, setEnglish] = useState("");
   const [unit, setUnit] = useState("kg");
@@ -126,7 +126,7 @@ const AddItemDialog = ({
         setEnglish("");
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (
@@ -179,10 +179,11 @@ const AddItemDialog = ({
 /** The farm's Feed Items: what it feeds, in what unit, and whether it still does. */
 export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [adding, setAdding] = useState(false);
   const retireItem = useMutation(
     orpc.feed.retireItem.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const table = useListTable({

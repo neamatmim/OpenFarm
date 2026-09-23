@@ -4,9 +4,9 @@ import { useMutation } from "@tanstack/react-query";
 import { FileDown, Printer } from "lucide-react";
 import { useState } from "react";
 
-import { useRefusalToast } from "@/components/money";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
+import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -22,7 +22,7 @@ export const AccountantExport = ({
   to: string;
 }) => {
   const { t } = useLanguage();
-  const onError = useRefusalToast();
+  const onError = useRefused();
   const [paper, setPaper] = useState<string | null>(null);
   const summary = useMutation(
     orpc.reports.accountantExport.mutationOptions({

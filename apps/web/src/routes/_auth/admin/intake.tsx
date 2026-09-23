@@ -25,7 +25,7 @@ import { IntakeSummary } from "@/components/intake/intake-summary";
 import { RecentIntakes } from "@/components/intake/recent-intakes";
 import { Page, PageHeader } from "@/components/page";
 import { useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 const readAsBase64 = async (file: File): Promise<string> => {
@@ -58,6 +58,7 @@ const SubmitBar = ({ children }: { children: ReactNode }) => (
  */
 const IntakePage = () => {
   const t = useT();
+  const refused = useRefused();
   const navigate = useNavigate();
   const [fields, setFields] = useState<IntakeFields>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -101,7 +102,7 @@ const IntakePage = () => {
           params: { tagNumber: taken.tagNumber },
         });
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

@@ -1,9 +1,7 @@
 import type { Language } from "@OpenFarm/i18n";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
-import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** A Category in the reader's language, Bangla when it has no English. */
@@ -30,15 +28,9 @@ export const useIsOwner = (): boolean => {
   return me.data?.roles.some((role) => role === "owner") ?? false;
 };
 
-/** Shows a refused money write in the reader's words where the farm has them. */
-export const useRefusalToast = () => {
-  const { t } = useLanguage();
-  return (error: Error) => toast.error(sayWhy(error, t));
-};
-
 /** The Owner approving a Money Event at the terms they read, wherever they read it. */
 export const useApproveMoney = () => {
-  const onRefused = useRefusalToast();
+  const onRefused = useRefused();
   const queryClient = useQueryClient();
   return useMutation(
     orpc.money.approve.mutationOptions({

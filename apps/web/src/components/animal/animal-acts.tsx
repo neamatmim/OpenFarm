@@ -16,9 +16,8 @@ import {
   NativeSelect,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
 import { queueMove } from "@/lib/record-offline";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, PenChoice } from "./animal-types";
@@ -35,12 +34,6 @@ interface ActProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** The farm's refusal in the reader's words, or what went wrong. */
-const useRefusal = () => {
-  const { t } = useLanguage();
-  return (error: Error) => toast.error(sayWhy(error, t));
-};
-
 /** To another Pen — with signal the farm answers now; without it the Move waits on the phone rather than being lost. */
 const MoveDialog = ({
   detail,
@@ -49,7 +42,7 @@ const MoveDialog = ({
   pens,
 }: ActProps & { pens: PenChoice[] }) => {
   const { t } = useLanguage();
-  const onError = useRefusal();
+  const onError = useRefused();
   const [toPenId, setToPenId] = useState("");
   const [reason, setReason] = useState("");
   const finished = () => {
@@ -126,7 +119,7 @@ const MoveDialog = ({
 /** Her State, to one the farm allows from where she is now. */
 const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
-  const onError = useRefusal();
+  const onError = useRefused();
   const [nextState, setNextState] = useState("");
   const [reason, setReason] = useState("");
   const setState = useMutation(
@@ -186,7 +179,7 @@ const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
 /** A new ear tag, and why the old one went. */
 const RetagDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
-  const onError = useRefusal();
+  const onError = useRefused();
   const [reason, setReason] = useState("");
   const retag = useMutation(
     orpc.animals.retag.mutationOptions({
@@ -227,7 +220,7 @@ const RetagDialog = ({ detail, open, onOpenChange }: ActProps) => {
  */
 const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
-  const onError = useRefusal();
+  const onError = useRefused();
   const [kind, setKind] = useState<MortalityKind>("died");
   const [cause, setCause] = useState("");
   const [disposal, setDisposal] = useState<Disposal>("buried");
@@ -326,6 +319,7 @@ const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
  *  recorded her death, and nobody at the calving could say. */
 const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [disposal, setDisposal] = useState<Disposal>("buried");
   const [note, setNote] = useState("");
   const record = useMutation(
@@ -334,10 +328,7 @@ const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
         toast.success(t("mortality.recorded"));
         onOpenChange(false);
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   return (
@@ -383,6 +374,7 @@ const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
 /** A pregnancy she lost before calving — the Vet's act from the Vet's own phone; nobody else is offered it. */
 const AbortionDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [abortedAt, setAbortedAt] = useState("");
   const [stageMonths, setStageMonths] = useState("");
   const [note, setNote] = useState("");
@@ -393,10 +385,7 @@ const AbortionDialog = ({ detail, open, onOpenChange }: ActProps) => {
         toast.success(t("abortion.recorded"));
         onOpenChange(false);
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   return (
@@ -452,6 +441,7 @@ const AbortionDialog = ({ detail, open, onOpenChange }: ActProps) => {
  *  touched at all. */
 const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [milkUntil, setMilkUntil] = useState("");
   const [meatUntil, setMeatUntil] = useState("");
   const [reason, setReason] = useState("");
@@ -462,7 +452,7 @@ const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
         toast.success(t("withdrawal.shortened"));
         onOpenChange(false);
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   return (

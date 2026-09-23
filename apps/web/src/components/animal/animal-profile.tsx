@@ -27,7 +27,7 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";
@@ -233,13 +233,14 @@ export const AnimalProfile = ({
   onAct: (act: AnimalAct) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const menuActs = useMenuActs(detail, powers);
   const setPhoto = useMutation(
     orpc.animals.setPhoto.mutationOptions({
       onSuccess: () => {
         toast.success(t("animals.photoSaved"));
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

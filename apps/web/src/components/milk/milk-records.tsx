@@ -5,12 +5,11 @@ import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { FileDown, Printer } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FilterBar, FormField } from "@/components/page-kit";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { saveCsv } from "@/lib/save-csv";
 import { orpc } from "@/utils/orpc";
 
@@ -20,13 +19,11 @@ import { orpc } from "@/utils/orpc";
  */
 export const MilkRecordsTab = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [from, setFrom] = useState(() => farmDayOf(new Date()));
   const [to, setTo] = useState(() => farmDayOf(new Date()));
   const [paper, setPaper] = useState<string | null>(null);
-  const onError = (error: Error) =>
-    toast.error(
-      wordedRefusal(error, t) ?? (error.message || t("common.error"))
-    );
+  const onError = refused;
   const dispatchRecord = useMutation(
     orpc.reports.milkDispatchRecord.mutationOptions({
       onSuccess: ({ text }) => setPaper(text ?? null),

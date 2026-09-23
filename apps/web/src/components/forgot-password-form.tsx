@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 import { PasswordInput } from "@/components/auth/password-input";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -23,6 +23,7 @@ import { orpc } from "@/utils/orpc";
  */
 export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -32,7 +33,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
         toast.success(t("auth.passwordSet"));
         onDone();
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const ready =

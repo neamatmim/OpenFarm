@@ -6,7 +6,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, GraduationCap, Printer, UserCheck } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   Loaded,
@@ -17,7 +16,7 @@ import {
 } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** Everything printed on a card is in the language the shed reads. */
@@ -200,6 +199,7 @@ const TrainedOn = ({
   versionId: string;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const [who, setWho] = useState("");
 
   const people = useQuery(orpc.people.list.queryOptions());
@@ -211,7 +211,7 @@ const TrainedOn = ({
       onSuccess: () => {
         setWho("");
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

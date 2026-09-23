@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -29,6 +29,7 @@ export const CountFloatSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const taka = useTaka();
   const [buyingTripId, setBuyingTripId] = useState("");
   const [cashBack, setCashBack] = useState("");
@@ -50,7 +51,7 @@ export const CountFloatSheet = ({
   });
   const counting = useMutation(
     orpc.ventures.reconcileFloat.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setBuyingTripId("");
         setCashBack("");

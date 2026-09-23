@@ -21,13 +21,14 @@ import {
   CorrectionAnswer,
   useCorrecting,
 } from "@/components/correction-dialog";
-import { categoryName, useRefusalToast } from "@/components/money";
+import { categoryName } from "@/components/money";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { amount, note } from "@/lib/correcting";
 import type { Photo } from "@/lib/photo";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 const SIDE_WORD = {
@@ -209,7 +210,7 @@ export const EnterMoneySheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const onError = useRefusalToast();
+  const onError = useRefused();
   const categories = useQuery(orpc.money.categories.queryOptions());
   const [typed, setTyped] = useState(NOTHING_TYPED);
   const [occurredOn, setOccurredOn] = useState(() => farmDayOf(new Date()));

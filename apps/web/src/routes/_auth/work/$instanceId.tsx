@@ -75,7 +75,7 @@ import {
   recordStep,
 } from "@/lib/record-offline";
 import { refreshTheScreen } from "@/lib/refresh";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { skipReasonsOffered } from "@/lib/skipping";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
@@ -101,9 +101,10 @@ const TheLetter = ({
   report: { diagnosisId: string; reference: string | null };
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const letter = useMutation(
     orpc.notifiable.letter.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 
@@ -2017,6 +2018,7 @@ const EvidenceControl = ({
   onPhoto: (photo: { contentType: "image/jpeg"; data: string }) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const id = useId();
 
   if (evidence.type === "tick") {
@@ -2138,7 +2140,7 @@ const EvidenceControl = ({
             // morning of those would sit in the Outbox and time out on every attempt.
             onPhoto(await shrink(file));
           } catch (error) {
-            toast.error(sayWhy(error, t));
+            refused(error);
           }
         }}
         type="file"

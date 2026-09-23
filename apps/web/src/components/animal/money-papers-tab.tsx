@@ -5,7 +5,6 @@ import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   CorrectionAnswer,
@@ -21,7 +20,7 @@ import { SaleCorrection } from "@/components/sale-correction";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Answer } from "@/lib/correcting";
 import { amount, counterparty, figure } from "@/lib/correcting";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import { Fact, FactGrid } from "./animal-facts";
@@ -246,19 +245,20 @@ const HowSheLeft = ({
  */
 const HerPapers = ({ tagNumber }: { tagNumber: string }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
     null
   );
   const passport = useMutation(
     orpc.papers.passport.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "animal-passport", text }),
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const summary = useMutation(
     orpc.papers.withdrawalSummary.mutationOptions({
       onSuccess: ({ text }) => setPaper({ id: "withdrawal-summary", text }),
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
 

@@ -10,7 +10,7 @@ import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow } from "./feed-types";
@@ -92,6 +92,7 @@ export const ReceiveFeedSheet = ({
   feedItemId?: string;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const live = items.filter((item) => !item.retiredAt);
   const [draft, setDraft] = useState(() =>
     freshDraft(feedItemId ?? live[0]?.id ?? "")
@@ -111,10 +112,7 @@ export const ReceiveFeedSheet = ({
         setEntryId(crypto.randomUUID());
         onOpenChange(false);
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
 

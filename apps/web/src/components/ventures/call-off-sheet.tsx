@@ -8,7 +8,7 @@ import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -38,6 +38,7 @@ export const CallOffSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const taka = useTaka();
   const [reason, setReason] = useState("");
   const [sentBack, setSentBack] = useState<Record<string, SentBack>>({});
@@ -57,7 +58,7 @@ export const CallOffSheet = ({
   );
   const callingOff = useMutation(
     orpc.ventures.cancel.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setReason("");
         setSentBack({});

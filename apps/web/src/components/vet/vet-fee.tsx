@@ -16,7 +16,7 @@ import {
 import { EmptyState, Loaded, Section, TagChip } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { wordedRefusal } from "@/lib/correction-refusal";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 type Fee = Awaited<ReturnType<typeof orpc.money.myFees.call>>[number];
@@ -140,6 +140,7 @@ const FeeSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [amount, setAmount] = useState("");
   const [visitedOn, setVisitedOn] = useState(() => farmDayOf(new Date()));
   const [tags, setTags] = useState("");
@@ -153,10 +154,7 @@ const FeeSheet = ({
         toast.success(t("vetFee.recorded"));
         onOpenChange(false);
       },
-      onError: (error) =>
-        toast.error(
-          wordedRefusal(error, t) ?? (error.message || t("common.error"))
-        ),
+      onError: refused,
     })
   );
   return (

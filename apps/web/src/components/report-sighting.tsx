@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { FormDialog, FormField } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { queueObservation } from "@/lib/record-offline";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -29,6 +29,7 @@ export const ReportSighting = ({
   className?: string;
 }) => {
   const { t, language } = useLanguage();
+  const refused = useRefused();
   const ids = useId();
   const [open, setOpen] = useState(false);
   const [saw, setSaw] = useState("");
@@ -42,7 +43,7 @@ export const ReportSighting = ({
   const record = useMutation(
     orpc.observations.record.mutationOptions({
       onSuccess: () => done(t("sighting.recorded")),
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const needsNote = saw === OBSERVATION_WORD_NEEDING_A_NOTE;
@@ -58,7 +59,7 @@ export const ReportSighting = ({
       await queueObservation(input);
       await done(t("sighting.queued"));
     } catch (error) {
-      toast.error(sayWhy(error, t));
+      refused(error);
     }
   };
 

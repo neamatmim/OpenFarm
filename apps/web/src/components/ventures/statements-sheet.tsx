@@ -11,14 +11,13 @@ import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText, Printer, Scale } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { RecordList, RecordRow } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -89,6 +88,7 @@ export const StatementsSheet = ({
     }),
     enabled: venture !== null,
   });
+  const refused = useRefused(WHY_NOT);
   /**
    * What every one of the three does with its answer, and with a refusal.
    *
@@ -99,7 +99,7 @@ export const StatementsSheet = ({
   const handling = (kind: StatementKind) => ({
     onError: (error: unknown) => {
       setProduced(null);
-      toast.error(sayWhy(error, t, WHY_NOT));
+      refused(error);
     },
     onSuccess: (made: {
       text: string;

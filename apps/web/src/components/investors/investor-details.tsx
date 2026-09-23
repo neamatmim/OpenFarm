@@ -19,7 +19,7 @@ import type { Investor } from "@/components/investors/investor-types";
 import { StatusBadge, TagChip } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** How long "copied" stays on the button before it offers to copy again. */
@@ -129,10 +129,11 @@ const InvestorActions = ({
   onEdit: (investor: Investor) => void;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [asking, setAsking] = useState(false);
   const retiring = useMutation(
     orpc.investors.retire.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         setAsking(false);
         toast.success(t("investors.retiredToast"));
@@ -141,7 +142,7 @@ const InvestorActions = ({
   );
   const bringingBack = useMutation(
     orpc.investors.bringBack.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => {
         toast.success(t("investors.broughtBack"));
       },

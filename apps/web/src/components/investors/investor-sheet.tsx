@@ -13,7 +13,7 @@ import {
   NativeSelect,
 } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** The people an Investor names as nominee almost every time, in the order a family is usually spoken of. */
@@ -138,6 +138,7 @@ export const InvestorSheet = ({
   investor?: Investor | null;
 }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [person, setPerson] = useState<Person>(NOBODY_YET);
   // Started afresh each time the sheet opens, from what is on file now, so a correction abandoned half-typed
   // is not waiting there the next time, and one saved since is.
@@ -154,13 +155,13 @@ export const InvestorSheet = ({
   };
   const recording = useMutation(
     orpc.investors.record.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => done(t("investors.recorded")),
     })
   );
   const correcting = useMutation(
     orpc.investors.update.mutationOptions({
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
       onSuccess: () => done(t("investors.updated")),
     })
   );

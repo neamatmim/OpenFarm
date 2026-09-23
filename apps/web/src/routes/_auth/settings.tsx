@@ -16,7 +16,7 @@ import {
   currentListener,
   stopBeingTold,
 } from "@/lib/push";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** How this device stands for being told: told, not told, refused by the browser, or unable to be told at all. */
@@ -66,6 +66,7 @@ const PushStanding = ({
  */
 const BeingTold = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const queryClient = useQueryClient();
   const [said, setSaid] = useState<string | null>(null);
   const key = useQuery(orpc.push.key.queryOptions());
@@ -83,7 +84,7 @@ const BeingTold = () => {
   });
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["push", "listening"] });
-  const onError = (error: Error) => toast.error(sayWhy(error, t));
+  const onError = refused;
 
   const listen = useMutation(
     orpc.push.listen.mutationOptions({ onSuccess: refresh, onError })
@@ -170,6 +171,7 @@ const BeingTold = () => {
  */
 const MyNumber = () => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const me = useQuery(orpc.people.me.queryOptions());
   const [phone, setPhone] = useState<string | null>(null);
   const save = useMutation(
@@ -177,7 +179,7 @@ const MyNumber = () => {
       onSuccess: () => {
         toast.success(t("sms.saved"));
       },
-      onError: (error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const mine = phone ?? me.data?.phone ?? "";

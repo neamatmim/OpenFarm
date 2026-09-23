@@ -20,7 +20,7 @@ import { ReasonDialog } from "@/components/sign-off/reason-dialog";
 import type { Asked, OpenReview } from "@/components/sign-off/sign-off-types";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
-import { sayWhy } from "@/lib/saying";
+import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 /** Every reason has something to say, typed by the reason rather than by string, so a new
@@ -154,6 +154,7 @@ const reviewCard = (row: ReviewRow) => <ReviewCard row={row} />;
  *  for the judgement rather than offering a tick. */
 export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
   const { t } = useLanguage();
+  const refused = useRefused();
   const [resolving, setResolving] = useState<OpenReview | null>(null);
   const inFlight = useInFlight();
   const resolve = useMutation(
@@ -164,7 +165,7 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
         toast.success(t("review.resolved"));
         setResolving(null);
       },
-      onError: (error: Error) => toast.error(sayWhy(error, t)),
+      onError: refused,
     })
   );
   const actions: ReviewActions = {
