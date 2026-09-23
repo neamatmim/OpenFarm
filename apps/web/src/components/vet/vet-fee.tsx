@@ -1,4 +1,5 @@
 import { farmDayOf } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -16,7 +17,9 @@ import {
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded, Section, TagChip } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
+import { SearchableMultiPicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
+import { usePenNames } from "@/lib/pen-names";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -24,9 +27,6 @@ type Fee = Awaited<ReturnType<typeof orpc.money.myFees.call>>[number];
 
 /** How many fees a page shows before the next. */
 const FEE_PAGE = 20;
-
-/** Tags as the Vet types them: separated by commas or spaces. */
-const TAG_SEPARATORS = /[\s,]+/u;
 
 const VisitedOnCell = ({ row }: { row: { original: Fee } }) => (
   <span className="whitespace-nowrap">
@@ -141,13 +141,30 @@ const FeeSheet = ({
   const refused = useRefused();
   const [amount, setAmount] = useState("");
   const [visitedOn, setVisitedOn] = useState(() => farmDayOf(new Date()));
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  // The animals the Vet saw, chosen from the herd rather than typed: one mistyped tag used to refuse the whole fee.
+  // Those that have since left the farm too — a cow the Vet was called to may have died after.
+  const herd = useQuery({
+    ...orpc.animals.list.queryOptions({ input: { includeExited: true } }),
+    enabled: open,
+  });
+  const penNames = usePenNames(open);
+  const seenOptions = (herd.data ?? []).map((her) => ({
+    value: her.tagNumber,
+    label: her.tagNumber,
+    detail: [
+      her.penId ? penNames.get(her.penId) : undefined,
+      t(`state.${her.state}` as MessageKey),
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  }));
   const [note, setNote] = useState("");
   const record = useMutation(
     orpc.money.vetFee.mutationOptions({
       onSuccess: () => {
         setAmount("");
-        setTags("");
+        setTags([]);
         setNote("");
         toast.success(t("vetFee.recorded"));
         onOpenChange(false);
@@ -163,7 +180,7 @@ const FeeSheet = ({
         record.mutate({
           amountBdt: Number(amount),
           visitedOn,
-          animalTags: tags.split(TAG_SEPARATORS).filter(Boolean),
+          animalTags: tags,
           note: note.trim() || undefined,
         })
       }
@@ -193,17 +210,15 @@ const FeeSheet = ({
           />
         </FormField>
       </div>
-      <FormField
-        hint={t("vetFee.animalsHint")}
-        id="fee-tags"
-        label={t("vetFee.animals")}
-      >
-        <Input
-          autoComplete="off"
+      <FormField id="fee-tags" label={t("vetFee.animals")}>
+        <SearchableMultiPicker
+          empty={t("vetFee.noAnimals")}
           id="fee-tags"
-          onChange={(event) => setTags(event.target.value)}
-          placeholder="D-0001, F-0002"
-          value={tags}
+          loading={herd.isPending}
+          onChange={setTags}
+          options={seenOptions}
+          placeholder={t("picker.findAnimal")}
+          values={tags}
         />
       </FormField>
       <FormField id="fee-note" label={t("vetFee.note")}>

@@ -1716,7 +1716,7 @@ export const en = {
   "vetFee.recorded": "Fee recorded",
   "vetFee.hint": "The only money you enter here, and the only money you see.",
   "vetFee.none": "No fee recorded yet",
-  "vetFee.animalsHint": "Tags separated by commas or spaces",
+  "vetFee.noAnimals": "No animal on the farm yet to say the Vet saw",
   "refusal.ownerOnly": "Only the Owner can do this",
   "refusal.notAwaitingApproval": "That money is not waiting for approval",
   "refusal.visitedInTheFuture":
@@ -2739,6 +2739,8 @@ export const en = {
   "sale.missingRegistration":
     "The farm's registration number is not recorded, so no transport card can be given. Write it on the farm identity page.",
   "sale.otherAnimal": "An animal not on the list",
+  "sale.noneToSell":
+    "No animal can be sold today: none is here and out of her meat withdrawal",
   "sale.byTag": "Type the tag number",
   "sale.fromList": "Choose from the list",
   "sale.buyerName": "Buyer's name",

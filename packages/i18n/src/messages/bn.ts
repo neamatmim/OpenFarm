@@ -1631,7 +1631,7 @@ export const bn: Record<MessageKey, string> = {
   "vetFee.recorded": "ফি রেকর্ড হয়েছে",
   "vetFee.hint": "এখানে কেবল আপনার নিজের ফি লেখেন আর দেখেন।",
   "vetFee.none": "এখনও কোনো ফি লেখা হয়নি",
-  "vetFee.animalsHint": "ট্যাগগুলো কমা বা ফাঁকা দিয়ে আলাদা করুন",
+  "vetFee.noAnimals": "খামারে এখনো কোনো গরু নেই যা ভেট দেখেছেন বলা যায়",
   "refusal.ownerOnly": "এটি শুধু মালিক করতে পারেন",
   "refusal.notAwaitingApproval": "এই টাকা অনুমোদনের অপেক্ষায় নেই",
   "refusal.visitedInTheFuture": "যে দিন আসেনি সেদিন ভিজিট হতে পারে না",
@@ -2604,6 +2604,8 @@ export const bn: Record<MessageKey, string> = {
   "sale.missingRegistration":
     "খামারের নিবন্ধন নম্বর লেখা নেই — পরিবহন কার্ড দেওয়া যাবে না। খামারের পরিচয় পাতায় লিখুন।",
   "sale.otherAnimal": "তালিকার বাইরের পশু",
+  "sale.noneToSell":
+    "আজ কোনো গরু বিক্রি করা যায় না: খামারে থাকা ও মাংস আটকে রাখার সময় পার হওয়া কোনো গরু নেই",
   "sale.byTag": "ট্যাগ নম্বর লিখুন",
   "sale.fromList": "তালিকা থেকে বাছুন",
   "sale.buyerName": "ক্রেতার নাম",
