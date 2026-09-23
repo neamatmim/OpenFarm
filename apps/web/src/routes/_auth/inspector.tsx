@@ -129,6 +129,12 @@ const REGISTER_TABS: {
   },
 ];
 
+/** The tab each paper is printed from, and the only one it is drawn under: a vaccination register left beneath the
+ *  deaths tab reads as the deaths. A health register's is its own tab; the Registration and the herd share the first. */
+const tabOf = (register: InspectorRegister): Tab =>
+  REGISTER_TABS.find((one) => one.register === register)?.value ??
+  "registration";
+
 type View = Awaited<ReturnType<typeof orpc.inspector.view.call>>;
 type CertificatePhoto = Awaited<ReturnType<typeof orpc.farm.certificate.call>>;
 
@@ -451,7 +457,7 @@ const InspectorPage = () => {
         value={tab}
       />
 
-      {paper ? (
+      {paper && tabOf(paper.register) === tab ? (
         <Paper
           id={PAPER_OF[paper.register]}
           image={

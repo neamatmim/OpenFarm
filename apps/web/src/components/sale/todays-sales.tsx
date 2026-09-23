@@ -1,5 +1,4 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { useMutation } from "@tanstack/react-query";
 import { ReceiptText, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -16,10 +15,9 @@ import { RowMenu } from "@/components/page-kit";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { SaleCorrection } from "@/components/sale-correction";
+import { useSalePapers } from "@/components/sale/sale-papers";
 import { useLanguage } from "@/i18n/language-provider";
-import { useRefused } from "@/lib/refused";
-import type { OwnWords } from "@/lib/saying";
-import { orpc } from "@/utils/orpc";
+import type { orpc } from "@/utils/orpc";
 
 export type Sold = Awaited<ReturnType<typeof orpc.papers.day.call>>[number];
 
@@ -238,11 +236,6 @@ const SoldTable = ({ sold, papers }: { sold: Sold[]; papers: SalePapers }) => {
  * the man has finished buying, and it covers everything he took that morning. The paper asked for is drawn beneath
  * the list, ready to print.
  */
-/** What only a sale's papers meet, said for what it stops: no transport card without the farm's registration. */
-const PAPER_WORDS: OwnWords = {
-  farm_identity_incomplete: "sale.missingRegistration",
-};
-
 export const TodaysSales = ({
   sold,
   mayCorrect,
@@ -262,21 +255,7 @@ export const TodaysSales = ({
         ?.scrollIntoView({ behavior: "smooth", block: "start" })
     );
   };
-  // The one refusal these papers have their own words for — a transport card the office can use needs the farm's
-  // registration — and the farm's own words for every other.
-  const onError = useRefused(PAPER_WORDS);
-  const receipt = useMutation(
-    orpc.papers.receipt.mutationOptions({
-      onSuccess: ({ text }) => shown("sale-receipt", text),
-      onError,
-    })
-  );
-  const card = useMutation(
-    orpc.papers.transportCard.mutationOptions({
-      onSuccess: ({ text }) => shown("transport-card", text),
-      onError,
-    })
-  );
+  const { askReceipt, askCard, busy } = useSalePapers(shown);
 
   if (sold.length === 0) {
     return (
@@ -287,10 +266,10 @@ export const TodaysSales = ({
   }
 
   const papers: SalePapers = {
-    handleReceipt: (saleId) => receipt.mutate({ saleId }),
-    handleCard: (saleId) => card.mutate({ saleId }),
+    handleReceipt: askReceipt,
+    handleCard: askCard,
     mayCorrect,
-    busy: receipt.isPending || card.isPending,
+    busy,
   };
 
   return (

@@ -3,7 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileText, ShieldCheck } from "lucide-react";
+import { FileText, ReceiptText, ShieldCheck, Truck } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -17,6 +17,7 @@ import { Section } from "@/components/page";
 import type { PaperId } from "@/components/paper";
 import { Paper } from "@/components/paper";
 import { SaleCorrection } from "@/components/sale-correction";
+import { useSalePapers } from "@/components/sale/sale-papers";
 import { useLanguage } from "@/i18n/language-provider";
 import type { Answer } from "@/lib/correcting";
 import { amount, counterparty, figure } from "@/lib/correcting";
@@ -238,12 +239,55 @@ const HowSheLeft = ({
   );
 };
 
+/** Her Sale's receipt and transport card, printed again any day after the morning she went — the day's list only
+ *  holds today's. */
+const HerSalePapers = ({
+  saleId,
+  onPaper,
+}: {
+  saleId: string;
+  onPaper: (id: PaperId, text: string) => void;
+}) => {
+  const { t } = useLanguage();
+  const { askReceipt, askCard, busy } = useSalePapers(onPaper);
+  return (
+    <>
+      <Button
+        disabled={busy}
+        onClick={() => askReceipt(saleId)}
+        type="button"
+        variant="outline"
+      >
+        <ReceiptText aria-hidden data-icon="inline-start" />
+        {t("sale.receipt")}
+      </Button>
+      <Button
+        disabled={busy}
+        onClick={() => askCard(saleId)}
+        type="button"
+        variant="outline"
+      >
+        <Truck aria-hidden data-icon="inline-start" />
+        {t("sale.transportCard")}
+      </Button>
+    </>
+  );
+};
+
 /**
- * The two papers the farm hands over about one animal: her passport, and the sharp question on its own page. Here on
- * her own page rather than on a report screen, because that is where somebody is standing when a buyer asks — and they
- * are asked for by name, not printed with every visit, so the trail records the ones that actually went.
+ * The papers the farm hands over about one animal: her passport, and the sharp question on its own page — and, once
+ * she is sold, her Sale's receipt and transport card for whoever runs the farm. Here on her own page rather than on a
+ * report screen, because that is where somebody is standing when a buyer asks — and they are asked for by name, not
+ * printed with every visit, so the trail records the ones that actually went.
  */
-const HerPapers = ({ tagNumber }: { tagNumber: string }) => {
+const HerPapers = ({
+  tagNumber,
+  saleId,
+}: {
+  tagNumber: string;
+  /** Her Sale, where she was sold and the reader may print its papers. */
+  saleId: string | null;
+}) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const [paper, setPaper] = useState<{ id: PaperId; text: string } | null>(
@@ -291,6 +335,12 @@ const HerPapers = ({ tagNumber }: { tagNumber: string }) => {
           )}
           {t("papers.withdrawalSummary")}
         </Button>
+        {saleId ? (
+          <HerSalePapers
+            onPaper={(id, text) => setPaper({ id, text })}
+            saleId={saleId}
+          />
+        ) : null}
       </div>
       {paper ? <Paper id={paper.id} text={paper.text} /> : null}
     </Section>
@@ -325,6 +375,11 @@ export const MoneyPapersTab = ({
       />
     ) : null}
     <WhatSheCost tagNumber={detail.tagNumber} />
-    {powers.seesPapers ? <HerPapers tagNumber={detail.tagNumber} /> : null}
+    {powers.seesPapers ? (
+      <HerPapers
+        saleId={powers.runsTheFarm ? (detail.sale?.id ?? null) : null}
+        tagNumber={detail.tagNumber}
+      />
+    ) : null}
   </div>
 );
