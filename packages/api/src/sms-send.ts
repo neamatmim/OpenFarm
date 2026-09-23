@@ -4,7 +4,6 @@ import { textMessage } from "@OpenFarm/db/schema/alert";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
 import type { AlertKind } from "@OpenFarm/domain";
 import { goesByText } from "@OpenFarm/domain";
-import type { MessageParams } from "@OpenFarm/i18n";
 
 import type { Context } from "./context";
 import type { RaisedAlert } from "./instances-store";
@@ -14,7 +13,8 @@ import { smsFor } from "./sms";
 interface Textable {
   kind: AlertKind;
   entityId: string;
-  params: MessageParams;
+  /** The facts it was raised with; its words are filled from them in each reader's language. */
+  params: unknown;
 }
 
 /**
@@ -33,7 +33,7 @@ const worthTexting = (raised: RaisedAlert[]): Textable[] => {
     byThing.set(`${kind}:${alert.entityId}`, {
       kind,
       entityId: alert.entityId,
-      params: alert.params as MessageParams,
+      params: alert.params,
     });
   }
   return [...byThing.values()];

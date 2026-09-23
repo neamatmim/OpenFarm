@@ -1,3 +1,4 @@
+import { hoursLate } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
@@ -16,7 +17,6 @@ import {
 import { EmptyState, Loaded, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
-import { hoursLate } from "@/lib/lateness";
 import { sayWhy } from "@/lib/saying";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";

@@ -1352,7 +1352,7 @@ export const bn: Record<MessageKey, string> = {
   "changed.checker_changed": "এখন অনুমোদন করবে: {role}",
   "alerts.sopProposed": "{sop} — পরিবর্তনের প্রস্তাব",
   "digest.sopProposed": "{count}টি প্রস্তাব অপেক্ষায়",
-  "alerts.sopPublished": "{sopBn} — নতুন সংস্করণ {number}",
+  "alerts.sopPublished": "{sop} — নতুন সংস্করণ {number}",
   "common.pages": "পাতা",
   "common.pager": "{total}টির মধ্যে {from}–{to}",
   "common.previousPage": "আগের পাতা",

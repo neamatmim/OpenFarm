@@ -36,5 +36,7 @@ export const REVIEW_REASONS = [
   "sync_gap",
   /** A device's clock is far enough out that its times cannot be taken at face value. */
   "clock_skew",
+  /** A weighing that moved further than an animal can, kept and put in front of the Manager to doubt. */
+  "implausible_weight",
 ] as const;
 export type ReviewReason = (typeof REVIEW_REASONS)[number];

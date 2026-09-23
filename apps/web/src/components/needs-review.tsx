@@ -31,6 +31,7 @@ const REASON_MESSAGE: Record<ReviewReason, MessageKey> = {
   late_entry: "review.late_entry",
   sync_gap: "review.sync_gap",
   clock_skew: "review.clock_skew",
+  implausible_weight: "review.implausible_weight",
 };
 
 const messageFor = (reason: string): MessageKey | null =>

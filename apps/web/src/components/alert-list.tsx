@@ -1,7 +1,7 @@
 import type { AlertKind } from "@OpenFarm/domain";
-import { SAYS } from "@OpenFarm/domain";
-import type { Language, MessageKey } from "@OpenFarm/i18n";
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { SAYS, noticeFilling } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,89 +18,12 @@ import { useState } from "react";
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { STANDING_ASIDE_WORDS } from "@/lib/correction-refusal";
-import { hoursLate } from "@/lib/lateness";
 import { orpc } from "@/utils/orpc";
 
 /** What each kind says in the farm's own list, from the farm's own words for it — one table, which the phone, the
  *  pocket, the evening's post and the two that go by text all read. */
 const messageFor = (kind: string): MessageKey | null =>
   kind in SAYS ? SAYS[kind as AlertKind].app : null;
-
-/** Which Venture, how many are waiting and what brought it round, for the notice that Investors are due
- *  their paper. The occasion arrives already worded, because the word the code keeps would print
- *  `buying_closed` into the middle of a Bangla sentence. */
-const papersDue = (raw: Record<string, unknown>) => ({
-  venture: String(raw.venture ?? ""),
-  investors: Number(raw.investors ?? 0),
-  occasion: String(raw.occasion ?? ""),
-});
-
-/** The medicine or feed a notice about the store names, its Lot, and how much of it is left — a box of medicine
- *  counted in doses, a bag of feed in its own unit. */
-const storeSays = (
-  raw: Record<string, unknown>,
-  language: Language,
-  dosesWord: string
-) => ({
-  item: String(raw.name ?? ""),
-  lot: String(raw.lotNumber ?? "—"),
-  left: `${formatNumber(Number(raw.left ?? 0), language)} ${
-    raw.what === "medicine" ? dosesWord : String(raw.unit ?? "")
-  }`.trim(),
-});
-
-/** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
- *  rather than the type system's; read defensively and in the reader's language. */
-const paramsOf = (
-  params: unknown,
-  {
-    language,
-    wholeFarm,
-    dosesWord,
-  }: {
-    language: Language;
-    /** Where work about the whole farm is, which has no Pen to name. */
-    wholeFarm: string;
-    /** What medicine is counted in, in the reader's words, for the notices about a Lot of it. */
-    dosesWord: string;
-  }
-): Record<string, string | number> => {
-  const raw = (params ?? {}) as Record<string, unknown>;
-  const bangla = language === "bn";
-  return {
-    sop: String((bangla ? raw.sopBn : raw.sopEn) ?? raw.sopBn ?? ""),
-    pen: typeof raw.pen === "string" ? raw.pen : wholeFarm,
-    reason: String(raw.reason ?? ""),
-    hours: hoursLate(Number(raw.minutesOverdue ?? 0)),
-    /** A cow, for the notices that are about one rather than about a piece of work. */
-    tag: String(raw.tag ?? ""),
-    /** What the Vet called it, for the one notice that is about a disease. */
-    disease: String(raw.disease ?? ""),
-    /** How many, for the notice about entries the farm would not take. */
-    count: Number(raw.count ?? 0),
-    /** The Feed Item, how much is left and in what, for the notice about running low. */
-    feed: String(raw.nameBn ?? ""),
-    ...storeSays(raw, language, dosesWord),
-    onHand: Number(raw.onHand ?? 0),
-    unit: String(raw.unit ?? ""),
-    /** How much and under what Category, for the notice about money waiting for the Owner. */
-    amount: Number(raw.amountBdt ?? 0),
-    category: String(
-      (bangla ? raw.categoryBn : raw.categoryEn) ?? raw.categoryBn ?? ""
-    ),
-    ...papersDue(raw),
-    /** When the Registration runs out, for the notice about its renewal. */
-    date:
-      typeof raw.expiresOn === "string"
-        ? formatDate(new Date(raw.expiresOn), language, "date")
-        : "",
-    /** When the schedule last turned whole or a copy last worked, for the notices that the farm has gone quiet. */
-    since:
-      typeof raw.since === "string"
-        ? formatDate(new Date(raw.since), language, "dateTime")
-        : "",
-  };
-};
 
 /** Notices about work already late, drawn with the same severity as the late work itself. */
 const URGENT: ReadonlySet<string> = new Set([
@@ -129,14 +52,7 @@ const NoticeWords = ({
   const key = messageFor(notice.kind);
   const because = becauseOf(notice.params);
   const said = key
-    ? t(
-        key,
-        paramsOf(notice.params, {
-          language,
-          wholeFarm: t("work.wholeFarm"),
-          dosesWord: t("drugs.doseWord"),
-        })
-      )
+    ? t(key, noticeFilling(notice.kind, notice.params, language))
     : notice.kind;
   if (truncate) {
     return <span className="block truncate">{said}</span>;

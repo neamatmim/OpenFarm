@@ -1424,7 +1424,7 @@ export const en = {
   "changed.checker_changed": "Now signed off by: {role}",
   "alerts.sopProposed": "{sop} — a change proposed",
   "digest.sopProposed": "{count} proposals waiting",
-  "alerts.sopPublished": "{sopBn} — new version {number}",
+  "alerts.sopPublished": "{sop} — new version {number}",
   "common.pages": "Pages",
   "common.pager": "{from}–{to} of {total}",
   "common.previousPage": "Previous page",

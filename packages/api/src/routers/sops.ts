@@ -207,7 +207,11 @@ const publishVersion = async (
       {
         kind: "sop_published",
         about: { id, assignedRole: content.assignedRole },
-        facts: { sopBn: content.name.bn, number },
+        facts: {
+          sopBn: content.name.bn,
+          sopEn: content.name.en ?? content.name.bn,
+          number,
+        },
       },
       now
     );
