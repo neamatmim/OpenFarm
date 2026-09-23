@@ -154,6 +154,12 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
       offered: powers.mayHandle,
     },
     {
+      act: "purse",
+      label: t("ventures.sellInternally"),
+      icon: Handshake,
+      offered: powers.mayMovePurse,
+    },
+    {
       act: "mortality",
       label: t("mortality.record"),
       icon: Skull,

@@ -16,6 +16,7 @@ import type { PaymentMethod } from "@OpenFarm/domain";
 import {
   farmDayOf,
   hasEnded,
+  isExitState,
   isRunning,
   mayMoveTo,
   RUNNING_STATES,
@@ -1020,6 +1021,57 @@ export const venturesRouter = {
    * gives her the owner on it. What a Venture is planned by, what it holds and who is in it stay the
    * Owner's: this says only which names may be written against a beast today.
    */
+  /**
+   * The animals that may move from one purse to another, for the Owner choosing one: bought-in Fattening animals
+   * still on the farm, not yet Ready for Sale, weighed at least once, and in a purse that still trades — the Farm's
+   * own, or a Venture buying or fattening: the ones an Internal Sale would take —
+   * with the purse each is in now and what she last weighed, which is what her price is struck on.
+   *
+   * The sale still asks every one of these again inside its lock: this is what to offer, not the permission.
+   */
+  movableAnimals: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .handler(async ({ context }) => {
+      const rows = await context.db.query.animal.findMany({
+        where: {
+          farmId: context.farm.id,
+          side: "fattening",
+          source: "bought",
+          state: { in: ["quarantine", "fattening"] },
+        },
+        columns: { id: true, tagNumber: true, state: true },
+        with: {
+          pen: { columns: { name: true } },
+          owner: { columns: { id: true, name: true, state: true } },
+          weighIns: {
+            columns: { weightKg: true, weighedAt: true },
+            orderBy: { weighedAt: "desc", id: "desc" },
+            limit: 1,
+          },
+        },
+        orderBy: { tagNumber: "asc", id: "asc" },
+      });
+      return rows.flatMap(({ weighIns, pen, owner, ...her }) => {
+        const weighed = weighIns.at(0);
+        const herPurseTrades =
+          owner === null ||
+          owner.state === "buying" ||
+          owner.state === "fattening";
+        return weighed && herPurseTrades
+          ? [
+              {
+                ...her,
+                penName: pen.name,
+                /** Whose she is now: a Venture, or null for the Farm's own herd. */
+                purse: owner ? { id: owner.id, name: owner.name } : null,
+                weightKg: Number(weighed.weightKg),
+                weighedAt: weighed.weighedAt,
+              },
+            ]
+          : [];
+      });
+    }),
+
   takingAnimals: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {
@@ -1454,6 +1506,14 @@ export const venturesRouter = {
             throw new ORPCError("BAD_REQUEST", {
               message: "A Venture owns bought-in animals and no others",
               data: { refusal: "not_a_ventures_animal" },
+            });
+          }
+          if (isExitState(her.state)) {
+            // Sold, died or culled: there is no animal left to move, and a Venture paying for one would be paying
+            // its Investors' money for a carcass.
+            throw new ORPCError("BAD_REQUEST", {
+              message: "She has left the farm, and there is no animal to move",
+              data: { refusal: "she_is_gone" },
             });
           }
           if (her.state === "ready_for_sale") {

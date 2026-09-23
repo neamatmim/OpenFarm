@@ -117,6 +117,7 @@ const WORDED_REFUSALS = {
   float_over: "refusal.floatOver",
   float_short: "refusal.floatShort",
   not_whose_float_bought_her: "refusal.notWhoseFloatBoughtHer",
+  she_is_gone: "refusal.sheIsGone",
   she_is_ready_for_sale: "refusal.sheIsReadyForSale",
   already_that_purse: "refusal.alreadyThatPurse",
   never_weighed: "refusal.neverWeighed",

@@ -517,6 +517,12 @@ export const en = {
     "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
   "ventures.soldInternally": "Sold for ৳{price}, and she has changed hands",
   "ventures.whichAnimal": "Which animal",
+  "ventures.findTheAnimal": "Type a tag or a pen to find her",
+  "ventures.movableDetail": "{pen} · {purse} · {weight} kg on {date}",
+  "ventures.noneMovable":
+    "No animal can move right now: only a bought fattening animal that has been weighed, is still here and is not yet ready for sale",
+  "ventures.choosePurse": "Choose who takes her on",
+  "picker.noMatch": "Nothing matches what you typed",
   "ventures.toPurse": "Who takes her on",
   "ventures.toPurseHint":
     "Only a Venture that is buying or fattening may take one on",
@@ -587,6 +593,8 @@ export const en = {
     "The animals, the outing's costs and the cash back come to less than went out",
   "refusal.notWhoseFloatBoughtHer":
     "That outing went to the haat on another purse's money, so she is that purse's",
+  "refusal.sheIsGone":
+    "She has been sold, has died or was culled, so there is no animal to move",
   "refusal.sheIsReadyForSale":
     "She is ready for sale, and a finished bull is not moved between purses",
   "refusal.alreadyThatPurse": "She is already theirs",

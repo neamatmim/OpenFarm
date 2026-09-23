@@ -50,6 +50,7 @@ export const powersOf = (roles: readonly string[] = [], visiting = false) => {
     // A vet called in for a visit treats her, and does not change her State or cut short a Withdrawal.
     fullVet: roles.includes("vet") && !visiting,
     isManager,
+    isOwner: roles.includes("owner"),
     runsTheFarm,
     mayHandle: runsTheFarm || roles.includes("staff"),
     // Barn Staff give the doses and record what they see; what the farm tells the outside world about an animal is
@@ -66,7 +67,8 @@ export type AnimalAct =
   | "mortality"
   | "disposal"
   | "abortion"
-  | "shorten";
+  | "shorten"
+  | "purse";
 
 /** What one person may do to her, worked out once for the page: every button and menu item reads from here, so a
  *  control the farm would refuse is never offered — a dead end in the barn. */
@@ -84,15 +86,16 @@ export interface AnimalPowers {
   isVet: boolean;
   fullVet: boolean;
   seesPapers: boolean;
+  /** Sell her between the Farm's herd and a Venture: the Owner's, for a bought Fattening animal still being fattened
+   *  and weighed at least once — the one an Internal Sale would take. */
+  mayMovePurse: boolean;
 }
 
 /** Everything one person may do to her, from their Roles and Scopes. */
 export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
   const me = useQuery(orpc.people.me.queryOptions());
-  const { isVet, fullVet, runsTheFarm, mayHandle, seesPapers } = powersOf(
-    me.data?.roles,
-    me.data?.scopes.vet?.kind === "cases"
-  );
+  const { isVet, isOwner, fullVet, runsTheFarm, mayHandle, seesPapers } =
+    powersOf(me.data?.roles, me.data?.scopes.vet?.kind === "cases");
   const pens = usePens(me.data);
   const ownPens = pensOf(me.data?.scopes.staff);
   const powers: AnimalPowers = {
@@ -109,6 +112,13 @@ export const useAnimalPowers = (detail: AnimalDetail | undefined) => {
     isVet,
     fullVet,
     seesPapers,
+    mayMovePurse:
+      isOwner &&
+      detail !== undefined &&
+      detail.side === "fattening" &&
+      detail.source === "bought" &&
+      (detail.state === "quarantine" || detail.state === "fattening") &&
+      (detail.weighIns?.length ?? 0) > 0,
   };
   return powers;
 };
