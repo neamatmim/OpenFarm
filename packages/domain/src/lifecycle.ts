@@ -91,6 +91,19 @@ export const allowedNextStates = (from: AnimalState): readonly AnimalState[] =>
 export const canTransition = (from: AnimalState, to: AnimalState): boolean =>
   allowedNextStates(from).includes(to);
 
+/**
+ * The States a person may simply set her to, from where she is: every allowed next State but the ones that are the
+ * end of a record of their own. Sold is a Sale, with its buyer and its price; died and culled are a Mortality, with
+ * the cause and what became of her; Ready for Sale is confirmed against her Withdrawals on its own page. Set as a
+ * bare State, each would be a fact with none of what makes it one, and the farm refuses them.
+ *
+ * Empty for a Fattening animal, whose every next step is one of those — and for one that has left.
+ */
+export const statesSetByHand = (from: AnimalState): readonly AnimalState[] =>
+  allowedNextStates(from).filter(
+    (to) => !isExitState(to) && to !== "ready_for_sale"
+  );
+
 /** The State an Animal takes when it is moved to the other Side. Moving to Fattening puts a
  *  dairy animal on feed; moving back to Dairy is not a Release 1 flow. */
 export const stateAfterSideChange = (

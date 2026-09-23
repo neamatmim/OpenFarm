@@ -18,6 +18,7 @@ export {
   STATES as ANIMAL_STATES,
   allowedNextStates,
   canTransition,
+  statesSetByHand,
   isExitState,
   isLiveState,
   sideOfState,
