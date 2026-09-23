@@ -150,7 +150,7 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
   const takesAnimals =
     venture.state === "buying" || venture.state === "fattening";
   const menu: RowAction[] = [
-    ...actsInTheMenu(venture, acts, t, { onItsOwnPage: true }),
+    ...actsInTheMenu(venture, acts, t),
     ...(takesAnimals
       ? [
           {

@@ -1,3 +1,4 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import {
@@ -17,11 +18,27 @@ import { useInvestorNames } from "@/components/investors/investor-names";
 import { EmptyState, Section } from "@/components/page";
 import { NativeSelect } from "@/components/page-kit";
 import { CorrectMovement } from "@/components/ventures/correct-movement";
-import { KIND_WORD } from "@/components/ventures/movements-sheet";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
+
+/** What each kind of movement is called, in the reader's own language. */
+export const KIND_WORD = {
+  capital_in: "ventures.kind.capitalIn",
+  refund: "ventures.kind.refund",
+  float_out: "ventures.kind.floatOut",
+  float_back: "ventures.kind.floatBack",
+  internal_buy: "ventures.kind.internalBuy",
+  internal_sell: "ventures.kind.internalSell",
+  sale_in: "ventures.kind.saleIn",
+  reimbursement: "ventures.kind.reimbursement",
+  advance: "ventures.kind.advance",
+  payout: "ventures.kind.payout",
+  advance_repaid: "ventures.kind.advanceRepaid",
+  farm_share: "ventures.kind.farmShare",
+  farm_loss_in: "ventures.kind.farmLossIn",
+} as const satisfies Record<string, MessageKey>;
 
 type Showing = "all" | "in" | "out";
 
