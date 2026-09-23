@@ -8,10 +8,10 @@ import { BadgeCheck, IdCard, Search, Users } from "lucide-react";
 import { useState } from "react";
 
 import { InvestorDetails } from "@/components/investors/investor-details";
+import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import { matching } from "@/components/investors/investor-types";
 import { InvestorsTable } from "@/components/investors/investors-table";
-import { RecordInvestorSheet } from "@/components/investors/record-investor-sheet";
 import {
   EmptyState,
   Loaded,
@@ -79,9 +79,14 @@ const InvestorsPage = () => {
   const { t, language } = useLanguage();
   const [recording, setRecording] = useState(false);
   const [looking, setLooking] = useState("");
-  const [showing, setShowing] = useState<Investor | null>(null);
+  // Held by id and read from the list, so a sheet open on somebody shows them as they are after a correction
+  // or a retiring rather than as they were when it was opened.
+  const [showingId, setShowingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const investors = useQuery(orpc.investors.list.queryOptions());
   const people = investors.data?.people ?? [];
+  const showing = people.find((one) => one.id === showingId) ?? null;
+  const editing = people.find((one) => one.id === editingId) ?? null;
   const counted = investors.data;
   const figures = useInvestorFigures(counted);
   const shown = people.filter((one) => matching(one, looking));
@@ -136,17 +141,33 @@ const InvestorsPage = () => {
             {shown.length === 0 ? (
               <EmptyState bare icon={Search} title={t("investors.noneFound")} />
             ) : (
-              <InvestorsTable investors={shown} onDetails={setShowing} />
+              <InvestorsTable
+                investors={shown}
+                onDetails={(one: Investor) => setShowingId(one.id)}
+              />
             )}
           </Section>
         )}
       </Loaded>
-      <RecordInvestorSheet onOpenChange={setRecording} open={recording} />
-      <InvestorDetails
-        investor={showing}
+      <InvestorSheet onOpenChange={setRecording} open={recording} />
+      <InvestorSheet
+        investor={editing}
         onOpenChange={(wanted) => {
           if (!wanted) {
-            setShowing(null);
+            setEditingId(null);
+          }
+        }}
+        open={editing !== null}
+      />
+      <InvestorDetails
+        investor={showing}
+        onEdit={(one) => {
+          setShowingId(null);
+          setEditingId(one.id);
+        }}
+        onOpenChange={(wanted) => {
+          if (!wanted) {
+            setShowingId(null);
           }
         }}
       />

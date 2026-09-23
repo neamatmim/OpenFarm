@@ -748,6 +748,17 @@ export const venturesRouter = {
           // the Units left and the Investors standing are only true until the next signature commits,
           // and a rule that may not be overridden may not be lost to two phones at once either.
           await lockTheFarm(tx, context.farm.id);
+          const signing = await tx.query.investor.findFirst({
+            where: { id: input.investorId, farmId: context.farm.id },
+            columns: { retiredAt: true },
+          });
+          if (signing?.retiredAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "This Investor is retired; bring them back before signing them for a Venture",
+              data: { refusal: "investor_retired" },
+            });
+          }
           const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
           if (taken + input.units > row.units) {
             throw new ORPCError("BAD_REQUEST", {

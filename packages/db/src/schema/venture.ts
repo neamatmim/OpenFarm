@@ -92,6 +92,9 @@ export const investor = pgTable(
     nomineeRelation: text("nominee_relation"),
     recordedBy: text("recorded_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
+    /** Retired, never removed: their Agreements, payouts and statements are kept for twelve years and every
+     *  one of them names them. A retired Investor is not signed for another Venture until brought back. */
+    retiredAt: timestamp("retired_at"),
   },
   (table) => [
     // A name is not an identity in Bangladesh — two Md. Abdul Karims are two people, and the farm may

@@ -1,0 +1,1 @@
+ALTER TABLE "investor" ADD COLUMN "retired_at" timestamp;

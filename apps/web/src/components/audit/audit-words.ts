@@ -49,6 +49,7 @@ export const ENTITIES = [
   "medicine_purchase",
   "repeat_breeder_answer",
   "ready_set_aside",
+  "investor",
 ] as const;
 type KnownEntity = (typeof ENTITIES)[number];
 
@@ -126,6 +127,13 @@ export const fieldChanges = (
 
 /** The fields of a record the trail has a word for: what a change touched, named as the screens name it. */
 const NAMED_FIELDS = new Set<string>([
+  "phone",
+  "address",
+  "nid",
+  "bankAccount",
+  "nominee",
+  "nomineePhone",
+  "nomineeRelation",
   "state",
   "assignedTo",
   "claimedBy",

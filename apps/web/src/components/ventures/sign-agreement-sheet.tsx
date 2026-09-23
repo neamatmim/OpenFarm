@@ -152,11 +152,14 @@ export const SignAgreementSheet = ({
           value={terms.investorId}
         >
           <option value="">—</option>
-          {(investors.data?.people ?? []).map((one) => (
-            <option key={one.id} value={one.id}>
-              {one.name}
-            </option>
-          ))}
+          {/* A retired Investor is not signed for anything until the Owner brings them back. */}
+          {(investors.data?.people ?? [])
+            .filter((one) => !one.retiredAt)
+            .map((one) => (
+              <option key={one.id} value={one.id}>
+                {one.name}
+              </option>
+            ))}
         </NativeSelect>
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
