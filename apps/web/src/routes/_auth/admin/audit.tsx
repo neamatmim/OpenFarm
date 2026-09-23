@@ -67,6 +67,12 @@ const AuditPage = () => {
   const me = useQuery(orpc.people.me.queryOptions());
   const seesAll =
     me.data?.roles.some((r) => r === "owner" || r === "manager") ?? false;
+  // An Investor's trail is the Owner's alone, as the investors page is: the server answers anybody else with
+  // nothing, so nobody else is offered it to choose.
+  const seesInvestors = me.data?.roles.includes("owner") ?? false;
+  const offered = ENTITIES.filter(
+    (entity) => seesInvestors || entity !== "investor"
+  );
   // The people to narrow to, for whoever may read everybody's actions.
   const people = useQuery({
     ...orpc.people.list.queryOptions(),
@@ -105,7 +111,7 @@ const AuditPage = () => {
             value={narrowed.entity}
           >
             <option value="">{t("audit.allRecords")}</option>
-            {ENTITIES.map((entity) => (
+            {offered.map((entity) => (
               <option key={entity} value={entity}>
                 {t(`audit.entity.${entity}`)}
               </option>
