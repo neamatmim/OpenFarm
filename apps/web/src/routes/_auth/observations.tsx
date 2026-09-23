@@ -11,6 +11,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SaidDate } from "@/components/list-cells";
 import {
   EmptyState,
   Loaded,
@@ -65,14 +66,11 @@ const SawCell = ({ row }: SeenCell) => (
   <span className="font-medium">{row.original.sawLabel}</span>
 );
 
-const WhenCell = ({ row }: SeenCell) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap tabular-nums">
-      {formatDate(new Date(row.original.seenAt), language, "dateTime")}
-    </span>
-  );
-};
+const WhenCell = ({ row }: SeenCell) => (
+  <span className="whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.seenAt} withTime />
+  </span>
+);
 
 const FromCell = ({ row }: SeenCell) => <SeenFrom row={row.original} />;
 
@@ -96,7 +94,7 @@ const seenColumns = column.columns([
     header: listHeader("observations.col.when"),
     cell: WhenCell,
   }),
-  column.accessor((row) => row.seenByName ?? "", {
+  column.accessor((row) => row.seenByName ?? undefined, {
     id: "seenBy",
     header: listHeader("observations.col.by"),
   }),

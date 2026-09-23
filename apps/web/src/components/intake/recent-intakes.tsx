@@ -11,6 +11,7 @@ import {
 } from "@/components/data-table";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { StateBadge, TagLink } from "@/components/fattening/fattening-words";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState, Loaded, Section } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -46,7 +47,7 @@ const WeightCell = ({ row }: RecentCell) => {
   const { t, language } = useLanguage();
   const kg = row.original.latestKg;
   return kg === null ? (
-    <span className="text-muted-foreground">—</span>
+    <Nothing />
   ) : (
     <span className="whitespace-nowrap">
       {t("intake.kg", { kg: formatNumber(kg, language) })}
@@ -68,7 +69,7 @@ const recentColumns = column.columns([
     header: listHeader("animals.state"),
     cell: StateCell,
   }),
-  column.accessor((row) => row.daysOnFeed ?? 0, {
+  column.accessor((row) => row.daysOnFeed ?? undefined, {
     id: "daysOnFeed",
     header: listHeader("gain.daysOnFeed"),
     cell: DaysCell,

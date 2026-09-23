@@ -9,6 +9,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { LotAndExpiry } from "@/components/expiry";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -24,14 +25,11 @@ const HISTORY_PAGE = 20;
 const perDose = (one: Purchase) =>
   one.doses > 0 ? Math.round((one.priceBdt / one.doses) * 100) / 100 : null;
 
-const BoughtOnCell = ({ row }: { row: { original: Purchase } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(row.original.purchasedOn, language)}
-    </span>
-  );
-};
+const BoughtOnCell = ({ row }: { row: { original: Purchase } }) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.purchasedOn} />
+  </span>
+);
 
 const DosesCell = ({ row }: { row: { original: Purchase } }) => {
   const { language } = useLanguage();
@@ -51,7 +49,7 @@ const PerDoseCell = ({ row }: { row: { original: Purchase } }) => {
   const { language } = useLanguage();
   const each = perDose(row.original);
   if (each === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">৳{formatNumber(each, language)}</span>
@@ -95,7 +93,7 @@ const purchaseColumns = column.columns([
     cell: PriceCell,
     meta: { align: "end" },
   }),
-  column.accessor((one) => perDose(one) ?? -1, {
+  column.accessor((one) => perDose(one) ?? undefined, {
     id: "perDose",
     header: listHeader("drugs.col.perDose"),
     cell: PerDoseCell,
@@ -109,7 +107,7 @@ const purchaseColumns = column.columns([
     meta: { align: "end" },
   }),
   // Sorted by the day it expires, soonest first, which is the order the store should be using it in.
-  column.accessor((one) => one.expiresOn ?? "9999-12-31", {
+  column.accessor((one) => one.expiresOn ?? undefined, {
     id: "lot",
     header: listHeader("lots.col.lot"),
     cell: LotCell,

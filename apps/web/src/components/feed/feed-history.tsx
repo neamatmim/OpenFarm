@@ -17,6 +17,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { LotAndExpiry } from "@/components/expiry";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -131,7 +132,7 @@ const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
 const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
   const { language } = useLanguage();
   return row.original.priceBdt === null ? (
-    <span className="text-muted-foreground">—</span>
+    <Nothing />
   ) : (
     <span className="whitespace-nowrap">
       ৳{formatNumber(row.original.priceBdt, language)}
@@ -140,7 +141,7 @@ const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
 };
 
 const SellerCell = ({ row }: { row: { original: ArrivalRow } }) =>
-  row.original.sellerName ?? <span className="text-muted-foreground">—</span>;
+  row.original.sellerName ?? <Nothing />;
 
 /** What is left of this delivery in the store, the first to expire fed first; muted once it is all fed out. */
 const LeftCell = ({ row }: { row: { original: ArrivalRow } }) => {
@@ -185,13 +186,13 @@ const arrivalColumns = arrivalColumn.columns([
     cell: QuantityCell,
     meta: { align: "end" },
   }),
-  arrivalColumn.accessor((one) => one.priceBdt ?? -1, {
+  arrivalColumn.accessor((one) => one.priceBdt ?? undefined, {
     id: "price",
     header: listHeader("stock.price"),
     cell: PriceCell,
     meta: { align: "end" },
   }),
-  arrivalColumn.accessor((one) => one.sellerName ?? "", {
+  arrivalColumn.accessor((one) => one.sellerName ?? undefined, {
     id: "seller",
     header: listHeader("stock.seller"),
     cell: SellerCell,
@@ -202,7 +203,7 @@ const arrivalColumns = arrivalColumn.columns([
     cell: LeftCell,
     meta: { align: "end" },
   }),
-  arrivalColumn.accessor((one) => one.expiresOn ?? "9999-12-31", {
+  arrivalColumn.accessor((one) => one.expiresOn ?? undefined, {
     id: "lot",
     header: listHeader("lots.col.lot"),
     cell: LotCell,

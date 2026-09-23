@@ -18,6 +18,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState } from "@/components/page";
 import { FilterBar, RowMenu } from "@/components/page-kit";
 import { RaiseWork } from "@/components/raise-work";
@@ -64,7 +65,7 @@ const toRow = (sop: Sop, actions: ProcedureActions): ProcedureRow => {
 const WhenItComesUp = ({ content }: { content: SopContent | undefined }) => {
   const { t } = useLanguage();
   if (!content) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   const words = whenWords(content, t);
   if (words.length === 0) {
@@ -85,7 +86,7 @@ const WhenItComesUp = ({ content }: { content: SopContent | undefined }) => {
 const WhoDoesIt = ({ content }: { content: SopContent | undefined }) => {
   const { t } = useLanguage();
   if (!content) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <div className="flex flex-col gap-0.5">
@@ -171,7 +172,7 @@ const procedureColumns = column.columns([
     header: listHeader("sop.col.when"),
     cell: WhenCell,
   }),
-  column.accessor((row) => row.content?.assignedRole ?? "", {
+  column.accessor((row) => row.content?.assignedRole ?? undefined, {
     id: "who",
     header: listHeader("sop.assignedRole"),
     cell: WhoCell,

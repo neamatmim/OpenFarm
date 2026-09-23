@@ -457,7 +457,7 @@ const deathColumns = death.columns([
     header: listHeader("inspector.col.cause"),
     cell: CauseCell,
   }),
-  death.accessor((row) => row.disposal ?? "", {
+  death.accessor((row) => row.disposal ?? undefined, {
     id: "disposal",
     header: listHeader("inspector.col.disposal"),
     cell: DisposalCell,

@@ -2,6 +2,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import type { ExpiryStanding } from "@OpenFarm/domain/lots";
 import { formatDate } from "@OpenFarm/i18n";
 
+import { Nothing } from "@/components/list-cells";
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -23,7 +24,7 @@ export const LotAndExpiry = ({
 }) => {
   const { t, language } = useLanguage();
   if (!(lotNumber || expiresOn)) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="flex flex-col items-start gap-1">

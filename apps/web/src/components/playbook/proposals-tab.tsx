@@ -19,6 +19,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SaidDate } from "@/components/list-cells";
 import { EmptyState, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -124,17 +125,14 @@ const NameCell = ({ row }: { row: { original: ProposalRow } }) => {
   );
 };
 
-const ProposerCell = ({ row }: { row: { original: ProposalRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span>{row.original.proposer}</span>
-      <span className="text-muted-foreground text-xs whitespace-nowrap">
-        {formatDate(row.original.proposedAt, language)}
-      </span>
-    </div>
-  );
-};
+const ProposerCell = ({ row }: { row: { original: ProposalRow } }) => (
+  <div className="flex flex-col gap-0.5">
+    <span>{row.original.proposer}</span>
+    <span className="text-muted-foreground text-xs whitespace-nowrap">
+      <SaidDate at={row.original.proposedAt} />
+    </span>
+  </div>
+);
 
 const NoteCell = ({ row }: { row: { original: ProposalRow } }) => (
   <span className="text-muted-foreground">{row.original.note ?? "—"}</span>
@@ -154,7 +152,7 @@ const proposalColumns = column.columns([
     header: listHeader("sop.col.proposer"),
     cell: ProposerCell,
   }),
-  column.accessor((row) => row.note ?? "", {
+  column.accessor((row) => row.note ?? undefined, {
     id: "note",
     header: listHeader("sop.col.note"),
     cell: NoteCell,

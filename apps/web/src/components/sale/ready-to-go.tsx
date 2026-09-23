@@ -11,6 +11,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { TagLink } from "@/components/fattening/fattening-words";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
@@ -47,7 +48,7 @@ const TagCell = ({ row }: SellableCell) => (
 const LastWeight = ({ kg }: { kg: number | null }) => {
   const { t, language } = useLanguage();
   if (kg === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">

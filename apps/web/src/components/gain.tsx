@@ -1,6 +1,7 @@
 import type { FatteningView, GainBasis } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 
+import { Nothing } from "@/components/list-cells";
 import { ProgressBar } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -60,7 +61,7 @@ export const GainColumn = ({
 export const GainFigures = ({ basis }: { basis: GainBasis | null }) => {
   const { t, language } = useLanguage();
   if (!basis) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <div className="flex flex-col gap-0.5 whitespace-nowrap">

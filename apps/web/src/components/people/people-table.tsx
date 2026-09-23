@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing } from "@/components/list-cells";
 import { StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { roleKey } from "@/components/role-choice";
@@ -54,7 +55,7 @@ export const StandingBadge = ({ standing }: { standing: Standing }) => {
 export const RoleBadges = ({ roles }: { roles: RoleName[] }) => {
   const t = useT();
   if (roles.length === 0) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="flex flex-wrap gap-1">
@@ -156,7 +157,7 @@ const PensCell = ({ row }: { row: { original: PersonRow } }) => {
   const { language } = useLanguage();
   const { pens } = row.original;
   if (pens === 0) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return formatNumber(pens, language);
 };

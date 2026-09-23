@@ -57,7 +57,13 @@ const listFeatures = tableFeatures({
 export const {
   createAppColumnHelper: createListColumns,
   useAppTable: useListTable,
-} = createTableHook({ features: listFeatures });
+} = createTableHook({
+  features: listFeatures,
+  // A row with nothing in the column — a Lot with no expiry, a product never bought — is not the smallest value or
+  // the largest but none, so it waits at the bottom whichever way the column is sorted. A column's value says
+  // "nothing" as undefined, never as a made-up -1 or 9999-12-31.
+  defaultColumn: { sortUndefined: "last" },
+});
 
 /** The features every list table has, for a component that is handed one. */
 export type ListFeatures = typeof listFeatures;

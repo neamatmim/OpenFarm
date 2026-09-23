@@ -23,6 +23,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { LotAndExpiry } from "@/components/expiry";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import {
@@ -118,7 +119,7 @@ const InStock = ({ product }: { product: DrugProduct }) => {
   const { t, language } = useLanguage();
   const { stock } = product;
   if (!stock) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="flex flex-col items-start gap-1">
@@ -145,7 +146,7 @@ const FirstToExpire = ({ product }: { product: DrugProduct }) => {
   const { stock } = product;
   const expired = stock?.expiredOnHand ?? 0;
   if (!(stock?.nextExpiresOn || expired > 0)) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="flex flex-col items-start gap-1">
@@ -176,7 +177,7 @@ const LevelCell = ({ row }: { row: { original: ProductRow } }) => {
   const { t, language } = useLanguage();
   const level = row.original.stock?.lowStockAt ?? row.original.lowStockAt;
   if (level === null || level === undefined) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap tabular-nums">
@@ -186,18 +187,11 @@ const LevelCell = ({ row }: { row: { original: ProductRow } }) => {
 };
 
 /** The day it was last bought, or a dash for a product never bought. */
-const LastBoughtCell = ({ row }: { row: { original: ProductRow } }) => {
-  const { language } = useLanguage();
-  const on = row.original.stock?.lastPurchasedOn;
-  if (!on) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(new Date(on), language, "date")}
-    </span>
-  );
-};
+const LastBoughtCell = ({ row }: { row: { original: ProductRow } }) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.stock?.lastPurchasedOn} />
+  </span>
+);
 
 const StockCell = ({ row }: { row: { original: ProductRow } }) => (
   <InStock product={row.original} />
@@ -207,7 +201,7 @@ const StockCell = ({ row }: { row: { original: ProductRow } }) => (
 const DaysFigure = ({ days }: { days: number | null }) => {
   const { t, language } = useLanguage();
   if (days === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">
@@ -225,16 +219,15 @@ const MeatDaysCell = ({ row }: { row: { original: ProductRow } }) => (
 );
 
 const SetByCell = ({ row }: { row: { original: ProductRow } }) => {
-  const { language } = useLanguage();
   const { daysSetByName, daysSetAt } = row.original;
   if (!daysSetByName || !daysSetAt) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <div className="flex flex-col">
       <span>{daysSetByName}</span>
       <span className="text-muted-foreground text-xs whitespace-nowrap">
-        {formatDate(new Date(daysSetAt), language, "date")}
+        <SaidDate at={daysSetAt} />
       </span>
     </div>
   );
@@ -350,17 +343,17 @@ const productColumns = column.columns([
       cell: StandingCell,
     }
   ),
-  column.accessor((product) => product.stock?.onHand ?? -1, {
+  column.accessor((product) => product.stock?.onHand ?? undefined, {
     id: "stock",
     header: listHeader("drugs.col.stock"),
     cell: StockCell,
   }),
-  column.accessor((product) => product.stock?.nextExpiresOn ?? "9999-12-31", {
+  column.accessor((product) => product.stock?.nextExpiresOn ?? undefined, {
     id: "expiry",
     header: listHeader("stock.col.nextExpiry"),
     cell: ExpiryCell,
   }),
-  column.accessor((product) => product.stock?.lowStockAt ?? -1, {
+  column.accessor((product) => product.stock?.lowStockAt ?? undefined, {
     id: "level",
     header: listHeader("drugs.col.level"),
     cell: LevelCell,
@@ -370,26 +363,26 @@ const productColumns = column.columns([
     (product) =>
       product.stock?.lastPurchasedOn
         ? new Date(product.stock.lastPurchasedOn).getTime()
-        : 0,
+        : undefined,
     {
       id: "lastBought",
       header: listHeader("drugs.col.lastBought"),
       cell: LastBoughtCell,
     }
   ),
-  column.accessor((product) => product.milkWithdrawalDays ?? -1, {
+  column.accessor((product) => product.milkWithdrawalDays ?? undefined, {
     id: "milkDays",
     header: listHeader("drugs.milkDays"),
     cell: MilkDaysCell,
     meta: { align: "end" },
   }),
-  column.accessor((product) => product.meatWithdrawalDays ?? -1, {
+  column.accessor((product) => product.meatWithdrawalDays ?? undefined, {
     id: "meatDays",
     header: listHeader("drugs.meatDays"),
     cell: MeatDaysCell,
     meta: { align: "end" },
   }),
-  column.accessor((product) => product.daysSetByName ?? "", {
+  column.accessor((product) => product.daysSetByName ?? undefined, {
     id: "setBy",
     header: listHeader("drugs.col.setBy"),
     cell: SetByCell,

@@ -159,7 +159,9 @@ const phoneColumns = column.columns([
   }),
   column.accessor(
     (row) =>
-      row.phone.lastSeenAt ? new Date(row.phone.lastSeenAt).getTime() : 0,
+      row.phone.lastSeenAt
+        ? new Date(row.phone.lastSeenAt).getTime()
+        : undefined,
     {
       id: "lastUsed",
       header: listHeader("device.col.lastUsed"),

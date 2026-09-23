@@ -20,6 +20,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { StatusBadge } from "@/components/page";
 import { useLanguage, useT } from "@/i18n/language-provider";
 
@@ -60,7 +61,7 @@ const Why = ({ event }: { event: AuditEvent }) => {
   const t = useT();
   const because = becauseOf(event.after);
   if (!(event.reason || because)) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <div className="flex flex-col gap-0.5">
@@ -89,14 +90,11 @@ interface TrailRow extends AuditEvent {
   handleOpen: (id: string) => void;
 }
 
-const WhenCell = ({ row }: { row: { original: TrailRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-      {formatDate(new Date(row.original.receivedAt), language, "dateTime")}
-    </span>
-  );
-};
+const WhenCell = ({ row }: { row: { original: TrailRow } }) => (
+  <span className="text-muted-foreground whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.receivedAt} withTime />
+  </span>
+);
 
 const WhoCell = ({ row }: { row: { original: TrailRow } }) => (
   <Who event={row.original} />
@@ -143,7 +141,7 @@ const trailColumns = column.columns([
     header: listHeader("audit.when"),
     cell: WhenCell,
   }),
-  column.accessor((event) => event.actor?.name ?? "", {
+  column.accessor((event) => event.actor?.name ?? undefined, {
     id: "who",
     header: listHeader("audit.who"),
     cell: WhoCell,
@@ -156,7 +154,7 @@ const trailColumns = column.columns([
     header: listHeader("audit.entity"),
     cell: RecordCell,
   }),
-  column.accessor((event) => event.reason ?? "", {
+  column.accessor((event) => event.reason ?? undefined, {
     id: "reason",
     header: listHeader("audit.reason"),
     cell: WhyCell,

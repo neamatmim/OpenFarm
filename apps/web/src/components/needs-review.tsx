@@ -15,6 +15,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { ReasonDialog } from "@/components/sign-off/reason-dialog";
 import type { Asked, OpenReview } from "@/components/sign-off/sign-off-types";
@@ -77,14 +78,11 @@ const ResolveButton = ({ row }: { row: ReviewRow }) => {
 
 const WhatCell = ({ row }: ReviewCell) => <WhatHappened row={row.original} />;
 
-const RaisedCell = ({ row }: ReviewCell) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap tabular-nums">
-      {formatDate(new Date(row.original.raisedAt), language, "dateTime")}
-    </span>
-  );
-};
+const RaisedCell = ({ row }: ReviewCell) => (
+  <span className="whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.raisedAt} withTime />
+  </span>
+);
 
 const WhyCell = ({ row }: ReviewCell) =>
   row.original.raisedBy.reason ? (
@@ -92,7 +90,7 @@ const WhyCell = ({ row }: ReviewCell) =>
       “{row.original.raisedBy.reason}”
     </span>
   ) : (
-    <span className="text-muted-foreground">—</span>
+    <Nothing />
   );
 
 const ResolveCell = ({ row }: ReviewCell) => (
