@@ -2,7 +2,7 @@ import type { SopContent } from "@OpenFarm/domain";
 import { findPublishBlockers } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, GitPullRequestArrow, Hand, Plus } from "lucide-react";
 import { useState } from "react";
@@ -67,7 +67,6 @@ const SopsPage = () => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "procedures" } = Route.useSearch();
-  const queryClient = useQueryClient();
   const [draft, setDraft] = useState<{
     content: SopContent;
     definitionId: string | null;
@@ -92,14 +91,10 @@ const SopsPage = () => {
   const proposals = useQuery(orpc.sops.proposals.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: orpc.sops.key() });
-  };
   const onError = (error: Error) => toast.error(sayWhy(error, t));
   const onPublished = (result: { number: number }) => {
     toast.success(t("sop.published", { number: result.number }));
     setDraft(null);
-    refresh();
   };
 
   const create = useMutation(
@@ -113,7 +108,6 @@ const SopsPage = () => {
       onSuccess: () => {
         toast.success(t("sop.proposed"));
         setDraft(null);
-        refresh();
       },
       onError,
     })
@@ -125,7 +119,7 @@ const SopsPage = () => {
     })
   );
   const reject = useMutation(
-    orpc.sops.rejectProposal.mutationOptions({ onSuccess: refresh, onError })
+    orpc.sops.rejectProposal.mutationOptions({ onError })
   );
 
   const save = () => {

@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardList,
@@ -133,14 +133,12 @@ const VetTabs = ({
   onSaw,
   onAnswer,
   onPrescribe,
-  onCorrected,
 }: {
   queries: ReturnType<typeof useVetQueries>;
   saw: string;
   onSaw: (saw: string) => void;
   onAnswer: (seen: Seen) => void;
   onPrescribe: (made: Made) => void;
-  onCorrected: () => void;
 }) => {
   const { t } = useLanguage();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -171,13 +169,7 @@ const VetTabs = ({
       value: "mine",
       label: t("vet.mine"),
       icon: ClipboardList,
-      content: (
-        <ConcludedTab
-          mine={mine}
-          onCorrected={onCorrected}
-          onPrescribe={onPrescribe}
-        />
-      ),
+      content: <ConcludedTab mine={mine} onPrescribe={onPrescribe} />,
     },
     repeat: {
       value: "repeat",
@@ -225,7 +217,6 @@ const VetTabs = ({
  */
 const VetPage = () => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [saw, setSaw] = useState("");
   /** The Diagnosis sheet: what it answers, or none for one on its own; closed when there is no sheet. */
   const [diagnosing, setDiagnosing] = useState<{ seen: Seen | null } | null>(
@@ -234,9 +225,6 @@ const VetPage = () => {
   const [prescribing, setPrescribing] = useState<Made | null>(null);
   const queries = useVetQueries(saw);
   const { visiting } = queries;
-
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.diagnoses.key() });
 
   const figures = useVetFigures({
     waiting: queries.allWaiting.data?.length ?? 0,
@@ -264,7 +252,6 @@ const VetPage = () => {
 
       <VetTabs
         onAnswer={(seen) => setDiagnosing({ seen })}
-        onCorrected={refresh}
         onPrescribe={setPrescribing}
         onSaw={setSaw}
         queries={queries}
@@ -278,7 +265,6 @@ const VetPage = () => {
             setDiagnosing(null);
           }
         }}
-        onRecorded={refresh}
         open={diagnosing !== null}
         seen={diagnosing?.seen ?? null}
       />
@@ -290,7 +276,6 @@ const VetPage = () => {
             setPrescribing(null);
           }
         }}
-        onPrescribed={refresh}
       />
     </Page>
   );

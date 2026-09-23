@@ -1,6 +1,6 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,7 +30,6 @@ export const CountFloatSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const queryClient = useQueryClient();
   const [buyingTripId, setBuyingTripId] = useState("");
   const [cashBack, setCashBack] = useState("");
   const [movedOn, setMovedOn] = useState("");
@@ -52,14 +51,12 @@ export const CountFloatSheet = ({
   const counting = useMutation(
     orpc.ventures.reconcileFloat.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setBuyingTripId("");
         setCashBack("");
         setMovedOn("");
         setReference("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.trips.key() });
         toast.success(t("ventures.floatCounted"));
       },
     })

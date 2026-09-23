@@ -74,6 +74,7 @@ import {
   finishInstance,
   recordStep,
 } from "@/lib/record-offline";
+import { refreshTheScreen } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { skipReasonsOffered } from "@/lib/skipping";
 import { placeOfWork } from "@/lib/work-place";
@@ -284,8 +285,6 @@ const WorkPage = () => {
   // What this phone last knew of the herd. With no signal the board still has to say which
   // cow may not go to the tank: a shed with no bars is exactly where that mistake is made.
   const herd = useQuery(herdCacheQuery);
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
   const onError = (error: Error) =>
     toast.error(
       correctionRefusalMessage(error, t) ?? error.message ?? t("common.error")
@@ -320,9 +319,8 @@ const WorkPage = () => {
   });
   const renew = useMutation(
     orpc.instances.completeStep.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setOpenStep(null);
-        await queryClient.invalidateQueries({ queryKey: instanceKey });
       },
       onError,
     })
@@ -336,7 +334,6 @@ const WorkPage = () => {
         }
         setOpenAnimal(null);
         setOpenStep(null);
-        refresh();
       },
       onError: (error) => {
         onError(error);
@@ -344,7 +341,7 @@ const WorkPage = () => {
         if (isChangedSince(error)) {
           setOpenAnimal(null);
           setOpenStep(null);
-          refresh();
+          refreshTheScreen(queryClient);
         }
       },
     })

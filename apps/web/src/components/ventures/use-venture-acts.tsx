@@ -1,5 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -56,7 +56,6 @@ export const useVentureActs = ({
 } = {}): { acts: VentureActs; sheets: ReactNode } => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [staged, setStaged] = useState<{
     act: ActOnOneVenture;
     venture: Venture;
@@ -67,8 +66,7 @@ export const useVentureActs = ({
    */
   const moved = (said: MessageKey) => ({
     onError: (error: unknown) => toast.error(sayWhy(error, t)),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+    onSuccess: () => {
       toast.success(t(said));
     },
   });

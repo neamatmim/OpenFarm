@@ -72,18 +72,12 @@ const StandardChoice = ({
 const StandardStep = () => {
   const t = useT();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [kinds, setKinds] = useState<StandardKind[]>([...STANDARD_KINDS]);
   const goOn = () => navigate({ to: "/dashboard" });
   const start = useMutation(
     orpc.farm.startWithStandard.mutationOptions({
       onSuccess: async () => {
         toast.success(t("setup.standard.done"));
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.feed.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.drugs.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.notifiable.key() }),
-        ]);
         await goOn();
       },
       onError: () => toast.error(t("common.error")),
@@ -165,13 +159,12 @@ const SetupPage = () => {
   const isOwner = me.data?.roles.includes("owner") ?? false;
   const bootstrap = useMutation(
     orpc.farm.bootstrap.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("setup.done"));
         // Who they are was last asked before the farm existed, and the screens behind sign-in read that answer
         // before asking again: left in place, it sends the new Owner straight back here. Forget it, so this
         // page asks afresh, finds the farm and the Owner's Role, and offers the standard lists.
         queryClient.removeQueries({ queryKey: orpc.people.me.queryKey() });
-        await queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
       },
       onError: () => toast.error(t("common.error")),
     })

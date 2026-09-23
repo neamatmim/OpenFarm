@@ -1,14 +1,13 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
-import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -72,8 +71,6 @@ export const BuyWhatIsLeftSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
-  const refreshTheBooks = useRefreshTheBooks();
   const left = useQuery({
     ...orpc.ventures.whatIsLeft.queryOptions({
       input: { ventureId: venture?.id ?? "" },
@@ -93,14 +90,12 @@ export const BuyWhatIsLeftSheet = ({
   const buying = useMutation(
     orpc.ventures.buyWhatIsLeft.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async (done) => {
+      onSuccess: (done) => {
         setRate("");
         setNote("");
         setBoughtOn("");
         setReference("");
         onOpenChange(false);
-        await refreshTheBooks();
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         toast.success(
           t("ventures.boughtWhatWasLeft", {
             animals: formatNumber(done.animals.length, language),

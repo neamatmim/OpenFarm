@@ -1,6 +1,6 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Archive, Plus, Wheat } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -116,20 +116,15 @@ const AddItemDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [english, setEnglish] = useState("");
   const [unit, setUnit] = useState("kg");
   const addItem = useMutation(
     orpc.feed.addItem.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setName("");
         setEnglish("");
         onOpenChange(false);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.feed.items.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
-        ]);
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -184,15 +179,9 @@ const AddItemDialog = ({
 /** The farm's Feed Items: what it feeds, in what unit, and whether it still does. */
 export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const retireItem = useMutation(
     orpc.feed.retireItem.mutationOptions({
-      onSuccess: () =>
-        Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.feed.items.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
-        ]),
       onError: (error) => toast.error(sayWhy(error, t)),
     })
   );

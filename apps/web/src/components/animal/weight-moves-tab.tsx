@@ -1,6 +1,6 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Label } from "@OpenFarm/ui/components/label";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Scale, Tag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,7 +25,6 @@ const ChangeSide = ({
   pens: PenChoice[];
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const toSide = "fattening" as const;
   const [toPenId, setToPenId] = useState("");
   const move = useMutation(orpc.animals.move.mutationOptions({}));
@@ -43,7 +42,6 @@ const ChangeSide = ({
           // Said as well as saved: it goes to the farm when the phone finds signal, not now.
           toast.info(t("animals.moveQueued"));
         }
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
       ready={Boolean(toPenId)}
       title={t("correct.side")}

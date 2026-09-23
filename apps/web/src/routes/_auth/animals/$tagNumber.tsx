@@ -1,6 +1,6 @@
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Baby,
@@ -45,15 +45,12 @@ const AnimalPage = () => {
   const { tab = "overview" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [act, setAct] = useState<AnimalAct | null>(null);
 
   const animal = useQuery(
     orpc.animals.byTag.queryOptions({ input: { tagNumber } })
   );
   const powers = useAnimalPowers(animal.data);
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
 
   if (animal.isError) {
     return (
@@ -89,14 +86,7 @@ const AnimalPage = () => {
       value: "overview",
       label: t("animals.tab.overview"),
       icon: LayoutList,
-      content: (
-        <OverviewTab
-          detail={detail}
-          onAct={setAct}
-          onChanged={refresh}
-          powers={powers}
-        />
-      ),
+      content: <OverviewTab detail={detail} onAct={setAct} powers={powers} />,
     },
   ];
   // A fattening steer has no breeding to read; a heifer with none yet still has the tab her record will fill.
@@ -143,12 +133,7 @@ const AnimalPage = () => {
         {t("nav.animals")}
       </Link>
 
-      <AnimalProfile
-        detail={detail}
-        onAct={setAct}
-        onChanged={refresh}
-        powers={powers}
-      />
+      <AnimalProfile detail={detail} onAct={setAct} powers={powers} />
 
       <PageTabs
         onChange={(value) =>
@@ -166,7 +151,6 @@ const AnimalPage = () => {
         detail={detail}
         movePens={powers.movePens}
         onClose={() => setAct(null)}
-        onDone={refresh}
       />
     </Page>
   );

@@ -1,7 +1,7 @@
 import { ENTRY_STATES, sideOfState } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useId, useState } from "react";
@@ -40,7 +40,6 @@ export const RegisterAnimal = ({
   const t = useT();
   const ids = useId();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const sheds = useQuery({ ...orpc.herd.list.queryOptions(), enabled: open });
@@ -55,7 +54,6 @@ export const RegisterAnimal = ({
         toast.success(t("animals.registered", { tag: tagNumber }));
         setOpen(false);
         setForm(blank);
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         await navigate({ to: "/animals/$tagNumber", params: { tagNumber } });
       },
       onError: (error) => toast.error(sayWhy(error, t)),

@@ -2,7 +2,7 @@ import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -140,20 +140,18 @@ const FeeSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
   const [visitedOn, setVisitedOn] = useState(() => farmDayOf(new Date()));
   const [tags, setTags] = useState("");
   const [note, setNote] = useState("");
   const record = useMutation(
     orpc.money.vetFee.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setAmount("");
         setTags("");
         setNote("");
         toast.success(t("vetFee.recorded"));
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
       onError: (error) =>
         toast.error(

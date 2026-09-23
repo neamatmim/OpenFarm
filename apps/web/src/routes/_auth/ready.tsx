@@ -2,7 +2,7 @@ import { underMeatWithdrawal } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Beef, CircleCheck, Lock, Sparkles, Store } from "lucide-react";
 import type { ReactNode } from "react";
@@ -132,16 +132,10 @@ const SuggestionsBody = ({
  */
 const ReadyPage = () => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [keeping, setKeeping] = useState<Suggestion | null>(null);
   const suggestions = useQuery(orpc.ready.suggestions.queryOptions());
   const board = useQuery(orpc.fattening.board.queryOptions({ input: {} }));
 
-  const refresh = () => {
-    for (const key of [orpc.ready.key(), orpc.fattening.key()]) {
-      queryClient.invalidateQueries({ queryKey: key });
-    }
-  };
   const onError = (error: Error) => {
     const fitOn = fitOnFrom(error);
     toast.error(
@@ -157,7 +151,6 @@ const ReadyPage = () => {
     orpc.ready.confirm.mutationOptions({
       onSuccess: ({ tagNumber }) => {
         toast.success(t("ready.confirmed", { tag: tagNumber }));
-        refresh();
       },
       onError,
     })
@@ -167,7 +160,6 @@ const ReadyPage = () => {
       onSuccess: ({ tagNumber }) => {
         toast.success(t("ready.setAsideDone", { tag: tagNumber }));
         setKeeping(null);
-        refresh();
       },
       onError,
     })

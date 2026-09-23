@@ -1,7 +1,7 @@
 import { formatDate, formatDayField } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -37,14 +37,12 @@ interface Registration {
 /** Saving the farm's identity, a part at a time: a field the part does not hold is left as it is. */
 const useSaveIdentity = (onSaved: () => void) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   return useMutation(
     orpc.farm.setIdentity.mutationOptions({
       onSuccess: () => {
         toast.success(t("identity.saved"));
         // Back to the record: what the farm holds is the answer, not what was typed at it.
         onSaved();
-        queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

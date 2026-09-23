@@ -2,7 +2,7 @@ import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf, maundsOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -92,7 +92,6 @@ export const ReceiveFeedSheet = ({
   feedItemId?: string;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const live = items.filter((item) => !item.retiredAt);
   const [draft, setDraft] = useState(() =>
     freshDraft(feedItemId ?? live[0]?.id ?? "")
@@ -106,12 +105,11 @@ export const ReceiveFeedSheet = ({
 
   const receive = useMutation(
     orpc.stock.receive.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("stock.received"));
         setDraft(freshDraft(chosen?.id ?? ""));
         setEntryId(crypto.randomUUID());
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.stock.key() });
       },
       onError: (error) =>
         toast.error(

@@ -25,6 +25,7 @@ import type { Tone } from "@/components/page";
 import { EmptyState, Page, PageHeader, StatusBadge } from "@/components/page";
 import { RaiseWork } from "@/components/raise-work";
 import { useLanguage } from "@/i18n/language-provider";
+import { refreshTheScreen } from "@/lib/refresh";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -308,8 +309,8 @@ const useRaiseTheDay = (
         // first carries the farm's post; a timer on the deploy host can do it as well, and
         // neither is troubled by the other doing it first.
         await carry();
-        await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
+        // Once, when the last has gone: these three are the saves that do not refresh on their own.
+        refreshTheScreen(queryClient);
       } catch {
         // no signal: the list shows what the phone already knows about
       }

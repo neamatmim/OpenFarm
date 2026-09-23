@@ -11,7 +11,7 @@ import {
 } from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -209,7 +209,6 @@ export const EnterMoneySheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const onError = useRefusalToast();
   const categories = useQuery(orpc.money.categories.queryOptions());
   const [typed, setTyped] = useState(NOTHING_TYPED);
@@ -233,11 +232,10 @@ export const EnterMoneySheet = ({
   };
   const enter = useMutation(
     orpc.money.enter.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setTyped({ ...NOTHING_TYPED, categoryId: typed.categoryId });
         toast.success(t("byHand.entered"));
         handleOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
       onError,
     })
@@ -418,7 +416,6 @@ export const CorrectEntered = ({
   entered: { id: string; amountBdt: number; note: string | null };
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({
     amountBdt: amount(entered.amountBdt),
     note: note(entered.note),
@@ -439,7 +436,6 @@ export const CorrectEntered = ({
           receipt: receipt ?? undefined,
           reason,
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       }}
       ready={correcting.changed || receipt !== null}
       title={t("byHand.correct")}

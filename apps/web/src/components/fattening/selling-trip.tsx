@@ -3,7 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -36,7 +36,6 @@ const orNothing = (value: string) =>
  */
 export const SellingTripForm = () => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [day, setDay] = useState<Day>(NOTHING_YET);
   const [taken, setTaken] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -47,12 +46,9 @@ export const SellingTripForm = () => {
   const record = useMutation(
     orpc.sellingTrips.record.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setDay(NOTHING_YET);
         setTaken([]);
-        await queryClient.invalidateQueries({
-          queryKey: orpc.sellingTrips.key(),
-        });
         toast.success(t("selling.tripRecorded"));
       },
     })

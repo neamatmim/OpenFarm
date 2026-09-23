@@ -2,7 +2,7 @@ import type { PaymentMethod } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
@@ -263,7 +263,6 @@ export const SaleSheet = ({
   onAnswers: (answers: SaleAnswers) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const sellable = useQuery(orpc.sale.sellable.queryOptions());
   const edit = (patch: Partial<SaleAnswers>) =>
     onAnswers({ ...answers, ...patch });
@@ -279,16 +278,11 @@ export const SaleSheet = ({
 
   const record = useMutation(
     orpc.sale.record.mutationOptions({
-      onSuccess: async ({ tagNumber }) => {
+      onSuccess: ({ tagNumber }) => {
         toast.success(t("sale.done", { tag: tagNumber }));
         // The buyer and the lorry stay typed: the next beast is usually his too.
         onAnswers({ ...answers, tagNumber: "", weightKg: "", priceBdt: "" });
         onOpenChange(false);
-        await Promise.all(
-          [orpc.papers.key(), orpc.ready.key(), orpc.sale.key()].map((key) =>
-            queryClient.invalidateQueries({ queryKey: key })
-          )
-        );
       },
       onError: (error) => {
         const fitOn = fitOnFrom(error);

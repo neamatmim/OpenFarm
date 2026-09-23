@@ -1,5 +1,5 @@
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -42,18 +42,16 @@ export const BuyingTripSheet = ({
   onRecorded: (tripId: string) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [outing, setOuting] = useState<Outing>(NOTHING_YET);
   const [paymentMethod, setPaymentMethod] =
     useState<IntakeFields["paymentMethod"]>("cash");
   const record = useMutation(
     orpc.trips.record.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async (made) => {
+      onSuccess: (made) => {
         setOuting(NOTHING_YET);
         onOpenChange(false);
         // The arrival being written up came home on it; the ones after pick it from the list.
-        await queryClient.invalidateQueries({ queryKey: orpc.trips.key() });
         onRecorded(made.id);
         toast.success(t("intake.tripRecorded"));
       },

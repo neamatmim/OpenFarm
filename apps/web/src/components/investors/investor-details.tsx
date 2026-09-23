@@ -9,7 +9,7 @@ import {
   SheetTitle,
 } from "@OpenFarm/ui/components/sheet";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -129,16 +129,12 @@ const InvestorActions = ({
   onEdit: (investor: Investor) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [asking, setAsking] = useState(false);
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.investors.key() });
   const retiring = useMutation(
     orpc.investors.retire.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setAsking(false);
-        await refresh();
         toast.success(t("investors.retiredToast"));
       },
     })
@@ -146,8 +142,7 @@ const InvestorActions = ({
   const bringingBack = useMutation(
     orpc.investors.bringBack.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
-        await refresh();
+      onSuccess: () => {
         toast.success(t("investors.broughtBack"));
       },
     })

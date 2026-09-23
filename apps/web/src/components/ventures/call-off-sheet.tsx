@@ -1,6 +1,6 @@
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -39,7 +39,6 @@ export const CallOffSheet = ({
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const queryClient = useQueryClient();
   const [reason, setReason] = useState("");
   const [sentBack, setSentBack] = useState<Record<string, SentBack>>({});
   useFreshFor(venture?.id, () => {
@@ -59,11 +58,10 @@ export const CallOffSheet = ({
   const callingOff = useMutation(
     orpc.ventures.cancel.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setReason("");
         setSentBack({});
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
         toast.success(t("ventures.calledOff"));
       },
     })

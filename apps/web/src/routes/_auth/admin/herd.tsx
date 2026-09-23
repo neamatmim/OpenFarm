@@ -1,6 +1,6 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileUp, Plus, Warehouse } from "lucide-react";
 import { useState } from "react";
@@ -68,17 +68,15 @@ const useNamingWords = (naming: Naming | null) => {
  */
 const HerdPage = () => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const sheds = useQuery(orpc.herd.list.queryOptions());
   const animals = useQuery(orpc.animals.list.queryOptions({ input: {} }));
   const [naming, setNaming] = useState<Naming | null>(null);
   const [importing, setImporting] = useState(false);
   const words = useNamingWords(naming);
 
-  const done = async () => {
+  const done = () => {
     toast.success(t("work.saved"));
     setNaming(null);
-    await queryClient.invalidateQueries({ queryKey: orpc.herd.key() });
   };
   const onError = (error: Error) => toast.error(sayWhy(error, t));
   const createShed = useMutation(

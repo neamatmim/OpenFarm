@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Camera } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -41,13 +41,11 @@ const PaperlessAgreements = ({
   agreements: { id: string; investorId: string }[];
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const nameOf = useInvestorNames();
   const keeping = useMutation(
     orpc.ventures.keepAgreementPaper.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+      onSuccess: () => {
         toast.success(t("ventures.paperKept"));
       },
     })
@@ -119,7 +117,6 @@ export const TakeCapitalSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [arrival, setArrival] = useState<Arrival>(NOTHING_YET);
   useFreshFor(venture?.id, () => setArrival(NOTHING_YET));
   const agreements = useQuery({
@@ -132,10 +129,9 @@ export const TakeCapitalSheet = ({
   const taking = useMutation(
     orpc.ventures.takeCapital.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setArrival(NOTHING_YET);
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
         toast.success(t("ventures.capitalTaken"));
       },
     })

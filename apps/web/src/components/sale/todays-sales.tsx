@@ -37,9 +37,7 @@ const SaleActions = ({ sale, papers }: { sale: Sold; papers: SalePapers }) => {
   const { handleReceipt, handleCard } = papers;
   return (
     <div className="flex items-center justify-end gap-1">
-      {papers.mayCorrect ? (
-        <SaleCorrection sale={sale} thenReload={orpc.papers.key()} />
-      ) : null}
+      {papers.mayCorrect ? <SaleCorrection sale={sale} /> : null}
       <RowMenu
         actions={[
           {

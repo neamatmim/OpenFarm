@@ -2,7 +2,7 @@ import { mayTransition } from "@OpenFarm/domain";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { UserRoundCheck } from "lucide-react";
 import { useId } from "react";
 import { toast } from "sonner";
@@ -33,7 +33,6 @@ export const AssignWork = ({
 }) => {
   const t = useT();
   const id = useId();
-  const queryClient = useQueryClient();
   const me = useQuery(orpc.people.me.queryOptions());
   const runsTheFarm = (me.data?.roles ?? []).some(
     (role) => role === "owner" || role === "manager"
@@ -46,9 +45,8 @@ export const AssignWork = ({
   });
   const assign = useMutation(
     orpc.instances.assign.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("work.assigned"));
-        await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

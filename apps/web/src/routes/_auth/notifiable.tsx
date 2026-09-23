@@ -1,7 +1,7 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Archive, Plus, ShieldAlert, ShieldOff } from "lucide-react";
 import { useState } from "react";
@@ -186,11 +186,9 @@ const diseaseCard = (row: DiseaseRow) => <DiseaseCard row={row} />;
 const AddDiseaseDialog = ({
   open,
   onOpenChange,
-  onAdded,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdded: () => void;
 }) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
@@ -204,7 +202,6 @@ const AddDiseaseDialog = ({
         setNote("");
         toast.success(t("notifiable.added"));
         onOpenChange(false);
-        onAdded();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -264,11 +261,9 @@ const AddDiseaseDialog = ({
 const TakeOffDialog = ({
   disease,
   onOpenChange,
-  onTakenOff,
 }: {
   disease: Disease | null;
   onOpenChange: (open: boolean) => void;
-  onTakenOff: () => void;
 }) => {
   const { t, language } = useLanguage();
   const [why, setWhy] = useState("");
@@ -277,7 +272,6 @@ const TakeOffDialog = ({
       onSuccess: () => {
         toast.success(t("notifiable.takenOff"));
         onOpenChange(false);
-        onTakenOff();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -336,7 +330,6 @@ const DiseaseList = ({ rows }: { rows: DiseaseRow[] }) => {
  */
 const NotifiablePage = () => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const list = useQuery(orpc.notifiable.list.queryOptions());
   const me = useQuery(orpc.people.me.queryOptions());
   // A vet called in for a visit reads the list; keeping it is the farm's own people's.
@@ -344,9 +337,6 @@ const NotifiablePage = () => {
   const [adding, setAdding] = useState(false);
   /** Which disease is being taken off: its dialog asks why. */
   const [comingOff, setComingOff] = useState<Disease | null>(null);
-
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.notifiable.key() });
 
   const addButton = keeps ? (
     <Button onClick={() => setAdding(true)} type="button">
@@ -379,11 +369,7 @@ const NotifiablePage = () => {
 
       {keeps ? (
         <>
-          <AddDiseaseDialog
-            onAdded={refresh}
-            onOpenChange={setAdding}
-            open={adding}
-          />
+          <AddDiseaseDialog onOpenChange={setAdding} open={adding} />
           <TakeOffDialog
             disease={comingOff}
             key={comingOff?.id ?? "none"}
@@ -392,7 +378,6 @@ const NotifiablePage = () => {
                 setComingOff(null);
               }
             }}
-            onTakenOff={refresh}
           />
         </>
       ) : null}

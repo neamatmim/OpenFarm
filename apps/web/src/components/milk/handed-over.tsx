@@ -2,7 +2,7 @@ import { farmDayOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 
 import {
@@ -29,7 +29,6 @@ import { shiftDay } from "./milk-types";
 /** The Manager puts a Dispatch right — litres, price, buyer or challan — with the reason. */
 const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({
     litres: amount(dispatch.litres),
     pricePerLitreBdt: amount(dispatch.pricePerLitreBdt),
@@ -46,7 +45,6 @@ const DispatchCorrection = ({ dispatch }: { dispatch: Dispatch }) => {
           reason,
           changes: correcting.changes(),
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
       }}
       ready={correcting.changed}
       title={t("correct.dispatch")}

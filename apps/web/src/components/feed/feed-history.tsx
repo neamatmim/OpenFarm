@@ -1,6 +1,6 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ClipboardList, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -32,7 +32,6 @@ const HISTORY_PAGE = 20;
 /** Feed that came in written up wrong: how much, what it cost, or the day — with the reason. */
 const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({
     quantity: amountArrived(arrival.quantity),
     priceBdt: figure(arrival.priceBdt),
@@ -48,7 +47,6 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
           reason,
           changes: correcting.changes(),
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.stock.key() });
       }}
       ready={correcting.changed}
       title={t("correct.arrival")}

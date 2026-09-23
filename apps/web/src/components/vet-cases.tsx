@@ -1,7 +1,7 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Stethoscope, UserPlus } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -26,19 +26,15 @@ const OpenCaseDialog = ({
 }) => {
   const t = useT();
   const ids = useId();
-  const queryClient = useQueryClient();
   const [vetId, setVetId] = useState("");
   const [reason, setReason] = useState("");
   const call = useMutation(
     orpc.vetCases.open.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("cases.opened"));
         setReason("");
         setVetId("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({
-          queryKey: orpc.vetCases.key(),
-        });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -94,7 +90,6 @@ export const VetCases = ({
   mayCall: boolean;
 }) => {
   const t = useT();
-  const queryClient = useQueryClient();
   const [calling, setCalling] = useState(false);
   const cases = useQuery({
     ...orpc.vetCases.forAnimal.queryOptions({ input: { tagNumber } }),
@@ -106,11 +101,8 @@ export const VetCases = ({
   });
   const close = useMutation(
     orpc.vetCases.close.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("cases.closed"));
-        await queryClient.invalidateQueries({
-          queryKey: orpc.vetCases.key(),
-        });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
