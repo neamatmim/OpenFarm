@@ -24,6 +24,43 @@ export const pastWindUp = (venture: Venture) =>
   (venture.animalsStanding ?? 0) !== 0 &&
   (venture.windUpEndsOn ?? "9999-12-31") < farmDayOf(new Date());
 
+/**
+ * How far a Venture still is from its Floor, and so whether buying may start.
+ *
+ * The farm judges on what the account **holds** — "money sent back is not money to start on" — and on a
+ * Venture still Open nothing has gone back, so what arrived is what it holds. Should a refund ever reach
+ * one before it starts buying, this is the line to move onto the balance, and the server will already be
+ * refusing what this still offers.
+ */
+export const shortOfFloor = (venture: Venture) =>
+  venture.floorBdt - venture.capitalInBdt;
+
+/** How many days before its decision date an Open Venture short of its Floor starts asking for the Owner:
+ *  a week, the time it takes to chase the signatures and the money still owed, or to decide to call it off. */
+const DECIDE_BY_WARNING_DAYS = 7;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether an Open Venture is at or past the day it has to be decided by with its Floor still unmet.
+ *
+ * That day is when the Owner either starts buying or calls the run off and sends the money back, and a run
+ * that reaches it unmet has only the second — so it is said a week ahead, while there is still time to
+ * find the rest, rather than on the day.
+ */
+export const decisionIsDue = (venture: Venture, now = new Date()) => {
+  const warnFrom = farmDayOf(
+    new Date(now.getTime() + DECIDE_BY_WARNING_DAYS * ONE_DAY_MS)
+  );
+  // Named, and this way round, because the guard against untranslated JSX text reads a closing angle
+  // bracket in an expression as the end of a tag.
+  const decisionWithinTheWeek = venture.decideBy <= warnFrom;
+  return (
+    venture.state === "open" &&
+    shortOfFloor(venture) > 0 &&
+    decisionWithinTheWeek
+  );
+};
+
 /** How a Venture's account stands against the bank, as it is read on both screens that read it. */
 export interface BankStanding {
   lastCheckedMonth: string | null;
@@ -58,6 +95,7 @@ export const monthsStillOut = (bank: BankStanding | undefined) => {
  * card says so quietly.
  */
 export type VentureTrouble =
+  | { word: "decision_due"; decideBy: string; shortBdt: number }
   | { word: "running_budget_low"; leftBdt: number }
   | { word: "past_wind_up"; standing: number }
   | { word: "bank_disagrees"; months: string[] }
@@ -77,6 +115,13 @@ export type VentureTrouble =
  */
 export const troubleWith = (venture: Venture): VentureTrouble[] => {
   const troubles: VentureTrouble[] = [];
+  if (decisionIsDue(venture)) {
+    troubles.push({
+      word: "decision_due",
+      decideBy: venture.decideBy,
+      shortBdt: shortOfFloor(venture),
+    });
+  }
   if (venture.runningBudgetLow) {
     troubles.push({
       word: "running_budget_low",

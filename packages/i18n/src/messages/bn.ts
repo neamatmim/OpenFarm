@@ -223,6 +223,8 @@ export const bn: Record<MessageKey, string> = {
   "venturesAtWork.sellingBy": "বিক্রি {day}-এর মধ্যে",
   "venturesAtWork.runningLow": "খাওয়ানোর টাকা কমে আসছে",
   "ventureTrouble.title": "যেসব ভেঞ্চারে আপনাকে লাগবে",
+  "ventureTrouble.decisionDue":
+    "{day} সিদ্ধান্তের দিন, অথচ সর্বনিম্ন সীমার চেয়ে এখনো ৳{short} কম — বাকি টাকা আনুন, নয়তো ভেঞ্চার বাতিল করুন",
   "ventureTrouble.runningBudgetLow": "খাওয়ানোর টাকা কমে আসছে — ৳{left} বাকি",
   "ventureTrouble.pastWindUp": "গুটিয়ে আনার সময় শেষ, তবু {standing}টি গরু অবিক্রীত",
   "ventureTrouble.bankStale":
@@ -347,7 +349,15 @@ export const bn: Record<MessageKey, string> = {
   "ventures.startBuying": "কেনা শুরু করুন",
   "ventures.startBuyingHint":
     "কেনা শুরু হলে ইউনিট আর বদলায় না: নতুন বিনিয়োগকারীও নেই, বাড়তি টাকাও নেই।",
-  "ventures.floorNotMetYet": "সর্বনিম্ন সীমার চেয়ে ৳{short} কম",
+  "ventures.floorNotMetYet":
+    "কেনা শুরুর আগে আরও ৳{short} জমা হতে হবে (সর্বনিম্ন সীমা ৳{floor})।",
+  "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
+  "ventures.decisionDue": "{day} সিদ্ধান্তের দিন — সর্বনিম্ন সীমা পূরণ হয়নি",
+  "ventures.signFirst": "আগে চুক্তি সই করুন",
+  "ventures.ofTheFloor": "সর্বনিম্ন সীমা {floor}",
+  "ventures.signedWithoutPaper":
+    "সই হয়েছে, কিন্তু চুক্তির ছবি রাখা যায়নি — টাকা জমা থেকে ছবি যোগ করুন",
+  "ventures.unitsLeft": "{left}টি ইউনিট বাকি",
   "ventures.buyingStarted": "ভেঞ্চারে গরু কেনা শুরু হলো",
   "ventures.startFattening": "কেনা শেষ",
   "ventures.floatStillOut":

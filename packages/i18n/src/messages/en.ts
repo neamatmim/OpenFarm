@@ -230,6 +230,8 @@ export const en = {
   /** What a Venture wants the Owner for, on her own page. A stale bank month and one that disagreed
    *  are said apart: one needs the statement read again, the other needs explaining. */
   "ventureTrouble.title": "Ventures needing you",
+  "ventureTrouble.decisionDue":
+    "Decide by {day}, and still ৳{short} short of the Floor: bring in the rest, or call it off",
   "ventureTrouble.runningBudgetLow":
     "Running low on feeding money — ৳{left} left",
   "ventureTrouble.pastWindUp":
@@ -370,7 +372,15 @@ export const en = {
   "ventures.startBuying": "Start buying",
   "ventures.startBuyingHint":
     "Once buying starts the Units are fixed: no new Investor, and no top-up.",
-  "ventures.floorNotMetYet": "৳{short} short of the Floor",
+  "ventures.floorNotMetYet":
+    "৳{short} more has to come in before buying can start (Floor ৳{floor}).",
+  "ventures.noUnitsLeft": "Every Unit is signed for.",
+  "ventures.decisionDue": "Decide by {day}: the Floor is not met",
+  "ventures.signFirst": "Sign an Agreement first",
+  "ventures.ofTheFloor": "of a {floor} Floor",
+  "ventures.signedWithoutPaper":
+    "Signed, but the paper's photo did not save; add it from Capital in",
+  "ventures.unitsLeft": "{left} Units left",
   "ventures.buyingStarted": "The Venture is buying",
   "ventures.startFattening": "Buying is done",
   "ventures.floatStillOut":

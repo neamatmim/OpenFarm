@@ -536,14 +536,23 @@ export const venturesRouter = {
       const signed = await signedForEach(context.db, context.farm.id, ids);
       const checked = await bankStandingOf(context.db, context.farm.id, ids);
       const stillHers = await stillHersByEach(context.db, context.farm.id, ids);
-      return rows.map((one) =>
-        ventureView(one, held.get(one.id), signed.get(one.id), {
+      const settled = await context.db.query.ventureSettlement.findMany({
+        where: { farmId: context.farm.id, ventureId: { in: ids } },
+        columns: { ventureId: true },
+      });
+      const approved = new Set(settled.map((one) => one.ventureId));
+      return rows.map((one) => ({
+        ...ventureView(one, held.get(one.id), signed.get(one.id), {
           warnBelowBdt: context.farm.runningBudgetWarnBdt,
           bank: checked.get(one.id) ?? NEVER_CHECKED,
           windUpDays: context.farm.windUpDays,
           stillHers: stillHers.get(one.id) ?? 0,
-        })
-      );
+        }),
+        /** Whether its Settlement has been approved. From then every Investor is being paid on figures
+         *  written down, so the acts that would move them — a month reimbursed, the Owner's own money in,
+         *  the terms amended — are refused, and the screen should stop offering them. */
+        settlementApproved: approved.has(one.id),
+      }));
     }),
 
   /**

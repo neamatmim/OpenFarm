@@ -14,6 +14,7 @@ import {
   PrimaryActs,
   StateBadge,
   VentureCard,
+  WhatStopsHer,
   actsInTheMenu,
   moneyOf,
 } from "@/components/ventures/venture-card";
@@ -61,20 +62,28 @@ const VentureCell = ({ row }: Cell) => {
   );
 };
 
-/** What the Investors have put in — the way to every movement of it, as it is on the card. */
+/** What the Investors have put in — the way to every movement of it, as it is on the card — and, while the
+ *  run is Open, the Floor it is being measured against, since that is the figure buying waits on. */
 const HeldCell = ({ row }: Cell) => {
   const { t } = useLanguage();
   const taka = useTaka();
   const { venture, acts } = row.original;
   return (
-    <button
-      aria-label={t("ventures.movements")}
-      className="rounded-md tabular-nums underline-offset-4 outline-none hover:underline focus-visible:ring-2"
-      onClick={() => acts.seeMovements(venture)}
-      type="button"
-    >
-      {taka(venture.capitalInBdt)}
-    </button>
+    <span className="flex flex-col items-end gap-0.5">
+      <button
+        aria-label={t("ventures.movements")}
+        className="rounded-md tabular-nums underline-offset-4 outline-none hover:underline focus-visible:ring-2"
+        onClick={() => acts.seeMovements(venture)}
+        type="button"
+      >
+        {taka(venture.capitalInBdt)}
+      </button>
+      {venture.state === "open" ? (
+        <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
+          {t("ventures.ofTheFloor", { floor: taka(venture.floorBdt) })}
+        </span>
+      ) : null}
+    </span>
   );
 };
 
@@ -102,17 +111,21 @@ const SignedCell = ({ row }: Cell) => {
   );
 };
 
-/** The act the run is waiting for, and the menu holding everything else it can do. */
+/** The act the run is waiting for, the menu holding everything else it can do, and — under them, as on
+ *  the card — what stands in the way of a dim one. A greyed-out button with no reason reads as broken. */
 const ActsCell = ({ row }: Cell) => {
   const { t } = useLanguage();
   const { venture, acts } = row.original;
   return (
-    <div className="flex flex-wrap items-center justify-end gap-1">
-      <PrimaryActs acts={acts} dense venture={venture} />
-      <RowMenu
-        actions={actsInTheMenu(venture, acts, t)}
-        label={t("ventures.moreFor", { venture: venture.name })}
-      />
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center justify-end gap-1">
+        <PrimaryActs acts={acts} dense venture={venture} />
+        <RowMenu
+          actions={actsInTheMenu(venture, acts, t)}
+          label={t("ventures.moreFor", { venture: venture.name })}
+        />
+      </div>
+      <WhatStopsHer dense venture={venture} />
     </div>
   );
 };
@@ -147,7 +160,7 @@ const ventureColumns = column.columns([
     id: "acts",
     header: ActionsHeader,
     cell: ActsCell,
-    meta: { align: "end", className: "w-64" },
+    meta: { align: "end", className: "w-80" },
   }),
 ]);
 

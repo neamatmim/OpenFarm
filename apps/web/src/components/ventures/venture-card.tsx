@@ -29,7 +29,12 @@ import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
-import { monthsStillOut, pastWindUp } from "@/lib/ventures";
+import {
+  decisionIsDue,
+  monthsStillOut,
+  pastWindUp,
+  shortOfFloor,
+} from "@/lib/ventures";
 
 /** Where a Venture stands, in a word the Owner reads at a glance. */
 const TONES = {
@@ -131,17 +136,17 @@ export const moneyOf = (venture: Venture) => ({
  */
 const stillRunning = (venture: Venture) => isRunning(venture.state);
 
+/** How many Units nobody has signed for yet. Nothing left is a Sign that can only be refused. */
+const unitsLeft = (venture: Venture) =>
+  venture.units - moneyOf(venture).signedFor.units;
+
 /**
- * How far a Venture still is from its Floor, and so whether buying may start.
- *
- * Said once because the card says it twice over: the line telling her what stands in the way, and the
- * button that is dim until it does not. The farm judges on what the account **holds** — "money sent
- * back is not money to start on" — and on a Venture still Open nothing has gone back, so what arrived
- * is what it holds. Should a refund ever reach one before it starts buying, this is the line to move
- * onto the balance, and the server will already be refusing what this still offers.
+ * Whether its Settlement has been approved. From then every Investor is paid on figures written down, and
+ * the farm refuses a month reimbursed, the Owner's own money in and the terms amended — so none is offered.
+ * A list cached before the answer carried it says nothing, which is read as not yet.
  */
-const shortOfFloor = (venture: Venture) =>
-  venture.floorBdt - venture.capitalInBdt;
+const settlementApproved = (venture: Venture) =>
+  venture.settlementApproved ?? false;
 
 /**
  * Whether anybody is owed one of the three papers.
@@ -160,7 +165,8 @@ const hasPapersToGive = (venture: Venture) =>
  * stood, so the farm refuses an amendment — and a button that can only ever be refused is worse than no
  * button, because somebody fills the whole form before hearing it.
  */
-const termsCanStillMove = (venture: Venture) => venture.state !== "settled";
+const termsCanStillMove = (venture: Venture) =>
+  venture.state !== "settled" && !settlementApproved(venture);
 
 /** Everything one card can ask the page to open. One object rather than sixteen props, so a new act is
  *  one line here and one line there rather than a fourth row of buttons. */
@@ -203,26 +209,35 @@ export const Line = ({
  * Its own component because the card was over the complexity the linter allows, and because these are
  * one idea: the act is there, and here is what stands in front of it. A dim button is not a reason.
  */
-export const WhatStopsHer = ({ venture }: { venture: Venture }) => {
+export const WhatStopsHer = ({
+  venture,
+  dense = false,
+}: {
+  venture: Venture;
+  /** The table's: smaller, to sit under the buttons in a row rather than above them on a card. */
+  dense?: boolean;
+}) => {
   const { t, language } = useLanguage();
+  const said = cn(
+    "text-muted-foreground text-right",
+    dense ? "max-w-64 text-xs" : "text-sm"
+  );
   if (venture.state === "open") {
     const short = shortOfFloor(venture);
     return (
-      <p className="text-muted-foreground text-right text-sm">
+      <p className={said}>
         {short > 0
           ? t("ventures.floorNotMetYet", {
               short: formatNumber(short, language),
+              floor: formatNumber(venture.floorBdt, language),
             })
           : t("ventures.startBuyingHint")}
+        {unitsLeft(venture) > 0 ? null : ` ${t("ventures.noUnitsLeft")}`}
       </p>
     );
   }
   if (venture.state === "buying" && moneyOf(venture).openFloatBdt !== 0) {
-    return (
-      <p className="text-muted-foreground text-right text-sm">
-        {t("ventures.floatStillOut")}
-      </p>
-    );
+    return <p className={said}>{t("ventures.floatStillOut")}</p>;
   }
   return null;
 };
@@ -351,6 +366,13 @@ export const CardBadges = ({
       {venture.runningBudgetLow ? (
         <StatusBadge tone="warning">{t("ventures.runningLow")}</StatusBadge>
       ) : null}
+      {decisionIsDue(venture) ? (
+        <StatusBadge tone="warning">
+          {t("ventures.decisionDue", {
+            day: formatDate(startOfFarmDay(venture.decideBy), language),
+          })}
+        </StatusBadge>
+      ) : null}
       {pastWindUp(venture) ? (
         <StatusBadge tone="warning">
           {t("ventures.pastWindUp", {
@@ -391,6 +413,7 @@ export const primaryActsOf = (
         label: t("ventures.sign"),
         icon: PenLine,
         variant: "outline",
+        disabled: unitsLeft(venture) <= 0,
         handleSelect: () => acts.sign(venture),
       },
       {
@@ -418,14 +441,16 @@ export const primaryActsOf = (
     ];
   }
   if (venture.state === "fattening" || venture.state === "selling") {
-    const said: PrimaryAct[] = [
-      {
-        label: t("ventures.reimburse"),
-        icon: Receipt,
-        variant: "outline",
-        handleSelect: () => acts.reimburse(venture),
-      },
-    ];
+    const said: PrimaryAct[] = settlementApproved(venture)
+      ? []
+      : [
+          {
+            label: t("ventures.reimburse"),
+            icon: Receipt,
+            variant: "outline",
+            handleSelect: () => acts.reimburse(venture),
+          },
+        ];
     if (pastWindUp(venture)) {
       said.push({
         label: t("ventures.buyWhatIsLeft"),
@@ -517,35 +542,41 @@ export const actsInTheMenu = (
     },
   ];
   if (venture.state === "open") {
+    const nobodySigned = money.signedFor.people === 0;
     inTheMenu.push({
       label: t("ventures.takeCapital"),
       icon: Banknote,
-      disabled: money.signedFor.people === 0,
+      disabled: nobodySigned,
+      hint: nobodySigned ? t("ventures.signFirst") : undefined,
       handleSelect: () => acts.takeCapital(venture),
     });
   }
-  if (venture.state === "buying" && money.openFloatBdt !== 0) {
+  // Asked of the Float, not of the state: the first Sale moves a run from buying to selling with a Float
+  // still out, and that Float then stands in the way of its Settlement.
+  if (money.openFloatBdt !== 0) {
     inTheMenu.push({
       label: t("ventures.countFloat"),
       icon: ScrollText,
       handleSelect: () => acts.countFloat(venture),
     });
   }
-  if (stillRunning(venture)) {
-    inTheMenu.push(
-      {
-        label: t("ventures.checkTheBank"),
-        icon: Landmark,
-        handleSelect: () => acts.checkTheBank(venture),
-      },
-      {
-        label: t("ventures.advance"),
-        icon: PiggyBank,
-        handleSelect: () => acts.advance(venture),
-      }
-    );
+  // A settled run is read against the bank too: a month that goes out after it closed means the figures
+  // everybody was paid on no longer read the same, and the badge saying so needs the act that answers it.
+  if (venture.state !== "cancelled") {
+    inTheMenu.push({
+      label: t("ventures.checkTheBank"),
+      icon: Landmark,
+      handleSelect: () => acts.checkTheBank(venture),
+    });
   }
-  if (venture.state === "buying") {
+  if (stillRunning(venture) && !settlementApproved(venture)) {
+    inTheMenu.push({
+      label: t("ventures.advance"),
+      icon: PiggyBank,
+      handleSelect: () => acts.advance(venture),
+    });
+  }
+  if (venture.state === "buying" && !settlementApproved(venture)) {
     inTheMenu.push({
       label: t("ventures.reimburse"),
       icon: Receipt,

@@ -210,8 +210,18 @@ const VenturesPage = () => {
     statements: opens("statements"),
     economics: opens("economics"),
     amend: opens("amend"),
-    startBuying: (one) => moving.mutate({ id: one.id }),
-    startFattening: (one) => fattening.mutate({ id: one.id }),
+    // Once, however often it is pressed while the first is on its way: a second press lands on a Venture that
+    // has already moved and comes back refused, straight after the toast saying it worked.
+    startBuying: (one) => {
+      if (!moving.isPending) {
+        moving.mutate({ id: one.id });
+      }
+    },
+    startFattening: (one) => {
+      if (!fattening.isPending) {
+        fattening.mutate({ id: one.id });
+      }
+    },
   };
   /** The Venture a sheet is showing, which is a Venture only while that sheet is the one on show. */
   const stagedOn = (act: ActOnOneVenture): Venture | null =>

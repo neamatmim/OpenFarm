@@ -561,6 +561,11 @@ describe("what a Settlement is", () => {
 
   it("freezes the figures on approval, whatever the costing says afterwards", async () => {
     const owner = await as("owner", "2047-04-06T04:00:00.000Z");
+    // The list says whether it has been approved, so the screen stops offering what an approval closes.
+    const unapproved = await owner.client.ventures.list();
+    expect(
+      unapproved.find((one) => one.id === ventureId)?.settlementApproved
+    ).toBe(false);
     await owner.client.ventures.approveSettlement({
       ventureId,
       note: `হিসাব চূড়ান্ত ${suffix}`,
@@ -704,7 +709,10 @@ describe("what a Settlement is", () => {
     // Not finished yet: the Farm's own share is still sitting in the account, and the Farm's money
     // never stays in a Venture Account.
     const between = await owner.client.ventures.list();
-    expect(between.find((one) => one.id === ventureId)?.state).toBe("selling");
+    expect(between.find((one) => one.id === ventureId)).toMatchObject({
+      state: "selling",
+      settlementApproved: true,
+    });
 
     const booksBefore = await owner.client.money.list({
       from: "2047-04-01",
