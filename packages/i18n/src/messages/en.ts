@@ -1555,6 +1555,7 @@ export const en = {
     "This person is written down already, on that same phone number",
   "refusal.investorAlreadySigned":
     "This Investor has signed for this Venture already",
+  "refusal.expiredWhenBought": "That lot had expired before it came in",
   "refusal.noFarmLossToCover":
     "This Venture made no loss for the Farm to carry",
   "refusal.investorRetired":
@@ -1679,6 +1680,15 @@ export const en = {
   "drugs.doses": "About how many doses",
   "drugs.price": "Price (৳)",
   "drugs.seller": "Bought from",
+  "lots.lotNumber": "Lot number",
+  "lots.expiresOn": "Expiry date",
+  "lots.expiresOnHint":
+    "As printed on the box: the store is warned before it, and a dose given after it is said of",
+  "lots.feedExpiresOnHint":
+    "Where the bag prints one; hay and harvests have none",
+  "lots.expired": "Expired",
+  "lots.expiresSoon": "Expires soon",
+  "lots.col.lot": "Lot and expiry",
   "drugs.boughtOn": "Bought on",
   "drugs.recordPurchase": "Record the purchase",
   "drugs.bought": "Purchase recorded",

@@ -1475,6 +1475,7 @@ export const bn: Record<MessageKey, string> = {
   "refusal.investorExists":
     "এই নাম আর এই ফোন নম্বরে একজন বিনিয়োগকারী আগেই লেখা আছে",
   "refusal.investorAlreadySigned": "এই বিনিয়োগকারী এই ভেঞ্চারে আগেই সই করেছেন",
+  "refusal.expiredWhenBought": "এই লটের মেয়াদ কেনার আগেই শেষ হয়ে গিয়েছিল",
   "refusal.noFarmLossToCover": "এই ভেঞ্চারে খামারের বহন করার মতো কোনো লোকসান হয়নি",
   "refusal.investorRetired":
     "এই বিনিয়োগকারীকে বাদ দেওয়া হয়েছে; আগে বিনিয়োগকারী পাতা থেকে ফিরিয়ে আনুন",
@@ -1595,6 +1596,14 @@ export const bn: Record<MessageKey, string> = {
   "drugs.doses": "মোটামুটি কত ডোজ",
   "drugs.price": "দাম (৳)",
   "drugs.seller": "কার কাছ থেকে",
+  "lots.lotNumber": "লট নম্বর",
+  "lots.expiresOn": "মেয়াদ শেষের তারিখ",
+  "lots.expiresOnHint":
+    "বাক্সে যেমন লেখা — তার আগেই সতর্ক করা হবে, আর মেয়াদের পরে দিলে জানানো হবে",
+  "lots.feedExpiresOnHint": "বস্তায় লেখা থাকলে দিন; খড় বা নিজের ঘাসে থাকে না",
+  "lots.expired": "মেয়াদ শেষ",
+  "lots.expiresSoon": "মেয়াদ শেষ হচ্ছে",
+  "lots.col.lot": "লট ও মেয়াদ",
   "drugs.boughtOn": "কেনার দিন",
   "drugs.recordPurchase": "কেনা রেকর্ড করুন",
   "drugs.bought": "কেনা রেকর্ড হয়েছে",

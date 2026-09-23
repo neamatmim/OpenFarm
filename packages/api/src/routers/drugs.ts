@@ -16,6 +16,7 @@ import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
+import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import {
@@ -141,11 +142,13 @@ export const drugsRouter = {
         }),
         purchasedOn: farmDay,
         paymentMethod: paymentMethodInput,
+        ...lotFields,
       })
     )
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const purchasedOn = startOfFarmDay(input.purchasedOn);
+      assertNotExpiredWhenBought(input.expiresOn, input.purchasedOn);
       if (purchasedOn > now) {
         throw new ORPCError("BAD_REQUEST", {
           message:
@@ -193,6 +196,8 @@ export const drugsRouter = {
             priceBdt: input.priceBdt,
             counterpartyId: sellerId,
             purchasedOn,
+            lotNumber: input.lotNumber ?? null,
+            expiresOn: input.expiresOn ?? null,
             recordedBy: context.actor.id,
             recordedByRole: context.roleUsed,
             recordedAt: now,
@@ -229,6 +234,8 @@ export const drugsRouter = {
         priceBdt: row.priceBdt,
         sellerName: row.seller.name,
         purchasedOn: row.purchasedOn,
+        lotNumber: row.lotNumber,
+        expiresOn: row.expiresOn,
       }));
     }),
 

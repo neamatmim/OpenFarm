@@ -26,6 +26,9 @@ interface Draft {
   seller: string;
   paymentMethod: PaymentMethod;
   receivedOn: string;
+  /** The bag's Lot Number and last day, where it prints them: concentrate and premix do, hay does not. */
+  lotNumber: string;
+  expiresOn: string;
 }
 
 const freshDraft = (feedItemId: string): Draft => ({
@@ -36,6 +39,8 @@ const freshDraft = (feedItemId: string): Draft => ({
   seller: "",
   paymentMethod: "cash",
   receivedOn: farmDayOf(new Date()),
+  lotNumber: "",
+  expiresOn: "",
 });
 
 /** What a trader's slip would say, worked out as it is typed: the maunds, and what a unit cost. */
@@ -116,9 +121,13 @@ export const ReceiveFeedSheet = ({
   );
 
   const amount = Number(draft.quantity);
+  // Both are the farm's own days, so they sort as text.
+  const expiredWhenBought =
+    draft.expiresOn !== "" && draft.expiresOn < draft.receivedOn;
   const ready =
     chosen !== null &&
     amount > 0 &&
+    !expiredWhenBought &&
     (draft.kind === "harvest" ||
       (Number(draft.price) > 0 && draft.seller.trim() !== ""));
 
@@ -141,6 +150,8 @@ export const ReceiveFeedSheet = ({
                 priceBdt: Number(draft.price),
                 seller: { name: draft.seller.trim() },
                 paymentMethod: draft.paymentMethod,
+                lotNumber: draft.lotNumber.trim() || undefined,
+                expiresOn: draft.expiresOn || undefined,
               }
             : {}),
         });
@@ -237,6 +248,35 @@ export const ReceiveFeedSheet = ({
                   value={draft.seller}
                 />
               </FormField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="receive-lot" label={t("lots.lotNumber")}>
+                  <Input
+                    autoComplete="off"
+                    id="receive-lot"
+                    maxLength={60}
+                    onChange={(event) => set("lotNumber", event.target.value)}
+                    value={draft.lotNumber}
+                  />
+                </FormField>
+                <FormField
+                  hint={
+                    expiredWhenBought
+                      ? t("refusal.expiredWhenBought")
+                      : t("lots.feedExpiresOnHint")
+                  }
+                  id="receive-expires"
+                  label={t("lots.expiresOn")}
+                >
+                  <Input
+                    aria-invalid={expiredWhenBought}
+                    id="receive-expires"
+                    min={draft.receivedOn}
+                    onChange={(event) => set("expiresOn", event.target.value)}
+                    type="date"
+                    value={draft.expiresOn}
+                  />
+                </FormField>
+              </div>
             </>
           ) : null}
 
