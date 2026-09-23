@@ -243,9 +243,7 @@ export const en = {
    *  "Settlement" would collide with the bank's statement a Bank Check reads and with the Venture's own
    *  Settlement, whose button sits on the same card. */
   "statements.title": "Investor statements",
-  "statements.hint":
-    "The three papers an Investor receives. Each is for one person and shows nobody else's business; each is recorded as an Export.",
-  "statements.unitsHeld": "{units} Units",
+  "statements.for": "{name}'s papers",
   "statements.joining": "Joining letter",
   "statements.progress": "Progress",
   "statements.settlement": "Settlement statement",

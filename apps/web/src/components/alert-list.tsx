@@ -92,8 +92,9 @@ const WhereItLeads = ({
   return ventureId === null ? null : (
     <Link
       className="text-primary mt-1 block text-sm font-medium hover:underline"
-      search={{ statements: ventureId }}
-      to="/ventures"
+      params={{ ventureId }}
+      search={{ tab: "investors" }}
+      to="/ventures/$ventureId"
     >
       {t("alerts.makeThePaper")}
     </Link>

@@ -32,7 +32,7 @@ import {
 } from "@OpenFarm/ui/components/tabs";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import type { LucideIcon } from "lucide-react";
-import { EllipsisVertical } from "lucide-react";
+import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
@@ -277,10 +277,14 @@ const RowActionButton = ({ action }: { action: RowAction }) => {
 export const RowMenu = ({
   label,
   actions,
+  named,
 }: {
   /** What the menu is for, for a screen reader: usually the row's name. */
   label: string;
   actions: RowAction[];
+  /** A menu of one kind of thing — a man's three papers — says what it holds on its face, rather than hiding
+   *  behind the dots a row's miscellany does. */
+  named?: { text: string; icon?: LucideIcon };
 }) => {
   if (actions.length === 0) {
     return null;
@@ -295,9 +299,19 @@ export const RowMenu = ({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button aria-label={label} size="icon-sm" variant="ghost">
-            <EllipsisVertical aria-hidden />
-          </Button>
+          named ? (
+            <Button aria-label={label} size="sm" variant="outline">
+              {named.icon ? (
+                <named.icon aria-hidden data-icon="inline-start" />
+              ) : null}
+              {named.text}
+              <ChevronDown aria-hidden data-icon="inline-end" />
+            </Button>
+          ) : (
+            <Button aria-label={label} size="icon-sm" variant="ghost">
+              <EllipsisVertical aria-hidden />
+            </Button>
+          )
         }
       />
       <DropdownMenuContent align="end" className="w-56">

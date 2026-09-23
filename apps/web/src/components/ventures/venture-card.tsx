@@ -6,7 +6,6 @@ import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import {
   Banknote,
-  FileText,
   Gavel,
   Landmark,
   PenLine,
@@ -172,7 +171,8 @@ const termsCanStillMove = (venture: Venture) =>
  *  one line here and one line there rather than a fourth row of buttons. */
 export interface VentureActs {
   sign: (venture: Venture) => void;
-  takeCapital: (venture: Venture) => void;
+  /** Capital against the Venture — or, from one Investor's row, against his paper. */
+  takeCapital: (venture: Venture, agreementId?: string) => void;
   callOff: (venture: Venture) => void;
   drawFloat: (venture: Venture) => void;
   countFloat: (venture: Venture) => void;
@@ -181,7 +181,6 @@ export interface VentureActs {
   settle: (venture: Venture) => void;
   advance: (venture: Venture) => void;
   checkTheBank: (venture: Venture) => void;
-  statements: (venture: Venture) => void;
   economics: (venture: Venture) => void;
   amend: (venture: Venture) => void;
   startBuying: (venture: Venture) => void;
@@ -575,18 +574,12 @@ export const actsInTheMenu = (
     });
   }
   if (hasPapersToGive(venture)) {
-    inTheMenu.push(
-      {
-        label: t("ventures.economics"),
-        icon: TrendingUp,
-        handleSelect: () => acts.economics(venture),
-      },
-      {
-        label: t("statements.title"),
-        icon: FileText,
-        handleSelect: () => acts.statements(venture),
-      }
-    );
+    // Each Investor's papers are in his row on the Investors tab, beside his Units and what he has paid.
+    inTheMenu.push({
+      label: t("ventures.economics"),
+      icon: TrendingUp,
+      handleSelect: () => acts.economics(venture),
+    });
     if (termsCanStillMove(venture)) {
       inTheMenu.push({
         label: t("ventures.amend"),
