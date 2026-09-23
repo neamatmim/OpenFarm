@@ -938,7 +938,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.officialTag": "সরকারি ট্যাগ",
   "animals.aliases": "পুরনো চিহ্ন",
   "animals.registerHint":
-    "যে পশু ক্রয় বা বাছুর জন্মের মাধ্যমে আসেনি, তার জন্য। খামার পরের ট্যাগ নম্বরটি দেবে।",
+    "যে পশু “পশু তোলা” বা বাছুর জন্মের মাধ্যমে আসেনি, তার জন্য। খামার পরের ট্যাগ নম্বরটি দেবে।",
   "animals.birthDate": "জন্ম তারিখ",
   "animals.registered": "{tag} হিসেবে নথিভুক্ত",
   "animals.move": "স্থানান্তর",
