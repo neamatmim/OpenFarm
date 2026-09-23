@@ -144,6 +144,17 @@ const PriceCell = ({ row }: { row: { original: ArrivalRow } }) => {
 const SellerCell = ({ row }: { row: { original: ArrivalRow } }) =>
   row.original.sellerName ?? <span className="text-muted-foreground">—</span>;
 
+/** What is left of this delivery in the store, the first to expire fed first; muted once it is all fed out. */
+const LeftCell = ({ row }: { row: { original: ArrivalRow } }) => {
+  const { language } = useLanguage();
+  const left = row.original.left ?? row.original.quantity;
+  return (
+    <span className={left === 0 ? "text-muted-foreground" : "font-medium"}>
+      {formatNumber(left, language)} {row.original.unit}
+    </span>
+  );
+};
+
 const LotCell = ({ row }: { row: { original: ArrivalRow } }) => (
   <LotAndExpiry
     expiresOn={row.original.expiresOn}
@@ -185,6 +196,12 @@ const arrivalColumns = arrivalColumn.columns([
     id: "seller",
     header: listHeader("stock.seller"),
     cell: SellerCell,
+  }),
+  arrivalColumn.accessor((one) => one.left ?? one.quantity, {
+    id: "left",
+    header: listHeader("lots.col.left"),
+    cell: LeftCell,
+    meta: { align: "end" },
   }),
   arrivalColumn.accessor((one) => one.expiresOn ?? "9999-12-31", {
     id: "lot",
