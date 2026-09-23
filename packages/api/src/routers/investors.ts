@@ -1,8 +1,10 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { investor } from "@OpenFarm/db/schema/venture";
 import { ORPCError } from "@orpc/server";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
+import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
 import {
@@ -11,8 +13,9 @@ import {
   theSamePerson,
 } from "../investor-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+import { lockTheFarm } from "../venture-store";
 
-const recordInput = z.object({
+const personInput = z.object({
   name: z.string().trim().min(1).max(120),
   phone: z.string().trim().min(1).max(20),
   address: z.string().trim().max(200).optional(),
@@ -29,6 +32,61 @@ const recordInput = z.object({
     })
     .optional(),
 });
+
+const updateInput = personInput.extend({ id: z.string().min(1) });
+
+/** Somebody the farm has written down already, said by what the Owner can do about it: a retired person is
+ *  brought back rather than written down twice. */
+const alreadyHere = (retired: boolean) =>
+  retired
+    ? new ORPCError("BAD_REQUEST", {
+        message:
+          "This person is already an Investor here, retired; bring them back rather than writing them down twice",
+        data: { refusal: "investor_retired" },
+      })
+    : new ORPCError("BAD_REQUEST", {
+        message: "This person is already an Investor here",
+        data: { refusal: "investor_exists" },
+      });
+
+/** Everything written down about one person, as a correction replaces it: a field left out is a field
+ *  cleared, since the form sends the whole record as it now stands. */
+const theRecord = (input: z.infer<typeof personInput>) => ({
+  name: input.name,
+  phone: input.phone,
+  address: input.address ?? null,
+  nid: input.nid ?? null,
+  bankAccount: input.bankAccount ?? null,
+  nomineeName: input.nominee?.name ?? null,
+  nomineePhone: input.nominee?.phone ?? null,
+  nomineeRelation: input.nominee?.relation ?? null,
+});
+
+/** A change to one Investor, audited with how they stood either side of it. */
+const changeInvestor = async (
+  context: Parameters<typeof audited>[0] & { farm: { id: string } },
+  id: string,
+  apply: (tx: Tx) => Promise<{ id: string }[]>
+): Promise<void> => {
+  await audited(context).write(
+    {
+      entity: "investor",
+      entityId: id,
+      action: "update",
+      before: (tx) => readInvestor(tx, context.farm.id, id),
+      after: (tx) => readInvestor(tx, context.farm.id, id),
+    },
+    async (tx) => {
+      const [changed] = await apply(tx);
+      if (!changed) {
+        throw new ORPCError("NOT_FOUND", {
+          message:
+            "No such Investor, or they are already as you are asking for",
+        });
+      }
+    }
+  );
+};
 
 export const investorsRouter = {
   /**
@@ -68,6 +126,8 @@ export const investorsRouter = {
             : null,
           /** The Units this person holds across the Ventures still running. */
           unitsHeld: counted.unitsOf.get(one.id) ?? 0,
+          /** When they were retired, or nothing while the farm may still sign them. */
+          retiredAt: one.retiredAt,
         })),
       };
     }),
@@ -79,7 +139,7 @@ export const investorsRouter = {
   record: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(recordInput)
+    .input(personInput)
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
       const already = await theSamePerson(context.db, context.farm.id, {
@@ -87,10 +147,7 @@ export const investorsRouter = {
         phone: input.phone,
       });
       if (already) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "This person is already an Investor here",
-          data: { refusal: "investor_exists" },
-        });
+        throw alreadyHere(already.retiredAt !== null);
       }
       const id = uuidv7(now);
       await audited(context).write(
@@ -117,5 +174,90 @@ export const investorsRouter = {
           })
       );
       return { id };
+    }),
+
+  /**
+   * What was written down about somebody, put right — a phone changed, a bank account moved, a nominee who
+   * has died replaced. The whole record as it now stands replaces the old one, and the trail keeps what it
+   * said before: a payout sent to an account that was typed over has to be traceable to who typed it.
+   */
+  update: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(updateInput)
+    .handler(async ({ context, input }) => {
+      const already = await theSamePerson(context.db, context.farm.id, {
+        name: input.name,
+        phone: input.phone,
+      });
+      if (already && already.id !== input.id) {
+        throw alreadyHere(already.retiredAt !== null);
+      }
+      await changeInvestor(context, input.id, (tx) =>
+        tx
+          .update(investor)
+          .set(theRecord(input))
+          .where(
+            and(eq(investor.id, input.id), eq(investor.farmId, context.farm.id))
+          )
+          .returning({ id: investor.id })
+      );
+      return { id: input.id };
+    }),
+
+  /**
+   * Somebody done with the farm, taken out of the people it may sign — retired, never removed, because
+   * everything they signed and were paid is kept for twelve years and names them. Not while their money is
+   * in a Venture still running: they are still in it, and the farm still owes them its end.
+   */
+  retire: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      await changeInvestor(context, input.id, async (tx) => {
+        // Counted behind the same lock a signature takes, so nobody is signed between the count and the
+        // retiring.
+        await lockTheFarm(tx, context.farm.id);
+        const counted = await countedInvestors(tx, context.farm.id);
+        if (counted.unitsOf.has(input.id)) {
+          throw new ORPCError("BAD_REQUEST", {
+            message:
+              "Their money is in a Venture still running; they are retired once it settles or is called off",
+            data: { refusal: "investor_still_in" },
+          });
+        }
+        return await tx
+          .update(investor)
+          .set({ retiredAt: now })
+          .where(
+            and(
+              eq(investor.id, input.id),
+              eq(investor.farmId, context.farm.id),
+              isNull(investor.retiredAt)
+            )
+          )
+          .returning({ id: investor.id });
+      });
+      return { id: input.id };
+    }),
+
+  /** A retired Investor coming back for another Venture. The Owner's, like retiring them. */
+  bringBack: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(async ({ context, input }) => {
+      await changeInvestor(context, input.id, (tx) =>
+        tx
+          .update(investor)
+          .set({ retiredAt: null })
+          .where(
+            and(eq(investor.id, input.id), eq(investor.farmId, context.farm.id))
+          )
+          .returning({ id: investor.id })
+      );
+      return { id: input.id };
     }),
 };

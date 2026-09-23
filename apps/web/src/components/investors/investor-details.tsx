@@ -1,20 +1,26 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@OpenFarm/ui/components/sheet";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { Check, Copy } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { Investor } from "@/components/investors/investor-types";
-import { TagChip } from "@/components/page";
+import { StatusBadge, TagChip } from "@/components/page";
+import { ConfirmDialog } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
+import { sayWhy } from "@/lib/saying";
+import { orpc } from "@/utils/orpc";
 
 /** How long "copied" stays on the button before it offers to copy again. */
 const COPIED_FOR_MS = 2000;
@@ -111,8 +117,94 @@ const BankAccount = ({ account }: { account: string }) => {
 };
 
 /**
- * Everything the farm holds about one Investor, read-only, in the three parts it was written in: who they are,
- * where their money goes, and their nominee.
+ * What can be done about somebody from their record: put it right, and retire them or bring them back. Retiring
+ * asks first and says what it does not do — nothing is deleted — and is not offered while their money is in a
+ * Venture still running, where the line under it says why rather than leaving a button that only refuses.
+ */
+const InvestorActions = ({
+  investor,
+  onEdit,
+}: {
+  investor: Investor;
+  onEdit: (investor: Investor) => void;
+}) => {
+  const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [asking, setAsking] = useState(false);
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: orpc.investors.key() });
+  const retiring = useMutation(
+    orpc.investors.retire.mutationOptions({
+      onError: (error) => toast.error(sayWhy(error, t)),
+      onSuccess: async () => {
+        setAsking(false);
+        await refresh();
+        toast.success(t("investors.retiredToast"));
+      },
+    })
+  );
+  const bringingBack = useMutation(
+    orpc.investors.bringBack.mutationOptions({
+      onError: (error) => toast.error(sayWhy(error, t)),
+      onSuccess: async () => {
+        await refresh();
+        toast.success(t("investors.broughtBack"));
+      },
+    })
+  );
+  // A list cached before retiring existed has no such field: somebody on it is simply not retired.
+  const retired = Boolean(investor.retiredAt);
+  const stillIn = investor.unitsHeld > 0;
+  return (
+    <SheetFooter className="flex-col gap-3 border-t">
+      {stillIn && !retired ? (
+        <p className="text-muted-foreground text-xs">
+          {t("investors.stillIn")}
+        </p>
+      ) : null}
+      <div className="flex flex-row flex-wrap justify-end gap-2">
+        {retired ? (
+          <Button
+            disabled={bringingBack.isPending}
+            onClick={() => bringingBack.mutate({ id: investor.id })}
+            type="button"
+            variant="outline"
+          >
+            <ArchiveRestore aria-hidden data-icon="inline-start" />
+            {t("investors.bringBack")}
+          </Button>
+        ) : (
+          <Button
+            disabled={stillIn}
+            onClick={() => setAsking(true)}
+            type="button"
+            variant="outline"
+          >
+            <Archive aria-hidden data-icon="inline-start" />
+            {t("investors.retire")}
+          </Button>
+        )}
+        <Button onClick={() => onEdit(investor)} type="button">
+          <Pencil aria-hidden data-icon="inline-start" />
+          {t("investors.edit")}
+        </Button>
+      </div>
+      <ConfirmDialog
+        confirmLabel={t("investors.retire")}
+        description={t("investors.retireWhy")}
+        onConfirm={() => retiring.mutate({ id: investor.id })}
+        onOpenChange={setAsking}
+        open={asking}
+        pending={retiring.isPending}
+        title={t("investors.retireTitle", { name: investor.name })}
+      />
+    </SheetFooter>
+  );
+};
+
+/**
+ * Everything the farm holds about one Investor, in the three parts it was written in: who they are, where their
+ * money goes, and their nominee — with what can be done about them at its foot.
  *
  * The NID and the bank account are asked for when the person is recorded, because the stamped Agreement
  * needs the one and the payout needs the other — and until now neither was ever shown back, so the Owner
@@ -121,9 +213,11 @@ const BankAccount = ({ account }: { account: string }) => {
 export const InvestorDetails = ({
   investor,
   onOpenChange,
+  onEdit,
 }: {
   investor: Investor | null;
   onOpenChange: (open: boolean) => void;
+  onEdit: (investor: Investor) => void;
 }) => {
   const { t, language } = useLanguage();
   return (
@@ -134,13 +228,20 @@ export const InvestorDetails = ({
       >
         <SheetHeader className="border-b">
           <SheetTitle>{investor?.name ?? t("investors.details")}</SheetTitle>
-          <SheetDescription className="flex items-center gap-2">
+          <SheetDescription className="flex flex-wrap items-center gap-2">
             <span>{t("investors.unitsHeld")}</span>
             <TagChip>
               {t("investors.holds", {
                 units: formatNumber(investor?.unitsHeld ?? 0, language),
               })}
             </TagChip>
+            {investor?.retiredAt ? (
+              <StatusBadge tone="neutral">
+                {t("investors.retiredOn", {
+                  day: formatDate(new Date(investor.retiredAt), language),
+                })}
+              </StatusBadge>
+            ) : null}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
@@ -172,6 +273,9 @@ export const InvestorDetails = ({
             </Detail>
           </DetailSection>
         </div>
+        {investor ? (
+          <InvestorActions investor={investor} onEdit={onEdit} />
+        ) : null}
       </SheetContent>
     </Sheet>
   );

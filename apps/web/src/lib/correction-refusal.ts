@@ -96,6 +96,8 @@ const WORDED_REFUSALS = {
   venture_units_gone: "refusal.ventureUnitsGone",
   investor_cap_reached: "refusal.investorCapReached",
   investor_exists: "refusal.investorExists",
+  investor_retired: "refusal.investorRetired",
+  investor_still_in: "refusal.investorStillIn",
   capital_must_be_by_bank: "refusal.capitalMustBeByBank",
   agreement_has_no_paper: "refusal.agreementHasNoPaper",
   capital_not_sent_back: "refusal.capitalNotSentBack",

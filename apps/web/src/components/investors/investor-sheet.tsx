@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { Investor } from "@/components/investors/investor-types";
 import {
   FormField,
   FormSection,
@@ -75,59 +76,117 @@ const relationWord = (person: Person) => {
     : translate("bn", `investors.relation.${person.nomineeRelation}`);
 };
 
+/** A relation as it was kept, back as the form offers it: one of the usual ones where the word is theirs, or
+ *  somebody else, in the words that were written. */
+const relationChoiceOf = (
+  word: string | null | undefined
+): Pick<Person, "nomineeRelation" | "nomineeRelationInWords"> => {
+  const kept = word?.trim() ?? "";
+  if (kept === "") {
+    return { nomineeRelation: "", nomineeRelationInWords: "" };
+  }
+  const usual = RELATIONS.find(
+    (relation) => translate("bn", `investors.relation.${relation}`) === kept
+  );
+  return usual
+    ? { nomineeRelation: usual, nomineeRelationInWords: "" }
+    : { nomineeRelation: "other", nomineeRelationInWords: kept };
+};
+
+/** What the farm has written down about somebody, as the form starts from when it is put right. */
+const asWritten = (investor: Investor): Person => ({
+  name: investor.name,
+  phone: investor.phone,
+  address: investor.address ?? "",
+  nid: investor.nid ?? "",
+  bankAccount: investor.bankAccount ?? "",
+  nomineeName: investor.nominee?.name ?? "",
+  nomineePhone: investor.nominee?.phone ?? "",
+  ...relationChoiceOf(investor.nominee?.relation),
+});
+
+/** The record as the form now has it, in the shape both writing somebody down and putting them right take. */
+const theRecord = (person: Person) => ({
+  name: person.name,
+  phone: person.phone,
+  address: orNothing(person.address),
+  nid: orNothing(person.nid),
+  bankAccount: orNothing(person.bankAccount),
+  nominee:
+    person.nomineeName.trim() === ""
+      ? undefined
+      : {
+          name: person.nomineeName,
+          phone: orNothing(person.nomineePhone),
+          relation: relationWord(person),
+        },
+});
+
 /**
- * One Investor, written down once and reused for every Venture they join. The nominee is asked for here
- * rather than on the Agreement, because it is the person the family would come to the farm about, not a
- * term of any one run.
+ * One Investor, written down once and reused for every Venture they join — or, given one already on file, put
+ * right. The nominee is asked for here rather than on the Agreement, because it is the person the family would
+ * come to the farm about, not a term of any one run.
  */
-export const RecordInvestorSheet = ({
+export const InvestorSheet = ({
   open,
   onOpenChange,
+  investor = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Somebody already on file, to put right; nobody, to write somebody new down. */
+  investor?: Investor | null;
 }) => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [person, setPerson] = useState<Person>(NOBODY_YET);
+  // Started afresh each time the sheet opens, from what is on file now, so a correction abandoned half-typed
+  // is not waiting there the next time, and one saved since is.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setPerson(investor ? asWritten(investor) : NOBODY_YET);
+    }
+  }
+  const done = async (said: string) => {
+    onOpenChange(false);
+    await queryClient.invalidateQueries({ queryKey: orpc.investors.key() });
+    toast.success(said);
+  };
   const recording = useMutation(
     orpc.investors.record.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
-        setPerson(NOBODY_YET);
-        onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.investors.key() });
-        toast.success(t("investors.recorded"));
-      },
+      onSuccess: () => done(t("investors.recorded")),
+    })
+  );
+  const correcting = useMutation(
+    orpc.investors.update.mutationOptions({
+      onError: (error) => toast.error(sayWhy(error, t)),
+      onSuccess: () => done(t("investors.updated")),
     })
   );
   const ready = person.name.trim() !== "" && person.phone.trim() !== "";
   return (
     <FormSheet
-      description={t("investors.recordHint")}
+      description={
+        investor ? t("investors.editHint") : t("investors.recordHint")
+      }
       onOpenChange={onOpenChange}
       onSubmit={() =>
-        recording.mutate({
-          name: person.name,
-          phone: person.phone,
-          address: orNothing(person.address),
-          nid: orNothing(person.nid),
-          bankAccount: orNothing(person.bankAccount),
-          nominee:
-            person.nomineeName.trim() === ""
-              ? undefined
-              : {
-                  name: person.nomineeName,
-                  phone: orNothing(person.nomineePhone),
-                  relation: relationWord(person),
-                },
-        })
+        investor
+          ? correcting.mutate({ id: investor.id, ...theRecord(person) })
+          : recording.mutate(theRecord(person))
       }
       open={open}
-      pending={recording.isPending}
+      pending={recording.isPending || correcting.isPending}
       ready={ready}
-      submitLabel={t("investors.record")}
-      title={t("investors.record")}
+      submitLabel={investor ? t("investors.save") : t("investors.record")}
+      title={
+        investor
+          ? t("investors.editTitle", { name: investor.name })
+          : t("investors.record")
+      }
       wide
     >
       <FormSection title={t("investors.section.who")}>

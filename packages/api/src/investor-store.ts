@@ -12,7 +12,7 @@ export const theSamePerson = async (
 ) => {
   const row = await tx.query.investor.findFirst({
     where: { farmId, name: person.name, phone: person.phone },
-    columns: { id: true },
+    columns: { id: true, retiredAt: true },
   });
   return row ?? null;
 };
@@ -28,6 +28,9 @@ export const readInvestor = async (tx: Tx, farmId: string, id: string) => {
         nid: row.nid,
         bankAccount: row.bankAccount,
         nominee: row.nomineeName,
+        nomineePhone: row.nomineePhone,
+        nomineeRelation: row.nomineeRelation,
+        retiredAt: row.retiredAt,
       }
     : null;
 };

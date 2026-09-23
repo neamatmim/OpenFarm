@@ -688,6 +688,23 @@ export const en = {
   "investors.bankPlaceholder": "Account name, account number, bank and branch",
   "investors.copyAccount": "Copy",
   "investors.copied": "Copied",
+  "investors.edit": "Edit",
+  "investors.editTitle": "Put {name}'s record right",
+  "investors.editHint":
+    "Change what has changed; the audit trail keeps what it said before",
+  "investors.save": "Save the changes",
+  "investors.updated": "The changes are saved",
+  "investors.retire": "Retire",
+  "investors.retireTitle": "Retire {name}?",
+  "investors.retireWhy":
+    "They come off the people the farm may sign for a Venture. Nothing about them is deleted — their Agreements, payouts and statements are kept — and they can be brought back.",
+  "investors.retiredToast": "Retired",
+  "investors.retired": "Retired",
+  "investors.retiredOn": "Retired on {day}",
+  "investors.bringBack": "Bring back",
+  "investors.broughtBack": "Brought back",
+  "investors.stillIn":
+    "Their money is in a Venture still running, so they cannot be retired until it settles or is called off.",
   "investors.nomineeIs": "Nominee: {name}",
   "investors.holds": "{units} Units",
   "investors.none": "No Investor is recorded yet",
@@ -909,6 +926,13 @@ export const en = {
   "auditField.vetId": "Vet",
   "auditField.vaccine": "Vaccine",
   "auditField.retiredAt": "Retired on",
+  "auditField.phone": "Phone",
+  "auditField.address": "Address",
+  "auditField.nid": "NID number",
+  "auditField.bankAccount": "Bank account",
+  "auditField.nominee": "Nominee",
+  "auditField.nomineePhone": "Nominee's phone",
+  "auditField.nomineeRelation": "Nominee's relation",
   "auditField.visitedOn": "Visited on",
   "auditField.pinSet": "PIN set",
   "auditField.from": "From",
@@ -959,6 +983,7 @@ export const en = {
   "audit.entity.medicine_purchase": "Medicine purchase",
   "audit.entity.repeat_breeder_answer": "Repeat breeder decision",
   "audit.entity.ready_set_aside": "Set aside from sale",
+  "audit.entity.investor": "Investor",
   "audit.entity.invite": "Invite",
   "audit.entity.farm": "Farm",
   "audit.system": "System",
@@ -1453,6 +1478,10 @@ export const en = {
     "The farm already has as many Investors as it may have at a time",
   "refusal.investorExists":
     "This person is written down already, on that same phone number",
+  "refusal.investorRetired":
+    "This Investor is retired; bring them back from the Investors page first",
+  "refusal.investorStillIn":
+    "Their money is in a Venture still running; they can be retired once it settles or is called off",
   "refusal.capitalMustBeByBank":
     "A Venture takes money by bank only — a transfer, a cheque or a deposit slip",
   "refusal.agreementHasNoPaper":
