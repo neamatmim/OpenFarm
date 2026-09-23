@@ -1,4 +1,4 @@
-import { farmDayOf } from "./farm-clock";
+import { farmDayOf, startOfFarmDay } from "./farm-clock";
 
 const MONTHS_IN_A_YEAR = 12;
 
@@ -58,4 +58,20 @@ export const ageOf = (
     };
   }
   return null;
+};
+
+/**
+ * The month she was born in, as far as the seller's word goes: the month she arrived in, less the months she was said
+ * to be. A month and never a day, because the word was never that exact; and worked out each time rather than kept,
+ * so correcting the Intake moves it.
+ */
+export const bornAroundOf = (ageAtIntake: AgeAtIntake): Date => {
+  const arrived = calendarOf(new Date(ageAtIntake.arrivedAt));
+  const monthsSinceYearZero =
+    arrived.year * MONTHS_IN_A_YEAR +
+    (arrived.month - 1) -
+    ageAtIntake.estimatedAgeMonths;
+  const year = Math.floor(monthsSinceYearZero / MONTHS_IN_A_YEAR);
+  const month = (monthsSinceYearZero % MONTHS_IN_A_YEAR) + 1;
+  return startOfFarmDay(`${year}-${String(month).padStart(2, "0")}-01`);
 };

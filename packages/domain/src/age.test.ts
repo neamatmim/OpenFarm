@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ageOf } from "./age";
+import { ageOf, bornAroundOf } from "./age";
 
 // A bought bull arrives with the seller's word for his age and no birth date. Before this, every one of
 // them showed no age at all; the estimate has to grow with him, and has to say it is one.
@@ -69,5 +69,22 @@ describe("how old an animal is", () => {
         at("2026-09-23T10:00:00+06:00")
       )
     ).toBeNull();
+  });
+
+  it("puts a bought animal's birth in the month the seller's word points to", () => {
+    // Nineteen months old on 16 June 2026: born around November 2024, across the turn of a year.
+    expect(
+      bornAroundOf({
+        estimatedAgeMonths: 19,
+        arrivedAt: at("2026-06-16T09:30:00+06:00"),
+      })
+    ).toEqual(at("2024-11-01T00:00:00+06:00"));
+    // Arrived at 20:00 UTC on 31 May, which is already June in Savar: the month is read on the farm's clock.
+    expect(
+      bornAroundOf({
+        estimatedAgeMonths: 5,
+        arrivedAt: at("2026-05-31T20:00:00Z"),
+      })
+    ).toEqual(at("2026-01-01T00:00:00+06:00"));
   });
 });

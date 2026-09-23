@@ -1,5 +1,6 @@
-import { DISPOSALS, MORTALITY_KINDS } from "@OpenFarm/domain";
+import { DISPOSALS, MORTALITY_KINDS, bornAroundOf } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import type { Language } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
@@ -289,11 +290,30 @@ const lactationWords = (
     : `${which} · ${t("animals.daysInMilk", { days: detail.daysInMilk })}`;
 };
 
+/** When she was born and how old that makes her: the day where it was written down, and for an animal bought without
+ *  one, the month the seller's word points to — both halves marked as the estimates they are. */
+const bornWords = (
+  detail: AnimalDetail,
+  t: ReturnType<typeof useLanguage>["t"],
+  language: Language
+): string => {
+  const age = ageWords(t, herAge(detail));
+  if (detail.birthDate) {
+    return `${formatDate(new Date(detail.birthDate), language, "date")} · ${age}`;
+  }
+  // A page this phone kept from before the farm sent the seller's word has none, until it is read again.
+  const told = detail.ageAtIntake ?? null;
+  if (told === null) {
+    return "—";
+  }
+  const month = formatDate(bornAroundOf(told), language, "monthYear");
+  return `${t("animals.bornAround", { month })} · ${age}`;
+};
+
 /** Who she is, as facts: everything her register says about her, and what her records work out. */
 const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
   const { t, language } = useLanguage();
   const [latest] = detail.weighIns;
-  const age = herAge(detail);
   return (
     <Section title={t("animals.about")}>
       <FactGrid className="lg:grid-cols-4">
@@ -309,14 +329,8 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
         <Fact label={t("animals.sex")}>{t(`animals.sex.${detail.sex}`)}</Fact>
         <Fact label={t("animals.breed")}>{detail.breed ?? "—"}</Fact>
         <Fact label={t("animals.birthDate")}>
-          {detail.birthDate
-            ? `${formatDate(new Date(detail.birthDate), language, "date")} · ${ageWords(t, age)}`
-            : "—"}
+          {bornWords(detail, t, language)}
         </Fact>
-        {/* Bought without a birth date: no date to give, but the seller's word, grown by her time here. */}
-        {detail.birthDate === null && age ? (
-          <Fact label={t("animals.age")}>{ageWords(t, age)}</Fact>
-        ) : null}
         <Fact label={t("animals.source")}>
           {t(`animals.source.${detail.source}`)}
         </Fact>

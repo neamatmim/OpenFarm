@@ -77,7 +77,7 @@ export {
   startOfFarmDay,
 } from "./farm-clock";
 export type { Age, AgeAtIntake } from "./age";
-export { ageOf } from "./age";
+export { ageOf, bornAroundOf } from "./age";
 export type {
   FatteningView,
   GainBasis,
