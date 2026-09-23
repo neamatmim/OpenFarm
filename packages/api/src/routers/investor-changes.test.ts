@@ -157,6 +157,30 @@ describe("an Investor's record", () => {
     ).resolves.toBeDefined();
   });
 
+  it("signs one Agreement per person per Venture, and says so of a second", async () => {
+    const owner = await as("owner", "2046-08-06T06:00:00.000Z");
+    const { id } = await owner.client.investors.record(person(7));
+    await owner.client.ventures.sign({
+      ventureId,
+      investorId: id,
+      units: 1,
+      ...paper,
+    });
+    // Asked again — a sheet left filled in after its photo failed, a second tap — the farm says what is
+    // wrong in words, not with the database's unique index.
+    await expect(
+      owner.client.ventures.sign({
+        ventureId,
+        investorId: id,
+        units: 1,
+        ...paper,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "investor_already_signed" },
+    });
+  });
+
   it("is the Owner's alone to put right, retire or bring back", async () => {
     const owner = await as("owner", "2046-08-07T04:00:00.000Z");
     const { id } = await owner.client.investors.record(person(6));

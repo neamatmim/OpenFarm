@@ -381,6 +381,8 @@ export const en = {
   "ventures.signedWithoutPaper":
     "Signed, but the paper's photo did not save; add it from Capital in",
   "ventures.unitsLeft": "{left} Units left",
+  "ventures.nobodyLeftToSign":
+    "Everybody on file has signed this Venture already: add the next Investor on the Investors page first",
   "ventures.buyingStarted": "The Venture is buying",
   "ventures.startFattening": "Buying is done",
   "ventures.floatStillOut":
@@ -414,6 +416,10 @@ export const en = {
   "ventures.paid": "Sent",
   "ventures.allPaid": "Everything has gone out",
   "ventures.payOutHint": "Sending {who} ৳{amount}, by bank.",
+  "ventures.farmsLoss": "The Farm's share of the loss",
+  "ventures.payIn": "Pay it in",
+  "ventures.coverLossHint":
+    "The Farm pays ৳{amount} of its own into the Venture's account, by bank, so every payout can be made.",
   "ventures.acknowledge": "He says he had it",
   "ventures.acknowledged": "Written down",
   "ventures.acknowledgeHint": "Writing down that {who} says he had his money.",
@@ -459,6 +465,7 @@ export const en = {
   "ventures.kind.payout": "Paid out to an Investor",
   "ventures.kind.advanceRepaid": "Your own money back",
   "ventures.kind.farmShare": "The Farm's share of the profit",
+  "ventures.kind.farmLossIn": "The Farm's share of the loss, paid in",
   "ventures.kind.reimbursement": "Reimbursed the farm",
   "ventures.kind.advance": "Your own money in",
   "ventures.correctMovement": "Put it right",
@@ -1481,6 +1488,8 @@ export const en = {
     "The Venture holds less than the Floor it was opened on",
   "refusal.ventureFloorOverTarget":
     "The Floor cannot be more than the capital the Venture is after",
+  "refusal.ventureFloorOverUnits":
+    "The Floor is more than the Units can ever raise: lower it, or add Units",
   "refusal.ventureBudgetOverCapital":
     "The Cattle Budget cannot be more than the capital it comes from",
   "refusal.ventureUnitsGone": "The Venture has fewer Units left than that",
@@ -1488,6 +1497,10 @@ export const en = {
     "The farm already has as many Investors as it may have at a time",
   "refusal.investorExists":
     "This person is written down already, on that same phone number",
+  "refusal.investorAlreadySigned":
+    "This Investor has signed for this Venture already",
+  "refusal.noFarmLossToCover":
+    "This Venture made no loss for the Farm to carry",
   "refusal.investorRetired":
     "This Investor is retired; bring them back from the Investors page first",
   "refusal.investorStillIn":
@@ -1602,6 +1615,7 @@ export const en = {
   "money.from.internalSaleOut": "Bought from a Venture",
   "money.from.reimbursement": "Reimbursed by a Venture",
   "money.from.farmShare": "The farm's share of a Venture",
+  "money.from.farmLoss": "The farm's share of a Venture's loss",
   "money.from.settlementAdjustment": "A Settlement Adjustment",
   "owner.moneyAwaiting": "Money awaiting your approval",
   "drugs.buy": "Medicine bought",

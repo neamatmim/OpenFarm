@@ -20,7 +20,9 @@ export type Venture = Awaited<
  * screen telling her a run is over on the strength of a date that has since moved.
  */
 export const pastWindUp = (venture: Venture) =>
-  venture.state === "selling" &&
+  // Fattening as well as selling: a run whose animals never went to market is past its window all the same,
+  // and what is left of it has to be bought back before it can settle.
+  (venture.state === "selling" || venture.state === "fattening") &&
   (venture.animalsStanding ?? 0) !== 0 &&
   (venture.windUpEndsOn ?? "9999-12-31") < farmDayOf(new Date());
 

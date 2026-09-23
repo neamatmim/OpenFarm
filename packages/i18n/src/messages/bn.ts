@@ -358,6 +358,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.signedWithoutPaper":
     "সই হয়েছে, কিন্তু চুক্তির ছবি রাখা যায়নি — টাকা জমা থেকে ছবি যোগ করুন",
   "ventures.unitsLeft": "{left}টি ইউনিট বাকি",
+  "ventures.nobodyLeftToSign":
+    "খাতার সবাই এই ভেঞ্চারে আগেই সই করেছেন — আগে বিনিয়োগকারী পাতায় নতুন বিনিয়োগকারী যোগ করুন",
   "ventures.buyingStarted": "ভেঞ্চারে গরু কেনা শুরু হলো",
   "ventures.startFattening": "কেনা শেষ",
   "ventures.floatStillOut":
@@ -388,6 +390,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.paid": "পাঠানো হয়েছে",
   "ventures.allPaid": "সব টাকা পাঠানো হয়ে গেছে",
   "ventures.payOutHint": "{who}-কে ৳{amount} ব্যাংকের মাধ্যমে পাঠানো হচ্ছে।",
+  "ventures.farmsLoss": "লোকসানে খামারের ভাগ",
+  "ventures.payIn": "জমা দিন",
+  "ventures.coverLossHint":
+    "খামার নিজের ৳{amount} ব্যাংকের মাধ্যমে ভেঞ্চারের হিসাবে জমা দিচ্ছে, যাতে সবার পাওনা মেটানো যায়।",
   "ventures.acknowledge": "তিনি পেয়েছেন বলেছেন",
   "ventures.acknowledged": "লিখে রাখা হয়েছে",
   "ventures.acknowledgeHint": "{who} টাকা পেয়েছেন বলে জানিয়েছেন, তা লিখে রাখা হচ্ছে।",
@@ -433,6 +439,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.kind.payout": "বিনিয়োগকারীকে দেওয়া হয়েছে",
   "ventures.kind.advanceRepaid": "আপনার নিজের টাকা ফেরত",
   "ventures.kind.farmShare": "খামারের লাভের ভাগ",
+  "ventures.kind.farmLossIn": "লোকসানে খামারের ভাগ, জমা",
   "ventures.kind.reimbursement": "খামারকে ফেরত",
   "ventures.kind.advance": "আপনার নিজের টাকা",
   "ventures.correctMovement": "ঠিক করুন",
@@ -1403,12 +1410,16 @@ export const bn: Record<MessageKey, string> = {
   "refusal.ventureWrongState": "ভেঞ্চার এখন যে অবস্থায় আছে, তাতে এটা করা যায় না",
   "refusal.ventureUnderFloor": "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম টাকা উঠেছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
+  "refusal.ventureFloorOverUnits":
+    "সর্বনিম্ন সীমা ইউনিটগুলো দিয়ে যত টাকা উঠতে পারে তার চেয়ে বেশি — সীমা কমান, নয়তো ইউনিট বাড়ান",
   "refusal.ventureBudgetOverCapital": "গরুর বাজেট মূলধনের চেয়ে বেশি হতে পারে না",
   "refusal.ventureUnitsGone": "ভেঞ্চারে এত ইউনিট বাকি নেই",
   "refusal.investorCapReached":
     "একসাথে যতজন বিনিয়োগকারী রাখা যায়, খামারে এখন ততজনই আছেন",
   "refusal.investorExists":
     "এই নাম আর এই ফোন নম্বরে একজন বিনিয়োগকারী আগেই লেখা আছে",
+  "refusal.investorAlreadySigned": "এই বিনিয়োগকারী এই ভেঞ্চারে আগেই সই করেছেন",
+  "refusal.noFarmLossToCover": "এই ভেঞ্চারে খামারের বহন করার মতো কোনো লোকসান হয়নি",
   "refusal.investorRetired":
     "এই বিনিয়োগকারীকে বাদ দেওয়া হয়েছে; আগে বিনিয়োগকারী পাতা থেকে ফিরিয়ে আনুন",
   "refusal.investorStillIn":
@@ -1520,6 +1531,7 @@ export const bn: Record<MessageKey, string> = {
   "money.from.internalSaleOut": "ভেঞ্চার থেকে কেনা",
   "money.from.reimbursement": "ভেঞ্চারের খরচ ফেরত",
   "money.from.farmShare": "ভেঞ্চার পরিচালনার ভাগ",
+  "money.from.farmLoss": "ভেঞ্চারের লোকসানে খামারের ভাগ",
   "money.from.settlementAdjustment": "হিসাব সমন্বয়",
   "owner.moneyAwaiting": "আপনার অনুমোদনের অপেক্ষায় টাকা",
   "drugs.buy": "কেনা ওষুধ",

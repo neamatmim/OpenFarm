@@ -244,6 +244,9 @@ export const VENTURE_MOVEMENT_KINDS = [
   "payout",
   "advance_repaid",
   "farm_share",
+  // The Farm's share of a loss, paid in: a run that lost money splits the loss as it would a profit, and
+  // the Farm's part of it is money the account does not hold until the Farm puts it there.
+  "farm_loss_in",
   "reimbursement",
   "advance",
 ] as const;

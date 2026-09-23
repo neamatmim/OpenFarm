@@ -541,6 +541,124 @@ describe("what a Settlement is", () => {
     });
   });
 
+  it("settles a run that lost money, once the Farm has paid in its share of the loss", async () => {
+    // One bull bought for a lakh and sold for sixty thousand: forty thousand lost, split as a profit would
+    // be. The Investor carries sixty per cent of it off his capital and the Farm the other forty — sixteen
+    // thousand the account does not hold, and which the Farm pays in before the run can close.
+    const owner = await as("owner", "2047-04-04T08:00:00.000Z");
+    const losing = await funded(owner, 4);
+    const trip = await owner.client.trips.record({
+      wentTo: `হাট তিন ${suffix}`,
+      wentOn: "2047-04-04",
+      brokerBdt: 0,
+      transportBdt: 0,
+      keepBdt: 0,
+    });
+    await owner.client.ventures.drawFloat({
+      ventureId: losing,
+      buyingTripId: trip.id,
+      amountBdt: 100_000,
+      movedOn: "2047-04-04",
+      paymentMethod: "bank",
+      reference: `FLT4-${suffix}`,
+    });
+    const manager = await as("manager", "2047-04-04T09:00:00.000Z");
+    const him = await manager.client.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `ব্যাপারী তিন ${suffix}` },
+      purchasePriceBdt: 100_000,
+      weightKg: 200,
+      estimatedAgeMonths: 20,
+      buyingTripId: trip.id,
+      ventureId: losing,
+      arrivedAt: new Date("2047-04-04T09:00:00.000Z"),
+      targetWindowStart: plan.targetWindowStart,
+      targetWindowEnd: plan.targetWindowEnd,
+    });
+    await owner.client.ventures.reconcileFloat({
+      buyingTripId: trip.id,
+      cashBackBdt: 0,
+    });
+    await manager.client.sale.record({
+      tagNumber: him.tagNumber,
+      buyer: { name: `ক্রেতা তিন ${suffix}` },
+      priceBdt: 60_000,
+      weightKg: 205,
+      destination: `ঢাকা ${suffix}`,
+      vehicle: `ঢাকা মেট্রো ${suffix}`,
+      driver: `চালক ${suffix}`,
+      paymentMethod: "bank",
+    });
+    // Opened this April, so no month of it is over yet and no statement is owed.
+
+    const deciding = await as("owner", "2047-04-05T04:00:00.000Z");
+    const settlement = await theSettlement(deciding, losing);
+    expect(settlement.blocks).toEqual([]);
+    expect(settlement).toMatchObject({
+      profitBdt: -40_000,
+      farmBdt: -16_000,
+      balanceBdt: 960_000,
+    });
+    await deciding.client.ventures.approveSettlement({ ventureId: losing });
+    const approved = await deciding.client.ventures.approvedSettlement({
+      ventureId: losing,
+    });
+    const his = approved?.shares[0];
+    expect(his?.payoutBdt).toBe(976_000);
+
+    // There is no share of a profit to take out of it; there is one of a loss to put in.
+    await expect(
+      deciding.client.ventures.takeTheFarmsShare({
+        ventureId: losing,
+        movedOn: "2047-04-05",
+        paymentMethod: "bank",
+        reference: `FARM4-${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "no_farm_share_to_take" } });
+    await deciding.client.ventures.coverTheFarmsLoss({
+      ventureId: losing,
+      movedOn: "2047-04-05",
+      paymentMethod: "bank",
+      reference: `LOSS4-${suffix}`,
+    });
+    await expect(
+      deciding.client.ventures.coverTheFarmsLoss({
+        ventureId: losing,
+        movedOn: "2047-04-05",
+        paymentMethod: "bank",
+        reference: `LOSS4B-${suffix}`,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "already_paid" } });
+
+    // It came from the Farm's own money, so the Farm's books carry it as money out.
+    const books = await deciding.client.money.list({
+      from: "2047-04-01",
+      to: "2047-04-30",
+    });
+    expect(
+      books.events.find(
+        (one) => one.categoryKey === "farm_loss" && one.amountBdt === 16_000
+      )
+    ).toMatchObject({ direction: "out" });
+
+    await deciding.client.ventures.paySettlement({
+      ventureId: losing,
+      agreementId: his?.agreementId ?? "",
+      amountBdt: 976_000,
+      movedOn: "2047-04-05",
+      paymentMethod: "bank",
+      reference: `PAY4-${suffix}`,
+    });
+    // The last of it out, and the run is Settled with its account at nothing — which a loss could never
+    // reach while the Farm's share of it had nowhere to come from.
+    const after = await deciding.client.ventures.list();
+    expect(after.find((one) => one.id === losing)).toMatchObject({
+      state: "settled",
+      balanceBdt: 0,
+    });
+  });
+
   it("refuses a payout before anything is approved", async () => {
     const owner = await as("owner", "2047-04-06T03:00:00.000Z");
     const agreements = await owner.client.ventures.agreements({ ventureId });
@@ -612,6 +730,22 @@ describe("what a Settlement is", () => {
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       data: { refusal: "already_approved" },
+    });
+  });
+
+  it("will not have the Farm cover a loss that is not there", async () => {
+    // The first run made money: the Farm takes a share of it, and has nothing to put in.
+    const owner = await as("owner", "2047-04-07T04:00:00.000Z");
+    await expect(
+      owner.client.ventures.coverTheFarmsLoss({
+        ventureId,
+        movedOn: "2047-04-07",
+        paymentMethod: "bank",
+        reference: `LOSS1-${suffix}`,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "no_farm_loss_to_cover" },
     });
   });
 

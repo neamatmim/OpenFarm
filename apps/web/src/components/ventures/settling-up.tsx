@@ -1,3 +1,4 @@
+import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -56,8 +57,34 @@ const WhenAndWhat = ({
 };
 
 /**
- * One payment out of an approved Settlement: the Owner's own money back, an Investor's share, or the
- * Farm's. The same sheet for all three, because they are the same act with a different name on it.
+ * What the payment sheet says for one payment. The Farm's share of a loss is the one that comes in rather than
+ * going out, and says so: "send the Farm its money" would be the wrong way round for the Farm putting money in.
+ */
+const sheetWords = (
+  what: { kind: string; title: string; amountBdt: number } | null,
+  t: (key: MessageKey, params?: MessageParams) => string,
+  language: Language
+) => {
+  const amount = formatNumber(what?.amountBdt ?? 0, language);
+  const who = what?.title ?? "";
+  if (what?.kind === "farmLoss") {
+    return {
+      title: t("ventures.farmsLoss"),
+      description: t("ventures.coverLossHint", { amount }),
+      submit: t("ventures.payIn"),
+    };
+  }
+  return {
+    title: t("ventures.sendTo", { who }),
+    description: t("ventures.payOutHint", { who, amount }),
+    submit: t("ventures.send"),
+  };
+};
+
+/**
+ * One payment against an approved Settlement: the Owner's own money back, an Investor's share, the Farm's
+ * share going out — or the Farm's share of a loss coming in. The same sheet for all of them, because they are
+ * the same act with a different name on it.
  */
 export const PayOutSheet = ({
   what,
@@ -66,7 +93,7 @@ export const PayOutSheet = ({
 }: {
   what: {
     ventureId: string;
-    kind: "advance" | "share" | "farm" | "adjustment";
+    kind: "advance" | "share" | "farm" | "farmLoss" | "adjustment";
     title: string;
     amountBdt: number;
     agreementId?: string;
@@ -117,6 +144,12 @@ export const PayOutSheet = ({
       onSuccess: done,
     })
   );
+  const covering = useMutation(
+    orpc.ventures.coverTheFarmsLoss.mutationOptions({
+      onError: failed,
+      onSuccess: done,
+    })
+  );
   const adjusting = useMutation(
     orpc.ventures.payAdjustment.mutationOptions({
       onError: failed,
@@ -127,6 +160,7 @@ export const PayOutSheet = ({
     repaying.isPending ||
     paying.isPending ||
     taking.isPending ||
+    covering.isPending ||
     adjusting.isPending;
   const send = () => {
     if (what === null) {
@@ -138,37 +172,33 @@ export const PayOutSheet = ({
       paymentMethod: "bank" as const,
       reference,
     };
-    if (what.kind === "advance") {
-      repaying.mutate(where);
-      return;
-    }
-    if (what.kind === "farm") {
-      taking.mutate(where);
-      return;
-    }
-    if (what.kind === "adjustment") {
-      adjusting.mutate({ ...where, adjustmentId: what.adjustmentId ?? "" });
-      return;
-    }
-    paying.mutate({
-      ...where,
-      agreementId: what.agreementId ?? "",
-      amountBdt: what.amountBdt,
-    });
+    // One call for each kind of payment, looked up rather than asked in turn.
+    const byKind = {
+      advance: () => repaying.mutate(where),
+      farm: () => taking.mutate(where),
+      farmLoss: () => covering.mutate(where),
+      adjustment: () =>
+        adjusting.mutate({ ...where, adjustmentId: what.adjustmentId ?? "" }),
+      share: () =>
+        paying.mutate({
+          ...where,
+          agreementId: what.agreementId ?? "",
+          amountBdt: what.amountBdt,
+        }),
+    } as const;
+    byKind[what.kind]();
   };
+  const words = sheetWords(what, t, language);
   return (
     <FormSheet
-      description={t("ventures.payOutHint", {
-        who: what?.title ?? "",
-        amount: formatNumber(what?.amountBdt ?? 0, language),
-      })}
+      description={words.description}
       onOpenChange={onOpenChange}
       onSubmit={send}
       open={open}
       pending={pending}
       ready={what !== null && movedOn !== "" && reference.trim() !== ""}
-      submitLabel={t("ventures.send")}
-      title={t("ventures.sendTo", { who: what?.title ?? "" })}
+      submitLabel={words.submit}
+      title={words.title}
     >
       <WhenAndWhat
         id="pay-out"

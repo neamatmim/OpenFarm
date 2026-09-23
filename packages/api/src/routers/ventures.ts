@@ -431,14 +431,15 @@ interface GoingOut {
 }
 
 /**
- * One payment out of an approved Settlement, whichever of the three it is.
+ * One payment against an approved Settlement, whichever of the four it is: three going out, and the Farm's
+ * share of a loss coming in.
  *
  * An Investor's share, the Owner's own money back and the Farm's share of the profit are the same act
  * with a different name on the cheque: the same lock, the same refusal when nothing has been approved,
  * the same movement of the Venture's money, and the same look afterwards at whether anything is left to
  * pay. What differs is who is owed and what it marks off, which is all `owed` decides.
  */
-const sendItOut = async (
+const moveSettlementMoney = async (
   // Narrower than `Context` on two counts, because the Farm's share is booked onto the Farm's own
   // books and a booking needs both: somebody did this, and it was done in a Role.
   context: Context & {
@@ -451,7 +452,7 @@ const sendItOut = async (
     paymentMethod: PaymentMethod;
     reference: string;
   },
-  kind: "payout" | "advance_repaid" | "farm_share",
+  kind: "payout" | "advance_repaid" | "farm_share" | "farm_loss_in",
   owed: (
     approved: NonNullable<Awaited<ReturnType<typeof approvedSettlementOf>>>
   ) => GoingOut
@@ -494,9 +495,12 @@ const sendItOut = async (
       // on the Farm's books as income. An Investor's payout and the Owner's Advance coming back are
       // not: that money was never the Farm's, and counting it would read a run's whole proceeds as the
       // Farm's own.
-      if (kind === "farm_share") {
+      //
+      // The Farm's share of a loss is the same money the other way: the Farm's own taka, going in to carry
+      // its part of a run that lost, and so on the Farm's books as money out.
+      if (kind === "farm_share" || kind === "farm_loss_in") {
         await bookMoney(tx, bookingOf(context, context.roleUsed, now), {
-          source: "farm_share",
+          source: kind === "farm_share" ? "farm_share" : "farm_loss",
           sourceId: movementId,
           amountBdt: going.amountBdt,
           occurredAt: startOfFarmDay(input.movedOn),
@@ -624,6 +628,14 @@ export const venturesRouter = {
           message:
             "The Floor cannot be more than the capital the Venture is after",
           data: { refusal: "venture_floor_over_target" },
+        });
+      }
+      // What the Units can raise is all the capital the farm will take for it, so a Floor above that is one
+      // no signature could ever reach: the run would stay Open for ever, waiting on money it may not accept.
+      if (plan.floorBdt > plan.units * input.unitPriceBdt) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The Floor cannot be more than the Units can raise",
+          data: { refusal: "venture_floor_over_units" },
         });
       }
       if (plan.cattleBudgetBdt > input.targetCapitalBdt) {
@@ -766,6 +778,22 @@ export const venturesRouter = {
               message:
                 "This Investor is retired; bring them back before signing them for a Venture",
               data: { refusal: "investor_retired" },
+            });
+          }
+          // One Agreement per person per Venture, as the unique index insists — said here in words, where the
+          // index would only say "duplicate key".
+          const already = await tx.query.investmentAgreement.findFirst({
+            where: {
+              farmId: context.farm.id,
+              ventureId: input.ventureId,
+              investorId: input.investorId,
+            },
+            columns: { id: true },
+          });
+          if (already) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "This Investor has signed for this Venture already",
+              data: { refusal: "investor_already_signed" },
             });
           }
           const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
@@ -1620,7 +1648,7 @@ export const venturesRouter = {
       })
     )
     .handler(({ context, input }) =>
-      sendItOut(context, input, "payout", (approved) => {
+      moveSettlementMoney(context, input, "payout", (approved) => {
         if (
           approved.row.advanceRepaidId === null &&
           approved.row.advanceBdt !== 0
@@ -1691,7 +1719,7 @@ export const venturesRouter = {
       })
     )
     .handler(({ context, input }) =>
-      sendItOut(context, input, "advance_repaid", (approved) => {
+      moveSettlementMoney(context, input, "advance_repaid", (approved) => {
         if (approved.row.advanceRepaidId) {
           throw new ORPCError("BAD_REQUEST", {
             message: "Your Advance has already come back",
@@ -1739,7 +1767,7 @@ export const venturesRouter = {
       })
     )
     .handler(({ context, input }) =>
-      sendItOut(context, input, "farm_share", (approved) => {
+      moveSettlementMoney(context, input, "farm_share", (approved) => {
         if (approved.row.farmSharePaidId) {
           throw new ORPCError("BAD_REQUEST", {
             message: "The Farm's share has already been taken",
@@ -1751,6 +1779,57 @@ export const venturesRouter = {
           throw new ORPCError("BAD_REQUEST", {
             message: "This Venture made the Farm nothing to take",
             data: { refusal: "no_farm_share_to_take" },
+          });
+        }
+        return {
+          amountBdt: owed,
+          mark: (tx: Tx, movementId: string) =>
+            tx
+              .update(ventureSettlement)
+              .set({ farmSharePaidId: movementId })
+              .where(
+                and(
+                  eq(ventureSettlement.id, approved.row.id),
+                  eq(ventureSettlement.farmId, context.farm.id)
+                )
+              ),
+        };
+      })
+    ),
+
+  /**
+   * The Farm's share of a loss, paid into the Venture Account from the Farm's own money.
+   *
+   * A run that lost money splits the loss as it would have split a profit, by the percentages its Agreements
+   * froze: the Investors' part comes off the capital they get back, and the Farm's part is money the account
+   * does not hold. Until the Farm puts it there, the payouts the Settlement wrote down add up to more than the
+   * account has, and the run could never reach Settled. Paid once, and it closes the Farm's side of the
+   * Settlement as taking a share of a profit does.
+   */
+  coverTheFarmsLoss: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        movedOn: farmDay,
+        paymentMethod: z.enum(PAYMENT_METHODS),
+        reference: z.string().trim().min(1).max(120),
+      })
+    )
+    .handler(({ context, input }) =>
+      moveSettlementMoney(context, input, "farm_loss_in", (approved) => {
+        if (approved.row.farmSharePaidId) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "The Farm's share of the loss has already been paid in",
+            data: { refusal: "already_paid" },
+          });
+        }
+        const owed = -approved.row.farmBdt;
+        if (owed <= 0) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "This Venture made no loss for the Farm to carry",
+            data: { refusal: "no_farm_loss_to_cover" },
           });
         }
         return {

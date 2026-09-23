@@ -65,6 +65,11 @@ const CATEGORIES: Record<
     nameEn: "The Farm's share of a Venture",
     direction: "in",
   },
+  farm_loss: {
+    nameBn: "ভেঞ্চারের লোকসানে খামারের ভাগ",
+    nameEn: "The Farm's share of a Venture's loss",
+    direction: "out",
+  },
   feed_in: { nameBn: "খাদ্য কেনা", nameEn: "Feed", direction: "out" },
   medicine_purchase: {
     nameBn: "ওষুধ কেনা",

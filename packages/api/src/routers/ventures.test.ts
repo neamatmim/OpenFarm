@@ -137,6 +137,23 @@ describe("a Venture", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
+  it("refuses a Floor its Units could never raise", async () => {
+    // Ten Units at fifty thousand hold five lakh at the most — capital beyond what the Units are worth is
+    // refused — so a Floor of fourteen lakh would keep it Open for ever, the button to start buying dim
+    // for a reason no signature could ever answer.
+    const owner = await as("owner", "2044-08-21T05:00:00.000Z");
+    await expect(
+      owner.client.ventures.open({
+        name: `অসম্ভব সীমা ${suffix}`,
+        ...opening,
+        units: 10,
+      })
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      data: { refusal: "venture_floor_over_units" },
+    });
+  });
+
   it("is the Owner's alone, and nobody else sees a Venture at all", async () => {
     const others = await Promise.all(
       (["manager", "staff", "vet"] as const).map((role) =>

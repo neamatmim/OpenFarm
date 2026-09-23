@@ -692,13 +692,14 @@ export const reachesSettledOnLastPayout = async (
   );
 };
 
-/** One payment out of a Venture Account, against an approved Settlement. */
+/** One payment out of a Venture Account against an approved Settlement — or the one payment in, the Farm's
+ *  share of a loss. */
 export const payOut = async (
   tx: Tx,
   farmId: string,
   what: {
     ventureId: string;
-    kind: "payout" | "advance_repaid" | "farm_share";
+    kind: "payout" | "advance_repaid" | "farm_share" | "farm_loss_in";
     amountBdt: number;
     movedOn: string;
     reference: string;

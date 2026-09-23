@@ -41,7 +41,14 @@ export const CountFloatSheet = ({
     setMovedOn("");
     setReference("");
   });
-  const trips = useQuery(orpc.trips.list.queryOptions());
+  // Every outing still holding this Venture's Float, however long ago it went: the latest twenty would
+  // lose an old one, and a Float nobody can pick is one the run can never count home.
+  const trips = useQuery({
+    ...orpc.trips.list.queryOptions({
+      input: { openFloatsOf: venture?.id ?? "" },
+    }),
+    enabled: venture !== null,
+  });
   const counting = useMutation(
     orpc.ventures.reconcileFloat.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
