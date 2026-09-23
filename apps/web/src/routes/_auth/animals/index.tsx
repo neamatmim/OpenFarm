@@ -1,4 +1,4 @@
-import { LIVE_STATES, SIDES } from "@OpenFarm/domain";
+import { LIVE_STATES, SIDES, ageOf } from "@OpenFarm/domain";
 import type { LiveState } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -121,6 +121,7 @@ const useHerdRows = (animals: Animal[]): HerdRow[] => {
       shed.pens.map((pen) => [pen.id, `${shed.name} / ${pen.name}`] as const)
     )
   );
+  const now = new Date();
   return animals.map((a) => ({
     id: a.id,
     tagNumber: a.tagNumber,
@@ -130,7 +131,11 @@ const useHerdRows = (animals: Animal[]): HerdRow[] => {
     side: a.side,
     penName: (a.penId && penNames.get(a.penId)) || "—",
     breed: a.breed,
-    birthDate: a.birthDate,
+    // A list this phone kept from before the farm sent the seller's word has none, until it is read again.
+    age: ageOf(
+      { birthDate: a.birthDate, ageAtIntake: a.ageAtIntake ?? null },
+      now
+    ),
     photoUpdatedAt: a.photoUpdatedAt,
     milkHeld: stillHeld(a.milkWithdrawalUntil),
     meatHeld: stillHeld(a.meatWithdrawalUntil),

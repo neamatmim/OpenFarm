@@ -1,3 +1,4 @@
+import type { Age } from "@OpenFarm/domain";
 import { Link } from "@tanstack/react-router";
 import { Beef, ChevronRight, Milk } from "lucide-react";
 
@@ -10,13 +11,7 @@ import {
 } from "@/components/data-table";
 import { useLanguage } from "@/i18n/language-provider";
 
-import {
-  HeldBadges,
-  SideWord,
-  StateBadge,
-  monthsOld,
-  ageWords,
-} from "./animal-words";
+import { HeldBadges, SideWord, StateBadge, ageWords } from "./animal-words";
 
 /** How many animals a page of the herd shows: enough for a Pen at a glance, few enough that a herd of five hundred
  *  does not fetch five hundred photographs at once. */
@@ -32,7 +27,7 @@ export interface HerdRow {
   side: "dairy" | "fattening";
   penName: string;
   breed: string | null;
-  birthDate: Date | null;
+  age: Age | null;
   photoUpdatedAt: Date | null;
   milkHeld: boolean;
   meatHeld: boolean;
@@ -88,7 +83,7 @@ const AgeCell = ({ row }: { row: { original: HerdRow } }) => {
   const { t } = useLanguage();
   return (
     <span className="whitespace-nowrap">
-      {ageWords(t, row.original.birthDate) ?? "—"}
+      {ageWords(t, row.original.age) ?? "—"}
     </span>
   );
 };
@@ -119,7 +114,7 @@ const herdColumns = column.columns([
     id: "breed",
     header: listHeader("animals.breed"),
   }),
-  column.accessor((a) => (a.birthDate ? monthsOld(a.birthDate) : -1), {
+  column.accessor((a) => a.age?.months ?? -1, {
     id: "age",
     header: listHeader("animals.age"),
     cell: AgeCell,
@@ -135,7 +130,7 @@ const herdColumns = column.columns([
  *  back — the whole card a way to her page. */
 const HerdCard = ({ row }: { row: HerdRow }) => {
   const { t } = useLanguage();
-  const age = ageWords(t, row.birthDate);
+  const age = ageWords(t, row.age);
   return (
     <Link
       className="focus-visible:ring-ring -mx-1 flex min-h-11 items-center gap-3 rounded-lg px-1 outline-none focus-visible:ring-2"

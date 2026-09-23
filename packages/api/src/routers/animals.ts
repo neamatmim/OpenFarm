@@ -434,8 +434,8 @@ export const animalsRouter = {
         })
         .default({ includeExited: false })
     )
-    .handler(({ context, input }) =>
-      context.db.query.animal.findMany({
+    .handler(async ({ context, input }) => {
+      const rows = await context.db.query.animal.findMany({
         where: {
           farmId: context.farm.id,
           // Their Scope: the herd for those who run the farm and a Vet, their Pens for Barn Staff, their Cases for a
@@ -447,9 +447,18 @@ export const animalsRouter = {
             : { state: { notIn: [...EXIT_STATES] } }),
         },
         columns: animalSummaryColumns,
+        // The seller's word for her age and the day it was given, so a bought animal with no birth date still has
+        // one — and nothing else of her Intake, whose money is not every reader's.
+        with: {
+          intake: { columns: { estimatedAgeMonths: true, arrivedAt: true } },
+        },
         orderBy: { tagNumber: "asc" },
-      })
-    ),
+      });
+      return rows.map(({ intake, ...her }) => ({
+        ...her,
+        ageAtIntake: intake ?? null,
+      }));
+    }),
 
   /** Any signed-in person may look up any animal by Tag Number, read-only. */
   byTag: protectedProcedure
@@ -643,6 +652,14 @@ export const animalsRouter = {
          *  matrix — `R` to the Owner, `C R U` to the Manager, and nothing to anybody else.
          *  A milker weighs her and a Vet treats her without being told what she cost. */
         intake: theCost ? intakeView(intake) : null,
+        /** The seller's word for her age and the day it was given, which is not the money row: anybody who
+         *  may see her may be told how old she is thought to be. */
+        ageAtIntake: intake
+          ? {
+              estimatedAgeMonths: intake.estimatedAgeMonths,
+              arrivedAt: intake.arrivedAt,
+            }
+          : null,
         /** What she fetched is the money row too: the Owner's and the Manager's. */
         sale: theCost ? saleView(sale) : null,
         heats,

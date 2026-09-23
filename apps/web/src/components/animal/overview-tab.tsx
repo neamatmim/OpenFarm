@@ -21,7 +21,7 @@ import { orpc } from "@/utils/orpc";
 
 import { Fact, FactGrid } from "./animal-facts";
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";
-import { SideWord, StateBadge, ageWords } from "./animal-words";
+import { SideWord, StateBadge, ageWords, herAge } from "./animal-words";
 
 /** Putting a mortality right: what the farm learned afterwards, or a hurried entry corrected. */
 const PutItRight = ({
@@ -293,6 +293,7 @@ const lactationWords = (
 const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
   const { t, language } = useLanguage();
   const [latest] = detail.weighIns;
+  const age = herAge(detail);
   return (
     <Section title={t("animals.about")}>
       <FactGrid className="lg:grid-cols-4">
@@ -309,9 +310,13 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
         <Fact label={t("animals.breed")}>{detail.breed ?? "—"}</Fact>
         <Fact label={t("animals.birthDate")}>
           {detail.birthDate
-            ? `${formatDate(new Date(detail.birthDate), language, "date")} · ${ageWords(t, detail.birthDate)}`
+            ? `${formatDate(new Date(detail.birthDate), language, "date")} · ${ageWords(t, age)}`
             : "—"}
         </Fact>
+        {/* Bought without a birth date: no date to give, but the seller's word, grown by her time here. */}
+        {detail.birthDate === null && age ? (
+          <Fact label={t("animals.age")}>{ageWords(t, age)}</Fact>
+        ) : null}
         <Fact label={t("animals.source")}>
           {t(`animals.source.${detail.source}`)}
         </Fact>

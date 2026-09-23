@@ -34,7 +34,13 @@ import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 import type { AnimalAct, AnimalDetail, AnimalPowers } from "./animal-types";
-import { HeldBadges, SideWord, StateBadge, ageWords } from "./animal-words";
+import {
+  HeldBadges,
+  SideWord,
+  StateBadge,
+  ageWords,
+  herAge,
+} from "./animal-words";
 
 const PHOTO_MAX_BYTES = 1_500_000;
 /** The camera's file picker, opened from her menu. */
@@ -166,7 +172,7 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
 /** What she is, in a line under her number: her Side, her Pen, her breed, her age. */
 const WhatSheIs = ({ detail }: { detail: AnimalDetail }) => {
   const { t } = useLanguage();
-  const age = ageWords(t, detail.birthDate);
+  const age = ageWords(t, herAge(detail));
   const hasAliases = detail.aliases.length !== 0;
   return (
     <>
