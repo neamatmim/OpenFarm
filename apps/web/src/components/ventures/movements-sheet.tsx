@@ -16,7 +16,7 @@ import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 /** What each kind of movement is called, in the reader's own language. */
-const KIND_WORD = {
+export const KIND_WORD = {
   capital_in: "ventures.kind.capitalIn",
   refund: "ventures.kind.refund",
   float_out: "ventures.kind.floatOut",

@@ -820,6 +820,16 @@ describe("what a Settlement is", () => {
       amountBdt: 1_117_600,
       movedOn: "2047-04-08",
       reference: `PAY-${suffix}`,
+      // Which way it moved the account, said by the server that keeps the balance, so a screen adding them
+      // up cannot come to a different figure: a payout is money out, capital money in.
+      direction: "out",
+    });
+    expect(movements.find((one) => one.kind === "capital_in")).toMatchObject({
+      direction: "in",
+    });
+    // A Float coming home puts money back, though it is written against what was spent.
+    expect(movements.find((one) => one.kind === "float_back")).toMatchObject({
+      direction: "in",
     });
   });
 

@@ -76,6 +76,7 @@ import {
   balanceAtMonthEnd,
   balanceOf,
   budgetsOf,
+  directionOf,
   heldByEach,
   termsAcrossOn,
   termsInForceOn,
@@ -2805,6 +2806,8 @@ export const venturesRouter = {
       return rows.map((one) => ({
         id: one.id,
         kind: one.kind,
+        /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
+        direction: directionOf(one.kind),
         agreementId: one.agreementId,
         investorId: one.agreementId
           ? (whose.get(one.agreementId) ?? null)
