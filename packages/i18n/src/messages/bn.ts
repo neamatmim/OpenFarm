@@ -970,6 +970,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.age": "বয়স",
   "animals.ageYears": "{years} বছর {months} মাস",
   "animals.ageEstimated": "আনুমানিক {age}",
+  "animals.bornAround": "আনুমানিক {month}",
   "animals.more": "আরও",
   "animals.moreFor": "{tag} — আরও কাজ",
   "animals.tab.overview": "এক নজরে",

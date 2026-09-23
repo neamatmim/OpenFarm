@@ -1037,6 +1037,7 @@ export const en = {
   "animals.age": "Age",
   "animals.ageYears": "{years} years {months} months",
   "animals.ageEstimated": "about {age}",
+  "animals.bornAround": "around {month}",
   "animals.more": "More",
   "animals.moreFor": "{tag} — more actions",
   "animals.tab.overview": "At a glance",
