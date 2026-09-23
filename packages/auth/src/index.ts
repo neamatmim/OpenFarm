@@ -10,6 +10,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
+import { PASSWORD_MIN_LENGTH } from "./password";
+
 /**
  * The other half of the door: an account is opened by somebody the farm is waiting for, and by nobody else.
  *
@@ -175,7 +177,7 @@ export const createAuth = (against?: Database) => {
     },
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 12,
+      minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: 128,
       resetPasswordTokenExpiresIn: 15 * 60,
       // A password set in the shed is a good moment to turn out whoever is still signed in as them.

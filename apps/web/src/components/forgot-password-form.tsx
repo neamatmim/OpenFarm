@@ -1,3 +1,5 @@
+import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -8,11 +10,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PasswordInput } from "@/components/auth/password-input";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
-
-const PASSWORD_MIN = 12;
 
 /**
  * Setting a password with the code the farm handed over, which is done signed out — somebody who has forgotten
@@ -22,7 +22,7 @@ const PASSWORD_MIN = 12;
  * So whoever runs the farm reads out a code, and the person chooses their own password here.
  */
 export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
-  const t = useT();
+  const { t, language } = useLanguage();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -38,7 +38,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
   const ready =
     email.includes("@") &&
     code.length >= 4 &&
-    newPassword.length >= PASSWORD_MIN;
+    newPassword.length >= PASSWORD_MIN_LENGTH;
 
   return (
     <div className="bg-card flex flex-col gap-6 rounded-2xl border p-6 shadow-sm sm:p-8">
@@ -87,7 +87,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
             aria-describedby="forgot-password-hint"
             autoComplete="new-password"
             id="forgot-password"
-            minLength={PASSWORD_MIN}
+            minLength={PASSWORD_MIN_LENGTH}
             onChange={(event) => setNewPassword(event.target.value)}
             required
             value={newPassword}
@@ -96,7 +96,9 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
             className="text-muted-foreground text-xs"
             id="forgot-password-hint"
           >
-            {t("auth.passwordTooShort", { min: PASSWORD_MIN })}
+            {t("auth.passwordTooShort", {
+              min: formatNumber(PASSWORD_MIN_LENGTH, language),
+            })}
           </p>
         </div>
         <Button
