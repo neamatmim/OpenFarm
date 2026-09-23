@@ -2450,7 +2450,7 @@ export const en = {
   "intake.taka": "{taka} taka",
   "intake.kg": "{kg} kg",
   "intake.months": "{months} months",
-  "intake.pen": "Quarantine pen",
+  "intake.pen": "Pen",
   "intake.sellerName": "Seller's name",
   "intake.sellerPlace": "Seller's market or place",
   "intake.sellerPhone": "Seller's phone",
