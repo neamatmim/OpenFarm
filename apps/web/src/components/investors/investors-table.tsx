@@ -7,6 +7,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import type { Investor } from "@/components/investors/investor-types";
+import { Nothing } from "@/components/list-cells";
 import { StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -63,7 +64,7 @@ const PhoneCell = ({ row }: Cell) => (
 const NomineeCell = ({ row }: Cell) => {
   const { nominee } = row.original.investor;
   if (!nominee) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return <span>{nominee.name}</span>;
 };
@@ -73,7 +74,7 @@ const UnitsCell = ({ row }: Cell) => {
   const { t, language } = useLanguage();
   const { unitsHeld } = row.original.investor;
   if (unitsHeld === 0) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <TagChip>
@@ -95,7 +96,7 @@ const investorColumns = column.columns([
     header: listHeader("investors.phone"),
     cell: PhoneCell,
   }),
-  column.accessor((row) => row.investor.nominee?.name ?? "", {
+  column.accessor((row) => row.investor.nominee?.name ?? undefined, {
     id: "nominee",
     header: listHeader("investors.nominee"),
     cell: NomineeCell,

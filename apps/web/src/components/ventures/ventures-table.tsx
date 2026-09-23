@@ -9,6 +9,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { RowMenu } from "@/components/page-kit";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import {
@@ -85,7 +86,7 @@ const AnimalsCell = ({ row }: Cell) => {
   const { language } = useLanguage();
   const { venture } = row.original;
   if (venture.state === "open" || venture.state === "cancelled") {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="tabular-nums">
@@ -97,14 +98,13 @@ const AnimalsCell = ({ row }: Cell) => {
 /** The day an Open run has to be decided by. Once it is buying the day is behind it, and a date that no longer
  *  asks anything of her is left out rather than read as a deadline. */
 const DecideByCell = ({ row }: Cell) => {
-  const { language } = useLanguage();
   const { venture } = row.original;
   if (venture.state !== "open") {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="tabular-nums">
-      {formatDate(startOfFarmDay(venture.decideBy), language, "date")}
+      <SaidDate at={venture.decideBy} />
     </span>
   );
 };
@@ -251,7 +251,7 @@ const ventureColumns = column.columns([
     cell: PeopleCell,
     meta: { align: "end", className: "whitespace-nowrap" },
   }),
-  column.accessor((row) => row.venture.animalsStanding ?? 0, {
+  column.accessor((row) => row.venture.animalsStanding ?? undefined, {
     id: "animals",
     header: listHeader("ventures.col.animals"),
     cell: AnimalsCell,

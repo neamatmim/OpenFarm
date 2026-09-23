@@ -144,7 +144,7 @@ const SignOutCell = ({ row }: { row: { original: SignInRow } }) => (
 
 const column = createListColumns<SignInRow>();
 const signInColumns = column.columns([
-  column.accessor((row) => deviceOf(row.browser) ?? "", {
+  column.accessor((row) => deviceOf(row.browser) ?? undefined, {
     id: "device",
     header: listHeader("people.col.device"),
     cell: DeviceCell,
@@ -160,7 +160,7 @@ const signInColumns = column.columns([
     header: listHeader("people.col.since"),
     cell: SinceCell,
   }),
-  column.accessor((row) => row.from ?? "", {
+  column.accessor((row) => row.from ?? undefined, {
     id: "from",
     header: listHeader("people.col.from"),
     cell: FromCell,

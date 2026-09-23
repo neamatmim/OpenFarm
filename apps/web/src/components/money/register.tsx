@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { categoryName, useApproveMoney } from "@/components/money";
 import { CorrectEntered, ReceiptLink } from "@/components/money-entry";
 import {
@@ -198,14 +199,11 @@ const MoneyCard = ({ row }: { row: MoneyRow }) => {
 
 const moneyCard = (row: MoneyRow) => <MoneyCard row={row} />;
 
-const DateCell = ({ row }: { row: { original: MoneyRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="text-muted-foreground whitespace-nowrap tabular-nums">
-      {formatDate(row.original.event.occurredAt, language)}
-    </span>
-  );
-};
+const DateCell = ({ row }: { row: { original: MoneyRow } }) => (
+  <span className="text-muted-foreground whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.event.occurredAt} />
+  </span>
+);
 
 /** What the entry is: its Category, and where it came from and how it was paid beneath. */
 const WhatCell = ({ row }: { row: { original: MoneyRow } }) => (
@@ -218,9 +216,7 @@ const WhatCell = ({ row }: { row: { original: MoneyRow } }) => (
 );
 
 const WithCell = ({ row }: { row: { original: MoneyRow } }) =>
-  row.original.event.counterpartyName ?? (
-    <span className="text-muted-foreground">—</span>
-  );
+  row.original.event.counterpartyName ?? <Nothing />;
 
 const StatusCell = ({ row }: { row: { original: MoneyRow } }) => (
   <div className="flex flex-wrap items-center gap-2">
@@ -249,13 +245,13 @@ const moneyColumns = column.columns([
     cell: WhatCell,
     meta: { className: "min-w-56" },
   }),
-  column.accessor((row) => row.event.counterpartyName ?? "", {
+  column.accessor((row) => row.event.counterpartyName ?? undefined, {
     id: "with",
     header: listHeader("money.col.with"),
     cell: WithCell,
     meta: { className: "min-w-40" },
   }),
-  column.accessor((row) => row.event.approval ?? "", {
+  column.accessor((row) => row.event.approval ?? undefined, {
     id: "status",
     header: listHeader("money.col.status"),
     cell: StatusCell,

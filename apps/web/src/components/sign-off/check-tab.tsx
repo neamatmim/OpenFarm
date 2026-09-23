@@ -14,6 +14,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { useInFlight } from "@/lib/in-flight";
@@ -89,14 +90,11 @@ const WhereCell = ({ row }: CheckCell) => {
   return placeOfWork(row.original.pen, t("work.wholeFarm"));
 };
 
-const DueCell = ({ row }: CheckCell) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap tabular-nums">
-      {formatDate(new Date(row.original.dueAt), language, "dateTime")}
-    </span>
-  );
-};
+const DueCell = ({ row }: CheckCell) => (
+  <span className="whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.dueAt} withTime />
+  </span>
+);
 
 /** In the table the buttons sit level with the row's line of text, not below it. */
 const ButtonsCell = ({ row }: CheckCell) => (

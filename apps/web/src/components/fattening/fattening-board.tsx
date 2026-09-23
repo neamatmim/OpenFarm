@@ -13,6 +13,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { GainFigures, WeightAgainstTarget } from "@/components/gain";
+import { Nothing } from "@/components/list-cells";
 import { EmptyState, ProgressBar } from "@/components/page";
 import { FilterBar, NativeSelect } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
@@ -77,7 +78,7 @@ const DaysCell = ({ row }: BoardCell) => {
   const { t, language } = useLanguage();
   const days = row.original.daysOnFeed;
   if (days === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">

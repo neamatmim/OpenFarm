@@ -21,6 +21,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded, StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import { orpc } from "@/utils/orpc";
@@ -196,14 +197,11 @@ const PenCell = ({ row }: { row: { original: MismatchRow } }) => (
   <span className="font-medium whitespace-nowrap">{row.original.penName}</span>
 );
 
-const WhenCell = ({ row }: { row: { original: MismatchRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(new Date(row.original.dueAt), language, "dateTime")}
-    </span>
-  );
-};
+const WhenCell = ({ row }: { row: { original: MismatchRow } }) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.dueAt} withTime />
+  </span>
+);
 
 const TankCell = ({ row }: { row: { original: MismatchRow } }) => (
   <Litres value={row.original.bulkLitres} />

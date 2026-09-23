@@ -14,6 +14,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SaidDate } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
 import {
   EmptyState,
@@ -60,14 +61,11 @@ const RunResult = ({ run }: { run: BackupRun }) => {
   );
 };
 
-const StartedCell = ({ row }: { row: { original: BackupRun } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap tabular-nums">
-      {formatDate(new Date(row.original.startedAt), language, "dateTime")}
-    </span>
-  );
-};
+const StartedCell = ({ row }: { row: { original: BackupRun } }) => (
+  <span className="whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.startedAt} withTime />
+  </span>
+);
 
 const ResultCell = ({ row }: { row: { original: BackupRun } }) => (
   <RunResult run={row.original} />

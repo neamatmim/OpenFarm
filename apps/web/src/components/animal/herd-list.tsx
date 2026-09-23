@@ -114,7 +114,7 @@ const herdColumns = column.columns([
     id: "breed",
     header: listHeader("animals.breed"),
   }),
-  column.accessor((a) => a.age?.months ?? -1, {
+  column.accessor((a) => a.age?.months ?? undefined, {
     id: "age",
     header: listHeader("animals.age"),
     cell: AgeCell,

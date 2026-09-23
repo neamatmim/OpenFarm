@@ -14,6 +14,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import {
   EmptyState,
   Loaded,
@@ -77,20 +78,19 @@ const NoteCell = ({ row }: { row: { original: DiseaseRow } }) =>
   row.original.note ? (
     <span className="text-muted-foreground">{row.original.note}</span>
   ) : (
-    <span className="text-muted-foreground">—</span>
+    <Nothing />
   );
 
 const AddedByCell = ({ row }: { row: { original: DiseaseRow } }) => {
-  const { language } = useLanguage();
   const disease = row.original;
   if (!disease.addedByName) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <div className="flex flex-col">
       <span>{disease.addedByName}</span>
       <span className="text-muted-foreground text-xs whitespace-nowrap">
-        {formatDate(new Date(disease.createdAt), language, "date")}
+        <SaidDate at={disease.createdAt} />
       </span>
     </div>
   );
@@ -135,7 +135,7 @@ const diseaseColumns = column.columns([
     header: listHeader("notifiable.col.status"),
     cell: StandingCell,
   }),
-  column.accessor((disease) => disease.note ?? "", {
+  column.accessor((disease) => disease.note ?? undefined, {
     id: "note",
     header: listHeader("notifiable.note"),
     cell: NoteCell,

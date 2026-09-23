@@ -17,6 +17,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -86,21 +87,14 @@ interface DispatchRow extends Dispatch {
 /** A percentage the collector may not have measured: a dash when nobody wrote it. */
 const Percent = ({ value }: { value: number | null }) => {
   const { language } = useLanguage();
-  return value === null ? (
-    <span className="text-muted-foreground">—</span>
-  ) : (
-    formatNumber(value, language)
-  );
+  return value === null ? <Nothing /> : formatNumber(value, language);
 };
 
-const WhenCell = ({ row }: { row: { original: DispatchRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(row.original.dispatchedAt, language, "dateTime")}
-    </span>
-  );
-};
+const WhenCell = ({ row }: { row: { original: DispatchRow } }) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.dispatchedAt} withTime />
+  </span>
+);
 
 const BuyerCell = ({ row }: { row: { original: DispatchRow } }) => (
   <span className="font-medium">{row.original.buyerName}</span>
@@ -110,7 +104,7 @@ const ChallanCell = ({ row }: { row: { original: DispatchRow } }) =>
   row.original.challan ? (
     <span className="whitespace-nowrap">{row.original.challan}</span>
   ) : (
-    <span className="text-muted-foreground">—</span>
+    <Nothing />
   );
 
 const LitresCell = ({ row }: { row: { original: DispatchRow } }) => {
@@ -155,7 +149,7 @@ const dispatchColumns = column.columns([
     header: listHeader("dispatch.buyer"),
     cell: BuyerCell,
   }),
-  column.accessor((one) => one.challan ?? "", {
+  column.accessor((one) => one.challan ?? undefined, {
     id: "challan",
     header: listHeader("dispatch.challan"),
     cell: ChallanCell,
@@ -170,13 +164,13 @@ const dispatchColumns = column.columns([
     cell: PriceCell,
     meta: { align: "end" },
   }),
-  column.accessor((one) => one.fatPercent ?? -1, {
+  column.accessor((one) => one.fatPercent ?? undefined, {
     id: "fat",
     header: listHeader("dispatch.fat"),
     cell: FatCell,
     meta: { align: "end" },
   }),
-  column.accessor((one) => one.snfPercent ?? -1, {
+  column.accessor((one) => one.snfPercent ?? undefined, {
     id: "snf",
     header: listHeader("dispatch.snf"),
     cell: SnfCell,

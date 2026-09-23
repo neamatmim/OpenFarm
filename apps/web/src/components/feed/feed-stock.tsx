@@ -1,4 +1,4 @@
-import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { LotAndExpiry } from "@/components/expiry";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { useIsOwner } from "@/components/money";
 import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
@@ -86,7 +87,7 @@ const AveragePriceCell = ({ row }: { row: { original: StockRow } }) => {
   const { t, language } = useLanguage();
   const line = row.original;
   if (line.averagePriceBdt === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">
@@ -102,7 +103,7 @@ const ValueCell = ({ row }: { row: { original: StockRow } }) => {
   const { language } = useLanguage();
   const value = valueOf(row.original);
   if (value === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">
@@ -115,7 +116,7 @@ const LowAtCell = ({ row }: { row: { original: StockRow } }) => {
   const { language } = useLanguage();
   const line = row.original;
   if (line.lowStockAt === null) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="whitespace-nowrap">
@@ -178,7 +179,7 @@ const NextExpiry = ({ line }: { line: StockLine }) => {
   const { t, language } = useLanguage();
   const expired = line.expiredLeft ?? 0;
   if (!(line.nextExpiresOn || expired > 0)) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <span className="flex flex-col items-start gap-1">
@@ -203,18 +204,11 @@ const NextExpiry = ({ line }: { line: StockLine }) => {
 };
 
 /** When feed last came in, or a dash for an item nothing has come in of. */
-const LastInCell = ({ row }: { row: { original: StockRow } }) => {
-  const { language } = useLanguage();
-  const on = row.original.lastInOn;
-  if (!on) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(new Date(on), language, "date")}
-    </span>
-  );
-};
+const LastInCell = ({ row }: { row: { original: StockRow } }) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.lastInOn} />
+  </span>
+);
 
 const NextExpiryCell = ({ row }: { row: { original: StockRow } }) => (
   <NextExpiry line={row.original} />
@@ -239,32 +233,32 @@ const stockColumns = column.columns([
     cell: OnHandCell,
     meta: { align: "end" },
   }),
-  column.accessor((line) => line.nextExpiresOn ?? "9999-12-31", {
+  column.accessor((line) => line.nextExpiresOn ?? undefined, {
     id: "nextExpiry",
     header: listHeader("stock.col.nextExpiry"),
     cell: NextExpiryCell,
   }),
   column.accessor(
-    (line) => (line.lastInOn ? new Date(line.lastInOn).getTime() : 0),
+    (line) => (line.lastInOn ? new Date(line.lastInOn).getTime() : undefined),
     {
       id: "lastIn",
       header: listHeader("stock.col.lastIn"),
       cell: LastInCell,
     }
   ),
-  column.accessor((line) => line.lowStockAt ?? -1, {
+  column.accessor((line) => line.lowStockAt ?? undefined, {
     id: "lowAt",
     header: listHeader("stock.col.lowAt"),
     cell: LowAtCell,
     meta: { align: "end" },
   }),
-  column.accessor((line) => line.averagePriceBdt ?? -1, {
+  column.accessor((line) => line.averagePriceBdt ?? undefined, {
     id: "averagePrice",
     header: listHeader("stock.col.averagePrice"),
     cell: AveragePriceCell,
     meta: { align: "end" },
   }),
-  column.accessor((line) => valueOf(line) ?? -1, {
+  column.accessor((line) => valueOf(line) ?? undefined, {
     id: "value",
     header: listHeader("stock.col.value"),
     cell: ValueCell,

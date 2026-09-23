@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded, Section, TagChip } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -27,14 +28,11 @@ const FEE_PAGE = 20;
 /** Tags as the Vet types them: separated by commas or spaces. */
 const TAG_SEPARATORS = /[\s,]+/u;
 
-const VisitedOnCell = ({ row }: { row: { original: Fee } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap">
-      {formatDate(row.original.visitedOn, language)}
-    </span>
-  );
-};
+const VisitedOnCell = ({ row }: { row: { original: Fee } }) => (
+  <span className="whitespace-nowrap">
+    <SaidDate at={row.original.visitedOn} />
+  </span>
+);
 
 const AmountCell = ({ row }: { row: { original: Fee } }) => {
   const { language } = useLanguage();
@@ -48,7 +46,7 @@ const AmountCell = ({ row }: { row: { original: Fee } }) => {
 /** The animals seen on a visit, each as her tag. */
 const Tags = ({ tags }: { tags: string[] }) => {
   if (tags.length === 0) {
-    return <span className="text-muted-foreground">—</span>;
+    return <Nothing />;
   }
   return (
     <div className="flex flex-wrap gap-1">
@@ -64,7 +62,7 @@ const AnimalsCell = ({ row }: { row: { original: Fee } }) => (
 );
 
 const NoteCell = ({ row }: { row: { original: Fee } }) =>
-  row.original.note ?? <span className="text-muted-foreground">—</span>;
+  row.original.note ?? <Nothing />;
 
 const column = createListColumns<Fee>();
 const feeColumns = column.columns([
@@ -83,7 +81,7 @@ const feeColumns = column.columns([
     header: listHeader("vetFee.animals"),
     cell: AnimalsCell,
   }),
-  column.accessor((fee) => fee.note ?? "", {
+  column.accessor((fee) => fee.note ?? undefined, {
     id: "note",
     header: listHeader("vetFee.note"),
     cell: NoteCell,

@@ -9,6 +9,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Loaded } from "@/components/page";
 import { SawFilter } from "@/components/saw-filter";
 import { useLanguage } from "@/i18n/language-provider";
@@ -39,16 +40,13 @@ const SawCell = ({ row }: { row: { original: WaitingRow } }) => (
 );
 
 const SeenByCell = ({ row }: { row: { original: WaitingRow } }) =>
-  row.original.seenByName ?? <span className="text-muted-foreground">—</span>;
+  row.original.seenByName ?? <Nothing />;
 
-const SeenAtCell = ({ row }: { row: { original: WaitingRow } }) => {
-  const { language } = useLanguage();
-  return (
-    <span className="whitespace-nowrap tabular-nums">
-      {formatDate(new Date(row.original.seenAt), language, "dateTime")}
-    </span>
-  );
-};
+const SeenAtCell = ({ row }: { row: { original: WaitingRow } }) => (
+  <span className="whitespace-nowrap tabular-nums">
+    <SaidDate at={row.original.seenAt} withTime />
+  </span>
+);
 
 /** The one thing the Vet does with what a round saw: answer it. */
 const AnswerButton = ({
@@ -88,7 +86,7 @@ const waitingColumns = column.columns([
     header: listHeader("observations.col.saw"),
     cell: SawCell,
   }),
-  column.accessor((seen) => seen.seenByName ?? "", {
+  column.accessor((seen) => seen.seenByName ?? undefined, {
     id: "seenBy",
     header: listHeader("observations.col.by"),
     cell: SeenByCell,

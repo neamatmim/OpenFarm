@@ -11,6 +11,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { SaidDate } from "@/components/list-cells";
 import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 import type { orpc } from "@/utils/orpc";
@@ -39,15 +40,13 @@ interface Dated {
   at: number;
 }
 
-const DayCell = ({ row }: { row: { original: Dated } }) => {
-  const { language } = useLanguage();
-  return formatDate(new Date(row.original.at), language, "date");
-};
+const DayCell = ({ row }: { row: { original: Dated } }) => (
+  <SaidDate at={row.original.at} />
+);
 
-const MomentCell = ({ row }: { row: { original: Dated } }) => {
-  const { language } = useLanguage();
-  return formatDate(new Date(row.original.at), language, "dateTime");
-};
+const MomentCell = ({ row }: { row: { original: Dated } }) => (
+  <SaidDate at={row.original.at} withTime />
+);
 
 /** A date and a time kept on one line: broken over three, a column of them cannot be read down. */
 const ONE_LINE = { className: "whitespace-nowrap" };
@@ -222,12 +221,9 @@ interface DoseRow extends Dated {
   givenByName: string | null;
 }
 
-const GivenAtCell = ({ row }: { row: { original: DoseRow } }) => {
-  const { language } = useLanguage();
-  return row.original.given
-    ? formatDate(new Date(row.original.at), language, "dateTime")
-    : "—";
-};
+const GivenAtCell = ({ row }: { row: { original: DoseRow } }) => (
+  <SaidDate at={row.original.given ? row.original.at : null} withTime />
+);
 
 /** The product in the reader's language — the label is in Bangla, so that is what is kept. */
 const ProductCell = ({ row }: { row: { original: DoseRow } }) => {
@@ -425,13 +421,9 @@ const MethodCell = ({ row }: { row: { original: ServiceRow } }) => {
   return t(row.original.method === "ai" ? "service.ai" : "service.natural");
 };
 
-const HeatCell = ({ row }: { row: { original: ServiceRow } }) => {
-  const { language } = useLanguage();
-  const { heatSeenAt } = row.original;
-  return heatSeenAt === null
-    ? "—"
-    : formatDate(new Date(heatSeenAt), language, "dateTime");
-};
+const HeatCell = ({ row }: { row: { original: ServiceRow } }) => (
+  <SaidDate at={row.original.heatSeenAt} withTime />
+);
 
 const service = createListColumns<ServiceRow>();
 const serviceColumns = service.columns([
@@ -449,7 +441,7 @@ const serviceColumns = service.columns([
     id: "servedBy",
     header: listHeader("service.col.servedBy"),
   }),
-  service.accessor((row) => row.heatSeenAt ?? 0, {
+  service.accessor((row) => row.heatSeenAt ?? undefined, {
     id: "heat",
     header: listHeader("heat.seen"),
     cell: HeatCell,
@@ -540,10 +532,9 @@ const ResultCell = ({ row }: { row: { original: CheckRow } }) => (
   <CheckResult positive={row.original.positive} />
 );
 
-const ServedOnCell = ({ row }: { row: { original: CheckRow } }) => {
-  const { language } = useLanguage();
-  return formatDate(new Date(row.original.firstServedAt), language, "dateTime");
-};
+const ServedOnCell = ({ row }: { row: { original: CheckRow } }) => (
+  <SaidDate at={row.original.firstServedAt} withTime />
+);
 
 const check = createListColumns<CheckRow>();
 const checkColumns = check.columns([
