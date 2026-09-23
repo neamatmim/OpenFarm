@@ -31,6 +31,7 @@ import type { Figure } from "@/components/page-kit";
 import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
+import { usePenNames } from "@/lib/pen-names";
 import { orpc } from "@/utils/orpc";
 
 /** The filters' box, which a phone's filter button opens. */
@@ -109,18 +110,7 @@ const useHerdFigures = (rows: HerdRow[]): Figure[] => {
 
 /** The herd's rows, each with her Pen's name — none for a visiting Vet, who reaches their Cases and not the sheds. */
 const useHerdRows = (animals: Animal[]): HerdRow[] => {
-  const me = useQuery(orpc.people.me.queryOptions());
-  const onlyCases =
-    me.data?.roles.length === 1 && me.data.scopes?.vet?.kind === "cases";
-  const sheds = useQuery({
-    ...orpc.herd.list.queryOptions(),
-    enabled: Boolean(me.data) && !onlyCases,
-  });
-  const penNames = new Map(
-    (sheds.data ?? []).flatMap((shed) =>
-      shed.pens.map((pen) => [pen.id, `${shed.name} / ${pen.name}`] as const)
-    )
-  );
+  const penNames = usePenNames();
   const now = new Date();
   return animals.map((a) => ({
     id: a.id,

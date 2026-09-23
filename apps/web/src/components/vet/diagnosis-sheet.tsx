@@ -1,11 +1,14 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
+import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
+import { usePenNames } from "@/lib/pen-names";
 import { orpc } from "@/utils/orpc";
 
 import type { Seen } from "./vet-types";
@@ -51,6 +54,9 @@ const WhatWasSeen = ({ seen }: { seen: Seen }) => {
  * A Diagnosis, in a sheet beside the Vet's list: the answer to one thing a round saw, or — with no Observation — a
  * conclusion on whichever animal the Vet names, because they came for one cow and found something on another. It is
  * the Vet's own act, so nobody else has a form to record it on.
+ *
+ * That animal is chosen from the ones the Vet may diagnose — still on the farm, and theirs to see: the whole herd for
+ * the farm's own Vet, their Cases for a visit — each with her Pen, her State and her other tags, rather than typed.
  */
 export const DiagnosisSheet = ({
   seen,
@@ -67,6 +73,25 @@ export const DiagnosisSheet = ({
   const [tagNumber, setTagNumber] = useState("");
   const [conclusion, setConclusion] = useState(emptyConclusion);
   const idPrefix = seen?.id ?? "own";
+  // Only for a Diagnosis on its own, and only once the sheet is open: answering a round already names the animal.
+  const choosing = open && seen === null;
+  const herd = useQuery({
+    ...orpc.animals.list.queryOptions({ input: {} }),
+    enabled: choosing,
+  });
+  const penNames = usePenNames(choosing);
+  const options = (herd.data ?? []).map((her) => ({
+    value: her.tagNumber,
+    label: her.tagNumber,
+    detail: [
+      her.penId ? penNames.get(her.penId) : undefined,
+      t(`state.${her.state}` as MessageKey),
+      her.officialTag,
+      ...her.aliases,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  }));
 
   const record = useMutation(
     orpc.diagnoses.record.mutationOptions({
@@ -109,10 +134,13 @@ export const DiagnosisSheet = ({
         <WhatWasSeen seen={seen} />
       ) : (
         <FormField id="own-tag" label={t("vet.tagNumber")}>
-          <Input
-            autoComplete="off"
+          <SearchablePicker
+            empty={t("vet.noAnimalToDiagnose")}
             id="own-tag"
-            onChange={(event) => setTagNumber(event.target.value)}
+            loading={herd.isPending}
+            onChange={setTagNumber}
+            options={options}
+            placeholder={t("picker.findAnimal")}
             value={tagNumber}
           />
         </FormField>

@@ -144,9 +144,10 @@ export const InternalSaleSheet = ({
         <SearchablePicker
           empty={t("ventures.noneMovable")}
           id="internal-tag"
+          loading={movable.isPending}
           onChange={setTagNumber}
           options={options}
-          placeholder={t("ventures.findTheAnimal")}
+          placeholder={t("picker.findAnimal")}
           value={tagNumber}
         />
       </FormField>
