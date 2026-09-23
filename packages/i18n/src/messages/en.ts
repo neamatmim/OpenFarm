@@ -375,7 +375,7 @@ export const en = {
   "ventures.floorNotMetYet":
     "৳{short} more has to come in before buying can start (Floor ৳{floor}).",
   "ventures.noUnitsLeft": "Every Unit is signed for.",
-  "ventures.decisionDue": "Decide by {day}: the Floor is not met",
+  "ventures.decisionDue": "Decide by {day}",
   "ventures.signFirst": "Sign an Agreement first",
   "ventures.ofTheFloor": "of a {floor} Floor",
   "ventures.signedWithoutPaper":
@@ -653,6 +653,8 @@ export const en = {
   "ventures.budgetsHeld": "Of that, cattle and running",
   "ventures.tab.running": "Running",
   "ventures.col.venture": "Venture",
+  "ventures.col.unitsSigned": "Units signed",
+  "ventures.col.people": "Investors",
   "ventures.details": "Everything about this Venture",
   "ventures.stages": "Stages of the Venture",
   "ventures.page.back": "All Ventures",
