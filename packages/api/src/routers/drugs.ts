@@ -17,6 +17,7 @@ import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
+import { medicineStockOf, noMedicine } from "../medicine-stock";
 import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import {
@@ -43,6 +44,7 @@ const readProduct = async (tx: Tx, id: string) => {
       meatWithdrawalDays: true,
       vaccine: true,
       retiredAt: true,
+      lowStockAt: true,
     },
   });
   return row ?? null;
@@ -108,8 +110,18 @@ export const drugsRouter = {
         orderBy: { nameBn: "asc" },
         with: { setBy: { columns: { name: true } } },
       });
+      const stock = await medicineStockOf(context.db, context.farm.id);
       return rows.map(({ setBy, ...row }) => ({
         ...row,
+        /** What the store holds of it, in doses and by Lot, and whether that is under the level set for it. */
+        stock: {
+          ...(stock.get(row.id) ?? noMedicine()),
+          lowStockAt: row.lowStockAt,
+          runningLow:
+            row.lowStockAt !== null &&
+            !row.retiredAt &&
+            (stock.get(row.id)?.onHand ?? 0) < row.lowStockAt,
+        },
         /** Who said what the days are: evidence, so it is shown and not only stored. */
         daysSetByName: setBy?.name ?? null,
         prescribable: mayBePrescribed(row),
@@ -227,6 +239,11 @@ export const drugsRouter = {
         orderBy: { purchasedOn: "desc", id: "desc" },
         limit: 100,
       });
+      const stock = await medicineStockOf(context.db, context.farm.id);
+      const lots = stock.get(input.drugProductId)?.lots;
+      const leftOf = new Map(
+        (lots ?? []).map((one) => [one.purchaseId, one.left] as const)
+      );
       return rows.map((row) => ({
         id: row.id,
         quantity: row.quantity,
@@ -236,7 +253,37 @@ export const drugsRouter = {
         purchasedOn: row.purchasedOn,
         lotNumber: row.lotNumber,
         expiresOn: row.expiresOn,
+        /** Doses of this Lot still in the store, the first to expire taken first. */
+        left: leftOf.get(row.id) ?? row.doses,
       }));
+    }),
+
+  /**
+   * The doses on hand below which the store says a product is running low, or none. The Manager's, as a Feed
+   * Item's level is: keeping the store stocked is who buys for it.
+   */
+  setLowStock: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({
+        drugProductId: z.string(),
+        threshold: z.number().int().min(0).max(100_000).nullable(),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      await changeProduct(context, input.drugProductId, (tx) =>
+        tx
+          .update(drugProduct)
+          .set({ lowStockAt: input.threshold })
+          .where(
+            and(
+              eq(drugProduct.id, input.drugProductId),
+              eq(drugProduct.farmId, context.farm.id)
+            )
+          )
+          .returning({ id: drugProduct.id })
+      );
+      return { id: input.drugProductId };
     }),
 
   /**

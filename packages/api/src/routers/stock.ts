@@ -61,6 +61,12 @@ export const stockRouter = {
         orderBy: { receivedOn: "desc", id: "desc" },
         limit: 200,
       });
+      const lines = await stockOnHand(context.db, context.farm.id);
+      const leftOf = new Map(
+        lines.flatMap((line) =>
+          line.lots.map((one) => [one.arrivalId, one.left] as const)
+        )
+      );
       return rows.map(({ feedItem, seller, ...row }) => {
         const quantity = Number(row.quantity);
         return {
@@ -76,6 +82,8 @@ export const stockRouter = {
           receivedOn: row.receivedOn,
           lotNumber: row.lotNumber,
           expiresOn: row.expiresOn,
+          /** What is left of this delivery in the store; nothing once it is all fed out. */
+          left: leftOf.get(row.id) ?? 0,
           recordedAt: row.recordedAt,
         };
       });

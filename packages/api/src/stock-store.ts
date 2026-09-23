@@ -12,6 +12,7 @@ import {
   startOfFarmDay,
   stockLedger,
 } from "@OpenFarm/domain";
+import { leftOfEachLot } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -42,6 +43,16 @@ export interface StockLine {
   lastInOn: Date | null;
   /** Holding less than the level the Manager set: what puts it on the queue and in the digest. */
   runningLow: boolean;
+  /** What is left of each delivery still in the store, the first to expire fed first. Deliveries all fed out
+   *  are left off. */
+  lots: {
+    arrivalId: string;
+    lotNumber: string | null;
+    expiresOn: string | null;
+    left: number;
+  }[];
+  /** The soonest day any delivery with feed left expires, or null when none with a day has any left. */
+  nextExpiresOn: string | null;
 }
 
 /**
@@ -131,7 +142,7 @@ export const stockOnHand = async (
   db: Pick<Database, "query" | "execute">,
   farmId: string
 ): Promise<StockLine[]> => {
-  const [items, movements] = await Promise.all([
+  const [items, movements, arrivals] = await Promise.all([
     db.query.feedItem.findMany({
       where: { farmId },
       columns: {
@@ -146,10 +157,50 @@ export const stockOnHand = async (
       orderBy: { nameBn: "asc", id: "asc" },
     }),
     movementsByItem(db, farmId),
+    db.query.feedIn.findMany({
+      where: { farmId },
+      columns: {
+        id: true,
+        feedItemId: true,
+        quantity: true,
+        lotNumber: true,
+        expiresOn: true,
+        receivedOn: true,
+      },
+    }),
   ]);
   return items.map((item) => {
     const mine = movements.get(item.id) ?? [];
     const ledger = stockLedger(mine);
+    // Whatever is not on hand was used, whether fed or found short at a count, and it is taken from the
+    // deliveries in the order a careful storeman feeds them: first to expire, first out.
+    const delivered = arrivals.filter((one) => one.feedItemId === item.id);
+    const cameIn = delivered.reduce(
+      (sum, one) => sum + Number(one.quantity),
+      0
+    );
+    const byId = new Map(delivered.map((one) => [one.id, one] as const));
+    const lots = leftOfEachLot(
+      delivered.map((one) => ({
+        id: one.id,
+        quantity: Number(one.quantity),
+        expiresOn: one.expiresOn,
+        cameInOn: one.receivedOn.toISOString(),
+      })),
+      cameIn - Math.max(0, ledger.onHand)
+    ).flatMap(({ id, left }) => {
+      const one = byId.get(id);
+      return one && left > 0
+        ? [
+            {
+              arrivalId: id,
+              lotNumber: one.lotNumber,
+              expiresOn: one.expiresOn,
+              left,
+            },
+          ]
+        : [];
+    });
     const lastIn = mine
       .filter((one) => one.kind === "in")
       .map((one) => one.at)
@@ -169,6 +220,8 @@ export const stockOnHand = async (
         item.retiredAt === null &&
         ledger.onHand < Number(item.lowStockAt),
       lastInOn: lastIn ?? null,
+      lots,
+      nextExpiresOn: lots.find((one) => one.expiresOn)?.expiresOn ?? null,
     };
   });
 };

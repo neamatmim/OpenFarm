@@ -58,6 +58,17 @@ const PerDoseCell = ({ row }: { row: { original: Purchase } }) => {
   );
 };
 
+/** Doses of this Lot still in the store, the first to expire given first; muted once it is all used. */
+const LeftCell = ({ row }: { row: { original: Purchase } }) => {
+  const { language } = useLanguage();
+  const left = row.original.left ?? row.original.doses;
+  return (
+    <span className={left === 0 ? "text-muted-foreground" : "font-medium"}>
+      {formatNumber(left, language)}
+    </span>
+  );
+};
+
 const LotCell = ({ row }: { row: { original: Purchase } }) => (
   <LotAndExpiry
     expiresOn={row.original.expiresOn}
@@ -90,6 +101,12 @@ const purchaseColumns = column.columns([
     meta: { align: "end" },
   }),
   column.accessor("sellerName", { header: listHeader("drugs.seller") }),
+  column.accessor((one) => one.left ?? one.doses, {
+    id: "left",
+    header: listHeader("lots.col.left"),
+    cell: LeftCell,
+    meta: { align: "end" },
+  }),
   // Sorted by the day it expires, soonest first, which is the order the store should be using it in.
   column.accessor((one) => one.expiresOn ?? "9999-12-31", {
     id: "lot",

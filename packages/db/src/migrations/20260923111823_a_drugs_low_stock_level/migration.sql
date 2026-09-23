@@ -1,0 +1,1 @@
+ALTER TABLE "drug_product" ADD COLUMN "low_stock_at" integer;

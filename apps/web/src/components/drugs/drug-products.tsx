@@ -6,6 +6,7 @@ import {
   Archive,
   ArchiveRestore,
   CalendarClock,
+  Gauge,
   PackagePlus,
   Pill,
   Plus,
@@ -21,6 +22,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { LotAndExpiry } from "@/components/expiry";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import {
@@ -50,6 +52,7 @@ interface ProductActions {
   handleRetire: (product: DrugProduct) => void;
   handleBringBack: (product: DrugProduct) => void;
   handleBuy: (productId: string) => void;
+  handleLevel: (product: DrugProduct) => void;
 }
 
 interface ProductRow extends DrugProduct {
@@ -107,6 +110,39 @@ const StandingCell = ({ row }: { row: { original: ProductRow } }) => (
   <Standing product={row.original} />
 );
 
+/**
+ * What the store holds of a product: the doses left, whether that is under the level set for it, and the soonest
+ * day any of it expires. A list cached before the store was counted says nothing, and shows nothing.
+ */
+const InStock = ({ product }: { product: DrugProduct }) => {
+  const { t, language } = useLanguage();
+  const { stock } = product;
+  if (!stock) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="flex flex-col items-start gap-1">
+      <span className="flex flex-wrap items-center gap-1 whitespace-nowrap">
+        <span className="font-medium tabular-nums">
+          {t("drugs.dosesOnHand", {
+            doses: formatNumber(stock.onHand, language),
+          })}
+        </span>
+        {stock.runningLow ? (
+          <StatusBadge tone="warning">{t("drugs.runningLow")}</StatusBadge>
+        ) : null}
+      </span>
+      {stock.nextExpiresOn ? (
+        <LotAndExpiry expiresOn={stock.nextExpiresOn} lotNumber={null} />
+      ) : null}
+    </span>
+  );
+};
+
+const StockCell = ({ row }: { row: { original: ProductRow } }) => (
+  <InStock product={row.original} />
+);
+
 /** Days of one kind as written, or a dash where nobody has written them. */
 const DaysFigure = ({ days }: { days: number | null }) => {
   const { t, language } = useLanguage();
@@ -153,11 +189,18 @@ const menuFor = (
 ): RowAction[] => {
   const menu: RowAction[] = [];
   if (actions.mayBuy && !product.retiredAt) {
-    menu.push({
-      label: t("drugs.recordPurchase"),
-      icon: PackagePlus,
-      handleSelect: () => actions.handleBuy(product.id),
-    });
+    menu.push(
+      {
+        label: t("drugs.recordPurchase"),
+        icon: PackagePlus,
+        handleSelect: () => actions.handleBuy(product.id),
+      },
+      {
+        label: t("drugs.setLowStock"),
+        icon: Gauge,
+        handleSelect: () => actions.handleLevel(product),
+      }
+    );
   }
   if (!actions.isVet) {
     return menu;
@@ -247,6 +290,11 @@ const productColumns = column.columns([
       cell: StandingCell,
     }
   ),
+  column.accessor((product) => product.stock?.onHand ?? -1, {
+    id: "stock",
+    header: listHeader("drugs.col.stock"),
+    cell: StockCell,
+  }),
   column.accessor((product) => product.milkWithdrawalDays ?? -1, {
     id: "milkDays",
     header: listHeader("drugs.milkDays"),
@@ -301,6 +349,7 @@ const ProductCard = ({ row }: { row: ProductRow }) => {
           <CardDays days={row.milkWithdrawalDays} label={t("drugs.milkDays")} />
           <CardDays days={row.meatWithdrawalDays} label={t("drugs.meatDays")} />
         </div>
+        <InStock product={row} />
         {row.daysSetByName && row.daysSetAt ? (
           <span className="text-muted-foreground text-xs">
             {t("drugs.setBy", {
@@ -450,6 +499,69 @@ const AddProductDialog = ({
 };
 
 /**
+ * How few doses of a product the store may hold before it says it is running low, set in a dialog. Blank says
+ * nothing: a product nobody watches.
+ */
+const LevelDialog = ({
+  product,
+  onOpenChange,
+  onChanged,
+}: {
+  product: DrugProduct | null;
+  onOpenChange: (open: boolean) => void;
+  onChanged: () => Promise<unknown>;
+}) => {
+  const { t, language } = useLanguage();
+  const held = product?.stock?.lowStockAt ?? product?.lowStockAt ?? null;
+  const [value, setValue] = useState(held === null ? "" : String(held));
+  const save = useMutation(
+    orpc.drugs.setLowStock.mutationOptions({
+      onSuccess: async () => {
+        toast.success(t("drugs.lowStockSaved"));
+        onOpenChange(false);
+        await onChanged();
+      },
+      onError: (error: Error) => toast.error(sayWhy(error, t)),
+    })
+  );
+  return (
+    <FormDialog
+      description={t("drugs.lowStockHint")}
+      onOpenChange={onOpenChange}
+      onSubmit={() => {
+        if (product) {
+          save.mutate({
+            drugProductId: product.id,
+            threshold: value.trim() === "" ? null : Number(value),
+          });
+        }
+      }}
+      open={product !== null}
+      pending={save.isPending}
+      ready={product !== null}
+      submitLabel={t("common.save")}
+      title={
+        product
+          ? `${t("drugs.setLowStock")} — ${productName(product, language)}`
+          : ""
+      }
+    >
+      <FormField id="drug-level" label={t("drugs.lowStockLabel")}>
+        <Input
+          id="drug-level"
+          inputMode="numeric"
+          min={0}
+          onChange={(event) => setValue(event.target.value)}
+          step="1"
+          type="number"
+          value={value}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/**
  * The Drug List itself, a row per product: whether it may be prescribed, its milk and meat days, and who wrote them.
  * The in-house Vet writes the days and keeps the list from a row's menu; whoever buys records medicine from it; a vet
  * called in for a visit only reads it.
@@ -472,6 +584,7 @@ export const ProductsTab = ({
   const [adding, setAdding] = useState(false);
   const [daysFor, setDaysFor] = useState<DrugProduct | null>(null);
   const [retiring, setRetiring] = useState<DrugProduct | null>(null);
+  const [levelFor, setLevelFor] = useState<DrugProduct | null>(null);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
   const onError = (error: Error) => toast.error(sayWhy(error, t));
@@ -500,6 +613,7 @@ export const ProductsTab = ({
     handleRetire: setRetiring,
     handleBringBack: (product) => bringBack.mutate({ id: product.id }),
     handleBuy: onBuy,
+    handleLevel: setLevelFor,
   };
   const table = useListTable({
     columns: productColumns,
@@ -532,6 +646,18 @@ export const ProductsTab = ({
           onChanged={refresh}
           onOpenChange={setAdding}
           open={adding}
+        />
+      ) : null}
+      {mayBuy ? (
+        <LevelDialog
+          key={levelFor?.id ?? "none"}
+          onChanged={refresh}
+          onOpenChange={(open) => {
+            if (!open) {
+              setLevelFor(null);
+            }
+          }}
+          product={levelFor}
         />
       ) : null}
       {isVet ? (

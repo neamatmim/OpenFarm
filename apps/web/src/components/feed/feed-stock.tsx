@@ -13,6 +13,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { LotAndExpiry } from "@/components/expiry";
 import { useIsOwner } from "@/components/money";
 import type { Tone } from "@/components/page";
 import { EmptyState, StatusBadge } from "@/components/page";
@@ -171,6 +172,20 @@ const MenuCell = ({ row }: { row: { original: StockRow } }) => (
   </div>
 );
 
+/** The delivery still in the store that goes off first: its Lot and day, and whether that day is near. The Lot
+ *  is the one the day belongs to, so the bag can be found. */
+const NextExpiry = ({ line }: { line: StockLine }) => {
+  const next = (line.lots ?? []).find((one) => one.expiresOn);
+  if (!next) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return <LotAndExpiry expiresOn={next.expiresOn} lotNumber={next.lotNumber} />;
+};
+
+const NextExpiryCell = ({ row }: { row: { original: StockRow } }) => (
+  <NextExpiry line={row.original} />
+);
+
 const column = createListColumns<StockRow>();
 const stockColumns = column.columns([
   column.accessor("nameBn", {
@@ -189,6 +204,11 @@ const stockColumns = column.columns([
     header: listHeader("stock.col.onHand"),
     cell: OnHandCell,
     meta: { align: "end" },
+  }),
+  column.accessor((line) => line.nextExpiresOn ?? "9999-12-31", {
+    id: "nextExpiry",
+    header: listHeader("stock.col.nextExpiry"),
+    cell: NextExpiryCell,
   }),
   column.accessor((line) => line.lowStockAt ?? -1, {
     id: "lowAt",
@@ -242,6 +262,7 @@ const StockCard = ({ row }: { row: StockRow }) => {
             ? ""
             : ` · ${t("stock.col.lowAt")} ${formatNumber(row.lowStockAt, language)} ${row.unit}`}
         </span>
+        {row.nextExpiresOn ? <NextExpiry line={row} /> : null}
       </div>
       <StockRowMenu actions={row.actions} line={row} />
     </div>

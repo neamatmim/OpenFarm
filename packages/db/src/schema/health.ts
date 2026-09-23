@@ -48,6 +48,9 @@ export const drugProduct = pgTable(
     vaccine: boolean("vaccine").notNull().default(false),
     /** Retired, never removed: a Treatment given last March still names its product. */
     retiredAt: timestamp("retired_at"),
+    /** The doses on hand below which the store says it is running low, as a Feed Item's level does. Null for
+     *  a product nobody has set one for. */
+    lowStockAt: integer("low_stock_at"),
     addedBy: text("added_by").references(() => user.id),
     addedByRole: text("added_by_role", { enum: ROLES }),
     createdAt: timestamp("created_at").notNull(),
