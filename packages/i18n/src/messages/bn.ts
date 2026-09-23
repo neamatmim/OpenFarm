@@ -2328,6 +2328,7 @@ export const bn: Record<MessageKey, string> = {
   "intake.kg": "{kg} কেজি",
   "intake.months": "{months} মাস",
   "intake.pen": "পেন",
+  "intake.penHint": "যে পেনেই রাখুন, পশুটি প্রথমে কোয়ারেন্টিনে থাকবে।",
   "intake.sellerName": "বিক্রেতার নাম",
   "intake.sellerPlace": "বিক্রেতার হাট বা এলাকা",
   "intake.sellerPhone": "বিক্রেতার মোবাইল",

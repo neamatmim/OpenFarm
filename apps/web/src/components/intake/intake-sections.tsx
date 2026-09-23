@@ -126,7 +126,11 @@ export const AnimalSection = ({
       id="intake-animal"
       title={t("intake.groupAnimal")}
     >
-      <FormField id="intake-pen" label={t("intake.pen")}>
+      <FormField
+        hint={t("intake.penHint")}
+        id="intake-pen"
+        label={t("intake.pen")}
+      >
         <NativeSelect
           id="intake-pen"
           onChange={(event) => onEdit({ penId: event.target.value })}
