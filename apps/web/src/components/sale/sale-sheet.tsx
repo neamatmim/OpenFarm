@@ -1,4 +1,6 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
+import { underMeatWithdrawal } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -12,7 +14,9 @@ import { fitOnFrom } from "@/components/fattening/fattening-types";
 import { Notice } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
+import { SearchablePicker } from "@/components/searchable-picker";
 import { useLanguage } from "@/i18n/language-provider";
+import { usePenNames } from "@/lib/pen-names";
 import { orpc } from "@/utils/orpc";
 
 /** What is typed into the sheet, before it is a Sale. */
@@ -108,7 +112,7 @@ const LastBuyerOfTheDay = ({
 
 /**
  * Which animal: one of those confirmed Ready and clear of her days, from the list — or, for a dairy cow going to a
- * butcher, who is never Ready for Sale, named by her tag.
+ * butcher, who is never Ready for Sale, chosen from the rest of the herd the farm would sell today.
  */
 const AnimalPart = ({
   answers,
@@ -126,6 +130,26 @@ const AnimalPart = ({
   const listed = ready.some((row) => row.tagNumber === answers.tagNumber);
   const typing =
     byTag || ready.length === 0 || (answers.tagNumber !== "" && !listed);
+  // Any other animal the farm would sell today: still here, and out of her meat withdrawal — chosen from the herd,
+  // not typed, so a cull going to the butcher is picked by her Pen and her State rather than a tag from memory.
+  const herd = useQuery({
+    ...orpc.animals.list.queryOptions({ input: {} }),
+    enabled: typing,
+  });
+  const penNames = usePenNames(typing);
+  const now = new Date();
+  const others = (herd.data ?? [])
+    .filter((her) => !underMeatWithdrawal(her, now))
+    .map((her) => ({
+      value: her.tagNumber,
+      label: her.tagNumber,
+      detail: [
+        her.penId ? penNames.get(her.penId) : undefined,
+        t(`state.${her.state}` as MessageKey),
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    }));
   return (
     <SheetPart title={t("sale.groupAnimal")}>
       {ready.length === 0 ? (
@@ -133,13 +157,13 @@ const AnimalPart = ({
       ) : null}
       <FormField id="sale-animal" label={t("sale.animal")}>
         {typing ? (
-          <Input
-            autoComplete="off"
+          <SearchablePicker
+            empty={t("sale.noneToSell")}
             id="sale-animal"
-            maxLength={32}
-            onChange={(event) => onEdit({ tagNumber: event.target.value })}
-            placeholder="F-0001"
-            required
+            loading={herd.isPending}
+            onChange={(tagNumber) => onEdit({ tagNumber })}
+            options={others}
+            placeholder={t("picker.findAnimal")}
             value={answers.tagNumber}
           />
         ) : (

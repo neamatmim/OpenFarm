@@ -14,32 +14,40 @@ export interface PickerOption {
   detail?: string;
 }
 
-/**
- * Choosing one of many — a bull out of two hundred — without typing it from memory: a box to narrow the list by
- * what is typed, and the list beneath, each with what tells it apart. Only what may be chosen is offered, so a
- * choice cannot be one the farm will refuse for being the wrong kind.
- *
- * Plain radio buttons underneath, so a keyboard and a screen reader work it as any other choice in a form.
- */
-export const SearchablePicker = ({
-  id,
-  options,
-  value,
-  onChange,
-  placeholder,
-  empty,
-  loading = false,
-}: {
+/** What every picker is told, however many it lets be chosen. */
+interface PickerProps {
   /** The search box's id, which the field's label points at. */
   id: string;
   options: readonly PickerOption[];
-  value: string;
-  onChange: (value: string) => void;
   placeholder: string;
   /** What is said when there is nothing to choose at all — and why. */
   empty: ReactNode;
   /** Still being read: nothing to choose yet is not the same as nothing to choose. */
   loading?: boolean;
+}
+
+/**
+ * Choosing from many — a bull out of two hundred, the animals a Vet saw — without typing them from memory: a box to
+ * narrow the list by what is typed, and the list beneath, each with what tells it apart. Only what may be chosen is
+ * offered, so a choice cannot be one the farm will refuse for being the wrong kind.
+ *
+ * Plain radio buttons or tick boxes underneath, so a keyboard and a screen reader work it as any other choice in a
+ * form. What is chosen stays in sight, first, whatever is typed after: a choice that vanished from the list would
+ * look like no choice at all.
+ */
+const Picker = ({
+  id,
+  options,
+  placeholder,
+  empty,
+  loading = false,
+  chosen,
+  onToggle,
+  many,
+}: PickerProps & {
+  chosen: ReadonlySet<string>;
+  onToggle: (value: string) => void;
+  many: boolean;
 }) => {
   const t = useT();
   const [typed, setTyped] = useState("");
@@ -55,11 +63,10 @@ export const SearchablePicker = ({
         `${one.label} ${one.detail ?? ""}`.toLowerCase().includes(looking)
       )
     : options;
-  // What is chosen stays in sight, first, whatever is typed after: a choice that vanished from the list would look
-  // like no choice at all.
-  const chosen = options.find((one) => one.value === value);
-  const shown =
-    chosen && !matching.includes(chosen) ? [chosen, ...matching] : matching;
+  const kept = options.filter(
+    (one) => chosen.has(one.value) && !matching.includes(one)
+  );
+  const shown = [...kept, ...matching];
   return (
     <div className="flex flex-col gap-2">
       <Input
@@ -73,7 +80,7 @@ export const SearchablePicker = ({
       <div
         aria-labelledby={id}
         className="max-h-60 overflow-y-auto rounded-md border"
-        role="radiogroup"
+        role={many ? "group" : "radiogroup"}
       >
         {shown.length === 0 ? (
           <p className="text-muted-foreground px-3 py-2 text-sm">
@@ -81,7 +88,7 @@ export const SearchablePicker = ({
           </p>
         ) : (
           shown.map((one) => {
-            const isChosen = one.value === value;
+            const isChosen = chosen.has(one.value);
             return (
               <label
                 className={cn(
@@ -94,8 +101,8 @@ export const SearchablePicker = ({
                   checked={isChosen}
                   className="sr-only"
                   name={`${id}-choice`}
-                  onChange={() => onChange(one.value)}
-                  type="radio"
+                  onChange={() => onToggle(one.value)}
+                  type={many ? "checkbox" : "radio"}
                   value={one.value}
                 />
                 <span className="flex min-w-0 flex-1 flex-col">
@@ -119,3 +126,40 @@ export const SearchablePicker = ({
     </div>
   );
 };
+
+/** One chosen out of many. */
+export const SearchablePicker = ({
+  value,
+  onChange,
+  ...rest
+}: PickerProps & { value: string; onChange: (value: string) => void }) => (
+  <Picker
+    {...rest}
+    chosen={new Set(value ? [value] : [])}
+    many={false}
+    onToggle={onChange}
+  />
+);
+
+/** Several chosen out of many — the animals a Vet saw on one visit. Kept in the order they were ticked. */
+export const SearchableMultiPicker = ({
+  values,
+  onChange,
+  ...rest
+}: PickerProps & {
+  values: readonly string[];
+  onChange: (values: string[]) => void;
+}) => (
+  <Picker
+    {...rest}
+    chosen={new Set(values)}
+    many
+    onToggle={(value) =>
+      onChange(
+        values.includes(value)
+          ? values.filter((one) => one !== value)
+          : [...values, value]
+      )
+    }
+  />
+);
