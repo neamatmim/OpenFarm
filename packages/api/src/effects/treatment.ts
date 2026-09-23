@@ -1,10 +1,13 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { treatment } from "@OpenFarm/db/schema/health";
+import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "../audit";
 import { recomputeWithdrawal } from "../health-store";
+import { lotOfTheLatestDose } from "../medicine-stock";
+import { tell } from "../notice";
 import type { EffectInput, EffectKind, EffectResult } from "./effect";
 import { asPublished, writtenNote } from "./evidence";
 
@@ -151,6 +154,55 @@ const dosesInTheCourse = async (
 };
 
 /**
+ * Says so when a dose just given came out of a Lot already past its day — warned of, not refused: an animal that
+ * needed treating was treated, and the Vet, who answers for what went into her, and the Manager, who keeps the box
+ * it came out of, hear of it at once. Keyed on the dose, so a phone sending it twice tells nobody twice.
+ */
+const tellIfItsLotHadExpired = async (
+  tx: Tx,
+  input: TreatmentFacts,
+  doseId: string
+) => {
+  const dose = await tx.query.treatment.findFirst({
+    where: { id: doseId },
+    columns: { productId: true, givenAt: true },
+    with: {
+      product: { columns: { nameBn: true } },
+      animal: { columns: { tagNumber: true } },
+    },
+  });
+  if (!dose?.givenAt) {
+    return;
+  }
+  const lot = await lotOfTheLatestDose(
+    tx,
+    input.instance.farmId,
+    dose.productId
+  );
+  // The farm's own days, which sort as text. A Lot may still be used on its last day.
+  const givenOn = farmDayOf(dose.givenAt);
+  const pastItsDay = lot?.expiresOn ? lot.expiresOn < givenOn : false;
+  if (!(lot?.expiresOn && pastItsDay)) {
+    return;
+  }
+  await tell(
+    tx,
+    input.instance.farmId,
+    {
+      kind: "expired_dose_given",
+      about: { id: doseId },
+      facts: {
+        tag: dose.animal?.tagNumber ?? "",
+        name: dose.product.nameBn,
+        lotNumber: lot.lotNumber,
+        expiresOn: lot.expiresOn,
+      },
+    },
+    input.now
+  );
+};
+
+/**
  * Records that a dose was actually given — or, when the Step was skipped, that it was not
  * after all — and works her Withdrawals out afresh from everything she has had.
  *
@@ -203,6 +255,9 @@ const giveTheDose = async (
     input.instance.farmId,
     dose?.animalId ?? shape.animalId ?? ""
   );
+  if (dose && !input.skipped) {
+    await tellIfItsLotHadExpired(tx, input, dose.id);
+  }
   return {
     kind: "treatment",
     number: dose?.number ?? 1,

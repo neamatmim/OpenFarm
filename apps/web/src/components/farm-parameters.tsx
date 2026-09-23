@@ -22,6 +22,7 @@ type NumberKey =
   | "staffCorrectionHours"
   | "managerCorrectionDays"
   | "registrationRenewalLeadDays"
+  | "expiryWarnDays"
   | "fatteningTargetWeightKg"
   | "aiWindowStartHours"
   | "aiWindowEndHours"
@@ -75,6 +76,13 @@ const GROUPS: {
         unit: "params.minutes",
         min: 0,
         max: 1440,
+      },
+      {
+        key: "expiryWarnDays",
+        label: "params.expiryWarn",
+        unit: "params.days",
+        min: 1,
+        max: 365,
       },
     ],
   },

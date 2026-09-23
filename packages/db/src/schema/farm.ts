@@ -62,6 +62,9 @@ export const farm = pgTable("farm", {
   registrationRenewalLeadDays: integer("registration_renewal_lead_days")
     .notNull()
     .default(90),
+  /** How many days before a Lot of medicine or feed runs out of date the Manager is told, while there is still
+   *  time to use it first or send it back. */
+  expiryWarnDays: integer("expiry_warn_days").notNull().default(30),
   /** What a bought-in fattening animal is fed towards unless the Manager says otherwise for
    *  that animal. One number for the farm; the spec's target weight "by class" waits for the
    *  farm to have enough Weigh-ins to tell the classes apart. */

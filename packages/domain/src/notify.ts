@@ -69,6 +69,14 @@ export const DELIVERY = {
   // text and not at night: it is not a cow or a deadline, and the records are still there in the morning.
   day_not_turning: { when: "immediate" },
   backup_overdue: { when: "immediate" },
+  // The store going off, and running low, are the evening's reading, as feed running low is: worth knowing today,
+  // not worth a buzz.
+  lot_expiring: { when: "digest" },
+  lot_expired: { when: "digest" },
+  medicine_low_stock: { when: "digest" },
+  // A dose already given from a box past its day is about an animal, and the Vet hears of it at once — but it has
+  // happened, and waking anybody would not un-give it.
+  expired_dose_given: { when: "immediate" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -161,6 +169,20 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
     app: "alerts.backupOverdue",
     push: { title: "push.backupOverdueTitle", body: "push.backupOverdueBody" },
     digest: "digest.backupOverdue",
+  },
+  lot_expiring: { app: "alerts.lotExpiring", digest: "digest.lotExpiring" },
+  lot_expired: { app: "alerts.lotExpired", digest: "digest.lotExpired" },
+  medicine_low_stock: {
+    app: "alerts.medicineLowStock",
+    digest: "digest.medicineLowStock",
+  },
+  expired_dose_given: {
+    app: "alerts.expiredDoseGiven",
+    push: {
+      title: "push.expiredDoseTitle",
+      body: "push.expiredDoseBody",
+    },
+    digest: "digest.expiredDoseGiven",
   },
 };
 

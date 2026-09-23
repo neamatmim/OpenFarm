@@ -2065,6 +2065,21 @@ export const en = {
   "digest.moneyAwaiting": "{count} Money Events awaiting your approval",
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
+  "alerts.lotExpiring":
+    "{item}, Lot {lot}: expires on {date}, with {left} left",
+  "alerts.lotExpired":
+    "{item}, Lot {lot}: expired on {date}, and {left} is still in the store",
+  "alerts.medicineLowStock": "{item} is running low: {onHand} doses left",
+  "alerts.expiredDoseGiven":
+    "{tag} was given {item} from Lot {lot}, which expired on {date}",
+  "digest.lotExpiring": "{count} Lots expiring soon",
+  "digest.lotExpired": "{count} expired Lots still in the store",
+  "digest.medicineLowStock": "{count} medicines running low",
+  "digest.expiredDoseGiven": "{count} doses given from expired Lots",
+  "push.expiredDoseTitle": "Expired medicine given",
+  "push.expiredDoseBody": "{tag} was given medicine from an expired Lot",
+  "params.expiryWarn": "Warn of a Lot expiring, this many days before",
+  "drugs.doseWord": "doses",
   "alerts.investorStatementDue":
     "{venture}: {investors} Investors are due their progress statement ({occasion})",
   /** The one notice that leads somewhere: the screen where the paper it is about is made. */

@@ -52,6 +52,8 @@ const parameters = z
     managerCorrectionDays: z.number().int().min(0).max(365).optional(),
     /** How early the farm is told its DLS registration is running out. */
     registrationRenewalLeadDays: z.number().int().min(0).max(365).optional(),
+    /** How early the Manager is told a Lot of medicine or feed is running out of date. */
+    expiryWarnDays: z.number().int().min(1).max(365).optional(),
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise
      *  for that animal. */
     fatteningTargetWeightKg: z.number().int().min(1).max(2000).optional(),
@@ -498,6 +500,7 @@ export const farmRouter = {
                 staffCorrectionHours: true,
                 managerCorrectionDays: true,
                 registrationRenewalLeadDays: true,
+                expiryWarnDays: true,
                 fatteningTargetWeightKg: true,
                 aiWindowStartHours: true,
                 aiWindowEndHours: true,

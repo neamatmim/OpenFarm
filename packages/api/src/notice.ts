@@ -118,6 +118,35 @@ export interface NoticeFacts {
   day_not_turning: { since: string };
   /** When a copy last succeeded — or, for a farm whose copies have never once worked, when the first was tried. */
   backup_overdue: { since: string };
+  /** A Lot with something left in it, near its last day — or past it. What it is, which Lot, the day, and how much
+   *  is left: a box of medicine counted in doses, a bag of feed in its Feed Item's unit. */
+  lot_expiring: LotFacts;
+  lot_expired: LotFacts;
+  medicine_low_stock: {
+    productId: string;
+    name: string;
+    onHand: number;
+    threshold: number;
+  };
+  /** A dose given from the Lot that expires first while that Lot was already past its day. */
+  expired_dose_given: {
+    tag: string;
+    name: string;
+    lotNumber: string | null;
+    expiresOn: string;
+  };
+}
+
+/** What a notice about a Lot carries. */
+interface LotFacts {
+  what: "medicine" | "feed";
+  itemId: string;
+  name: string;
+  /** The Feed Item's unit; null for medicine, which is counted in doses. */
+  unit: string | null;
+  lotNumber: string | null;
+  expiresOn: string;
+  left: number;
 }
 
 /** The farm's own list of who hears what, beside the delivery table that says when. */
@@ -164,6 +193,15 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   // server, the database or the backups to put either right (deploy runbook).
   day_not_turning: { audience: [theOwner], entity: "scheduler_state" },
   backup_overdue: { audience: [theOwner], entity: "backup_run" },
+  // The store is the Manager's to keep, and what is going off in it with it — the same as what is running low.
+  lot_expiring: { audience: [theManagers], entity: "lot" },
+  lot_expired: { audience: [theManagers], entity: "lot" },
+  medicine_low_stock: { audience: [theManagers], entity: "drug_product" },
+  // The Vet answers for what was given to an animal, and the Manager for the box it came out of.
+  expired_dose_given: {
+    audience: [theManagers, { roles: ["vet"] }],
+    entity: "treatment",
+  },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */
