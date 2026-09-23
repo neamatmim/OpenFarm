@@ -6,14 +6,14 @@ import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import type { StockMovement } from "@OpenFarm/domain";
 import {
-  farmDayOf,
   lastFellBelow,
   roundKg,
   roundTaka,
   startOfFarmDay,
   stockLedger,
 } from "@OpenFarm/domain";
-import { leftOfEachLot } from "@OpenFarm/domain/lots";
+import type { ExpiryStanding, ExpiryWindow } from "@OpenFarm/domain/lots";
+import { runsLow, storeOfLots } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -44,18 +44,21 @@ export interface StockLine {
   lastInOn: Date | null;
   /** Holding less than the level the Manager set: what puts it on the queue and in the digest. */
   runningLow: boolean;
-  /** What is left of each delivery still in the store, the first to expire fed first. Deliveries all fed out
-   *  are left off. */
+  /** What is left of every delivery, the first to expire fed first — nothing, of one all fed out — and where
+   *  each stands against its day. */
   lots: {
     arrivalId: string;
     lotNumber: string | null;
     expiresOn: string | null;
     left: number;
+    standing: ExpiryStanding;
   }[];
   /** The soonest day any delivery with feed left expires, or null when none with a day has any left. */
   nextExpiresOn: string | null;
   /** That delivery's Lot Number, so the bag can be found. */
   nextLotNumber: string | null;
+  /** Where that delivery stands against its day; none when there is no such delivery. */
+  nextStanding: ExpiryStanding;
   /** Feed still in the store from deliveries already past their day. */
   expiredLeft: number;
 }
@@ -146,11 +149,9 @@ export const movementsByItem = async (
 export const stockOnHand = async (
   db: Pick<Database, "query" | "execute">,
   farmId: string,
-  /** When "already past its day" is judged from: the request's own clock. */
-  now: Date = new Date()
+  /** The farm's day and warning its deliveries are read against: the request's own clock, never the machine's. */
+  window: ExpiryWindow
 ): Promise<StockLine[]> => {
-  // The farm's own day, which the deliveries' days sort against as text.
-  const today = farmDayOf(now);
   const [items, movements, arrivals] = await Promise.all([
     db.query.feedItem.findMany({
       where: { farmId },
@@ -188,34 +189,22 @@ export const stockOnHand = async (
       (sum, one) => sum + Number(one.quantity),
       0
     );
-    const byId = new Map(delivered.map((one) => [one.id, one] as const));
-    const lots = leftOfEachLot(
+    const store = storeOfLots(
       delivered.map((one) => ({
         id: one.id,
         quantity: Number(one.quantity),
         expiresOn: one.expiresOn,
         cameInOn: one.receivedOn.toISOString(),
+        lotNumber: one.lotNumber,
       })),
-      cameIn - Math.max(0, ledger.onHand)
-    ).flatMap(({ id, left }) => {
-      const one = byId.get(id);
-      return one && left > 0
-        ? [
-            {
-              arrivalId: id,
-              lotNumber: one.lotNumber,
-              expiresOn: one.expiresOn,
-              left,
-            },
-          ]
-        : [];
-    });
+      cameIn - Math.max(0, ledger.onHand),
+      window
+    );
     const lastIn = mine
       .filter((one) => one.kind === "in")
       .map((one) => one.at)
       .toSorted((a, b) => b.getTime() - a.getTime())
       .at(0);
-    const firstToGo = lots.find((one) => one.expiresOn);
     return {
       feedItemId: item.id,
       nameBn: item.nameBn,
@@ -225,17 +214,23 @@ export const stockOnHand = async (
       lowStockAt: item.lowStockAt === null ? null : Number(item.lowStockAt),
       fodderPriceBdt: item.fodderPriceBdt === null ? null : item.fodderPriceBdt,
       ...ledger,
-      runningLow:
-        item.lowStockAt !== null &&
-        item.retiredAt === null &&
-        ledger.onHand < Number(item.lowStockAt),
+      runningLow: runsLow({
+        onHand: ledger.onHand,
+        level: item.lowStockAt === null ? null : Number(item.lowStockAt),
+        retired: item.retiredAt !== null,
+      }),
       lastInOn: lastIn ?? null,
-      lots,
-      nextExpiresOn: firstToGo?.expiresOn ?? null,
-      nextLotNumber: firstToGo?.lotNumber ?? null,
-      expiredLeft: lots
-        .filter((one) => one.expiresOn !== null && one.expiresOn < today)
-        .reduce((sum, one) => sum + one.left, 0),
+      lots: store.lots.map((one) => ({
+        arrivalId: one.id,
+        lotNumber: one.lotNumber,
+        expiresOn: one.expiresOn,
+        left: one.left,
+        standing: one.standing,
+      })),
+      nextExpiresOn: store.next?.expiresOn ?? null,
+      nextLotNumber: store.next?.lotNumber ?? null,
+      nextStanding: store.next?.standing ?? "none",
+      expiredLeft: store.pastItsDay,
     };
   });
 };
@@ -269,7 +264,8 @@ export const runningLow = async (
     const mine = movements.get(item.id) ?? [];
     const level = Number(item.lowStockAt);
     const { onHand } = stockLedger(mine);
-    return onHand < level
+    // Asked of watched Feed Items still kept, so only the level is left to ask about.
+    return runsLow({ onHand, level, retired: false })
       ? [
           {
             feedItemId: item.id,

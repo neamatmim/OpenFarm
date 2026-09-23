@@ -1,4 +1,5 @@
-import { leftOfEachLot } from "@OpenFarm/domain/lots";
+import type { ExpiryStanding, ExpiryWindow } from "@OpenFarm/domain/lots";
+import { storeOfLots } from "@OpenFarm/domain/lots";
 
 import type { Tx } from "./audit";
 
@@ -9,6 +10,8 @@ export interface LotLeft {
   expiresOn: string | null;
   doses: number;
   left: number;
+  /** Where it stands against its Expiry, on the farm's day and by the farm's warning. */
+  standing: ExpiryStanding;
 }
 
 /** A product's medicine in the store: doses bought, doses given, what is left, and of which Lots. */
@@ -22,6 +25,10 @@ export interface MedicineStock {
   nextExpiresOn: string | null;
   /** That Lot's number, so the box can be found on the shelf. */
   nextLotNumber: string | null;
+  /** Where that Lot stands against its day; none when there is no such Lot. */
+  nextStanding: ExpiryStanding;
+  /** Doses still on the shelf from Lots already past their day. */
+  expiredOnHand: number;
   /** When it was last bought; null for a product never bought. */
   lastPurchasedOn: Date | null;
 }
@@ -33,6 +40,8 @@ const NOTHING: MedicineStock = {
   lots: [],
   nextExpiresOn: null,
   nextLotNumber: null,
+  nextStanding: "none",
+  expiredOnHand: 0,
   lastPurchasedOn: null,
 };
 
@@ -45,7 +54,9 @@ const NOTHING: MedicineStock = {
  */
 export const medicineStockOf = async (
   tx: Pick<Tx, "query">,
-  farmId: string
+  farmId: string,
+  /** The farm's day and warning its Lots are read against. */
+  window: ExpiryWindow
 ): Promise<Map<string, MedicineStock>> => {
   const [purchases, given] = await Promise.all([
     tx.query.medicinePurchase.findMany({
@@ -82,37 +93,33 @@ export const medicineStockOf = async (
     const bought = boughtOf.get(productId) ?? [];
     const dosesGiven = givenOf.get(productId) ?? 0;
     const dosesIn = bought.reduce((sum, one) => sum + one.doses, 0);
-    const byId = new Map(bought.map((one) => [one.id, one] as const));
-    const lots = leftOfEachLot(
+    const store = storeOfLots(
       bought.map((one) => ({
         id: one.id,
         quantity: one.doses,
         expiresOn: one.expiresOn,
         cameInOn: one.purchasedOn.toISOString(),
+        lotNumber: one.lotNumber,
       })),
-      dosesGiven
-    ).flatMap(({ id, left }) => {
-      const one = byId.get(id);
-      return one
-        ? [
-            {
-              purchaseId: id,
-              lotNumber: one.lotNumber,
-              expiresOn: one.expiresOn,
-              doses: one.doses,
-              left,
-            },
-          ]
-        : [];
-    });
-    const firstToGo = lots.find((one) => one.left > 0 && one.expiresOn);
+      dosesGiven,
+      window
+    );
     stock.set(productId, {
       dosesIn,
       dosesGiven,
       onHand: Math.max(0, dosesIn - dosesGiven),
-      lots,
-      nextExpiresOn: firstToGo?.expiresOn ?? null,
-      nextLotNumber: firstToGo?.lotNumber ?? null,
+      lots: store.lots.map((one) => ({
+        purchaseId: one.id,
+        lotNumber: one.lotNumber,
+        expiresOn: one.expiresOn,
+        doses: one.quantity,
+        left: one.left,
+        standing: one.standing,
+      })),
+      nextExpiresOn: store.next?.expiresOn ?? null,
+      nextLotNumber: store.next?.lotNumber ?? null,
+      nextStanding: store.next?.standing ?? "none",
+      expiredOnHand: store.pastItsDay,
       lastPurchasedOn:
         bought
           .map((one) => one.purchasedOn)
@@ -134,9 +141,11 @@ export const noMedicine = (): MedicineStock => ({ ...NOTHING, lots: [] });
 export const lotOfTheLatestDose = async (
   tx: Pick<Tx, "query">,
   farmId: string,
-  productId: string
+  productId: string,
+  /** The day the dose was given and the farm's warning, which the Lot's standing is read against. */
+  window: ExpiryWindow
 ): Promise<LotLeft | null> => {
-  const all = await medicineStockOf(tx, farmId);
+  const all = await medicineStockOf(tx, farmId, window);
   const stock = all.get(productId);
   if (!stock) {
     return null;

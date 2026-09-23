@@ -73,6 +73,7 @@ const LotCell = ({ row }: { row: { original: Purchase } }) => (
   <LotAndExpiry
     expiresOn={row.original.expiresOn}
     lotNumber={row.original.lotNumber}
+    standing={row.original.standing}
   />
 );
 
@@ -137,7 +138,11 @@ const PurchaseCard = ({ row }: { row: Purchase }) => {
           ? ""
           : ` · ${t("drugs.perDose", { taka: formatNumber(each, language) })}`}
       </span>
-      <LotAndExpiry expiresOn={row.expiresOn} lotNumber={row.lotNumber} />
+      <LotAndExpiry
+        expiresOn={row.expiresOn}
+        lotNumber={row.lotNumber}
+        standing={row.standing}
+      />
     </div>
   );
 };

@@ -153,6 +153,7 @@ const FirstToExpire = ({ product }: { product: DrugProduct }) => {
         <LotAndExpiry
           expiresOn={stock.nextExpiresOn}
           lotNumber={stock.nextLotNumber ?? null}
+          standing={stock.nextStanding}
         />
       ) : null}
       {expired > 0 ? (

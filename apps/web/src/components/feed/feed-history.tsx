@@ -159,6 +159,7 @@ const LotCell = ({ row }: { row: { original: ArrivalRow } }) => (
   <LotAndExpiry
     expiresOn={row.original.expiresOn}
     lotNumber={row.original.lotNumber}
+    standing={row.original.standing}
   />
 );
 
@@ -245,7 +246,11 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
             ? ""
             : ` · ${taka(row.priceBdt)} · ${row.sellerName ?? ""}`}
         </span>
-        <LotAndExpiry expiresOn={row.expiresOn} lotNumber={row.lotNumber} />
+        <LotAndExpiry
+          expiresOn={row.expiresOn}
+          lotNumber={row.lotNumber}
+          standing={row.standing}
+        />
       </div>
       {row.mayCorrect ? <ArrivalCorrection arrival={row} /> : null}
     </div>
