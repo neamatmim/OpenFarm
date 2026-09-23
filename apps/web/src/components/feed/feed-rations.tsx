@@ -1,3 +1,5 @@
+import type { RationLine } from "@OpenFarm/domain";
+import { isByWeight } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -13,9 +15,24 @@ import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow, RationRow } from "./feed-types";
+import { amountOf } from "./feed-types";
+
+/** How a line counts: by the head, or by every hundred kilos of body weight. */
+type Basis = "head" | "weight";
+
+/** A line as the Ration stores it, from what was typed and how it counts. */
+const lineOf = (
+  feedItemId: string,
+  amount: number,
+  basis: Basis
+): RationLine =>
+  basis === "weight"
+    ? { feedItemId, kgPer100KgPerDay: amount }
+    : { feedItemId, kgPerAnimalPerDay: amount };
 
 /**
- * Writing a Ration: a line per Feed Item, in units per animal per day, in a dialog.
+ * Writing a Ration: a line per Feed Item, so much a day for each animal or for every hundred kilos it weighs, in a
+ * dialog. Grass, straw and concentrate grow with the animals; salt and minerals go by the head.
  *
  * Every Item the Ration already names is offered, retired ones included. Dropping a line
  * because the feed was retired would rewrite what a Pen is fed without anybody asking for it.
@@ -45,7 +62,15 @@ const RationDialog = ({
     Object.fromEntries(
       (ration?.items ?? []).map((line) => [
         line.feedItemId,
-        String(line.kgPerAnimalPerDay),
+        String(amountOf(line)),
+      ])
+    )
+  );
+  const [basis, setBasis] = useState<Record<string, Basis>>(() =>
+    Object.fromEntries(
+      (ration?.items ?? []).map((line) => [
+        line.feedItemId,
+        isByWeight(line) ? "weight" : "head",
       ])
     )
   );
@@ -57,12 +82,12 @@ const RationDialog = ({
       onError: refused,
     })
   );
-  const lines = offered
-    .map((item) => ({
-      feedItemId: item.id,
-      kgPerAnimalPerDay: Number(kg[item.id] ?? ""),
-    }))
-    .filter((line) => line.kgPerAnimalPerDay > 0);
+  const lines = offered.flatMap((item) => {
+    const amount = Number(kg[item.id] ?? "");
+    return amount > 0
+      ? [lineOf(item.id, amount, basis[item.id] ?? "head")]
+      : [];
+  });
   const idFor = (part: string) => `ration-${ration?.id ?? "new"}-${part}`;
 
   return (
@@ -116,7 +141,7 @@ const RationDialog = ({
             <ul className="divide-border max-h-80 divide-y overflow-y-auto rounded-lg border">
               {offered.map((item) => (
                 <li
-                  className="flex items-center justify-between gap-3 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2"
                   key={item.id}
                 >
                   <Label className="font-normal" htmlFor={idFor(item.id)}>
@@ -142,6 +167,20 @@ const RationDialog = ({
                     <span className="text-muted-foreground w-6 text-xs">
                       {item.unit}
                     </span>
+                    <NativeSelect
+                      aria-label={t("feed.basisOf", { item: item.nameBn })}
+                      className="w-auto"
+                      onChange={(event) =>
+                        setBasis((current) => ({
+                          ...current,
+                          [item.id]: event.target.value as Basis,
+                        }))
+                      }
+                      value={basis[item.id] ?? "head"}
+                    >
+                      <option value="head">{t("feed.basis.head")}</option>
+                      <option value="weight">{t("feed.basis.weight")}</option>
+                    </NativeSelect>
                   </div>
                 </li>
               ))}
@@ -151,6 +190,67 @@ const RationDialog = ({
       )}
     </FormDialog>
   );
+};
+
+type Target = Awaited<ReturnType<typeof orpc.feed.target.call>>;
+
+/** The arithmetic under one line of a target, by the head or by weight — or, for a Pen nobody weighed, what to do. */
+const Working = ({
+  line,
+  target,
+}: {
+  line: Target["items"][number];
+  target: Target;
+}) => {
+  const { t, language } = useLanguage();
+  const sessions = formatNumber(target.sessionsPerDay, language);
+  if (!isByWeight(line)) {
+    return t("feed.working", {
+      headcount: formatNumber(target.animals, language),
+      perAnimal: formatNumber(line.kgPerAnimalPerDay, language),
+      sessions,
+    });
+  }
+  const weight = target.herd?.weightKg ?? null;
+  return weight === null
+    ? t("feed.weighFirst")
+    : t("feed.workingByWeight", {
+        perHundred: formatNumber(line.kgPer100KgPerDay, language),
+        weight: formatNumber(weight, language),
+        sessions,
+      });
+};
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Whole days from then until now. */
+const daysSince = (then: Date) =>
+  Math.floor((Date.now() - then.getTime()) / ONE_DAY_MS);
+
+/** What the Pen weighs, for a Ration with lines by weight: how many were weighed, and how old the oldest weight is. */
+const HerdWeight = ({ herd }: { herd: NonNullable<Target["herd"]> }) => {
+  const { t, language } = useLanguage();
+  if (herd.weightKg === null) {
+    return <p className="text-warning text-sm">{t("feed.weighFirst")}</p>;
+  }
+  const oldest = herd.oldestWeighedAt
+    ? daysSince(new Date(herd.oldestWeighedAt))
+    : null;
+  const parts = [
+    t("feed.herdWeight", {
+      weight: formatNumber(herd.weightKg, language),
+      weighed: formatNumber(herd.weighed, language),
+    }),
+    herd.unweighed > 0
+      ? t("feed.herdUnweighed", {
+          unweighed: formatNumber(herd.unweighed, language),
+        })
+      : "",
+    oldest === null
+      ? ""
+      : t("feed.herdOldest", { days: formatNumber(oldest, language) }),
+  ].filter(Boolean);
+  return <p className="text-muted-foreground text-sm">{parts.join(" · ")}</p>;
 };
 
 /** This session's Feeding Target for one Pen, with the arithmetic beside each line. A number nobody can check is a
@@ -168,7 +268,8 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
       </p>
     );
   }
-  const { ration, animals, sessionsPerDay, items } = target.data;
+  const { ration, herd, items } = target.data;
+  const byWeight = items.some((line) => isByWeight(line));
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">
@@ -178,19 +279,18 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
           {t("feed.version", { number: ration.number })}
         </span>
       </p>
+      {byWeight && herd ? <HerdWeight herd={herd} /> : null}
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((line) => (
           <li className="surface flex flex-col gap-1 p-3" key={line.feedItemId}>
             <span className="text-muted-foreground text-sm">{line.nameBn}</span>
             <span className="text-xl font-semibold tabular-nums">
-              {formatNumber(line.quantity, language)} {line.unit}
+              {line.quantity === null
+                ? "—"
+                : `${formatNumber(line.quantity, language)} ${line.unit}`}
             </span>
             <span className="text-muted-foreground text-xs">
-              {t("feed.working", {
-                headcount: formatNumber(animals, language),
-                perAnimal: formatNumber(line.kgPerAnimalPerDay, language),
-                sessions: formatNumber(sessionsPerDay, language),
-              })}
+              <Working line={line} target={target.data} />
             </span>
           </li>
         ))}
@@ -252,8 +352,12 @@ const RationCard = ({
                 {item?.nameBn ?? "—"}
               </span>
               <span className="tabular-nums">
-                {formatNumber(line.kgPerAnimalPerDay, language)}{" "}
-                {item?.unit ?? ""}
+                {isByWeight(line)
+                  ? t("feed.perHundred", {
+                      amount: formatNumber(line.kgPer100KgPerDay, language),
+                      unit: item?.unit ?? "",
+                    })
+                  : `${formatNumber(line.kgPerAnimalPerDay, language)} ${item?.unit ?? ""}`}
               </span>
             </li>
           );

@@ -8,6 +8,10 @@ import { feedingTargetForPen } from "../feed-store";
 import type { EffectInput, EffectResult, EffectKind } from "./effect";
 import { penOf } from "./evidence";
 
+/** The Pen's weight as the numeric column keeps it. */
+const weightColumnOf = (owed: { herd: { weightKg: number | null } }) =>
+  owed.herd.weightKg === null ? null : String(owed.herd.weightKg);
+
 type FeedingFacts = Pick<
   EffectInput,
   | "instance"
@@ -56,7 +60,8 @@ const feedThePen = async (
   const given = new Map(input.feeding.map((line) => [line.feedItemId, line]));
   const lines: FeedingLine[] = owed.items.map((line) => ({
     feedItemId: line.feedItemId,
-    targetKg: line.quantity,
+    // A line by weight in a Pen nobody weighed owed no figure, and nothing owed is never short.
+    targetKg: line.quantity ?? 0,
     givenKg: roundKg(given.get(line.feedItemId)?.givenKg ?? 0),
     leftoverKg: roundKg(given.get(line.feedItemId)?.leftoverKg ?? 0),
   }));
@@ -74,6 +79,7 @@ const feedThePen = async (
       penId: penOf(input),
       rationVersionId: owed.rationVersionId,
       animals: owed.animals,
+      herdWeightKg: weightColumnOf(owed),
       sessionsPerDay: owed.sessionsPerDay,
       lines,
       shortfallPercent: short,
@@ -87,6 +93,7 @@ const feedThePen = async (
       set: {
         lines,
         animals: owed.animals,
+        herdWeightKg: weightColumnOf(owed),
         shortfallPercent: short,
         flaggedAt: flagged ? input.now : null,
         fedAt: input.recordedAt,

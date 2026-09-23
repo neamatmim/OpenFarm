@@ -224,10 +224,12 @@ export type {
   LeftoverTally,
   RationLine,
   StockMovement,
+  WeighedAnimal,
 } from "./feed";
 export {
   KG_DECIMALS,
   MAUND_KG,
+  MAX_KG_PER_100KG_PER_DAY,
   MAX_KG_PER_ANIMAL_PER_DAY,
   SESSIONS_TO_JUDGE,
   WASTING_LEFTOVER_PERCENT,
@@ -237,7 +239,10 @@ export {
   leftoverPercent,
   leftoverStanding,
   maundsOf,
+  herdWeightOf,
+  isByWeight,
   perSessionKg,
+  sessionKgOf,
   roundKg,
   shortfallPercent,
   priceHistory,

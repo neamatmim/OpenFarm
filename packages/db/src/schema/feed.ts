@@ -141,6 +141,10 @@ export const feeding = pgTable(
     /** The animals standing in the Pen when it was fed, and how often that day's ration is
      *  split — both kept, so the arithmetic can still be shown a year later. */
     animals: integer("animals").notNull(),
+    /** What the Pen weighed as its Ration's lines by weight were worked out from — every animal's latest weight,
+     *  the unweighed at the average of the rest. Null where nobody in it had been weighed, and for every Feeding
+     *  from before a Ration could go by weight. */
+    herdWeightKg: numeric("herd_weight_kg", { precision: 9, scale: 1 }),
     sessionsPerDay: integer("sessions_per_day").notNull(),
     /** [{ feedItemId, targetKg, givenKg, leftoverKg }] */
     lines: jsonb("lines").notNull(),

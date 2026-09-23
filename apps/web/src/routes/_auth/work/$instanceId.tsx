@@ -1437,7 +1437,8 @@ const FeedingFields = ({
     feedItemId: string;
     nameBn: string;
     unit: string;
-    quantity: number;
+    /** Nothing for a line by weight in a Pen nobody weighed. */
+    quantity: number | null;
   }[];
   /** The phone has never seen this Pen's Ration, so it cannot say what was owed. */
   cannotFeed: boolean;
@@ -1459,10 +1460,15 @@ const FeedingFields = ({
         >
           <p className="text-sm font-medium">
             {line.nameBn}{" "}
-            <span className="text-muted-foreground font-normal">
-              · {t("feed.target")}: {line.quantity} {line.unit}
-            </span>
+            {line.quantity === null ? null : (
+              <span className="text-muted-foreground font-normal">
+                · {t("feed.target")}: {line.quantity} {line.unit}
+              </span>
+            )}
           </p>
+          {line.quantity === null ? (
+            <p className="text-warning text-xs">{t("work.typeWhatWentOut")}</p>
+          ) : null}
           <div className="grid grid-cols-2 gap-2">
             <Input
               aria-label={`${line.nameBn} ${t("work.given")}`}
@@ -1476,7 +1482,10 @@ const FeedingFields = ({
               }
               placeholder={t("work.given")}
               type="number"
-              value={given[line.feedItemId] ?? String(line.quantity)}
+              value={
+                given[line.feedItemId] ??
+                (line.quantity === null ? "" : String(line.quantity))
+              }
             />
             <Input
               aria-label={`${line.nameBn} ${t("work.leftover")}`}
@@ -1627,7 +1636,8 @@ const feedingState = (
           feedItemId: string;
           nameBn: string;
           unit: string;
-          quantity: number;
+          /** Nothing for a line by weight in a Pen nobody weighed. */
+          quantity: number | null;
         }[];
       }
     | null
@@ -1637,18 +1647,29 @@ const feedingState = (
   return { rows, cannotFeed: feeds && rows.length === 0 };
 };
 
+/** A line that owed no figure — by weight, in a Pen nobody weighed — with nothing typed for it: until somebody says what
+ *  went out, a blank would be recorded as none given. */
+const untypedFeed = (
+  rows: { feedItemId: string; quantity: number | null }[],
+  given: Typed
+) =>
+  rows.some(
+    (line) =>
+      line.quantity === null && (given[line.feedItemId] ?? "").trim() === ""
+  );
+
 /**
  * What went out, per Feed Item. A box left as it was handed over means the figure that was
  * handed over: somebody who clears one to retype it has not yet said the Pen got nothing.
  */
 const whatWentOut = (
-  rows: { feedItemId: string; quantity: number }[],
+  rows: { feedItemId: string; quantity: number | null }[],
   given: Typed,
   leftover: Typed
 ) =>
   rows.map((line) => ({
     feedItemId: line.feedItemId,
-    givenKg: numberOr(given[line.feedItemId], line.quantity),
+    givenKg: numberOr(given[line.feedItemId], line.quantity ?? 0),
     leftoverKg: numberOr(leftover[line.feedItemId], 0),
   }));
 
@@ -1760,7 +1781,8 @@ const EvidenceSheet = ({
       feedItemId: string;
       nameBn: string;
       unit: string;
-      quantity: number;
+      /** Nothing for a line by weight in a Pen nobody weighed. */
+      quantity: number | null;
     }[];
   } | null;
   /** What to count, for a Step that counts the store. */
@@ -1970,6 +1992,7 @@ const EvidenceSheet = ({
             className={`h-14 text-lg ${skippable ? "" : "col-span-2"}`}
             disabled={
               cannotFeed ||
+              untypedFeed(feedingRows, given) ||
               !count.complete ||
               !(ready && (!correcting || reason.trim()))
             }

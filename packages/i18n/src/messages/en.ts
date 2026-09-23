@@ -1478,7 +1478,7 @@ export const en = {
   "feed.itemsDescription":
     "What the farm feeds. A retired Feed Item stays named in the Rations that fed it.",
   "feed.rationsDescription":
-    "Each Ration is one animal's day. Choose here which Pen is on which.",
+    "Each Ration is a day's feed — each line for every animal, or for every 100 kg it weighs. Choose here which Pen is on which.",
   "feed.targetDescription":
     "This session's feed for the Pen you choose, worked out from the animals standing in it.",
   "feed.rationLines": "{count} Feed Items",
@@ -1496,7 +1496,20 @@ export const en = {
   "feed.noRation": "This pen has no ration",
   "feed.setRation": "Save the ration",
   "feed.rationName": "Ration name",
-  "feed.kgPerAnimal": "Kg per animal per day",
+  "feed.kgPerAnimal":
+    "How much a day — for each animal, or for every 100 kg it weighs",
+  "feed.basis.head": "a head",
+  "feed.basis.weight": "per 100 kg body weight",
+  "feed.basisOf": "How {item} is counted",
+  "feed.perHundred": "{amount} {unit} per 100 kg",
+  "feed.workingByWeight":
+    "{perHundred} kg per 100 kg × {weight} kg ÷ {sessions} a day",
+  "feed.herdWeight": "The pen weighs {weight} kg — {weighed} weighed",
+  "feed.herdUnweighed": "{unweighed} not weighed, counted at the average",
+  "feed.herdOldest": "oldest weight {days} days old",
+  "feed.weighFirst": "Weigh the pen first",
+  "work.typeWhatWentOut":
+    "Nobody in this pen has been weighed, so this has no target — type what you gave.",
   "feed.rations": "Rations",
   "feed.newRation": "New ration",
   "feed.assign": "Put this pen on it",
