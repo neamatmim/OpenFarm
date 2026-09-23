@@ -280,25 +280,36 @@ export const SharePaid = ({
   share,
   onPay,
   onAcknowledge,
+  advanceFirst = false,
 }: {
   share: Share;
   onPay: () => void;
   onAcknowledge: () => void;
+  /** Her own Advance is still out, and her money comes back before any capital does. */
+  advanceFirst?: boolean;
 }) => {
   const { t, language } = useLanguage();
   if (!share.paid) {
-    // Offered even while the Advance is still out, because the farm refuses that in words she can act
-    // on — and a button that will not press tells her nothing about why.
+    // Held while the Advance is still out, and saying why beside it: the farm refuses a payout before the
+    // Advance, and finding that out after writing the transfer's reference is finding it out too late.
     return (
-      <Button
-        aria-label={t("ventures.sendTo", { who: share.name })}
-        onClick={onPay}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        {t("ventures.send")}
-      </Button>
+      <span className="flex flex-col items-end gap-0.5">
+        <Button
+          aria-label={t("ventures.sendTo", { who: share.name })}
+          disabled={advanceFirst}
+          onClick={onPay}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {t("ventures.send")}
+        </Button>
+        {advanceFirst ? (
+          <span className="text-muted-foreground text-xs">
+            {t("refusal.advanceComesFirst")}
+          </span>
+        ) : null}
+      </span>
     );
   }
   if (share.acknowledgedAt) {

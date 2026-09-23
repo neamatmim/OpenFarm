@@ -1,3 +1,4 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -60,6 +61,17 @@ const PaperlessAgreements = ({
       </p>
     </div>
   );
+};
+
+/** Why a paper is not to be chosen, as the option says it — paid up, or not yet papered — or nothing. */
+const whyNotThisPaper = (
+  one: { capitalLeftBdt: number; hasPaper: boolean },
+  t: (key: MessageKey) => string
+): string => {
+  if (one.capitalLeftBdt === 0) {
+    return ` · ${t("ventures.paidInFull")}`;
+  }
+  return one.hasPaper ? "" : ` · ${t("ventures.noPaperYet")}`;
 };
 
 /**
@@ -143,13 +155,22 @@ export const TakeCapitalSheet = ({
           value={arrival.agreementId}
         >
           <option value="">—</option>
-          {(agreements.data ?? []).map((one) => (
-            <option disabled={!one.hasPaper} key={one.id} value={one.id}>
-              {`${nameOf(one.investorId)} · ${t("ventures.holdsUnits", {
-                units: formatNumber(one.units, language),
-              })}${one.hasPaper ? "" : ` · ${t("ventures.noPaperYet")}`}`}
-            </option>
-          ))}
+          {(agreements.data ?? []).map((one) => {
+            // Paid up, or not yet papered: either way the farm would refuse capital on it, so it is not chosen.
+            const paidUp = one.capitalLeftBdt === 0;
+            const why = whyNotThisPaper(one, t);
+            return (
+              <option
+                disabled={!one.hasPaper || paidUp}
+                key={one.id}
+                value={one.id}
+              >
+                {`${nameOf(one.investorId)} · ${t("ventures.holdsUnits", {
+                  units: formatNumber(one.units, language),
+                })}${why}`}
+              </option>
+            );
+          })}
         </NativeSelect>
       </FormField>
       <PaperlessAgreements

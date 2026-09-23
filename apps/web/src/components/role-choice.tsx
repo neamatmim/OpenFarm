@@ -12,15 +12,22 @@ export const RoleChoice = ({
   role,
   checked,
   onToggle,
+  locked = false,
 }: {
   role: RoleName;
   checked: boolean;
   onToggle: () => void;
+  /** Held and not to be let go here — an Owner's own Owner Role. */
+  locked?: boolean;
 }) => {
   const t = useT();
   return (
-    <Label className="flex min-h-11 cursor-pointer items-center gap-2 font-normal md:min-h-8">
-      <Checkbox checked={checked} onCheckedChange={onToggle} />
+    <Label className="flex min-h-11 cursor-pointer items-center gap-2 font-normal has-[:disabled]:cursor-not-allowed md:min-h-8">
+      <Checkbox
+        checked={checked}
+        disabled={locked}
+        onCheckedChange={onToggle}
+      />
       {t(roleKey(role))}
     </Label>
   );

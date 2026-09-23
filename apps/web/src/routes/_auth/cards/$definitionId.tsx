@@ -175,10 +175,14 @@ const CardPage = () => {
         {card.data ? (
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
             <WallCard card={card.data} />
-            <TrainedOn
-              definitionId={definitionId}
-              versionId={card.data.versionId}
-            />
+            {/* Who was taught from it is the Owner's and the Manager's to keep: anybody else reads the card alone,
+                rather than a form whose every answer the farm would refuse. */}
+            {keepsPlaybook ? (
+              <TrainedOn
+                definitionId={definitionId}
+                versionId={card.data.versionId}
+              />
+            ) : null}
           </div>
         ) : null}
       </Loaded>
@@ -238,11 +242,15 @@ const TrainedOn = ({
             value={who}
           >
             <option value="">—</option>
-            {(people.data?.people ?? []).map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name}
-              </option>
-            ))}
+            {/* Only people who may still sign in: the farm will not record training for somebody whose access is
+                gone. */}
+            {(people.data?.people ?? [])
+              .filter((person) => !person.disabledAt)
+              .map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
           </NativeSelect>
         </FormField>
         <Button disabled={!who || mark.isPending} type="submit">

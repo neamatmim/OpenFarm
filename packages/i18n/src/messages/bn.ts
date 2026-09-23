@@ -125,6 +125,8 @@ export const bn: Record<MessageKey, string> = {
   "people.tab.training": "প্রশিক্ষণ",
   "people.change": "বদলান",
   "people.rolesWhy": "খামারে তিনি কী দেখতে ও করতে পারেন।",
+  "people.ownOwnerRoleStays":
+    "আপনার নিজের মালিকের ভূমিকা থাকবে: অন্য একজন মালিক তা সরাতে পারেন, যাতে খামার কখনো চালানোর মানুষ ছাড়া না থাকে।",
   "people.pensWhy": "এই পেনগুলো থেকেই তাঁর প্রতিদিনের কাজ আসে।",
   "people.pinWhy":
     "শেড ফোনে নিজের নামে কাজ শুরু করার চার সংখ্যার পিন। একবার দিলে আর দেখা যায় না।",
@@ -375,6 +377,7 @@ export const bn: Record<MessageKey, string> = {
     "যে চুক্তির ছবি খামারের কাছে নেই, তার টাকা নেওয়া যায় না। এখানে ছবি যোগ করে তারপরই টাকা জমা দিন।",
   "ventures.paperKept": "চুক্তির সাথে কাগজ যোগ হয়েছে",
   "ventures.noPaperYet": "ছবি জমা হয়নি",
+  "ventures.paidInFull": "পুরো টাকা জমা",
   "ventures.amount": "পরিমাণ",
   "ventures.movedOn": "ব্যাংক যেদিন পাঠিয়েছে",
   "ventures.reference": "ব্যাংক রেফারেন্স",
@@ -2143,6 +2146,8 @@ export const bn: Record<MessageKey, string> = {
   "work.none": "এখন কিছু বাকি নেই",
   "work.due": "{time} এ",
   "work.claim": "শুরু করুন",
+  "work.theirsToStart": "{name}-এর কাজ — তিনিই শুরু করবেন",
+  "work.heldBy": "{name} কাজটি করছেন — এখানে দেখা যাবে, লেখা যাবে না",
   "work.claimed": "আপনি এই কাজ করছেন",
   "work.takenBy": "অন্য কেউ এই কাজ করছেন",
   "work.assignTo": "কে করবেন",
@@ -2218,6 +2223,7 @@ export const bn: Record<MessageKey, string> = {
   "signOff.title": "যাচাই করার জন্য",
   "signOff.none": "যাচাই করার কিছু নেই",
   "signOff.approve": "অনুমোদন",
+  "signOff.yoursToBeChecked": "আপনার কাজ — অন্য কেউ যাচাই করবেন",
   "signOff.sendBack": "ফেরত পাঠান",
   "signOff.reason": "আবার কী করতে হবে?",
   "signOff.doneBy": "{name} করেছেন",
@@ -2490,6 +2496,8 @@ export const bn: Record<MessageKey, string> = {
   "intake.owner": "গরুটি কার",
   "intake.ownerHint":
     "যে ভেঞ্চারের টাকায় কেনা। যে ভেঞ্চার কিনছে, কেবল সেটিই গরু নিতে পারে।",
+  "intake.ownerFromFloat":
+    "{venture}-এর হাটে নেওয়া টাকায় কেনা, তাই গরুটি {venture}-এর",
   "intake.theFarms": "খামারের নিজের",
   "intake.weight": "আসার সময়ের ওজন",
   "intake.age": "আনুমানিক বয়স",

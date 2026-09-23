@@ -4,6 +4,8 @@ import {
   awaitsSignOff,
   isEscalated,
   isOverdue,
+  mayRaiseByHand,
+  maySignOff,
   minutesOverdue,
   sessionsPerDayOf,
   underMilkWithdrawal,
@@ -96,10 +98,9 @@ const loadCheckableInstance = async (
       message: `This work is signed off by ${instance.checkerRole}`,
     });
   }
-  // Marking your own work as checked is not a check — except for the Owner, whose farm it is and who may sign off
-  // what they did themselves (the Owner, 2026-09-17).
-  const doer = instance.claimedBy ?? instance.assignedTo;
-  if (doer === context.actor.id && !context.roles.includes("owner")) {
+  // Marking your own work as checked is not a check — except for the Owner. The rule is the domain's, and the
+  // sign-off queue asks it too before it offers the buttons.
+  if (!maySignOff(instance, { id: context.actor.id, roles: context.roles })) {
     throw new ORPCError("FORBIDDEN", {
       message: "Work is signed off by someone other than the person who did it",
     });
@@ -146,7 +147,7 @@ export const instancesRouter = {
       const content = contentOf(definition.currentVersion);
       // A dose of a Prescription is raised by the Prescription, and raising one by hand would
       // be a dose belonging to no course.
-      if (content.triggers.some((trigger) => trigger.kind === "prescription")) {
+      if (!mayRaiseByHand(content)) {
         throw new ORPCError("BAD_REQUEST", {
           message: "A prescription raises this work, one dose at a time",
           data: { refusal: "prescription_raises_it" },
@@ -335,8 +336,18 @@ export const instancesRouter = {
         instance.definition.currentVersionId === instance.versionId
           ? null
           : instance.version.number;
+      // Who holds it — whoever claimed it, else whoever it was pinned to — by name, so somebody else opening it is
+      // told whose it is rather than offered a Claim the farm would refuse.
+      const holderId = instance.claimedBy ?? instance.assignedTo;
+      const holder = holderId
+        ? await context.db.query.user.findFirst({
+            where: { id: holderId },
+            columns: { id: true, name: true },
+          })
+        : undefined;
       return {
         ...instance,
+        heldBy: holder ?? null,
         // Each with what its Effect recorded beside the Evidence — the feed given, the store counted — which a Correction
         // says it was shown.
         completions: await Promise.all(

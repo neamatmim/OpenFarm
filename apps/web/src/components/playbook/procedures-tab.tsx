@@ -1,4 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
+import { mayRaiseByHand } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Link } from "@tanstack/react-router";
@@ -158,7 +159,9 @@ const CountCell = ({ getValue }: { getValue: () => number }) => {
 
 const ActionsCell = ({ row }: { row: { original: ProcedureRow } }) => (
   <div className="flex items-center justify-end gap-1">
-    {row.original.content ? <RaiseWork definitionId={row.original.id} /> : null}
+    {row.original.content && mayRaiseByHand(row.original.content) ? (
+      <RaiseWork definitionId={row.original.id} />
+    ) : null}
     <ProcedureMenu row={row.original} />
   </div>
 );
@@ -217,7 +220,9 @@ const ProcedureCard = ({ row }: { row: ProcedureRow }) => {
         </div>
         <ProcedureMenu row={row} />
       </div>
-      {row.content ? <RaiseWork definitionId={row.id} /> : null}
+      {row.content && mayRaiseByHand(row.content) ? (
+        <RaiseWork definitionId={row.id} />
+      ) : null}
     </div>
   );
 };

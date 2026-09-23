@@ -224,11 +224,15 @@ const VisitRow = ({
 const RolesDialog = ({
   userId,
   roles,
+  isSelf,
   open,
   onOpenChange,
 }: {
   userId: string;
   roles: RoleName[];
+  /** Their own page: an Owner does not take the Owner Role off themselves, so the farm is never one mistaken tap
+   *  from having nobody who can run it. The farm refuses it; the box is not offered. */
+  isSelf: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
@@ -262,16 +266,30 @@ const RolesDialog = ({
           <RoleChoice
             checked={held.includes(role)}
             key={role}
+            locked={isSelf && role === "owner" && roles.includes("owner")}
             onToggle={() => setHeld((current) => toggled(current, role))}
             role={role}
           />
         ))}
       </fieldset>
+      {isSelf && roles.includes("owner") ? (
+        <p className="text-muted-foreground text-xs">
+          {t("people.ownOwnerRoleStays")}
+        </p>
+      ) : null}
     </FormDialog>
   );
 };
 
-const RolesRow = ({ userId, roles }: { userId: string; roles: RoleName[] }) => {
+const RolesRow = ({
+  userId,
+  roles,
+  isSelf,
+}: {
+  userId: string;
+  roles: RoleName[];
+  isSelf: boolean;
+}) => {
   const t = useT();
   const [changing, setChanging] = useState(false);
   return (
@@ -284,6 +302,7 @@ const RolesRow = ({ userId, roles }: { userId: string; roles: RoleName[] }) => {
           />
           <RolesDialog
             key={`${String(changing)}:${roles.join(",")}`}
+            isSelf={isSelf}
             onOpenChange={setChanging}
             open={changing}
             roles={roles}
@@ -724,7 +743,9 @@ export const AccessTab = ({
         {visitUntil && !gone ? (
           <VisitRow isOwner={isOwner} until={visitUntil} userId={userId} />
         ) : null}
-        {isOwner ? <RolesRow roles={roles} userId={userId} /> : null}
+        {isOwner ? (
+          <RolesRow isSelf={isSelf} roles={roles} userId={userId} />
+        ) : null}
         {gone || visitUntil ? null : <PensRow held={penIds} userId={userId} />}
         {/* A PIN and a password code are both ways in, shown only to whoever may give them. */}
         {reachesTheirAccess(isOwner, roles) ? (

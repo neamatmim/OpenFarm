@@ -174,7 +174,9 @@ export const VentureMoney = ({ venture }: { venture: Venture }) => {
                   {taka(one.after)}
                 </TableCell>
                 <TableCell className="pe-4 text-end md:pe-5">
-                  <CorrectMovement movement={one} />
+                  {/* Only where the farm will take a Correction: not a Sale's or an Internal Sale's money, not a
+                      counted Float, not a settled or called-off Venture — the farm's own word for each. */}
+                  {one.whyItStands ? null : <CorrectMovement movement={one} />}
                 </TableCell>
               </TableRow>
             ))}

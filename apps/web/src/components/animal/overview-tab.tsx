@@ -370,7 +370,11 @@ export const OverviewTab = ({
 }) => (
   <div className="flex flex-col gap-6">
     <HowSheWent detail={detail} mayRecord={powers.runsTheFarm} onAct={onAct} />
-    <Withdrawals detail={detail} mayShorten={powers.fullVet} onAct={onAct} />
+    <Withdrawals
+      detail={detail}
+      mayShorten={powers.fullVet && powers.stillHere}
+      onAct={onAct}
+    />
     {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
     <AboutHer detail={detail} />
   </div>

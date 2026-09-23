@@ -179,7 +179,11 @@ export const HealthTab = ({
           <DoseTable doses={detail.treatments} />
         </Section>
       ) : null}
-      <VetCases mayCall={powers.runsTheFarm} tagNumber={detail.tagNumber} />
+      {/* Calling a vet to her is for an animal still here; the cases she had stay listed either way. */}
+      <VetCases
+        mayCall={powers.runsTheFarm && powers.stillHere}
+        tagNumber={detail.tagNumber}
+      />
     </div>
   );
 };

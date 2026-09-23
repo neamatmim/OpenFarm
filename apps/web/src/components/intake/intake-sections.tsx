@@ -258,6 +258,11 @@ export const PriceSection = ({
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  // The outing she came on, where it went on a Venture's Float: then whose she is is not a choice.
+  const float =
+    trips.find((one) => one.id === fields.buyingTripId)?.float ?? null;
+  // Named, because the guard against untranslated JSX text reads a comparison's angle bracket as a tag.
+  const whoseIsAChoice = ventures.length !== 0 || float !== null;
   return (
     <Section
       description={t("intake.groupPriceHint")}
@@ -299,7 +304,14 @@ export const PriceSection = ({
           <NativeSelect
             className="min-w-0 flex-1"
             id="intake-trip"
-            onChange={(event) => onEdit({ buyingTripId: event.target.value })}
+            onChange={(event) => {
+              const trip = trips.find((one) => one.id === event.target.value);
+              // An outing on a Venture's Float bought for that Venture: she is theirs, and nobody else's.
+              onEdit({
+                buyingTripId: event.target.value,
+                ...(trip?.float ? { ventureId: trip.float.ventureId } : {}),
+              });
+            }}
             value={fields.buyingTripId}
           >
             <option value="">{t("intake.noTrip")}</option>
@@ -323,16 +335,21 @@ export const PriceSection = ({
           </Button>
         </div>
       </FormField>
-      {ventures.length > 0 ? (
+      {whoseIsAChoice ? (
         <FormField
-          hint={t("intake.ownerHint")}
+          hint={
+            float
+              ? t("intake.ownerFromFloat", { venture: float.ventureName })
+              : t("intake.ownerHint")
+          }
           id="intake-owner"
           label={t("intake.owner")}
         >
           <NativeSelect
+            disabled={float !== null}
             id="intake-owner"
             onChange={(event) => onEdit({ ventureId: event.target.value })}
-            value={fields.ventureId}
+            value={float ? float.ventureId : fields.ventureId}
           >
             <option value="">{t("intake.theFarms")}</option>
             {ventures.map((one) => (
@@ -340,6 +357,11 @@ export const PriceSection = ({
                 {one.name}
               </option>
             ))}
+            {/* The Float's Venture, where it no longer takes animals from anywhere else — this outing still bought
+                for it. */}
+            {float && !ventures.some((one) => one.id === float.ventureId) ? (
+              <option value={float.ventureId}>{float.ventureName}</option>
+            ) : null}
           </NativeSelect>
         </FormField>
       ) : null}

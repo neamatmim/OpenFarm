@@ -102,16 +102,20 @@ const Concluded = ({
           {made.note ? <p className="text-sm">{made.note}</p> : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button
-            className="h-11 md:h-8"
-            onClick={() => onPrescribe(made)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <Pill aria-hidden data-icon="inline-start" />
-            {t("prescribe.write")}
-          </Button>
+          {/* A course is written for an animal still here; the conclusion about one who left is still hers to put
+              right. A list kept from before the farm said so offers it, as it always did. */}
+          {made.stillHere === false ? null : (
+            <Button
+              className="h-11 md:h-8"
+              onClick={() => onPrescribe(made)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <Pill aria-hidden data-icon="inline-start" />
+              {t("prescribe.write")}
+            </Button>
+          )}
           <CorrectConclusion made={made} />
         </div>
       </div>

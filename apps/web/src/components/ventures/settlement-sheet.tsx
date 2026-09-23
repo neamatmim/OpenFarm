@@ -483,6 +483,9 @@ const WhatIsLeftToSend = ({
             <span className="flex items-center gap-2">
               <span className="tabular-nums">{taka(one.payoutBdt)}</span>
               <SharePaid
+                advanceFirst={
+                  approved.advanceBdt !== 0 && !approved.advanceRepaid
+                }
                 onAcknowledge={() =>
                   onAcknowledge({
                     ventureId,

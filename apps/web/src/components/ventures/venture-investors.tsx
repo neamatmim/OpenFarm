@@ -220,7 +220,9 @@ export const VentureInvestors = ({
                     <TableCell className="pe-4 md:pe-5">
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         {/* Capital is taken against the stamped paper, while the run is still gathering it. */}
-                        {open && one.hasPaper && hasPaid < owed ? (
+                        {open &&
+                        one.hasPaper &&
+                        (one.capitalLeftBdt ?? owed - hasPaid) > 0 ? (
                           <Button
                             onClick={() => acts.takeCapital(venture, one.id)}
                             size="sm"

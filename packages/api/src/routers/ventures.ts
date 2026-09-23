@@ -33,6 +33,7 @@ import { correct } from "../corrections/correction";
 import {
   ventureMovementCorrection,
   ventureMovementCorrectionInput,
+  whyItStands,
 } from "../corrections/venture-movement";
 import { consumedBy, economicsOfHerd, farmCosts } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
@@ -717,10 +718,37 @@ export const venturesRouter = {
         columns: { agreementId: true },
       });
       const kept = new Set(papers.map((one) => one.agreementId));
+      // What each paper may still take, counted as the payment counts it before refusing one too many — so a
+      // man paid up is not offered to be paid again.
+      const run = await context.db.query.venture.findFirst({
+        where: { id: input.ventureId, farmId: context.farm.id },
+        columns: { unitPriceBdt: true },
+      });
+      const taken = new Map<string, number>();
+      for (const one of await context.db.query.ventureMovement.findMany({
+        where: {
+          farmId: context.farm.id,
+          agreementId: { in: rows.map((row) => row.id) },
+          kind: "capital_in",
+        },
+        columns: { agreementId: true, amountBdt: true },
+      })) {
+        if (one.agreementId) {
+          taken.set(
+            one.agreementId,
+            (taken.get(one.agreementId) ?? 0) + one.amountBdt
+          );
+        }
+      }
       return rows.map((one) => ({
         id: one.id,
         investorId: one.investorId,
         units: one.units,
+        /** Capital this paper may still take: its Units' worth, less what it has taken. */
+        capitalLeftBdt: Math.max(
+          0,
+          one.units * (run?.unitPriceBdt ?? 0) - (taken.get(one.id) ?? 0)
+        ),
         investorsPercent: one.investorsPercent,
         farmPercent: theFarmsShare(one.investorsPercent),
         targetWindow: {
@@ -2863,6 +2891,21 @@ export const venturesRouter = {
       const whose = new Map(
         agreements.map((one) => [one.id, one.investorId] as const)
       );
+      // What a Correction would be refused for, row by row, by the one rule the Correction refuses by — so the
+      // list offers Correct only where the farm will take it.
+      const run = await context.db.query.venture.findFirst({
+        where: { id: input.ventureId, farmId: context.farm.id },
+        columns: { state: true },
+      });
+      const countedTrips = new Set(
+        rows.flatMap((one) =>
+          one.kind === "float_out" &&
+          one.reconciledAt !== null &&
+          one.buyingTripId
+            ? [one.buyingTripId]
+            : []
+        )
+      );
       return rows.map((one) => ({
         id: one.id,
         kind: one.kind,
@@ -2877,6 +2920,13 @@ export const venturesRouter = {
         movedOn: one.movedOn,
         reference: one.reference,
         refundsId: one.refundsId,
+        /** Why it may not be put right, as the farm's word for it; null where it may. */
+        whyItStands:
+          whyItStands(
+            one,
+            run?.state,
+            one.buyingTripId !== null && countedTrips.has(one.buyingTripId)
+          )?.refusal ?? null,
       }));
     }),
 
