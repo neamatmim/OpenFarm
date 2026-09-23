@@ -1,3 +1,5 @@
+import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
@@ -10,20 +12,19 @@ import { z } from "zod";
 
 import { PasswordInput } from "@/components/auth/password-input";
 import { Notice } from "@/components/page";
-import { useT } from "@/i18n/language-provider";
+import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 
 import Loader from "./loader";
 
 const NAME_MIN = 2;
-const PASSWORD_MIN = 12;
 
 const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   const navigate = useNavigate({
     from: "/",
   });
   const { isPending } = authClient.useSession();
-  const t = useT();
+  const { t, language } = useLanguage();
   // What the farm said when it refused, kept on the card as well as in the toast: a toast is gone before somebody
   // who reads slowly has read it.
   const [refused, setRefused] = useState<string | null>(null);
@@ -63,7 +64,12 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
         email: z.email(t("auth.invalidEmail")),
         password: z
           .string()
-          .min(PASSWORD_MIN, t("auth.passwordTooShort", { min: PASSWORD_MIN })),
+          .min(
+            PASSWORD_MIN_LENGTH,
+            t("auth.passwordTooShort", {
+              min: formatNumber(PASSWORD_MIN_LENGTH, language),
+            })
+          ),
       }),
     },
   });
