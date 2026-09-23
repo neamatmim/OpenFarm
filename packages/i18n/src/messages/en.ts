@@ -517,11 +517,11 @@ export const en = {
     "An animal sold between the farm's herd and a Venture, priced at her latest weigh-in times a rate you enter.",
   "ventures.soldInternally": "Sold for ৳{price}, and she has changed hands",
   "ventures.whichAnimal": "Which animal",
-  "ventures.findTheAnimal": "Type a tag or a pen to find her",
   "ventures.movableDetail": "{pen} · {purse} · {weight} kg on {date}",
   "ventures.noneMovable":
     "No animal can move right now: only a bought fattening animal that has been weighed, is still here and is not yet ready for sale",
   "ventures.choosePurse": "Choose who takes her on",
+  "picker.findAnimal": "Type a tag or a pen to find her",
   "picker.noMatch": "Nothing matches what you typed",
   "ventures.toPurse": "Who takes her on",
   "ventures.toPurseHint":
@@ -2154,6 +2154,8 @@ export const en = {
   "vet.mine": "What you concluded",
   "vet.onItsOwn": "Record without an observation",
   "vet.tagNumber": "Animal tag",
+  "vet.noAnimalToDiagnose":
+    "No animal on the farm is yours to diagnose just now",
   "vet.noneMine": "You have not recorded anything yet",
   "vet.disease": "Disease",
   "vet.note": "What you found",

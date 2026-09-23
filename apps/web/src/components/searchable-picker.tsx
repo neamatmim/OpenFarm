@@ -1,4 +1,5 @@
 import { Input } from "@OpenFarm/ui/components/input";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
@@ -27,6 +28,7 @@ export const SearchablePicker = ({
   onChange,
   placeholder,
   empty,
+  loading = false,
 }: {
   /** The search box's id, which the field's label points at. */
   id: string;
@@ -36,9 +38,14 @@ export const SearchablePicker = ({
   placeholder: string;
   /** What is said when there is nothing to choose at all — and why. */
   empty: ReactNode;
+  /** Still being read: nothing to choose yet is not the same as nothing to choose. */
+  loading?: boolean;
 }) => {
   const t = useT();
   const [typed, setTyped] = useState("");
+  if (loading) {
+    return <Skeleton className="h-24 w-full rounded-md" />;
+  }
   if (options.length === 0) {
     return <p className="text-muted-foreground text-sm">{empty}</p>;
   }
