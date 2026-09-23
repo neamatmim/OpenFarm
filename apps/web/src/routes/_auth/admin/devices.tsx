@@ -103,7 +103,7 @@ const DevicesPage = () => {
   );
 
   return (
-    <Page className="max-w-5xl" width="default">
+    <Page>
       <PageHeader
         actions={addButton}
         description={t("device.subtitle")}

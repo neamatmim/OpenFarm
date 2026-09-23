@@ -76,7 +76,7 @@ const PersonPage = () => {
   const seesSignIns = reachesTheirAccess(isOwner, them?.roles ?? []);
 
   return (
-    <Page className="max-w-5xl" width="default">
+    <Page>
       <Link
         className="text-muted-foreground hover:text-foreground -mb-4 flex min-h-11 w-fit items-center gap-1 text-sm md:-mb-6"
         to="/admin/people"

@@ -247,7 +247,7 @@ const BackupsPage = () => {
   const figures = useBackupFigures(state, schedule.data);
 
   return (
-    <Page className="max-w-5xl" width="default">
+    <Page>
       <PageHeader
         description={t("backups.subtitle")}
         title={t("backups.title")}

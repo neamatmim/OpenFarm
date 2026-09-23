@@ -144,7 +144,7 @@ const CardPage = () => {
     false;
 
   return (
-    <Page className="max-w-screen-xl">
+    <Page>
       <div className="no-print flex flex-wrap items-center justify-between gap-3">
         {keepsPlaybook ? (
           <Link

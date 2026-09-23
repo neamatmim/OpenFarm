@@ -223,7 +223,7 @@ const MyNumber = () => {
 const SettingsPage = () => {
   const { t } = useLanguage();
   return (
-    <Page width="narrow">
+    <Page>
       <PageHeader
         description={t("settings.subtitle")}
         title={t("nav.settings")}
