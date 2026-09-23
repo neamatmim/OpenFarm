@@ -1,12 +1,39 @@
+import { translate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { FormField, FormSheet } from "@/components/page-kit";
+import {
+  FormField,
+  FormSection,
+  FormSheet,
+  NativeSelect,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
+
+/** The people an Investor names as nominee almost every time, in the order a family is usually spoken of. */
+const RELATIONS = [
+  "wife",
+  "husband",
+  "son",
+  "daughter",
+  "father",
+  "mother",
+  "brother",
+  "sister",
+] as const;
+
+type Relation = (typeof RELATIONS)[number];
+
+/** Nothing chosen, one of the usual relations, or somebody else whose relation is written in words. */
+type RelationChoice = "" | Relation | "other";
+
+const isRelation = (value: string): value is Relation =>
+  (RELATIONS as readonly string[]).includes(value);
 
 interface Person {
   name: string;
@@ -16,7 +43,8 @@ interface Person {
   bankAccount: string;
   nomineeName: string;
   nomineePhone: string;
-  nomineeRelation: string;
+  nomineeRelation: RelationChoice;
+  nomineeRelationInWords: string;
 }
 
 const NOBODY_YET: Person = {
@@ -28,10 +56,24 @@ const NOBODY_YET: Person = {
   nomineeName: "",
   nomineePhone: "",
   nomineeRelation: "",
+  nomineeRelationInWords: "",
 };
 
 /** A field left blank is a field the Owner did not answer, not an empty answer. */
 const orNothing = (value: string) => (value.trim() === "" ? undefined : value);
+
+/**
+ * The relation as it is kept: a word, in Bangla whatever language the form was filled in, because the joining letter
+ * prints it as it stands and the relations already on file are Bangla words.
+ */
+const relationWord = (person: Person) => {
+  if (person.nomineeRelation === "other") {
+    return orNothing(person.nomineeRelationInWords);
+  }
+  return person.nomineeRelation === ""
+    ? undefined
+    : translate("bn", `investors.relation.${person.nomineeRelation}`);
+};
 
 /**
  * One Investor, written down once and reused for every Venture they join. The nominee is asked for here
@@ -77,7 +119,7 @@ export const RecordInvestorSheet = ({
               : {
                   name: person.nomineeName,
                   phone: orNothing(person.nomineePhone),
-                  relation: orNothing(person.nomineeRelation),
+                  relation: relationWord(person),
                 },
         })
       }
@@ -86,15 +128,22 @@ export const RecordInvestorSheet = ({
       ready={ready}
       submitLabel={t("investors.record")}
       title={t("investors.record")}
+      wide
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="investor-name" label={t("investors.name")}>
+      <FormSection title={t("investors.section.who")}>
+        <FormField
+          className="sm:col-span-2"
+          id="investor-name"
+          label={t("investors.name")}
+        >
           <Input
             autoComplete="off"
             id="investor-name"
+            maxLength={120}
             onChange={(event) =>
               setPerson({ ...person, name: event.target.value })
             }
+            required
             value={person.name}
           />
         </FormField>
@@ -102,29 +151,20 @@ export const RecordInvestorSheet = ({
           <Input
             id="investor-phone"
             inputMode="tel"
+            maxLength={20}
             onChange={(event) =>
               setPerson({ ...person, phone: event.target.value })
             }
+            required
             value={person.phone}
           />
         </FormField>
-      </div>
-      <FormField id="investor-address" label={t("investors.address")}>
-        <Input
-          autoComplete="off"
-          id="investor-address"
-          onChange={(event) =>
-            setPerson({ ...person, address: event.target.value })
-          }
-          value={person.address}
-        />
-      </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="investor-nid" label={t("investors.nid")}>
           <Input
             autoComplete="off"
             id="investor-nid"
             inputMode="numeric"
+            maxLength={40}
             onChange={(event) =>
               setPerson({ ...person, nid: event.target.value })
             }
@@ -132,35 +172,60 @@ export const RecordInvestorSheet = ({
           />
         </FormField>
         <FormField
-          hint={t("investors.bankHint")}
+          className="sm:col-span-2"
+          id="investor-address"
+          label={t("investors.address")}
+        >
+          <Textarea
+            autoComplete="off"
+            id="investor-address"
+            maxLength={200}
+            onChange={(event) =>
+              setPerson({ ...person, address: event.target.value })
+            }
+            rows={2}
+            value={person.address}
+          />
+        </FormField>
+      </FormSection>
+      <FormSection
+        description={t("investors.bankHint")}
+        title={t("investors.section.money")}
+      >
+        <FormField
+          className="sm:col-span-2"
           id="investor-bank"
           label={t("investors.bank")}
         >
-          <Input
+          <Textarea
             autoComplete="off"
+            className="min-h-24"
             id="investor-bank"
+            maxLength={300}
             onChange={(event) =>
               setPerson({ ...person, bankAccount: event.target.value })
             }
+            placeholder={t("investors.bankPlaceholder")}
+            rows={4}
             value={person.bankAccount}
           />
         </FormField>
-      </div>
-      <FormField
-        hint={t("investors.nomineeHint")}
-        id="investor-nominee"
-        label={t("investors.nominee")}
+      </FormSection>
+      <FormSection
+        description={t("investors.nomineeHint")}
+        title={t("investors.nominee")}
       >
-        <Input
-          autoComplete="off"
-          id="investor-nominee"
-          onChange={(event) =>
-            setPerson({ ...person, nomineeName: event.target.value })
-          }
-          value={person.nomineeName}
-        />
-      </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="investor-nominee" label={t("investors.nomineeName")}>
+          <Input
+            autoComplete="off"
+            id="investor-nominee"
+            maxLength={120}
+            onChange={(event) =>
+              setPerson({ ...person, nomineeName: event.target.value })
+            }
+            value={person.nomineeName}
+          />
+        </FormField>
         <FormField
           id="investor-nominee-phone"
           label={t("investors.nomineePhone")}
@@ -168,6 +233,7 @@ export const RecordInvestorSheet = ({
           <Input
             id="investor-nominee-phone"
             inputMode="tel"
+            maxLength={20}
             onChange={(event) =>
               setPerson({ ...person, nomineePhone: event.target.value })
             }
@@ -178,16 +244,47 @@ export const RecordInvestorSheet = ({
           id="investor-nominee-relation"
           label={t("investors.nomineeRelation")}
         >
-          <Input
-            autoComplete="off"
+          <NativeSelect
             id="investor-nominee-relation"
-            onChange={(event) =>
-              setPerson({ ...person, nomineeRelation: event.target.value })
-            }
+            onChange={(event) => {
+              const chosen = event.target.value;
+              setPerson({
+                ...person,
+                nomineeRelation:
+                  isRelation(chosen) || chosen === "other" ? chosen : "",
+              });
+            }}
             value={person.nomineeRelation}
-          />
+          >
+            <option value="">—</option>
+            {RELATIONS.map((relation) => (
+              <option key={relation} value={relation}>
+                {t(`investors.relation.${relation}`)}
+              </option>
+            ))}
+            <option value="other">{t("investors.relation.other")}</option>
+          </NativeSelect>
         </FormField>
-      </div>
+        {person.nomineeRelation === "other" ? (
+          <FormField
+            id="investor-nominee-relation-words"
+            label={t("investors.relationInWords")}
+          >
+            <Input
+              autoComplete="off"
+              id="investor-nominee-relation-words"
+              maxLength={60}
+              onChange={(event) =>
+                setPerson({
+                  ...person,
+                  nomineeRelationInWords: event.target.value,
+                })
+              }
+              value={person.nomineeRelationInWords}
+            />
+          </FormField>
+        ) : null}
+      </FormSection>
     </FormSheet>
   );
 };

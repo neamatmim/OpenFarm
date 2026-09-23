@@ -19,9 +19,10 @@ const Fact = ({ label, children }: { label: string; children?: ReactNode }) => {
     <RecordRow
       title={label}
       // Wrapped rather than truncated: she is holding the stamped paper and checking the farm's copy
-      // against it, and half a bank account number is worse than none.
+      // against it, and half a bank account number is worse than none. Its lines are kept as she typed them:
+      // an account written as name, number, bank and branch reads as four lines, not one run-on.
       trailing={
-        <span className="text-muted-foreground max-w-64 text-end text-sm break-words">
+        <span className="text-muted-foreground max-w-64 text-end text-sm break-words whitespace-pre-line">
           {children === "" || children === null || children === undefined
             ? t("investors.notGiven")
             : children}
