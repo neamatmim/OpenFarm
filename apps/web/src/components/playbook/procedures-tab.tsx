@@ -1,14 +1,8 @@
 import type { SopContent } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useNavigate } from "@tanstack/react-router";
-import {
-  BookOpen,
-  FileText,
-  GitPullRequestArrow,
-  Pencil,
-  Search,
-} from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookOpen, GitPullRequestArrow, Pencil, Search } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -32,7 +26,6 @@ import { contentOf, whenWords } from "./playbook-types";
 interface ProcedureActions {
   isOwner: boolean;
   handleEdit: (definitionId: string, content: SopContent) => void;
-  handleCard: (definitionId: string) => void;
 }
 
 /** A procedure as its row reads it: its names in both languages, the Version in force and what it says. */
@@ -102,22 +95,18 @@ const WhoDoesIt = ({ content }: { content: SopContent | undefined }) => {
   );
 };
 
-/** The menu at the end of a procedure's row: its card, and the way to change it. */
+/** The way to change a procedure, at the end of its row — the Owner edits it, anybody else proposes a change. Its
+ *  card is its name. */
 const ProcedureMenu = ({ row }: { row: ProcedureRow }) => {
   const { t } = useLanguage();
   const { content } = row;
-  const { handleCard, handleEdit, isOwner } = row.actions;
+  const { handleEdit, isOwner } = row.actions;
   if (!content) {
     return null;
   }
   return (
     <RowMenu
       actions={[
-        {
-          label: t("sop.readCard"),
-          icon: FileText,
-          handleSelect: () => handleCard(row.id),
-        },
         {
           label: isOwner ? t("sop.edit") : t("sop.propose"),
           icon: isOwner ? Pencil : GitPullRequestArrow,
@@ -129,9 +118,23 @@ const ProcedureMenu = ({ row }: { row: ProcedureRow }) => {
   );
 };
 
+/** A procedure's name, as the way to its card — the one-page sheet the farm reads and trains from. */
+const ProcedureName = ({ row }: { row: ProcedureRow }) =>
+  row.content ? (
+    <Link
+      className="w-fit rounded-md font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-2"
+      params={{ definitionId: row.id }}
+      to="/cards/$definitionId"
+    >
+      {row.name}
+    </Link>
+  ) : (
+    <span className="font-medium">{row.name}</span>
+  );
+
 const NameCell = ({ row }: { row: { original: ProcedureRow } }) => (
   <div className="flex min-w-0 flex-col gap-0.5">
-    <span className="font-medium">{row.original.name}</span>
+    <ProcedureName row={row.original} />
     {row.original.purpose ? (
       <span className="text-muted-foreground line-clamp-2 text-xs">
         {row.original.purpose}
@@ -202,7 +205,7 @@ const ProcedureCard = ({ row }: { row: ProcedureRow }) => {
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="font-medium">{row.name}</span>
+          <ProcedureName row={row} />
           <div className="text-sm">
             <WhenItComesUp content={row.content} />
           </div>
@@ -233,7 +236,7 @@ const matches = (row: ProcedureRow, typed: string): boolean => {
 
 /**
  * The Playbook, a row per procedure: when its work comes up, who does it and who signs it off, and the Version in
- * force. Raising its work now is the one act on the row; its card, and changing it, are in the row's menu.
+ * force. Its name opens its card; raising its work now, and changing it, are the acts on the row.
  */
 export const ProceduresTab = ({
   sops,
@@ -245,13 +248,10 @@ export const ProceduresTab = ({
   onEdit: (definitionId: string, content: SopContent) => void;
 }) => {
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const [typed, setTyped] = useState("");
   const actions: ProcedureActions = {
     isOwner,
     handleEdit: onEdit,
-    handleCard: (definitionId) =>
-      navigate({ to: "/cards/$definitionId", params: { definitionId } }),
   };
   const rows = sops
     .map((sop) => toRow(sop, actions))

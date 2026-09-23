@@ -3,6 +3,7 @@ import type { MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
+import { Link } from "@tanstack/react-router";
 import {
   Banknote,
   FileText,
@@ -24,7 +25,6 @@ import type { ReactNode } from "react";
 
 import { StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
-import { RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { saidMonth } from "@/lib/months";
 import { useTaka } from "@/lib/taka";
@@ -171,7 +171,6 @@ const termsCanStillMove = (venture: Venture) =>
 /** Everything one card can ask the page to open. One object rather than sixteen props, so a new act is
  *  one line here and one line there rather than a fourth row of buttons. */
 export interface VentureActs {
-  details: (venture: Venture) => void;
   sign: (venture: Venture) => void;
   takeCapital: (venture: Venture) => void;
   callOff: (venture: Venture) => void;
@@ -182,7 +181,6 @@ export interface VentureActs {
   settle: (venture: Venture) => void;
   advance: (venture: Venture) => void;
   checkTheBank: (venture: Venture) => void;
-  seeMovements: (venture: Venture) => void;
   statements: (venture: Venture) => void;
   economics: (venture: Venture) => void;
   amend: (venture: Venture) => void;
@@ -252,25 +250,21 @@ export const WhatStopsHer = ({
  * running is read against what its account holds and what is left to feed with; one that is over is read
  * against what went out of it. The rest of the terms are said once, quietly, under them.
  */
-const MoneyLines = ({
-  venture,
-  onSeeMovements,
-}: {
-  venture: Venture;
-  onSeeMovements: () => void;
-}) => {
+const MoneyLines = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
   const money = moneyOf(venture);
   const taka = useTaka();
+  // What came in, as a way to the Venture's money, where every movement of it is listed.
   const held = (
-    <button
+    <Link
       aria-label={t("ventures.movements")}
       className="rounded-md outline-none hover:underline focus-visible:ring-2"
-      onClick={onSeeMovements}
-      type="button"
+      params={{ ventureId: venture.id }}
+      search={{ tab: "money" }}
+      to="/ventures/$ventureId"
     >
       {taka(venture.capitalInBdt)}
-    </button>
+    </Link>
   );
   return (
     <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
@@ -524,7 +518,8 @@ export const PrimaryActs = ({
 };
 
 /**
- * Everything else the run can do, in the menu at the head of the card.
+ * Everything else the run can do, in the menu at the head of its own page — the list offers only the act it is
+ * waiting for, and its name opens the page.
  *
  * Each act is asked for on its own terms — whether there is a Float out, whether anybody has signed —
  * rather than off the state alone, because starting from the state is how the Statements button and the
@@ -533,25 +528,10 @@ export const PrimaryActs = ({
 export const actsInTheMenu = (
   venture: Venture,
   acts: VentureActs,
-  t: (key: MessageKey, params?: MessageParams) => string,
-  /** On the Venture's own page, where going to it and its money are already on show. */
-  { onItsOwnPage = false }: { onItsOwnPage?: boolean } = {}
+  t: (key: MessageKey, params?: MessageParams) => string
 ): RowAction[] => {
   const money = moneyOf(venture);
-  const inTheMenu: RowAction[] = onItsOwnPage
-    ? []
-    : [
-        {
-          label: t("ventures.details"),
-          icon: ScrollText,
-          handleSelect: () => acts.details(venture),
-        },
-        {
-          label: t("ventures.movements"),
-          icon: ScrollText,
-          handleSelect: () => acts.seeMovements(venture),
-        },
-      ];
+  const inTheMenu: RowAction[] = [];
   if (venture.state === "open") {
     const nobodySigned = money.signedFor.people === 0;
     inTheMenu.push({
@@ -628,7 +608,7 @@ export const actsInTheMenu = (
 
 /**
  * One Venture: what it is called and where it stands, the few figures it is judged by, what is wrong with
- * it, and the act it is waiting for. Everything else it can do is in the menu beside its name.
+ * it, and the act it is waiting for. Everything else it can do is on its own page, which its name opens.
  */
 export const VentureCard = ({
   venture,
@@ -642,42 +622,34 @@ export const VentureCard = ({
   lastMonthOver: string;
   /** Inside a list that already draws a line between its rows, where a card in a card is noise. */
   bare?: boolean;
-}) => {
-  const { t } = useLanguage();
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-3 text-sm",
-        !bare && "bg-card rounded-xl border p-4 md:p-5"
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold tracking-tight">
+}) => (
+  <div
+    className={cn(
+      "flex flex-col gap-3 text-sm",
+      !bare && "bg-card rounded-xl border p-4 md:p-5"
+    )}
+  >
+    <div className="flex items-start justify-between gap-3">
+      <h3 className="text-base font-semibold tracking-tight">
+        <Link
+          className="rounded-md underline-offset-4 outline-none hover:underline focus-visible:ring-2"
+          params={{ ventureId: venture.id }}
+          to="/ventures/$ventureId"
+        >
           {venture.name}
-        </h3>
-        <div className="flex shrink-0 items-center gap-1">
-          <StateBadge state={venture.state} />
-          <RowMenu
-            actions={actsInTheMenu(venture, acts, t)}
-            label={t("ventures.moreFor", { venture: venture.name })}
-          />
-        </div>
-      </div>
-      <MoneyLines
-        onSeeMovements={() => acts.seeMovements(venture)}
-        venture={venture}
-      />
-      <CardBadges lastMonthOver={lastMonthOver} venture={venture} />
-      {venture.cancelledReason ? (
-        <p className="text-muted-foreground text-xs">
-          {venture.cancelledReason}
-        </p>
-      ) : null}
-      <Terms venture={venture} />
-      <WhatStopsHer venture={venture} />
-      <div className="flex flex-wrap justify-end gap-2">
-        <PrimaryActs acts={acts} venture={venture} />
-      </div>
+        </Link>
+      </h3>
+      <StateBadge state={venture.state} />
     </div>
-  );
-};
+    <MoneyLines venture={venture} />
+    <CardBadges lastMonthOver={lastMonthOver} venture={venture} />
+    {venture.cancelledReason ? (
+      <p className="text-muted-foreground text-xs">{venture.cancelledReason}</p>
+    ) : null}
+    <Terms venture={venture} />
+    <WhatStopsHer venture={venture} />
+    <div className="flex flex-wrap justify-end gap-2">
+      <PrimaryActs acts={acts} venture={venture} />
+    </div>
+  </div>
+);

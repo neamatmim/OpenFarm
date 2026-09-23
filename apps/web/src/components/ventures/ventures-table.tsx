@@ -1,6 +1,7 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
+import { Link } from "@tanstack/react-router";
 
 import {
   ActionsHeader,
@@ -10,7 +11,6 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { Nothing, SaidDate } from "@/components/list-cells";
-import { RowMenu } from "@/components/page-kit";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import {
   CardBadges,
@@ -18,7 +18,6 @@ import {
   StateBadge,
   VentureCard,
   WhatStopsHer,
-  actsInTheMenu,
   moneyOf,
 } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
@@ -45,18 +44,16 @@ interface Cell {
  * of its own for the bank took the width the acts at the end of the row needed for their words.
  */
 const VentureCell = ({ row }: Cell) => {
-  const { t } = useLanguage();
-  const { venture, acts, lastMonthOver } = row.original;
+  const { venture, lastMonthOver } = row.original;
   return (
     <span className="flex min-w-0 flex-col items-start gap-1">
-      <button
-        aria-label={t("ventures.details")}
+      <Link
         className="rounded-md text-start font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-2"
-        onClick={() => acts.details(venture)}
-        type="button"
+        params={{ ventureId: venture.id }}
+        to="/ventures/$ventureId"
       >
         {venture.name}
-      </button>
+      </Link>
       {/* Free to wrap inside, so a long badge is what the column bends around rather than what sets its width. */}
       <span className="flex flex-wrap items-center gap-1 [&_[data-slot=badge]]:text-start [&_[data-slot=badge]]:whitespace-normal">
         <StateBadge state={venture.state} />
@@ -141,17 +138,18 @@ const WindowCell = ({ row }: Cell) => {
 const HeldCell = ({ row }: Cell) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const { venture, acts } = row.original;
+  const { venture } = row.original;
   return (
     <span className="flex flex-col items-end gap-0.5">
-      <button
+      <Link
         aria-label={t("ventures.movements")}
         className="rounded-md tabular-nums underline-offset-4 outline-none hover:underline focus-visible:ring-2"
-        onClick={() => acts.seeMovements(venture)}
-        type="button"
+        params={{ ventureId: venture.id }}
+        search={{ tab: "money" }}
+        to="/ventures/$ventureId"
       >
         {taka(venture.capitalInBdt)}
-      </button>
+      </Link>
       {venture.state === "open" ? (
         <span className="text-muted-foreground text-xs whitespace-nowrap tabular-nums">
           {t("ventures.ofTheFloor", { floor: taka(venture.floorBdt) })}
@@ -194,21 +192,14 @@ const PeopleCell = ({ row }: Cell) => {
   );
 };
 
-/** The act the run is waiting for, and the menu holding everything else it can do. What stands in the way of
- *  a dim one is said under the run's name. */
+/** The act the run is waiting for, and nothing else: everything else it can do is on its own page, which its name
+ *  opens. What stands in the way of a dim one is said under the run's name. */
 const ActsCell = ({ row }: Cell) => {
-  const { t } = useLanguage();
   const { venture, acts } = row.original;
   return (
-    <div className="flex items-start justify-end gap-1">
-      {/* One above the other, so the column is as wide as one button rather than two. */}
-      <div className="flex flex-col items-stretch gap-1">
-        <PrimaryActs acts={acts} dense venture={venture} />
-      </div>
-      <RowMenu
-        actions={actsInTheMenu(venture, acts, t)}
-        label={t("ventures.moreFor", { venture: venture.name })}
-      />
+    // One above the other, so the column is as wide as one button rather than two.
+    <div className="flex flex-col items-end gap-1">
+      <PrimaryActs acts={acts} dense venture={venture} />
     </div>
   );
 };

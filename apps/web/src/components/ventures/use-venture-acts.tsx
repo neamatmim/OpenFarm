@@ -1,6 +1,5 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,7 +12,6 @@ import { CallOffSheet } from "@/components/ventures/call-off-sheet";
 import { CountFloatSheet } from "@/components/ventures/count-float-sheet";
 import { DrawFloatSheet } from "@/components/ventures/draw-float-sheet";
 import { EconomicsSheet } from "@/components/ventures/economics-sheet";
-import { MovementsSheet } from "@/components/ventures/movements-sheet";
 import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
 import { SettlementSheet } from "@/components/ventures/settlement-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
@@ -27,14 +25,14 @@ import { orpc } from "@/utils/orpc";
 
 /**
  * The acts that open a sheet about one Venture — which is every act but the two that are a single mutation
- * each, said and done with no form to fill, and the one that goes to the Venture's own page.
+ * each, said and done with no form to fill.
  *
  * Taken from `VentureActs` rather than listed again, so a new act is a compiler error here until it is either
  * given a sheet or named as one that needs none.
  */
 type ActOnOneVenture = Exclude<
   keyof VentureActs,
-  "startBuying" | "startFattening" | "details"
+  "startBuying" | "startFattening"
 >;
 
 /**
@@ -56,7 +54,6 @@ export const useVentureActs = ({
 } = {}): { acts: VentureActs; sheets: ReactNode } => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const navigate = useNavigate();
   const [staged, setStaged] = useState<{
     act: ActOnOneVenture;
     venture: Venture;
@@ -82,11 +79,6 @@ export const useVentureActs = ({
   const opens = (act: ActOnOneVenture) => (venture: Venture) =>
     setStaged({ act, venture });
   const acts: VentureActs = {
-    details: (venture) =>
-      navigate({
-        to: "/ventures/$ventureId",
-        params: { ventureId: venture.id },
-      }),
     sign: opens("sign"),
     takeCapital: opens("takeCapital"),
     callOff: opens("callOff"),
@@ -97,7 +89,6 @@ export const useVentureActs = ({
     settle: opens("settle"),
     advance: opens("advance"),
     checkTheBank: opens("checkTheBank"),
-    seeMovements: opens("seeMovements"),
     statements: opens("statements"),
     economics: opens("economics"),
     amend: opens("amend"),
@@ -132,7 +123,6 @@ export const useVentureActs = ({
   const sheets = (
     <>
       <TakeCapitalSheet {...staging("takeCapital")} />
-      <MovementsSheet {...staging("seeMovements")} />
       <BankCheckSheet {...staging("checkTheBank")} />
       <AdvanceSheet {...staging("advance")} />
       <ReimburseSheet {...staging("reimburse")} />
