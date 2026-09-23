@@ -352,7 +352,7 @@ export const bn: Record<MessageKey, string> = {
   "ventures.floorNotMetYet":
     "কেনা শুরুর আগে আরও ৳{short} জমা হতে হবে (সর্বনিম্ন সীমা ৳{floor})।",
   "ventures.noUnitsLeft": "সব ইউনিট সই হয়ে গেছে।",
-  "ventures.decisionDue": "{day} সিদ্ধান্তের দিন — সর্বনিম্ন সীমা পূরণ হয়নি",
+  "ventures.decisionDue": "সিদ্ধান্ত {day}-এর মধ্যে",
   "ventures.signFirst": "আগে চুক্তি সই করুন",
   "ventures.ofTheFloor": "সর্বনিম্ন সীমা {floor}",
   "ventures.signedWithoutPaper":
@@ -596,6 +596,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.budgetsHeld": "তার মধ্যে গরু আর চলতি",
   "ventures.tab.running": "চলমান",
   "ventures.col.venture": "ভেঞ্চার",
+  "ventures.col.unitsSigned": "সই হওয়া ইউনিট",
+  "ventures.col.people": "বিনিয়োগকারী",
   "ventures.details": "এই ভেঞ্চারের সব কিছু",
   "ventures.stages": "ভেঞ্চারের ধাপ",
   "ventures.page.back": "সব ভেঞ্চার",

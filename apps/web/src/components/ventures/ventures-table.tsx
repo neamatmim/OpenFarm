@@ -96,17 +96,26 @@ const BalanceCell = ({ row }: Cell) => {
   );
 };
 
-const SignedCell = ({ row }: Cell) => {
+/** How many of its Units are signed for, out of how many there are. */
+const UnitsCell = ({ row }: Cell) => {
   const { t, language } = useLanguage();
   const { venture } = row.original;
-  const signed = moneyOf(venture).signedFor;
   return (
     <span className="tabular-nums">
-      {t("ventures.unitsOfUnits", {
-        taken: formatNumber(signed.units, language),
+      {t("ventures.page.unitsOf", {
+        taken: formatNumber(moneyOf(venture).signedFor.units, language),
         units: formatNumber(venture.units, language),
-        people: formatNumber(signed.people, language),
       })}
+    </span>
+  );
+};
+
+/** How many people have signed for it. Its own column, so the runs can be sorted by it. */
+const PeopleCell = ({ row }: Cell) => {
+  const { language } = useLanguage();
+  return (
+    <span className="tabular-nums">
+      {formatNumber(moneyOf(row.original.venture).signedFor.people, language)}
     </span>
   );
 };
@@ -151,9 +160,15 @@ const ventureColumns = column.columns([
     meta: { align: "end" },
   }),
   column.accessor((row) => moneyOf(row.venture).signedFor.units, {
-    id: "signed",
-    header: listHeader("ventures.signedFor"),
-    cell: SignedCell,
+    id: "units",
+    header: listHeader("ventures.col.unitsSigned"),
+    cell: UnitsCell,
+    meta: { align: "end" },
+  }),
+  column.accessor((row) => moneyOf(row.venture).signedFor.people, {
+    id: "people",
+    header: listHeader("ventures.col.people"),
+    cell: PeopleCell,
     meta: { align: "end" },
   }),
   column.display({
@@ -177,8 +192,8 @@ const ventureCard = (row: VentureRow) => (
 
 /**
  * The Ventures on one tab as a table: what each is called and where it stands, what its Investors have put
- * in, what its account should hold, who has signed and how the bank stands — with the act it is waiting for
- * at the end of its row, and everything else in the menu beside it.
+ * in, what its account should hold, how many Units are signed and by how many people, and how the bank
+ * stands — with the act it is waiting for at the end of its row, and everything else in the menu beside it.
  *
  * Sortable by every figure, because the question a table answers is which of them, and the rest of what a
  * Venture is opens from its name.
