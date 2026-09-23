@@ -247,6 +247,7 @@ export {
   isByWeight,
   perSessionKg,
   sessionKgOf,
+  roundFeedKg,
   roundKg,
   shortfallPercent,
   priceHistory,
