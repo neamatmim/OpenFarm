@@ -969,6 +969,7 @@ export const bn: Record<MessageKey, string> = {
   "animals.filter.open": "ফিল্টার",
   "animals.age": "বয়স",
   "animals.ageYears": "{years} বছর {months} মাস",
+  "animals.ageEstimated": "আনুমানিক {age}",
   "animals.more": "আরও",
   "animals.moreFor": "{tag} — আরও কাজ",
   "animals.tab.overview": "এক নজরে",

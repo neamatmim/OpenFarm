@@ -262,4 +262,33 @@ describe("intake", () => {
       await setter.client.farm.setParameters({ fatteningTargetWeightKg: 350 });
     }
   });
+
+  it("tells anybody who may see her how old the seller said she was, without what she cost", async () => {
+    // A bought bull has no birth date, so this is all the farm has to give his age by.
+    const clock = new FakeClock("2027-01-19T04:00:00.000Z");
+    const manager = await createTestClient(appRouter, { as: "manager", clock });
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    const taken = await manager.client.intake.record({
+      penId,
+      sex: "male",
+      seller: { name: `বাজার ${Date.now()}` },
+      purchasePriceBdt: 72_000,
+      weightKg: 180,
+      estimatedAgeMonths: 19,
+    });
+    const told = {
+      estimatedAgeMonths: 19,
+      arrivedAt: new Date("2027-01-19T04:00:00.000Z"),
+    };
+
+    const his = await vet.client.animals.byTag({ tagNumber: taken.tagNumber });
+    expect(his.birthDate).toBeNull();
+    expect(his.intake).toBeNull();
+    expect(his.ageAtIntake).toEqual(told);
+
+    const herd = await vet.client.animals.list({ includeExited: false });
+    expect(
+      herd.find((one) => one.tagNumber === taken.tagNumber)?.ageAtIntake
+    ).toEqual(told);
+  });
 });

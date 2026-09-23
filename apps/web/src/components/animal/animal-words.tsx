@@ -1,4 +1,5 @@
-import type { AnimalState } from "@OpenFarm/domain";
+import { ageOf } from "@OpenFarm/domain";
+import type { Age, AgeAtIntake, AnimalState } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Beef, Lock, Milk } from "lucide-react";
 
@@ -7,8 +8,8 @@ import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 /**
- * How an animal is said wherever she is listed or looked up: her State as a badge, her Side with its icon, her age
- * from the day she was born, and what is holding her back. Said once here so the herd and her own page agree.
+ * How an animal is said wherever she is listed or looked up: her State as a badge, her Side with its icon, her age,
+ * and what is holding her back. Said once here so the herd and her own page agree.
  */
 
 /** A State's loudness: in quarantine or gone is worth a glance, ready for sale is good news, the rest is plain. */
@@ -73,34 +74,37 @@ const MONTHS_IN_A_YEAR = 12;
 /** Under two years a calf or a heifer is counted in months. */
 const MONTHS_BEFORE_YEARS = 24;
 
-/** Whole months from the day she was born to today. */
-export const monthsOld = (birthDate: Date | string, now = new Date()) => {
-  const born = new Date(birthDate);
-  const months =
-    (now.getFullYear() - born.getFullYear()) * MONTHS_IN_A_YEAR +
-    (now.getMonth() - born.getMonth()) -
-    (now.getDate() < born.getDate() ? 1 : 0);
-  return Math.max(0, months);
-};
-
-/** Her age in the farm's words — months under two years, as the farm talks about a calf or a heifer, years after —
- *  or nothing for an animal whose birth nobody wrote down. */
+/** Her age in the farm's words — months under two years, as the farm talks about a calf or a heifer, years after, and
+ *  "about" in front where it is the seller's word grown by her time here — or nothing for an animal nobody has said
+ *  anything about. */
 export const ageWords = (
   t: ReturnType<typeof useLanguage>["t"],
-  birthDate: Date | string | null
+  age: Age | null
 ): string | null => {
-  if (birthDate === null) {
+  if (age === null) {
     return null;
   }
-  const months = monthsOld(birthDate);
-  if (months < MONTHS_BEFORE_YEARS) {
-    return t("intake.months", { months });
-  }
-  return t("animals.ageYears", {
-    years: Math.floor(months / MONTHS_IN_A_YEAR),
-    months: months % MONTHS_IN_A_YEAR,
-  });
+  const { months } = age;
+  const words =
+    months < MONTHS_BEFORE_YEARS
+      ? t("intake.months", { months })
+      : t("animals.ageYears", {
+          years: Math.floor(months / MONTHS_IN_A_YEAR),
+          months: months % MONTHS_IN_A_YEAR,
+        });
+  return age.estimated ? t("animals.ageEstimated", { age: words }) : words;
 };
+
+/** Her age as of now, from her page's answer — which, kept on a phone from before the farm sent the seller's word,
+ *  may not have it until it is read again. */
+export const herAge = (her: {
+  birthDate: Date | string | null;
+  ageAtIntake?: AgeAtIntake | null;
+}): Age | null =>
+  ageOf(
+    { birthDate: her.birthDate, ageAtIntake: her.ageAtIntake ?? null },
+    new Date()
+  );
 
 /** Whether a Withdrawal still holds her, as of when the list is drawn. */
 export const stillHeld = (until: Date | string | null): boolean =>
