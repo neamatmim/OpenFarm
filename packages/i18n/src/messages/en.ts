@@ -2439,7 +2439,7 @@ export const en = {
   "intake.recordTrip": "Record the outing",
   "intake.tripRecorded":
     "The outing is written up, and this arrival came home on it",
-  "intake.tripChosen": "This arrival is on the outing chosen above.",
+  "intake.newTrip": "New outing",
   "intake.noTrip": "No outing — bought at the farm gate",
   "intake.owner": "Whose animal she is",
   "intake.ownerHint":

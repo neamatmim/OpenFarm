@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { BuyingTripForm } from "@/components/intake/buying-trip";
+import { BuyingTripSheet } from "@/components/intake/buying-trip";
 import type { IntakeFields } from "@/components/intake/intake-fields";
 import {
   EMPTY,
@@ -61,6 +61,7 @@ const IntakePage = () => {
   const navigate = useNavigate();
   const [fields, setFields] = useState<IntakeFields>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [writingTrip, setWritingTrip] = useState(false);
   const sheds = useQuery(orpc.herd.list.queryOptions());
   // The outings the farm has written up lately, so an arrival can be put on the one it came home on.
   const trips = useQuery(orpc.trips.list.queryOptions());
@@ -156,11 +157,11 @@ const IntakePage = () => {
             fields={fields}
             onEdit={edit}
             trips={trips.data ?? []}
+            onNewTrip={() => setWritingTrip(true)}
             ventures={(ventures.data ?? []).filter(
               (one) => one.state === "buying"
             )}
           />
-          <BuyingTripForm fields={fields} onEdit={edit} />
           <TargetSection fields={fields} onEdit={edit} />
         </div>
 
@@ -189,6 +190,14 @@ const IntakePage = () => {
           </Button>
         </SubmitBar>
       </form>
+
+      {/* Outside the intake's own form: a sheet is drawn elsewhere on the page, but React still carries its submit up
+          to the form it sits in, which would take the animal in along with the outing. */}
+      <BuyingTripSheet
+        onOpenChange={setWritingTrip}
+        onRecorded={(buyingTripId) => edit({ buyingTripId })}
+        open={writingTrip}
+      />
 
       <RecentIntakes />
     </Page>
