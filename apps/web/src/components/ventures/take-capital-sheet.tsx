@@ -1,15 +1,14 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
-import { shrink } from "@/lib/photo";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -41,16 +40,7 @@ const PaperlessAgreements = ({
   agreements: { id: string; investorId: string }[];
 }) => {
   const { t } = useLanguage();
-  const refused = useRefused();
   const nameOf = useInvestorNames();
-  const keeping = useMutation(
-    orpc.ventures.keepAgreementPaper.mutationOptions({
-      onError: refused,
-      onSuccess: () => {
-        toast.success(t("ventures.paperKept"));
-      },
-    })
-  );
   if (agreements.length === 0) {
     return null;
   }
@@ -62,36 +52,7 @@ const PaperlessAgreements = ({
           <span className="min-w-0 flex-1 truncate text-sm">
             {nameOf(one.investorId)}
           </span>
-          {/* The farm's own words on the button, as everywhere else a photograph is taken. */}
-          <label
-            className="border-input bg-card hover:bg-muted has-[:focus-visible]:ring-ring/50 flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors has-[:focus-visible]:ring-[3px] md:min-h-9"
-            htmlFor={`capital-paper-${one.id}`}
-          >
-            <Camera aria-hidden className="size-4" />
-            {t("ventures.paperTake")}
-          </label>
-          <input
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            disabled={keeping.isPending}
-            id={`capital-paper-${one.id}`}
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) {
-                return;
-              }
-              try {
-                keeping.mutate({
-                  agreementId: one.id,
-                  ...(await shrink(file)),
-                });
-              } catch {
-                toast.error(t("common.error"));
-              }
-            }}
-            type="file"
-          />
+          <AgreementPaperButton agreementId={one.id} idPrefix="capital" />
         </div>
       ))}
       <p className="text-muted-foreground text-sm">
@@ -110,17 +71,23 @@ const PaperlessAgreements = ({
  */
 export const TakeCapitalSheet = ({
   venture,
+  agreementId = null,
   open,
   onOpenChange,
 }: {
   venture: { id: string; name: string } | null;
+  /** Opened from one Investor's row: his paper, chosen already. */
+  agreementId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
   const [arrival, setArrival] = useState<Arrival>(NOTHING_YET);
-  useFreshFor(venture?.id, () => setArrival(NOTHING_YET));
+  // A new subject is another Venture or another man's paper: what was typed for one is not the other's.
+  useFreshFor(venture ? `${venture.id}:${agreementId ?? ""}` : undefined, () =>
+    setArrival({ ...NOTHING_YET, agreementId: agreementId ?? "" })
+  );
   const agreements = useQuery({
     ...orpc.ventures.agreements.queryOptions({
       input: { ventureId: venture?.id ?? "" },
@@ -132,7 +99,7 @@ export const TakeCapitalSheet = ({
     orpc.ventures.takeCapital.mutationOptions({
       onError: refused,
       onSuccess: () => {
-        setArrival(NOTHING_YET);
+        setArrival({ ...NOTHING_YET, agreementId: agreementId ?? "" });
         onOpenChange(false);
         toast.success(t("ventures.capitalTaken"));
       },

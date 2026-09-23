@@ -231,9 +231,7 @@ export const bn: Record<MessageKey, string> = {
   "ventureTrouble.bankDisagrees":
     "{months} মাসে ব্যাংকের সাথে মেলেনি — কী জেনেছেন লিখুন",
   "statements.title": "কাগজপত্র",
-  "statements.hint":
-    "বিনিয়োগকারী যে তিনটি কাগজ পান। প্রতিটি একজনের জন্য, অন্য কারো কিছু তাতে থাকে না; প্রতিটিই এক্সপোর্ট হিসেবে লেখা থাকে।",
-  "statements.unitsHeld": "{units} ইউনিট",
+  "statements.for": "{name}-এর কাগজপত্র",
   "statements.joining": "যোগদানপত্র",
   "statements.progress": "অগ্রগতি",
   "statements.settlement": "হিসাব নিকাশ",

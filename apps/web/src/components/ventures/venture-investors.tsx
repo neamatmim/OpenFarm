@@ -1,4 +1,5 @@
 import { formatNumber } from "@OpenFarm/i18n";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import {
@@ -10,10 +11,18 @@ import {
   TableRow,
 } from "@OpenFarm/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, PenLine, Users } from "lucide-react";
+import { Banknote, FileText, PenLine, Users } from "lucide-react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import { RowMenu } from "@/components/page-kit";
+import { AgreementPaperButton } from "@/components/ventures/agreement-paper";
+import type { StatementKind } from "@/components/ventures/investor-papers";
+import {
+  PAPER_KINDS,
+  ProducedPaper,
+  useInvestorPapers,
+} from "@/components/ventures/investor-papers";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import { moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
@@ -52,12 +61,54 @@ const paidAgainst = (
   return paid;
 };
 
+/** One Investor's three papers, in a menu on his row: each offered only once it can be made, and saying why not
+ *  until then — the joining letter and the progress statement once capital has come in, the settlement statement
+ *  once the Settlement is approved. */
+const PapersMenu = ({
+  name,
+  agreementId,
+  hasPaid,
+  settled,
+  papers,
+}: {
+  name: string;
+  agreementId: string;
+  hasPaid: boolean;
+  settled: boolean;
+  papers: ReturnType<typeof useInvestorPapers>;
+}) => {
+  const { t } = useLanguage();
+  const whyNot = (kind: StatementKind): MessageKey | null => {
+    if (kind === "settlement") {
+      return settled ? null : "statements.notSettledYet";
+    }
+    return hasPaid ? null : "statements.noCapitalYet";
+  };
+  return (
+    <RowMenu
+      actions={PAPER_KINDS.map(({ kind, label, icon }) => {
+        const why = whyNot(kind);
+        return {
+          label: t(label),
+          icon,
+          disabled: papers.busy || why !== null,
+          hint: why ? t(why) : undefined,
+          handleSelect: () => papers.ask(kind, agreementId),
+        };
+      })}
+      label={t("statements.for", { name })}
+      named={{ text: t("statements.title"), icon: FileText }}
+    />
+  );
+};
+
 /**
  * Who has signed this Venture and on what: their Units, the split those Units earn, the capital they have
  * paid against what the Units are worth, and whether the farm holds the stamped paper's photo — the thing
  * capital may not be taken without.
  *
- * The acts about Agreements sit over the table rather than in a menu, because this is the page they belong to.
+ * What is done about one man's Agreement is done from his row: his capital taken, his stamped paper photographed,
+ * his papers made — the paper shown beneath the table. Signing somebody new sits over the table.
  */
 export const VentureInvestors = ({
   venture,
@@ -75,27 +126,17 @@ export const VentureInvestors = ({
   const paid = paidAgainst(movements.data ?? []);
   const signed = moneyOf(venture).signedFor;
   const unitsLeft = venture.units - signed.units;
-  const actions = (
-    <div className="flex flex-wrap gap-2">
-      {signed.people === 0 || venture.state === "cancelled" ? null : (
-        <Button
-          onClick={() => acts.statements(venture)}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <FileText aria-hidden data-icon="inline-start" />
-          {t("statements.title")}
-        </Button>
-      )}
-      {venture.state === "open" && unitsLeft > 0 ? (
-        <Button onClick={() => acts.sign(venture)} size="sm" type="button">
-          <PenLine aria-hidden data-icon="inline-start" />
-          {t("ventures.sign")}
-        </Button>
-      ) : null}
-    </div>
-  );
+  const papers = useInvestorPapers();
+  const open = venture.state === "open";
+  const cancelled = venture.state === "cancelled";
+  const settled = venture.settlementApproved ?? false;
+  const actions =
+    open && unitsLeft > 0 ? (
+      <Button onClick={() => acts.sign(venture)} size="sm" type="button">
+        <PenLine aria-hidden data-icon="inline-start" />
+        {t("ventures.sign")}
+      </Button>
+    ) : null;
   if (agreements.isPending) {
     return <Skeleton className="h-40 rounded-xl" />;
   }
@@ -129,8 +170,9 @@ export const VentureInvestors = ({
                 <TableHead className="text-end">
                   {t("ventures.page.paidOfOwed")}
                 </TableHead>
+                <TableHead>{t("ventures.page.paper")}</TableHead>
                 <TableHead className="pe-4 md:pe-5">
-                  {t("ventures.page.paper")}
+                  <span className="sr-only">{t("common.col.actions")}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -164,7 +206,7 @@ export const VentureInvestors = ({
                         {` / ${taka(owed)}`}
                       </span>
                     </TableCell>
-                    <TableCell className="pe-4 md:pe-5">
+                    <TableCell>
                       {one.hasPaper ? (
                         <StatusBadge tone="success">
                           {t("ventures.page.paperKept")}
@@ -175,6 +217,37 @@ export const VentureInvestors = ({
                         </StatusBadge>
                       )}
                     </TableCell>
+                    <TableCell className="pe-4 md:pe-5">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {/* Capital is taken against the stamped paper, while the run is still gathering it. */}
+                        {open && one.hasPaper && hasPaid < owed ? (
+                          <Button
+                            onClick={() => acts.takeCapital(venture, one.id)}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            <Banknote aria-hidden data-icon="inline-start" />
+                            {t("ventures.takeCapital")}
+                          </Button>
+                        ) : null}
+                        {one.hasPaper || cancelled ? null : (
+                          <AgreementPaperButton
+                            agreementId={one.id}
+                            idPrefix="row"
+                          />
+                        )}
+                        {cancelled ? null : (
+                          <PapersMenu
+                            agreementId={one.id}
+                            hasPaid={hasPaid > 0}
+                            name={nameOf(one.investorId)}
+                            papers={papers}
+                            settled={settled}
+                          />
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -182,6 +255,11 @@ export const VentureInvestors = ({
           </Table>
         </div>
       )}
+      {papers.produced ? (
+        <div className="mt-4">
+          <ProducedPaper produced={papers.produced} />
+        </div>
+      ) : null}
     </Section>
   );
 };

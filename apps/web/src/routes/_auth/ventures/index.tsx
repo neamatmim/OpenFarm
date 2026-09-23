@@ -4,7 +4,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRightLeft,
   Banknote,
@@ -131,33 +131,13 @@ const VenturesPage = () => {
   const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
   const [sellingInternally, setSellingInternally] = useState(false);
-  const { tab = "running", statements } = Route.useSearch();
+  const { tab = "running" } = Route.useSearch();
   const navigate = useNavigate();
   const ventures = useQuery(orpc.ventures.list.queryOptions());
   const all = ventures.data ?? [];
   const on = (which: Tab) => all.filter((one) => tabOf(one) === which);
   const figures = useVentureFigures(ventures.data);
-  // The notice that her Investors are due a paper names the Venture and sends her here with it in the
-  // address, so she lands on the buttons rather than going looking. Read off the list rather than kept
-  // in state: the list is what arrives, and a Venture whose id the address names but the list does not
-  // hold — a stale link, another farm's — opens nothing.
-  const asked = statements
-    ? (all.find((one) => one.id === statements) ?? null)
-    : null;
-  const { acts, sheets } = useVentureActs({
-    papersAskedFor: asked,
-    // The address said whose papers she came for; once the sheet is closed it has been answered — and the
-    // tab she was reading is kept, because closing a sheet is not leaving the page.
-    onPapersClosed: () => {
-      if (statements !== undefined) {
-        navigate({
-          replace: true,
-          search: tab === "running" ? {} : { tab },
-          to: "/ventures",
-        });
-      }
-    },
-  });
+  const { acts, sheets } = useVentureActs();
   return (
     <Page>
       <PageHeader
@@ -248,7 +228,8 @@ const VenturesPage = () => {
   );
 };
 
-/** What the address may say about this page: which tab she is reading, and whose papers she came for. */
+/** What the address may say about this page: which tab she is reading — and, from an older notice, whose papers
+ *  she came for, which now live in that Venture's Investors tab. */
 interface VenturesSearch {
   tab?: Tab;
   statements?: string;
@@ -256,7 +237,18 @@ interface VenturesSearch {
 
 export const Route = createFileRoute("/_auth/ventures/")({
   /** The Owner's alone: nobody else is shown a screen that would only refuse them. */
-  beforeLoad: onlyFor("owner"),
+  beforeLoad: ({ context, search }) => {
+    onlyFor("owner")({ context });
+    // A notice raised before each Investor's papers moved into his row still sends her here with the Venture in
+    // the address: she is taken to where they are now.
+    if (search.statements) {
+      throw redirect({
+        params: { ventureId: search.statements },
+        search: { tab: "investors" },
+        to: "/ventures/$ventureId",
+      });
+    }
+  },
   component: VenturesPage,
   validateSearch: (search: Record<string, unknown>): VenturesSearch => {
     const said: VenturesSearch = {};

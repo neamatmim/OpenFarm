@@ -15,7 +15,6 @@ import { EconomicsSheet } from "@/components/ventures/economics-sheet";
 import { ReimburseSheet } from "@/components/ventures/reimburse-sheet";
 import { SettlementSheet } from "@/components/ventures/settlement-sheet";
 import { SignAgreementSheet } from "@/components/ventures/sign-agreement-sheet";
-import { StatementsSheet } from "@/components/ventures/statements-sheet";
 import { TakeCapitalSheet } from "@/components/ventures/take-capital-sheet";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
@@ -43,20 +42,15 @@ type ActOnOneVenture = Exclude<
  * Venture at once, and neither page has a meaning for two — nor for a sheet holding last week's Venture behind
  * the one on show, which is what a slot nobody cleared amounted to.
  *
- * `papersAskedFor` is the one sheet with a second way in: a notice that named a Venture in the address.
+ * Capital is the one act that may be staged on one Investor's paper as well as the Venture: taken from his row.
  */
-export const useVentureActs = ({
-  papersAskedFor = null,
-  onPapersClosed,
-}: {
-  papersAskedFor?: Venture | null;
-  onPapersClosed?: () => void;
-} = {}): { acts: VentureActs; sheets: ReactNode } => {
+export const useVentureActs = (): { acts: VentureActs; sheets: ReactNode } => {
   const { t } = useLanguage();
   const refused = useRefused();
   const [staged, setStaged] = useState<{
     act: ActOnOneVenture;
     venture: Venture;
+    agreementId?: string;
   } | null>(null);
   /**
    * Moving a Venture along. Two acts with no form to fill: she says buying has started, and later that it is
@@ -80,7 +74,8 @@ export const useVentureActs = ({
     setStaged({ act, venture });
   const acts: VentureActs = {
     sign: opens("sign"),
-    takeCapital: opens("takeCapital"),
+    takeCapital: (venture, agreementId) =>
+      setStaged({ act: "takeCapital", venture, agreementId }),
     callOff: opens("callOff"),
     drawFloat: opens("drawFloat"),
     countFloat: opens("countFloat"),
@@ -89,7 +84,6 @@ export const useVentureActs = ({
     settle: opens("settle"),
     advance: opens("advance"),
     checkTheBank: opens("checkTheBank"),
-    statements: opens("statements"),
     economics: opens("economics"),
     amend: opens("amend"),
     // Once, however often it is pressed while the first is on its way: a second press lands on a Venture that
@@ -122,7 +116,12 @@ export const useVentureActs = ({
   });
   const sheets = (
     <>
-      <TakeCapitalSheet {...staging("takeCapital")} />
+      <TakeCapitalSheet
+        {...staging("takeCapital")}
+        agreementId={
+          staged?.act === "takeCapital" ? (staged.agreementId ?? null) : null
+        }
+      />
       <BankCheckSheet {...staging("checkTheBank")} />
       <AdvanceSheet {...staging("advance")} />
       <ReimburseSheet {...staging("reimburse")} />
@@ -133,17 +132,6 @@ export const useVentureActs = ({
       <CallOffSheet {...staging("callOff")} />
       <AmendSheet {...staging("amend")} />
       <EconomicsSheet {...staging("economics")} />
-      <StatementsSheet
-        onOpenChange={(next) => {
-          if (next) {
-            return;
-          }
-          setStaged(null);
-          onPapersClosed?.();
-        }}
-        open={staged?.act === "statements" || papersAskedFor !== null}
-        venture={stagedOn("statements") ?? papersAskedFor}
-      />
       <SignAgreementSheet {...staging("sign")} />
     </>
   );
