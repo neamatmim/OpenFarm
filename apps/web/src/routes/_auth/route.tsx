@@ -11,6 +11,11 @@ import {
   setSignedInPerson,
 } from "@/lib/device";
 import { installShell, keepStorage } from "@/lib/install";
+import { whoTheyAre } from "@/lib/who-they-are";
+
+/** How long the farm's answer about who somebody is stands before it is asked again. Long enough that moving
+ *  between screens does not ask on every one; short enough that access taken away stops letting them in. */
+const WHO_THEY_ARE_FRESH_MS = 60_000;
 
 /**
  * Every screen behind a sign-in sits in the app shell: the farm's menu, and — in its top bar — what this phone is
@@ -82,15 +87,21 @@ export const Route = createFileRoute("/_auth")({
     if (!session) {
       throw redirect({ to: "/login" });
     }
-    // A remembered answer is trusted for a person with a farm — that is what keeps a milker working through a
-    // dropped signal. One that says there is no farm yet is asked again: the farm may have been set up since,
-    // and trusting it would hold the new Owner on the setup screen for ever.
-    const me: NonNullable<typeof known> = known?.farm
-      ? known
-      : await context.queryClient.fetchQuery({
+    // The farm is asked who this is, and its answer wins: Roles taken away, or a farm that is not there any more,
+    // would otherwise go on letting them onto screens where every request is refused. A remembered answer stands
+    // only when the farm cannot be reached — a dropped signal is not a change of who somebody is — and one asked
+    // for within the last minute is not asked for again, so moving between screens does not ask on every one.
+    const me = await whoTheyAre({
+      known,
+      ask: () =>
+        context.queryClient.fetchQuery({
           ...context.orpc.people.me.queryOptions(),
-          staleTime: 0,
-        });
+          staleTime: WHO_THEY_ARE_FRESH_MS,
+        }),
+    });
+    if (!me) {
+      throw redirect({ to: "/login" });
+    }
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });
     }

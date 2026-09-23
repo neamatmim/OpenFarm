@@ -8,7 +8,14 @@ import { useEffect } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
 import { getDeviceToken } from "@/lib/device";
-import { cachedHerd, herdCacheQuery, rememberHerd } from "@/lib/herd-cache";
+import {
+  cachedHerd,
+  herdCacheQuery,
+  herdLastTried,
+  rememberHerd,
+  rememberHerdTried,
+} from "@/lib/herd-cache";
+import { herdReadIsDue } from "@/lib/herd-refresh";
 import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
 import { client, orpc } from "@/utils/orpc";
@@ -16,8 +23,6 @@ import { client, orpc } from "@/utils/orpc";
 /** How often the phone tries what it is holding. Sending is cheap when there is nothing to
  *  send: the Outbox reads its own queue and stops. */
 const FLUSH_EVERY_MS = 15_000;
-/** How often the phone re-reads the herd it works. */
-const HERD_EVERY_MS = 10 * 60_000;
 
 /** A time this phone kept, as a date — or nothing, for one it cannot read. The pill is a line in the top bar; a stored
  *  time gone wrong says "not yet" rather than taking every page down with it. */
@@ -77,11 +82,16 @@ export const SyncBanner = () => {
         // The animals of the Pens this person works, kept for the shed where there are no
         // bars: which cow, and whether her milk may go to the tank. Read sparingly — this
         // runs on a battery-limited phone, and a herd does not change by the minute.
-        const { at } = await cachedHerd();
-        const due = !at || Date.now() - new Date(at).getTime() > HERD_EVERY_MS;
-        if (!due) {
+        const [{ at }, triedAt] = await Promise.all([
+          cachedHerd(),
+          herdLastTried(),
+        ]);
+        if (!herdReadIsDue({ readAt: at, triedAt, now: Date.now() })) {
           return;
         }
+        // Written before the read, so a read the farm refuses — a person holding no Role yet — or one that never
+        // answers still spaces out the next one.
+        await rememberHerdTried(new Date());
         const herd = await client.animals.list({});
         await rememberHerd(
           herd.map((animal) => ({

@@ -14,6 +14,7 @@ export interface CachedAnimal {
 
 const HERD = "herd";
 const CACHED_AT = "herd:at";
+const TRIED_AT = "herd:tried";
 
 let store: StorageAdapter | null = null;
 const herdStore = (): StorageAdapter | null => {
@@ -43,6 +44,16 @@ export const rememberHerd = async (
   await storage.set(HERD, JSON.stringify(animals));
   await storage.set(CACHED_AT, at.toISOString());
 };
+
+/** That the phone set out to read the herd, answered or not. Kept apart from what it holds: a read that brought
+ *  nothing back changes when the next one is due and nothing else. */
+export const rememberHerdTried = async (at: Date): Promise<void> => {
+  await herdStore()?.set(TRIED_AT, at.toISOString());
+};
+
+/** When the phone last set out to read the herd. */
+export const herdLastTried = async (): Promise<string | null> =>
+  (await herdStore()?.get(TRIED_AT)) ?? null;
 
 export const cachedHerd = async (): Promise<{
   animals: CachedAnimal[];
