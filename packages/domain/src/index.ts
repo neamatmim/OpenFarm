@@ -433,6 +433,7 @@ export type {
   StandardDrugKey,
   StandardFeedKey,
   StandardKind,
+  StandardLine,
   StandardRation,
   StandardRationKey,
 } from "./standard";
@@ -443,4 +444,5 @@ export {
   STANDARD_KINDS,
   STANDARD_NOTIFIABLE_DISEASES,
   STANDARD_RATIONS,
+  rationLineOf,
 } from "./standard";

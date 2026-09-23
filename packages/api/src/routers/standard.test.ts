@@ -85,6 +85,21 @@ describe("a farm started with the standard lists", () => {
     );
     expect(milking?.items.map((line) => line.feedItemId)).toContain(own.id);
 
+    // The fattening Rations go by weight and say whom they are for: the grower's 150 to 250 kg, its napier by every
+    // hundred kilos and its minerals by the head.
+    const grower = rations.find(
+      (one) => one.name.bn === STANDARD_RATIONS.bullGrower.name.bn
+    );
+    expect(grower?.band).toEqual({ fromKg: 150, toKg: 250 });
+    const nameOf = new Map(items.map((item) => [item.id, item.nameBn]));
+    const lineOf = (bn: string) =>
+      grower?.items.find((line) => nameOf.get(line.feedItemId) === bn);
+    expect(lineOf(STANDARD_FEED_ITEMS.napier.bn)).toEqual({
+      feedItemId: own.id,
+      kgPer100KgPerDay: 4.8,
+    });
+    expect(lineOf("মিনারেল মিক্সচার")).toMatchObject({ kgPerAnimalPerDay: 0.05 });
+
     // On the Drug List for the Vet to finish: no withdrawal days, so nothing may prescribe them yet.
     const drugs = await owner.client.drugs.list();
     expect(drugs).toHaveLength(Object.keys(STANDARD_DRUGS).length);
