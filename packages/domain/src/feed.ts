@@ -106,6 +106,56 @@ export const shortfallPercent = (lines: FeedingLine[]): number => {
 export const isShortFed = (lines: FeedingLine[], tolerancePercent: number) =>
   shortfallPercent(lines) > tolerancePercent;
 
+/** More than this share of what a Pen was given of one Feed Item, left in the trough, is feed the farm paid for and
+ *  the animals did not want: the Ration gives them more of it than they eat. */
+export const WASTING_LEFTOVER_PERCENT = 10;
+
+/** Fewer sessions than this — three days fed twice — say nothing about a Pen's appetite either way. */
+export const SESSIONS_TO_JUDGE = 6;
+
+/**
+ * Where a Pen's Leftovers of one Feed Item stand over a period.
+ *
+ * - `wasting`: more than the farm's share of it left behind — give them less of it.
+ * - `all_eaten`: the Pen's whole trough never left with a scrap, of anything, at any session — they may want more
+ *   than they are given, or nobody is writing the Leftovers down. Either is worth a look; neither is waste. Asked of the
+ *   trough rather than the item: a few grams of minerals mixed into the concentrate are never left on their own, and a
+ *   Pen that clears them and leaves its napier is a Pen fed enough.
+ * - `fine`: a little left now and then, which is what a Pen fed enough looks like.
+ * - `too_few`: not fed often enough in the period to say.
+ */
+export type LeftoverStanding = "wasting" | "all_eaten" | "fine" | "too_few";
+
+/** One Pen's feeding of one Feed Item over a period, added up. */
+export interface LeftoverTally {
+  givenKg: number;
+  leftoverKg: number;
+  /** The sessions it was fed at, and how many of them left any behind. */
+  sessions: number;
+  sessionsWithLeftover: number;
+}
+
+/** What share of what was given came back, as a whole percent: nothing given, nothing wasted. */
+export const leftoverPercent = ({
+  givenKg,
+  leftoverKg,
+}: Pick<LeftoverTally, "givenKg" | "leftoverKg">): number =>
+  givenKg > 0 ? Math.round((leftoverKg / givenKg) * 100) : 0;
+
+export const leftoverStanding = (
+  tally: LeftoverTally,
+  /** Whether the Pen left anything of any Feed Item at any session in the period. */
+  { penLeftAnything }: { penLeftAnything: boolean }
+): LeftoverStanding => {
+  if (tally.sessions < SESSIONS_TO_JUDGE) {
+    return "too_few";
+  }
+  if (leftoverPercent(tally) > WASTING_LEFTOVER_PERCENT) {
+    return "wasting";
+  }
+  return penLeftAnything ? "fine" : "all_eaten";
+};
+
 /** A maund — the mon a Bangladeshi feed trader weighs in — in kilograms. Shown beside kg on a feed
  *  purchase only, because that is the one place the farm is handed a number in maunds. */
 export const MAUND_KG = 37.324;

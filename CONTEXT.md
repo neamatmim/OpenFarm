@@ -196,7 +196,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Feeding Target**: What one session of feeding calls for in one Pen — the Ration in force, times the animals standing there, divided by how often they are fed. Worked out, never typed. Not a **Target Window**, which is Fattening's date range. _Avoid_: Quota, allowance, plan
 
-**Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, plus any leftover note. Consumes Stock. Its cost — each Feed Item's price at the time, times what was given — is charged evenly to the Animals standing in the Pen when it was fed; fodder at no price costs nothing. _Avoid_: Feed log, feed entry
+**Feeding**: The recorded act of feeding one Pen in one session: kg of each Feed Item actually given, and the **Leftover** of each. Consumes Stock. Its cost — each Feed Item's price at the time, times what was given — is charged evenly to the Animals standing in the Pen when it was fed; fodder at no price costs nothing. _Avoid_: Feed log, feed entry
+
+**Leftover**: What a Pen did not eat of a Feeding, weighed per Feed Item and written with it; left blank, it is none. Counted against what was eaten when a session's shortfall is judged, and added up by Pen and Feed Item over days to show a Ration that gives more of an item than the Pen eats — more than a tenth of it left, and the Pen is **wasting** it — or a trough never left with a scrap, which is a Pen that may want more or a feeder not writing it down. Priced as the Feeding was charged, so what was left is what the animals were charged for and did not eat. Per Feed Item, never in total, because each is in its own unit. _Avoid_: Waste (not all of it is thrown away), refusals, orts
 
 **Feed Purchase**: Feed bought and brought into the store: the Feed Item, how much, what the lot cost, and the Counterparty who sold it — the **seller**, as on an Intake. What a Feed Item's price is worked out from. Not the finance side of buying anything else, which is a Money Event. _Avoid_: Order, delivery, procurement, supplier
 

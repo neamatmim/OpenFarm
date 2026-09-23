@@ -6,6 +6,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardList,
   Coins,
+  CookingPot,
   PackagePlus,
   ShoppingCart,
   TriangleAlert,
@@ -18,6 +19,7 @@ import { useState } from "react";
 
 import { ArrivalsTab, CountsTab } from "@/components/feed/feed-history";
 import { ItemsTab } from "@/components/feed/feed-items";
+import { LeftoversTab } from "@/components/feed/feed-leftovers";
 import { RationsTab } from "@/components/feed/feed-rations";
 import { StockTab } from "@/components/feed/feed-stock";
 import type {
@@ -35,7 +37,14 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
-const TABS = ["stock", "arrivals", "counts", "rations", "items"] as const;
+const TABS = [
+  "stock",
+  "arrivals",
+  "counts",
+  "leftovers",
+  "rations",
+  "items",
+] as const;
 type Tab = (typeof TABS)[number];
 
 /** Feed Items still fed that hold nothing, or less than their level. */
@@ -185,6 +194,17 @@ const FeedPage = () => {
               />
             ),
           },
+          // What the feed left in the trough cost, so the Owner's and the Manager's, as the farm's money is.
+          ...(mayRecord
+            ? [
+                {
+                  value: "leftovers" as const,
+                  label: t("feed.tab.leftovers"),
+                  icon: CookingPot,
+                  content: <LeftoversTab />,
+                },
+              ]
+            : []),
           {
             value: "rations",
             label: t("feed.tab.rations"),
