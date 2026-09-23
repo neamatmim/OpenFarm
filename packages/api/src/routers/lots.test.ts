@@ -1,3 +1,4 @@
+import type { AlertKind } from "@OpenFarm/db/schema/alert";
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
 import {
@@ -19,6 +20,21 @@ const suffix = `lots-${Date.now()}`;
 
 const as = (role: "owner" | "manager" | "staff" | "vet", instant: string) =>
   createTestClient(appRouter, { as: role, clock: new FakeClock(instant) });
+
+/** What one person has been told of one kind, as the farm stored it. */
+const toldTo = async (role: "manager" | "vet", kind: AlertKind) => {
+  const rows = await scratchDb().query.alert.findMany({
+    where: { kind, userId: thePerson(role).id, farmId: theFarm().id },
+    columns: { entityId: true, params: true },
+  });
+  return rows.map((one) => one.params as Record<string, unknown>);
+};
+
+/** A sweep, as a phone opening the app at this instant runs it. */
+const sweepAt = async (instant: string) => {
+  const manager = await as("manager", instant);
+  await manager.client.alerts.sweep();
+};
 
 /** A wormer given to every animal of a Pen, one dose each: the simplest way a dose leaves the store. */
 const campaignSop = (productId: string, tag: string): SopContent => ({
@@ -339,5 +355,91 @@ describe("feed in the store", () => {
     });
     expect(arrivals.find((one) => one.id === early.id)?.left).toBe(0);
     expect(arrivals.find((one) => one.id === late.id)?.left).toBe(35);
+  });
+});
+
+describe("the store warns", () => {
+  it("tells the Manager of a Lot about to expire, once, and again once it has", async () => {
+    const store = await aStore("warn");
+    // A bag of premix with its own day, which the store keeps as a Lot like any box of medicine.
+    const premix = await store.manager.client.feed.addItem({
+      name: { bn: `সতর্কতার প্রিমিক্স ${suffix}` },
+    });
+    await store.manager.client.stock.receive({
+      feedItemId: premix.id,
+      kind: "purchase",
+      quantity: 20,
+      priceBdt: 2400,
+      seller: { name: `রহমান ফিডস ${suffix}` },
+      receivedOn: "2038-04-01",
+      lotNumber: "PMX-WARN",
+      expiresOn: "2038-06-20",
+    });
+
+    // Three weeks before the June Lot's day, inside the thirty the farm warns by. The December Lot is not near.
+    await sweepAt("2038-06-10T04:00:00.000Z");
+    await sweepAt("2038-06-10T05:00:00.000Z");
+    const soon = await toldTo("manager", "lot_expiring");
+    // Only this store's own: every store in this file has a Lot called EARLY-1.
+    const ours = new Set([store.product.id, premix.id]);
+    const mine = soon.filter((one) => ours.has(String(one.itemId)));
+    expect(mine).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          what: "medicine",
+          lotNumber: "EARLY-1",
+          expiresOn: "2038-06-30",
+          left: 10,
+        }),
+        expect.objectContaining({
+          what: "feed",
+          lotNumber: "PMX-WARN",
+          left: 20,
+        }),
+      ])
+    );
+    // Told once, however often the app is opened; and never of the Lot that is months off.
+    expect(mine).toHaveLength(2);
+
+    // Its day gone by with doses still on the shelf: that is news of its own.
+    await sweepAt("2038-07-02T04:00:00.000Z");
+    const gone = await toldTo("manager", "lot_expired");
+    expect(
+      gone.filter(
+        (one) => one.itemId === store.product.id && one.lotNumber === "EARLY-1"
+      )
+    ).toEqual([expect.objectContaining({ what: "medicine", left: 10 })]);
+  });
+
+  it("tells the Manager when a product runs under its level, once", async () => {
+    const store = await aStore("low");
+    await store.manager.client.drugs.setLowStock({
+      drugProductId: store.product.id,
+      threshold: 25,
+    });
+    await sweepAt("2038-04-02T04:00:00.000Z");
+    await sweepAt("2038-04-02T05:00:00.000Z");
+    const told = await toldTo("manager", "medicine_low_stock");
+    const low = told.filter((one) => one.productId === store.product.id);
+    expect(low).toEqual([
+      expect.objectContaining({ onHand: 20, threshold: 25 }),
+    ]);
+  });
+
+  it("records a dose given from a Lot past its day, and tells the Vet and the Manager", async () => {
+    const store = await aStore("expired-dose");
+    // The June Lot is the first to be used, and on 5 July it is five days past its day.
+    await store.dose("2038-07-05T04:00:00.000Z");
+    const list = await store.manager.client.drugs.list();
+    // Recorded all the same: an animal that needed treating was treated.
+    const given = list.find((one) => one.id === store.product.id);
+    expect(given?.stock).toMatchObject({ dosesGiven: 1 });
+    for (const role of ["vet", "manager"] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one person at a time
+      const told = await toldTo(role, "expired_dose_given");
+      expect(told.filter((one) => one.lotNumber === "EARLY-1")).toEqual([
+        expect.objectContaining({ expiresOn: "2038-06-30" }),
+      ]);
+    }
   });
 });

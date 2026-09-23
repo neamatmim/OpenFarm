@@ -118,7 +118,9 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Vaccine**: A product on the Drug List the Vet has marked as one. Its doses go on the vaccination register, and each must be traceable to a Lot Number. _Avoid_: Jab, shot
 
-**Lot Number**: The manufacturer's number on a vaccine vial, which traces a dose back to what was in it. A Campaign asks for it once for the Pen, and every dose of that Campaign without one of its own came from it; a dose from another vial carries its own. _Avoid_: Batch (a Batch is an Outbox send), batch number, vial number
+**Lot Number**: The manufacturer's number on a vaccine vial, a box of medicine or a bag of feed, which traces what was given or fed back to what was in it. A Campaign asks for a vaccine's once for the Pen, and every dose of that Campaign without one of its own came from it; a dose from another vial carries its own. A **Medicine Purchase** and a **Feed Purchase** carry the Lot they came in — its Lot Number and **Expiry** — and the store is read Lot by Lot: first to expire, first used. _Avoid_: Batch (a Batch is an Outbox send), batch number, vial number
+
+**Expiry**: The last day a Lot says it may be used, as the farm's own day. Refused when it has already passed on the day the Lot comes in. The Manager hears of a Lot with some left in it a farm-set number of days before its Expiry (30 by default), and again once it has passed; a dose given from a Lot past its Expiry is recorded, because an animal that needed treating was treated, and the Vet and the Manager hear of it at once. _Avoid_: Best-before, use-by, shelf life
 
 **Mortality**: The record that an Animal died or was culled: when, the cause as far as the farm knows it, and how the carcass was disposed of. The Owner's or the Manager's to record, and nobody else's — except a stillborn calf's, which her Calving records with the cause stillbirth, leaving the disposal awaiting until the Manager writes it. She leaves the herd — off the pen boards, out of the day's work, out of the headcounts — and everything else recorded about her stays exactly where it is. _Avoid_: Death record, loss, wastage
 
@@ -202,7 +204,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Fodder Price**: The price per kg the Owner sets on a home-grown Feed Item: roughly what it would cost to buy. What a Harvest brings into the store at. Changing it is the Owner's, and applies to Harvests from then on. _Avoid_: Market price, notional cost
 
-**Stock on Hand**: Current quantity of a Feed Item: Feed Purchases and Harvests in, minus Feeding, corrected by the latest Stock Count. Worked out, never typed, and shown below nothing when the pens were fed from feed nobody wrote down arriving. _Avoid_: Inventory (the whole area), balance
+**Stock on Hand**: Current quantity of a Feed Item: Feed Purchases and Harvests in, minus Feeding, corrected by the latest Stock Count — or of a product on the Drug List, in doses: Medicine Purchases in, minus every dose given, never below nothing. Worked out, never typed, and a Feed Item's shown below nothing when the pens were fed from feed nobody wrote down arriving. What is left of each Lot is worked out the same way, taking what was used from the Lot that expires first. Either may be given a level below which the Manager is told it is running low. _Avoid_: Inventory (the whole area), balance
 
 **Stock Count**: The weekly physical count of each Feed Item — every one the Farm keeps, counted without seeing what the store is thought to hold. The count wins: Stock on Hand reads from it afterwards. Each difference is an adjustment with a reason, read against the store as it now stands, so something written up late but dated before the count shows in it rather than as a loss. A shortfall is the Farm's: keeping the store is the place and the people, so no Animal is charged for feed she was never given. _Avoid_: Stocktake, audit
 
@@ -212,7 +214,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Money Event**: One recorded flow of money in or out of the Farm: amount in BDT, date, category, Counterparty, payment method, and a link to the farm record that caused it where one exists. A Dispatch, an Intake, a Sale, a Feed Purchase, a Medicine Purchase and a Vet Fee each make one on their own, and a Correction to the record puts the same one right. Everything else — wages, electricity, repairs, manure sold — the Manager enters by hand, with a note, a photo of the receipt, and the Side it belongs to when it belongs to one; a wage names the person and the month it pays for, once per person per month. _Avoid_: Transaction, journal entry, payment (one kind)
 
-**Medicine Purchase**: Medicine bought for a product on the Drug List: how much, as the box or the shop says it; roughly how many doses that holds; what it cost; and who sold it. What a dose given is costed from. _Avoid_: Drug order, pharmacy bill
+**Medicine Purchase**: Medicine bought for a product on the Drug List: how much, as the box or the shop says it; roughly how many doses that holds; what it cost; who sold it; and the Lot it came in, with its **Expiry**. What a dose given is costed from, and what the product's Stock on Hand counts in. _Avoid_: Drug order, pharmacy bill
 
 **Vet Fee**: What the Vet charges the Farm for a visit, entered by the Vet: the amount, the day, and the Animals seen when the Vet names them. The only money the Vet enters or sees. _Avoid_: Consultation charge, visit bill
 

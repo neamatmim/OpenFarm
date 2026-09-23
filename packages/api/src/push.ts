@@ -69,6 +69,8 @@ const wording = (params: unknown, bangla: boolean): MessageParams => {
       1,
       Math.round(Number(raw.minutesOverdue ?? 0) / MINUTES_PER_HOUR)
     ),
+    /** The animal, for the one pocket notice about a dose she was given. */
+    tag: String(raw.tag ?? ""),
   };
 };
 

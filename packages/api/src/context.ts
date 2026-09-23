@@ -74,6 +74,8 @@ export interface Context {
     registrationExpiresOn: Date | null;
     /** How early the farm wants to be told the registration is running out. */
     registrationRenewalLeadDays: number;
+    /** How many days before a Lot's last day the store is warned. */
+    expiryWarnDays: number;
     /** What a bought-in fattening animal is fed towards unless the Manager says otherwise. */
     fatteningTargetWeightKg: number;
     /** The hours after a Heat within which the AI work is due, and after which it is late. */

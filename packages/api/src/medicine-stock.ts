@@ -113,3 +113,30 @@ export const medicineStockOf = async (
 
 /** A product nobody has bought or given yet: nothing in the store, and nothing going off. */
 export const noMedicine = (): MedicineStock => ({ ...NOTHING, lots: [] });
+
+/**
+ * The Lot the latest dose of a product came out of: the one whose place in the order the store is used in — first to
+ * expire, first used — holds the dose that brought the doses given to where they are now. Null when more has been
+ * given than was ever written down as bought, which is a box nobody recorded rather than a Lot the farm can name.
+ */
+export const lotOfTheLatestDose = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  productId: string
+): Promise<LotLeft | null> => {
+  const all = await medicineStockOf(tx, farmId);
+  const stock = all.get(productId);
+  if (!stock) {
+    return null;
+  }
+  let through = 0;
+  for (const lot of stock.lots) {
+    through += lot.doses;
+    // Named, and this way round, because the doses given reach into this Lot once those before it are used up.
+    const itReachesThisLot = stock.dosesGiven <= through;
+    if (itReachesThisLot) {
+      return lot;
+    }
+  }
+  return null;
+};

@@ -35,6 +35,20 @@ const papersDue = (raw: Record<string, unknown>) => ({
   occasion: String(raw.occasion ?? ""),
 });
 
+/** The medicine or feed a notice about the store names, its Lot, and how much of it is left — a box of medicine
+ *  counted in doses, a bag of feed in its own unit. */
+const storeSays = (
+  raw: Record<string, unknown>,
+  language: Language,
+  dosesWord: string
+) => ({
+  item: String(raw.name ?? ""),
+  lot: String(raw.lotNumber ?? "—"),
+  left: `${formatNumber(Number(raw.left ?? 0), language)} ${
+    raw.what === "medicine" ? dosesWord : String(raw.unit ?? "")
+  }`.trim(),
+});
+
 /** The Alert's snapshotted params arrive as jsonb, so the shape is the server's promise
  *  rather than the type system's; read defensively and in the reader's language. */
 const paramsOf = (
@@ -42,10 +56,13 @@ const paramsOf = (
   {
     language,
     wholeFarm,
+    dosesWord,
   }: {
     language: Language;
     /** Where work about the whole farm is, which has no Pen to name. */
     wholeFarm: string;
+    /** What medicine is counted in, in the reader's words, for the notices about a Lot of it. */
+    dosesWord: string;
   }
 ): Record<string, string | number> => {
   const raw = (params ?? {}) as Record<string, unknown>;
@@ -63,6 +80,7 @@ const paramsOf = (
     count: Number(raw.count ?? 0),
     /** The Feed Item, how much is left and in what, for the notice about running low. */
     feed: String(raw.nameBn ?? ""),
+    ...storeSays(raw, language, dosesWord),
     onHand: Number(raw.onHand ?? 0),
     unit: String(raw.unit ?? ""),
     /** How much and under what Category, for the notice about money waiting for the Owner. */
@@ -113,7 +131,11 @@ const NoticeWords = ({
   const said = key
     ? t(
         key,
-        paramsOf(notice.params, { language, wholeFarm: t("work.wholeFarm") })
+        paramsOf(notice.params, {
+          language,
+          wholeFarm: t("work.wholeFarm"),
+          dosesWord: t("drugs.doseWord"),
+        })
       )
     : notice.kind;
   if (truncate) {

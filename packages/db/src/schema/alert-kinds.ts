@@ -18,5 +18,9 @@ export const ALERT_KINDS = [
   "investor_statement_due",
   "day_not_turning",
   "backup_overdue",
+  "lot_expiring",
+  "lot_expired",
+  "medicine_low_stock",
+  "expired_dose_given",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];

@@ -1,0 +1,1 @@
+ALTER TABLE "farm" ADD COLUMN "expiry_warn_days" integer DEFAULT 30 NOT NULL;

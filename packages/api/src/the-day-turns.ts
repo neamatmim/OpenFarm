@@ -23,6 +23,11 @@ import {
   renewalSlotsFor,
 } from "./instances-store";
 import { papersToTell, tellAboutPapersDue } from "./investor-statement-notice";
+import {
+  raiseStoreNotices,
+  storeNoticesUntold,
+  whatTheStoreHasToSay,
+} from "./lot-notices";
 import { tell } from "./notice";
 import { carryThePost, pushRaised } from "./push-send";
 import { tellOfRenewals } from "./registration-store";
@@ -237,6 +242,32 @@ const tellAboutLowStock = async (context: Turning, now: Date) => {
 };
 
 /**
+ * What else the store has to say: a Lot of medicine or feed near its last day or past it with some still left, and
+ * medicine running under its level. Keyed on the first thing it tells about, with the rest named in the event, as
+ * the feed running low is — the store, not any work, is what these are about.
+ */
+const tellAboutTheStore = async (context: Turning, now: Date) => {
+  const said = await whatTheStoreHasToSay(context.db, context.farm, now);
+  const untold = await storeNoticesUntold(context.db, context.farm.id, said);
+  const [first] = untold;
+  if (!first) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "store",
+      entityId: first.id,
+      action: "update",
+      after: () =>
+        Promise.resolve({
+          told: untold.map((one) => ({ kind: one.kind, about: one.id })),
+        }),
+    },
+    (tx) => raiseStoreNotices(tx, context.farm.id, untold, now)
+  );
+};
+
+/**
  * Tells the Owner which Ventures owe their Investors a progress statement: the month, and the day a
  * **Wind-up Period** begins. The other two occasions are raised by the acts that cause them.
  *
@@ -287,6 +318,7 @@ export const theSweep = async (context: Turning) => {
   // having nothing to say is the steady state and must not silence them.
   await tellAboutWithdrawals(context, now);
   await tellAboutLowStock(context, now);
+  await tellAboutTheStore(context, now);
   await tellAboutPapers(context, now);
   const pending = await findPendingNotices(context.db, context.farm, now);
   // A sweep with nothing to say is not an event, and opens no transaction: everyone

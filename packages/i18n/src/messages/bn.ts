@@ -1962,6 +1962,21 @@ export const bn: Record<MessageKey, string> = {
   "digest.moneyAwaiting": "{count}টি টাকার হিসাব আপনার অনুমোদনের অপেক্ষায়",
   "alerts.moneyAwaiting": "{category}: ৳{amount} আপনার অনুমোদনের অপেক্ষায়",
   "alerts.lowStock": "{feed} কমে আসছে — {onHand} {unit} বাকি",
+  "alerts.lotExpiring":
+    "{item}, লট {lot}: {date}-এ মেয়াদ শেষ হবে, এখনো {left} বাকি",
+  "alerts.lotExpired":
+    "{item}, লট {lot}: {date}-এ মেয়াদ শেষ হয়েছে, অথচ {left} এখনো গুদামে",
+  "alerts.medicineLowStock": "{item} কমে আসছে — {onHand} ডোজ বাকি",
+  "alerts.expiredDoseGiven":
+    "{tag}-কে {item} দেওয়া হয়েছে লট {lot} থেকে, যার মেয়াদ {date}-এ শেষ হয়ে গিয়েছিল",
+  "digest.lotExpiring": "{count}টি লটের মেয়াদ শেষ হতে চলেছে",
+  "digest.lotExpired": "মেয়াদ শেষ {count}টি লট এখনো গুদামে",
+  "digest.medicineLowStock": "{count}টি ওষুধ কমে আসছে",
+  "digest.expiredDoseGiven": "মেয়াদ শেষ লট থেকে {count} ডোজ দেওয়া হয়েছে",
+  "push.expiredDoseTitle": "মেয়াদোত্তীর্ণ ওষুধ দেওয়া হয়েছে",
+  "push.expiredDoseBody": "{tag}-কে মেয়াদ শেষ লটের ওষুধ দেওয়া হয়েছে",
+  "params.expiryWarn": "মেয়াদ শেষের কত দিন আগে সতর্ক করবে",
+  "drugs.doseWord": "ডোজ",
   "alerts.investorStatementDue":
     "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
   "alerts.makeThePaper": "কাগজ তৈরি করুন",
