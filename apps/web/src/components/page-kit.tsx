@@ -305,6 +305,9 @@ const submitted =
  * A form that is a piece of work of its own — feed in, a sale, milk handed over — in a sheet beside the page, so the
  * page it came from stays in sight. A title and a line of what it does above; the fields, labelled, in a body that
  * scrolls; cancel and the act itself pinned at the foot.
+ *
+ * `wide` is for a record with more to it than a handful of fields — a person, written down in sections — where two
+ * columns on a computer read better than one long column.
  */
 export const FormSheet = ({
   open,
@@ -316,12 +319,18 @@ export const FormSheet = ({
   ready,
   pending,
   children,
-}: FormPanelProps) => {
+  wide = false,
+}: FormPanelProps & { wide?: boolean }) => {
   const { t } = useLanguage();
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
-        className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg"
+        className={cn(
+          "gap-0 data-[side=right]:w-full",
+          wide
+            ? "data-[side=right]:sm:max-w-3xl"
+            : "data-[side=right]:sm:max-w-lg"
+        )}
         closeLabel={t("common.close")}
       >
         <SheetHeader className="border-b">
@@ -454,6 +463,31 @@ export const ConfirmDialog = ({
     </Dialog>
   );
 };
+
+/**
+ * One part of a longer form under its own heading — who the person is, where the money goes — with a line of what
+ * it is for. Its fields sit two to a row where there is room; a field that needs the whole row says so with
+ * `sm:col-span-2`.
+ */
+export const FormSection = ({
+  title,
+  description,
+  children,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+}) => (
+  <div className="border-t pt-5 first:border-t-0 first:pt-0">
+    <fieldset>
+      <legend className="text-base font-semibold">{title}</legend>
+      {description ? (
+        <p className="text-muted-foreground mt-1 text-xs">{description}</p>
+      ) : null}
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+    </fieldset>
+  </div>
+);
 
 /** A labelled field: its label, the control, and a line of help or of what is wrong beneath. */
 export const FormField = ({

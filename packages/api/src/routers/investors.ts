@@ -18,8 +18,9 @@ const recordInput = z.object({
   address: z.string().trim().max(200).optional(),
   /** The number on their National ID, as the agreement asks for it. */
   nid: z.string().trim().max(40).optional(),
-  /** Bank channels only, so the account is how they are paid. */
-  bankAccount: z.string().trim().max(120).optional(),
+  /** Bank channels only, so the account is how they are paid. Written out as the bank would want it — the
+   *  name on the account, its number, the bank and the branch — often on a line each. */
+  bankAccount: z.string().trim().max(300).optional(),
   nominee: z
     .object({
       name: z.string().trim().min(1).max(120),
