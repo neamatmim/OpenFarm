@@ -1,6 +1,6 @@
 import type { PaymentMethod } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -97,16 +97,14 @@ export const DispatchSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [form, setForm] = useState(NOTHING_TYPED);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const record = useMutation(
     orpc.milk.dispatch.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setForm(NOTHING_TYPED);
         toast.success(t("dispatch.recorded"));
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.milk.key() });
       },
       onError: (error: Error) =>
         toast.error(

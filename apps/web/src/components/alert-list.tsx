@@ -4,7 +4,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -122,14 +122,8 @@ const NoticeIcon = ({ kind }: { kind: string }) =>
 export const AlertList = () => {
   const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
   const alerts = useQuery(orpc.alerts.mine.queryOptions({ input: {} }));
-  const dismiss = useMutation(
-    orpc.alerts.dismiss.mutationOptions({
-      onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: orpc.alerts.key() }),
-    })
-  );
+  const dismiss = useMutation(orpc.alerts.dismiss.mutationOptions({}));
 
   if (!alerts.data?.length) {
     return null;

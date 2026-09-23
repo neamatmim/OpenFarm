@@ -56,13 +56,11 @@ export const DiagnosisSheet = ({
   seen,
   open,
   onOpenChange,
-  onRecorded,
 }: {
   /** What is being answered; none for a Diagnosis on its own. */
   seen: Seen | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRecorded: () => void;
 }) => {
   const { t } = useLanguage();
   const onError = useRefusal();
@@ -77,7 +75,6 @@ export const DiagnosisSheet = ({
         setConclusion(emptyConclusion);
         toast.success(t("vet.recorded"));
         onOpenChange(false);
-        onRecorded();
       },
       onError,
     })

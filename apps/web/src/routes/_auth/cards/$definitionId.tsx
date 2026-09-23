@@ -2,7 +2,7 @@ import { formatDate, formatDigits, translate } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, GraduationCap, Printer, UserCheck } from "lucide-react";
 import { useState } from "react";
@@ -200,7 +200,6 @@ const TrainedOn = ({
   versionId: string;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [who, setWho] = useState("");
 
   const people = useQuery(orpc.people.list.queryOptions());
@@ -211,7 +210,6 @@ const TrainedOn = ({
     orpc.sops.recordTraining.mutationOptions({
       onSuccess: () => {
         setWho("");
-        queryClient.invalidateQueries({ queryKey: orpc.sops.training.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

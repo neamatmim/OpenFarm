@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
 import {
   CorrectionAnswer,
@@ -26,7 +26,6 @@ export const CorrectMovement = ({
   };
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({
     amountBdt: amount(movement.amountBdt),
     movedOn: day(movement.movedOn),
@@ -45,7 +44,6 @@ export const CorrectMovement = ({
           changes: correcting.changes(),
           reason,
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
       }}
       ready={correcting.changed}
       title={t("ventures.correctMovement")}

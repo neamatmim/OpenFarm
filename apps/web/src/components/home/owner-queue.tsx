@@ -1,7 +1,7 @@
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   AlarmClock,
@@ -167,11 +167,8 @@ const MoneyGroup = ({ needsYou, headless }: GroupProps) => {
 /** Playbook proposals, approved and published where they stand. */
 const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const approve = useMutation(
     orpc.sops.approveProposal.mutationOptions({
-      onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
       onError: (error) => toast.error(sayWhy(error, t)),
     })
   );

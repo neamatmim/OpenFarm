@@ -1,6 +1,6 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -40,21 +40,18 @@ export const DrawFloatSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [drawing, setDrawing] = useState<Drawing>(NOTHING_YET);
   useFreshFor(venture?.id, () => setDrawing(NOTHING_YET));
   const trips = useQuery(orpc.trips.list.queryOptions());
   const drawingIt = useMutation(
     orpc.ventures.drawFloat.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setDrawing(NOTHING_YET);
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
         // The outing this Float was drawn against is no longer one that needs funding, and this sheet's
         // own list is the Trips. Without this it goes on offering the outing until something else asks
         // for them again, and the farm is refused for drawing a Float it has already drawn.
-        await queryClient.invalidateQueries({ queryKey: orpc.trips.key() });
         toast.success(t("ventures.floatDrawn"));
       },
     })

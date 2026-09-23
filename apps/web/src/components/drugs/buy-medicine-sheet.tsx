@@ -2,7 +2,7 @@ import type { PaymentMethod } from "@OpenFarm/domain";
 import { farmDayOf } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -62,7 +62,6 @@ export const BuyMedicineSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [chosenId, setChosenId] = useState(productId ?? "");
   const [typed, setTyped] = useState(NOTHING_BOUGHT);
   const [purchasedOn, setPurchasedOn] = useState(() => farmDayOf(new Date()));
@@ -71,11 +70,10 @@ export const BuyMedicineSheet = ({
     products.find((product) => product.id === chosenId) ?? products[0];
   const buy = useMutation(
     orpc.drugs.purchase.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setTyped(NOTHING_BOUGHT);
         toast.success(t("drugs.bought"));
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
       },
       onError: (error) =>
         toast.error(

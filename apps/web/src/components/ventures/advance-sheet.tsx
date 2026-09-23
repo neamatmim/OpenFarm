@@ -1,5 +1,5 @@
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -26,7 +26,6 @@ export const AdvanceSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
@@ -38,12 +37,11 @@ export const AdvanceSheet = ({
   const advancing = useMutation(
     orpc.ventures.advance.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setAmount("");
         setMovedOn("");
         setReference("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
         toast.success(t("ventures.advanced"));
       },
     })

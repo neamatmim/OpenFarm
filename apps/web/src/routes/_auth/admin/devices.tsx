@@ -1,6 +1,6 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Smartphone, SmartphoneNfc } from "lucide-react";
 import { useState } from "react";
@@ -32,7 +32,6 @@ const EnrolDialog = ({
   onEnrolled: (enrolment: Enrolment) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const enrol = useMutation(
     orpc.devices.enrol.mutationOptions({
@@ -44,7 +43,6 @@ const EnrolDialog = ({
         });
         setName("");
         onOpenChange(false);
-        void queryClient.invalidateQueries({ queryKey: orpc.devices.key() });
       },
       onError: (error: Error) => toast.error(sayWhy(error, t)),
     })
@@ -80,16 +78,14 @@ const EnrolDialog = ({
  */
 const DevicesPage = () => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [enrolment, setEnrolment] = useState<Enrolment | null>(null);
   const phones = useQuery(orpc.devices.list.queryOptions());
 
   const revoke = useMutation(
     orpc.devices.revoke.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("device.revoked"));
-        await queryClient.invalidateQueries({ queryKey: orpc.devices.key() });
       },
       onError: (error: Error) => toast.error(sayWhy(error, t)),
     })

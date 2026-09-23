@@ -7,7 +7,7 @@ import { REPEAT_BREEDER_DECISIONS } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Gavel } from "lucide-react";
 import { useState } from "react";
@@ -48,20 +48,15 @@ const DecisionDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const t = useT();
-  const queryClient = useQueryClient();
   const [decision, setDecision] =
     useState<RepeatBreederDecision>("serve_again");
   const [note, setNote] = useState("");
   const answer = useMutation(
     orpc.breeding.answerRepeatBreeder.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setNote("");
         toast.success(t("repeatBreeder.answered"));
         onOpenChange(false);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.home.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.breeding.key() }),
-        ]);
       },
       onError: (error) =>
         toast.error(

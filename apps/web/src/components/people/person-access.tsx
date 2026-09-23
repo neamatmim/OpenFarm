@@ -17,7 +17,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CalendarClock,
   CalendarX,
@@ -92,11 +92,9 @@ const ChangeButton = ({
 /** Whatever the farm answers for one change about one person: say it, and read them again. */
 const useSaying = () => {
   const t = useT();
-  const queryClient = useQueryClient();
   return {
-    said: (message: string) => async () => {
+    said: (message: string) => () => {
       toast.success(message);
-      await queryClient.invalidateQueries({ queryKey: orpc.people.key() });
     },
     onError: (error: Error) => toast.error(sayWhy(error, t)),
   };

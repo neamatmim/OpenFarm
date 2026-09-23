@@ -26,14 +26,13 @@ import type { AnimalAct, AnimalDetail, PenChoice } from "./animal-types";
 /**
  * The record-keeping acts on her page, each in its own dialog — or, for how she left the herd, a sheet — opened from
  * the page's header or from the part of her page it belongs to, rather than standing open on the page all the time.
- * Every one closes when the farm has taken it, says so, and has her page read again.
+ * Every one closes when the farm has taken it and says so; her page is read again, as the screen is after any save.
  */
 
 interface ActProps {
   detail: AnimalDetail;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDone: () => unknown;
 }
 
 /** The farm's refusal in the reader's words, or what went wrong. */
@@ -47,7 +46,6 @@ const MoveDialog = ({
   detail,
   open,
   onOpenChange,
-  onDone,
   pens,
 }: ActProps & { pens: PenChoice[] }) => {
   const { t } = useLanguage();
@@ -64,7 +62,6 @@ const MoveDialog = ({
       onSuccess: () => {
         toast.success(t("animals.moved"));
         finished();
-        onDone();
       },
       onError,
     })
@@ -127,7 +124,7 @@ const MoveDialog = ({
 };
 
 /** Her State, to one the farm allows from where she is now. */
-const StateDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
+const StateDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const onError = useRefusal();
   const [nextState, setNextState] = useState("");
@@ -139,7 +136,6 @@ const StateDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
         setNextState("");
         setReason("");
         onOpenChange(false);
-        onDone();
       },
       onError,
     })
@@ -188,7 +184,7 @@ const StateDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
 };
 
 /** A new ear tag, and why the old one went. */
-const RetagDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
+const RetagDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const onError = useRefusal();
   const [reason, setReason] = useState("");
@@ -198,7 +194,6 @@ const RetagDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
         toast.success(t("animals.retagged"));
         setReason("");
         onOpenChange(false);
-        onDone();
       },
       onError,
     })
@@ -230,7 +225,7 @@ const RetagDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
  * How she left the herd, written down by an Owner or a Manager. Disposal is evidence: the burial rule is six feet and
  * an inspector may ask which it was, so the farm records it beside the cause rather than leaving it in memory.
  */
-const MortalitySheet = ({ detail, open, onOpenChange, onDone }: ActProps) => {
+const MortalitySheet = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const onError = useRefusal();
   const [kind, setKind] = useState<MortalityKind>("died");
@@ -244,7 +239,6 @@ const MortalitySheet = ({ detail, open, onOpenChange, onDone }: ActProps) => {
         setCause("");
         toast.success(t("mortality.recorded"));
         onOpenChange(false);
-        onDone();
       },
       onError,
     })
@@ -330,7 +324,7 @@ const MortalitySheet = ({ detail, open, onOpenChange, onDone }: ActProps) => {
 
 /** What was done with a stillborn calf's carcass, written afterwards by the Owner or the Manager: her calving
  *  recorded her death, and nobody at the calving could say. */
-const DisposalDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
+const DisposalDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const [disposal, setDisposal] = useState<Disposal>("buried");
   const [note, setNote] = useState("");
@@ -339,7 +333,6 @@ const DisposalDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
       onSuccess: () => {
         toast.success(t("mortality.recorded"));
         onOpenChange(false);
-        onDone();
       },
       onError: (error) =>
         toast.error(
@@ -388,7 +381,7 @@ const DisposalDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
 };
 
 /** A pregnancy she lost before calving — the Vet's act from the Vet's own phone; nobody else is offered it. */
-const AbortionDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
+const AbortionDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const [abortedAt, setAbortedAt] = useState("");
   const [stageMonths, setStageMonths] = useState("");
@@ -399,7 +392,6 @@ const AbortionDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
         setNote("");
         toast.success(t("abortion.recorded"));
         onOpenChange(false);
-        onDone();
       },
       onError: (error) =>
         toast.error(
@@ -458,7 +450,7 @@ const AbortionDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
 
 /** A Withdrawal cut short — the Vet's alone, with a reason. Left blank, a hold ends now; one she is not under is not
  *  touched at all. */
-const ShortenDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
+const ShortenDialog = ({ detail, open, onOpenChange }: ActProps) => {
   const { t } = useLanguage();
   const [milkUntil, setMilkUntil] = useState("");
   const [meatUntil, setMeatUntil] = useState("");
@@ -469,7 +461,6 @@ const ShortenDialog = ({ detail, open, onOpenChange, onDone }: ActProps) => {
         setReason("");
         toast.success(t("withdrawal.shortened"));
         onOpenChange(false);
-        onDone();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -537,17 +528,14 @@ export const AnimalActs = ({
   detail,
   movePens,
   onClose,
-  onDone,
 }: {
   act: AnimalAct | null;
   detail: AnimalDetail;
   movePens: PenChoice[];
   onClose: () => void;
-  onDone: () => unknown;
 }) => {
   const shared = {
     detail,
-    onDone,
     onOpenChange: (open: boolean) => {
       if (!open) {
         onClose();

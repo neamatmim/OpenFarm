@@ -1,7 +1,7 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { BellRing, PackagePlus, Sprout, Warehouse } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -348,24 +348,15 @@ const FigureDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const held = line === null ? null : ofLine(line, kind);
   const [value, setValue] = useState(held === null ? "" : String(held));
   const words = WORDS[kind];
   const level = useMutation(orpc.feed.setLowStock.mutationOptions({}));
   const fodder = useMutation(orpc.feed.setFodderPrice.mutationOptions({}));
   const save = kind === "level" ? level : fodder;
-  const onSaved = async () => {
+  const onSaved = () => {
     toast.success(t(words.saved));
     onOpenChange(false);
-    // Both decide what other screens say: the level feeds the home queues, and the price values every
-    // cut from here on, and so what the animals cost.
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: orpc.stock.key() }),
-      queryClient.invalidateQueries({
-        queryKey: kind === "level" ? orpc.home.key() : orpc.costs.key(),
-      }),
-    ]);
   };
   return (
     <FormDialog

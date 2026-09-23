@@ -2,7 +2,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Pencil, Plus, Utensils } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,19 +14,6 @@ import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 import type { FeedItemRow, RationRow } from "./feed-types";
-
-/** Everything this tab reads, refreshed together when a Ration changes. */
-const useRefreshRations = () => {
-  const queryClient = useQueryClient();
-  return () =>
-    Promise.all(
-      [
-        orpc.feed.items.key(),
-        orpc.feed.rations.key(),
-        orpc.feed.target.key(),
-      ].map((queryKey) => queryClient.invalidateQueries({ queryKey }))
-    );
-};
 
 /**
  * Writing a Ration: a line per Feed Item, in units per animal per day, in a dialog.
@@ -46,7 +33,6 @@ const RationDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const refresh = useRefreshRations();
   const inRation = new Set(
     (ration?.items ?? []).map((line) => line.feedItemId)
   );
@@ -65,9 +51,8 @@ const RationDialog = ({
   );
   const save = useMutation(
     orpc.feed.saveRation.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         onOpenChange(false);
-        await refresh();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -227,10 +212,8 @@ const RationCard = ({
   onEdit: () => void;
 }) => {
   const { t, language } = useLanguage();
-  const refresh = useRefreshRations();
   const assign = useMutation(
     orpc.feed.assignRation.mutationOptions({
-      onSuccess: refresh,
       onError: (error) => toast.error(sayWhy(error, t)),
     })
   );

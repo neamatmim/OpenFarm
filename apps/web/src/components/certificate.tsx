@@ -1,6 +1,6 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Camera, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,16 +23,14 @@ export const Certificate = ({
   updatedAt: Date | null;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const photo = useQuery({
     ...orpc.farm.certificate.queryOptions(),
     enabled: updatedAt !== null,
   });
   const take = useMutation(
     orpc.farm.setCertificate.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("certificate.taken"));
-        await queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
       },
       onError: (error) =>
         toast.error(

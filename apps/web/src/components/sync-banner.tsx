@@ -18,7 +18,8 @@ import {
 import { herdReadIsDue } from "@/lib/herd-refresh";
 import type { OutboxState } from "@/lib/outbox";
 import { phoneOutbox } from "@/lib/outbox-client";
-import { client, orpc } from "@/utils/orpc";
+import { refreshTheScreen } from "@/lib/refresh";
+import { client } from "@/utils/orpc";
 
 /** How often the phone tries what it is holding. Sending is cheap when there is nothing to
  *  send: the Outbox reads its own queue and stops. */
@@ -71,13 +72,11 @@ export const SyncBanner = () => {
       }
       try {
         const { sent, verdicts } = await outbox.flush();
-        // Whenever the farm has taken anything — or sent anything back — the board is out
+        // Whenever the farm has taken anything — or sent anything back — the screen is out
         // of date: a tile left green over an entry that was refused is the phone telling
-        // the person a lie.
+        // the person a lie, and a dose taken moves the medicine on the shelf too.
         if (sent > 0 || verdicts.length > 0) {
-          await queryClient.invalidateQueries({
-            queryKey: orpc.instances.key(),
-          });
+          refreshTheScreen(queryClient);
         }
         // The animals of the Pens this person works, kept for the shed where there are no
         // bars: which cow, and whether her milk may go to the tank. Read sparingly — this

@@ -8,12 +8,13 @@ import { RPCLink } from "@orpc/client/fetch";
 import { createRouterClient } from "@orpc/server";
 import type { RouterClient } from "@orpc/server";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
-import { QueryCache, QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { toast } from "sonner";
 
 import { getDeviceToken, getSwitchToken } from "@/lib/device";
+import { refreshAfterASave } from "@/lib/refresh";
 
 /** What a failed read says, in the language the page is showing: a code the person can act on, never the server's
  *  English. A read their Role may not make is not worth retrying. */
@@ -42,6 +43,8 @@ const pageLanguage = () => {
 
 export const createQueryClient = () =>
   new QueryClient({
+    // Whatever the farm takes, the screen is read again: which reads a save moves is the server's business.
+    mutationCache: new MutationCache({ onSuccess: refreshAfterASave }),
     queryCache: new QueryCache({
       onError: (error, query) => {
         const language = pageLanguage();

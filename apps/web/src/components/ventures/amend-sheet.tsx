@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -44,7 +44,6 @@ export const AmendSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [percent, setPercent] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -62,7 +61,7 @@ export const AmendSheet = ({
   const amending = useMutation(
     orpc.ventures.amend.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t, WHY_NOT)),
-      onSuccess: async ({ agreements }) => {
+      onSuccess: ({ agreements }) => {
         setPercent("");
         setFrom("");
         setTo("");
@@ -70,7 +69,6 @@ export const AmendSheet = ({
         setReason("");
         setPaper(null);
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
         toast.success(
           t("ventures.amended", {
             count: formatNumber(agreements, language),

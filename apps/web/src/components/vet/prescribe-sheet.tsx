@@ -44,12 +44,10 @@ const DosesToCome = ({ times, days }: { times: string; days: string }) => {
 export const PrescribeSheet = ({
   made,
   onOpenChange,
-  onPrescribed,
 }: {
   /** The conclusion being treated; none when the sheet is closed. */
   made: Made | null;
   onOpenChange: (open: boolean) => void;
-  onPrescribed: () => void;
 }) => {
   const { t, language } = useLanguage();
   const onError = useRefusal();
@@ -67,7 +65,6 @@ export const PrescribeSheet = ({
         setDose("");
         toast.success(t("prescribe.written", { doses: String(doses) }));
         onOpenChange(false);
-        onPrescribed();
       },
       onError,
     })

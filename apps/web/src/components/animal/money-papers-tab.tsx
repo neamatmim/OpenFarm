@@ -2,7 +2,7 @@ import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileText, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -61,7 +61,6 @@ const IntakeCorrection = ({
   owner: { id: string; name: string } | null;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   // The runs an animal may be moved onto. `ventures.running` is exactly the three states a Correction
   // may hand her to — buying, fattening, selling — and is the one Venture reading a Manager may make,
   // which matters because putting a slip at the haat right is his to do.
@@ -84,7 +83,6 @@ const IntakeCorrection = ({
           reason,
           changes: correcting.changes(),
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
       ready={correcting.changed}
       title={t("correct.intake")}
@@ -213,11 +211,7 @@ const HowSheLeft = ({
   const { t, language } = useLanguage();
   return (
     <Section
-      action={
-        mayCorrect ? (
-          <SaleCorrection sale={sale} thenReload={orpc.animals.key()} />
-        ) : null
-      }
+      action={mayCorrect ? <SaleCorrection sale={sale} /> : null}
       title={t("sale.howSheLeft")}
     >
       <FactGrid>

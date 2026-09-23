@@ -1,7 +1,7 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
@@ -453,11 +453,9 @@ const productCard = (row: ProductRow) => <ProductCard row={row} />;
 const DaysDialog = ({
   product,
   onOpenChange,
-  onChanged,
 }: {
   product: DrugProduct | null;
   onOpenChange: (open: boolean) => void;
-  onChanged: () => void;
 }) => {
   const { t, language } = useLanguage();
   const [milk, setMilk] = useState(
@@ -471,7 +469,6 @@ const DaysDialog = ({
       onSuccess: () => {
         toast.success(t("drugs.daysSaved"));
         onOpenChange(false);
-        onChanged();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -539,11 +536,9 @@ const DaysDialog = ({
 const AddProductDialog = ({
   open,
   onOpenChange,
-  onChanged,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onChanged: () => void;
 }) => {
   const { t } = useLanguage();
   const [name, setName] = useState("");
@@ -553,7 +548,6 @@ const AddProductDialog = ({
         setName("");
         toast.success(t("drugs.added"));
         onOpenChange(false);
-        onChanged();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })
@@ -588,21 +582,18 @@ const AddProductDialog = ({
 const LevelDialog = ({
   product,
   onOpenChange,
-  onChanged,
 }: {
   product: DrugProduct | null;
   onOpenChange: (open: boolean) => void;
-  onChanged: () => Promise<unknown>;
 }) => {
   const { t, language } = useLanguage();
   const held = product?.stock?.lowStockAt ?? product?.lowStockAt ?? null;
   const [value, setValue] = useState(held === null ? "" : String(held));
   const save = useMutation(
     orpc.drugs.setLowStock.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("drugs.lowStockSaved"));
         onOpenChange(false);
-        await onChanged();
       },
       onError: (error: Error) => toast.error(sayWhy(error, t)),
     })
@@ -663,28 +654,24 @@ export const ProductsTab = ({
   onBuy: (productId: string) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [daysFor, setDaysFor] = useState<DrugProduct | null>(null);
   const [retiring, setRetiring] = useState<DrugProduct | null>(null);
   const [levelFor, setLevelFor] = useState<DrugProduct | null>(null);
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.drugs.key() });
   const onError = (error: Error) => toast.error(sayWhy(error, t));
   const retire = useMutation(
     orpc.drugs.retire.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setRetiring(null);
-        await refresh();
       },
       onError,
     })
   );
   const bringBack = useMutation(
-    orpc.drugs.bringBack.mutationOptions({ onSuccess: refresh, onError })
+    orpc.drugs.bringBack.mutationOptions({ onError })
   );
   const markVaccine = useMutation(
-    orpc.drugs.markVaccine.mutationOptions({ onSuccess: refresh, onError })
+    orpc.drugs.markVaccine.mutationOptions({ onError })
   );
   const actions: ProductActions = {
     isVet,
@@ -725,16 +712,11 @@ export const ProductsTab = ({
         <DataTable card={productCard} minWidth="52rem" table={table} />
       )}
       {mayAdd ? (
-        <AddProductDialog
-          onChanged={refresh}
-          onOpenChange={setAdding}
-          open={adding}
-        />
+        <AddProductDialog onOpenChange={setAdding} open={adding} />
       ) : null}
       {mayBuy ? (
         <LevelDialog
           key={levelFor?.id ?? "none"}
-          onChanged={refresh}
           onOpenChange={(open) => {
             if (!open) {
               setLevelFor(null);
@@ -746,7 +728,6 @@ export const ProductsTab = ({
       {isVet ? (
         <DaysDialog
           key={daysFor?.id ?? "none"}
-          onChanged={refresh}
           onOpenChange={(open) => {
             if (!open) {
               setDaysFor(null);

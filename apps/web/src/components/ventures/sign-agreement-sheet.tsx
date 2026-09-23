@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -100,7 +100,6 @@ export const SignAgreementSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   // Where the farm starts a new Agreement. A starting point and nothing more: what is typed here is what
   // the Investor signs, and what he signed is what governs afterwards.
   const farm = useQuery(orpc.farm.current.queryOptions());
@@ -138,8 +137,6 @@ export const SignAgreementSheet = ({
         setTerms(NOTHING_SIGNED);
         setPaper(null);
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.investors.key() });
         toast.success(t("ventures.signed"));
       },
     })

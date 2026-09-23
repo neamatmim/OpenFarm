@@ -23,7 +23,7 @@ import { orpc } from "@/utils/orpc";
 
 import { ReasonDialog } from "./reason-dialog";
 import type { Asked, ToCheck } from "./sign-off-types";
-import { titleOf, useRefreshWork } from "./sign-off-types";
+import { titleOf } from "./sign-off-types";
 
 /** What a row can do: approve it now, or open the dialog that sends it back. */
 interface CheckActions {
@@ -157,7 +157,6 @@ const checkCard = (row: CheckRow) => <CheckCard row={row} />;
  */
 export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
   const { t, language } = useLanguage();
-  const refresh = useRefreshWork();
   const inFlight = useInFlight();
   const [sendingBack, setSendingBack] = useState<ToCheck | null>(null);
   const tracked = {
@@ -171,7 +170,6 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
       ...tracked,
       onSuccess: () => {
         toast.success(t("signOff.approved"));
-        refresh();
       },
     })
   );
@@ -181,7 +179,6 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
       onSuccess: () => {
         toast.success(t("signOff.sentBack"));
         setSendingBack(null);
-        refresh();
       },
     })
   );

@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -388,15 +388,12 @@ const ParameterGroup = ({
   saved: Values;
 }) => {
   const t = useT();
-  const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
   const save = useMutation(
     orpc.farm.setParameters.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("params.saved"));
         setDraft(null);
-        await queryClient.invalidateQueries({ queryKey: orpc.farm.key() });
-        await queryClient.invalidateQueries({ queryKey: orpc.people.me.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

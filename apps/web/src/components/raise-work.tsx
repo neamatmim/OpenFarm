@@ -1,6 +1,6 @@
 import type { SopContent } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { CirclePlus } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -17,7 +17,6 @@ import { orpc } from "@/utils/orpc";
  */
 export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const ids = useId();
   const [open, setOpen] = useState(false);
   const [sop, setSop] = useState(definitionId ?? "");
@@ -26,11 +25,10 @@ export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
   const sheds = useQuery({ ...orpc.herd.list.queryOptions(), enabled: open });
   const raise = useMutation(
     orpc.instances.raiseNow.mutationOptions({
-      onSuccess: async ({ raised }) => {
+      onSuccess: ({ raised }) => {
         toast.success(raised > 0 ? t("work.raised") : t("work.raisedAlready"));
         setOpen(false);
         setPen("");
-        await queryClient.invalidateQueries({ queryKey: orpc.instances.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

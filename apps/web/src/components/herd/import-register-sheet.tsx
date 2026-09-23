@@ -1,7 +1,7 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -65,17 +65,15 @@ export const ImportRegisterSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [csv, setCsv] = useState("");
   const importRegister = useMutation(
     orpc.animals.importRegister.mutationOptions({
-      onSuccess: async (result) => {
+      onSuccess: (result) => {
         toast.success(t("herd.imported", { count: result.imported.length }));
         setCsv("");
         if (result.failed.length === 0) {
           onOpenChange(false);
         }
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

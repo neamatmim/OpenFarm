@@ -40,13 +40,7 @@ const CourseOfDoses = ({ course }: { course: CourseOfTreatment }) => (
 
 /** Putting a conclusion right. Nothing is deleted: the correction carries a reason and the trail keeps what it said
  *  before. */
-const CorrectConclusion = ({
-  made,
-  onCorrected,
-}: {
-  made: Made;
-  onCorrected: () => void;
-}) => {
+const CorrectConclusion = ({ made }: { made: Made }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
     disease: bilingual(made.disease),
@@ -62,7 +56,6 @@ const CorrectConclusion = ({
           changes: correcting.changes(),
           reason,
         });
-        onCorrected();
       }}
       ready={correcting.changed}
       title={t("vet.correct")}
@@ -87,11 +80,9 @@ const CorrectConclusion = ({
 const Concluded = ({
   made,
   onPrescribe,
-  onCorrected,
 }: {
   made: Made;
   onPrescribe: (made: Made) => void;
-  onCorrected: () => void;
 }) => {
   const { t, language } = useLanguage();
   return (
@@ -121,7 +112,7 @@ const Concluded = ({
             <Pill aria-hidden data-icon="inline-start" />
             {t("prescribe.write")}
           </Button>
-          <CorrectConclusion made={made} onCorrected={onCorrected} />
+          <CorrectConclusion made={made} />
         </div>
       </div>
       {made.prescriptions.length > 0 ? (
@@ -141,11 +132,9 @@ const Concluded = ({
 export const ConcludedTab = ({
   mine,
   onPrescribe,
-  onCorrected,
 }: {
   mine: { data: Made[] | undefined; isError: boolean; refetch: () => unknown };
   onPrescribe: (made: Made) => void;
-  onCorrected: () => void;
 }) => {
   const { t } = useLanguage();
   return (
@@ -154,12 +143,7 @@ export const ConcludedTab = ({
         {mine.data?.length ? (
           <ul className="divide-border flex flex-col divide-y">
             {mine.data.map((made) => (
-              <Concluded
-                key={made.id}
-                made={made}
-                onCorrected={onCorrected}
-                onPrescribe={onPrescribe}
-              />
+              <Concluded key={made.id} made={made} onPrescribe={onPrescribe} />
             ))}
           </ul>
         ) : (

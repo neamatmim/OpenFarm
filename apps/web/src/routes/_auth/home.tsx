@@ -27,6 +27,7 @@ import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { useLanguage, useT } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
+import { refreshTheScreen } from "@/lib/refresh";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -63,7 +64,8 @@ const ManagerHome = () => {
         await raise();
         await tell();
         await carry();
-        await queryClient.invalidateQueries({ queryKey: orpc.home.key() });
+        // Once, when the last has gone: these three are the saves that do not refresh on their own.
+        refreshTheScreen(queryClient);
       } catch {
         // No signal: the screen shows what this phone last knew.
       }

@@ -27,13 +27,11 @@ import { SideWord, StateBadge, ageWords, herAge } from "./animal-words";
 /** Putting a mortality right: what the farm learned afterwards, or a hurried entry corrected. */
 const PutItRight = ({
   detail,
-  onDone,
 }: {
   detail: {
     tagNumber: string;
     mortality: NonNullable<AnimalDetail["mortality"]>;
   };
-  onDone: () => unknown;
 }) => {
   const { t } = useLanguage();
   const correcting = useCorrecting({
@@ -54,7 +52,6 @@ const PutItRight = ({
           changes: correcting.changes(),
           reason,
         });
-        onDone();
       }}
       ready={correcting.changed}
       title={t("mortality.correct")}
@@ -101,12 +98,10 @@ const HowSheWent = ({
   detail,
   mayRecord,
   onAct,
-  onDone,
 }: {
   detail: AnimalDetail;
   mayRecord: boolean;
   onAct: (act: AnimalAct) => void;
-  onDone: () => unknown;
 }) => {
   const { t, language } = useLanguage();
   const gone = detail.mortality;
@@ -131,7 +126,6 @@ const HowSheWent = ({
             )}
             <PutItRight
               detail={{ tagNumber: detail.tagNumber, mortality: gone }}
-              onDone={onDone}
             />
           </>
         ) : null
@@ -369,20 +363,13 @@ export const OverviewTab = ({
   detail,
   powers,
   onAct,
-  onChanged,
 }: {
   detail: AnimalDetail;
   powers: AnimalPowers;
   onAct: (act: AnimalAct) => void;
-  onChanged: () => unknown;
 }) => (
   <div className="flex flex-col gap-6">
-    <HowSheWent
-      detail={detail}
-      mayRecord={powers.runsTheFarm}
-      onAct={onAct}
-      onDone={onChanged}
-    />
+    <HowSheWent detail={detail} mayRecord={powers.runsTheFarm} onAct={onAct} />
     <Withdrawals detail={detail} mayShorten={powers.fullVet} onAct={onAct} />
     {detail.fattening ? <TwoProjections view={detail.fattening} /> : null}
     <AboutHer detail={detail} />

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
 import {
   CorrectionDialog,
@@ -13,18 +13,14 @@ import { orpc } from "@/utils/orpc";
  * A Sale put right: what she fetched, and who took her.
  *
  * One component, used from the sale screen and from her own page — the same Sale, and a person correcting it from
- * either place is correcting the one record. Which list is read again afterwards is the screen's own business.
+ * either place is correcting the one record, and whichever screen it is on is read again once the farm takes it.
  */
 export const SaleCorrection = ({
   sale,
-  thenReload,
 }: {
   sale: { id: string; priceBdt: number; buyerName: string };
-  /** The list this screen shows, read again once the farm has taken the Correction. */
-  thenReload: readonly unknown[];
 }) => {
   const t = useT();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({
     priceBdt: amount(sale.priceBdt),
     buyer: counterparty(sale.buyerName),
@@ -39,7 +35,6 @@ export const SaleCorrection = ({
           reason,
           changes: correcting.changes(),
         });
-        await queryClient.invalidateQueries({ queryKey: thenReload });
       }}
       ready={correcting.changed}
       title={t("correct.sale")}

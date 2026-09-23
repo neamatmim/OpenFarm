@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -103,7 +102,6 @@ export const PayOutSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const refresh = useRefreshTheBooks();
   const [movedOn, setMovedOn] = useState("");
   const [reference, setReference] = useState("");
   // Emptied whenever the sheet is opened for somebody else: a bank reference left over from the last man
@@ -118,11 +116,10 @@ export const PayOutSheet = ({
     setMovedOn("");
     setReference("");
   }
-  const done = async () => {
+  const done = () => {
     setMovedOn("");
     setReference("");
     onOpenChange(false);
-    await refresh();
     toast.success(t("ventures.paid"));
   };
   const failed = (error: unknown) => toast.error(sayWhy(error, t));
@@ -222,7 +219,6 @@ export const AcknowledgeSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const refresh = useRefreshTheBooks();
   const [note, setNote] = useState("");
   // Emptied when it is somebody else being written down: one man recorded as saying another's words is
   // worse than nothing written at all.
@@ -234,10 +230,9 @@ export const AcknowledgeSheet = ({
   const saying = useMutation(
     orpc.ventures.acknowledgePayout.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
+      onSuccess: () => {
         setNote("");
         onOpenChange(false);
-        await refresh();
         toast.success(t("ventures.acknowledged"));
       },
     })

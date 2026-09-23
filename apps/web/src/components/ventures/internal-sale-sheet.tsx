@@ -2,13 +2,12 @@ import { priceAtWeight } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
-import { useRefreshTheBooks } from "@/lib/refresh";
 import { sayWhy } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
@@ -27,8 +26,6 @@ export const InternalSaleSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
-  const refreshTheBooks = useRefreshTheBooks();
   const [tagNumber, setTagNumber] = useState("");
   const [toVentureId, setToVentureId] = useState("");
   const [rate, setRate] = useState("");
@@ -43,7 +40,7 @@ export const InternalSaleSheet = ({
   const selling = useMutation(
     orpc.ventures.sellInternally.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async (sold) => {
+      onSuccess: (sold) => {
         setTagNumber("");
         setToVentureId("");
         setRate("");
@@ -51,8 +48,6 @@ export const InternalSaleSheet = ({
         setSoldOn("");
         setReference("");
         onOpenChange(false);
-        await refreshTheBooks();
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
         toast.success(
           t("ventures.soldInternally", {
             price: formatNumber(sold.priceBdt, language),

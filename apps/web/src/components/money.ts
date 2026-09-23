@@ -42,12 +42,6 @@ export const useApproveMoney = () => {
   const queryClient = useQueryClient();
   return useMutation(
     orpc.money.approve.mutationOptions({
-      onSuccess: () =>
-        Promise.all(
-          [orpc.money.key(), orpc.home.key(), orpc.alerts.key()].map((key) =>
-            queryClient.invalidateQueries({ queryKey: key })
-          )
-        ),
       onError: async (error) => {
         onRefused(error);
         // Corrected or approved since it was read: show what it says now.

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BookOpenCheck,
@@ -30,7 +30,6 @@ type Tab = (typeof TABS)[number];
  *  in the trail beside the reason. */
 const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
   const t = useT();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({ name: words(name) });
   const correct = useMutation(orpc.people.correctName.mutationOptions({}));
   return (
@@ -42,7 +41,6 @@ const CorrectName = ({ userId, name }: { userId: string; name: string }) => {
           changes: correcting.changes(),
           reason,
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.people.key() });
       }}
       ready={correcting.changed}
       title={t("people.correctName")}

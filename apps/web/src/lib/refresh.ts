@@ -1,27 +1,56 @@
-import { useQueryClient } from "@tanstack/react-query";
-
-import { orpc } from "@/utils/orpc";
+import type { Mutation, QueryClient } from "@tanstack/react-query";
 
 /**
- * Refreshes a Venture and the Farm's books together, for an act that moved both.
- *
- * Which acts those are is a question about the server, not about the screen: a Venture's own movements
- * — capital in, a Float out and back, an Advance, a refund — are the Venture's money and the Farm's
- * books say nothing of them. The Farm's books move when the Farm is one of the two sides:
- *
- * - a **Reimbursement**, where the Farm is paid for the feed and medicine it bought;
- * - an **Internal Sale** to or from the Farm, where it sold a bull or bought one — but not one between
- *   two Ventures, where no money of the Farm's moved;
- * - the **buy-back** at wind-up, which is an Internal Sale to the Farm;
- * - the **Farm's share** of a Settlement, which is the one part of it the Farm earned.
- *
- * Said here rather than decided again in each sheet, because it was decided again in each sheet and one
- * of them decided wrong: an Internal Sale left the money screens showing a figure the sale had changed.
+ * The saves the app makes of its own accord whenever somebody opens it — raising the day's work, sweeping for work
+ * gone late, carrying the evening's post — one after another. Refreshing after each would read the screen three
+ * times over; whoever runs them refreshes once, when the last has gone.
  */
-export const useRefreshTheBooks = () => {
-  const queryClient = useQueryClient();
-  return async () => {
-    await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
-    await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
-  };
+const OPENING_THE_APP: ReadonlySet<string> = new Set([
+  "instances.ensureDue",
+  "alerts.sweep",
+  "alerts.digest",
+]);
+
+/** A save's procedure, as oRPC keys it: `[["drugs", "purchase"], { type: "mutation" }]` is `drugs.purchase`. */
+const procedureOf = (mutation: Pick<Mutation, "options">): string | null => {
+  const path = mutation.options.mutationKey?.[0];
+  return Array.isArray(path) ? path.join(".") : null;
+};
+
+/**
+ * Does a save that went through refresh the screen? Every one the farm took does, but those the app makes on
+ * opening. One that only put an entry in the phone's Outbox does not: the farm has not been told yet, the screen
+ * already shows what was written, and reading the farm now would take it back.
+ */
+export const refreshesTheScreen = (
+  mutation: Pick<Mutation, "options">
+): boolean => {
+  const procedure = procedureOf(mutation);
+  return procedure !== null && !OPENING_THE_APP.has(procedure);
+};
+
+/**
+ * After anything the farm has taken: everything read is out of date. What is on the screen is read again now, and
+ * the rest the next time it is opened, rather than when its minute of freshness runs out.
+ *
+ * Everything rather than a list of what each save touches, because which reads a save moves is the server's
+ * business and a screen that guessed has guessed wrong: buying medicine books money too, and the money list opened
+ * straight after did not have it. Not waited for — the sheet closes when the farm says yes, and the page behind it
+ * catches up a moment later.
+ */
+export const refreshTheScreen = (queryClient: QueryClient): void => {
+  void queryClient.invalidateQueries();
+};
+
+/** The query client's own hook: every save that goes through refreshes the screen, once, whichever sheet made it. */
+export const refreshAfterASave = (
+  _data: unknown,
+  _variables: unknown,
+  _onMutateResult: unknown,
+  mutation: Mutation<unknown, unknown, unknown>,
+  context: { client: QueryClient }
+): void => {
+  if (refreshesTheScreen(mutation)) {
+    refreshTheScreen(context.client);
+  }
 };

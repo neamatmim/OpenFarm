@@ -1,6 +1,6 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { BookOpenCheck, LogOut, Monitor, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
@@ -217,17 +217,13 @@ const SignInTable = ({
  *  browser in a shop. Not Shed Phones, which the farm enrols and revokes as devices. */
 export const SignInsTab = ({ userId }: { userId: string }) => {
   const t = useT();
-  const queryClient = useQueryClient();
   const where = useQuery(
     orpc.people.signedInOn.queryOptions({ input: { userId } })
   );
   const signOut = useMutation(
     orpc.people.signOut.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("people.signedOut"));
-        await queryClient.invalidateQueries({
-          queryKey: orpc.people.signedInOn.key(),
-        });
       },
       onError: (error: Error) => toast.error(sayWhy(error, t)),
     })

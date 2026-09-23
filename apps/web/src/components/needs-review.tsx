@@ -3,7 +3,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { CircleCheck, Gavel } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -154,7 +154,6 @@ const reviewCard = (row: ReviewRow) => <ReviewCard row={row} />;
  *  for the judgement rather than offering a tick. */
 export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [resolving, setResolving] = useState<OpenReview | null>(null);
   const inFlight = useInFlight();
   const resolve = useMutation(
@@ -164,8 +163,6 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
       onSuccess: () => {
         toast.success(t("review.resolved"));
         setResolving(null);
-        void queryClient.invalidateQueries({ queryKey: orpc.review.key() });
-        void queryClient.invalidateQueries({ queryKey: orpc.alerts.key() });
       },
       onError: (error: Error) => toast.error(sayWhy(error, t)),
     })

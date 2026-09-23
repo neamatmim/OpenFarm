@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@OpenFarm/ui/components/sheet";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -370,12 +370,10 @@ const WhatEachIsOwed = ({ settlement }: { settlement: Figures }) => {
 /** Approving, which is what makes the figures stop moving. Offered only once nothing is in the way. */
 const Approve = ({ ventureId }: { ventureId: string }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const approving = useMutation(
     orpc.ventures.approveSettlement.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
+      onSuccess: () => {
         toast.success(t("ventures.approved"));
       },
     })

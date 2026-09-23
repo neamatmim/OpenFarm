@@ -1,7 +1,7 @@
 import { translate } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -138,7 +138,6 @@ export const InvestorSheet = ({
   investor?: Investor | null;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const [person, setPerson] = useState<Person>(NOBODY_YET);
   // Started afresh each time the sheet opens, from what is on file now, so a correction abandoned half-typed
   // is not waiting there the next time, and one saved since is.
@@ -149,9 +148,8 @@ export const InvestorSheet = ({
       setPerson(investor ? asWritten(investor) : NOBODY_YET);
     }
   }
-  const done = async (said: string) => {
+  const done = (said: string) => {
     onOpenChange(false);
-    await queryClient.invalidateQueries({ queryKey: orpc.investors.key() });
     toast.success(said);
   };
   const recording = useMutation(

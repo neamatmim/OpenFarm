@@ -5,7 +5,7 @@ import {
 import { Button } from "@OpenFarm/ui/components/button";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Eye } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -30,16 +30,14 @@ export const ReportSighting = ({
 }) => {
   const { t, language } = useLanguage();
   const ids = useId();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saw, setSaw] = useState("");
   const [note, setNote] = useState("");
-  const done = async (message: string) => {
+  const done = (message: string) => {
     toast.success(message);
     setOpen(false);
     setSaw("");
     setNote("");
-    await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
   };
   const record = useMutation(
     orpc.observations.record.mutationOptions({

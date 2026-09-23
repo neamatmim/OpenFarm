@@ -2,7 +2,7 @@ import { roundTaka } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -49,7 +49,6 @@ export const BankCheckSheet = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const [month, setMonth] = useState(lastMonth);
   const [read, setRead] = useState("");
   const [note, setNote] = useState("");
@@ -68,11 +67,10 @@ export const BankCheckSheet = ({
   const checking = useMutation(
     orpc.ventures.checkTheBank.mutationOptions({
       onError: (error) => toast.error(sayWhy(error, t)),
-      onSuccess: async (done) => {
+      onSuccess: (done) => {
         setRead("");
         setNote("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.ventures.key() });
         toast.success(
           done.differenceBdt === 0
             ? t("ventures.bankAgrees")

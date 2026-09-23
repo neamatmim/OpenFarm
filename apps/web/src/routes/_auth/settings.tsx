@@ -170,14 +170,12 @@ const BeingTold = () => {
  */
 const MyNumber = () => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const me = useQuery(orpc.people.me.queryOptions());
   const [phone, setPhone] = useState<string | null>(null);
   const save = useMutation(
     orpc.people.setPhone.mutationOptions({
       onSuccess: () => {
         toast.success(t("sms.saved"));
-        void queryClient.invalidateQueries({ queryKey: orpc.people.key() });
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

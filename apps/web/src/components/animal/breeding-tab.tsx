@@ -1,6 +1,6 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Baby, CalendarHeart, Flame, HeartCrack } from "lucide-react";
 
@@ -30,7 +30,6 @@ const ExpectedCalvingCorrection = ({
   expectedCalvingAt: Date;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const correcting = useCorrecting({
     expectedCalvingOn: day(expectedCalvingAt),
   });
@@ -46,7 +45,6 @@ const ExpectedCalvingCorrection = ({
           changes: correcting.changes(),
           reason,
         });
-        await queryClient.invalidateQueries({ queryKey: orpc.animals.key() });
       }}
       ready={correcting.changed}
       title={t("correct.calving")}

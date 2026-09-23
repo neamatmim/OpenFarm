@@ -1,7 +1,7 @@
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Archive,
   ArrowDownLeft,
@@ -191,16 +191,14 @@ const AddCategoryDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const onError = useRefusalToast();
   const [nameBn, setNameBn] = useState("");
   const [direction, setDirection] = useState<Direction>("out");
   const add = useMutation(
     orpc.money.addCategory.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setNameBn("");
         onOpenChange(false);
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
       onError,
     })
@@ -245,7 +243,6 @@ const AddCategoryDialog = ({
 /** The farm's Categories: the standard ones, the farm's own, and the retired — kept by the Owner and the Manager. */
 export const CategoriesTab = () => {
   const { t, language } = useLanguage();
-  const queryClient = useQueryClient();
   const onError = useRefusalToast();
   const categories = useQuery(orpc.money.categories.queryOptions());
   const [adding, setAdding] = useState(false);
@@ -254,22 +251,14 @@ export const CategoriesTab = () => {
   );
   const retire = useMutation(
     orpc.money.retireCategory.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: () => {
         setRetiring(null);
-        await queryClient.invalidateQueries({ queryKey: orpc.money.key() });
       },
       onError,
     })
   );
   const mark = useMutation(
     orpc.money.setChargedToAnimals.mutationOptions({
-      onSuccess: async () => {
-        // It decides what every Margin on that Side carries from here on.
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: orpc.money.key() }),
-          queryClient.invalidateQueries({ queryKey: orpc.costs.key() }),
-        ]);
-      },
       onError,
     })
   );

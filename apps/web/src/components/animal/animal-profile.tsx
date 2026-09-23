@@ -227,12 +227,10 @@ export const AnimalProfile = ({
   detail,
   powers,
   onAct,
-  onChanged,
 }: {
   detail: AnimalDetail;
   powers: AnimalPowers;
   onAct: (act: AnimalAct) => void;
-  onChanged: () => unknown;
 }) => {
   const { t } = useLanguage();
   const menuActs = useMenuActs(detail, powers);
@@ -240,7 +238,6 @@ export const AnimalProfile = ({
     orpc.animals.setPhoto.mutationOptions({
       onSuccess: () => {
         toast.success(t("animals.photoSaved"));
-        onChanged();
       },
       onError: (error) => toast.error(sayWhy(error, t)),
     })

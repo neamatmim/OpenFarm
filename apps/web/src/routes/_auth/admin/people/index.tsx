@@ -3,7 +3,7 @@ import { ROLES } from "@OpenFarm/api/roles";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   CalendarClock,
@@ -155,7 +155,6 @@ const NOBODY_FILTERED: PeopleFilter = { looking: "", role: "", standing: "" };
  */
 const PeoplePage = () => {
   const { t } = useLanguage();
-  const queryClient = useQueryClient();
   const me = useQuery(orpc.people.me.queryOptions());
   const list = useQuery(orpc.people.list.queryOptions());
   const isOwner = me.data?.roles.includes("owner") ?? false;
@@ -163,17 +162,14 @@ const PeoplePage = () => {
   const [inviting, setInviting] = useState(false);
   const [handOver, setHandOver] = useState<HandOver | null>(null);
   const inFlight = useInFlight();
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: orpc.people.list.key() });
   const onError = () => toast.error(t("common.error"));
 
   const approve = useMutation(
     orpc.people.approveInvite.mutationOptions({
       onMutate: ({ id }) => inFlight.start(`approve:${id}`),
       onSettled: (_data, _error, { id }) => inFlight.end(`approve:${id}`),
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t("people.approved"));
-        await refresh();
       },
       onError,
     })
@@ -257,7 +253,6 @@ const PeoplePage = () => {
         onOpenChange={setInviting}
         onSent={(given) => {
           setHandOver(given);
-          void refresh();
         }}
         open={inviting}
         ownerCanPickRoles={isOwner}

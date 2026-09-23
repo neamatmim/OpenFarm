@@ -23,7 +23,7 @@ import { orpc } from "@/utils/orpc";
 
 import { ReasonDialog } from "./reason-dialog";
 import type { Asked, LateWork } from "./sign-off-types";
-import { titleOf, useRefreshWork } from "./sign-off-types";
+import { titleOf } from "./sign-off-types";
 
 /** What a late row can do: open the dialog that closes it as missed. */
 interface LateActions {
@@ -152,7 +152,6 @@ const lateCard = (row: LateRow) => <LateCard row={row} />;
  */
 export const LateTab = ({ late }: { late: Asked<LateWork> }) => {
   const { t, language } = useLanguage();
-  const refresh = useRefreshWork();
   const inFlight = useInFlight();
   const [closing, setClosing] = useState<LateWork | null>(null);
   const closeAsMissed = useMutation(
@@ -163,7 +162,6 @@ export const LateTab = ({ late }: { late: Asked<LateWork> }) => {
       onSuccess: () => {
         toast.success(t("signOff.closedMissed"));
         setClosing(null);
-        refresh();
       },
     })
   );
