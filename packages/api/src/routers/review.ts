@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import { protectedProcedure } from "../index";
+import { withTheirWork } from "../review-store";
 import { requireRole } from "../roles";
 
 /** How much of the queue a screen is handed at once. */
@@ -15,26 +16,30 @@ export const reviewRouter = {
    *  been waiting longest are the ones most likely to have been forgotten. */
   open: protectedProcedure
     .use(requireRole("owner", "manager"))
-    .handler(({ context }) =>
-      context.db.query.needsReview.findMany({
-        where: { farmId: context.farm.id, resolvedAt: { isNull: true } },
-        // Narrowed: the queue needs the Correction's reason and who made it, not the
-        // before-and-after snapshots of the entry it changed.
-        with: {
-          raisedBy: {
-            columns: {
-              id: true,
-              action: true,
-              reason: true,
-              actorId: true,
-              roleUsed: true,
-              recordedAt: true,
+    .handler(async ({ context }) =>
+      withTheirWork(
+        context.db,
+        context.farm.id,
+        await context.db.query.needsReview.findMany({
+          where: { farmId: context.farm.id, resolvedAt: { isNull: true } },
+          // Narrowed: the queue needs the Correction's reason and who made it, not the
+          // before-and-after snapshots of the entry it changed.
+          with: {
+            raisedBy: {
+              columns: {
+                id: true,
+                action: true,
+                reason: true,
+                actorId: true,
+                roleUsed: true,
+                recordedAt: true,
+              },
             },
           },
-        },
-        orderBy: { raisedAt: "asc" },
-        limit: QUEUE_LIMIT,
-      })
+          orderBy: { raisedAt: "asc" },
+          limit: QUEUE_LIMIT,
+        })
+      )
     ),
 
   /** Closing one is a judgement, so it is recorded as one: what was decided, by whom, under

@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { TagLink } from "@/components/fattening/fattening-words";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
@@ -36,7 +37,7 @@ const WhatIsLeft = ({
     <div className="bg-muted flex flex-col gap-1 rounded-md px-3 py-2 text-sm">
       {animals.map((one) => (
         <div className="flex justify-between gap-2" key={one.tagNumber}>
-          <span className="text-muted-foreground">{one.tagNumber}</span>
+          <TagLink tagNumber={one.tagNumber} />
           <span className="tabular-nums">
             {one.weightKg === null
               ? t("ventures.neverWeighed")

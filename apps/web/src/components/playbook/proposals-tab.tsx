@@ -9,6 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@OpenFarm/ui/components/sheet";
+import { Link } from "@tanstack/react-router";
 import { Check, Eye, Hourglass, Inbox, X } from "lucide-react";
 import { useState } from "react";
 
@@ -45,6 +46,8 @@ interface ProposalRow {
   proposedAt: Date;
   /** The Version in force now, the one the change would replace. */
   inForce: number | null;
+  /** The procedure it would change, whose card shows what it says now; none for a procedure not yet written. */
+  definitionId: string | null;
   content: SopContent;
   actions: ProposalActions;
 }
@@ -58,6 +61,7 @@ const toRow = (proposal: Proposal, actions: ProposalActions): ProposalRow => {
     note: proposal.note,
     proposedAt: new Date(proposal.createdAt),
     inForce: proposal.definition?.currentVersion?.number ?? null,
+    definitionId: proposal.definition?.id ?? null,
     content,
     actions,
   };
@@ -112,10 +116,21 @@ const Decide = ({ row }: { row: ProposalRow }) => {
 
 const NameCell = ({ row }: { row: { original: ProposalRow } }) => {
   const { t } = useLanguage();
-  const { name, inForce } = row.original;
+  const { name, inForce, definitionId } = row.original;
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="font-medium">{name}</span>
+      {/* The card of what it would change, to read beside the proposal. */}
+      {definitionId && inForce !== null ? (
+        <Link
+          className="w-fit font-medium hover:underline"
+          params={{ definitionId }}
+          to="/cards/$definitionId"
+        >
+          {name}
+        </Link>
+      ) : (
+        <span className="font-medium">{name}</span>
+      )}
       {inForce === null ? null : (
         <span className="text-muted-foreground text-xs">
           {t("sop.inForce", { number: inForce })}

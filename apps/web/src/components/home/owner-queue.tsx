@@ -178,7 +178,11 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
       icon={BookOpenCheck}
       label={t("owner.proposals")}
       more={
-        <Link className={MORE_LINK} to="/admin/sops">
+        <Link
+          className={MORE_LINK}
+          search={{ tab: "proposals" }}
+          to="/admin/sops"
+        >
           {t("home.openList")}
         </Link>
       }
@@ -186,7 +190,11 @@ const ProposalGroup = ({ needsYou, headless }: GroupProps) => {
         <QueueRow
           key={row.id}
           title={
-            <Link className="hover:underline" to="/admin/sops">
+            <Link
+              className="hover:underline"
+              search={{ tab: "proposals" }}
+              to="/admin/sops"
+            >
               {row.note || t("owner.noNote")}
             </Link>
           }

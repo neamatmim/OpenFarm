@@ -276,7 +276,15 @@ const TrainedOn = ({
                 number: row.versionNumber,
                 date: formatDate(new Date(row.trainedAt), language, "date"),
               })}
-              title={row.personName}
+              title={
+                <Link
+                  className="hover:underline"
+                  params={{ userId: row.userId }}
+                  to="/admin/people/$userId"
+                >
+                  {row.personName}
+                </Link>
+              }
             />
           ))}
         </RecordList>

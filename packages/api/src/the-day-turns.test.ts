@@ -97,6 +97,18 @@ describe("the day turning", () => {
       columns: { id: true, state: true },
     });
     expect(raised).toHaveLength(1);
+
+    // The day's raising is written under the work's name but is no piece of work, so the trail does not lead from it.
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2049-05-04T02:32:00.000Z"),
+    });
+    const theDay = await owner.audit.list({
+      entity: "sop_instance",
+      entityId: "schedule:2049-05-04",
+    });
+    expect(theDay.length).toBeGreaterThan(0);
+    expect(theDay.every((one) => one.instanceId === null)).toBe(true);
   });
 
   it("carries no post while the farm is asleep", async () => {

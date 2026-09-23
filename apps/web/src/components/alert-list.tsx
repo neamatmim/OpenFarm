@@ -73,30 +73,58 @@ const ventureOf = (params: unknown): string | null => {
   return typeof id === "string" && id !== "" ? id : null;
 };
 
+/** Which animal a notice names, where it names one by her tag. */
+const tagOf = (params: unknown): string | null => {
+  const tag = (params as { tag?: unknown } | null)?.tag;
+  return typeof tag === "string" && tag !== "" ? tag : null;
+};
+
+const LEADS_CLASS =
+  "text-primary mt-1 block text-sm font-medium hover:underline";
+
 /**
- * Where a notice leads, for the one kind that has somewhere to send her.
- *
- * Most notices have nowhere to go — the sentence is the whole of what they have to say, and "got it" is
- * the only answer they want. This one is different: it says a paper is owed, and the paper is made on a
- * screen she would otherwise have to go and find. One kind on purpose; a general table of routes would
- * be a mechanism built for a single caller.
+ * Where a notice leads: to what it is about, so the notice is a way there rather than a sentence to go and act on
+ * somewhere else — the work that is late or was sent back, the animal it names, the Venture whose Investors are
+ * owed a paper. A notice about none of these has nowhere to go, and "got it" is its only answer.
  */
 const WhereItLeads = ({
   notice,
 }: {
-  notice: { kind: string; params: unknown };
+  notice: { kind: string; params: unknown; entity: string; entityId: string };
 }) => {
   const { t } = useLanguage();
-  const ventureId =
-    notice.kind === "investor_statement_due" ? ventureOf(notice.params) : null;
-  return ventureId === null ? null : (
+  if (notice.kind === "investor_statement_due") {
+    const ventureId = ventureOf(notice.params);
+    return ventureId === null ? null : (
+      <Link
+        className={LEADS_CLASS}
+        params={{ ventureId }}
+        search={{ tab: "investors" }}
+        to="/ventures/$ventureId"
+      >
+        {t("alerts.makeThePaper")}
+      </Link>
+    );
+  }
+  if (notice.entity === "sop_instance") {
+    return (
+      <Link
+        className={LEADS_CLASS}
+        params={{ instanceId: notice.entityId }}
+        to="/work/$instanceId"
+      >
+        {t("alerts.openTheWork")}
+      </Link>
+    );
+  }
+  const tagNumber = tagOf(notice.params);
+  return tagNumber === null ? null : (
     <Link
-      className="text-primary mt-1 block text-sm font-medium hover:underline"
-      params={{ ventureId }}
-      search={{ tab: "investors" }}
-      to="/ventures/$ventureId"
+      className={LEADS_CLASS}
+      params={{ tagNumber }}
+      to="/animals/$tagNumber"
     >
-      {t("alerts.makeThePaper")}
+      {t("alerts.openHer", { tag: tagNumber })}
     </Link>
   );
 };

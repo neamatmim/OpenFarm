@@ -607,8 +607,16 @@ describe("needs review", () => {
       reason: "corrected_after_sign_off",
       resolvedAt: null,
     });
-    // The Correction that raised it is reachable from the queue.
+    // The Correction that raised it is reachable from the queue, and so is the work it was a Step of.
     expect(entry?.raisedBy).toMatchObject({ action: "correct" });
+    expect(entry?.instanceId).toBe(instance.id);
+    // The sign-off in the trail leads to the work as well.
+    const trail = await owner.audit.list({
+      entity: "sop_instance",
+      entityId: instance.id,
+    });
+    expect(trail.length).toBeGreaterThan(0);
+    expect(trail.every((one) => one.instanceId === instance.id)).toBe(true);
     const told = await manager.alerts.mine({ entityId: completionId });
     expect(told.some((row) => row.kind === "needs_review")).toBe(true);
 

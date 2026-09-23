@@ -757,6 +757,8 @@ export const en = {
   "investors.relationInWords": "Their relation, in words",
   "investors.section.who": "Who they are",
   "investors.section.money": "Where their money goes",
+  "investors.section.ventures": "Their ventures",
+  "investors.noVentures": "Not in any venture yet.",
   "investors.bankPlaceholder": "Account name, account number, bank and branch",
   "investors.copyAccount": "Copy",
   "investors.copied": "Copied",
@@ -2088,6 +2090,8 @@ export const en = {
     "{venture}: {investors} Investors are due their progress statement ({occasion})",
   /** The one notice that leads somewhere: the screen where the paper it is about is made. */
   "alerts.makeThePaper": "Make the papers",
+  "alerts.openTheWork": "Open the work",
+  "alerts.openHer": "See {tag}",
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
   "nav.farm": "Farm overview",

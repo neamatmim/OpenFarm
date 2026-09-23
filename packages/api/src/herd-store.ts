@@ -73,6 +73,63 @@ const nextTagNumber = async (
   return formatTagNumber(prefix, row.next - 1);
 };
 
+/** The records an Animal's money is booked from, each by its id: what she was bought for, sold for, or handed between purses for. */
+export interface HerRecords {
+  intakeIds?: readonly string[];
+  saleIds?: readonly string[];
+  internalSaleIds?: readonly string[];
+}
+
+/**
+ * The tag of the Animal each record was for, keyed by the record's id — so a line of money from her
+ * Intake, her Sale or an Internal Sale of her can name her and lead to her page. Three reads at most,
+ * whatever the number of records, and none for a kind with no ids.
+ */
+export const tagsOfHerRecords = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  { intakeIds = [], saleIds = [], internalSaleIds = [] }: HerRecords
+): Promise<Map<string, string>> => {
+  const [intakes, sales, internals] = await Promise.all([
+    intakeIds.length === 0
+      ? []
+      : db.query.intake.findMany({
+          where: { farmId, id: { in: [...intakeIds] } },
+          columns: { id: true, animalId: true },
+        }),
+    saleIds.length === 0
+      ? []
+      : db.query.sale.findMany({
+          where: { farmId, id: { in: [...saleIds] } },
+          columns: { id: true, animalId: true },
+        }),
+    internalSaleIds.length === 0
+      ? []
+      : db.query.internalSale.findMany({
+          where: { farmId, id: { in: [...internalSaleIds] } },
+          columns: { id: true, animalId: true },
+        }),
+  ]);
+  const records = [...intakes, ...sales, ...internals];
+  if (records.length === 0) {
+    return new Map();
+  }
+  const animals = await db.query.animal.findMany({
+    where: {
+      farmId,
+      id: { in: [...new Set(records.map((one) => one.animalId))] },
+    },
+    columns: { id: true, tagNumber: true },
+  });
+  const tagOf = new Map(animals.map((one) => [one.id, one.tagNumber]));
+  return new Map(
+    records.flatMap((one) => {
+      const tag = tagOf.get(one.animalId);
+      return tag ? [[one.id, tag] as const] : [];
+    })
+  );
+};
+
 /** The Animal with this Tag Number, whatever State it is in. */
 export const requireAnimal = async (
   db: Pick<Database, "query">,

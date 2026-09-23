@@ -385,6 +385,8 @@ describe("a heat, and the window it opens", () => {
       (row) => row.reason === "late_entry" && row.entityId === raised[0]?.id
     );
     expect(asked).toBeDefined();
+    // Raised on the work itself, so the queue leads straight to it.
+    expect(asked?.instanceId).toBe(raised[0]?.id);
     // Answered, because the queue is the whole Farm's and this file shares it.
     await manager.client.review.resolve({
       id: asked?.id ?? "",

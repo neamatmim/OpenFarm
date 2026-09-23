@@ -1,6 +1,7 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Handshake } from "lucide-react";
 
 import { RecordList, RecordRow, Section, StatusBadge } from "@/components/page";
@@ -68,7 +69,15 @@ export const VenturesAtWork = () => {
                 </span>
               </span>
             }
-            title={one.name}
+            title={
+              <Link
+                className="hover:underline"
+                params={{ ventureId: one.id }}
+                to="/ventures/$ventureId"
+              >
+                {one.name}
+              </Link>
+            }
             trailing={
               one.runningBudgetLow ? (
                 <StatusBadge tone="warning">

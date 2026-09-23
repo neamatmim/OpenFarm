@@ -79,6 +79,11 @@ describe("the Investors", () => {
     });
     const people = await owner.client.investors.list();
     expect(people.people.filter((one) => one.id === karim.id)).toHaveLength(1);
+    // Their record leads to each Venture they signed into, the latest first.
+    expect(people.people.find((one) => one.id === karim.id)?.ventures).toEqual([
+      { id: otherVentureId, name: `দ্বিতীয় ${suffix}`, state: "open", units: 2 },
+      { id: ventureId, name: `ঈদ ২০৪৭ ${suffix}`, state: "open", units: 3 },
+    ]);
     const signed = await owner.client.ventures.agreements({ ventureId });
     expect(signed).toEqual([
       expect.objectContaining({

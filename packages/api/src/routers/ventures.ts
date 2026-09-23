@@ -38,6 +38,7 @@ import {
 import { consumedBy, economicsOfHerd, farmCosts } from "../cost-store";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import { tagsOfHerRecords } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { theOwnersOf } from "../intake-store";
 import { recordInternalSale } from "../internal-sale-store";
@@ -2906,9 +2907,18 @@ export const venturesRouter = {
             : []
         )
       );
+      // The animal a sale's money, or an Internal Sale's, was for — so the row names her and reaches her page.
+      const tagOf = await tagsOfHerRecords(context.db, context.farm.id, {
+        saleIds: rows.flatMap((one) => (one.saleId ? [one.saleId] : [])),
+        internalSaleIds: rows.flatMap((one) =>
+          one.internalSaleId ? [one.internalSaleId] : []
+        ),
+      });
       return rows.map((one) => ({
         id: one.id,
         kind: one.kind,
+        /** The animal it was for, where it was a Sale's or an Internal Sale's money. */
+        tagNumber: tagOf.get(one.saleId ?? one.internalSaleId ?? "") ?? null,
         /** Which way it moved the account, so a list of them can be added up to the balance the farm keeps. */
         direction: directionOf(one.kind),
         agreementId: one.agreementId,

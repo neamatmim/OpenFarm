@@ -9,7 +9,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
-import { requireAnimal } from "../herd-store";
+import { requireAnimal, tagsOfHerRecords } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { amountInput, paymentMethodInput } from "../money-inputs";
 import {
@@ -113,7 +113,19 @@ export const moneyRouter = {
         orderBy: { occurredAt: "desc", id: "desc" },
         limit: LISTED + 1,
       });
-      const events = rows.slice(0, LISTED).map((row) => ({
+      const listed = rows.slice(0, LISTED);
+      // The Animal an entry was for, where it was booked from her Intake, her Sale or an Internal Sale of
+      // her — so the register names her and leads to her page.
+      const idsFrom = (...sources: string[]) =>
+        listed.flatMap((row) =>
+          sources.includes(row.source) ? [row.sourceId] : []
+        );
+      const tagOf = await tagsOfHerRecords(context.db, context.farm.id, {
+        intakeIds: idsFrom("intake"),
+        saleIds: idsFrom("sale"),
+        internalSaleIds: idsFrom("internal_sale_in", "internal_sale_out"),
+      });
+      const events = listed.map((row) => ({
         id: row.id,
         occurredAt: row.occurredAt,
         direction: row.direction,
@@ -125,6 +137,8 @@ export const moneyRouter = {
         paymentMethod: row.paymentMethod,
         source: row.source,
         sourceId: row.sourceId,
+        /** The Animal it was for, where it came from one of her records. */
+        tagNumber: tagOf.get(row.sourceId) ?? null,
         approval: row.approval,
         approvedByName: row.approver?.name ?? null,
         approvedAt: row.approvedAt,
