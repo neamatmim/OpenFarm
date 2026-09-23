@@ -2451,6 +2451,7 @@ export const en = {
   "intake.kg": "{kg} kg",
   "intake.months": "{months} months",
   "intake.pen": "Pen",
+  "intake.penHint": "Whichever pen it goes into, it starts in Quarantine.",
   "intake.sellerName": "Seller's name",
   "intake.sellerPlace": "Seller's market or place",
   "intake.sellerPhone": "Seller's phone",
