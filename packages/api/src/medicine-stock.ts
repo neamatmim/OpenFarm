@@ -20,6 +20,10 @@ export interface MedicineStock {
   lots: LotLeft[];
   /** The soonest day any Lot with doses left expires, or null when none with a day has any left. */
   nextExpiresOn: string | null;
+  /** That Lot's number, so the box can be found on the shelf. */
+  nextLotNumber: string | null;
+  /** When it was last bought; null for a product never bought. */
+  lastPurchasedOn: Date | null;
 }
 
 const NOTHING: MedicineStock = {
@@ -28,6 +32,8 @@ const NOTHING: MedicineStock = {
   onHand: 0,
   lots: [],
   nextExpiresOn: null,
+  nextLotNumber: null,
+  lastPurchasedOn: null,
 };
 
 /**
@@ -106,6 +112,12 @@ export const medicineStockOf = async (
       onHand: Math.max(0, dosesIn - dosesGiven),
       lots,
       nextExpiresOn: firstToGo?.expiresOn ?? null,
+      nextLotNumber: firstToGo?.lotNumber ?? null,
+      lastPurchasedOn:
+        bought
+          .map((one) => one.purchasedOn)
+          .toSorted((a, b) => b.getTime() - a.getTime())
+          .at(0) ?? null,
     });
   }
   return stock;

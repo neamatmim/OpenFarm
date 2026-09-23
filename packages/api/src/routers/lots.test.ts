@@ -303,6 +303,10 @@ describe("medicine in the store", () => {
       dosesGiven: 3,
       onHand: 17,
       nextExpiresOn: "2038-06-30",
+      nextLotNumber: "EARLY-1",
+      lastPurchasedOn: new Date("2038-03-31T18:00:00.000Z"),
+      // Nothing past its day yet on 4 April.
+      expiredOnHand: 0,
     });
     const purchases = await store.manager.client.drugs.purchases({
       drugProductId: store.product.id,
@@ -349,7 +353,12 @@ describe("feed in the store", () => {
 
     const stock = await store.manager.client.stock.onHand();
     const line = stock.find((one) => one.feedItemId === concentrate.id);
-    expect(line).toMatchObject({ onHand: 35, nextExpiresOn: "2039-01-01" });
+    expect(line).toMatchObject({
+      onHand: 35,
+      nextExpiresOn: "2039-01-01",
+      nextLotNumber: "CON-LATE",
+      expiredLeft: 0,
+    });
     const arrivals = await store.manager.client.stock.arrivals({
       feedItemId: concentrate.id,
     });
@@ -430,10 +439,13 @@ describe("the store warns", () => {
     const store = await aStore("expired-dose");
     // The June Lot is the first to be used, and on 5 July it is five days past its day.
     await store.dose("2038-07-05T04:00:00.000Z");
-    const list = await store.manager.client.drugs.list();
+    // Read on the day, since what is past its day depends on which day it is asked.
+    const onTheDay = await as("manager", "2038-07-05T05:00:00.000Z");
+    const list = await onTheDay.client.drugs.list();
     // Recorded all the same: an animal that needed treating was treated.
     const given = list.find((one) => one.id === store.product.id);
-    expect(given?.stock).toMatchObject({ dosesGiven: 1 });
+    // And on 5 July the nine doses left of the June Lot are past their day, still on the shelf.
+    expect(given?.stock).toMatchObject({ dosesGiven: 1, expiredOnHand: 9 });
     for (const role of ["vet", "manager"] as const) {
       // oxlint-disable-next-line no-await-in-loop -- one person at a time
       const told = await toldTo(role, "expired_dose_given");

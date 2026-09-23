@@ -1,4 +1,4 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -175,11 +175,42 @@ const MenuCell = ({ row }: { row: { original: StockRow } }) => (
 /** The delivery still in the store that goes off first: its Lot and day, and whether that day is near. The Lot
  *  is the one the day belongs to, so the bag can be found. */
 const NextExpiry = ({ line }: { line: StockLine }) => {
+  const { t, language } = useLanguage();
   const next = (line.lots ?? []).find((one) => one.expiresOn);
-  if (!next) {
+  const expired = line.expiredLeft ?? 0;
+  if (!(next || expired > 0)) {
     return <span className="text-muted-foreground">—</span>;
   }
-  return <LotAndExpiry expiresOn={next.expiresOn} lotNumber={next.lotNumber} />;
+  return (
+    <span className="flex flex-col items-start gap-1">
+      {next ? (
+        <LotAndExpiry expiresOn={next.expiresOn} lotNumber={next.lotNumber} />
+      ) : null}
+      {/* Feed already past its day, still in the store: the bags nobody should be feeding. */}
+      {expired > 0 ? (
+        <span className="text-danger text-xs font-medium">
+          {t("stock.expiredLeft", {
+            quantity: formatNumber(expired, language),
+            unit: line.unit,
+          })}
+        </span>
+      ) : null}
+    </span>
+  );
+};
+
+/** When feed last came in, or a dash for an item nothing has come in of. */
+const LastInCell = ({ row }: { row: { original: StockRow } }) => {
+  const { language } = useLanguage();
+  const on = row.original.lastInOn;
+  if (!on) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="whitespace-nowrap">
+      {formatDate(new Date(on), language, "date")}
+    </span>
+  );
 };
 
 const NextExpiryCell = ({ row }: { row: { original: StockRow } }) => (
@@ -210,6 +241,14 @@ const stockColumns = column.columns([
     header: listHeader("stock.col.nextExpiry"),
     cell: NextExpiryCell,
   }),
+  column.accessor(
+    (line) => (line.lastInOn ? new Date(line.lastInOn).getTime() : 0),
+    {
+      id: "lastIn",
+      header: listHeader("stock.col.lastIn"),
+      cell: LastInCell,
+    }
+  ),
   column.accessor((line) => line.lowStockAt ?? -1, {
     id: "lowAt",
     header: listHeader("stock.col.lowAt"),

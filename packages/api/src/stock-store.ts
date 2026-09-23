@@ -6,6 +6,7 @@ import { feeding, stockCount } from "@OpenFarm/db/schema/feed";
 import type { PaymentMethod } from "@OpenFarm/db/schema/money";
 import type { StockMovement } from "@OpenFarm/domain";
 import {
+  farmDayOf,
   lastFellBelow,
   roundKg,
   roundTaka,
@@ -53,6 +54,10 @@ export interface StockLine {
   }[];
   /** The soonest day any delivery with feed left expires, or null when none with a day has any left. */
   nextExpiresOn: string | null;
+  /** That delivery's Lot Number, so the bag can be found. */
+  nextLotNumber: string | null;
+  /** Feed still in the store from deliveries already past their day. */
+  expiredLeft: number;
 }
 
 /**
@@ -140,8 +145,12 @@ export const movementsByItem = async (
  */
 export const stockOnHand = async (
   db: Pick<Database, "query" | "execute">,
-  farmId: string
+  farmId: string,
+  /** When "already past its day" is judged from: the request's own clock. */
+  now: Date = new Date()
 ): Promise<StockLine[]> => {
+  // The farm's own day, which the deliveries' days sort against as text.
+  const today = farmDayOf(now);
   const [items, movements, arrivals] = await Promise.all([
     db.query.feedItem.findMany({
       where: { farmId },
@@ -206,6 +215,7 @@ export const stockOnHand = async (
       .map((one) => one.at)
       .toSorted((a, b) => b.getTime() - a.getTime())
       .at(0);
+    const firstToGo = lots.find((one) => one.expiresOn);
     return {
       feedItemId: item.id,
       nameBn: item.nameBn,
@@ -221,7 +231,11 @@ export const stockOnHand = async (
         ledger.onHand < Number(item.lowStockAt),
       lastInOn: lastIn ?? null,
       lots,
-      nextExpiresOn: lots.find((one) => one.expiresOn)?.expiresOn ?? null,
+      nextExpiresOn: firstToGo?.expiresOn ?? null,
+      nextLotNumber: firstToGo?.lotNumber ?? null,
+      expiredLeft: lots
+        .filter((one) => one.expiresOn !== null && one.expiresOn < today)
+        .reduce((sum, one) => sum + one.left, 0),
     };
   });
 };

@@ -4,6 +4,7 @@ import { drugProduct } from "@OpenFarm/db/schema/health";
 import { medicinePurchase } from "@OpenFarm/db/schema/money";
 import {
   MAX_WITHDRAWAL_DAYS,
+  farmDayOf,
   mayBePrescribed,
   startOfFarmDay,
   whyNotPrescribable,
@@ -111,11 +112,19 @@ export const drugsRouter = {
         with: { setBy: { columns: { name: true } } },
       });
       const stock = await medicineStockOf(context.db, context.farm.id);
+      // The farm's own day, which the Lots' days sort against as text.
+      const today = farmDayOf(context.clock.now());
+      /** Doses still on the shelf from Lots already past their day. */
+      const expiredOnHand = (productId: string) =>
+        (stock.get(productId)?.lots ?? [])
+          .filter((lot) => lot.expiresOn !== null && lot.expiresOn < today)
+          .reduce((sum, lot) => sum + lot.left, 0);
       return rows.map(({ setBy, ...row }) => ({
         ...row,
         /** What the store holds of it, in doses and by Lot, and whether that is under the level set for it. */
         stock: {
           ...(stock.get(row.id) ?? noMedicine()),
+          expiredOnHand: expiredOnHand(row.id),
           lowStockAt: row.lowStockAt,
           runningLow:
             row.lowStockAt !== null &&

@@ -132,9 +132,68 @@ const InStock = ({ product }: { product: DrugProduct }) => {
           <StatusBadge tone="warning">{t("drugs.runningLow")}</StatusBadge>
         ) : null}
       </span>
-      {stock.nextExpiresOn ? (
-        <LotAndExpiry expiresOn={stock.nextExpiresOn} lotNumber={null} />
+    </span>
+  );
+};
+
+/**
+ * The Lot with doses left that goes off first — its number, so the box can be found, and its day — and, in red,
+ * how many doses are already past their day and still on the shelf.
+ */
+const FirstToExpire = ({ product }: { product: DrugProduct }) => {
+  const { t, language } = useLanguage();
+  const { stock } = product;
+  const expired = stock?.expiredOnHand ?? 0;
+  if (!(stock?.nextExpiresOn || expired > 0)) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="flex flex-col items-start gap-1">
+      {stock?.nextExpiresOn ? (
+        <LotAndExpiry
+          expiresOn={stock.nextExpiresOn}
+          lotNumber={stock.nextLotNumber ?? null}
+        />
       ) : null}
+      {expired > 0 ? (
+        <span className="text-danger text-xs font-medium">
+          {t("drugs.expiredOnHand", {
+            doses: formatNumber(expired, language),
+          })}
+        </span>
+      ) : null}
+    </span>
+  );
+};
+
+const ExpiryCell = ({ row }: { row: { original: ProductRow } }) => (
+  <FirstToExpire product={row.original} />
+);
+
+/** The doses below which the store says it is running low, or a dash for a product nobody watches. */
+const LevelCell = ({ row }: { row: { original: ProductRow } }) => {
+  const { t, language } = useLanguage();
+  const level = row.original.stock?.lowStockAt ?? row.original.lowStockAt;
+  if (level === null || level === undefined) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {t("drugs.dosesOnHand", { doses: formatNumber(level, language) })}
+    </span>
+  );
+};
+
+/** The day it was last bought, or a dash for a product never bought. */
+const LastBoughtCell = ({ row }: { row: { original: ProductRow } }) => {
+  const { language } = useLanguage();
+  const on = row.original.stock?.lastPurchasedOn;
+  if (!on) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <span className="whitespace-nowrap">
+      {formatDate(new Date(on), language, "date")}
     </span>
   );
 };
@@ -295,6 +354,28 @@ const productColumns = column.columns([
     header: listHeader("drugs.col.stock"),
     cell: StockCell,
   }),
+  column.accessor((product) => product.stock?.nextExpiresOn ?? "9999-12-31", {
+    id: "expiry",
+    header: listHeader("stock.col.nextExpiry"),
+    cell: ExpiryCell,
+  }),
+  column.accessor((product) => product.stock?.lowStockAt ?? -1, {
+    id: "level",
+    header: listHeader("drugs.col.level"),
+    cell: LevelCell,
+    meta: { align: "end" },
+  }),
+  column.accessor(
+    (product) =>
+      product.stock?.lastPurchasedOn
+        ? new Date(product.stock.lastPurchasedOn).getTime()
+        : 0,
+    {
+      id: "lastBought",
+      header: listHeader("drugs.col.lastBought"),
+      cell: LastBoughtCell,
+    }
+  ),
   column.accessor((product) => product.milkWithdrawalDays ?? -1, {
     id: "milkDays",
     header: listHeader("drugs.milkDays"),
@@ -350,6 +431,7 @@ const ProductCard = ({ row }: { row: ProductRow }) => {
           <CardDays days={row.meatWithdrawalDays} label={t("drugs.meatDays")} />
         </div>
         <InStock product={row} />
+        <FirstToExpire product={row} />
         {row.daysSetByName && row.daysSetAt ? (
           <span className="text-muted-foreground text-xs">
             {t("drugs.setBy", {
