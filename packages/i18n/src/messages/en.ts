@@ -1036,6 +1036,7 @@ export const en = {
   "animals.filter.open": "Filters",
   "animals.age": "Age",
   "animals.ageYears": "{years} years {months} months",
+  "animals.ageWholeYears": "{years} years",
   "animals.ageEstimated": "about {age}",
   "animals.bornAround": "around {month}",
   "animals.more": "More",

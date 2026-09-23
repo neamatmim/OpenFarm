@@ -85,13 +85,16 @@ export const ageWords = (
     return null;
   }
   const { months } = age;
-  const words =
-    months < MONTHS_BEFORE_YEARS
-      ? t("intake.months", { months })
-      : t("animals.ageYears", {
-          years: Math.floor(months / MONTHS_IN_A_YEAR),
-          months: months % MONTHS_IN_A_YEAR,
-        });
+  const years = Math.floor(months / MONTHS_IN_A_YEAR);
+  const monthsOver = months % MONTHS_IN_A_YEAR;
+  let words = t("intake.months", { months });
+  if (months >= MONTHS_BEFORE_YEARS) {
+    // "Two years", not "two years nought months".
+    words =
+      monthsOver === 0
+        ? t("animals.ageWholeYears", { years })
+        : t("animals.ageYears", { years, months: monthsOver });
+  }
   return age.estimated ? t("animals.ageEstimated", { age: words }) : words;
 };
 
