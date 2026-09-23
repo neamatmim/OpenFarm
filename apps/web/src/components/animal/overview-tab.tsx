@@ -290,16 +290,15 @@ const lactationWords = (
     : `${which} · ${t("animals.daysInMilk", { days: detail.daysInMilk })}`;
 };
 
-/** When she was born and how old that makes her: the day where it was written down, and for an animal bought without
- *  one, the month the seller's word points to — both halves marked as the estimates they are. */
+/** When she was born: the day where it was written down, and for an animal bought without one, the month the seller's
+ *  word points to, marked as the estimate it is. */
 const bornWords = (
   detail: AnimalDetail,
   t: ReturnType<typeof useLanguage>["t"],
   language: Language
 ): string => {
-  const age = ageWords(t, herAge(detail));
   if (detail.birthDate) {
-    return `${formatDate(new Date(detail.birthDate), language, "date")} · ${age}`;
+    return formatDate(new Date(detail.birthDate), language, "date");
   }
   // A page this phone kept from before the farm sent the seller's word has none, until it is read again.
   const told = detail.ageAtIntake ?? null;
@@ -307,7 +306,7 @@ const bornWords = (
     return "—";
   }
   const month = formatDate(bornAroundOf(told), language, "monthYear");
-  return `${t("animals.bornAround", { month })} · ${age}`;
+  return t("animals.bornAround", { month });
 };
 
 /** Who she is, as facts: everything her register says about her, and what her records work out. */
@@ -330,6 +329,9 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
         <Fact label={t("animals.breed")}>{detail.breed ?? "—"}</Fact>
         <Fact label={t("animals.birthDate")}>
           {bornWords(detail, t, language)}
+        </Fact>
+        <Fact label={t("animals.age")}>
+          {ageWords(t, herAge(detail)) ?? "—"}
         </Fact>
         <Fact label={t("animals.source")}>
           {t(`animals.source.${detail.source}`)}
