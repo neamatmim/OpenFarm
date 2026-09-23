@@ -165,9 +165,11 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     };
 
     for (const role of ["owner", "manager", "staff"] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one role at a time
       const them = await createTestClient(appRouter, { as: role, clock });
       // Not "forbidden": a Manager reading that would go looking for a permission to
       // change, and there is none — the prescription is the Vet's act in law.
+      // oxlint-disable-next-line no-await-in-loop
       await expect(them.client.diagnoses.record(conclusion)).rejects.toThrow(
         /Only the Vet records a Diagnosis/u
       );
@@ -298,6 +300,36 @@ describe("a Diagnosis, and the Vet who makes it", () => {
     // And it is in their own work instead.
     const mine = await vet.client.diagnoses.mine();
     expect(mine.map((one) => one.tagNumber)).toContain(cow.tagNumber);
+  });
+
+  it("stops waiting on what was seen of a cow who has since died, and offers no course for her", async () => {
+    const clock = new FakeClock("2028-05-07T02:00:00.000Z");
+    const { cow, seen } = await aLameCow(clock);
+    const vet = await createTestClient(appRouter, { as: "vet", clock });
+    // Concluded on while she lived, so the Vet's own list holds her.
+    await vet.client.diagnoses.record({
+      animalTag: cow.tagNumber,
+      disease: { bn: "জ্বর" },
+    });
+    const waitingThen = await vet.client.diagnoses.waiting();
+    expect(waitingThen.map((one) => one.id)).toContain(seen.id);
+
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    await owner.client.animals.recordMortality({
+      tagNumber: cow.tagNumber,
+      kind: "died",
+      cause: "হঠাৎ মারা গেছে",
+      disposal: "buried",
+    });
+
+    // Nothing is left to diagnose, and the farm refuses a Diagnosis of her: the list does not wait on her.
+    const waitingNow = await vet.client.diagnoses.waiting();
+    expect(waitingNow.map((one) => one.id)).not.toContain(seen.id);
+    // Her conclusion stays the Vet's to read, marked as about one who has gone.
+    const mine = await vet.client.diagnoses.mine();
+    expect(mine.find((one) => one.tagNumber === cow.tagNumber)).toMatchObject({
+      stillHere: false,
+    });
   });
 
   it("will not answer an Observation the farm has taken back", async () => {

@@ -124,6 +124,8 @@ export const en = {
   "people.tab.training": "Training",
   "people.change": "Change",
   "people.rolesWhy": "What they may see and do on the farm.",
+  "people.ownOwnerRoleStays":
+    "Your own Owner role stays: another Owner takes it off, so the farm is never left with nobody to run it.",
   "people.pensWhy": "Their daily work comes from these Pens.",
   "people.pinWhy":
     "Four digits to switch to themselves on a Shed Phone. It is never shown again.",
@@ -400,6 +402,7 @@ export const en = {
     "Capital cannot be taken against an agreement the farm holds no photo of. Add it here and take the money straight after.",
   "ventures.paperKept": "The paper is on the agreement",
   "ventures.noPaperYet": "no photo yet",
+  "ventures.paidInFull": "paid in full",
   "ventures.amount": "Amount",
   "ventures.movedOn": "The day the bank moved it",
   "ventures.reference": "Bank reference",
@@ -2251,6 +2254,8 @@ export const en = {
   "work.none": "Nothing due right now",
   "work.due": "Due {time}",
   "work.claim": "Start",
+  "work.theirsToStart": "Pinned to {name} — theirs to start",
+  "work.heldBy": "{name} is doing this — you can read it here, not record it",
   "work.claimed": "You are working on this",
   "work.takenBy": "Someone else is working on this",
   "work.pinnedTo": "Pinned to {name}",
@@ -2328,6 +2333,7 @@ export const en = {
   "signOff.title": "To check",
   "signOff.none": "Nothing to check",
   "signOff.approve": "Approve",
+  "signOff.yoursToBeChecked": "Yours — somebody else checks it",
   "signOff.sendBack": "Send back",
   "signOff.reason": "What needs doing again?",
   "signOff.doneBy": "Done by {name}",
@@ -2618,6 +2624,7 @@ export const en = {
   "intake.owner": "Whose animal she is",
   "intake.ownerHint":
     "The Venture whose money bought her. Only a Venture that is buying may take one in.",
+  "intake.ownerFromFloat": "Bought on {venture}'s Float, so she is {venture}'s",
   "intake.theFarms": "The farm's own",
   "intake.weight": "Weight on arrival",
   "intake.age": "Estimated age",

@@ -232,9 +232,14 @@ const TextField = ({
   </FormField>
 );
 
-/** Whether everything a Sale needs has been given — and there is anything the farm will let go today. */
-const isReady = (answers: SaleAnswers, anyReady: boolean) =>
-  anyReady &&
+/**
+ * Whether everything a Sale needs has been given.
+ *
+ * Not whether anything is Ready: a cull off the dairy side goes to the butcher by her tag whether or not a
+ * fattening bull is Ready that day, and the farm takes her — it asks only that she is here and out of her
+ * withdrawal. Asking the list here held Save shut on exactly the day the typed tag was offered for.
+ */
+const isReady = (answers: SaleAnswers) =>
   answers.tagNumber.trim() !== "" &&
   answers.buyerName.trim() !== "" &&
   Number(answers.priceBdt) > 0 &&
@@ -320,7 +325,7 @@ export const SaleSheet = ({
       }
       open={open}
       pending={record.isPending}
-      ready={isReady(answers, (sellable.data ?? []).length > 0)}
+      ready={isReady(answers)}
       submitLabel={t("sale.record")}
       title={t("sale.title")}
     >

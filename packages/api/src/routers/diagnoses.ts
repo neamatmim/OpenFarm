@@ -2,6 +2,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { sql } from "@OpenFarm/db/operators";
 import { diagnosis } from "@OpenFarm/db/schema/health";
 import type { observation } from "@OpenFarm/db/schema/observation";
+import { EXIT_STATES, isExitState } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -258,6 +259,9 @@ export const diagnosesRouter = {
             now: context.clock.now(),
           }),
           RAW: unanswered,
+          // Only about an animal still here: one sold or dead has nothing left to diagnose, and the farm refuses a
+          // Diagnosis of her — left in the list, her cough would wait for ever and count in the Vet's figure.
+          animal: { state: { notIn: [...EXIT_STATES] } },
           ...clinicalRecordsInScope(context.scope),
         },
         orderBy: { seenAt: "desc" },
@@ -299,7 +303,7 @@ export const diagnosesRouter = {
         orderBy: { diagnosedAt: "desc" },
         limit: MAX_SEEN_ROWS,
         with: {
-          animal: { columns: { tagNumber: true } },
+          animal: { columns: { tagNumber: true, state: true } },
           vet: { columns: { name: true } },
           answers: { columns: { saw: true, sawLabel: true, seenAt: true } },
           // What they ordered for it, so the Vet reads their own conclusion and the course
@@ -310,6 +314,8 @@ export const diagnosesRouter = {
       return rows.map(({ animal, ...row }) => ({
         ...theConclusionAndWhatFollowed(row),
         tagNumber: animal.tagNumber,
+        /** Still on the farm: a course is written only for an animal who is, so one who left is offered none. */
+        stillHere: !isExitState(animal.state),
       }));
     }),
 };

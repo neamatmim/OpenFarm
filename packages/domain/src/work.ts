@@ -136,3 +136,19 @@ export const minutesOverdue = (instance: DueWork, now: Date): number =>
         MINUTE_MS
     )
   );
+
+/**
+ * May this person sign off this work? Marking your own work as checked is not a check — except for the Owner, whose
+ * farm it is and who may sign off what they did themselves (the Owner, 2026-09-17). Whoever claimed the work did it;
+ * work nobody claimed was the person it was pinned to.
+ *
+ * The one answer the farm refuses by and the sign-off queue offers its buttons by, so neither offers what the other
+ * would refuse.
+ */
+export const maySignOff = (
+  work: { claimedBy: string | null; assignedTo: string | null },
+  person: { id: string; roles: readonly string[] }
+): boolean => {
+  const doer = work.claimedBy ?? work.assignedTo;
+  return doer !== person.id || person.roles.includes("owner");
+};

@@ -269,6 +269,64 @@ const PlaceLine = ({
   );
 };
 
+/** Who else holds this work — pinned to them, or claimed by them — or nobody. Somebody else's work is read here, not
+ *  done: the farm takes an entry on it only from them, so a Claim or a tile that opens would be a refusal waiting to
+ *  happen. Not known until the phone knows who it is, and then only said of someone else. */
+const useHeldByOther = (
+  work: { heldBy: { id: string; name: string } | null } | undefined
+): { id: string; name: string } | null => {
+  const me = useQuery(orpc.people.me.queryOptions());
+  const heldBy = work?.heldBy;
+  if (!(heldBy && me.data)) {
+    return null;
+  }
+  return heldBy.id === me.data.id ? null : heldBy;
+};
+
+/** Work not yet begun: the button to begin it — or, where it is pinned to somebody else, whose it is. */
+const ClaimOrWhose = ({
+  someoneElse,
+  onClaim,
+}: {
+  someoneElse: { name: string } | null;
+  onClaim: () => void;
+}) => {
+  const { t } = useLanguage();
+  if (someoneElse) {
+    return (
+      <p className="text-sm font-medium">
+        {t("work.theirsToStart", { name: someoneElse.name })}
+      </p>
+    );
+  }
+  return (
+    <Button className="h-14 w-full text-lg md:h-12" onClick={onClaim}>
+      {t("work.claim")}
+    </Button>
+  );
+};
+
+/** Over a board somebody else is working: whose it is, and that it is theirs to record. */
+const HeldByNotice = ({
+  someoneElse,
+}: {
+  someoneElse: { name: string } | null;
+}) => {
+  const { t } = useLanguage();
+  return someoneElse ? (
+    <Notice title={t("work.heldBy", { name: someoneElse.name })} tone="info" />
+  ) : null;
+};
+
+/** The board's foot — the next animal, or finishing — left off where the work is somebody else's to finish. */
+const BoardFoot = ({
+  hidden,
+  children,
+}: {
+  hidden: boolean;
+  children: ReactNode;
+}) => (hidden ? null : <StickyAction>{children}</StickyAction>);
+
 /** The pen board: chips for the Steps that happen once, the Pen's animals as photo tiles in
  *  any order, and the closing Step only when everything else is done. */
 const WorkPage = () => {
@@ -283,6 +341,7 @@ const WorkPage = () => {
   const instance = useQuery(
     orpc.instances.get.queryOptions({ input: { id: instanceId } })
   );
+  const someoneElse = useHeldByOther(instance.data);
   // What this phone last knew of the herd. With no signal the board still has to say which
   // cow may not go to the tank: a shed with no bars is exactly where that mistake is made.
   const herd = useQuery(herdCacheQuery);
@@ -372,6 +431,16 @@ const WorkPage = () => {
     changed,
     runningOn,
   } = instance.data;
+  const openStepIfMine = (step: Step) => {
+    if (!someoneElse) {
+      setOpenStep(step);
+    }
+  };
+  const openAnimalIfMine = (beast: Animal) => {
+    if (!someoneElse) {
+      setOpenAnimal(beast);
+    }
+  };
   // The farm holds a Step's answers as a blob, so it says `unknown` of them and means it. This is the
   // one thing the board has to assert about what it is given, and it asserts only this: everything else
   // — including whether a Registration's expiry is a date or a string — is the router's own word,
@@ -436,12 +505,10 @@ const WorkPage = () => {
                 {t("work.claimHint")}
               </p>
             </div>
-            <Button
-              className="h-14 w-full text-lg md:h-12"
-              onClick={() => claim.mutate()}
-            >
-              {t("work.claim")}
-            </Button>
+            <ClaimOrWhose
+              onClaim={() => claim.mutate()}
+              someoneElse={someoneElse}
+            />
           </div>
         </div>
         <AssignWork
@@ -573,6 +640,7 @@ const WorkPage = () => {
   return (
     <Page className="mx-auto max-w-4xl gap-5 pb-2 md:gap-6">
       <WorkHeader name={content.name} pen={pen} tally={tally} />
+      <HeldByNotice someoneElse={someoneElse} />
       <AssignWork
         assignedRole={instance.data.assignedRole}
         assignedTo={instance.data.assignedTo}
@@ -595,7 +663,7 @@ const WorkPage = () => {
               <StepRow
                 done={Boolean(doneFor(step.id))}
                 key={step.id}
-                onOpen={() => setOpenStep(step)}
+                onOpen={() => openStepIfMine(step)}
                 step={step}
               />
             ))}
@@ -612,7 +680,7 @@ const WorkPage = () => {
                   animal={beast}
                   completion={doneFor(perAnimalStep.id, beast.id)}
                   next={beast.id === nextAnimal?.id}
-                  onOpen={() => setOpenAnimal(beast)}
+                  onOpen={() => openAnimalIfMine(beast)}
                 />
               </li>
             ))}
@@ -622,7 +690,7 @@ const WorkPage = () => {
 
       {outcome ? <BulkOutcomeBanner outcome={outcome} /> : null}
 
-      <StickyAction>
+      <BoardFoot hidden={someoneElse !== null}>
         {nextAnimal ? (
           <NextAnimal
             animal={nextAnimal}
@@ -638,7 +706,7 @@ const WorkPage = () => {
             ready={readyToClose}
           />
         )}
-      </StickyAction>
+      </BoardFoot>
     </Page>
   );
 };

@@ -1,4 +1,5 @@
 import type { SopContent } from "@OpenFarm/domain";
+import { mayRaiseByHand } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CirclePlus } from "lucide-react";
@@ -39,7 +40,12 @@ export const RaiseWork = ({ definitionId }: { definitionId?: string }) => {
     if (row.retiredAt || !row.currentVersion) {
       return [];
     }
-    const { name } = row.currentVersion.content as SopContent;
+    const content = row.currentVersion.content as SopContent;
+    // A dose is raised by its Prescription, never from here.
+    if (!mayRaiseByHand(content)) {
+      return [];
+    }
+    const { name } = content;
     return [
       { id: row.id, name: language === "en" && name.en ? name.en : name.bn },
     ];

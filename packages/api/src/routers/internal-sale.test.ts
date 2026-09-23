@@ -578,3 +578,12 @@ describe("the animals the Owner is offered to move", () => {
     });
   });
 });
+
+describe("what a paper may still take", () => {
+  it("is nothing once its Units are paid for", async () => {
+    const owner = await as("owner", "2047-03-04T04:00:00.000Z");
+    const [paper] = await owner.client.ventures.agreements({ ventureId });
+    // Twenty Units at fifty thousand, paid in full when the Venture was funded.
+    expect(paper).toMatchObject({ capitalLeftBdt: 0 });
+  });
+});

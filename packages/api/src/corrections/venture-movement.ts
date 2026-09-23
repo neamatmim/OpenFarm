@@ -33,6 +33,64 @@ const findMovement = (tx: Tx, farmId: string, id: string) =>
 
 type MovementRow = NonNullable<Awaited<ReturnType<typeof findMovement>>>;
 
+/** Why nothing about a Venture Movement may be put right, as the farm says it — or null, where it may be. */
+export interface WhyItStands {
+  message: string;
+  refusal: string;
+}
+
+/**
+ * Whether the farm has already built something on this movement that a change would silently falsify — asked of
+ * what is already known of it: the Venture's state, the row, and whether its outing's Float has been counted.
+ *
+ * Pure, so the list of a Venture's movements asks it too, row by row, and offers Correct only where this says
+ * nothing: the button and the refusal are the one answer.
+ */
+export const whyItStands = (
+  row: { internalSaleId: string | null; saleId: string | null },
+  ventureState: string | undefined,
+  floatCounted: boolean
+): WhyItStands | null => {
+  if (ventureState === "settled") {
+    return {
+      message: "That Venture is settled; raise a Settlement Adjustment instead",
+      refusal: "venture_is_settled",
+    };
+  }
+  if (ventureState === "cancelled") {
+    // Calling a Venture off sent every taka back, one refund against each payment. Change what came in and
+    // the refund beside it stops matching, and the Venture reads as still holding somebody's money.
+    return {
+      message: "That Venture was called off and its money sent back",
+      refusal: "venture_is_cancelled",
+    };
+  }
+  if (row.internalSaleId) {
+    // An Internal Sale is two movements and a price, and where the Farm is a side, a Money Event too. One of
+    // them changed alone would leave two purses disagreeing about the same sale.
+    return {
+      message:
+        "That is one side of an Internal Sale; the sale itself is what to put right",
+      refusal: "one_side_of_a_sale",
+    };
+  }
+  if (row.saleId) {
+    // What a buyer paid is written from the Sale and moves when the Sale's price is put right. Changed
+    // here instead, the Venture's account and the Sale would disagree about one payment.
+    return {
+      message: "That money comes from a Sale; put the Sale right",
+      refusal: "correct_the_record",
+    };
+  }
+  if (floatCounted) {
+    return {
+      message: "That outing's Float has been counted; it takes nothing more",
+      refusal: "float_already_reconciled",
+    };
+  }
+  return null;
+};
+
 /**
  * Whether the farm has already built something on this movement that a change would silently falsify.
  *
@@ -46,52 +104,20 @@ const assertNothingRestsOnIt = async (tx: Tx, row: MovementRow) => {
     where: { id: row.ventureId, farmId: row.farmId },
     columns: { state: true },
   });
-  if (venture?.state === "settled") {
-    throw refuse(
-      "That Venture is settled; raise a Settlement Adjustment instead",
-      "venture_is_settled"
-    );
-  }
-  if (venture?.state === "cancelled") {
-    // Calling a Venture off sent every taka back, one refund against each payment. Change what came in and
-    // the refund beside it stops matching, and the Venture reads as still holding somebody's money.
-    throw refuse(
-      "That Venture was called off and its money sent back",
-      "venture_is_cancelled"
-    );
-  }
-  if (row.internalSaleId) {
-    // An Internal Sale is two movements and a price, and where the Farm is a side, a Money Event too. One of
-    // them changed alone would leave two purses disagreeing about the same sale.
-    throw refuse(
-      "That is one side of an Internal Sale; the sale itself is what to put right",
-      "one_side_of_a_sale"
-    );
-  }
-  if (row.saleId) {
-    // What a buyer paid is written from the Sale and moves when the Sale's price is put right. Changed
-    // here instead, the Venture's account and the Sale would disagree about one payment.
-    throw refuse(
-      "That money comes from a Sale; put the Sale right",
-      "correct_the_record"
-    );
-  }
-  if (row.buyingTripId) {
-    const counted = await tx.query.ventureMovement.findFirst({
-      where: {
-        farmId: row.farmId,
-        buyingTripId: row.buyingTripId,
-        kind: "float_out",
-        reconciledAt: { isNotNull: true },
-      },
-      columns: { id: true },
-    });
-    if (counted) {
-      throw refuse(
-        "That outing's Float has been counted; it takes nothing more",
-        "float_already_reconciled"
-      );
-    }
+  const counted = row.buyingTripId
+    ? await tx.query.ventureMovement.findFirst({
+        where: {
+          farmId: row.farmId,
+          buyingTripId: row.buyingTripId,
+          kind: "float_out",
+          reconciledAt: { isNotNull: true },
+        },
+        columns: { id: true },
+      })
+    : undefined;
+  const stands = whyItStands(row, venture?.state, counted !== undefined);
+  if (stands) {
+    throw refuse(stands.message, stands.refusal);
   }
 };
 

@@ -587,6 +587,16 @@ export const raisesItsOwnWork = (
 > => trigger.kind === "prescription" || trigger.kind === "notifiable_disease";
 
 /**
+ * May somebody raise this procedure's work by hand, now? Not one a Prescription raises: its work is one dose of one
+ * course, and a dose raised by hand would belong to no course. The farm refuses by it, and the Playbook and Today
+ * offer "raise it now" by it, so neither offers what the other refuses.
+ */
+export const mayRaiseByHand = (
+  content: Pick<SopContent, "triggers">
+): boolean =>
+  !content.triggers.some((trigger) => trigger.kind === "prescription");
+
+/**
  * The Triggers and the Step Effects that only make sense together, and what to say when one is
  * there without the other.
  *

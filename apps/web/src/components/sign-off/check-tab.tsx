@@ -1,7 +1,8 @@
+import { maySignOff } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check, ClipboardCheck, Undo2 } from "lucide-react";
 import { useState } from "react";
@@ -29,6 +30,8 @@ import { titleOf } from "./sign-off-types";
 /** What a row can do: approve it now, or open the dialog that sends it back. */
 interface CheckActions {
   busy: (id: string) => boolean;
+  /** Whether this person may sign this work off: not their own, unless they are the Owner. */
+  mayCheck: (row: ToCheck) => boolean;
   handleApprove: (id: string) => void;
   handleSendBack: (row: ToCheck) => void;
 }
@@ -58,8 +61,16 @@ const WorkName = ({ row }: { row: ToCheck }) => {
 /** Approve, the act the queue is for, and send back beside it — each waiting only on its own row's answer. */
 const CheckButtons = ({ row }: { row: CheckRow }) => {
   const { t } = useLanguage();
-  const { busy, handleApprove, handleSendBack } = row.actions;
+  const { busy, handleApprove, handleSendBack, mayCheck } = row.actions;
   const waiting = busy(row.id);
+  // Their own work: somebody else checks it, and saying so is better than two buttons the farm would refuse.
+  if (!mayCheck(row)) {
+    return (
+      <p className="text-muted-foreground text-end text-sm">
+        {t("signOff.yoursToBeChecked")}
+      </p>
+    );
+  }
   return (
     <div className="flex shrink-0 items-center justify-end gap-2">
       <Button
@@ -181,8 +192,12 @@ export const CheckTab = ({ queue }: { queue: Asked<ToCheck> }) => {
       },
     })
   );
+  const me = useQuery(orpc.people.me.queryOptions());
   const actions: CheckActions = {
     busy: inFlight.has,
+    mayCheck: (row) =>
+      me.data === undefined ||
+      maySignOff(row, { id: me.data.id, roles: me.data.roles }),
     handleApprove: (id) => approve.mutate({ id }),
     handleSendBack: setSendingBack,
   };
