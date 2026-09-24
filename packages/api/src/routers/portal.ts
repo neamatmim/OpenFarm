@@ -16,6 +16,7 @@ import {
 import { shareOfUnits } from "../investor-statement-words";
 import {
   investorOf,
+  markSeen,
   ownerNameOf,
   requireTheirs,
   takeUpInvitation,
@@ -44,6 +45,12 @@ export const investorProcedure = protectedProcedure.use(
     if (!investor) {
       throw refuse();
     }
+    await markSeen(
+      context.db,
+      theFarm.id,
+      context.actor.id,
+      context.clock.now()
+    );
     return next({ context: { farm: theFarm, investor } });
   }
 );
