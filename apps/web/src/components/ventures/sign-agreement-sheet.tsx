@@ -1,16 +1,23 @@
+import type { AgreementDocument } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { FileText, Printer } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
-import { Paper } from "@/components/paper";
 import { PhotoField } from "@/components/photo-field";
+import { AgreementDocumentView } from "@/components/ventures/agreement-document";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
@@ -113,8 +120,9 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
 };
 
 /**
- * The agreement printed to be signed, from the terms on the sheet: onto stamp paper, or to go with an e-challan. Shown
- * only while they are still the terms on the sheet — a paper with yesterday's Units on it is the wrong one to sign.
+ * The agreement to sign, laid out from the terms on the sheet in a dialog wide enough for a page, and printed from
+ * there onto stamp paper or to go with an e-challan. Until a lawyer has approved the wording the dialog says so, above
+ * the page and never on it.
  */
 const PrintToSign = ({
   drafting,
@@ -131,15 +139,13 @@ const PrintToSign = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [draft, setDraft] = useState<{ text: string; from: string } | null>(
-    null
-  );
-  const printing = useMutation(
-    orpc.investorStatements.agreementDraft.mutationOptions({
+  const [shown, setShown] = useState<AgreementDocument | null>(null);
+  const laying = useMutation(
+    orpc.investorStatements.agreementToSign.mutationOptions({
+      onSuccess: (done) => setShown(done.document),
       onError: refused,
     })
   );
-  const from = JSON.stringify(drafting);
   const mayDraft =
     drafting.ventureId !== "" &&
     drafting.investorId !== "" &&
@@ -151,12 +157,8 @@ const PrintToSign = ({
     <div className="flex flex-col gap-2">
       <Button
         className="self-start"
-        disabled={!mayDraft || printing.isPending}
-        onClick={() =>
-          printing.mutate(drafting, {
-            onSuccess: (done) => setDraft({ text: done.text, from }),
-          })
-        }
+        disabled={!mayDraft || laying.isPending}
+        onClick={() => laying.mutate(drafting)}
         type="button"
         variant="outline"
       >
@@ -166,9 +168,35 @@ const PrintToSign = ({
       <p className="text-muted-foreground text-sm">
         {t("ventures.printDraftHint")}
       </p>
-      {draft?.from === from ? (
-        <Paper id="investment-agreement-draft" text={draft.text} />
-      ) : null}
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setShown(null);
+          }
+        }}
+        open={shown !== null}
+      >
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"
+          closeLabel={t("common.close")}
+        >
+          <DialogHeader className="no-print">
+            <DialogTitle>{t("ventures.agreementTitle")}</DialogTitle>
+          </DialogHeader>
+          {shown && !shown.wordingReviewed ? (
+            <p className="bg-warning-surface text-warning no-print rounded-md px-3 py-2 text-sm">
+              {t("ventures.wordingNotReviewed")}
+            </p>
+          ) : null}
+          {shown ? <AgreementDocumentView document={shown} /> : null}
+          <div className="no-print flex justify-end">
+            <Button onClick={() => window.print()} type="button">
+              <Printer aria-hidden data-icon="inline-start" />
+              {t("common.print")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

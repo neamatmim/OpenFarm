@@ -824,97 +824,185 @@ export const joiningLetter = (letter: JoiningLetter): string => {
 };
 
 /**
- * The day a Bangladeshi lawyer approved the wording of the Investment Agreement below, or null until one has. Until
- * then every copy says it is a draft and not to be signed: the terms are the farm's decisions, but the deed's wording
- * is a lawyer's to settle (the investor map's ticket 11). Set it, with the lawyer's name in the commit, once they have.
+ * The day a Bangladeshi lawyer approved the wording of the Investment Agreement below, or null until one has. Not
+ * printed on the paper — a document an Investor keeps is no place for a warning to the farm — but until it is set the
+ * screen that prints it reminds the Owner (the investor map's ticket 11). Set it, with the lawyer's name in the commit.
  */
 export const AGREEMENT_WORDING_APPROVED_ON: string | null = null;
 
-/** The Investment Agreement for one Investor and one Venture, everything already worded for the reader. */
+/** A label in both of the farm's languages: a paper the farm hands somebody is Bangla with the English alongside. */
+export interface Said {
+  bn: string;
+  en: string;
+}
+
+/** One line of a document: what it is, and what it says. */
+export interface DocumentRow {
+  label: Said;
+  value: string;
+}
+
+/** The Investment Agreement's facts, already worded for the reader, from which the document is laid out. */
 export interface AgreementDraft {
   farm: FarmIdentity;
   /** The mudarib: the Owner, who signs for the Farm. */
   ownerName: string;
   him: JoiningLetter["him"];
   ventureName: string;
-  /** Taka, formatted: one Unit's price, his Units, and the capital they come to. */
-  unitPrice: string;
+  /** Formatted for the reader: his Units, one Unit's price and the capital they come to, in taka. */
   units: string;
+  unitPrice: string;
   capital: string;
-  /** The seven plain lines of what he agrees to, already worded by the caller — the joining letter's own. */
-  terms: string[];
+  /** The Target Window, and the Wind-up Period's length, as the reader reads them. */
+  targetWindow: string;
+  windUp: string;
+  /** The seven terms, unnumbered — the document numbers them — and worded as the joining letter words them. */
+  clauses: string[];
   producedBy: string;
   producedAt: string;
 }
 
 /**
- * মুদারাবা বিনিয়োগ চুক্তি — the Investment Agreement for one Investor and one Venture, printed from the terms before
- * it is signed: onto stamp paper, or to go with an e-challan. The parties, the Venture and his Units, the capital and
- * how it may reach the Farm, the seven terms the joining letter repeats, a box for the stamp, and room for both
- * signatures and two witnesses.
- *
- * A draft until a lawyer approves the wording ({@link AGREEMENT_WORDING_APPROVED_ON}), and it says so at the top.
+ * মুদারাবা বিনিয়োগ চুক্তি, laid out: every part of the Agreement as data, each label in both languages, for a screen to
+ * set as a document and print. Data rather than a block of text, because a deed is read by its parts — who the
+ * parties are, what is invested, what is agreed, where to sign — and a page that shows those as parts reads as one.
  */
-export const investmentAgreementDraft = (draft: AgreementDraft): string =>
-  investorStatement({
-    farm: draft.farm,
-    title: "মুদারাবা বিনিয়োগ চুক্তি / Mudarabah Investment Agreement",
-    producedBy: draft.producedBy,
-    producedAt: draft.producedAt,
-    body: [
-      AGREEMENT_WORDING_APPROVED_ON
-        ? null
-        : "খসড়া — আইনজীবী এই ভাষা অনুমোদন না করা পর্যন্ত সই করবেন না। / DRAFT — not to be signed until a lawyer approves this wording.",
-      AGREEMENT_WORDING_APPROVED_ON ? null : "",
-      "প্রথম পক্ষ (মুদারিব) / First party (mudarib)",
-      field("নাম", "Name", draft.ownerName),
-      field("খামার", "Farm", draft.farm.name),
-      draft.farm.address?.trim()
-        ? field("ঠিকানা", "Address", draft.farm.address)
+export interface AgreementDocument {
+  letterhead: { name: string; details: string[] };
+  title: Said;
+  preamble: Said;
+  partiesHeading: Said;
+  parties: { role: Said; rows: DocumentRow[] }[];
+  venture: { heading: Said; rows: DocumentRow[] };
+  payment: Said;
+  terms: { heading: Said; clauses: string[] };
+  stamp: { heading: Said; blanks: Said[] };
+  signatures: {
+    heading: Said;
+    signers: { role: Said; name: string }[];
+    witnesses: Said[];
+    /** What each witness writes: a name, and a signature. */
+    witnessBlanks: Said[];
+  };
+  /** What every paper to an Investor ends on: no return is promised. */
+  closing: readonly string[];
+  produced: string;
+  /** Whether a lawyer has approved the wording — for the screen to say, never printed. */
+  wordingReviewed: boolean;
+}
+
+const row = (bn: string, en: string, value: string | null | undefined) =>
+  value?.trim() ? { label: { bn, en }, value } : null;
+
+const rows = (...all: (DocumentRow | null)[]): DocumentRow[] =>
+  all.filter((one) => one !== null);
+
+/**
+ * The Investment Agreement for one Investor and one Venture, laid out to be printed before it is signed: onto stamp
+ * paper, or to go with an e-challan. The letterhead, the two parties, the Venture and his capital and how it reaches
+ * the Farm, the seven terms, a box for the stamp or e-challan, and room for both signatures and two witnesses.
+ */
+export const investmentAgreement = (
+  draft: AgreementDraft
+): AgreementDocument => ({
+  letterhead: {
+    name: draft.farm.name,
+    details: [
+      draft.farm.address?.trim() ?? null,
+      draft.farm.phone?.trim() ? `মোবাইল / Phone: ${draft.farm.phone}` : null,
+      draft.farm.registrationNumber?.trim()
+        ? `ডিএলএস নিবন্ধন / DLS registration: ${draft.farm.registrationNumber}`
         : null,
-      "",
-      "দ্বিতীয় পক্ষ (বিনিয়োগকারী) / Second party (investor)",
-      field("নাম", "Name", draft.him.name),
-      draft.him.address?.trim()
-        ? field("ঠিকানা", "Address", draft.him.address)
-        : null,
-      field("মোবাইল", "Phone", draft.him.phone),
-      draft.him.nid?.trim()
-        ? field("জাতীয় পরিচয়পত্র", "NID", draft.him.nid)
-        : null,
-      draft.him.nominee
-        ? field(
-            "নমিনি",
-            "Nominee",
-            [
-              draft.him.nominee.name,
-              draft.him.nominee.relation?.trim() || null,
-              draft.him.nominee.phone?.trim() || null,
-            ]
-              .filter((part) => part !== null)
-              .join(" · ")
-          )
-        : null,
-      "",
-      field("ভেঞ্চার", "Venture", draft.ventureName),
-      field("প্রতি ইউনিট", "Unit price", `${draft.unitPrice} টাকা`),
-      field("ইউনিট", "Units", draft.units),
-      field("মূলধন", "Capital", `${draft.capital} টাকা`),
-      "মূলধন কেবল ভেঞ্চারের ব্যাংক হিসাবে ব্যাংকের মাধ্যমে দেওয়া হবে, নগদে নয়। / Capital is paid by bank into the Venture Account only, never in cash.",
-      "",
-      "শর্তাবলি / Terms",
-      ...draft.terms.map((one) => `  ${one}`),
-      "",
-      "স্ট্যাম্প বা ই-চালান / Stamp or e-challan: ____________________",
-      "মূল্য / Value: __________  তারিখ / Date: __________",
-      "",
-      "প্রথম পক্ষের স্বাক্ষর / First party: ____________________  তারিখ / Date: __________",
-      "দ্বিতীয় পক্ষের স্বাক্ষর / Second party: ____________________  তারিখ / Date: __________",
-      "",
-      "সাক্ষী ১ / Witness 1: নাম / name ____________________  স্বাক্ষর / signature ____________",
-      "সাক্ষী ২ / Witness 2: নাম / name ____________________  স্বাক্ষর / signature ____________",
+    ].filter((line): line is string => Boolean(line)),
+  },
+  title: { bn: "মুদারাবা বিনিয়োগ চুক্তি", en: "Mudarabah Investment Agreement" },
+  preamble: {
+    bn: "এই চুক্তি ____________ তারিখে নিচের দুই পক্ষের মধ্যে সম্পাদিত হলো।",
+    en: "This Agreement is made on ____________ between the two parties below.",
+  },
+  partiesHeading: { bn: "চুক্তির পক্ষ", en: "Parties" },
+  parties: [
+    {
+      role: { bn: "প্রথম পক্ষ — মুদারিব", en: "First party — Mudarib" },
+      rows: rows(
+        row("নাম", "Name", draft.ownerName),
+        row("খামার", "Farm", draft.farm.name),
+        row("ঠিকানা", "Address", draft.farm.address),
+        row("ডিএলএস নিবন্ধন", "DLS registration", draft.farm.registrationNumber)
+      ),
+    },
+    {
+      role: { bn: "দ্বিতীয় পক্ষ — বিনিয়োগকারী", en: "Second party — Investor" },
+      rows: rows(
+        row("নাম", "Name", draft.him.name),
+        row("ঠিকানা", "Address", draft.him.address),
+        row("মোবাইল", "Phone", draft.him.phone),
+        row("জাতীয় পরিচয়পত্র", "NID", draft.him.nid),
+        row(
+          "নমিনি",
+          "Nominee",
+          draft.him.nominee
+            ? [
+                draft.him.nominee.name,
+                draft.him.nominee.relation?.trim() || null,
+                draft.him.nominee.phone?.trim() || null,
+              ]
+                .filter((part) => part !== null)
+                .join(" · ")
+            : null
+        )
+      ),
+    },
+  ],
+  venture: {
+    heading: { bn: "ভেঞ্চার ও মূলধন", en: "Venture and capital" },
+    rows: rows(
+      row("ভেঞ্চার", "Venture", draft.ventureName),
+      row("ইউনিট", "Units", draft.units),
+      row("প্রতি ইউনিটের মূল্য", "Price per Unit", `${draft.unitPrice} টাকা`),
+      row("মোট মূলধন", "Total capital", `${draft.capital} টাকা`),
+      row("বিক্রয়ের লক্ষ্য সময়", "Target sale window", draft.targetWindow),
+      row("গুটিয়ে আনার সময়", "Wind-up period", draft.windUp)
+    ),
+  },
+  payment: {
+    bn: "মূলধন কেবল ভেঞ্চারের ব্যাংক হিসাবে ব্যাংকের মাধ্যমে দেওয়া হবে, নগদে নয়।",
+    en: "Capital is paid by bank into the Venture Account only, never in cash.",
+  },
+  terms: { heading: { bn: "শর্তাবলি", en: "Terms" }, clauses: draft.clauses },
+  stamp: {
+    heading: { bn: "স্ট্যাম্প বা ই-চালান", en: "Stamp or e-challan" },
+    blanks: [
+      { bn: "সিরিয়াল / চালান নম্বর", en: "Serial / challan no." },
+      { bn: "মূল্য", en: "Value" },
+      { bn: "তারিখ", en: "Date" },
     ],
-  });
+  },
+  signatures: {
+    heading: { bn: "স্বাক্ষর", en: "Signatures" },
+    signers: [
+      {
+        role: { bn: "প্রথম পক্ষ", en: "First party" },
+        name: draft.ownerName,
+      },
+      {
+        role: { bn: "দ্বিতীয় পক্ষ", en: "Second party" },
+        name: draft.him.name,
+      },
+    ],
+    witnesses: [
+      { bn: "সাক্ষী ১", en: "Witness 1" },
+      { bn: "সাক্ষী ২", en: "Witness 2" },
+    ],
+    witnessBlanks: [
+      { bn: "নাম", en: "Name" },
+      { bn: "স্বাক্ষর", en: "Signature" },
+    ],
+  },
+  closing: NO_GUARANTEE_LINES,
+  produced: `${draft.producedAt} · ${draft.producedBy}`,
+  wordingReviewed: AGREEMENT_WORDING_APPROVED_ON !== null,
+});
 
 /** One Animal on the progress sheet, everything already worded for the reader. */
 export interface ProgressAnimal {

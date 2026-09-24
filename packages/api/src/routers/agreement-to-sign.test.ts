@@ -7,7 +7,7 @@ import { appRouter } from "./index";
 // The Investment Agreement handled inside the farm's own system: printed from the terms before it is signed, and
 // its stamp duty paid by e-challan as well as on stamp paper.
 
-const suffix = `draft-${Date.now()}`;
+const suffix = `to-sign-${Date.now()}`;
 const JANUARY = "2052-01-01T04:00:00.000Z";
 
 const as = (role: "owner" | "manager") =>
@@ -57,35 +57,45 @@ const terms = () => ({
   arbitrator: ARBITRATOR,
 });
 
-describe("the Investment Agreement, printed to be signed", () => {
+describe("the Investment Agreement, laid out to be signed", () => {
   it("names both parties, the Venture, his Units and capital, and the seven terms", async () => {
     const { client: owner } = await as("owner");
 
-    const { text } = await owner.investorStatements.agreementDraft(terms());
+    const { document } =
+      await owner.investorStatements.agreementToSign(terms());
 
-    expect(text).toContain("মুদারাবা বিনিয়োগ চুক্তি");
-    expect(text).toContain(HIM);
-    expect(text).toContain(`ভেঞ্চার ${suffix}`);
-    expect(text).toContain(ARBITRATOR);
+    expect(document.title.bn).toBe("মুদারাবা বিনিয়োগ চুক্তি");
+    expect(document.parties.map((one) => one.role.en)).toEqual([
+      "First party — Mudarib",
+      "Second party — Investor",
+    ]);
+    const said = JSON.stringify(document);
+    expect(said).toContain(HIM);
+    expect(said).toContain(`ভেঞ্চার ${suffix}`);
     // Three Units at fifty thousand, in the owner's own numerals.
-    expect(text).toContain("১,৫০,০০০ টাকা");
-    expect(text).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
-    expect(text).toContain("স্ট্যাম্প বা ই-চালান");
+    expect(said).toContain("১,৫০,০০০ টাকা");
+    // The terms unnumbered — the page numbers them — and the joining letter's own words.
+    expect(document.terms.clauses).toHaveLength(7);
+    expect(document.terms.clauses[1]).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
+    expect(document.terms.clauses[6]).toContain(ARBITRATOR);
+    expect(document.signatures.signers.map((one) => one.name)).toContain(HIM);
   });
 
-  it("says it is a draft, not to be signed, until a lawyer approves the wording", async () => {
+  it("prints no warning on the paper, and tells the screen the wording is not yet reviewed", async () => {
     const { client: owner } = await as("owner");
 
-    const { text } = await owner.investorStatements.agreementDraft(terms());
+    const { document } =
+      await owner.investorStatements.agreementToSign(terms());
 
-    expect(text).toContain("DRAFT — not to be signed until a lawyer approves");
+    expect(document.wordingReviewed).toBe(false);
+    expect(JSON.stringify(document)).not.toMatch(/draft|খসড়া/iu);
   });
 
   it("is the Owner's alone to print", async () => {
     const { client: manager } = await as("manager");
 
     await expect(
-      manager.investorStatements.agreementDraft(terms())
+      manager.investorStatements.agreementToSign(terms())
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

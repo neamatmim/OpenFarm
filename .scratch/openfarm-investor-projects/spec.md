@@ -262,7 +262,7 @@ Investor cap (20) and its warning level (15), Wind-up Period (30 days), default 
 - **Insurance on Venture cattle.** Decided against: a dead Animal is the Venture's loss.
 - **Investors living abroad**, and the foreign-exchange questions they bring.
 - **Tax withholding and any VAT treatment** until the advisers answer; the spec holds no withholding logic.
-- **Generating the Investment Agreement text.** OpenFarm stores the stamped paper's photo and its terms as data; the deed itself is drafted off-system by the lawyer. _Changed 2026-09-24, at the Owner's asking: OpenFarm now prints the Agreement from the terms, marked a draft until a lawyer approves its wording (ticket 11), and takes stamp duty paid by e-challan as well as on stamp paper._
+- **Generating the Investment Agreement text.** OpenFarm stores the stamped paper's photo and its terms as data; the deed itself is drafted off-system by the lawyer. _Changed 2026-09-24, at the Owner's asking: OpenFarm now lays out and prints the Agreement from the terms, with a reminder on screen — never on the paper — until a lawyer approves its wording (ticket 11), and takes stamp duty paid by e-challan as well as on stamp paper._
 - **A second Farm**, unchanged from Release 1's position.
 
 ## Further Notes

@@ -1,6 +1,6 @@
 import {
   farmDayOf,
-  investmentAgreementDraft,
+  investmentAgreement,
   joiningLetter,
   progressStatement,
   settlementStatement,
@@ -23,7 +23,7 @@ import {
 } from "../investor-statement-store";
 import {
   adjustmentWords,
-  agreementTerms,
+  agreementClauses,
   chargeWords,
   gainWords,
   herdStoryWords,
@@ -36,13 +36,13 @@ import { theirProgress } from "../venture-herd-store";
 
 export const investorStatementsRouter = {
   /**
-   * মুদারাবা বিনিয়োগ চুক্তি — the Investment Agreement for one Investor and one Venture, printed from the terms the
-   * Owner is about to sign on: onto stamp paper, or to go with an e-challan. Nothing is written but the trail's line:
-   * the Agreement exists once it is signed, stamped and entered.
+   * মুদারাবা বিনিয়োগ চুক্তি — the Investment Agreement for one Investor and one Venture, laid out from the terms the
+   * Owner is about to sign on, to be printed onto stamp paper or to go with an e-challan. Nothing is written but the
+   * trail's line: the Agreement exists once it is signed, stamped and entered.
    *
    * The Owner's alone, from her own phone, as signing is. The target window is the Venture's, as signing copies it.
    */
-  agreementDraft: protectedProcedure
+  agreementToSign: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(
@@ -86,7 +86,9 @@ export const investorStatementsRouter = {
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
       const taka = (bdt: number) => formatNumber(bdt, language);
-      const text = investmentAgreementDraft({
+      const day = (farmDay: string) =>
+        formatDate(new Date(`${farmDay}T00:00:00Z`), language, "date");
+      const document = investmentAgreement({
         farm: context.farm,
         ownerName: context.actor.name,
         him: {
@@ -106,7 +108,9 @@ export const investorStatementsRouter = {
         unitPrice: taka(run.unitPriceBdt),
         units: formatNumber(input.units, language),
         capital: taka(input.units * run.unitPriceBdt),
-        terms: agreementTerms(
+        targetWindow: `${day(run.targetWindowStart)} – ${day(run.targetWindowEnd)}`,
+        windUp: `${formatNumber(context.farm.windUpDays, language)} দিন / days`,
+        clauses: agreementClauses(
           {
             investorsPercent: input.investorsPercent,
             targetWindowStart: run.targetWindowStart,
@@ -133,7 +137,7 @@ export const investorStatementsRouter = {
         },
         () => Promise.resolve()
       );
-      return { text };
+      return { document };
     }),
 
   /**
