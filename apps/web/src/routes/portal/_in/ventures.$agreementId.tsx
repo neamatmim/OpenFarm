@@ -1,62 +1,23 @@
 import { formatNumber } from "@OpenFarm/i18n";
-import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
-import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { cn } from "@OpenFarm/ui/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  Beef,
-  CalendarClock,
-  FileText,
-  Landmark,
-  Scale,
-} from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Beef, CalendarClock, Landmark, Scale } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Nothing, SaidDate } from "@/components/list-cells";
-import {
-  Loaded,
-  Page,
-  PageHeader,
-  Section,
-  StatusBadge,
-} from "@/components/page";
+import { Loaded, Page, PageHeader, Section } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
-import type {
-  Produced,
-  StatementKind,
-} from "@/components/ventures/investor-papers";
-import { ProducedPaper } from "@/components/ventures/investor-papers";
+import { PortalPapers } from "@/components/portal/portal-papers";
+import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
 import { CHARGE_WORD } from "@/lib/charge-words";
-import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 type Today = Awaited<ReturnType<typeof orpc.portal.venture.call>>;
-
-/** What each paper is called, on its button and over it. */
-const PAPER_WORD = {
-  joining: "portal.paper.joining",
-  progress: "portal.paper.progress",
-  settlement: "portal.paper.settlement",
-} as const satisfies Record<StatementKind, string>;
-
-/** Why a paper did not come, in the Investor's words: the portal shut, their access taken away, or their sign-in's
- *  day over, while they read. */
-const REFUSALS = {
-  not_an_investor: "portal.refused.notAnInvestor",
-  signed_in_too_long: "portal.endedHint",
-  no_such_agreement: "statements.noSuchAgreement",
-} as const;
 
 /** Kilogrammes as the reader writes them, or null where nobody has weighed. */
 const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
@@ -204,7 +165,14 @@ const Money = ({ today }: { today: Today }) => {
     <Section description={t("portal.moneyHint")} title={t("portal.money")}>
       <dl className="flex flex-col divide-y text-sm">
         {spend.charges.map((one) => (
-          <div className="flex justify-between gap-4 py-2" key={one.word}>
+          <div
+            className={cn(
+              "flex justify-between gap-4 py-2",
+              // Every kind of charge is listed, so nothing looks left out; one nothing was spent on reads quieter.
+              one.bdt === 0 && "text-muted-foreground"
+            )}
+            key={one.word}
+          >
             <dt>{t(CHARGE_WORD[one.word])}</dt>
             <dd className="tabular-nums">{taka(one.bdt)}</dd>
           </div>
@@ -241,61 +209,101 @@ const Money = ({ today }: { today: Today }) => {
 /** Their three papers, each made as the Owner would print it, shown here to read and print. */
 const Papers = ({ today }: { today: Today }) => {
   const { t } = useLanguage();
-  const refused = useRefused(REFUSALS);
-  const [shown, setShown] = useState<Produced | null>(null);
-  const making = useMutation(
-    orpc.portal.paper.mutationOptions({ onError: refused })
+  const theirs = useQuery(orpc.portal.portfolio.queryOptions());
+  const mine = theirs.data?.agreements.find(
+    (one) => one.id === today.agreementId
   );
-  const kinds: StatementKind[] =
-    today.venture.state === "settled"
-      ? ["joining", "progress", "settlement"]
-      : ["joining", "progress"];
   return (
     <Section description={t("portal.papersHint")} title={t("portal.papers")}>
-      <div className="flex flex-wrap gap-2">
-        {kinds.map((kind) => (
-          <Button
-            disabled={making.isPending}
-            key={kind}
-            onClick={() =>
-              making.mutate(
-                { agreementId: today.agreementId, kind },
-                {
-                  onSuccess: (made) =>
-                    setShown({ kind, text: made.text, photos: made.photos }),
-                }
-              )
-            }
-            type="button"
-            variant="outline"
-          >
-            {making.isPending && making.variables?.kind === kind ? (
-              <Spinner />
-            ) : (
-              <FileText aria-hidden data-icon="inline-start" />
-            )}
-            {t(PAPER_WORD[kind])}
-          </Button>
+      <PortalPapers
+        agreementId={today.agreementId}
+        hasCapital={today.his.capitalBdt > 0 || Boolean(mine?.settlement)}
+        settled={
+          mine ? mine.settlement !== null : today.venture.state === "settled"
+        }
+      />
+    </Section>
+  );
+};
+
+/**
+ * The days that mark their part in this Venture, in order: the day they signed, the day their capital came in, the
+ * sale window, and the day their payout went once it has. Each is a day that happened or a day the Agreement names —
+ * never a guess.
+ */
+const KeyDates = ({ today }: { today: Today }) => {
+  const { t } = useLanguage();
+  const theirs = useQuery(orpc.portal.portfolio.queryOptions());
+  const mine = theirs.data?.agreements.find(
+    (one) => one.id === today.agreementId
+  );
+  const [firstIn] = (theirs.data?.movements ?? [])
+    .filter(
+      (one) =>
+        one.agreementId === today.agreementId && one.kind === "capital_in"
+    )
+    .map((one) => one.movedOn)
+    .toSorted();
+  // Named, not written into the list below: the check for untranslated words reads a less-than beside JSX as a tag.
+  const windowReached = today.window.daysTo <= 0;
+  const rows: { label: string; at: ReactNode; done: boolean }[] = [
+    {
+      label: t("portal.dates.signed"),
+      at: mine ? <SaidDate at={mine.signedAt} /> : <Nothing />,
+      done: Boolean(mine),
+    },
+    {
+      label: t("portal.dates.capitalIn"),
+      at: firstIn ? <SaidDate at={firstIn} /> : <Nothing />,
+      done: Boolean(firstIn),
+    },
+    {
+      label: t("portal.dates.window"),
+      at: (
+        <>
+          <SaidDate at={today.window.start} /> –{" "}
+          <SaidDate at={today.window.end} />
+        </>
+      ),
+      done: windowReached,
+    },
+    {
+      label: t("portal.dates.paidOut"),
+      at: mine?.settlement?.paidOn ? (
+        <SaidDate at={mine.settlement.paidOn} />
+      ) : (
+        <Nothing />
+      ),
+      done: Boolean(mine?.settlement?.paidOn),
+    },
+  ];
+  return (
+    <Section title={t("portal.dates.title")}>
+      <ol className="flex flex-col">
+        {rows.map((row, at) => (
+          <li className="relative flex gap-3 pb-4 last:pb-0" key={row.label}>
+            {at < rows.length - 1 ? (
+              <span
+                aria-hidden
+                className="bg-border absolute start-[0.3125rem] top-4 bottom-0 w-px"
+              />
+            ) : null}
+            <span
+              aria-hidden
+              className={cn(
+                "mt-1.5 size-2.5 shrink-0 rounded-full border-2",
+                row.done
+                  ? "border-primary bg-primary"
+                  : "border-muted-foreground/40 bg-background"
+              )}
+            />
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-sm">
+              <span className="text-muted-foreground">{row.label}</span>
+              <span className="font-medium">{row.at}</span>
+            </span>
+          </li>
         ))}
-      </div>
-      <Dialog
-        onOpenChange={(open) => {
-          if (!open) {
-            setShown(null);
-          }
-        }}
-        open={shown !== null}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto sm:max-w-3xl"
-          closeLabel={t("common.close")}
-        >
-          <DialogHeader>
-            <DialogTitle>{shown ? t(PAPER_WORD[shown.kind]) : ""}</DialogTitle>
-          </DialogHeader>
-          {shown ? <ProducedPaper produced={shown} /> : null}
-        </DialogContent>
-      </Dialog>
+      </ol>
     </Section>
   );
 };
@@ -317,9 +325,6 @@ const VentureToday = ({ today }: { today: Today }) => {
         description={t("portal.ventureHint")}
         meta={
           <>
-            <StatusBadge tone="neutral">
-              {t(`ventures.state.${today.venture.state}`)}
-            </StatusBadge>
             <span className="inline-flex items-center gap-1">
               <Scale aria-hidden className="size-4" />
               <SaidDate at={today.window.start} /> –{" "}
@@ -334,10 +339,18 @@ const VentureToday = ({ today }: { today: Today }) => {
         }
         title={today.venture.name}
       />
+      <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} />
-      <Herd today={today} />
-      <Money today={today} />
-      <Papers today={today} />
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
+          <Herd today={today} />
+          <Money today={today} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <KeyDates today={today} />
+          <Papers today={today} />
+        </div>
+      </div>
     </>
   );
 };
