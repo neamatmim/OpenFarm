@@ -5,7 +5,13 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, GraduationCap, Printer, UserCheck } from "lucide-react";
+import {
+  Archive,
+  ArrowLeft,
+  GraduationCap,
+  Printer,
+  UserCheck,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -17,6 +23,7 @@ import {
   RecordList,
   RecordRow,
   Section,
+  StatusBadge,
 } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { whenWords } from "@/components/playbook/playbook-types";
@@ -215,6 +222,16 @@ const CardPage = () => {
           </Button>
         }
         description={t("card.pageHint")}
+        meta={
+          card.data?.retired ? (
+            <>
+              <StatusBadge icon={Archive} tone="neutral">
+                {t("sop.retired")}
+              </StatusBadge>
+              <span>{t("card.retiredHint")}</span>
+            </>
+          ) : null
+        }
         title={t("card.title")}
       />
 

@@ -6,7 +6,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Farm**: The single operating unit the system serves today — one owner, one set of records, one set of SOPs. Modelled so a second Farm could exist later, but only one exists now. _Avoid_: Tenant, organisation, account
 
-**SOP**: A standard operating procedure — a written, versioned procedure the farm expects staff to follow, which the system turns into scheduled or triggered work and records who completed it. _Avoid_: Playbook, protocol, checklist (a checklist is one _form_ an SOP step can take, not the SOP itself)
+**SOP**: A standard operating procedure — a written, versioned procedure the farm expects staff to follow, which the system turns into scheduled or triggered work and records who completed it. Retired by the Owner, never removed: a retired SOP raises no more work, its work nobody has started is **Called Off**, and nothing is published or proposed to it; its Versions, card and the work done under it are kept, and the Owner may bring it back. _Avoid_: Playbook, protocol, checklist (a checklist is one _form_ an SOP step can take, not the SOP itself)
 
 **Playbook**: The farm's full set of SOPs taken together. Refers to the collection, never to an individual procedure.
 
@@ -84,7 +84,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Overdue** / **Missed**: An Instance past its due time and Grace is Overdue and the Manager is alerted. It becomes Missed only when the Manager closes it with a reason. Nothing disappears on its own. _Avoid_: Expired, skipped, failed
 
-**Called Off**: An Instance the farm no longer owes, closed by what changed rather than by a person: the animal it was for left the farm, the Heat that raised it was taken back, her calving moved, the report it would deliver was withdrawn. Not Missed and not outstanding — nobody fell short. Named in the trail with what called it off, and raised again if its cause comes back; Missed work never is. _Avoid_: Withdrawn (the Treatment Gate's word), cancelled, Missed (the Manager's close)
+**Called Off**: An Instance the farm no longer owes, closed by what changed rather than by a person: the animal it was for left the farm, the Heat that raised it was taken back, her calving moved, the report it would deliver was withdrawn, the SOP it follows was retired before anybody started it. Not Missed and not outstanding — nobody fell short. Named in the trail with what called it off, and raised again if its cause comes back; Missed work never is, and neither is work a retired SOP left — bringing the SOP back raises its work afresh from the next time it is due. _Avoid_: Withdrawn (the Treatment Gate's word), cancelled, Missed (the Manager's close)
 
 ## Herd structure
 

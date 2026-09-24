@@ -106,10 +106,8 @@ const UNWORDED = [
   "owner_writes_their_own",
   "prescription_raises_it",
   "ready_needs_confirming",
-  "report_sop_exists",
   "served_in_the_future",
   "too_many_for_one_paper",
-  "treatment_sop_exists",
 ];
 
 describe("the farm's refusals", () => {

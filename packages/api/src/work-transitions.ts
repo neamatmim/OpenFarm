@@ -88,7 +88,8 @@ export type CalledOffBy =
   | "heat_withdrawn"
   | "attempt_no_longer_standing"
   | "calving_no_longer_expected"
-  | "report_withdrawn";
+  | "report_withdrawn"
+  | "sop_retired";
 
 /** What raised called-off work again. */
 export type RaisedAgainBy = "calving_expected_again";
@@ -96,13 +97,18 @@ export type RaisedAgainBy = "calving_expected_again";
 /**
  * Calls off the open work that matches (the glossary's Called Off): the farm no longer owes it. Each piece is moved on
  * its own guarded write and gets its own Audit Event, in the trail of the request that called it off, naming what did;
- * work done and awaiting sign-off is left, and so is work already closed. The ids of the work called off.
+ * work done and awaiting sign-off is left, and so is work already closed. `unstartedOnly` leaves work somebody has
+ * taken or begun, too, for them to finish. The ids of the work called off.
  */
 export const callOffWork = async (
   tx: Tx,
   farmId: string,
   which: SQL,
-  { trail, by }: { trail: Trail; by: CalledOffBy }
+  {
+    trail,
+    by,
+    unstartedOnly = false,
+  }: { trail: Trail; by: CalledOffBy; unstartedOnly?: boolean }
 ): Promise<string[]> => {
   const open = await tx
     .select({ id: sopInstance.id, state: sopInstance.state })
@@ -110,7 +116,10 @@ export const callOffWork = async (
     .where(
       and(
         eq(sopInstance.farmId, farmId),
-        inArray(sopInstance.state, [...WORK_TRANSITIONS.callOff.from]),
+        // Due and nothing more: not taken, no Step recorded, never sent back to anybody.
+        unstartedOnly
+          ? eq(sopInstance.state, "due")
+          : inArray(sopInstance.state, [...WORK_TRANSITIONS.callOff.from]),
         which
       )
     )

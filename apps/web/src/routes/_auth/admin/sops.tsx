@@ -1,5 +1,6 @@
 import type { SopContent } from "@OpenFarm/domain";
 import { findPublishBlockers } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import { toast } from "sonner";
 
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
-import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import { ConfirmDialog, PageTabs, SummaryFigures } from "@/components/page-kit";
 import type { Proposal, Sop } from "@/components/playbook/playbook-types";
 import { contentOf, raisedByHand } from "@/components/playbook/playbook-types";
 import { ProceduresTab } from "@/components/playbook/procedures-tab";
@@ -23,6 +24,13 @@ import { emptySop } from "@/lib/sop-draft";
 import { orpc } from "@/utils/orpc";
 
 const TABS = ["procedures", "proposals"] as const;
+
+/** Why the farm would not take a change to the Playbook, in the reader's words. */
+const REFUSALS: Record<string, MessageKey> = {
+  sop_retired: "sop.refused.retired",
+  treatment_sop_exists: "sop.refused.treatmentExists",
+  report_sop_exists: "sop.refused.reportExists",
+};
 type Tab = (typeof TABS)[number];
 
 /** The figures the Playbook is judged by: how many procedures are in force, how many changes wait on the Owner, and
@@ -33,7 +41,9 @@ const usePlaybookFigures = (
   isOwner: boolean
 ): Figure[] => {
   const { t, language } = useLanguage();
-  const inForce = sops.flatMap((sop) => contentOf(sop) ?? []);
+  const inForce = sops.flatMap((sop) =>
+    sop.retiredAt === null ? (contentOf(sop) ?? []) : []
+  );
   const byHand = inForce.filter(raisedByHand).length;
   return [
     {
@@ -65,7 +75,7 @@ const usePlaybookFigures = (
  */
 const SopsPage = () => {
   const { t } = useLanguage();
-  const refused = useRefused();
+  const refused = useRefused(REFUSALS);
   const navigate = useNavigate({ from: Route.fullPath });
   const { tab = "procedures" } = Route.useSearch();
   const [draft, setDraft] = useState<{
@@ -121,6 +131,25 @@ const SopsPage = () => {
   );
   const reject = useMutation(
     orpc.sops.rejectProposal.mutationOptions({ onError })
+  );
+  const [retiring, setRetiring] = useState<{
+    definitionId: string;
+    name: string;
+  } | null>(null);
+  const retire = useMutation(
+    orpc.sops.retire.mutationOptions({
+      onSuccess: ({ calledOff }) => {
+        toast.success(t("sop.retiredDone", { count: calledOff }));
+        setRetiring(null);
+      },
+      onError,
+    })
+  );
+  const restore = useMutation(
+    orpc.sops.restore.mutationOptions({
+      onSuccess: () => toast.success(t("sop.restored")),
+      onError,
+    })
   );
 
   const save = () => {
@@ -211,6 +240,12 @@ const SopsPage = () => {
                     onEdit={(definitionId, content) =>
                       setDraft({ content, definitionId })
                     }
+                    onRestore={(definitionId) =>
+                      restore.mutate({ definitionId })
+                    }
+                    onRetire={(definitionId, name) =>
+                      setRetiring({ definitionId, name })
+                    }
                     sops={sops.data ?? []}
                   />
                   {/* Publishing is the Owner's; anybody else would only be proposing a procedure that is not there. */}
@@ -249,6 +284,23 @@ const SopsPage = () => {
           },
         ]}
         value={tab}
+      />
+      <ConfirmDialog
+        confirmLabel={t("sop.retire")}
+        description={t("sop.retireWhy")}
+        onConfirm={() => {
+          if (retiring) {
+            retire.mutate({ definitionId: retiring.definitionId });
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRetiring(null);
+          }
+        }}
+        open={retiring !== null}
+        pending={retire.isPending}
+        title={t("sop.retireTitle", { name: retiring?.name ?? "" })}
       />
     </Page>
   );
