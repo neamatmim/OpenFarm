@@ -31,7 +31,7 @@ Resolved 2026-09-25 by research, against OWASP ASVS 5.0.0 level 1. The findings 
 
 **Must fix before the first Investor:**
 
-1. **A mistyped `join` writes the password into the server log.** The RPC handler logs every failure whole (`apps/web/src/routes/api/rpc/$.ts:15-21`). On a validation failure, oRPC attaches the input. The review confirmed this with a probe, and it was read again on 2026-09-25. The staff password-by-code procedure has the same problem. This one is live for staff today too, not only the portal.
+1. **A mistyped `join` writes the password into the server log.** The RPC handler logs every failure whole (`apps/web/src/routes/api/rpc/$.ts:15-21`). On a validation failure, oRPC attaches the input. The review confirmed this with a probe, and it was read again on 2026-09-25. The staff password-by-code procedure has the same problem. This one is live for staff today too, not only the portal. **Fixed 2026-09-25, outside the map** (`apps/web/src/lib/rpc-failure-log.ts`): the log keeps the code, message, refusal and failed field names, never what was sent. A test through a real handler goes red against the old line.
 2. **What an Investor read stays on the phone after they sign out.** The 14-day IndexedDB cache is not cleared at portal sign-out or at the 12-hour end (ASVS 14.3.1).
 3. **Sign-in names Investor phones without the password.** The door hook answers `403 portal.closed` before the password is checked; every other phone gets 401.
 4. **`portal.join` has no per-address limit.** Its per-phone counter grows without bound.

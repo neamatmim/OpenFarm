@@ -47,7 +47,7 @@ The way is clear for the **first real Investor to sign in to the portal from the
 ## Not yet specified
 
 - **What the lawyer's answer changes.** A "no" switches the portal off and keeps the papers. A "yes, with conditions" may change the notice, what is shown, or who may be invited. That can't be ticketed until the answer exists.
-- **The day the switch is turned on for one person.** Whether a written readiness check comes first: the preview read through, the welcome sheet printed, the notice approved, support ready. It may turn out to be nothing more than the tickets above, all closed. Part of what is left to *do* is now known: the exposure review's five must-fixes, handed off as work when the map closes, not decided here.
+- **The day the switch is turned on for one person.** Whether a written readiness check comes first: the preview read through, the welcome sheet printed, the notice approved, support ready. It may turn out to be nothing more than the tickets above, all closed. Part of what is left to *do* is now known: the exposure review's five must-fixes, handed off as work when the map closes, not decided here. The first, the password in the log, was fixed on 2026-09-25 because it was live for staff; four remain.
 - **A breach plan.** The Act (s.20) and the Cyber Security Act 2026 (s.9(4)) both require reporting. Who the farm tells, and what OpenFarm must be able to show, can be asked once the lawyer has said whether the Authority's reach is live (ticket 07).
 - **Support once someone is in.** Most of it is settled: a new code for a forgotten password, the Owner taking access away for a lost phone. Whether anything else needs deciding shows only once the address and the welcome sheet are settled.
 
