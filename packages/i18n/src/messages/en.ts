@@ -48,6 +48,8 @@ export const en = {
     "You no longer work on this farm. Ask the Owner if this is wrong.",
   "auth.notInvited":
     "The farm has not invited this address. Ask the owner to invite you, then open the account with the code you are given.",
+  "portal.closed":
+    "The investor portal is not open to you. Ask the farm's Owner.",
   "auth.signUpSuccess": "Account created",
   "auth.invalidEmail": "Enter a valid email address",
   "auth.showPassword": "Show password",

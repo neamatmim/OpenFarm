@@ -34,6 +34,17 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
     if (typeof email !== "string") {
       return;
     }
+    // An Investor's portal account is opened by the farm, from their invitation, and never by signing up: the
+    // address is made from their phone, so anybody who knew the number could otherwise take it first (ADR 0007).
+    const anInvestors = await db.query.investorAccess.findFirst({
+      where: { loginEmail: email.toLowerCase() },
+      columns: { id: true },
+    });
+    if (anInvestors) {
+      throw new APIError("FORBIDDEN", {
+        message: translate(DEFAULT_LANGUAGE, "auth.notInvited"),
+      });
+    }
     const theFarm = await db.query.farm.findFirst({ columns: { id: true } });
     if (!theFarm) {
       // Nobody has set the farm up yet, so there is nobody who could have invited them.
@@ -81,12 +92,30 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
       where: { email: email.toLowerCase() },
       columns: { disabledAt: true, language: true },
     });
+    const language = isLanguage(person?.language)
+      ? person.language
+      : DEFAULT_LANGUAGE;
+    // An Investor comes in only while the farm has its portal open and their access stands (ADR 0007).
+    const access = await db.query.investorAccess.findFirst({
+      where: { loginEmail: email.toLowerCase() },
+      columns: { farmId: true, revokedAt: true },
+    });
+    if (access) {
+      // Their own farm's portal, asked of that farm: whether it is open is the farm's to say.
+      const theFarm = await db.query.farm.findFirst({
+        where: { id: access.farmId },
+        columns: { investorPortal: true },
+      });
+      if (!theFarm?.investorPortal || access.revokedAt || person?.disabledAt) {
+        throw new APIError("FORBIDDEN", {
+          message: translate(language, "portal.closed"),
+        });
+      }
+      return;
+    }
     if (!person?.disabledAt) {
       return;
     }
-    const language = isLanguage(person.language)
-      ? person.language
-      : DEFAULT_LANGUAGE;
     throw new APIError("FORBIDDEN", {
       message: translate(language, "auth.noLongerHere"),
     });
@@ -232,4 +261,30 @@ export const setPasswordFor = async (
   }
   await which.api.resetPassword({ body: { token, newPassword } });
   return true;
+};
+
+/**
+ * Opens an Investor's portal account, from the farm's own taking-up of their invitation (ADR 0007): the account, and
+ * the password they chose for it. Not by signing up — the door refuses an Investor's address there — so nobody can
+ * open it but the farm, and only once the code the Owner handed over has been checked.
+ *
+ * Better Auth hashes the password, as it does every other; nothing here holds one longer than the call.
+ */
+export const openInvestorAccount = async (
+  which: ReturnType<typeof createAuth>,
+  { email, name, password }: { email: string; name: string; password: string }
+): Promise<string> => {
+  const context = await which.$context;
+  const hash = await context.password.hash(password);
+  const person = await context.internalAdapter.createUser(
+    { email: email.toLowerCase(), name, emailVerified: false },
+    { method: "email-password" }
+  );
+  await context.internalAdapter.linkAccount({
+    userId: person.id,
+    providerId: "credential",
+    accountId: person.id,
+    password: hash,
+  });
+  return person.id;
 };

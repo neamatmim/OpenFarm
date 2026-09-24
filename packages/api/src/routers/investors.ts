@@ -1,4 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
+import { farm } from "@OpenFarm/db/schema/farm";
 import { investor } from "@OpenFarm/db/schema/venture";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
@@ -14,6 +15,11 @@ import {
   readInvestor,
   theSamePerson,
 } from "../investor-store";
+import {
+  inviteToPortal,
+  portalStandings,
+  takePortalAway,
+} from "../portal-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { lockTheFarm } from "../venture-store";
 
@@ -115,7 +121,7 @@ export const investorsRouter = {
         where: { farmId: context.farm.id },
         orderBy: { name: "asc", id: "asc" },
       });
-      const [counted, signed, ventures] = await Promise.all([
+      const [counted, signed, ventures, portal] = await Promise.all([
         countedInvestors(context.db, context.farm.id),
         context.db.query.investmentAgreement.findMany({
           where: { farmId: context.farm.id },
@@ -126,6 +132,7 @@ export const investorsRouter = {
           where: { farmId: context.farm.id },
           columns: { id: true, name: true, state: true },
         }),
+        portalStandings(context.db, context.farm.id),
       ]);
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.
@@ -158,6 +165,8 @@ export const investorsRouter = {
         standing: counted.standing,
         cap: context.farm.investorCap,
         nearingTheCap: counted.standing >= context.farm.investorWarnAt,
+        /** Whether invited Investors may sign in to the portal (ADR 0007). */
+        portalOpen: context.farm.investorPortal,
         people: rows.map((one) => ({
           id: one.id,
           name: one.name,
@@ -178,6 +187,8 @@ export const investorsRouter = {
           ventures: theirs.get(one.id) ?? [],
           /** When they were retired, or nothing while the farm may still sign them. */
           retiredAt: one.retiredAt,
+          /** Where they stand with the portal: never invited, invited, in, or taken away. */
+          portal: portal.get(one.id) ?? "none",
         })),
       };
     }),
@@ -290,6 +301,53 @@ export const investorsRouter = {
     .input(z.object({ id: z.string().min(1) }))
     .handler(async ({ context, input }) => {
       await bringBackToList(context, INVESTORS, input.id);
+      return { id: input.id };
+    }),
+
+  /**
+   * Opens or closes the Investor portal for the whole farm (ADR 0007). Closed, no Investor signs in and no invitation
+   * is taken up, and nothing about anybody's access is lost: it is how the farm answers a lawyer who says the portal
+   * is a platform. The Owner's alone.
+   */
+  setPortalOpen: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ open: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: context.farm.id,
+          action: "update",
+          before: { investorPortal: context.farm.investorPortal },
+          after: { investorPortal: input.open },
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({ investorPortal: input.open })
+            .where(eq(farm.id, context.farm.id))
+      );
+      return { open: input.open };
+    }),
+
+  /**
+   * Invites one Investor to the portal, or gives them a new code: shown once, to hand over in person, good for a week.
+   * They take it up with their phone and a password of their own.
+   */
+  inviteToPortal: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(({ context, input }) => inviteToPortal(context, input.id)),
+
+  /** Takes an Investor's portal access away: their account is disabled and signed out everywhere. */
+  takePortalAway: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string().min(1) }))
+    .handler(async ({ context, input }) => {
+      await takePortalAway(context, input.id);
       return { id: input.id };
     }),
 };

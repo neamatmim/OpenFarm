@@ -109,6 +109,44 @@ export const investor = pgTable(
   ]
 );
 
+/**
+ * An Investor's way into the portal, where they read their own Ventures and papers (ADR 0007). One per Investor,
+ * written by the Owner's invitation: a one-time code handed over in person, taken up with the Investor's phone
+ * number and a password they choose, which opens an account that holds no Role on the farm and never can.
+ *
+ * The account signs in as `loginEmail`, an address made from the Investor's phone that no mail ever reaches: the
+ * farm's accounts are addressed by email, an Investor is known by their phone, and the address is how the one is
+ * written as the other. Taken away, the account is disabled and its sessions end; invited again, it is the same
+ * account, given a new password.
+ */
+export const investorAccess = pgTable(
+  "investor_access",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** The account, once the invitation is taken up. */
+    userId: text("user_id").references(() => user.id),
+    loginEmail: text("login_email").notNull(),
+    /** The open invitation's code, hashed; cleared once it is used. */
+    codeHash: text("code_hash"),
+    codeExpiresAt: timestamp("code_expires_at"),
+    invitedBy: text("invited_by").references(() => user.id),
+    invitedAt: timestamp("invited_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => [
+    uniqueIndex("investor_access_investor_uidx").on(table.investorId),
+    // One account per phone: two Investors on one number could not each sign in with it.
+    uniqueIndex("investor_access_login_uidx").on(table.loginEmail),
+  ]
+);
+
 /** How the Agreement's stamp duty was paid: on stamp paper, or by e-challan into the treasury with no paper to
  *  stamp. Its own copy, as the schema's other enums are. */
 export const STAMP_KINDS = ["paper", "e_challan"] as const;

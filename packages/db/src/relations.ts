@@ -460,6 +460,12 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.sopVersion.id,
     }),
   },
+  investorAccess: {
+    investor: r.one.investor({
+      from: r.investorAccess.investorId,
+      to: r.investor.id,
+    }),
+  },
   paperTemplate: {
     versions: r.many.paperTemplateVersion({
       from: r.paperTemplate.id,
