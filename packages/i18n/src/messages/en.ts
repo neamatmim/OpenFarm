@@ -890,6 +890,7 @@ export const en = {
   "audit.calledOffBy.calving_no_longer_expected":
     "Called off: her calving is no longer expected",
   "audit.calledOffBy.report_withdrawn": "Called off: the report was withdrawn",
+  "audit.calledOffBy.sop_retired": "Called off: the procedure was retired",
   "audit.raisedAgainBy.calving_expected_again":
     "Raised again: her calving is expected again",
   "audit.before": "Before",
@@ -1419,6 +1420,25 @@ export const en = {
   "sop.rowActions": "{name} — more actions",
   "sop.search": "Find a procedure by name",
   "sop.noMatch": "No procedure has that name",
+  "sop.retire": "Retire",
+  "sop.retired": "Retired",
+  "sop.restore": "Bring back",
+  "sop.inForceNow": "In force",
+  "sop.showing": "Which procedures",
+  "sop.retireTitle": "Retire {name}?",
+  "sop.retireWhy":
+    "The farm stops raising its work. Work nobody has started is called off; work somebody has taken is theirs to finish. Its versions, its card and everything done under it are kept, and it can be brought back.",
+  "sop.retiredDone":
+    "Retired — {count, plural, one {# piece of work} other {# pieces of work}} called off",
+  "sop.restored":
+    "Brought back — its work is raised again the next time it is due",
+  "sop.refused.retired":
+    "This procedure has been retired. Bring it back before changing it",
+  "sop.refused.treatmentExists":
+    "The farm already has a procedure a prescription raises. Retire that one first",
+  "sop.refused.reportExists":
+    "The farm already has a procedure a notifiable disease raises. Retire that one first",
+  "card.retiredHint": "The farm no longer raises this work",
   "sop.withTheOwner": "With the Owner",
   "sop.readProposal": "Read the proposed change",
   "sop.inForce": "Version {number} in force now",

@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { ACTIVE_ROLE } from "@OpenFarm/db/schema/farm";
+import { sopInstance } from "@OpenFarm/db/schema/instance";
 import {
   sopDefinition,
   sopProposal,
@@ -26,6 +27,7 @@ import {
   publishedContent,
   sopContentSchema,
 } from "../sop-content";
+import { callOffWork } from "../work-transitions";
 
 const note = z.string().trim().max(400).optional();
 
@@ -137,6 +139,55 @@ const assertOneSuchProcedure = async (
   }
 };
 
+/**
+ * The procedure, on this farm, still in force. A retired one says nothing new: it is not published to, proposed to or
+ * approved into until the Owner brings it back, since a Version nobody's work is raised from would only look like the
+ * farm's word.
+ */
+const requireInForce = async (
+  tx: Tx,
+  farmId: string,
+  definitionId: string
+): Promise<void> => {
+  const definition = await tx.query.sopDefinition.findFirst({
+    where: { id: definitionId, farmId },
+    columns: { id: true, retiredAt: true },
+  });
+  if (!definition) {
+    throw new ORPCError("NOT_FOUND");
+  }
+  if (definition.retiredAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This SOP has been retired",
+      data: { refusal: "sop_retired" },
+    });
+  }
+};
+
+/** A procedure as the trail keeps it either side of retiring it or bringing it back. */
+const readStanding = async (tx: Tx, farmId: string, definitionId: string) =>
+  (await tx.query.sopDefinition.findFirst({
+    where: { id: definitionId, farmId },
+    columns: { retiredAt: true },
+  })) ?? null;
+
+/** The procedure, on this farm, as retiring it and bringing it back need it: whether it is retired, and what it says. */
+const requireProcedure = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  definitionId: string
+) => {
+  const definition = await db.query.sopDefinition.findFirst({
+    where: { id: definitionId, farmId },
+    columns: { id: true, retiredAt: true },
+    with: { currentVersion: { columns: { content: true } } },
+  });
+  if (!definition) {
+    throw new ORPCError("NOT_FOUND");
+  }
+  return definition;
+};
+
 /** Publishing is the only way an SOP's content changes: a new immutable Version, and the
  *  Definition pointed at it. Nothing ever rewrites a published Version (ADR 0001). */
 const publishVersion = async (
@@ -159,6 +210,7 @@ const publishVersion = async (
     now: Date;
   }
 ): Promise<{ id: string; number: number }> => {
+  await requireInForce(tx, farmId, definitionId);
   const blockers = findPublishBlockers(content);
   if (blockers.length > 0) {
     throw new ORPCError("BAD_REQUEST", {
@@ -344,18 +396,6 @@ export const sopsRouter = {
           reason: input.note,
         },
         async (tx) => {
-          const definition = await tx.query.sopDefinition.findFirst({
-            where: { id: input.definitionId, farmId: context.farm.id },
-            columns: { id: true, retiredAt: true },
-          });
-          if (!definition) {
-            throw new ORPCError("NOT_FOUND");
-          }
-          if (definition.retiredAt) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "This SOP has been retired",
-            });
-          }
           published = await publishVersion(tx, {
             farmId: context.farm.id,
             definitionId: input.definitionId,
@@ -374,7 +414,6 @@ export const sopsRouter = {
       };
     }),
 
-  /** A Manager's suggested change. It changes nothing until the Owner approves it. */
   /**
    * The SOP Card: the published Version as it goes on the shed wall — what it is for, the
    * Steps in order, and what each one records. It names its own Version and the day it was
@@ -405,6 +444,8 @@ export const sopsRouter = {
         assignedRole: content.assignedRole,
         checkerRole: content.checkerRole,
         wholeFarm: content.wholeFarm === true,
+        // Its card stays readable once it is retired — the work done under it points at it — but says it is.
+        retired: definition.retiredAt !== null,
         triggers: content.triggers,
         steps: content.steps,
       };
@@ -550,6 +591,7 @@ export const sopsRouter = {
           reason: input.note,
         },
         async (tx) => {
+          await requireInForce(tx, context.farm.id, input.definitionId);
           const definition = await tx.query.sopDefinition.findFirst({
             where: { id: input.definitionId, farmId: context.farm.id },
             columns: { id: true, currentVersionId: true },
@@ -594,7 +636,12 @@ export const sopsRouter = {
     .use(requireRole("owner", "manager"))
     .handler(({ context }) =>
       context.db.query.sopProposal.findMany({
-        where: { farmId: context.farm.id, status: "pending" },
+        // One waiting on a retired procedure waits for it to be brought back: nobody can approve it meanwhile.
+        where: {
+          farmId: context.farm.id,
+          status: "pending",
+          definition: { retiredAt: { isNull: true } },
+        },
         with: {
           definition: {
             with: {
@@ -705,5 +752,108 @@ export const sopsRouter = {
         }
       );
       return { id: input.id, status: "rejected" } as const;
+    }),
+
+  /**
+   * Takes a procedure out of force: the farm raises no more of its work, by the clock, by what happens to an animal or
+   * by hand, and the work it had raised that nobody has started is called off, each piece naming why. Work somebody
+   * has taken or begun is theirs to finish, and its Versions, its card and everything done under it are kept — the
+   * inspector's registers and the trail point at them. The Owner's, as publishing is.
+   */
+  retire: protectedProcedure
+    .use(requireRole("owner"))
+    .use(requirePersonalSession())
+    .input(z.object({ definitionId: z.string(), note }))
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      const existing = await requireProcedure(
+        context.db,
+        farmId,
+        input.definitionId
+      );
+      if (existing.retiredAt) {
+        return { definitionId: existing.id, calledOff: 0 };
+      }
+      const now = context.clock.now();
+      const calledOff = await audited(context).write(
+        {
+          entity: "sop",
+          entityId: existing.id,
+          action: "update",
+          before: (tx) => readStanding(tx, farmId, existing.id),
+          after: (tx) => readStanding(tx, farmId, existing.id),
+          reason: input.note,
+        },
+        async (tx) => {
+          await tx
+            .update(sopDefinition)
+            .set({ retiredAt: now })
+            .where(
+              and(
+                eq(sopDefinition.id, existing.id),
+                eq(sopDefinition.farmId, farmId),
+                isNull(sopDefinition.retiredAt)
+              )
+            );
+          return await callOffWork(
+            tx,
+            farmId,
+            eq(sopInstance.definitionId, existing.id),
+            {
+              trail: audited(context).recordEvent,
+              by: "sop_retired",
+              unstartedOnly: true,
+            }
+          );
+        }
+      );
+      return { definitionId: existing.id, calledOff: calledOff.length };
+    }),
+
+  /**
+   * Puts a retired procedure back in force, as its last Version said it: its work is raised again from the next time
+   * it comes due. What was called off when it was retired stays called off. Refused while another procedure does what
+   * only one may — the one a prescription raises, the one a notifiable diagnosis raises.
+   */
+  restore: protectedProcedure
+    .use(requireRole("owner"))
+    .use(requirePersonalSession())
+    .input(z.object({ definitionId: z.string(), note }))
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      const existing = await requireProcedure(
+        context.db,
+        farmId,
+        input.definitionId
+      );
+      if (!existing.retiredAt) {
+        return { definitionId: existing.id };
+      }
+      const content = publishedContent(existing);
+      await audited(context).write(
+        {
+          entity: "sop",
+          entityId: existing.id,
+          action: "update",
+          before: (tx) => readStanding(tx, farmId, existing.id),
+          after: (tx) => readStanding(tx, farmId, existing.id),
+          reason: input.note,
+        },
+        async (tx) => {
+          if (content) {
+            await assertOneSuchProcedure(tx, farmId, existing.id, content);
+          }
+          await tx
+            .update(sopDefinition)
+            .set({ retiredAt: null })
+            .where(
+              and(
+                eq(sopDefinition.id, existing.id),
+                eq(sopDefinition.farmId, farmId)
+              )
+            );
+        }
+      );
+      return { definitionId: existing.id };
     }),
 };

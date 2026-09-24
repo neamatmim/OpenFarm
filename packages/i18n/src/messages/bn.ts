@@ -822,6 +822,7 @@ export const bn: Record<MessageKey, string> = {
   "audit.calledOffBy.calving_no_longer_expected":
     "বাতিল: তার বাচ্চা দেওয়া আর প্রত্যাশিত নয়",
   "audit.calledOffBy.report_withdrawn": "বাতিল: রিপোর্ট ফিরিয়ে নেওয়া হয়েছে",
+  "audit.calledOffBy.sop_retired": "বাতিল: কার্যপ্রণালীটি বাদ দেওয়া হয়েছে",
   "audit.raisedAgainBy.calving_expected_again":
     "আবার তোলা হয়েছে: তার বাচ্চা দেওয়া আবার প্রত্যাশিত",
   "audit.before": "আগে",
@@ -1342,6 +1343,22 @@ export const bn: Record<MessageKey, string> = {
   "sop.rowActions": "{name} — আরও কাজ",
   "sop.search": "নাম দিয়ে কার্যপ্রণালী খুঁজুন",
   "sop.noMatch": "এই নামে কোনো কার্যপ্রণালী নেই",
+  "sop.retire": "বাদ দিন",
+  "sop.retired": "বাদ দেওয়া",
+  "sop.restore": "ফিরিয়ে আনুন",
+  "sop.inForceNow": "চালু",
+  "sop.showing": "কোন কার্যপ্রণালী",
+  "sop.retireTitle": "{name} বাদ দেবেন?",
+  "sop.retireWhy":
+    "খামার এর কাজ আর তুলবে না। যে কাজ কেউ শুরু করেননি তা বাতিল হবে; যে কাজ কেউ নিয়েছেন তা তিনিই শেষ করবেন। এর সংস্করণ, কার্ড আর এর অধীনে করা সব কাজ রাখা থাকবে, আর এটি ফিরিয়ে আনা যাবে।",
+  "sop.retiredDone": "বাদ দেওয়া হয়েছে — {count}টি কাজ বাতিল হয়েছে",
+  "sop.restored": "ফিরিয়ে আনা হয়েছে — পরের বার সময় হলে এর কাজ আবার উঠবে",
+  "sop.refused.retired": "এই কার্যপ্রণালী বাদ দেওয়া হয়েছে। বদলানোর আগে এটি ফিরিয়ে আনুন",
+  "sop.refused.treatmentExists":
+    "ভেটের ব্যবস্থাপত্র থেকে কাজ তোলার একটি কার্যপ্রণালী খামারে আগেই আছে। আগে সেটি বাদ দিন",
+  "sop.refused.reportExists":
+    "জানানোর মতো রোগ থেকে কাজ তোলার একটি কার্যপ্রণালী খামারে আগেই আছে। আগে সেটি বাদ দিন",
+  "card.retiredHint": "খামার এই কাজ আর তোলে না",
   "sop.withTheOwner": "মালিকের কাছে",
   "sop.readProposal": "প্রস্তাবিত পরিবর্তন পড়ুন",
   "sop.inForce": "এখন চালু সংস্করণ {number}",

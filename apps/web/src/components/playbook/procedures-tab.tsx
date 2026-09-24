@@ -2,8 +2,16 @@ import type { SopContent } from "@OpenFarm/domain";
 import { mayRaiseByHand } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, GitPullRequestArrow, Pencil, Search } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  BookOpen,
+  GitPullRequestArrow,
+  Pencil,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -14,7 +22,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { Nothing } from "@/components/list-cells";
-import { EmptyState } from "@/components/page";
+import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import { FilterBar, RowMenu } from "@/components/page-kit";
 import { RaiseWork } from "@/components/raise-work";
 import { useLanguage } from "@/i18n/language-provider";
@@ -22,12 +30,16 @@ import { useLanguage } from "@/i18n/language-provider";
 import type { Sop } from "./playbook-types";
 import { contentOf, whenWords } from "./playbook-types";
 
-/** What the page does when a procedure's menu is used: open its card, or change it — the Owner by editing, the
- *  Manager by proposing. */
+/** What the page does when a procedure's menu is used: change it — the Owner by editing, the Manager by proposing —
+ *  and, the Owner's alone, retire it or bring it back. */
 interface ProcedureActions {
   isOwner: boolean;
   handleEdit: (definitionId: string, content: SopContent) => void;
+  handleRetire: (definitionId: string, name: string) => void;
+  handleRestore: (definitionId: string) => void;
 }
+
+type Translate = ReturnType<typeof useLanguage>["t"];
 
 /** A procedure as its row reads it: its names in both languages, the Version in force and what it says. */
 interface ProcedureRow {
@@ -38,6 +50,8 @@ interface ProcedureRow {
   version: number;
   steps: number;
   content: SopContent | undefined;
+  /** Out of force: its work is raised no more, and it is kept for what was done under it. */
+  retired: boolean;
   actions: ProcedureActions;
 }
 
@@ -51,6 +65,7 @@ const toRow = (sop: Sop, actions: ProcedureActions): ProcedureRow => {
     version: sop.currentVersion?.number ?? 0,
     steps: content?.steps.length ?? 0,
     content,
+    retired: sop.retiredAt !== null,
     actions,
   };
 };
@@ -96,26 +111,69 @@ const WhoDoesIt = ({ content }: { content: SopContent | undefined }) => {
   );
 };
 
-/** The way to change a procedure, at the end of its row — the Owner edits it, anybody else proposes a change. Its
- *  card is its name. */
+/** The acts on a procedure in force: the Owner edits or retires it, anybody else proposes a change. */
+const inForceActions = (
+  row: ProcedureRow,
+  content: SopContent,
+  t: Translate
+) => {
+  const { handleEdit, handleRetire, isOwner } = row.actions;
+  const change = {
+    label: isOwner ? t("sop.edit") : t("sop.propose"),
+    icon: isOwner ? Pencil : GitPullRequestArrow,
+    handleSelect: () => handleEdit(row.id, content),
+  };
+  if (!isOwner) {
+    return [change];
+  }
+  return [
+    change,
+    {
+      label: t("sop.retire"),
+      icon: Archive,
+      handleSelect: () => handleRetire(row.id, row.name),
+      destructive: true,
+    },
+  ];
+};
+
+/** The way to change a procedure, at the end of its row. A retired one is changed by nobody; the Owner may bring it
+ *  back. Its card is its name. */
 const ProcedureMenu = ({ row }: { row: ProcedureRow }) => {
   const { t } = useLanguage();
   const { content } = row;
-  const { handleEdit, isOwner } = row.actions;
-  if (!content) {
+  const { handleRestore, isOwner } = row.actions;
+  if (!content || (row.retired && !isOwner)) {
     return null;
   }
   return (
     <RowMenu
-      actions={[
-        {
-          label: isOwner ? t("sop.edit") : t("sop.propose"),
-          icon: isOwner ? Pencil : GitPullRequestArrow,
-          handleSelect: () => handleEdit(row.id, content),
-        },
-      ]}
+      actions={
+        row.retired
+          ? [
+              {
+                label: t("sop.restore"),
+                icon: ArchiveRestore,
+                handleSelect: () => handleRestore(row.id),
+              },
+            ]
+          : inForceActions(row, content, t)
+      }
       label={t("sop.rowActions", { name: row.name })}
     />
+  );
+};
+
+/** That a procedure is out of force, beside its name. */
+const RetiredBadge = ({ row }: { row: ProcedureRow }) => {
+  const { t } = useLanguage();
+  if (!row.retired) {
+    return null;
+  }
+  return (
+    <StatusBadge icon={Archive} tone="neutral">
+      {t("sop.retired")}
+    </StatusBadge>
   );
 };
 
@@ -123,7 +181,10 @@ const ProcedureMenu = ({ row }: { row: ProcedureRow }) => {
 const ProcedureName = ({ row }: { row: ProcedureRow }) =>
   row.content ? (
     <Link
-      className="w-fit rounded-md font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-2"
+      className={cn(
+        "w-fit rounded-md font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-2",
+        row.retired && "text-muted-foreground"
+      )}
       params={{ definitionId: row.id }}
       to="/cards/$definitionId"
     >
@@ -135,7 +196,10 @@ const ProcedureName = ({ row }: { row: ProcedureRow }) =>
 
 const NameCell = ({ row }: { row: { original: ProcedureRow } }) => (
   <div className="flex min-w-0 flex-col gap-0.5">
-    <ProcedureName row={row.original} />
+    <div className="flex flex-wrap items-center gap-2">
+      <ProcedureName row={row.original} />
+      <RetiredBadge row={row.original} />
+    </div>
     {row.original.purpose ? (
       <span className="text-muted-foreground line-clamp-2 text-xs">
         {row.original.purpose}
@@ -157,9 +221,13 @@ const CountCell = ({ getValue }: { getValue: () => number }) => {
   return formatNumber(getValue(), language);
 };
 
+/** Whether its work may be raised now, from its row: only a procedure in force, and one that is raised by hand. */
+const raisable = (row: ProcedureRow): boolean =>
+  !row.retired && row.content !== undefined && mayRaiseByHand(row.content);
+
 const ActionsCell = ({ row }: { row: { original: ProcedureRow } }) => (
   <div className="flex items-center justify-end gap-1">
-    {row.original.content && mayRaiseByHand(row.original.content) ? (
+    {raisable(row.original) ? (
       <RaiseWork definitionId={row.original.id} />
     ) : null}
     <ProcedureMenu row={row.original} />
@@ -208,7 +276,10 @@ const ProcedureCard = ({ row }: { row: ProcedureRow }) => {
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <ProcedureName row={row} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ProcedureName row={row} />
+            <RetiredBadge row={row} />
+          </div>
           <div className="text-sm">
             <WhenItComesUp content={row.content} />
           </div>
@@ -220,14 +291,15 @@ const ProcedureCard = ({ row }: { row: ProcedureRow }) => {
         </div>
         <ProcedureMenu row={row} />
       </div>
-      {row.content && mayRaiseByHand(row.content) ? (
-        <RaiseWork definitionId={row.id} />
-      ) : null}
+      {raisable(row) ? <RaiseWork definitionId={row.id} /> : null}
     </div>
   );
 };
 
 const procedureCard = (row: ProcedureRow) => <ProcedureCard row={row} />;
+
+/** Which of the Playbook the list shows: what the farm works to now, or what it has retired. */
+type Standing = "in_force" | "retired";
 
 /** Whether a procedure answers to what was typed, in either of its names. */
 const matches = (row: ProcedureRow, typed: string): boolean => {
@@ -247,20 +319,31 @@ export const ProceduresTab = ({
   sops,
   isOwner,
   onEdit,
+  onRetire,
+  onRestore,
 }: {
   sops: Sop[];
   isOwner: boolean;
   onEdit: (definitionId: string, content: SopContent) => void;
+  onRetire: (definitionId: string, name: string) => void;
+  onRestore: (definitionId: string) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [typed, setTyped] = useState("");
+  const [showing, setShowing] = useState<Standing>("in_force");
   const actions: ProcedureActions = {
     isOwner,
     handleEdit: onEdit,
+    handleRetire: onRetire,
+    handleRestore: onRestore,
   };
-  const rows = sops
-    .map((sop) => toRow(sop, actions))
-    .filter((row) => matches(row, typed));
+  const all = sops.map((sop) => toRow(sop, actions));
+  const retiredCount = all.filter((row) => row.retired).length;
+  // Back to those in force once the last retired one is brought back, so the list is never left showing nothing.
+  const shown = retiredCount === 0 ? "in_force" : showing;
+  const rows = all.filter(
+    (row) => row.retired === (shown === "retired") && matches(row, typed)
+  );
   const table = useListTable({
     columns: procedureColumns,
     data: rows,
@@ -286,6 +369,24 @@ export const ProceduresTab = ({
             value={typed}
           />
         </div>
+        {retiredCount > 0 ? (
+          <SegmentedControl
+            label={t("sop.showing")}
+            name="sop-standing"
+            onChange={setShowing}
+            options={[
+              {
+                value: "in_force",
+                label: `${t("sop.inForceNow")} · ${formatNumber(all.length - retiredCount, language)}`,
+              },
+              {
+                value: "retired",
+                label: `${t("sop.retired")} · ${formatNumber(retiredCount, language)}`,
+              },
+            ]}
+            value={shown}
+          />
+        ) : null}
       </FilterBar>
       {rows.length === 0 ? (
         <EmptyState bare icon={Search} title={t("sop.noMatch")} />
