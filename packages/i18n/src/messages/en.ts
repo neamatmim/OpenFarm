@@ -349,7 +349,10 @@ export const en = {
   "ventures.challanNumber": "e-challan no.",
   "ventures.printDraft": "Print the agreement to sign",
   "ventures.printDraftHint":
-    "Printed from these terms, onto stamp paper or to attach to the e-challan. It says it is a draft until a lawyer approves the wording.",
+    "Laid out from these terms, to print onto stamp paper or to go with the e-challan.",
+  "ventures.agreementTitle": "The agreement to sign",
+  "ventures.wordingNotReviewed":
+    "A lawyer has not yet reviewed this wording. It is on the lawyer's list; have it checked before the first Investor signs. This note is not printed.",
   "ventures.paper": "The stamped paper",
   /** The farm's own words on the file button, and whether the stamped paper is on yet — capital is
    *  refused without it, so she is told here rather than at the refusal. */

@@ -19,7 +19,6 @@ export type PaperId =
   | "disease-history"
   | "mortality-register"
   | "sop-card"
-  | "investment-agreement-draft"
   | "investor-joining-letter"
   | "investor-progress"
   | "investor-settlement";

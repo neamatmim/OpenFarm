@@ -34,19 +34,28 @@ export interface AgreementTerms {
  * The seven plain lines of what an Investor agrees to — on the paper he signs, and again on the letter he is handed
  * when his money lands. One wording, so the two can never tell him different things.
  */
-export const agreementTerms = (
+export const agreementClauses = (
   terms: AgreementTerms,
   /** How long the Wind-up Period runs, as the Farm has it set. */
   windUpDays: number
 ): string[] => [
-  "১. এটি একটি মুদারাবা চুক্তি: আপনার মূলধন, খামারের পরিচালনা।",
-  `২. মুনাফা ভাগ হবে বিনিয়োগকারী ${digits(terms.investorsPercent)}% এবং খামার ${digits(theFarmsShare(terms.investorsPercent))}%, মূলধন সম্পূর্ণ ফেরতের পর।`,
-  "৩. ক্ষতি হলে তা মূলধন থেকে যাবে; খামার কোনো মুনাফার নিশ্চয়তা দেয় না।",
-  "৪. কোনো পশু মারা গেলে তা এই ভেঞ্চারের ক্ষতি, কোনো একজন বিনিয়োগকারীর নয়।",
-  `৫. বিক্রয়ের লক্ষ্য সময়: ${onDay(terms.targetWindowStart)} থেকে ${onDay(terms.targetWindowEnd)}।`,
-  `৬. এরপর ${digits(windUpDays)} দিনের গুটিয়ে আনার সময়; সে সময়ের পরেও যে পশু থাকবে খামার তা কিনে নেবে। ভেঞ্চার শেষ হওয়ার আগে মূলধন তুলে নেওয়ার সুযোগ নেই।`,
-  `৭. মতভেদ হলে সালিস: ${terms.arbitrator}।`,
+  "এটি একটি মুদারাবা চুক্তি: আপনার মূলধন, খামারের পরিচালনা।",
+  `মুনাফা ভাগ হবে বিনিয়োগকারী ${digits(terms.investorsPercent)}% এবং খামার ${digits(theFarmsShare(terms.investorsPercent))}%, মূলধন সম্পূর্ণ ফেরতের পর।`,
+  "ক্ষতি হলে তা মূলধন থেকে যাবে; খামার কোনো মুনাফার নিশ্চয়তা দেয় না।",
+  "কোনো পশু মারা গেলে তা এই ভেঞ্চারের ক্ষতি, কোনো একজন বিনিয়োগকারীর নয়।",
+  `বিক্রয়ের লক্ষ্য সময়: ${onDay(terms.targetWindowStart)} থেকে ${onDay(terms.targetWindowEnd)}।`,
+  `এরপর ${digits(windUpDays)} দিনের গুটিয়ে আনার সময়; সে সময়ের পরেও যে পশু থাকবে খামার তা কিনে নেবে। ভেঞ্চার শেষ হওয়ার আগে মূলধন তুলে নেওয়ার সুযোগ নেই।`,
+  `মতভেদ হলে সালিস: ${terms.arbitrator}।`,
 ];
+
+/** The seven clauses as a letter prints them, each with its number in Bangla numerals. */
+export const agreementTerms = (
+  terms: AgreementTerms,
+  windUpDays: number
+): string[] =>
+  agreementClauses(terms, windUpDays).map(
+    (clause, index) => `${digits(index + 1)}. ${clause}`
+  );
 
 /**
  * The seven plain lines a যোগদানপত্র sets out: what he actually agreed to, in the farm's own words rather
