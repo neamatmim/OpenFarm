@@ -364,6 +364,26 @@ export const WhenSection = ({
           />
         </FormField>
         <ScheduleDays content={content} onChange={onChange} />
+        <div className="flex min-h-11 items-start gap-2 text-sm md:min-h-0">
+          <input
+            checked={content.wholeFarm === true}
+            className="mt-0.5 size-4"
+            id="sop-whole-farm"
+            onChange={(event) =>
+              onChange({
+                ...content,
+                wholeFarm: event.target.checked ? true : undefined,
+              })
+            }
+            type="checkbox"
+          />
+          <label className="flex flex-col gap-0.5" htmlFor="sop-whole-farm">
+            {t("sop.wholeFarm")}
+            <span className="text-muted-foreground text-xs">
+              {t("sop.wholeFarmHint")}
+            </span>
+          </label>
+        </div>
       </div>
       <div className="rounded-lg border p-4">
         <TriggerFields content={content} onChange={onChange} />

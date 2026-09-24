@@ -1064,6 +1064,8 @@ const CHANGE_MESSAGE: Record<SopChange["kind"], MessageKey> = {
   grace_changed: "changed.grace_changed",
   who_changed: "changed.who_changed",
   checker_changed: "changed.checker_changed",
+  now_whole_farm: "changed.now_whole_farm",
+  now_per_pen: "changed.now_per_pen",
 };
 
 /**

@@ -1,5 +1,6 @@
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import type { SopContent } from "@OpenFarm/domain";
+import { standardPlaybook } from "@OpenFarm/domain";
 import {
   DAY,
   FakeClock,
@@ -158,6 +159,31 @@ const instanceForPen = async (clock: FakeClock) => {
 };
 
 describe("the scheduler", () => {
+  it("raises work about the whole farm once a day, in no Pen, however many Pens stand full and however often it runs", async () => {
+    const owner = await createTestClient(appRouter, {
+      as: "owner",
+      clock: morning(),
+    });
+    const { definitionId } = await owner.client.sops.create({
+      content: standardPlaybook().biosecurity,
+    });
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock: morning(),
+    });
+
+    await owner.client.instances.ensureDue();
+    await owner.client.instances.ensureDue();
+    const today = await owner.client.instances.today();
+    const theirs = await staff.client.instances.today();
+
+    const checks = today.filter((one) => one.definitionId === definitionId);
+    expect(checks).toHaveLength(1);
+    expect(checks[0]?.penId).toBeNull();
+    // It is the Manager's; a milker whose Pen it is not in does not find it on their list.
+    expect(theirs.some((one) => one.definitionId === definitionId)).toBe(false);
+  });
+
   it("raises one Instance per Pen holding animals the SOP concerns, and never duplicates", async () => {
     const clock = morning();
     const owner = await createTestClient(appRouter, { as: "owner", clock });

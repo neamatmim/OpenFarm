@@ -28,7 +28,7 @@ import type {
   RationRow,
   StockLine,
 } from "@/components/feed/feed-types";
-import { standingOf, valueOf } from "@/components/feed/feed-types";
+import { valueOf } from "@/components/feed/feed-types";
 import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
 import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
@@ -47,19 +47,37 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number];
 
-/** Feed Items still fed that hold nothing, or less than their level. */
-const shortOf = (lines: StockLine[]) =>
+/** The Feed Items a Ration some Pen is on still feeds: a feed with none left matters only if one does. */
+const fedNow = (rations: RationRow[]): ReadonlySet<string> =>
+  new Set(
+    rations
+      .filter((ration) => ration.retiredAt === null && ration.penIds.length > 0)
+      .flatMap((ration) => ration.items.map((line) => line.feedItemId))
+  );
+
+/**
+ * Feed Items running short: below the level set for them, or with none left of a feed a Pen is being fed. A feed
+ * nobody watches and nothing feeds is not short for holding nothing — a store the farm has not stocked yet, or a feed
+ * it has stopped using, would otherwise read as all of it running low.
+ */
+const shortOf = (lines: StockLine[], fed: ReadonlySet<string>) =>
   lines.filter(
-    (line) => !line.retiredAt && ["low", "out"].includes(standingOf(line))
+    (line) =>
+      !line.retiredAt &&
+      (line.runningLow || (line.onHand <= 0 && fed.has(line.feedItemId)))
   ).length;
 
 /** The four figures the store is judged by: how many Feed Items it holds, how many are Running Low, what it is worth,
  *  and what feed was bought this month. */
-const useStoreFigures = (lines: StockLine[], arrivals: Arrival[]): Figure[] => {
+const useStoreFigures = (
+  lines: StockLine[],
+  arrivals: Arrival[],
+  fed: ReadonlySet<string>
+): Figure[] => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const live = lines.filter((line) => !line.retiredAt);
-  const short = shortOf(lines);
+  const short = shortOf(lines, fed);
   const worth = live.reduce((sum, line) => sum + (valueOf(line) ?? 0), 0);
   const month = farmDayOf(new Date()).slice(0, 7);
   const bought = arrivals.filter(
@@ -135,7 +153,8 @@ const FeedPage = () => {
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))
   );
-  const figures = useStoreFigures(lines, arrivals.data ?? []);
+  const fed = fedNow((rations.data ?? []) as RationRow[]);
+  const figures = useStoreFigures(lines, arrivals.data ?? [], fed);
 
   return (
     <Page>
@@ -166,7 +185,7 @@ const FeedPage = () => {
             value: "stock",
             label: t("feed.tab.stock"),
             icon: Warehouse,
-            count: shortOf(lines),
+            count: shortOf(lines, fed),
             content: (
               <Loaded query={stock}>
                 <StockTab

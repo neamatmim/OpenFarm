@@ -556,6 +556,8 @@ const biosecurity = (): SopContent => ({
     en: "Check the footbath, shed hygiene and the visitor book every day",
   },
   triggers: [{ kind: "schedule", times: ["09:00"] }],
+  // One footbath and one visitor book, however many Pens stand full.
+  wholeFarm: true,
   assignedRole: "manager",
   checkerRole: null,
   graceMinutes: 240,

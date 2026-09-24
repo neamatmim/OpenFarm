@@ -46,6 +46,7 @@ import {
   calvingKeyOf,
   causeOf,
   heatKeyOf,
+  wholeFarmCauseOf,
 } from "./work-cause";
 
 const MINUTE_MS = 60_000;
@@ -154,8 +155,8 @@ export const renewalSlotsFor = (
 
 /**
  * Every Instance a schedule-triggered SOP should have for the farm's day containing `now`:
- * one per Pen holding at least one animal the SOP concerns. Pure — the caller decides which
- * of these already exist.
+ * one per Pen holding at least one animal the SOP concerns — or, for work about the whole farm,
+ * one in no Pen while any Pen does. Pure — the caller decides which of these already exist.
  */
 export const dueSlotsFor = (
   now: Date,
@@ -182,6 +183,9 @@ export const dueSlotsFor = (
         )
         .map((row) => row.penId)
     );
+    // Work about the whole farm is raised once, in no Pen, while any Pen holds an animal it concerns: one footbath
+    // and one visitor book, however many Pens stand full.
+    const wholeFarm = sop.content.wholeFarm === true;
     for (const schedule of schedules) {
       if (schedule.kind !== "schedule") {
         continue;
@@ -191,6 +195,21 @@ export const dueSlotsFor = (
       }
       for (const time of schedule.times) {
         const dueAt = dueAtFor(now, time);
+        if (wholeFarm) {
+          if (pens.size > 0) {
+            slots.push({
+              definitionId: sop.definitionId,
+              versionId: sop.versionId,
+              penId: null,
+              dueAt,
+              graceMinutes: sop.content.graceMinutes,
+              assignedRole: sop.content.assignedRole,
+              checkerRole: sop.content.checkerRole,
+              cause: wholeFarmCauseOf(dueAt),
+            });
+          }
+          continue;
+        }
         for (const penId of pens) {
           slots.push({
             definitionId: sop.definitionId,

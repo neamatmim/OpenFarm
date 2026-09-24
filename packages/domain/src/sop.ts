@@ -214,6 +214,12 @@ export interface SopContent {
   purpose: Bilingual;
   triggers: Trigger[];
   appliesTo?: AppliesTo;
+  /**
+   * Work about the whole farm rather than about each Pen: raised once, in no Pen, while the farm has an animal it
+   * concerns — the footbath and the visitor book, which are one each however many Pens stand full. Absent, the work
+   * is raised for each Pen holding such an animal.
+   */
+  wholeFarm?: boolean;
   /** Who the Instance is assigned to, and who signs it off. */
   assignedRole: (typeof ROLES)[number];
   checkerRole: (typeof ROLES)[number] | null;
@@ -773,28 +779,45 @@ const FARM_WORK_EFFECTS: ReadonlySet<StepEffect["kind"]> = new Set<
   StepEffect["kind"]
 >(["registration_renewal"]);
 
+/** Whether an SOP's work is about the whole farm rather than about a Pen: the Registration's renewal, or work
+ *  marked so — the footbath, the visitor book. */
+export const isWholeFarmWork = (content: SopContent): boolean =>
+  content.wholeFarm === true ||
+  content.triggers.some((trigger) => trigger.kind === "registration_renewal");
+
 /**
- * Work about the whole farm — the Registration's renewal — is in no Pen and about no animal, so its Steps
- * are walked once, and nothing in them may write a Pen's record or an animal's.
+ * Work about the whole farm is in no Pen and about no animal, so its Steps are walked once, and nothing in them may
+ * write a Pen's record or an animal's. Marked so, it is raised by the clock or by the Registration, never by
+ * something that happened to an animal in a Pen.
  */
 const farmWorkProblems = (content: SopContent): string[] => {
-  if (
-    !content.triggers.some((trigger) => trigger.kind === "registration_renewal")
-  ) {
+  if (!isWholeFarmWork(content)) {
     return [];
   }
-  return content.steps.flatMap((step, index) => [
-    ...(step.repeatPerAnimal
-      ? [
-          `steps[${index}]: work about the whole farm is about no animal, so the step is walked once`,
-        ]
-      : []),
-    ...(step.effect && !FARM_WORK_EFFECTS.has(step.effect.kind)
-      ? [
-          `steps[${index}].effect: work about the whole farm is in no Pen, and cannot write a Pen's or an animal's record`,
-        ]
-      : []),
-  ]);
+  const raisedInAPen = content.wholeFarm
+    ? content.triggers.flatMap((trigger, index) =>
+        trigger.kind === "schedule" || trigger.kind === "registration_renewal"
+          ? []
+          : [
+              `triggers[${index}]: work about the whole farm is raised by the clock, not by something that happened in a Pen`,
+            ]
+      )
+    : [];
+  return [
+    ...raisedInAPen,
+    ...content.steps.flatMap((step, index) => [
+      ...(step.repeatPerAnimal
+        ? [
+            `steps[${index}]: work about the whole farm is about no animal, so the step is walked once`,
+          ]
+        : []),
+      ...(step.effect && !FARM_WORK_EFFECTS.has(step.effect.kind)
+        ? [
+            `steps[${index}].effect: work about the whole farm is in no Pen, and cannot write a Pen's or an animal's record`,
+          ]
+        : []),
+    ]),
+  ];
 };
 
 /** Structural problems that are not about language: an SOP with no steps, a malformed time,
@@ -1011,7 +1034,9 @@ export type SopChange =
   | { kind: "times_changed"; times: string[] }
   | { kind: "grace_changed"; minutes: number }
   | { kind: "who_changed"; role: RoleName }
-  | { kind: "checker_changed"; role: RoleName | null };
+  | { kind: "checker_changed"; role: RoleName | null }
+  | { kind: "now_whole_farm" }
+  | { kind: "now_per_pen" };
 
 /** Everything about one piece of Evidence that a person would notice changing: not only
  *  what kind it is, but the unit it asks for, the range it calls odd, and what may be
@@ -1129,5 +1154,11 @@ export const describeChanges = (
   if (before.checkerRole !== after.checkerRole) {
     changes.push({ kind: "checker_changed", role: after.checkerRole });
   }
+  // Once for the farm or once for each Pen is how many pieces of work arrive in a morning, which is a change anybody
+  // doing the work would notice.
+  if (Boolean(before.wholeFarm) !== Boolean(after.wholeFarm)) {
+    changes.push({ kind: after.wholeFarm ? "now_whole_farm" : "now_per_pen" });
+  }
+
   return changes;
 };

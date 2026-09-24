@@ -55,4 +55,21 @@ describe("the day's scheduled work", () => {
 
     expect(slots.map((one) => one.penId)).toEqual(["milking-1"]);
   });
+
+  it("raises the farm's one biosecurity check once, in no Pen, however many Pens stand full", () => {
+    const slots = dueSlotsFor(
+      NOW,
+      [sop("biosecurity")],
+      [
+        { penId: "a", side: "dairy", state: "milking" },
+        { penId: "b", side: "dairy", state: "heifer" },
+        { penId: "c", side: "fattening", state: "fattening" },
+      ]
+    );
+
+    expect(slots).toHaveLength(1);
+    expect(slots[0]?.penId).toBeNull();
+    // Kept to one a day by its cause, as work in no Pen has no Pen to keep it so.
+    expect(slots[0]?.cause).toMatch(/^whole-farm:/u);
+  });
 });
