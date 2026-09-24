@@ -17,7 +17,7 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import type { Context } from "./context";
 import { hashToken } from "./device";
-import { newInviteCode } from "./membership";
+import { newInviteCode, signedInOn } from "./membership";
 
 // An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
 // and a password of their own, and the Owner taking it away. The account it opens holds no Role on the farm.
@@ -386,6 +386,27 @@ export const markSeen = async (
     );
 };
 
+/** How long one sign-in to the portal lasts, whatever it does meanwhile: a working day. An Investor's figures are
+ *  money, and a phone left signed in for a week is somebody else reading them. The farm's own people keep a week. */
+const PORTAL_SIGN_IN_MS = 12 * 60 * 60 * 1000;
+
+/** Whether a portal sign-in has lasted its day. */
+export const signInHasRunItsDay = (startedAt: Date, now: Date): boolean =>
+  now.getTime() - startedAt.getTime() > PORTAL_SIGN_IN_MS;
+
+/** Ends one sign-in that has lasted its day. Expired rather than deleted, as signing somebody out anywhere else is:
+ *  the record that they were signed in there stays. Not an Audit Event — the farm did not decide anything. */
+export const endSignIn = async (
+  db: Context["db"],
+  sessionId: string,
+  now: Date
+): Promise<void> => {
+  await db
+    .update(session)
+    .set({ expiresAt: now, updatedAt: now })
+    .where(eq(session.id, sessionId));
+};
+
 /** The Investor an account belongs to, while the portal is open and their access stands; null for anybody else. */
 export const investorOf = async (
   db: Pick<Tx, "query">,
@@ -440,4 +461,65 @@ export const requireTheirs = async (
     });
   }
   return agreement;
+};
+
+/** The three papers an Investor reads in the portal, as the trail names them. */
+const PORTAL_PAPERS = [
+  "joining_letter",
+  "progress_statement",
+  "settlement_statement",
+] as const;
+type PortalPaper = (typeof PORTAL_PAPERS)[number];
+
+const isPortalPaper = (paper: unknown): paper is PortalPaper =>
+  PORTAL_PAPERS.includes(paper as PortalPaper);
+
+/** How many of the papers they read the Owner is shown: the latest, which is what anybody asks about. */
+const PAPERS_SHOWN = 20;
+
+/**
+ * What an Investor has done in the portal, for the Owner's page of them: when they took the invitation up, when they
+ * were last in, where they are signed in now, and the papers they read, the latest first — each already an Export in
+ * the trail under their name. Nothing for somebody who never took an invitation up.
+ */
+export const portalActivity = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  investorId: string,
+  now: Date
+) => {
+  const access = await db.query.investorAccess.findFirst({
+    where: { farmId, investorId },
+    columns: { userId: true, acceptedAt: true, lastSeenAt: true },
+  });
+  if (!access?.userId) {
+    return null;
+  }
+  const [places, exported] = await Promise.all([
+    signedInOn(db, access.userId, now),
+    db.query.auditEvent.findMany({
+      where: {
+        farmId,
+        actorId: access.userId,
+        entity: "investment_agreement",
+        action: "export",
+      },
+      columns: { id: true, entityId: true, after: true, receivedAt: true },
+      orderBy: { receivedAt: "desc", id: "desc" },
+      limit: PAPERS_SHOWN,
+    }),
+  ]);
+  const read: { at: Date; agreementId: string; paper: PortalPaper }[] = [];
+  for (const one of exported) {
+    const paper = (one.after as { paper?: unknown } | null)?.paper;
+    if (isPortalPaper(paper)) {
+      read.push({ at: one.receivedAt, agreementId: one.entityId, paper });
+    }
+  }
+  return {
+    acceptedAt: access.acceptedAt,
+    lastSeenAt: access.lastSeenAt,
+    signedInOn: places,
+    read,
+  };
 };

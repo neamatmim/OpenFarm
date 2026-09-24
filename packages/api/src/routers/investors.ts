@@ -18,6 +18,7 @@ import {
 } from "../investor-store";
 import {
   inviteToPortal,
+  portalActivity,
   portalStandings,
   takePortalAway,
 } from "../portal-store";
@@ -223,6 +224,18 @@ export const investorsRouter = {
         farmDayOf(context.clock.now())
       );
     }),
+
+  /**
+   * What an Investor has done in the portal: when they came in, when they were last in, where they are signed in
+   * now, and the papers they read. Null for somebody who never took an invitation up. The Owner's alone.
+   */
+  portalActivity: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(({ context, input }) =>
+      portalActivity(context.db, context.farm.id, input.id, context.clock.now())
+    ),
 
   /**
    * One person recorded once, and reused for every Venture they join: name, phone, address, NID, the bank

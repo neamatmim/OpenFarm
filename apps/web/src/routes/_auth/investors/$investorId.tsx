@@ -20,6 +20,7 @@ import type { TheirAgreements } from "@/components/investors/investor-agreements
 import {
   InvestorAgreements,
   InvestorMoney,
+  portfolioOf,
 } from "@/components/investors/investor-agreements";
 import {
   InvestorActs,
@@ -61,27 +62,14 @@ const useFiguresOf = (
   const { t, language } = useLanguage();
   const taka = useTaka();
   const loading = <Skeleton className="h-8 w-24" />;
-  const agreements = theirs?.agreements ?? [];
-  // Held until the Settlement's payout goes: a paper paid out has handed its capital back.
-  const holding = agreements.filter((one) => !one.settlement?.paidOn);
-  const heldBdt = holding.reduce((sum, one) => sum + one.capitalHeldBdt, 0);
-  const paidBdt = (theirs?.movements ?? [])
-    .filter((one) => one.kind === "payout")
-    .reduce((sum, one) => sum + one.amountBdt, 0);
-  const settled = agreements.filter((one) => one.settlement !== null);
-  const heldOn = holding.filter((one) => one.capitalHeldBdt > 0).length;
-  const profitBdt = settled.reduce(
-    (sum, one) => sum + (one.settlement?.shareBdt ?? 0),
-    0
-  );
+  const sums = theirs ? portfolioOf(theirs) : null;
   return [
     {
       label: t("investors.page.heldNow"),
-      value: theirs ? taka(heldBdt) : loading,
-      hint:
-        heldOn > 0
-          ? t("investors.page.onPapers", { count: heldOn })
-          : undefined,
+      value: sums ? taka(sums.heldBdt) : loading,
+      hint: sums?.heldOn
+        ? t("investors.page.onPapers", { count: sums.heldOn })
+        : undefined,
       icon: Banknote,
     },
     {
@@ -92,18 +80,17 @@ const useFiguresOf = (
     },
     {
       label: t("investors.page.paidOut"),
-      value: theirs ? taka(paidBdt) : loading,
+      value: sums ? taka(sums.paidOutBdt) : loading,
       icon: Wallet,
     },
     {
       label: t("investors.page.profit"),
-      value: theirs ? taka(profitBdt) : loading,
-      hint:
-        settled.length > 0
-          ? t("investors.page.fromSettled", { count: settled.length })
-          : t("investors.page.noneSettled"),
+      value: sums ? taka(sums.profitBdt) : loading,
+      hint: sums?.settled
+        ? t("investors.page.fromSettled", { count: sums.settled })
+        : t("investors.page.noneSettled"),
       icon: TrendingUp,
-      tone: profitBdt < 0 ? "warning" : "neutral",
+      tone: (sums?.profitBdt ?? 0) < 0 ? "warning" : "neutral",
     },
   ];
 };

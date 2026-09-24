@@ -27,7 +27,8 @@ const ownerAt = async (at: string | Date = JANUARY) => {
   return client;
 };
 
-/** A client signed in as the account an invitation opened, reading at a given moment. */
+/** A client signed in as the account an invitation opened, on a sign-in begun the moment it reads — a sign-in lasts
+ *  a working day, and each reading here is days apart. */
 const investorAt = async (loginEmail: string, at: string | Date) => {
   const db = scratchDb();
   const person = await db.query.user.findFirst({
@@ -36,21 +37,20 @@ const investorAt = async (loginEmail: string, at: string | Date) => {
   if (!person) {
     throw new Error("expected the Investor's account");
   }
-  const opened = new Date(JANUARY);
+  const opened = new Date(at);
+  const id = `standings-session-${person.id}-${opened.getTime()}`;
   await db
     .insert(sessionTable)
     .values({
-      id: `standings-session-${person.id}`,
-      token: `standings-token-${person.id}`,
+      id,
+      token: `standings-token-${person.id}-${opened.getTime()}`,
       userId: person.id,
-      expiresAt: new Date(opened.getTime() + 60 * A_DAY),
+      expiresAt: new Date(opened.getTime() + A_DAY),
       createdAt: opened,
       updatedAt: opened,
     })
     .onConflictDoNothing();
-  const session = await db.query.session.findFirst({
-    where: { id: `standings-session-${person.id}` },
-  });
+  const session = await db.query.session.findFirst({ where: { id } });
   if (!session) {
     throw new Error("expected the session");
   }
@@ -140,7 +140,7 @@ describe("somebody in the portal", () => {
     };
     const readsAt = async (at: Date) => {
       const investor = await investorAt(loginEmail, at);
-      await investor.portal.ventures();
+      await investor.portal.portfolio();
     };
     expect(await lastSeen()).toBeNull();
 

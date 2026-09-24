@@ -510,3 +510,4 @@ export {
   isInvestorLogin,
   mobileNumberOf,
 } from "./investor-login";
+export { maskedDigits } from "./masked-digits";

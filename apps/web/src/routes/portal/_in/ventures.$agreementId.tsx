@@ -44,9 +44,11 @@ const PAPER_WORD = {
   settlement: "portal.paper.settlement",
 } as const satisfies Record<StatementKind, string>;
 
-/** Why a paper did not come, in the Investor's words: the portal shut, or their access taken away, while they read. */
+/** Why a paper did not come, in the Investor's words: the portal shut, their access taken away, or their sign-in's
+ *  day over, while they read. */
 const REFUSALS = {
   not_an_investor: "portal.refused.notAnInvestor",
+  signed_in_too_long: "portal.endedHint",
   no_such_agreement: "statements.noSuchAgreement",
 } as const;
 
@@ -72,11 +74,13 @@ const useFigures = (today: Today): Figure[] => {
     },
     {
       label: t("portal.split"),
-      value: t("portal.splitLine", {
-        investors: today.his.investorsPercent,
-        farm: 100 - today.his.investorsPercent,
+      // The reader's own part as the figure, and the Farm's under it: the whole line is too long to read as one.
+      value: t("portal.percent", {
+        percent: formatNumber(today.his.investorsPercent, language),
       }),
-      hint: t("portal.splitHint"),
+      hint: t("portal.farmTakes", {
+        percent: formatNumber(100 - today.his.investorsPercent, language),
+      }),
     },
     {
       label: t("portal.animals"),

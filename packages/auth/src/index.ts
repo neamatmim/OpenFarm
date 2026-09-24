@@ -202,6 +202,8 @@ export const createAuth = (against?: Database) => {
         "/sign-up/email": { window: 60, max: 3 },
         "/request-password-reset": { window: 60, max: 3 },
         "/reset-password": { window: 60, max: 3 },
+        // Guessing somebody's current password from a phone they left signed in is guessing a password.
+        "/change-password": { window: 60, max: 5 },
       },
     },
     emailAndPassword: {

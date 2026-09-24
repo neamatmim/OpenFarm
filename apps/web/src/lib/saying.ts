@@ -14,7 +14,7 @@ const refusalIn = (error: unknown): unknown =>
   (error as { data?: { refusal?: unknown } } | null)?.data?.refusal;
 
 /** What the refusal was, by its own word, when the farm gave one. */
-const wordOf = (error: unknown): string | null => {
+export const wordOf = (error: unknown): string | null => {
   const refusal = refusalIn(error);
   return typeof refusal === "string" ? refusal : null;
 };

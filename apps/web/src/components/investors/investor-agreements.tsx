@@ -32,6 +32,29 @@ export type TheirAgreements = Awaited<
 type Agreement = TheirAgreements["agreements"][number];
 type Movement = TheirAgreements["movements"][number];
 
+/**
+ * What one Investor's money comes to, the same sums wherever they are read — the Owner's page of them and their own
+ * portal: the capital the Farm holds of theirs now and on how many papers, what has been paid out to them, and their
+ * share of the profit from the Ventures settled. Money still in a Venture and money already home are counted apart:
+ * a paper whose payout went has handed its capital back.
+ */
+export const portfolioOf = (theirs: TheirAgreements) => {
+  const holding = theirs.agreements.filter((one) => !one.settlement?.paidOn);
+  const settled = theirs.agreements.filter((one) => one.settlement !== null);
+  return {
+    heldBdt: holding.reduce((sum, one) => sum + one.capitalHeldBdt, 0),
+    heldOn: holding.filter((one) => one.capitalHeldBdt > 0).length,
+    paidOutBdt: theirs.movements
+      .filter((one) => one.kind === "payout")
+      .reduce((sum, one) => sum + one.amountBdt, 0),
+    profitBdt: settled.reduce(
+      (sum, one) => sum + (one.settlement?.shareBdt ?? 0),
+      0
+    ),
+    settled: settled.length,
+  };
+};
+
 /** What each line of their money was, in words. */
 const MOVEMENT_WORD = {
   capital_in: "investors.page.move.capitalIn",
@@ -230,6 +253,56 @@ export const InvestorAgreements = ({
   );
 };
 
+/** The money table's words, as its reader is spoken to: the Owner reading about "them", or the Investor about "you". */
+const MONEY_WORDS = {
+  owner: {
+    hint: "investors.page.moneyHint",
+    none: "investors.page.noMoney",
+    back: "investors.page.toThem",
+  },
+  portal: {
+    hint: "portal.money.hint",
+    none: "portal.money.none",
+    back: "portal.money.toYou",
+  },
+} as const satisfies Record<string, Record<string, MessageKey>>;
+
+/** The Venture a line of their money moved in, leading to the page of it the reader has: the Owner's, or the
+ *  Investor's own in the portal, which is asked for by their Agreement. */
+const VentureLink = ({
+  venture,
+  agreementId,
+  inThePortal,
+}: {
+  venture: Agreement["venture"] | undefined;
+  agreementId: string;
+  inThePortal: boolean;
+}) => {
+  if (!venture) {
+    return <Nothing />;
+  }
+  const className =
+    "underline-offset-4 hover:underline focus-visible:underline";
+  return inThePortal ? (
+    <Link
+      className={className}
+      params={{ agreementId }}
+      to="/portal/ventures/$agreementId"
+    >
+      {venture.name}
+    </Link>
+  ) : (
+    <Link
+      className={className}
+      params={{ ventureId: venture.id }}
+      search={{ tab: "money" }}
+      to="/ventures/$ventureId"
+    >
+      {venture.name}
+    </Link>
+  );
+};
+
 /**
  * Every taka of one Investor's that moved, the latest first: capital that came in on a paper, capital sent back
  * when a Venture was called off, and each payout a Settlement made — with the day, the Venture, the reference it
@@ -238,12 +311,16 @@ export const InvestorAgreements = ({
 export const InvestorMoney = ({
   agreements,
   movements,
+  inThePortal = false,
 }: {
   agreements: Agreement[];
   movements: Movement[];
+  /** Read by the Investor themselves: each Venture leads to their own page of it rather than the Owner's. */
+  inThePortal?: boolean;
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
+  const words = MONEY_WORDS[inThePortal ? "portal" : "owner"];
   const ventureOf = new Map(
     agreements.map((one) => [one.id, one.venture] as const)
   );
@@ -257,16 +334,9 @@ export const InvestorMoney = ({
     }
   }
   return (
-    <Section
-      description={t("investors.page.moneyHint")}
-      title={t("investors.page.tab.money")}
-    >
+    <Section description={t(words.hint)} title={t("investors.page.tab.money")}>
       {movements.length === 0 ? (
-        <EmptyState
-          bare
-          icon={ScrollText}
-          title={t("investors.page.noMoney")}
-        />
+        <EmptyState bare icon={ScrollText} title={t(words.none)} />
       ) : (
         <div className="-mx-4 overflow-x-auto md:-mx-5">
           <Table className="min-w-[44rem]">
@@ -282,7 +352,7 @@ export const InvestorMoney = ({
                   {t("investors.page.toTheFarm")}
                 </TableHead>
                 <TableHead className="pe-4 text-end md:pe-5">
-                  {t("investors.page.toThem")}
+                  {t(words.back)}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -296,18 +366,11 @@ export const InvestorMoney = ({
                       <SaidDate at={one.movedOn} />
                     </TableCell>
                     <TableCell>
-                      {venture ? (
-                        <Link
-                          className="underline-offset-4 hover:underline focus-visible:underline"
-                          params={{ ventureId: venture.id }}
-                          search={{ tab: "money" }}
-                          to="/ventures/$ventureId"
-                        >
-                          {venture.name}
-                        </Link>
-                      ) : (
-                        <Nothing />
-                      )}
+                      <VentureLink
+                        agreementId={one.agreementId}
+                        inThePortal={inThePortal}
+                        venture={venture}
+                      />
                     </TableCell>
                     <TableCell>{t(MOVEMENT_WORD[one.kind])}</TableCell>
                     <TableCell className="font-mono text-xs">
