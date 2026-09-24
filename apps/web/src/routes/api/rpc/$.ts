@@ -11,12 +11,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { RequestLogger } from "evlog";
 
 import { whyRefused } from "@/lib/rpc-door";
+import { logTheFailure } from "@/lib/rpc-failure-log";
 
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
-    onError((failure) => {
-      console.error(failure);
-    }),
+    // Never the failure whole: it carries what was sent, a password among it.
+    onError(logTheFailure),
   ],
 });
 
@@ -40,9 +40,8 @@ const apiHandler = new OpenAPIHandler(appRouter, {
     }),
   ],
   interceptors: [
-    onError((failure) => {
-      console.error(failure);
-    }),
+    // Never the failure whole: it carries what was sent, a password among it.
+    onError(logTheFailure),
   ],
 });
 
