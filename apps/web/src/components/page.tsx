@@ -87,7 +87,7 @@ export const PageHeader = ({
         </p>
       ) : null}
       <h1
-        className="text-2xl leading-tight font-semibold tracking-tight md:text-3xl"
+        className="text-xl leading-tight font-semibold tracking-tight md:text-2xl"
         data-slot="page-title"
       >
         {title}
@@ -137,7 +137,7 @@ export const Section = ({
     className={cn(
       "flex flex-col gap-4",
       !plain &&
-        "bg-card rounded-xl border p-4 shadow-[0_1px_2px_0_oklch(0.2_0.02_160/0.05)] md:p-5",
+        "bg-card rounded-xl border p-4 shadow-(--surface-shadow) md:p-5",
       className
     )}
     id={id}
@@ -147,7 +147,7 @@ export const Section = ({
         <div className="flex min-w-0 flex-col gap-0.5">
           {title ? (
             <h2
-              className="text-base font-semibold tracking-tight md:text-lg"
+              className="text-base font-semibold tracking-tight"
               data-slot="section-title"
               id={id ? `${id}-title` : undefined}
             >
@@ -206,7 +206,7 @@ export const StatTile = ({
       className={cn(
         // Wrapped, not clipped: a Venture's balance carries its paisa, and the longest figure the farm
         // has ran off the side of its tile rather than taking a second line.
-        "text-2xl leading-tight font-semibold tracking-tight break-words tabular-nums sm:text-3xl md:text-4xl",
+        "text-2xl leading-tight font-semibold tracking-tight break-words tabular-nums md:text-3xl",
         TILE_TONE[tone]
       )}
     >
