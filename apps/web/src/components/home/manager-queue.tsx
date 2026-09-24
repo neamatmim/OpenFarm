@@ -1,3 +1,4 @@
+import { feedUnitWord } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Link } from "@tanstack/react-router";
@@ -223,7 +224,7 @@ export const ManagerQueue = ({
                 {t("home.lowStockLine", {
                   feed: line.nameBn,
                   onHand: formatNumber(line.onHand, language),
-                  unit: line.unit,
+                  unit: feedUnitWord(line.unit, language),
                   threshold: formatNumber(line.threshold, language),
                 })}
               </Link>

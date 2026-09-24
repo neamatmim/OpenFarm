@@ -1,6 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
-import { FEED_IN_KINDS, feedIn } from "@OpenFarm/db/schema/feed";
-import { maundsOf } from "@OpenFarm/domain";
+import { FEED_IN_KINDS, FEED_PACKS, feedIn } from "@OpenFarm/db/schema/feed";
+import type { FeedPack, FeedUnit } from "@OpenFarm/domain";
+import { maundsOf, quantityOfPacks } from "@OpenFarm/domain";
 import { expiryStanding, expiryWindow } from "@OpenFarm/domain/lots";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -30,6 +31,39 @@ import {
   stockOnHand,
   fodderValueOf,
 } from "../stock-store";
+
+/**
+ * How much came, in the feed's own unit: as typed, or worked out from the bags or maunds a trader's slip gives — one or
+ * the other, never both. A pack that cannot be turned into kilos is refused with why: feed not counted in kilos has
+ * none, and a bag weighs only what the farm has said this feed's bags weigh.
+ */
+const quantityReceived = (
+  input: { quantity?: number; pack?: { kind: FeedPack; count: number } },
+  item: { unit: FeedUnit; bagSizeKg: string | null }
+): number => {
+  if ((input.quantity === undefined) === (input.pack === undefined)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Say how much came — in its own unit, or in bags or maunds",
+    });
+  }
+  if (input.quantity !== undefined) {
+    return input.quantity;
+  }
+  const packed = quantityOfPacks(input.pack ?? { kind: "bag", count: 0 }, {
+    unit: item.unit,
+    bagSizeKg: item.bagSizeKg === null ? null : Number(item.bagSizeKg),
+  });
+  if ("refusal" in packed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        packed.refusal === "pack_needs_kg"
+          ? "Only feed counted in kilos is bought by the bag or the maund"
+          : "Say what a bag of this feed weighs first",
+      data: { refusal: packed.refusal },
+    });
+  }
+  return packed.quantity;
+};
 
 export const stockRouter = {
   /**
@@ -88,6 +122,10 @@ export const stockRouter = {
           kind: row.kind,
           quantity,
           maunds: feedItem.unit === "kg" ? maundsOf(quantity) : null,
+          /** The bags or maunds it was typed as, where it was; nothing for feed bought by its own unit. */
+          pack: row.packKind
+            ? { kind: row.packKind, count: Number(row.packCount) }
+            : null,
           priceBdt: row.priceBdt,
           sellerName: seller?.name ?? null,
           receivedOn: row.receivedOn,
@@ -130,7 +168,14 @@ export const stockRouter = {
         id: z.string().uuid().optional(),
         feedItemId: z.string(),
         kind: z.enum(FEED_IN_KINDS),
-        quantity: quantityInput,
+        /** How much, in the feed's own unit — or, for feed counted in kilos, the bags or maunds it came as. */
+        quantity: quantityInput.optional(),
+        pack: z
+          .object({
+            kind: z.enum(FEED_PACKS),
+            count: z.number().positive().max(100_000),
+          })
+          .optional(),
         priceBdt: feedPriceInput.optional(),
         seller: sellerInput.optional(),
         receivedOn: farmDay,
@@ -162,7 +207,13 @@ export const stockRouter = {
       }
       const item = await context.db.query.feedItem.findFirst({
         where: { id: input.feedItemId, farmId: context.farm.id },
-        columns: { id: true, retiredAt: true, fodderPriceBdt: true },
+        columns: {
+          id: true,
+          retiredAt: true,
+          fodderPriceBdt: true,
+          unit: true,
+          bagSizeKg: true,
+        },
       });
       if (!item) {
         throw new ORPCError("NOT_FOUND", { message: "No such feed" });
@@ -173,6 +224,7 @@ export const stockRouter = {
           data: { refusal: "feed_retired" },
         });
       }
+      const quantity = quantityReceived(input, item);
       await audited(context).write(
         {
           entity: "feed_in",
@@ -189,12 +241,14 @@ export const stockRouter = {
             farmId: context.farm.id,
             feedItemId: item.id,
             kind: input.kind,
-            quantity: input.quantity.toFixed(1),
+            quantity: quantity.toFixed(1),
+            packKind: input.pack?.kind ?? null,
+            packCount: input.pack ? String(input.pack.count) : null,
             // A purchase is worth what the farm paid; a Harvest is worth what the farm says its own
             // fodder is worth, taken from the Feed Item rather than typed by whoever cut it.
             priceBdt:
               input.kind === "harvest"
-                ? fodderValueOf(item, input.quantity)
+                ? fodderValueOf(item, quantity)
                 : (input.priceBdt ?? null),
             counterpartyId: sellerId,
             receivedOn,

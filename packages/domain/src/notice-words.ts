@@ -3,6 +3,7 @@ import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
 
 import type { AlertKind } from "./alerts";
 import { ALERT_KINDS } from "./alerts";
+import { feedUnitWord } from "./feed-units";
 import type { LotFacts, NoticeFacts, WorkFacts } from "./notice-facts";
 
 const MINUTES_PER_HOUR = 60;
@@ -34,16 +35,20 @@ const theWork = (facts: Partial<WorkFacts>, language: Language) => ({
       : translate(language, "work.wholeFarm"),
 });
 
+/** What a lot is counted in: a box of medicine in doses, feed in its own unit. */
+const countedIn = (facts: LotFacts, language: Language): string => {
+  if (facts.what === "medicine") {
+    return translate(language, "drugs.doseWord");
+  }
+  return facts.unit ? feedUnitWord(facts.unit, language) : "";
+};
+
 /** The medicine or feed a notice about the store names, its Lot, and how much of it is left — a box of medicine
  *  counted in doses, a bag of feed in its own unit. */
 const theLot = (facts: LotFacts, language: Language) => ({
   item: facts.name,
   lot: facts.lotNumber ?? "—",
-  left: `${formatNumber(Number(facts.left), language)} ${
-    facts.what === "medicine"
-      ? translate(language, "drugs.doseWord")
-      : (facts.unit ?? "")
-  }`.trim(),
+  left: `${formatNumber(Number(facts.left), language)} ${countedIn(facts, language)}`.trim(),
   date: saidDate(facts.expiresOn, language),
 });
 
@@ -80,10 +85,10 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   withdrawal_ending: (facts) => ({ tag: facts.tag }),
   withdrawal_changed: (facts) => ({ tag: facts.tag }),
   notifiable_diagnosis: (facts) => ({ tag: facts.tag, disease: facts.disease }),
-  low_stock: (facts) => ({
+  low_stock: (facts, language) => ({
     feed: facts.nameBn,
     onHand: Number(facts.onHand),
-    unit: facts.unit,
+    unit: feedUnitWord(facts.unit, language),
   }),
   money_awaiting_approval: (facts, language) => ({
     // A Notice raised before money crossed the store as a number carries its amount as text.

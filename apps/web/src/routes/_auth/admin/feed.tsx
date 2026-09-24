@@ -126,7 +126,11 @@ const FeedPage = () => {
   const mayRecord =
     me.data?.roles.some((role) => role === "owner" || role === "manager") ??
     false;
-  const feedItems = (items.data ?? []) as FeedItemRow[];
+  // A list cached before bags had a size has none: nothing is bought by the bag until it is said again.
+  const feedItems: FeedItemRow[] = (items.data ?? []).map((item) => ({
+    ...item,
+    bagSizeKg: item.bagSizeKg ?? null,
+  }));
   const lines = stock.data ?? [];
   const pens = (sheds.data ?? []).flatMap((shed) =>
     shed.pens.map((pen) => ({ id: pen.id, name: `${shed.name} / ${pen.name}` }))

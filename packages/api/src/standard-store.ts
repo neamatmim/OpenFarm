@@ -67,7 +67,7 @@ const addFeedItems = async (
         farmId: starter.farmId,
         nameBn: STANDARD_FEED_ITEMS[key].bn,
         nameEn: STANDARD_FEED_ITEMS[key].en,
-        unit: "kg",
+        unit: "kg" as const,
         createdBy: starter.actorId,
         createdAt: starter.now,
       }))

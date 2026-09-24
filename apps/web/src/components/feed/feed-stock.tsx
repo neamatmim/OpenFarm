@@ -1,3 +1,4 @@
+import { feedUnitEach, feedUnitWord } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -78,7 +79,7 @@ const OnHandCell = ({ row }: { row: { original: StockRow } }) => {
         standingOf(line) === "low" && "text-warning"
       )}
     >
-      {formatNumber(line.onHand, language)} {line.unit}
+      {formatNumber(line.onHand, language)} {feedUnitWord(line.unit, language)}
     </span>
   );
 };
@@ -93,7 +94,7 @@ const AveragePriceCell = ({ row }: { row: { original: StockRow } }) => {
     <span className="whitespace-nowrap">
       {t("stock.averagePrice", {
         taka: formatNumber(line.averagePriceBdt, language),
-        unit: line.unit,
+        unit: feedUnitEach(line.unit, language),
       })}
     </span>
   );
@@ -120,7 +121,8 @@ const LowAtCell = ({ row }: { row: { original: StockRow } }) => {
   }
   return (
     <span className="whitespace-nowrap">
-      {formatNumber(line.lowStockAt, language)} {line.unit}
+      {formatNumber(line.lowStockAt, language)}{" "}
+      {feedUnitWord(line.unit, language)}
     </span>
   );
 };
@@ -195,7 +197,7 @@ const NextExpiry = ({ line }: { line: StockLine }) => {
         <span className="text-danger text-xs font-medium">
           {t("stock.expiredLeft", {
             quantity: formatNumber(expired, language),
-            unit: line.unit,
+            unit: feedUnitWord(line.unit, language),
           })}
         </span>
       ) : null}
@@ -285,18 +287,19 @@ const StockCard = ({ row }: { row: StockRow }) => {
           <Standing line={row} />
         </div>
         <span className="text-lg font-semibold tabular-nums">
-          {formatNumber(row.onHand, language)} {row.unit}
+          {formatNumber(row.onHand, language)}{" "}
+          {feedUnitWord(row.unit, language)}
         </span>
         <span className="text-muted-foreground text-xs tabular-nums">
           {row.averagePriceBdt === null
             ? t("stock.harvest")
             : `${t("stock.averagePrice", {
                 taka: formatNumber(row.averagePriceBdt, language),
-                unit: row.unit,
+                unit: feedUnitEach(row.unit, language),
               })} · ${taka(value ?? 0)}`}
           {row.lowStockAt === null
             ? ""
-            : ` · ${t("stock.col.lowAt")} ${formatNumber(row.lowStockAt, language)} ${row.unit}`}
+            : ` · ${t("stock.col.lowAt")} ${formatNumber(row.lowStockAt, language)} ${feedUnitWord(row.unit, language)}`}
         </span>
         {row.nextExpiresOn ? <NextExpiry line={row} /> : null}
       </div>
@@ -341,7 +344,7 @@ const FigureDialog = ({
   kind: "level" | "fodderPrice";
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const held = line === null ? null : ofLine(line, kind);
   const [value, setValue] = useState(held === null ? "" : String(held));
@@ -384,7 +387,12 @@ const FigureDialog = ({
       {line ? (
         <FormField
           id="figure-value"
-          label={t(words.label, { unit: line.unit })}
+          label={t(words.label, {
+            unit:
+              kind === "level"
+                ? feedUnitWord(line.unit, language)
+                : feedUnitEach(line.unit, language),
+          })}
         >
           <Input
             id="figure-value"

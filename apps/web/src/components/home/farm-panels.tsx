@@ -1,4 +1,10 @@
-import { farmDayOf, LIVE_STATES, SIDES, sideOfState } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  feedUnitWord,
+  LIVE_STATES,
+  SIDES,
+  sideOfState,
+} from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
@@ -413,7 +419,7 @@ export const FeedPanel = () => {
                   {t("owner.feedLow", {
                     feed: line.nameBn,
                     onHand: formatNumber(Math.max(line.onHand, 0), language),
-                    unit: line.unit,
+                    unit: feedUnitWord(line.unit, language),
                   })}
                 </li>
               ))}

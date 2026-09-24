@@ -8,6 +8,7 @@ import type {
 } from "@OpenFarm/domain";
 import {
   MILK_DESTINATIONS,
+  feedUnitWord,
   isClosingStep,
   isFinished,
   mayTransition,
@@ -18,6 +19,7 @@ import {
   formatDate,
   formatDayField,
   formatDigits,
+  formatNumber,
   numberAsTyped,
 } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
@@ -1375,7 +1377,7 @@ const StockCountFields = ({
   onCounted: (next: (current: Typed) => Typed) => void;
   onReason: (next: (current: Typed) => Typed) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <>
       {items.map((item) => (
@@ -1386,7 +1388,7 @@ const StockCountFields = ({
           <p className="text-sm font-medium">
             {item.nameBn}{" "}
             <span className="text-muted-foreground font-normal">
-              ({item.unit})
+              ({feedUnitWord(item.unit, language)})
             </span>
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -1447,7 +1449,7 @@ const FeedingFields = ({
   onGiven: (next: (current: Typed) => Typed) => void;
   onLeftover: (next: (current: Typed) => Typed) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   if (cannotFeed) {
     return <Notice title={t("work.noRation")} tone="warning" />;
   }
@@ -1462,7 +1464,8 @@ const FeedingFields = ({
             {line.nameBn}{" "}
             {line.quantity === null ? null : (
               <span className="text-muted-foreground font-normal">
-                · {t("feed.target")}: {line.quantity} {line.unit}
+                · {t("feed.target")}: {formatNumber(line.quantity, language)}{" "}
+                {feedUnitWord(line.unit, language)}
               </span>
             )}
           </p>

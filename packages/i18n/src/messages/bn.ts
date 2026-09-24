@@ -1459,7 +1459,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.basisOf": "{item} কীভাবে হিসাব হবে",
   "feed.perHundred": "প্রতি ১০০ কেজিতে {amount} {unit}",
   "feed.workingByWeight":
-    "প্রতি ১০০ কেজিতে {perHundred} কেজি × {weight} কেজি ÷ দিনে {sessions} বার",
+    "প্রতি ১০০ কেজিতে {perHundred} {unit} × {weight} কেজি ÷ দিনে {sessions} বার",
   "feed.herdWeight": "পেনের ওজন {weight} কেজি — {weighed}টির ওজন নেওয়া",
   "feed.herdUnweighed": "{unweighed}টির ওজন নেওয়া হয়নি, গড় ধরে হিসাব",
   "feed.herdOldest": "সবচেয়ে পুরনো ওজন {days} দিন আগের",
@@ -1472,10 +1472,16 @@ export const bn: Record<MessageKey, string> = {
   "feed.assigned": "এই পেনে চলছে",
   "feed.english": "ইংরেজি (ঐচ্ছিক)",
   "feed.unit": "একক",
+  "feed.bagSize": "বস্তার ওজন (কেজি)",
+  "feed.bagOf": "{kg} কেজির বস্তা",
+  "feed.setBagSize": "বস্তার ওজন",
+  "feed.bagSizeHint":
+    "এর এক বস্তার ওজন কত, যাতে আসা মাল বস্তায় লেখা যায়। বস্তায় না কিনলে খালি রাখুন।",
+  "feed.itemActions": "{name} নিয়ে কী করবেন",
   "feed.version": "সংস্করণ {number}",
   "feed.pensOn": "{count} পেনে",
   "feed.target": "এই বেলার লক্ষ্য",
-  "feed.working": "{headcount} পশু × {perAnimal} কেজি ÷ দিনে {sessions} বার",
+  "feed.working": "{headcount} পশু × {perAnimal} {unit} ÷ দিনে {sessions} বার",
   "feed.noItems": "আগে খাদ্য উপাদান যোগ করুন",
   "stock.recordArrival": "খাবার আসা রেকর্ড করুন",
   "stock.sheetDescription":
@@ -1514,6 +1520,10 @@ export const bn: Record<MessageKey, string> = {
   "stock.harvest": "নিজের জমির",
   "stock.quantity": "পরিমাণ ({unit})",
   "stock.maunds": "প্রায় {maunds} মণ",
+  "stock.boughtAs": "{count} {pack} হিসেবে কেনা",
+  "stock.comesTo": "মোট {quantity} {unit}",
+  "stock.countedIn": "কীসে গোনা",
+  "stock.bagHolds": "এক বস্তায় {kg} কেজি",
   "stock.price": "মোট দাম (৳)",
   "stock.seller": "যার কাছ থেকে কেনা",
   "stock.receivedOn": "যেদিন এসেছে",
@@ -1558,6 +1568,9 @@ export const bn: Record<MessageKey, string> = {
   "refusal.neverTheAnimals":
     "মজুরি, বিদ্যুৎ-পানি, মেরামত, শেড পরিষ্কার, যন্ত্রপাতি আর আয়ের টাকা কখনো গরুর হিসাবে যায় না",
   "refusal.feedRetired": "এই খাদ্য বাতিল করা হয়েছে",
+  "refusal.bagSizeUnknown": "আগে খাদ্য উপাদান ট্যাবে এর বস্তার ওজন লিখুন",
+  "refusal.bundlesByTheHead": "আঁটিতে গোনা খাদ্য মাথাপিছু যায়, দৈহিক ওজন ধরে নয়",
+  "refusal.packNeedsKg": "কেবল কেজিতে মাপা খাদ্যই বস্তায় বা মণে আসে",
   "nav.milk": "দুধ",
   "dispatch.title": "খামার থেকে যাওয়া দুধ",
   "dispatch.subtitle":

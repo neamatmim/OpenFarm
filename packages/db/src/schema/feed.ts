@@ -15,8 +15,15 @@ import { counterparty } from "./fattening";
 import { pen } from "./herd";
 import { taka } from "./taka";
 
-/** Something the Farm feeds, in kilos. Home-grown fodder is a Feed Item too. Retired rather
- *  than removed: a Ration the farm fed in March still names it. */
+/** What a Feed Item is counted in. Its own copy, as `SIDES` and `ANIMAL_STATES` are: this package depends on
+ *  nothing, and the domain keeps the rules that read it — a test holds the two the same. */
+export const FEED_UNITS = ["kg", "litre", "bundle"] as const;
+
+/** What feed bought other than in its own unit came as: bags, or a trader's maunds. */
+export const FEED_PACKS = ["bag", "maund"] as const;
+
+/** Something the Farm feeds, counted in kilos, litres or bundles. Home-grown fodder is a Feed Item too. Retired
+ *  rather than removed: a Ration the farm fed in March still names it. */
 export const feedItem = pgTable(
   "feed_item",
   {
@@ -26,9 +33,11 @@ export const feedItem = pgTable(
       .references(() => farm.id, { onDelete: "cascade" }),
     nameBn: text("name_bn").notNull(),
     nameEn: text("name_en"),
-    /** What it is measured in. Kilos unless the farm says otherwise — straw comes in bales
-     *  and molasses in litres, and a Ration line means whatever this says. */
-    unit: text("unit").notNull().default("kg"),
+    /** What it is counted in: kilos unless the farm says otherwise — molasses in litres, napier cut in bundles —
+     *  and a Ration line, a purchase and a count all mean whatever this says. */
+    unit: text("unit", { enum: FEED_UNITS }).notNull().default("kg"),
+    /** What one of this feed's bags weighs, in kilos, for buying it by the bag. Null until the farm says. */
+    bagSizeKg: numeric("bag_size_kg", { precision: 8, scale: 1 }),
     /** Below this much on hand, the Manager is told. Null for a Feed Item nobody watches. */
     lowStockAt: numeric("low_stock_at", { precision: 12, scale: 1 }),
     /** What a kilo of this is worth when the farm grows it itself: roughly what buying it would cost.
@@ -190,6 +199,10 @@ export const feedIn = pgTable(
     kind: text("kind", { enum: FEED_IN_KINDS }).notNull(),
     /** In the Feed Item's own unit. */
     quantity: numeric("quantity", { precision: 12, scale: 1 }).notNull(),
+    /** What it was bought as, where not in the feed's own unit: so many bags or maunds, which `quantity` holds in
+     *  kilos. Kept so the arrival reads as the trader's slip did; cleared when a Correction puts the quantity right. */
+    packKind: text("pack_kind", { enum: FEED_PACKS }),
+    packCount: numeric("pack_count", { precision: 10, scale: 1 }),
     /** What the whole lot cost, in taka. Null for a harvest. */
     priceBdt: taka("price_bdt"),
     /** The seller: who the farm bought it from, as on an Intake. Null for a harvest. */

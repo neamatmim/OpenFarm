@@ -1,3 +1,6 @@
+import type { FeedUnit } from "./feed-units";
+import { MAUND_KG } from "./feed-units";
+
 /**
  * What a Pen is fed, and how much of it one session calls for.
  *
@@ -32,6 +35,16 @@ export const roundFeedKg = (value: number): number => {
   }
   const grams = Math.round(value * SMALL_SCALE) / SMALL_SCALE;
   return value > 0 && grams === 0 ? 1 / SMALL_SCALE : grams;
+};
+
+/** How much of a Feed Item a feeding calls for, as it can be given: weighed for kilos and litres, counted for
+ *  bundles — and never rounded from something to nothing. */
+export const roundFeedTarget = (value: number, unit: FeedUnit): number => {
+  if (unit !== "bundle") {
+    return roundFeedKg(value);
+  }
+  const whole = Math.round(value);
+  return value > 0 && whole === 0 ? 1 : whole;
 };
 
 /** The most one animal can sensibly be given of one Item in a day. */
@@ -133,19 +146,25 @@ export const herdWeightOf = (
 export const sessionKgOf = (
   line: RationLine,
   herd: { animals: number; weightKg: number | null },
-  sessionsPerDay: number
+  sessionsPerDay: number,
+  /** What the Feed Item is counted in: a bundle is given whole. */
+  unit: FeedUnit = "kg"
 ): number | null => {
+  if (sessionsPerDay < 1) {
+    throw new Error("A ration is fed at least once a day");
+  }
   if (!isByWeight(line)) {
-    return perSessionKg(line.kgPerAnimalPerDay, herd.animals, sessionsPerDay);
+    return roundFeedTarget(
+      (line.kgPerAnimalPerDay * herd.animals) / sessionsPerDay,
+      unit
+    );
   }
   if (herd.weightKg === null) {
     return null;
   }
-  if (sessionsPerDay < 1) {
-    throw new Error("A ration is fed at least once a day");
-  }
-  return roundFeedKg(
-    (line.kgPer100KgPerDay * herd.weightKg) / PER_WEIGHT_KG / sessionsPerDay
+  return roundFeedTarget(
+    (line.kgPer100KgPerDay * herd.weightKg) / PER_WEIGHT_KG / sessionsPerDay,
+    unit
   );
 };
 
@@ -324,10 +343,6 @@ export const leftoverStanding = (
   }
   return penLeftAnything ? "fine" : "all_eaten";
 };
-
-/** A maund — the mon a Bangladeshi feed trader weighs in — in kilograms. Shown beside kg on a feed
- *  purchase only, because that is the one place the farm is handed a number in maunds. */
-export const MAUND_KG = 37.324;
 
 /** Kilograms as maunds, to the kilo's own precision: what the trader's slip will say. */
 export const maundsOf = (kg: number): number => roundKg(kg / MAUND_KG);

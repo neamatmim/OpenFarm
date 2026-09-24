@@ -8,6 +8,8 @@ export interface FeedItemRow {
   id: string;
   nameBn: string;
   unit: string;
+  /** What one of its bags weighs, in kilos, where the farm has said: what lets it be bought by the bag. */
+  bagSizeKg: number | null;
   retiredAt: Date | null;
 }
 

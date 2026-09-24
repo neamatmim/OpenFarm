@@ -1,6 +1,15 @@
 import { ALERT_KINDS as STORED_KINDS } from "@OpenFarm/db/schema/alert-kinds";
+import {
+  FEED_PACKS as STORED_PACKS,
+  FEED_UNITS as STORED_UNITS,
+} from "@OpenFarm/db/schema/feed";
 import { REVIEW_REASONS as STORED_REASONS } from "@OpenFarm/db/schema/review";
-import { ALERT_KINDS, REVIEW_REASONS } from "@OpenFarm/domain";
+import {
+  ALERT_KINDS,
+  FEED_PACKS,
+  FEED_UNITS,
+  REVIEW_REASONS,
+} from "@OpenFarm/domain";
 import { describe, expect, it } from "vitest";
 
 // The db package depends on nothing, so the lists its columns are typed from are written twice: once there, once in
@@ -16,5 +25,10 @@ describe("the lists the store keeps and the lists the screens read", () => {
     expect([...REVIEW_REASONS].toSorted()).toEqual(
       [...STORED_REASONS].toSorted()
     );
+  });
+
+  it("count feed in the same units, and buy it in the same packs", () => {
+    expect([...FEED_UNITS].toSorted()).toEqual([...STORED_UNITS].toSorted());
+    expect([...FEED_PACKS].toSorted()).toEqual([...STORED_PACKS].toSorted());
   });
 });

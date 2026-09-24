@@ -192,7 +192,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Feed
 
-**Feed Item**: Something the Farm feeds, tracked in a unit (kg by default). Home-grown fodder is a Feed Item too. _Avoid_: Ingredient, feed type, commodity
+**Feed Item**: Something the Farm feeds, counted in one of three units: kilos (the default), litres (molasses) or bundles (napier cut by the আঁটি). Its Ration lines, purchases and counts all mean that unit. A bundle is counted whole, never weighed out, so a Ration gives it by the head and never by body weight. Feed counted in kilos may also be bought by the **bag**, once the farm says what that feed's bags weigh, or by the **maund** (মণ, 37.324 kg) a trader's slip gives. Either way it comes into the store as kilos, with what was typed kept beside them. Home-grown fodder is a Feed Item too. _Avoid_: Ingredient, feed type, commodity; "piece" or "sack" for a bundle or bag
 
 **Ration**: A named, versioned list of Feed Items, each line so many kg a day either for every animal or for every 100 kg of body weight — grass, straw and concentrate grow with the animals, salt and minerals go by the head. Pens are put on one; several Pens may share it, and changing it is one change. _Avoid_: Diet, feeding plan, formula
 

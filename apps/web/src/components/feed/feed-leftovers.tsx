@@ -1,5 +1,5 @@
 import type { LeftoverStanding } from "@OpenFarm/domain";
-import { WASTING_LEFTOVER_PERCENT } from "@OpenFarm/domain";
+import { WASTING_LEFTOVER_PERCENT, feedUnitWord } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -50,7 +50,7 @@ const Amount = ({ value, unit }: { value: number; unit: string }) => {
   const { language } = useLanguage();
   return (
     <span className="tabular-nums">
-      {formatNumber(value, language)} {unit}
+      {formatNumber(value, language)} {feedUnitWord(unit, language)}
     </span>
   );
 };
