@@ -1,4 +1,7 @@
-import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_TOO_COMMON,
+} from "@OpenFarm/auth/password";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -123,7 +126,7 @@ const NewPassword = () => {
     if (error.status === TOO_MANY) {
       return t("portal.account.tooMany");
     }
-    return error.code === "PASSWORD_TOO_COMMON"
+    return error.code === PASSWORD_TOO_COMMON
       ? t("auth.passwordTooCommon")
       : t("portal.account.wrongPassword");
   };

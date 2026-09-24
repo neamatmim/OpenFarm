@@ -1,5 +1,4 @@
 import { auth, setPasswordFor } from "@OpenFarm/auth";
-import { isCommonPassword } from "@OpenFarm/auth/common-passwords";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
@@ -13,6 +12,7 @@ import { z } from "zod";
 import { CODE_ATTEMPTS, countFailure, lockedOut } from "../attempts";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { refuseCommonPassword } from "../chosen-password";
 import { correct } from "../corrections/correction";
 import { nameCorrection, nameCorrectionInput } from "../corrections/name";
 import { hashToken } from "../device";
@@ -626,13 +626,7 @@ export const peopleRouter = {
         });
       }
       // Refused before the code is looked at, so a code is never spent on a password that will not be kept.
-      if (isCommonPassword(input.newPassword)) {
-        throw new ORPCError("BAD_REQUEST", {
-          message:
-            "That password is one of the most common, and anybody could guess it",
-          data: { refusal: "password_too_common" },
-        });
-      }
+      refuseCommonPassword(input.newPassword);
       const codeHash = await hashToken(input.code.toUpperCase());
       const them = await personByEmail(context.db, input.email);
       if (!them) {

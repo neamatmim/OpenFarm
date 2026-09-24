@@ -237,13 +237,14 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => {
-            void authClient.signOut({
+          onClick={async () => {
+            // Forgotten first, so nothing they read stays behind them — in the tab or on the phone — even if signing
+            // out itself does not go through (ASVS 14.3.1).
+            await forgetWhatThisPhoneRead(queryClient);
+            await authClient.signOut({
               fetchOptions: {
-                // Nothing they read stays behind them, in the tab or on the phone (ASVS 14.3.1).
-                onSuccess: async () => {
-                  await forgetWhatThisPhoneRead(queryClient);
-                  await navigate({ to: "/portal/login" });
+                onSuccess: () => {
+                  void navigate({ to: "/portal/login" });
                 },
               },
             });

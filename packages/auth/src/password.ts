@@ -7,3 +7,9 @@
  * and a password reset turns out whoever is still signed in as that person.
  */
 export const PASSWORD_MIN_LENGTH = 8;
+
+/**
+ * What the door answers a password everybody uses with, as a code a screen can recognise. Here beside the length rule,
+ * not beside the list, because the web imports this module and should never carry the list.
+ */
+export const PASSWORD_TOO_COMMON = "PASSWORD_TOO_COMMON";

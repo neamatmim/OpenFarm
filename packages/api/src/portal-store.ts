@@ -1,5 +1,4 @@
 import { auth, openInvestorAccount, setPasswordFor } from "@OpenFarm/auth";
-import { isCommonPassword } from "@OpenFarm/auth/common-passwords";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
@@ -16,6 +15,7 @@ import {
 } from "./attempts";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { hashToken } from "./device";
 import { newInviteCode, signedInOn } from "./membership";
@@ -237,8 +237,9 @@ export const takePortalAway = async (
 /**
  * An Investor taking up the Owner's invitation: the phone they were written down with, the code handed to them, and
  * a password of their own. Opens their account the first time; afterwards — a new code for a forgotten password, or
- * access given back — sets the password they chose on the account they already have. Wrong codes are counted, per
- * phone, as every other code the farm hands out is. Answers with what the account signs in as.
+ * access given back — sets the password they chose on the account they already have. Wrong codes are counted against
+ * the phone and against whoever is calling, as every other code the farm hands out is. Answers with what the account
+ * signs in as.
  */
 export const takeUpInvitation = async (
   context: Context,
@@ -260,40 +261,32 @@ export const takeUpInvitation = async (
       "password_too_short"
     );
   }
-  if (isCommonPassword(input.password)) {
-    throw refused(
-      "That password is one of the most common, and anybody could guess it",
-      "password_too_common"
-    );
-  }
+  refuseCommonPassword(input.password);
   const now = context.clock.now();
   const loginEmail = investorLoginOf(input.phone);
-  // Counted twice: against the address the guesses come from, so a script naming a new phone every time is stopped,
-  // and against the phone, so guesses spread over many addresses at one Investor's code are too. A string that is
-  // not a mobile number can match no invitation and is not remembered at all.
-  const fromHere = `portal-join:${context.callerAddress ?? "unknown"}`;
-  const atPhone = loginEmail ? `portal-code:${loginEmail}` : null;
-  if (
-    lockedOut(fromHere, now, CODE_ATTEMPTS) ||
-    (atPhone !== null && lockedOut(atPhone, now, CODE_ATTEMPTS))
-  ) {
+  const notAnInvitation = () =>
+    refused("That phone and code do not match an invitation", "wrong_code");
+  // A string that is not a mobile number can match no invitation: refused before anything is looked up, and not
+  // remembered, so it costs the farm nothing however many a script sends.
+  if (!loginEmail) {
+    throw notAnInvitation();
+  }
+  // Counted twice: against whoever is calling, so a script naming a new phone every time is stopped, and against the
+  // phone, so guesses at one Investor's code spread over many callers are stopped too.
+  const byCaller = `portal-join:${context.callerAddress ?? "unknown"}`;
+  const atPhone = `portal-code:${loginEmail}`;
+  const counted = [byCaller, atPhone];
+  if (counted.some((key) => lockedOut(key, now, CODE_ATTEMPTS))) {
     throw new ORPCError("TOO_MANY_REQUESTS", {
       message: "Too many wrong codes — wait fifteen minutes",
     });
   }
   const wrong = () => {
-    countFailure(fromHere, now, CODE_ATTEMPTS);
-    if (atPhone !== null) {
-      countFailure(atPhone, now, CODE_ATTEMPTS);
+    for (const key of counted) {
+      countFailure(key, now, CODE_ATTEMPTS);
     }
-    return refused(
-      "That phone and code do not match an invitation",
-      "wrong_code"
-    );
+    return notAnInvitation();
   };
-  if (!loginEmail) {
-    throw wrong();
-  }
   const access = await context.db.query.investorAccess.findFirst({
     where: {
       farmId: theFarm.id,
@@ -368,10 +361,8 @@ export const takeUpInvitation = async (
         .where(and(eq(user.id, userId), eq(user.email, loginEmail)));
     }
   );
-  // The phone's count is theirs and is forgotten; the address's stays, since one address may be a script's.
-  if (atPhone !== null) {
-    forgetFailures(atPhone);
-  }
+  // The phone's count is theirs and is forgotten; the caller's stays, since one caller may be a script's.
+  forgetFailures(atPhone);
   return { loginEmail };
 };
 

@@ -12,7 +12,7 @@ import { deleteSessionCookie } from "better-auth/cookies";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import { isCommonPassword } from "./common-passwords";
-import { PASSWORD_MIN_LENGTH } from "./password";
+import { PASSWORD_MIN_LENGTH, PASSWORD_TOO_COMMON } from "./password";
 
 /**
  * The other half of the door: an account is opened by somebody the farm is waiting for, and by nobody else.
@@ -101,11 +101,11 @@ const whyShut = async (
  *
  * Asked only once the password is right. Asked before, it answered a stranger who typed any password at all — "this
  * one is an Investor's", "that one used to work here" — which is the farm telling anybody with a list of phone numbers
- * who has money in its Ventures. So a wrong password gets Better Auth's own answer whoever the address is, and only
+ * who has money in its Ventures. So a wrong password gets Better Auth's own answer whichever account it names, and only
  * the person themselves is told why the door stays shut, in their own language; the sign-in Better Auth just made for
  * them is undone before they are.
  */
-const turnAwayWhoNoLongerWorksHere = (db: Database) =>
+const turnAwayWhoseDoorIsShut = (db: Database) =>
   createAuthMiddleware(async (ctx) => {
     if (ctx.path !== "/sign-in/email") {
       return;
@@ -134,18 +134,27 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
 
 /**
  * A password everybody else uses is no secret (ASVS 6.2.4): refused wherever somebody chooses one through Better Auth
- * — changing it while signed in, or setting it with a reset — whatever path led there. The farm's own procedures that
+ * — opening an account from an invite, changing it while signed in, or setting it with a reset — whatever path led
+ * there. The farm's own procedures that
  * set a password refuse it first, in their own words; this is the door nothing gets round.
  */
+/** Where Better Auth lets somebody choose a password, and which field of the request carries it. */
+const CHOSEN_AT = {
+  "/sign-up/email": "password",
+  "/change-password": "newPassword",
+  "/reset-password": "newPassword",
+} as const;
+
 const turnAwayCommonPasswords = () =>
   createAuthMiddleware((ctx) => {
-    if (ctx.path !== "/change-password" && ctx.path !== "/reset-password") {
+    const field = CHOSEN_AT[ctx.path as keyof typeof CHOSEN_AT];
+    if (!field) {
       return Promise.resolve();
     }
-    const chosen = ctx.body?.newPassword;
+    const chosen = ctx.body?.[field];
     if (typeof chosen === "string" && isCommonPassword(chosen)) {
       throw new APIError("BAD_REQUEST", {
-        code: "PASSWORD_TOO_COMMON",
+        code: PASSWORD_TOO_COMMON,
         message: translate(DEFAULT_LANGUAGE, "auth.passwordTooCommon"),
       });
     }
@@ -153,11 +162,11 @@ const turnAwayCommonPasswords = () =>
   });
 
 /**
- * The door, its questions asked before anything is done: who may open an account, and what may be a password. Who
- * may still come in is asked after, once the password is right (`turnAwayWhoNoLongerWorksHere`).
+ * The door's questions asked before anything is done: who may open an account, and what may be a password. Who may
+ * still come in is asked after, once the password is right, by its own hook (`turnAwayWhoseDoorIsShut`).
  *
- * One hook because Better Auth takes one, and each question answers for its own path and leaves every other
- * request alone.
+ * One function for the before hook, because Better Auth takes one there, and each question answers for its own path
+ * and leaves every other request alone.
  */
 const theDoor = (db: Database) => {
   const signingUp = turnAwayWhoWasNotAsked(db);
@@ -268,7 +277,7 @@ export const createAuth = (against?: Database) => {
     },
     hooks: {
       before: theDoor(db),
-      after: turnAwayWhoNoLongerWorksHere(db),
+      after: turnAwayWhoseDoorIsShut(db),
     },
     plugins: [tanstackStartCookies()],
   });

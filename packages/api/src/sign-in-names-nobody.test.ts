@@ -13,7 +13,7 @@ import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
 
 // Signing in tells a stranger nothing about who the farm knows (the exposure review, 1.7). A wrong password gets the
-// same answer whoever the address is — an Investor while the portal is shut, one whose access was taken away, a
+// same answer whichever account it names — an Investor while the portal is shut, one whose access was taken away, a
 // milker whose Membership ended — and only the right password hears why the door stays shut, with no sign-in left
 // behind.
 

@@ -80,7 +80,7 @@ const onDevice = (): Persister => {
 };
 
 /** Whether an answer is an Investor's, read in the portal: the procedure's path starts with `portal`. */
-const isThePortals = (queryKey: readonly unknown[]): boolean => {
+const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
   const [path] = queryKey;
   return Array.isArray(path) && path[0] === "portal";
 };
@@ -95,7 +95,7 @@ export const keptOnDevice = (query: {
   queryKey: readonly unknown[];
   state: { status: string };
 }): boolean =>
-  query.state.status === "success" && !isThePortals(query.queryKey);
+  query.state.status === "success" && !isPortalQuery(query.queryKey);
 
 /** Starts keeping and restoring the cache. Browser only: the server renders the same
  *  components and has neither IndexedDB nor any need of them. */

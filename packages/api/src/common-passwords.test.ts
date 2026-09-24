@@ -1,4 +1,4 @@
-import { createAuth } from "@OpenFarm/auth";
+import { createAuth, setPasswordFor } from "@OpenFarm/auth";
 import {
   FakeClock,
   createTestPrincipal,
@@ -100,6 +100,27 @@ describe("a common password", () => {
       auth.api.changePassword({
         body: { currentPassword: FIRST, newPassword: COMMON },
         headers: new Headers({ cookie: cookie ?? "" }),
+      })
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("is not set by a reset, however the farm's procedures came to ask for one", async () => {
+    await expect(setPasswordFor(auth, EMAIL, COMMON)).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    const stillTheirs = await auth.api.signInEmail({
+      body: { email: EMAIL, password: FIRST },
+    });
+    expect(stillTheirs.user.id).toBe(userId);
+  });
+
+  it("does not open an account, even with an invite", async () => {
+    const invited = `invited-${suffix}@test.openfarm`;
+    await inviteWaitingFor(invited, clock.now());
+
+    await expect(
+      auth.api.signUpEmail({
+        body: { name: "নতুন", email: invited, password: COMMON },
       })
     ).rejects.toMatchObject({ statusCode: 400 });
   });

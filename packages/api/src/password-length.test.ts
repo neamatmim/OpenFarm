@@ -14,7 +14,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 const auth = createAuth(scratchDb());
 const clock = new FakeClock("2046-06-01T04:00:00.000Z");
 const TOO_SHORT = "a".repeat(PASSWORD_MIN_LENGTH - 1);
-const JUST_LONG_ENOUGH = "b".repeat(PASSWORD_MIN_LENGTH);
+// Not a run of one letter: that is one of the most common passwords, and refused for being common, not short.
+const JUST_LONG_ENOUGH = "gorur-khamar".slice(0, PASSWORD_MIN_LENGTH);
 
 beforeAll(async () => {
   await createTestPrincipal("owner", clock.now());
