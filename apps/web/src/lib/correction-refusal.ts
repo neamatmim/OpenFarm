@@ -102,6 +102,8 @@ const WORDED_REFUSALS = {
   no_farm_loss_to_cover: "refusal.noFarmLossToCover",
   investor_retired: "refusal.investorRetired",
   investor_still_in: "refusal.investorStillIn",
+  ration_in_use: "refusal.rationInUse",
+  ration_retired: "refusal.rationRetired",
   capital_must_be_by_bank: "refusal.capitalMustBeByBank",
   agreement_has_no_paper: "refusal.agreementHasNoPaper",
   capital_not_sent_back: "refusal.capitalNotSentBack",

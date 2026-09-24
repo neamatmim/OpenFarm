@@ -1417,6 +1417,14 @@ export const bn: Record<MessageKey, string> = {
   "feed.addItem": "উপাদান যোগ করুন",
   "feed.retire": "বাদ দিন",
   "feed.retired": "বাদ দেওয়া",
+  "feed.bringBack": "ফিরিয়ে আনুন",
+  "feed.rationActions": "{name} নিয়ে কী করবেন",
+  "feed.retireRationBusy": "এতে পেন চলছে — আগে সেগুলো অন্য রেশনে দিন",
+  "feed.retiredRations": "বাদ দেওয়া রেশন ({count})",
+  "feed.retiredRationsHint":
+    "আগের খাওয়ানোর হিসাব নাম ধরে পড়ার জন্য রাখা। কোনো পেনে দিতে ফিরিয়ে আনুন।",
+  "feed.rationRetired": "রেশন বাদ দেওয়া হয়েছে",
+  "feed.rationBroughtBack": "রেশন ফিরিয়ে আনা হয়েছে",
   "feed.pen": "পেন",
   "feed.ration": "রেশন",
   "feed.noRation": "এই পেনের কোনো রেশন নেই",
@@ -1533,6 +1541,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.noFarmLossToCover": "এই ভেঞ্চারে খামারের বহন করার মতো কোনো লোকসান হয়নি",
   "refusal.investorRetired":
     "এই বিনিয়োগকারীকে বাদ দেওয়া হয়েছে; আগে বিনিয়োগকারী পাতা থেকে ফিরিয়ে আনুন",
+  "refusal.rationInUse": "এই রেশনে এখনো পেন চলছে। আগে সেগুলো অন্য রেশনে দিন।",
+  "refusal.rationRetired": "এই রেশনটি বাদ দেওয়া। কোনো পেনে দিতে আগে ফিরিয়ে আনুন।",
   "refusal.investorStillIn":
     "চলমান একটি ভেঞ্চারে তাঁর টাকা আছে; ভেঞ্চারের হিসাব শেষ বা বাতিল হলে বাদ দেওয়া যাবে",
   "refusal.capitalMustBeByBank":

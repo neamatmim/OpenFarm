@@ -246,6 +246,90 @@ export const feedRouter = {
       return { id: input.id };
     }),
 
+  /**
+   * Takes a Ration off the list of what a Pen may be put on. Retired rather than removed: every Feeding it fed still
+   * names its Version, and a farm reading March's feed in June reads it by name. Not while a Pen is on it — the Pen
+   * would go on being fed from a Ration nobody may choose — so the Pens are put on another first.
+   */
+  retireRation: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const now = context.clock.now();
+      const existing = await context.db.query.ration.findFirst({
+        where: { id: input.id, farmId: context.farm.id },
+        columns: { id: true, nameBn: true, retiredAt: true },
+        with: { pens: { columns: { penId: true } } },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such ration" });
+      }
+      if (existing.pens.length > 0) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "Pens are still fed on this ration: put them on another first",
+          data: { refusal: "ration_in_use" },
+        });
+      }
+      if (existing.retiredAt) {
+        return { id: input.id, retiredAt: existing.retiredAt };
+      }
+      await audited(context).write(
+        {
+          entity: "ration",
+          entityId: input.id,
+          action: "update",
+          before: { name: existing.nameBn, retiredAt: null },
+          after: { name: existing.nameBn, retiredAt: now.toISOString() },
+        },
+        (tx) =>
+          tx
+            .update(ration)
+            .set({ retiredAt: now })
+            .where(
+              and(eq(ration.id, input.id), eq(ration.farmId, context.farm.id))
+            )
+      );
+      return { id: input.id, retiredAt: now };
+    }),
+
+  /** Puts a retired Ration back on the list a Pen may be put on, as it was when it was retired. */
+  bringBackRation: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const existing = await context.db.query.ration.findFirst({
+        where: { id: input.id, farmId: context.farm.id },
+        columns: { id: true, nameBn: true, retiredAt: true },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such ration" });
+      }
+      if (!existing.retiredAt) {
+        return { id: input.id };
+      }
+      await audited(context).write(
+        {
+          entity: "ration",
+          entityId: input.id,
+          action: "update",
+          before: {
+            name: existing.nameBn,
+            retiredAt: existing.retiredAt.toISOString(),
+          },
+          after: { name: existing.nameBn, retiredAt: null },
+        },
+        (tx) =>
+          tx
+            .update(ration)
+            .set({ retiredAt: null })
+            .where(
+              and(eq(ration.id, input.id), eq(ration.farmId, context.farm.id))
+            )
+      );
+      return { id: input.id };
+    }),
+
   /** Every Ration the farm has, with the Pens on it. */
   rations: protectedProcedure
     .use(requireRole("owner", "manager", "staff", "vet"))
@@ -375,10 +459,17 @@ export const feedRouter = {
           await requirePen(tx, context.farm.id, input.penId);
           const known = await tx.query.ration.findFirst({
             where: { id: input.rationId, farmId: context.farm.id },
-            columns: { id: true },
+            columns: { id: true, retiredAt: true },
           });
           if (!known) {
             throw new ORPCError("NOT_FOUND", { message: "No such ration" });
+          }
+          if (known.retiredAt) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "That ration is retired: bring it back to feed a Pen on it",
+              data: { refusal: "ration_retired" },
+            });
           }
           await tx
             .insert(penRation)

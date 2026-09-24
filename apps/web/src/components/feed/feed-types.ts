@@ -20,6 +20,8 @@ export interface RationRow {
   /** The weights it is written for; both ends open for a Ration that suits any weight. */
   band: WeightBand;
   penIds: string[];
+  /** When it was taken off the list a Pen may be put on; null while it is on it. */
+  retiredAt: Date | null;
 }
 
 /** A line's figure, whichever way it counts: kilos a head, or kilos per hundred kilos of body weight. */
