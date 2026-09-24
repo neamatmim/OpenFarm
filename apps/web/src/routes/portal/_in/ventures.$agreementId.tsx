@@ -9,7 +9,7 @@ import {
   CalendarClock,
   FileText,
   Landmark,
-  Scale,
+  PieChart,
   Wallet,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -59,6 +59,7 @@ const useFigures = (today: Today): Figure[] => {
       hint: t("portal.farmTakes", {
         percent: formatNumber(100 - today.his.investorsPercent, language),
       }),
+      icon: PieChart,
     },
     {
       label: t("portal.animals"),
@@ -78,6 +79,9 @@ const useFigures = (today: Today): Figure[] => {
   ];
 };
 
+/** One figure set in its own shaded box, as the Spending tab sets its two budgets. */
+const AVERAGE_BOX = "bg-muted/50 flex flex-col gap-0.5 rounded-lg p-3";
+
 /** How the animals are doing: what they came in at, what they weigh now, and what they put on a day. */
 const Herd = ({ today }: { today: Today }) => {
   const said = useLanguage();
@@ -90,19 +94,19 @@ const Herd = ({ today }: { today: Today }) => {
       title={t("portal.herd")}
     >
       <dl className="grid gap-3 text-sm sm:grid-cols-3">
-        <div className="flex flex-col gap-0.5">
+        <div className={AVERAGE_BOX}>
           <dt className="text-muted-foreground">{t("portal.averageIntake")}</dt>
           <dd className="font-medium tabular-nums">
             {kg(today.herd.averageIntakeKg) ?? <Nothing />}
           </dd>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className={AVERAGE_BOX}>
           <dt className="text-muted-foreground">{t("portal.averageNow")}</dt>
           <dd className="font-medium tabular-nums">
             {kg(today.herd.averageLatestKg) ?? <Nothing />}
           </dd>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className={AVERAGE_BOX}>
           <dt className="text-muted-foreground">{t("portal.dailyGain")}</dt>
           <dd className="font-medium tabular-nums">
             {gain === null ? (
@@ -319,6 +323,23 @@ const KeyDates = ({ today }: { today: Today }) => {
   );
 };
 
+/**
+ * A tab's view with the key dates beside it: the days that mark their part, read whichever view is open. Inside each
+ * tab rather than beside the row of them, so the two cards start level.
+ */
+const WithKeyDates = ({
+  today,
+  children,
+}: {
+  today: Today;
+  children: ReactNode;
+}) => (
+  <div className="grid items-start gap-4 lg:grid-cols-3">
+    <div className="min-w-0 lg:col-span-2">{children}</div>
+    <KeyDates today={today} />
+  </div>
+);
+
 /** The page itself, once the Venture is read. */
 const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
   const { t } = useLanguage();
@@ -336,60 +357,59 @@ const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
       <PageHeader
         description={t("portal.ventureHint")}
         meta={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <Scale aria-hidden className="size-4" />
-              <SaidDate at={today.window.start} /> –{" "}
-              <SaidDate at={today.window.end} />
+          today.his.amendedOn ? (
+            <span>
+              {t("portal.amendedOn")} <SaidDate at={today.his.amendedOn} />
             </span>
-            {today.his.amendedOn ? (
-              <span>
-                {t("portal.amendedOn")} <SaidDate at={today.his.amendedOn} />
-              </span>
-            ) : null}
-          </>
+          ) : undefined
         }
         title={today.venture.name}
       />
       <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} />
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="min-w-0 lg:col-span-2">
-          <PageTabs
-            onChange={(value) =>
-              navigate({
-                params: { agreementId: today.agreementId },
-                replace: true,
-                search: value === "animals" ? {} : { tab: value },
-                to: "/portal/ventures/$agreementId",
-              })
-            }
-            tabs={[
-              {
-                value: "animals",
-                label: t("portal.herd"),
-                icon: Beef,
-                content: <Herd today={today} />,
-              },
-              {
-                value: "spending",
-                label: t("portal.tab.spending"),
-                icon: Wallet,
-                content: <Money today={today} />,
-              },
-              {
-                value: "papers",
-                label: t("portal.papers"),
-                icon: FileText,
-                content: <Papers today={today} />,
-              },
-            ]}
-            value={tab}
-          />
-        </div>
-        {/* Beside every tab: the days that mark their part, read whichever view is open. */}
-        <KeyDates today={today} />
-      </div>
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            params: { agreementId: today.agreementId },
+            replace: true,
+            search: value === "animals" ? {} : { tab: value },
+            to: "/portal/ventures/$agreementId",
+          })
+        }
+        tabs={[
+          {
+            value: "animals",
+            label: t("portal.herd"),
+            icon: Beef,
+            content: (
+              <WithKeyDates today={today}>
+                <Herd today={today} />
+              </WithKeyDates>
+            ),
+          },
+          {
+            value: "spending",
+            label: t("portal.tab.spending"),
+            icon: Wallet,
+            content: (
+              <WithKeyDates today={today}>
+                <Money today={today} />
+              </WithKeyDates>
+            ),
+          },
+          {
+            value: "papers",
+            label: t("portal.papers"),
+            icon: FileText,
+            content: (
+              <WithKeyDates today={today}>
+                <Papers today={today} />
+              </WithKeyDates>
+            ),
+          },
+        ]}
+        value={tab}
+      />
     </>
   );
 };
