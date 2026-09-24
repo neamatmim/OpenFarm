@@ -23,8 +23,11 @@ So the portal may now **show** an upcoming Venture to invited Investors and **ta
 - Everything that kept the circle closed still holds: only invited Investors see an upcoming Venture, nothing is public, and there are no referrals, no advertising and no projections of return.
 
 **Consequences:**
+
 - ADR 0007's "nothing offered" gives way to this for invited Investors. Its "nothing taken, paid or signed" stands.
 - CONTEXT.md's **Investor Portal** entry changes to match.
 - The shape of joining is to be designed, not assumed. What an Investor sees, what saying "I want to join" records, and what the Owner is told are all open questions.
 
 **Revisit** when the written opinion arrives. If it differs from what was said, this ADR follows the writing. Until it arrives, the portal stays switched off for real Investors, as the portal map already has it.
+
+**2026-09-25:** the shape of joining is designed. Its terms are in CONTEXT.md: **Request to Join**, **Pay-in Code**, and the **Investor Portal**, **Investor Cap** and **Venture Account** entries. The Owner chooses which Ventures are shown. A Request binds nobody and records whole Units and a note. The Owner is told by a Needs Review and answers "come and sign" or "not this time". Bank details show only on an Agreement already signed. The screens are on ticket 07 for the written opinion to cover.
