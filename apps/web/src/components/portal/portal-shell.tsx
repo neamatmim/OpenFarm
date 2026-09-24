@@ -23,7 +23,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@OpenFarm/ui/components/sidebar";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -44,6 +44,7 @@ import { Initials } from "@/components/user-menu";
 import { Wordmark } from "@/components/wordmark";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
 import { orpc } from "@/utils/orpc";
 
 import { PortalNotice } from "./portal-door";
@@ -200,6 +201,7 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
 const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
   const t = useT();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -238,8 +240,10 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
           onClick={() => {
             void authClient.signOut({
               fetchOptions: {
-                onSuccess: () => {
-                  void navigate({ to: "/portal/login" });
+                // Nothing they read stays behind them, in the tab or on the phone (ASVS 14.3.1).
+                onSuccess: async () => {
+                  await forgetWhatThisPhoneRead(queryClient);
+                  await navigate({ to: "/portal/login" });
                 },
               },
             });
