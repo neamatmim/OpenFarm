@@ -21,12 +21,14 @@ import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { medicineStockOf, noMedicine } from "../medicine-stock";
 import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
+import { nameTaken } from "../names";
 import {
   forbidden,
   requireOnly,
   requirePersonalSession,
   requireRole,
 } from "../roles";
+import { addStandardDrugs, drugsNotHad } from "../standard-store";
 
 const name = z.object({
   bn: z.string().trim().min(1).max(120),
@@ -335,10 +337,13 @@ export const drugsRouter = {
       if (withDays) {
         assertIsVet(context);
       }
-      const already = await context.db.query.drugProduct.findFirst({
-        where: { farmId: context.farm.id, nameBn: input.name.bn },
-        columns: { id: true, retiredAt: true },
+      // A name in either language, whatever the capitals: two products both called "Albendazole drench" are one box
+      // written down twice.
+      const listed = await context.db.query.drugProduct.findMany({
+        where: { farmId: context.farm.id },
+        columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
       });
+      const already = listed.find((one) => nameTaken([one], input.name));
       if (already) {
         // Naming it again is how somebody re-buys a product the farm retired, so say what
         // is there rather than failing on a unique index nobody can read.
@@ -439,6 +444,69 @@ export const drugsRouter = {
           .returning({ id: drugProduct.id })
       );
       return { id: input.id, vaccine: input.vaccine };
+    }),
+
+  /**
+   * Puts a product's names right — a label misread, a strength left off. The Vet's alone, as retiring it is: every
+   * Prescription, Treatment and paper names the product, so each says the new name, and the trail keeps the old one.
+   */
+  rename: protectedProcedure
+    .use(requireOnly("vet", VET_ONLY))
+    .input(z.object({ id: z.string(), name }))
+    .handler(async ({ context, input }) => {
+      const listed = await context.db.query.drugProduct.findMany({
+        where: { farmId: context.farm.id },
+        columns: { id: true, nameBn: true, nameEn: true },
+      });
+      if (nameTaken(listed, input.name, input.id)) {
+        throw new ORPCError("CONFLICT", {
+          message: "Another product on the list already has that name",
+        });
+      }
+      await changeProduct(context, input.id, (tx) =>
+        tx
+          .update(drugProduct)
+          .set({ nameBn: input.name.bn, nameEn: input.name.en ?? null })
+          .where(
+            and(
+              eq(drugProduct.id, input.id),
+              eq(drugProduct.farmId, context.farm.id)
+            )
+          )
+          .returning({ id: drugProduct.id })
+      );
+      return { id: input.id };
+    }),
+
+  /** The standard medicines the farm does not have yet, by their names: what adding them would add. */
+  standardMissing: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const listed = await context.db.query.drugProduct.findMany({
+        where: { farmId: context.farm.id },
+        columns: { id: true, nameBn: true, nameEn: true },
+      });
+      return drugsNotHad(listed);
+    }),
+
+  /**
+   * The standard medicines the farm does not have yet, added by name — whoever may add a product may, since this is
+   * adding products. Their withdrawal days stay the Vet's: none of them may be prescribed until the Vet says them.
+   */
+  addStandard: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .handler(async ({ context }) => {
+      const added = await addStandardDrugs(
+        context.db,
+        audited(context).recordEvent,
+        {
+          farmId: context.farm.id,
+          actorId: context.actor.id,
+          roleUsed: context.roleUsed,
+          now: context.clock.now(),
+        }
+      );
+      return { added };
     }),
 
   /** Retired, never removed: a Treatment given last March still names its product. Taking

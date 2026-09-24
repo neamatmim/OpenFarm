@@ -2120,6 +2120,15 @@ export const bn: Record<MessageKey, string> = {
   "drugs.retiredReason": "বাদ দেওয়া হয়েছে",
   "drugs.setBy": "{name} লিখেছেন, {date}",
   "drugs.bringBack": "ফিরিয়ে আনুন",
+  "drugs.rename": "নাম বদলান",
+  "drugs.renameTitle": "{name} — নাম বদলান",
+  "drugs.renameHint":
+    "যে প্রেসক্রিপশন, ডোজ আর কাগজে এই ওষুধের নাম আছে, সবখানে নতুন নাম দেখাবে। পুরোনো নাম অডিট লগে থেকে যাবে।",
+  "drugs.addStandard": "প্রচলিত ওষুধ যোগ করুন",
+  "drugs.addStandardTitle": "{count}টি প্রচলিত ওষুধ যোগ করবেন?",
+  "drugs.addStandardHint":
+    "যোগ হবে: {names}। ভেট প্রত্যাহারের দিন না লেখা পর্যন্ত এগুলোর কোনোটি লিখে দেওয়া যাবে না।",
+  "drugs.addedStandard": "{count}টি ওষুধ যোগ হয়েছে",
   "drugs.managerAdds": "ভেট দিন লিখবেন",
   "drugs.retireTitle": "{name} বাদ দেবেন?",
   "drugs.retireWhy":
