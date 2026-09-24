@@ -18,7 +18,8 @@ export interface IntakeFields {
   ventureId: string;
   weightKg: string;
   estimatedAgeMonths: string;
-  breed: string;
+  /** From the farm's list of breeds; empty when nobody knows it. */
+  breedId: string;
   targetWeightKg: string;
   targetWindowStart: string;
   targetWindowEnd: string;
@@ -37,7 +38,7 @@ export const EMPTY: IntakeFields = {
   ventureId: "",
   weightKg: "",
   estimatedAgeMonths: "",
-  breed: "",
+  breedId: "",
   targetWeightKg: "",
   targetWindowStart: "",
   targetWindowEnd: "",

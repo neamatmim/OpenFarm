@@ -12,6 +12,7 @@ export const relations = defineRelations(schema, (r) => ({
   },
   animal: {
     pen: r.one.pen({ from: r.animal.penId, to: r.pen.id, optional: false }),
+    breed: r.one.breed({ from: r.animal.breedId, to: r.breed.id }),
     moves: r.many.animalMove({ from: r.animal.id, to: r.animalMove.animalId }),
     observations: r.many.observation({
       from: r.animal.id,

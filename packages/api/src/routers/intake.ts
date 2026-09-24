@@ -50,7 +50,8 @@ const recordInput = z
     /** Months, as the seller says and the Manager judges. Asked for, not optional: a bull with
      *  no age is a bull whose gain nobody can read. */
     estimatedAgeMonths: z.number().int().min(0).max(360),
-    breed: z.string().trim().max(60).optional(),
+    /** Her breed, from the farm's list. */
+    breedId: z.string().optional(),
     officialTag: z.string().trim().max(60).optional(),
     /** What it is being fed towards, when the Manager has a figure of her own for this one. */
     targetWeightKg: weight.optional(),
@@ -156,7 +157,7 @@ export const intakeRouter = {
               state: "quarantine",
               penId: input.penId,
               source: "bought",
-              breed: input.breed,
+              breedId: input.breedId,
               officialTag: input.officialTag,
             },
             extra: { ownerVentureId: input.ventureId ?? null },

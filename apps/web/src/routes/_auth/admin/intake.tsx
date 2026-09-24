@@ -135,7 +135,7 @@ const IntakePage = () => {
             hasilBdt: orNothing(fields.hasilBdt),
             weightKg: Number(fields.weightKg),
             estimatedAgeMonths: Number(fields.estimatedAgeMonths),
-            breed: fields.breed || undefined,
+            breedId: fields.breedId || undefined,
             targetWeightKg: orNothing(fields.targetWeightKg),
             targetWindowStart: fields.targetWindowStart || undefined,
             targetWindowEnd: fields.targetWindowEnd || undefined,

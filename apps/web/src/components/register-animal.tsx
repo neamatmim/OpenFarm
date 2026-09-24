@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { BreedField } from "@/components/breed-field";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -21,7 +22,7 @@ const blank = {
   sex: "female" as "female" | "male",
   source: "born" as "born" | "bought",
   penId: "",
-  breed: "",
+  breedId: "",
   birthDate: "",
   officialTag: "",
   expectedCalvingOn: "",
@@ -83,7 +84,7 @@ export const RegisterAnimal = ({
             source: form.source,
             penId: form.penId,
             aliases: [],
-            breed: optional(form.breed),
+            breedId: optional(form.breedId),
             officialTag: optional(form.officialTag),
             birthDate: form.birthDate ? new Date(form.birthDate) : undefined,
             expectedCalvingOn:
@@ -154,14 +155,11 @@ export const RegisterAnimal = ({
               <option value="bought">{t("animals.source.bought")}</option>
             </NativeSelect>
           </FormField>
-          <FormField id={`${ids}-breed`} label={t("animals.breed")}>
-            <Input
-              id={`${ids}-breed`}
-              maxLength={60}
-              onChange={(event) => set("breed", event.target.value)}
-              value={form.breed}
-            />
-          </FormField>
+          <BreedField
+            id={`${ids}-breed`}
+            onChange={(breedId) => set("breedId", breedId)}
+            value={form.breedId}
+          />
           <FormField id={`${ids}-birth`} label={t("animals.birthDate")}>
             <Input
               id={`${ids}-birth`}

@@ -148,7 +148,8 @@ export const papersRouter = {
         farm: context.farm,
         tagNumber: her.tagNumber,
         sex: her.sex,
-        breed: her.breed,
+        // The passport is the farm's Bangla paper with English labels, so the breed goes on it in Bangla.
+        breed: her.breed?.nameBn ?? null,
         age: ageWords(her, language),
         source: sourceWords(her),
         // The day the Intake says she came, which is not the day she was written down: an animal bought last

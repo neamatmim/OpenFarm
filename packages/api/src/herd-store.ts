@@ -32,6 +32,7 @@ import {
 import { ORPCError } from "@orpc/server";
 
 import type { Tx, Trail } from "./audit";
+import { requireBreed } from "./breed-store";
 import type { CalvingWorkFollowed } from "./calving-work";
 import { followExpectedCalving } from "./calving-work";
 import { lateEntry } from "./late";
@@ -44,7 +45,8 @@ interface NewAnimalRows {
   state: (typeof animal.$inferInsert)["state"];
   penId: string;
   source: (typeof animal.$inferInsert)["source"];
-  breed?: string;
+  /** Her breed, from the farm's list. */
+  breedId?: string;
   birthDate?: Date;
   officialTag?: string;
   aliases?: string[];
@@ -206,7 +208,7 @@ export const animalSummaryColumns = {
   penId: true,
   source: true,
   ownerVentureId: true,
-  breed: true,
+  breedId: true,
   birthDate: true,
   photoUpdatedAt: true,
   lactationNumber: true,
@@ -291,6 +293,9 @@ export const insertAnimal = async (
   }
 ): Promise<{ tagNumber: string }> => {
   await requirePen(tx, farmId, input.penId);
+  if (input.breedId !== undefined) {
+    await requireBreed(tx, farmId, input.breedId);
+  }
   const tagNumber =
     input.tagNumber === undefined
       ? await nextTagNumber(tx, farmId, input.side)
@@ -306,7 +311,7 @@ export const insertAnimal = async (
     state: input.state,
     penId: input.penId,
     source: input.source,
-    breed: input.breed ?? null,
+    breedId: input.breedId ?? null,
     birthDate: input.birthDate ?? null,
     ...extra,
     stateChangedAt: now,

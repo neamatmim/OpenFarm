@@ -4,6 +4,7 @@ import { Input } from "@OpenFarm/ui/components/input";
 import { Camera, CircleCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { BreedField } from "@/components/breed-field";
 import { Section } from "@/components/page";
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { PaymentMethodField } from "@/components/payment-method";
@@ -161,15 +162,11 @@ export const AnimalSection = ({
             <option value="female">{t("animals.sex.female")}</option>
           </NativeSelect>
         </FormField>
-        <FormField id="intake-breed" label={t("animals.breed")}>
-          <Input
-            autoComplete="off"
-            id="intake-breed"
-            maxLength={60}
-            onChange={(event) => onEdit({ breed: event.target.value })}
-            value={fields.breed}
-          />
-        </FormField>
+        <BreedField
+          id="intake-breed"
+          onChange={(breedId) => onEdit({ breedId })}
+          value={fields.breedId}
+        />
       </div>
       <PhotoField onPhoto={onPhoto} photoName={photoName} />
     </Section>

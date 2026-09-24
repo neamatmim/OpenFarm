@@ -28,6 +28,7 @@ import { z } from "zod";
 
 import { herRecord } from "../animal-record";
 import { audited } from "../audit";
+import { breedNamed } from "../breed-store";
 import {
   expectedCalvingWithinReach,
   pregnancyTimesOf,
@@ -76,6 +77,7 @@ import {
   requireLookUp,
 } from "../scope";
 import { causeOf, heatKeyOf } from "../work-cause";
+import { giveStandardBreeds } from "./breeds";
 
 /** The opening register runs one transaction per row inside one request; a 100–500 head farm
  *  fits comfortably, and a larger register should be pasted in batches. */
@@ -88,7 +90,8 @@ const animalFields = {
   side: z.enum(SIDES),
   penId: z.string(),
   source: z.enum(ANIMAL_SOURCES),
-  breed: z.string().trim().max(60).optional(),
+  /** Her breed, from the farm's list. */
+  breedId: z.string().optional(),
   birthDate: z.coerce.date().optional(),
   officialTag: z.string().trim().max(60).optional(),
   aliases: z.array(z.string().trim().min(1).max(60)).default([]),
@@ -423,6 +426,57 @@ const createAnimal = async (
   return { id, tagNumber };
 };
 
+/**
+ * One row of the opening register as the Animal it describes, or why it cannot be one: a value the row cannot hold, a
+ * Pen or a breed the farm does not have, or a State on the other Side's.
+ */
+const readRegisterRow = (
+  values: Record<string, string>,
+  penByName: ReadonlyMap<string, string>,
+  breeds: Parameters<typeof breedNamed>[0]
+): { data: NewAnimal } | { reason: string } => {
+  const parsed = importRowInput.safeParse({
+    sex: values.sex,
+    side: values.side,
+    state: values.state,
+    penId: penByName.get((values.pen ?? "").toLowerCase()) ?? "",
+    source: values.source,
+    breedId: values.breed
+      ? (breedNamed(breeds, values.breed) ?? "")
+      : undefined,
+    birthDate: values.birth_date || undefined,
+    calvedAt: values.calved_at || undefined,
+    expectedCalvingOn: values.expected_calving || undefined,
+    officialTag: values.official_tag || undefined,
+    tagNumber: values.tag || undefined,
+    aliases: (values.alias ?? values.old_mark ?? "")
+      .split(/[;|]/u)
+      .map((value) => value.trim())
+      .filter(Boolean),
+  });
+  if (!parsed.success) {
+    return {
+      reason: parsed.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; "),
+    };
+  }
+  if (!parsed.data.penId) {
+    return { reason: `unknown pen "${values.pen ?? ""}"` };
+  }
+  if (parsed.data.breedId === "") {
+    return {
+      reason: `unknown breed "${values.breed ?? ""}" — add it to the farm's list of breeds first`,
+    };
+  }
+  if (sideOfState(parsed.data.state) !== parsed.data.side) {
+    return {
+      reason: `state ${parsed.data.state} does not belong to the ${parsed.data.side} side`,
+    };
+  }
+  return { data: parsed.data };
+};
+
 export const animalsRouter = {
   /** Staff see their assigned Pens; everyone who runs the farm sees the whole herd. */
   list: protectedProcedure
@@ -453,6 +507,7 @@ export const animalsRouter = {
         // one — and nothing else of her Intake, whose money is not every reader's.
         with: {
           intake: { columns: { estimatedAgeMonths: true, arrivedAt: true } },
+          breed: { columns: { nameBn: true, nameEn: true } },
         },
         orderBy: { tagNumber: "asc" },
       });
@@ -1092,6 +1147,13 @@ export const animalsRouter = {
         columns: { id: true, name: true },
         with: { shed: { columns: { name: true } } },
       });
+      // A breed is named as the list names it, in either language; the standard ones are on the list before the
+      // first row is read, so a register written on paper from the standard names needs nothing added first.
+      await giveStandardBreeds(context);
+      const breeds = await context.db.query.breed.findMany({
+        where: { farmId: context.farm.id },
+        columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
+      });
       const penByName = new Map(
         pens.flatMap((p) => [
           [p.name.toLowerCase(), p.id] as const,
@@ -1105,41 +1167,9 @@ export const animalsRouter = {
 
       for (const record of records) {
         const { line, values } = record;
-        const parsed = importRowInput.safeParse({
-          sex: values.sex,
-          side: values.side,
-          state: values.state,
-          penId: penByName.get((values.pen ?? "").toLowerCase()) ?? "",
-          source: values.source,
-          breed: values.breed || undefined,
-          birthDate: values.birth_date || undefined,
-          calvedAt: values.calved_at || undefined,
-          expectedCalvingOn: values.expected_calving || undefined,
-          officialTag: values.official_tag || undefined,
-          tagNumber: values.tag || undefined,
-          aliases: (values.alias ?? values.old_mark ?? "")
-            .split(/[;|]/u)
-            .map((value) => value.trim())
-            .filter(Boolean),
-        });
-        if (!parsed.success) {
-          failed.push({
-            line,
-            reason: parsed.error.issues
-              .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-              .join("; "),
-          });
-          continue;
-        }
-        if (!parsed.data.penId) {
-          failed.push({ line, reason: `unknown pen "${values.pen ?? ""}"` });
-          continue;
-        }
-        if (sideOfState(parsed.data.state) !== parsed.data.side) {
-          failed.push({
-            line,
-            reason: `state ${parsed.data.state} does not belong to the ${parsed.data.side} side`,
-          });
+        const row = readRegisterRow(values, penByName, breeds);
+        if ("reason" in row) {
+          failed.push({ line, reason: row.reason });
           continue;
         }
         try {
@@ -1148,7 +1178,7 @@ export const animalsRouter = {
           // oxlint-disable-next-line no-await-in-loop
           const created = await createAnimal(
             context,
-            parsed.data,
+            row.data,
             now,
             "opening register"
           );

@@ -29,6 +29,8 @@ describe("intake", () => {
     const clock = new FakeClock("2027-01-15T04:00:00.000Z");
     const manager = await createTestClient(appRouter, { as: "manager", clock });
 
+    const breeds = await manager.client.breeds.list();
+    const sahiwal = breeds.find((one) => one.key === "sahiwal")?.id;
     const taken = await manager.client.intake.record({
       penId,
       sex: "male",
@@ -36,7 +38,7 @@ describe("intake", () => {
       purchasePriceBdt: 95_000,
       weightKg: 210.5,
       estimatedAgeMonths: 24,
-      breed: "শাহীওয়াল",
+      breedId: sahiwal,
     });
 
     // Its own F- number, in quarantine, on the fattening side, bought rather than born.
@@ -49,7 +51,7 @@ describe("intake", () => {
     expect(her.side).toBe("fattening");
     expect(her.source).toBe("bought");
     expect(her.penId).toBe(penId);
-    expect(her.breed).toBe("শাহীওয়াল");
+    expect(her.breed?.nameBn).toBe("শাহীওয়াল");
 
     // Her page reads as an intake: what she cost, what she weighed, and what she is being
     // fed towards — the next Eid-ul-Adha, which nobody had to type.

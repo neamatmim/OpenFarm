@@ -52,6 +52,8 @@ const setup = async () => {
   });
 
   const bull = async (penId: string) => {
+    const breeds = await manager.client.breeds.list();
+    const sahiwal = breeds.find((one) => one.key === "sahiwal")?.id;
     const taken = await manager.client.intake.record({
       penId,
       sex: "male",
@@ -59,7 +61,7 @@ const setup = async () => {
       purchasePriceBdt: 90_000,
       weightKg: 300,
       estimatedAgeMonths: 24,
-      breed: "শাহীওয়াল",
+      breedId: sahiwal,
       targetWeightKg: 280,
       targetWindowStart: "2027-08-17",
       targetWindowEnd: "2027-08-19",

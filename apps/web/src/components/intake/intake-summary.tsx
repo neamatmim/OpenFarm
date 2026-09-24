@@ -5,10 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import { ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useBreeds } from "@/components/breed-field";
 import { EidBasisBadge, useNextEid } from "@/components/fattening/next-eid";
 import { Notice, Section } from "@/components/page";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
+import { breedName } from "@/lib/breed";
 import { orpc } from "@/utils/orpc";
 
 import type { IntakeFields } from "./intake-fields";
@@ -121,6 +123,11 @@ export const IntakeSummary = ({
 }) => {
   const { t, language } = useLanguage();
   const pen = pens.find((one) => one.id === fields.penId);
+  const breeds = useBreeds();
+  const breed = breedName(
+    breeds.data?.find((one) => one.id === fields.breedId),
+    language
+  );
   const price = Number(fields.purchasePriceBdt);
   const weight = Number(fields.weightKg);
   const age = fields.estimatedAgeMonths.trim();
@@ -137,7 +144,7 @@ export const IntakeSummary = ({
       <dl className="divide-border -my-2 flex flex-col divide-y">
         <Line label={t("intake.pen")}>{pen?.name ?? "—"}</Line>
         <Line label={t("intake.groupAnimal")}>
-          {[t(`animals.sex.${fields.sex}`), fields.breed.trim()]
+          {[t(`animals.sex.${fields.sex}`), breed ?? ""]
             .filter((part) => part !== "")
             .join(" · ")}
         </Line>

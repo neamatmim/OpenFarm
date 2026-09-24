@@ -108,3 +108,19 @@ export const FEED_SELLERS = {
   straw: { name: "খড় ব্যবসায়ী মোঃ কামাল", address: "ধামরাই", phone: "01934-110287" },
 };
 export type FeedSeller = (typeof FEED_SELLERS)[keyof typeof FEED_SELLERS];
+
+/** The breed on the farm's list a seeded animal is written down under, by the Bangla name the seed gives her. The
+ *  seed names only standard breeds, so a name the list does not have is the seed's mistake, and stops the run. */
+export const breedIdNamed = async (
+  manager: {
+    breeds: { list: () => Promise<readonly { id: string; nameBn: string }[]> };
+  },
+  name: string
+): Promise<string> => {
+  const breeds = await manager.breeds.list();
+  const found = breeds.find((one) => one.nameBn === name);
+  if (!found) {
+    throw new Error(`The seed names a breed the list does not have: ${name}`);
+  }
+  return found.id;
+};

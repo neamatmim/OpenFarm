@@ -64,6 +64,7 @@ export const herRecord = async (
       stateChangedAt: true,
     },
     with: {
+      breed: { columns: { nameBn: true, nameEn: true } },
       moves: {
         // ids are UUIDv7: time-ordered, so they break the tie when two Moves share an instant —
         // registering an animal walks her to her first Pen in the same transaction as a Move recorded a

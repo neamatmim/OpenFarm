@@ -441,6 +441,7 @@ export {
 export type {
   StandardDrugKey,
   StandardFeedKey,
+  StandardBreedKey,
   StandardKind,
   StandardLine,
   StandardRation,
@@ -448,6 +449,8 @@ export type {
 } from "./standard";
 export {
   STANDARD_DRUGS,
+  STANDARD_BREED_KEYS,
+  STANDARD_BREEDS,
   STANDARD_DRUG_FOR,
   STANDARD_FEED_ITEMS,
   STANDARD_KINDS,

@@ -31,6 +31,7 @@ import type { Figure } from "@/components/page-kit";
 import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { RegisterAnimal } from "@/components/register-animal";
 import { useLanguage } from "@/i18n/language-provider";
+import { breedName } from "@/lib/breed";
 import { usePenNames } from "@/lib/pen-names";
 import { orpc } from "@/utils/orpc";
 
@@ -111,6 +112,7 @@ const useHerdFigures = (rows: HerdRow[]): Figure[] => {
 /** The herd's rows, each with her Pen's name — none for a visiting Vet, who reaches their Cases and not the sheds. */
 const useHerdRows = (animals: Animal[]): HerdRow[] => {
   const penNames = usePenNames();
+  const { language } = useLanguage();
   const now = new Date();
   return animals.map((a) => ({
     id: a.id,
@@ -120,7 +122,7 @@ const useHerdRows = (animals: Animal[]): HerdRow[] => {
     state: a.state,
     side: a.side,
     penName: (a.penId && penNames.get(a.penId)) || "—",
-    breed: a.breed,
+    breed: breedName(a.breed, language),
     // A list this phone kept from before the farm sent the seller's word has none, until it is read again.
     age: ageOf(
       { birthDate: a.birthDate, ageAtIntake: a.ageAtIntake ?? null },
