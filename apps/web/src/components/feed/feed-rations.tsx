@@ -4,12 +4,27 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Label } from "@OpenFarm/ui/components/label";
+import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Pencil, Plus, Utensils } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Check,
+  Pencil,
+  Plus,
+  Utensils,
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { EmptyState, Section, StatusBadge } from "@/components/page";
-import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
+import type { RowAction } from "@/components/page-kit";
+import {
+  FormDialog,
+  FormField,
+  NativeSelect,
+  RowMenu,
+} from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -355,29 +370,121 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
 };
 
 /** One Ration as a card: its name and version, what one animal gets, the Pens on it, and what can be done with it. */
-const RationCard = ({
+/**
+ * What can be done with a Ration from its card: put it right, and retire it or bring it back. Retiring is not offered
+ * while a Pen is fed on it, and says why rather than leaving a line that only refuses.
+ */
+const useRationActs = (ration: RationRow, onEdit: () => void): RowAction[] => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const retire = useMutation(
+    orpc.feed.retireRation.mutationOptions({
+      onSuccess: () => toast.success(t("feed.rationRetired")),
+      onError: refused,
+    })
+  );
+  const bringBack = useMutation(
+    orpc.feed.bringBackRation.mutationOptions({
+      onSuccess: () => toast.success(t("feed.rationBroughtBack")),
+      onError: refused,
+    })
+  );
+  if (ration.retiredAt) {
+    return [
+      {
+        label: t("feed.bringBack"),
+        icon: ArchiveRestore,
+        disabled: bringBack.isPending,
+        handleSelect: () => bringBack.mutate({ id: ration.id }),
+      },
+    ];
+  }
+  const fedOn = ration.penIds.length > 0;
+  return [
+    { label: t("feed.editRation"), icon: Pencil, handleSelect: onEdit },
+    {
+      label: t("feed.retire"),
+      icon: Archive,
+      disabled: fedOn || retire.isPending,
+      hint: fedOn ? t("feed.retireRationBusy") : undefined,
+      handleSelect: () => retire.mutate({ id: ration.id }),
+    },
+  ];
+};
+
+/** The foot of a Ration's card: retired, already the chosen Pen's, or the way to put the chosen Pen on it. */
+const RationFoot = ({
   ration,
-  items,
   chosenPenId,
-  onEdit,
+  onChosenPen,
+  retired,
 }: {
   ration: RationRow;
-  items: FeedItemRow[];
   chosenPenId: string;
-  onEdit: () => void;
+  onChosenPen: boolean;
+  retired: boolean;
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const refused = useRefused();
   const assign = useMutation(
     orpc.feed.assignRation.mutationOptions({
       onError: refused,
     })
   );
+  if (retired) {
+    return (
+      <StatusBadge icon={Archive} tone="neutral">
+        {t("feed.retired")}
+      </StatusBadge>
+    );
+  }
+  if (onChosenPen) {
+    return (
+      <StatusBadge icon={Check} tone="success">
+        {t("feed.assigned")}
+      </StatusBadge>
+    );
+  }
+  return (
+    <Button
+      disabled={assign.isPending || chosenPenId === ""}
+      onClick={() => assign.mutate({ penId: chosenPenId, rationId: ration.id })}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      {t("feed.assign")}
+    </Button>
+  );
+};
+
+const RationCard = ({
+  ration,
+  items,
+  chosenPenId,
+  mayEdit,
+  onEdit,
+}: {
+  ration: RationRow;
+  items: FeedItemRow[];
+  chosenPenId: string;
+  mayEdit: boolean;
+  onEdit: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const acts = useRationActs(ration, onEdit);
+  // A list cached before retiring existed has no such field: a Ration on it is simply in use.
+  const retired = Boolean(ration.retiredAt);
   const band = bandSaid(bandOfRow(ration), { t, language });
   const names = new Map(items.map((item) => [item.id, item]));
   const onChosenPen = ration.penIds.includes(chosenPenId);
   return (
-    <article className="bg-card flex flex-col gap-3 rounded-xl border p-4">
+    <article
+      className={cn(
+        "bg-card flex flex-col gap-3 rounded-xl border p-4",
+        retired && "opacity-75"
+      )}
+    >
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col">
           <h3 className="font-semibold">{ration.name.bn}</h3>
@@ -390,15 +497,12 @@ const RationCard = ({
             {band ? ` · ${band}` : ""}
           </span>
         </div>
-        <Button
-          aria-label={t("feed.editRation")}
-          onClick={onEdit}
-          size="icon-sm"
-          type="button"
-          variant="ghost"
-        >
-          <Pencil aria-hidden />
-        </Button>
+        {mayEdit ? (
+          <RowMenu
+            actions={acts}
+            label={t("feed.rationActions", { name: ration.name.bn })}
+          />
+        ) : null}
       </header>
       <ul className="flex flex-col gap-1 text-sm">
         {ration.items.map((line) => {
@@ -421,23 +525,12 @@ const RationCard = ({
         })}
       </ul>
       <footer className="mt-auto border-t pt-3">
-        {onChosenPen ? (
-          <StatusBadge icon={Check} tone="success">
-            {t("feed.assigned")}
-          </StatusBadge>
-        ) : (
-          <Button
-            disabled={assign.isPending || chosenPenId === ""}
-            onClick={() =>
-              assign.mutate({ penId: chosenPenId, rationId: ration.id })
-            }
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {t("feed.assign")}
-          </Button>
-        )}
+        <RationFoot
+          chosenPenId={chosenPenId}
+          onChosenPen={onChosenPen}
+          ration={ration}
+          retired={retired}
+        />
       </footer>
     </article>
   );
@@ -455,10 +548,22 @@ export const RationsTab = ({
   pens: { id: string; name: string }[];
   mayEdit: boolean;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [penId, setPenId] = useState("");
   const [editing, setEditing] = useState<RationRow | "new" | null>(null);
   const chosen = penId || pens[0]?.id || "";
+  const inUse = rations.filter((one) => !one.retiredAt);
+  const retired = rations.filter((one) => one.retiredAt);
+  const card = (ration: RationRow) => (
+    <RationCard
+      chosenPenId={chosen}
+      items={items}
+      key={ration.id}
+      mayEdit={mayEdit}
+      onEdit={() => setEditing(ration)}
+      ration={ration}
+    />
+  );
   return (
     <div className="flex flex-col gap-6">
       <Section
@@ -494,20 +599,28 @@ export const RationsTab = ({
         plain
         title={t("feed.rations")}
       >
-        {rations.length === 0 ? (
+        {inUse.length === 0 ? (
           <EmptyState icon={Utensils} title={t("feed.noRation")} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {rations.map((ration) => (
-              <RationCard
-                chosenPenId={chosen}
-                items={items}
-                key={ration.id}
-                onEdit={() => setEditing(ration)}
-                ration={ration}
-              />
-            ))}
+            {inUse.map(card)}
           </div>
+        )}
+        {/* Retired, folded away at the foot: kept so past feedings still read by name, and never offered to a Pen. */}
+        {retired.length === 0 ? null : (
+          <details className="group mt-2">
+            <summary className="text-muted-foreground cursor-pointer text-sm font-medium">
+              {t("feed.retiredRations", {
+                count: formatNumber(retired.length, language),
+              })}
+            </summary>
+            <p className="text-muted-foreground mt-2 text-xs">
+              {t("feed.retiredRationsHint")}
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {retired.map(card)}
+            </div>
+          </details>
         )}
       </Section>
 

@@ -1491,6 +1491,15 @@ export const en = {
   "feed.addItem": "Add a feed",
   "feed.retire": "Retire",
   "feed.retired": "Retired",
+  "feed.bringBack": "Bring back",
+  "feed.rationActions": "What to do with {name}",
+  "feed.retireRationBusy":
+    "Pens are fed on it — put them on another ration first",
+  "feed.retiredRations": "Retired rations ({count})",
+  "feed.retiredRationsHint":
+    "Kept so past feedings still read by name. Bring one back to put a pen on it.",
+  "feed.rationRetired": "Ration retired",
+  "feed.rationBroughtBack": "Ration brought back",
   "feed.pen": "Pen",
   "feed.ration": "Ration",
   "feed.noRation": "This pen has no ration",
@@ -1616,6 +1625,10 @@ export const en = {
     "This Venture made no loss for the Farm to carry",
   "refusal.investorRetired":
     "This Investor is retired; bring them back from the Investors page first",
+  "refusal.rationInUse":
+    "Pens are still fed on this ration. Put them on another ration first.",
+  "refusal.rationRetired":
+    "That ration is retired. Bring it back to put a pen on it.",
   "refusal.investorStillIn":
     "Their money is in a Venture still running; they can be retired once it settles or is called off",
   "refusal.capitalMustBeByBank":

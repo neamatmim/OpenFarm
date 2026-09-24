@@ -260,3 +260,89 @@ describe("what a Pen is fed", () => {
     ).rejects.toThrow(/not yours/u);
   });
 });
+
+describe("retiring a Ration", () => {
+  it("is refused while a Pen is fed on it, and done once the Pen is on another", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const shed = await manager.client.herd.createShed({
+      name: `feed-retire-${Date.now()}`,
+    });
+    const pen = await manager.client.herd.createPen({
+      shedId: shed.id,
+      name: "পুরনো পেন",
+    });
+    const hay = await manager.client.feed.addItem({
+      name: { bn: `খড় পুরনো ${Date.now()}` },
+    });
+    const old = await manager.client.feed.saveRation({
+      name: { bn: `পুরনো রেশন ${Date.now()}` },
+      items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 5 }],
+    });
+    const next = await manager.client.feed.saveRation({
+      name: { bn: `নতুন রেশন ${Date.now()}` },
+      items: [{ feedItemId: hay.id, kgPer100KgPerDay: 1 }],
+    });
+    await manager.client.feed.assignRation({
+      penId: pen.id,
+      rationId: old.rationId,
+    });
+
+    await expect(
+      manager.client.feed.retireRation({ id: old.rationId })
+    ).rejects.toMatchObject({ data: { refusal: "ration_in_use" } });
+
+    await manager.client.feed.assignRation({
+      penId: pen.id,
+      rationId: next.rationId,
+    });
+    await manager.client.feed.retireRation({ id: old.rationId });
+    const rations = await manager.client.feed.rations();
+    expect(
+      rations.find((one) => one.id === old.rationId)?.retiredAt
+    ).not.toBeNull();
+
+    // Kept, not removed: its trail says who retired it.
+    const trail = await manager.client.audit.list({
+      entity: "ration",
+      entityId: old.rationId,
+    });
+    expect(trail.at(0)?.after).toMatchObject({ retiredAt: expect.any(String) });
+  });
+
+  it("puts no Pen on a retired Ration until it is brought back", async () => {
+    const manager = await createTestClient(appRouter, { as: "manager" });
+    const hay = await manager.client.feed.addItem({
+      name: { bn: `খড় ফেরত ${Date.now()}` },
+    });
+    const retired = await manager.client.feed.saveRation({
+      name: { bn: `অবসরের রেশন ${Date.now()}` },
+      items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 5 }],
+    });
+    await manager.client.feed.retireRation({ id: retired.rationId });
+
+    await expect(
+      manager.client.feed.assignRation({
+        penId: world.empty.id,
+        rationId: retired.rationId,
+      })
+    ).rejects.toMatchObject({ data: { refusal: "ration_retired" } });
+
+    await manager.client.feed.bringBackRation({ id: retired.rationId });
+    await manager.client.feed.assignRation({
+      penId: world.empty.id,
+      rationId: retired.rationId,
+    });
+    const rations = await manager.client.feed.rations();
+    expect(rations.find((one) => one.id === retired.rationId)).toMatchObject({
+      retiredAt: null,
+      penIds: [world.empty.id],
+    });
+  });
+
+  it("is the Owner's and the Manager's", async () => {
+    const staff = await createTestClient(appRouter, { as: "staff" });
+    await expect(
+      staff.client.feed.retireRation({ id: "any" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
