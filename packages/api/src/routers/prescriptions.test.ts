@@ -270,12 +270,14 @@ describe("a Prescription, and a dose per Instance", () => {
       days: 3,
     };
 
-    for (const role of ["owner", "manager", "staff"] as const) {
-      const them = await createTestClient(appRouter, { as: role, clock });
-      await expect(them.client.prescriptions.prescribe(order)).rejects.toThrow(
-        /Only the Vet writes a Prescription/u
-      );
-    }
+    await Promise.all(
+      (["owner", "manager", "staff"] as const).map(async (role) => {
+        const them = await createTestClient(appRouter, { as: role, clock });
+        await expect(
+          them.client.prescriptions.prescribe(order)
+        ).rejects.toThrow(/Only the Vet writes a Prescription/u);
+      })
+    );
 
     // Nor from the shed phone: a prescription signed on a phone the farm shares is signed
     // by nobody.

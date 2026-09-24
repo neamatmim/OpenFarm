@@ -223,6 +223,46 @@ const firstPersonOf = (
 ): { id: string; name: string } | null =>
   session && !device ? { id: session.user.id, name: session.user.name } : null;
 
+/**
+ * What a person may do on the farm today: the Roles still standing, whether one is a Vet's visit, and the Cases that
+ * visit is for.
+ *
+ * Roles come from an invite only when the person takes it up with its code (people.acceptInvite): an email matching
+ * an invite proves nothing about who signed up with it. A visit's access ends on its day, whether or not the schedule
+ * has got round to revoking it yet.
+ */
+const accessOf = async (
+  db: Database,
+  farmId: string,
+  person: {
+    id: string;
+    roles: readonly {
+      role: RoleName;
+      scope: string | null;
+      expiresAt: Date | null;
+    }[];
+  },
+  now: Date
+) => {
+  const standing = person.roles.filter(
+    (one) => !one.expiresAt || one.expiresAt > now
+  );
+  const visiting = standing.some(
+    (one) => one.role === "vet" && one.scope === "visiting"
+  );
+  const cases = visiting
+    ? await db.query.vetCase.findMany({
+        where: { farmId, vetId: person.id, closedAt: { isNull: true } },
+        columns: { animalId: true },
+      })
+    : [];
+  return {
+    roles: standing.map((one) => one.role),
+    visiting,
+    caseAnimalIds: cases.map((one) => one.animalId),
+  };
+};
+
 /** The one place a Context is assembled — production and tests both go through it.
  *  Resolves the Farm, the person, their Roles and Pen Assignments from the database. */
 export const buildContext = async ({
@@ -301,21 +341,12 @@ export const buildContext = async ({
     return { ...empty, farm, person };
   }
 
-  // Roles come from an invite only when the person takes it up with its code (people.acceptInvite): an email
-  // matching an invite proves nothing about who signed up with it.
-  // A visit's access ends on its day, whether or not the schedule has got round to revoking it yet.
-  const now = clock.now();
-  const standing = row.roles.filter((r) => !r.expiresAt || r.expiresAt > now);
-  const roles = standing.map((r) => r.role);
-  const visiting = standing.some(
-    (r) => r.role === "vet" && r.scope === "visiting"
+  const { roles, visiting, caseAnimalIds } = await accessOf(
+    db,
+    farm.id,
+    row,
+    clock.now()
   );
-  const cases = visiting
-    ? await db.query.vetCase.findMany({
-        where: { farmId: farm.id, vetId: row.id, closedAt: { isNull: true } },
-        columns: { animalId: true },
-      })
-    : [];
 
   return {
     ...base,
@@ -326,7 +357,7 @@ export const buildContext = async ({
     roles,
     penIds: row.penAssignments.map((p) => p.penId),
     visiting,
-    caseAnimalIds: cases.map((c) => c.animalId),
+    caseAnimalIds,
   };
 };
 

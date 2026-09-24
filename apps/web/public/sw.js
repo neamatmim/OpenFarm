@@ -18,6 +18,7 @@ const SHELL_FILES = ["/", "/today", "/manifest.webmanifest", "/icon.svg"];
 const cacheEach = async (cache, urls) => {
   for (const url of urls) {
     try {
+      // oxlint-disable-next-line no-await-in-loop -- one at a time, as said above
       await cache.add(url);
     } catch {
       // A page that redirects when signed out, say. The rest of the shell still caches, and
@@ -149,10 +150,13 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
+      // The first window that can be focused is the one: it is focused, taken to the page, and the rest are left be.
       for (const client of open) {
         if ("focus" in client) {
+          // oxlint-disable-next-line no-await-in-loop -- the loop ends here
           await client.focus();
           if ("navigate" in client) {
+            // oxlint-disable-next-line no-await-in-loop -- the loop ends here
             await client.navigate(url);
           }
           return;

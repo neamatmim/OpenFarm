@@ -14,8 +14,8 @@ import { whyRefused } from "@/lib/rpc-door";
 
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
-    onError((error) => {
-      console.error(error);
+    onError((failure) => {
+      console.error(failure);
     }),
   ],
 });
@@ -40,8 +40,8 @@ const apiHandler = new OpenAPIHandler(appRouter, {
     }),
   ],
   interceptors: [
-    onError((error) => {
-      console.error(error);
+    onError((failure) => {
+      console.error(failure);
     }),
   ],
 });
