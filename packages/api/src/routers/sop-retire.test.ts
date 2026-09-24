@@ -131,6 +131,35 @@ describe("retiring a procedure", () => {
   });
 });
 
+describe("the people who do its work", () => {
+  it("are told it was retired and that it came back, each time", async () => {
+    const owner = await asOwner(onDay(9));
+    const { definitionId } = await owner.client.sops.create({
+      content: standardPlaybook().feeding,
+    });
+    const staff = await createTestClient(appRouter, {
+      as: "staff",
+      clock: onDay(9),
+    });
+    const told = async (kind: string) => {
+      const mine = await staff.client.alerts.mine({});
+      return mine.filter(
+        (one) =>
+          one.kind === kind &&
+          (one.params as { definitionId?: string }).definitionId ===
+            definitionId
+      ).length;
+    };
+
+    await owner.client.sops.retire({ definitionId });
+    await owner.client.sops.restore({ definitionId });
+    await owner.client.sops.retire({ definitionId });
+
+    expect(await told("sop_retired")).toBe(2);
+    expect(await told("sop_restored")).toBe(1);
+  });
+});
+
 describe("bringing a procedure back", () => {
   it("raises its work again from the next time it is due, and what was called off stays called off", async () => {
     const day6 = await asOwner(onDay(6));

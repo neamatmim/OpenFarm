@@ -28,6 +28,9 @@ export interface NoticeFacts {
   /** The English name beside it since 2026-09-23; a Notice raised before then has only the Bangla. */
   sop_published: { sopBn: string; sopEn?: string; number: number };
   sop_proposed: { sopBn: string; sopEn: string };
+  /** A procedure taken out of force, or put back: its names, and which it is, for the way to its card. */
+  sop_retired: { sopBn: string; sopEn: string; definitionId: string };
+  sop_restored: { sopBn: string; sopEn: string; definitionId: string };
   withdrawal_ending: { tag: string; animalId: string; until: string };
   withdrawal_changed: { tag: string; until: string };
   notifiable_diagnosis: { tag: string; disease: string };

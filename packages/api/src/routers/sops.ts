@@ -188,6 +188,45 @@ const requireProcedure = async (
   return definition;
 };
 
+/**
+ * Tells the Role that does a procedure's work that it was retired or brought back: it is their list the work leaves,
+ * or comes back to. Each act is its own notice, so a procedure retired a second time is told a second time.
+ */
+const tellItsDoers = async (
+  tx: Tx,
+  farmId: string,
+  kind: "sop_retired" | "sop_restored",
+  {
+    eventId,
+    definitionId,
+    content,
+    now,
+  }: {
+    eventId: string;
+    definitionId: string;
+    content: SopContent | null;
+    now: Date;
+  }
+): Promise<void> => {
+  if (!content) {
+    return;
+  }
+  await tell(
+    tx,
+    farmId,
+    {
+      kind,
+      about: { id: eventId, assignedRole: content.assignedRole },
+      facts: {
+        sopBn: content.name.bn,
+        sopEn: content.name.en ?? content.name.bn,
+        definitionId,
+      },
+    },
+    now
+  );
+};
+
 /** Publishing is the only way an SOP's content changes: a new immutable Version, and the
  *  Definition pointed at it. Nothing ever rewrites a published Version (ADR 0001). */
 const publishVersion = async (
@@ -774,6 +813,7 @@ export const sopsRouter = {
       if (existing.retiredAt) {
         return { definitionId: existing.id, calledOff: 0 };
       }
+      const content = publishedContent(existing);
       const now = context.clock.now();
       const calledOff = await audited(context).write(
         {
@@ -784,7 +824,7 @@ export const sopsRouter = {
           after: (tx) => readStanding(tx, farmId, existing.id),
           reason: input.note,
         },
-        async (tx) => {
+        async (tx, eventId) => {
           await tx
             .update(sopDefinition)
             .set({ retiredAt: now })
@@ -795,7 +835,7 @@ export const sopsRouter = {
                 isNull(sopDefinition.retiredAt)
               )
             );
-          return await callOffWork(
+          const called = await callOffWork(
             tx,
             farmId,
             eq(sopInstance.definitionId, existing.id),
@@ -805,6 +845,13 @@ export const sopsRouter = {
               unstartedOnly: true,
             }
           );
+          await tellItsDoers(tx, farmId, "sop_retired", {
+            eventId,
+            definitionId: existing.id,
+            content,
+            now,
+          });
+          return called;
         }
       );
       return { definitionId: existing.id, calledOff: calledOff.length };
@@ -839,7 +886,7 @@ export const sopsRouter = {
           after: (tx) => readStanding(tx, farmId, existing.id),
           reason: input.note,
         },
-        async (tx) => {
+        async (tx, eventId) => {
           if (content) {
             await assertOneSuchProcedure(tx, farmId, existing.id, content);
           }
@@ -852,6 +899,12 @@ export const sopsRouter = {
                 eq(sopDefinition.farmId, farmId)
               )
             );
+          await tellItsDoers(tx, farmId, "sop_restored", {
+            eventId,
+            definitionId: existing.id,
+            content,
+            now: context.clock.now(),
+          });
         }
       );
       return { definitionId: existing.id };

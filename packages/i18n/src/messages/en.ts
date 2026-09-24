@@ -1514,6 +1514,12 @@ export const en = {
     "Now raised for each Pen with animals, not once for the farm",
   "changed.checker_changed": "Now signed off by: {role}",
   "alerts.sopProposed": "{sop} — a change proposed",
+  "alerts.sopRetired": "{sop} was retired — its work is no longer raised",
+  "digest.sopRetired":
+    "{count, plural, one {# procedure} other {# procedures}} retired",
+  "alerts.sopRestored": "{sop} was brought back — its work is raised again",
+  "digest.sopRestored":
+    "{count, plural, one {# procedure} other {# procedures}} brought back",
   "digest.sopProposed":
     "{count, plural, one {# proposal} other {# proposals}} waiting",
   "alerts.sopPublished": "{sop} — new version {number}",
@@ -2299,6 +2305,7 @@ export const en = {
   /** The one notice that leads somewhere: the screen where the paper it is about is made. */
   "alerts.makeThePaper": "Make the papers",
   "alerts.openTheWork": "Open the work",
+  "alerts.openTheCard": "Open its card",
   "alerts.openHer": "See {tag}",
   "push.withdrawalChangedTitle": "A withdrawal has changed",
   "push.withdrawalChangedBody": "{tag} — see the farm app",
