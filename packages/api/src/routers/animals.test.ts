@@ -341,7 +341,7 @@ describe("the opening register", () => {
       tagNumber: first.tagNumber,
     });
     expect(detail.aliases).toEqual(["লালি", "7"]);
-    expect(detail.breed).toBe("Sahiwal");
+    expect(detail.breed?.nameEn).toBe("Sahiwal");
   });
 
   it("keeps the number already written on her ear tag, and the next animal is numbered after it", async () => {

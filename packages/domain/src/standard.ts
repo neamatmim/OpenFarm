@@ -271,6 +271,34 @@ export const STANDARD_NOTIFIABLE_DISEASES = [
   { bn: "ব্রুসেলোসিস", en: "Brucellosis" },
 ] as const satisfies readonly Named[];
 
+/**
+ * The breeds a Bangladeshi dairy and fattening farm meets: the local cattle and the four local breeds BLRI
+ * recognises, and the imported breeds and their crosses. Spelled as the farm writes them — ক্রস, not সংকর. Every farm
+ * is given these the first time it opens its list, and keeps any it already wrote under the same name.
+ */
+export const STANDARD_BREEDS = {
+  local: { bn: "দেশি", en: "Local" },
+  redChittagong: { bn: "রেড চিটাগাং", en: "Red Chittagong" },
+  pabna: { bn: "পাবনা ক্যাটল", en: "Pabna" },
+  munshiganj: { bn: "মুন্সিগঞ্জ ক্যাটল", en: "Munshiganj" },
+  northBengalGrey: { bn: "নর্থ বেঙ্গল গ্রে", en: "North Bengal Grey" },
+  friesian: { bn: "হলস্টেইন ফ্রিজিয়ান", en: "Holstein Friesian" },
+  friesianCross: {
+    bn: "হলস্টেইন ফ্রিজিয়ান ক্রস",
+    en: "Holstein Friesian cross",
+  },
+  sahiwal: { bn: "শাহীওয়াল", en: "Sahiwal" },
+  sahiwalCross: { bn: "শাহীওয়াল ক্রস", en: "Sahiwal cross" },
+  jersey: { bn: "জার্সি", en: "Jersey" },
+  jerseyCross: { bn: "জার্সি ক্রস", en: "Jersey cross" },
+  redSindhi: { bn: "রেড সিন্ধি", en: "Red Sindhi" },
+  brahmanCross: { bn: "ব্রাহমা ক্রস", en: "Brahman cross" },
+} as const satisfies Record<string, Named>;
+export type StandardBreedKey = keyof typeof STANDARD_BREEDS;
+export const STANDARD_BREED_KEYS = Object.keys(
+  STANDARD_BREEDS
+) as StandardBreedKey[];
+
 /** What the Owner may start the farm with, a tick each. Rations bring the Feed Items they name. */
 export const STANDARD_KINDS = ["feed", "rations", "health"] as const;
 export type StandardKind = (typeof STANDARD_KINDS)[number];

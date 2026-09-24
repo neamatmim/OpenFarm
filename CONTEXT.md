@@ -42,6 +42,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Re-tag**: The recorded event of replacing a lost or unreadable Ear Tag with one carrying the same Tag Number. _Avoid_: Re-numbering (which never happens)
 
+**Breed**: One of the farm's list of breeds an Animal is written down under — the standard ones every farm is given (local cattle, the local breeds BLRI recognises, the imported breeds and their crosses) and the farm's own. An Animal names the Breed, not its words, so renaming a Breed renames it on every Animal. Retired, never removed; optional on an Animal, since nobody must know it to write her down. The opening register names one in either of its languages, and refuses a name the list does not have. _Avoid_: Type, variety, jat (in English text)
+
 **Arrival**: How an Animal came to be on the Farm — born here at a Calving, bought in at an Intake, or already standing when the Farm opened its register. Derived from the Move that put her in her first Pen, never entered. _Avoid_: Entry (an Entry is what a phone sends the Farm), admission, onboarding
 
 **Exit**: How an Animal left and when — Sold, Died or Culled — with what belongs to that way of going: who bought her and where she went, or what she died of and what was done with her. Derived from her State and the records of it, never entered; null while she is still here. Every paper and page says it the same way, because it is worked out once. _Avoid_: Departure, removal, disposal (that is what was done with a carcass)

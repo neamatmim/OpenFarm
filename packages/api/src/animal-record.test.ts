@@ -53,6 +53,8 @@ beforeAll(async () => {
 describe("her record", () => {
   it("says a bought animal arrived at her Intake, and where she has stood since", async () => {
     const manager = await as("manager", AT);
+    const breeds = await manager.breeds.list();
+    const sahiwal = breeds.find((one) => one.key === "sahiwal")?.id;
     const taken = await manager.intake.record({
       penId: world.quarantine,
       sex: "male",
@@ -60,7 +62,7 @@ describe("her record", () => {
       purchasePriceBdt: 90_000,
       weightKg: 200,
       estimatedAgeMonths: 20,
-      breed: "শাহীওয়াল",
+      breedId: sahiwal,
     });
     const walked = await as("manager", LATER);
     await walked.animals.move({

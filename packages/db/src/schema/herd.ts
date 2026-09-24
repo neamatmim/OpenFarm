@@ -75,6 +75,30 @@ export const tagSequence = pgTable(
   (table) => [uniqueIndex("tag_sequence_uidx").on(table.farmId, table.prefix)]
 );
 
+/**
+ * A breed on the farm's list: the standard ones carry a key, the farm's own carry none. An animal names one; renaming
+ * it renames it on every animal. Retired, never removed — an animal written down under it keeps it.
+ */
+export const breed = pgTable(
+  "breed",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** Which standard breed this is; null for one the farm added. */
+    key: text("key"),
+    nameBn: text("name_bn").notNull(),
+    nameEn: text("name_en"),
+    retiredAt: timestamp("retired_at"),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("breed_key_uidx").on(table.farmId, table.key),
+    uniqueIndex("breed_name_uidx").on(table.farmId, table.nameBn),
+  ]
+);
+
 /** One individual head of cattle, from arrival or birth until sale or death. */
 export const animal = pgTable(
   "animal",
@@ -101,7 +125,12 @@ export const animal = pgTable(
      *  **Internal Sale** moves her between owners — an Investor's animal may not quietly become the
      *  Owner's. A Venture owns only bought-in Fattening animals: one born here is the Farm's. */
     ownerVentureId: text("owner_venture_id").references(() => venture.id),
-    breed: text("breed"),
+    /** Her breed, from the farm's list. */
+    breedId: text("breed_id").references(() => breed.id),
+    /** The breed as it was typed before the farm kept a list. Read by nothing: the migration that made the list
+     *  carried every one of these into it. Kept one release so an app still running against the new schema can
+     *  read the column it knows, then dropped. */
+    breedAsTyped: text("breed"),
     birthDate: timestamp("birth_date"),
     /** Set when a photo exists; the client uses it to bust its cache. */
     photoUpdatedAt: timestamp("photo_updated_at"),

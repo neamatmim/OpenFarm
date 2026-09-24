@@ -27,6 +27,7 @@ import { AnimalPhoto } from "@/components/animal-photo";
 import type { RowAction } from "@/components/page-kit";
 import { ReportSighting } from "@/components/report-sighting";
 import { useLanguage } from "@/i18n/language-provider";
+import { breedName } from "@/lib/breed";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -173,7 +174,8 @@ const useMenuActs = (detail: AnimalDetail, powers: AnimalPowers) => {
 
 /** What she is, in a line under her number: her Side, her Pen, her breed, her age. */
 const WhatSheIs = ({ detail }: { detail: AnimalDetail }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const breed = breedName(detail.breed, language);
   const age = ageWords(t, herAge(detail));
   const hasAliases = detail.aliases.length !== 0;
   return (
@@ -184,7 +186,7 @@ const WhatSheIs = ({ detail }: { detail: AnimalDetail }) => {
           <MapPin aria-hidden className="size-4" />
           {detail.pen.shed.name} / {detail.pen.name}
         </span>
-        {detail.breed ? <span>{detail.breed}</span> : null}
+        {breed ? <span>{breed}</span> : null}
         {age ? <span>{age}</span> : null}
         {/* Whose animal she is, where she is not the Farm's own. The server says nothing of it to
             anybody it is not the business of, so what arrives here is already the right answer. */}

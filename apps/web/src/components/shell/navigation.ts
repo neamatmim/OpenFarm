@@ -8,6 +8,7 @@ import {
   Building2,
   ClipboardCheck,
   ClipboardList,
+  Dna,
   Eye,
   FileBadge,
   HandCoins,
@@ -109,6 +110,12 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/admin/herd",
         label: "nav.herd",
         icon: Warehouse,
+        audience: "runsTheFarm",
+      },
+      {
+        to: "/admin/breeds",
+        label: "nav.breeds",
+        icon: Dna,
         audience: "runsTheFarm",
       },
       {

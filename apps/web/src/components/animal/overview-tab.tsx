@@ -16,6 +16,7 @@ import {
 import { TwoProjections } from "@/components/gain";
 import { Notice, Section, StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
+import { breedName } from "@/lib/breed";
 import { choice, words } from "@/lib/correcting";
 import { causeWord, disposalWord } from "@/lib/mortality-words";
 import { orpc } from "@/utils/orpc";
@@ -320,7 +321,9 @@ const AboutHer = ({ detail }: { detail: AnimalDetail }) => {
           {detail.pen.shed.name} / {detail.pen.name}
         </Fact>
         <Fact label={t("animals.sex")}>{t(`animals.sex.${detail.sex}`)}</Fact>
-        <Fact label={t("animals.breed")}>{detail.breed ?? "—"}</Fact>
+        <Fact label={t("animals.breed")}>
+          {breedName(detail.breed, language) ?? "—"}
+        </Fact>
         <Fact label={t("animals.birthDate")}>
           {bornWords(detail, t, language)}
         </Fact>

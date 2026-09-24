@@ -23,20 +23,20 @@ row, take the photo, and move on.
 
 ## The columns
 
-| Column             | Needed                | What goes in it                                                                                                                                                  |
-| ------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tag`              | yes, for this walk    | The number just written on her tag, e.g. `D-0014`. Left blank, the app gives the next number instead, and then the ear tag has to be written _after_ the import. |
-| `sex`              | yes                   | `female` or `male`                                                                                                                                               |
-| `side`             | yes                   | `dairy` or `fattening`                                                                                                                                           |
-| `state`            | yes                   | dairy: `calf`, `heifer`, `pregnant_heifer`, `milking`, `dry` — fattening: `quarantine`, `fattening`, `ready_for_sale`                                            |
-| `pen`              | yes                   | The pen's name as it is in the app. If two sheds have a pen of the same name, write `Shed/Pen`.                                                                  |
-| `source`           | yes                   | `born` (born on this farm) or `bought`                                                                                                                           |
-| `breed`            | no                    | e.g. `Sahiwal`, `Friesian cross`, `Local`                                                                                                                        |
-| `birth_date`       | no                    | `YYYY-MM-DD`. A guess is fine: the 1st of the month or year you think.                                                                                           |
-| `calved_at`        | for `milking`         | When she last calved, `YYYY-MM-DD`. Without it the app cannot say how many days she has been in milk.                                                            |
-| `expected_calving` | for `pregnant_heifer` | `YYYY-MM-DD`. Required for a pregnant heifer, and may be given for a `milking` or `dry` cow known to be in calf.                                                 |
-| `official_tag`     | no                    | Any government or project tag she already has.                                                                                                                   |
-| `alias`            | no                    | Her old name or mark, e.g. `লালি`. Several are separated with `;` — `লালি;7`. They are shown on her page; the app does not search by them.                       |
+| Column             | Needed                | What goes in it                                                                                                                                                                         |
+| ------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tag`              | yes, for this walk    | The number just written on her tag, e.g. `D-0014`. Left blank, the app gives the next number instead, and then the ear tag has to be written _after_ the import.                        |
+| `sex`              | yes                   | `female` or `male`                                                                                                                                                                      |
+| `side`             | yes                   | `dairy` or `fattening`                                                                                                                                                                  |
+| `state`            | yes                   | dairy: `calf`, `heifer`, `pregnant_heifer`, `milking`, `dry` — fattening: `quarantine`, `fattening`, `ready_for_sale`                                                                   |
+| `pen`              | yes                   | The pen's name as it is in the app. If two sheds have a pen of the same name, write `Shed/Pen`.                                                                                         |
+| `source`           | yes                   | `born` (born on this farm) or `bought`                                                                                                                                                  |
+| `breed`            | no                    | A breed on the farm's list (**Herd → Breeds**), in Bangla or English: `শাহীওয়াল ক্রস` or `Sahiwal cross`. A name not on the list is refused, so add the farm's own breeds there first. |
+| `birth_date`       | no                    | `YYYY-MM-DD`. A guess is fine: the 1st of the month or year you think.                                                                                                                  |
+| `calved_at`        | for `milking`         | When she last calved, `YYYY-MM-DD`. Without it the app cannot say how many days she has been in milk.                                                                                   |
+| `expected_calving` | for `pregnant_heifer` | `YYYY-MM-DD`. Required for a pregnant heifer, and may be given for a `milking` or `dry` cow known to be in calf.                                                                        |
+| `official_tag`     | no                    | Any government or project tag she already has.                                                                                                                                          |
+| `alias`            | no                    | Her old name or mark, e.g. `লালি`. Several are separated with `;` — `লালি;7`. They are shown on her page; the app does not search by them.                                              |
 
 A state has to belong to its side: a `dairy` row cannot be `fattening`.
 

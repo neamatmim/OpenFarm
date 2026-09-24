@@ -5,7 +5,7 @@ import { balanceAtMonthEnd } from "../venture-store";
 import type { Bull, Herd } from "./herd";
 import type { Happening } from "./history";
 import { addDays, onFarm } from "./runtime";
-import { CATTLE_BUYERS, daysBetween } from "./shared";
+import { CATTLE_BUYERS, breedIdNamed, daysBetween } from "./shared";
 import type { Farm } from "./standing";
 
 /**
@@ -296,7 +296,7 @@ const buyOnTheVenture = async (
       buyingTripId: trip.id,
       weightKg,
       estimatedAgeMonths: farm.random.int(17, 26),
-      breed,
+      breedId: await breedIdNamed(farm.as.manager, breed),
       paymentMethod: "cash",
       // What makes her the Venture's rather than the Farm's, set at Intake and only correctable inside
       // the window — and the Window she is being bought to sell in.

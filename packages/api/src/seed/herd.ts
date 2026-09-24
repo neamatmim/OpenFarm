@@ -1,4 +1,5 @@
 import { DAY, addDays, onFarm } from "./runtime";
+import { breedIdNamed } from "./shared";
 /* oxlint-disable no-await-in-loop */
 import type { Farm, PenKey } from "./standing";
 import { SHEDS } from "./standing";
@@ -52,7 +53,7 @@ const BULL_BREEDS = [
   "দেশি",
   "পাবনা ক্যাটল",
   "শাহীওয়াল ক্রস",
-  "হলস্টেইন ক্রস ষাঁড়",
+  "হলস্টেইন ফ্রিজিয়ান ক্রস",
 ];
 const NAMES = [
   "লক্ষ্মী",
@@ -292,7 +293,7 @@ export const takeInBulls = async (
       buyingTripId: trip.id,
       weightKg,
       estimatedAgeMonths: random.int(16, 26),
-      breed,
+      breedId: await breedIdNamed(farm.as.manager, breed),
       paymentMethod: random.chance(0.6) ? "cash" : "bank",
     });
     const bull: Bull = {
