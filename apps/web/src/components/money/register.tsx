@@ -179,7 +179,7 @@ const MoneyCard = ({ row }: { row: MoneyRow }) => {
           <span className="font-medium">{row.what}</span>
           {event.tagNumber ? <TagLink tagNumber={event.tagNumber} /> : null}
         </span>
-        <Amount className="text-lg leading-tight" event={event} />
+        <Amount className="text-lg" event={event} />
       </div>
       <span className="text-muted-foreground text-xs">
         {formatDate(event.occurredAt, language)}

@@ -72,7 +72,7 @@ const Tally = ({
   className?: string;
 }) => (
   <div className={cn("flex min-w-0 flex-col gap-0.5", className)}>
-    <dt className="text-muted-foreground text-xs leading-snug">{label}</dt>
+    <dt className="text-muted-foreground text-xs">{label}</dt>
     <dd
       className={cn(
         "text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
