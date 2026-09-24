@@ -149,13 +149,13 @@ beforeAll(async () => {
 
 describe("an Investor's Ventures", () => {
   it("are theirs alone: the Venture they are in, their Units and the capital the Farm holds of theirs", async () => {
-    const ventures = await rahim.portal.ventures();
+    const { agreements } = await rahim.portal.portfolio();
 
-    expect(ventures).toEqual([
+    expect(agreements).toEqual([
       expect.objectContaining({
-        agreementId: agreementOf["রহিম"],
+        id: agreementOf["রহিম"],
         units: 3,
-        capitalBdt: 150_000,
+        capitalHeldBdt: 150_000,
         investorsPercent: 60,
       }),
     ]);

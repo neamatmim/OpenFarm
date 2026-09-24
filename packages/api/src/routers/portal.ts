@@ -1,4 +1,4 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { farmDayOf, maskedDigits } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -14,13 +14,17 @@ import {
   theirSpend,
 } from "../investor-statement-store";
 import { shareOfUnits } from "../investor-statement-words";
+import { signedInOn } from "../membership";
 import {
+  endSignIn,
   investorOf,
   markSeen,
   ownerNameOf,
   requireTheirs,
+  signInHasRunItsDay,
   takeUpInvitation,
 } from "../portal-store";
+import { theirAgreements } from "../their-agreements";
 import { theirProgress } from "../venture-herd-store";
 
 /** Anybody who is not an Investor the farm has let in, however they came. */
@@ -45,12 +49,17 @@ export const investorProcedure = protectedProcedure.use(
     if (!investor) {
       throw refuse();
     }
-    await markSeen(
-      context.db,
-      theFarm.id,
-      context.actor.id,
-      context.clock.now()
-    );
+    const now = context.clock.now();
+    // A sign-in lasts a working day, however recently it was used: then they sign in again.
+    const signedIn = context.session?.session;
+    if (signedIn && signInHasRunItsDay(new Date(signedIn.createdAt), now)) {
+      await endSignIn(context.db, signedIn.id, now);
+      throw new ORPCError("UNAUTHORIZED", {
+        message: "Signed in for a day already — sign in again",
+        data: { refusal: "signed_in_too_long" },
+      });
+    }
+    await markSeen(context.db, theFarm.id, context.actor.id, now);
     return next({ context: { farm: theFarm, investor } });
   }
 );
@@ -72,49 +81,65 @@ export const portalRouter = {
     )
     .handler(({ context, input }) => takeUpInvitation(context, input)),
 
-  /** Who is signed in to the portal, and which farm's. */
-  me: investorProcedure.handler(({ context }) => ({
-    investorId: context.investor.id,
-    name: context.investor.name,
-    farm: { name: context.farm.name },
-  })),
+  /**
+   * Who is signed in to the portal, which farm's and how to reach it, and their own record as the farm holds it — the
+   * NID and the bank account with all but their last digits hidden, enough to know them by on a screen somebody may
+   * be looking over. They are put right by the Owner, not here.
+   */
+  me: investorProcedure.handler(async ({ context }) => {
+    const theirs = await context.db.query.investor.findFirst({
+      where: { id: context.investor.id, farmId: context.farm.id },
+    });
+    return {
+      investorId: context.investor.id,
+      name: context.investor.name,
+      farm: {
+        name: context.farm.name,
+        phone: context.farm.phone,
+        address: context.farm.address,
+      },
+      record: {
+        phone: theirs?.phone ?? context.investor.phone,
+        address: theirs?.address ?? null,
+        nid: theirs?.nid ? maskedDigits(theirs.nid) : null,
+        bankAccount: theirs?.bankAccount
+          ? maskedDigits(theirs.bankAccount)
+          : null,
+        nominee: theirs?.nomineeName
+          ? {
+              name: theirs.nomineeName,
+              relation: theirs.nomineeRelation,
+              phone: theirs.nomineePhone,
+            }
+          : null,
+      },
+    };
+  }),
 
   /**
-   * Every Venture this Investor is in, by the Agreement they signed for it, the latest first: the Venture and where
-   * it stands, their Units and the capital the Farm holds of theirs, and the terms in force today. Nobody else's.
+   * Their whole part in the farm's Ventures: each Agreement with the capital held on it and what a Settlement paid,
+   * and every taka of theirs that moved — capital in, capital back, payouts — the latest first. Read from their side
+   * and narrowed to them before anything is assembled, as the Owner's page of them is.
    */
-  ventures: investorProcedure.handler(async ({ context }) => {
-    const today = farmDayOf(context.clock.now());
-    const signed = await context.db.query.investmentAgreement.findMany({
-      where: { farmId: context.farm.id, investorId: context.investor.id },
-      columns: { id: true },
-      orderBy: { createdAt: "desc", id: "desc" },
-    });
-    return Promise.all(
-      signed.map(async (one) => {
-        const standing = await hisStanding(
-          context.db,
-          context.farm.id,
-          one.id,
-          today
-        );
-        const run = await theVentureOf(
-          context.db,
-          context.farm.id,
-          standing.venture.id
-        );
-        return {
-          agreementId: one.id,
-          venture: { name: standing.venture.name, state: run.state },
-          units: standing.agreement.units,
-          capitalBdt: standing.capitalBdt,
-          investorsPercent: standing.agreement.investorsPercent,
-          targetWindowStart: standing.agreement.targetWindowStart,
-          targetWindowEnd: standing.agreement.targetWindowEnd,
-          amendedOn: standing.agreement.amendedOn,
-        };
-      })
+  portfolio: investorProcedure.handler(({ context }) =>
+    theirAgreements(
+      context.db,
+      context.farm.id,
+      context.investor.id,
+      farmDayOf(context.clock.now())
+    )
+  ),
+
+  /** Where they are signed in to the portal now, the one they are reading on marked, so they can sign the rest
+   *  out. */
+  signedInOn: investorProcedure.handler(async ({ context }) => {
+    const here = context.session?.session.id ?? null;
+    const places = await signedInOn(
+      context.db,
+      context.actor.id,
+      context.clock.now()
     );
+    return places.map((one) => ({ ...one, here: one.id === here }));
   }),
 
   /**

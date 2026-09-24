@@ -48,6 +48,63 @@ export const en = {
     "You no longer work on this farm. Ask the Owner if this is wrong.",
   "auth.notInvited":
     "The farm has not invited this address. Ask the owner to invite you, then open the account with the code you are given.",
+  "portal.account.title": "Your account",
+  "portal.account.hint":
+    "Your record as the farm holds it, who to ask about it, your password, and where you are signed in.",
+  "portal.account.details": "Your details",
+  "portal.account.detailsHint":
+    "As the farm holds them, with most of the digits hidden. If anything is wrong, ask the farm's Owner to put it right.",
+  "portal.account.farm": "The farm",
+  "portal.account.farmHint":
+    "Who to ask about your Ventures, your papers or your details.",
+  "portal.account.farmName": "Farm",
+  "portal.account.password": "Password",
+  "portal.account.passwordHint":
+    "Choose a new one. Everywhere else you are signed in is signed out with it.",
+  "portal.account.current": "Your password now",
+  "portal.account.change": "Change password",
+  "portal.account.passwordChanged":
+    "Password changed. You are signed out everywhere else.",
+  "portal.account.wrongPassword": "That is not your password now.",
+  "portal.account.tooMany": "Too many tries. Wait a minute and try again.",
+  "portal.account.signedIn": "Where you are signed in",
+  "portal.account.signedInHint":
+    "A sign-in lasts a working day, then you sign in again.",
+  "portal.account.signOutOthers": "Sign out everywhere else",
+  "portal.account.othersSignedOut": "Signed out everywhere else",
+  "portal.account.othersNotSignedOut":
+    "Could not sign the others out. Try again.",
+  "portal.account.aBrowser": "A browser",
+  "portal.account.since": "Since {when}",
+  "portal.account.here": "This device",
+  "portal.activity.title": "In the portal",
+  "portal.activity.cameIn": "Took the invitation up",
+  "portal.activity.lastIn": "Last in",
+  "portal.activity.signedIn": "Signed in now",
+  "portal.activity.places":
+    "{count, plural, one {On # device} other {On # devices}}",
+  "portal.activity.read": "Papers they read, the latest first",
+  "portal.activity.readNothing": "No paper read yet",
+  "portal.askTheFarm": "Questions? Call {farm} on {phone}.",
+  "portal.endedTitle": "Please sign in again",
+  "portal.endedHint":
+    "You were signed in for a working day, so the portal signed you out to keep your figures safe.",
+  "portal.forgot":
+    "Forgotten your password? Ask the farm's Owner for a new code and set a new password with it.",
+  "portal.heldNow": "Your capital held now",
+  "portal.paidOut": "Paid out to you",
+  "portal.profit": "Your share of the profit",
+  "portal.yourVentures": "Your Ventures",
+  "portal.notice":
+    "This portal shows your own Agreements with the farm and nothing else. It is not an offer to invest, and no money moves through it.",
+  "portal.account.new": "New password",
+  "portal.money.hint":
+    "Every taka of yours that moved: capital in, capital sent back, and payouts.",
+  "portal.money.none": "None of your money has moved yet",
+  "portal.money.toYou": "Back to you",
+  "portal.percent": "{percent}%",
+  "portal.farmTakes":
+    "The farm takes {percent}%, after your capital is returned in full",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",
@@ -79,7 +136,7 @@ export const en = {
   "portal.refused.phoneHasPortal":
     "Another Investor on the same phone already has the portal.",
   "portal.refused.retired": "Bring them back before inviting them.",
-  "portal.homeTitle": "Your Ventures",
+  "portal.homeTitle": "Your portfolio",
   "portal.homeHint":
     "Every Venture your money is in, and how each is doing today.",
   "portal.noVentures": "You are not in any Venture yet",
@@ -88,9 +145,8 @@ export const en = {
   "portal.capital": "Your capital",
   "portal.split": "Profit split",
   "portal.splitLine": "You {investors}% · Farm {farm}%",
-  "portal.splitHint": "After your capital is returned in full",
   "portal.window": "Sale window",
-  "portal.back": "Your Ventures",
+  "portal.back": "Your portfolio",
   "portal.ventureHint":
     "How the Venture stands today. Days are counted and weights are read; nothing here is a forecast.",
   "portal.amendedOn": "Amended on",

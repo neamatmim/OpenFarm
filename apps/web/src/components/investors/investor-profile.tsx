@@ -1,14 +1,14 @@
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import type { Investor } from "@/components/investors/investor-types";
-import { PortalAccess } from "@/components/investors/portal-access";
+import { PortalAccess, standingOf } from "@/components/investors/portal-access";
 import { Section } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -204,6 +204,85 @@ const OnFile = ({ investor }: { investor: Investor }) => {
   );
 };
 
+/** What each paper read in the portal is called. */
+const PAPER_READ = {
+  joining_letter: "portal.paper.joining",
+  progress_statement: "portal.paper.progress",
+  settlement_statement: "portal.paper.settlement",
+} as const;
+
+/** How many of the papers they read are listed before the rest are left to the trail. */
+const READ_SHOWN = 5;
+
+/**
+ * What an Investor has done in the portal, for the Owner: when they came in, when they were last in, how many places
+ * they are signed in, and the latest papers they read — each already an Export under their name in the trail.
+ * Nothing for somebody who never took an invitation up.
+ */
+const PortalActivity = ({ investor }: { investor: Investor }) => {
+  const { t, language } = useLanguage();
+  const activity = useQuery(
+    orpc.investors.portalActivity.queryOptions({ input: { id: investor.id } })
+  );
+  const theirs = useQuery(
+    orpc.investors.agreements.queryOptions({ input: { id: investor.id } })
+  );
+  const done = activity.data;
+  if (!done) {
+    return null;
+  }
+  const ventureOf = new Map(
+    (theirs.data?.agreements ?? []).map((one) => [one.id, one.venture.name])
+  );
+  const when = (at: Date | null) =>
+    at ? formatDate(new Date(at), language, "dateTime") : null;
+  return (
+    <div className="flex flex-col gap-3 border-t pt-4">
+      <h3 className="text-sm font-semibold">{t("portal.activity.title")}</h3>
+      <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
+        <Detail label={t("portal.activity.cameIn")}>
+          {when(done.acceptedAt)}
+        </Detail>
+        <Detail label={t("portal.activity.lastIn")}>
+          {when(done.lastSeenAt)}
+        </Detail>
+        <Detail label={t("portal.activity.signedIn")}>
+          {t("portal.activity.places", { count: done.signedInOn.length })}
+        </Detail>
+      </dl>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-muted-foreground text-xs">
+          {t("portal.activity.read")}
+        </span>
+        {done.read.length === 0 ? (
+          <span className="text-muted-foreground text-sm">
+            {t("portal.activity.readNothing")}
+          </span>
+        ) : (
+          <ul className="flex flex-col divide-y rounded-lg border text-sm">
+            {done.read.slice(0, READ_SHOWN).map((one) => (
+              <li
+                className="flex flex-col gap-0.5 px-3 py-2"
+                key={`${one.agreementId}-${String(one.at)}`}
+              >
+                <span className="font-medium">
+                  {t(PAPER_READ[one.paper])}
+                  {ventureOf.get(one.agreementId)
+                    ? ` · ${ventureOf.get(one.agreementId)}`
+                    : ""}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  {when(one.at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /**
  * Everything the farm holds about who one Investor is, in the parts it was written in — who they are, where their
  * money goes, and their nominee — with their way into the portal beside it, and whether the farm may still sign
@@ -255,6 +334,10 @@ export const InvestorProfile = ({
       <div className="flex flex-col gap-4">
         <Section description={t("portal.recordHint")} title={t("portal.title")}>
           <PortalAccess investor={investor} portalOpen={portalOpen} />
+          {standingOf(investor) === "in" ||
+          standingOf(investor) === "taken_away" ? (
+            <PortalActivity investor={investor} />
+          ) : null}
         </Section>
         <OnFile investor={investor} />
       </div>

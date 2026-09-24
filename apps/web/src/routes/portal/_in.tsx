@@ -7,14 +7,16 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router";
-import { LogOut, Sprout } from "lucide-react";
+import { LogOut, Sprout, UserRound } from "lucide-react";
 
 import LanguageToggle from "@/components/language-toggle";
+import { PortalNotice } from "@/components/portal/portal-door";
 import { ThemeMenu } from "@/components/theme-menu";
 import { Wordmark } from "@/components/wordmark";
 import { getUser } from "@/functions/get-user";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
+import { wordOf } from "@/lib/saying";
 import { orpc } from "@/utils/orpc";
 
 /**
@@ -47,9 +49,19 @@ const PortalShell = () => {
           </span>
         </Link>
         <div className="ms-auto flex items-center gap-1">
-          <span className="text-muted-foreground me-2 hidden text-sm sm:inline">
-            {me.data?.name}
-          </span>
+          <Link
+            activeProps={{ className: "bg-muted" }}
+            className="hover:bg-muted focus-visible:ring-ring me-1 flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none focus-visible:ring-2"
+            to="/portal/account"
+          >
+            <UserRound aria-hidden className="size-4" />
+            <span className="hidden sm:inline">
+              {me.data?.name ?? t("portal.account.title")}
+            </span>
+            <span className="sr-only sm:hidden">
+              {t("portal.account.title")}
+            </span>
+          </Link>
           <LanguageToggle />
           <ThemeMenu />
           <Button
@@ -74,6 +86,16 @@ const PortalShell = () => {
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
         <Outlet />
       </main>
+      <PortalNotice>
+        {me.data?.farm.phone ? (
+          <p>
+            {t("portal.askTheFarm", {
+              farm: me.data.farm.name,
+              phone: me.data.farm.phone,
+            })}
+          </p>
+        ) : null}
+      </PortalNotice>
     </div>
   );
 };
@@ -97,6 +119,18 @@ export const Route = createFileRoute("/portal/_in")({
     });
     if (!me.investor) {
       throw redirect({ to: "/dashboard" });
+    }
+    // A sign-in lasts a working day: past it, the portal ends it and they sign in again, told why.
+    try {
+      await context.queryClient.fetchQuery({
+        ...context.orpc.portal.me.queryOptions(),
+        staleTime: 0,
+      });
+    } catch (error) {
+      if (wordOf(error) === "signed_in_too_long") {
+        throw redirect({ search: { ended: true }, to: "/portal/login" });
+      }
+      throw error;
     }
   },
   component: PortalShell,

@@ -48,7 +48,7 @@ const SYSTEMS = [
 ] as const;
 
 /** A browser's long self-description made readable — "Chrome · Mac" — or nothing when it is not one the farm knows. */
-const deviceOf = (agent: string | null): string | null => {
+export const deviceOf = (agent: string | null): string | null => {
   if (!agent) {
     return null;
   }

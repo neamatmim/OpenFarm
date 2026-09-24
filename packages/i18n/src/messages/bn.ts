@@ -49,6 +49,60 @@ export const bn: Record<MessageKey, string> = {
   "auth.noLongerHere": "আপনি আর এই খামারে কাজ করেন না। ভুল হলে মালিককে বলুন।",
   "auth.notInvited":
     "এই ঠিকানায় খামার কাউকে ডাকেনি। মালিককে বলুন আপনাকে যোগ করতে, তারপর যে কোড পাবেন তা দিয়ে অ্যাকাউন্ট খুলুন।",
+  "portal.account.title": "আপনার অ্যাকাউন্ট",
+  "portal.account.hint":
+    "খামারে আপনার যে তথ্য আছে, কার কাছে জানতে চাইবেন, আপনার পাসওয়ার্ড, আর কোথায় সাইন ইন আছেন।",
+  "portal.account.details": "আপনার তথ্য",
+  "portal.account.detailsHint":
+    "খামারে যেমন আছে, বেশিরভাগ অঙ্ক লুকানো। কিছু ভুল থাকলে খামারের মালিককে ঠিক করে দিতে বলুন।",
+  "portal.account.farm": "খামার",
+  "portal.account.farmHint": "আপনার ভেঞ্চার, কাগজ বা তথ্য নিয়ে যাঁকে জিজ্ঞেস করবেন।",
+  "portal.account.farmName": "খামার",
+  "portal.account.password": "পাসওয়ার্ড",
+  "portal.account.passwordHint":
+    "নতুন একটি বেছে নিন। অন্য যেখানে সাইন ইন আছেন, সেখান থেকে সাইন আউট হয়ে যাবে।",
+  "portal.account.current": "আপনার এখনকার পাসওয়ার্ড",
+  "portal.account.change": "পাসওয়ার্ড বদলান",
+  "portal.account.passwordChanged":
+    "পাসওয়ার্ড বদলানো হয়েছে। অন্য সব জায়গা থেকে সাইন আউট করা হয়েছে।",
+  "portal.account.wrongPassword": "এটি আপনার এখনকার পাসওয়ার্ড নয়।",
+  "portal.account.tooMany": "অনেকবার চেষ্টা হয়েছে। এক মিনিট পরে আবার চেষ্টা করুন।",
+  "portal.account.signedIn": "যেখানে সাইন ইন আছেন",
+  "portal.account.signedInHint":
+    "একবার সাইন ইন একটি কর্মদিবস চলে, তারপর আবার সাইন ইন করতে হয়।",
+  "portal.account.signOutOthers": "অন্য সব জায়গা থেকে সাইন আউট",
+  "portal.account.othersSignedOut": "অন্য সব জায়গা থেকে সাইন আউট হয়েছে",
+  "portal.account.othersNotSignedOut":
+    "অন্যগুলো থেকে সাইন আউট করা গেল না। আবার চেষ্টা করুন।",
+  "portal.account.aBrowser": "একটি ব্রাউজার",
+  "portal.account.since": "{when} থেকে",
+  "portal.account.here": "এই ডিভাইস",
+  "portal.activity.title": "পোর্টালে",
+  "portal.activity.cameIn": "আমন্ত্রণ গ্রহণ করেছেন",
+  "portal.activity.lastIn": "শেষ এসেছেন",
+  "portal.activity.signedIn": "এখন সাইন ইন",
+  "portal.activity.places": "{count}টি ডিভাইসে",
+  "portal.activity.read": "যে কাগজ পড়েছেন, সর্বশেষটি আগে",
+  "portal.activity.readNothing": "এখনো কোনো কাগজ পড়েননি",
+  "portal.askTheFarm": "প্রশ্ন আছে? {farm}-কে ফোন করুন {phone} নম্বরে।",
+  "portal.endedTitle": "আবার সাইন ইন করুন",
+  "portal.endedHint":
+    "একটি কর্মদিবস ধরে সাইন ইন ছিলেন, তাই আপনার হিসাব নিরাপদ রাখতে পোর্টাল আপনাকে সাইন আউট করেছে।",
+  "portal.forgot":
+    "পাসওয়ার্ড ভুলে গেছেন? খামারের মালিকের কাছে নতুন কোড চেয়ে নিন, আর তা দিয়ে নতুন পাসওয়ার্ড ঠিক করুন।",
+  "portal.heldNow": "এখন আপনার মূলধন",
+  "portal.paidOut": "আপনাকে পরিশোধ করা হয়েছে",
+  "portal.profit": "মুনাফায় আপনার অংশ",
+  "portal.yourVentures": "আপনার ভেঞ্চার",
+  "portal.notice":
+    "এই পোর্টালে শুধু খামারের সঙ্গে আপনার নিজের চুক্তিগুলো দেখা যায়, আর কিছু নয়। এটি বিনিয়োগের কোনো প্রস্তাব নয়, আর এর মাধ্যমে কোনো টাকা লেনদেন হয় না।",
+  "portal.account.new": "নতুন পাসওয়ার্ড",
+  "portal.money.hint":
+    "আপনার যত টাকা নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
+  "portal.money.none": "আপনার কোনো টাকা এখনো নড়েনি",
+  "portal.money.toYou": "আপনাকে ফেরত",
+  "portal.percent": "{percent}%",
+  "portal.farmTakes": "আপনার মূলধন সম্পূর্ণ ফেরতের পর খামার পায় {percent}%",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
   "portal.title": "বিনিয়োগকারী পোর্টাল",
@@ -80,7 +134,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.refused.phoneHasPortal":
     "একই ফোনের আরেকজন বিনিয়োগকারীর পোর্টাল আগেই আছে।",
   "portal.refused.retired": "আমন্ত্রণ জানানোর আগে তাঁকে ফিরিয়ে আনুন।",
-  "portal.homeTitle": "আপনার ভেঞ্চার",
+  "portal.homeTitle": "আপনার পোর্টফোলিও",
   "portal.homeHint": "আপনার টাকা যে সব ভেঞ্চারে আছে, আর প্রতিটি আজ কেমন চলছে।",
   "portal.noVentures": "আপনি এখনো কোনো ভেঞ্চারে নেই",
   "portal.units": "ইউনিট",
@@ -88,9 +142,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.capital": "আপনার মূলধন",
   "portal.split": "মুনাফার ভাগ",
   "portal.splitLine": "আপনি {investors}% · খামার {farm}%",
-  "portal.splitHint": "আপনার মূলধন সম্পূর্ণ ফেরতের পর",
   "portal.window": "বিক্রয়ের সময়",
-  "portal.back": "আপনার ভেঞ্চার",
+  "portal.back": "আপনার পোর্টফোলিও",
   "portal.ventureHint":
     "আজ ভেঞ্চারটি যেমন আছে। দিন গোনা আর ওজন মাপা; এখানে কিছুই পূর্বাভাস নয়।",
   "portal.amendedOn": "সংশোধনের তারিখ",

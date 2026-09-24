@@ -25,6 +25,7 @@ import { authClient } from "@/lib/auth-client";
  */
 const PortalLogin = () => {
   const { t } = useLanguage();
+  const { ended } = Route.useSearch();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -69,6 +70,11 @@ const PortalLogin = () => {
             {t("portal.signInHint")}
           </p>
         </div>
+        {ended && !refused ? (
+          <Notice title={t("portal.endedTitle")} tone="info">
+            {t("portal.endedHint")}
+          </Notice>
+        ) : null}
         {refused ? (
           <Notice title={t("auth.refused")} tone="danger">
             {refused}
@@ -100,18 +106,28 @@ const PortalLogin = () => {
           {pending ? <Spinner /> : null}
           {t("auth.signIn")}
         </Button>
-        <Link
-          className="text-primary self-center text-sm hover:underline"
-          to="/portal/join"
-        >
-          {t("portal.haveCode")}
-        </Link>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <Link
+            className="text-primary text-sm hover:underline"
+            to="/portal/join"
+          >
+            {t("portal.haveCode")}
+          </Link>
+          <p className="text-muted-foreground text-xs">{t("portal.forgot")}</p>
+        </div>
       </form>
     </PortalDoor>
   );
 };
 
+/** What the address may say: that the portal just ended a sign-in that had lasted its day. */
+interface LoginSearch {
+  ended?: true;
+}
+
 export const Route = createFileRoute("/portal/login")({
+  validateSearch: (search: Record<string, unknown>): LoginSearch =>
+    search.ended === true || search.ended === "true" ? { ended: true } : {},
   // Somebody already signed in goes on to the portal, which sends anybody who is not an Investor to the farm.
   beforeLoad: async () => {
     let session: Awaited<ReturnType<typeof getUser>> = null;
