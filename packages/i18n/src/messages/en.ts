@@ -1339,6 +1339,9 @@ export const en = {
   "sop.everyDay": "No day ticked: every day",
   "sop.onTheseDays": "Only on the ticked days",
   "sop.everyOtherWeek": "Every other week (fortnightly)",
+  "sop.wholeFarm": "Once for the whole farm, not for each Pen",
+  "sop.wholeFarmHint":
+    "For work about the farm itself — the footbath, the visitor book. Raised once, while any Pen has an animal it is for.",
   "sop.weekday.0": "Sun",
   "sop.weekday.1": "Mon",
   "sop.weekday.2": "Tue",
@@ -1474,6 +1477,10 @@ export const en = {
   "changed.grace_changed":
     "Grace is now {minutes, plural, one {# minute} other {# minutes}}",
   "changed.who_changed": "Now done by: {role}",
+  "changed.now_whole_farm":
+    "Now raised once for the whole farm, not for each Pen",
+  "changed.now_per_pen":
+    "Now raised for each Pen with animals, not once for the farm",
   "changed.checker_changed": "Now signed off by: {role}",
   "alerts.sopProposed": "{sop} — a change proposed",
   "digest.sopProposed":
@@ -1525,7 +1532,7 @@ export const en = {
   "feed.kpi.items": "Feed Items in store",
   "feed.kpi.itemsHint": "Being fed now",
   "feed.kpi.low": "Running low",
-  "feed.kpi.lowHint": "Below their level",
+  "feed.kpi.lowHint": "Below their level, or out of a feed a Pen is on",
   "feed.kpi.value": "Store value",
   "feed.kpi.valueHint": "At average price",
   "feed.kpi.bought": "Bought this month",

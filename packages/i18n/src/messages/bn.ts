@@ -1262,6 +1262,9 @@ export const bn: Record<MessageKey, string> = {
   "sop.everyDay": "কোনো দিন বাছাই নেই: প্রতিদিন",
   "sop.onTheseDays": "শুধু বাছাই করা দিনগুলোতে",
   "sop.everyOtherWeek": "এক সপ্তাহ পর পর (পাক্ষিক)",
+  "sop.wholeFarm": "প্রতিটি পেনের জন্য নয়, পুরো খামারের জন্য একবার",
+  "sop.wholeFarmHint":
+    "খামারের নিজের কাজের জন্য — ফুটবাথ, দর্শনার্থী খাতা। যতক্ষণ কোনো পেনে এর জন্য পশু আছে, দিনে একবার আসবে।",
   "sop.weekday.0": "রবি",
   "sop.weekday.1": "সোম",
   "sop.weekday.2": "মঙ্গল",
@@ -1392,6 +1395,9 @@ export const bn: Record<MessageKey, string> = {
   "changed.times_changed": "সময় বদলেছে: {times}",
   "changed.grace_changed": "ছাড় এখন {minutes} মিনিট",
   "changed.who_changed": "এখন করবে: {role}",
+  "changed.now_whole_farm": "এখন প্রতিটি পেনের জন্য নয়, পুরো খামারের জন্য একবার আসবে",
+  "changed.now_per_pen":
+    "এখন পুরো খামারের জন্য একবার নয়, পশু থাকা প্রতিটি পেনের জন্য আসবে",
   "changed.checker_changed": "এখন অনুমোদন করবে: {role}",
   "alerts.sopProposed": "{sop} — পরিবর্তনের প্রস্তাব",
   "digest.sopProposed": "{count}টি প্রস্তাব অপেক্ষায়",
@@ -1439,7 +1445,7 @@ export const bn: Record<MessageKey, string> = {
   "feed.kpi.items": "গুদামে উপাদান",
   "feed.kpi.itemsHint": "যা এখন খাওয়ানো হয়",
   "feed.kpi.low": "কমে আসছে",
-  "feed.kpi.lowHint": "সীমার নিচে নেমেছে",
+  "feed.kpi.lowHint": "সীমার নিচে, বা কোনো পেনে চলা খাবার শেষ",
   "feed.kpi.value": "গুদামের দাম",
   "feed.kpi.valueHint": "গড় দাম ধরে",
   "feed.kpi.bought": "এই মাসে কেনা",

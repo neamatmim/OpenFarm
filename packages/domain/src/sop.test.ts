@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { Step } from "./sop";
-import { maySkip, missingEvidence } from "./sop";
+import {
+  describeChanges,
+  findStructuralProblems,
+  maySkip,
+  missingEvidence,
+} from "./sop";
+import { standardPlaybook } from "./standard-playbook";
 
 // Which Steps may be skipped is asked by two readers — the server, refusing a skip it does not allow,
 // and the phone, deciding whether to draw the button at all. They used to answer differently. These are
@@ -110,5 +116,47 @@ describe("what a Step is still missing", () => {
     expect(
       missingEvidence(asking({ type: "note", required: false }), [""], noPhotos)
     ).toEqual([]);
+  });
+});
+
+describe("work about the whole farm", () => {
+  const { biosecurity } = standardPlaybook();
+
+  it("is the farm's one biosecurity check, and publishes as it is", () => {
+    expect(biosecurity.wholeFarm).toBe(true);
+    expect(findStructuralProblems(biosecurity)).toEqual([]);
+  });
+
+  it("walks no Pen, so no Step of it repeats at each animal", () => {
+    const [first, ...rest] = biosecurity.steps;
+    if (!first) {
+      throw new Error("the biosecurity check has steps");
+    }
+    const problems = findStructuralProblems({
+      ...biosecurity,
+      steps: [{ ...first, repeatPerAnimal: true }, ...rest],
+    });
+
+    expect(problems.join(" ")).toContain("walked once");
+  });
+
+  it("is raised by the clock, not by something that happened to an animal in a Pen", () => {
+    const problems = findStructuralProblems({
+      ...biosecurity,
+      triggers: [{ kind: "event", event: "arrival" }],
+    });
+
+    expect(problems.join(" ")).toContain("raised by the clock");
+  });
+
+  it("is a change the people doing the work are told of, either way", () => {
+    const perPen = { ...biosecurity, wholeFarm: undefined };
+
+    expect(describeChanges(perPen, biosecurity)).toContainEqual({
+      kind: "now_whole_farm",
+    });
+    expect(describeChanges(biosecurity, perPen)).toContainEqual({
+      kind: "now_per_pen",
+    });
   });
 });

@@ -100,6 +100,8 @@ export const sopContentSchema = z.object({
   purpose: bilingual,
   triggers: z.array(trigger),
   appliesTo: appliesTo.optional(),
+  /** Work about the whole farm, raised once rather than for each Pen. */
+  wholeFarm: z.boolean().optional(),
   assignedRole: z.enum(ROLES),
   checkerRole: z.enum(ROLES).nullable().default(null),
   graceMinutes: z.number().int().min(0).max(MAX_GRACE_MINUTES),

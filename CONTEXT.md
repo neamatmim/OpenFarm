@@ -60,7 +60,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **SOP Version**: An immutable snapshot of an SOP Definition. Every change creates a new one; history shows which Version was followed. _Avoid_: Revision, edit
 
-**SOP Instance**: One occurrence of an SOP falling due — e.g. morning milking on a given day. Assigned to a role, claimable by a person, reviewed by the checker. Most are in a Pen; work about the whole farm, like the Registration's renewal, is in none. _Avoid_: Task (too generic), job, run
+**SOP Instance**: One occurrence of an SOP falling due — e.g. morning milking on a given day. Assigned to a role, claimable by a person, reviewed by the checker. Most are in a Pen, one for each Pen holding an animal the SOP concerns — so a farm with none raises none. Work about the whole farm, like the Registration's renewal or an SOP marked for the whole farm (the daily biosecurity check), is in none, and raised once. _Avoid_: Task (too generic), job, run
 
 **Step**: One ordered item inside an SOP. May repeat per animal in the Instance's group. Requires Evidence; may write a farm record or change an animal's state. _Avoid_: Checkpoint, action
 

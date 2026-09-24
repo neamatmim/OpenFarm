@@ -75,3 +75,10 @@ export const calvingCauseParts = (
     ? { key: groups.key, lead: groups.lead as CalvingLead }
     : null;
 };
+
+/**
+ * The cause scheduled work about the whole farm carries: the time it is due. Work in no Pen has no Pen to keep it
+ * one a day, so this does — the same time is the same piece of work, however often the day is turned.
+ */
+export const wholeFarmCauseOf = (dueAt: Date): string =>
+  `whole-farm:${dueAt.toISOString()}`;
