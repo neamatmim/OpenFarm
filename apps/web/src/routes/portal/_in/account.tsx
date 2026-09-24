@@ -1,4 +1,7 @@
-import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_TOO_COMMON,
+} from "@OpenFarm/auth/password";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -118,6 +121,15 @@ const NewPassword = () => {
   const long = next.length >= PASSWORD_MIN_LENGTH;
   const same = next === again;
   const ready = current !== "" && long && same;
+  // What the door said, in the reader's words: too many tries, a password everybody uses, or the wrong current one.
+  const refusalOf = (error: { status: number; code?: string }) => {
+    if (error.status === TOO_MANY) {
+      return t("portal.account.tooMany");
+    }
+    return error.code === PASSWORD_TOO_COMMON
+      ? t("auth.passwordTooCommon")
+      : t("portal.account.wrongPassword");
+  };
   const change = async () => {
     setPending(true);
     setRefused(null);
@@ -138,11 +150,7 @@ const NewPassword = () => {
           });
         },
         onError: (error) => {
-          setRefused(
-            error.error.status === TOO_MANY
-              ? t("portal.account.tooMany")
-              : t("portal.account.wrongPassword")
-          );
+          setRefused(refusalOf(error.error));
         },
       }
     );

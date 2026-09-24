@@ -14,6 +14,11 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
+/** Why the farm would not set the password they chose, in their words. */
+const REFUSALS = {
+  password_too_common: "auth.passwordTooCommon",
+} as const;
+
 /**
  * Setting a password with the code the farm handed over, which is done signed out — somebody who has forgotten
  * theirs cannot sign in to change it.
@@ -23,7 +28,7 @@ import { orpc } from "@/utils/orpc";
  */
 export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
   const { t, language } = useLanguage();
-  const refused = useRefused();
+  const refused = useRefused(REFUSALS);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");

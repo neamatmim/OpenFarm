@@ -79,6 +79,24 @@ const onDevice = (): Persister => {
   };
 };
 
+/** Whether an answer is an Investor's, read in the portal: the procedure's path starts with `portal`. */
+const isPortalQuery = (queryKey: readonly unknown[]): boolean => {
+  const [path] = queryKey;
+  return Array.isArray(path) && path[0] === "portal";
+};
+
+/**
+ * Whether an answer is kept on the device: only what actually answered — a query that failed is not a picture of the
+ * farm — and never an Investor's. An Investor has no shed with no signal to read in, and their capital, their record
+ * and their papers left on a phone for a fortnight after they sign out are anybody's who picks it up (the exposure
+ * review, 2.5; ASVS 14.3.1).
+ */
+export const keptOnDevice = (query: {
+  queryKey: readonly unknown[];
+  state: { status: string };
+}): boolean =>
+  query.state.status === "success" && !isPortalQuery(query.queryKey);
+
 /** Starts keeping and restoring the cache. Browser only: the server renders the same
  *  components and has neither IndexedDB nor any need of them. */
 export const keepQueriesOnDevice = (queryClient: QueryClient): void => {
@@ -89,10 +107,7 @@ export const keepQueriesOnDevice = (queryClient: QueryClient): void => {
     queryClient,
     persister: onDevice(),
     maxAge: KEEP_FOR_MS,
-    dehydrateOptions: {
-      // Only what has actually answered. A query that failed is not a picture of the farm.
-      shouldDehydrateQuery: (query) => query.state.status === "success",
-    },
+    dehydrateOptions: { shouldDehydrateQuery: keptOnDevice },
   });
 };
 

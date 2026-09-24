@@ -37,6 +37,12 @@ Resolved 2026-09-25 by research, against OWASP ASVS 5.0.0 level 1. The findings 
 4. **`portal.join` has no per-address limit.** Its per-phone counter grows without bound.
 5. **Common passwords are accepted** (ASVS 6.2.4).
 
+**Must-fixes 2–5 were fixed on 2026-09-25 (branch `fix/portal-must-fixes`), each proven by a test that fails with the fix switched off:**
+- `join` counts wrong codes per caller as well as per phone; a non-mobile string is not counted; the counter sweeps what nothing remembers.
+- The ten thousand most common passwords (NCSC via SecLists) are refused at `join`, at the farm's code, and at Better Auth's sign-up, change and reset.
+- Sign-in says "closed" or "no longer here" only after the right password; a wrong one gets 401 whoever it names.
+- Portal answers are never kept on the device, and are forgotten at sign-out and at the 12-hour end.
+
 **Should fix:**
 - end Investor sessions at 12 hours inside better-auth, with `rememberMe: false`
 - count sign-in failures per account, with a back-off

@@ -15,6 +15,7 @@ import {
 } from "./attempts";
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { hashToken } from "./device";
 import { newInviteCode, signedInOn } from "./membership";
@@ -236,8 +237,9 @@ export const takePortalAway = async (
 /**
  * An Investor taking up the Owner's invitation: the phone they were written down with, the code handed to them, and
  * a password of their own. Opens their account the first time; afterwards — a new code for a forgotten password, or
- * access given back — sets the password they chose on the account they already have. Wrong codes are counted, per
- * phone, as every other code the farm hands out is. Answers with what the account signs in as.
+ * access given back — sets the password they chose on the account they already have. Wrong codes are counted against
+ * the phone and against whoever is calling, as every other code the farm hands out is. Answers with what the account
+ * signs in as.
  */
 export const takeUpInvitation = async (
   context: Context,
@@ -259,24 +261,32 @@ export const takeUpInvitation = async (
       "password_too_short"
     );
   }
+  refuseCommonPassword(input.password);
   const now = context.clock.now();
   const loginEmail = investorLoginOf(input.phone);
-  const guesses = `portal-code:${loginEmail ?? input.phone}`;
-  if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
+  const notAnInvitation = () =>
+    refused("That phone and code do not match an invitation", "wrong_code");
+  // A string that is not a mobile number can match no invitation: refused before anything is looked up, and not
+  // remembered, so it costs the farm nothing however many a script sends.
+  if (!loginEmail) {
+    throw notAnInvitation();
+  }
+  // Counted twice: against whoever is calling, so a script naming a new phone every time is stopped, and against the
+  // phone, so guesses at one Investor's code spread over many callers are stopped too.
+  const byCaller = `portal-join:${context.callerAddress ?? "unknown"}`;
+  const atPhone = `portal-code:${loginEmail}`;
+  const counted = [byCaller, atPhone];
+  if (counted.some((key) => lockedOut(key, now, CODE_ATTEMPTS))) {
     throw new ORPCError("TOO_MANY_REQUESTS", {
       message: "Too many wrong codes — wait fifteen minutes",
     });
   }
   const wrong = () => {
-    countFailure(guesses, now, CODE_ATTEMPTS);
-    return refused(
-      "That phone and code do not match an invitation",
-      "wrong_code"
-    );
+    for (const key of counted) {
+      countFailure(key, now, CODE_ATTEMPTS);
+    }
+    return notAnInvitation();
   };
-  if (!loginEmail) {
-    throw wrong();
-  }
   const access = await context.db.query.investorAccess.findFirst({
     where: {
       farmId: theFarm.id,
@@ -351,7 +361,8 @@ export const takeUpInvitation = async (
         .where(and(eq(user.id, userId), eq(user.email, loginEmail)));
     }
   );
-  forgetFailures(guesses);
+  // The phone's count is theirs and is forgotten; the caller's stays, since one caller may be a script's.
+  forgetFailures(atPhone);
   return { loginEmail };
 };
 

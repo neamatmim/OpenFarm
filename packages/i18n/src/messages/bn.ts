@@ -233,6 +233,8 @@ export const bn: Record<MessageKey, string> = {
   "auth.hidePassword": "পাসওয়ার্ড লুকান",
   "auth.refused": "সাইন ইন করা যায়নি",
   "auth.passwordTooShort": "পাসওয়ার্ড কমপক্ষে {min} অক্ষরের হতে হবে",
+  "auth.passwordTooCommon":
+    "এই পাসওয়ার্ড খুব বেশি ব্যবহৃত, যে কেউ অনুমান করতে পারে। অন্য একটি বেছে নিন।",
   "auth.nameTooShort": "নাম কমপক্ষে {min} অক্ষরের হতে হবে",
   "nav.people": "মানুষ ও অ্যাক্সেস",
   "people.search": "নাম বা ইমেইল দিয়ে খুঁজুন",

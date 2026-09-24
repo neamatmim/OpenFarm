@@ -242,6 +242,8 @@ export const en = {
   "auth.refused": "Could not sign you in",
   "auth.passwordTooShort":
     "Password must be at least {min, plural, one {# character} other {# characters}}",
+  "auth.passwordTooCommon":
+    "That password is one of the most common, and anybody could guess it. Choose another.",
   "auth.nameTooShort":
     "Name must be at least {min, plural, one {# character} other {# characters}}",
   "nav.people": "People & access",

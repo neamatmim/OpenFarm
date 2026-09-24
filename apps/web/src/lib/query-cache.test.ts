@@ -1,7 +1,9 @@
 import type { PersistedClient } from "@tanstack/query-persist-client-core";
 import { describe, expect, it } from "vitest";
 
-import { readKept, writeKept } from "./query-cache";
+import { orpc } from "@/utils/orpc";
+
+import { keptOnDevice, readKept, writeKept } from "./query-cache";
 
 describe("the cache a phone keeps", () => {
   it("gives back a date as a date, however deep in an answer it sits", () => {
@@ -32,5 +34,40 @@ describe("the cache a phone keeps", () => {
     expect(data.herd.total).toBe(3);
     // A string that merely says "$date" is still a string.
     expect(data.note).toBe("$date");
+  });
+});
+
+/** A question that answered, under the key the app's own client gives it. */
+const answered = (queryKey: readonly unknown[]) => ({
+  queryKey,
+  state: { status: "success" },
+});
+
+describe("what a phone keeps", () => {
+  it("keeps the farm's answers, for a shed with no signal", () => {
+    expect(
+      keptOnDevice(answered(orpc.animals.list.queryKey({ input: {} })))
+    ).toBe(true);
+  });
+
+  it("never keeps an Investor's, which would outlive their signing out", () => {
+    expect(keptOnDevice(answered(orpc.portal.portfolio.queryKey()))).toBe(
+      false
+    );
+    expect(keptOnDevice(answered(orpc.portal.me.queryKey()))).toBe(false);
+    expect(
+      keptOnDevice(
+        answered(orpc.portal.venture.queryKey({ input: { agreementId: "a" } }))
+      )
+    ).toBe(false);
+  });
+
+  it("never keeps a question that failed", () => {
+    expect(
+      keptOnDevice({
+        queryKey: orpc.animals.list.queryKey({ input: {} }),
+        state: { status: "error" },
+      })
+    ).toBe(false);
   });
 });

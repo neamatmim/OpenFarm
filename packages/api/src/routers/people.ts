@@ -12,6 +12,7 @@ import { z } from "zod";
 import { CODE_ATTEMPTS, countFailure, lockedOut } from "../attempts";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { refuseCommonPassword } from "../chosen-password";
 import { correct } from "../corrections/correction";
 import { nameCorrection, nameCorrectionInput } from "../corrections/name";
 import { hashToken } from "../device";
@@ -624,6 +625,8 @@ export const peopleRouter = {
           message: "Too many wrong codes — wait fifteen minutes",
         });
       }
+      // Refused before the code is looked at, so a code is never spent on a password that will not be kept.
+      refuseCommonPassword(input.newPassword);
       const codeHash = await hashToken(input.code.toUpperCase());
       const them = await personByEmail(context.db, input.email);
       if (!them) {

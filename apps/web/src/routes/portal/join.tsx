@@ -22,6 +22,7 @@ const REFUSALS: Record<string, MessageKey> = {
   wrong_code: "portal.refused.wrongCode",
   portal_closed: "portal.refused.closed",
   password_too_short: "portal.refused.passwordTooShort",
+  password_too_common: "auth.passwordTooCommon",
 };
 
 /**
