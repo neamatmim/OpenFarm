@@ -1447,12 +1447,23 @@ export const en = {
   "sop.editor.proposeHint":
     "Your change goes to the Owner, who publishes it or turns it down.",
   "card.title": "SOP Card",
+  "card.pageHint":
+    "The procedure as it goes on the shed wall, in Bangla, made from its published Version. Print it on one A4 sheet.",
   "card.version": "Version {number} · {date}",
   "card.purpose": "Why",
   "card.who": "Who does it",
   "card.when": "When",
   "card.records": "What is recorded",
   "card.perAnimal": "Once per animal",
+  "card.checker": "Checked by",
+  "card.where": "Where",
+  "card.eachPen": "Each Pen with animals",
+  "card.wholeFarm": "Once for the whole farm",
+  "card.whenNeeded": "When needed",
+  "card.steps": "Steps",
+  "card.skippable": "May be skipped if",
+  "card.madeFrom":
+    "Made from the published Version: the card on the wall and the work in the app are the same.",
   "training.title": "Who has been trained",
   "training.mark": "Mark as trained",
   "training.none": "Nobody has been marked yet",

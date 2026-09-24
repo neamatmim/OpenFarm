@@ -403,6 +403,8 @@ export const sopsRouter = {
         name: content.name,
         purpose: content.purpose,
         assignedRole: content.assignedRole,
+        checkerRole: content.checkerRole,
+        wholeFarm: content.wholeFarm === true,
         triggers: content.triggers,
         steps: content.steps,
       };

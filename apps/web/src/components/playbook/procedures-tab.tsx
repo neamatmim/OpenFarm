@@ -57,11 +57,11 @@ const toRow = (sop: Sop, actions: ProcedureActions): ProcedureRow => {
 
 /** When its work comes up, a line each — or that it is raised when the farm needs it. */
 const WhenItComesUp = ({ content }: { content: SopContent | undefined }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   if (!content) {
     return <Nothing />;
   }
-  const words = whenWords(content, t);
+  const words = whenWords(content, t, language);
   if (words.length === 0) {
     return <span className="text-muted-foreground">{t("sop.byHand")}</span>;
   }

@@ -17,6 +17,10 @@ import {
   draftFrom,
 } from "@OpenFarm/domain";
 
+/** What reading when a procedure comes up needs of it: its Triggers, and nothing else — so a card that holds only
+ *  those can ask as the editor does. */
+type Timed = Pick<SopContent, "triggers">;
+
 /** A blank procedure the Owner fills in — Bangla first, everything else optional. */
 export const emptyStep = (id: string): Step => ({
   id,
@@ -36,14 +40,14 @@ export const emptySop = (): SopContent => ({
   steps: [emptyStep("step-1")],
 });
 
-export const scheduleTimes = (content: SopContent): string[] => {
+export const scheduleTimes = (content: Timed): string[] => {
   const schedule = content.triggers.find(
     (trigger) => trigger.kind === "schedule"
   );
   return schedule?.kind === "schedule" ? schedule.times : [];
 };
 
-const scheduleOf = (content: SopContent) => {
+const scheduleOf = (content: Timed) => {
   const schedule = content.triggers.find(
     (trigger) => trigger.kind === "schedule"
   );
@@ -83,10 +87,10 @@ export const withScheduleTimes = (
   times: string[]
 ): SopContent => withSchedule(content, { times });
 
-export const scheduleWeekdays = (content: SopContent): number[] =>
+export const scheduleWeekdays = (content: Timed): number[] =>
   scheduleOf(content)?.weekdays ?? [];
 
-export const scheduleEveryOtherWeek = (content: SopContent): boolean =>
+export const scheduleEveryOtherWeek = (content: Timed): boolean =>
   scheduleOf(content)?.everyOtherWeek ?? false;
 
 export const withScheduleWeekdays = (
@@ -115,7 +119,7 @@ export type HappeningTrigger = Extract<
   }
 >;
 
-export const happeningTriggers = (content: SopContent): HappeningTrigger[] =>
+export const happeningTriggers = (content: Timed): HappeningTrigger[] =>
   content.triggers.filter(
     (trigger): trigger is HappeningTrigger => trigger.kind !== "schedule"
   );

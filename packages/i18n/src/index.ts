@@ -5,6 +5,7 @@ export {
   formatDigits,
   formatNumber,
   numberAsTyped,
+  timeInDigits,
 } from "./format";
 export type { Language } from "./languages";
 export {

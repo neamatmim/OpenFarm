@@ -22,6 +22,11 @@ const BANGLA_DIGITS = "০১২৩৪৫৬৭৮৯";
 const BANGLA_DIGIT = /[০-৯]/gu;
 const NOT_OF_A_NUMBER = /[^\d.-]/gu;
 
+/** A time of day in the reader's digits — "০৫:০০" rather than "05:00" for a Bangla reader: a time is digits with a
+ *  colon in it, and only the digits change. */
+export const timeInDigits = (time: string, language: Language): string =>
+  time.replaceAll(/\d/gu, (digit) => formatDigits(Number(digit), language));
+
 /**
  * A figure as somebody is typing it, in the digits it is stored in: Bangla numerals become English ones, and what
  * cannot be part of a number — grouping commas, a unit, a second decimal point, a minus anywhere but the front — is
