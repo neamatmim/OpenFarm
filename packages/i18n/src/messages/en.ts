@@ -2263,6 +2263,17 @@ export const en = {
   "drugs.retiredReason": "Retired",
   "drugs.setBy": "written by {name}, {date}",
   "drugs.bringBack": "Bring it back",
+  "drugs.rename": "Rename",
+  "drugs.renameTitle": "Rename {name}",
+  "drugs.renameHint":
+    "Every prescription, dose and paper that names this product will say the new name. The old one stays in the audit trail.",
+  "drugs.addStandard": "Add the standard medicines",
+  "drugs.addStandardTitle":
+    "Add {count, plural, one {# standard medicine} other {# standard medicines}}?",
+  "drugs.addStandardHint":
+    "These are added: {names}. None of them can be prescribed until the Vet writes their withdrawal days.",
+  "drugs.addedStandard":
+    "{count, plural, one {# medicine} other {# medicines}} added",
   "drugs.managerAdds": "The Vet will write the days",
   "drugs.retireTitle": "Retire {name}?",
   "drugs.retireWhy":

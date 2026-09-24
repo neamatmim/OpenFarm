@@ -162,15 +162,29 @@ const addRations = async (
 };
 
 /** On the Drug List without withdrawal days: nothing may prescribe them until the Vet has written the label's. */
+/** The standard medicines the farm does not call by either of their names already. */
+export const drugsNotHad = (
+  have: readonly { id: string; nameBn: string; nameEn: string | null }[]
+) => Object.values(STANDARD_DRUGS).filter((name) => !nameTaken(have, name));
+
 const addDrugs = async (
   tx: Tx,
   trail: Trail,
   starter: Starter
 ): Promise<string[]> => {
+  // A name the farm already has, in either language — its own, or one the Vet retired — is left as the farm's.
+  const have = await tx.query.drugProduct.findMany({
+    where: { farmId: starter.farmId },
+    columns: { id: true, nameBn: true, nameEn: true },
+  });
+  const wanted = drugsNotHad(have);
+  if (wanted.length === 0) {
+    return [];
+  }
   const added = await tx
     .insert(drugProduct)
     .values(
-      Object.values(STANDARD_DRUGS).map((name) => ({
+      wanted.map((name) => ({
         id: uuidv7(starter.now),
         farmId: starter.farmId,
         nameBn: name.bn,
@@ -264,3 +278,13 @@ export const startWithStandard = (
   kinds: readonly StandardKind[]
 ): Promise<StandardAdded> =>
   db.transaction((tx) => addStandard(tx, trail, starter, kinds));
+
+/**
+ * Gives the farm the standard medicines it does not have yet — names only, as if added by hand the day they were
+ * bought: the withdrawal days are the Vet's to write, and until then none of them may be prescribed.
+ */
+export const addStandardDrugs = (
+  db: Database,
+  trail: Trail,
+  starter: Starter
+): Promise<string[]> => db.transaction((tx) => addDrugs(tx, trail, starter));

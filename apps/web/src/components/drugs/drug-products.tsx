@@ -1,13 +1,15 @@
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
   CalendarClock,
   Gauge,
+  ListPlus,
   PackagePlus,
+  Pencil,
   Pill,
   Plus,
   ShoppingCart,
@@ -53,6 +55,7 @@ interface ProductActions {
   handleVaccine: (product: DrugProduct) => void;
   handleRetire: (product: DrugProduct) => void;
   handleBringBack: (product: DrugProduct) => void;
+  handleRename: (product: DrugProduct) => void;
   handleBuy: (productId: string) => void;
   /** What was bought of it: the Bought tab, with it chosen. */
   handleBought: (productId: string) => void;
@@ -278,12 +281,19 @@ const menuFor = (
       handleSelect: () => actions.handleDays(product),
     });
   }
-  menu.push({
-    label: t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine"),
-    icon: Syringe,
-    disabled: actions.busy,
-    handleSelect: () => actions.handleVaccine(product),
-  });
+  menu.push(
+    {
+      label: t("drugs.rename"),
+      icon: Pencil,
+      handleSelect: () => actions.handleRename(product),
+    },
+    {
+      label: t(product.vaccine ? "drugs.unmarkVaccine" : "drugs.markVaccine"),
+      icon: Syringe,
+      disabled: actions.busy,
+      handleSelect: () => actions.handleVaccine(product),
+    }
+  );
   if (product.retiredAt) {
     menu.push({
       label: t("drugs.bringBack"),
@@ -642,6 +652,120 @@ const LevelDialog = ({
   );
 };
 
+/** A product's names put right by the Vet, in a dialog that starts from the names it has. */
+const RenameProductDialog = ({
+  product,
+  onClose,
+}: {
+  product: DrugProduct | null;
+  onClose: () => void;
+}) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused();
+  const [name, setName] = useState(product?.nameBn ?? "");
+  const [english, setEnglish] = useState(product?.nameEn ?? "");
+  const rename = useMutation(
+    orpc.drugs.rename.mutationOptions({ onSuccess: onClose, onError: refused })
+  );
+  return (
+    <FormDialog
+      description={t("drugs.renameHint")}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+      onSubmit={() => {
+        if (product) {
+          rename.mutate({
+            id: product.id,
+            name: {
+              bn: name.trim(),
+              ...(english.trim() ? { en: english.trim() } : {}),
+            },
+          });
+        }
+      }}
+      open={product !== null}
+      pending={rename.isPending}
+      ready={name.trim() !== ""}
+      submitLabel={t("common.save")}
+      title={t("drugs.renameTitle", {
+        name: product ? productName(product, language) : "",
+      })}
+    >
+      <FormField id="drug-rename" label={t("sop.bangla")}>
+        <Input
+          autoComplete="off"
+          id="drug-rename"
+          onChange={(event) => setName(event.target.value)}
+          required
+          value={name}
+        />
+      </FormField>
+      <FormField id="drug-rename-en" label={t("feed.english")}>
+        <Input
+          autoComplete="off"
+          id="drug-rename-en"
+          onChange={(event) => setEnglish(event.target.value)}
+          value={english}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/**
+ * The standard medicines the farm does not have yet, a button away while there are any: what they are is said before
+ * they are added, and none of them may be prescribed until the Vet writes their days.
+ */
+const useStandardMedicines = (mayAdd: boolean) => {
+  const { t, language } = useLanguage();
+  const refused = useRefused();
+  const missing = useQuery({
+    ...orpc.drugs.standardMissing.queryOptions(),
+    enabled: mayAdd,
+  });
+  const [asking, setAsking] = useState(false);
+  const add = useMutation(
+    orpc.drugs.addStandard.mutationOptions({
+      onSuccess: (done) => {
+        toast.success(
+          t("drugs.addedStandard", {
+            count: formatNumber(done.added.length, language),
+          })
+        );
+        setAsking(false);
+      },
+      onError: refused,
+    })
+  );
+  const names = (missing.data ?? []).map((one) =>
+    language === "bn" ? one.bn : one.en
+  );
+  const button =
+    mayAdd && names.length > 0 ? (
+      <Button onClick={() => setAsking(true)} type="button" variant="outline">
+        <ListPlus aria-hidden data-icon="inline-start" />
+        {t("drugs.addStandard")}
+      </Button>
+    ) : null;
+  const dialog = (
+    <ConfirmDialog
+      confirmLabel={t("drugs.addStandard")}
+      description={t("drugs.addStandardHint", { names: names.join(", ") })}
+      onConfirm={() => add.mutate()}
+      onOpenChange={setAsking}
+      open={asking}
+      pending={add.isPending}
+      title={t("drugs.addStandardTitle", {
+        count: formatNumber(names.length, language),
+      })}
+    />
+  );
+  return { button, dialog };
+};
+
 /**
  * The Drug List itself, a row per product: whether it may be prescribed, its milk and meat days, and who wrote them.
  * The in-house Vet writes the days and keeps the list from a row's menu; whoever buys records medicine from it; a vet
@@ -668,6 +792,8 @@ export const ProductsTab = ({
   const [daysFor, setDaysFor] = useState<DrugProduct | null>(null);
   const [retiring, setRetiring] = useState<DrugProduct | null>(null);
   const [levelFor, setLevelFor] = useState<DrugProduct | null>(null);
+  const [renaming, setRenaming] = useState<DrugProduct | null>(null);
+  const standard = useStandardMedicines(mayAdd);
   const onError = refused;
   const retire = useMutation(
     orpc.drugs.retire.mutationOptions({
@@ -692,6 +818,7 @@ export const ProductsTab = ({
       markVaccine.mutate({ id: product.id, vaccine: !product.vaccine }),
     handleRetire: setRetiring,
     handleBringBack: (product) => bringBack.mutate({ id: product.id }),
+    handleRename: setRenaming,
     handleBuy: onBuy,
     handleBought: onBought,
     handleLevel: setLevelFor,
@@ -705,14 +832,17 @@ export const ProductsTab = ({
     <Section
       action={
         mayAdd ? (
-          <Button
-            onClick={() => setAdding(true)}
-            type="button"
-            variant="outline"
-          >
-            <Plus aria-hidden data-icon="inline-start" />
-            {t("drugs.add")}
-          </Button>
+          <>
+            {standard.button}
+            <Button
+              onClick={() => setAdding(true)}
+              type="button"
+              variant="outline"
+            >
+              <Plus aria-hidden data-icon="inline-start" />
+              {t("drugs.add")}
+            </Button>
+          </>
         ) : null
       }
       description={isVet ? t("drugs.vetOnly") : t("drugs.managerAdds")}
@@ -734,6 +864,14 @@ export const ProductsTab = ({
             }
           }}
           product={levelFor}
+        />
+      ) : null}
+      {standard.dialog}
+      {isVet ? (
+        <RenameProductDialog
+          key={renaming?.id ?? "none"}
+          onClose={() => setRenaming(null)}
+          product={renaming}
         />
       ) : null}
       {isVet ? (
