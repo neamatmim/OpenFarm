@@ -56,7 +56,9 @@ export const AppSidebar = ({
             <Sprout aria-hidden className="size-5" />
           </span>
           <span className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate text-base font-semibold tracking-tight">
+            {/* The name in capitals in both languages: it is Latin either way. Spaced by a property rather than a
+                tracking class, which Bangla resets. */}
+            <span className="truncate text-base font-semibold [letter-spacing:0.08em] uppercase">
               {t("app.name")}
             </span>
             <span className="text-sidebar-foreground/65 truncate text-xs">

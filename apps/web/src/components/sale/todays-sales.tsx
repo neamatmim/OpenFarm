@@ -1,4 +1,4 @@
-import { formatNumber } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ReceiptText, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -68,11 +68,7 @@ interface SoldCell {
 
 /** The hour a sale was made on the farm's clock: the day is today, so the time alone is said. */
 const timeOf = (when: Date, language: "bn" | "en") =>
-  new Intl.DateTimeFormat(language === "bn" ? "bn-BD" : "en-GB", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "Asia/Dhaka",
-  }).format(new Date(when));
+  formatDate(new Date(when), language, "time");
 
 /** Taka, in the reader's digits. */
 const Taka = ({ value }: { value: number }) => {
