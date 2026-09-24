@@ -291,16 +291,18 @@ describe("withdrawal, from the last dose actually given", () => {
 
     // The Manager runs the farm and the Owner owns it, and neither may let milk into the tank
     // a day early: that is the prescriber's call and nobody else's.
-    for (const role of ["owner", "manager", "staff"] as const) {
-      const them = await createTestClient(appRouter, { as: role, clock });
-      await expect(
-        them.client.withdrawals.shorten({
-          animalTag: cow.tagNumber,
-          milkUntil: clock.now(),
-          reason: "দুধ দরকার",
-        })
-      ).rejects.toThrow(/Only the Vet/u);
-    }
+    await Promise.all(
+      (["owner", "manager", "staff"] as const).map(async (role) => {
+        const them = await createTestClient(appRouter, { as: role, clock });
+        await expect(
+          them.client.withdrawals.shorten({
+            animalTag: cow.tagNumber,
+            milkUntil: clock.now(),
+            reason: "দুধ দরকার",
+          })
+        ).rejects.toThrow(/Only the Vet/u);
+      })
+    );
 
     // The Vet saw her, and says her milk is fine from tomorrow morning.
     const tomorrow = new Date(clock.now().getTime() + DAY);

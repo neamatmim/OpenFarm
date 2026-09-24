@@ -71,6 +71,8 @@ describe("two payments against one Agreement at once", () => {
     });
 
     const overpaid: { agreementId: string; takenBdt: number }[] = [];
+    // Round after round, each its own race: rounds run together would race each other, not the two payments.
+    /* oxlint-disable no-await-in-loop */
     for (let round = 0; round < ROUNDS; round += 1) {
       const agreementId = await signedFor(owner, venture.id, round);
       // Sixty thousand each against a hundred-thousand Agreement: either alone is fine, both are not.
@@ -100,6 +102,7 @@ describe("two payments against one Agreement at once", () => {
         overpaid.push({ agreementId, takenBdt });
       }
     }
+    /* oxlint-enable no-await-in-loop */
 
     // An Agreement for two Units at ৫০,০০০ is worth ১,০০,০০০ and not one taka more, however many
     // people are paying into it at once.

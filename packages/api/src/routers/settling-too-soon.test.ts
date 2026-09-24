@@ -36,9 +36,8 @@ describe("a Venture that has not run", () => {
     });
 
     // Open, nobody signed, nothing bought, not a taka in or out.
-    const [standing] = (await owner.client.ventures.list()).filter(
-      (one) => one.id === venture.id
-    );
+    const listed = await owner.client.ventures.list();
+    const standing = listed.find((one) => one.id === venture.id);
     expect(standing).toMatchObject({ state: "open" });
 
     // The farm should say why it cannot be settled, rather than settling it.
@@ -52,9 +51,8 @@ describe("a Venture that has not run", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
     // And it is still Open afterwards, taking capital as it was before anybody asked.
-    const [after] = (await owner.client.ventures.list()).filter(
-      (one) => one.id === venture.id
-    );
+    const listedAfter = await owner.client.ventures.list();
+    const after = listedAfter.find((one) => one.id === venture.id);
     expect(after).toMatchObject({ state: "open" });
   });
 });

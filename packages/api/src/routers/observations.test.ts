@@ -213,6 +213,7 @@ describe("what somebody saw on the round", () => {
       [bulling, "bulling"],
       [lame, "lame"],
     ] as const) {
+      // oxlint-disable-next-line no-await-in-loop -- one piece of work's steps are recorded one after another
       await owner.client.instances.completeStep({
         instanceId: instance.id,
         stepId: "look",
