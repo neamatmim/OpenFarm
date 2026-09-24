@@ -326,8 +326,8 @@ const FieldName = ({ field }: { field: string }) => {
 
 /** The fields the change touched, each as it stood before and after. */
 const ChangedFields = ({ event }: { event: AuditEvent }) => {
-  const t = useT();
-  const changes = fieldChanges(event.before, event.after);
+  const { t, language } = useLanguage();
+  const changes = fieldChanges(event.before, event.after, language);
   if (changes.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">{t("audit.noFields")}</p>

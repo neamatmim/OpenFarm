@@ -1,4 +1,6 @@
-import type { MessageKey } from "@OpenFarm/i18n";
+import { startOfFarmDay } from "@OpenFarm/domain";
+import type { Language, MessageKey } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import type { Tone } from "@/components/page";
 import type { orpc } from "@/utils/orpc";
@@ -96,11 +98,36 @@ export interface FieldChange {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const said = (value: unknown): string => {
+/** A figure the database keeps as text: always with its decimals, so a phone or an NID, which has none, is not one. */
+const DECIMAL_TEXT = /^-?\d+\.\d+$/u;
+const FARM_DAY = /^\d{4}-\d{2}-\d{2}$/u;
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/u;
+
+/** A text value as the reader would read it: a figure in their numerals, a day or a moment as the screens say one,
+ *  and anything else — a tag, a phone, a code — as it was written. */
+const saidText = (value: string, language: Language): string => {
+  if (DECIMAL_TEXT.test(value)) {
+    return formatNumber(Number(value), language);
+  }
+  if (FARM_DAY.test(value)) {
+    return formatDate(startOfFarmDay(value), language, "date");
+  }
+  if (INSTANT.test(value) && !Number.isNaN(Date.parse(value))) {
+    return formatDate(new Date(value), language, "dateTime");
+  }
+  return value;
+};
+
+const said = (value: unknown, language: Language): string => {
   if (value === undefined || value === null) {
     return "—";
   }
-  return typeof value === "string" ? value : JSON.stringify(value);
+  if (typeof value === "number") {
+    return formatNumber(value, language);
+  }
+  return typeof value === "string"
+    ? saidText(value, language)
+    : JSON.stringify(value);
 };
 
 /**
@@ -109,7 +136,8 @@ const said = (value: unknown): string => {
  */
 export const fieldChanges = (
   before: unknown,
-  after: unknown
+  after: unknown,
+  language: Language
 ): FieldChange[] => {
   const wasRecord = before === null || before === undefined || isRecord(before);
   if (!(wasRecord && isRecord(after))) {
@@ -120,8 +148,8 @@ export const fieldChanges = (
   return fields
     .map((field) => ({
       field,
-      before: said(was[field]),
-      after: said(after[field]),
+      before: said(was[field], language),
+      after: said(after[field], language),
     }))
     .filter((change) => change.before !== change.after);
 };
