@@ -42,11 +42,15 @@ export const seedFarm = async (db: Database) => {
   step("the opening herd register");
   const herd = await registerTheHerd(farm);
   step("the first lorry of bulls");
-  await takeInBulls(farm, herd, {
+  const firstLorry = await takeInBulls(farm, herd, {
     on: addDays(start, -6),
     count: 14,
     pen: "quarantine",
   });
+  // The heaviest of them go to the Eid buyers, confirmed ready a fortnight before today.
+  for (const bull of firstLorry) {
+    bull.sellBy = addDays(today, -14);
+  }
   step("two Ventures, their Investors and their cattle");
   const ventures = await openTheVentures(farm, herd);
   step(`${herd.cows.size} dairy animals, ${herd.bulls.size} bulls`);

@@ -73,7 +73,8 @@ RESPONDERS.morningMilking = milking(0.56);
 RESPONDERS.eveningMilking = milking(0.44);
 
 RESPONDERS.feeding = (step, _beast, { farm, board }) => {
-  if (step.id === "water") {
+  // The trough cleared first, the water after, backs wetted on a hot day: ticks. Only the feed itself is weighed.
+  if (step.id !== "feed") {
     return { evidence: [true] };
   }
   const items = board.feeding?.items ?? [];

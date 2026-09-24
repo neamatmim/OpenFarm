@@ -822,7 +822,15 @@ const tickSpray = (productId: string | undefined): SopContent => ({
       text: { bn: "স্প্রে করুন", en: "Spray him" },
       repeatPerAnimal: true,
       evidence: [{ type: "tick", required: true }],
-      skipReasons: [UNWELL_LATER],
+      // A spray's meat withdrawal outlasts the week between sprays, so a bull sprayed every week is never clear to
+      // sell: the last month before his sale, he is left out.
+      skipReasons: [
+        UNWELL_LATER,
+        {
+          bn: "এক মাসের মধ্যে বিক্রি — স্প্রে নয়",
+          en: "Sold within a month — not sprayed",
+        },
+      ],
       effect: campaignDose(productId),
     },
     {
