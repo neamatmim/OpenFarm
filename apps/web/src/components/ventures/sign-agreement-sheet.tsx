@@ -17,10 +17,14 @@ import { toast } from "sonner";
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
-import { AgreementDocumentView } from "@/components/ventures/agreement-document";
+import {
+  AGREEMENT_DOCUMENT_ID,
+  AgreementDocumentView,
+} from "@/components/ventures/agreement-document";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
+import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -190,7 +194,17 @@ const PrintToSign = ({
           ) : null}
           {shown ? <AgreementDocumentView document={shown} /> : null}
           <div className="no-print flex justify-end">
-            <Button onClick={() => window.print()} type="button">
+            <Button
+              onClick={() => {
+                const paper = document.querySelector<HTMLElement>(
+                  `#${AGREEMENT_DOCUMENT_ID}`
+                );
+                if (paper) {
+                  void printAlone(paper);
+                }
+              }}
+              type="button"
+            >
               <Printer aria-hidden data-icon="inline-start" />
               {t("common.print")}
             </Button>

@@ -2,21 +2,8 @@ import type { AgreementDocument, DocumentRow, Said } from "@OpenFarm/domain";
 import { formatDigits } from "@OpenFarm/i18n";
 import type { ReactNode } from "react";
 
-/** The id the print rules find the document by: everything else on the screen is hidden when it prints. */
-const DOCUMENT_ID = "investment-agreement";
-
-/** A4, and only the document on it — lifted out of the dialog it is shown in, whatever that dialog's scroll. */
-const PRINT_RULES = `@page { size: A4; margin: 16mm }
-  @media print {
-    body * { visibility: hidden }
-    #${DOCUMENT_ID}, #${DOCUMENT_ID} * { visibility: visible }
-    [data-slot="dialog-content"]:has(#${DOCUMENT_ID}) {
-      position: absolute; inset: 0; transform: none; max-width: none; max-height: none;
-      overflow: visible; padding: 0; box-shadow: none; --tw-ring-shadow: 0 0 #0000;
-    }
-    #${DOCUMENT_ID} { border: 0; padding: 0; max-width: none; box-shadow: none }
-    .no-print { display: none }
-  }`;
+/** The id the document is found by to print it alone (lib/print-alone). */
+export const AGREEMENT_DOCUMENT_ID = "investment-agreement";
 
 /** A section of the deed: its number in Bangla numerals, its Bangla name, and the English beside it. */
 const Section = ({
@@ -84,9 +71,8 @@ export const AgreementDocumentView = ({
 }) => (
   <article
     className="bg-card text-card-foreground mx-auto flex w-full max-w-[210mm] flex-col gap-6 rounded-lg border p-6 md:p-10"
-    id={DOCUMENT_ID}
+    id={AGREEMENT_DOCUMENT_ID}
   >
-    <style>{PRINT_RULES}</style>
     <header className="border-foreground flex flex-col items-center gap-1 border-b-2 pb-4 text-center">
       <p className="text-lg font-semibold tracking-tight">
         {document.letterhead.name}
