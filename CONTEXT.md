@@ -168,7 +168,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 - **expected**: from the app's list, kept a decade ahead;
 - **estimated**: past the end of the list, the Umm al-Qura calendar's day plus one.
 
-Every screen says which it is. Writing in the announced day moves no Animal by itself. The Farm's own Animals still aimed at the day expected are offered the move, as their own act. A Venture's Animals are not offered it, because a Venture's Target Window moves only by an **Amendment**. _Avoid_: Eid date as a fixed fact, Qurbani (the sacrifice, not the date)
+Every screen says which it is. An announced day can be corrected, or taken back — the Eid is on its expected day again, as if nobody had announced it; both are rows of their own, so what the Farm believed and when stays in the trail. Writing in the announced day moves no Animal by itself. The Farm's own Animals still aimed at the day expected are offered the move, as their own act. A Venture's Animals are not offered it, because a Venture's Target Window moves only by an **Amendment**. _Avoid_: Eid date as a fixed fact, Qurbani (the sacrifice, not the date)
 
 **Target Window**: The period in which the Farm intends to sell an Animal — by default the next Eid-ul-Adha. Drives projected weight and the Ready-for-Sale suggestion. _Avoid_: Sale date, deadline
 

@@ -2840,12 +2840,30 @@ export const en = {
   "eid.announceDay": "Eid day",
   "eid.announced": "Eid day written in",
   "eid.behind":
-    "{count} of the farm's animals are still aimed at the day expected before",
-  "eid.bringAlong": "Move them to the announced days",
+    "{count, plural, one {# of the farm's animals is} other {# of the farm's animals are}} still aimed at an earlier day for this Eid",
+  "eid.bringAlong": "Move them to the Eid's days",
   "eid.broughtAlong":
-    "{count, plural, one {# animal} other {# animals}} moved to the announced days",
+    "{count, plural, one {# animal} other {# animals}} moved to the Eid's days",
   "eid.inVentures":
     "{count, plural, one {# animal in a Venture keeps its window} other {# animals in Ventures keep their window}}: a Venture's window moves only by an Amendment its Investors sign.",
+  "nav.eid": "Eid-ul-Adha",
+  "eid.listSubtitle":
+    "Every Eid the fattening side sells into: the day the farm is on for each, how it knows it, and the animals aimed at it. Write in the committee's day once it is announced.",
+  "eid.of": "Eid-ul-Adha {year}",
+  "eid.col.eid": "Eid",
+  "eid.col.days": "The farm's days",
+  "eid.col.expected": "Expected day",
+  "eid.col.when": "When",
+  "eid.next": "Next",
+  "eid.over": "Over",
+  "eid.correct": "Correct the day",
+  "eid.withdraw": "Take the announcement back",
+  "eid.withdrawTitle": "Take back the day announced for {eid}?",
+  "eid.withdrawWhy":
+    "The Eid goes back to the day expected, as if nobody had announced it. Animals already moved to the announced day stay there until you move them.",
+  "eid.withdrawn": "Announcement taken back",
+  "eid.aimedInVentures": "{count} in Ventures",
+  "eid.none": "No Eid to list",
   "refusal.notAnEid":
     "That day is no Eid-ul-Adha the farm expects. Check the year.",
   "refusal.eidNotAnnounced":

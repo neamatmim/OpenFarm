@@ -208,3 +208,84 @@ describe("an Eid past the end of the farm's list", () => {
     });
   });
 });
+
+// Each a little later than the last, as they happen: the order an Eid's rows were written in is which day is in force,
+// and a test clock sent back to January would write a row that sorts before the ones it follows.
+const FEBRUARY = (day: number) =>
+  `2027-02-${String(day).padStart(2, "0")}T04:00:00.000Z`;
+
+describe("the farm's list of Eids", () => {
+  it("names each Eid by the farm's day and how it knows it, and counts who is aimed at it", async () => {
+    const { client: manager } = await as("manager", FEBRUARY(1));
+
+    const listed = await manager.eid.list();
+
+    const lastYear = listed.find((one) => one.expectedDay === "2026-05-28");
+    const thisYear = listed.find((one) => one.expectedDay === "2027-05-17");
+    expect(lastYear?.past).toBe(true);
+    expect(thisYear).toMatchObject({
+      window: { start: "2027-05-16", end: "2027-05-18", basis: "announced" },
+      next: true,
+      announced: true,
+    });
+    // The farm's own two were brought along to the day now in force; the Venture's still waits on the day expected.
+    expect(thisYear?.aimed.own).toBeGreaterThanOrEqual(2);
+    expect(thisYear?.behind.inVentures).toBe(1);
+    // The bull taken in past the table is aimed at the calendar's 2037 guess, which nobody announced: he is fed towards
+    // the day it is on, and not behind it.
+    expect(
+      listed.find((one) => one.expectedDay === "2037-01-28")
+    ).toMatchObject({
+      window: { basis: "estimated" },
+      aimed: { own: 1, inVentures: 0 },
+      behind: { own: 0, inVentures: 0 },
+    });
+  });
+
+  it("takes an announced day back, and offers the bulls brought to it the move back to the day expected", async () => {
+    const { client: manager } = await as("manager", FEBRUARY(2));
+
+    await manager.eid.withdraw({ expectedDay: "2027-05-17" });
+    const next = await manager.eid.next();
+
+    expect(next.window).toEqual({
+      start: "2027-05-17",
+      end: "2027-05-19",
+      basis: "expected",
+    });
+    expect(next.behind).toBeGreaterThanOrEqual(2);
+    const done = await manager.eid.bringAlong({ expectedDay: "2027-05-17" });
+    expect(done.moved).toBe(next.behind);
+    for (const one of world.ours) {
+      // oxlint-disable-next-line no-await-in-loop -- two bulls, read one after the other
+      expect(await windowOf(one.id)).toEqual({
+        start: "2027-05-17",
+        end: "2027-05-19",
+      });
+    }
+  });
+
+  it("announces the day expected itself, once an announcement has been taken back", async () => {
+    const { client: manager } = await as("manager", FEBRUARY(3));
+
+    await manager.eid.announce({ day: "2027-05-17" });
+    const next = await manager.eid.next();
+
+    expect(next.window).toMatchObject({
+      start: "2027-05-17",
+      basis: "announced",
+    });
+  });
+
+  it("refuses to take back an Eid nobody announced, and is not the Staff's to take back", async () => {
+    const { client: manager } = await as("manager", FEBRUARY(4));
+    const { client: staff } = await as("staff", FEBRUARY(4));
+
+    await expect(
+      manager.eid.withdraw({ expectedDay: "2028-05-06" })
+    ).rejects.toMatchObject({ data: { refusal: "eid_not_announced" } });
+    await expect(
+      staff.eid.withdraw({ expectedDay: "2027-05-17" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});

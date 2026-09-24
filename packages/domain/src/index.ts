@@ -93,12 +93,13 @@ export {
   fatteningView,
   implausibleChange,
 } from "./fattening";
-export type { EidBasis, EidWindow } from "./eid";
+export type { EidBasis, EidWindow, ListedEid } from "./eid";
 export {
   EID_BASES,
   EID_UL_ADHA,
   QURBANI_DAYS,
   eidByTheCalendar,
+  eidsListed,
   expectedEidNear,
   isSameEid,
   nextEidWindow,

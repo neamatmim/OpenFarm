@@ -4,6 +4,7 @@ import {
   EID_UL_ADHA,
   QURBANI_DAYS,
   eidByTheCalendar,
+  eidsListed,
   expectedEidNear,
   isSameEid,
   nextEidWindow,
@@ -105,5 +106,37 @@ describe("the day an announced Eid was expected on", () => {
   it("is nothing for a day that is no Eid, a year typed wrong", () => {
     expect(expectedEidNear("2027-06-17")).toBe(null);
     expect(expectedEidNear("2026-05-17")).toBe(null);
+  });
+});
+
+describe("the Eids the farm keeps a list of", () => {
+  it("is the last one sold into, every one the table expects, and two the calendar guesses past it", () => {
+    const listed = eidsListed("2027-01-01");
+
+    expect(listed[0]).toEqual({ expectedDay: "2026-05-28", basis: "expected" });
+    expect(listed.filter((one) => one.basis === "expected")).toHaveLength(
+      EID_UL_ADHA.length
+    );
+    const guessed = listed.filter((one) => one.basis === "estimated");
+    expect(guessed).toHaveLength(2);
+    expect(
+      guessed[0]?.expectedDay.localeCompare(EID_UL_ADHA.at(-1) ?? "")
+    ).toBe(1);
+    // Every Eid once, a Hijri year apart.
+    const days = listed.map((one) => one.expectedDay);
+    expect(days).toEqual(days.toSorted());
+    expect(new Set(days).size).toBe(days.length);
+  });
+
+  it("keeps the one the farm is standing in while Qurbani is on", () => {
+    expect(eidsListed("2027-05-18")[1]?.expectedDay).toBe("2027-05-17");
+    expect(eidsListed("2027-05-18")[0]?.expectedDay).toBe("2026-05-28");
+  });
+
+  it("still names the Eids ahead once the table has run out", () => {
+    const listed = eidsListed("2040-01-01");
+
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.every((one) => one.expectedDay >= "2039-01-01")).toBe(true);
   });
 });

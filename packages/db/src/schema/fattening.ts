@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   numeric,
@@ -101,6 +102,8 @@ export const intake = pgTable(
  *
  * Never updated: a second announcement for the same Eid — a day typed wrong — is another row, and the latest for an
  * Eid is the one in force. The earlier ones are kept because the animals aimed at them are still to be brought along.
+ * Taking an announcement back is a row too — the expected day again, marked withdrawn — so the trail of what the farm
+ * believed, and when, stays whole.
  */
 export const eidAnnouncement = pgTable(
   "eid_announcement",
@@ -114,6 +117,9 @@ export const eidAnnouncement = pgTable(
     /** The day the farm expected this Eid on before anybody announced it: which Eid this is. */
     expectedDay: text("expected_day").notNull(),
     announcedBy: text("announced_by").references(() => user.id),
+    /** Whether this row takes the announcement back: the Eid is on its expected day again, as nobody has announced
+     *  it. Its `day` is the expected day. */
+    withdrawn: boolean("withdrawn").notNull().default(false),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [index("eid_announcement_idx").on(table.farmId, table.expectedDay)]
