@@ -28,9 +28,11 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
   ChevronDown,
+  FileText,
   Handshake,
   LayoutDashboard,
   LogOut,
+  ScrollText,
   Sprout,
   UserRound,
 } from "lucide-react";
@@ -49,12 +51,25 @@ import { orpc } from "@/utils/orpc";
 
 import { PortalNotice } from "./portal-door";
 
-/** The portal's two daily destinations on a phone, beside More: their portfolio and their account. */
+/** The portal's destinations on a phone, beside More for the Ventures: their portfolio, their money, their papers and
+ *  their account. */
 const PORTAL_BOTTOM_BAR: readonly NavItem[] = [
   {
     to: "/portal",
     label: "portal.nav.portfolio",
     icon: LayoutDashboard,
+    audience: "anyone",
+  },
+  {
+    to: "/portal/money",
+    label: "portal.nav.money",
+    icon: ScrollText,
+    audience: "anyone",
+  },
+  {
+    to: "/portal/papers",
+    label: "portal.nav.papers",
+    icon: FileText,
     audience: "anyone",
   },
   {
@@ -64,7 +79,6 @@ const PORTAL_BOTTOM_BAR: readonly NavItem[] = [
     audience: "anyone",
   },
 ];
-
 /** Whether a destination is the page being shown. The portfolio is only itself: every portal page is inside it. */
 const isHere = (to: string, pathname: string) =>
   to === "/portal"
@@ -108,8 +122,9 @@ const PortalNavLink = ({
 );
 
 /**
- * The portal's side of the screen, the farm's sidebar in every way but what is on it: their portfolio, each Venture
- * they are in, and their account at its foot — collapsing to icons on a desk and sliding over on a phone.
+ * The portal's side of the screen, the farm's sidebar in every way but what is on it: their portfolio, their money and
+ * their papers, each Venture they are in, and their account at its foot — collapsing to icons on a desk and sliding
+ * over on a phone.
  */
 const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
   const t = useT();
@@ -154,6 +169,20 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
                 label={t("portal.nav.portfolio")}
                 onGo={close}
                 to="/portal"
+              />
+              <PortalNavLink
+                here={isHere("/portal/money", pathname)}
+                icon={ScrollText}
+                label={t("portal.nav.money")}
+                onGo={close}
+                to="/portal/money"
+              />
+              <PortalNavLink
+                here={isHere("/portal/papers", pathname)}
+                icon={FileText}
+                label={t("portal.nav.papers")}
+                onGo={close}
+                to="/portal/papers"
               />
             </SidebarMenu>
           </SidebarGroupContent>

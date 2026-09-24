@@ -265,12 +265,10 @@ export const InvestorAgreements = ({
 /** The money table's words, as its reader is spoken to: the Owner reading about "them", or the Investor about "you". */
 const MONEY_WORDS = {
   owner: {
-    hint: "investors.page.moneyHint",
     none: "investors.page.noMoney",
     back: "investors.page.toThem",
   },
   portal: {
-    hint: "portal.money.hint",
     none: "portal.money.none",
     back: "portal.money.toYou",
   },
@@ -343,7 +341,11 @@ export const InvestorMoney = ({
     }
   }
   return (
-    <Section description={t(words.hint)} title={t("investors.page.tab.money")}>
+    // In the portal the page it stands on says what it is; on the Owner's page of an Investor it is one tab of several.
+    <Section
+      description={inThePortal ? undefined : t("investors.page.moneyHint")}
+      title={inThePortal ? undefined : t("investors.page.tab.money")}
+    >
       {movements.length === 0 ? (
         <EmptyState bare icon={ScrollText} title={t(words.none)} />
       ) : (
