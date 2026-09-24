@@ -276,7 +276,7 @@ export const ReadySuggestions = ({
         <DataTable
           card={suggestionCard}
           key={`${ground}:${pen}`}
-          minWidth="62rem"
+          minWidth="60rem"
           pageSize={SUGGESTION_PAGE}
           table={table}
         />
