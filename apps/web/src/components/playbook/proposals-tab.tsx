@@ -211,7 +211,7 @@ const ProposalSheet = ({
 }) => {
   const { t, language } = useLanguage();
   const content = row?.content;
-  const when = content ? whenWords(content, t) : [];
+  const when = content ? whenWords(content, t, language) : [];
   return (
     <Sheet onOpenChange={onOpenChange} open={row !== undefined}>
       <SheetContent

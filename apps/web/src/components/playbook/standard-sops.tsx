@@ -107,7 +107,7 @@ export const StandardSops = ({
   products: Product[];
   onAdopt: (content: SopContent) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [chosen, setChosen] = useState<StandardSopChoices>({});
   const choices = { ...suggested(products), ...chosen };
   const have = new Set(
@@ -146,7 +146,8 @@ export const StandardSops = ({
                   {content.purpose.bn}
                 </p>
                 <p className="text-muted-foreground text-xs tabular-nums">
-                  {whenWords(content, t).join(" · ") || t("sop.byHand")}
+                  {whenWords(content, t, language).join(" · ") ||
+                    t("sop.byHand")}
                 </p>
               </div>
               {need ? (

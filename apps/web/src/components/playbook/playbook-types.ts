@@ -1,4 +1,6 @@
 import type { SopContent } from "@OpenFarm/domain";
+import type { Language } from "@OpenFarm/i18n";
+import { timeInDigits } from "@OpenFarm/i18n";
 
 import type { useLanguage } from "@/i18n/language-provider";
 import {
@@ -57,9 +59,13 @@ const happeningWord = (happening: HappeningTrigger, t: Translate): string => {
  * When a procedure's work comes up, in a few words each: its times of day with the days they fall on, and each thing
  * that happens that raises it. Nothing at all is work raised by hand.
  */
-export const whenWords = (content: SopContent, t: Translate): string[] => {
+export const whenWords = (
+  content: Pick<SopContent, "triggers">,
+  t: Translate,
+  language: Language
+): string[] => {
   const words: string[] = [];
-  const times = scheduleTimes(content);
+  const times = scheduleTimes(content).map((at) => timeInDigits(at, language));
   if (times.length > 0) {
     const days = scheduleWeekdays(content)
       .map((day) => t(`sop.weekday.${day}` as "sop.weekday.0"))

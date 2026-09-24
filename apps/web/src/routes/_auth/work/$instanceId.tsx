@@ -21,6 +21,7 @@ import {
   formatDigits,
   formatNumber,
   numberAsTyped,
+  timeInDigits,
 } from "@OpenFarm/i18n";
 import { Button, buttonVariants } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -1036,10 +1037,6 @@ const AnimalTile = ({
   );
 };
 
-/** "০৫:০০" rather than "05:00" for a Bangla reader: a time is digits with a colon in it. */
-const inTheirDigits = (time: string, language: "bn" | "en"): string =>
-  time.replaceAll(/\d/gu, (digit) => formatDigits(Number(digit), language));
-
 /** What changed, as the board is handed it. */
 interface Changed {
   from: number;
@@ -1087,7 +1084,7 @@ const WhatChanged = ({ changed }: { changed: Changed }) => {
       ...("times" in change
         ? {
             times: change.times
-              .map((at) => inTheirDigits(at, language))
+              .map((at) => timeInDigits(at, language))
               .join(", "),
           }
         : {}),
