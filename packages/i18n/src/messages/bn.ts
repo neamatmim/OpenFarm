@@ -119,6 +119,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.dates.capitalIn": "আপনার মূলধন এসেছে",
   "portal.dates.window": "বিক্রয়ের সময়",
   "portal.dates.paidOut": "আপনার পাওনা পাঠানো হয়েছে",
+  "portal.tab.money": "টাকা",
+  "portal.tab.spending": "খরচ",
+  "portal.tab.security": "নিরাপত্তা",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
   "portal.title": "বিনিয়োগকারী পোর্টাল",

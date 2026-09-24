@@ -1,8 +1,8 @@
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronRight, Handshake } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ChevronRight, FileText, Handshake, ScrollText } from "lucide-react";
 
 import type { TheirAgreements } from "@/components/investors/investor-agreements";
 import { InvestorMoney } from "@/components/investors/investor-agreements";
@@ -14,6 +14,7 @@ import {
   PageHeader,
   Section,
 } from "@/components/page";
+import { PageTabs } from "@/components/page-kit";
 import {
   Allocation,
   CapitalAccount,
@@ -28,7 +29,14 @@ type HisAgreement = TheirAgreements["agreements"][number];
 
 /** One Venture they are in: its name, how far along its road it is, their Units and capital, and the terms in force.
  *  The whole card leads to the Venture's own page. */
-const VentureCard = ({ one }: { one: HisAgreement }) => {
+const VentureCard = ({
+  one,
+  alone = false,
+}: {
+  one: HisAgreement;
+  /** The only card, with the row to itself: its four facts side by side rather than two by two. */
+  alone?: boolean;
+}) => {
   const { t } = useLanguage();
   const taka = useTaka();
   return (
@@ -46,7 +54,12 @@ const VentureCard = ({ one }: { one: HisAgreement }) => {
           />
         </div>
         <StageMeter state={one.venture.state} />
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <dl
+          className={cn(
+            "grid grid-cols-2 gap-x-6 gap-y-3 text-sm",
+            alone && "sm:grid-cols-4"
+          )}
+        >
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground text-xs">
               {t("portal.capital")}
@@ -120,34 +133,76 @@ const TheirPapers = ({ agreements }: { agreements: HisAgreement[] }) => {
   );
 };
 
-/** Their whole part, once it is read: the account first, then where it sits, each Venture, their papers, and every
- *  taka of theirs that moved. */
-const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
+const TABS = ["ventures", "money", "papers"] as const;
+type Tab = (typeof TABS)[number];
+
+/**
+ * Their whole part, once it is read: the capital account first and always — what investors open a portal to see —
+ * then one view at a time, as investor portals divide it: where it sits and each Venture, every taka that moved, and
+ * every paper.
+ */
+const Portfolio = ({ theirs, tab }: { theirs: TheirAgreements; tab: Tab }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   if (theirs.agreements.length === 0) {
     return <EmptyState icon={Handshake} title={t("portal.noVentures")} />;
   }
   return (
     <>
       <CapitalAccount theirs={theirs} />
-      <Allocation theirs={theirs} />
-      <Section title={t("portal.yourVentures")}>
-        <ul
-          className={cn(
-            "grid gap-3",
-            theirs.agreements.length > 1 && "md:grid-cols-2"
-          )}
-        >
-          {theirs.agreements.map((one) => (
-            <VentureCard key={one.id} one={one} />
-          ))}
-        </ul>
-      </Section>
-      <TheirPapers agreements={theirs.agreements} />
-      <InvestorMoney
-        agreements={theirs.agreements}
-        inThePortal
-        movements={theirs.movements}
+      <PageTabs
+        onChange={(value) =>
+          navigate({
+            replace: true,
+            search: value === "ventures" ? {} : { tab: value },
+            to: "/portal",
+          })
+        }
+        tabs={[
+          {
+            value: "ventures",
+            label: t("portal.yourVentures"),
+            icon: Handshake,
+            content: (
+              <div className="flex flex-col gap-4">
+                <Allocation theirs={theirs} />
+                <ul
+                  className={cn(
+                    "grid gap-3",
+                    theirs.agreements.length > 1 && "md:grid-cols-2"
+                  )}
+                >
+                  {theirs.agreements.map((one) => (
+                    <VentureCard
+                      alone={theirs.agreements.length === 1}
+                      key={one.id}
+                      one={one}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ),
+          },
+          {
+            value: "money",
+            label: t("portal.tab.money"),
+            icon: ScrollText,
+            content: (
+              <InvestorMoney
+                agreements={theirs.agreements}
+                inThePortal
+                movements={theirs.movements}
+              />
+            ),
+          },
+          {
+            value: "papers",
+            label: t("portal.papers"),
+            icon: FileText,
+            content: <TheirPapers agreements={theirs.agreements} />,
+          },
+        ]}
+        value={tab}
       />
     </>
   );
@@ -156,6 +211,7 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
 /** An Investor's home in the portal: what their money comes to, where it is, and everything of theirs to read. */
 const PortalHome = () => {
   const { t } = useLanguage();
+  const { tab = "ventures" } = Route.useSearch();
   const theirs = useQuery(orpc.portal.portfolio.queryOptions());
   return (
     <Page>
@@ -167,12 +223,21 @@ const PortalHome = () => {
         query={theirs}
         skeleton={<Skeleton className="h-48 rounded-xl" />}
       >
-        {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
+        {theirs.data ? <Portfolio tab={tab} theirs={theirs.data} /> : null}
       </Loaded>
     </Page>
   );
 };
 
+/** What the address may say about this page: which of its views is open. */
+interface PortfolioSearch {
+  tab?: Tab;
+}
+
 export const Route = createFileRoute("/portal/_in/")({
   component: PortalHome,
+  validateSearch: (search: Record<string, unknown>): PortfolioSearch =>
+    TABS.includes(search.tab as Tab) && search.tab !== "ventures"
+      ? { tab: search.tab as Tab }
+      : {},
 });

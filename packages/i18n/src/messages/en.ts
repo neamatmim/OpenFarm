@@ -122,6 +122,9 @@ export const en = {
   "portal.dates.capitalIn": "Your capital came in",
   "portal.dates.window": "Sale window",
   "portal.dates.paidOut": "Your payout was sent",
+  "portal.tab.money": "Money",
+  "portal.tab.spending": "Spending",
+  "portal.tab.security": "Security",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",

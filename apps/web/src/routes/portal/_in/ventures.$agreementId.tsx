@@ -2,14 +2,22 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, Beef, CalendarClock, Landmark, Scale } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  ArrowLeft,
+  Beef,
+  CalendarClock,
+  FileText,
+  Landmark,
+  Scale,
+  Wallet,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { Loaded, Page, PageHeader, Section } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
-import { SummaryFigures } from "@/components/page-kit";
+import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { PortalPapers } from "@/components/portal/portal-papers";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
@@ -18,6 +26,9 @@ import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
 type Today = Awaited<ReturnType<typeof orpc.portal.venture.call>>;
+
+const TABS = ["animals", "spending", "papers"] as const;
+type Tab = (typeof TABS)[number];
 
 /** Kilogrammes as the reader writes them, or null where nobody has weighed. */
 const saidKg = (kg: number | null, said: ReturnType<typeof useLanguage>) =>
@@ -309,8 +320,9 @@ const KeyDates = ({ today }: { today: Today }) => {
 };
 
 /** The page itself, once the Venture is read. */
-const VentureToday = ({ today }: { today: Today }) => {
+const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const figures = useFigures(today);
   return (
     <>
@@ -342,14 +354,41 @@ const VentureToday = ({ today }: { today: Today }) => {
       <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} />
       <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
-          <Herd today={today} />
-          <Money today={today} />
+        <div className="min-w-0 lg:col-span-2">
+          <PageTabs
+            onChange={(value) =>
+              navigate({
+                params: { agreementId: today.agreementId },
+                replace: true,
+                search: value === "animals" ? {} : { tab: value },
+                to: "/portal/ventures/$agreementId",
+              })
+            }
+            tabs={[
+              {
+                value: "animals",
+                label: t("portal.herd"),
+                icon: Beef,
+                content: <Herd today={today} />,
+              },
+              {
+                value: "spending",
+                label: t("portal.tab.spending"),
+                icon: Wallet,
+                content: <Money today={today} />,
+              },
+              {
+                value: "papers",
+                label: t("portal.papers"),
+                icon: FileText,
+                content: <Papers today={today} />,
+              },
+            ]}
+            value={tab}
+          />
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
-          <KeyDates today={today} />
-          <Papers today={today} />
-        </div>
+        {/* Beside every tab: the days that mark their part, read whichever view is open. */}
+        <KeyDates today={today} />
       </div>
     </>
   );
@@ -359,18 +398,28 @@ const VentureToday = ({ today }: { today: Today }) => {
  *  anybody else's. */
 const PortalVenture = () => {
   const { agreementId } = Route.useParams();
+  const { tab = "animals" } = Route.useSearch();
   const today = useQuery(
     orpc.portal.venture.queryOptions({ input: { agreementId } })
   );
   return (
     <Page>
       <Loaded query={today} skeleton={<Skeleton className="h-96 rounded-xl" />}>
-        {today.data ? <VentureToday today={today.data} /> : null}
+        {today.data ? <VentureToday tab={tab} today={today.data} /> : null}
       </Loaded>
     </Page>
   );
 };
 
+/** What the address may say about this page: which of its views is open. */
+interface VentureSearch {
+  tab?: Tab;
+}
+
 export const Route = createFileRoute("/portal/_in/ventures/$agreementId")({
   component: PortalVenture,
+  validateSearch: (search: Record<string, unknown>): VentureSearch =>
+    TABS.includes(search.tab as Tab) && search.tab !== "animals"
+      ? { tab: search.tab as Tab }
+      : {},
 });
