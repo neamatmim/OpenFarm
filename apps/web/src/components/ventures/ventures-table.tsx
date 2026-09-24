@@ -10,7 +10,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { Nothing, SaidDate } from "@/components/list-cells";
+import { Nothing } from "@/components/list-cells";
 import type { VentureActs } from "@/components/ventures/venture-card";
 import {
   CardBadges,
@@ -23,6 +23,7 @@ import {
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
+import { decisionIsDue } from "@/lib/ventures";
 
 /** One Venture as the table reads it: the Venture itself, what the page can do to it, and the month the
  *  bank is claimed straight up to. */
@@ -35,6 +36,25 @@ interface VentureRow {
 interface Cell {
   row: { original: VentureRow };
 }
+
+/**
+ * The day an Open run has to be decided by, quietly under its name — not a column, which would stand empty for every
+ * run past buying. Left out once the week-ahead warning says it louder, and once the run is buying and the day is
+ * behind it.
+ */
+const DecideBy = ({ venture }: { venture: Venture }) => {
+  const { t, language } = useLanguage();
+  if (venture.state !== "open" || decisionIsDue(venture)) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground text-xs">
+      {t("ventures.decisionDue", {
+        day: formatDate(startOfFarmDay(venture.decideBy), language),
+      })}
+    </span>
+  );
+};
 
 /**
  * The name, and under it everything about where the run stands: its state, how the bank sits, and what is
@@ -54,11 +74,12 @@ const VentureCell = ({ row }: Cell) => {
       >
         {venture.name}
       </Link>
-      {/* Free to wrap inside, so a long badge is what the column bends around rather than what sets its width. */}
-      <span className="flex flex-wrap items-center gap-1 [&_[data-slot=badge]]:text-start [&_[data-slot=badge]]:whitespace-normal">
+      {/* Each badge on one line; a row of them that runs out of room carries the next badge down whole. */}
+      <span className="flex flex-wrap items-center gap-1">
         <StateBadge state={venture.state} />
         <CardBadges lastMonthOver={lastMonthOver} venture={venture} />
       </span>
+      <DecideBy venture={venture} />
       {/* What stands in the way of a dim button, said under the run it is about rather than squeezed under
           the buttons, where the column would have to be as wide as the sentence. */}
       <span className="[&_p]:max-w-none [&_p]:text-left">
@@ -88,20 +109,6 @@ const AnimalsCell = ({ row }: Cell) => {
   return (
     <span className="tabular-nums">
       {formatNumber(venture.animalsStanding ?? 0, language)}
-    </span>
-  );
-};
-
-/** The day an Open run has to be decided by. Once it is buying the day is behind it, and a date that no longer
- *  asks anything of her is left out rather than read as a deadline. */
-const DecideByCell = ({ row }: Cell) => {
-  const { venture } = row.original;
-  if (venture.state !== "open") {
-    return <Nothing />;
-  }
-  return (
-    <span className="tabular-nums">
-      <SaidDate at={venture.decideBy} />
     </span>
   );
 };
@@ -236,23 +243,25 @@ const ventureColumns = column.columns([
     cell: UnitsCell,
     meta: { align: "end", className: "whitespace-nowrap" },
   }),
+  // Investors and Animals give way first on a laptop: each Venture's own page says both, and the figures the table is
+  // for — the money, the Units, the window and the act waiting — stay in reach without the row scrolling.
   column.accessor((row) => moneyOf(row.venture).signedFor.people, {
     id: "people",
     header: listHeader("ventures.col.people"),
     cell: PeopleCell,
-    meta: { align: "end", className: "whitespace-nowrap" },
+    meta: {
+      align: "end",
+      className: "hidden whitespace-nowrap 2xl:table-cell",
+    },
   }),
   column.accessor((row) => row.venture.animalsStanding ?? undefined, {
     id: "animals",
     header: listHeader("ventures.col.animals"),
     cell: AnimalsCell,
-    meta: { align: "end", className: "whitespace-nowrap" },
-  }),
-  column.accessor((row) => row.venture.decideBy, {
-    id: "decideBy",
-    header: listHeader("ventures.decideBy"),
-    cell: DecideByCell,
-    meta: { className: "whitespace-nowrap" },
+    meta: {
+      align: "end",
+      className: "hidden whitespace-nowrap 2xl:table-cell",
+    },
   }),
   column.accessor((row) => row.venture.targetWindow.start, {
     id: "window",
