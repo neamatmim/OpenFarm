@@ -21,6 +21,7 @@ import {
   raiseLateAlerts,
   recentHappenings,
   renewalSlotsFor,
+  TRIGGER_LOOKBACK_DAYS,
 } from "./instances-store";
 import { papersToTell, tellAboutPapersDue } from "./investor-statement-notice";
 import {
@@ -123,7 +124,24 @@ export const theDaysWork = async (context: Turning) => {
       content: contentOf({ content: definition.currentVersion?.content }),
       triggersInForceSince:
         definition.currentVersion?.publishedAt ?? definition.createdAt,
+      // A procedure's first Version catches up with the animals already on their way; a later one does not raise
+      // again what the first raised.
+      catchesUp: definition.currentVersion?.number === 1,
     }));
+  // As far back as the longest a procedure hangs work after an arrival or a State, so the one it catches up with
+  // is found.
+  const reachDays =
+    TRIGGER_LOOKBACK_DAYS +
+    Math.max(
+      0,
+      ...sops.flatMap((sop) =>
+        sop.content.triggers.map((trigger) =>
+          trigger.kind === "event" || trigger.kind === "state"
+            ? (trigger.offsetDays ?? 0)
+            : 0
+        )
+      )
+    );
   const animals = await context.db.query.animal.findMany({
     where: { farmId: context.farm.id },
     columns: { penId: true, side: true, state: true },
@@ -144,7 +162,13 @@ export const theDaysWork = async (context: Turning) => {
     ...happeningSlotsFor(
       now,
       sops,
-      await recentHappenings(context.db, context.farm.id, now, breeding),
+      await recentHappenings(
+        context.db,
+        context.farm.id,
+        now,
+        breeding,
+        reachDays
+      ),
       breeding
     ),
     // Work about the whole farm: its Registration coming up for renewal.
