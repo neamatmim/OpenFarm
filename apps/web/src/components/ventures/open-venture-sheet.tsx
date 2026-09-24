@@ -92,8 +92,8 @@ export const OpenVentureSheet = ({
       description={
         settings
           ? t("ventures.openHint", {
-              floor: String(settings.ventureFloorPercent ?? ""),
-              running: String(running ?? ""),
+              floor: settings.ventureFloorPercent ?? "",
+              running: running ?? "",
             })
           : t("ventures.openHintPlain")
       }
