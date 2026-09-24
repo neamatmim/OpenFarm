@@ -341,6 +341,15 @@ export const en = {
   "ventures.stampValue": "Stamp value",
   "ventures.stampedOn": "Stamped on",
   "ventures.stampSerial": "Stamp serial",
+  "ventures.stampKind": "How the stamp duty was paid",
+  "ventures.stampKind.paper": "Stamp paper",
+  "ventures.stampKind.e_challan": "e-challan",
+  "ventures.dutyPaid": "Stamp duty paid",
+  "ventures.paidOn": "Paid on",
+  "ventures.challanNumber": "e-challan no.",
+  "ventures.printDraft": "Print the agreement to sign",
+  "ventures.printDraftHint":
+    "Printed from these terms, onto stamp paper or to attach to the e-challan. It says it is a draft until a lawyer approves the wording.",
   "ventures.paper": "The stamped paper",
   /** The farm's own words on the file button, and whether the stamped paper is on yet — capital is
    *  refused without it, so she is told here rather than at the refusal. */

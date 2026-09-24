@@ -722,12 +722,40 @@ export interface JoiningLetter {
   /** The day of the amendment those terms come from, as the reader reads it, or nothing while the paper
    *  still stands as it was signed. */
   amendedOn: string | null;
-  /** The stamped instrument this paper points at, as the schema groups it: what the stamp cost, the day
-   *  it was stamped, and its serial. */
-  stamp: { value: string; on: string; serial: string };
+  /** The stamped instrument this paper points at, as the schema groups it: how its duty was paid, what it came
+   *  to, the day, and the stamp paper's serial or the e-challan's number. */
+  stamp: StampLine;
   producedBy: string;
   producedAt: string;
 }
+
+/** How an Agreement's stamp duty was paid, as a paper prints it. */
+export interface StampLine {
+  kind: "paper" | "e_challan";
+  /** Taka and the day, formatted for the reader. */
+  value: string;
+  on: string;
+  /** The stamp paper's serial, or the e-challan's number. */
+  serial: string;
+}
+
+/** The stamp's three lines: stamp paper by its serial, or duty paid by e-challan by the challan's number. */
+export const stampLines = (stamp: StampLine): string[] =>
+  stamp.kind === "e_challan"
+    ? [
+        field(
+          "স্ট্যাম্প শুল্ক (ই-চালান)",
+          "Stamp duty (e-challan)",
+          `${stamp.value} টাকা`
+        ),
+        field("পরিশোধের তারিখ", "Paid on", stamp.on),
+        field("ই-চালান নম্বর", "e-challan no.", stamp.serial),
+      ]
+    : [
+        field("স্ট্যাম্প মূল্য", "Stamp value", `${stamp.value} টাকা`),
+        field("স্ট্যাম্পের তারিখ", "Stamped on", stamp.on),
+        field("স্ট্যাম্প সিরিয়াল", "Stamp serial", stamp.serial),
+      ];
 
 /**
  * The paper an Investor gets when he joins: that the Farm has his money, and what he has agreed to.
@@ -787,15 +815,106 @@ export const joiningLetter = (letter: JoiningLetter): string => {
         ? `  (${letter.amendedOn} তারিখের সংশোধনী অনুযায়ী / as amended on ${letter.amendedOn})`
         : null,
       "",
-      field("স্ট্যাম্প মূল্য", "Stamp value", `${letter.stamp.value} টাকা`),
-      field("স্ট্যাম্পের তারিখ", "Stamped on", letter.stamp.on),
-      field("স্ট্যাম্প সিরিয়াল", "Stamp serial", letter.stamp.serial),
+      ...stampLines(letter.stamp),
       "",
       "বিনিয়োগকারীর স্বাক্ষর / Investor: ____________________",
       "খামারির স্বাক্ষর / For the Farm: ____________________",
     ],
   });
 };
+
+/**
+ * The day a Bangladeshi lawyer approved the wording of the Investment Agreement below, or null until one has. Until
+ * then every copy says it is a draft and not to be signed: the terms are the farm's decisions, but the deed's wording
+ * is a lawyer's to settle (the investor map's ticket 11). Set it, with the lawyer's name in the commit, once they have.
+ */
+export const AGREEMENT_WORDING_APPROVED_ON: string | null = null;
+
+/** The Investment Agreement for one Investor and one Venture, everything already worded for the reader. */
+export interface AgreementDraft {
+  farm: FarmIdentity;
+  /** The mudarib: the Owner, who signs for the Farm. */
+  ownerName: string;
+  him: JoiningLetter["him"];
+  ventureName: string;
+  /** Taka, formatted: one Unit's price, his Units, and the capital they come to. */
+  unitPrice: string;
+  units: string;
+  capital: string;
+  /** The seven plain lines of what he agrees to, already worded by the caller — the joining letter's own. */
+  terms: string[];
+  producedBy: string;
+  producedAt: string;
+}
+
+/**
+ * মুদারাবা বিনিয়োগ চুক্তি — the Investment Agreement for one Investor and one Venture, printed from the terms before
+ * it is signed: onto stamp paper, or to go with an e-challan. The parties, the Venture and his Units, the capital and
+ * how it may reach the Farm, the seven terms the joining letter repeats, a box for the stamp, and room for both
+ * signatures and two witnesses.
+ *
+ * A draft until a lawyer approves the wording ({@link AGREEMENT_WORDING_APPROVED_ON}), and it says so at the top.
+ */
+export const investmentAgreementDraft = (draft: AgreementDraft): string =>
+  investorStatement({
+    farm: draft.farm,
+    title: "মুদারাবা বিনিয়োগ চুক্তি / Mudarabah Investment Agreement",
+    producedBy: draft.producedBy,
+    producedAt: draft.producedAt,
+    body: [
+      AGREEMENT_WORDING_APPROVED_ON
+        ? null
+        : "খসড়া — আইনজীবী এই ভাষা অনুমোদন না করা পর্যন্ত সই করবেন না। / DRAFT — not to be signed until a lawyer approves this wording.",
+      AGREEMENT_WORDING_APPROVED_ON ? null : "",
+      "প্রথম পক্ষ (মুদারিব) / First party (mudarib)",
+      field("নাম", "Name", draft.ownerName),
+      field("খামার", "Farm", draft.farm.name),
+      draft.farm.address?.trim()
+        ? field("ঠিকানা", "Address", draft.farm.address)
+        : null,
+      "",
+      "দ্বিতীয় পক্ষ (বিনিয়োগকারী) / Second party (investor)",
+      field("নাম", "Name", draft.him.name),
+      draft.him.address?.trim()
+        ? field("ঠিকানা", "Address", draft.him.address)
+        : null,
+      field("মোবাইল", "Phone", draft.him.phone),
+      draft.him.nid?.trim()
+        ? field("জাতীয় পরিচয়পত্র", "NID", draft.him.nid)
+        : null,
+      draft.him.nominee
+        ? field(
+            "নমিনি",
+            "Nominee",
+            [
+              draft.him.nominee.name,
+              draft.him.nominee.relation?.trim() || null,
+              draft.him.nominee.phone?.trim() || null,
+            ]
+              .filter((part) => part !== null)
+              .join(" · ")
+          )
+        : null,
+      "",
+      field("ভেঞ্চার", "Venture", draft.ventureName),
+      field("প্রতি ইউনিট", "Unit price", `${draft.unitPrice} টাকা`),
+      field("ইউনিট", "Units", draft.units),
+      field("মূলধন", "Capital", `${draft.capital} টাকা`),
+      "মূলধন কেবল ভেঞ্চারের ব্যাংক হিসাবে ব্যাংকের মাধ্যমে দেওয়া হবে, নগদে নয়। / Capital is paid by bank into the Venture Account only, never in cash.",
+      "",
+      "শর্তাবলি / Terms",
+      ...draft.terms.map((one) => `  ${one}`),
+      "",
+      "স্ট্যাম্প বা ই-চালান / Stamp or e-challan: ____________________",
+      "মূল্য / Value: __________  তারিখ / Date: __________",
+      "",
+      "প্রথম পক্ষের স্বাক্ষর / First party: ____________________  তারিখ / Date: __________",
+      "দ্বিতীয় পক্ষের স্বাক্ষর / Second party: ____________________  তারিখ / Date: __________",
+      "",
+      "সাক্ষী ১ / Witness 1: নাম / name ____________________  স্বাক্ষর / signature ____________",
+      "সাক্ষী ২ / Witness 2: নাম / name ____________________  স্বাক্ষর / signature ____________",
+    ],
+  });
 
 /** One Animal on the progress sheet, everything already worded for the reader. */
 export interface ProgressAnimal {

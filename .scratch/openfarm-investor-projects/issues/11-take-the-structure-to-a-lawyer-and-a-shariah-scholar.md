@@ -21,6 +21,14 @@ Checklist for the lawyer:
 - [ ] Which **stamp duty** applies (partnership deed or agreement), and at what current rate? Is registering with RJSC worth doing?
 - [ ] **Tax:** withholding on investors' profit, VAT on any farm share or fee, and how it sits with agricultural income. Refer to a tax adviser if needed.
 
+Stamping less often (asked by the Owner, 2026-09-24 — a stamped deed per Investor per Venture is the most paper the farm handles):
+
+- [ ] May each Investor sign **one stamped master agreement**, with each Venture joined afterwards by a short **schedule** (Units, amount, Target Window) signed in OpenFarm? Is that schedule an instrument chargeable with duty of its own (Stamp Act s.4, Schedule I)?
+- [ ] Is duty paid by **e-challan / A-challan** instead of stamp paper acceptable for this agreement, and what does the farm keep as proof — the challan number, its receipt, both?
+- [ ] Is an **electronic signature** enough for a mudarabah agreement under the ICT Act 2006 — an OTP to the Investor's phone, a drawn signature on the Owner's phone — or must it be a certificate-based digital signature? Are any of these instruments excluded from electronic form?
+- [ ] What does **stamping only on request** risk (s.35: inadmissible until duty and up to ten times it are paid), and who carries that risk?
+- [ ] Review the **Investment Agreement template** OpenFarm prints (Venture → Agreement → print the draft), and mark it approved or say what must change. Until then every copy is printed as a draft.
+
 Checklist for the Shariah scholar:
 
 - [ ] May a Buying or Selling Trip's men's food and lodging, and Herd Costs, be charged to the pool, given that the manager's ordinary staff costs are the manager's own?

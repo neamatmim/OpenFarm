@@ -8,6 +8,7 @@ import {
   ventureSettlementShare,
   ventureSettlement,
   ventureBankCheck,
+  STAMP_KINDS,
   investmentAgreement,
   venture,
   ventureMovement,
@@ -162,6 +163,8 @@ const signInput = z.object({
     message: "A stamped paper has a stamp value",
   }),
   stampedOn: farmDay,
+  /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the challan's number. */
+  stampKind: z.enum(STAMP_KINDS).default("paper"),
   stampSerial: z.string().trim().min(1).max(60),
 });
 
@@ -758,6 +761,7 @@ export const venturesRouter = {
         },
         arbitrator: one.arbitrator,
         stamp: {
+          kind: one.stampKind,
           valueBdt: one.stampValueBdt,
           on: one.stampedOn,
           serial: one.stampSerial,
@@ -853,6 +857,7 @@ export const venturesRouter = {
             targetWindowStart: row.targetWindowStart,
             targetWindowEnd: row.targetWindowEnd,
             arbitrator: input.arbitrator,
+            stampKind: input.stampKind,
             stampValueBdt: input.stampValueBdt,
             stampedOn: input.stampedOn,
             stampSerial: input.stampSerial,

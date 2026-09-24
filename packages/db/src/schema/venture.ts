@@ -108,6 +108,10 @@ export const investor = pgTable(
   ]
 );
 
+/** How the Agreement's stamp duty was paid: on stamp paper, or by e-challan into the treasury with no paper to
+ *  stamp. Its own copy, as the schema's other enums are. */
+export const STAMP_KINDS = ["paper", "e_challan"] as const;
+
 /**
  * What one Investor signed for one Venture: the Units they took, the percentages the profit is split by,
  * and the Arbitrator both sides named before there was anything to argue about.
@@ -138,7 +142,11 @@ export const investmentAgreement = pgTable(
     targetWindowEnd: text("target_window_end").notNull(),
     /** The person both sides named to decide whether the Farm was negligent. */
     arbitrator: text("arbitrator").notNull(),
-    /** The stamped instrument: what the stamp cost, the day it was stamped, and its serial. */
+    /** The stamped instrument: how its duty was paid, what it came to, the day, and the stamp paper's serial —
+     *  or, paid by e-challan, the challan's number. */
+    stampKind: text("stamp_kind", { enum: STAMP_KINDS })
+      .notNull()
+      .default("paper"),
     stampValueBdt: taka("stamp_value_bdt").notNull(),
     stampedOn: text("stamped_on").notNull(),
     stampSerial: text("stamp_serial").notNull(),

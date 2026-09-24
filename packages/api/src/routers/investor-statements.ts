@@ -1,5 +1,6 @@
 import {
   farmDayOf,
+  investmentAgreementDraft,
   joiningLetter,
   progressStatement,
   settlementStatement,
@@ -22,6 +23,7 @@ import {
 } from "../investor-statement-store";
 import {
   adjustmentWords,
+  agreementTerms,
   chargeWords,
   gainWords,
   herdStoryWords,
@@ -33,6 +35,107 @@ import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirProgress } from "../venture-herd-store";
 
 export const investorStatementsRouter = {
+  /**
+   * মুদারাবা বিনিয়োগ চুক্তি — the Investment Agreement for one Investor and one Venture, printed from the terms the
+   * Owner is about to sign on: onto stamp paper, or to go with an e-challan. Nothing is written but the trail's line:
+   * the Agreement exists once it is signed, stamped and entered.
+   *
+   * The Owner's alone, from her own phone, as signing is. The target window is the Venture's, as signing copies it.
+   */
+  agreementDraft: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        investorId: z.string(),
+        units: z.number().int().min(1).max(10_000),
+        investorsPercent: z.number().int().min(0).max(100),
+        arbitrator: z.string().trim().min(1).max(200),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "an Investment Agreement");
+      const [run, him] = await Promise.all([
+        context.db.query.venture.findFirst({
+          where: { id: input.ventureId, farmId: context.farm.id },
+          columns: {
+            id: true,
+            name: true,
+            state: true,
+            unitPriceBdt: true,
+            targetWindowStart: true,
+            targetWindowEnd: true,
+          },
+        }),
+        context.db.query.investor.findFirst({
+          where: { id: input.investorId, farmId: context.farm.id },
+        }),
+      ]);
+      if (!(run && him)) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "No such Venture or Investor",
+        });
+      }
+      if (run.state !== "open") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "A Venture takes signatures only while it is open",
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const taka = (bdt: number) => formatNumber(bdt, language);
+      const text = investmentAgreementDraft({
+        farm: context.farm,
+        ownerName: context.actor.name,
+        him: {
+          name: him.name,
+          phone: him.phone,
+          address: him.address,
+          nid: him.nid,
+          nominee: him.nomineeName
+            ? {
+                name: him.nomineeName,
+                phone: him.nomineePhone,
+                relation: him.nomineeRelation,
+              }
+            : null,
+        },
+        ventureName: run.name,
+        unitPrice: taka(run.unitPriceBdt),
+        units: formatNumber(input.units, language),
+        capital: taka(input.units * run.unitPriceBdt),
+        terms: agreementTerms(
+          {
+            investorsPercent: input.investorsPercent,
+            targetWindowStart: run.targetWindowStart,
+            targetWindowEnd: run.targetWindowEnd,
+            arbitrator: input.arbitrator,
+          },
+          context.farm.windUpDays
+        ),
+        producedBy: context.actor.name,
+        producedAt: formatDate(now, language, "dateTime"),
+      });
+      await audited(context).write(
+        {
+          // Filed against the Venture: there is no Agreement yet to file it against, and "what did we hand that man
+          // to sign, and when" is a question about the Venture he was signing for.
+          entity: "venture",
+          entityId: run.id,
+          action: "export",
+          after: exportedPaper(context.farm, "agreement_draft", {
+            investorId: him.id,
+            units: input.units,
+            investorsPercent: input.investorsPercent,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      return { text };
+    }),
+
   /**
    * যোগদানপত্র — the paper an Investor is handed when his money lands: that the Farm has it, how much, on
    * what day and by which bank reference, and what he has agreed to in seven plain lines.
@@ -79,6 +182,7 @@ export const investorStatementsRouter = {
           ? day(standing.agreement.amendedOn)
           : null,
         stamp: {
+          kind: standing.agreement.stampKind,
           value: taka(standing.agreement.stampValueBdt),
           on: day(standing.agreement.stampedOn),
           serial: standing.agreement.stampSerial,

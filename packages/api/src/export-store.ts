@@ -48,6 +48,7 @@ export type ExportedPaper =
   | "transport_card"
   | "passport"
   | "withdrawal_summary"
+  | "agreement_draft"
   | "joining_letter"
   | "progress_statement"
   | "settlement_statement";

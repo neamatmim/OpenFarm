@@ -26,6 +26,7 @@ export interface HisAgreement {
   /** The day a paper everybody signed moved these, where one did. */
   amendedOn: string | null;
   arbitrator: string;
+  stampKind: "paper" | "e_challan";
   stampValueBdt: number;
   stampedOn: string;
   stampSerial: string;
@@ -179,6 +180,7 @@ export const hisStanding = async (
       targetWindowEnd: terms.targetWindowEnd,
       amendedOn: terms.amendedOn,
       arbitrator: agreement.arbitrator,
+      stampKind: agreement.stampKind,
       stampValueBdt: agreement.stampValueBdt,
       stampedOn: agreement.stampedOn,
       stampSerial: agreement.stampSerial,
