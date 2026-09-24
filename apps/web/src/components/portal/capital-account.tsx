@@ -22,7 +22,7 @@ const PERCENT_SCALE = 1000;
 const shareOf = (part: number, whole: number) =>
   whole > 0 ? Math.round((part / whole) * PERCENT_SCALE) / 10 : 0;
 
-/** One line of the account beside the one figure: a label, a sum, and what it means. */
+/** One figure of the account, in the grid beside the one that matters most: a label, a sum, and what it means. */
 const Line = ({
   label,
   value,
@@ -34,13 +34,13 @@ const Line = ({
   hint?: string;
   tone?: "neutral" | "warning";
 }) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
+  <div className="flex min-w-0 flex-col gap-1">
     <dt className="text-muted-foreground text-xs" data-slot="figure-label">
       {label}
     </dt>
     <dd
       className={cn(
-        "text-base font-semibold tabular-nums",
+        "text-xl font-semibold tabular-nums",
         tone === "warning" && "text-warning"
       )}
     >
@@ -50,54 +50,94 @@ const Line = ({
   </div>
 );
 
+/** The whole of a share, as the percent the bar is drawn to. */
+const WHOLE = 100;
+
+/**
+ * How much of what their Units promised they have paid in: a bar and the two sums, the way a fund's investor is shown
+ * called against committed. Nothing for somebody whose every Venture was called off, who promised nothing that stands.
+ */
+const PaidIn = ({
+  paidInBdt,
+  promisedBdt,
+  returnedBdt,
+}: {
+  paidInBdt: number;
+  promisedBdt: number;
+  returnedBdt: number;
+}) => {
+  const { t, language } = useLanguage();
+  const taka = useTaka();
+  if (promisedBdt <= 0) {
+    return null;
+  }
+  const share = Math.min(WHOLE, (paidInBdt / promisedBdt) * WHOLE);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div
+        aria-hidden
+        className="bg-muted h-1.5 w-full max-w-sm overflow-hidden rounded-full"
+      >
+        <span
+          className="bg-primary block h-full rounded-full"
+          style={{ width: `${share}%` }}
+        />
+      </div>
+      <p className="text-muted-foreground text-sm">
+        {t("portal.sums.paidInOf", {
+          paid: taka(paidInBdt),
+          promised: taka(promisedBdt),
+          percent: formatNumber(Math.round(share), language),
+        })}
+        {returnedBdt > 0
+          ? ` · ${t("portal.sums.returned", { bdt: taka(returnedBdt) })}`
+          : ""}
+      </p>
+    </div>
+  );
+};
+
 /**
  * Their capital account, the first thing on the page — the way a fund's investor is shown committed, called and
- * distributed: the one figure that matters most, the capital the Farm holds of theirs now, set large; and beside it
- * what their Units promised, what they paid in, what came back to them, and their share of the profit. Counted, never
- * forecast.
+ * distributed: the one figure that matters most, the capital the Farm holds of theirs now, set large, with how much of
+ * what they promised they have paid in under it; and beside it what was paid out to them, their share of the profit,
+ * the Units they hold and the Ventures they are in. Counted, never forecast.
  */
 export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const taka = useTaka();
   const sums = portfolioOf(theirs);
-  const running = theirs.agreements.filter(
-    (one) =>
-      one.venture.state !== "settled" && one.venture.state !== "cancelled"
+  const standing = theirs.agreements.filter(
+    (one) => one.venture.state !== "cancelled"
+  );
+  const running = standing.filter(
+    (one) => one.venture.state !== "settled"
   ).length;
+  const units = standing.reduce((sum, one) => sum + one.units, 0);
   return (
     <section
       aria-labelledby="capital-account-title"
-      className="surface grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-center"
+      className="surface grid gap-6 p-5 md:p-6 lg:grid-cols-2 lg:gap-8"
     >
-      <div className="flex min-w-0 flex-col gap-1">
-        <h2
-          className="text-muted-foreground text-sm font-medium"
-          id="capital-account-title"
-        >
-          {t("portal.heldNow")}
-        </h2>
-        <p className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
-          {taka(sums.heldBdt)}
-        </p>
-        <p className="text-muted-foreground text-sm">
-          {t("portal.sums.heldIn", { count: running })}
-        </p>
+      <div className="flex min-w-0 flex-col justify-center gap-3">
+        <div className="flex flex-col gap-1">
+          <h2
+            className="text-muted-foreground text-sm font-medium"
+            id="capital-account-title"
+          >
+            {t("portal.heldNow")}
+          </h2>
+          <p className="text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">
+            {taka(sums.heldBdt)}
+          </p>
+        </div>
+        <PaidIn
+          paidInBdt={sums.paidInBdt}
+          promisedBdt={sums.promisedBdt}
+          returnedBdt={sums.returnedBdt}
+        />
       </div>
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-5 sm:grid-cols-4 lg:border-s lg:border-t-0 lg:ps-6 lg:pt-0">
-        <Line
-          hint={t("portal.sums.promisedHint")}
-          label={t("portal.sums.promised")}
-          value={taka(sums.promisedBdt)}
-        />
-        <Line
-          hint={
-            sums.returnedBdt > 0
-              ? t("portal.sums.returned", { bdt: taka(sums.returnedBdt) })
-              : undefined
-          }
-          label={t("portal.sums.paidIn")}
-          value={taka(sums.paidInBdt)}
-        />
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-5 lg:border-s lg:border-t-0 lg:ps-8 lg:pt-0">
         <Line label={t("portal.paidOut")} value={taka(sums.paidOutBdt)} />
         <Line
           hint={
@@ -108,6 +148,15 @@ export const CapitalAccount = ({ theirs }: { theirs: TheirAgreements }) => {
           label={t("portal.profit")}
           tone={sums.profitBdt < 0 ? "warning" : "neutral"}
           value={taka(sums.profitBdt)}
+        />
+        <Line
+          label={t("investors.unitsHeld")}
+          value={formatNumber(units, language)}
+        />
+        <Line
+          hint={t("portal.sums.settledCount", { count: sums.settled })}
+          label={t("portal.sums.running")}
+          value={formatNumber(running, language)}
         />
       </dl>
     </section>

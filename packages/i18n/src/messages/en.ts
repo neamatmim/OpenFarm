@@ -108,11 +108,6 @@ export const en = {
   "portal.nav.portfolio": "Portfolio",
   "portal.nav.account": "Account",
   "portal.anInvestor": "Investor",
-  "portal.sums.heldIn":
-    "{count, plural, one {In # Venture still running} other {In # Ventures still running}}",
-  "portal.sums.promised": "Promised",
-  "portal.sums.promisedHint": "What your Units come to",
-  "portal.sums.paidIn": "Paid in",
   "portal.sums.returned": "{bdt} sent back to you",
   "portal.allocation": "Where your capital is",
   "portal.allocationHint": "The capital held now, by Venture.",
@@ -125,6 +120,10 @@ export const en = {
   "portal.tab.money": "Money",
   "portal.tab.spending": "Spending",
   "portal.tab.security": "Security",
+  "portal.sums.paidInOf": "{paid} of {promised} promised, paid in · {percent}%",
+  "portal.sums.running": "Ventures running",
+  "portal.sums.settledCount":
+    "{count, plural, one {# settled} other {# settled}}",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",
