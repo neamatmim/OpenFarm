@@ -150,6 +150,8 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 ## Fattening
 
+**Release**: A bought-in Animal let out of Quarantine by the Playbook's release Step: Fattening from that moment, and walked to the first Pen whose Ration's Weight Band suits what the scale last said of him — where none does, he is released where he stands for the Manager to move. The Standard Playbook hangs it thirty days after he entered Quarantine (DLS GLPP 2023). Never undone by a Correction: a bull put back in Quarantine would look freshly bought. _Avoid_: Discharge, clearance
+
 **Intake**: The recorded arrival of a bought-in Animal on the Fattening side: source, price, intake weight, estimated age, photo, Target Window. Creates the Animal in Quarantine. _Avoid_: Purchase (finance's word), arrival, admission
 
 **Weigh-in**: A recorded scale reading for one Animal on a date. Fortnightly for Fattening; daily gain and projections are derived from Weigh-ins. Every reading is kept — the difference between two of them is the thing being measured — and one that changed more than an animal could is still kept, flagged with what the farm found, and raised as a **Needs Review** for the Manager. _Avoid_: Weight check, weighing record

@@ -85,6 +85,8 @@ export type StepEffect =
   | { kind: "pregnancy_check" }
   /** She was dried off: a milking cow is Dry from this Step. */
   | { kind: "dry_off" }
+  /** He is out of Quarantine: Fattening from this Step, and walked to the Pen whose Ration's Weight Band suits him. */
+  | { kind: "release" }
   /** She calved: when, how it went, and each calf — her next Lactation, and a new animal per calf. */
   | { kind: "calving" }
   /** The store counted: what is really there of each Feed Item, and why it differs. */
@@ -106,6 +108,7 @@ export const STEP_EFFECT_KINDS = [
   "service",
   "pregnancy_check",
   "dry_off",
+  "release",
   "calving",
   "stock_count",
   "registration_renewal",
@@ -368,6 +371,14 @@ const dryOffStepProblems = (step: Step, path: string): string[] =>
         `${path}: drying off is done cow by cow, so the step is walked animal by animal`,
       ];
 
+/** Released one at a time, as each finished his own Quarantine: the Step names the animal it lets out. */
+const releaseStepProblems = (step: Step, path: string): string[] =>
+  step.repeatPerAnimal
+    ? []
+    : [
+        `${path}: an animal is released from quarantine one at a time, so the step is walked animal by animal`,
+      ];
+
 /**
  * The store is counted once, whole: what is counted is every Feed Item the farm keeps, which come from
  * the farm and not from the Version, so this Step asks nothing of its own.
@@ -400,6 +411,7 @@ const SHAPED_STEPS: Partial<
   service: serviceStepProblems,
   pregnancy_check: pregnancyCheckStepProblems,
   dry_off: dryOffStepProblems,
+  release: releaseStepProblems,
   calving: calvingStepProblems,
   stock_count: stockCountStepProblems,
   registration_renewal: renewalStepProblems,

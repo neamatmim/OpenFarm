@@ -18,6 +18,11 @@ const NAMED = {
   fmdVaccine: "product-fmd",
   lsdVaccine: "product-lsd",
   dewormer: "product-dewormer",
+  flukeDrench: "product-fluke",
+  hsVaccine: "product-hs",
+  bqVaccine: "product-bq",
+  anthraxVaccine: "product-anthrax",
+  tickSpray: "product-spray",
 } as const;
 
 describe("the Standard Playbook", () => {

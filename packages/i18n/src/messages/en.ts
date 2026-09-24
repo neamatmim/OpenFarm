@@ -1271,6 +1271,11 @@ export const en = {
   "sop.standard.need.fmdVaccine": "The FMD vaccine",
   "sop.standard.need.lsdVaccine": "The lumpy skin vaccine",
   "sop.standard.need.dewormer": "The dewormer",
+  "sop.standard.need.flukeDrench": "The liver fluke drench",
+  "sop.standard.need.hsVaccine": "The HS vaccine",
+  "sop.standard.need.bqVaccine": "The BQ vaccine",
+  "sop.standard.need.anthraxVaccine": "The anthrax vaccine",
+  "sop.standard.need.tickSpray": "The tick and fly spray",
   "sop.standard.choose": "Choose…",
   "sop.standard.noPens": "The farm has no Pens yet",
   "sop.standard.noProducts":
@@ -2593,6 +2598,8 @@ export const en = {
   "sop.effect.service": "Service",
   "sop.effect.pregnancy_check": "Pregnancy check",
   "sop.effect.dry_off": "Dries the cow off",
+  "sop.effect.release":
+    "Lets the animal out of quarantine, to the pen that suits his weight",
   "sop.effect.calving": "Calving",
   "sop.effect.stock_count": "Counts the store",
   "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
@@ -2886,6 +2893,8 @@ export const en = {
   "identity.onThisPage": "On this page",
   "standsAside.movedSince": "She has been moved since this was done",
   "standsAside.cannotReturnToMilk": "She cannot be put back in milk from here",
+  "standsAside.cannotReturnToQuarantine":
+    "He cannot be put back in quarantine from here",
   "standsAside.calvingActedOn": "The farm has acted on this calving since",
   "standsAside.serviceChecked":
     "The Vet has checked this service; correct the check first",

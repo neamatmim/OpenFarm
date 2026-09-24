@@ -35,12 +35,15 @@ const STANDING_ORDER = { outgrown: 0, too_light: 1 } as const;
  * Pen a bull is told to leave is the one whose trough his weight is fed at. An animal nobody has weighed is left out:
  * there is nothing to say he is in the wrong place.
  */
-export const outOfTheirBand = async (
+/** Every Pen on a Ration in use that has a Weight Band, with the band — the places a bull can be put by his weight. */
+const pensOnBandedRations = async (
   db: Pick<Database, "query">,
   farmId: string
-): Promise<OutOfBand[]> => {
+): Promise<PenOnRation[]> => {
   const rations = await db.query.ration.findMany({
     where: { farmId, retiredAt: { isNull: true } },
+    // Lightest band first, so "the Pen that suits him" is the same Pen however the rows lie.
+    orderBy: { weightFromKg: "asc", nameBn: "asc", id: "asc" },
     columns: {
       nameBn: true,
       weightFromKg: true,
@@ -58,7 +61,7 @@ export const outOfTheirBand = async (
       },
     },
   });
-  const placed: PenOnRation[] = rations.flatMap((one) => {
+  return rations.flatMap((one) => {
     const band = bandOf(one);
     return hasBand(band)
       ? one.pens.map((assigned) => ({
@@ -69,6 +72,23 @@ export const outOfTheirBand = async (
         }))
       : [];
   });
+};
+
+/** The Pens whose Ration's Weight Band suits a bull of this weight, in the order the farm keeps its Rations. */
+export const pensThatSuit = async (
+  db: Pick<Database, "query">,
+  farmId: string,
+  weightKg: number
+): Promise<PenOnRation[]> => {
+  const placed = await pensOnBandedRations(db, farmId);
+  return placed.filter((one) => bandStanding(weightKg, one.band) === "fits");
+};
+
+export const outOfTheirBand = async (
+  db: Pick<Database, "query">,
+  farmId: string
+): Promise<OutOfBand[]> => {
+  const placed = await pensOnBandedRations(db, farmId);
   if (placed.length === 0) {
     return [];
   }

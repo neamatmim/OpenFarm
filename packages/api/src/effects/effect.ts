@@ -27,6 +27,7 @@ import { moveEffect } from "./move";
 import { observationEffect } from "./observation";
 import { pregnancyCheckEffect } from "./pregnancy-check";
 import { renewalEffect } from "./registration-renewal";
+import { releaseEffect } from "./release";
 import { serviceEffect } from "./service";
 import { stockCountEffect } from "./stock-count";
 import { treatmentEffect } from "./treatment";
@@ -135,6 +136,15 @@ export type EffectResult =
        *  and since when, is the trail's to say and a person's to decide. */
       standsAside: StandingAside | null;
     }
+  | {
+      kind: "release";
+      /** False when he was already out of Quarantine: the same Step again releases nobody twice. */
+      released: boolean;
+      /** The Pen whose Ration's Weight Band suits him, where he was walked; nothing where none does. */
+      toPenId: string | null;
+      /** Corrected to a skip, but he cannot be put back in Quarantine from here. */
+      standsAside: StandingAside | null;
+    }
   | null;
 
 /** Everything a Step's Effect may be told about the Step; each kind names the facts it needs from it. */
@@ -193,6 +203,8 @@ export type StandingAsideBecause =
   | "moved_since"
   /** Corrected to a skip, but she cannot be put back in milk from here. */
   | "cannot_return_to_milk"
+  /** Corrected to a skip, but he cannot be put back in Quarantine from here. */
+  | "cannot_return_to_quarantine"
   /** Corrected in a way the farm has already acted on: a calf added, taken away, or since gone. */
   | "calving_acted_on"
   /** A service taken back that the Vet has already checked: the check is corrected first. */
@@ -260,6 +272,7 @@ const EFFECTS: Record<
   weigh_in: weighInEffect,
   move: moveEffect,
   dry_off: dryOffEffect,
+  release: releaseEffect,
   calving: calvingEffect,
   service: serviceEffect,
   pregnancy_check: pregnancyCheckEffect,
@@ -315,6 +328,7 @@ export const stoodAside = (result: EffectResult): StandingAside | null =>
 export const STANDING_ASIDE_SAID: Record<StandingAsideBecause, string> = {
   moved_since: "She has been moved since this was done",
   cannot_return_to_milk: "She cannot be put back in milk from here",
+  cannot_return_to_quarantine: "He cannot be put back in quarantine from here",
   calving_acted_on: "The farm has acted on this calving since",
   service_checked:
     "The Vet has checked this service; the check is put right first",

@@ -16,6 +16,7 @@ import {
   standardPlaybook,
 } from "@OpenFarm/domain";
 
+import { isSeeded } from "./crew";
 import type { Account, ApiClient, Random, SeedClock } from "./runtime";
 import { addDays, clientOf, onFarm, openAccount } from "./runtime";
 
@@ -361,8 +362,13 @@ export const writeThePlaybook = async (farm: Farm): Promise<void> => {
     dewormer: farm.drugs.albendazole,
   });
   for (const [key, content] of Object.entries(contents)) {
+    // The pieces the seed's farm keeps, and the health round walked when somebody calls it, as it always was here: a
+    // round every morning for ninety days is eight thousand entries nobody reads.
+    if (!isSeeded(key)) {
+      continue;
+    }
     const made = await farm.as.owner.sops.create({
-      content,
+      content: key === "healthRound" ? { ...content, triggers: [] } : content,
       note: "খামার চালু করার সময় লেখা",
     });
     farm.sops[key as PlaybookKey] = made.definitionId;

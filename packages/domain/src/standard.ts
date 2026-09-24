@@ -231,6 +231,18 @@ export const STANDARD_DRUGS = {
   fmd: { bn: "এফএমডি টিকা (ট্রাইভ্যালেন্ট)", en: "FMD vaccine (trivalent)" },
   lsd: { bn: "লাম্পি স্কিন টিকা", en: "Lumpy skin disease vaccine" },
   albendazole: { bn: "অ্যালবেনডাজল কৃমিনাশক", en: "Albendazole drench" },
+  // For liver fluke, which two Bangladesh studies (2022, 2026) found triclabendazole no longer clears.
+  oxyclozanide: {
+    bn: "অক্সিক্লোজানাইড (কলিজা কৃমির ওষুধ)",
+    en: "Oxyclozanide (liver fluke drench)",
+  },
+  hs: { bn: "গলাফোলা রোগের টিকা", en: "Haemorrhagic septicaemia (HS) vaccine" },
+  bq: { bn: "বাদলা রোগের টিকা", en: "Black quarter (BQ) vaccine" },
+  anthrax: { bn: "তড়কা রোগের টিকা", en: "Anthrax vaccine" },
+  cypermethrin: {
+    bn: "সাইপারমেথ্রিন স্প্রে (আঁটুলি ও মাছি)",
+    en: "Cypermethrin spray (ticks and flies)",
+  },
 } as const satisfies Record<string, Named>;
 export type StandardDrugKey = keyof typeof STANDARD_DRUGS;
 
@@ -242,6 +254,11 @@ export const STANDARD_DRUG_FOR: Record<
   fmdVaccine: "fmd",
   lsdVaccine: "lsd",
   dewormer: "albendazole",
+  flukeDrench: "oxyclozanide",
+  hsVaccine: "hs",
+  bqVaccine: "bq",
+  anthraxVaccine: "anthrax",
+  tickSpray: "cypermethrin",
 };
 
 /** The diseases a farm must report to the Upazila Livestock Office. */

@@ -193,7 +193,9 @@ const wantedEvidence = (kind: StepEffect["kind"]): EvidenceType => {
   if (ONCE_WITH_A_NOTE.has(kind)) {
     return "note";
   }
-  return kind === "treatment" || kind === "dry_off" ? "tick" : "number";
+  return kind === "treatment" || kind === "dry_off" || kind === "release"
+    ? "tick"
+    : "number";
 };
 
 /** The Evidence an effect needs when what is there does not fit: the farm's Pens for a
@@ -215,8 +217,9 @@ const fittedEvidence = (
     // What may be seen is the Owner's to write down.
     return { type: "choice", required: true, choices: [] };
   }
-  if (kind === "dry_off") {
-    // Drying a cow off is a thing somebody did or did not do; which cow is the whole record.
+  if (kind === "dry_off" || kind === "release") {
+    // Drying a cow off, or letting a bull out of Quarantine, is a thing somebody did or did not do; which animal is
+    // the whole record.
     return { type: "tick", required: true };
   }
   if (kind === "treatment") {
