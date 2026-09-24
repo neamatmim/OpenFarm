@@ -245,7 +245,7 @@ const RegistrationTab = ({
         title={t("inspector.herd")}
       >
         <div className="flex items-end gap-3">
-          <span className="text-5xl leading-none font-semibold tracking-tight tabular-nums">
+          <span className="text-5xl font-semibold tracking-tight tabular-nums">
             {formatNumber(herd.total, language)}
           </span>
           <span className="text-muted-foreground pb-1 text-sm">

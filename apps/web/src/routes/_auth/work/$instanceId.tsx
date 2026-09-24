@@ -477,7 +477,7 @@ const WorkPage = () => {
               <ClipboardList aria-hidden className="size-8" />
             </span>
             <div className="flex flex-col items-center gap-1.5">
-              <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 <SopName name={content.name} />
               </h1>
               <PlaceLine pen={pen} />
@@ -819,7 +819,7 @@ const WorkHeader = ({
     <header className="flex flex-col gap-3">
       <BackToToday />
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl leading-tight font-semibold tracking-tight md:text-2xl">
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
           <SopName name={name} />
         </h1>
         <PlaceLine pen={pen} />
@@ -1511,9 +1511,7 @@ const SkipSheet = ({
         </span>
         <div className="flex min-w-0 flex-col gap-1">
           {animalTag ? <TagChip>{animalTag}</TagChip> : null}
-          <h1 className="text-xl leading-snug font-semibold">
-            {t("work.skipWhy")}
-          </h1>
+          <h1 className="text-xl font-semibold">{t("work.skipWhy")}</h1>
         </div>
       </header>
       {correcting ? (
@@ -1668,7 +1666,7 @@ const SheetHead = ({
       )}
       <div className="flex min-w-0 flex-col gap-1.5">
         {animal ? <TagChip>{animal.tagNumber}</TagChip> : null}
-        <h1 className="text-xl leading-snug font-semibold">{step.text.bn}</h1>
+        <h1 className="text-xl font-semibold">{step.text.bn}</h1>
         {correcting ? (
           <StatusBadge tone="info">{t("work.correcting")}</StatusBadge>
         ) : null}

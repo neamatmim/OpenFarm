@@ -46,7 +46,7 @@ const HomeComponent = () => {
         tabIndex={-1}
       >
         <div className="flex max-w-3xl flex-col gap-5">
-          <h1 className="text-3xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-balance md:text-5xl">
             {t("auth.promise.title")}
           </h1>
           <p className="text-muted-foreground text-lg">{t("app.tagline")}</p>
@@ -81,7 +81,7 @@ const HomeComponent = () => {
               <span className="bg-secondary text-secondary-foreground grid size-10 shrink-0 place-items-center rounded-lg">
                 <Icon aria-hidden className="size-5" />
               </span>
-              <p className="text-sm/relaxed">{text}</p>
+              <p className="text-sm">{text}</p>
             </li>
           ))}
         </ul>

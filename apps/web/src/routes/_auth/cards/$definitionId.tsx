@@ -164,9 +164,7 @@ const WallCard = ({ card }: { card: Card }) => {
                 {formatDigits(index + 1, CARD_LANGUAGE)}
               </span>
               <div className="flex min-w-0 flex-col gap-1.5">
-                <p className="text-base leading-snug font-medium">
-                  {step.text.bn}
-                </p>
+                <p className="text-base font-medium">{step.text.bn}</p>
                 <EvidenceMarks step={step} />
                 {step.skipReasons.length > 0 ? (
                   <p className="text-muted-foreground text-xs">

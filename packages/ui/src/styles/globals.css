@@ -304,12 +304,10 @@
 }
 
 /*
- * Bangla's line heights where a component asks for a tight one, and no Latin tracking: outside the cascade layers so
- * no component utility quietly undoes them. The sizes themselves are the type scale set on the root.
+ * No Latin tracking in Bangla, whose joined letters it would pull apart: outside the cascade layers so no component
+ * utility quietly undoes it. (No line height is set per language: see the type scale on the root, and
+ * one-line-height.test.ts, which keeps a component from asking for its own.)
  */
-html:lang(bn) :is(.leading-none, .leading-tight, .leading-snug) {
-  line-height: 1.35;
-}
 html:lang(bn) [class*="tracking-"] {
   letter-spacing: normal;
 }

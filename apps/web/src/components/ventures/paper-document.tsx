@@ -36,7 +36,7 @@ const Section = ({
 
 /** A label in both languages, the English smaller beneath. */
 const Label = ({ said }: { said: Said }) => (
-  <span className="flex flex-col leading-tight">
+  <span className="flex flex-col">
     <span>{said.bn}</span>
     {said.en ? (
       <span className="text-muted-foreground text-[0.75rem]">{said.en}</span>

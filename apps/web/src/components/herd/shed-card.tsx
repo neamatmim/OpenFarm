@@ -150,7 +150,7 @@ export const ShedCard = ({
             <Warehouse aria-hidden className="size-5" />
           </span>
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="truncate text-base leading-tight font-semibold tracking-tight">
+            <h2 className="truncate text-base font-semibold tracking-tight">
               {shed.name}
             </h2>
             <div className="flex flex-wrap items-center gap-2 text-sm">

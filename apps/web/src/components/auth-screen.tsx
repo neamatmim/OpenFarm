@@ -42,7 +42,7 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
           <Wordmark size="lg" />
         </Link>
         <div className="relative flex max-w-xl flex-1 flex-col justify-center gap-8 py-10">
-          <p className="text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-[2.75rem]">
+          <p className="text-4xl font-semibold tracking-tight text-balance xl:text-[2.75rem]">
             {t("auth.promise.title")}
           </p>
           <ul className="flex flex-col gap-4">
@@ -51,7 +51,7 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/10 ring-1 ring-white/15">
                   <Icon aria-hidden className="size-5" />
                 </span>
-                <span className="text-base/relaxed opacity-90">{text}</span>
+                <span className="text-base opacity-90">{text}</span>
               </li>
             ))}
           </ul>

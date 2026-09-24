@@ -69,9 +69,7 @@ const StepHead = ({
       {icon}
     </span>
     <div className="flex flex-col gap-1.5">
-      <h1 className="text-2xl leading-tight font-semibold tracking-tight">
-        {title}
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
       {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
     </div>
   </div>
@@ -324,7 +322,7 @@ const DevicePage = () => {
       <div className={cn(CARD, "items-center text-center")}>
         <Initial name={active.name} size="lg" />
         <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {t("device.workingAs", { name: active.name })}
           </h1>
           {where.data?.device?.name ? (
@@ -384,7 +382,7 @@ const DevicePage = () => {
         </button>
         <div className="flex flex-col items-center gap-3 text-center">
           <Initial name={chosen.name} size="lg" />
-          <h1 className="text-2xl leading-tight font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {chosen.name}
           </h1>
         </div>
