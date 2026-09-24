@@ -87,7 +87,7 @@ export const PageHeader = ({
         </p>
       ) : null}
       <h1
-        className="text-xl leading-tight font-semibold tracking-tight md:text-2xl"
+        className="text-xl font-semibold tracking-tight md:text-2xl"
         data-slot="page-title"
       >
         {title}
@@ -206,7 +206,7 @@ export const StatTile = ({
       className={cn(
         // Wrapped, not clipped: a Venture's balance carries its paisa, and the longest figure the farm
         // has ran off the side of its tile rather than taking a second line.
-        "text-2xl leading-tight font-semibold tracking-tight break-words tabular-nums md:text-3xl",
+        "text-2xl font-semibold tracking-tight break-words tabular-nums md:text-3xl",
         TILE_TONE[tone]
       )}
     >

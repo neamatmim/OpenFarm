@@ -235,32 +235,40 @@
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
   }
-  /* Bangla is read larger and looser than Latin, so its type scale is its own: metadata never below 14px, body at
-     17px, and line heights that leave room for vowel marks and conjuncts. Only the text grows — the rem does not —
-     so the sidebar, the bars and every button keep their size and nothing moves when the language changes. */
+  /* One line height for each size, the same in both languages, and tall enough for Bangla's vowel marks and
+     conjuncts: a line of text is as tall in English as in Bangla, so changing the language changes the words and
+     nothing moves. A ratio would give each language its own height, since Bangla's letters are larger — which is
+     what made every page jump by a few pixels a line when the language changed. */
+  :root {
+    --text-xs--line-height: 1.25rem;
+    --text-sm--line-height: 1.375rem;
+    --text-base--line-height: 1.625rem;
+    --text-lg--line-height: 1.75rem;
+    --text-xl--line-height: 1.875rem;
+    --text-2xl--line-height: 2.25rem;
+    --text-3xl--line-height: 2.625rem;
+    --text-4xl--line-height: 3.125rem;
+  }
+  /* Bangla is read larger than Latin, so its letters are their own size: metadata never below 14px and body at 17px,
+     each inside the same line as its English. Only the text grows — the rem does not — so the sidebar, the bars and
+     every button keep their size too. */
   html:lang(bn) {
     font-family: var(--font-bangla);
     --text-xs: 0.875rem;
-    --text-xs--line-height: 1.55;
     --text-sm: 0.9375rem;
-    --text-sm--line-height: 1.6;
     --text-base: 1.0625rem;
-    --text-base--line-height: 1.65;
     --text-lg: 1.1875rem;
-    --text-lg--line-height: 1.45;
     --text-xl: 1.3125rem;
-    --text-xl--line-height: 1.4;
     --text-2xl: 1.625rem;
-    --text-2xl--line-height: 1.4;
     --text-3xl: 2rem;
-    --text-3xl--line-height: 1.35;
     --text-4xl: 2.375rem;
-    --text-4xl--line-height: 1.3;
   }
   html:lang(bn) body {
     font-size: var(--text-base);
-    line-height: 1.65;
     letter-spacing: normal;
+  }
+  body {
+    line-height: var(--text-base--line-height);
   }
   body {
     @apply bg-background text-foreground antialiased;
