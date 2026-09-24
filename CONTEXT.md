@@ -50,7 +50,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Milking Session**: One of the two daily times the Dairy herd is milked — early morning and afternoon. The milking SOP runs once per Milking Session. _Avoid_: Milking time, shift
 
-**Trigger**: What causes an SOP to fall due: a schedule (a time), an event (something happened), or an animal's state (a condition became true). One SOP may have more than one. _Avoid_: Schedule (that's one kind of Trigger), reminder
+**Trigger**: What causes an SOP to fall due: a schedule (a time), an event (something happened), or an animal's state (a condition became true). One SOP may have more than one. What happened before a Version was published raises no work under it — except that a procedure published for the first time **catches up** with animals already on their way, raising the work still ahead of the publishing (a bull twenty days into Quarantine is released ten days on) and never work that would already be overdue. _Avoid_: Schedule (that's one kind of Trigger), reminder
 
 ## SOPs
 

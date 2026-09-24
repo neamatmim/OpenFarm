@@ -307,8 +307,16 @@ export const happeningSlotsFor = (
     content: SopContent;
     /** When this Version — the one carrying these Triggers — was published. Nothing that
      *  happened before it raises work under it: adding a Trigger to the Playbook is not a
-     *  way to give the farm a fortnight of overdue work it never knew about (ADR 0001). */
+     *  way to give the farm a fortnight of overdue work it never knew about (ADR 0001) —
+     *  unless it catches up, below. */
     triggersInForceSince: Date;
+    /**
+     * A procedure published for the first time catches up with the animals already on their way: a bull ten days
+     * into Quarantine when the release is published is released twenty days on, as one bought today is in thirty.
+     * Only work still ahead of the publishing is raised — never work that would already be overdue — and only for
+     * the first Version: a later one does not raise again what the earlier one raised.
+     */
+    catchesUp?: boolean;
   }[],
   happenings: Happening[],
   /** The Farm Parameters Breeding's work is timed by rather than the Version: the AI window a
@@ -338,13 +346,18 @@ export const happeningSlotsFor = (
             // Work about a cow who has left is exactly what a death raises, and nothing else
             // may be raised about her.
             (happening.kind === "death" || isOnTheFarm(happening)) &&
-            happening.at >= sop.triggersInForceSince &&
             appliesToAnimal(sop.content.appliesTo, happening)
           )
         ) {
           continue;
         }
         const timing = timingOf(happening, trigger, sop.content, breeding);
+        const inForce =
+          happening.at >= sop.triggersInForceSince ||
+          (sop.catchesUp === true && timing.dueAt >= sop.triggersInForceSince);
+        if (!inForce) {
+          continue;
+        }
         // Calving work is looked back for by the calving, not by its own day. A cow who reaches the
         // farm three weeks from calving is still to be dried off — late, and on the Overdue list
         // saying so — because she is still in milk and still carrying.
@@ -383,9 +396,15 @@ export const recentHappenings = async (
   now: Date,
   /** How long after a service its check falls due, and so how far back a service that has yet to
    *  be checked can lie. */
-  { pregnancyCheckAfterDays }: Pick<BreedingTimes, "pregnancyCheckAfterDays">
+  { pregnancyCheckAfterDays }: Pick<BreedingTimes, "pregnancyCheckAfterDays">,
+  /** How far back an arrival or a State reached may still call for work: the look-back, and the longest a
+   *  procedure hangs work after one, so a procedure published today finds the bull ninety days into his run. */
+  reachDays = TRIGGER_LOOKBACK_DAYS
 ): Promise<Happening[]> => {
   const earliest = new Date(now.getTime() - TRIGGER_LOOKBACK_DAYS * DAY_MS);
+  const reach = new Date(
+    now.getTime() - Math.max(reachDays, TRIGGER_LOOKBACK_DAYS) * DAY_MS
+  );
   const animals = await db.query.animal.findMany({
     where: { farmId },
     columns: {
@@ -512,7 +531,7 @@ export const recentHappenings = async (
         state: beast.state,
       });
     }
-    if (beast.createdAt >= earliest) {
+    if (beast.createdAt >= reach) {
       happenings.push({
         kind: "arrival",
         key: `arrival:${beast.id}`,
@@ -537,7 +556,7 @@ export const recentHappenings = async (
         state: beast.state,
       });
     }
-    if (beast.stateChangedAt >= earliest) {
+    if (beast.stateChangedAt >= reach) {
       happenings.push({
         kind: "state",
         key: `state:${beast.id}:${beast.state}:${beast.stateChangedAt.toISOString()}`,
