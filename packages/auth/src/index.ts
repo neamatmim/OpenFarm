@@ -71,6 +71,30 @@ const turnAwayWhoWasNotAsked = (db: Database) =>
     });
   });
 
+/** Why the door stays shut for this address, or nothing when it opens. */
+const whyShut = async (
+  db: Database,
+  email: string,
+  disabled: boolean
+): Promise<"portal.closed" | "auth.noLongerHere" | null> => {
+  // An Investor comes in only while the farm has its portal open and their access stands (ADR 0007).
+  const access = await db.query.investorAccess.findFirst({
+    where: { loginEmail: email },
+    columns: { farmId: true, revokedAt: true },
+  });
+  if (access) {
+    // Their own farm's portal, asked of that farm: whether it is open is the farm's to say.
+    const theFarm = await db.query.farm.findFirst({
+      where: { id: access.farmId },
+      columns: { investorPortal: true },
+    });
+    return !theFarm?.investorPortal || access.revokedAt || disabled
+      ? "portal.closed"
+      : null;
+  }
+  return disabled ? "auth.noLongerHere" : null;
+};
+
 /**
  * The door: somebody whose Membership has ended does not sign in, and nor does an Investor while the portal is shut
  * or their access is taken away (ADR 0007).
@@ -107,30 +131,6 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
     ctx.context.setNewSession(null);
     throw new APIError("FORBIDDEN", { message: translate(language, why) });
   });
-
-/** Why the door stays shut for this address, or nothing when it opens. */
-const whyShut = async (
-  db: Database,
-  email: string,
-  disabled: boolean
-): Promise<"portal.closed" | "auth.noLongerHere" | null> => {
-  // An Investor comes in only while the farm has its portal open and their access stands (ADR 0007).
-  const access = await db.query.investorAccess.findFirst({
-    where: { loginEmail: email },
-    columns: { farmId: true, revokedAt: true },
-  });
-  if (access) {
-    // Their own farm's portal, asked of that farm: whether it is open is the farm's to say.
-    const theFarm = await db.query.farm.findFirst({
-      where: { id: access.farmId },
-      columns: { investorPortal: true },
-    });
-    return !theFarm?.investorPortal || access.revokedAt || disabled
-      ? "portal.closed"
-      : null;
-  }
-  return disabled ? "auth.noLongerHere" : null;
-};
 
 /**
  * A password everybody else uses is no secret (ASVS 6.2.4): refused wherever somebody chooses one through Better Auth
