@@ -3,6 +3,7 @@ import { BookOpenCheck, ShieldCheck, Sprout, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { PublicHeader } from "@/components/public-header";
+import { Wordmark } from "@/components/wordmark";
 import { useT } from "@/i18n/language-provider";
 
 /**
@@ -38,9 +39,7 @@ export const AuthScreen = ({ children }: { children: ReactNode }) => {
           <span className="grid size-9 place-items-center rounded-lg bg-white/10 ring-1 ring-white/20">
             <Sprout aria-hidden className="size-5" />
           </span>
-          <span className="text-lg font-semibold [letter-spacing:0.08em] uppercase">
-            {t("app.name")}
-          </span>
+          <Wordmark size="lg" />
         </Link>
         <div className="relative flex max-w-xl flex-1 flex-col justify-center gap-8 py-10">
           <p className="text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-[2.75rem]">
