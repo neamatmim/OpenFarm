@@ -34,19 +34,28 @@ type Movement = TheirAgreements["movements"][number];
 
 /**
  * What one Investor's money comes to, the same sums wherever they are read — the Owner's page of them and their own
- * portal: the capital the Farm holds of theirs now and on how many papers, what has been paid out to them, and their
- * share of the profit from the Ventures settled. Money still in a Venture and money already home are counted apart:
+ * portal: what their Units promised, the capital paid in and sent back, the capital the Farm holds of theirs now and on
+ * how many papers, what has been paid out to them, and their share of the profit from the Ventures settled. Money still in a Venture and money already home are counted apart:
  * a paper whose payout went has handed its capital back.
  */
 export const portfolioOf = (theirs: TheirAgreements) => {
   const holding = theirs.agreements.filter((one) => !one.settlement?.paidOn);
   const settled = theirs.agreements.filter((one) => one.settlement !== null);
+  const moved = (kind: TheirAgreements["movements"][number]["kind"]) =>
+    theirs.movements
+      .filter((one) => one.kind === kind)
+      .reduce((sum, one) => sum + one.amountBdt, 0);
   return {
+    /** What their Units promised, on every paper not called off: what they signed to bring. */
+    promisedBdt: theirs.agreements
+      .filter((one) => one.venture.state !== "cancelled")
+      .reduce((sum, one) => sum + one.promisedBdt, 0),
+    /** Capital that came in, and capital sent back when a Venture was called off. */
+    paidInBdt: moved("capital_in"),
+    returnedBdt: moved("refund"),
     heldBdt: holding.reduce((sum, one) => sum + one.capitalHeldBdt, 0),
     heldOn: holding.filter((one) => one.capitalHeldBdt > 0).length,
-    paidOutBdt: theirs.movements
-      .filter((one) => one.kind === "payout")
-      .reduce((sum, one) => sum + one.amountBdt, 0),
+    paidOutBdt: moved("payout"),
     profitBdt: settled.reduce(
       (sum, one) => sum + (one.settlement?.shareBdt ?? 0),
       0
