@@ -1535,7 +1535,7 @@ export const en = {
   "feed.basisOf": "How {item} is counted",
   "feed.perHundred": "{amount} {unit} per 100 kg",
   "feed.workingByWeight":
-    "{perHundred} kg per 100 kg × {weight} kg ÷ {sessions} a day",
+    "{perHundred} {unit} per 100 kg × {weight} kg ÷ {sessions} a day",
   "feed.herdWeight": "The pen weighs {weight} kg — {weighed} weighed",
   "feed.herdUnweighed": "{unweighed} not weighed, counted at the average",
   "feed.herdOldest": "oldest weight {days} days old",
@@ -1548,10 +1548,16 @@ export const en = {
   "feed.assigned": "This pen is on it",
   "feed.english": "English (optional)",
   "feed.unit": "Unit",
+  "feed.bagSize": "Bag size (kg)",
+  "feed.bagOf": "{kg} kg bags",
+  "feed.setBagSize": "Bag size",
+  "feed.bagSizeHint":
+    "What one of its bags weighs, so an arrival can be written in bags. Leave it blank if it is not bought by the bag.",
+  "feed.itemActions": "What to do with {name}",
   "feed.version": "Version {number}",
   "feed.pensOn": "On {count} pens",
   "feed.target": "This session's target",
-  "feed.working": "{headcount} animals × {perAnimal} kg ÷ {sessions} a day",
+  "feed.working": "{headcount} animals × {perAnimal} {unit} ÷ {sessions} a day",
   "feed.noItems": "Add a feed item first",
   "stock.recordArrival": "Record feed in",
   "stock.sheetDescription":
@@ -1590,6 +1596,10 @@ export const en = {
   "stock.harvest": "From our own fields",
   "stock.quantity": "How much ({unit})",
   "stock.maunds": "about {maunds} maunds",
+  "stock.boughtAs": "bought as {count} {pack}",
+  "stock.comesTo": "{quantity} {unit} in all",
+  "stock.countedIn": "Counted in",
+  "stock.bagHolds": "One bag holds {kg} kg",
   "stock.price": "What it cost in all (৳)",
   "stock.seller": "Bought from",
   "stock.receivedOn": "The day it came in",
@@ -1645,6 +1655,11 @@ export const en = {
   "refusal.neverTheAnimals":
     "Wages, utilities, repairs, shed hygiene, equipment and money coming in are never charged to the animals",
   "refusal.feedRetired": "That feed is retired",
+  "refusal.bagSizeUnknown":
+    "Say what one of its bags weighs first, on the Feed Items tab",
+  "refusal.bundlesByTheHead":
+    "A feed counted in bundles goes by the head, not by body weight",
+  "refusal.packNeedsKg": "Only feed weighed in kilos comes in bags or maunds",
   "nav.feed": "Feed",
   "nav.milk": "Milk",
   "dispatch.title": "Milk leaving the farm",

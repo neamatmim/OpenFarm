@@ -1,7 +1,17 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq } from "@OpenFarm/db/operators";
-import { feedItem, penRation, ration } from "@OpenFarm/db/schema/feed";
-import { findBandProblems, findRationProblems } from "@OpenFarm/domain";
+import {
+  FEED_UNITS,
+  feedItem,
+  penRation,
+  ration,
+} from "@OpenFarm/db/schema/feed";
+import {
+  findBandProblems,
+  findRationProblems,
+  isByWeight,
+  mayGoByWeight,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -29,6 +39,19 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** How far back the Leftovers are read: a week, as the store is counted, or longer to see a pattern. */
 const LEFTOVER_PERIODS = [7, 14, 30] as const;
+
+/** What one bag of a feed weighs, in kilos: a sack of bran is fifty, a bag of mineral mixture five. */
+const bagSizeInput = z.number().positive().max(200);
+
+/** A bag is a weight in kilos, so only feed counted in kilos is bought by it. */
+const refuseBagOfNonKilos = (unit: string, bagSizeKg: number | undefined) => {
+  if (bagSizeKg !== undefined && unit !== "kg") {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Only feed counted in kilos is bought by the bag",
+      data: { refusal: "pack_needs_kg" },
+    });
+  }
+};
 
 const bilingual = z.object({
   bn: z.string().trim().min(1).max(80),
@@ -85,6 +108,7 @@ export const feedRouter = {
       return rows.map((row) => ({
         ...row,
         fodderPriceBdt: row.fodderPriceBdt,
+        bagSizeKg: row.bagSizeKg === null ? null : Number(row.bagSizeKg),
       }));
     }),
 
@@ -93,10 +117,13 @@ export const feedRouter = {
     .input(
       z.object({
         name: bilingual,
-        unit: z.string().trim().min(1).max(16).default("kg"),
+        unit: z.enum(FEED_UNITS).default("kg"),
+        /** What one of its bags weighs, for feed bought by the bag: kilos, so for feed counted in kilos only. */
+        bagSizeKg: bagSizeInput.optional(),
       })
     )
     .handler(async ({ context, input }) => {
+      refuseBagOfNonKilos(input.unit, input.bagSizeKg);
       const now = context.clock.now();
       const id = uuidv7(now);
       await audited(context).write(
@@ -108,6 +135,7 @@ export const feedRouter = {
             nameBn: input.name.bn,
             nameEn: input.name.en ?? null,
             unit: input.unit,
+            bagSizeKg: input.bagSizeKg ?? null,
           },
         },
         (tx) =>
@@ -117,11 +145,56 @@ export const feedRouter = {
             nameBn: input.name.bn,
             nameEn: input.name.en ?? null,
             unit: input.unit,
+            bagSizeKg:
+              input.bagSizeKg === undefined ? null : String(input.bagSizeKg),
             createdBy: context.actor.id,
             createdAt: now,
           })
       );
       return { id, name: input.name, unit: input.unit };
+    }),
+
+  /**
+   * What one of a feed's bags weighs, so it can be bought by the bag and the store still counts kilos — or nothing, to
+   * stop buying it so. Feed counted in kilos only: a bag is a weight.
+   */
+  setBagSize: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(
+      z.object({ feedItemId: z.string(), bagSizeKg: bagSizeInput.nullable() })
+    )
+    .handler(async ({ context, input }) => {
+      const existing = await context.db.query.feedItem.findFirst({
+        where: { id: input.feedItemId, farmId: context.farm.id },
+        columns: { id: true, nameBn: true, unit: true, bagSizeKg: true },
+      });
+      if (!existing) {
+        throw new ORPCError("NOT_FOUND", { message: "No such feed" });
+      }
+      refuseBagOfNonKilos(existing.unit, input.bagSizeKg ?? undefined);
+      await audited(context).write(
+        {
+          entity: "feed_item",
+          entityId: existing.id,
+          action: "update",
+          before: { nameBn: existing.nameBn, bagSizeKg: existing.bagSizeKg },
+          after: { nameBn: existing.nameBn, bagSizeKg: input.bagSizeKg },
+        },
+        (tx) =>
+          tx
+            .update(feedItem)
+            .set({
+              bagSizeKg:
+                input.bagSizeKg === null ? null : String(input.bagSizeKg),
+            })
+            .where(
+              and(
+                eq(feedItem.id, existing.id),
+                eq(feedItem.farmId, context.farm.id)
+              )
+            )
+      );
+      return { feedItemId: existing.id, bagSizeKg: input.bagSizeKg };
     }),
 
   /**
@@ -387,11 +460,25 @@ export const feedRouter = {
               farmId: context.farm.id,
               id: { in: input.items.map((line) => line.feedItemId) },
             },
-            columns: { id: true },
+            columns: { id: true, unit: true },
           });
           if (known.length !== input.items.length) {
             throw new ORPCError("NOT_FOUND", {
               message: "That is not one of this farm's feeds",
+            });
+          }
+          // "Three for every hundred kilos of body weight" is a quantity; bundles are counted, by the head.
+          const unitOf = new Map(known.map((one) => [one.id, one.unit]));
+          const countedByWeight = input.items.some(
+            (line) =>
+              isByWeight(line) &&
+              !mayGoByWeight(unitOf.get(line.feedItemId) ?? "kg")
+          );
+          if (countedByWeight) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "A feed counted in bundles is given by the head, not by weight",
+              data: { refusal: "bundles_by_the_head" },
             });
           }
           if (rationId) {

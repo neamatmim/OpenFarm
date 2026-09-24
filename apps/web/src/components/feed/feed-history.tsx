@@ -1,3 +1,4 @@
+import { FEED_PACK_WORDS, feedUnitWord } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -32,7 +33,7 @@ const HISTORY_PAGE = 20;
 
 /** Feed that came in written up wrong: how much, what it cost, or the day — with the reason. */
 const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const correcting = useCorrecting({
     quantity: amountArrived(arrival.quantity),
     priceBdt: figure(arrival.priceBdt),
@@ -54,7 +55,9 @@ const ArrivalCorrection = ({ arrival }: { arrival: Arrival }) => {
     >
       <CorrectionAnswer
         inputMode="decimal"
-        label={t("stock.quantity", { unit: arrival.unit })}
+        label={t("stock.quantity", {
+          unit: feedUnitWord(arrival.unit, language),
+        })}
         onChange={(value) => correcting.set("quantity", value)}
         type="number"
         value={correcting.typed.quantity ?? ""}
@@ -111,20 +114,36 @@ const KindCell = ({ row }: { row: { original: ArrivalRow } }) => (
   <KindBadge harvest={row.original.priceBdt === null} />
 );
 
-/** How much came in, and — for feed weighed in kg — the maunds a trader's slip says beneath it. */
-const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
+/** What a trader's slip would say of a delivery: the bags or maunds it was typed as, or — for feed weighed in kg
+ *  and typed in kilos — about how many maunds it came to. Nothing for feed counted any other way. */
+const AsTheSlipSays = ({ arrival }: { arrival: Arrival }) => {
   const { t, language } = useLanguage();
+  // An arrival from before packs could be typed has none on an old cached answer.
+  const pack = arrival.pack ?? null;
+  if (pack) {
+    return t("stock.boughtAs", {
+      count: formatNumber(pack.count, language),
+      pack: FEED_PACK_WORDS[pack.kind][language],
+    });
+  }
+  return arrival.maunds === null
+    ? null
+    : t("stock.maunds", { maunds: formatNumber(arrival.maunds, language) });
+};
+
+/** How much came in, and what the trader's slip said beneath it. */
+const QuantityCell = ({ row }: { row: { original: ArrivalRow } }) => {
+  const { language } = useLanguage();
   const one = row.original;
   return (
     <div className="flex flex-col items-end">
       <span className="whitespace-nowrap">
-        {formatNumber(one.quantity, language)} {one.unit}
+        {formatNumber(one.quantity, language)}{" "}
+        {feedUnitWord(one.unit, language)}
       </span>
-      {one.maunds === null ? null : (
-        <span className="text-muted-foreground text-xs whitespace-nowrap">
-          {t("stock.maunds", { maunds: formatNumber(one.maunds, language) })}
-        </span>
-      )}
+      <span className="text-muted-foreground text-xs whitespace-nowrap">
+        <AsTheSlipSays arrival={one} />
+      </span>
     </div>
   );
 };
@@ -149,7 +168,7 @@ const LeftCell = ({ row }: { row: { original: ArrivalRow } }) => {
   const left = row.original.left ?? row.original.quantity;
   return (
     <span className={left === 0 ? "text-muted-foreground" : "font-medium"}>
-      {formatNumber(left, language)} {row.original.unit}
+      {formatNumber(left, language)} {feedUnitWord(row.original.unit, language)}
     </span>
   );
 };
@@ -218,7 +237,7 @@ const arrivalColumns = arrivalColumn.columns([
 
 /** A lot on a phone: what and how much on top, when, what it cost and from whom beneath. */
 const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const taka = useTaka();
   return (
     <div className="flex items-start justify-between gap-3">
@@ -228,14 +247,12 @@ const ArrivalCard = ({ row }: { row: ArrivalRow }) => {
           <KindBadge harvest={row.priceBdt === null} />
         </div>
         <span className="font-semibold tabular-nums">
-          {formatNumber(row.quantity, language)} {row.unit}
-          {row.maunds === null ? null : (
+          {formatNumber(row.quantity, language)}{" "}
+          {feedUnitWord(row.unit, language)}
+          {row.maunds === null && !row.pack ? null : (
             <span className="text-muted-foreground text-xs font-normal">
               {" "}
-              ·{" "}
-              {t("stock.maunds", {
-                maunds: formatNumber(row.maunds, language),
-              })}
+              · <AsTheSlipSays arrival={row} />
             </span>
           )}
         </span>

@@ -1,5 +1,13 @@
-import type { PaymentMethod } from "@OpenFarm/domain";
-import { farmDayOf, maundsOf } from "@OpenFarm/domain";
+import type { FeedPack, PaymentMethod } from "@OpenFarm/domain";
+import {
+  FEED_PACK_WORDS,
+  farmDayOf,
+  feedUnitEach,
+  feedUnitOf,
+  feedUnitWord,
+  maundsOf,
+  quantityOfPacks,
+} from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
@@ -17,10 +25,14 @@ import type { FeedItemRow } from "./feed-types";
 
 type Kind = "purchase" | "harvest";
 
+/** What the quantity was typed in: the feed's own unit, or the bags or maunds on the trader's slip. */
+type CountedIn = "own" | FeedPack;
+
 /** What is typed into the sheet, before it is feed in the store. */
 interface Draft {
   feedItemId: string;
   kind: Kind;
+  countedIn: CountedIn;
   quantity: string;
   price: string;
   seller: string;
@@ -34,6 +46,7 @@ interface Draft {
 const freshDraft = (feedItemId: string): Draft => ({
   feedItemId,
   kind: "purchase",
+  countedIn: "own",
   quantity: "",
   price: "",
   seller: "",
@@ -43,16 +56,62 @@ const freshDraft = (feedItemId: string): Draft => ({
   expiresOn: "",
 });
 
-/** What a trader's slip would say, worked out as it is typed: the maunds, and what a unit cost. */
-const LotSummary = ({ draft, unit }: { draft: Draft; unit: string }) => {
+/** The ways a Feed Item may be counted as it comes in: its own unit, and — for feed weighed in kilos — maunds, and
+ *  bags once the farm has said what its bags weigh. */
+const waysToCount = (item: FeedItemRow): CountedIn[] => {
+  if (feedUnitOf(item.unit) !== "kg") {
+    return ["own"];
+  }
+  return item.bagSizeKg === null ? ["own", "maund"] : ["own", "bag", "maund"];
+};
+
+/** What was typed, in the feed's own unit: as it stands, or the bags or maunds worked out into kilos. Nothing for
+ *  what cannot be. */
+const amountOf = (
+  draft: Draft,
+  countedIn: CountedIn,
+  item: FeedItemRow
+): number | null => {
+  const typed = Number(draft.quantity);
+  if (!(typed > 0)) {
+    return null;
+  }
+  if (countedIn === "own") {
+    return typed;
+  }
+  const packed = quantityOfPacks(
+    { kind: countedIn, count: typed },
+    { unit: feedUnitOf(item.unit), bagSizeKg: item.bagSizeKg }
+  );
+  return "quantity" in packed ? packed.quantity : null;
+};
+
+/** What a trader's slip would say, worked out as it is typed: what bags or maunds come to, the maunds kilos come
+ *  to, and what a unit cost. */
+const LotSummary = ({
+  draft,
+  countedIn,
+  item,
+}: {
+  draft: Draft;
+  countedIn: CountedIn;
+  item: FeedItemRow;
+}) => {
   const { t, language } = useLanguage();
-  const amount = Number(draft.quantity);
+  const amount = amountOf(draft, countedIn, item);
   const price = Number(draft.price);
-  if (!(amount > 0)) {
+  if (amount === null) {
     return null;
   }
   const parts: string[] = [];
-  if (unit === "kg") {
+  if (countedIn !== "own") {
+    parts.push(
+      t("stock.comesTo", {
+        quantity: formatNumber(Math.round(amount * 10) / 10, language),
+        unit: feedUnitWord(item.unit, language),
+      })
+    );
+  } else if (feedUnitOf(item.unit) === "kg") {
     parts.push(
       t("stock.maunds", { maunds: formatNumber(maundsOf(amount), language) })
     );
@@ -61,7 +120,7 @@ const LotSummary = ({ draft, unit }: { draft: Draft; unit: string }) => {
     parts.push(
       t("stock.averagePrice", {
         taka: formatNumber(Math.round((price / amount) * 100) / 100, language),
-        unit,
+        unit: feedUnitEach(item.unit, language),
       })
     );
   }
@@ -91,7 +150,7 @@ export const ReceiveFeedSheet = ({
   onOpenChange: (open: boolean) => void;
   feedItemId?: string;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const live = items.filter((item) => !item.retiredAt);
   const [draft, setDraft] = useState(() =>
@@ -116,13 +175,16 @@ export const ReceiveFeedSheet = ({
     })
   );
 
-  const amount = Number(draft.quantity);
+  // Moving to a feed that is not bought that way goes back to its own unit.
+  const ways: CountedIn[] = chosen ? waysToCount(chosen) : ["own"];
+  const countedIn = ways.includes(draft.countedIn) ? draft.countedIn : "own";
+  const amount = chosen ? amountOf(draft, countedIn, chosen) : null;
   // Both are the farm's own days, so they sort as text.
   const expiredWhenBought =
     draft.expiresOn !== "" && draft.expiresOn < draft.receivedOn;
   const ready =
     chosen !== null &&
-    amount > 0 &&
+    amount !== null &&
     !expiredWhenBought &&
     (draft.kind === "harvest" ||
       (Number(draft.price) > 0 && draft.seller.trim() !== ""));
@@ -139,7 +201,11 @@ export const ReceiveFeedSheet = ({
           id: entryId,
           feedItemId: chosen.id,
           kind: draft.kind,
-          quantity: amount,
+          ...(countedIn === "own"
+            ? { quantity: Number(draft.quantity) }
+            : {
+                pack: { kind: countedIn, count: Number(draft.quantity) },
+              }),
           receivedOn: draft.receivedOn,
           ...(draft.kind === "purchase"
             ? {
@@ -188,10 +254,43 @@ export const ReceiveFeedSheet = ({
             />
           </div>
 
+          {ways.length > 1 ? (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">
+                {t("stock.countedIn")}
+              </span>
+              <SegmentedControl
+                label={t("stock.countedIn")}
+                name="receive-counted-in"
+                onChange={(value) => set("countedIn", value)}
+                options={ways.map((way) => ({
+                  value: way,
+                  label:
+                    way === "own"
+                      ? feedUnitWord(chosen.unit, language)
+                      : FEED_PACK_WORDS[way][language],
+                }))}
+                value={countedIn}
+              />
+            </div>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
+              hint={
+                countedIn === "bag" && chosen.bagSizeKg !== null
+                  ? t("stock.bagHolds", {
+                      kg: formatNumber(chosen.bagSizeKg, language),
+                    })
+                  : undefined
+              }
               id="receive-quantity"
-              label={t("stock.quantity", { unit: chosen.unit })}
+              label={t("stock.quantity", {
+                unit:
+                  countedIn === "own"
+                    ? feedUnitWord(chosen.unit, language)
+                    : FEED_PACK_WORDS[countedIn][language],
+              })}
             >
               <Input
                 id="receive-quantity"
@@ -276,7 +375,7 @@ export const ReceiveFeedSheet = ({
             </>
           ) : null}
 
-          <LotSummary draft={draft} unit={chosen.unit} />
+          <LotSummary countedIn={countedIn} draft={draft} item={chosen} />
         </>
       ) : (
         <p className="text-muted-foreground text-sm">{t("feed.noItems")}</p>

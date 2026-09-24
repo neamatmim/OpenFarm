@@ -230,7 +230,6 @@ export type {
 } from "./feed";
 export {
   KG_DECIMALS,
-  MAUND_KG,
   MAX_KG_PER_100KG_PER_DAY,
   bandStanding,
   findBandProblems,
@@ -248,6 +247,7 @@ export {
   perSessionKg,
   sessionKgOf,
   roundFeedKg,
+  roundFeedTarget,
   roundKg,
   shortfallPercent,
   priceHistory,
@@ -447,3 +447,17 @@ export {
   STANDARD_RATIONS,
   rationLineOf,
 } from "./standard";
+export type { FeedPack, FeedUnit, PackRefusal } from "./feed-units";
+export {
+  FEED_PACKS,
+  FEED_PACK_WORDS,
+  FEED_UNITS,
+  FEED_UNIT_EACH,
+  FEED_UNIT_WORDS,
+  MAUND_KG,
+  feedUnitEach,
+  feedUnitOf,
+  feedUnitWord,
+  mayGoByWeight,
+  quantityOfPacks,
+} from "./feed-units";

@@ -1,5 +1,11 @@
 import type { RationLine, WeightBand } from "@OpenFarm/domain";
-import { findBandProblems, isByWeight } from "@OpenFarm/domain";
+import {
+  feedUnitOf,
+  feedUnitWord,
+  findBandProblems,
+  isByWeight,
+  mayGoByWeight,
+} from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
@@ -72,7 +78,7 @@ const RationDialog = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused();
   const inRation = new Set(
     (ration?.items ?? []).map((line) => line.feedItemId)
@@ -202,8 +208,8 @@ const RationDialog = ({
                       type="number"
                       value={kg[item.id] ?? ""}
                     />
-                    <span className="text-muted-foreground w-6 text-xs">
-                      {item.unit}
+                    <span className="text-muted-foreground w-10 text-xs">
+                      {feedUnitWord(item.unit, language)}
                     </span>
                     <NativeSelect
                       aria-label={t("feed.basisOf", { item: item.nameBn })}
@@ -217,7 +223,13 @@ const RationDialog = ({
                       value={basis[item.id] ?? "head"}
                     >
                       <option value="head">{t("feed.basis.head")}</option>
-                      <option value="weight">{t("feed.basis.weight")}</option>
+                      {/* A bundle is counted, not weighed: a line by body weight would ask for a fraction of one. */}
+                      <option
+                        disabled={!mayGoByWeight(feedUnitOf(item.unit))}
+                        value="weight"
+                      >
+                        {t("feed.basis.weight")}
+                      </option>
                     </NativeSelect>
                   </div>
                 </li>
@@ -278,6 +290,7 @@ const Working = ({
     return t("feed.working", {
       headcount: formatNumber(target.animals, language),
       perAnimal: formatNumber(line.kgPerAnimalPerDay, language),
+      unit: feedUnitWord(line.unit, language),
       sessions,
     });
   }
@@ -286,6 +299,7 @@ const Working = ({
     ? t("feed.weighFirst")
     : t("feed.workingByWeight", {
         perHundred: formatNumber(line.kgPer100KgPerDay, language),
+        unit: feedUnitWord(line.unit, language),
         weight: formatNumber(weight, language),
         sessions,
       });
@@ -357,7 +371,7 @@ const FeedingTarget = ({ penId }: { penId: string }) => {
             <span className="text-xl font-semibold tabular-nums">
               {line.quantity === null
                 ? "—"
-                : `${formatNumber(line.quantity, language)} ${line.unit}`}
+                : `${formatNumber(line.quantity, language)} ${feedUnitWord(line.unit, language)}`}
             </span>
             <span className="text-muted-foreground text-xs">
               <Working line={line} target={target.data} />
@@ -516,9 +530,9 @@ const RationCard = ({
                 {isByWeight(line)
                   ? t("feed.perHundred", {
                       amount: formatNumber(line.kgPer100KgPerDay, language),
-                      unit: item?.unit ?? "",
+                      unit: feedUnitWord(item?.unit ?? "kg", language),
                     })
-                  : `${formatNumber(line.kgPerAnimalPerDay, language)} ${item?.unit ?? ""}`}
+                  : `${formatNumber(line.kgPerAnimalPerDay, language)} ${feedUnitWord(item?.unit ?? "kg", language)}`}
               </span>
             </li>
           );

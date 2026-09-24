@@ -9,7 +9,12 @@ import type {
   WeighedAnimal,
   WeightBand,
 } from "@OpenFarm/domain";
-import { herdWeightOf, sessionKgOf, sessionsPerDayOf } from "@OpenFarm/domain";
+import {
+  feedUnitOf,
+  herdWeightOf,
+  sessionKgOf,
+  sessionsPerDayOf,
+} from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
@@ -180,7 +185,13 @@ const feedingTargetFor = (
     ...line,
     nameBn: feeds.get(line.feedItemId)?.nameBn ?? "",
     unit: feeds.get(line.feedItemId)?.unit ?? "kg",
-    quantity: sessionKgOf(line, herd, sessionsPerDay),
+    // In the feed's own unit: napier cut in bundles is given whole.
+    quantity: sessionKgOf(
+      line,
+      herd,
+      sessionsPerDay,
+      feedUnitOf(feeds.get(line.feedItemId)?.unit ?? "kg")
+    ),
   }));
 
 /**
