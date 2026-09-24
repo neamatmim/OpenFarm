@@ -81,6 +81,8 @@ import {
 import { refreshTheScreen } from "@/lib/refresh";
 import { useRefused } from "@/lib/refused";
 import { skipReasonsOffered } from "@/lib/skipping";
+import type { StepAnswer } from "@/lib/step-answer";
+import { journeyOf } from "@/lib/step-answer";
 import { placeOfWork } from "@/lib/work-place";
 import { orpc } from "@/utils/orpc";
 
@@ -505,59 +507,25 @@ const WorkPage = () => {
   const send = (
     step: Step,
     existing: Completion | undefined,
-    payload: RecordPayload,
+    payload: StepAnswer,
     animalTag?: string
   ) => {
-    if (existing && payload.reason) {
-      // A Correction changes what was recorded; replacing the photo with it is a later
-      // ticket's problem, so the one already attached stays.
-      correct.mutate({
-        id: existing.id,
-        changes: {
-          answer: {
-            from: {
-              skipReason: existing.skipReason,
-              evidence: existing.evidence,
-              destination: existing.destination,
-              outOfRange: existing.outOfRange,
-              ...existing.facts,
-            },
-            to: {
-              destination: payload.destination,
-              evidence: payload.evidence,
-              outOfRange: payload.outOfRange,
-              skipReason: payload.skipReason,
-              feeding: payload.feeding,
-              counts: payload.counts,
-              renewal: payload.renewal,
-            },
-          },
-        },
-        reason: payload.reason,
-      });
-      return;
-    }
-    // The renewal is sent as it is taken: a certificate's photograph is not something to hold in a shed
-    // phone's queue, and the renewal is the Owner's own act on their own phone.
-    if (payload.renewal) {
-      renew.mutate({
-        instanceId,
-        stepId: step.id,
-        evidence: payload.evidence,
-        renewal: payload.renewal,
-      });
-      return;
-    }
-    // The reason belongs to a Correction, which took the branch above; recording a new
-    // entry has nothing to explain.
-    const { reason: _forCorrections, renewal: _online, ...rest } = payload;
-    record.mutate({
+    // Where the answer goes — put right, renewed online, or into the Outbox — is the Step answer's to say
+    // (lib/step-answer).
+    const journey = journeyOf(payload, {
       instanceId,
       stepId: step.id,
       animalTag,
-      animalId: animalTag ? (openAnimal?.id ?? null) : null,
-      ...rest,
+      animalId: openAnimal?.id ?? null,
+      recorded: existing,
     });
+    if (journey.by === "correction") {
+      correct.mutate(journey.input);
+    } else if (journey.by === "renewal") {
+      renew.mutate(journey.input);
+    } else {
+      record.mutate(journey.input);
+    }
   };
 
   if (openAnimal && perAnimalStep) {
@@ -1523,7 +1491,7 @@ const SkipSheet = ({
   correcting: boolean;
   reason: string;
   onReason: (value: string) => void;
-  onSkip: (payload: RecordPayload) => void;
+  onSkip: (payload: StepAnswer) => void;
   onBack: () => void;
 }) => {
   const { t } = useLanguage();
@@ -1671,25 +1639,6 @@ const numberOr = (value: string | undefined, fallback: number): number => {
     : typed;
 };
 
-interface RecordPayload {
-  evidence: (boolean | number | string)[];
-  skipReason?: string;
-  outOfRange?: string;
-  destination?: MilkDestination;
-  /** What a Step that feeds a Pen actually put out, per Feed Item. */
-  feeding?: { feedItemId: string; givenKg: number; leftoverKg?: number }[];
-  /** What a Step that counts the store found, per Feed Item. */
-  counts?: StockCountEntry[];
-  /** The new expiry, issue date and renewed certificate, for the Step that renews the Registration. Sent
-   *  online, never through the Outbox: the certificate is the Owner's to give from their own phone. */
-  renewal?: ReturnType<ReturnType<typeof useRenewal>["entry"]>;
-  /** One per Evidence slot that asked for a picture. */
-  photos?: { slot: number; contentType: "image/jpeg"; data: string }[];
-  /** Set when the entry already exists: changing a recorded fact is a Correction, and a
-   *  Correction carries a reason. */
-  reason?: string;
-}
-
 /** What the sheet is for, at its top: the animal and her photo, or the Step's picture; the Step's words; and whether
  *  this is a Correction or a cow whose milk is held. */
 const SheetHead = ({
@@ -1767,7 +1716,7 @@ const EvidenceSheet = ({
   /** When the Registration runs out now, for the Step that renews it. */
   renewal?: { expiresOn: Date | null } | null;
   onCancel: () => void;
-  onRecord: (payload: RecordPayload) => void;
+  onRecord: (payload: StepAnswer) => void;
 }) => {
   const { t, language } = useLanguage();
   // A date and time the Step asks for starts as now: it is changed only when the thing happened
