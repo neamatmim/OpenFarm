@@ -86,9 +86,8 @@ describe("what a Pen is fed", () => {
       rationId: saved.rationId,
     });
 
-    for (let i = 0; i < 3; i += 1) {
-      await aCowIn(manager, world.pen.id);
-    }
+    // Together: each takes the next Tag Number under a row lock, whichever lands first.
+    await Promise.all([0, 1, 2].map(() => aCowIn(manager, world.pen.id)));
 
     const target = await manager.client.feed.target({ penId: world.pen.id });
     expect(target.animals).toBe(3);
@@ -230,13 +229,15 @@ describe("what a Pen is fed", () => {
       name: { bn: `দোহনের রেশন ${Date.now()}` },
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 6 }],
     });
-    for (const pen of [first, second]) {
-      await manager.client.feed.assignRation({
-        penId: pen.id,
-        rationId: shared.rationId,
-      });
-      await aCowIn(manager, pen.id);
-    }
+    await Promise.all(
+      [first, second].map(async (pen) => {
+        await manager.client.feed.assignRation({
+          penId: pen.id,
+          rationId: shared.rationId,
+        });
+        await aCowIn(manager, pen.id);
+      })
+    );
 
     // One change to the recipe, and both Pens are fed the new figure.
     clock.advance(HOUR);
@@ -246,8 +247,12 @@ describe("what a Pen is fed", () => {
       items: [{ feedItemId: hay.id, kgPerAnimalPerDay: 8 }],
     });
 
-    for (const pen of [first, second]) {
-      const target = await manager.client.feed.target({ penId: pen.id });
+    const targets = await Promise.all(
+      [first, second].map((pen) =>
+        manager.client.feed.target({ penId: pen.id })
+      )
+    );
+    for (const target of targets) {
       expect(target.ration?.number).toBe(2);
       expect(target.items[0]?.quantity).toBe(4);
     }
