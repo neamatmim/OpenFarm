@@ -1,5 +1,5 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
-import type { Language, MessageKey } from "@OpenFarm/i18n";
+import type { Language, MessageKey, MessageParams } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import type { Tone } from "@/components/page";
@@ -90,15 +90,67 @@ export const becauseOf = (after: unknown): MessageKey | null => {
   return null;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** A line of why, in the reader's words. */
+export interface Saying {
+  key: MessageKey;
+  params?: MessageParams;
+}
+
+const countOf = (after: Record<string, unknown>, field: string): number => {
+  const value = after[field];
+  return typeof value === "number" ? value : 0;
+};
+
+/**
+ * Why the farm raised work, where the farm did and not a person: the day's turn — how much it raised and by what —
+ * or work raised by hand. A turn written before the trail said how much it raised says only that the farm looked.
+ * Nothing for any other event, whose why is the reason somebody gave.
+ */
+export const whyRaised = (
+  event: Pick<AuditEvent, "entity" | "entityId" | "action" | "after">
+): Saying[] => {
+  if (event.entity !== "sop_instance" || event.action !== "create") {
+    return [];
+  }
+  const after = isRecord(event.after) ? event.after : {};
+  if (!event.entityId.startsWith("schedule:")) {
+    return typeof after.definitionId === "string"
+      ? [{ key: "audit.raised.byHand" }]
+      : [];
+  }
+  if (typeof after.raised !== "number") {
+    return [{ key: "audit.raised.checked" }];
+  }
+  const said: Saying[] = [];
+  const onTheSchedule = countOf(after, "byTheSchedule");
+  const byWhatHappened = countOf(after, "byWhatHappened");
+  if (onTheSchedule > 0) {
+    said.push({
+      key: "audit.raised.onSchedule",
+      params: { count: onTheSchedule },
+    });
+  }
+  if (byWhatHappened > 0) {
+    said.push({
+      key: "audit.raised.byWhatHappened",
+      params: { count: byWhatHappened },
+    });
+  }
+  if (countOf(after, "forTheRenewal") > 0) {
+    said.push({ key: "audit.raised.forTheRenewal" });
+  }
+  return said;
+};
+
 /** One field of a record, as it stood before and after. */
 export interface FieldChange {
   field: string;
   before: string;
   after: string;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** A figure the database keeps as text: always with its decimals, so a phone or an NID, which has none, is not one. */
 const DECIMAL_TEXT = /^-?\d+\.\d+$/u;
@@ -179,6 +231,10 @@ const NAMED_FIELDS = new Set<string>([
   "effect",
   "stepId",
   "slots",
+  "raised",
+  "byTheSchedule",
+  "byWhatHappened",
+  "forTheRenewal",
   "penId",
   "id",
   "definitionId",
