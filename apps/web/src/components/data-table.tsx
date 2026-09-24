@@ -101,8 +101,8 @@ const Heading = <TData extends object>({
   return (
     <button
       className={cn(
-        "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded px-1 outline-none focus-visible:ring-2",
-        column.columnDef.meta?.align === "end" && "flex-row-reverse"
+        "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded px-1 text-start outline-none focus-visible:ring-2",
+        column.columnDef.meta?.align === "end" && "flex-row-reverse text-end"
       )}
       onClick={column.getToggleSortingHandler()}
       type="button"
@@ -110,7 +110,10 @@ const Heading = <TData extends object>({
       <FlexRender header={header} />
       <SortIcon
         aria-hidden
-        className={cn("size-3.5", !sorted && "text-muted-foreground/60")}
+        className={cn(
+          "size-3.5 shrink-0",
+          !sorted && "text-muted-foreground/60"
+        )}
       />
     </button>
   );
@@ -233,9 +236,13 @@ export const DataTable = <TData extends object>({
                     <TableHead
                       aria-sort={sorted ? ARIA_SORT[sorted] : undefined}
                       className={cn(
-                        "first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
+                        // A heading wraps rather than setting its column's width: the figures under it say how wide
+                        // the column is, and a long heading over a short figure takes two lines, on the bottom one.
+                        "align-bottom whitespace-normal first:pl-4 last:pr-4 md:first:pl-5 md:last:pr-5",
                         look?.align === "end" && "text-right",
-                        look?.className
+                        look?.className,
+                        // Last, so a column that keeps its figures on one line does not keep its heading on one.
+                        "whitespace-normal"
                       )}
                       key={header.id}
                     >

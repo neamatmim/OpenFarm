@@ -271,16 +271,12 @@
   h3 {
     text-wrap: balance;
   }
-  /* Capitals only for the overline: the small grey names over a group of menu items and over a table's columns, as
-     enterprise design systems keep them. Everything a person reads as words — titles, buttons, labels — is in
-     sentence case. Bangla has no capitals, and letter-spacing would pull its joined letters apart, so the rule is
-     English's alone. */
-  html:lang(en)
-    :is(
-      [data-slot="sidebar-group-label"],
-      [data-slot="table-head"],
-      [data-slot="table-head"] button
-    ) {
+  /* Capitals only for the overline: the small grey names over a group of menu items, as enterprise design systems
+     keep them. Everything a person reads as words — titles, buttons, labels, a table's column headings — is in
+     sentence case: headings in capitals made every English column wider than its figures, and a table that fitted in
+     Bangla ran off its card in English. Bangla has no capitals, and letter-spacing would pull its joined letters
+     apart, so the rule is English's alone. */
+  html:lang(en) [data-slot="sidebar-group-label"] {
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
