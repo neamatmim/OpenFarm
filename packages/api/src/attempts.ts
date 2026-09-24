@@ -29,13 +29,40 @@ const recent = (key: string, now: Date, rule: AttemptRule): number[] => {
 export const lockedOut = (key: string, now: Date, rule: AttemptRule): boolean =>
   recent(key, now, rule).length >= rule.limit;
 
+/** How many keys may be held before the old ones are swept: a farm's own mistakes never come near it, a script
+ *  naming a new phone or address every time soon would. */
+const SWEEP_PAST = 1000;
+
+/** The longest any rule remembers a guess: a key whose newest guess is older is remembered by nothing. */
+const LONGEST_WINDOW_MS = Math.max(
+  PIN_ATTEMPTS.windowMs,
+  CODE_ATTEMPTS.windowMs
+);
+
+/** Forgets every key nothing remembers any more. A key is pruned when it is asked about; one never asked about again
+ *  — a phone a script named once — would otherwise stay until the process ends. */
+const sweep = (now: Date): void => {
+  const since = now.getTime() - LONGEST_WINDOW_MS;
+  for (const [key, at] of failures) {
+    if ((at.at(-1) ?? 0) <= since) {
+      failures.delete(key);
+    }
+  }
+};
+
 export const countFailure = (
   key: string,
   now: Date,
   rule: AttemptRule
 ): void => {
   failures.set(key, [...recent(key, now, rule), now.getTime()]);
+  if (failures.size > SWEEP_PAST) {
+    sweep(now);
+  }
 };
+
+/** How many keys are being remembered, for a test that memory stays bounded. */
+export const keysHeld = (): number => failures.size;
 
 export const forgetFailures = (key: string): void => {
   failures.delete(key);

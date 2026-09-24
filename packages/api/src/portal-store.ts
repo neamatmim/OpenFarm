@@ -261,14 +261,24 @@ export const takeUpInvitation = async (
   }
   const now = context.clock.now();
   const loginEmail = investorLoginOf(input.phone);
-  const guesses = `portal-code:${loginEmail ?? input.phone}`;
-  if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
+  // Counted twice: against the address the guesses come from, so a script naming a new phone every time is stopped,
+  // and against the phone, so guesses spread over many addresses at one Investor's code are too. A string that is
+  // not a mobile number can match no invitation and is not remembered at all.
+  const fromHere = `portal-join:${context.callerAddress ?? "unknown"}`;
+  const atPhone = loginEmail ? `portal-code:${loginEmail}` : null;
+  if (
+    lockedOut(fromHere, now, CODE_ATTEMPTS) ||
+    (atPhone !== null && lockedOut(atPhone, now, CODE_ATTEMPTS))
+  ) {
     throw new ORPCError("TOO_MANY_REQUESTS", {
       message: "Too many wrong codes — wait fifteen minutes",
     });
   }
   const wrong = () => {
-    countFailure(guesses, now, CODE_ATTEMPTS);
+    countFailure(fromHere, now, CODE_ATTEMPTS);
+    if (atPhone !== null) {
+      countFailure(atPhone, now, CODE_ATTEMPTS);
+    }
     return refused(
       "That phone and code do not match an invitation",
       "wrong_code"
@@ -351,7 +361,10 @@ export const takeUpInvitation = async (
         .where(and(eq(user.id, userId), eq(user.email, loginEmail)));
     }
   );
-  forgetFailures(guesses);
+  // The phone's count is theirs and is forgotten; the address's stays, since one address may be a script's.
+  if (atPhone !== null) {
+    forgetFailures(atPhone);
+  }
   return { loginEmail };
 };
 
