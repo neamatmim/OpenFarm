@@ -86,7 +86,10 @@ export const PageHeader = ({
           {eyebrow}
         </p>
       ) : null}
-      <h1 className="text-2xl leading-tight font-semibold tracking-tight md:text-3xl">
+      <h1
+        className="text-2xl leading-tight font-semibold tracking-tight md:text-3xl"
+        data-slot="page-title"
+      >
         {title}
       </h1>
       {description ? (
@@ -145,6 +148,7 @@ export const Section = ({
           {title ? (
             <h2
               className="text-base font-semibold tracking-tight md:text-lg"
+              data-slot="section-title"
               id={id ? `${id}-title` : undefined}
             >
               {title}
@@ -189,7 +193,9 @@ export const StatTile = ({
 }) => (
   <div className="surface flex h-full flex-col gap-3 p-4 md:p-5">
     <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm font-medium">
-      <span className="truncate">{label}</span>
+      <span className="truncate" data-slot="figure-label">
+        {label}
+      </span>
       {Icon ? (
         <span className="bg-secondary text-secondary-foreground grid size-8 shrink-0 place-items-center rounded-lg">
           <Icon aria-hidden className="size-4" />
@@ -474,6 +480,7 @@ export const SegmentedControl = <T extends string>({
             ? "bg-card text-foreground shadow-xs"
             : "text-muted-foreground hover:text-foreground"
         )}
+        data-slot="segment"
         key={option.value || "all"}
       >
         <input
@@ -516,6 +523,7 @@ export const PeriodFilter = ({
       <legend className="sr-only">{label}</legend>
       <label
         className="flex flex-col gap-1.5 text-sm font-medium"
+        data-slot="form-label"
         htmlFor={`${id}-from`}
       >
         {fromLabel}
@@ -529,6 +537,7 @@ export const PeriodFilter = ({
       </label>
       <label
         className="flex flex-col gap-1.5 text-sm font-medium"
+        data-slot="form-label"
         htmlFor={`${id}-to`}
       >
         {toLabel}

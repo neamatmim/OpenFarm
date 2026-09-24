@@ -268,6 +268,37 @@
   h3 {
     text-wrap: balance;
   }
+  /* English sets the app's own words in capitals — the menus, the titles, the labels and the buttons — so they read
+     as the frame around the farm's records, which stay as they were written. Bangla has no capitals, so the rule is
+     English's alone. In this layer so a component can keep its own case with `normal-case`, and a heading's
+     `tracking-tight` still wins over the looser spacing capitals want at small sizes. */
+  html:lang(en)
+    :is(
+      [data-slot="sidebar-group-label"],
+      [data-slot="sidebar-menu-button"],
+      [data-slot="bottom-bar-item"],
+      [data-slot="page-title"],
+      [data-slot="section-title"],
+      [data-slot="figure-label"],
+      [data-slot="card-title"],
+      [data-slot="sheet-title"],
+      [data-slot="dialog-title"],
+      [data-slot="label"],
+      [data-slot="field-label"],
+      [data-slot="field-legend"],
+      [data-slot="table-head"],
+      [data-slot="table-head"] button,
+      [data-slot="form-label"],
+      [data-slot="segment"],
+      [data-slot="tabs-trigger"],
+      [data-slot="toggle-group-item"],
+      [data-slot="select-label"],
+      [data-slot="dropdown-menu-label"],
+      [data-slot="button"]:not([data-variant="link"])
+    ) {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

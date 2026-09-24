@@ -37,6 +37,7 @@ export const BottomBar = ({ role }: { role: Role }) => {
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
+            data-slot="bottom-bar-item"
             key={item.to}
             to={item.to}
           >
@@ -60,6 +61,7 @@ export const BottomBar = ({ role }: { role: Role }) => {
             ? "text-primary"
             : "text-muted-foreground hover:text-foreground"
         )}
+        data-slot="bottom-bar-item"
         onClick={() => setOpenMobile(true)}
         type="button"
       >

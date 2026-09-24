@@ -69,7 +69,10 @@ export const SummaryFigures = ({ figures }: { figures: Figure[] }) => (
     <dl className="bg-card grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 md:hidden">
       {figures.map((figure) => (
         <div className="flex min-w-0 flex-col gap-0.5" key={figure.label}>
-          <dt className="text-muted-foreground truncate text-xs">
+          <dt
+            className="text-muted-foreground truncate text-xs"
+            data-slot="figure-label"
+          >
             {figure.label}
           </dt>
           <dd
@@ -554,7 +557,7 @@ export const FormField = ({
   className?: string;
 }) => (
   <div className={cn("flex flex-col gap-1.5", className)}>
-    <label className="text-sm font-medium" htmlFor={id}>
+    <label className="text-sm font-medium" data-slot="form-label" htmlFor={id}>
       {label}
     </label>
     {children}
