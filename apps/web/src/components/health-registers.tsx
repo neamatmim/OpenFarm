@@ -5,7 +5,9 @@ import type { RowsAnswer } from "@OpenFarm/api/registers/rows";
 import { rowsOfRegister } from "@OpenFarm/api/registers/rows";
 import type { TreatmentRow } from "@OpenFarm/api/registers/treatment";
 import type { VaccinationRow } from "@OpenFarm/api/registers/vaccination";
+import { startOfFarmDay } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
+import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -65,7 +67,10 @@ const RegisterSection = ({
   onCsv?: () => void;
   children: ReactNode;
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  // The period as the inspector reads a date, not as the farm stores a day.
+  const day = (farmDay: string) =>
+    formatDate(startOfFarmDay(farmDay), language, "date");
   return (
     <Section
       action={
@@ -92,7 +97,9 @@ const RegisterSection = ({
           ) : null}
         </>
       }
-      description={period ? `${period.from} — ${period.to}` : undefined}
+      description={
+        period ? `${day(period.from)} — ${day(period.to)}` : undefined
+      }
       title={t(title)}
     >
       {count === 0 ? (

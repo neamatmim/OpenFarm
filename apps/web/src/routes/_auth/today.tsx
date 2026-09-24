@@ -41,11 +41,7 @@ interface Standing {
 /** When work is due: the time alone for today's work, the date as well for anything older. */
 const dueWhen = (due: Date, language: "bn" | "en") =>
   farmDayOf(due) === farmDayOf(new Date())
-    ? new Intl.DateTimeFormat(language === "bn" ? "bn-BD" : "en-GB", {
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: "Asia/Dhaka",
-      }).format(due)
+    ? formatDate(due, language, "time")
     : formatDate(due, language, "dateTime");
 
 /** Whose the work is, as the person holding the phone sees it: somebody else's — pinned to them or taken by them —

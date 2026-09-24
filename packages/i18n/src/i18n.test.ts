@@ -49,6 +49,14 @@ describe("dates", () => {
     expect(formatDate(eleventh, "en")).toBe("11 September 2026");
   });
 
+  it("tells the time on the farm's 24-hour clock, with no English AM or PM in a Bangla sentence", () => {
+    const afternoon = new Date("2026-09-24T08:59:00Z");
+
+    expect(formatDate(afternoon, "bn", "time")).toBe("১৪:৫৯");
+    expect(formatDate(afternoon, "en", "time")).toBe("14:59");
+    expect(formatDate(afternoon, "bn", "dateTime")).not.toMatch(/AM|PM/u);
+  });
+
   it("shows month and year", () => {
     expect(formatDate(eleventh, "bn", "monthYear")).toBe("সেপ্টেম্বর ২০২৬");
   });

@@ -29,7 +29,7 @@ export const PublicHeader = ({
         <span className="bg-primary text-primary-foreground grid size-9 place-items-center rounded-lg">
           <Sprout aria-hidden className="size-5" />
         </span>
-        <span className="text-lg font-semibold tracking-tight">
+        <span className="text-lg font-semibold [letter-spacing:0.08em] uppercase">
           {t("app.name")}
         </span>
       </Link>
