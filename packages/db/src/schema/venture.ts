@@ -60,6 +60,10 @@ export const venture = pgTable(
     cattleBudgetBdt: taka("cattle_budget_bdt").notNull(),
     /** Why a Venture was called off, in the Owner's words. */
     cancelledReason: text("cancelled_reason"),
+    /** When the Owner showed it to invited Investors in the portal; empty while it is not shown (ADR 0008). */
+    shownInPortalAt: timestamp("shown_in_portal_at"),
+    /** The Owner's few words on it for the portal, beside its terms. */
+    portalWords: text("portal_words"),
     openedBy: text("opened_by").references(() => user.id),
     openedByRole: text("opened_by_role", { enum: ROLES }).notNull(),
     createdAt: timestamp("created_at").notNull(),

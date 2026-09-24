@@ -2,6 +2,7 @@ import { isRunning, startOfFarmDay } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import { Section } from "@/components/page";
+import { InThePortal } from "@/components/ventures/in-the-portal";
 import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -172,10 +173,16 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
   );
 };
 
-/** A Venture read whole: how near it is to starting, while it is Open; where its money is; and its terms. */
+/** A Venture read whole: how near it is to starting and whether Investors are shown it, while it is Open; where its
+ *  money is; and its terms. */
 export const VentureOverview = ({ venture }: { venture: Venture }) => (
   <div className="flex flex-col gap-4">
-    {venture.state === "open" ? <TowardsTheFloor venture={venture} /> : null}
+    {venture.state === "open" ? (
+      <>
+        <TowardsTheFloor venture={venture} />
+        <InThePortal venture={venture} />
+      </>
+    ) : null}
     <div className="grid gap-4 lg:grid-cols-2">
       <TheMoney venture={venture} />
       <TheTerms venture={venture} />

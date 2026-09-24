@@ -25,6 +25,7 @@ import {
   takeUpInvitation,
 } from "../portal-store";
 import { theirAgreements } from "../their-agreements";
+import { openVenturesFor } from "../venture-showing";
 import { theirProgress } from "../venture-herd-store";
 
 /** Anybody who is not an Investor the farm has let in, however they came. */
@@ -127,6 +128,20 @@ export const portalRouter = {
       context.farm.id,
       context.investor.id,
       farmDayOf(context.clock.now())
+    )
+  ),
+
+  /**
+   * The Ventures still gathering capital that the Owner has shown in the portal (ADR 0008): their terms, the split
+   * the farm signs on today, and the Owner's few words — never how many Units are left, who else has asked or anything
+   * off an Agreement. None for a retired Investor, and none they are already signed for.
+   */
+  openVentures: investorProcedure.handler(({ context }) =>
+    openVenturesFor(
+      context.db,
+      context.farm,
+      context.investor.id,
+      context.clock.now()
     )
   ),
 

@@ -105,6 +105,8 @@ const WORDED_REFUSALS = {
   no_eid_ahead: "refusal.noEidAhead",
   never_the_animals: "refusal.neverTheAnimals",
   venture_wrong_state: "refusal.ventureWrongState",
+  venture_past_decide_by: "refusal.venturePastDecideBy",
+  venture_not_shown: "refusal.ventureNotShown",
   venture_under_floor: "refusal.ventureUnderFloor",
   venture_floor_over_target: "refusal.ventureFloorOverTarget",
   venture_floor_over_units: "refusal.ventureFloorOverUnits",

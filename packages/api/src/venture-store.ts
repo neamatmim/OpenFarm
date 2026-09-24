@@ -53,6 +53,8 @@ export interface VentureRow {
   units: number;
   cattleBudgetBdt: number;
   cancelledReason: string | null;
+  shownInPortalAt: Date | null;
+  portalWords: string | null;
 }
 
 /** What has been signed for a Venture: the Units spoken for, and how many people hold them. */
@@ -233,6 +235,9 @@ export const ventureView = (
      *  the Venture that cannot settle on time. */
     animalsStanding: alsoKnown.stillHers,
     cancelledReason: row.cancelledReason,
+    /** Whether invited Investors are offered it in the portal, and the Owner's words on it there (ADR 0008). */
+    shownInPortal: row.shownInPortalAt !== null,
+    portalWords: row.portalWords,
   };
 };
 

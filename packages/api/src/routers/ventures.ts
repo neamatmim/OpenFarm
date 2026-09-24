@@ -76,6 +76,12 @@ import {
 } from "../settlement-store";
 import { currentWording, giveStandardTemplates } from "../template-store";
 import { actOnVenture } from "../venture-act";
+import {
+  changePortalWords,
+  portalWords,
+  showInPortal,
+  takeOutOfPortal,
+} from "../venture-showing";
 import { theirProgress } from "../venture-herd-store";
 import {
   balanceAtMonthEnd,
@@ -680,6 +686,39 @@ export const venturesRouter = {
           })
       );
       return { id };
+    }),
+
+  /**
+   * Shows an Open Venture to the farm's invited Investors in the portal, with the Owner's few words on it (ADR 0008).
+   * Every invited Investor who is not retired sees it, or nobody does: there is no choosing people one by one.
+   */
+  showInPortal: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), words: portalWords }))
+    .handler(async ({ context, input }) => {
+      await showInPortal(context, input.id, input.words);
+      return { id: input.id };
+    }),
+
+  /** New words on a Venture already shown in the portal. */
+  changePortalWords: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string(), words: portalWords }))
+    .handler(async ({ context, input }) => {
+      await changePortalWords(context, input.id, input.words);
+      return { id: input.id };
+    }),
+
+  /** Takes a Venture out of the portal: invited Investors are no longer offered it. */
+  takeOutOfPortal: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await takeOutOfPortal(context, input.id);
+      return { id: input.id };
     }),
 
   /**
