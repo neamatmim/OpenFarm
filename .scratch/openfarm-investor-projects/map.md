@@ -18,7 +18,7 @@ A written spec for **investor-funded fattening projects** in OpenFarm. Many inve
   - The Owner may hold a share in the pool.
   - Project cattle stand in mixed Pens alongside the Farm's own cattle and other projects' cattle, so costs follow the Animal, not the Pen.
   - OpenFarm records the full money trail: capital in, top-ups, payouts.
-  - Investors get documents, not logins. An investor portal is a later effort.
+  - Investors get documents, not logins. An investor portal is a later effort. That effort became ADR 0007 (2026-09-24) and has its own map, [the first real Investor in](../openfarm-investor-portal/map.md).
   - Nothing is running yet and no contract exists, so the terms are designed here.
 - **Domain vocabulary** lives in [`CONTEXT.md`](../../CONTEXT.md). Grep it before naming anything, and update it via `/domain-modeling` as terms resolve. Words already taken:
   - **Batch** means an offline send.

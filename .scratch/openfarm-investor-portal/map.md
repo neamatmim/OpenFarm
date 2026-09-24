@@ -1,0 +1,54 @@
+# OpenFarm investor portal: the first real Investor in — map
+
+Label: wayfinder:map
+
+Tracker: local-markdown (`.scratch/openfarm-investor-portal/`)
+
+Charted: 2026-09-25
+
+## Destination
+
+The way is clear for the **first real Investor to sign in to the portal from their own phone**. Every decision that has to be made before that day is made. What is left is doing it: the farm going live, the lawyer's answer in hand, and the switch turned on for one person. The map is done when no ticket remains and opening the portal to that Investor is a step, not a question.
+
+## Notes
+
+- **What already exists** (built 2026-09-24/25, all merged; [ADR 0007](../../docs/adr/0007-investors-sign-in-to-a-read-only-portal.md), CONTEXT.md's **Investor Portal** entry):
+  - A read-only portal, by invitation, switched off by default.
+  - Sign-in by phone and password from a one-time code.
+  - A portfolio with a capital account, allocation, Venture cards, papers and money.
+  - Venture pages with a stage track, figures, herd, spend, key dates and papers.
+  - An account page with masked details, password change and devices.
+  - A 12-hour sign-in and a notice on every page.
+  - The Owner's view of each Investor's activity.
+  - The app's own shell.
+- **Settled while charting (2026-09-25)**, not re-asked:
+  - **The first real Investor waits for the lawyer's written answer** to the platform question: ticket 11, [Take the structure to a lawyer and a Shariah scholar](../openfarm-investor-projects/issues/11-take-the-structure-to-a-lawyer-and-a-shariah-scholar.md). The build went ahead on the Owner's decision; letting a real person read real figures does not.
+  - **The farm's own go-live** on the Singapore server is not deployed yet, and is out of this map. This map assumes it and decides only what the portal adds on top.
+  - **A password is enough.** There is no second factor; the rate limit and the 12-hour sign-in stand.
+  - **The Owner gets a read-only "see as they do" preview** of any Investor's portal.
+  - **An invited Investor gets a printed Bangla welcome sheet**: the address, a QR code to it, their code, the steps, and whom to call.
+  - **Notifications to Investors come later**, as their own effort.
+- **Domain vocabulary** is in [`CONTEXT.md`](../../CONTEXT.md). Grep it before naming anything.
+- **Skills**:
+  - `/grilling` + `/domain-modeling` for grilling tickets.
+  - A background research agent for research tickets.
+  - `/prototype` for the prototype ticket.
+- **Research** findings are written at `docs/research/<name>.md` on a `research/<name>` branch, then merged to main. The ticket links them.
+- **Assets** go in `assets/` and are linked from the ticket, never pasted into it.
+- **Standing constraints**: stay read-only per ADR 0007. Don't relax the "no capital without a stamped Agreement" guard until ticket 11 is answered.
+
+## Decisions so far
+
+<!-- one line per closed ticket: gist + link -->
+
+## Not yet specified
+
+- **What the lawyer's answer changes.** A "no" switches the portal off and keeps the papers. A "yes, with conditions" may change the notice, what is shown, or who may be invited. That can't be ticketed until the answer exists.
+- **The day the switch is turned on for one person.** Whether a written readiness check comes first: the preview read through, the welcome sheet printed, the notice approved, support ready. It may turn out to be nothing more than the tickets above, all closed.
+- **Support once someone is in.** Most of it is settled: a new code for a forgotten password, the Owner taking access away for a lost phone. Whether anything else needs deciding shows only once the address and the welcome sheet are settled.
+
+## Out of scope
+
+- **The farm's own go-live** (server, domain, HTTPS, backups): the whole farm's step, not the portal's. Decided while charting.
+- **Notifications to Investors** (a statement ready, a payout sent): a later effort once people use the portal. Decided while charting.
+- **Signing through the portal**, meaning Agreements, Venture Schedules and Amendments signed electronically. It reopens ADR 0007 and waits on the lawyer's e-signature questions in ticket 11.
