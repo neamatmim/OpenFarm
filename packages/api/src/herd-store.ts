@@ -24,6 +24,7 @@ import {
   formatTagNumber,
   isExitState,
   canTransition,
+  parseTagNumber,
   prefixForOrigin,
   sideOfState,
   stateAfterSideChange,
@@ -47,6 +48,9 @@ interface NewAnimalRows {
   birthDate?: Date;
   officialTag?: string;
   aliases?: string[];
+  /** The number already written on her Ear Tag, for an animal the farm had before OpenFarm. Left out, she is given
+   *  the next one. */
+  tagNumber?: string;
 }
 
 /** Takes the next Tag Number for a prefix. Row-locked inside the caller's transaction, so
@@ -71,6 +75,51 @@ const nextTagNumber = async (
     });
   }
   return formatTagNumber(prefix, row.next - 1);
+};
+
+/**
+ * Takes the number already on an Ear Tag. The Manager tags the herd first and writes the register as they go, so each
+ * row has to keep its own number: were the numbers handed out in file order, one refused row would move every tag
+ * after it onto the wrong animal. The sequence moves past the number, so nothing registered later is given it again.
+ */
+const claimTagNumber = async (
+  tx: Tx,
+  farmId: string,
+  origin: Side,
+  written: string
+): Promise<string> => {
+  const parsed = parseTagNumber(written);
+  if (!parsed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `"${written}" is not a Tag Number, which is written like D-0001`,
+    });
+  }
+  const prefix = prefixForOrigin(origin);
+  const tagNumber = formatTagNumber(parsed.prefix, parsed.sequence);
+  if (parsed.prefix !== prefix) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: `${tagNumber} cannot go on the ${origin} side, whose numbers start with ${prefix}-`,
+    });
+  }
+  const holder = await tx.query.animal.findFirst({
+    where: { farmId, tagNumber },
+    columns: { id: true },
+  });
+  if (holder) {
+    throw new ORPCError("CONFLICT", {
+      message: `${tagNumber} is already another animal's number`,
+    });
+  }
+  await tx
+    .insert(tagSequence)
+    .values({ farmId, prefix, next: parsed.sequence + 1 })
+    .onConflictDoUpdate({
+      target: [tagSequence.farmId, tagSequence.prefix],
+      set: {
+        next: sql`greatest(${tagSequence.next}, ${parsed.sequence + 1})`,
+      },
+    });
+  return tagNumber;
 };
 
 /** The records an Animal's money is booked from, each by its id: what she was bought for, sold for, or handed between purses for. */
@@ -242,7 +291,10 @@ export const insertAnimal = async (
   }
 ): Promise<{ tagNumber: string }> => {
   await requirePen(tx, farmId, input.penId);
-  const tagNumber = await nextTagNumber(tx, farmId, input.side);
+  const tagNumber =
+    input.tagNumber === undefined
+      ? await nextTagNumber(tx, farmId, input.side)
+      : await claimTagNumber(tx, farmId, input.side, input.tagNumber);
   await tx.insert(animal).values({
     id,
     farmId,

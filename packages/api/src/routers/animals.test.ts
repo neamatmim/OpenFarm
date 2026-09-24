@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { penAssignment } from "@OpenFarm/db/schema/herd";
 import { scratchDb, theFarm, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -340,6 +342,69 @@ describe("the opening register", () => {
     });
     expect(detail.aliases).toEqual(["লালি", "7"]);
     expect(detail.breed).toBe("Sahiwal");
+  });
+
+  it("keeps the number already written on her ear tag, and the next animal is numbered after it", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source",
+      "D-9001,female,dairy,milking,পেন ১,bought",
+      "f-9001,male,fattening,quarantine,পেন ২,bought",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    expect(result.imported.map((row) => row.tagNumber)).toEqual([
+      "D-9001",
+      "F-9001",
+    ]);
+    const { tagNumber } = await registerDairyCalf();
+    expect(tagNumber).toBe("D-9002");
+  });
+
+  it("takes every column of the template the tagging runbook hands out", async () => {
+    const [header] = readFileSync(
+      new URL(
+        "../../../../docs/runbooks/opening-register-template.csv",
+        import.meta.url
+      ),
+      "utf-8"
+    ).split("\n");
+    const csv = [
+      header,
+      "D-9201,female,dairy,milking,পেন ১,bought,Sahiwal,2021-03-01,2026-06-10,2027-03-20,BINLI-9,লালি;7",
+      "D-9202,female,dairy,pregnant_heifer,পেন ১,born,,2024-01-01,,2026-12-01,,",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.failed).toEqual([]);
+    const cow = await pens.owner.client.animals.byTag({ tagNumber: "D-9201" });
+    expect(cow.aliases).toEqual(["লালি", "7"]);
+    expect(cow.officialTag).toBe("BINLI-9");
+    expect(cow.birthDate).not.toBeNull();
+  });
+
+  it("a refused row does not move the number of any row after it", async () => {
+    const csv = [
+      "tag,sex,side,state,pen,source",
+      "D-9101,female,dairy,milking,পেন ১,bought",
+      "F-9102,female,dairy,milking,পেন ১,bought",
+      "D-9101,female,dairy,dry,পেন ১,bought",
+      "D-91x3,female,dairy,dry,পেন ১,bought",
+      "D-9104,female,dairy,dry,পেন ১,bought",
+    ].join("\n");
+
+    const result = await pens.owner.client.animals.importRegister({ csv });
+
+    expect(result.imported.map((row) => [row.line, row.tagNumber])).toEqual([
+      [2, "D-9101"],
+      [6, "D-9104"],
+    ]);
+    expect(result.failed.map((row) => row.line)).toEqual([3, 4, 5]);
+    expect(result.failed[0]?.reason).toContain("dairy");
+    expect(result.failed[1]?.reason).toContain("already");
+    expect(result.failed[2]?.reason).toContain("D-91x3");
   });
 });
 
