@@ -63,7 +63,7 @@ export const PrescribeSheet = ({
     orpc.prescriptions.prescribe.mutationOptions({
       onSuccess: ({ doses }) => {
         setDose("");
-        toast.success(t("prescribe.written", { doses: String(doses) }));
+        toast.success(t("prescribe.written", { doses }));
         onOpenChange(false);
       },
       onError,
