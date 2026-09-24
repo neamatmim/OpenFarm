@@ -7,6 +7,8 @@ import type { orpc } from "@/utils/orpc";
 export interface FeedItemRow {
   id: string;
   nameBn: string;
+  /** Its English name, where it has one. Optional here, as screens that build rows by hand have none to give. */
+  nameEn?: string | null;
   unit: string;
   /** What one of its bags weighs, in kilos, where the farm has said: what lets it be bought by the bag. */
   bagSizeKg: number | null;

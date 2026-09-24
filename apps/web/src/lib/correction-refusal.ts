@@ -91,6 +91,7 @@ const WORDED_REFUSALS = {
   expected_calving_too_far: "refusal.expectedCalvingTooFar",
   expected_calving_without_pregnancy: "refusal.expectedCalvingWithoutPregnancy",
   farm_identity_incomplete: "refusal.farmIdentityIncomplete",
+  feed_item_exists: "refusal.feedItemExists",
   feed_retired: "refusal.feedRetired",
   bag_size_unknown: "refusal.bagSizeUnknown",
   bundles_by_the_head: "refusal.bundlesByTheHead",

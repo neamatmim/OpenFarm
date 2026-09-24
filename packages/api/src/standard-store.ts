@@ -15,6 +15,7 @@ import {
 
 import type { Trail, Tx } from "./audit";
 import { bandColumns, publishRationVersion } from "./feed-store";
+import { nameTaken } from "./names";
 
 /** Who is starting the farm with the standard lists, and when. */
 interface Starter {
@@ -49,20 +50,34 @@ const feedKeysWanted = (kinds: readonly StandardKind[]): StandardFeedKey[] => {
   return [...named];
 };
 
+/** The standard feeds of `keys` the farm does not call by either of their names already. */
+export const feedsNotHad = (
+  have: readonly { id: string; nameBn: string; nameEn: string | null }[],
+  keys: readonly StandardFeedKey[] = Object.keys(
+    STANDARD_FEED_ITEMS
+  ) as StandardFeedKey[]
+): StandardFeedKey[] =>
+  keys.filter((key) => !nameTaken(have, STANDARD_FEED_ITEMS[key]));
+
 const addFeedItems = async (
   tx: Tx,
   trail: Trail,
   starter: Starter,
   keys: StandardFeedKey[]
 ): Promise<string[]> => {
-  if (keys.length === 0) {
+  // A name the farm already has, in either language — its own, or one it retired — is left as the farm's.
+  const have = await tx.query.feedItem.findMany({
+    where: { farmId: starter.farmId },
+    columns: { id: true, nameBn: true, nameEn: true },
+  });
+  const wanted = feedsNotHad(have, keys);
+  if (wanted.length === 0) {
     return [];
   }
-  // A name the farm already has — its own, or one it retired — is left as the farm's.
   const added = await tx
     .insert(feedItem)
     .values(
-      keys.map((key) => ({
+      wanted.map((key) => ({
         id: uuidv7(starter.now),
         farmId: starter.farmId,
         nameBn: STANDARD_FEED_ITEMS[key].bn,
