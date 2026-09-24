@@ -1010,7 +1010,7 @@ export const bn: Record<MessageKey, string> = {
   "herd.animalCount": "{count}টি পশু",
   "herd.import": "প্রারম্ভিক তালিকা",
   "herd.importHelp":
-    "CSV পেস্ট করুন: sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, গাভী গর্ভবতী হলে)",
+    "CSV পেস্ট করুন: tag, sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, গাভী গর্ভবতী হলে)। tag হলো কানের ট্যাগে লেখা নম্বর, যেমন D-0001; খালি রাখলে পরের নম্বরটি দেওয়া হবে",
   "herd.importRun": "আমদানি",
   "herd.imported": "{count}টি যোগ হয়েছে",
   "herd.failedRows": "{count}টি সারি আমদানি করা যায়নি",

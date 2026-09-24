@@ -1076,7 +1076,7 @@ export const en = {
   "herd.animalCount": "{count} animals",
   "herd.import": "Opening register",
   "herd.importHelp":
-    "Paste the CSV: sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, for a cow already in calf)",
+    "Paste the CSV: tag, sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, for a cow already in calf). tag is the number on her ear tag, like D-0001; left blank, she is given the next number",
   "herd.importRun": "Import",
   "herd.imported": "{count} imported",
   "herd.failedRows": "{count} rows could not be imported",

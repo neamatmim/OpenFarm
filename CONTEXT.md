@@ -34,7 +34,7 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Animal**: One individual head of cattle the Farm is responsible for, from arrival or birth until sale or death. Belongs to Dairy or Fattening at any given time, and to one owner at a time — the Farm, or the **Venture** whose money bought her. Her owner is set by her **Intake**, correctable inside the **Correction Window**, and moved afterwards only by an **Internal Sale**; a calf born here is the Farm's, and a Venture's animal may not cross to Dairy. _Avoid_: Cow (a cow is a female that has calved — a specific kind of Animal), head, stock
 
-**Tag Number**: An Animal's permanent identity: a side-of-origin prefix and a running number (`D-0001`, `F-0001`), assigned at birth or intake, never reused, unchanged if the Animal changes Side. _Avoid_: ID, animal number, ear-tag number
+**Tag Number**: An Animal's permanent identity: a side-of-origin prefix and a running number (`D-0001`, `F-0001`), assigned at birth or intake — or, on the opening register, read off the Ear Tag the herd was tagged with — never reused, unchanged if the Animal changes Side. _Avoid_: ID, animal number, ear-tag number
 
 **Ear Tag**: The physical tag carrying the Tag Number. Can be lost and replaced; a replacement carries the same Tag Number and the Re-tag is recorded. _Avoid_: Tag (ambiguous with Tag Number)
 

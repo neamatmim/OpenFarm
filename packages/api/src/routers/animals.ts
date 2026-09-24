@@ -112,6 +112,8 @@ const registerInput = z.object({
 const importRowInput = z.object({
   ...animalFields,
   state: z.enum(LIVE_STATES),
+  /** The number already on her Ear Tag. Blank, she is given the next one. */
+  tagNumber: tagInput.optional(),
 });
 type NewAnimal = z.infer<typeof importRowInput>;
 
@@ -1072,8 +1074,9 @@ export const animalsRouter = {
         : null;
     }),
 
-  /** The opening register: one row per Animal, old marks kept as aliases. Rows that cannot be
-   *  imported are reported with their source line and reason; the rest are still created. */
+  /** The opening register: one row per Animal, each keeping the number on her Ear Tag if it has one, old marks kept
+   *  as aliases. Rows that cannot be imported are reported with their source line and reason; the rest are still
+   *  created. */
   importRegister: protectedProcedure
     .use(requireRole("owner", "manager"))
     .input(z.object({ csv: z.string().min(1) }))
@@ -1113,6 +1116,7 @@ export const animalsRouter = {
           calvedAt: values.calved_at || undefined,
           expectedCalvingOn: values.expected_calving || undefined,
           officialTag: values.official_tag || undefined,
+          tagNumber: values.tag || undefined,
           aliases: (values.alias ?? values.old_mark ?? "")
             .split(/[;|]/u)
             .map((value) => value.trim())
