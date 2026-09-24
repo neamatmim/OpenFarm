@@ -29,6 +29,9 @@ export interface Bull {
   dailyGainKg: number;
   arrivedOn: string;
   state: "quarantine" | "fattening" | "ready_for_sale" | "sold" | "died";
+  /** The day he is to be made ready for sale, where the script knows it: his last month goes unsprayed, as a spray's
+   *  meat withdrawal would hold up the sale. */
+  sellBy?: string;
 }
 
 export interface Herd {

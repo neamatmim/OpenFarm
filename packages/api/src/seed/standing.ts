@@ -65,6 +65,7 @@ export type PenKey =
   | "calves"
   | "bullsA"
   | "bullsB"
+  | "bullsC"
   | "quarantine"
   | "isolation";
 
@@ -85,6 +86,8 @@ export const SHEDS: { name: string; pens: [PenKey, string][] }[] = [
     pens: [
       ["bullsA", "ষাঁড় পেন ক"],
       ["bullsB", "ষাঁড় পেন খ"],
+      // The heaviest: past 350 kg, on the second finisher's Ration, where the release walks a bull that big.
+      ["bullsC", "ষাঁড় পেন গ"],
       ["quarantine", "কোয়ারেন্টিন পেন"],
     ],
   },
@@ -178,7 +181,15 @@ export const openTheFarm = async (
     ["feeder", Object.keys(pens) as PenKey[]],
     [
       "stockman",
-      ["bullsA", "bullsB", "quarantine", "isolation", "calving", "dry"],
+      [
+        "bullsA",
+        "bullsB",
+        "bullsC",
+        "quarantine",
+        "isolation",
+        "calving",
+        "dry",
+      ],
     ],
   ];
   const crews: Partial<Record<PersonKey, Set<string>>> = {};
@@ -229,6 +240,7 @@ const FED: [StandardRationKey, PenKey[]][] = [
   ["arrival", ["quarantine"]],
   ["bullGrower", ["bullsB"]],
   ["bullFinisher", ["bullsA"]],
+  ["bullLateFinisher", ["bullsC"]],
   ["sick", ["isolation"]],
 ];
 
@@ -259,11 +271,23 @@ const MEDICINES: [
   ["fmd", 0, 21, { priceBdt: 9000, doses: 120, quantity: "৬টি ২০-ডোজ ভায়াল" }],
   ["lsd", 0, 21, { priceBdt: 7500, doses: 100, quantity: "৫টি ২০-ডোজ ভায়াল" }],
   ["albendazole", 3, 14, { priceBdt: 2800, doses: 90, quantity: "৯০টি বোলাস" }],
+  // The bought bull's chain (DLS GLPP 2023): a fluke drench, HS and BQ, and the weekly tick spray — the days the
+  // typical labels give, leaning long; anthrax, optional where it does not occur, is left out here.
+  [
+    "oxyclozanide",
+    7,
+    28,
+    { priceBdt: 3600, doses: 60, quantity: "২টি ১ লিটার বোতল" },
+  ],
+  ["hs", 0, 21, { priceBdt: 1800, doses: 100, quantity: "১০০ মিলি ভায়াল" }],
+  ["bq", 0, 21, { priceBdt: 1900, doses: 100, quantity: "৫০০ মিলি ভায়াল" }],
+  [
+    "cypermethrin",
+    1,
+    28,
+    { priceBdt: 950, doses: 200, quantity: "১ লিটার বোতল" },
+  ],
 ];
-
-/** The days the Vet wrote for meat off a medicine's label: what keeps a beast it was given to off the butcher's lorry. */
-export const meatDaysOf = (key: StandardDrugKey): number =>
-  MEDICINES.find(([drug]) => drug === key)?.[2] ?? 0;
 
 /**
  * The farm starts with the standard lists, as a new Owner is offered at Setup, and then makes them its own: the
@@ -345,7 +369,7 @@ export const stockTheFarm = async (farm: Farm): Promise<void> => {
     });
     farm.drugs[key] = id;
   }
-  for (const key of ["fmd", "lsd"] as const) {
+  for (const key of ["fmd", "lsd", "hs", "bq"] as const) {
     await as.vet.drugs.markVaccine({
       id: farm.drugs[key] ?? "",
       vaccine: true,
@@ -360,15 +384,18 @@ export const writeThePlaybook = async (farm: Farm): Promise<void> => {
     fmdVaccine: farm.drugs.fmd,
     lsdVaccine: farm.drugs.lsd,
     dewormer: farm.drugs.albendazole,
+    flukeDrench: farm.drugs.oxyclozanide,
+    hsVaccine: farm.drugs.hs,
+    bqVaccine: farm.drugs.bq,
+    tickSpray: farm.drugs.cypermethrin,
   });
   for (const [key, content] of Object.entries(contents)) {
-    // The pieces the seed's farm keeps, and the health round walked when somebody calls it, as it always was here: a
-    // round every morning for ninety days is eight thousand entries nobody reads.
+    // The pieces the seed's farm keeps: all of the standard but anthrax, which is for a farm where it occurs.
     if (!isSeeded(key)) {
       continue;
     }
     const made = await farm.as.owner.sops.create({
-      content: key === "healthRound" ? { ...content, triggers: [] } : content,
+      content,
       note: "খামার চালু করার সময় লেখা",
     });
     farm.sops[key as PlaybookKey] = made.definitionId;

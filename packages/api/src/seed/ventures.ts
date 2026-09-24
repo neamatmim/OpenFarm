@@ -5,8 +5,8 @@ import { balanceAtMonthEnd } from "../venture-store";
 import type { Bull, Herd } from "./herd";
 import type { Happening } from "./history";
 import { addDays, onFarm } from "./runtime";
-import { CATTLE_BUYERS, daysBetween, moveBull } from "./shared";
-import type { Farm, PenKey } from "./standing";
+import { CATTLE_BUYERS, daysBetween } from "./shared";
+import type { Farm } from "./standing";
 
 /**
  * The farm's Ventures: other people's money, buying and fattening cattle that stand in the same Pens as
@@ -599,6 +599,13 @@ export const openTheVentures = async (
       { who: 4, units: 8 },
     ],
   });
+  // The finished Venture's animals are made ready before the month turns: their last month goes unsprayed.
+  for (const tag of settling.tags) {
+    const bull = herd.bulls.get(tag);
+    if (bull) {
+      bull.sellBy = closing.readyOn;
+    }
+  }
   await buyOnTheVenture(farm, herd, running, {
     on: addDays(start, -3),
     count: 5,
@@ -633,28 +640,15 @@ export const runTheVentures = (
    */
   const { readyOn, wentOn, settledOn } = closingDays(today);
 
-  // Quarantine over: the Venture's bulls walk into the ordinary fattening pens, which is the whole
-  // arrangement — a Venture's animal stands beside the Farm's and costs follow the animal, not the Pen.
-  for (const [venture, day, pen] of [
-    [settling, addDays(start, 2), "bullsA"],
-    [running, addDays(start, 4), "bullsB"],
+  // Its bulls out of Quarantine, thirty days on, released by the Playbook to the Pens whose Rations suit their weight
+  // — the ordinary fattening pens, beside the Farm's own, since costs follow the animal and not the Pen. Then the
+  // Venture is feeding them: its Units are long since fixed, and a Venture left in Buying would never reach Selling
+  // on its first Sale.
+  for (const [venture, day] of [
+    [settling, addDays(start, 26)],
+    [running, addDays(start, 28)],
   ] as const) {
-    on(day, "10:30", `quarantine over for ${venture.name}`, async (f, h) => {
-      for (const tag of venture.tags) {
-        const bull = h.bulls.get(tag);
-        if (!bull || bull.state !== "quarantine") {
-          continue;
-        }
-        await f.as.manager.animals.setState({
-          tagNumber: tag,
-          state: "fattening",
-          reason: "কোয়ারেন্টিন শেষ, সুস্থ",
-        });
-        bull.state = "fattening";
-        await moveBull(f, bull, pen as PenKey, "কোয়ারেন্টিন শেষে মোটাতাজা পেনে");
-      }
-      // All bought and out of quarantine: the Venture is feeding them now, and its Units are long
-      // since fixed. A Venture left in Buying would never reach Selling on its first Sale.
+    on(day, "10:30", `${venture.name} out of quarantine`, async (f) => {
       await f.as.owner.ventures.startFattening({ id: venture.id });
     });
   }

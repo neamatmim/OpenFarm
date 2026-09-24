@@ -148,11 +148,27 @@ RESPONDERS.weighIn = (_step, beast, { farm, herd, day }) => {
 const LOTS = {
   fmd: "এফএমডি লট নং LRI-FMD-2605-118",
   lsd: "এলএসডি লট নং LSDV-BD-2604-027",
+  hs: "গলাফোলা লট নং LRI-HS-2606-044",
+  bq: "বাদলা লট নং LRI-BQ-2606-019",
 };
+
+/** The vial a vaccination was given from, by what the procedure is for. */
+const lotFor = (name: string): string => {
+  if (name.includes("FMD")) {
+    return LOTS.fmd;
+  }
+  if (name.includes("HS")) {
+    return LOTS.hs;
+  }
+  if (name.includes("BQ")) {
+    return LOTS.bq;
+  }
+  return LOTS.lsd;
+};
+
 const campaign: Responder = (step, _beast, { farm, board }) => {
   if (step.id === "lot") {
-    const isFmd = (board.content.name.en ?? "").includes("FMD");
-    return { evidence: [isFmd ? LOTS.fmd : LOTS.lsd] };
+    return { evidence: [lotFor(board.content.name.en ?? "")] };
   }
   if (farm.random.chance(0.01)) {
     return { skipReason: "অসুস্থ — পরে দেওয়া হবে" };
@@ -162,6 +178,77 @@ const campaign: Responder = (step, _beast, { farm, board }) => {
 RESPONDERS.fmdVaccination = campaign;
 RESPONDERS.lsdVaccination = campaign;
 RESPONDERS.deworming = campaign;
+
+// The bought bull's chain: his doses on his own days, as the campaigns are given.
+RESPONDERS.arrivalDeworming = campaign;
+RESPONDERS.arrivalFmd = campaign;
+RESPONDERS.arrivalLsd = campaign;
+RESPONDERS.hsVaccination = campaign;
+RESPONDERS.bqVaccination = campaign;
+RESPONDERS.fmdBooster = campaign;
+RESPONDERS.dewormBooster = campaign;
+
+RESPONDERS.arrivalCheck = (step, beast, { day }) => {
+  if (step.id !== "look") {
+    return { evidence: [true] };
+  }
+  const seen = beast ? sightings.get(day)?.get(beast.tagNumber) : undefined;
+  return seen ? { evidence: [seen] } : { skipReason: WELL };
+};
+
+/** Within a month of his sale a bull is left unsprayed: the spray's meat withdrawal would hold the sale up. */
+const SPRAY_CLEAR_OF_SALE_DAYS = 35;
+
+RESPONDERS.tickSpray = (step, beast, { farm, herd, day }) => {
+  if (step.id !== "spray") {
+    return { evidence: [true] };
+  }
+  const bull = beast ? herd.bulls.get(beast.tagNumber) : undefined;
+  const toSale = bull?.sellBy ? daysBetween(day, bull.sellBy) : null;
+  if (toSale !== null && toSale >= 0 && toSale <= SPRAY_CLEAR_OF_SALE_DAYS) {
+    return { skipReason: "এক মাসের মধ্যে বিক্রি — স্প্রে নয়" };
+  }
+  if (farm.random.chance(0.01)) {
+    return { skipReason: "অসুস্থ — পরে দেওয়া হবে" };
+  }
+  return { evidence: [true] };
+};
+
+RESPONDERS.quarantineRelease = (step, beast, { farm, herd }) => {
+  const bull = beast ? herd.bulls.get(beast.tagNumber) : undefined;
+  if (step.id === "release" && bull) {
+    // The farm walks him to the Pen whose Ration suits his weight; the script's herd follows where he went.
+    herd.followUps.push(async () => {
+      const him = await farm.as.manager.animals.byTag({ tagNumber: bull.tag });
+      const penKey = (
+        Object.entries(farm.pens) as [keyof typeof farm.pens, string][]
+      ).find(([, id]) => id === him.pen.id)?.[0];
+      bull.state = "fattening";
+      if (penKey) {
+        bull.pen = penKey;
+      }
+    });
+  }
+  return { evidence: [true] };
+};
+
+RESPONDERS.shedDisinfection = () => ({ evidence: [true] });
+
+RESPONDERS.preSale = (step, beast, { farm, herd, day }) => {
+  if (step.id === "weigh") {
+    const bull = beast ? herd.bulls.get(beast.tagNumber) : undefined;
+    if (!bull) {
+      return { skipReason: "ক্রাশে ওঠেনি" };
+    }
+    const expected =
+      bull.weightKg + bull.dailyGainKg * daysBetween(bull.arrivedOn, day);
+    return {
+      evidence: [Math.round(expected * farm.random.between(0.996, 1.004))],
+    };
+  }
+  // No photograph kept on the seed's farm: the certificate is handed over with the bull.
+  return { evidence: [step.id === "papers" ? "" : true] };
+};
 
 RESPONDERS.treatmentDose = () => ({ evidence: [true] });
 

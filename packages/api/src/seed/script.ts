@@ -27,9 +27,8 @@ import {
   shelfCount,
   shelfReason,
 } from "./shared";
-import { HERD_SUNDRIES, meatDaysOf } from "./standing";
+import { HERD_SUNDRIES } from "./standing";
 import type { Farm, PenKey } from "./standing";
-import { closingDays } from "./ventures";
 import "./responders";
 
 interface Script {
@@ -146,23 +145,6 @@ const keepTheStore = ({ farm, days, on }: Script) => {
   }
 };
 
-/** The dairy pens are walked every morning, the rest every third day; heats come from these rounds. */
-const walkThePens = ({ days, on }: Script) => {
-  for (const [index, day] of days.entries()) {
-    const pens: PenKey[] = ["milking1", "milking2", "heifers"];
-    if (index % 3 === 0) {
-      pens.push("dry", "calves", "bullsA", "bullsB", "quarantine");
-    }
-    on(day, "08:00", "health rounds", async (f, h) => {
-      for (const pen of pens) {
-        if (penHolds(h, pen)) {
-          await raise(f, "healthRound", pen);
-        }
-      }
-    });
-  }
-};
-
 /** Milk leaves every morning: the tank to the chilling centre, a can to the sweet shop. */
 const sendTheMilk = ({ farm, days, on }: Script) => {
   const { random } = farm;
@@ -265,46 +247,19 @@ const calveTheCows = ({ farm, cows, on }: Script) => {
 };
 
 /** Quarantine over: into the fattening state and a fattening pen. */
-const outOfQuarantine = async (
-  f: Farm,
-  h: Herd,
-  arrivedOn: (day: string) => boolean,
-  pen: PenKey
-) => {
-  for (const bull of h.bulls.values()) {
-    if (bull.state === "quarantine" && arrivedOn(bull.arrivedOn)) {
-      await f.as.manager.animals.setState({
-        tagNumber: bull.tag,
-        state: "fattening",
-        reason: "কোয়ারেন্টিন শেষ, সুস্থ",
-      });
-      bull.state = "fattening";
-      await moveBull(f, bull, pen, "কোয়ারেন্টিন শেষে মোটাতাজা পেনে");
-    }
-  }
-};
-
-/** Lorries from the hat, quarantine, and the fortnightly weigh-in. */
+/**
+ * Lorries from the hat, and the fortnightly weigh-in. What happens to a bull between — his arrival check, his drench
+ * and his vaccines on his own days, his release thirty days on to the Pen whose Ration suits his weight — is the
+ * Playbook's, answered by the responders as the work falls due.
+ */
 const fattenTheBulls = ({ farm, on }: Script) => {
   const { start, today } = farm;
-  on(
-    addDays(start, 1),
-    "10:00",
-    "quarantine over for the first lorry",
-    (f, h) =>
-      outOfQuarantine(
-        f,
-        h,
-        (arrived) => daysBetween(arrived, addDays(start, 1)) >= 7,
-        "bullsA"
-      )
-  );
-  const lorries: [number, number, PenKey][] = [
-    [18, 12, "bullsB"],
-    [52, 10, "bullsB"],
-    [daysBetween(start, today) - 4, 8, "bullsA"],
+  const lorries: [number, number][] = [
+    [18, 12],
+    [52, 10],
+    [daysBetween(start, today) - 4, 8],
   ];
-  for (const [offset, count, after] of lorries) {
+  for (const [offset, count] of lorries) {
     const day = addDays(start, offset);
     // The second lorry is a heavier lot for the Eid market: these reach the target first.
     on(day, "15:30", "a lorry of bulls", async (f, h) => {
@@ -315,9 +270,6 @@ const fattenTheBulls = ({ farm, on }: Script) => {
         heavier: offset === 18 ? 60 : 0,
       });
     });
-    on(addDays(day, 14), "10:00", "quarantine over", (f, h) =>
-      outOfQuarantine(f, h, (arrived) => arrived === day, after)
-    );
   }
   for (let offset = 2; offset <= daysBetween(start, today); offset += 14) {
     on(
@@ -325,7 +277,12 @@ const fattenTheBulls = ({ farm, on }: Script) => {
       "07:30",
       "fortnightly weigh-in",
       async (f, h) => {
-        for (const pen of ["bullsA", "bullsB", "quarantine"] as PenKey[]) {
+        for (const pen of [
+          "bullsA",
+          "bullsB",
+          "bullsC",
+          "quarantine",
+        ] as PenKey[]) {
           if (penHolds(h, pen)) {
             await raise(f, "weighIn", pen);
           }
@@ -335,38 +292,21 @@ const fattenTheBulls = ({ farm, on }: Script) => {
   }
 };
 
-/** Days to spare between a campaign's meat withdrawal ending and the Venture's bulls being made ready. */
-const CLEAR_OF_THE_SALE_DAYS = 2;
-
 /**
- * FMD before the rains, deworming, and lumpy skin — the last on day forty, or earlier where the seed is run late in a
- * month: the finished Venture's bulls are made ready eight days before the month turns, and the farm will not confirm
- * one inside the lumpy-skin vaccine's withdrawal. Worked out rather than hoped for, because the ready day moves with
- * the calendar and the campaign did not, and a seed run after the 22nd of any month used to stop there.
+ * The dairy side's campaigns: FMD before the rains, deworming, and lumpy skin. A bought bull's vaccines and drenches are
+ * his own, counted from the day he came, so no campaign here reaches the fattening pens — and none can clash with the
+ * day a Venture's bulls are made ready for sale.
  */
 const runTheCampaigns = ({ farm, on }: Script) => {
-  const { readyOn } = closingDays(farm.today);
-  const lsdLatest = addDays(
-    readyOn,
-    -(meatDaysOf("lsd") + CLEAR_OF_THE_SALE_DAYS)
-  );
-  const lsdOn = [addDays(farm.start, 40), lsdLatest].toSorted()[0] ?? lsdLatest;
   const campaigns: [
     number,
     "fmdVaccination" | "lsdVaccination" | "deworming",
     PenKey[],
   ][] = [
-    [
-      9,
-      "fmdVaccination",
-      ["milking1", "milking2", "dry", "heifers", "calves", "bullsA"],
-    ],
-    [24, "deworming", ["heifers", "calves", "bullsA", "bullsB"]],
-    [
-      daysBetween(farm.start, lsdOn),
-      "lsdVaccination",
-      ["milking1", "milking2", "dry", "heifers", "bullsA", "bullsB"],
-    ],
+    // The dairy side's campaigns: a bought bull has his own, counted from the day he came.
+    [9, "fmdVaccination", ["milking1", "milking2", "dry", "heifers", "calves"]],
+    [24, "deworming", ["heifers", "calves"]],
+    [40, "lsdVaccination", ["milking1", "milking2", "dry", "heifers"]],
   ];
   for (const [offset, sop, pens] of campaigns) {
     on(addDays(farm.start, offset), "10:30", sop, async (f, h) => {
@@ -548,6 +488,16 @@ const organiseThePeople = ({ farm, on }: Script) => {
           "deworming",
           "burial",
           "healthRound",
+          "arrivalCheck",
+          "arrivalDeworming",
+          "arrivalFmd",
+          "arrivalLsd",
+          "hsVaccination",
+          "bqVaccination",
+          "tickSpray",
+          "shedDisinfection",
+          "fmdBooster",
+          "dewormBooster",
         ],
       ],
     ];
@@ -940,7 +890,6 @@ export const scriptTheDays = (farm: Farm, herd: Herd): Happening[] => {
   };
   for (const part of [
     keepTheStore,
-    walkThePens,
     sendTheMilk,
     calveTheCows,
     fattenTheBulls,
