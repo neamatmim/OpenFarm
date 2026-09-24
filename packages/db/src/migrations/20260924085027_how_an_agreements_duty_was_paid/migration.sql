@@ -1,0 +1,1 @@
+ALTER TABLE "investment_agreement" ADD COLUMN "stamp_kind" text DEFAULT 'paper' NOT NULL;

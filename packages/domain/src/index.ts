@@ -138,6 +138,8 @@ export type {
   ShortenedHold,
   SaleReceipt,
   SoldAnimal,
+  StampLine,
+  AgreementDraft,
   TransportCard,
   WithdrawalSummary,
 } from "./papers";
@@ -150,6 +152,9 @@ export {
   joiningLetter,
   progressStatement,
   settlementStatement,
+  stampLines,
+  AGREEMENT_WORDING_APPROVED_ON,
+  investmentAgreementDraft,
   registerPaper,
   herdSummary,
   registrationRecord,

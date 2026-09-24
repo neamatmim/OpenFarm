@@ -1,10 +1,15 @@
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
+import { Paper } from "@/components/paper";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
@@ -17,10 +22,31 @@ interface Terms {
   units: string;
   investorsPercent: string;
   arbitrator: string;
+  stampKind: StampKind;
   stampValueBdt: string;
   stampedOn: string;
   stampSerial: string;
 }
+
+/** Stamp paper by its serial, or duty paid by e-challan by the challan's number. */
+type StampKind = "paper" | "e_challan";
+
+/** The three stamp boxes' names, which say what is being asked for either way. */
+const STAMP_LABELS = {
+  paper: {
+    value: "ventures.stampValue",
+    on: "ventures.stampedOn",
+    serial: "ventures.stampSerial",
+  },
+  e_challan: {
+    value: "ventures.dutyPaid",
+    on: "ventures.paidOn",
+    serial: "ventures.challanNumber",
+  },
+} as const satisfies Record<
+  StampKind,
+  Record<"value" | "on" | "serial", MessageKey>
+>;
 
 /** A split is a whole percentage of the profit: all of it at the most, none of it at the least. */
 const aSplit = (percent: number) =>
@@ -31,6 +57,7 @@ const NOTHING_SIGNED: Terms = {
   units: "",
   investorsPercent: "",
   arbitrator: "",
+  stampKind: "paper",
   stampValueBdt: "",
   stampedOn: "",
   stampSerial: "",
@@ -83,6 +110,67 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
       (venture?.units ?? 0) - signed.reduce((sum, one) => sum + one.units, 0),
     nobodyLeft: investors.isSuccess && signable.length === 0,
   };
+};
+
+/**
+ * The agreement printed to be signed, from the terms on the sheet: onto stamp paper, or to go with an e-challan. Shown
+ * only while they are still the terms on the sheet — a paper with yesterday's Units on it is the wrong one to sign.
+ */
+const PrintToSign = ({
+  drafting,
+  splitGiven,
+}: {
+  drafting: {
+    ventureId: string;
+    investorId: string;
+    units: number;
+    investorsPercent: number;
+    arbitrator: string;
+  };
+  splitGiven: boolean;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [draft, setDraft] = useState<{ text: string; from: string } | null>(
+    null
+  );
+  const printing = useMutation(
+    orpc.investorStatements.agreementDraft.mutationOptions({
+      onError: refused,
+    })
+  );
+  const from = JSON.stringify(drafting);
+  const mayDraft =
+    drafting.ventureId !== "" &&
+    drafting.investorId !== "" &&
+    drafting.units > 0 &&
+    splitGiven &&
+    aSplit(drafting.investorsPercent) &&
+    drafting.arbitrator !== "";
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        className="self-start"
+        disabled={!mayDraft || printing.isPending}
+        onClick={() =>
+          printing.mutate(drafting, {
+            onSuccess: (done) => setDraft({ text: done.text, from }),
+          })
+        }
+        type="button"
+        variant="outline"
+      >
+        <FileText aria-hidden data-icon="inline-start" />
+        {t("ventures.printDraft")}
+      </Button>
+      <p className="text-muted-foreground text-sm">
+        {t("ventures.printDraftHint")}
+      </p>
+      {draft?.from === from ? (
+        <Paper id="investment-agreement-draft" text={draft.text} />
+      ) : null}
+    </div>
+  );
 };
 
 /**
@@ -150,6 +238,13 @@ export const SignAgreementSheet = ({
       ? String(startsAt)
       : terms.investorsPercent;
   const percent = Number(split);
+  const drafting = {
+    ventureId: venture?.id ?? "",
+    investorId: terms.investorId,
+    units,
+    investorsPercent: percent,
+    arbitrator: terms.arbitrator.trim(),
+  };
   const ready =
     venture !== null &&
     split !== "" &&
@@ -165,6 +260,7 @@ export const SignAgreementSheet = ({
           units,
           investorsPercent: percent,
           arbitrator: terms.arbitrator,
+          stampKind: terms.stampKind,
           stampValueBdt: Number(terms.stampValueBdt),
           stampedOn: terms.stampedOn,
           stampSerial: terms.stampSerial,
@@ -258,8 +354,27 @@ export const SignAgreementSheet = ({
           value={terms.arbitrator}
         />
       </FormField>
+      <PrintToSign drafting={drafting} splitGiven={split !== ""} />
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium" data-slot="form-label">
+          {t("ventures.stampKind")}
+        </span>
+        <SegmentedControl
+          label={t("ventures.stampKind")}
+          name="agreement-stamp-kind"
+          onChange={(stampKind) => setTerms({ ...terms, stampKind })}
+          options={[
+            { value: "paper", label: t("ventures.stampKind.paper") },
+            { value: "e_challan", label: t("ventures.stampKind.e_challan") },
+          ]}
+          value={terms.stampKind}
+        />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField id="agreement-stamp-value" label={t("ventures.stampValue")}>
+        <FormField
+          id="agreement-stamp-value"
+          label={t(STAMP_LABELS[terms.stampKind].value)}
+        >
           <Input
             id="agreement-stamp-value"
             inputMode="numeric"
@@ -270,7 +385,10 @@ export const SignAgreementSheet = ({
             value={terms.stampValueBdt}
           />
         </FormField>
-        <FormField id="agreement-stamped-on" label={t("ventures.stampedOn")}>
+        <FormField
+          id="agreement-stamped-on"
+          label={t(STAMP_LABELS[terms.stampKind].on)}
+        >
           <Input
             id="agreement-stamped-on"
             onChange={(event) =>
@@ -281,7 +399,10 @@ export const SignAgreementSheet = ({
           />
         </FormField>
       </div>
-      <FormField id="agreement-stamp-serial" label={t("ventures.stampSerial")}>
+      <FormField
+        id="agreement-stamp-serial"
+        label={t(STAMP_LABELS[terms.stampKind].serial)}
+      >
         <Input
           autoComplete="off"
           id="agreement-stamp-serial"
