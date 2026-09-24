@@ -20,7 +20,9 @@ import { describe, expect, it } from "vitest";
  * up tells nobody which one arrived.
  */
 
-/** The tables that hold a Venture's whole story, as `packages/db/src/schema/venture.ts` declares them. */
+/** The tables that hold a Venture's whole story, as `packages/db/src/schema/venture.ts` declares them — and the
+ *  wording its Agreements and Amendments were signed in, from `paper-template.ts`, without which a paper kept for
+ *  twelve years could not be printed again as it was signed. */
 const A_VENTURES_OWN = [
   "venture",
   "investor",
@@ -33,6 +35,8 @@ const A_VENTURES_OWN = [
   "ventureSettlement",
   "ventureSettlementShare",
   "settlementAdjustment",
+  "paperTemplate",
+  "paperTemplateVersion",
 ];
 
 /**

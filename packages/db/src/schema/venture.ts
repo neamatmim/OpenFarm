@@ -11,6 +11,7 @@ import {
 
 import { user } from "./auth";
 import { ROLES, farm } from "./farm";
+import { paperTemplateVersion } from "./paper-template";
 import { taka } from "./taka";
 import { buyingTrip } from "./trip";
 
@@ -150,6 +151,11 @@ export const investmentAgreement = pgTable(
     stampValueBdt: taka("stamp_value_bdt").notNull(),
     stampedOn: text("stamped_on").notNull(),
     stampSerial: text("stamp_serial").notNull(),
+    /** The wording it was printed and signed in. Every Agreement signed before the wording could be edited is
+     *  recorded against the standard wording the farm was given, which is what those papers said. */
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
     signedBy: text("signed_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
   },
@@ -193,6 +199,10 @@ export const agreementAmendment = pgTable(
     targetWindowEnd: text("target_window_end").notNull(),
     /** Why it was amended, in the Owner's own words — a dispute years later asks this first. */
     reason: text("reason").notNull(),
+    /** The wording the Amendment was printed in, where the farm printed it; none for one amended before it could. */
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
     amendedBy: text("amended_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
   },

@@ -39,6 +39,7 @@ import { sellingTripsRouter } from "./selling-trips";
 import { sopsRouter } from "./sops";
 import { stockRouter } from "./stock";
 import { syncRouter } from "./sync";
+import { templatesRouter } from "./templates";
 import { tripsRouter } from "./trips";
 import { venturesRouter } from "./ventures";
 import { vetCasesRouter } from "./vet-cases";
@@ -87,6 +88,7 @@ export const appRouter = {
   investorStatements: investorStatementsRouter,
   investors: investorsRouter,
   sops: sopsRouter,
+  templates: templatesRouter,
   sync: syncRouter,
   vetCases: vetCasesRouter,
   withdrawals: withdrawalsRouter,

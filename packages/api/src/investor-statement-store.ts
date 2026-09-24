@@ -30,6 +30,8 @@ export interface HisAgreement {
   stampValueBdt: number;
   stampedOn: string;
   stampSerial: string;
+  /** The wording it was signed in. */
+  templateVersionId: string | null;
 }
 
 /**
@@ -184,6 +186,7 @@ export const hisStanding = async (
       stampValueBdt: agreement.stampValueBdt,
       stampedOn: agreement.stampedOn,
       stampSerial: agreement.stampSerial,
+      templateVersionId: agreement.templateVersionId,
     },
     capital,
     capitalBdt: capital.reduce(

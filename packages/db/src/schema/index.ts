@@ -15,6 +15,7 @@ export * from "./milk";
 export * from "./milk-destinations";
 export * from "./money";
 export * from "./observation";
+export * from "./paper-template";
 export * from "./push";
 export * from "./review";
 export * from "./scheduler";

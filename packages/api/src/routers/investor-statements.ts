@@ -1,9 +1,10 @@
 import {
   farmDayOf,
-  investmentAgreement,
   joiningLetter,
+  paperFrom,
   progressStatement,
   settlementStatement,
+  termsOf,
 } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
@@ -11,6 +12,7 @@ import { z } from "zod";
 
 import { audited } from "../audit";
 import { assertRegistered, exportedPaper } from "../export-store";
+import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import {
   assertCapitalHeld,
@@ -23,16 +25,28 @@ import {
 } from "../investor-statement-store";
 import {
   adjustmentWords,
-  agreementClauses,
   chargeWords,
   gainWords,
   herdStoryWords,
-  joiningTerms,
   shareOfUnits,
 } from "../investor-statement-words";
+import { paperInvestor, paperValues, producedAt } from "../paper-values";
 import { languageOf } from "../reader-language";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+import type { Wording } from "../template-store";
+import {
+  currentWording,
+  giveStandardTemplates,
+  wordingSignedIn,
+} from "../template-store";
 import { theirProgress } from "../venture-herd-store";
+
+/** What the screen says of the wording a paper was laid out in: its Version, and whether a lawyer approved it. */
+const wordingSaid = (wording: Wording) => ({
+  number: wording.number,
+  reviewedBy: wording.reviewedBy,
+  reviewedOn: wording.reviewedOn,
+});
 
 export const investorStatementsRouter = {
   /**
@@ -83,44 +97,36 @@ export const investorStatementsRouter = {
           data: { refusal: "venture_wrong_state" },
         });
       }
+      await giveStandardTemplates(context);
+      const wording = await currentWording(
+        context.db,
+        context.farm.id,
+        "investment_agreement"
+      );
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
-      const taka = (bdt: number) => formatNumber(bdt, language);
-      const day = (farmDay: string) =>
-        formatDate(new Date(`${farmDay}T00:00:00Z`), language, "date");
-      const document = investmentAgreement({
-        farm: context.farm,
-        ownerName: context.actor.name,
-        him: {
-          name: him.name,
-          phone: him.phone,
-          address: him.address,
-          nid: him.nid,
-          nominee: him.nomineeName
-            ? {
-                name: him.nomineeName,
-                phone: him.nomineePhone,
-                relation: him.nomineeRelation,
-              }
-            : null,
+      const investor = paperInvestor(him);
+      const document = paperFrom(wording.content, {
+        parties: {
+          farm: context.farm,
+          ownerName: context.actor.name,
+          investors: [investor],
         },
-        ventureName: run.name,
-        unitPrice: taka(run.unitPriceBdt),
-        units: formatNumber(input.units, language),
-        capital: taka(input.units * run.unitPriceBdt),
-        targetWindow: `${day(run.targetWindowStart)} – ${day(run.targetWindowEnd)}`,
-        windUp: `${formatNumber(context.farm.windUpDays, language)} দিন / days`,
-        clauses: agreementClauses(
-          {
-            investorsPercent: input.investorsPercent,
-            targetWindowStart: run.targetWindowStart,
-            targetWindowEnd: run.targetWindowEnd,
-            arbitrator: input.arbitrator,
-          },
-          context.farm.windUpDays
-        ),
+        values: paperValues({
+          farm: context.farm,
+          ownerName: context.actor.name,
+          him: investor,
+          ventureName: run.name,
+          units: input.units,
+          unitPriceBdt: run.unitPriceBdt,
+          investorsPercent: input.investorsPercent,
+          windowStart: run.targetWindowStart,
+          windowEnd: run.targetWindowEnd,
+          windUpDays: context.farm.windUpDays,
+          arbitrator: input.arbitrator,
+        }),
         producedBy: context.actor.name,
-        producedAt: formatDate(now, language, "dateTime"),
+        producedAt: producedAt(now, language),
       });
       await audited(context).write(
         {
@@ -133,16 +139,108 @@ export const investorStatementsRouter = {
             investorId: him.id,
             units: input.units,
             investorsPercent: input.investorsPercent,
+            wording: wording.number,
           }),
         },
         () => Promise.resolve()
       );
-      return { document };
+      return { document, wording: wordingSaid(wording) };
+    }),
+
+  /**
+   * সংশোধনী — the Amendment for a Venture, laid out from the terms the Owner is about to amend it to, to be printed
+   * and signed by every Investor on it: one paper, as an Amendment is. Nothing is written but the trail's line; the
+   * Amendment exists once it is signed, photographed and entered.
+   */
+  amendmentToSign: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        ventureId: z.string(),
+        investorsPercent: z.number().int().min(0).max(100),
+        targetWindowStart: farmDay,
+        targetWindowEnd: farmDay,
+        signedOn: farmDay,
+        reason: z.string().trim().min(1).max(400),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "an Amendment");
+      const run = await context.db.query.venture.findFirst({
+        where: { id: input.ventureId, farmId: context.farm.id },
+        columns: { id: true, name: true },
+      });
+      if (!run) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
+      }
+      const signed = await context.db.query.investmentAgreement.findMany({
+        where: { farmId: context.farm.id, ventureId: run.id },
+        columns: { investorId: true },
+        orderBy: { createdAt: "asc", id: "asc" },
+      });
+      const investors = await context.db.query.investor.findMany({
+        where: {
+          farmId: context.farm.id,
+          id: { in: signed.map((one) => one.investorId) },
+        },
+      });
+      const [first, ...rest] = signed.flatMap((one) => {
+        const row = investors.find((him) => him.id === one.investorId);
+        return row ? [paperInvestor(row)] : [];
+      });
+      if (!first) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Nobody has signed for this Venture yet",
+          data: { refusal: "nobody_has_signed" },
+        });
+      }
+      await giveStandardTemplates(context);
+      const wording = await currentWording(
+        context.db,
+        context.farm.id,
+        "agreement_amendment"
+      );
+      const now = context.clock.now();
+      const language = await languageOf(context.db, context.actor.id);
+      const document = paperFrom(wording.content, {
+        parties: {
+          farm: context.farm,
+          ownerName: context.actor.name,
+          investors: [first, ...rest],
+        },
+        values: paperValues({
+          farm: context.farm,
+          ownerName: context.actor.name,
+          ventureName: run.name,
+          investorsPercent: input.investorsPercent,
+          windowStart: input.targetWindowStart,
+          windowEnd: input.targetWindowEnd,
+          amendedOn: input.signedOn,
+          reason: input.reason,
+        }),
+        producedBy: context.actor.name,
+        producedAt: producedAt(now, language),
+      });
+      await audited(context).write(
+        {
+          entity: "venture",
+          entityId: run.id,
+          action: "export",
+          after: exportedPaper(context.farm, "amendment_draft", {
+            investorsPercent: input.investorsPercent,
+            wording: wording.number,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      return { document, wording: wordingSaid(wording) };
     }),
 
   /**
    * যোগদানপত্র — the paper an Investor is handed when his money lands: that the Farm has it, how much, on
-   * what day and by which bank reference, and what he has agreed to in seven plain lines.
+   * what day and by which bank reference, and what he has agreed to — the terms of the wording his Agreement was
+   * signed in, filled from what is in force today.
    *
    * Asked for by **Agreement**, which is the paper the money was signed for: it froze his Units, his
    * split, his Target Window and his Arbitrator, and another man on the same Venture may hold different
@@ -165,8 +263,16 @@ export const investorStatementsRouter = {
         farmDayOf(now)
       );
       assertCapitalHeld(standing);
-      const day = (farmDay: string) =>
-        formatDate(new Date(`${farmDay}T00:00:00Z`), language, "date");
+      await giveStandardTemplates(context);
+      // What he agreed to, in the words he signed: the Version his Agreement was signed in, filled from the terms in
+      // force today.
+      const signedIn = await wordingSignedIn(
+        context.db,
+        context.farm.id,
+        standing.agreement
+      );
+      const day = (on: string) =>
+        formatDate(new Date(`${on}T00:00:00Z`), language, "date");
       const taka = (bdt: number) => formatNumber(bdt, language);
       const text = joiningLetter({
         farm: context.farm,
@@ -181,7 +287,22 @@ export const investorStatementsRouter = {
           reference: one.reference,
         })),
         totalCapital: taka(standing.capitalBdt),
-        terms: joiningTerms(standing, context.farm.windUpDays),
+        terms: termsOf(
+          signedIn.content,
+          paperValues({
+            farm: context.farm,
+            ownerName: context.actor.name,
+            him: standing.him,
+            ventureName: standing.venture.name,
+            units: standing.agreement.units,
+            unitPriceBdt: standing.venture.unitPriceBdt,
+            investorsPercent: standing.agreement.investorsPercent,
+            windowStart: standing.agreement.targetWindowStart,
+            windowEnd: standing.agreement.targetWindowEnd,
+            windUpDays: context.farm.windUpDays,
+            arbitrator: standing.agreement.arbitrator,
+          })
+        ),
         amendedOn: standing.agreement.amendedOn
           ? day(standing.agreement.amendedOn)
           : null,
@@ -355,8 +476,8 @@ export const investorStatementsRouter = {
       // Unsigned, always: the label says which way it went, because a minus sign after the taka mark is
       // how a loss gets read as a small profit.
       const unsigned = (value: number) => said(Math.abs(value));
-      const day = (farmDay: string) =>
-        formatDate(new Date(`${farmDay}T00:00:00Z`), language, "date");
+      const day = (on: string) =>
+        formatDate(new Date(`${on}T00:00:00Z`), language, "date");
       // Capital returned, by the Units it returns to.
       const perUnitIn =
         settled.units > 0 ? settled.capitalBdt / settled.units : 0;

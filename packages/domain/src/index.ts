@@ -139,8 +139,6 @@ export type {
   SaleReceipt,
   SoldAnimal,
   StampLine,
-  AgreementDocument,
-  AgreementDraft,
   DocumentRow,
   Said,
   TransportCard,
@@ -156,8 +154,6 @@ export {
   progressStatement,
   settlementStatement,
   stampLines,
-  AGREEMENT_WORDING_APPROVED_ON,
-  investmentAgreement,
   registerPaper,
   herdSummary,
   registrationRecord,
@@ -482,3 +478,29 @@ export {
   mayGoByWeight,
   quantityOfPacks,
 } from "./feed-units";
+export type {
+  FactLine,
+  FieldValues,
+  PaperDocument,
+  PaperInvestor,
+  PaperParties,
+  PaperSection,
+  TemplateContent,
+  TemplateField,
+  TemplateKind,
+  TemplateProblem,
+  TemplateSection,
+  TemplateSectionKind,
+} from "./paper-template";
+export {
+  FIELDS_OF,
+  MOST_WITNESSES,
+  TEMPLATE_FIELDS,
+  TEMPLATE_KINDS,
+  fieldsIn,
+  namedFields,
+  paperFrom,
+  templateProblems,
+  termsOf,
+} from "./paper-template";
+export { STANDARD_TEMPLATES } from "./standard-templates";

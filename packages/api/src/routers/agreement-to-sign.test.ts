@@ -1,3 +1,4 @@
+import type { PaperDocument, PaperSection } from "@OpenFarm/domain";
 import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -49,6 +50,21 @@ beforeAll(async () => {
   investorId = him.id;
 });
 
+/** One part of a laid-out paper, by its kind. */
+const partOf = <Kind extends PaperSection["kind"]>(
+  document: PaperDocument,
+  kind: Kind
+): Extract<PaperSection, { kind: Kind }> => {
+  const found = document.sections.find(
+    (section): section is Extract<PaperSection, { kind: Kind }> =>
+      section.kind === kind
+  );
+  if (!found) {
+    throw new Error(`the paper has no ${kind} part`);
+  }
+  return found;
+};
+
 const terms = () => ({
   ventureId,
   investorId,
@@ -65,29 +81,34 @@ describe("the Investment Agreement, laid out to be signed", () => {
       await owner.investorStatements.agreementToSign(terms());
 
     expect(document.title.bn).toBe("মুদারাবা বিনিয়োগ চুক্তি");
-    expect(document.parties.map((one) => one.role.en)).toEqual([
+    const parties = partOf(document, "parties");
+    expect(parties.parties.map((one) => one.role.en)).toEqual([
       "First party — Mudarib",
       "Second party — Investor",
     ]);
     const said = JSON.stringify(document);
     expect(said).toContain(HIM);
     expect(said).toContain(`ভেঞ্চার ${suffix}`);
-    // Three Units at fifty thousand, in the owner's own numerals.
+    // Three Units at fifty thousand, in the paper's own Bangla numerals.
     expect(said).toContain("১,৫০,০০০ টাকা");
     // The terms unnumbered — the page numbers them — and the joining letter's own words.
-    expect(document.terms.clauses).toHaveLength(7);
-    expect(document.terms.clauses[1]).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
-    expect(document.terms.clauses[6]).toContain(ARBITRATOR);
-    expect(document.signatures.signers.map((one) => one.name)).toContain(HIM);
+    const { clauses } = partOf(document, "clauses");
+    expect(clauses).toHaveLength(7);
+    expect(clauses[1]?.bn).toContain("বিনিয়োগকারী ৬০% এবং খামার ৪০%");
+    expect(clauses[1]?.en).toContain("60% to the Investor");
+    expect(clauses[6]?.bn).toContain(ARBITRATOR);
+    expect(
+      partOf(document, "signatures").signers.map((one) => one.name)
+    ).toContain(HIM);
   });
 
   it("prints no warning on the paper, and tells the screen the wording is not yet reviewed", async () => {
     const { client: owner } = await as("owner");
 
-    const { document } =
+    const { document, wording } =
       await owner.investorStatements.agreementToSign(terms());
 
-    expect(document.wordingReviewed).toBe(false);
+    expect(wording.reviewedOn).toBeNull();
     expect(JSON.stringify(document)).not.toMatch(/draft|খসড়া/iu);
   });
 

@@ -53,6 +53,8 @@ export const ENTITIES = [
   "ready_set_aside",
   "investor",
   "eid_announcement",
+  "paper_template",
+  "paper_template_version",
 ] as const;
 type KnownEntity = (typeof ENTITIES)[number];
 
