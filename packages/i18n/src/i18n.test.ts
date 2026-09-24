@@ -7,6 +7,7 @@ import {
   numberAsTyped,
 } from "./format";
 import { resolveLanguage } from "./languages";
+import { bn } from "./messages/bn";
 import { en } from "./messages/en";
 import { findTranslationGaps, translate } from "./translate";
 
@@ -67,8 +68,8 @@ describe("messages", () => {
     expect(translate("bn", "auth.passwordTooShort", { min: 8 })).toBe(
       "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে"
     );
-    expect(translate("en", "dashboard.welcome", { name: "Rahim" })).toBe(
-      "Welcome, Rahim"
+    expect(translate("en", "templates.published", { number: 2 })).toBe(
+      "Published version 2"
     );
   });
 
@@ -107,6 +108,31 @@ describe("messages", () => {
 
   it("Bangla covers every English key with no strays", () => {
     expect(findTranslationGaps("bn")).toEqual({ missing: [], stray: [] });
+  });
+
+  it("says in Bangla every fact its English does, by the same name", () => {
+    // An English plural's branches are words, not facts: `{count, plural, one {# pen} other {# pens}}` asks for
+    // `count` alone. A fact the Bangla leaves out is printed as `{name}` on the screen; one it invents never fills.
+    const plural =
+      /\{(?<name>\w+), plural, one \{[^{}]*\} other \{[^{}]*\}\}/gu;
+    const fact = /\{(?<name>\w+)\}/gu;
+    const factsIn = (message: string) =>
+      [
+        ...new Set(
+          [...message.replace(plural, "{$<name>}").matchAll(fact)].map(
+            (found) => found.groups?.name ?? ""
+          )
+        ),
+      ].toSorted();
+    const differ = (Object.keys(en) as (keyof typeof en)[]).flatMap((key) => {
+      const english = factsIn(en[key]);
+      const bangla = factsIn(bn[key]);
+      return english.join(",") === bangla.join(",")
+        ? []
+        : [`${key}: en ${english.join(",")} · bn ${bangla.join(",")}`];
+    });
+
+    expect(differ).toEqual([]);
   });
 });
 
