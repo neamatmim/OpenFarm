@@ -46,6 +46,7 @@ export const refusalMessage = (
 export const STANDING_ASIDE_WORDS = {
   moved_since: "standsAside.movedSince",
   cannot_return_to_milk: "standsAside.cannotReturnToMilk",
+  cannot_return_to_quarantine: "standsAside.cannotReturnToQuarantine",
   calving_acted_on: "standsAside.calvingActedOn",
   service_checked: "standsAside.serviceChecked",
   no_ration: "standsAside.noRation",

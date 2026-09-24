@@ -2,6 +2,7 @@
 import type { PlaybookKey } from "@OpenFarm/domain";
 import { OPEN_INSTANCE_STATES } from "@OpenFarm/domain";
 
+import { CREW, isSeeded } from "./crew";
 import type { Herd } from "./herd";
 import { dailyYield } from "./herd";
 import type { ApiClient } from "./runtime";
@@ -36,28 +37,6 @@ export type Responder = (
   beast: AnimalOf | null,
   work: WorkContext
 ) => Answer | null;
-
-/** Who does each piece of the Playbook, and who signs it off. */
-const CREW: Record<PlaybookKey, { worker: PersonKey; checker?: PersonKey }> = {
-  morningMilking: { worker: "milker", checker: "manager" },
-  eveningMilking: { worker: "milker", checker: "manager" },
-  feeding: { worker: "feeder", checker: "manager" },
-  healthRound: { worker: "stockman", checker: "manager" },
-  insemination: { worker: "manager" },
-  pregnancyCheck: { worker: "vet" },
-  dryOff: { worker: "stockman", checker: "manager" },
-  calvingPrep: { worker: "stockman" },
-  calvingRecord: { worker: "milker", checker: "manager" },
-  weighIn: { worker: "stockman", checker: "manager" },
-  fmdVaccination: { worker: "stockman", checker: "vet" },
-  lsdVaccination: { worker: "stockman", checker: "vet" },
-  deworming: { worker: "stockman", checker: "vet" },
-  treatmentDose: { worker: "stockman", checker: "manager" },
-  burial: { worker: "stockman", checker: "manager" },
-  dlsReport: { worker: "manager" },
-  stockCount: { worker: "manager" },
-  biosecurity: { worker: "manager" },
-};
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
 
@@ -212,10 +191,10 @@ export const doTheWork = async (
 ): Promise<"done" | "unknown"> => {
   const key = keyOf(farm, instance.definitionId);
   const respond = key ? RESPONDERS[key] : undefined;
-  if (!(key && respond)) {
+  if (!(key && isSeeded(key) && respond)) {
     return "unknown";
   }
-  const crew = CREW[key];
+  const crew: { worker: PersonKey; checker?: PersonKey } = CREW[key];
   const worker = whoWorks(farm, crew.worker, instance.penId);
   const api = farm.as[worker];
   const at = instance.dueAt.getTime() + farm.random.int(3, 25) * MINUTE;

@@ -1202,6 +1202,11 @@ export const bn: Record<MessageKey, string> = {
   "sop.standard.need.fmdVaccine": "এফএমডি টিকা",
   "sop.standard.need.lsdVaccine": "লাম্পি স্কিন টিকা",
   "sop.standard.need.dewormer": "কৃমিনাশক",
+  "sop.standard.need.flukeDrench": "কলিজা কৃমির ওষুধ",
+  "sop.standard.need.hsVaccine": "গলাফোলা টিকা",
+  "sop.standard.need.bqVaccine": "বাদলা টিকা",
+  "sop.standard.need.anthraxVaccine": "তড়কা টিকা",
+  "sop.standard.need.tickSpray": "আঁটুলি-মাছির স্প্রে",
   "sop.standard.choose": "বেছে নিন…",
   "sop.standard.noPens": "খামারে এখনো কোনো পেন নেই",
   "sop.standard.noProducts":
@@ -2468,6 +2473,7 @@ export const bn: Record<MessageKey, string> = {
   "sop.effect.service": "পাল দেওয়া",
   "sop.effect.pregnancy_check": "গর্ভ পরীক্ষা",
   "sop.effect.dry_off": "গাভীর দুধ বন্ধ করা",
+  "sop.effect.release": "কোয়ারেন্টিন থেকে ছেড়ে ওজন অনুযায়ী মানানসই পেনে নেয়",
   "sop.effect.calving": "বাচ্চা দেওয়া",
   "sop.effect.stock_count": "গুদাম গণনা",
   "sop.effect.lot_number": "ভায়ালের লট নম্বর, পুরো ক্যাম্পেইনে একবার",
@@ -2745,6 +2751,8 @@ export const bn: Record<MessageKey, string> = {
   "identity.onThisPage": "এই পাতায়",
   "standsAside.movedSince": "এটি করার পরে তাকে আবার স্থানান্তর করা হয়েছে",
   "standsAside.cannotReturnToMilk": "এখান থেকে তাকে আবার দুধে ফেরানো যায় না",
+  "standsAside.cannotReturnToQuarantine":
+    "এখান থেকে তাকে আবার কোয়ারেন্টিনে ফেরানো যায় না",
   "standsAside.calvingActedOn": "এই বাচ্চা দেওয়ার পরে খামার এর ওপর কাজ করে ফেলেছে",
   "standsAside.serviceChecked":
     "ভেট এই পাল দেওয়া পরীক্ষা করেছেন; আগে পরীক্ষাটি ঠিক করুন",

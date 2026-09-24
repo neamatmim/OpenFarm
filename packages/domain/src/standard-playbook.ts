@@ -4,7 +4,7 @@
  * raises no work, because it is not in the database at all.
  */
 import { HEAT } from "./breeding";
-import type { Evidence, SopContent } from "./sop";
+import type { Evidence, SopContent, Step } from "./sop";
 
 const choice = (
   required: boolean,
@@ -78,6 +78,18 @@ const feeding = (): SopContent => ({
   checkerRole: "manager",
   graceMinutes: 120,
   steps: [
+    // The trough cleared of the last feed before the next goes in (DLS GLPP 2023): what was left is written with the
+    // feed, and stale feed left under fresh is feed that spoils.
+    {
+      id: "clear",
+      text: {
+        bn: "আগের বেলার পড়ে থাকা খাবার সরিয়ে পাত্র পরিষ্কার করুন",
+        en: "Clear the last feed's leftovers and clean the trough",
+      },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+    },
     {
       id: "feed",
       text: { bn: "রেশন অনুযায়ী খাবার দিন", en: "Feed to the ration" },
@@ -96,6 +108,18 @@ const feeding = (): SopContent => ({
       evidence: [{ type: "tick", required: true }],
       skipReasons: [],
     },
+    // Bangladesh summers: wet the back, never the head (DLS GLPP 2023 §14.1.7). Asked every feed, answered on the
+    // days that are hot — there is no season a trigger can name.
+    {
+      id: "cool",
+      text: {
+        bn: "গরমের দিনে পিঠে পানি ছিটিয়ে দিন — মাথায় নয়",
+        en: "On a hot day, wet their backs — never the head",
+      },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: false }],
+      skipReasons: [],
+    },
   ],
 });
 
@@ -106,15 +130,21 @@ export const ROUND_WORDS = {
   offFeed: "off_feed",
   mastitis: "mastitis",
   cough: "cough",
+  bloat: "bloat",
+  diarrhoea: "diarrhoea",
+  breathing: "breathing",
+  sores: "mouth_foot_sores",
 } as const;
 
 const healthRound = (): SopContent => ({
   name: { bn: "স্বাস্থ্য ও গরম পর্যবেক্ষণ", en: "Health and heat round" },
   purpose: {
-    bn: "প্রতিটি পশু দেখে যা চোখে পড়ে লিখুন — গরম, খোঁড়ানো, খাবারে অরুচি",
-    en: "Look at every animal and write down what you see — heat, lameness, off feed",
+    bn: "প্রতিদিন প্রতিটি পশু দেখে যা চোখে পড়ে লিখুন — গরম, খোঁড়ানো, খাবারে অরুচি, পেট ফাঁপা, পাতলা পায়খানা, শ্বাসকষ্ট",
+    en: "Look at every animal every day and write down what you see — heat, lameness, off feed, bloat, scours, laboured breathing",
   },
-  triggers: [],
+  // Every morning (DLS GLPP 2023: monitor every animal daily). Pneumonia comes in the first fortnight after a bull is
+  // bought, and grain overload within a day of it (Merck) — a round walked when somebody remembers finds both late.
+  triggers: [{ kind: "schedule", times: ["08:00"] }],
   assignedRole: "staff",
   checkerRole: "manager",
   graceMinutes: 180,
@@ -130,6 +160,10 @@ const healthRound = (): SopContent => ({
           [ROUND_WORDS.offFeed, "খাবারে অরুচি", "Off feed"],
           [ROUND_WORDS.mastitis, "ওলান ফোলা/শক্ত", "Swollen or hard udder"],
           [ROUND_WORDS.cough, "কাশি", "Coughing"],
+          [ROUND_WORDS.bloat, "পেট ফাঁপা", "Bloated"],
+          [ROUND_WORDS.diarrhoea, "পাতলা পায়খানা", "Scours"],
+          [ROUND_WORDS.breathing, "শ্বাসকষ্ট", "Laboured breathing"],
+          [ROUND_WORDS.sores, "মুখে বা ক্ষুরে ঘা", "Sores on mouth or feet"],
         ]),
       ],
       // A well animal is passed with nothing written against her: the round's record is what was worth seeing,
@@ -300,6 +334,15 @@ const calvingRecord = (): SopContent => ({
   ],
 });
 
+/** Body condition on the common five-point scale. */
+const CONDITION_SCORE = choice(false, [
+  ["1", "১ — খুব রোগা", "1 — very thin"],
+  ["2", "২ — রোগা", "2 — thin"],
+  ["3", "৩ — ঠিক আছে", "3 — moderate"],
+  ["4", "৪ — ভালো গোশত", "4 — good flesh"],
+  ["5", "৫ — খুব মোটা", "5 — fat"],
+]);
+
 const weighIn = (): SopContent => ({
   name: { bn: "ওজন নেওয়া", en: "Weigh-in" },
   purpose: {
@@ -330,6 +373,9 @@ const weighIn = (): SopContent => ({
           min: 20,
           max: 1200,
         },
+        // Body condition, one to five, for whoever has an eye for it (DLS GLPP 2023 §16.2.4.1.2): kept with the
+        // weight, never asked of anybody who has not.
+        CONDITION_SCORE,
       ],
       skipReasons: [{ bn: "ক্রাশে ওঠেনি", en: "Would not go up the crush" }],
       effect: { kind: "weigh_in" },
@@ -539,6 +585,390 @@ const biosecurity = (): SopContent => ({
   ],
 });
 
+// ── The bought-in bull, arrival to sale ────────────────────────────────────────────────────────────────────────────
+//
+// Worked from the DLS National Guidelines on Good Livestock Production Practices (June 2023) §12.1.1.2 and §13.1.1 —
+// a bought bull kept apart 21 to 30 days, dewormed after his first week, sprayed for ticks, released if nothing
+// abnormal shows — with the Meat Rules 2021 for what goes with him when he is sold, WOAH on lumpy skin (three weeks
+// to protection) and Merck on the first fortnight's pneumonia. Each counted from his own arrival, so a lorry that
+// came in over three days is dewormed over three days.
+
+/** How long a bought bull is kept apart: the DLS's thirty days, the longer of its two figures. */
+const QUARANTINE_DAYS = 30;
+/** Dewormed once his first week has shown nothing wrong (DLS GLPP 2023 §12.1.1.2(n)). */
+const DEWORM_AFTER_DAYS = 7;
+/** FMD and lumpy skin together, in separate syringes, once he is dewormed and settled (WOAH 2021). */
+const VACCINATE_AFTER_DAYS = 10;
+/** HS and BQ a few days after, on the Vet's advice. */
+const HS_BQ_AFTER_DAYS = 14;
+/** Anthrax last: no antibiotic within a week of it (Merck), so it is kept clear of the first doses. */
+const ANTHRAX_AFTER_DAYS = 21;
+/** FMD again, and a second drench, four months on (DLS: FMD every four to six months, deworming the same). */
+const BOOSTER_AFTER_DAYS = 120;
+
+/** Every step of work raised about one bull is his alone. */
+const hisStep = (
+  id: string,
+  bn: string,
+  en: string,
+  extra: Partial<Step> = {}
+): Step => ({
+  id,
+  text: { bn, en },
+  repeatPerAnimal: true,
+  evidence: [{ type: "tick", required: true }],
+  skipReasons: [],
+  ...extra,
+});
+
+const UNWELL_LATER = {
+  bn: "অসুস্থ — পরে দেওয়া হবে",
+  en: "Unwell — to be given later",
+};
+
+const arrivalCheck = (): SopContent => ({
+  name: { bn: "নতুন ষাঁড় আসার দিন", en: "Arrival check" },
+  purpose: {
+    bn: "হাট থেকে আসা ষাঁড়কে পানি-স্যালাইন ও শুধু খড়-ঘাস দিন, ধুয়ে দিন, ক্ষুরা রোগের লক্ষণ দেখুন আর গোবরের নমুনা নিন",
+    en: "Water and electrolytes, straw or grass only, a wash, a look for FMD, and a dung sample for the bought bull",
+  },
+  triggers: [{ kind: "event", event: "arrival" }],
+  appliesTo: { side: "fattening" },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 6 * 60,
+  steps: [
+    hisStep(
+      "water",
+      "পানি আর স্যালাইন দিন; প্রথম খাবার শুধু খড় বা ঘাস",
+      "Water and electrolytes; the first feed straw or grass only"
+    ),
+    hisStep(
+      "wash",
+      "জীবাণুনাশক সাবান-পানিতে ধুয়ে মুছে দিন",
+      "Wash with antiseptic soap and water, and dry"
+    ),
+    hisStep(
+      "look",
+      "ক্ষুরা রোগ আর অসুখের লক্ষণ দেখুন",
+      "Look him over for FMD and illness",
+      {
+        evidence: [
+          choice(true, [
+            [ROUND_WORDS.sores, "মুখে বা ক্ষুরে ঘা", "Sores on mouth or feet"],
+            [ROUND_WORDS.lame, "খোঁড়াচ্ছে", "Lame"],
+            [ROUND_WORDS.cough, "কাশি বা নাক দিয়ে পানি", "Cough or runny nose"],
+            [ROUND_WORDS.diarrhoea, "পাতলা পায়খানা", "Scours"],
+          ]),
+        ],
+        skipReasons: [
+          { bn: "সুস্থ — চোখে পড়ার মতো কিছু নেই", en: "Well — nothing to note" },
+        ],
+        effect: { kind: "observation" },
+      }
+    ),
+    hisStep(
+      "dung",
+      "কৃমির ডিম পরীক্ষার জন্য গোবরের নমুনা পাঠান",
+      "Send a dung sample to be tested for worm eggs",
+      {
+        skipReasons: [{ bn: "নমুনা নেওয়া যায়নি", en: "No sample could be taken" }],
+      }
+    ),
+  ],
+});
+
+/** A dose given to each bull on his own day, of the product the farm named — or refused publishing until it names one. */
+const hisDose = (
+  productId: string | undefined,
+  bn: string,
+  en: string,
+  purpose: { bn: string; en: string },
+  afterDays: number
+): SopContent => ({
+  ...vaccination(productId, bn, en),
+  purpose,
+  triggers: [{ kind: "event", event: "arrival", offsetDays: afterDays }],
+  appliesTo: { side: "fattening" },
+});
+
+/** A drench to each bull on his own day: no vial, so no Lot Number is asked. */
+const hisDrench = (
+  productId: string | undefined,
+  bn: string,
+  en: string,
+  purpose: { bn: string; en: string },
+  afterDays: number
+): SopContent => ({
+  ...deworming(productId),
+  name: { bn, en },
+  purpose,
+  triggers: [{ kind: "event", event: "arrival", offsetDays: afterDays }],
+  appliesTo: { side: "fattening" },
+});
+
+const arrivalDeworming = (productId: string | undefined): SopContent =>
+  hisDrench(
+    productId,
+    "নতুন ষাঁড়ের কৃমিনাশক",
+    "Arrival deworming",
+    {
+      bn: "আসার এক সপ্তাহ পরে সুস্থ ষাঁড়কে ওজন অনুযায়ী কলিজা কৃমির ওষুধ খাওয়ান — অক্সিক্লোজানাইড বা নাইট্রক্সিনিল; বাংলাদেশে ট্রাইক্লাবেনডাজল আর কাজ করছে না",
+      en: "A week after he came, drench the well bull by weight for liver fluke — oxyclozanide or nitroxynil; triclabendazole is failing in Bangladesh",
+    },
+    DEWORM_AFTER_DAYS
+  );
+
+const arrivalFmd = (productId: string | undefined): SopContent =>
+  hisDose(
+    productId,
+    "নতুন ষাঁড়ের ক্ষুরা রোগের টিকা",
+    "Arrival FMD vaccination",
+    {
+      bn: "আসার দশ দিন পরে সুস্থ ষাঁড়কে ক্ষুরা রোগের টিকা দিন — লাম্পি স্কিনের টিকার সাথে একই দিনে, আলাদা সিরিঞ্জে, গলার অন্য পাশে",
+      en: "Ten days after he came, vaccinate the well bull for FMD — the same day as lumpy skin, in its own syringe, on the other side of the neck",
+    },
+    VACCINATE_AFTER_DAYS
+  );
+
+const arrivalLsd = (productId: string | undefined): SopContent =>
+  hisDose(
+    productId,
+    "নতুন ষাঁড়ের লাম্পি স্কিন টিকা",
+    "Arrival lumpy skin vaccination",
+    {
+      bn: "আসার দশ দিন পরে সুস্থ ষাঁড়কে লাম্পি স্কিনের টিকা দিন — সুরক্ষা আসতে তিন সপ্তাহ লাগে, তাই কোয়ারেন্টিন শেষের আগেই",
+      en: "Ten days after he came, vaccinate the well bull for lumpy skin — protection takes three weeks, so before quarantine ends",
+    },
+    VACCINATE_AFTER_DAYS
+  );
+
+const hsVaccination = (productId: string | undefined): SopContent =>
+  hisDose(
+    productId,
+    "গলাফোলা রোগের টিকা",
+    "HS vaccination",
+    {
+      bn: "ভেটের পরামর্শে আসার দুই সপ্তাহ পরে গলাফোলার টিকা দিন; প্রতি ছয় মাসে আবার",
+      en: "On the Vet's advice, vaccinate for haemorrhagic septicaemia a fortnight after he came; again every six months",
+    },
+    HS_BQ_AFTER_DAYS
+  );
+
+const bqVaccination = (productId: string | undefined): SopContent =>
+  hisDose(
+    productId,
+    "বাদলা রোগের টিকা",
+    "BQ vaccination",
+    {
+      bn: "ভেটের পরামর্শে আসার দুই সপ্তাহ পরে বাদলার টিকা দিন; আড়াই-তিন বছরের বেশি বয়সে লাগে না",
+      en: "On the Vet's advice, vaccinate for black quarter a fortnight after he came; not needed past two and a half to three years",
+    },
+    HS_BQ_AFTER_DAYS
+  );
+
+const anthraxVaccination = (productId: string | undefined): SopContent =>
+  hisDose(
+    productId,
+    "তড়কা রোগের টিকা",
+    "Anthrax vaccination",
+    {
+      bn: "যেখানে তড়কা হয়, সেখানে ভেটের পরামর্শে দিন — টিকার পর এক সপ্তাহ কোনো অ্যান্টিবায়োটিক নয়",
+      en: "Where anthrax occurs, on the Vet's advice — no antibiotic for a week after it",
+    },
+    ANTHRAX_AFTER_DAYS
+  );
+
+const fmdBooster = (productId: string | undefined): SopContent =>
+  hisDose(
+    productId,
+    "ক্ষুরা রোগের দ্বিতীয় টিকা",
+    "FMD booster",
+    {
+      bn: "আসার চার মাস পরে যে ষাঁড় এখনো আছে, তাকে আবার ক্ষুরা রোগের টিকা দিন",
+      en: "Four months after he came, vaccinate the bull still here for FMD again",
+    },
+    BOOSTER_AFTER_DAYS
+  );
+
+const dewormBooster = (productId: string | undefined): SopContent =>
+  hisDrench(
+    productId,
+    "দ্বিতীয় কৃমিনাশক",
+    "Second deworming",
+    {
+      bn: "আসার চার মাস পরে যে ষাঁড় এখনো আছে, তাকে আবার কৃমিনাশক খাওয়ান — প্রথমবারের চেয়ে অন্য ধরনের ওষুধ",
+      en: "Four months after he came, drench the bull still here again — a different class of drug from the first",
+    },
+    BOOSTER_AFTER_DAYS
+  );
+
+const tickSpray = (productId: string | undefined): SopContent => ({
+  name: { bn: "আঁটুলি ও মাছির স্প্রে", en: "Tick and fly spray" },
+  purpose: {
+    bn: "প্রতি সপ্তাহে মোটাতাজাকরণের পশুদের আঁটুলি-মাছির স্প্রে দিন, আর খাবারের পাত্রে চুনকাম করুন — বিক্রির জন্য প্রস্তুত ষাঁড়কে নয়",
+    en: "Spray the fattening animals for ticks and flies each week, and whitewash the troughs — not a bull ready for sale",
+  },
+  // Weekly (DLS GLPP 2023 §14.1.6.3.1): lumpy skin rides on biting flies. Never the bull ready for sale, whose
+  // withdrawal would hold up his sale.
+  triggers: [{ kind: "schedule", times: ["08:30"], weekdays: [1] }],
+  appliesTo: { side: "fattening", states: ["quarantine", "fattening"] },
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 8 * 60,
+  steps: [
+    {
+      id: "spray",
+      text: { bn: "স্প্রে করুন", en: "Spray him" },
+      repeatPerAnimal: true,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [UNWELL_LATER],
+      effect: campaignDose(productId),
+    },
+    {
+      id: "troughs",
+      text: { bn: "খাবারের পাত্রে চুনকাম করুন", en: "Whitewash the troughs" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+    },
+  ],
+});
+
+const quarantineRelease = (): SopContent => ({
+  name: { bn: "কোয়ারেন্টিন শেষ", en: "Quarantine release" },
+  purpose: {
+    bn: "ত্রিশ দিনে অস্বাভাবিক কিছু না দেখা গেলে ষাঁড়কে কোয়ারেন্টিন থেকে ছেড়ে তার ওজনে মানানসই রেশনের পেনে নিন",
+    en: "After thirty days with nothing abnormal, let the bull out of quarantine to the pen whose ration suits his weight",
+  },
+  triggers: [
+    { kind: "state", state: "quarantine", offsetDays: QUARANTINE_DAYS },
+  ],
+  appliesTo: { side: "fattening", states: ["quarantine"] },
+  assignedRole: "manager",
+  checkerRole: "vet",
+  graceMinutes: 24 * 60,
+  steps: [
+    hisStep(
+      "healthy",
+      "ষাঁড় সুস্থ — ত্রিশ দিনে অস্বাভাবিক কিছু দেখা যায়নি",
+      "He is well — nothing abnormal in thirty days",
+      {
+        skipReasons: [
+          { bn: "অসুস্থ — কোয়ারেন্টিনে থাকবে", en: "Unwell — stays in quarantine" },
+        ],
+      }
+    ),
+    hisStep(
+      "doses",
+      "কৃমিনাশক আর টিকা সব দেওয়া হয়েছে",
+      "Every drench and vaccine has been given"
+    ),
+    hisStep(
+      "release",
+      "কোয়ারেন্টিন থেকে ছেড়ে মানানসই পেনে নিন",
+      "Let him out, to the pen that suits him",
+      {
+        skipReasons: [
+          { bn: "অসুস্থ — কোয়ারেন্টিনে থাকবে", en: "Unwell — stays in quarantine" },
+        ],
+        effect: { kind: "release" },
+      }
+    ),
+  ],
+});
+
+const shedDisinfection = (): SopContent => ({
+  name: { bn: "শেড জীবাণুমুক্ত করা", en: "Shed disinfection" },
+  purpose: {
+    bn: "সপ্তাহে দুই দিন পেন ঘষে পরিষ্কার করে জীবাণুনাশক দিন",
+    en: "Twice a week, scrub the pen and disinfect it",
+  },
+  // Scrubbed daily and disinfected twice a week (DLS GLPP 2023 §13.1.1): the daily scrub is the feed round's; this is
+  // the disinfectant, Tuesdays and Fridays.
+  triggers: [{ kind: "schedule", times: ["10:00"], weekdays: [2, 5] }],
+  assignedRole: "staff",
+  checkerRole: "manager",
+  graceMinutes: 6 * 60,
+  steps: [
+    {
+      id: "scrub",
+      text: {
+        bn: "মেঝে আর পাত্র ঘষে পরিষ্কার করুন",
+        en: "Scrub the floor and troughs",
+      },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+    },
+    {
+      id: "disinfect",
+      text: { bn: "জীবাণুনাশক ছিটিয়ে দিন", en: "Spray the disinfectant" },
+      repeatPerAnimal: false,
+      evidence: [{ type: "tick", required: true }],
+      skipReasons: [],
+    },
+  ],
+});
+
+const preSale = (): SopContent => ({
+  name: { bn: "বিক্রির আগের যাচাই", en: "Pre-sale check" },
+  purpose: {
+    bn: "বিক্রির জন্য প্রস্তুত ষাঁড়ের শেষ ওজন নিন, ভেটের স্বাস্থ্য সনদ আর চলাচলের অনুমতি রাখুন; যাওয়ার দিন গাড়ি জীবাণুমুক্ত করে ঠান্ডা সময়ে তুলুন",
+    en: "For the bull ready for sale: a last weight, the Vet's health certificate and the movement permit; on the day, a disinfected vehicle and loading in the cool",
+  },
+  // Meat Rules 2021 r.10 (a Vet looks at every treatment of the last thirty days) and r.18 (the vehicle, the card, the
+  // space); DLS GLPP 2023 §16.1.4 (a permit and a certificate, travel in the coolest hours). The farm already refuses
+  // a bull ready for sale while any withdrawal runs; this is what goes with him.
+  triggers: [{ kind: "state", state: "ready_for_sale" }],
+  appliesTo: { side: "fattening", states: ["ready_for_sale"] },
+  assignedRole: "manager",
+  checkerRole: null,
+  graceMinutes: 24 * 60,
+  steps: [
+    hisStep("weigh", "শেষ ওজন নিন", "Take his last weight", {
+      evidence: [
+        {
+          type: "number",
+          required: true,
+          unit: { bn: "কেজি", en: "kg" },
+          min: 20,
+          max: 1200,
+        },
+      ],
+      skipReasons: [{ bn: "ক্রাশে ওঠেনি", en: "Would not go up the crush" }],
+      effect: { kind: "weigh_in" },
+    }),
+    hisStep(
+      "clean",
+      "কোনো স্টেরয়েড বা হরমোন দেওয়া হয়নি — আইনে নিষিদ্ধ",
+      "No steroid or hormone was ever given — the law forbids it"
+    ),
+    hisStep(
+      "papers",
+      "ভেটের স্বাস্থ্য সনদ আর চলাচলের অনুমতির ছবি",
+      "Photo of the Vet's health certificate and the movement permit",
+      {
+        evidence: [{ type: "photo", required: false }],
+      }
+    ),
+    hisStep(
+      "vehicle",
+      "যাওয়ার দিন: গাড়ি জীবাণুমুক্ত, ঠান্ডা সময়ে তোলা, পানি-খাবার দিয়ে",
+      "On the day: vehicle disinfected, loaded in the cool, watered and fed first",
+      {
+        evidence: [{ type: "tick", required: false }],
+        skipReasons: [
+          {
+            bn: "খামার থেকেই বিক্রি — গাড়ি লাগেনি",
+            en: "Sold at the farm gate — no vehicle",
+          },
+        ],
+      }
+    ),
+  ],
+});
+
 export type PlaybookKey =
   | "morningMilking"
   | "eveningMilking"
@@ -557,7 +987,20 @@ export type PlaybookKey =
   | "burial"
   | "dlsReport"
   | "stockCount"
-  | "biosecurity";
+  | "biosecurity"
+  | "arrivalCheck"
+  | "arrivalDeworming"
+  | "arrivalFmd"
+  | "arrivalLsd"
+  | "hsVaccination"
+  | "bqVaccination"
+  | "anthraxVaccination"
+  | "tickSpray"
+  | "quarantineRelease"
+  | "shedDisinfection"
+  | "fmdBooster"
+  | "dewormBooster"
+  | "preSale";
 
 /** What a standard SOP asks of the farm before it can be published: the farm's own calving Pen, or the product on
  *  its Drug List a campaign gives. Left blank, the SOP is refused publishing and says why. */
@@ -565,7 +1008,12 @@ export type StandardSopNeed =
   | "calvingPen"
   | "fmdVaccine"
   | "lsdVaccine"
-  | "dewormer";
+  | "dewormer"
+  | "flukeDrench"
+  | "hsVaccine"
+  | "bqVaccine"
+  | "anthraxVaccine"
+  | "tickSpray";
 
 export const STANDARD_SOP_NEEDS: Partial<Record<PlaybookKey, StandardSopNeed>> =
   {
@@ -573,6 +1021,15 @@ export const STANDARD_SOP_NEEDS: Partial<Record<PlaybookKey, StandardSopNeed>> =
     fmdVaccination: "fmdVaccine",
     lsdVaccination: "lsdVaccine",
     deworming: "dewormer",
+    arrivalDeworming: "flukeDrench",
+    arrivalFmd: "fmdVaccine",
+    arrivalLsd: "lsdVaccine",
+    hsVaccination: "hsVaccine",
+    bqVaccination: "bqVaccine",
+    anthraxVaccination: "anthraxVaccine",
+    tickSpray: "tickSpray",
+    fmdBooster: "fmdVaccine",
+    dewormBooster: "dewormer",
   };
 
 /** The farm's own Pen or product for each need, where it has named one. */
@@ -608,4 +1065,17 @@ export const standardPlaybook = (
   dlsReport: dlsReport(),
   stockCount: stockCount(),
   biosecurity: biosecurity(),
+  arrivalCheck: arrivalCheck(),
+  arrivalDeworming: arrivalDeworming(chosen.flukeDrench),
+  arrivalFmd: arrivalFmd(chosen.fmdVaccine),
+  arrivalLsd: arrivalLsd(chosen.lsdVaccine),
+  hsVaccination: hsVaccination(chosen.hsVaccine),
+  bqVaccination: bqVaccination(chosen.bqVaccine),
+  anthraxVaccination: anthraxVaccination(chosen.anthraxVaccine),
+  tickSpray: tickSpray(chosen.tickSpray),
+  quarantineRelease: quarantineRelease(),
+  shedDisinfection: shedDisinfection(),
+  fmdBooster: fmdBooster(chosen.fmdVaccine),
+  dewormBooster: dewormBooster(chosen.dewormer),
+  preSale: preSale(),
 });
