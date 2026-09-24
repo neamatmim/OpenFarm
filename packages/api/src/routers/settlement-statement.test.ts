@@ -467,3 +467,43 @@ describe("the sheet an Investor checks the whole run against", () => {
     expect(text).toContain("লেখা আছে / noted");
   });
 });
+
+describe("an Investor's own page", () => {
+  it("reads his Agreements and every taka of his, paid out included, and none of the other man's", async () => {
+    const owner = await as("owner", "2053-03-03T04:00:00.000Z");
+    const listed = await owner.client.investors.list();
+    const him = listed.people.find((one) => one.name === HIM);
+    if (!him) {
+      throw new Error("expected him on the list");
+    }
+
+    const his = await owner.client.investors.agreements({ id: him.id });
+
+    expect(his.agreements).toEqual([
+      expect.objectContaining({
+        id: hisWon,
+        units: 13,
+        promisedBdt: 650_000,
+        capitalHeldBdt: 650_000,
+        hasPaper: true,
+        investorsPercent: 60,
+        farmPercent: 40,
+        // Thirteen Units of the twenty: ৬,৫০,০০০ back and ৭৯,৯৫০ of profit, paid on the day it was.
+        settlement: expect.objectContaining({
+          capitalBdt: 650_000,
+          shareBdt: 79_950,
+          payoutBdt: 729_950,
+          paidOn: "2053-03-02",
+        }),
+      }),
+    ]);
+    expect(
+      his.movements.map((one) => [one.kind, one.amountBdt, one.movedOn])
+    ).toEqual([
+      ["payout", 729_950, "2053-03-02"],
+      ["capital_in", 650_000, "2053-01-03"],
+    ]);
+    expect(JSON.stringify(his)).not.toContain(theOtherMansWon);
+    expect(JSON.stringify(his)).not.toContain(hisLost);
+  });
+});

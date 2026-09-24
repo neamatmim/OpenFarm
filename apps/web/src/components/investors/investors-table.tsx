@@ -1,4 +1,5 @@
 import { formatNumber } from "@OpenFarm/i18n";
+import { Link } from "@tanstack/react-router";
 
 import {
   DataTable,
@@ -17,10 +18,9 @@ import { Nothing } from "@/components/list-cells";
 import { StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
-/** One Investor as the table reads them, with the one thing the page can do from their row. */
+/** One Investor as the table reads them. */
 interface InvestorRow {
   investor: Investor;
-  onDetails: (investor: Investor) => void;
 }
 
 interface Cell {
@@ -36,16 +36,15 @@ const RetiredBadge = ({ investor }: { investor: Investor }) => {
   ) : null;
 };
 
-/** Who they are, and where they live under it — what the Owner recognises somebody by. The name opens
- *  everything on file about them, as a Tag Number opens an animal: it is the only thing done from the row,
- *  so it is not hidden behind a menu of one. */
+/** Who they are, and where they live under it — what the Owner recognises somebody by. The name leads to their own
+ *  page, as a Tag Number leads to an animal's: a link, so it opens in a tab of its own as well. */
 const NameCell = ({ row }: Cell) => {
-  const { investor, onDetails } = row.original;
+  const { investor } = row.original;
   return (
-    <button
+    <Link
       className="group flex min-w-0 flex-col gap-0.5 text-start outline-none"
-      onClick={() => onDetails(investor)}
-      type="button"
+      params={{ investorId: investor.id }}
+      to="/investors/$investorId"
     >
       <span className="flex flex-wrap items-center gap-2">
         <span className="font-medium underline-offset-4 group-hover:underline group-focus-visible:underline">
@@ -58,7 +57,7 @@ const NameCell = ({ row }: Cell) => {
           {investor.address}
         </span>
       ) : null}
-    </button>
+    </Link>
   );
 };
 
@@ -157,16 +156,16 @@ const withPortalColumns = column.columns([
   unitsColumn,
 ]);
 
-/** One Investor on a phone: who they are, how they are reached and what they hold. The whole card opens
- *  them, the way a thumb expects a card to. */
+/** One Investor on a phone: who they are, how they are reached and what they hold. The whole card leads to
+ *  their page, the way a thumb expects a card to. */
 const InvestorCard = ({ row }: { row: InvestorRow }) => {
   const { t, language } = useLanguage();
-  const { investor, onDetails } = row;
+  const { investor } = row;
   return (
-    <button
+    <Link
       className="flex w-full items-start justify-between gap-3 text-start"
-      onClick={() => onDetails(investor)}
-      type="button"
+      params={{ investorId: investor.id }}
+      to="/investors/$investorId"
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
@@ -196,7 +195,7 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
           </TagChip>
         ) : null}
       </div>
-    </button>
+    </Link>
   );
 };
 
@@ -207,17 +206,15 @@ const investorCard = (row: InvestorRow) => <InvestorCard row={row} />;
  *  phone. */
 export const InvestorsTable = ({
   investors,
-  onDetails,
   showPortal,
 }: {
   investors: Investor[];
-  onDetails: (investor: Investor) => void;
   /** Whether the portal is in use, and so worth a column. */
   showPortal: boolean;
 }) => {
   const table = useListTable({
     columns: showPortal ? withPortalColumns : investorColumns,
-    data: investors.map((investor) => ({ investor, onDetails })),
+    data: investors.map((investor) => ({ investor })),
     getRowId: (row) => row.investor.id,
   });
   return (
