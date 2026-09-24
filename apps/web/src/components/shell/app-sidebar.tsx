@@ -15,6 +15,7 @@ import {
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Settings, Sprout } from "lucide-react";
 
+import { Wordmark } from "@/components/wordmark";
 import { useT } from "@/i18n/language-provider";
 
 import type { Role } from "./navigation";
@@ -55,12 +56,8 @@ export const AppSidebar = ({
           <span className="bg-sidebar-primary text-sidebar-primary-foreground grid size-9 shrink-0 place-items-center rounded-lg">
             <Sprout aria-hidden className="size-5" />
           </span>
-          <span className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            {/* The name in capitals in both languages: it is Latin either way. Spaced by a property rather than a
-                tracking class, which Bangla resets. */}
-            <span className="truncate text-base font-semibold [letter-spacing:0.08em] uppercase">
-              {t("app.name")}
-            </span>
+          <span className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+            <Wordmark className="truncate" />
             <span className="text-sidebar-foreground/65 truncate text-xs">
               {farmName ?? t("shell.farm")}
             </span>
