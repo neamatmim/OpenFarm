@@ -105,6 +105,9 @@ export const en = {
   "portal.percent": "{percent}%",
   "portal.farmTakes":
     "The farm takes {percent}%, after your capital is returned in full",
+  "portal.nav.portfolio": "Portfolio",
+  "portal.nav.account": "Account",
+  "portal.anInvestor": "Investor",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",

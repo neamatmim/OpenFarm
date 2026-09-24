@@ -21,7 +21,13 @@ import {
 import { useState } from "react";
 
 import { Nothing, SaidDate } from "@/components/list-cells";
-import { Loaded, PageHeader, Section, StatusBadge } from "@/components/page";
+import {
+  Loaded,
+  Page,
+  PageHeader,
+  Section,
+  StatusBadge,
+} from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import type {
@@ -344,9 +350,11 @@ const PortalVenture = () => {
     orpc.portal.venture.queryOptions({ input: { agreementId } })
   );
   return (
-    <Loaded query={today} skeleton={<Skeleton className="h-96 rounded-xl" />}>
-      {today.data ? <VentureToday today={today.data} /> : null}
-    </Loaded>
+    <Page>
+      <Loaded query={today} skeleton={<Skeleton className="h-96 rounded-xl" />}>
+        {today.data ? <VentureToday today={today.data} /> : null}
+      </Loaded>
+    </Page>
   );
 };
 

@@ -24,7 +24,7 @@ import {
 import { orpc } from "@/utils/orpc";
 
 /** The first letters of a person's first two names, which is how a shared phone tells whose session it is at a glance. */
-const initialsOf = (name: string) =>
+export const initialsOf = (name: string) =>
   name
     .split(/\s+/u)
     .filter(Boolean)
@@ -33,7 +33,7 @@ const initialsOf = (name: string) =>
     .join("")
     .toUpperCase();
 
-const Initials = ({
+export const Initials = ({
   name,
   large = false,
 }: {
