@@ -20,6 +20,7 @@ import {
 } from "@/components/ventures/adjustments";
 import { PayOutSheet } from "@/components/ventures/settling-up";
 import { useLanguage } from "@/i18n/language-provider";
+import { CHARGE_WORD } from "@/lib/charge-words";
 import { saidMonth } from "@/lib/months";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -30,7 +31,6 @@ type Approved = NonNullable<
   Awaited<ReturnType<typeof orpc.ventures.approvedSettlement.call>>
 >;
 type Block = Settlement["blocks"][number];
-type ChargeWord = Settlement["charges"][number]["word"];
 
 /**
  * What a Settlement's figures are, whether they are still being worked out or were frozen at approval.
@@ -45,17 +45,6 @@ const asFigures = (approved: Approved): Figures => ({
   ...approved,
   payouts: approved.shares,
 });
-
-/** What each charge against a Venture is called, in the reader's own language. */
-const CHARGE_WORD = {
-  bought: "costs.bought",
-  hasil: "costs.hasil",
-  trips: "costs.trips",
-  feed: "ventures.feed",
-  medicine: "ventures.medicine",
-  vet: "ventures.vet",
-  herd: "ventures.herdCosts",
-} as const satisfies Record<ChargeWord, MessageKey>;
 
 /** What each thing standing in the way is called. Bound to the words the farm can actually send, so a
  *  new one fails here rather than printing an empty line. */

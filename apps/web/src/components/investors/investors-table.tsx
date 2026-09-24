@@ -7,6 +7,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import type { Investor } from "@/components/investors/investor-types";
+import { PortalStandingBadge } from "@/components/investors/portal-access";
 import { Nothing } from "@/components/list-cells";
 import { StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -46,6 +47,9 @@ const NameCell = ({ row }: Cell) => {
           {investor.name}
         </span>
         <RetiredBadge investor={investor} />
+        {investor.portal && investor.portal !== "none" ? (
+          <PortalStandingBadge investor={investor} />
+        ) : null}
       </span>
       {investor.address ? (
         <span className="text-muted-foreground text-sm">
@@ -124,6 +128,9 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{investor.name}</span>
           <RetiredBadge investor={investor} />
+          {investor.portal && investor.portal !== "none" ? (
+            <PortalStandingBadge investor={investor} />
+          ) : null}
         </span>
         <span className="text-muted-foreground text-xs">
           {[
