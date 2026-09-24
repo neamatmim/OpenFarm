@@ -8,6 +8,8 @@ export const ALERT_KINDS = [
   "needs_review",
   "sop_published",
   "sop_proposed",
+  "sop_retired",
+  "sop_restored",
   "withdrawal_ending",
   "notifiable_diagnosis",
   "entry_rejected",

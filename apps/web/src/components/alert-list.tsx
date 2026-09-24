@@ -79,6 +79,24 @@ const tagOf = (params: unknown): string | null => {
   return typeof tag === "string" && tag !== "" ? tag : null;
 };
 
+/** The notices about a procedure itself — retired, brought back — which lead to its card. */
+const ABOUT_A_PROCEDURE: ReadonlySet<string> = new Set([
+  "sop_retired",
+  "sop_restored",
+]);
+
+/** Which procedure a notice is about, for the way to its card. */
+const procedureOf = (notice: {
+  kind: string;
+  params: unknown;
+}): string | null => {
+  if (!ABOUT_A_PROCEDURE.has(notice.kind)) {
+    return null;
+  }
+  const id = (notice.params as { definitionId?: unknown } | null)?.definitionId;
+  return typeof id === "string" && id !== "" ? id : null;
+};
+
 const LEADS_CLASS =
   "text-primary mt-1 block text-sm font-medium hover:underline";
 
@@ -103,6 +121,18 @@ const WhereItLeads = ({
         to="/ventures/$ventureId"
       >
         {t("alerts.makeThePaper")}
+      </Link>
+    );
+  }
+  const definitionId = procedureOf(notice);
+  if (definitionId !== null) {
+    return (
+      <Link
+        className={LEADS_CLASS}
+        params={{ definitionId }}
+        to="/cards/$definitionId"
+      >
+        {t("alerts.openTheCard")}
       </Link>
     );
   }

@@ -38,6 +38,9 @@ export const DELIVERY = {
   needs_review: { when: "digest" },
   sop_published: { when: "digest" },
   sop_proposed: { when: "digest" },
+  // Work leaving the list, or coming back to it, is news for the morning, not a reason to wake anybody.
+  sop_retired: { when: "digest" },
+  sop_restored: { when: "digest" },
   // A Withdrawal ending is one of the two the farm cannot afford to miss: a tank the milk
   // could have gone into, or a cow that could have been sold, and a day of either is money.
   withdrawal_ending: { when: "immediate", sms: true, wakesTheFarm: true },
@@ -119,6 +122,8 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
   needs_review: { app: "alerts.needsReview", digest: "digest.needsReview" },
   sop_published: { app: "alerts.sopPublished", digest: "digest.sopPublished" },
   sop_proposed: { app: "alerts.sopProposed", digest: "digest.sopProposed" },
+  sop_retired: { app: "alerts.sopRetired", digest: "digest.sopRetired" },
+  sop_restored: { app: "alerts.sopRestored", digest: "digest.sopRestored" },
   // Its digest words are never carried — it goes the moment it is raised — but the table is over every kind, so a
   // new one cannot be forgotten here.
   withdrawal_ending: {

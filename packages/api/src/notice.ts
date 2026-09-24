@@ -80,6 +80,10 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
   sop_published: { audience: ["whoDoesThisWork"], entity: "sop_version" },
   // A change somebody wants made to the Playbook is the Owner's to accept or not.
   sop_proposed: { audience: [theOwner], entity: "sop_proposal" },
+  // Whoever does its work: it is their list it leaves, or comes back to. About the act, not the procedure, so a
+  // procedure retired a second time is told a second time.
+  sop_retired: { audience: ["whoDoesThisWork"], entity: "audit_event" },
+  sop_restored: { audience: ["whoDoesThisWork"], entity: "audit_event" },
   // The Manager and the milkers of her Pen: they are the people who decide where tomorrow morning's litres go.
   withdrawal_ending: {
     audience: [theManagers, "thePeopleOfHerPen"],

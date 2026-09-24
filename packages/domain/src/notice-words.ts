@@ -82,6 +82,12 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
   sop_proposed: (facts, language) => ({
     sop: named(facts.sopBn, facts.sopEn, language),
   }),
+  sop_retired: (facts, language) => ({
+    sop: named(facts.sopBn, facts.sopEn, language),
+  }),
+  sop_restored: (facts, language) => ({
+    sop: named(facts.sopBn, facts.sopEn, language),
+  }),
   withdrawal_ending: (facts) => ({ tag: facts.tag }),
   withdrawal_changed: (facts) => ({ tag: facts.tag }),
   notifiable_diagnosis: (facts) => ({ tag: facts.tag, disease: facts.disease }),

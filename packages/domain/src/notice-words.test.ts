@@ -42,6 +42,16 @@ const EXAMPLE: NoticeFacts = {
   },
   sop_published: { sopBn: "খাবার দেওয়া", sopEn: "Feeding", number: 2 },
   sop_proposed: { sopBn: "খাবার দেওয়া", sopEn: "Feeding" },
+  sop_retired: {
+    sopBn: "খাবার দেওয়া",
+    sopEn: "Feeding",
+    definitionId: "sop-1",
+  },
+  sop_restored: {
+    sopBn: "খাবার দেওয়া",
+    sopEn: "Feeding",
+    definitionId: "sop-1",
+  },
   withdrawal_ending: {
     tag: "BD-0142",
     animalId: "animal-1",
