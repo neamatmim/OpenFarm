@@ -332,8 +332,10 @@ export const bn: Record<MessageKey, string> = {
   "ventures.printDraftHint":
     "এই শর্তগুলো থেকে সাজানো হবে — স্ট্যাম্প কাগজে ছাপার জন্য, অথবা ই-চালানের সাথে দেওয়ার জন্য।",
   "ventures.agreementTitle": "সই করার চুক্তিপত্র",
-  "ventures.wordingNotReviewed":
-    "এই ভাষা এখনো কোনো আইনজীবী দেখেননি। এটি আইনজীবীর তালিকায় আছে; প্রথম বিনিয়োগকারী সই করার আগে দেখিয়ে নিন। এই কথাটি ছাপা হবে না।",
+  "ventures.printAmendment": "সই করার সংশোধনী ছাপুন",
+  "ventures.printAmendmentHint":
+    "এই ভেঞ্চারের সব বিনিয়োগকারীর নামসহ একটি কাগজ, খামারের এখনকার ভাষায়। ছাপুন, সবাইকে দিয়ে সই করান, তারপর নিচে ছবি তুলুন।",
+  "ventures.amendmentTitle": "সই করার সংশোধনী",
   "ventures.paper": "স্ট্যাম্প করা কাগজ",
   "ventures.paperTake": "কাগজের ছবি তুলুন",
   "photo.added": "ছবি যোগ হয়েছে",
@@ -747,6 +749,7 @@ export const bn: Record<MessageKey, string> = {
   "investors.details": "খাতায় যা যা আছে",
   "investors.notGiven": "দেওয়া হয়নি",
   "nav.investors": "বিনিয়োগকারী",
+  "nav.templates": "চুক্তির নমুনা",
   "params.approvalThreshold": "এর বেশি খরচে মালিকের অনুমোদন",
   "params.aiWindowStart": "গরম দেখার পর কৃত্রিম প্রজননের (AI) সময় শুরু",
   "params.aiWindowEnd": "গরম দেখার পর কৃত্রিম প্রজননের (AI) সময় শেষ",
@@ -985,6 +988,8 @@ export const bn: Record<MessageKey, string> = {
   "audit.entity.alert": "সতর্কবার্তা",
   "audit.entity.sop": "প্লেবুক",
   "audit.entity.sop_version": "প্লেবুক সংস্করণ",
+  "audit.entity.paper_template": "চুক্তির নমুনা",
+  "audit.entity.paper_template_version": "চুক্তির নমুনার সংস্করণ",
   "audit.entity.push_subscription": "নোটিফিকেশন",
   "audit.entity.pen": "পেন",
   "audit.entity.shed": "শেড",
@@ -2914,4 +2919,106 @@ export const bn: Record<MessageKey, string> = {
     "এই পেন এখন কোনো রেশনে নেই, তাই যা খাওয়ানো হয়েছে তা মেলানো যায় না",
   "standsAside.renewalSuperseded":
     "এই নবায়নের পর নিবন্ধন বদলেছে; নতুনটি সংশোধন করুন",
+  "templates.pageTitle": "চুক্তির নমুনা",
+  "templates.pageHint":
+    "বিনিয়োগকারী যে কাগজে সই করেন তার ভাষা। প্রতিটি শুরু হয় OpenFarm-এর মানক ভাষা দিয়ে, আপনার আইনজীবীর পড়ার জন্য; বদলালে নতুন সংস্করণ প্রকাশ হয়, আর আগে সই হওয়া প্রতিটি কাগজ যে ভাষায় সই হয়েছিল সেটিই রাখে।",
+  "templates.none": "এখনো কোনো নমুনা নেই",
+  "templates.kind.investment_agreement": "বিনিয়োগ চুক্তি",
+  "templates.kind.master_agreement": "মূল চুক্তি",
+  "templates.kind.venture_schedule": "ভেঞ্চারের তফসিল",
+  "templates.kind.agreement_amendment": "সংশোধনী",
+  "templates.kindHint.investment_agreement":
+    "প্রতিটি ভেঞ্চারে প্রত্যেক বিনিয়োগকারীর জন্য একটি স্ট্যাম্প করা চুক্তি। বিনিয়োগকারী সই করার সময় ভেঞ্চার থেকে ছাপা হয়।",
+  "templates.kindHint.master_agreement":
+    "প্রত্যেক বিনিয়োগকারীর জন্য একটি স্ট্যাম্প করা চুক্তি, যার শর্ত তাঁর যোগ দেওয়া প্রতিটি ভেঞ্চারে খাটে।",
+  "templates.kindHint.venture_schedule":
+    "মূল চুক্তির অধীনে বিনিয়োগকারী যে ভেঞ্চারে যোগ দেন তার ছোট তফসিল: ইউনিট, মূলধন, ভাগ ও সময়।",
+  "templates.kindHint.agreement_amendment":
+    "ভেঞ্চারের ভাগ বা লক্ষ্য সময় বদলানোর একটি কাগজ, যাতে সব বিনিয়োগকারী সই করেন। ভেঞ্চারের সংশোধনী শিট থেকে ছাপা হয়।",
+  "templates.waitsOnLawyer": "কেউ সই করার আগে আইনজীবীর উত্তরের অপেক্ষায়",
+  "templates.versionOn": "সংস্করণ {number} · {day}",
+  "templates.approvedBy": "{lawyer} {day} তারিখে অনুমোদন করেছেন",
+  "templates.notApproved": "এখনো আইনজীবী অনুমোদন করেননি",
+  "templates.approvedLine":
+    "ভাষার সংস্করণ {number}, {lawyer} {day} তারিখে অনুমোদন করেছেন। এই কথাটি ছাপা হবে না।",
+  "templates.notApprovedLine":
+    "ভাষার সংস্করণ {number} এখনো কোনো আইনজীবী অনুমোদন করেননি। কেউ সই করার আগে দেখিয়ে নিন। এই কথাটি ছাপা হবে না।",
+  "templates.read": "পড়ুন",
+  "templates.change": "ভাষা বদলান",
+  "templates.recordApproval": "আইনজীবীর অনুমোদন লিখুন",
+  "templates.recordApprovalHint":
+    "{kind}-এর সংস্করণ {number} কে অনুমোদন করেছেন এবং কোন দিন, তা লিখে রাখুন। এটি ওই সংস্করণে চিরকাল থাকবে।",
+  "templates.lawyer": "আইনজীবী",
+  "templates.approvedOn": "অনুমোদনের তারিখ",
+  "templates.approvalRecorded": "অনুমোদন লেখা হয়েছে",
+  "templates.earlier": "আগের {count}টি সংস্করণ",
+  "templates.preview": "দেখুন",
+  "templates.previewHint":
+    "খামারের নিজের তথ্য বসানো আছে; বাকি প্রতিটি তথ্য যেখানে বসবে সেখানে বন্ধনীর মধ্যে তার নাম লেখা।",
+  "templates.published": "সংস্করণ {number} প্রকাশিত",
+  "templates.back": "নমুনায় ফিরুন",
+  "templates.editorHint":
+    "প্রকাশ করলে এখন থেকে কাগজ এই ভাষায় ছাপা ও সই হবে। আগে সই হওয়া কাগজ তাদের ভাষাই রাখবে।",
+  "templates.startFromStandard": "মানক ভাষা থেকে শুরু করুন",
+  "templates.opening": "শিরোনাম ও শুরু",
+  "templates.openingHint": "কাগজের নাম, আর প্রথম অংশের আগের লাইনগুলো।",
+  "templates.titleField": "শিরোনাম",
+  "templates.preamble": "শুরুর কথা",
+  "templates.english": "ইংরেজি (ঐচ্ছিক)",
+  "templates.fields": "এই কাগজ যে তথ্য বলতে পারে",
+  "templates.fieldsHint":
+    "একটিতে চাপ দিয়ে কপি করুন, তারপর তথ্যটি যেখানে বসবে সেখানে পেস্ট করুন। কাগজ ছাপার সময় খামার তা বসিয়ে দেয়।",
+  "templates.fieldCopied":
+    "{field} কপি হয়েছে। তথ্যটি যেখানে বসবে সেখানে পেস্ট করুন।",
+  "templates.fieldNotCopied":
+    "কপি করা গেল না। তথ্যটি যেখানে বসবে সেখানে {field} লিখুন।",
+  "templates.part.parties": "চুক্তির পক্ষ",
+  "templates.part.facts": "তথ্য",
+  "templates.part.clauses": "শর্ত",
+  "templates.part.stamp": "স্ট্যাম্প বা ই-চালান",
+  "templates.part.signatures": "স্বাক্ষর",
+  "templates.partHint.parties":
+    "দুই পক্ষকে কী বলা হবে। তাঁরা কারা, তা খামারের কাছে থাকা তথ্য থেকে লেখা হয়।",
+  "templates.partHint.facts": "কাগজের তথ্য, প্রতি লাইনে একটি।",
+  "templates.partHint.clauses": "নম্বর দেওয়া শর্ত, প্রতিটি বাংলায়, পাশে ইংরেজি।",
+  "templates.partHint.stamp":
+    "স্ট্যাম্প কাগজের সিরিয়াল বা ই-চালান নম্বর, মূল্য ও তারিখের ঘর।",
+  "templates.partHint.signatures": "দুই পক্ষ ও তাঁদের সাক্ষীরা যেখানে সই করেন।",
+  "templates.partNumber": "অংশ {number} · {part}",
+  "templates.partAt": "অংশ {number}",
+  "templates.heading": "শিরোনাম",
+  "templates.firstParty": "খামারের পক্ষ",
+  "templates.secondParty": "বিনিয়োগকারীর পক্ষ",
+  "templates.partiesHint":
+    "ড্যাশের আগের অংশ দিয়ে প্রতিটি পক্ষ সই করে, যেমন প্রথম পক্ষ — মুদারিব।",
+  "templates.factLabel": "কী",
+  "templates.factValue": "কী বলে (বাংলায়, তথ্য বন্ধনীতে)",
+  "templates.lineNumber": "লাইন {number}",
+  "templates.addLine": "লাইন যোগ করুন",
+  "templates.withNote": "তথ্যের নিচে একটি নোট",
+  "templates.note": "নোট",
+  "templates.noteHint": "এই সংস্করণ কেন, আপনার নিজের কথায়। এর সঙ্গে রাখা থাকবে।",
+  "templates.clauseNumber": "শর্ত {number}",
+  "templates.addClause": "শর্ত যোগ করুন",
+  "templates.stampHint": "স্ট্যাম্পের ঘরগুলো খামারের নিজের, প্রতিটি কাগজে একই।",
+  "templates.witnesses": "সাক্ষী",
+  "templates.signaturesHint":
+    "কে সই করবেন তা পক্ষ থেকে লেখা হয়। প্রত্যেক সাক্ষী নাম লিখে সই করেন।",
+  "templates.moveUp": "{what} উপরে নিন",
+  "templates.moveDown": "{what} নিচে নিন",
+  "templates.remove": "{what} সরিয়ে দিন",
+  "templates.addPart": "অংশ যোগ করুন",
+  "templates.add": "যোগ করুন",
+  "templates.publish": "প্রকাশ করুন",
+  "templates.cannotPublish": "এই ভাষা এখনো প্রকাশ করা যাবে না",
+  "templates.refused.alreadyReviewed":
+    "এই সংস্করণে আইনজীবীর অনুমোদন আগেই লেখা আছে।",
+  "templates.refused.reviewedInTheFuture": "আসছে দিনের তারিখে অনুমোদন হতে পারে না।",
+  "templates.problem.titleMissing": "শিরোনামের বাংলা লাগবে।",
+  "templates.problem.textMissing": "{where}: বাংলায় কিছু খালি রয়েছে।",
+  "templates.problem.unknownField": "{where}: {field} এই কাগজের কোনো তথ্য নয়।",
+  "templates.problem.noClauses": "{where}-এ কোনো শর্ত নেই।",
+  "templates.problem.partTwice": "{where}: কাগজে {part} আগেই আছে।",
+  "templates.problem.partMissing": "কাগজে {part} লাগবে।",
+  "templates.problem.witnesses": "{where}: সাক্ষী শূন্য থেকে চারজন।",
 };

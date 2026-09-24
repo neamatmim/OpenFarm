@@ -1,11 +1,16 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation } from "@tanstack/react-query";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { FormField, FormSheet } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
+import type { WordingSaid } from "@/components/ventures/paper-dialog";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
@@ -22,6 +27,65 @@ const WHY_NOT: OwnWords = {
 /** Nothing of the profit, and all of it: the two ends a split may honestly sit on. */
 const NONE = 0;
 const ALL = 100;
+
+/** The terms an Amendment moves the Venture to, as the paper to sign is laid out from them. */
+interface Amending {
+  ventureId: string;
+  investorsPercent: number;
+  targetWindowStart: string;
+  targetWindowEnd: string;
+  signedOn: string;
+  reason: string;
+}
+
+/**
+ * The Amendment laid out from the terms on the sheet in the farm's current wording — one paper naming every Investor
+ * on the Venture — to print and have them all sign before its photograph is taken.
+ */
+const PrintAmendment = ({
+  amending,
+  ready,
+}: {
+  amending: Amending;
+  ready: boolean;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused(WHY_NOT);
+  const [shown, setShown] = useState<{
+    paper: PaperDocument;
+    wording: WordingSaid;
+  } | null>(null);
+  const laying = useMutation(
+    orpc.investorStatements.amendmentToSign.mutationOptions({
+      onSuccess: (done) =>
+        setShown({ paper: done.document, wording: done.wording }),
+      onError: refused,
+    })
+  );
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        className="self-start"
+        disabled={!ready || laying.isPending}
+        onClick={() => laying.mutate(amending)}
+        type="button"
+        variant="outline"
+      >
+        <FileText aria-hidden data-icon="inline-start" />
+        {t("ventures.printAmendment")}
+      </Button>
+      <p className="text-muted-foreground text-sm">
+        {t("ventures.printAmendmentHint")}
+      </p>
+      <PaperDialog
+        onClose={() => setShown(null)}
+        paper={shown?.paper ?? null}
+        title={t("ventures.amendmentTitle")}
+        wording={shown?.wording ?? null}
+      />
+    </div>
+  );
+};
 
 /**
  * One paper amending every Agreement on a Venture.
@@ -83,7 +147,8 @@ export const AmendSheet = ({
   // against a letter reads, to the guard that hunts for untranslated words, as a tag closing on text.
   const takesLessThanNothing = share < NONE;
   const takesMoreThanEverything = share > ALL;
-  const ready =
+  // What the paper to sign needs; recording it needs the photograph of it signed as well.
+  const termsReady =
     venture !== null &&
     percent !== "" &&
     !Number.isNaN(share) &&
@@ -93,8 +158,8 @@ export const AmendSheet = ({
     to !== "" &&
     from <= to &&
     signedOn !== "" &&
-    reason.trim() !== "" &&
-    paper !== null;
+    reason.trim() !== "";
+  const ready = termsReady && paper !== null;
   return (
     <FormSheet
       description={t("ventures.amendHint", { venture: venture?.name ?? "" })}
@@ -173,6 +238,17 @@ export const AmendSheet = ({
           value={reason}
         />
       </FormField>
+      <PrintAmendment
+        amending={{
+          ventureId: venture?.id ?? "",
+          investorsPercent: share,
+          targetWindowStart: from,
+          targetWindowEnd: to,
+          signedOn,
+          reason: reason.trim(),
+        }}
+        ready={termsReady}
+      />
       <FormField
         hint={t("ventures.amendPaperHint")}
         id="amend-paper"

@@ -1,30 +1,21 @@
-import type { AgreementDocument } from "@OpenFarm/domain";
+import type { PaperDocument } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@OpenFarm/ui/components/dialog";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileText, Printer } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { SegmentedControl } from "@/components/page";
 import { FormField, FormSheet, NativeSelect } from "@/components/page-kit";
 import { PhotoField } from "@/components/photo-field";
-import {
-  AGREEMENT_DOCUMENT_ID,
-  AgreementDocumentView,
-} from "@/components/ventures/agreement-document";
+import type { WordingSaid } from "@/components/ventures/paper-dialog";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useFreshFor } from "@/lib/fresh-for";
 import type { Photo } from "@/lib/photo";
-import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
@@ -124,9 +115,9 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
 };
 
 /**
- * The agreement to sign, laid out from the terms on the sheet in a dialog wide enough for a page, and printed from
- * there onto stamp paper or to go with an e-challan. Until a lawyer has approved the wording the dialog says so, above
- * the page and never on it.
+ * The agreement to sign, laid out from the terms on the sheet in the farm's current wording, and printed onto stamp
+ * paper or to go with an e-challan. Until a lawyer has approved that wording the dialog says so, above the page and
+ * never on it.
  */
 const PrintToSign = ({
   drafting,
@@ -143,10 +134,14 @@ const PrintToSign = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [shown, setShown] = useState<AgreementDocument | null>(null);
+  const [shown, setShown] = useState<{
+    paper: PaperDocument;
+    wording: WordingSaid;
+  } | null>(null);
   const laying = useMutation(
     orpc.investorStatements.agreementToSign.mutationOptions({
-      onSuccess: (done) => setShown(done.document),
+      onSuccess: (done) =>
+        setShown({ paper: done.document, wording: done.wording }),
       onError: refused,
     })
   );
@@ -172,45 +167,12 @@ const PrintToSign = ({
       <p className="text-muted-foreground text-sm">
         {t("ventures.printDraftHint")}
       </p>
-      <Dialog
-        onOpenChange={(open) => {
-          if (!open) {
-            setShown(null);
-          }
-        }}
-        open={shown !== null}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"
-          closeLabel={t("common.close")}
-        >
-          <DialogHeader className="no-print">
-            <DialogTitle>{t("ventures.agreementTitle")}</DialogTitle>
-          </DialogHeader>
-          {shown && !shown.wordingReviewed ? (
-            <p className="bg-warning-surface text-warning no-print rounded-md px-3 py-2 text-sm">
-              {t("ventures.wordingNotReviewed")}
-            </p>
-          ) : null}
-          {shown ? <AgreementDocumentView document={shown} /> : null}
-          <div className="no-print flex justify-end">
-            <Button
-              onClick={() => {
-                const paper = document.querySelector<HTMLElement>(
-                  `#${AGREEMENT_DOCUMENT_ID}`
-                );
-                if (paper) {
-                  void printAlone(paper);
-                }
-              }}
-              type="button"
-            >
-              <Printer aria-hidden data-icon="inline-start" />
-              {t("common.print")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PaperDialog
+        onClose={() => setShown(null)}
+        paper={shown?.paper ?? null}
+        title={t("ventures.agreementTitle")}
+        wording={shown?.wording ?? null}
+      />
     </div>
   );
 };

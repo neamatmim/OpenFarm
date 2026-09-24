@@ -27,7 +27,7 @@ Stamping less often (asked by the Owner, 2026-09-24 — a stamped deed per Inves
 - [ ] Is duty paid by **e-challan / A-challan** instead of stamp paper acceptable for this agreement, and what does the farm keep as proof — the challan number, its receipt, both?
 - [ ] Is an **electronic signature** enough for a mudarabah agreement under the ICT Act 2006 — an OTP to the Investor's phone, a drawn signature on the Owner's phone — or must it be a certificate-based digital signature? Are any of these instruments excluded from electronic form?
 - [ ] What does **stamping only on request** risk (s.35: inadmissible until duty and up to ten times it are paid), and who carries that risk?
-- [ ] Review the **Investment Agreement template** OpenFarm prints (Venture → Agreement → print the draft), and mark it approved or say what must change. The paper carries no draft mark (the Owner's choice, 2026-09-24); until the wording is approved the screen that prints it reminds the Owner.
+- [ ] Review the four **agreement templates** — Investment Agreement, Master Agreement, Venture Schedule, Amendment — printed from Agreement templates → Read (each fact the paper fills is named in brackets). Say what must change; the Owner publishes the lawyer's wording as a new Version and records the approval on it (lawyer's name and day). The papers carry no draft mark (the Owner's choice, 2026-09-24); until a Version is approved the screen that prints it reminds the Owner.
 
 Checklist for the Shariah scholar:
 

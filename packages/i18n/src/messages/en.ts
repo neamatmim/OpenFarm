@@ -351,8 +351,10 @@ export const en = {
   "ventures.printDraftHint":
     "Laid out from these terms, to print onto stamp paper or to go with the e-challan.",
   "ventures.agreementTitle": "The agreement to sign",
-  "ventures.wordingNotReviewed":
-    "A lawyer has not yet reviewed this wording. It is on the lawyer's list; have it checked before the first Investor signs. This note is not printed.",
+  "ventures.printAmendment": "Print the Amendment to sign",
+  "ventures.printAmendmentHint":
+    "One paper naming every Investor on this Venture, in the farm's current wording. Print it, have everybody sign, then photograph it below.",
+  "ventures.amendmentTitle": "The Amendment to sign",
   "ventures.paper": "The stamped paper",
   /** The farm's own words on the file button, and whether the stamped paper is on yet — capital is
    *  refused without it, so she is told here rather than at the refusal. */
@@ -813,6 +815,7 @@ export const en = {
   "investors.details": "Everything on file",
   "investors.notGiven": "Not given",
   "nav.investors": "Investors",
+  "nav.templates": "Agreement templates",
   "params.approvalThreshold": "Owner approves spending above",
   "params.aiWindowStart": "AI window opens after heat",
   "params.aiWindowEnd": "AI window closes after heat",
@@ -1055,6 +1058,8 @@ export const en = {
   "audit.entity.alert": "Alert",
   "audit.entity.sop": "Playbook entry",
   "audit.entity.sop_version": "Playbook version",
+  "audit.entity.paper_template": "Agreement template",
+  "audit.entity.paper_template_version": "Agreement template version",
   "audit.entity.push_subscription": "Notifications",
   "audit.entity.pen": "Pen",
   "audit.entity.shed": "Shed",
@@ -3110,6 +3115,116 @@ export const en = {
     "This pen is on no ration now, so what was fed cannot be set against one",
   "standsAside.renewalSuperseded":
     "The Registration has moved on since this renewal; put the newer one right instead",
+  "templates.pageTitle": "Agreement templates",
+  "templates.pageHint":
+    "The wording of the papers an Investor signs. Each starts as OpenFarm's standard wording for your lawyer to read; changing it publishes a new version, and every paper already signed keeps the wording it was signed in.",
+  "templates.none": "No templates yet",
+  "templates.kind.investment_agreement": "Investment Agreement",
+  "templates.kind.master_agreement": "Master Agreement",
+  "templates.kind.venture_schedule": "Venture Schedule",
+  "templates.kind.agreement_amendment": "Amendment",
+  "templates.kindHint.investment_agreement":
+    "One stamped agreement for each Investor in each Venture. Printed from the Venture when an Investor signs.",
+  "templates.kindHint.master_agreement":
+    "One stamped agreement per Investor, setting the terms every Venture they join shares.",
+  "templates.kindHint.venture_schedule":
+    "A short schedule for each Venture an Investor joins under their Master Agreement: Units, capital, split and window.",
+  "templates.kindHint.agreement_amendment":
+    "One paper moving a Venture's split or target window, signed by every Investor in it. Printed from the Venture's amend sheet.",
+  "templates.waitsOnLawyer":
+    "Waits on the lawyer's answer before anyone signs one",
+  "templates.versionOn": "Version {number} · {day}",
+  "templates.approvedBy": "Approved by {lawyer} on {day}",
+  "templates.notApproved": "Not yet approved by a lawyer",
+  "templates.approvedLine":
+    "Wording version {number}, approved by {lawyer} on {day}. This note is not printed.",
+  "templates.notApprovedLine":
+    "Wording version {number} has not been approved by a lawyer yet. Have it checked before anyone signs. This note is not printed.",
+  "templates.read": "Read",
+  "templates.change": "Change the wording",
+  "templates.recordApproval": "Record a lawyer's approval",
+  "templates.recordApprovalHint":
+    "Write down who approved version {number} of the {kind}, and the day they did. It is kept on that version for good.",
+  "templates.lawyer": "Lawyer",
+  "templates.approvedOn": "Approved on",
+  "templates.approvalRecorded": "Approval recorded",
+  "templates.earlier":
+    "{count, plural, one {# earlier version} other {# earlier versions}}",
+  "templates.preview": "Preview",
+  "templates.previewHint":
+    "The farm's own details are filled in; every other fact is named in square brackets where it will go.",
+  "templates.published": "Published version {number}",
+  "templates.back": "Back to the templates",
+  "templates.editorHint":
+    "Publishing makes this the wording papers are printed and signed in from now. Papers already signed keep theirs.",
+  "templates.startFromStandard": "Start from the standard wording",
+  "templates.opening": "Title and opening",
+  "templates.openingHint":
+    "What the paper is called, and the lines before its first part.",
+  "templates.titleField": "Title",
+  "templates.preamble": "Opening",
+  "templates.english": "English (optional)",
+  "templates.fields": "Facts this paper can say",
+  "templates.fieldsHint":
+    "Tap one to copy it, then paste it where the fact goes. The farm fills it in when the paper is printed.",
+  "templates.fieldCopied": "Copied {field}. Paste it where the fact goes.",
+  "templates.fieldNotCopied":
+    "Could not copy. Type {field} where the fact goes.",
+  "templates.part.parties": "The parties",
+  "templates.part.facts": "Facts",
+  "templates.part.clauses": "Clauses",
+  "templates.part.stamp": "Stamp or e-challan",
+  "templates.part.signatures": "Signatures",
+  "templates.partHint.parties":
+    "What the two parties are called. Who they are is written from what the farm holds.",
+  "templates.partHint.facts": "The paper's facts, one line each.",
+  "templates.partHint.clauses":
+    "Numbered terms, each in Bangla with the English beside it.",
+  "templates.partHint.stamp":
+    "A box for the stamp paper's serial or the e-challan's number, its value and its date.",
+  "templates.partHint.signatures":
+    "Where both parties sign, and their witnesses.",
+  "templates.partNumber": "Part {number} · {part}",
+  "templates.partAt": "Part {number}",
+  "templates.heading": "Heading",
+  "templates.firstParty": "The Farm's side",
+  "templates.secondParty": "The Investor's side",
+  "templates.partiesHint":
+    "The part before a dash is how each side signs, as in First party — Mudarib.",
+  "templates.factLabel": "What it is",
+  "templates.factValue": "What it says (Bangla, facts in braces)",
+  "templates.lineNumber": "Line {number}",
+  "templates.addLine": "Add a line",
+  "templates.withNote": "A note under the facts",
+  "templates.note": "Note",
+  "templates.noteHint": "Why this version, in your own words. Kept with it.",
+  "templates.clauseNumber": "Clause {number}",
+  "templates.addClause": "Add a clause",
+  "templates.stampHint":
+    "The stamp box's blanks are the farm's own and are the same on every paper.",
+  "templates.witnesses": "Witnesses",
+  "templates.signaturesHint":
+    "Who signs is written from the parties. Each witness writes a name and signs.",
+  "templates.moveUp": "Move {what} up",
+  "templates.moveDown": "Move {what} down",
+  "templates.remove": "Remove {what}",
+  "templates.addPart": "Add a part",
+  "templates.add": "Add",
+  "templates.publish": "Publish",
+  "templates.cannotPublish": "This wording cannot be published yet",
+  "templates.refused.alreadyReviewed":
+    "A lawyer's approval is already written on this version.",
+  "templates.refused.reviewedInTheFuture":
+    "A lawyer cannot have approved it on a day still to come.",
+  "templates.problem.titleMissing": "The title needs its Bangla.",
+  "templates.problem.textMissing":
+    "{where}: something is left empty in Bangla.",
+  "templates.problem.unknownField":
+    "{where}: {field} is not a fact this paper has.",
+  "templates.problem.noClauses": "{where} has no clauses.",
+  "templates.problem.partTwice": "{where}: the paper already has {part}.",
+  "templates.problem.partMissing": "The paper needs {part}.",
+  "templates.problem.witnesses": "{where}: witnesses are from none to four.",
 } as const;
 
 export type MessageKey = keyof typeof en;

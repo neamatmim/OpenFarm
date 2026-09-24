@@ -460,6 +460,23 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.sopVersion.id,
     }),
   },
+  paperTemplate: {
+    versions: r.many.paperTemplateVersion({
+      from: r.paperTemplate.id,
+      to: r.paperTemplateVersion.templateId,
+    }),
+    currentVersion: r.one.paperTemplateVersion({
+      from: r.paperTemplate.currentVersionId,
+      to: r.paperTemplateVersion.id,
+    }),
+  },
+  paperTemplateVersion: {
+    template: r.one.paperTemplate({
+      from: r.paperTemplateVersion.templateId,
+      to: r.paperTemplate.id,
+      optional: false,
+    }),
+  },
   sopVersion: {
     definition: r.one.sopDefinition({
       from: r.sopVersion.definitionId,

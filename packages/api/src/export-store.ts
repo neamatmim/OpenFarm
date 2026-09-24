@@ -49,6 +49,8 @@ export type ExportedPaper =
   | "passport"
   | "withdrawal_summary"
   | "agreement_draft"
+  | "amendment_draft"
+  | "template_preview"
   | "joining_letter"
   | "progress_statement"
   | "settlement_statement";

@@ -74,6 +74,7 @@ import {
   readSettlement,
   settlementOf,
 } from "../settlement-store";
+import { currentWording, giveStandardTemplates } from "../template-store";
 import { actOnVenture } from "../venture-act";
 import { theirProgress } from "../venture-herd-store";
 import {
@@ -791,6 +792,13 @@ export const venturesRouter = {
           data: { refusal: "venture_wrong_state" },
         });
       }
+      // Signed in the wording the farm prints Agreements in now, and recorded against it for good.
+      await giveStandardTemplates(context);
+      const wording = await currentWording(
+        context.db,
+        context.farm.id,
+        "investment_agreement"
+      );
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -861,6 +869,7 @@ export const venturesRouter = {
             stampValueBdt: input.stampValueBdt,
             stampedOn: input.stampedOn,
             stampSerial: input.stampSerial,
+            templateVersionId: wording.versionId,
             signedBy: context.actor.id,
             createdAt: now,
           });
@@ -903,6 +912,12 @@ export const venturesRouter = {
           data: { refusal: "window_out_of_order" },
         });
       }
+      await giveStandardTemplates(context);
+      const wording = await currentWording(
+        context.db,
+        context.farm.id,
+        "agreement_amendment"
+      );
       const amendedId = uuidv7();
       const amended = await audited(context).write(
         {
@@ -942,6 +957,7 @@ export const venturesRouter = {
               targetWindowStart: input.targetWindowStart,
               targetWindowEnd: input.targetWindowEnd,
               reason: input.reason,
+              templateVersionId: wording.versionId,
               amendedBy: context.actor.id,
               createdAt: now,
             }))
