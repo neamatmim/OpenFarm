@@ -41,10 +41,14 @@ The way is clear for the **first real Investor to sign in to the portal from the
 
 <!-- one line per closed ticket: gist + link -->
 
+- [What the portal must withstand once strangers can reach it](./issues/02-what-the-portal-must-withstand-once-strangers-can-reach-it.md) — OWASP ASVS 5.0 L1 review. Five must-fixes before the first Investor: a password written into the server log by a mistyped `join` (live for staff too), portal answers left in the phone's cache after sign-out, sign-in naming Investor phones without the password, no per-address limit on `join`, common passwords accepted. A subdomain reduces four findings and removes none. Framing and printed papers are already sound.
+- [What Bangladesh's data-protection law asks of the portal](./issues/01-what-bangladesh-data-protection-law-asks-of-the-portal.md) — the Personal Data Protection Act 2026 is in force but has no regulator or regulations yet. It asks for consent the farm can prove, a notice, the rights to a copy, correction and erasure, a register, and breach reporting. There is no registration and no data-localisation rule, and NID and bank details are not "sensitive". The portal lacks the notice, the consent and a way to ask.
+
 ## Not yet specified
 
 - **What the lawyer's answer changes.** A "no" switches the portal off and keeps the papers. A "yes, with conditions" may change the notice, what is shown, or who may be invited. That can't be ticketed until the answer exists.
-- **The day the switch is turned on for one person.** Whether a written readiness check comes first: the preview read through, the welcome sheet printed, the notice approved, support ready. It may turn out to be nothing more than the tickets above, all closed.
+- **The day the switch is turned on for one person.** Whether a written readiness check comes first: the preview read through, the welcome sheet printed, the notice approved, support ready. It may turn out to be nothing more than the tickets above, all closed. Part of what is left to *do* is now known: the exposure review's five must-fixes, handed off as work when the map closes, not decided here.
+- **A breach plan.** The Act (s.20) and the Cyber Security Act 2026 (s.9(4)) both require reporting. Who the farm tells, and what OpenFarm must be able to show, can be asked once the lawyer has said whether the Authority's reach is live (ticket 07).
 - **Support once someone is in.** Most of it is settled: a new code for a forgotten password, the Owner taking access away for a lost phone. Whether anything else needs deciding shows only once the address and the welcome sheet are settled.
 
 ## Out of scope

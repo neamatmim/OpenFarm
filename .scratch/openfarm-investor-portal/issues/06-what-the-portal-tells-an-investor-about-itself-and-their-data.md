@@ -4,7 +4,7 @@ Status: open
 
 Type: grilling
 
-Blocked by: 01
+Blocked by: —
 
 Map: [OpenFarm investor portal: the first real Investor in](../map.md)
 
@@ -16,3 +16,5 @@ Every portal page carries one line: it shows the Investor's own Agreements and n
 - Does the standing notice change?
 
 The law's findings (ticket 01) set the floor. The wording that results goes to the lawyer (ticket 07).
+
+The law's floor is now known (ticket 01, section 13 of the research note): the s.5(2) and s.15(2) notice — what is held and from where, why, 12 years and why, a Singapore server run by a host, who the farm is, the Investor's rights, and complaint to the Authority — and a written way to ask for a copy, a correction or erasure. How consent itself is taken is ticket 08's.
