@@ -1103,6 +1103,21 @@ export const en = {
   "breeds.manage": "Add or rename breeds",
   "breeds.choose": "Not known",
   "refusal.breedExists": "The farm already has a breed by that name",
+  "common.retired": "Retired",
+  "feed.retireTitle": "Retire “{name}”?",
+  "feed.retireWhy":
+    "Nothing new is fed, bought or counted as it. What a Pen was fed with it keeps its name, and it can be brought back.",
+  "byHand.bringBack": "Bring back",
+  "notifiable.putBack": "Put back on the list",
+  "notifiable.putBackHint":
+    "Say why it is reportable again: the office's word, and when.",
+  "notifiable.putBackDone": "Back on the list",
+  "refusal.drugExists": "That product is already on the list",
+  "refusal.drugExistsRetired":
+    "That product is on the list, retired — bring it back rather than adding it twice",
+  "refusal.diseaseExists": "That disease is already on the list",
+  "refusal.diseaseExistsRetired":
+    "That disease is on the list, taken off — put it back rather than adding it twice",
   "refusal.breedUnknown": "That breed is not on the farm's list",
   "refusal.breedRetired":
     "That breed is retired. Bring it back on the Breeds page to write an animal under it.",

@@ -6,7 +6,7 @@ import { STANDARD_BREED_KEYS, STANDARD_BREEDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import { nameTaken, namesOf } from "./names";
+import { namesOf } from "./names";
 
 /** A refusal about the list, worded on the screen by its word. */
 export const refusedBreed = (message: string, refusal: string) =>
@@ -92,22 +92,6 @@ export const addStandardBreeds = async (
     }
   }
   return given;
-};
-
-/** Refuses a name another of the farm's breeds already has, in either language. */
-export const assertNameFree = async (
-  tx: Pick<Tx, "query">,
-  farmId: string,
-  names: { nameBn: string; nameEn?: string | null },
-  exceptId?: string
-) => {
-  const others = await tx.query.breed.findMany({
-    where: { farmId },
-    columns: { id: true, nameBn: true, nameEn: true },
-  });
-  if (nameTaken(others, { bn: names.nameBn, en: names.nameEn }, exceptId)) {
-    throw refusedBreed("The farm already has that breed", "breed_exists");
-  }
 };
 
 /** The breed an animal is being written down under: one of this farm's, and not retired. */

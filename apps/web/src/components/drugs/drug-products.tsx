@@ -26,7 +26,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { LotAndExpiry } from "@/components/expiry";
-import { Nothing, SaidDate } from "@/components/list-cells";
+import { Nothing, SaidDate, nameTone } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import type { RowAction } from "@/components/page-kit";
 import {
@@ -103,9 +103,7 @@ const NameCell = ({ row }: { row: { original: ProductRow } }) => {
   const product = row.original;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span
-        className={product.retiredAt ? "text-muted-foreground" : "font-medium"}
-      >
+      <span className={nameTone(product)}>
         {productName(product, language)}
       </span>
       <VaccineMark product={product} />
@@ -433,11 +431,7 @@ const ProductCard = ({ row }: { row: ProductRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={row.retiredAt ? "text-muted-foreground" : "font-medium"}
-          >
-            {productName(row, language)}
-          </span>
+          <span className={nameTone(row)}>{productName(row, language)}</span>
           <Standing product={row} />
           <VaccineMark product={row} />
         </div>

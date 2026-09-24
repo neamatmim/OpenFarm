@@ -48,8 +48,8 @@ describe("the farm's list of medicines", () => {
       .catch((error: unknown) => error);
 
     expect(byEnglish).toMatchObject({
-      code: "CONFLICT",
-      data: { retired: false },
+      code: "BAD_REQUEST",
+      data: { refusal: "drug_exists", retired: false },
     });
   });
 
@@ -72,7 +72,7 @@ describe("the farm's list of medicines", () => {
 
     await expect(
       vet.drugs.rename({ id, name: { bn: STANDARD_DRUGS.calcium.bn } })
-    ).rejects.toMatchObject({ code: "CONFLICT" });
+    ).rejects.toMatchObject({ data: { refusal: "drug_exists" } });
   });
 
   it("is renamed by the Vet alone, as it is retired", async () => {

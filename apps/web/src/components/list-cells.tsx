@@ -1,6 +1,9 @@
 import { startOfFarmDay } from "@OpenFarm/domain";
+import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate } from "@OpenFarm/i18n";
+import { Archive } from "lucide-react";
 
+import { StatusBadge } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
 
 // The small pieces every list draws its cells from — a table row and the phone card beside it alike — so an empty
@@ -35,3 +38,22 @@ export const SaidDate = ({
   const when = isFarmDay ? startOfFarmDay(at) : new Date(at);
   return <>{formatDate(when, language, withTime ? "dateTime" : "date")}</>;
 };
+
+/** An entry the farm has retired: kept for what was done under it, and chosen for nothing new. Said by the list's own
+ *  word where it has one — a notifiable disease is "off the list". */
+export const RetiredBadge = ({ word }: { word?: MessageKey }) => {
+  const { t } = useLanguage();
+  return (
+    <StatusBadge icon={Archive} tone="neutral">
+      {t(word ?? "common.retired")}
+    </StatusBadge>
+  );
+};
+
+/** A list's retired entries after the ones in use, whichever way the column is sorted by standing. */
+export const retiredLast = (row: { retiredAt: unknown }): number =>
+  row.retiredAt ? 1 : 0;
+
+/** How an entry's name reads: quieter once it is retired. */
+export const nameTone = (row: { retiredAt: unknown }): string =>
+  row.retiredAt ? "text-muted-foreground" : "font-medium";

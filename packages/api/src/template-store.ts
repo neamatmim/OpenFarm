@@ -10,8 +10,8 @@ import { STANDARD_TEMPLATES, TEMPLATE_KINDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-import { audited } from "./audit";
 import type { Context } from "./context";
+import { giveStandardOnce } from "./farm-list";
 
 /** One Version of a Template, as a paper is printed from it and the screen shows it. */
 export interface Wording {
@@ -108,13 +108,6 @@ const addStandardTemplates = async (
   return given;
 };
 
-class NothingToGiveError extends Error {
-  constructor() {
-    super("The standard wording was already given");
-    this.name = "NothingToGiveError";
-  }
-}
-
 /**
  * Gives the farm the standard wording it has not been given — the first time its papers' wording is opened, or the
  * first time a paper is printed or signed. Recorded as what was actually given; a request that finds it all there
@@ -123,32 +116,12 @@ class NothingToGiveError extends Error {
 export const giveStandardTemplates = async (
   context: Context & { farm: { id: string } }
 ): Promise<void> => {
-  const missing = await kindsNotHad(context.db, context.farm.id);
-  if (missing.length === 0) {
-    return;
-  }
-  const now = context.clock.now();
-  let given: TemplateKind[] = [];
-  await audited(context)
-    .write(
-      {
-        entity: "paper_template",
-        entityId: context.farm.id,
-        action: "create",
-        after: () => Promise.resolve({ standard: given }),
-      },
-      async (tx) => {
-        given = await addStandardTemplates(tx, context.farm.id, missing, now);
-        if (given.length === 0) {
-          throw new NothingToGiveError();
-        }
-      }
-    )
-    .catch((error: unknown) => {
-      if (!(error instanceof NothingToGiveError)) {
-        throw error;
-      }
-    });
+  await giveStandardOnce(context, {
+    entity: "paper_template",
+    missing: () => kindsNotHad(context.db, context.farm.id),
+    give: (tx, kinds, now) =>
+      addStandardTemplates(tx, context.farm.id, kinds, now),
+  });
 };
 
 /** The Version a kind of paper is printed and signed in now. The farm must have been given its wording first. */

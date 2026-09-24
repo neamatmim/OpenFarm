@@ -1,5 +1,4 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
 import { notifiableDisease } from "@OpenFarm/db/schema/health";
 import type { FarmIdentity } from "@OpenFarm/domain";
 import { notifiableLetter } from "@OpenFarm/domain";
@@ -10,6 +9,8 @@ import { z } from "zod";
 import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { exportedPaper } from "../export-store";
+import type { FarmList } from "../farm-list";
+import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -26,6 +27,24 @@ const readDisease = async (tx: Tx, id: string) => {
   });
   return row ?? null;
 };
+
+/** The farm's notifiable-disease list, as the one way a list is kept keeps it. */
+const DISEASES = {
+  entity: "notifiable_disease",
+  table: notifiableDisease,
+  read: (tx: Tx, _farmId: string, id: string) => readDisease(tx, id),
+  notFound: "No such disease on the list",
+  names: { bn: notifiableDisease.nameBn, en: notifiableDisease.nameEn },
+  nameTaken: {
+    refusal: "disease_exists",
+    message: "That disease is already on the list",
+    whenRetired: {
+      refusal: "disease_exists_retired",
+      message:
+        "That disease is on the list, taken off; put it back rather than adding it twice",
+    },
+  },
+} satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 /**
  * The letter itself, in Bangla, from what the farm already knows.
@@ -142,20 +161,6 @@ export const notifiableRouter = {
     .input(z.object({ name, note: z.string().trim().max(300).optional() }))
     .handler(async ({ context, input }) => {
       const now = context.clock.now();
-      const already = await context.db.query.notifiableDisease.findFirst({
-        where: { farmId: context.farm.id, nameBn: input.name.bn },
-        columns: { id: true, retiredAt: true },
-      });
-      if (already) {
-        // Naming it again is how somebody puts back a disease the farm took off the list, so
-        // say what is there rather than failing on an index nobody can read.
-        throw new ORPCError("CONFLICT", {
-          message: already.retiredAt
-            ? "That disease is on the list, taken off; put it back rather than adding it twice"
-            : "That disease is already on the list",
-          data: { diseaseId: already.id, retired: Boolean(already.retiredAt) },
-        });
-      }
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -165,8 +170,11 @@ export const notifiableRouter = {
           reason: input.note,
           after: { nameBn: input.name.bn, note: input.note ?? null },
         },
-        (tx) =>
-          tx.insert(notifiableDisease).values({
+        async (tx) => {
+          // Naming it again is how somebody puts back a disease the farm took off the list, so say what is there
+          // rather than failing on an index nobody can read.
+          await assertNameFree(tx, context.farm.id, DISEASES, input.name);
+          await tx.insert(notifiableDisease).values({
             id,
             farmId: context.farm.id,
             nameBn: input.name.bn,
@@ -175,7 +183,8 @@ export const notifiableRouter = {
             addedBy: context.actor.id,
             addedByRole: context.roleUsed,
             createdAt: now,
-          })
+          });
+        }
       );
       return { id };
     }),
@@ -186,35 +195,20 @@ export const notifiableRouter = {
     .use(requireRole("owner", "manager", "vet"))
     .input(z.object({ id: z.string(), reason: z.string().trim().max(300) }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "notifiable_disease",
-          entityId: input.id,
-          action: "update",
-          reason: input.reason,
-          before: (tx) => readDisease(tx, input.id),
-          after: (tx) => readDisease(tx, input.id),
-        },
-        async (tx) => {
-          const [changed] = await tx
-            .update(notifiableDisease)
-            .set({ retiredAt: now })
-            .where(
-              and(
-                eq(notifiableDisease.id, input.id),
-                eq(notifiableDisease.farmId, context.farm.id),
-                isNull(notifiableDisease.retiredAt)
-              )
-            )
-            .returning({ id: notifiableDisease.id });
-          if (!changed) {
-            throw new ORPCError("NOT_FOUND", {
-              message: "No such disease on the list, or it is already off it",
-            });
-          }
-        }
-      );
+      await retireFromList(context, DISEASES, input.id, {
+        reason: input.reason,
+      });
+      return { id: input.id };
+    }),
+
+  /** Puts a disease the farm took off the list back on it — the way to add one the list already had. */
+  bringBack: protectedProcedure
+    .use(requireRole("owner", "manager", "vet"))
+    .input(z.object({ id: z.string(), reason: z.string().trim().max(300) }))
+    .handler(async ({ context, input }) => {
+      await bringBackToList(context, DISEASES, input.id, {
+        reason: input.reason,
+      });
       return { id: input.id };
     }),
 };

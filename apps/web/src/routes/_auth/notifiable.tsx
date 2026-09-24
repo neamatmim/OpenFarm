@@ -3,7 +3,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Archive, Plus, ShieldAlert, ShieldOff } from "lucide-react";
+import { Plus, ShieldAlert, ShieldOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,7 +14,13 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { Nothing, SaidDate } from "@/components/list-cells";
+import {
+  Nothing,
+  RetiredBadge,
+  SaidDate,
+  nameTone,
+  retiredLast,
+} from "@/components/list-cells";
 import {
   EmptyState,
   Loaded,
@@ -32,6 +38,7 @@ type Disease = Awaited<ReturnType<typeof orpc.notifiable.list.call>>[number];
 interface DiseaseRow extends Disease {
   keeps: boolean;
   handleTakeOff: (disease: Disease) => void;
+  handlePutBack: (disease: Disease) => void;
 }
 
 /** The disease in the reader's language, as the farm wrote it. */
@@ -42,9 +49,7 @@ const nameOf = (disease: Disease, language: string) =>
 const Standing = ({ disease }: { disease: Disease }) => {
   const { t } = useLanguage();
   return disease.retiredAt ? (
-    <StatusBadge icon={Archive} tone="neutral">
-      {t("notifiable.retired")}
-    </StatusBadge>
+    <RetiredBadge word="notifiable.retired" />
   ) : (
     <StatusBadge icon={ShieldAlert} tone="warning">
       {t("notifiable.onList")}
@@ -58,11 +63,7 @@ const DiseaseNameCell = ({ row }: { row: { original: DiseaseRow } }) => {
   const other = language === "en" ? disease.nameBn : disease.nameEn;
   return (
     <div className="flex flex-col gap-0.5">
-      <span
-        className={disease.retiredAt ? "text-muted-foreground" : "font-medium"}
-      >
-        {nameOf(disease, language)}
-      </span>
+      <span className={nameTone(disease)}>{nameOf(disease, language)}</span>
       {other && other !== nameOf(disease, language) ? (
         <span className="text-muted-foreground text-xs">{other}</span>
       ) : null}
@@ -96,22 +97,28 @@ const AddedByCell = ({ row }: { row: { original: DiseaseRow } }) => {
   );
 };
 
-/** The menu at the end of a disease's row: taking it off the list, which asks why. */
+/** The menu at the end of a disease's row: taking it off the list, or putting it back — each asks why. */
 const DiseaseMenu = ({ row }: { row: DiseaseRow }) => {
   const { t, language } = useLanguage();
-  const { handleTakeOff } = row;
-  if (row.retiredAt || !row.keeps) {
+  const { handleTakeOff, handlePutBack } = row;
+  if (!row.keeps) {
     return null;
   }
   return (
     <RowMenu
       actions={[
-        {
-          label: t("notifiable.retire"),
-          icon: ShieldOff,
-          destructive: true,
-          handleSelect: () => handleTakeOff(row),
-        },
+        row.retiredAt
+          ? {
+              label: t("notifiable.putBack"),
+              icon: ShieldAlert,
+              handleSelect: () => handlePutBack(row),
+            }
+          : {
+              label: t("notifiable.retire"),
+              icon: ShieldOff,
+              destructive: true,
+              handleSelect: () => handleTakeOff(row),
+            },
       ]}
       label={t("notifiable.rowActions", { name: nameOf(row, language) })}
     />
@@ -130,7 +137,7 @@ const diseaseColumns = column.columns([
     header: listHeader("notifiable.name"),
     cell: DiseaseNameCell,
   }),
-  column.accessor((disease) => (disease.retiredAt ? 1 : 0), {
+  column.accessor(retiredLast, {
     id: "standing",
     header: listHeader("notifiable.col.status"),
     cell: StandingCell,
@@ -160,11 +167,7 @@ const DiseaseCard = ({ row }: { row: DiseaseRow }) => {
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={row.retiredAt ? "text-muted-foreground" : "font-medium"}
-          >
-            {nameOf(row, language)}
-          </span>
+          <span className={nameTone(row)}>{nameOf(row, language)}</span>
           <Standing disease={row} />
         </div>
         {row.note ? <p className="text-sm">{row.note}</p> : null}
@@ -258,44 +261,53 @@ const AddDiseaseDialog = ({
   );
 };
 
-/** Taking a disease off the list, in a dialog that asks why: the reason is the farm's answer when somebody asks. */
-const TakeOffDialog = ({
+/** Taking a disease off the list, or putting it back, in a dialog that asks why: the reason is the farm's answer
+ *  when somebody asks. */
+const ChangeDialog = ({
   disease,
+  back,
   onOpenChange,
 }: {
   disease: Disease | null;
+  /** Putting it back on the list, rather than taking it off. */
+  back: boolean;
   onOpenChange: (open: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
   const refused = useRefused();
   const [why, setWhy] = useState("");
+  const done = (word: "notifiable.takenOff" | "notifiable.putBackDone") => ({
+    onSuccess: () => {
+      toast.success(t(word));
+      setWhy("");
+      onOpenChange(false);
+    },
+    onError: refused,
+  });
   const retire = useMutation(
-    orpc.notifiable.retire.mutationOptions({
-      onSuccess: () => {
-        toast.success(t("notifiable.takenOff"));
-        onOpenChange(false);
-      },
-      onError: refused,
-    })
+    orpc.notifiable.retire.mutationOptions(done("notifiable.takenOff"))
   );
+  const putBack = useMutation(
+    orpc.notifiable.bringBack.mutationOptions(done("notifiable.putBackDone"))
+  );
+  const act = back ? putBack : retire;
+  const label = back ? t("notifiable.putBack") : t("notifiable.retire");
   return (
     <FormDialog
-      description={t("notifiable.takeOffHint")}
+      description={
+        back ? t("notifiable.putBackHint") : t("notifiable.takeOffHint")
+      }
       onOpenChange={onOpenChange}
       onSubmit={() => {
         if (disease) {
-          retire.mutate({ id: disease.id, reason: why.trim() });
+          act.mutate({ id: disease.id, reason: why.trim() });
         }
       }}
       open={disease !== null}
-      pending={retire.isPending}
+      pending={act.isPending}
       ready={disease !== null && why.trim() !== ""}
-      submitLabel={t("notifiable.retire")}
-      title={
-        disease
-          ? `${t("notifiable.retire")} — ${nameOf(disease, language)}`
-          : ""
-      }
+      submitLabel={label}
+      title={disease ? `${label} — ${nameOf(disease, language)}` : ""}
     >
       <FormField id="disease-why" label={t("notifiable.why")}>
         <Input
@@ -337,8 +349,11 @@ const NotifiablePage = () => {
   // A vet called in for a visit reads the list; keeping it is the farm's own people's.
   const keeps = me.data !== undefined && me.data.scopes.vet?.kind !== "cases";
   const [adding, setAdding] = useState(false);
-  /** Which disease is being taken off: its dialog asks why. */
-  const [comingOff, setComingOff] = useState<Disease | null>(null);
+  /** Which disease is being taken off the list or put back on it: its dialog asks why. */
+  const [changing, setChanging] = useState<{
+    disease: Disease;
+    back: boolean;
+  } | null>(null);
 
   const addButton = keeps ? (
     <Button onClick={() => setAdding(true)} type="button">
@@ -361,7 +376,9 @@ const NotifiablePage = () => {
             rows={list.data.map((disease) => ({
               ...disease,
               keeps,
-              handleTakeOff: setComingOff,
+              handleTakeOff: (one) =>
+                setChanging({ disease: one, back: false }),
+              handlePutBack: (one) => setChanging({ disease: one, back: true }),
             }))}
           />
         ) : (
@@ -372,12 +389,13 @@ const NotifiablePage = () => {
       {keeps ? (
         <>
           <AddDiseaseDialog onOpenChange={setAdding} open={adding} />
-          <TakeOffDialog
-            disease={comingOff}
-            key={comingOff?.id ?? "none"}
+          <ChangeDialog
+            back={changing?.back ?? false}
+            disease={changing?.disease ?? null}
+            key={changing?.disease.id ?? "none"}
             onOpenChange={(open) => {
               if (!open) {
-                setComingOff(null);
+                setChanging(null);
               }
             }}
           />

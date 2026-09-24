@@ -19,6 +19,7 @@ import { approvalOf, roundTaka, termsUnchanged } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
+import { nameTaken } from "./names";
 import { tell } from "./notice";
 
 /** The standard Categories: the one each record's money falls under, and the ones the rest of a dairy
@@ -143,9 +144,20 @@ export const mayBeChargedToAnimals = (category: {
   category.direction === "out" &&
   !(category.key !== null && NEVER_THE_ANIMALS.has(category.key));
 
-/** Whether this Bangla name is one of the standard Categories', which the farm's own may not take. */
-export const isStandardName = (nameBn: string): boolean =>
-  Object.values(CATEGORIES).some((one) => one.nameBn === nameBn);
+/** Whether one of the standard Categories goes by either of these names — which the farm's own may not take, in
+ *  either language, whatever the capitals. */
+export const isStandardName = (names: {
+  bn: string;
+  en?: string | null;
+}): boolean =>
+  nameTaken(
+    Object.entries(CATEGORIES).map(([key, one]) => ({
+      id: key,
+      nameBn: one.nameBn,
+      nameEn: one.nameEn,
+    })),
+    names
+  );
 
 /** The standard Categories this farm does not have yet. */
 export const missingStandardCategories = async (
