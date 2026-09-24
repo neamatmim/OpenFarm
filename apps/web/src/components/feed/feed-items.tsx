@@ -3,9 +3,18 @@ import { FEED_UNITS, feedUnitOf, feedUnitWord } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
-import { useMutation } from "@tanstack/react-query";
-import { Archive, Package, Plus, Wheat } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Archive,
+  ArchiveRestore,
+  ListPlus,
+  Package,
+  Pencil,
+  Plus,
+  Wheat,
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   ActionsHeader,
@@ -16,6 +25,7 @@ import {
 } from "@/components/data-table";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import {
+  ConfirmDialog,
   FormDialog,
   FormField,
   NativeSelect,
@@ -29,8 +39,11 @@ import type { FeedItemRow } from "./feed-types";
 
 interface ItemRow extends FeedItemRow {
   handleRetire: (id: string) => void;
+  handleBringBack: (id: string) => void;
+  handleRename: (item: FeedItemRow) => void;
   handleSetBagSize: (item: FeedItemRow) => void;
   retiring: boolean;
+  bringingBack: boolean;
 }
 
 const NameCell = ({ row }: { row: { original: ItemRow } }) => (
@@ -72,17 +85,35 @@ const UnitCell = ({ row }: { row: { original: ItemRow } }) => (
   </span>
 );
 
-/** The menu at the end of a Feed Item's row: what its bags weigh, for feed weighed in kilos, and retiring it —
- *  rather than removing it, because a Ration that fed it still names it. */
+/** The menu at the end of a Feed Item's row: its names, what its bags weigh for feed weighed in kilos, and retiring
+ *  it — rather than removing it, because a Ration that fed it still names it. A retired one may be brought back. */
 const ItemMenu = ({ row }: { row: ItemRow }) => {
   const { t } = useLanguage();
-  const { handleRetire, handleSetBagSize } = row;
+  const { handleRetire, handleBringBack, handleRename, handleSetBagSize } = row;
+  const label = t("feed.itemActions", { name: row.nameBn });
   if (row.retiredAt) {
-    return null;
+    return (
+      <RowMenu
+        actions={[
+          {
+            label: t("feed.bringBack"),
+            icon: ArchiveRestore,
+            handleSelect: () => handleBringBack(row.id),
+            disabled: row.bringingBack,
+          },
+        ]}
+        label={label}
+      />
+    );
   }
   return (
     <RowMenu
       actions={[
+        {
+          label: t("feed.rename"),
+          icon: Pencil,
+          handleSelect: () => handleRename(row),
+        },
         ...(feedUnitOf(row.unit) === "kg"
           ? [
               {
@@ -100,7 +131,7 @@ const ItemMenu = ({ row }: { row: ItemRow }) => {
           disabled: row.retiring,
         },
       ]}
-      label={t("feed.itemActions", { name: row.nameBn })}
+      label={label}
     />
   );
 };
@@ -299,14 +330,131 @@ const AddItemDialog = ({
   );
 };
 
+/** A Feed Item's names put right, in a dialog that starts from the names it has. */
+const RenameItemDialog = ({
+  item,
+  onClose,
+}: {
+  item: FeedItemRow | null;
+  onClose: () => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused();
+  const [name, setName] = useState(item?.nameBn ?? "");
+  const [english, setEnglish] = useState(item?.nameEn ?? "");
+  const rename = useMutation(
+    orpc.feed.renameItem.mutationOptions({
+      onSuccess: onClose,
+      onError: refused,
+    })
+  );
+  return (
+    <FormDialog
+      description={t("feed.renameHint")}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+      onSubmit={() => {
+        if (item) {
+          rename.mutate({
+            id: item.id,
+            name: {
+              bn: name.trim(),
+              ...(english.trim() ? { en: english.trim() } : {}),
+            },
+          });
+        }
+      }}
+      open={item !== null}
+      pending={rename.isPending}
+      ready={name.trim() !== ""}
+      submitLabel={t("common.save")}
+      title={t("feed.renameTitle", { name: item?.nameBn ?? "" })}
+    >
+      <FormField id="feed-rename" label={t("sop.bangla")}>
+        <Input
+          id="feed-rename"
+          onChange={(event) => setName(event.target.value)}
+          required
+          value={name}
+        />
+      </FormField>
+      <FormField id="feed-rename-en" label={t("feed.english")}>
+        <Input
+          id="feed-rename-en"
+          onChange={(event) => setEnglish(event.target.value)}
+          value={english}
+        />
+      </FormField>
+    </FormDialog>
+  );
+};
+
+/**
+ * The standard feeds the farm does not have yet, a button away while there are any: what they are is said before they
+ * are added, and a feed the farm already calls by one of their names stays the farm's.
+ */
+const useStandardFeeds = () => {
+  const { t, language } = useLanguage();
+  const refused = useRefused();
+  const missing = useQuery(orpc.feed.standardMissing.queryOptions());
+  const [asking, setAsking] = useState(false);
+  const add = useMutation(
+    orpc.feed.addStandardItems.mutationOptions({
+      onSuccess: (done) => {
+        toast.success(
+          t("feed.addedStandard", {
+            count: formatNumber(done.added.length, language),
+          })
+        );
+        setAsking(false);
+      },
+      onError: refused,
+    })
+  );
+  const names = (missing.data ?? []).map((one) =>
+    language === "bn" ? one.bn : one.en
+  );
+  const button =
+    names.length > 0 ? (
+      <Button onClick={() => setAsking(true)} type="button" variant="outline">
+        <ListPlus aria-hidden data-icon="inline-start" />
+        {t("feed.addStandard")}
+      </Button>
+    ) : null;
+  const dialog = (
+    <ConfirmDialog
+      confirmLabel={t("feed.addStandard")}
+      description={t("feed.addStandardHint", { names: names.join(", ") })}
+      onConfirm={() => add.mutate()}
+      onOpenChange={setAsking}
+      open={asking}
+      pending={add.isPending}
+      title={t("feed.addStandardTitle", {
+        count: formatNumber(names.length, language),
+      })}
+    />
+  );
+  return { button, dialog };
+};
+
 /** The farm's Feed Items: what it feeds, in what unit, and whether it still does. */
 export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
   const { t } = useLanguage();
   const refused = useRefused();
   const [adding, setAdding] = useState(false);
   const [bagFor, setBagFor] = useState<FeedItemRow | null>(null);
+  const [renaming, setRenaming] = useState<FeedItemRow | null>(null);
+  const standard = useStandardFeeds();
   const retireItem = useMutation(
     orpc.feed.retireItem.mutationOptions({
+      onError: refused,
+    })
+  );
+  const bringBack = useMutation(
+    orpc.feed.bringBackItem.mutationOptions({
       onError: refused,
     })
   );
@@ -315,18 +463,24 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
     data: items.map((item) => ({
       ...item,
       handleRetire: (id: string) => retireItem.mutate({ id }),
+      handleBringBack: (id: string) => bringBack.mutate({ id }),
+      handleRename: setRenaming,
       handleSetBagSize: setBagFor,
       retiring: retireItem.isPending,
+      bringingBack: bringBack.isPending,
     })),
     getRowId: (row) => row.id,
   });
   return (
     <Section
       action={
-        <Button onClick={() => setAdding(true)} type="button">
-          <Plus aria-hidden data-icon="inline-start" />
-          {t("feed.addItem")}
-        </Button>
+        <>
+          {standard.button}
+          <Button onClick={() => setAdding(true)} type="button">
+            <Plus aria-hidden data-icon="inline-start" />
+            {t("feed.addItem")}
+          </Button>
+        </>
       }
       description={t("feed.itemsDescription")}
       title={t("feed.items")}
@@ -337,6 +491,13 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
         <DataTable card={itemCard} minWidth="32rem" table={table} />
       )}
       <AddItemDialog onOpenChange={setAdding} open={adding} />
+      {/* Keyed by the feed, so the boxes start from its names and never another's. */}
+      <RenameItemDialog
+        item={renaming}
+        key={renaming?.id ?? "none"}
+        onClose={() => setRenaming(null)}
+      />
+      {standard.dialog}
       <BagSizeDialog
         item={bagFor}
         key={bagFor?.id ?? "none"}

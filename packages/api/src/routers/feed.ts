@@ -7,6 +7,7 @@ import {
   ration,
 } from "@OpenFarm/db/schema/feed";
 import {
+  STANDARD_FEED_ITEMS,
   findBandProblems,
   findRationProblems,
   isByWeight,
@@ -27,6 +28,7 @@ import {
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { leftoversOf } from "../leftover-store";
+import { nameTaken } from "../names";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -34,6 +36,7 @@ import {
   requireRole,
 } from "../roles";
 import { requirePenInScope } from "../scope";
+import { feedsNotHad, startWithStandard } from "../standard-store";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -94,6 +97,42 @@ const readRation = async (tx: Tx, rationId: string) => {
     : null;
 };
 
+/** A feed of this farm's, retired or not, or a refusal: a trail that records a change to something the farm does not
+ *  have is a trail that lies. */
+const requireFeedItem = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  id: string
+) => {
+  const existing = await db.query.feedItem.findFirst({
+    where: { id, farmId },
+    columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
+  });
+  if (!existing) {
+    throw new ORPCError("NOT_FOUND", { message: "No such feed" });
+  }
+  return existing;
+};
+
+/** Refuses a name another of the farm's feeds already goes by, in either language. */
+const assertFeedNameFree = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  name: { bn: string; en?: string },
+  exceptId?: string
+) => {
+  const others = await tx.query.feedItem.findMany({
+    where: { farmId },
+    columns: { id: true, nameBn: true, nameEn: true },
+  });
+  if (nameTaken(others, name, exceptId)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "The farm already has a feed by that name",
+      data: { refusal: "feed_item_exists" },
+    });
+  }
+};
+
 export const feedRouter = {
   /** The farm's Feed Items. A retired one is kept: a Ration that fed it still names it. */
   items: protectedProcedure
@@ -138,8 +177,9 @@ export const feedRouter = {
             bagSizeKg: input.bagSizeKg ?? null,
           },
         },
-        (tx) =>
-          tx.insert(feedItem).values({
+        async (tx) => {
+          await assertFeedNameFree(tx, context.farm.id, input.name);
+          await tx.insert(feedItem).values({
             id,
             farmId: context.farm.id,
             nameBn: input.name.bn,
@@ -149,7 +189,8 @@ export const feedRouter = {
               input.bagSizeKg === undefined ? null : String(input.bagSizeKg),
             createdBy: context.actor.id,
             createdAt: now,
-          })
+          });
+        }
       );
       return { id, name: input.name, unit: input.unit };
     }),
@@ -317,6 +358,103 @@ export const feedRouter = {
             )
       );
       return { id: input.id };
+    }),
+
+  /** Puts a feed's names right. A Ration, a purchase and a count name the feed, not its words, so each follows. */
+  renameItem: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ id: z.string(), name: bilingual }))
+    .handler(async ({ context, input }) => {
+      const existing = await requireFeedItem(
+        context.db,
+        context.farm.id,
+        input.id
+      );
+      await audited(context).write(
+        {
+          entity: "feed_item",
+          entityId: existing.id,
+          action: "update",
+          before: { nameBn: existing.nameBn, nameEn: existing.nameEn },
+          after: { nameBn: input.name.bn, nameEn: input.name.en ?? null },
+        },
+        async (tx) => {
+          await assertFeedNameFree(
+            tx,
+            context.farm.id,
+            input.name,
+            existing.id
+          );
+          await tx
+            .update(feedItem)
+            .set({ nameBn: input.name.bn, nameEn: input.name.en ?? null })
+            .where(eq(feedItem.id, existing.id));
+        }
+      );
+      return { id: existing.id };
+    }),
+
+  /** Brings a retired feed back onto the list a Ration, a purchase and a count choose from. */
+  bringBackItem: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const existing = await requireFeedItem(
+        context.db,
+        context.farm.id,
+        input.id
+      );
+      if (existing.retiredAt === null) {
+        return { id: existing.id };
+      }
+      await audited(context).write(
+        {
+          entity: "feed_item",
+          entityId: existing.id,
+          action: "update",
+          before: { nameBn: existing.nameBn, retiredAt: existing.retiredAt },
+          after: { nameBn: existing.nameBn, retiredAt: null },
+        },
+        (tx) =>
+          tx
+            .update(feedItem)
+            .set({ retiredAt: null })
+            .where(eq(feedItem.id, existing.id))
+      );
+      return { id: existing.id };
+    }),
+
+  /**
+   * The standard feeds the farm does not have yet — the ones the Owner may start the farm with — added as if by hand,
+   * each with its line in the trail. A feed the farm already calls by one of their names, in either language, is left as
+   * the farm's; asked twice, the second adds nothing. The Manager's too, since keeping the list of feeds is.
+   */
+  /** The standard feeds the farm does not have yet, by their names: what adding them would add. */
+  standardMissing: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const have = await context.db.query.feedItem.findMany({
+        where: { farmId: context.farm.id },
+        columns: { id: true, nameBn: true, nameEn: true },
+      });
+      return feedsNotHad(have).map((key) => STANDARD_FEED_ITEMS[key]);
+    }),
+
+  addStandardItems: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const added = await startWithStandard(
+        context.db,
+        audited(context).recordEvent,
+        {
+          farmId: context.farm.id,
+          actorId: context.actor.id,
+          roleUsed: context.roleUsed,
+          now: context.clock.now(),
+        },
+        ["feed"]
+      );
+      return { added: added.feedItems };
     }),
 
   /**

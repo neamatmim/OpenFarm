@@ -1535,6 +1535,16 @@ export const en = {
   "feed.retire": "Retire",
   "feed.retired": "Retired",
   "feed.bringBack": "Bring back",
+  "feed.rename": "Rename",
+  "feed.renameTitle": "Rename {name}",
+  "feed.renameHint":
+    "Every Ration, purchase and count of this feed takes the new name.",
+  "feed.addStandard": "Add the standard feeds",
+  "feed.addStandardTitle":
+    "Add {count, plural, one {# standard feed} other {# standard feeds}}?",
+  "feed.addStandardHint":
+    "These are added: {names}. What they cost, how much is in the store and what their bags weigh stay yours to set.",
+  "feed.addedStandard": "{count, plural, one {# feed} other {# feeds}} added",
   "feed.rationActions": "What to do with {name}",
   "feed.retireRationBusy":
     "Pens are fed on it — put them on another ration first",
@@ -1905,6 +1915,7 @@ export const en = {
   "refusal.wageNeedsMonth": "A wage names the month it pays for",
   "refusal.monthIsForWages": "Only a wage pays for a month",
   "refusal.categoryExists": "The farm already has that Category",
+  "refusal.feedItemExists": "The farm already has a feed by that name",
   "refusal.categoryRetired": "That Category is retired",
   "refusal.categoryKeptByRecords":
     "That Category's money comes from its own record",

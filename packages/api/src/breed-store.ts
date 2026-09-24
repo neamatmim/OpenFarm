@@ -6,12 +6,7 @@ import { STANDARD_BREED_KEYS, STANDARD_BREEDS } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
-
-/** A breed's two names, lower-cased, the way two spellings of it are compared. */
-const namesOf = (one: { nameBn: string; nameEn: string | null }) =>
-  [one.nameBn, one.nameEn]
-    .filter((name): name is string => Boolean(name))
-    .map((name) => name.trim().toLowerCase());
+import { nameTaken, namesOf } from "./names";
 
 /** A refusal about the list, worded on the screen by its word. */
 export const refusedBreed = (message: string, refusal: string) =>
@@ -106,19 +101,11 @@ export const assertNameFree = async (
   names: { nameBn: string; nameEn?: string | null },
   exceptId?: string
 ) => {
-  const wanted = namesOf({
-    nameBn: names.nameBn,
-    nameEn: names.nameEn ?? null,
-  });
   const others = await tx.query.breed.findMany({
     where: { farmId },
     columns: { id: true, nameBn: true, nameEn: true },
   });
-  const clash = others.some(
-    (one) =>
-      one.id !== exceptId && namesOf(one).some((name) => wanted.includes(name))
-  );
-  if (clash) {
+  if (nameTaken(others, { bn: names.nameBn, en: names.nameEn }, exceptId)) {
     throw refusedBreed("The farm already has that breed", "breed_exists");
   }
 };
