@@ -153,7 +153,6 @@ export const investmentAgreement = pgTable(
   ]
 );
 
-/** The photo of a stamped Investment Agreement. One per Agreement, kept as the Farm's proof of it. */
 /**
  * One paper amending a Venture's Agreements: the terms it changed, the day everybody signed it, and the
  * photograph of it.
@@ -210,7 +209,8 @@ export const amendmentPaper = pgTable("amendment_paper", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-/** The photo of a stamped Investment Agreement, kept beside the paper it is a picture of. */
+/** The photo of a stamped Investment Agreement, kept beside the paper it is a picture of: one per Agreement, the
+ *  Farm's proof of it. */
 export const agreementPaper = pgTable("agreement_paper", {
   agreementId: text("agreement_id")
     .primaryKey()

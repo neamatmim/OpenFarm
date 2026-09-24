@@ -21,7 +21,7 @@ import {
   StatusBadge,
 } from "@/components/page";
 import { FilterBar } from "@/components/page-kit";
-import { useLanguage, useT } from "@/i18n/language-provider";
+import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
 
@@ -56,7 +56,10 @@ const Amount = ({ value, unit }: { value: number; unit: string }) => {
 };
 
 /** What to do about it, where there is something to do: give less where it is wasted, look where nothing is ever left. */
-const whyOf = (row: LeftoverRow, t: ReturnType<typeof useT>): string | null => {
+const whyOf = (
+  row: LeftoverRow,
+  t: ReturnType<typeof useLanguage>["t"]
+): string | null => {
   if (row.standing === "all_eaten") {
     return t("leftovers.why.all_eaten");
   }

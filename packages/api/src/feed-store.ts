@@ -184,11 +184,60 @@ const feedingTargetFor = (
   }));
 
 /**
- * Everything a Pen's feeding session is worked out from: the Ration Version in force at that
- * moment, the animals standing there, and how often the Playbook feeds them. Null when the
- * Pen is on no Ration, or when nothing in the Playbook feeds it yet — both are things a
- * screen should say rather than dress up as a zero.
+ * How often the Playbook feeds this Pen: the schedule of the SOP that does the feeding. Said
+ * in one place, so a Ration and a schedule cannot disagree about it — if they could, every
+ * bucket would be wrong by the ratio between them and the working would still look right.
+ *
+ * Null when nothing in the Playbook feeds anything yet.
  */
+const sessionsPerDayForPen = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string,
+  penId: string
+): Promise<number | null> => {
+  const definitions = await db.query.sopDefinition.findMany({
+    where: { farmId, retiredAt: { isNull: true } },
+    orderBy: { createdAt: "asc" },
+    with: {
+      currentVersion: { columns: { content: true } },
+      // The Pen's own feeding work, so a farm with more than one feeding routine answers for
+      // the routine that actually feeds this Pen rather than for whichever was written first.
+      instances: {
+        where: { penId },
+        columns: { id: true },
+        limit: 1,
+      },
+    },
+  });
+  const feeders = definitions.filter((definition) => {
+    const content = definition.currentVersion?.content as
+      | SopContent
+      | undefined;
+    return Boolean(
+      content?.steps.some((step) => step.effect?.kind === "feeding")
+    );
+  });
+  const mine = feeders.find((definition) => definition.instances.length > 0);
+  const chosen = mine ?? feeders[0];
+  return chosen
+    ? sessionsPerDayOf(chosen.currentVersion?.content as SopContent)
+    : null;
+};
+
+/** The farm's Feed Items by id, for putting names and units on a Ration's figures. */
+const feedsById = async (
+  db: Pick<Database, "query"> | Tx,
+  farmId: string
+): Promise<Map<string, FeedNamed>> => {
+  const rows = await db.query.feedItem.findMany({
+    where: { farmId },
+    columns: { id: true, nameBn: true, unit: true },
+  });
+  return new Map(
+    rows.map((row) => [row.id, { nameBn: row.nameBn, unit: row.unit }])
+  );
+};
+
 /**
  * What a Pen is owed at one feeding, and what each line of it is called.
  *
@@ -196,6 +245,9 @@ const feedingTargetFor = (
  * sessions and the Feed Items' names all worked out behind it. Those were exported once and nothing
  * outside this file ever asked for them: an interface of seven where two were wanted, and five ways to
  * get half an answer.
+ *
+ * Null when the Pen is on no Ration, or when nothing in the Playbook feeds it yet — both are things a screen should
+ * say rather than dress up as a zero.
  */
 export const feedingTargetForPen = async (
   db: Pick<Database, "query"> | Tx,
@@ -251,59 +303,4 @@ export const feedingTargetForPen = async (
       sessionsPerDay
     ),
   };
-};
-
-/**
- * How often the Playbook feeds this Pen: the schedule of the SOP that does the feeding. Said
- * in one place, so a Ration and a schedule cannot disagree about it — if they could, every
- * bucket would be wrong by the ratio between them and the working would still look right.
- *
- * Null when nothing in the Playbook feeds anything yet.
- */
-const sessionsPerDayForPen = async (
-  db: Pick<Database, "query"> | Tx,
-  farmId: string,
-  penId: string
-): Promise<number | null> => {
-  const definitions = await db.query.sopDefinition.findMany({
-    where: { farmId, retiredAt: { isNull: true } },
-    orderBy: { createdAt: "asc" },
-    with: {
-      currentVersion: { columns: { content: true } },
-      // The Pen's own feeding work, so a farm with more than one feeding routine answers for
-      // the routine that actually feeds this Pen rather than for whichever was written first.
-      instances: {
-        where: { penId },
-        columns: { id: true },
-        limit: 1,
-      },
-    },
-  });
-  const feeders = definitions.filter((definition) => {
-    const content = definition.currentVersion?.content as
-      | SopContent
-      | undefined;
-    return Boolean(
-      content?.steps.some((step) => step.effect?.kind === "feeding")
-    );
-  });
-  const mine = feeders.find((definition) => definition.instances.length > 0);
-  const chosen = mine ?? feeders[0];
-  return chosen
-    ? sessionsPerDayOf(chosen.currentVersion?.content as SopContent)
-    : null;
-};
-
-/** The farm's Feed Items by id, for putting names and units on a Ration's figures. */
-const feedsById = async (
-  db: Pick<Database, "query"> | Tx,
-  farmId: string
-): Promise<Map<string, FeedNamed>> => {
-  const rows = await db.query.feedItem.findMany({
-    where: { farmId },
-    columns: { id: true, nameBn: true, unit: true },
-  });
-  return new Map(
-    rows.map((row) => [row.id, { nameBn: row.nameBn, unit: row.unit }])
-  );
 };
