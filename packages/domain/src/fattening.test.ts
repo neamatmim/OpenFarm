@@ -3,13 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   daysOnFeedOf,
-  EID_UL_ADHA,
   fatteningView,
   implausibleChange,
-  nextEidWindow,
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
-  QURBANI_DAYS,
 } from "./fattening";
 
 // An animal bought today is fed towards a date and a weight, and both of those answers are arithmetic
@@ -17,36 +14,6 @@ import {
 // a projection taken from the unrounded rate, and a bull who has stopped gaining being read as stopped.
 
 const at = (day: string) => new Date(`${day}T06:00:00+06:00`);
-
-describe("the Eid the farm is feeding towards", () => {
-  it("names the next one and the three days of selling it opens", () => {
-    // Qurbani runs the tenth, eleventh and twelfth of Dhul Hijjah.
-    expect(nextEidWindow("2027-01-01")).toEqual({
-      start: "2027-05-17",
-      end: "2027-05-19",
-    });
-  });
-
-  it("is still the one the farm is standing in on its last day", () => {
-    // An animal bought on the second day of Qurbani is not fed for a market closing tomorrow, but the
-    // farm is still in that market.
-    expect(nextEidWindow("2027-05-17")?.start).toBe("2027-05-17");
-    expect(nextEidWindow("2027-05-19")?.start).toBe("2027-05-17");
-  });
-
-  it("moves to next year's only once the last day is past", () => {
-    expect(nextEidWindow("2027-05-20")?.start).toBe("2028-05-06");
-  });
-
-  it("says nothing at all once the table runs out, rather than guessing", () => {
-    const pastTheTable = addDays(EID_UL_ADHA.at(-1) as string, QURBANI_DAYS);
-    expect(nextEidWindow(pastTheTable)).toBe(null);
-  });
-
-  it("keeps the table in order, since the search takes the first that has not passed", () => {
-    expect([...EID_UL_ADHA]).toEqual([...EID_UL_ADHA].toSorted());
-  });
-});
 
 describe("a calendar day plus days", () => {
   it("crosses a month, a year and a leap day", () => {

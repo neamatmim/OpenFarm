@@ -1,4 +1,3 @@
-import { farmDayOf, nextEidWindow } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
@@ -6,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { EidBasisBadge, useNextEid } from "@/components/fattening/next-eid";
 import { Notice, Section } from "@/components/page";
 import { PAYMENT_METHOD_WORD } from "@/components/payment-method";
 import { useLanguage } from "@/i18n/language-provider";
@@ -53,19 +53,24 @@ const TargetWeight = ({ typed }: { typed: string }) => {
 /** The Target Window the animal will be fed for: the days typed, or the next Eid-ul-Adha. */
 const TargetWindow = ({ fields }: { fields: IntakeFields }) => {
   const { t, language } = useLanguage();
+  const eid = useNextEid();
   if (fields.targetWindowStart !== "" && fields.targetWindowEnd !== "") {
     return `${dayWords(fields.targetWindowStart, language)} – ${dayWords(
       fields.targetWindowEnd,
       language
     )}`;
   }
-  const eid = nextEidWindow(farmDayOf(new Date()));
-  return eid
-    ? t("intake.nextEid", {
+  return eid ? (
+    <span className="inline-flex flex-wrap items-center justify-end gap-2">
+      {t("intake.nextEid", {
         from: dayWords(eid.start, language),
         to: dayWords(eid.end, language),
-      })
-    : "—";
+      })}
+      <EidBasisBadge basis={eid.basis} />
+    </span>
+  ) : (
+    "—"
+  );
 };
 
 /** What the price and the weight say together: taka a kilo off the lorry. */

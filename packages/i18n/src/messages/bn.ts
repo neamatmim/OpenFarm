@@ -2616,6 +2616,32 @@ export const bn: Record<MessageKey, string> = {
   "intake.farmsOwn": "খামারের নির্ধারিত লক্ষ্য ওজন",
   "intake.farmsTarget": "{kg} কেজি — খামারের নির্ধারিত",
   "intake.nextEid": "{from} – {to} — আগামী ঈদুল আজহা",
+  "eid.title": "আগামী ঈদুল আজহা",
+  "eid.basis.announced": "ঘোষিত",
+  "eid.basis.expected": "প্রত্যাশিত",
+  "eid.basis.estimated": "আনুমানিক",
+  "eid.basisHint.announced": "চাঁদ দেখা কমিটি যে দিন ঘোষণা করেছে।",
+  "eid.basisHint.expected":
+    "খামারের তালিকায় যে দিন আশা করা হয়েছে। চাঁদ দেখা কমিটি ঘোষণা দিলে দিনটা লিখে দিন।",
+  "eid.basisHint.estimated":
+    "খামারের তালিকা শেষ, তাই এটা ক্যালেন্ডার থেকে আন্দাজ। ঘোষণা এলে দিনটা লিখে দিন।",
+  "eid.daysToGo": "আর {days} দিন",
+  "eid.qurbaniOn": "কোরবানি চলছে",
+  "eid.announce": "ঘোষিত দিন লিখুন",
+  "eid.announceHint":
+    "চাঁদ দেখা কমিটি যে দিন ঈদ ঘোষণা করেছে। এখন থেকে যে পশু আসবে, সে এই দিনের দিকে খাবে।",
+  "eid.announceDay": "ঈদের দিন",
+  "eid.announced": "ঈদের দিন লেখা হয়েছে",
+  "eid.behind": "খামারের {count}টি পশুর বিক্রির সময় এখনো আগের আশা করা দিন ধরে আছে",
+  "eid.bringAlong": "ঘোষিত দিনে সরান",
+  "eid.broughtAlong": "{count}টি পশুর বিক্রির সময় ঘোষিত দিনে সরানো হয়েছে",
+  "eid.inVentures":
+    "ভেঞ্চারের {count}টি পশুর সময় আগের মতোই থাকবে: ভেঞ্চারের সময় বদলায় কেবল বিনিয়োগকারীদের সই করা সংশোধনী দিয়ে।",
+  "refusal.notAnEid": "এই দিনে খামারের আশা করা কোনো ঈদুল আজহা নেই। সালটা দেখে নিন।",
+  "refusal.eidNotAnnounced": "এই ঈদের ঘোষিত দিন এখনো কেউ লেখেনি",
+  "refusal.noEidAhead":
+    "এত দূরের ঈদের তারিখ খামারের জানা নেই। বিক্রির দিনগুলো নিজে লিখুন।",
+  "audit.entity.eid_announcement": "ঈদের ঘোষিত দিন",
   "intake.stillNeeded": "এখনো পূরণ করতে হবে",
   "intake.windowHalf":
     "বিক্রির সময়ের দুটি তারিখই দিন, শুরুরটি আগে — নয়তো দুটিই খালি রাখুন।",

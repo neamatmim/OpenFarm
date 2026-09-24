@@ -96,6 +96,30 @@ export const intake = pgTable(
 );
 
 /**
+ * The day Bangladesh's moon sighting committee announced for an Eid-ul-Adha, as the Farm wrote it in. It stands in for
+ * the day the farm expected, so every animal bought afterwards is fed towards it.
+ *
+ * Never updated: a second announcement for the same Eid — a day typed wrong — is another row, and the latest for an
+ * Eid is the one in force. The earlier ones are kept because the animals aimed at them are still to be brought along.
+ */
+export const eidAnnouncement = pgTable(
+  "eid_announcement",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    /** The first day of Qurbani, as announced. */
+    day: text("day").notNull(),
+    /** The day the farm expected this Eid on before anybody announced it: which Eid this is. */
+    expectedDay: text("expected_day").notNull(),
+    announcedBy: text("announced_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [index("eid_announcement_idx").on(table.farmId, table.expectedDay)]
+);
+
+/**
  * One Animal taken on one Selling Trip. A recorded fact and never derived from who sold: the lorry carried
  * her whether or not anybody bought her, and that is what her share is for.
  */

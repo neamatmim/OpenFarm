@@ -160,6 +160,14 @@ An SOP-driven operations system for a single cattle farm in Bangladesh that both
 
 **Average Daily Gain**: Kilogrammes an Animal puts on in a day, worked out between two Weigh-ins or between its Intake and its latest Weigh-in. The Farm reads both: the gap between them is how it sees a Ration that has stopped working. Derived, never entered. _Avoid_: ADG on its own (say it in full), growth rate
 
+**Eid-ul-Adha**: The market the Fattening side is fed towards. Its three days of Qurbani start on 10 Dhul Hijjah, which Bangladesh's moon sighting committee fixes. The Farm's day for it is one of three:
+
+- **announced**: the committee's day, written in by the Owner or the Manager;
+- **expected**: from the app's list, kept a decade ahead;
+- **estimated**: past the end of the list, the Umm al-Qura calendar's day plus one.
+
+Every screen says which it is. Writing in the announced day moves no Animal by itself. The Farm's own Animals still aimed at the day expected are offered the move, as their own act. A Venture's Animals are not offered it, because a Venture's Target Window moves only by an **Amendment**. _Avoid_: Eid date as a fixed fact, Qurbani (the sacrifice, not the date)
+
 **Target Window**: The period in which the Farm intends to sell an Animal — by default the next Eid-ul-Adha. Drives projected weight and the Ready-for-Sale suggestion. _Avoid_: Sale date, deadline
 
 **Ready for Sale**: The State an Animal enters when the Manager confirms it may be sold. Suggested by the system when target weight is reached or the Target Window opens; impossible under meat Withdrawal, whichever way it is asked for. _Avoid_: Finished, market-ready, matured

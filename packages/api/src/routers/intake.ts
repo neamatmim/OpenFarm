@@ -1,7 +1,7 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { intake } from "@OpenFarm/db/schema/fattening";
 import { SEXES } from "@OpenFarm/db/schema/herd";
-import { farmDayOf, nextEidWindow } from "@OpenFarm/domain";
+import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -9,6 +9,7 @@ import { audited } from "../audit";
 import { correct } from "../corrections/correction";
 import { intakeCorrection, intakeCorrectionInput } from "../corrections/intake";
 import { counterpartyNamed } from "../counterparty-store";
+import { farmsNextEid } from "../eid-store";
 import { farmDay } from "../farm-clock";
 import { insertAnimal } from "../herd-store";
 import { protectedProcedure } from "../index";
@@ -113,16 +114,17 @@ export const intakeRouter = {
           message: "An animal cannot have arrived tomorrow",
         });
       }
-      // The next Eid-ul-Adha, which is what a fattening animal is bought for unless the Manager
-      // is selling into some other market.
+      // The next Eid-ul-Adha — the day announced, where the farm has written one in — which is what a fattening
+      // animal is bought for unless the Manager is selling into some other market.
       const window =
         input.targetWindowStart && input.targetWindowEnd
           ? { start: input.targetWindowStart, end: input.targetWindowEnd }
-          : nextEidWindow(farmDayOf(now));
+          : await farmsNextEid(context.db, context.farm.id, farmDayOf(now));
       if (!window) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "The farm has no Eid date that far ahead; name the Target Window yourself",
+          data: { refusal: "no_eid_ahead" },
         });
       }
       const id = newId(now);

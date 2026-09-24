@@ -10,6 +10,7 @@ import { costsRouter } from "./costs";
 import { devicesRouter } from "./devices";
 import { diagnosesRouter } from "./diagnoses";
 import { drugsRouter } from "./drugs";
+import { eidRouter } from "./eid";
 import { farmRouter } from "./farm";
 import { fatteningRouter } from "./fattening";
 import { feedRouter } from "./feed";
@@ -53,6 +54,7 @@ export const appRouter = {
   devices: devicesRouter,
   diagnoses: diagnosesRouter,
   drugs: drugsRouter,
+  eid: eidRouter,
   farm: farmRouter,
   fattening: fatteningRouter,
   feed: feedRouter,
