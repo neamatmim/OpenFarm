@@ -11,13 +11,20 @@ import {
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Archive, ArchiveRestore, Check, Copy, Pencil } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Check,
+  Copy,
+  Handshake,
+  Pencil,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import type { Investor } from "@/components/investors/investor-types";
-import { StatusBadge, TagChip } from "@/components/page";
+import { EmptyState, StatusBadge, TagChip } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
@@ -130,9 +137,12 @@ const TheirVentures = ({ investor }: { investor: Investor | null }) => {
         {t("investors.section.ventures")}
       </h3>
       {ventures.length === 0 ? (
-        <p className="text-muted-foreground mt-4 text-sm">
-          {t("investors.noVentures")}
-        </p>
+        <EmptyState
+          bare
+          className="mt-4"
+          icon={Handshake}
+          title={t("investors.noVentures")}
+        />
       ) : (
         <ul className="mt-4 flex flex-col divide-y rounded-lg border">
           {ventures.map((one) => (

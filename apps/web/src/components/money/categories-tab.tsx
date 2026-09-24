@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   Beef as Herd,
   Plus,
+  Tags,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,7 +20,7 @@ import {
   useListTable,
 } from "@/components/data-table";
 import { useIsOwner, categoryName } from "@/components/money";
-import { SegmentedControl, StatusBadge } from "@/components/page";
+import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import {
   ConfirmDialog,
   FormDialog,
@@ -291,7 +292,7 @@ export const CategoriesTab = () => {
     getRowId: (row) => row.id,
   });
   return (
-    <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+    <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground text-sm">
           {t("byHand.newCategoryHint")}
@@ -306,11 +307,15 @@ export const CategoriesTab = () => {
           {t("byHand.newCategory")}
         </Button>
       </div>
-      {categories.data ? (
-        <DataTable card={categoryCard} minWidth="36rem" table={table} />
-      ) : (
+      {categories.data === undefined ? (
         <Skeleton className="h-40 rounded-lg" />
-      )}
+      ) : null}
+      {categories.data?.length === 0 ? (
+        <EmptyState bare icon={Tags} title={t("byHand.noCategories")} />
+      ) : null}
+      {categories.data?.length ? (
+        <DataTable card={categoryCard} minWidth="36rem" table={table} />
+      ) : null}
       <AddCategoryDialog onOpenChange={setAdding} open={adding} />
       <ConfirmDialog
         confirmLabel={t("byHand.retire")}

@@ -17,7 +17,6 @@ import { authClient } from "@/lib/auth-client";
 
 import Loader from "./loader";
 
-
 const SignInForm = ({
   onSwitchToSignUp,
   onForgotPassword,
@@ -62,14 +61,12 @@ const SignInForm = ({
     validators: {
       onSubmit: z.object({
         email: z.email(t("auth.invalidEmail")),
-        password: z
-          .string()
-          .min(
-            PASSWORD_MIN_LENGTH,
-            t("auth.passwordTooShort", {
-              min: formatNumber(PASSWORD_MIN_LENGTH, language),
-            })
-          ),
+        password: z.string().min(
+          PASSWORD_MIN_LENGTH,
+          t("auth.passwordTooShort", {
+            min: formatNumber(PASSWORD_MIN_LENGTH, language),
+          })
+        ),
       }),
     },
   });
@@ -79,7 +76,7 @@ const SignInForm = ({
   }
 
   return (
-    <div className="bg-card flex flex-col gap-6 rounded-2xl border p-6 shadow-sm sm:p-8">
+    <div className="surface flex flex-col gap-6 p-6 sm:p-8">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("auth.welcomeBack")}

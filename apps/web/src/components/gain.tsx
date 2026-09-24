@@ -135,8 +135,10 @@ export const WeightAgainstTarget = ({
 export const TwoProjections = ({ view }: { view: FatteningView }) => {
   const { t, language } = useLanguage();
   return (
-    <section className="surface space-y-2 p-4">
-      <h2 className="text-lg font-semibold">{t("gain.title")}</h2>
+    <section className="surface space-y-2 p-4 md:p-5">
+      <h2 className="text-base font-semibold tracking-tight">
+        {t("gain.title")}
+      </h2>
       <p className="text-muted-foreground text-sm">
         {/* Each of these is left out rather than shown blank: an animal born here has no
             arrival to count days from and nobody has said what it is being fed towards. */}

@@ -142,7 +142,7 @@ export const ConcludedTab = ({
 }) => {
   const { t } = useLanguage();
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <Loaded query={mine}>
         {mine.data?.length ? (
           <ul className="divide-border flex flex-col divide-y">

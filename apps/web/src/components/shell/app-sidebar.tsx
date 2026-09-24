@@ -52,7 +52,7 @@ export const AppSidebar = ({
           onClick={close}
           to="/"
         >
-          <span className="bg-sidebar-primary text-sidebar-primary-foreground grid size-9 shrink-0 place-items-center rounded-lg shadow-sm">
+          <span className="bg-sidebar-primary text-sidebar-primary-foreground grid size-9 shrink-0 place-items-center rounded-lg">
             <Sprout aria-hidden className="size-5" />
           </span>
           <span className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">

@@ -42,7 +42,7 @@ export const ForgotPasswordForm = ({ onDone }: { onDone: () => void }) => {
     newPassword.length >= PASSWORD_MIN_LENGTH;
 
   return (
-    <div className="bg-card flex flex-col gap-6 rounded-2xl border p-6 shadow-sm sm:p-8">
+    <div className="surface flex flex-col gap-6 p-6 sm:p-8">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("auth.forgotTitle")}

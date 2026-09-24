@@ -183,7 +183,7 @@ const SetupPage = () => {
     return (
       <Page width="narrow">
         <div className="surface mx-auto mt-8 flex w-full max-w-md flex-col items-center gap-4 p-8 text-center">
-          <span className="bg-success-surface text-success grid size-14 place-items-center rounded-2xl">
+          <span className="bg-success-surface text-success grid size-14 place-items-center rounded-xl">
             <CircleCheck aria-hidden className="size-7" />
           </span>
           <p className="text-lg font-semibold">{t("setup.done")}</p>

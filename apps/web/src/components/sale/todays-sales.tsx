@@ -259,7 +259,7 @@ export const TodaysSales = ({
 
   if (sold.length === 0) {
     return (
-      <div className="bg-card rounded-xl border p-4 md:p-5">
+      <div className="surface p-4 md:p-5">
         <EmptyState bare icon={ReceiptText} title={t("sale.noneToday")} />
       </div>
     );
@@ -274,7 +274,7 @@ export const TodaysSales = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+      <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <p className="text-muted-foreground no-print border-b pb-4 text-sm">
           {t("sale.todayHint")}
         </p>

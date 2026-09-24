@@ -46,7 +46,7 @@ export const MilkRecordsTab = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+      <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <p className="text-muted-foreground text-sm">
           {t("dispatch.reportsHint")}
         </p>

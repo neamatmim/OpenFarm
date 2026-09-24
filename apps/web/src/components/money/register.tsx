@@ -436,7 +436,7 @@ export const RegisterTab = ({
   const nothingInPeriod = events.length === 0;
   const nothingFiltered = !nothingInPeriod && shown.length === 0;
   return (
-    <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+    <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <RegisterFilters
         categories={categories}
         filters={filters}

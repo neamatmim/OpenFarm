@@ -473,7 +473,7 @@ export const FarmParameters = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1 pt-2">
-        <h2 className="inline-flex items-center gap-2 text-lg font-semibold md:text-xl">
+        <h2 className="inline-flex items-center gap-2 text-base font-semibold tracking-tight">
           <SlidersHorizontal
             aria-hidden
             className="text-muted-foreground size-5"

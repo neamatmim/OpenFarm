@@ -290,7 +290,7 @@ export const AnimalProfile = ({
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <h1 className="font-mono text-3xl leading-none font-bold tabular-nums md:text-4xl">
+            <h1 className="font-mono text-2xl leading-none font-semibold tabular-nums md:text-3xl">
               {detail.tagNumber}
             </h1>
             <StateBadge state={detail.state} />

@@ -30,7 +30,7 @@ import type {
 } from "@/components/feed/feed-types";
 import { standingOf, valueOf } from "@/components/feed/feed-types";
 import { ReceiveFeedSheet } from "@/components/feed/receive-feed-sheet";
-import { Page, PageHeader } from "@/components/page";
+import { Loaded, Page, PageHeader } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
@@ -168,11 +168,13 @@ const FeedPage = () => {
             icon: Warehouse,
             count: shortOf(lines),
             content: (
-              <StockTab
-                lines={lines}
-                mayRecord={mayRecord}
-                onReceive={(feedItemId) => setReceiving({ feedItemId })}
-              />
+              <Loaded query={stock}>
+                <StockTab
+                  lines={lines}
+                  mayRecord={mayRecord}
+                  onReceive={(feedItemId) => setReceiving({ feedItemId })}
+                />
+              </Loaded>
             ),
           },
           {
@@ -180,11 +182,13 @@ const FeedPage = () => {
             label: t("feed.tab.arrivals"),
             icon: Truck,
             content: (
-              <ArrivalsTab
-                arrivals={arrivals.data ?? []}
-                items={feedItems}
-                mayCorrect={mayRecord}
-              />
+              <Loaded query={arrivals}>
+                <ArrivalsTab
+                  arrivals={arrivals.data ?? []}
+                  items={feedItems}
+                  mayCorrect={mayRecord}
+                />
+              </Loaded>
             ),
           },
           {
@@ -192,10 +196,12 @@ const FeedPage = () => {
             label: t("feed.tab.counts"),
             icon: ClipboardList,
             content: (
-              <CountsTab
-                adjustments={adjustments.data ?? []}
-                items={feedItems}
-              />
+              <Loaded query={adjustments}>
+                <CountsTab
+                  adjustments={adjustments.data ?? []}
+                  items={feedItems}
+                />
+              </Loaded>
             ),
           },
           // What the feed left in the trough cost, so the Owner's and the Manager's, as the farm's money is.
@@ -214,19 +220,25 @@ const FeedPage = () => {
             label: t("feed.tab.rations"),
             icon: Utensils,
             content: (
-              <RationsTab
-                items={feedItems}
-                mayEdit={mayRecord}
-                pens={pens}
-                rations={(rations.data ?? []) as RationRow[]}
-              />
+              <Loaded query={rations}>
+                <RationsTab
+                  items={feedItems}
+                  mayEdit={mayRecord}
+                  pens={pens}
+                  rations={(rations.data ?? []) as RationRow[]}
+                />
+              </Loaded>
             ),
           },
           {
             value: "items",
             label: t("feed.tab.items"),
             icon: Wheat,
-            content: <ItemsTab items={feedItems} />,
+            content: (
+              <Loaded query={items}>
+                <ItemsTab items={feedItems} />
+              </Loaded>
+            ),
           },
         ]}
         value={tab}

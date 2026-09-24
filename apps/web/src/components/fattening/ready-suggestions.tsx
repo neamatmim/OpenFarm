@@ -241,7 +241,7 @@ export const ReadySuggestions = ({
     getRowId: (row) => row.id,
   });
   return (
-    <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+    <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <FilterBar className="border-b pb-4 sm:justify-between">
         <SegmentedControl
           label={t("ready.col.why")}

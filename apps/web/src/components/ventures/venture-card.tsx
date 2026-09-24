@@ -600,10 +600,7 @@ export const VentureCard = ({
   bare?: boolean;
 }) => (
   <div
-    className={cn(
-      "flex flex-col gap-3 text-sm",
-      !bare && "bg-card rounded-xl border p-4 md:p-5"
-    )}
+    className={cn("flex flex-col gap-3 text-sm", !bare && "surface p-4 md:p-5")}
   >
     <div className="flex items-start justify-between gap-3">
       <h3 className="text-base font-semibold tracking-tight">

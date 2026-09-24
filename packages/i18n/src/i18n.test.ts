@@ -7,6 +7,7 @@ import {
   numberAsTyped,
 } from "./format";
 import { resolveLanguage } from "./languages";
+import { en } from "./messages/en";
 import { findTranslationGaps, translate } from "./translate";
 
 describe("language resolution", () => {
@@ -61,6 +62,39 @@ describe("messages", () => {
     expect(translate("en", "dashboard.welcome", { name: "Rahim" })).toBe(
       "Welcome, Rahim"
     );
+  });
+
+  it("says one of a thing in the singular and any other number in the plural, in English", () => {
+    expect(translate("en", "herd.penCount", { count: 1 })).toBe("1 pen");
+    expect(translate("en", "herd.penCount", { count: 0 })).toBe("0 pens");
+    expect(translate("en", "herd.penCount", { count: 1234 })).toBe(
+      "1,234 pens"
+    );
+    // A screen that formatted the figure itself still gets the right word.
+    expect(translate("en", "herd.penCount", { count: "1" })).toBe("1 pen");
+    expect(translate("bn", "herd.penCount", { count: 1 })).toBe("১টি পেন");
+  });
+
+  it("no English message puts a bare count before a word that changes with it", () => {
+    // "{name} is" is a name, not a count: these are the words that follow one.
+    const notACount = new Set([
+      "is",
+      "was",
+      "has",
+      "needs",
+      "says",
+      "this",
+      "ends",
+    ]);
+    const countThenPlural =
+      /\{(?<name>\w+)\} (?:more |new |expired |common |[A-Z]\w+ )?(?<word>[A-Za-z]+s)\b/gu;
+    const bare = Object.entries(en).flatMap(([key, message]) =>
+      [...message.matchAll(countThenPlural)]
+        .filter((match) => !notACount.has(match.groups?.word ?? ""))
+        .map((match) => `${key}: ${match[0]}`)
+    );
+
+    expect(bare).toEqual([]);
   });
 
   it("Bangla covers every English key with no strays", () => {

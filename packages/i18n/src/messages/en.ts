@@ -58,8 +58,10 @@ export const en = {
   "auth.showPassword": "Show password",
   "auth.hidePassword": "Hide password",
   "auth.refused": "Could not sign you in",
-  "auth.passwordTooShort": "Password must be at least {min} characters",
-  "auth.nameTooShort": "Name must be at least {min} characters",
+  "auth.passwordTooShort":
+    "Password must be at least {min, plural, one {# character} other {# characters}}",
+  "auth.nameTooShort":
+    "Name must be at least {min, plural, one {# character} other {# characters}}",
   "common.loading": "Loading…",
   "nav.people": "People & access",
   "people.everybody": "Everybody",
@@ -69,7 +71,7 @@ export const en = {
   "people.standing.gone": "No longer here",
   "people.standing.waitingForTheOwner": "Waiting for the Owner",
   "people.standing.waitingToSignUp": "Waiting to sign up",
-  "people.pensHeld": "{count} pens",
+  "people.pensHeld": "{count, plural, one {# pen} other {# pens}}",
   "people.col.pens": "Pens",
   "people.signedInOn": "Signed in on",
   "people.signedInNowhere": "Not signed in anywhere",
@@ -167,13 +169,13 @@ export const en = {
     "Tick what the farm starts with instead of an empty store. Anything it already has by name is left as it is, and all of it can be changed later.",
   "setup.standard.feed": "Feed Items",
   "setup.standard.feedHint":
-    "{count} common feeds, in kg — no prices, no stock",
+    "{count, plural, one {# common feed} other {# common feeds}}, in kg — no prices, no stock",
   "setup.standard.rations": "Rations",
   "setup.standard.rationsHint":
-    "{count} Rations, not yet fed to any Pen. They bring the Feed Items they name.",
+    "{count, plural, one {# Ration} other {# Rations}}, not yet fed to any Pen. They bring the Feed Items they name.",
   "setup.standard.health": "Drug List and notifiable diseases",
   "setup.standard.healthHint":
-    "{drugs} medicines for the Vet to finish with their withdrawal days, and the {diseases} diseases the DLS must be told of",
+    "{drugs, plural, one {# medicine} other {# medicines}} for the Vet to finish with their withdrawal days, and the {diseases, plural, one {# disease} other {# diseases}} the DLS must be told of",
   "setup.standard.playbook":
     "The standard procedures wait in the Playbook, for you to read and publish one at a time.",
   "setup.standard.start": "Start with these",
@@ -298,9 +300,10 @@ export const en = {
   "ventures.perUnit": "A Unit takes",
   "ventures.rounding": "Left over, to the Farm",
   "ventures.theFarms": "The Farm's",
-  "ventures.unitsHeld": "{units} Units",
+  "ventures.unitsHeld": "{units, plural, one {# Unit} other {# Units}}",
   "ventures.unpricedKg": "{kg} kg at no price",
-  "ventures.uncostedDoses": "{doses} doses nothing costs",
+  "ventures.uncostedDoses":
+    "{doses, plural, one {# dose} other {# doses}} nothing costs",
   "ventures.neverRead": "never read: {months}",
   "ventures.wentStale": "gone stale: {months}",
   "ventures.didNotAgree": "did not agree: {months}",
@@ -324,7 +327,8 @@ export const en = {
     "The Units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
   "ventures.signed": "The Agreement is recorded",
   "ventures.signedFor": "Signed for",
-  "ventures.unitsOfUnits": "{taken} of {units} Units · {people} in",
+  "ventures.unitsOfUnits":
+    "{taken} of {units, plural, one {# Unit} other {# Units}} · {people} in",
   "ventures.investor": "Investor",
   "ventures.investorHint":
     "Recorded once, on the Investors page, and used for every Venture they join",
@@ -378,7 +382,7 @@ export const en = {
   "ventures.ofTheFloor": "of a {floor} Floor",
   "ventures.signedWithoutPaper":
     "Signed, but the paper's photo did not save; add it from Capital in",
-  "ventures.unitsLeft": "{left} Units left",
+  "ventures.unitsLeft": "{left, plural, one {# Unit} other {# Units}} left",
   "ventures.nobodyLeftToSign":
     "Everybody on file has signed this Venture already: add the next Investor on the Investors page first",
   "ventures.buyingStarted": "The Venture is buying",
@@ -390,7 +394,7 @@ export const en = {
   "ventures.capitalHint":
     "Money arriving for {venture}, against the paper the Investor signed. By bank only.",
   "ventures.capitalTaken": "The capital is recorded",
-  "ventures.holdsUnits": "{units} Units",
+  "ventures.holdsUnits": "{units, plural, one {# Unit} other {# Units}}",
   "ventures.capitalLeft": "{taka} left to pay in",
   /** The way back from signing without the stamped photo: without it capital is refused for good, and
    *  one Investor may hold only one Agreement per Venture, so there is no signing again. */
@@ -780,10 +784,10 @@ export const en = {
   "investors.stillIn":
     "Their money is in a Venture still running, so they cannot be retired until it settles or is called off.",
   "investors.nomineeIs": "Nominee: {name}",
-  "investors.holds": "{units} Units",
+  "investors.holds": "{units, plural, one {# Unit} other {# Units}}",
   "investors.none": "No Investor is recorded yet",
   "investors.nearingTheCap":
-    "{standing} Investors of the {cap} the farm may have",
+    "{standing, plural, one {# Investor} other {# Investors}} of the {cap} the farm may have",
   "investors.capWhy":
     "Twenty people in one business for gain is a company. The farm counts everyone in a Venture that has not settled or been called off, and will not take one more.",
   "investors.inARun": "In a running Venture",
@@ -891,7 +895,8 @@ export const en = {
   "audit.filterWho": "Who",
   "audit.everybody": "Everybody",
   "audit.clearFilters": "Clear filters",
-  "audit.latest": "The latest {count} events for these filters, newest first.",
+  "audit.latest":
+    "{count, plural, one {The latest event} other {The latest # events}} for these filters, newest first.",
   "audit.details": "Details",
   "audit.changedFields": "What changed",
   "audit.noFields": "No single field to show — the whole record is below.",
@@ -1073,15 +1078,16 @@ export const en = {
   "herd.noShedsHint": "Add the farm's first shed, then the pens inside it.",
   "herd.subtitle":
     "The farm's buildings and the pens inside them. Renaming keeps every animal where it is.",
-  "herd.animalCount": "{count} animals",
+  "herd.animalCount": "{count, plural, one {# animal} other {# animals}}",
   "herd.import": "Opening register",
   "herd.importHelp":
     "Paste the CSV: tag, sex, side, state, pen, source, breed, alias, expected_calving (YYYY-MM-DD, for a cow already in calf). tag is the number on her ear tag, like D-0001; left blank, she is given the next number",
   "herd.importRun": "Import",
   "herd.imported": "{count} imported",
-  "herd.failedRows": "{count} rows could not be imported",
+  "herd.failedRows":
+    "{count, plural, one {# row} other {# rows}} could not be imported",
   "herd.line": "Line {line}",
-  "herd.penCount": "{count} pens",
+  "herd.penCount": "{count, plural, one {# pen} other {# pens}}",
   "herd.noPens": "No pens in this shed yet",
   "herd.col.pen": "Pen",
   "herd.col.animals": "Animals",
@@ -1091,7 +1097,7 @@ export const en = {
   "herd.importRows": "Rows",
   "animals.subtitle":
     "Every animal on the farm you work, by her Tag Number. Type to narrow; press Find to open.",
-  "animals.count": "{count} animals",
+  "animals.count": "{count, plural, one {# animal} other {# animals}}",
   "animals.searchPlaceholder": "Tag Number, e.g. D-0001",
   "animals.milkHeld": "Milk held",
   "animals.meatHeld": "Meat held",
@@ -1152,8 +1158,9 @@ export const en = {
   "animals.filter.clear": "Clear filters",
   "animals.filter.open": "Filters",
   "animals.age": "Age",
-  "animals.ageYears": "{years} years {months} months",
-  "animals.ageWholeYears": "{years} years",
+  "animals.ageYears":
+    "{years, plural, one {# year} other {# years}} {months, plural, one {# month} other {# months}}",
+  "animals.ageWholeYears": "{years, plural, one {# year} other {# years}}",
   "animals.ageEstimated": "about {age}",
   "animals.bornAround": "around {month}",
   "animals.more": "More",
@@ -1177,7 +1184,7 @@ export const en = {
   "observations.title": "What the rounds have seen",
   "observations.all": "Everything",
   "observations.none": "Nothing has been noticed in the last few days",
-  "observations.days": "Last {days} days",
+  "observations.days": "Last {days, plural, one {# day} other {# days}}",
   "observations.col.saw": "Seen",
   "observations.col.when": "When",
   "observations.col.by": "Seen by",
@@ -1213,7 +1220,8 @@ export const en = {
   "device.add": "Enrol a phone",
   "device.name": "Phone name",
   "device.code": "Enrolment code",
-  "device.codeHelp": "Type this code into the phone within {minutes} minutes",
+  "device.codeHelp":
+    "Type this code into the phone within {minutes, plural, one {# minute} other {# minutes}}",
   "device.claimed": "In use",
   "device.unclaimed": "Waiting to be set up",
   "device.revoked": "Revoked",
@@ -1392,7 +1400,8 @@ export const en = {
     "In the order they are done. Each step says what is recorded.",
   "sop.editor.noSteps": "No steps yet — add the first",
   "sop.editor.ready": "Ready",
-  "sop.editor.blocked": "{count} things to put right",
+  "sop.editor.blocked":
+    "{count, plural, one {# thing} other {# things}} to put right",
   "sop.editor.publishHint": "Publishing makes a new Version of this procedure.",
   "sop.editor.proposeHint":
     "Your change goes to the Owner, who publishes it or turns it down.",
@@ -1424,11 +1433,13 @@ export const en = {
   "changed.steps_reordered": "The order of the steps has changed",
   "changed.purpose_changed": "The purpose has changed",
   "changed.times_changed": "Times changed: {times}",
-  "changed.grace_changed": "Grace is now {minutes} minutes",
+  "changed.grace_changed":
+    "Grace is now {minutes, plural, one {# minute} other {# minutes}}",
   "changed.who_changed": "Now done by: {role}",
   "changed.checker_changed": "Now signed off by: {role}",
   "alerts.sopProposed": "{sop} — a change proposed",
-  "digest.sopProposed": "{count} proposals waiting",
+  "digest.sopProposed":
+    "{count, plural, one {# proposal} other {# proposals}} waiting",
   "alerts.sopPublished": "{sop} — new version {number}",
   "common.pages": "Pages",
   "common.pager": "{from}–{to} of {total}",
@@ -1449,11 +1460,11 @@ export const en = {
   "feed.tab.items": "Feed Items",
   "feed.tab.leftovers": "Leftovers",
   "leftovers.summary":
-    "In the last {days} days the pens left feed worth {worth} uneaten.",
+    "In the last {days, plural, one {# day} other {# days}} the pens left feed worth {worth} uneaten.",
   "leftovers.hint":
     "What each pen left of each feed, and what it cost. More than {percent}% left means the ration gives more of it than they eat.",
   "leftovers.period": "Days to read",
-  "leftovers.days": "{days} days",
+  "leftovers.days": "{days, plural, one {# day} other {# days}}",
   "leftovers.none": "No feeding was written down in these days.",
   "leftovers.col.pen": "Pen",
   "leftovers.col.feed": "Feed",
@@ -1462,7 +1473,8 @@ export const en = {
   "leftovers.col.worth": "What it cost",
   "leftovers.col.standing": "Standing",
   "leftovers.share": "{percent}% left",
-  "leftovers.sessions": "Some left at {left} of {sessions} feedings",
+  "leftovers.sessions":
+    "Some left at {left} of {sessions, plural, one {# feeding} other {# feedings}}",
   "leftovers.unpriced": "Not priced",
   "leftovers.standing.wasting": "Given too much",
   "leftovers.standing.all_eaten": "Nothing ever left",
@@ -1479,14 +1491,14 @@ export const en = {
   "feed.kpi.value": "Store value",
   "feed.kpi.valueHint": "At average price",
   "feed.kpi.bought": "Bought this month",
-  "feed.kpi.boughtHint": "{count} lots",
+  "feed.kpi.boughtHint": "{count, plural, one {# lot} other {# lots}}",
   "feed.itemsDescription":
     "What the farm feeds. A retired Feed Item stays named in the Rations that fed it.",
   "feed.rationsDescription":
     "Each Ration is a day's feed — each line for every animal, or for every 100 kg it weighs. Choose here which Pen is on which.",
   "feed.targetDescription":
     "This session's feed for the Pen you choose, worked out from the animals standing in it.",
-  "feed.rationLines": "{count} Feed Items",
+  "feed.rationLines": "{count, plural, one {# Feed Item} other {# Feed Items}}",
   "feed.editRation": "Edit Ration",
   "feed.inUse": "In use",
   "feed.col.status": "Status",
@@ -1538,7 +1550,8 @@ export const en = {
     "{perHundred} {unit} per 100 kg × {weight} kg ÷ {sessions} a day",
   "feed.herdWeight": "The pen weighs {weight} kg — {weighed} weighed",
   "feed.herdUnweighed": "{unweighed} not weighed, counted at the average",
-  "feed.herdOldest": "oldest weight {days} days old",
+  "feed.herdOldest":
+    "oldest weight {days, plural, one {# day} other {# days}} old",
   "feed.weighFirst": "Weigh the pen first",
   "work.typeWhatWentOut":
     "Nobody in this pen has been weighed, so this has no target — type what you gave.",
@@ -1555,9 +1568,10 @@ export const en = {
     "What one of its bags weighs, so an arrival can be written in bags. Leave it blank if it is not bought by the bag.",
   "feed.itemActions": "What to do with {name}",
   "feed.version": "Version {number}",
-  "feed.pensOn": "On {count} pens",
+  "feed.pensOn": "On {count, plural, one {# pen} other {# pens}}",
   "feed.target": "This session's target",
-  "feed.working": "{headcount} animals × {perAnimal} {unit} ÷ {sessions} a day",
+  "feed.working":
+    "{headcount, plural, one {# animal} other {# animals}} × {perAnimal} {unit} ÷ {sessions} a day",
   "feed.noItems": "Add a feed item first",
   "stock.recordArrival": "Record feed in",
   "stock.sheetDescription":
@@ -1595,7 +1609,7 @@ export const en = {
   "stock.purchase": "Bought",
   "stock.harvest": "From our own fields",
   "stock.quantity": "How much ({unit})",
-  "stock.maunds": "about {maunds} maunds",
+  "stock.maunds": "about {maunds, plural, one {# maund} other {# maunds}}",
   "stock.boughtAs": "bought as {count} {pack}",
   "stock.comesTo": "{quantity} {unit} in all",
   "stock.countedIn": "Counted in",
@@ -1670,8 +1684,10 @@ export const en = {
   "dispatch.thatDay": "Handed over that day",
   "dispatch.noneThatDay": "No milk handed over that day",
   "dispatch.day": "Day",
-  "dispatch.toBulk": "{litres} litres into the tank",
-  "dispatch.dispatched": "{litres} litres handed over",
+  "dispatch.toBulk":
+    "{litres, plural, one {# litre} other {# litres}} into the tank",
+  "dispatch.dispatched":
+    "{litres, plural, one {# litre} other {# litres}} handed over",
   "dispatch.litres": "litres",
   "dispatch.record": "Milk handed over",
   "dispatch.when": "When it left (empty: now)",
@@ -1695,11 +1711,13 @@ export const en = {
   "dispatch.recordAction": "Record milk handed over",
   "dispatch.sheetDescription":
     "Milk from the tank handed to a buyer. Its price goes to the money register.",
-  "dispatch.worth": "{litres} litres × ৳{price} = ৳{taka}",
+  "dispatch.worth":
+    "{litres, plural, one {# litre} other {# litres}} × ৳{price} = ৳{taka}",
   "dispatch.dayBefore": "Day before",
   "dispatch.dayAfter": "Day after",
   "dispatch.tab.mismatches": "Tank mismatches",
-  "dispatch.kpi.handedOverHint": "{count} dispatches · ৳{taka}",
+  "dispatch.kpi.handedOverHint":
+    "{count, plural, one {# dispatch} other {# dispatches}} · ৳{taka}",
   "dispatch.kpi.mismatchesHint": "Waiting for you to look",
   "dispatch.reportsHint":
     "Choose the dates, then print the dispatch record a processor or BFSA asks for, or save the figures as a CSV.",
@@ -1749,6 +1767,7 @@ export const en = {
   "selling.transport": "Lorry, both ways",
   "selling.keep": "Stall, food and lodging",
   "selling.whoWent": "Who went",
+  "selling.nobodyToTake": "No animal on the fattening side to take",
   "selling.recordTrip": "Record the outing",
   "selling.tripRecorded": "The outing is written up",
   "selling.pastTrips": "Outings lately",
@@ -1779,12 +1798,13 @@ export const en = {
   "lots.expiresSoon": "Expires soon",
   "lots.col.lot": "Lot and expiry",
   "drugs.col.stock": "In stock",
-  "drugs.expiredOnHand": "{doses} doses past their day",
+  "drugs.expiredOnHand":
+    "{doses, plural, one {# dose past its day} other {# doses past their day}}",
   "drugs.col.level": "Low-stock level",
   "drugs.col.lastBought": "Last bought",
   "stock.expiredLeft": "{quantity} {unit} past its day",
   "stock.col.lastIn": "Last came in",
-  "drugs.dosesOnHand": "{doses} doses",
+  "drugs.dosesOnHand": "{doses, plural, one {# dose} other {# doses}}",
   "drugs.runningLow": "Running low",
   "drugs.setLowStock": "Set the low-stock level",
   "drugs.whatWasBought": "What was bought",
@@ -1797,7 +1817,7 @@ export const en = {
   "drugs.boughtOn": "Bought on",
   "drugs.recordPurchase": "Record the purchase",
   "drugs.bought": "Purchase recorded",
-  "drugs.dosesHeld": "{doses} doses",
+  "drugs.dosesHeld": "{doses, plural, one {# dose} other {# doses}}",
   "vetFee.title": "My visit fee",
   "vetFee.amount": "Fee (৳)",
   "vetFee.visitedOn": "Visit day",
@@ -1851,6 +1871,7 @@ export const en = {
   "byHand.wageFor": "wage for {month}",
   "byHand.retired": "Retired",
   "byHand.categoryName": "Name",
+  "byHand.noCategories": "No categories yet",
   "byHand.newCategoryHint":
     "A heading for money the farm enters by hand. One no longer used is retired, never removed.",
   "refusal.wageAlreadyEntered":
@@ -1885,7 +1906,7 @@ export const en = {
   "costs.unpricedNote":
     "{amount} kg of home-grown fodder was fed at no price, and costs nothing here",
   "costs.uncostedNote":
-    "{amount} doses were of medicine the farm had not bought, and are not costed",
+    "{amount, plural, one {# dose was of medicine the farm had not bought, and is not costed} other {# doses were of medicine the farm had not bought, and are not costed}}",
   "costs.strayHerdNote":
     "৳{amount} was spent on the animals of a Side in a month when none were standing there, and is charged to nobody",
   "costs.strayTripNote":
@@ -2035,14 +2056,15 @@ export const en = {
   "home.withdrawal": "Under withdrawal",
   "home.pens": "Pen by pen",
   "home.progress": "{done} of {raised} done",
-  "home.animalsIn": "{count} animals",
+  "home.animalsIn": "{count, plural, one {# animal} other {# animals}}",
   "home.allClear": "Nothing needs you right now",
   "home.nothingRaised": "The day's work has not been raised yet",
   "nav.theDay": "Farm today",
   "owner.approvals": "Waiting on you",
   "owner.escalated": "Escalated to you",
   "owner.discardToday": "Discarded today",
-  "owner.average": "{litres} litres on an average day",
+  "owner.average":
+    "{litres, plural, one {# litre} other {# litres}} on an average day",
   "owner.noNote": "No reason given",
   "owner.subtitle":
     "What only you can decide, then how the farm is doing today.",
@@ -2056,7 +2078,7 @@ export const en = {
   "owner.endingWithdrawal": "Withdrawal ending",
   "owner.bulkToday": "To the tank today",
   "owner.week": "The last seven milkings",
-  "owner.litres": "{litres} litres",
+  "owner.litres": "{litres, plural, one {# litre} other {# litres}}",
   "owner.noRecord": "nothing recorded",
   "owner.weekTitle": "Milk to the tank, last 7 days",
   "owner.lossesTitle": "Lost in the last 30 days",
@@ -2067,7 +2089,7 @@ export const en = {
   "owner.inAndOut": "In {in} · out {out}",
   "owner.herd": "Animals on the farm",
   "owner.bySide": "Dairy {dairy} · fattening {fattening}",
-  "owner.entries": "{count} entries",
+  "owner.entries": "{count, plural, one {# entry} other {# entries}}",
   "owner.moneyTotal": "Total {taka}",
   "owner.onTheFarm": "On the farm today",
   "owner.onTheFarmHint": "The Manager is on these; they are here so you know.",
@@ -2148,35 +2170,45 @@ export const en = {
     "{tag} — her milk withdrawal is ending. See the farm app.",
   "sms.notifiableDiagnosis":
     "{tag} — {disease}. Must be reported to DLS without delay. See the farm app.",
-  "alerts.entryRejected": "{count} entries the farm could not take — {reason}",
-  "digest.entryRejected": "{count} entries not taken",
+  "alerts.entryRejected":
+    "{count, plural, one {# entry} other {# entries}} the farm could not take — {reason}",
+  "digest.entryRejected":
+    "{count, plural, one {# entry} other {# entries}} not taken",
   "push.entryRejectedTitle": "An entry was not taken",
   "push.entryRejectedBody": "Some of what you sent could not be recorded",
   "alerts.withdrawalChanged": "{tag} — her withdrawal has changed",
-  "digest.withdrawalChanged": "{count} withdrawals changed",
-  "digest.lowStock": "{count} feeds running low",
+  "digest.withdrawalChanged":
+    "{count, plural, one {# withdrawal} other {# withdrawals}} changed",
+  "digest.lowStock":
+    "{count, plural, one {# feed} other {# feeds}} running low",
   "digest.investorStatementDue":
-    "{count} Ventures owe their Investors a statement",
-  "digest.moneyAwaiting": "{count} Money Events awaiting your approval",
+    "{count, plural, one {# Venture owes its Investors a statement} other {# Ventures owe their Investors a statement}}",
+  "digest.moneyAwaiting":
+    "{count, plural, one {# Money Event} other {# Money Events}} awaiting your approval",
   "alerts.moneyAwaiting": "৳{amount} for {category} is awaiting your approval",
   "alerts.lowStock": "{feed} is running low — {onHand} {unit} left",
   "alerts.lotExpiring":
     "{item}, Lot {lot}: expires on {date}, with {left} left",
   "alerts.lotExpired":
     "{item}, Lot {lot}: expired on {date}, and {left} is still in the store",
-  "alerts.medicineLowStock": "{item} is running low: {onHand} doses left",
+  "alerts.medicineLowStock":
+    "{item} is running low: {onHand, plural, one {# dose} other {# doses}} left",
   "alerts.expiredDoseGiven":
     "{tag} was given {item} from Lot {lot}, which expired on {date}",
-  "digest.lotExpiring": "{count} Lots expiring soon",
-  "digest.lotExpired": "{count} expired Lots still in the store",
-  "digest.medicineLowStock": "{count} medicines running low",
-  "digest.expiredDoseGiven": "{count} doses given from expired Lots",
+  "digest.lotExpiring":
+    "{count, plural, one {# Lot} other {# Lots}} expiring soon",
+  "digest.lotExpired":
+    "{count, plural, one {# expired Lot} other {# expired Lots}} still in the store",
+  "digest.medicineLowStock":
+    "{count, plural, one {# medicine} other {# medicines}} running low",
+  "digest.expiredDoseGiven":
+    "{count, plural, one {# dose} other {# doses}} given from expired Lots",
   "push.expiredDoseTitle": "Expired medicine given",
   "push.expiredDoseBody": "{tag} was given medicine from an expired Lot",
   "params.expiryWarn": "Warn of a Lot expiring, this many days before",
   "drugs.doseWord": "doses",
   "alerts.investorStatementDue":
-    "{venture}: {investors} Investors are due their progress statement ({occasion})",
+    "{venture}: {investors, plural, one {# Investor is} other {# Investors are}} due their progress statement ({occasion})",
   /** The one notice that leads somewhere: the screen where the paper it is about is made. */
   "alerts.makeThePaper": "Make the papers",
   "alerts.openTheWork": "Open the work",
@@ -2202,7 +2234,7 @@ export const en = {
   "drugs.retired": "Retired",
   "drugs.none": "Nothing on the list yet",
   "drugs.vetOnly": "Only the Vet writes the days",
-  "drugs.days": "{count} days",
+  "drugs.days": "{count, plural, one {# day} other {# days}}",
   "drugs.vaccine": "Vaccine",
   "drugs.markVaccine": "It is a vaccine",
   "drugs.unmarkVaccine": "Not a vaccine",
@@ -2231,7 +2263,8 @@ export const en = {
     "As the box and the slip say it. The money for the medicine is recorded from this.",
   "drugs.perDose": "৳{taka} per dose",
   "drugs.noneBought": "Nothing bought for this product yet",
-  "drugs.boughtSummary": "{count} purchases · ৳{taka} · {doses} doses",
+  "drugs.boughtSummary":
+    "{count, plural, one {# purchase} other {# purchases}} · ৳{taka} · {doses, plural, one {# dose} other {# doses}}",
   "vet.title": "The Vet's work",
   "vet.waiting": "Waiting for an answer",
   "vet.nothingWaiting": "Everything the rounds saw has been answered",
@@ -2274,7 +2307,8 @@ export const en = {
   "prescribe.times": "At what times",
   "prescribe.days": "For how many days",
   "prescribe.write": "Write the prescription",
-  "prescribe.written": "{doses} doses raised as work",
+  "prescribe.written":
+    "{doses, plural, one {# dose} other {# doses}} raised as work",
   "prescribe.progress": "{given} of {of} given",
   "prescribe.given": "given by {name}",
   "prescribe.owed": "not given yet",
@@ -2284,7 +2318,8 @@ export const en = {
   "prescribe.sheetHint":
     "Each dose becomes a piece of work for somebody in the shed, at the times you give.",
   "prescribe.timesHint": "Separate times with commas, like 08:00, 20:00",
-  "prescribe.dosesPreview": "{doses} doses will be raised as work",
+  "prescribe.dosesPreview":
+    "{doses, plural, one {# dose} other {# doses}} will be raised as work",
   "route.intramuscular": "Intramuscular",
   "route.intravenous": "Intravenous",
   "route.subcutaneous": "Subcutaneous",
@@ -2408,12 +2443,13 @@ export const en = {
   "home.openList": "Open the full list",
   "alerts.dismiss": "Got it",
   "alerts.instanceOverdue": "{sop} in {pen} is late",
-  "alerts.instanceEscalated": "{sop} in {pen} has been late for {hours} hours",
+  "alerts.instanceEscalated":
+    "{sop} in {pen} has been late for {hours, plural, one {# hour} other {# hours}}",
   "alerts.instanceSentBack": "{sop} in {pen} was sent back: {reason}",
   "work.overdue": "Late",
   "work.overdueTitle": "Late work",
   "work.overdueNone": "Nothing is late",
-  "work.lateFor": "Late by {hours} hours",
+  "work.lateFor": "Late by {hours, plural, one {# hour} other {# hours}}",
   "work.counted": "Counted",
   "work.countReason": "Why it differs",
   "signOff.title": "To check",
@@ -2468,8 +2504,8 @@ export const en = {
     "A {role} may put their own entry right for {span} after making it",
   "correct.windowAny":
     "A {role} may put an entry right for {span} after it was made",
-  "correct.spanHours": "{hours} hours",
-  "correct.spanDays": "{days} days",
+  "correct.spanHours": "{hours, plural, one {# hour} other {# hours}}",
+  "correct.spanDays": "{days, plural, one {# day} other {# days}}",
   "correct.notTheirs": "That is not yours to correct",
   "refusal.changedSince":
     "Someone corrected this since you opened it. Open it again to see what it says now.",
@@ -2541,9 +2577,10 @@ export const en = {
   "digest.escalated": "{count} escalated",
   "digest.sentBack": "{count} sent back",
   "digest.needsReview": "{count} needing review",
-  "digest.sopPublished": "{count} new versions",
+  "digest.sopPublished":
+    "{count, plural, one {# new version} other {# new versions}}",
   "push.digestTitle": "Today on the farm",
-  "push.digestBody": "{count} things waiting",
+  "push.digestBody": "{count, plural, one {# thing} other {# things}} waiting",
   "push.overdueTitle": "Work is late",
   "push.dayNotTurningTitle": "The farm's schedule has stopped",
   "push.dayNotTurningBody":
@@ -2574,7 +2611,8 @@ export const en = {
     "Every five minutes the server raises the day's work, tells people about late work and ending withdrawals, and carries the digest.",
   "backups.lastGood": "Last good copy {when}",
   "backups.never": "No copy has ever worked",
-  "backups.stale": "No copy for {nights} nights",
+  "backups.stale":
+    "No copy for {nights, plural, one {# night} other {# nights}}",
   "backups.ok": "Worked",
   "backups.failed": "Failed",
   "backups.none": "Nothing recorded yet",
@@ -2586,7 +2624,8 @@ export const en = {
   "backups.kpi.running": "Running",
   "backups.kpi.stopped": "Needs a look",
   "backups.kpi.failed": "Failed copies",
-  "backups.kpi.failedHint": "Of the last {count} tries",
+  "backups.kpi.failedHint":
+    "{count, plural, one {Of the last try} other {Of the last # tries}}",
   "backups.history": "Every copy tried",
   "backups.historyWhy": "Newest first, failures included.",
   "common.print": "Print",
@@ -2619,7 +2658,7 @@ export const en = {
   "sop.effect.stock_count": "Counts the store",
   "sop.effect.lot_number": "The vial's Lot Number, once for the Campaign",
   "abortion.title": "Abortions",
-  "abortion.stage": "{months} months along",
+  "abortion.stage": "{months, plural, one {# month} other {# months}} along",
   "abortion.when": "When",
   "abortion.stageMonths": "How many months along",
   "abortion.note": "Vet's note",
@@ -2628,7 +2667,8 @@ export const en = {
   "refusal.abortionOfACowNotCarrying":
     "She is not carrying, so there is no pregnancy to lose",
   "repeatBreeder.title": "Cows that will not settle",
-  "repeatBreeder.failedAttempts": "{count} heats served that did not take",
+  "repeatBreeder.failedAttempts":
+    "{count, plural, one {# heat} other {# heats}} served that did not take",
   "repeatBreeder.lastAnswer": "Last decided: {decision} — {note}",
   "repeatBreeder.decision": "Decision",
   "repeatBreeder.why": "Why",
@@ -2720,7 +2760,7 @@ export const en = {
   "intake.targetWindow": "Target Window",
   "intake.taka": "{taka} taka",
   "intake.kg": "{kg} kg",
-  "intake.months": "{months} months",
+  "intake.months": "{months, plural, one {# month} other {# months}}",
   "intake.pen": "Pen",
   "intake.penHint": "Whichever pen it goes into, it starts in Quarantine.",
   "intake.sellerName": "Seller's name",
@@ -2766,7 +2806,7 @@ export const en = {
     "The day the farm's list expects. Write the day in once the moon sighting committee announces it.",
   "eid.basisHint.estimated":
     "Past the end of the farm's list, so this is the calendar's guess. Write the day in once it is announced.",
-  "eid.daysToGo": "{days} days to go",
+  "eid.daysToGo": "{days, plural, one {# day} other {# days}} to go",
   "eid.qurbaniOn": "Qurbani is on",
   "eid.announce": "Write in the announced day",
   "eid.announceHint":
@@ -2776,9 +2816,10 @@ export const en = {
   "eid.behind":
     "{count} of the farm's animals are still aimed at the day expected before",
   "eid.bringAlong": "Move them to the announced days",
-  "eid.broughtAlong": "{count} animals moved to the announced days",
+  "eid.broughtAlong":
+    "{count, plural, one {# animal} other {# animals}} moved to the announced days",
   "eid.inVentures":
-    "{count} animals in Ventures keep their window: a Venture's window moves only by an Amendment its Investors sign.",
+    "{count, plural, one {# animal in a Venture keeps its window} other {# animals in Ventures keep their window}}: a Venture's window moves only by an Amendment its Investors sign.",
   "refusal.notAnEid":
     "That day is no Eid-ul-Adha the farm expects. Check the year.",
   "refusal.eidNotAnnounced":
@@ -2903,7 +2944,7 @@ export const en = {
   "sale.col.lastWeighed": "Last weighed",
   "sale.rowActions": "{tag} — papers",
   "sale.kpi.sold": "Sold today",
-  "sale.kpi.soldHint": "To {count} buyers",
+  "sale.kpi.soldHint": "To {count, plural, one {# buyer} other {# buyers}}",
   "sale.kpi.takings": "Taken today",
   "sale.kpi.takingsHint": "What today's buyers paid",
   "sale.kpi.perKg": "Per kg today",

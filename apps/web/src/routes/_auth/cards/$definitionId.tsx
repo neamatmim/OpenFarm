@@ -8,6 +8,7 @@ import { ArrowLeft, GraduationCap, Printer, UserCheck } from "lucide-react";
 import { useState } from "react";
 
 import {
+  EmptyState,
   Loaded,
   Page,
   RecordList,
@@ -55,7 +56,7 @@ const WallCard = ({ card }: { card: Card }) => {
 
   return (
     <article
-      className="bg-card mx-auto w-full max-w-[210mm] space-y-4 rounded-xl border p-6 shadow-sm md:p-10 print:rounded-none print:border-0 print:p-0 print:shadow-none"
+      className="bg-card mx-auto w-full max-w-[210mm] space-y-4 rounded-xl border p-6 shadow-(--surface-shadow) md:p-10 print:rounded-none print:border-0 print:p-0 print:shadow-none"
       id="sop-card"
       lang={CARD_LANGUAGE}
     >
@@ -289,9 +290,7 @@ const TrainedOn = ({
           ))}
         </RecordList>
       ) : (
-        <p className="text-muted-foreground border-t pt-3 text-sm">
-          {t("training.none")}
-        </p>
+        <EmptyState bare icon={GraduationCap} title={t("training.none")} />
       )}
     </Section>
   );

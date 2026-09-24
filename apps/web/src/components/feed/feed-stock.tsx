@@ -439,7 +439,7 @@ export const StockTab = ({
     return <EmptyState icon={Warehouse} title={t("stock.noStock")} />;
   }
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <DataTable card={stockCard} minWidth="52rem" table={table} />
       <FigureDialog
         key={`level-${levelFor?.feedItemId ?? "none"}`}

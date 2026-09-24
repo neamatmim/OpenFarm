@@ -494,8 +494,8 @@ const WorkPage = () => {
       <Page width="narrow">
         <div className="mx-auto flex w-full max-w-md flex-col gap-3">
           <BackToToday />
-          <div className="bg-card flex w-full flex-col items-center gap-5 rounded-2xl border p-6 text-center shadow-sm sm:p-8">
-            <span className="bg-secondary text-secondary-foreground grid size-16 place-items-center rounded-2xl">
+          <div className="surface flex w-full flex-col items-center gap-5 p-6 text-center sm:p-8">
+            <span className="bg-secondary text-secondary-foreground grid size-16 place-items-center rounded-xl">
               <ClipboardList aria-hidden className="size-8" />
             </span>
             <div className="flex flex-col items-center gap-1.5">
@@ -875,7 +875,7 @@ const WorkHeader = ({
     <header className="flex flex-col gap-3">
       <BackToToday />
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl leading-tight font-semibold tracking-tight md:text-3xl">
+        <h1 className="text-xl leading-tight font-semibold tracking-tight md:text-2xl">
           <SopName name={name} />
         </h1>
         <PlaceLine pen={pen} />
@@ -990,7 +990,7 @@ const AnimalTile = ({
     <button
       aria-label={`${animal.tagNumber} — ${t(label)}`}
       className={cn(
-        "bg-card hover:border-primary/40 focus-visible:ring-ring relative flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border p-3 pt-4 text-center transition-[border-color,box-shadow] duration-150 outline-none hover:shadow-md focus-visible:ring-2 active:translate-y-px",
+        "bg-card hover:border-primary/40 focus-visible:ring-ring relative flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border p-3 pt-4 text-center transition-colors duration-150 outline-none focus-visible:ring-2 active:translate-y-px",
         tile,
         held && "border-warning/50",
         next && "border-primary ring-primary/25 ring-2"

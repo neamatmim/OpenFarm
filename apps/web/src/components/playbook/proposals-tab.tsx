@@ -335,7 +335,7 @@ export const ProposalsTab = ({
     return <EmptyState icon={Inbox} title={t("sop.noProposals")} />;
   }
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <DataTable card={proposalCard} minWidth="48rem" table={table} />
       <ProposalSheet
         onOpenChange={(open) => {

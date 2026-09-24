@@ -3,6 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Checkbox } from "@OpenFarm/ui/components/checkbox";
 import { Input } from "@OpenFarm/ui/components/input";
+import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -101,6 +102,14 @@ export const SellingTripForm = () => {
           <legend className="mb-1 text-sm font-medium">
             {t("selling.whoWent")}
           </legend>
+          {board.data === undefined ? (
+            <Skeleton className="h-16 rounded-lg" />
+          ) : null}
+          {board.data?.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {t("selling.nobodyToTake")}
+            </p>
+          ) : null}
           {(board.data ?? []).map((one) => (
             <label
               className="flex items-center gap-2 text-sm"
