@@ -103,6 +103,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.money.toYou": "আপনাকে ফেরত",
   "portal.percent": "{percent}%",
   "portal.farmTakes": "আপনার মূলধন সম্পূর্ণ ফেরতের পর খামার পায় {percent}%",
+  "portal.nav.portfolio": "পোর্টফোলিও",
+  "portal.nav.account": "অ্যাকাউন্ট",
+  "portal.anInvestor": "বিনিয়োগকারী",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
   "portal.title": "বিনিয়োগকারী পোর্টাল",

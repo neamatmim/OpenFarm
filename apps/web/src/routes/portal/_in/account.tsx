@@ -15,6 +15,7 @@ import { phoneLink } from "@/components/investors/investor-profile";
 import {
   Loaded,
   Notice,
+  Page,
   PageHeader,
   Section,
   StatusBadge,
@@ -301,7 +302,7 @@ const PortalAccount = () => {
   const { t } = useLanguage();
   const me = useQuery(orpc.portal.me.queryOptions());
   return (
-    <>
+    <Page>
       <PageHeader
         description={t("portal.account.hint")}
         title={t("portal.account.title")}
@@ -316,7 +317,7 @@ const PortalAccount = () => {
           </div>
         ) : null}
       </Loaded>
-    </>
+    </Page>
   );
 };
 

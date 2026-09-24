@@ -15,7 +15,13 @@ import {
   portfolioOf,
 } from "@/components/investors/investor-agreements";
 import { SaidDate } from "@/components/list-cells";
-import { EmptyState, Loaded, PageHeader, Section } from "@/components/page";
+import {
+  EmptyState,
+  Loaded,
+  Page,
+  PageHeader,
+  Section,
+} from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { SummaryFigures } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
@@ -139,7 +145,7 @@ const PortalHome = () => {
   const { t } = useLanguage();
   const theirs = useQuery(orpc.portal.portfolio.queryOptions());
   return (
-    <>
+    <Page>
       <PageHeader
         description={t("portal.homeHint")}
         title={t("portal.homeTitle")}
@@ -150,7 +156,7 @@ const PortalHome = () => {
       >
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
-    </>
+    </Page>
   );
 };
 

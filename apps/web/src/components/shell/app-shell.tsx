@@ -11,7 +11,7 @@ import { orpc } from "@/utils/orpc";
 import { AppSidebar } from "./app-sidebar";
 import { BottomBar } from "./bottom-bar";
 import type { Role } from "./navigation";
-import { primaryRole } from "./navigation";
+import { BOTTOM_BAR, primaryRole } from "./navigation";
 import { TopBar } from "./top-bar";
 
 declare module "@tanstack/react-router" {
@@ -73,7 +73,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </main>
       </SidebarInset>
       {focused || roles.length === 0 ? null : (
-        <BottomBar role={primaryRole(roles)} />
+        <BottomBar items={BOTTOM_BAR[primaryRole(roles)]} />
       )}
     </SidebarProvider>
   );
