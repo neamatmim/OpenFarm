@@ -119,6 +119,10 @@ export const bn: Record<MessageKey, string> = {
   "portal.dates.capitalIn": "আপনার মূলধন এসেছে",
   "portal.dates.window": "বিক্রয়ের সময়",
   "portal.dates.paidOut": "আপনার পাওনা পাঠানো হয়েছে",
+  "auth.passwordTooCommon":
+    "এই পাসওয়ার্ড খুব বেশি ব্যবহৃত, যে কেউ অনুমান করতে পারে। অন্য একটি বেছে নিন।",
+  "portal.refused.passwordTooCommon":
+    "এই পাসওয়ার্ড খুব বেশি ব্যবহৃত, যে কেউ অনুমান করতে পারে। অন্য একটি বেছে নিন।",
   "portal.closed":
     "বিনিয়োগকারী পোর্টাল আপনার জন্য খোলা নেই। খামারের মালিকের সঙ্গে কথা বলুন।",
   "portal.title": "বিনিয়োগকারী পোর্টাল",

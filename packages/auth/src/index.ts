@@ -10,6 +10,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
+import { isCommonPassword } from "./common-passwords";
 import { PASSWORD_MIN_LENGTH } from "./password";
 
 /**
@@ -122,7 +123,27 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
   });
 
 /**
- * The door, both questions at once: who may open an account, and who may still come in.
+ * A password everybody else uses is no secret (ASVS 6.2.4): refused wherever somebody chooses one through Better Auth
+ * — changing it while signed in, or setting it with a reset — whatever path led there. The farm's own procedures that
+ * set a password refuse it first, in their own words; this is the door nothing gets round.
+ */
+const turnAwayCommonPasswords = () =>
+  createAuthMiddleware((ctx) => {
+    if (ctx.path !== "/change-password" && ctx.path !== "/reset-password") {
+      return Promise.resolve();
+    }
+    const chosen = ctx.body?.newPassword;
+    if (typeof chosen === "string" && isCommonPassword(chosen)) {
+      throw new APIError("BAD_REQUEST", {
+        code: "PASSWORD_TOO_COMMON",
+        message: translate(DEFAULT_LANGUAGE, "auth.passwordTooCommon"),
+      });
+    }
+    return Promise.resolve();
+  });
+
+/**
+ * The door, all its questions at once: who may open an account, who may still come in, and what may be a password.
  *
  * One hook because Better Auth takes one, and each question answers for its own path and leaves every other
  * request alone.
@@ -130,9 +151,11 @@ const turnAwayWhoNoLongerWorksHere = (db: Database) =>
 const theDoor = (db: Database) => {
   const signingUp = turnAwayWhoWasNotAsked(db);
   const signingIn = turnAwayWhoNoLongerWorksHere(db);
+  const choosing = turnAwayCommonPasswords();
   return createAuthMiddleware(async (ctx) => {
     await signingUp(ctx);
     await signingIn(ctx);
+    await choosing(ctx);
   });
 };
 

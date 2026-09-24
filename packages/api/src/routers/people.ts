@@ -1,4 +1,5 @@
 import { auth, setPasswordFor } from "@OpenFarm/auth";
+import { isCommonPassword } from "@OpenFarm/auth/common-passwords";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
@@ -622,6 +623,14 @@ export const peopleRouter = {
       if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
         throw new ORPCError("TOO_MANY_REQUESTS", {
           message: "Too many wrong codes — wait fifteen minutes",
+        });
+      }
+      // Refused before the code is looked at, so a code is never spent on a password that will not be kept.
+      if (isCommonPassword(input.newPassword)) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "That password is one of the most common, and anybody could guess it",
+          data: { refusal: "password_too_common" },
         });
       }
       const codeHash = await hashToken(input.code.toUpperCase());

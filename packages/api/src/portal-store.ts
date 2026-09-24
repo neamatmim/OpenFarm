@@ -1,4 +1,5 @@
 import { auth, openInvestorAccount, setPasswordFor } from "@OpenFarm/auth";
+import { isCommonPassword } from "@OpenFarm/auth/common-passwords";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
@@ -257,6 +258,12 @@ export const takeUpInvitation = async (
     throw refused(
       `A password is at least ${PASSWORD_MIN_LENGTH} characters`,
       "password_too_short"
+    );
+  }
+  if (isCommonPassword(input.password)) {
+    throw refused(
+      "That password is one of the most common, and anybody could guess it",
+      "password_too_common"
     );
   }
   const now = context.clock.now();

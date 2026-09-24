@@ -122,6 +122,10 @@ export const en = {
   "portal.dates.capitalIn": "Your capital came in",
   "portal.dates.window": "Sale window",
   "portal.dates.paidOut": "Your payout was sent",
+  "auth.passwordTooCommon":
+    "That password is one of the most common, and anybody could guess it. Choose another.",
+  "portal.refused.passwordTooCommon":
+    "That password is one of the most common, and anybody could guess it. Choose another.",
   "portal.closed":
     "The investor portal is not open to you. Ask the farm's Owner.",
   "portal.title": "Investor portal",
