@@ -23,7 +23,7 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
-import { FormField, PageTabs } from "@/components/page-kit";
+import { FormField, SideTabs } from "@/components/page-kit";
 import { deviceOf } from "@/components/people/person-sign-ins";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
@@ -307,8 +307,8 @@ const SignedIn = () => {
 const TABS = ["details", "security"] as const;
 type Tab = (typeof TABS)[number];
 
-/** An Investor's own account, in two views: what the farm holds about them and whom to ask, and keeping it theirs —
- *  their password and where they are signed in. */
+/** An Investor's own account, laid out as account pages are — a menu down the side — in two views: what the farm holds
+ *  about them and whom to ask, and keeping it theirs: their password and where they are signed in. */
 const PortalAccount = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -322,7 +322,8 @@ const PortalAccount = () => {
       />
       <Loaded query={me} skeleton={<Skeleton className="h-40 rounded-xl" />}>
         {me.data ? (
-          <PageTabs
+          <SideTabs
+            label={t("portal.account.title")}
             onChange={(value) =>
               navigate({
                 replace: true,
@@ -336,7 +337,7 @@ const PortalAccount = () => {
                 label: t("portal.account.details"),
                 icon: IdCard,
                 content: (
-                  <div className="grid items-start gap-4 lg:grid-cols-2">
+                  <div className="flex flex-col gap-4">
                     <TheirDetails me={me.data} />
                     <TheFarm me={me.data} />
                   </div>
@@ -347,7 +348,7 @@ const PortalAccount = () => {
                 label: t("portal.tab.security"),
                 icon: ShieldCheck,
                 content: (
-                  <div className="grid items-start gap-4 lg:grid-cols-2">
+                  <div className="flex flex-col gap-4">
                     <NewPassword />
                     <SignedIn />
                   </div>

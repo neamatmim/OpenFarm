@@ -188,6 +188,56 @@ export const PageTabs = <T extends string>({
   );
 };
 
+/**
+ * A page's views as a menu down its side, the way an account or settings page is laid out: the menu on the left and
+ * the chosen view beside it on a desk, the menu stacked above the view on a phone. The same tabs `PageTabs` takes, so
+ * a page can move between the two; arrow keys move up and down the menu. The page keeps the chosen view in its
+ * address, as with `PageTabs`.
+ */
+export const SideTabs = <T extends string>({
+  tabs,
+  value,
+  onChange,
+  label,
+}: {
+  tabs: PageTab<T>[];
+  value: T;
+  onChange: (value: T) => void;
+  /** What the menu is, for a screen reader. */
+  label: string;
+}) => (
+  <Tabs
+    className="flex-col gap-6 lg:flex-row lg:items-start"
+    onValueChange={(next) => onChange(next as T)}
+    orientation="vertical"
+    value={value}
+  >
+    <TabsList
+      aria-label={label}
+      className="w-full shrink-0 items-stretch gap-0.5 bg-transparent p-0 lg:sticky lg:top-20 lg:w-56"
+    >
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <TabsTrigger
+            className="data-active:bg-muted dark:data-active:bg-muted h-10 flex-none justify-start gap-2.5 px-3 after:hidden data-active:font-semibold dark:data-active:border-transparent"
+            key={tab.value}
+            value={tab.value}
+          >
+            {Icon ? <Icon aria-hidden /> : null}
+            {tab.label}
+          </TabsTrigger>
+        );
+      })}
+    </TabsList>
+    {tabs.map((tab) => (
+      <TabsContent className="min-w-0" key={tab.value} value={tab.value}>
+        {tab.content}
+      </TabsContent>
+    ))}
+  </Tabs>
+);
+
 const SELECT_CLASS =
   "bg-card border-input focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-md border px-3 text-base outline-none focus-visible:ring-3 disabled:opacity-50 md:h-9 md:text-sm";
 
