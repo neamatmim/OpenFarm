@@ -105,6 +105,10 @@ export const Route = createFileRoute("/_auth")({
     if (!me.farm && location.pathname !== "/setup") {
       throw redirect({ to: "/setup" });
     }
+    // An Investor's account holds no Role and never will: its place is the portal (ADR 0007).
+    if (me.investor) {
+      throw redirect({ to: "/portal" });
+    }
     // On a farm that exists, a person holding no Role has an invite to take up with its code — or none, and nothing
     // here to do until somebody gives them one.
     if (me.farm && me.roles.length === 0 && location.pathname !== "/join") {

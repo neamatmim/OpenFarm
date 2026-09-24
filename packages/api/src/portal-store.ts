@@ -1,0 +1,377 @@
+import { auth, openInvestorAccount, setPasswordFor } from "@OpenFarm/auth";
+import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { and, eq } from "@OpenFarm/db/operators";
+import { session, user } from "@OpenFarm/db/schema/auth";
+import { investorAccess } from "@OpenFarm/db/schema/venture";
+import { investorLoginOf } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
+
+import {
+  CODE_ATTEMPTS,
+  countFailure,
+  forgetFailures,
+  lockedOut,
+} from "./attempts";
+import type { Tx } from "./audit";
+import { audited } from "./audit";
+import type { Context } from "./context";
+import { hashToken } from "./device";
+import { newInviteCode } from "./membership";
+
+// An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
+// and a password of their own, and the Owner taking it away. The account it opens holds no Role on the farm.
+
+/** How long an invitation's code stands before the Owner has to give a new one. */
+const A_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/** Where an Investor stands with the portal, as the Owner's list shows it. */
+export type PortalStanding = "none" | "invited" | "in" | "taken_away";
+
+/** What the trail keeps of somebody's access, either side of a change: never the code. */
+export const readAccess = async (tx: Tx, farmId: string, investorId: string) =>
+  (await tx.query.investorAccess.findFirst({
+    where: { farmId, investorId },
+    columns: {
+      userId: true,
+      loginEmail: true,
+      codeExpiresAt: true,
+      invitedAt: true,
+      acceptedAt: true,
+      revokedAt: true,
+    },
+  })) ?? null;
+
+/** Where each Investor stands with the portal, by their id. */
+export const portalStandings = async (
+  db: Pick<Tx, "query">,
+  farmId: string
+): Promise<Map<string, PortalStanding>> => {
+  const rows = await db.query.investorAccess.findMany({
+    where: { farmId },
+    columns: {
+      investorId: true,
+      codeHash: true,
+      acceptedAt: true,
+      revokedAt: true,
+    },
+  });
+  return new Map(
+    rows.map((row) => {
+      if (row.revokedAt) {
+        return [row.investorId, "taken_away"];
+      }
+      return [
+        row.investorId,
+        row.acceptedAt && !row.codeHash ? "in" : "invited",
+      ];
+    })
+  );
+};
+
+const refused = (message: string, refusal: string) =>
+  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
+
+type Owned = Context & {
+  farm: { id: string };
+  actor: { id: string };
+};
+
+/**
+ * Invites an Investor to the portal, or gives them a new code — for somebody who never used the first, or who has
+ * forgotten their password: the code is shown once, to the Owner, to hand over in person, and the farm keeps only its
+ * hash. Given again to somebody whose access was taken away, it gives it back once they take it up.
+ */
+export const inviteToPortal = async (
+  context: Owned,
+  investorId: string
+): Promise<{ code: string; expiresAt: Date }> => {
+  const farmId = context.farm.id;
+  const now = context.clock.now();
+  const who = await context.db.query.investor.findFirst({
+    where: { id: investorId, farmId },
+    columns: { id: true, phone: true, retiredAt: true },
+  });
+  if (!who) {
+    throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
+  }
+  if (who.retiredAt) {
+    throw refused(
+      "A retired Investor is brought back before being invited",
+      "investor_retired"
+    );
+  }
+  const loginEmail = investorLoginOf(who.phone);
+  if (!loginEmail) {
+    throw refused(
+      "Their phone is not a Bangladeshi mobile number, which is what they sign in with",
+      "phone_not_mobile"
+    );
+  }
+  const sharing = await context.db.query.investorAccess.findFirst({
+    where: { loginEmail },
+    columns: { investorId: true },
+  });
+  if (sharing && sharing.investorId !== investorId) {
+    throw refused(
+      "Another Investor on the same phone already has the portal",
+      "phone_has_portal"
+    );
+  }
+  const { code, codeHash } = await newInviteCode();
+  const expiresAt = new Date(now.getTime() + A_WEEK);
+  await audited(context).write(
+    {
+      entity: "investor_access",
+      entityId: investorId,
+      action: "update",
+      before: (tx) => readAccess(tx, farmId, investorId),
+      after: (tx) => readAccess(tx, farmId, investorId),
+    },
+    async (tx) => {
+      await tx
+        .insert(investorAccess)
+        .values({
+          id: uuidv7(now),
+          farmId,
+          investorId,
+          loginEmail,
+          codeHash,
+          codeExpiresAt: expiresAt,
+          invitedBy: context.actor.id,
+          invitedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: investorAccess.investorId,
+          // The phone may have changed since the first invitation: the account signs in as what it is now.
+          set: {
+            loginEmail,
+            codeHash,
+            codeExpiresAt: expiresAt,
+            invitedBy: context.actor.id,
+            invitedAt: now,
+          },
+        });
+    }
+  );
+  return { code, expiresAt };
+};
+
+/**
+ * Takes an Investor's access away: the account is disabled, every session it has ends, and an open code dies. What
+ * they read stays in the trail. Invited again, it comes back.
+ */
+export const takePortalAway = async (
+  context: Owned,
+  investorId: string
+): Promise<void> => {
+  const farmId = context.farm.id;
+  const now = context.clock.now();
+  const access = await context.db.query.investorAccess.findFirst({
+    where: { farmId, investorId },
+    columns: { id: true, userId: true, revokedAt: true },
+  });
+  if (!access || access.revokedAt) {
+    return;
+  }
+  await audited(context).write(
+    {
+      entity: "investor_access",
+      entityId: investorId,
+      action: "update",
+      before: (tx) => readAccess(tx, farmId, investorId),
+      after: (tx) => readAccess(tx, farmId, investorId),
+    },
+    async (tx) => {
+      await tx
+        .update(investorAccess)
+        .set({ revokedAt: now, codeHash: null, codeExpiresAt: null })
+        .where(eq(investorAccess.id, access.id));
+      if (access.userId) {
+        await tx
+          .update(user)
+          .set({ disabledAt: now })
+          .where(eq(user.id, access.userId));
+        await tx.delete(session).where(eq(session.userId, access.userId));
+      }
+    }
+  );
+};
+
+/**
+ * An Investor taking up the Owner's invitation: the phone they were written down with, the code handed to them, and
+ * a password of their own. Opens their account the first time; afterwards — a new code for a forgotten password, or
+ * access given back — sets the password they chose on the account they already have. Wrong codes are counted, per
+ * phone, as every other code the farm hands out is. Answers with what the account signs in as.
+ */
+export const takeUpInvitation = async (
+  context: Context,
+  input: { phone: string; code: string; password: string }
+): Promise<{ loginEmail: string }> => {
+  const theFarm = context.farm;
+  if (!theFarm?.investorPortal) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "The investor portal is not open",
+      data: { refusal: "portal_closed" },
+    });
+  }
+  if (
+    input.password.length < PASSWORD_MIN_LENGTH ||
+    input.password.length > 128
+  ) {
+    throw refused(
+      `A password is at least ${PASSWORD_MIN_LENGTH} characters`,
+      "password_too_short"
+    );
+  }
+  const now = context.clock.now();
+  const loginEmail = investorLoginOf(input.phone);
+  const guesses = `portal-code:${loginEmail ?? input.phone}`;
+  if (lockedOut(guesses, now, CODE_ATTEMPTS)) {
+    throw new ORPCError("TOO_MANY_REQUESTS", {
+      message: "Too many wrong codes — wait fifteen minutes",
+    });
+  }
+  const wrong = () => {
+    countFailure(guesses, now, CODE_ATTEMPTS);
+    return refused(
+      "That phone and code do not match an invitation",
+      "wrong_code"
+    );
+  };
+  if (!loginEmail) {
+    throw wrong();
+  }
+  const access = await context.db.query.investorAccess.findFirst({
+    where: {
+      farmId: theFarm.id,
+      loginEmail,
+      codeHash: await hashToken(input.code.trim().toUpperCase()),
+    },
+    columns: {
+      id: true,
+      investorId: true,
+      userId: true,
+      codeExpiresAt: true,
+    },
+  });
+  if (!access || !access.codeExpiresAt || access.codeExpiresAt <= now) {
+    throw wrong();
+  }
+  const who = await context.db.query.investor.findFirst({
+    where: { id: access.investorId, farmId: theFarm.id },
+    columns: { name: true },
+  });
+  if (!who) {
+    throw wrong();
+  }
+  const userId =
+    access.userId ??
+    (await openInvestorAccount(auth, {
+      email: loginEmail,
+      name: who.name,
+      password: input.password,
+    }));
+  if (access.userId) {
+    await setPasswordFor(auth, loginEmail, input.password);
+  }
+  // The trail names them: it is their account and their password.
+  await audited(
+    { ...context, actor: { id: userId, name: who.name } },
+    theFarm.id
+  ).write(
+    {
+      entity: "investor_access",
+      entityId: access.investorId,
+      action: "update",
+      before: (tx) => readAccess(tx, theFarm.id, access.investorId),
+      after: (tx) => readAccess(tx, theFarm.id, access.investorId),
+    },
+    async (tx) => {
+      const [taken] = await tx
+        .update(investorAccess)
+        .set({
+          userId,
+          acceptedAt: now,
+          revokedAt: null,
+          codeHash: null,
+          codeExpiresAt: null,
+        })
+        .where(
+          and(
+            eq(investorAccess.id, access.id),
+            eq(
+              investorAccess.codeHash,
+              await hashToken(input.code.trim().toUpperCase())
+            )
+          )
+        )
+        .returning({ id: investorAccess.id });
+      if (!taken) {
+        throw wrong();
+      }
+      await tx
+        .update(user)
+        .set({ disabledAt: null })
+        .where(and(eq(user.id, userId), eq(user.email, loginEmail)));
+    }
+  );
+  forgetFailures(guesses);
+  return { loginEmail };
+};
+
+/** The Investor an account belongs to, while the portal is open and their access stands; null for anybody else. */
+export const investorOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  userId: string
+) => {
+  const access = await db.query.investorAccess.findFirst({
+    where: { farmId, userId, revokedAt: { isNull: true } },
+    columns: { investorId: true, acceptedAt: true },
+    with: { investor: { columns: { id: true, name: true, phone: true } } },
+  });
+  return access?.acceptedAt ? (access.investor ?? null) : null;
+};
+
+/** Who signs for the Farm: the Owner's name, whoever is reading the paper. */
+export const ownerNameOf = async (
+  db: Pick<Tx, "query">,
+  farmId: string
+): Promise<string> => {
+  const owner = await db.query.roleAssignment.findFirst({
+    where: { farmId, role: "owner", revokedAt: { isNull: true } },
+    columns: { userId: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const person = owner
+    ? await db.query.user.findFirst({
+        where: { id: owner.userId },
+        columns: { name: true },
+      })
+    : null;
+  return person?.name ?? "";
+};
+
+/**
+ * One of this Investor's own Agreements, or a refusal that says nothing about anybody else's: the portal reads an
+ * Agreement only after this has said it is theirs.
+ */
+export const requireTheirs = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  investorId: string,
+  agreementId: string
+) => {
+  const agreement = await db.query.investmentAgreement.findFirst({
+    where: { id: agreementId, farmId, investorId },
+    columns: { id: true, ventureId: true },
+  });
+  if (!agreement) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such agreement",
+      data: { refusal: "no_such_agreement" },
+    });
+  }
+  return agreement;
+};

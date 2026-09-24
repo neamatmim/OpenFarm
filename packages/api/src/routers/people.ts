@@ -1,4 +1,5 @@
 import { auth, setPasswordFor } from "@OpenFarm/auth";
+import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { eq } from "@OpenFarm/db/operators";
 import { user } from "@OpenFarm/db/schema/auth";
 import type { RoleName } from "@OpenFarm/db/schema/farm";
@@ -41,6 +42,7 @@ import {
   writeInvite,
   writePasswordCode,
 } from "../membership";
+import { investorOf } from "../portal-store";
 import { requirePersonalSession, requireRole } from "../roles";
 import { scopesOf } from "../scope";
 
@@ -137,7 +139,7 @@ export const peopleRouter = {
     }),
 
   /** Who am I on this Farm. */
-  me: protectedProcedure.handler(({ context }) => ({
+  me: protectedProcedure.handler(async ({ context }) => ({
     id: context.actor.id,
     name: context.actor.name,
     // Which farm, by name — not its settings: thresholds and windows are read where a Role may read them
@@ -153,6 +155,13 @@ export const peopleRouter = {
     /** The number the farm can text, so a screen can show what is written down. */
     phone: context.person?.phone ?? null,
     disabled: Boolean(context.person?.disabledAt),
+    /** An Investor's portal account (ADR 0007), which the screens send to the portal rather than to taking up an
+     *  invitation to work here. Asked only of somebody holding no Role: nobody who works here is one. */
+    investor:
+      context.roles.length === 0 && context.farm
+        ? (await investorOf(context.db, context.farm.id, context.actor.id)) !==
+          null
+        : false,
   })),
 
   list: protectedProcedure
@@ -600,7 +609,7 @@ export const peopleRouter = {
       z.object({
         email: z.email().trim().toLowerCase(),
         code: z.string().trim().min(4).max(32),
-        newPassword: z.string().min(12).max(128),
+        newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(128),
       })
     )
     .handler(async ({ context, input }) => {

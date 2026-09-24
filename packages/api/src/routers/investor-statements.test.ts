@@ -8,7 +8,7 @@ import { appRouter } from "./index";
  * যোগদানপত্র — the paper an Investor is handed when his money lands, and the surface the three
  * Investor Statements sit on.
  *
- * An Investor has no login and never will, so a paper is the whole of what the Farm tells him: that it
+ * A paper may be the whole of what the Farm tells an Investor — the portal is by invitation (ADR 0007) — so: that it
  * has his money, how much, on what day, by which bank reference, and what he actually agreed to. Two
  * Investors stand in this Venture, because the one thing this paper must never do is carry one man's
  * money to another.

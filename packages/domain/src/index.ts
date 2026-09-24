@@ -504,3 +504,9 @@ export {
   termsOf,
 } from "./paper-template";
 export { STANDARD_TEMPLATES } from "./standard-templates";
+export {
+  INVESTOR_LOGIN_DOMAIN,
+  investorLoginOf,
+  isInvestorLogin,
+  mobileNumberOf,
+} from "./investor-login";

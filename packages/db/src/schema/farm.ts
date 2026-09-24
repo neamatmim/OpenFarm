@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -131,6 +132,9 @@ export const farm = pgTable("farm", {
   approvalThresholdBdt: integer("approval_threshold_bdt")
     .notNull()
     .default(20_000),
+  /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
+   *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
+  investorPortal: boolean("investor_portal").notNull().default(false),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

@@ -24,6 +24,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { Investor } from "@/components/investors/investor-types";
+import { PortalAccess } from "@/components/investors/portal-access";
 import { EmptyState, StatusBadge, TagChip } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { StateBadge } from "@/components/ventures/venture-card";
@@ -262,10 +263,13 @@ const InvestorActions = ({
  */
 export const InvestorDetails = ({
   investor,
+  portalOpen,
   onOpenChange,
   onEdit,
 }: {
   investor: Investor | null;
+  /** Whether the farm has its Investor portal open. */
+  portalOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (investor: Investor) => void;
 }) => {
@@ -323,6 +327,11 @@ export const InvestorDetails = ({
             </Detail>
           </DetailSection>
           <TheirVentures investor={investor} />
+          {investor ? (
+            <DetailSection title={t("portal.title")}>
+              <PortalAccess investor={investor} portalOpen={portalOpen} />
+            </DetailSection>
+          ) : null}
         </div>
         {investor ? (
           <InvestorActions investor={investor} onEdit={onEdit} />

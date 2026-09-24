@@ -106,6 +106,8 @@ export interface Context {
     investorWarnAt: number;
     /** How little may be left to keep a Venture's animals with before the farm says so, in taka. */
     runningBudgetWarnBdt: number;
+    /** Whether invited Investors may sign in to the portal (ADR 0007). */
+    investorPortal: boolean;
     pinAutoLockMinutes: number;
     milkTolerancePercent: number;
     feedTolerancePercent: number;

@@ -12,6 +12,7 @@ import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import { matching } from "@/components/investors/investor-types";
 import { InvestorsTable } from "@/components/investors/investors-table";
+import { PortalSwitch } from "@/components/investors/portal-access";
 import {
   EmptyState,
   Loaded,
@@ -103,6 +104,7 @@ const InvestorsPage = () => {
         title={t("investors.title")}
       />
       <SummaryFigures figures={figures} />
+      {counted ? <PortalSwitch open={counted.portalOpen} /> : null}
       {counted?.nearingTheCap ? (
         <Notice
           title={t("investors.nearingTheCap", {
@@ -161,6 +163,7 @@ const InvestorsPage = () => {
       />
       <InvestorDetails
         investor={showing}
+        portalOpen={counted?.portalOpen ?? false}
         onEdit={(one) => {
           setShowingId(null);
           setEditingId(one.id);

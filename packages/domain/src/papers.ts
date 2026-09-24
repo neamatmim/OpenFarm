@@ -633,9 +633,10 @@ export const herdSummary = (summary: HerdSummary): string =>
 /**
  * The footer every **Investor Statement** carries, in both languages.
  *
- * On all three papers, every time, because an Investor reads one of these and nothing else: there is no
- * portal and no login, so the terms have to be in front of him whenever the Farm tells him anything at
- * all. Said here once so that the three cannot come to say it three ways.
+ * On all three papers, every time, because a paper may be all an Investor ever reads — the portal is by
+ * invitation, and only while the farm keeps it open (ADR 0007) — so the terms have to be in front of him
+ * whenever the Farm tells him anything at all. Said here once so that the three cannot come to say it
+ * three ways.
  */
 export const NO_GUARANTEE_LINES = [
   "কোনো মুনাফার নিশ্চয়তা নেই। ক্ষতি হলে তা মূলধন থেকে যাবে।",
