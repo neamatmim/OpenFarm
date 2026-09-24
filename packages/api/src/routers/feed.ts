@@ -18,6 +18,8 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { FarmList } from "../farm-list";
+import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import {
   bandColumns,
   bandOf,
@@ -28,7 +30,6 @@ import {
 import { requirePen } from "../herd-store";
 import { protectedProcedure } from "../index";
 import { leftoversOf } from "../leftover-store";
-import { nameTaken } from "../names";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -114,24 +115,25 @@ const requireFeedItem = async (
   return existing;
 };
 
-/** Refuses a name another of the farm's feeds already goes by, in either language. */
-const assertFeedNameFree = async (
-  tx: Pick<Tx, "query">,
-  farmId: string,
-  name: { bn: string; en?: string },
-  exceptId?: string
-) => {
-  const others = await tx.query.feedItem.findMany({
-    where: { farmId },
-    columns: { id: true, nameBn: true, nameEn: true },
-  });
-  if (nameTaken(others, name, exceptId)) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "The farm already has a feed by that name",
-      data: { refusal: "feed_item_exists" },
-    });
-  }
-};
+/** A feed as the trail keeps it either side of a change. */
+const readFeedItem = async (tx: Tx, farmId: string, id: string) =>
+  (await tx.query.feedItem.findFirst({
+    where: { id, farmId },
+    columns: { nameBn: true, nameEn: true, retiredAt: true },
+  })) ?? null;
+
+/** The farm's list of feeds, as the one way a list is kept keeps it. */
+const FEED_ITEMS = {
+  entity: "feed_item",
+  table: feedItem,
+  read: readFeedItem,
+  notFound: "No such feed",
+  names: { bn: feedItem.nameBn, en: feedItem.nameEn },
+  nameTaken: {
+    refusal: "feed_item_exists",
+    message: "The farm already has a feed by that name",
+  },
+} satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 export const feedRouter = {
   /** The farm's Feed Items. A retired one is kept: a Ration that fed it still names it. */
@@ -178,7 +180,7 @@ export const feedRouter = {
           },
         },
         async (tx) => {
-          await assertFeedNameFree(tx, context.farm.id, input.name);
+          await assertNameFree(tx, context.farm.id, FEED_ITEMS, input.name);
           await tx.insert(feedItem).values({
             id,
             farmId: context.farm.id,
@@ -328,35 +330,7 @@ export const feedRouter = {
     .use(requireRole("owner", "manager"))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const existing = await context.db.query.feedItem.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, nameBn: true, retiredAt: true },
-      });
-      // A trail that records a change to something the farm does not have is a trail that
-      // lies; the caller is told instead.
-      if (!existing) {
-        throw new ORPCError("NOT_FOUND", { message: "No such feed" });
-      }
-      await audited(context).write(
-        {
-          entity: "feed_item",
-          entityId: input.id,
-          action: "update",
-          before: { nameBn: existing.nameBn, retiredAt: existing.retiredAt },
-          after: { nameBn: existing.nameBn, retiredAt: now.toISOString() },
-        },
-        (tx) =>
-          tx
-            .update(feedItem)
-            .set({ retiredAt: now })
-            .where(
-              and(
-                eq(feedItem.id, input.id),
-                eq(feedItem.farmId, context.farm.id)
-              )
-            )
-      );
+      await retireFromList(context, FEED_ITEMS, input.id);
       return { id: input.id };
     }),
 
@@ -379,9 +353,10 @@ export const feedRouter = {
           after: { nameBn: input.name.bn, nameEn: input.name.en ?? null },
         },
         async (tx) => {
-          await assertFeedNameFree(
+          await assertNameFree(
             tx,
             context.farm.id,
+            FEED_ITEMS,
             input.name,
             existing.id
           );
@@ -399,36 +374,10 @@ export const feedRouter = {
     .use(requireRole("owner", "manager"))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const existing = await requireFeedItem(
-        context.db,
-        context.farm.id,
-        input.id
-      );
-      if (existing.retiredAt === null) {
-        return { id: existing.id };
-      }
-      await audited(context).write(
-        {
-          entity: "feed_item",
-          entityId: existing.id,
-          action: "update",
-          before: { nameBn: existing.nameBn, retiredAt: existing.retiredAt },
-          after: { nameBn: existing.nameBn, retiredAt: null },
-        },
-        (tx) =>
-          tx
-            .update(feedItem)
-            .set({ retiredAt: null })
-            .where(eq(feedItem.id, existing.id))
-      );
-      return { id: existing.id };
+      await bringBackToList(context, FEED_ITEMS, input.id);
+      return { id: input.id };
     }),
 
-  /**
-   * The standard feeds the farm does not have yet — the ones the Owner may start the farm with — added as if by hand,
-   * each with its line in the trail. A feed the farm already calls by one of their names, in either language, is left as
-   * the farm's; asked twice, the second adds nothing. The Manager's too, since keeping the list of feeds is.
-   */
   /** The standard feeds the farm does not have yet, by their names: what adding them would add. */
   standardMissing: protectedProcedure
     .use(requireRole("owner", "manager"))
@@ -440,6 +389,11 @@ export const feedRouter = {
       return feedsNotHad(have).map((key) => STANDARD_FEED_ITEMS[key]);
     }),
 
+  /**
+   * The standard feeds the farm does not have yet — the ones the Owner may start the farm with — added as if by hand,
+   * each with its line in the trail. A feed the farm already calls by one of their names, in either language, is left as
+   * the farm's; asked twice, the second adds nothing. The Manager's too, since keeping the list of feeds is.
+   */
   addStandardItems: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {
@@ -598,11 +552,18 @@ export const feedRouter = {
               farmId: context.farm.id,
               id: { in: input.items.map((line) => line.feedItemId) },
             },
-            columns: { id: true, unit: true },
+            columns: { id: true, unit: true, retiredAt: true },
           });
           if (known.length !== input.items.length) {
             throw new ORPCError("NOT_FOUND", {
               message: "That is not one of this farm's feeds",
+            });
+          }
+          // A Ration is what the Pen is fed from now on, and a retired feed is one the farm no longer keeps.
+          if (known.some((one) => one.retiredAt !== null)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "A retired feed is not fed; bring it back first",
+              data: { refusal: "feed_retired" },
             });
           }
           // "Three for every hundred kilos of body weight" is a quantity; bundles are counted, by the head.

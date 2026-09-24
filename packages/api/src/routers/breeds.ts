@@ -7,29 +7,36 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import {
-  addStandardBreeds,
-  assertNameFree,
-  missingStandardBreeds,
-} from "../breed-store";
+import { addStandardBreeds, missingStandardBreeds } from "../breed-store";
 import type { Context } from "../context";
+import type { FarmList } from "../farm-list";
+import {
+  assertNameFree,
+  bringBackToList,
+  giveStandardOnce,
+  retireFromList,
+} from "../farm-list";
 import { protectedProcedure } from "../index";
 import { requirePersonalSession, requireRole } from "../roles";
-
-/** Thrown inside the standard breeds' write when another request gave them first, so that no Audit Event says they
- *  were given twice. */
-class NothingToGiveError extends Error {
-  constructor() {
-    super("The standard breeds were already given");
-    this.name = "NothingToGiveError";
-  }
-}
 
 const nameInput = z.string().trim().min(1).max(60);
 
 /** The breed as the trail records it either side of a change. */
 const readBreed = async (tx: Tx, farmId: string, id: string) =>
   (await tx.query.breed.findFirst({ where: { id, farmId } })) ?? null;
+
+/** The farm's list of breeds, as the one way a list is kept keeps it. */
+const BREEDS = {
+  entity: "breed",
+  table: breed,
+  read: readBreed,
+  notFound: "No such breed",
+  names: { bn: breed.nameBn, en: breed.nameEn },
+  nameTaken: {
+    refusal: "breed_exists",
+    message: "The farm already has that breed",
+  },
+} satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 const requireOurs = async (
   db: Pick<Tx, "query">,
@@ -54,32 +61,11 @@ const requireOurs = async (
 export const giveStandardBreeds = async (
   context: Context & { farm: { id: string } }
 ) => {
-  const missing = await missingStandardBreeds(context.db, context.farm.id);
-  if (missing.length === 0) {
-    return;
-  }
-  const now = context.clock.now();
-  let added: string[] = [];
-  await audited(context)
-    .write(
-      {
-        entity: "breed",
-        entityId: context.farm.id,
-        action: "create",
-        after: () => Promise.resolve({ standard: added }),
-      },
-      async (tx) => {
-        added = await addStandardBreeds(tx, context.farm.id, missing, now);
-        if (added.length === 0) {
-          throw new NothingToGiveError();
-        }
-      }
-    )
-    .catch((error: unknown) => {
-      if (!(error instanceof NothingToGiveError)) {
-        throw error;
-      }
-    });
+  await giveStandardOnce(context, {
+    entity: "breed",
+    missing: () => missingStandardBreeds(context.db, context.farm.id),
+    give: (tx, keys, now) => addStandardBreeds(tx, context.farm.id, keys, now),
+  });
 };
 
 /**
@@ -135,7 +121,10 @@ export const breedsRouter = {
           after: (tx) => readBreed(tx, context.farm.id, id),
         },
         async (tx) => {
-          await assertNameFree(tx, context.farm.id, input);
+          await assertNameFree(tx, context.farm.id, BREEDS, {
+            bn: input.nameBn,
+            en: input.nameEn,
+          });
           await tx.insert(breed).values({
             id,
             farmId: context.farm.id,
@@ -171,7 +160,13 @@ export const breedsRouter = {
           after: (tx) => readBreed(tx, context.farm.id, existing.id),
         },
         async (tx) => {
-          await assertNameFree(tx, context.farm.id, input, existing.id);
+          await assertNameFree(
+            tx,
+            context.farm.id,
+            BREEDS,
+            { bn: input.nameBn, en: input.nameEn },
+            existing.id
+          );
           await tx
             .update(breed)
             .set({ nameBn: input.nameBn, nameEn: input.nameEn ?? null })
@@ -187,26 +182,8 @@ export const breedsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const existing = await requireOurs(context.db, context.farm.id, input.id);
-      if (existing.retiredAt) {
-        return { id: existing.id };
-      }
-      const now = context.clock.now();
-      await audited(context).write(
-        {
-          entity: "breed",
-          entityId: existing.id,
-          action: "update",
-          before: (tx) => readBreed(tx, context.farm.id, existing.id),
-          after: (tx) => readBreed(tx, context.farm.id, existing.id),
-        },
-        (tx) =>
-          tx
-            .update(breed)
-            .set({ retiredAt: now })
-            .where(eq(breed.id, existing.id))
-      );
-      return { id: existing.id };
+      await retireFromList(context, BREEDS, input.id);
+      return { id: input.id };
     }),
 
   /** Brings a retired breed back onto the list animals are written down from. */
@@ -215,24 +192,7 @@ export const breedsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const existing = await requireOurs(context.db, context.farm.id, input.id);
-      if (!existing.retiredAt) {
-        return { id: existing.id };
-      }
-      await audited(context).write(
-        {
-          entity: "breed",
-          entityId: existing.id,
-          action: "update",
-          before: (tx) => readBreed(tx, context.farm.id, existing.id),
-          after: (tx) => readBreed(tx, context.farm.id, existing.id),
-        },
-        (tx) =>
-          tx
-            .update(breed)
-            .set({ retiredAt: null })
-            .where(eq(breed.id, existing.id))
-      );
-      return { id: existing.id };
+      await bringBackToList(context, BREEDS, input.id);
+      return { id: input.id };
     }),
 };

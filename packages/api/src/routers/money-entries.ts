@@ -13,6 +13,13 @@ import {
 } from "../corrections/money-by-hand";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import type { FarmList } from "../farm-list";
+import {
+  assertNameFree,
+  bringBackToList,
+  giveStandardOnce,
+  retireFromList,
+} from "../farm-list";
 import { protectedProcedure } from "../index";
 import {
   assertWageNotYetEntered,
@@ -48,18 +55,22 @@ import {
   requireRole,
 } from "../roles";
 
-/** Thrown inside the standard Categories' write when another request gave them first, so that no Audit
- *  Event says they were given twice. */
-class NothingToGiveError extends Error {
-  constructor() {
-    super("The standard Categories were already given");
-    this.name = "NothingToGiveError";
-  }
-}
-
 /** The Category as the trail records it either side of a change. */
 const readCategory = async (tx: Tx, farmId: string, id: string) =>
   (await tx.query.moneyCategory.findFirst({ where: { id, farmId } })) ?? null;
+
+/** The farm's Categories, as the one way a list is kept keeps it. */
+const CATEGORIES = {
+  entity: "money_category",
+  table: moneyCategory,
+  read: readCategory,
+  notFound: "No such Category",
+  names: { bn: moneyCategory.nameBn, en: moneyCategory.nameEn },
+  nameTaken: {
+    refusal: "category_exists",
+    message: "The farm already has that Category",
+  },
+} satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 export const moneyEntryProcedures = {
   /**
@@ -69,41 +80,14 @@ export const moneyEntryProcedures = {
   categories: protectedProcedure
     .use(requireRole("owner", "manager"))
     .handler(async ({ context }) => {
-      const now = context.clock.now();
-      const missing = await missingStandardCategories(
-        context.db,
-        context.farm.id
-      );
-      if (missing.length > 0) {
-        // Given once, and recorded as what was actually given: a second request that finds them already
-        // there writes nothing, and says nothing.
-        let added: string[] = [];
-        await audited(context)
-          .write(
-            {
-              entity: "money_category",
-              entityId: context.farm.id,
-              action: "create",
-              after: () => Promise.resolve({ standard: added }),
-            },
-            async (tx) => {
-              added = await addStandardCategories(
-                tx,
-                context.farm.id,
-                missing,
-                now
-              );
-              if (added.length === 0) {
-                throw new NothingToGiveError();
-              }
-            }
-          )
-          .catch((error: unknown) => {
-            if (!(error instanceof NothingToGiveError)) {
-              throw error;
-            }
-          });
-      }
+      // Given once, and recorded as what was actually given: a second request that finds them already there writes
+      // nothing, and says nothing.
+      await giveStandardOnce(context, {
+        entity: "money_category",
+        missing: () => missingStandardCategories(context.db, context.farm.id),
+        give: (tx, keys, now) =>
+          addStandardCategories(tx, context.farm.id, keys, now),
+      });
       const rows = await context.db.query.moneyCategory.findMany({
         where: { farmId: context.farm.id },
         orderBy: { nameBn: "asc", id: "asc" },
@@ -149,16 +133,14 @@ export const moneyEntryProcedures = {
         async (tx) => {
           // A standard Category's name is kept for it, even before the farm has been given it: a farm's
           // own "milk sales" would leave the Dispatches nowhere to book.
-          const taken = await tx.query.moneyCategory.findFirst({
-            where: { farmId: context.farm.id, nameBn: input.nameBn },
-            columns: { id: true },
-          });
-          if (taken || isStandardName(input.nameBn)) {
+          const names = { bn: input.nameBn, en: input.nameEn };
+          if (isStandardName(names)) {
             throw refusedByHand(
               "The farm already has that Category",
               "category_exists"
             );
           }
+          await assertNameFree(tx, context.farm.id, CATEGORIES, names);
           await tx.insert(moneyCategory).values({
             id,
             farmId: context.farm.id,
@@ -240,44 +222,36 @@ export const moneyEntryProcedures = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      const category = await context.db.query.moneyCategory.findFirst({
-        where: { id: input.id, farmId: context.farm.id },
-        columns: { id: true, key: true, retiredAt: true },
-      });
-      if (!category) {
-        throw new ORPCError("NOT_FOUND", { message: "No such Category" });
-      }
-      if (!mayBeRetired(category.key)) {
-        throw category.key === "wages"
-          ? refusedByHand(
-              "Wages are kept: a wage is one per person per month under them",
-              "category_kept_for_wages"
-            )
-          : refusedByHand(
-              "A record's money is booked under that Category",
-              "category_kept_by_records"
-            );
-      }
-      if (category.retiredAt) {
-        return { id: category.id };
-      }
-      await audited(context).write(
-        {
-          entity: "money_category",
-          entityId: category.id,
-          action: "update",
-          before: (tx) => readCategory(tx, context.farm.id, category.id),
-          after: (tx) => readCategory(tx, context.farm.id, category.id),
+      await retireFromList(context, CATEGORIES, input.id, {
+        refuseWhile: async (tx) => {
+          const category = await tx.query.moneyCategory.findFirst({
+            where: { id: input.id, farmId: context.farm.id },
+            columns: { key: true },
+          });
+          if (category && !mayBeRetired(category.key)) {
+            throw category.key === "wages"
+              ? refusedByHand(
+                  "Wages are kept: a wage is one per person per month under them",
+                  "category_kept_for_wages"
+                )
+              : refusedByHand(
+                  "A record's money is booked under that Category",
+                  "category_kept_by_records"
+                );
+          }
         },
-        async (tx) => {
-          await tx
-            .update(moneyCategory)
-            .set({ retiredAt: now })
-            .where(eq(moneyCategory.id, category.id));
-        }
-      );
-      return { id: category.id };
+      });
+      return { id: input.id };
+    }),
+
+  /** Puts a retired Category back: money may be entered under it again. */
+  bringBackCategory: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      await bringBackToList(context, CATEGORIES, input.id);
+      return { id: input.id };
     }),
 
   /**

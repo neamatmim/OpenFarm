@@ -4,6 +4,7 @@ import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Archive,
+  ArchiveRestore,
   ArrowDownLeft,
   ArrowUpRight,
   Beef as Herd,
@@ -19,6 +20,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { RetiredBadge, nameTone, retiredLast } from "@/components/list-cells";
 import { useIsOwner, categoryName } from "@/components/money";
 import { EmptyState, SegmentedControl, StatusBadge } from "@/components/page";
 import {
@@ -42,6 +44,7 @@ interface CategoryRow extends Category {
   /** Only the Owner marks a Category as one the animals carry. */
   mayMark: boolean;
   handleRetire: () => void;
+  handleBringBack: () => void;
   handleMark: () => void;
 }
 
@@ -70,20 +73,29 @@ const DirectionBadge = ({ direction }: { direction: Direction }) => {
 };
 
 /** A Category no longer entered under, kept for the money already booked to it. */
-const RetiredBadge = ({ row }: { row: CategoryRow }) => {
-  const { t } = useLanguage();
-  return row.retiredAt ? (
-    <StatusBadge icon={Archive} tone="neutral">
-      {t("byHand.retired")}
-    </StatusBadge>
-  ) : null;
-};
+const Retired = ({ row }: { row: CategoryRow }) =>
+  row.retiredAt ? <RetiredBadge word="byHand.retired" /> : null;
 
-/** The menu at the end of a Category's row: retiring it, the one thing done to a Category, where it may be. */
+/** The menu at the end of a Category's row: marking it and retiring it where it may be, and bringing a retired one
+ *  back. */
 const CategoryMenu = ({ row }: { row: CategoryRow }) => {
   const { t } = useLanguage();
-  const { handleRetire, handleMark } = row;
-  if (row.retiredAt || !(row.retirable || row.mayMark)) {
+  const { handleRetire, handleBringBack, handleMark } = row;
+  if (row.retiredAt) {
+    return (
+      <RowMenu
+        actions={[
+          {
+            label: t("byHand.bringBack"),
+            icon: ArchiveRestore,
+            handleSelect: handleBringBack,
+          },
+        ]}
+        label={row.name}
+      />
+    );
+  }
+  if (!(row.retirable || row.mayMark)) {
     return null;
   }
   return (
@@ -120,11 +132,7 @@ const CategoryMenu = ({ row }: { row: CategoryRow }) => {
 };
 
 const NameCell = ({ row }: { row: { original: CategoryRow } }) => (
-  <span
-    className={row.original.retiredAt ? "text-muted-foreground" : "font-medium"}
-  >
-    {row.original.name}
-  </span>
+  <span className={nameTone(row.original)}>{row.original.name}</span>
 );
 
 const DirectionCell = ({ row }: { row: { original: CategoryRow } }) => (
@@ -133,7 +141,7 @@ const DirectionCell = ({ row }: { row: { original: CategoryRow } }) => (
 
 const StatusCell = ({ row }: { row: { original: CategoryRow } }) => (
   <div className="flex flex-wrap gap-2">
-    <RetiredBadge row={row.original} />
+    <Retired row={row.original} />
     <CarriedBadge row={row.original} />
   </div>
 );
@@ -154,7 +162,7 @@ const categoryColumns = column.columns([
     header: listHeader("byHand.direction"),
     cell: DirectionCell,
   }),
-  column.accessor((row) => (row.retiredAt ? 1 : 0), {
+  column.accessor(retiredLast, {
     id: "status",
     header: listHeader("money.col.status"),
     cell: StatusCell,
@@ -174,7 +182,7 @@ const CategoryCard = ({ row }: { row: CategoryRow }) => (
       <NameCell row={{ original: row }} />
       <div className="flex flex-wrap gap-2">
         <DirectionBadge direction={row.direction === "in" ? "in" : "out"} />
-        <RetiredBadge row={row} />
+        <Retired row={row} />
         <CarriedBadge row={row} />
       </div>
     </div>
@@ -259,6 +267,9 @@ export const CategoriesTab = () => {
       onError,
     })
   );
+  const bringBack = useMutation(
+    orpc.money.bringBackCategory.mutationOptions({ onError })
+  );
   const mark = useMutation(
     orpc.money.setChargedToAnimals.mutationOptions({
       onError,
@@ -280,6 +291,7 @@ export const CategoriesTab = () => {
           categoryId: one.id,
           chargedToAnimals: !one.chargedToAnimals,
         }),
+      handleBringBack: () => bringBack.mutate({ id: one.id }),
       handleRetire: () =>
         setRetiring({
           id: one.id,

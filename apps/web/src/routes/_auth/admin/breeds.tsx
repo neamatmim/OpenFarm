@@ -22,7 +22,12 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { Nothing } from "@/components/list-cells";
+import {
+  Nothing,
+  RetiredBadge,
+  nameTone,
+  retiredLast,
+} from "@/components/list-cells";
 import {
   EmptyState,
   Page,
@@ -61,11 +66,7 @@ const Badges = ({ row }: { row: BreedRow }) => {
           {t("breeds.standard")}
         </StatusBadge>
       ) : null}
-      {row.retiredAt ? (
-        <StatusBadge icon={Archive} tone="neutral">
-          {t("breeds.retired")}
-        </StatusBadge>
-      ) : null}
+      {row.retiredAt ? <RetiredBadge word="breeds.retired" /> : null}
     </div>
   );
 };
@@ -100,11 +101,7 @@ const BreedMenu = ({ row }: { row: BreedRow }) => {
 };
 
 const NameCell = ({ row }: { row: { original: BreedRow } }) => (
-  <span
-    className={row.original.retiredAt ? "text-muted-foreground" : "font-medium"}
-  >
-    {row.original.nameBn}
-  </span>
+  <span className={nameTone(row.original)}>{row.original.nameBn}</span>
 );
 
 const EnglishCell = ({ row }: { row: { original: BreedRow } }) =>
@@ -141,7 +138,7 @@ const breedColumns = column.columns([
     cell: AnimalsCell,
     meta: { align: "end" },
   }),
-  column.accessor((row) => (row.retiredAt ? 1 : 0), {
+  column.accessor(retiredLast, {
     id: "status",
     header: listHeader("money.col.status"),
     cell: StatusCell,

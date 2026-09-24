@@ -1,11 +1,13 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { investor } from "@OpenFarm/db/schema/venture";
 import { ORPCError } from "@orpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import type { FarmList } from "../farm-list";
+import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import {
   countedInvestors,
@@ -61,6 +63,16 @@ const theRecord = (input: z.infer<typeof personInput>) => ({
   nomineePhone: input.nominee?.phone ?? null,
   nomineeRelation: input.nominee?.relation ?? null,
 });
+
+/** The farm's Investors, as the one way a list is kept keeps it: retired, never removed, because everything they
+ *  signed and were paid is kept for twelve years and names them. The same person is found by name and phone, not by
+ *  name alone, so they keep their own check (`theSamePerson`). */
+const INVESTORS = {
+  entity: "investor",
+  table: investor,
+  read: readInvestor,
+  notFound: "No such Investor",
+} satisfies FarmList;
 
 /** A change to one Investor, audited with how they stood either side of it. */
 const changeInvestor = async (
@@ -253,30 +265,20 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string().min(1) }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await changeInvestor(context, input.id, async (tx) => {
-        // Counted behind the same lock a signature takes, so nobody is signed between the count and the
-        // retiring.
-        await lockTheFarm(tx, context.farm.id);
-        const counted = await countedInvestors(tx, context.farm.id);
-        if (counted.unitsOf.has(input.id)) {
-          throw new ORPCError("BAD_REQUEST", {
-            message:
-              "Their money is in a Venture still running; they are retired once it settles or is called off",
-            data: { refusal: "investor_still_in" },
-          });
-        }
-        return await tx
-          .update(investor)
-          .set({ retiredAt: now })
-          .where(
-            and(
-              eq(investor.id, input.id),
-              eq(investor.farmId, context.farm.id),
-              isNull(investor.retiredAt)
-            )
-          )
-          .returning({ id: investor.id });
+      await retireFromList(context, INVESTORS, input.id, {
+        refuseWhile: async (tx) => {
+          // Counted behind the same lock a signature takes, so nobody is signed between the count and the
+          // retiring.
+          await lockTheFarm(tx, context.farm.id);
+          const counted = await countedInvestors(tx, context.farm.id);
+          if (counted.unitsOf.has(input.id)) {
+            throw new ORPCError("BAD_REQUEST", {
+              message:
+                "Their money is in a Venture still running; they are retired once it settles or is called off",
+              data: { refusal: "investor_still_in" },
+            });
+          }
+        },
       });
       return { id: input.id };
     }),
@@ -287,15 +289,7 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string().min(1) }))
     .handler(async ({ context, input }) => {
-      await changeInvestor(context, input.id, (tx) =>
-        tx
-          .update(investor)
-          .set({ retiredAt: null })
-          .where(
-            and(eq(investor.id, input.id), eq(investor.farmId, context.farm.id))
-          )
-          .returning({ id: investor.id })
-      );
+      await bringBackToList(context, INVESTORS, input.id);
       return { id: input.id };
     }),
 };

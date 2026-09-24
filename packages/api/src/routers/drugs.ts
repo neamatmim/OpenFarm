@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, isNull } from "@OpenFarm/db/operators";
+import { and, eq } from "@OpenFarm/db/operators";
 import { drugProduct } from "@OpenFarm/db/schema/health";
 import { medicinePurchase } from "@OpenFarm/db/schema/money";
 import {
@@ -16,12 +16,13 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { counterpartyNamed } from "../counterparty-store";
 import { farmDay } from "../farm-clock";
+import type { FarmList } from "../farm-list";
+import { assertNameFree, bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
 import { assertNotExpiredWhenBought, lotFields } from "../lot-input";
 import { medicineStockOf, noMedicine } from "../medicine-stock";
 import { amountInput, paymentMethodInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
-import { nameTaken } from "../names";
 import {
   forbidden,
   requireOnly,
@@ -52,6 +53,24 @@ const readProduct = async (tx: Tx, id: string) => {
   });
   return row ?? null;
 };
+
+/** The farm's Drug List, as the one way a list is kept keeps it. */
+const DRUGS = {
+  entity: "drug_product",
+  table: drugProduct,
+  read: (tx: Tx, _farmId: string, id: string) => readProduct(tx, id),
+  notFound: "No such product",
+  names: { bn: drugProduct.nameBn, en: drugProduct.nameEn },
+  nameTaken: {
+    refusal: "drug_exists",
+    message: "That product is already on the list",
+    whenRetired: {
+      refusal: "drug_exists_retired",
+      message:
+        "That product is already on the list, retired; bring it back rather than adding it twice",
+    },
+  },
+} satisfies FarmList & Parameters<typeof assertNameFree>[2];
 
 /**
  * One change to one product, audited, refusing inside the transaction when it changed
@@ -337,23 +356,6 @@ export const drugsRouter = {
       if (withDays) {
         assertIsVet(context);
       }
-      // A name in either language, whatever the capitals: two products both called "Albendazole drench" are one box
-      // written down twice.
-      const listed = await context.db.query.drugProduct.findMany({
-        where: { farmId: context.farm.id },
-        columns: { id: true, nameBn: true, nameEn: true, retiredAt: true },
-      });
-      const already = listed.find((one) => nameTaken([one], input.name));
-      if (already) {
-        // Naming it again is how somebody re-buys a product the farm retired, so say what
-        // is there rather than failing on a unique index nobody can read.
-        throw new ORPCError("CONFLICT", {
-          message: already.retiredAt
-            ? "That product is already on the list, retired; bring it back rather than adding it twice"
-            : "That product is already on the list",
-          data: { productId: already.id, retired: Boolean(already.retiredAt) },
-        });
-      }
       const id = uuidv7(now);
       await audited(context).write(
         {
@@ -366,8 +368,11 @@ export const drugsRouter = {
             meatWithdrawalDays: input.meatWithdrawalDays ?? null,
           },
         },
-        (tx) =>
-          tx.insert(drugProduct).values({
+        async (tx) => {
+          // A name in either language, whatever the capitals: two products both called "Albendazole drench" are one
+          // box written down twice — and naming a retired one again is how somebody re-buys it, so say so.
+          await assertNameFree(tx, context.farm.id, DRUGS, input.name);
+          await tx.insert(drugProduct).values({
             id,
             farmId: context.farm.id,
             nameBn: input.name.bn,
@@ -379,7 +384,8 @@ export const drugsRouter = {
             addedBy: context.actor.id,
             addedByRole: context.roleUsed,
             createdAt: now,
-          })
+          });
+        }
       );
       return { id };
     }),
@@ -454,17 +460,9 @@ export const drugsRouter = {
     .use(requireOnly("vet", VET_ONLY))
     .input(z.object({ id: z.string(), name }))
     .handler(async ({ context, input }) => {
-      const listed = await context.db.query.drugProduct.findMany({
-        where: { farmId: context.farm.id },
-        columns: { id: true, nameBn: true, nameEn: true },
-      });
-      if (nameTaken(listed, input.name, input.id)) {
-        throw new ORPCError("CONFLICT", {
-          message: "Another product on the list already has that name",
-        });
-      }
-      await changeProduct(context, input.id, (tx) =>
-        tx
+      await changeProduct(context, input.id, async (tx) => {
+        await assertNameFree(tx, context.farm.id, DRUGS, input.name, input.id);
+        return await tx
           .update(drugProduct)
           .set({ nameBn: input.name.bn, nameEn: input.name.en ?? null })
           .where(
@@ -473,8 +471,8 @@ export const drugsRouter = {
               eq(drugProduct.farmId, context.farm.id)
             )
           )
-          .returning({ id: drugProduct.id })
-      );
+          .returning({ id: drugProduct.id });
+      });
       return { id: input.id };
     }),
 
@@ -515,20 +513,7 @@ export const drugsRouter = {
     .use(requireOnly("vet", VET_ONLY))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      const now = context.clock.now();
-      await changeProduct(context, input.id, (tx) =>
-        tx
-          .update(drugProduct)
-          .set({ retiredAt: now })
-          .where(
-            and(
-              eq(drugProduct.id, input.id),
-              eq(drugProduct.farmId, context.farm.id),
-              isNull(drugProduct.retiredAt)
-            )
-          )
-          .returning({ id: drugProduct.id })
-      );
+      await retireFromList(context, DRUGS, input.id);
       return { id: input.id };
     }),
 
@@ -537,18 +522,7 @@ export const drugsRouter = {
     .use(requireOnly("vet", VET_ONLY))
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => {
-      await changeProduct(context, input.id, (tx) =>
-        tx
-          .update(drugProduct)
-          .set({ retiredAt: null })
-          .where(
-            and(
-              eq(drugProduct.id, input.id),
-              eq(drugProduct.farmId, context.farm.id)
-            )
-          )
-          .returning({ id: drugProduct.id })
-      );
+      await bringBackToList(context, DRUGS, input.id);
       return { id: input.id };
     }),
 };

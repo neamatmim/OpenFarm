@@ -1031,6 +1031,20 @@ export const bn: Record<MessageKey, string> = {
   "breeds.manage": "জাত যোগ করুন বা নাম বদলান",
   "breeds.choose": "জানা নেই",
   "refusal.breedExists": "এই নামে একটি জাত খামারে আগে থেকেই আছে",
+  "common.retired": "বাদ দেওয়া",
+  "feed.retireTitle": "“{name}” বাদ দেবেন?",
+  "feed.retireWhy":
+    "এটি দিয়ে নতুন করে খাওয়ানো, কেনা বা গোনা হবে না। কোনো পেনকে যা খাওয়ানো হয়েছে তাতে এর নাম থাকবে, আর এটি ফিরিয়ে আনা যাবে।",
+  "byHand.bringBack": "ফিরিয়ে আনুন",
+  "notifiable.putBack": "তালিকায় ফিরিয়ে আনুন",
+  "notifiable.putBackHint": "কেন এটি আবার জানাতে হয় লিখুন: অফিস কী বলেছে, আর কবে।",
+  "notifiable.putBackDone": "তালিকায় ফিরে এসেছে",
+  "refusal.drugExists": "এই পণ্য তালিকায় আগেই আছে",
+  "refusal.drugExistsRetired":
+    "এই পণ্য তালিকায় আছে, বাদ দেওয়া — দ্বিতীয়বার যোগ না করে ফিরিয়ে আনুন",
+  "refusal.diseaseExists": "এই রোগ তালিকায় আগেই আছে",
+  "refusal.diseaseExistsRetired":
+    "এই রোগ তালিকায় আছে, বাদ দেওয়া — দ্বিতীয়বার যোগ না করে ফিরিয়ে আনুন",
   "refusal.breedUnknown": "এই জাত খামারের তালিকায় নেই",
   "refusal.breedRetired":
     "এই জাত বাদ দেওয়া হয়েছে। এই জাত ধরে পশু লিখতে জাত পাতায় গিয়ে এটি ফিরিয়ে আনুন।",

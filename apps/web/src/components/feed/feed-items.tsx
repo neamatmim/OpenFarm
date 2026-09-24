@@ -23,6 +23,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
+import { RetiredBadge, nameTone, retiredLast } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
 import {
   ConfirmDialog,
@@ -31,6 +32,7 @@ import {
   NativeSelect,
   RowMenu,
 } from "@/components/page-kit";
+import { useRetireConfirm } from "@/components/retire-confirm";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -38,7 +40,7 @@ import { orpc } from "@/utils/orpc";
 import type { FeedItemRow } from "./feed-types";
 
 interface ItemRow extends FeedItemRow {
-  handleRetire: (id: string) => void;
+  handleRetire: (id: string, name: string) => void;
   handleBringBack: (id: string) => void;
   handleRename: (item: FeedItemRow) => void;
   handleSetBagSize: (item: FeedItemRow) => void;
@@ -47,20 +49,14 @@ interface ItemRow extends FeedItemRow {
 }
 
 const NameCell = ({ row }: { row: { original: ItemRow } }) => (
-  <span
-    className={row.original.retiredAt ? "text-muted-foreground" : "font-medium"}
-  >
-    {row.original.nameBn}
-  </span>
+  <span className={nameTone(row.original)}>{row.original.nameBn}</span>
 );
 
 /** In use or retired, as a word with its colour. */
 const ItemStanding = ({ retired }: { retired: boolean }) => {
   const { t } = useLanguage();
   return retired ? (
-    <StatusBadge icon={Archive} tone="neutral">
-      {t("feed.retired")}
-    </StatusBadge>
+    <RetiredBadge word="feed.retired" />
   ) : (
     <StatusBadge tone="success">{t("feed.inUse")}</StatusBadge>
   );
@@ -126,7 +122,7 @@ const ItemMenu = ({ row }: { row: ItemRow }) => {
         {
           label: t("feed.retire"),
           icon: Archive,
-          handleSelect: () => handleRetire(row.id),
+          handleSelect: () => handleRetire(row.id, row.nameBn),
           destructive: true,
           disabled: row.retiring,
         },
@@ -149,7 +145,7 @@ const itemColumns = column.columns([
     cell: NameCell,
   }),
   column.accessor("unit", { header: listHeader("feed.unit"), cell: UnitCell }),
-  column.accessor((item) => (item.retiredAt ? 1 : 0), {
+  column.accessor(retiredLast, {
     id: "standing",
     header: listHeader("feed.col.status"),
     cell: StandingCell,
@@ -165,7 +161,7 @@ const itemColumns = column.columns([
 const ItemCard = ({ row }: { row: ItemRow }) => (
   <div className="flex items-center justify-between gap-3">
     <div className="flex min-w-0 flex-col gap-1">
-      <span className={row.retiredAt ? "text-muted-foreground" : "font-medium"}>
+      <span className={nameTone(row)}>
         {row.nameBn} · <UnitOf item={row} />
       </span>
       <ItemStanding retired={row.retiredAt !== null} />
@@ -453,6 +449,14 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
       onError: refused,
     })
   );
+  // Asked first, as every list asks: a Ration that fed it still names it, but nothing new is fed it.
+  const confirm = useRetireConfirm({
+    retire: (id) => retireItem.mutate({ id }),
+    pending: retireItem.isPending,
+    title: (name) => t("feed.retireTitle", { name }),
+    description: t("feed.retireWhy"),
+    confirmLabel: t("feed.retire"),
+  });
   const bringBack = useMutation(
     orpc.feed.bringBackItem.mutationOptions({
       onError: refused,
@@ -462,7 +466,7 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
     columns: itemColumns,
     data: items.map((item) => ({
       ...item,
-      handleRetire: (id: string) => retireItem.mutate({ id }),
+      handleRetire: confirm.ask,
       handleBringBack: (id: string) => bringBack.mutate({ id }),
       handleRename: setRenaming,
       handleSetBagSize: setBagFor,
@@ -498,6 +502,7 @@ export const ItemsTab = ({ items }: { items: FeedItemRow[] }) => {
         onClose={() => setRenaming(null)}
       />
       {standard.dialog}
+      {confirm.dialog}
       <BagSizeDialog
         item={bagFor}
         key={bagFor?.id ?? "none"}
