@@ -32,6 +32,7 @@ import {
   entityLabelKey,
   fieldChanges,
   fieldLabelKey,
+  whyRaised,
 } from "./audit-words";
 
 /** How many events a page of the trail shows before the next. */
@@ -130,17 +131,23 @@ const ActionBadge = ({ event }: { event: AuditEvent }) => {
   );
 };
 
-/** Why it happened: the reason somebody gave, and what closed or reopened the work. */
+/** Why it happened: the reason somebody gave, what closed or reopened the work, and why the farm raised work. */
 const Why = ({ event }: { event: AuditEvent }) => {
   const t = useT();
   const because = becauseOf(event.after);
-  if (!(event.reason || because)) {
+  const raised = whyRaised(event);
+  if (!(event.reason || because || raised.length > 0)) {
     return <Nothing />;
   }
   return (
     <div className="flex flex-col gap-0.5">
       {event.reason ? <p>{event.reason}</p> : null}
       {because ? <p className="text-muted-foreground">{t(because)}</p> : null}
+      {raised.map((line) => (
+        <p className="text-muted-foreground" key={line.key}>
+          {t(line.key, line.params)}
+        </p>
+      ))}
     </div>
   );
 };

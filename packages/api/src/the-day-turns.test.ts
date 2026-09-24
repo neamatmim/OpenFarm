@@ -99,6 +99,7 @@ describe("the day turning", () => {
     expect(raised).toHaveLength(1);
 
     // The day's raising is written under the work's name but is no piece of work, so the trail does not lead from it.
+    // Once, saying how much was raised and by what: the turn a minute later raised nothing, and wrote nothing.
     const { client: owner } = await createTestClient(appRouter, {
       as: "owner",
       clock: new FakeClock("2049-05-04T02:32:00.000Z"),
@@ -107,8 +108,14 @@ describe("the day turning", () => {
       entity: "sop_instance",
       entityId: "schedule:2049-05-04",
     });
-    expect(theDay.length).toBeGreaterThan(0);
+    expect(theDay).toHaveLength(1);
     expect(theDay.every((one) => one.instanceId === null)).toBe(true);
+    expect(theDay[0]?.after).toMatchObject({
+      raised: first.workRaised,
+      byTheSchedule: first.workRaised,
+      byWhatHappened: 0,
+      forTheRenewal: 0,
+    });
   });
 
   it("carries no post while the farm is asleep", async () => {

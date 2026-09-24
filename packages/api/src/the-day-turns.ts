@@ -108,6 +108,40 @@ const flagHeatsThatArrivedTooLate = async (
   }
 };
 
+/** A turn of the day that raised no work: rolled back, so it leaves nothing in the trail. */
+class NothingRaisedError extends Error {
+  constructor() {
+    super("The day's work was already raised");
+    this.name = "NothingRaisedError";
+  }
+}
+
+/** The causes a set of slots would raise work under. */
+const causesOf = (slots: { cause?: string | null }[]) =>
+  new Set(slots.flatMap((slot) => (slot.cause ? [slot.cause] : [])));
+
+/** How much of what was raised came from each place: work the clock raised has no cause of its own, or the whole
+ *  farm's; work raised by a happening or by the renewal carries that slot's cause. */
+const raisedBy = (
+  instances: { cause: string | null }[],
+  byWhatHappened: { cause?: string | null }[],
+  forTheRenewal: { cause?: string | null }[]
+) => {
+  const happened = causesOf(byWhatHappened);
+  const renewal = causesOf(forTheRenewal);
+  const counted = { byTheSchedule: 0, byWhatHappened: 0, forTheRenewal: 0 };
+  for (const work of instances) {
+    if (work.cause && happened.has(work.cause)) {
+      counted.byWhatHappened += 1;
+    } else if (work.cause && renewal.has(work.cause)) {
+      counted.forTheRenewal += 1;
+    } else {
+      counted.byTheSchedule += 1;
+    }
+  }
+  return counted;
+};
+
 /** The day's work, raised: every schedule slot due by now, and the work things that happened call for. Idempotent — a
  *  slot already raised is not raised again — so the server's own timer and whoever opens the app can both run it. */
 export const theDaysWork = async (context: Turning) => {
@@ -154,61 +188,80 @@ export const theDaysWork = async (context: Turning) => {
     pregnancyCheckAfterDays: context.farm.pregnancyCheckAfterDays,
     calvingLeadDays: pregnancyTimesOf(context.farm).calvingLeadDays,
   };
-  const slots = [
-    ...dueSlotsFor(now, sops, animals),
-    // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same
-    // pass, because whatever opened the app wants the whole day's work, not the half
-    // of it a schedule accounts for.
-    ...happeningSlotsFor(
+  const onTheSchedule = dueSlotsFor(now, sops, animals);
+  // Work the clock does not raise: a Move, an arrival, a cow reaching a State. Same pass, because whatever opened
+  // the app wants the whole day's work, not the half of it a schedule accounts for.
+  const byWhatHappened = happeningSlotsFor(
+    now,
+    sops,
+    await recentHappenings(
+      context.db,
+      context.farm.id,
       now,
-      sops,
-      await recentHappenings(
-        context.db,
-        context.farm.id,
-        now,
-        breeding,
-        reachDays
-      ),
-      breeding
+      breeding,
+      reachDays
     ),
-    // Work about the whole farm: its Registration coming up for renewal.
-    ...renewalSlotsFor(now, sops, {
-      expiresOn: context.farm.registrationExpiresOn,
-      renewalLeadDays: context.farm.registrationRenewalLeadDays,
-    }),
-  ];
+    breeding
+  );
+  // Work about the whole farm: its Registration coming up for renewal.
+  const forTheRenewal = renewalSlotsFor(now, sops, {
+    expiresOn: context.farm.registrationExpiresOn,
+    renewalLeadDays: context.farm.registrationRenewalLeadDays,
+  });
+  const slots = [...onTheSchedule, ...byWhatHappened, ...forTheRenewal];
   if (slots.length === 0) {
     return { raised: 0 };
   }
-  let raised = 0;
-  await audited(context).write(
-    {
-      entity: "sop_instance",
-      entityId: `schedule:${now.toISOString().slice(0, 10)}`,
-      action: "create",
-      after: { slots: slots.length },
-    },
-    async (tx, eventId) => {
-      const instances = await raiseDueInstances(
-        tx,
-        context.farm.id,
-        slots,
-        now
-      );
-      raised = instances.length;
-      // The Owner hears of a renewal in the evening's post, the day its work is raised.
-      await tellOfRenewals(tx, context.farm, instances, now);
-      await flagHeatsThatArrivedTooLate(
-        tx,
-        context.farm.id,
-        instances,
-        slots,
-        eventId,
-        now
-      );
-    }
-  );
-  return { raised };
+  let raised = { byTheSchedule: 0, byWhatHappened: 0, forTheRenewal: 0 };
+  // What the trail says of it: how much work was raised, and by what — the Playbook's schedule, something that
+  // happened to an animal, or the Registration coming up for renewal. Only when something was: the farm turns its
+  // day every time anybody opens the app, and a turn that raised nothing is no event.
+  await audited(context)
+    .write(
+      {
+        entity: "sop_instance",
+        entityId: `schedule:${now.toISOString().slice(0, 10)}`,
+        action: "create",
+        after: () =>
+          Promise.resolve({
+            raised:
+              raised.byTheSchedule +
+              raised.byWhatHappened +
+              raised.forTheRenewal,
+            ...raised,
+          }),
+      },
+      async (tx, eventId) => {
+        const instances = await raiseDueInstances(
+          tx,
+          context.farm.id,
+          slots,
+          now
+        );
+        if (instances.length === 0) {
+          throw new NothingRaisedError();
+        }
+        raised = raisedBy(instances, byWhatHappened, forTheRenewal);
+        // The Owner hears of a renewal in the evening's post, the day its work is raised.
+        await tellOfRenewals(tx, context.farm, instances, now);
+        await flagHeatsThatArrivedTooLate(
+          tx,
+          context.farm.id,
+          instances,
+          slots,
+          eventId,
+          now
+        );
+      }
+    )
+    .catch((error: unknown) => {
+      if (!(error instanceof NothingRaisedError)) {
+        throw error;
+      }
+    });
+  return {
+    raised: raised.byTheSchedule + raised.byWhatHappened + raised.forTheRenewal,
+  };
 };
 
 /**
