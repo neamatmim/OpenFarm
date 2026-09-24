@@ -139,6 +139,8 @@ export const investorAccess = pgTable(
     invitedAt: timestamp("invited_at").notNull(),
     acceptedAt: timestamp("accepted_at"),
     revokedAt: timestamp("revoked_at"),
+    /** When they were last in the portal, to the hour: kept here because sessions end and are cleared. */
+    lastSeenAt: timestamp("last_seen_at"),
   },
   (table) => [
     uniqueIndex("investor_access_investor_uidx").on(table.investorId),

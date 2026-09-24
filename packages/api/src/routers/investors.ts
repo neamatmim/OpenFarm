@@ -132,7 +132,7 @@ export const investorsRouter = {
           where: { farmId: context.farm.id },
           columns: { id: true, name: true, state: true },
         }),
-        portalStandings(context.db, context.farm.id),
+        portalStandings(context.db, context.farm.id, context.clock.now()),
       ]);
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.
@@ -187,8 +187,12 @@ export const investorsRouter = {
           ventures: theirs.get(one.id) ?? [],
           /** When they were retired, or nothing while the farm may still sign them. */
           retiredAt: one.retiredAt,
-          /** Where they stand with the portal: never invited, invited, in, or taken away. */
-          portal: portal.get(one.id) ?? "none",
+          /** Where they stand with the portal: never invited, invited, their code run out, in, or taken away. */
+          portal: portal.get(one.id)?.standing ?? "none",
+          /** Until when their open code can be taken up; null where none is open. */
+          portalCodeUntil: portal.get(one.id)?.codeUntil ?? null,
+          /** When they were last in the portal, to the hour; null for somebody never seen there. */
+          portalLastSeenAt: portal.get(one.id)?.lastSeenAt ?? null,
         })),
       };
     }),

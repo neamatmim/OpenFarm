@@ -7,7 +7,12 @@ import {
   useListTable,
 } from "@/components/data-table";
 import type { Investor } from "@/components/investors/investor-types";
-import { PortalStandingBadge } from "@/components/investors/portal-access";
+import {
+  PortalStandingBadge,
+  PortalStandingLine,
+  STANDING,
+  standingOf,
+} from "@/components/investors/portal-access";
 import { Nothing } from "@/components/list-cells";
 import { StatusBadge, TagChip } from "@/components/page";
 import { useLanguage } from "@/i18n/language-provider";
@@ -47,9 +52,6 @@ const NameCell = ({ row }: Cell) => {
           {investor.name}
         </span>
         <RetiredBadge investor={investor} />
-        {investor.portal && investor.portal !== "none" ? (
-          <PortalStandingBadge investor={investor} />
-        ) : null}
       </span>
       {investor.address ? (
         <span className="text-muted-foreground text-sm">
@@ -87,30 +89,72 @@ const UnitsCell = ({ row }: Cell) => {
   );
 };
 
+/** Where they stand with the portal, and what goes with it: the code's last day, or when they were last in. */
+const PortalCell = ({ row }: Cell) => {
+  const { investor } = row.original;
+  if (standingOf(investor) === "none") {
+    return <Nothing />;
+  }
+  return (
+    <span className="flex flex-col items-start gap-1">
+      <PortalStandingBadge investor={investor} />
+      <PortalStandingLine investor={investor} />
+    </span>
+  );
+};
+
+/** Where a standing sorts: in first, never invited as nothing, at the bottom whichever way. */
+const PORTAL_ORDER = Object.keys(STANDING);
+
 const column = createListColumns<InvestorRow>();
-const investorColumns = column.columns([
-  column.accessor((row) => row.investor.name, {
-    id: "name",
-    header: listHeader("investors.name"),
-    cell: NameCell,
-    meta: { className: "min-w-56" },
-  }),
-  column.accessor((row) => row.investor.phone, {
-    id: "phone",
-    header: listHeader("investors.phone"),
-    cell: PhoneCell,
-  }),
-  column.accessor((row) => row.investor.nominee?.name ?? undefined, {
+const nameColumn = column.accessor((row) => row.investor.name, {
+  id: "name",
+  header: listHeader("investors.name"),
+  cell: NameCell,
+  meta: { className: "min-w-56" },
+});
+const phoneColumn = column.accessor((row) => row.investor.phone, {
+  id: "phone",
+  header: listHeader("investors.phone"),
+  cell: PhoneCell,
+});
+const nomineeColumn = column.accessor(
+  (row) => row.investor.nominee?.name ?? undefined,
+  {
     id: "nominee",
     header: listHeader("investors.nominee"),
     cell: NomineeCell,
-  }),
-  column.accessor((row) => row.investor.unitsHeld, {
-    id: "units",
-    header: listHeader("investors.unitsHeld"),
-    cell: UnitsCell,
-    meta: { align: "end" },
-  }),
+  }
+);
+const unitsColumn = column.accessor((row) => row.investor.unitsHeld, {
+  id: "units",
+  header: listHeader("investors.unitsHeld"),
+  cell: UnitsCell,
+  meta: { align: "end" },
+});
+const portalColumn = column.accessor(
+  (row) => {
+    const standing = standingOf(row.investor);
+    return standing === "none" ? undefined : PORTAL_ORDER.indexOf(standing);
+  },
+  {
+    id: "portal",
+    header: listHeader("portal.column"),
+    cell: PortalCell,
+  }
+);
+const investorColumns = column.columns([
+  nameColumn,
+  phoneColumn,
+  nomineeColumn,
+  unitsColumn,
+]);
+const withPortalColumns = column.columns([
+  nameColumn,
+  phoneColumn,
+  nomineeColumn,
+  portalColumn,
+  unitsColumn,
 ]);
 
 /** One Investor on a phone: who they are, how they are reached and what they hold. The whole card opens
@@ -128,10 +172,11 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{investor.name}</span>
           <RetiredBadge investor={investor} />
-          {investor.portal && investor.portal !== "none" ? (
+          {standingOf(investor) === "none" ? null : (
             <PortalStandingBadge investor={investor} />
-          ) : null}
+          )}
         </span>
+        <PortalStandingLine investor={investor} />
         <span className="text-muted-foreground text-xs">
           {[
             investor.phone,
@@ -158,16 +203,20 @@ const InvestorCard = ({ row }: { row: InvestorRow }) => {
 const investorCard = (row: InvestorRow) => <InvestorCard row={row} />;
 
 /** Everybody whose money is in the farm's Ventures as a table where there is room — name and address,
- *  phone, nominee and Units, sortable — and as cards on a phone. */
+ *  phone, nominee, where they stand with the portal once it is in use, and Units, sortable — and as cards on a
+ *  phone. */
 export const InvestorsTable = ({
   investors,
   onDetails,
+  showPortal,
 }: {
   investors: Investor[];
   onDetails: (investor: Investor) => void;
+  /** Whether the portal is in use, and so worth a column. */
+  showPortal: boolean;
 }) => {
   const table = useListTable({
-    columns: investorColumns,
+    columns: showPortal ? withPortalColumns : investorColumns,
     data: investors.map((investor) => ({ investor, onDetails })),
     getRowId: (row) => row.investor.id,
   });

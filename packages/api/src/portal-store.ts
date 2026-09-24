@@ -1,7 +1,7 @@
 import { auth, openInvestorAccount, setPasswordFor } from "@OpenFarm/auth";
 import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq } from "@OpenFarm/db/operators";
+import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
 import { session, user } from "@OpenFarm/db/schema/auth";
 import { investorAccess } from "@OpenFarm/db/schema/venture";
 import { investorLoginOf } from "@OpenFarm/domain";
@@ -25,8 +25,26 @@ import { newInviteCode } from "./membership";
 /** How long an invitation's code stands before the Owner has to give a new one. */
 const A_WEEK = 7 * 24 * 60 * 60 * 1000;
 
-/** Where an Investor stands with the portal, as the Owner's list shows it. */
-export type PortalStanding = "none" | "invited" | "in" | "taken_away";
+/**
+ * Where an Investor stands with the portal, as the Owner's list shows it. Somebody who has taken a code up is in
+ * until their access is taken away — a new code for a forgotten password does not shut them out, their old password
+ * still works — and a code nobody took up before it ran out is said as such, because the Owner has to give another.
+ */
+export type PortalStanding =
+  | "none"
+  | "invited"
+  | "code_ran_out"
+  | "in"
+  | "taken_away";
+
+/** What the Owner's list says of one Investor's access: where they stand, the open code's last day, when last in. */
+export interface PortalSaid {
+  standing: PortalStanding;
+  /** Until when the open code can be taken up, or null where none is open. */
+  codeUntil: Date | null;
+  /** When they were last in the portal, to the hour; null for somebody never seen there. */
+  lastSeenAt: Date | null;
+}
 
 /** What the trail keeps of somebody's access, either side of a change: never the code. */
 export const readAccess = async (tx: Tx, farmId: string, investorId: string) =>
@@ -45,25 +63,42 @@ export const readAccess = async (tx: Tx, farmId: string, investorId: string) =>
 /** Where each Investor stands with the portal, by their id. */
 export const portalStandings = async (
   db: Pick<Tx, "query">,
-  farmId: string
-): Promise<Map<string, PortalStanding>> => {
+  farmId: string,
+  now: Date
+): Promise<Map<string, PortalSaid>> => {
   const rows = await db.query.investorAccess.findMany({
     where: { farmId },
     columns: {
       investorId: true,
       codeHash: true,
+      codeExpiresAt: true,
       acceptedAt: true,
       revokedAt: true,
+      lastSeenAt: true,
     },
   });
   return new Map(
     rows.map((row) => {
-      if (row.revokedAt) {
-        return [row.investorId, "taken_away"];
-      }
+      const codeOpen =
+        row.codeHash !== null &&
+        row.codeExpiresAt !== null &&
+        row.codeExpiresAt > now;
+      const standingOf = (): PortalStanding => {
+        if (row.revokedAt) {
+          return "taken_away";
+        }
+        if (row.acceptedAt) {
+          return "in";
+        }
+        return codeOpen ? "invited" : "code_ran_out";
+      };
       return [
         row.investorId,
-        row.acceptedAt && !row.codeHash ? "in" : "invited",
+        {
+          standing: standingOf(),
+          codeUntil: codeOpen ? row.codeExpiresAt : null,
+          lastSeenAt: row.lastSeenAt,
+        },
       ];
     })
   );
@@ -318,6 +353,37 @@ export const takeUpInvitation = async (
   );
   forgetFailures(guesses);
   return { loginEmail };
+};
+
+/** How finely the farm keeps when an Investor was last in: an hour, so reading the portal is not a write per page. */
+const SEEN_TO_THE_HOUR = 60 * 60 * 1000;
+
+/**
+ * Notes that an Investor is in the portal now, at most once an hour. Telemetry, not a farm record: outside the
+ * trail, as a Shed Phone's last-seen is — an Audit Event per page read would drown it.
+ */
+export const markSeen = async (
+  db: Context["db"],
+  farmId: string,
+  userId: string,
+  now: Date
+): Promise<void> => {
+  await db
+    .update(investorAccess)
+    .set({ lastSeenAt: now })
+    .where(
+      and(
+        eq(investorAccess.farmId, farmId),
+        eq(investorAccess.userId, userId),
+        or(
+          isNull(investorAccess.lastSeenAt),
+          lt(
+            investorAccess.lastSeenAt,
+            new Date(now.getTime() - SEEN_TO_THE_HOUR)
+          )
+        )
+      )
+    );
 };
 
 /** The Investor an account belongs to, while the portal is open and their access stands; null for anybody else. */

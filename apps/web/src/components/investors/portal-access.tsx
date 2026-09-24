@@ -1,3 +1,4 @@
+import { mobileNumberOf } from "@OpenFarm/domain";
 import { formatDate } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -28,20 +29,82 @@ const REFUSALS = {
   investor_retired: "portal.refused.retired",
 } as const;
 
-/** Where an Investor stands with the portal, as a word with its colour. */
-const STANDING = {
-  none: { word: "portal.standing.none", tone: "neutral" },
-  invited: { word: "portal.standing.invited", tone: "info" },
+/** Where an Investor stands with the portal, as a word with its colour, in the order the list sorts them. */
+export const STANDING = {
   in: { word: "portal.standing.in", tone: "success" },
+  invited: { word: "portal.standing.invited", tone: "info" },
+  code_ran_out: { word: "portal.standing.codeRanOut", tone: "warning" },
   taken_away: { word: "portal.standing.takenAway", tone: "neutral" },
+  none: { word: "portal.standing.none", tone: "neutral" },
 } as const satisfies Record<Investor["portal"], { word: string; tone: Tone }>;
+
+export type PortalStanding = keyof typeof STANDING;
+
+/** Where an Investor stands with the portal; a list cached before the portal existed has no such field, and nobody
+ *  on it was invited. */
+export const standingOf = (investor: Investor): PortalStanding =>
+  investor.portal ?? "none";
+
+/** Whether the portal is anything to this farm yet: open, or somebody already invited. Until then a column of "not
+ *  invited" on every row says nothing. */
+export const portalInUse = (open: boolean, people: Investor[]) =>
+  open || people.some((one) => standingOf(one) !== "none");
 
 /** Where an Investor stands with the portal. */
 export const PortalStandingBadge = ({ investor }: { investor: Investor }) => {
   const { t } = useLanguage();
-  // A list cached before the portal existed has no such field: nobody on it was invited.
-  const standing = STANDING[investor.portal ?? "none"];
+  const standing = STANDING[standingOf(investor)];
   return <StatusBadge tone={standing.tone}>{t(standing.word)}</StatusBadge>;
+};
+
+/**
+ * What goes with where they stand: until when their code can be taken up, that it ran out and wants another, or when
+ * they were last in. Nothing for somebody never invited or whose access was taken away.
+ */
+export const PortalStandingLine = ({ investor }: { investor: Investor }) => {
+  const { t, language } = useLanguage();
+  const standing = standingOf(investor);
+  // Cached before these were answered, they are missing rather than null.
+  const codeUntil = investor.portalCodeUntil ?? null;
+  const lastSeenAt = investor.portalLastSeenAt ?? null;
+  const said: string[] = [];
+  if (standing === "in") {
+    said.push(
+      lastSeenAt
+        ? t("portal.lastIn", {
+            when: formatDate(new Date(lastSeenAt), language),
+          })
+        : t("portal.notInYet")
+    );
+  }
+  if (standing === "code_ran_out") {
+    said.push(t("portal.codeRanOut"));
+  }
+  if (codeUntil && standing !== "taken_away") {
+    said.push(
+      t("portal.codeGoodUntil", {
+        when: formatDate(new Date(codeUntil), language),
+      })
+    );
+  }
+  if (said.length === 0) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground text-xs">{said.join(" · ")}</span>
+  );
+};
+
+/** Why the Owner cannot invite somebody, said before she tries: retired, or a phone that is not a mobile they could
+ *  sign in with. The same words the farm refuses with. */
+const whyNoInvite = (investor: Investor) => {
+  if (investor.retiredAt) {
+    return REFUSALS.investor_retired;
+  }
+  if (!mobileNumberOf(investor.phone)) {
+    return REFUSALS.phone_not_mobile;
+  }
+  return null;
 };
 
 /**
@@ -190,12 +253,14 @@ export const PortalAccess = ({
       },
     })
   );
-  const standing = investor.portal ?? "none";
+  const standing = standingOf(investor);
   const inviteWord = standing === "none" ? "portal.invite" : "portal.newCode";
+  const whyNot = whyNoInvite(investor);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <PortalStandingBadge investor={investor} />
+        <PortalStandingLine investor={investor} />
         {portalOpen ? null : (
           <span className="text-muted-foreground text-xs">
             {t("portal.shutForAll")}
@@ -204,7 +269,7 @@ export const PortalAccess = ({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
-          disabled={Boolean(investor.retiredAt) || inviting.isPending}
+          disabled={whyNot !== null || inviting.isPending}
           onClick={() => inviting.mutate({ id: investor.id })}
           size="sm"
           type="button"
@@ -225,6 +290,9 @@ export const PortalAccess = ({
           </Button>
         ) : null}
       </div>
+      {whyNot ? (
+        <p className="text-muted-foreground text-sm">{t(whyNot)}</p>
+      ) : null}
       <CodeDialog given={given} onClose={() => setGiven(null)} />
       <ConfirmDialog
         confirmLabel={t("portal.takeAway")}

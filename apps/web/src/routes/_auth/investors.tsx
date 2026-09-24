@@ -12,7 +12,13 @@ import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import { matching } from "@/components/investors/investor-types";
 import { InvestorsTable } from "@/components/investors/investors-table";
-import { PortalSwitch } from "@/components/investors/portal-access";
+import type { PortalStanding } from "@/components/investors/portal-access";
+import {
+  PortalSwitch,
+  STANDING,
+  portalInUse,
+  standingOf,
+} from "@/components/investors/portal-access";
 import {
   EmptyState,
   Loaded,
@@ -22,7 +28,7 @@ import {
   Section,
 } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
-import { FilterBar, SummaryFigures } from "@/components/page-kit";
+import { FilterBar, NativeSelect, SummaryFigures } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { orpc } from "@/utils/orpc";
@@ -71,6 +77,41 @@ const useInvestorFigures = (list: InvestorList | undefined): Figure[] => {
   ];
 };
 
+/** The list narrowed to one portal standing, each with how many stand there, so the Owner finds who wants a new
+ *  code without reading every row. */
+const PortalFilter = ({
+  people,
+  value,
+  onChange,
+}: {
+  people: Investor[];
+  value: PortalStanding | "";
+  onChange: (standing: PortalStanding | "") => void;
+}) => {
+  const { t, language } = useLanguage();
+  const standings = Object.keys(STANDING) as PortalStanding[];
+  return (
+    <NativeSelect
+      aria-label={t("portal.column")}
+      className="sm:w-56"
+      onChange={(event) =>
+        onChange(standings.find((one) => one === event.target.value) ?? "")
+      }
+      value={value}
+    >
+      <option value="">{t("portal.anyStanding")}</option>
+      {standings.map((one) => (
+        <option key={one} value={one}>
+          {`${t(STANDING[one].word)} · ${formatNumber(
+            people.filter((person) => standingOf(person) === one).length,
+            language
+          )}`}
+        </option>
+      ))}
+    </NativeSelect>
+  );
+};
+
 /**
  * The people whose money is in the farm's Ventures. The Owner's alone: who trusted her with money, and how
  * much, is not the Manager's business. The count against the cap sits at the top, because twenty people in
@@ -90,7 +131,13 @@ const InvestorsPage = () => {
   const editing = people.find((one) => one.id === editingId) ?? null;
   const counted = investors.data;
   const figures = useInvestorFigures(counted);
-  const shown = people.filter((one) => matching(one, looking));
+  const [standing, setStanding] = useState<PortalStanding | "">("");
+  const showPortal = portalInUse(counted?.portalOpen ?? false, people);
+  const shown = people.filter(
+    (one) =>
+      matching(one, looking) &&
+      (!showPortal || standing === "" || standingOf(one) === standing)
+  );
   return (
     <Page>
       <PageHeader
@@ -139,6 +186,13 @@ const InvestorsPage = () => {
                   value={looking}
                 />
               </div>
+              {showPortal ? (
+                <PortalFilter
+                  onChange={setStanding}
+                  people={people}
+                  value={standing}
+                />
+              ) : null}
             </FilterBar>
             {shown.length === 0 ? (
               <EmptyState bare icon={Search} title={t("investors.noneFound")} />
@@ -146,6 +200,7 @@ const InvestorsPage = () => {
               <InvestorsTable
                 investors={shown}
                 onDetails={(one: Investor) => setShowingId(one.id)}
+                showPortal={showPortal}
               />
             )}
           </Section>
