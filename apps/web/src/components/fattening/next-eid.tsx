@@ -51,7 +51,7 @@ export const EidBasisBadge = ({ basis }: { basis: EidBasis }) => {
 };
 
 /** The day the committee announced, in a dialog: the table's day to start from, since it is a day either side. */
-const AnnounceDialog = ({
+export const AnnounceDialog = ({
   open,
   startFrom,
   onOpenChange,
@@ -97,7 +97,7 @@ const AnnounceDialog = ({
 };
 
 /** How long until Qurbani, or that it is on. */
-const untilSaid = (
+export const untilSaid = (
   window: EidWindow,
   { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
 ) => {

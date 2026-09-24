@@ -1,12 +1,19 @@
 import { uuidv7 as newId } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
 import { eidAnnouncement, intake } from "@OpenFarm/db/schema/fattening";
-import { expectedEidNear, farmDayOf, qurbaniFrom } from "@OpenFarm/domain";
+import type { EidBasis } from "@OpenFarm/domain";
+import {
+  eidsListed,
+  expectedEidNear,
+  farmDayOf,
+  qurbaniFrom,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
 import {
+  aimedByWindow,
   announcementsOf,
   farmsNextEid,
   formerWindowsOf,
@@ -35,12 +42,14 @@ export const eidRouter = {
         behind: 0,
         inVentures: 0,
       };
-      if (window?.basis !== "announced") {
+      if (!window) {
         return nothingBehind;
       }
+      // An Eid the Farm has written anything in for — a day announced, or one taken back — may have animals aimed at a
+      // day it is no longer on.
       const announced = await announcementsOf(context.db, context.farm.id);
       const expectedDay = [...announced.entries()].find(
-        ([, days]) => days.at(-1) === window.start
+        ([, one]) => one.days.at(-1) === window.start
       )?.[0];
       if (!expectedDay) {
         return nothingBehind;
@@ -48,7 +57,7 @@ export const eidRouter = {
       const aimed = await intakesAimedAt(
         context.db,
         context.farm.id,
-        formerWindowsOf(expectedDay, announced.get(expectedDay) ?? [])
+        formerWindowsOf(expectedDay, announced.get(expectedDay)?.days ?? [])
       );
       return {
         window,
@@ -77,7 +86,8 @@ export const eidRouter = {
         });
       }
       const known = await announcementsOf(context.db, context.farm.id);
-      if (known.get(expectedDay)?.at(-1) === input.day) {
+      const already = known.get(expectedDay);
+      if (!already?.withdrawn && already?.days.at(-1) === input.day) {
         return { expectedDay, day: input.day };
       }
       const now = context.clock.now();
@@ -112,7 +122,8 @@ export const eidRouter = {
     .input(z.object({ expectedDay: farmDay }))
     .handler(async ({ context, input }) => {
       const announced = await announcementsOf(context.db, context.farm.id);
-      const days = announced.get(input.expectedDay) ?? [];
+      const days = announced.get(input.expectedDay)?.days ?? [];
+      // The day in force: the one announced, or — an announcement taken back — the day expected again.
       const inForce = days.at(-1);
       if (!inForce) {
         throw new ORPCError("BAD_REQUEST", {
@@ -158,5 +169,89 @@ export const eidRouter = {
           return { moved: own.length, window: to };
         }
       );
+    }),
+
+  /**
+   * Every Eid on the Farm's list: the last one it sold into, the table's from here, and the calendar's guesses past it.
+   * For each, the day the Farm is on and how it knows it, the day it was expected, how many animals are aimed at it —
+   * the Farm's own and a Venture's — and how many are still aimed at a day it is no longer on.
+   */
+  list: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .handler(async ({ context }) => {
+      const today = farmDayOf(context.clock.now());
+      const [announced, aimedAt, next] = await Promise.all([
+        announcementsOf(context.db, context.farm.id),
+        aimedByWindow(context.db, context.farm.id),
+        farmsNextEid(context.db, context.farm.id, today),
+      ]);
+      return eidsListed(today).map(({ expectedDay, basis }) => {
+        const written = announced.get(expectedDay);
+        const inForce = written?.days.at(-1) ?? expectedDay;
+        const isAnnounced = written !== undefined && !written.withdrawn;
+        const window = qurbaniFrom(inForce);
+        const said: EidBasis = isAnnounced ? "announced" : basis;
+        return {
+          expectedDay,
+          window: { ...window, basis: said },
+          /** Whether Qurbani is over for it, and whether it is the one the Farm is feeding towards. */
+          past: window.end < today,
+          next: next?.start === window.start,
+          /** Whether a day was ever written in for it — so it may be taken back, or has been. */
+          announced: isAnnounced,
+          withdrawn: written?.withdrawn ?? false,
+          aimed: aimedAt([window]),
+          // Only an Eid the Farm has written a day in for can have animals on a day it is no longer on: one nobody
+          // announced is on the day it was always on.
+          behind: written
+            ? aimedAt(formerWindowsOf(expectedDay, written.days))
+            : { own: 0, inVentures: 0 },
+        };
+      });
+    }),
+
+  /**
+   * Takes an announced day back: the Eid is on its expected day again, as nobody had announced it — a day written in
+   * before the committee spoke, or for the wrong year. A row of its own, so the trail says what the Farm believed and
+   * when. The animals brought along to the day taken back stay there until they are brought along again.
+   */
+  withdraw: protectedProcedure
+    .use(requireRole("owner", "manager"))
+    .input(z.object({ expectedDay: farmDay }))
+    .handler(async ({ context, input }) => {
+      const announced = await announcementsOf(context.db, context.farm.id);
+      const written = announced.get(input.expectedDay);
+      if (!written || written.withdrawn) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Nobody has announced that Eid yet",
+          data: { refusal: "eid_not_announced" },
+        });
+      }
+      const now = context.clock.now();
+      const id = newId(now);
+      await audited(context).write(
+        {
+          entity: "eid_announcement",
+          entityId: id,
+          action: "update",
+          before: { day: written.days.at(-1), expectedDay: input.expectedDay },
+          after: {
+            day: input.expectedDay,
+            expectedDay: input.expectedDay,
+            withdrawn: true,
+          },
+        },
+        (tx) =>
+          tx.insert(eidAnnouncement).values({
+            id,
+            farmId: context.farm.id,
+            day: input.expectedDay,
+            expectedDay: input.expectedDay,
+            announcedBy: context.actor.id,
+            withdrawn: true,
+            createdAt: now,
+          })
+      );
+      return { expectedDay: input.expectedDay };
     }),
 };

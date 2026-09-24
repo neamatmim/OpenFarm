@@ -17,6 +17,7 @@ import {
   House,
   LayoutDashboard,
   Milk,
+  MoonStar,
   PawPrint,
   Pill,
   ScrollText,
@@ -128,6 +129,12 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/fattening",
         label: "nav.fattening",
         icon: TrendingUp,
+        audience: "runsTheFarm",
+      },
+      {
+        to: "/admin/eid",
+        label: "nav.eid",
+        icon: MoonStar,
         audience: "runsTheFarm",
       },
       {

@@ -199,3 +199,46 @@ export const nextEidWindow = (
     ? windowOf({ day: guess, basis: "estimated" })
     : ahead;
 };
+
+/** How many Eids past the table the farm's list names ahead, by the calendar's guess. */
+const GUESSED_AHEAD = 2;
+
+/** How far the calendar is walked, one Eid at a time, to find the ones ahead of a day long past the table. */
+const GUESSES_AT_MOST = 40;
+
+/** One Eid on the farm's list, by the day it is expected on — which is what names it — and how that day is known. */
+export interface ListedEid {
+  expectedDay: string;
+  basis: "expected" | "estimated";
+}
+
+/**
+ * The Eids the farm keeps a list of on `today`: the last one it sold into, if that was within the year; every one the
+ * table expects from here; and a couple past the table's end, the calendar's guess. An Eid is on it until its last day
+ * of Qurbani is past, as it is the farm's next until then.
+ */
+export const eidsListed = (today: string): ListedEid[] => {
+  const all: ListedEid[] = EID_UL_ADHA.map((day) => ({
+    expectedDay: day,
+    basis: "expected",
+  }));
+  const isAhead = (one: ListedEid) => qurbaniFrom(one.expectedDay).end >= today;
+  // The table is in order, so its last day is its latest.
+  let from = addDays(EID_UL_ADHA.at(-1) ?? today, SAME_EID_DAYS + 1);
+  for (let step = 0; step < GUESSES_AT_MOST; step += 1) {
+    const guessedAhead = all.filter(
+      (one) => one.basis === "estimated" && isAhead(one)
+    ).length;
+    const guess = guessedAhead < GUESSED_AHEAD ? eidByTheCalendar(from) : null;
+    if (!guess) {
+      break;
+    }
+    all.push({ expectedDay: guess, basis: "estimated" });
+    from = addDays(guess, SAME_EID_DAYS + 1);
+  }
+  const lastPast = all.findLast((one) => !isAhead(one));
+  const recent =
+    lastPast &&
+    daysApart(today, qurbaniFrom(lastPast.expectedDay).end) <= EIDS_APART_DAYS;
+  return [...(lastPast && recent ? [lastPast] : []), ...all.filter(isAhead)];
+};

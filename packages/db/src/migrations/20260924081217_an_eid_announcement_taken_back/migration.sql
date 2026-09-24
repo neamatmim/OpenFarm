@@ -1,0 +1,1 @@
+ALTER TABLE "eid_announcement" ADD COLUMN "withdrawn" boolean DEFAULT false NOT NULL;
