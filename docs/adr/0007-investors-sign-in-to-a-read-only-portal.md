@@ -31,3 +31,5 @@ What the portal is, and is not:
 Investor's account only from inside the farm's own invite-taking, never from the public sign-up; every paper an
 Investor opens is an Export in the trail, attributed to them, as the Owner's printing of it always was. Revisit when the lawyer answers: if the portal is a platform,
 switch it off and keep the documents; if it is not, record the answer in ticket 11 and here.
+
+**2026-09-25:** the lawyer answered, verbally, that the portal as built is acceptable because it is by invitation only. On the same basis, [ADR 0008](./0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md) lets invited Investors see Ventures still raising capital and how to pay. The portal still takes no money and signs nothing.

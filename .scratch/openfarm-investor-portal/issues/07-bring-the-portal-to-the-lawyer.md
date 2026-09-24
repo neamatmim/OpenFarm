@@ -32,3 +32,15 @@ The Owner's part is the meeting. Resolved when the lawyer's written answer on th
 - where the written opinion is kept
 - what it changes: the portal stays shut, opens as built, or opens with changes
 - whether joining or paying may ever go through the portal, and on what terms.
+
+## Answer so far (2026-09-25, verbal; written opinion to follow)
+
+The Owner reports the lawyer's answer. **Because the portal stays by invitation only:**
+- **acceptable:** the portal as built;
+- **acceptable:** showing a Venture still gathering capital to invited Investors, and letting them say they want to join;
+- **acceptable:** showing the Venture Account's bank details and reference for capital they have signed for;
+- **not approved:** taking payment inside the portal. It stays out.
+
+Recorded as [ADR 0008](../../../docs/adr/0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md).
+
+**This ticket stays open until the written opinion is in hand**, and is then resolved with where that opinion is kept. The data-protection questions carried over from ticket 01 were not reported as answered, and still need answers. Until the written opinion arrives, the portal stays switched off for real Investors.

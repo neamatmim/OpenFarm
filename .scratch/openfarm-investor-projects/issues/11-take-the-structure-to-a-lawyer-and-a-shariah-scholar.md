@@ -31,9 +31,11 @@ Stamping less often (asked by the Owner, 2026-09-24 — a stamped deed per Inves
 
 The investor portal (ADR 0007), asked by the Owner on 2026-09-25. The detail is on the portal map's ticket, [Bring the portal as built to the lawyer](../../openfarm-investor-portal/issues/07-bring-the-portal-to-the-lawyer.md):
 
-- [ ] May the portal show a Venture still gathering capital to existing Investors only, and let them say they are interested, or is that an offer made online?
-- [ ] May it show the Venture Account's bank details and the reference for capital already signed for on a stamped Agreement?
-- [ ] Would taking payment inside the portal need Bangladesh Bank approval under the PSS Act 2024 s.15(2)? Can it fit bank channels only and "no capital without a stamped Agreement"?
+- [x] May the portal show a Venture still gathering capital to existing Investors only, and let them say they are interested, or is that an offer made online? **Yes, because it is by invitation only.** Verbal, 2026-09-25; written opinion to follow.
+- [x] May it show the Venture Account's bank details and the reference for capital already signed for on a stamped Agreement? **Yes.** Verbal, 2026-09-25.
+- [ ] Would taking payment inside the portal need Bangladesh Bank approval under the PSS Act 2024 s.15(2)? Can it fit bank channels only and "no capital without a stamped Agreement"? **Not approved.** It stays out of the portal.
+
+The portal as built, invitation-only, was said to be acceptable too. That answers the checklist's "Would a future investor login?" for the portal, verbally. See [ADR 0008](../../../docs/adr/0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md).
 
 Checklist for the Shariah scholar:
 
