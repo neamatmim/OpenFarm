@@ -51,6 +51,7 @@ export type ExportedPaper =
   | "agreement_draft"
   | "amendment_draft"
   | "template_preview"
+  | "dls_letter"
   | "joining_letter"
   | "progress_statement"
   | "settlement_statement";

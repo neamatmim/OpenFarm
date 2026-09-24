@@ -1,9 +1,10 @@
 import { Button } from "@OpenFarm/ui/components/button";
+import { useRef } from "react";
 
 import { useLanguage } from "@/i18n/language-provider";
+import { printAlone } from "@/lib/print-alone";
 
-/** The papers the farm prints. A closed list, because the id is written straight into a
- *  stylesheet and anything a caller could compose does not belong in one. */
+/** The papers the farm prints as text, each by its own name on the page. */
 export type PaperId =
   | "sale-receipt"
   | "transport-card"
@@ -18,7 +19,6 @@ export type PaperId =
   | "treatment-register"
   | "disease-history"
   | "mortality-register"
-  | "sop-card"
   | "investor-joining-letter"
   | "investor-progress"
   | "investor-settlement";
@@ -27,8 +27,8 @@ export type PaperId =
  * A document the farm hands somebody, on one page.
  *
  * Pre-formatted, because the line breaks *are* the document: these are papers the farm may have
- * to produce again years later, and they should read the same every time. The print rules are
- * the DLS letter's — one page, and only the paper on it.
+ * to produce again years later, and they should read the same every time. Printed alone
+ * (lib/print-alone): only the paper, on white, whatever theme the app is in.
  */
 export const Paper = ({
   id,
@@ -43,8 +43,8 @@ export const Paper = ({
   /**
    * A face per Animal, printed with the text, for a paper that shows the herd it is about.
    *
-   * Inside this element rather than beside it, because the print rules hide everything outside it: a
-   * photograph laid out next to the paper would be on the screen and off the page.
+   * Inside this element rather than beside it, because only this element is printed: a photograph laid out
+   * next to the paper would be on the screen and off the page.
    */
   photographs?: {
     /** What the caller knows her by, which is what keeps the list in order across a redraw. */
@@ -57,16 +57,9 @@ export const Paper = ({
   }[];
 }) => {
   const { t } = useLanguage();
+  const paper = useRef<HTMLElement>(null);
   return (
-    <section className="surface space-y-2 p-4 text-sm" id={id}>
-      <style>{`@page { size: A4; margin: 20mm }
-        @media print {
-          body * { visibility: hidden }
-          #${id}, #${id} * { visibility: visible }
-          #${id} { position: absolute; inset: 0; border: 0 }
-          .no-print { display: none }
-          body { font-size: 12pt }
-        }`}</style>
+    <section className="surface space-y-2 p-4 text-sm" id={id} ref={paper}>
       <pre className="overflow-x-auto font-sans text-sm whitespace-pre-wrap">
         {text}
       </pre>
@@ -95,7 +88,14 @@ export const Paper = ({
       ) : null}
       <Button
         className="no-print"
-        onClick={() => window.print()}
+        onClick={() => {
+          if (paper.current) {
+            void printAlone(paper.current, {
+              margin: "20mm",
+              fontSize: "12pt",
+            });
+          }
+        }}
         size="sm"
         type="button"
         variant="outline"
