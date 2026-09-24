@@ -7,8 +7,8 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { LogOut, Monitor, Smartphone } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { IdCard, LogOut, Monitor, ShieldCheck, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ import {
   Section,
   StatusBadge,
 } from "@/components/page";
-import { FormField } from "@/components/page-kit";
+import { FormField, PageTabs } from "@/components/page-kit";
 import { deviceOf } from "@/components/people/person-sign-ins";
 import { useLanguage } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
@@ -304,10 +304,15 @@ const SignedIn = () => {
   );
 };
 
-/** An Investor's own account: their record as the farm holds it, the farm to ask, their password, and where they are
- *  signed in. */
+const TABS = ["details", "security"] as const;
+type Tab = (typeof TABS)[number];
+
+/** An Investor's own account, in two views: what the farm holds about them and whom to ask, and keeping it theirs —
+ *  their password and where they are signed in. */
 const PortalAccount = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const { tab = "details" } = Route.useSearch();
   const me = useQuery(orpc.portal.me.queryOptions());
   return (
     <Page>
@@ -317,18 +322,55 @@ const PortalAccount = () => {
       />
       <Loaded query={me} skeleton={<Skeleton className="h-40 rounded-xl" />}>
         {me.data ? (
-          <div className="grid items-start gap-4 lg:grid-cols-2">
-            <TheirDetails me={me.data} />
-            <TheFarm me={me.data} />
-            <NewPassword />
-            <SignedIn />
-          </div>
+          <PageTabs
+            onChange={(value) =>
+              navigate({
+                replace: true,
+                search: value === "details" ? {} : { tab: value },
+                to: "/portal/account",
+              })
+            }
+            tabs={[
+              {
+                value: "details",
+                label: t("portal.account.details"),
+                icon: IdCard,
+                content: (
+                  <div className="grid items-start gap-4 lg:grid-cols-2">
+                    <TheirDetails me={me.data} />
+                    <TheFarm me={me.data} />
+                  </div>
+                ),
+              },
+              {
+                value: "security",
+                label: t("portal.tab.security"),
+                icon: ShieldCheck,
+                content: (
+                  <div className="grid items-start gap-4 lg:grid-cols-2">
+                    <NewPassword />
+                    <SignedIn />
+                  </div>
+                ),
+              },
+            ]}
+            value={tab}
+          />
         ) : null}
       </Loaded>
     </Page>
   );
 };
 
+/** What the address may say about this page: which of its views is open. */
+interface AccountSearch {
+  tab?: Tab;
+}
+
 export const Route = createFileRoute("/portal/_in/account")({
   component: PortalAccount,
+  validateSearch: (search: Record<string, unknown>): AccountSearch =>
+    TABS.includes(search.tab as Tab) && search.tab !== "details"
+      ? { tab: search.tab as Tab }
+      : {},
 });
