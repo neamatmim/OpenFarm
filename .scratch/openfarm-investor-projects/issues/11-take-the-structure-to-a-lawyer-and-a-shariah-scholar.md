@@ -29,6 +29,12 @@ Stamping less often (asked by the Owner, 2026-09-24 — a stamped deed per Inves
 - [ ] What does **stamping only on request** risk (s.35: inadmissible until duty and up to ten times it are paid), and who carries that risk?
 - [ ] Review the four **agreement templates** — Investment Agreement, Master Agreement, Venture Schedule, Amendment — printed from Agreement templates → Read (each fact the paper fills is named in brackets). Say what must change; the Owner publishes the lawyer's wording as a new Version and records the approval on it (lawyer's name and day). The papers carry no draft mark (the Owner's choice, 2026-09-24); until a Version is approved the screen that prints it reminds the Owner.
 
+The investor portal (ADR 0007), asked by the Owner on 2026-09-25. The detail is on the portal map's ticket, [Bring the portal as built to the lawyer](../../openfarm-investor-portal/issues/07-bring-the-portal-to-the-lawyer.md):
+
+- [ ] May the portal show a Venture still gathering capital to existing Investors only, and let them say they are interested, or is that an offer made online?
+- [ ] May it show the Venture Account's bank details and the reference for capital already signed for on a stamped Agreement?
+- [ ] Would taking payment inside the portal need Bangladesh Bank approval under the PSS Act 2024 s.15(2)? Can it fit bank channels only and "no capital without a stamped Agreement"?
+
 Checklist for the Shariah scholar:
 
 - [ ] May a Buying or Selling Trip's men's food and lodging, and Herd Costs, be charged to the pool, given that the manager's ordinary staff costs are the manager's own?
