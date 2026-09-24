@@ -70,7 +70,7 @@ const paidAgainst = (
 /** One Investor's three papers, in a menu on his row: each offered only once it can be made, and saying why not
  *  until then — the joining letter and the progress statement once capital has come in, the settlement statement
  *  once the Settlement is approved. */
-const PapersMenu = ({
+export const PapersMenu = ({
   name,
   agreementId,
   hasPaid,

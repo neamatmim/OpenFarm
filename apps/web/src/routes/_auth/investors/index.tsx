@@ -7,7 +7,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BadgeCheck, IdCard, Search, Users } from "lucide-react";
 import { useState } from "react";
 
-import { InvestorDetails } from "@/components/investors/investor-details";
 import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import { matching } from "@/components/investors/investor-types";
@@ -121,14 +120,8 @@ const InvestorsPage = () => {
   const { t, language } = useLanguage();
   const [recording, setRecording] = useState(false);
   const [looking, setLooking] = useState("");
-  // Held by id and read from the list, so a sheet open on somebody shows them as they are after a correction
-  // or a retiring rather than as they were when it was opened.
-  const [showingId, setShowingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const investors = useQuery(orpc.investors.list.queryOptions());
   const people = investors.data?.people ?? [];
-  const showing = people.find((one) => one.id === showingId) ?? null;
-  const editing = people.find((one) => one.id === editingId) ?? null;
   const counted = investors.data;
   const figures = useInvestorFigures(counted);
   const [standing, setStanding] = useState<PortalStanding | "">("");
@@ -197,43 +190,17 @@ const InvestorsPage = () => {
             {shown.length === 0 ? (
               <EmptyState bare icon={Search} title={t("investors.noneFound")} />
             ) : (
-              <InvestorsTable
-                investors={shown}
-                onDetails={(one: Investor) => setShowingId(one.id)}
-                showPortal={showPortal}
-              />
+              <InvestorsTable investors={shown} showPortal={showPortal} />
             )}
           </Section>
         )}
       </Loaded>
       <InvestorSheet onOpenChange={setRecording} open={recording} />
-      <InvestorSheet
-        investor={editing}
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setEditingId(null);
-          }
-        }}
-        open={editing !== null}
-      />
-      <InvestorDetails
-        investor={showing}
-        portalOpen={counted?.portalOpen ?? false}
-        onEdit={(one) => {
-          setShowingId(null);
-          setEditingId(one.id);
-        }}
-        onOpenChange={(wanted) => {
-          if (!wanted) {
-            setShowingId(null);
-          }
-        }}
-      />
     </Page>
   );
 };
 
-export const Route = createFileRoute("/_auth/investors")({
+export const Route = createFileRoute("/_auth/investors/")({
   /** The Owner's alone: nobody else is shown a screen that would only refuse them. */
   beforeLoad: onlyFor("owner"),
   component: InvestorsPage,

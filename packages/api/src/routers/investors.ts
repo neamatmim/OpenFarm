@@ -1,6 +1,7 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
 import { investor } from "@OpenFarm/db/schema/venture";
+import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -21,6 +22,7 @@ import {
   takePortalAway,
 } from "../portal-store";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+import { theirAgreements } from "../their-agreements";
 import { lockTheFarm } from "../venture-store";
 
 const personInput = z.object({
@@ -195,6 +197,31 @@ export const investorsRouter = {
           portalLastSeenAt: portal.get(one.id)?.lastSeenAt ?? null,
         })),
       };
+    }),
+
+  /**
+   * One Investor's Agreements and money, for their own page: each paper they signed with its Venture, the terms in
+   * force today, the stamp, the capital the Farm holds on it and what a Settlement owes on it — and every taka of
+   * theirs that moved. Nobody else's. The Owner's alone, as the list is.
+   */
+  agreements: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => {
+      const who = await context.db.query.investor.findFirst({
+        where: { id: input.id, farmId: context.farm.id },
+        columns: { id: true },
+      });
+      if (!who) {
+        throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
+      }
+      return theirAgreements(
+        context.db,
+        context.farm.id,
+        input.id,
+        farmDayOf(context.clock.now())
+      );
     }),
 
   /**

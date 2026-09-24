@@ -340,6 +340,19 @@ describe("a Venture called off", () => {
       refundedBdt: 250_000,
       balanceBdt: 0,
     });
+    // And read from his side, on his own page: his capital in and back, and nothing of the other man's.
+    const his = await owner.client.investors.agreements({
+      id: first.person.id,
+    });
+    expect(his.agreements).toEqual([
+      expect.objectContaining({ id: first.agreementId, capitalHeldBdt: 0 }),
+    ]);
+    expect(
+      his.movements.map((one) => [one.kind, one.amountBdt, one.reference])
+    ).toEqual([
+      ["refund", 100_000, expect.stringMatching(/^RFD-/u)],
+      ["capital_in", 100_000, `TRF-${suffix}-6`],
+    ]);
   });
 
   it("refuses to be called off while a taka is unaccounted for", async () => {
