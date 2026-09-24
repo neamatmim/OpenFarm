@@ -99,7 +99,7 @@ export const WhatSheCost = ({ tagNumber }: { tagNumber: string }) => {
     amount === null ? "—" : rate(amount);
   return (
     <section className="surface flex flex-col p-4 text-sm md:p-5">
-      <h2 className="mb-2 text-base font-semibold tracking-tight md:text-lg">
+      <h2 className="mb-2 text-base font-semibold tracking-tight">
         {t("costs.title")}
       </h2>
       <WhatWasSpent costs={her} />
@@ -141,7 +141,7 @@ const CostCard = ({
   title: string;
   children: ReactNode;
 }) => (
-  <section className="bg-card flex flex-col rounded-xl border p-4 text-sm md:p-5">
+  <section className="surface flex flex-col p-4 text-sm md:p-5">
     <h3 className="mb-1 text-base font-semibold tracking-tight">{title}</h3>
     {children}
   </section>

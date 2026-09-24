@@ -287,7 +287,7 @@ const AnimalsPage = () => {
 
       {animals.data ? <SummaryFigures figures={figures} /> : null}
 
-      <section className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+      <section className="surface flex flex-col gap-4 p-4 md:p-5">
         <form
           className="flex gap-2"
           onSubmit={(event) => {

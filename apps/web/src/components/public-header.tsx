@@ -26,7 +26,7 @@ export const PublicHeader = ({
         )}
         to="/"
       >
-        <span className="bg-primary text-primary-foreground grid size-9 place-items-center rounded-lg shadow-sm">
+        <span className="bg-primary text-primary-foreground grid size-9 place-items-center rounded-lg">
           <Sprout aria-hidden className="size-5" />
         </span>
         <span className="text-lg font-semibold tracking-tight">

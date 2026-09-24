@@ -472,7 +472,7 @@ export const AuditTrail = ({
     getRowId: (event) => event.id,
   });
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <DataTable
         card={trailCard}
         minWidth="52rem"

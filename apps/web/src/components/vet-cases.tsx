@@ -6,7 +6,7 @@ import { Stethoscope, UserPlus } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
-import { RecordList, RecordRow, Section } from "@/components/page";
+import { EmptyState, RecordList, RecordRow, Section } from "@/components/page";
 import { FormDialog, FormField, NativeSelect } from "@/components/page-kit";
 import { useT } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -160,7 +160,7 @@ export const VetCases = ({
           ))}
         </RecordList>
       ) : (
-        <p className="text-muted-foreground text-sm">{t("cases.none")}</p>
+        <EmptyState bare icon={Stethoscope} title={t("cases.none")} />
       )}
       {nobodyToCall ? (
         <p className="text-muted-foreground text-sm">{t("cases.noVets")}</p>

@@ -110,7 +110,7 @@ const DevicesPage = () => {
 
       <Loaded query={phones}>
         {phones.data?.length ? (
-          <div className="bg-card rounded-xl border p-4 md:p-5">
+          <div className="surface p-4 md:p-5">
             <PhoneTable
               onRevoke={(phone) => revoke.mutate({ id: phone.id })}
               phones={phones.data}

@@ -1,6 +1,6 @@
 import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
-import { PencilLine, Plus, Warehouse } from "lucide-react";
+import { Fence, PencilLine, Plus, Warehouse } from "lucide-react";
 
 import {
   ActionsHeader,
@@ -9,7 +9,7 @@ import {
   listHeader,
   useListTable,
 } from "@/components/data-table";
-import { StatusBadge } from "@/components/page";
+import { EmptyState, StatusBadge } from "@/components/page";
 import { RowMenu } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 
@@ -142,7 +142,7 @@ export const ShedCard = ({
   return (
     <section
       aria-label={shed.name}
-      className="bg-card flex flex-col gap-3 rounded-xl border p-4 md:p-5"
+      className="surface flex flex-col gap-3 p-4 md:p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -150,7 +150,7 @@ export const ShedCard = ({
             <Warehouse aria-hidden className="size-5" />
           </span>
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="truncate text-lg leading-tight font-semibold">
+            <h2 className="truncate text-base leading-tight font-semibold tracking-tight">
               {shed.name}
             </h2>
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -182,7 +182,7 @@ export const ShedCard = ({
       {pens.length > 0 ? (
         <DataTable card={penCard} minWidth="20rem" table={table} />
       ) : (
-        <p className="text-muted-foreground py-2 text-sm">{t("herd.noPens")}</p>
+        <EmptyState bare icon={Fence} title={t("herd.noPens")} />
       )}
 
       <div>

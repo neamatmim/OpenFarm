@@ -52,8 +52,7 @@ const LOCK_TICK_MS = 15_000;
 const PAD_DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 /** Every step of the Shed Phone's door is the same card: one thing asked of whoever is holding the phone. */
-const CARD =
-  "bg-card mx-auto flex w-full max-w-sm flex-col gap-5 rounded-2xl border p-6 shadow-sm sm:p-8";
+const CARD = "surface mx-auto flex w-full max-w-sm flex-col gap-5 p-6 sm:p-8";
 
 /** What this step of the door is, with its picture and a line of help. */
 const StepHead = ({
@@ -66,7 +65,7 @@ const StepHead = ({
   hint?: string;
 }) => (
   <div className="flex flex-col items-center gap-3 text-center">
-    <span className="bg-secondary text-secondary-foreground grid size-14 place-items-center rounded-2xl">
+    <span className="bg-secondary text-secondary-foreground grid size-14 place-items-center rounded-xl">
       {icon}
     </span>
     <div className="flex flex-col gap-1.5">

@@ -317,7 +317,7 @@ const DiseaseList = ({ rows }: { rows: DiseaseRow[] }) => {
     getRowId: (row) => row.id,
   });
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <DataTable card={diseaseCard} minWidth="44rem" table={table} />
     </div>
   );

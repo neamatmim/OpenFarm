@@ -1658,6 +1658,7 @@ export const bn: Record<MessageKey, string> = {
   "selling.transport": "গাড়ি ভাড়া (যাওয়া-আসা)",
   "selling.keep": "জায়গা, খাওয়া ও থাকা",
   "selling.whoWent": "কারা গিয়েছিল",
+  "selling.nobodyToTake": "মোটাতাজাকরণে নেওয়ার মতো কোনো পশু নেই",
   "selling.recordTrip": "হাটের দিন লিখুন",
   "selling.tripRecorded": "হাটের দিনটা লেখা হলো",
   "selling.pastTrips": "সাম্প্রতিক হাট",
@@ -1755,6 +1756,7 @@ export const bn: Record<MessageKey, string> = {
   "byHand.wageFor": "{month} মাসের মজুরি",
   "byHand.retired": "বাদ দেওয়া",
   "byHand.categoryName": "নাম",
+  "byHand.noCategories": "এখনো কোনো খাত নেই",
   "byHand.newCategoryHint":
     "হাতে লেখা টাকার একটি খাত। যে খাত আর লাগে না তা বাদ দেওয়া হয়, মুছে ফেলা হয় না।",
   "refusal.wageAlreadyEntered": "ওই মাসে তার মজুরি আগেই লেখা হয়েছে",

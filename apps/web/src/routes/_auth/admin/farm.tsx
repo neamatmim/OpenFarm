@@ -240,7 +240,7 @@ const OnThisPage = () => {
       aria-label={t("identity.onThisPage")}
       className="hidden lg:sticky lg:top-6 lg:block"
     >
-      <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wide uppercase">
+      <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wider uppercase">
         {t("identity.onThisPage")}
       </p>
       <ul className="flex flex-col gap-0.5 border-l">

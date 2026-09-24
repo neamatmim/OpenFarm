@@ -176,7 +176,7 @@ export const LateTab = ({ late }: { late: Asked<LateWork> }) => {
     getRowId: (row) => row.id,
   });
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <Loaded query={late}>
         {late.data?.length ? (
           <DataTable

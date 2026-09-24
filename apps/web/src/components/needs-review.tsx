@@ -189,7 +189,7 @@ export const NeedsReview = ({ queue }: { queue: Asked<OpenReview> }) => {
   });
 
   return (
-    <div className="bg-card rounded-xl border p-4 md:p-5">
+    <div className="surface p-4 md:p-5">
       <Loaded query={queue}>
         {queue.data?.length ? (
           <DataTable

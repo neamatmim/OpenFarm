@@ -332,7 +332,7 @@ export const ArrivalsTab = ({
     return <EmptyState icon={Truck} title={t("stock.noArrivals")} />;
   }
   return (
-    <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+    <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <FilterBar className="border-b pb-4 sm:justify-between">
         <ItemFilter items={items} onChange={setItemId} value={itemId} />
         <SegmentedControl
@@ -485,7 +485,7 @@ export const CountsTab = ({
     return <EmptyState icon={ClipboardList} title={t("stock.noCounts")} />;
   }
   return (
-    <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+    <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <FilterBar className="border-b pb-4 sm:justify-between">
         <ItemFilter items={items} onChange={setItemId} value={itemId} />
       </FilterBar>

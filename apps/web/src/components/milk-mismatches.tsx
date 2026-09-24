@@ -333,7 +333,7 @@ export const MilkMismatches = () => {
   const { t } = useLanguage();
   const flagged = useQuery(orpc.milk.flagged.queryOptions());
   return (
-    <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+    <div className="surface flex flex-col gap-4 p-4 md:p-5">
       <p className="text-muted-foreground border-b pb-4 text-sm">
         {t("mismatch.hint")}
       </p>

@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Section, StatusBadge } from "@/components/page";
+import { EmptyState, Section, StatusBadge } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -298,9 +298,7 @@ export const Adjustments = ({
     >
       <div className="flex flex-col gap-2">
         {approved.adjustments.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            {t("ventures.nothingHasLanded")}
-          </p>
+          <EmptyState bare title={t("ventures.nothingHasLanded")} />
         ) : null}
         {approved.adjustments.map((one) => (
           <OneAdjustment

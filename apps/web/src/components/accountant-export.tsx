@@ -38,7 +38,7 @@ export const AccountantExport = ({
   );
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 md:p-5">
+      <div className="surface flex flex-col gap-4 p-4 md:p-5">
         <p className="text-muted-foreground text-sm">{t("accountant.hint")}</p>
         <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:flex-wrap">
           <Button

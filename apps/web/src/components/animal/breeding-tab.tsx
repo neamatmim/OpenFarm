@@ -219,9 +219,7 @@ const HerAbortions = ({
           ))}
         </RecordList>
       ) : (
-        <p className="text-muted-foreground text-sm">
-          {t("animals.noAbortions")}
-        </p>
+        <EmptyState bare title={t("animals.noAbortions")} />
       )}
     </Section>
   );
