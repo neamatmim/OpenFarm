@@ -28,8 +28,23 @@ import {
 import { FormField, NativeSelect } from "@/components/page-kit";
 import { whenWords } from "@/components/playbook/playbook-types";
 import { useLanguage } from "@/i18n/language-provider";
+import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
+
+/**
+ * The card, printed alone on one A4 page: it is for a wall, not a screen, and a card that runs onto a second sheet is
+ * half a card by the time somebody reads it — so a narrow margin, and smaller type for a card with many Steps.
+ */
+const printTheCard = () => {
+  const card = document.querySelector<HTMLElement>("#sop-card");
+  if (card) {
+    void printAlone(card, {
+      margin: "12mm",
+      fontSize: card.dataset.tight === "true" ? "10pt" : "12pt",
+    });
+  }
+};
 
 /** Everything printed on a card is in the language the shed reads. */
 const CARD_LANGUAGE = "bn" as const;
@@ -92,20 +107,10 @@ const WallCard = ({ card }: { card: Card }) => {
   return (
     <article
       className="bg-card flex w-full flex-col gap-5 rounded-xl border p-6 shadow-(--surface-shadow) md:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none"
+      data-tight={tight}
       id="sop-card"
       lang={CARD_LANGUAGE}
     >
-      {/* One A4 page: the card is for a wall, not a screen, and a card that runs onto a
-          second sheet is half a card by the time somebody reads it. */}
-      <style>{`@page { size: A4; margin: 12mm }
-        @media print {
-          body * { visibility: hidden }
-          #sop-card, #sop-card * { visibility: visible }
-          #sop-card { position: absolute; inset: 0 }
-          .no-print { display: none }
-          body { font-size: ${tight ? "10pt" : "12pt"} }
-        }`}</style>
-
       <header className="border-foreground flex flex-col gap-2 border-b-2 pb-4">
         <span className="text-muted-foreground text-xs font-semibold">
           {t("card.title")}
@@ -212,11 +217,7 @@ const CardPage = () => {
       {/* The page is about the card; the card says which procedure and which Version, as the wall will see it. */}
       <PageHeader
         actions={
-          <Button
-            disabled={!card.data}
-            onClick={() => window.print()}
-            type="button"
-          >
+          <Button disabled={!card.data} onClick={printTheCard} type="button">
             <Printer aria-hidden data-icon="inline-start" />
             {t("common.print")}
           </Button>

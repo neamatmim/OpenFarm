@@ -165,14 +165,15 @@ describe("the letter that goes without delay", () => {
     // Writing it is an Audit Event of its own: a letter that went is the farm's evidence, and
     // when it was written is part of that.
     const trail = await manager.client.audit.list({ entity: "dls_report" });
-    expect(
-      trail.some(
-        (event) =>
-          event.action === "export" &&
-          (event.after as { diagnosisId?: string } | null)?.diagnosisId ===
-            made.id
-      )
-    ).toBe(true);
+    const written = trail.find(
+      (event) =>
+        event.action === "export" &&
+        (event.after as { diagnosisId?: string } | null)?.diagnosisId ===
+          made.id
+    );
+    // The Export shape every paper has: which paper, and the Registration number it quotes.
+    expect(written?.after).toMatchObject({ paper: "dls_letter" });
+    expect(written?.after).toHaveProperty("registrationNumber");
   });
 
   it("records the reference the office gave it, and refuses a report nobody can evidence", async () => {

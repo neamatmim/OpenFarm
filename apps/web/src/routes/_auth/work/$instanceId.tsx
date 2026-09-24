@@ -62,6 +62,7 @@ import {
   StickyAction,
   TagChip,
 } from "@/components/page";
+import { Paper } from "@/components/paper";
 import { PhotoField } from "@/components/photo-field";
 import { useLanguage } from "@/i18n/language-provider";
 import {
@@ -112,21 +113,8 @@ const TheLetter = ({
   );
 
   return (
-    <section
-      className="space-y-2 rounded-xl border p-3 text-sm"
-      id="dls-letter"
-    >
-      {/* One page, and only the letter on it: printing the work board with it would send the
-          office a page of step tiles. The same shape as the SOP card's. */}
-      <style>{`@page { size: A4; margin: 20mm }
-        @media print {
-          body * { visibility: hidden }
-          #dls-letter, #dls-letter * { visibility: visible }
-          #dls-letter { position: absolute; inset: 0; border: 0 }
-          .no-print { display: none }
-          body { font-size: 12pt }
-        }`}</style>
-      <div className="no-print flex items-baseline justify-between gap-2">
+    <section className="space-y-2 rounded-xl border p-3 text-sm">
+      <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-medium">{t("notifiable.letterTitle")}</h2>
         {report.reference ? (
           <span className="text-muted-foreground text-xs">
@@ -135,13 +123,11 @@ const TheLetter = ({
         ) : null}
       </div>
       {letter.data ? (
-        // Pre-formatted, because it is a letter: the line breaks are the document.
-        <pre className="overflow-x-auto font-sans text-sm whitespace-pre-wrap">
-          {letter.data.text}
-        </pre>
+        // A paper like every other the farm prints: the line breaks are the letter, and it prints alone — only the
+        // letter on the page, not the work board around it.
+        <Paper id="dls-letter" text={letter.data.text} />
       ) : (
         <Button
-          className="no-print"
           onClick={() => letter.mutate({ diagnosisId: report.diagnosisId })}
           size="sm"
           type="button"
@@ -150,17 +136,6 @@ const TheLetter = ({
           {t("notifiable.letter")}
         </Button>
       )}
-      {letter.data ? (
-        <Button
-          className="no-print"
-          onClick={() => window.print()}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {t("common.print")}
-        </Button>
-      ) : null}
     </section>
   );
 };

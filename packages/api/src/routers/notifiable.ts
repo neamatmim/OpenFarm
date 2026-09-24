@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { exportedPaper } from "../export-store";
 import { protectedProcedure } from "../index";
 import { requireRole } from "../roles";
 
@@ -99,7 +100,10 @@ export const notifiableRouter = {
           entity: "dls_report",
           entityId: reportId,
           action: "export",
-          after: { diagnosisId: input.diagnosisId, characters: text.length },
+          // The Export shape every paper leaving the farm has, with the Registration number the letter quotes.
+          after: exportedPaper(context.farm, "dls_letter", {
+            diagnosisId: input.diagnosisId,
+          }),
         },
         () => Promise.resolve()
       );
