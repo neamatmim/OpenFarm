@@ -1,9 +1,9 @@
-import { nextEidWindow } from "@OpenFarm/domain";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useNextEid } from "@/components/fattening/next-eid";
 import { FormField, FormSheet } from "@/components/page-kit";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
@@ -75,7 +75,7 @@ export const OpenVentureSheet = ({
   const settings =
     farm.data && "ventureFloorPercent" in farm.data ? farm.data : null;
   const running = settings?.ventureRunningPercent;
-  const eid = nextEidWindow(new Date().toISOString().slice(0, 10));
+  const eid = useNextEid();
   const window = {
     start: plan.targetWindowStart || eid?.start || "",
     end: plan.targetWindowEnd || eid?.end || "",

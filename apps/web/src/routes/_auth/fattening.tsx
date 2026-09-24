@@ -14,6 +14,7 @@ import {
 import { FatteningBoard } from "@/components/fattening/fattening-board";
 import type { BoardRow } from "@/components/fattening/fattening-types";
 import { ORDER, standingOf } from "@/components/fattening/fattening-types";
+import { NextEid } from "@/components/fattening/next-eid";
 import { OutOfBand } from "@/components/fattening/out-of-band";
 import { EmptyState, Notice, Page, PageHeader } from "@/components/page";
 import { SummaryFigures } from "@/components/page-kit";
@@ -121,6 +122,7 @@ const FatteningPage = () => {
     return (
       <Page>
         {header}
+        <NextEid />
         <EmptyState
           action={<IntakeButton />}
           description={t("gain.emptyHint")}
@@ -135,6 +137,7 @@ const FatteningPage = () => {
     <Page>
       {header}
       <BoardFigures rows={rows} />
+      <NextEid />
       <OutOfBand />
       <FatteningBoard rows={rows} />
     </Page>

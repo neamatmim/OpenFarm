@@ -87,15 +87,23 @@ export type {
 } from "./fattening";
 export {
   addDays,
-  EID_UL_ADHA,
   PLAUSIBLE_DAILY_GAIN_KG,
   PLAUSIBLE_DAILY_LOSS_KG,
-  QURBANI_DAYS,
   daysOnFeedOf,
   fatteningView,
   implausibleChange,
-  nextEidWindow,
 } from "./fattening";
+export type { EidBasis, EidWindow } from "./eid";
+export {
+  EID_BASES,
+  EID_UL_ADHA,
+  QURBANI_DAYS,
+  eidByTheCalendar,
+  expectedEidNear,
+  isSameEid,
+  nextEidWindow,
+  qurbaniFrom,
+} from "./eid";
 export type { ReadyReason } from "./ready";
 export {
   READY_REASONS,

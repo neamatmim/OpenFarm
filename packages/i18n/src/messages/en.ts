@@ -2757,6 +2757,35 @@ export const en = {
   "intake.farmsOwn": "The farm's own target weight",
   "intake.farmsTarget": "{kg} kg — the farm's own",
   "intake.nextEid": "{from} – {to} — the next Eid-ul-Adha",
+  "eid.title": "Next Eid-ul-Adha",
+  "eid.basis.announced": "Announced",
+  "eid.basis.expected": "Expected",
+  "eid.basis.estimated": "Estimated",
+  "eid.basisHint.announced": "The day the moon sighting committee announced.",
+  "eid.basisHint.expected":
+    "The day the farm's list expects. Write the day in once the moon sighting committee announces it.",
+  "eid.basisHint.estimated":
+    "Past the end of the farm's list, so this is the calendar's guess. Write the day in once it is announced.",
+  "eid.daysToGo": "{days} days to go",
+  "eid.qurbaniOn": "Qurbani is on",
+  "eid.announce": "Write in the announced day",
+  "eid.announceHint":
+    "The day the moon sighting committee announced for Eid. Animals taken in from now on are fed towards it.",
+  "eid.announceDay": "Eid day",
+  "eid.announced": "Eid day written in",
+  "eid.behind":
+    "{count} of the farm's animals are still aimed at the day expected before",
+  "eid.bringAlong": "Move them to the announced days",
+  "eid.broughtAlong": "{count} animals moved to the announced days",
+  "eid.inVentures":
+    "{count} animals in Ventures keep their window: a Venture's window moves only by an Amendment its Investors sign.",
+  "refusal.notAnEid":
+    "That day is no Eid-ul-Adha the farm expects. Check the year.",
+  "refusal.eidNotAnnounced":
+    "Nobody has written in the announced day for that Eid yet",
+  "refusal.noEidAhead":
+    "The farm has no Eid date that far ahead. Type the days to sell in.",
+  "audit.entity.eid_announcement": "Eid day announced",
   "intake.stillNeeded": "Still to fill in",
   "intake.windowHalf":
     "Give both days of the Target Window, the first before the last — or leave both blank.",
