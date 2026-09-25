@@ -168,7 +168,7 @@ export const investorAccess = pgTable(
 );
 
 /** How an Investor asked to withdraw their Portal Consent: a signed letter, or a message from their own number. */
-export const CONSENT_WITHDRAWN_BY = ["letter", "message"] as const;
+export const CONSENT_WITHDRAWN_HOW = ["letter", "message"] as const;
 
 /**
  * An Investor's Portal Consent: signed on paper in front of the Owner, before any code is given, to the portal showing
@@ -196,8 +196,9 @@ export const portalConsent = pgTable(
       .notNull()
       .references(() => user.id),
     recordedAt: timestamp("recorded_at").notNull(),
+    /** The day it was withdrawn, and how they asked: filled when they withdraw it, and it stops being in force. */
     withdrawnOn: timestamp("withdrawn_on"),
-    withdrawnBy: text("withdrawn_by", { enum: CONSENT_WITHDRAWN_BY }),
+    withdrawnHow: text("withdrawn_how", { enum: CONSENT_WITHDRAWN_HOW }),
   },
   (table) => [
     index("portal_consent_investor_idx").on(table.investorId),

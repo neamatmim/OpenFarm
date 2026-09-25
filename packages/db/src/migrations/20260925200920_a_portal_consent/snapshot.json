@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "686880a3-2d25-4cb1-b38f-7b70d0981401",
+  "id": "be16a128-11f7-4cef-ab07-0dcfb127f2b0",
   "prevIds": [
     "b4f1477b-3c1d-46f4-b825-f68d7382f9aa"
   ],
@@ -12374,7 +12374,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "withdrawn_by",
+      "name": "withdrawn_how",
       "entityType": "columns",
       "schema": "public",
       "table": "portal_consent"

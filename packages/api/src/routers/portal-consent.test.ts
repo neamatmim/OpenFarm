@@ -1,7 +1,12 @@
-import { FakeClock, thePerson } from "@OpenFarm/test-harness";
+import { inspect } from "node:util";
+
+import { portalConsent } from "@OpenFarm/db/schema/venture";
+import { FakeClock, scratchDb, thePerson } from "@OpenFarm/test-harness";
+import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
+import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // The Portal Consent (the glossary's entry): signed on paper in front of the Owner before any code is given, and
@@ -61,7 +66,7 @@ describe("a Portal Consent", () => {
     const consent = await owner.investors.recordConsent({ id });
     await owner.investors.inviteToPortal({ id });
 
-    expect(consent).toMatchObject({ version: 1 });
+    expect(consent).toMatchObject({ version: 1, signedOn: "2058-01-01" });
     const trail = await owner.audit.list({
       entity: "portal_consent",
       limit: 20,
@@ -70,9 +75,14 @@ describe("a Portal Consent", () => {
     expect(made).toMatchObject({
       action: "create",
       actorId: thePerson("owner").id,
-      after: expect.objectContaining({ version: 1 }),
+      after: expect.objectContaining({
+        version: 1,
+        versionId: consent.versionId,
+        signedOn: "2058-01-01",
+      }),
     });
-    expect(JSON.stringify(made?.after)).not.toMatch(/code/iu);
+    // Read as the console would show it, before and after alike: no code in it anywhere.
+    expect(inspect(made, { depth: null })).not.toMatch(/code/iu);
     const listed = await owner.investors.list();
     expect(
       listed.people.find((one) => one.id === id)?.portalConsent
@@ -89,13 +99,52 @@ describe("a Portal Consent", () => {
     });
   });
 
-  it("is the Owner's alone to record", async () => {
+  it("is the Owner's alone to record and to print", async () => {
     const manager = await as("manager");
     const id = await recorded("জামাল", `0178${suffix}4`);
 
     await expect(manager.investors.recordConsent({ id })).rejects.toMatchObject(
       { code: "FORBIDDEN" }
     );
+    await expect(manager.investors.consentSheet({ id })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("is asked of an Investor whose access came before consent did, before their next code", async () => {
+    const owner = await as("owner");
+    const id = await recorded("কামাল", `0178${suffix}6`);
+    await invitedWithConsent(owner, id);
+    // An access made before consent existed: it has none on file.
+    await scratchDb()
+      .delete(portalConsent)
+      .where(eq(portalConsent.investorId, id));
+
+    await expect(owner.investors.inviteToPortal({ id })).rejects.toMatchObject({
+      data: { refusal: "no_consent" },
+    });
+  });
+
+  it("is never kept for somebody who could not then be given a code", async () => {
+    const owner = await as("owner");
+    const id = await recorded("শফিক", "01819123456");
+    await invitedWithConsent(owner, id);
+    // A second Investor written down on the same phone cannot have the portal, so signs no consent for it.
+    const twin = await owner.investors.record({
+      name: `শফিকের ভাই ${suffix}`,
+      phone: "01819123456",
+      address: "সাভার",
+      nid: "9876543210",
+      bankAccount: "0987654321",
+    });
+
+    await expect(
+      owner.investors.recordConsent({ id: twin.id })
+    ).rejects.toMatchObject({ data: { refusal: "phone_has_portal" } });
+    const listed = await owner.investors.list();
+    expect(
+      listed.people.find((one) => one.id === twin.id)?.portalConsent
+    ).toBeNull();
   });
 
   it("is printed for the Investor by name, signed by them first, with its Version in the foot", async () => {

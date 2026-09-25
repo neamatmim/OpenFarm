@@ -19,6 +19,8 @@ import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { hashOfCodeAsTyped, newInviteCode, signedInOn } from "./membership";
 import { consentInForce } from "./portal-consent";
+import type { Owned } from "./portal-invitable";
+import { invitable, refused } from "./portal-invitable";
 import { whatTheyDidToTheirRequests } from "./requests-to-join";
 
 // An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
@@ -113,14 +115,6 @@ export const portalClosed = () =>
     data: { refusal: "portal_closed" },
   });
 
-const refused = (message: string, refusal: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
-
-type Owned = Context & {
-  farm: { id: string };
-  actor: { id: string };
-};
-
 /**
  * Invites an Investor to the portal, or gives them a new code — for somebody who never used the first, or who has
  * forgotten their password: the code is shown once, to the Owner, to hand over in person, and the farm keeps only its
@@ -132,41 +126,12 @@ export const inviteToPortal = async (
 ): Promise<{ code: string; expiresAt: Date }> => {
   const farmId = context.farm.id;
   const now = context.clock.now();
-  const who = await context.db.query.investor.findFirst({
-    where: { id: investorId, farmId },
-    columns: { id: true, phone: true, retiredAt: true },
-  });
-  if (!who) {
-    throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
-  }
-  if (who.retiredAt) {
-    throw refused(
-      "A retired Investor is brought back before being invited",
-      "investor_retired"
-    );
-  }
-  const loginEmail = investorLoginOf(who.phone);
-  if (!loginEmail) {
-    throw refused(
-      "Their phone is not a Bangladeshi mobile number, which is what they sign in with",
-      "phone_not_mobile"
-    );
-  }
+  const { loginEmail } = await invitable(context, investorId);
   // No code before consent: the Investor signs the Portal Consent in front of the Owner first (the glossary's entry).
   if (!(await consentInForce(context.db, farmId, investorId))) {
     throw refused(
       "They sign the Portal Consent in front of you before any code is given",
       "no_consent"
-    );
-  }
-  const sharing = await context.db.query.investorAccess.findFirst({
-    where: { loginEmail },
-    columns: { investorId: true },
-  });
-  if (sharing && sharing.investorId !== investorId) {
-    throw refused(
-      "Another Investor on the same phone already has the portal",
-      "phone_has_portal"
     );
   }
   const { code, codeHash } = await newInviteCode();
@@ -249,6 +214,10 @@ export const takePortalAway = async (
   );
 };
 
+/** A phone and code that open no invitation: said the same whichever of the two is wrong. */
+const notAnInvitation = () =>
+  refused("That phone and code do not match an invitation", "wrong_code");
+
 /**
  * An Investor taking up the Owner's invitation: the phone they were written down with, the code handed to them, and
  * a password of their own. Opens their account the first time; afterwards — a new code for a forgotten password, or
@@ -276,8 +245,6 @@ export const takeUpInvitation = async (
   refuseCommonPassword(input.password);
   const now = context.clock.now();
   const loginEmail = investorLoginOf(input.phone);
-  const notAnInvitation = () =>
-    refused("That phone and code do not match an invitation", "wrong_code");
   // A string that is not a mobile number can match no invitation: refused before anything is looked up, and not
   // remembered, so it costs the farm nothing however many a script sends.
   if (!loginEmail) {

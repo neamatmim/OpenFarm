@@ -7,7 +7,7 @@ CREATE TABLE "portal_consent" (
 	"recorded_by" text NOT NULL,
 	"recorded_at" timestamp NOT NULL,
 	"withdrawn_on" timestamp,
-	"withdrawn_by" text
+	"withdrawn_how" text
 );
 --> statement-breakpoint
 CREATE INDEX "portal_consent_investor_idx" ON "portal_consent" ("investor_id");--> statement-breakpoint

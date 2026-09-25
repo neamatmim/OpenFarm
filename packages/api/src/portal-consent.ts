@@ -4,14 +4,14 @@ import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
 import { portalConsent } from "@OpenFarm/db/schema/venture";
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, paperFrom, startOfFarmDay } from "@OpenFarm/domain";
-import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
-import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
 import { assertRegistered, exportedPaper } from "./export-store";
 import { paperInvestor, paperValues, producedAt } from "./paper-values";
+import type { Owned } from "./portal-invitable";
+import { invitable, refused } from "./portal-invitable";
 import { languageOf } from "./reader-language";
 import { currentWording, giveStandardTemplates } from "./template-store";
 
@@ -23,15 +23,8 @@ import { currentWording, giveStandardTemplates } from "./template-store";
 export interface ConsentSaid {
   signedOn: string;
   version: number;
+  versionId: string;
 }
-
-type Owned = Context & {
-  farm: NonNullable<Context["farm"]>;
-  actor: { id: string; name: string };
-};
-
-const refused = (message: string, refusal: string) =>
-  new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
 /** Each Investor's consent in force on this farm, by their id: none for somebody who has not signed one, or withdrew it. */
 export const consentsInForce = async (
@@ -44,6 +37,7 @@ export const consentsInForce = async (
       investorId: portalConsent.investorId,
       signedOn: portalConsent.signedOn,
       version: paperTemplateVersion.number,
+      versionId: portalConsent.versionId,
     })
     .from(portalConsent)
     .innerJoin(
@@ -62,7 +56,11 @@ export const consentsInForce = async (
   return new Map(
     rows.map((row) => [
       row.investorId,
-      { signedOn: farmDayOf(row.signedOn), version: row.version },
+      {
+        signedOn: farmDayOf(row.signedOn),
+        version: row.version,
+        versionId: row.versionId,
+      },
     ])
   );
 };
@@ -77,28 +75,21 @@ export const consentInForce = async (
   return inForce.get(investorId) ?? null;
 };
 
-/** What the trail keeps of an Investor's consent, either side of a change: the day, the Version, and a withdrawal. */
+/**
+ * What the trail keeps of an Investor's consent in force, either side of recording one: the day, and the Version by
+ * number and id — never a code. A plain copy, as the trail writes every record down.
+ */
 const readConsent = async (tx: Tx, farmId: string, investorId: string) => {
   const said = await consentInForce(tx, farmId, investorId);
   return said ? { ...said } : null;
 };
 
-/** The Investor on this farm, as the consent and its paper need them. */
-const onFile = async (context: Owned, investorId: string) => {
-  const them = await context.db.query.investor.findFirst({
-    where: { id: investorId, farmId: context.farm.id },
-  });
-  if (!them) {
-    throw new ORPCError("NOT_FOUND", { message: "No such Investor" });
-  }
-  if (them.retiredAt) {
-    throw refused(
-      "A retired Investor is brought back before being invited",
-      "investor_retired"
-    );
-  }
-  return them;
-};
+/** A consent is in force already: a new one follows only a withdrawn one. */
+const alreadySigned = () =>
+  refused(
+    "They have signed the consent already; it is in force",
+    "consent_in_force"
+  );
 
 /**
  * Records that an Investor signed the Portal Consent today, in front of the Owner, on the wording in force. Refused
@@ -109,12 +100,9 @@ export const recordConsent = async (
   investorId: string
 ): Promise<ConsentSaid> => {
   const farmId = context.farm.id;
-  await onFile(context, investorId);
+  await invitable(context, investorId);
   if (await consentInForce(context.db, farmId, investorId)) {
-    throw refused(
-      "They have signed the consent already; it is in force",
-      "consent_in_force"
-    );
+    throw alreadySigned();
   }
   await giveStandardTemplates(context);
   const wording = await currentWording(context.db, farmId, "portal_consent");
@@ -128,23 +116,35 @@ export const recordConsent = async (
       after: (tx) => readConsent(tx, farmId, investorId),
     },
     async (tx) => {
-      await tx.insert(portalConsent).values({
-        id: uuidv7(now),
-        farmId,
-        investorId,
-        versionId: wording.versionId,
-        signedOn: startOfFarmDay(farmDayOf(now)),
-        recordedBy: context.actor.id,
-        recordedAt: now,
-      });
+      // One in force at a time, held by the table: a second press of the same button meets the first one's consent.
+      const [kept] = await tx
+        .insert(portalConsent)
+        .values({
+          id: uuidv7(now),
+          farmId,
+          investorId,
+          versionId: wording.versionId,
+          signedOn: startOfFarmDay(farmDayOf(now)),
+          recordedBy: context.actor.id,
+          recordedAt: now,
+        })
+        .onConflictDoNothing()
+        .returning({ id: portalConsent.id });
+      if (!kept) {
+        throw alreadySigned();
+      }
     }
   );
-  return { signedOn: farmDayOf(now), version: wording.number };
+  return {
+    signedOn: farmDayOf(now),
+    version: wording.number,
+    versionId: wording.versionId,
+  };
 };
 
 /**
  * The Portal Consent sheet for one Investor, to print and have signed: the wording in force with their name and phone
- * in it and the farm's own facts, signed by them first and countersigned by the Owner, its Version in the foot so the
+ * in it (the standard wording names both) and the farm's own facts, signed by them first and countersigned by the Owner, its Version in the foot so the
  * paper filed says which wording it was. An Export in the trail, as every paper that leaves the farm is.
  */
 export const consentSheet = async (
@@ -152,7 +152,7 @@ export const consentSheet = async (
   investorId: string
 ): Promise<PaperDocument> => {
   const farmId = context.farm.id;
-  const them = await onFile(context, investorId);
+  const { who: them } = await invitable(context, investorId);
   assertRegistered(context.farm, "portal_consent");
   await giveStandardTemplates(context);
   const wording = await currentWording(context.db, farmId, "portal_consent");
