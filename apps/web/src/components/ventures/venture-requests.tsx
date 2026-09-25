@@ -124,13 +124,14 @@ const RequestRow = ({
               {one.note}
             </span>
           ) : null}
-          {one.state === "come_and_sign" && promised !== null ? (
+          {/* Said on a yes withdrawn since, too: what was promised is part of the story. */}
+          {promised === null ? null : (
             <span className="text-sm font-medium">
               {t("ventures.requests.answer.saidYes", {
                 units: formatNumber(promised, language),
               })}
             </span>
-          ) : null}
+          )}
           {one.state === "not_this_time" && line ? (
             <span className="border-l-2 pl-2 text-sm break-words">{line}</span>
           ) : null}
