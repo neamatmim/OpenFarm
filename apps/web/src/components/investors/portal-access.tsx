@@ -1,5 +1,5 @@
 import type { PaperDocument } from "@OpenFarm/domain";
-import { mobileNumberOf } from "@OpenFarm/domain";
+import { farmDayOf, mobileNumberOf } from "@OpenFarm/domain";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
+import { Input } from "@OpenFarm/ui/components/input";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -26,12 +27,18 @@ import { toast } from "sonner";
 
 import type { Tone } from "@/components/page";
 import { Section, StatusBadge } from "@/components/page";
-import { ConfirmDialog } from "@/components/page-kit";
+import {
+  ConfirmDialog,
+  FormDialog,
+  FormField,
+  NativeSelect,
+} from "@/components/page-kit";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { portalAddress } from "@/lib/portal-address";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
+import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 import type { Investor } from "./investor-types";
@@ -47,6 +54,9 @@ const REFUSALS = {
   consent_in_force: "portal.refused.consentInForce",
   notice_unwritten: "portal.refused.noticeUnwritten",
   no_code_to_hand_over: "portal.refused.noCodeToHandOver",
+  no_consent_to_withdraw: "portal.refused.noConsentToWithdraw",
+  withdrawn_in_the_future: "portal.refused.withdrawnInTheFuture",
+  withdrawn_before_signed: "portal.refused.withdrawnBeforeSigned",
   letter_handed_over: "portal.refused.letterHandedOver",
 } as const;
 
@@ -78,6 +88,24 @@ export const PortalStandingBadge = ({ investor }: { investor: Investor }) => {
   return <StatusBadge tone={standing.tone}>{t(standing.word)}</StatusBadge>;
 };
 
+/** Why their access was taken away, in a line: for a withdrawn consent, the day they asked and how. */
+const takenAwayLine = (
+  takenAway: NonNullable<Investor["portalTakenAway"]>,
+  { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
+) => {
+  if (takenAway.why !== "withdrew_consent") {
+    return t(`portal.takenAwayLine.${takenAway.why}`);
+  }
+  const { withdrawnOn, withdrawnHow } = takenAway;
+  if (!(withdrawnOn && withdrawnHow)) {
+    return t("portal.takenAwayLine.withdrewUndated");
+  }
+  return t("portal.takenAwayLine.withdrew_consent", {
+    day: formatDate(new Date(`${withdrawnOn}T00:00:00Z`), language),
+    how: t(`portal.howLine.${withdrawnHow}`),
+  });
+};
+
 /**
  * What goes with where they stand: until when their code can be taken up, that it ran out and wants another, or when
  * they were last in. Nothing for somebody never invited or whose access was taken away.
@@ -89,7 +117,11 @@ export const PortalStandingLine = ({ investor }: { investor: Investor }) => {
   const codeUntil = investor.portalCodeUntil ?? null;
   const lastSeenAt = investor.portalLastSeenAt ?? null;
   const consent = investor.portalConsent ?? null;
+  const takenAway = investor.portalTakenAway ?? null;
   const said: string[] = [];
+  if (takenAway && standing === "taken_away") {
+    said.push(takenAwayLine(takenAway, { t, language }));
+  }
   if (consent) {
     said.push(
       t("portal.consent.signed", {
@@ -293,6 +325,164 @@ const CodeDialog = ({
   );
 };
 
+/** Why the Owner takes somebody's access away, as the farm is asked it. */
+type TakenAwayWhy = Parameters<
+  typeof client.investors.takePortalAway
+>[0]["why"];
+
+/** Whether they have access standing to take away: in, invited, or holding a code that ran out. */
+const hasAccessToTake = (standing: PortalStanding) =>
+  standing === "in" || standing === "invited" || standing === "code_ran_out";
+
+/** Whether a withdrawal can be recorded for them: a consent in force, whatever their access. */
+const canWithdraw = (investor: Investor) =>
+  (investor.portalConsent ?? null) !== null;
+
+/** Why the Owner takes somebody's access away, in the order the dialog offers them. */
+const WHY = [
+  "withdrew_consent",
+  "lost_phone",
+  "owner",
+] as const satisfies readonly TakenAwayWhy["reason"][];
+type Why = (typeof WHY)[number];
+
+/** How somebody asked to withdraw their consent. */
+const HOW = ["letter", "message"] as const satisfies readonly Extract<
+  TakenAwayWhy,
+  { reason: "withdrew_consent" }
+>["how"][];
+type How = (typeof HOW)[number];
+
+/**
+ * Taking an Investor's access away, saying why. "They withdrew their consent" asks the day they asked and how, and
+ * marks the consent withdrawn — so coming back means a new one signed; it is offered only while they have one in
+ * force. A lost phone or the Owner's own decision leaves the consent standing.
+ */
+const TakeAwayDialog = ({
+  investor,
+  open,
+  onOpenChange,
+}: {
+  investor: Investor;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useLanguage();
+  const refused = useRefused(REFUSALS);
+  const [why, setWhy] = useState<Why | "">("");
+  const [askedOn, setAskedOn] = useState(() => farmDayOf(new Date()));
+  const [how, setHow] = useState<How | "">("");
+  // Closed, it forgets what was chosen: the next time it asks afresh.
+  const setOpen = (stays: boolean) => {
+    if (!stays) {
+      setWhy("");
+      setHow("");
+      setAskedOn(farmDayOf(new Date()));
+    }
+    onOpenChange(stays);
+  };
+  const takingAway = useMutation(
+    orpc.investors.takePortalAway.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        setOpen(false);
+        toast.success(t("portal.takenAway"));
+      },
+    })
+  );
+  const offered = WHY.filter((one) =>
+    one === "withdrew_consent"
+      ? canWithdraw(investor)
+      : hasAccessToTake(standingOf(investor))
+  );
+  const withdrew = why === "withdrew_consent";
+  const ready = withdrew ? askedOn !== "" && how !== "" : why !== "";
+  const submit = () => {
+    if (why === "withdrew_consent" && how !== "") {
+      takingAway.mutate({
+        id: investor.id,
+        why: { reason: why, on: askedOn, how },
+      });
+    } else if (why === "lost_phone" || why === "owner") {
+      takingAway.mutate({ id: investor.id, why: { reason: why } });
+    }
+  };
+  return (
+    <FormDialog
+      description={t("portal.takeAwayWhy")}
+      onOpenChange={setOpen}
+      onSubmit={submit}
+      open={open}
+      pending={takingAway.isPending}
+      ready={ready}
+      submitLabel={t("portal.takeAway")}
+      title={t("portal.takeAwayTitle", { name: investor.name })}
+    >
+      <FormField
+        hint={
+          why === ""
+            ? undefined
+            : t(
+                withdrew ? "portal.why.withdrawHint" : "portal.why.keepsConsent"
+              )
+        }
+        id="take-away-why"
+        label={t("portal.why.label")}
+      >
+        <NativeSelect
+          id="take-away-why"
+          onChange={(event) =>
+            setWhy(WHY.find((one) => one === event.target.value) ?? "")
+          }
+          value={why}
+        >
+          <option disabled value="">
+            {t("portal.why.choose")}
+          </option>
+          {offered.map((one) => (
+            <option key={one} value={one}>
+              {t(`portal.why.${one}`)}
+            </option>
+          ))}
+        </NativeSelect>
+      </FormField>
+      {withdrew ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField id="take-away-on" label={t("portal.withdrawnOn")}>
+            <Input
+              id="take-away-on"
+              max={farmDayOf(new Date())}
+              min={investor.portalConsent?.signedOn}
+              onChange={(event) => setAskedOn(event.target.value)}
+              required
+              type="date"
+              value={askedOn}
+            />
+          </FormField>
+          <FormField id="take-away-how" label={t("portal.withdrawnHow")}>
+            <NativeSelect
+              id="take-away-how"
+              onChange={(event) =>
+                setHow(HOW.find((one) => one === event.target.value) ?? "")
+              }
+              value={how}
+            >
+              <option disabled value="">
+                {t("portal.why.choose")}
+              </option>
+              {HOW.map((one) => (
+                <option key={one} value={one}>
+                  {t(`portal.how.${one}`)}
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
+        </div>
+      ) : null}
+    </FormDialog>
+  );
+};
+
 /**
  * One Investor's way into the portal, in their record: where they stand, inviting them or giving a new code — for a
  * forgotten password too — and taking their access away.
@@ -337,15 +527,6 @@ export const PortalAccess = ({
     hasConsent
       ? inviting.mutate({ id: investor.id })
       : printing.mutate({ id: investor.id });
-  const takingAway = useMutation(
-    orpc.investors.takePortalAway.mutationOptions({
-      onError: refused,
-      onSuccess: () => {
-        setAsking(false);
-        toast.success(t("portal.takenAway"));
-      },
-    })
-  );
   const standing = standingOf(investor);
   const inviteWord = standing === "none" ? "portal.invite" : "portal.newCode";
   const whyNot = whyNoInvite(investor);
@@ -385,7 +566,7 @@ export const PortalAccess = ({
           <Eye aria-hidden data-icon="inline-start" />
           {t("portal.preview.seeAsTheyDo")}
         </Button>
-        {standing === "in" || standing === "invited" ? (
+        {hasAccessToTake(standing) || canWithdraw(investor) ? (
           <Button
             onClick={() => setAsking(true)}
             size="sm"
@@ -423,14 +604,10 @@ export const PortalAccess = ({
         investorId={investor.id}
         onClose={() => setGiven(null)}
       />
-      <ConfirmDialog
-        confirmLabel={t("portal.takeAway")}
-        description={t("portal.takeAwayWhy")}
-        onConfirm={() => takingAway.mutate({ id: investor.id })}
+      <TakeAwayDialog
+        investor={investor}
         onOpenChange={setAsking}
         open={asking}
-        pending={takingAway.isPending}
-        title={t("portal.takeAwayTitle", { name: investor.name })}
       />
     </div>
   );

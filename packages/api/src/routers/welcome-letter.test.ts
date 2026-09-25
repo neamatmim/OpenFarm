@@ -91,7 +91,7 @@ describe("a code handed over", () => {
     const id = await recorded("বাদল", `0178${suffix}0`);
     await invitedWithConsent(owner, id);
     await owner.investors.handOver({ id, paper: "welcome_letter" });
-    await owner.investors.takePortalAway({ id });
+    await owner.investors.takePortalAway({ id, why: { reason: "owner" } });
     const again = await invitedWithConsent(owner, id);
 
     const slip = await owner.investors.handOver({ id, paper: "code_slip" });

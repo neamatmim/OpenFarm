@@ -128,6 +128,16 @@ export const investor = pgTable(
 );
 
 /**
+ * Why the Owner took an Investor's portal access away: they withdrew their Portal Consent, their phone was lost, or the
+ * Owner's own decision. Only a withdrawal touches the consent.
+ */
+export const PORTAL_TAKEN_AWAY_WHY = [
+  "withdrew_consent",
+  "lost_phone",
+  "owner",
+] as const;
+
+/**
  * An Investor's way into the portal, where they read their own Ventures and papers (ADR 0007). One per Investor,
  * written by the Owner's invitation: a one-time code handed over in person, taken up with the Investor's phone
  * number and a password they choose, which opens an account that holds no Role on the farm and never can.
@@ -157,6 +167,8 @@ export const investorAccess = pgTable(
     invitedAt: timestamp("invited_at").notNull(),
     acceptedAt: timestamp("accepted_at"),
     revokedAt: timestamp("revoked_at"),
+    /** Why it was taken away, with `revokedAt`: null for access taken away before the farm asked why. */
+    revokedWhy: text("revoked_why", { enum: PORTAL_TAKEN_AWAY_WHY }),
     /** When they were last in the portal, to the hour: kept here because sessions end and are cleared. */
     lastSeenAt: timestamp("last_seen_at"),
   },

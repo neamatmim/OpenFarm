@@ -1,12 +1,14 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { and, eq, inArray, isNull } from "@OpenFarm/db/operators";
+import { and, eq, inArray, isNotNull, isNull } from "@OpenFarm/db/operators";
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
+import type { CONSENT_WITHDRAWN_HOW } from "@OpenFarm/db/schema/venture";
 import { portalConsent } from "@OpenFarm/db/schema/venture";
 import type { PaperDocument } from "@OpenFarm/domain";
 import { farmDayOf, paperFrom, startOfFarmDay } from "@OpenFarm/domain";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import type { Context } from "./context";
 import { farmsOwnValues } from "./data-keepers";
 import { assertRegistered, exportedPaper } from "./export-store";
 import { paperInvestor, paperValues, producedAt } from "./paper-values";
@@ -189,4 +191,150 @@ export const consentSheet = async (
     () => Promise.resolve()
   );
   return document;
+};
+
+/** How an Investor asked to withdraw their consent, and the day they asked. */
+export interface ConsentWithdrawn {
+  on: string;
+  how: (typeof CONSENT_WITHDRAWN_HOW)[number];
+}
+
+/** A consent withdrawn, as the Owner's screens say it: the day they asked, and how. */
+export interface ConsentWithdrawnSaid {
+  withdrawnOn: string;
+  withdrawnHow: ConsentWithdrawn["how"];
+}
+
+/** What the trail keeps of one consent, either side of withdrawing it: the day signed, the Version, and the day
+ *  withdrawn and how — null while it is in force. */
+const readConsentRow = async (tx: Pick<Tx, "select">, consentId: string) => {
+  const [row] = await tx
+    .select({
+      signedOn: portalConsent.signedOn,
+      version: paperTemplateVersion.number,
+      versionId: portalConsent.versionId,
+      withdrawnOn: portalConsent.withdrawnOn,
+      withdrawnHow: portalConsent.withdrawnHow,
+    })
+    .from(portalConsent)
+    .innerJoin(
+      paperTemplateVersion,
+      eq(paperTemplateVersion.id, portalConsent.versionId)
+    )
+    .where(eq(portalConsent.id, consentId));
+  return row
+    ? {
+        signedOn: farmDayOf(row.signedOn),
+        version: row.version,
+        versionId: row.versionId,
+        withdrawnOn: row.withdrawnOn ? farmDayOf(row.withdrawnOn) : null,
+        withdrawnHow: row.withdrawnHow,
+      }
+    : null;
+};
+
+/** Nothing in force to withdraw: none was signed, or it is withdrawn already. */
+const noConsentToWithdraw = () =>
+  refused(
+    "They have no consent in force to withdraw: take their access away for another reason",
+    "no_consent_to_withdraw"
+  );
+
+/**
+ * The consent a withdrawal would mark, once it is certain it can: one in force, and a day neither still to come nor
+ * before they signed it. Checked before anything is taken away, so a refused withdrawal leaves their access standing.
+ */
+export const consentToWithdraw = async (
+  context: Owned,
+  investorId: string,
+  { on }: ConsentWithdrawn
+): Promise<string> => {
+  const [inForce] = await context.db
+    .select({ id: portalConsent.id, signedOn: portalConsent.signedOn })
+    .from(portalConsent)
+    .where(
+      and(
+        eq(portalConsent.farmId, context.farm.id),
+        eq(portalConsent.investorId, investorId),
+        isNull(portalConsent.withdrawnOn)
+      )
+    );
+  if (!inForce) {
+    throw noConsentToWithdraw();
+  }
+  if (on > farmDayOf(context.clock.now())) {
+    throw refused(
+      "They cannot have withdrawn it on a day still to come",
+      "withdrawn_in_the_future"
+    );
+  }
+  if (on < farmDayOf(inForce.signedOn)) {
+    throw refused(
+      "They cannot have withdrawn it before they signed it",
+      "withdrawn_before_signed"
+    );
+  }
+  return inForce.id;
+};
+
+/**
+ * Marks a consent withdrawn, with the day they asked and how, on a transaction already held — the one that takes their
+ * access away — and writes it on the trail. It stops being in force, and never counts again.
+ */
+export const withdrawConsent = async (
+  tx: Tx,
+  context: Owned,
+  investorId: string,
+  { consentId, on, how }: ConsentWithdrawn & { consentId: string }
+) => {
+  const before = await readConsentRow(tx, consentId);
+  // Only one still in force: a second press of the same button finds it withdrawn, and keeps the first one's day.
+  const [marked] = await tx
+    .update(portalConsent)
+    .set({ withdrawnOn: startOfFarmDay(on), withdrawnHow: how })
+    .where(
+      and(eq(portalConsent.id, consentId), isNull(portalConsent.withdrawnOn))
+    )
+    .returning({ id: portalConsent.id });
+  if (!marked) {
+    throw noConsentToWithdraw();
+  }
+  const after = await readConsentRow(tx, consentId);
+  await audited(context).recordEvent(
+    tx,
+    { entity: "portal_consent", entityId: investorId, action: "update" },
+    { before, after }
+  );
+};
+
+/** Each Investor's latest withdrawn consent on this farm, by their id: the day they asked, and how. */
+export const lastConsentsWithdrawn = async (
+  db: Context["db"],
+  farmId: string
+): Promise<Map<string, ConsentWithdrawnSaid>> => {
+  const rows = await db
+    .select({
+      investorId: portalConsent.investorId,
+      withdrawnOn: portalConsent.withdrawnOn,
+      withdrawnHow: portalConsent.withdrawnHow,
+    })
+    .from(portalConsent)
+    .where(
+      and(
+        eq(portalConsent.farmId, farmId),
+        isNotNull(portalConsent.withdrawnOn)
+      )
+    )
+    // The oldest first, so the latest of each is the one the map keeps.
+    .orderBy(portalConsent.withdrawnOn, portalConsent.id);
+  const latest = new Map<string, ConsentWithdrawnSaid>();
+  for (const row of rows) {
+    if (row.withdrawnOn && row.withdrawnHow) {
+      latest.set(row.investorId, {
+        withdrawnOn: farmDayOf(row.withdrawnOn),
+        withdrawnHow: row.withdrawnHow,
+      });
+    }
+  }
+  return latest;
 };

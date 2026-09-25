@@ -91,9 +91,13 @@ export const audited = (
     // The event's own snapshots, unless the caller has already read them. `write` reads
     // them around `apply`; here there is nothing to read around, so whatever the event
     // carries is what happened — and dropping it would leave a trail entry that records
-    // that something occurred without recording what.
-    const said = before ?? (await readSnapshot(tx, event.before));
-    const happened = after ?? (await readSnapshot(tx, event.after));
+    // that something occurred without recording what. One handed over as null was read
+    // and found nothing, and is kept so: read again now, after the change, a before would
+    // say that what the write made was already there.
+    const said =
+      before === undefined ? await readSnapshot(tx, event.before) : before;
+    const happened =
+      after === undefined ? await readSnapshot(tx, event.after) : after;
     await tx.insert(auditEvent).values({
       id,
       farmId,

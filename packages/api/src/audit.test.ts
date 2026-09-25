@@ -10,6 +10,7 @@ import {
 } from "@OpenFarm/test-harness";
 import { describe, expect, it } from "vitest";
 
+import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { appRouter } from "./routers/index";
 import { createTestClient } from "./test/client";
@@ -77,6 +78,44 @@ describe("audit events", () => {
     expect(
       await scratchDb().query.invite.findMany({ where: { email } })
     ).toHaveLength(0);
+  });
+
+  it("keeps a before that read nothing as nothing, not what the write made", async () => {
+    const { context } = await createTestClient(appRouter, { as: "owner" });
+    const email = `made-${Date.now()}@test.openfarm`;
+    const id = `inv-made-${Date.now()}`;
+    const read = async (tx: Tx) => {
+      const found = await tx.query.invite.findFirst({
+        where: { id },
+        columns: { email: true },
+      });
+      return found ? { ...found } : null;
+    };
+
+    await audited(context).write(
+      {
+        entity: "invite",
+        entityId: id,
+        action: "create",
+        before: read,
+        after: read,
+      },
+      (tx) =>
+        tx.insert(invite).values({
+          id,
+          farmId: theFarm().id,
+          email,
+          name: "Made",
+          roles: ["staff"],
+          status: "pending",
+          invitedBy: thePerson("owner").id,
+          invitedByRole: "owner",
+        })
+    );
+
+    const [event] = await eventsFor("invite", id);
+    expect(event?.before).toBeNull();
+    expect(event?.after).toEqual({ email });
   });
 
   it("writes no audit row when the domain write finds nothing (NOT_FOUND rolls back)", async () => {

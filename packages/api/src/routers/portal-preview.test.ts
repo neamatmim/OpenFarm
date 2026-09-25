@@ -174,7 +174,10 @@ describe("the Portal Preview", () => {
       { name: `কামাল ${suffix}`, phone: `0176${suffix}` },
       JANUARY
     );
-    await owner.investors.takePortalAway({ id: takenAway.id });
+    await owner.investors.takePortalAway({
+      id: takenAway.id,
+      why: { reason: "owner" },
+    });
     const retired = await recorded("হাসান", `0177${suffix}`);
     await owner.investors.retire({ id: retired });
     // A week and more on, the second code has run out.

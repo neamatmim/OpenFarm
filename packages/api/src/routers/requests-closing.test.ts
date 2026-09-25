@@ -302,7 +302,11 @@ describe("an Investor", () => {
     const shanto = await asking("শান্ত", ventureId, 1);
     const owner = await asOwner();
 
-    await owner.investors.takePortalAway({ id: shanto.id });
+    // Taken away as a withdrawn consent, the reason that goes furthest: it still closes nothing.
+    await owner.investors.takePortalAway({
+      id: shanto.id,
+      why: { reason: "withdrew_consent", on: "2055-01-01", how: "letter" },
+    });
 
     const still = await standings(ventureId);
     expect(still.get(shanto.requestId)).toEqual(["waiting", null]);
