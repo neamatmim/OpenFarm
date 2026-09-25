@@ -6,6 +6,7 @@ import { protectedProcedure } from "../index";
 import type { PortalReader } from "../portal-reads";
 import {
   PORTAL_PAPER_KINDS,
+  theNoticeToRead,
   theirOpenVentures,
   theirOwnRequests,
   theirPaper,
@@ -55,6 +56,17 @@ const readerFor = async (
 };
 
 export const portalPreviewRouter = {
+  /**
+   * «আপনার তথ্য» as their portal shows it — read with the portal shut too, as every page of the Preview is: the Owner
+   * checks the notice before anybody is invited, and the lawyer is shown it.
+   */
+  yourData: ownersPreview.handler(({ context }) => {
+    if (!context.farm) {
+      throw new ORPCError("NOT_FOUND", { message: "No farm" });
+    }
+    return theNoticeToRead(context.db, context.farm);
+  }),
+
   /** Their record as their portal shows it: masked as they see it. */
   me: ownersPreview
     .input(whose)

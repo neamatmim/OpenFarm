@@ -264,6 +264,15 @@ export const bn: Record<MessageKey, string> = {
   "portal.preview.seeAsTheyDo": "তিনি যেমন দেখেন",
   "portal.preview.seeAsTheyDoHint":
     "আমন্ত্রণ জানানোর আগে তাঁর পোর্টাল আজ তিনি যেমন দেখবেন তেমন পড়ুন। তিনি জানবেন না।",
+  "portal.yourData.link": "আপনার তথ্য খামার কীভাবে রাখে",
+  "portal.yourData.back": "পোর্টালে ফিরুন",
+  "portal.yourData.notReady": "খামার এখনো এটি লিখছে",
+  "portal.yourData.notReadyHint":
+    "খামার আপনার সম্পর্কে কী রাখে আর কেন, তা {farm}-কে জিজ্ঞেস করুন: {phone}।",
+  "portal.yourData.notReadyAsk":
+    "খামার আপনার সম্পর্কে কী রাখে আর কেন, তা {farm}-কে জিজ্ঞেস করুন।",
+  "portal.yourData.failed": "এই মুহূর্তে এটি পড়া গেল না",
+  "portal.yourData.closed": "পোর্টাল এখন বন্ধ",
   "portal.back": "আপনার পোর্টফোলিও",
   "portal.ventureHint":
     "আজ ভেঞ্চারটি যেমন আছে। দিন গোনা আর ওজন মাপা; এখানে কিছুই পূর্বাভাস নয়।",

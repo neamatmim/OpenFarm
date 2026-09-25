@@ -105,6 +105,13 @@ export const portalStandings = async (
   );
 };
 
+/** The portal is shut: nothing is taken up or read through it until the Owner opens it (ADR 0007). */
+export const portalClosed = () =>
+  new ORPCError("FORBIDDEN", {
+    message: "The investor portal is not open",
+    data: { refusal: "portal_closed" },
+  });
+
 const refused = (message: string, refusal: string) =>
   new ORPCError("BAD_REQUEST", { message, data: { refusal } });
 
@@ -247,10 +254,7 @@ export const takeUpInvitation = async (
 ): Promise<{ loginEmail: string }> => {
   const theFarm = context.farm;
   if (!theFarm?.investorPortal) {
-    throw new ORPCError("FORBIDDEN", {
-      message: "The investor portal is not open",
-      data: { refusal: "portal_closed" },
-    });
+    throw portalClosed();
   }
   if (
     input.password.length < PASSWORD_MIN_LENGTH ||

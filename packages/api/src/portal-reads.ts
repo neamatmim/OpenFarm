@@ -1,6 +1,13 @@
-import { farmDayOf, maskedDigits } from "@OpenFarm/domain";
+import {
+  FIELDS_OF,
+  factsMissing,
+  farmDayOf,
+  maskedDigits,
+  readingOf,
+} from "@OpenFarm/domain";
 
 import type { Context } from "./context";
+import { farmsOwnValues } from "./data-keepers";
 import { howToPay } from "./how-to-pay";
 import type { PaperMaking } from "./investor-papers";
 import {
@@ -17,6 +24,7 @@ import { shareOfUnits } from "./investor-statement-words";
 import { signedInOn } from "./membership";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { theirRequests } from "./requests-to-join";
+import { wordingInForce } from "./template-store";
 import { theirAgreements } from "./their-agreements";
 import { theirProgress } from "./venture-herd-store";
 import { openVenturesFor } from "./venture-showing";
@@ -204,4 +212,26 @@ export const theirPaper = async (
   }
   const { text } = await settlementStatementFor(making, agreementId);
   return { text, photos: [] };
+};
+
+/**
+ * «আপনার তথ্য», the privacy notice, as a page of the portal reads it: the Version in force with the farm's own facts
+ * in it, in Bangla. Nothing while any fact it names is still unwritten — a notice with a blank in it tells an Investor
+ * nothing — only the farm to ask, by name and phone where it has one.
+ */
+export const theNoticeToRead = async (
+  db: Context["db"],
+  farm: NonNullable<Context["farm"]>
+) => {
+  const content = await wordingInForce(db, farm.id, "privacy_notice");
+  const values = await farmsOwnValues(db, farm, await ownerNameOf(db, farm.id));
+  const unwritten = factsMissing(
+    content,
+    values,
+    FIELDS_OF.privacy_notice
+  ).length;
+  return {
+    notice: unwritten > 0 ? null : readingOf(content, values),
+    farm: { name: farm.name, phone: farm.phone },
+  };
 };

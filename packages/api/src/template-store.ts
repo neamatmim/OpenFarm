@@ -124,22 +124,45 @@ export const giveStandardTemplates = async (
   });
 };
 
+/** The Version a kind of paper is in now on this farm, or nothing for a farm not yet given its wording. */
+const inForce = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  kind: TemplateKind
+): Promise<Wording | null> => {
+  const template = await db.query.paperTemplate.findFirst({
+    where: { farmId, kind },
+    with: { currentVersion: true },
+  });
+  return template?.currentVersion ? asWording(template.currentVersion) : null;
+};
+
 /** The Version a kind of paper is printed and signed in now. The farm must have been given its wording first. */
 export const currentWording = async (
   db: Pick<Tx, "query">,
   farmId: string,
   kind: TemplateKind
 ): Promise<Wording> => {
-  const template = await db.query.paperTemplate.findFirst({
-    where: { farmId, kind },
-    with: { currentVersion: true },
-  });
-  if (!template?.currentVersion) {
+  const wording = await inForce(db, farmId, kind);
+  if (!wording) {
     throw new ORPCError("INTERNAL_SERVER_ERROR", {
       message: `The farm has no wording for ${kind} yet`,
     });
   }
-  return asWording(template.currentVersion);
+  return wording;
+};
+
+/**
+ * The wording a kind of paper is in now — the standard wording for a farm not yet given any. Read without giving:
+ * what somebody outside the farm reads never writes the farm's records.
+ */
+export const wordingInForce = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  kind: TemplateKind
+): Promise<TemplateContent> => {
+  const wording = await inForce(db, farmId, kind);
+  return wording?.content ?? STANDARD_TEMPLATES[kind];
 };
 
 /** One Version by its id, on this farm. */

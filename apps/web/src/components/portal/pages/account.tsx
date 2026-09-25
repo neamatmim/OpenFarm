@@ -25,6 +25,7 @@ import {
 } from "@/components/page";
 import { FormField, SideTabs } from "@/components/page-kit";
 import { deviceOf } from "@/components/people/person-sign-ins";
+import { YourDataLink } from "@/components/portal/portal-door";
 import {
   WhyNot,
   useCanAct,
@@ -74,6 +75,11 @@ const TheirDetails = ({ me }: { me: Me }) => {
   const { record } = me;
   return (
     <Section
+      action={
+        <span className="text-sm">
+          <YourDataLink />
+        </span>
+      }
       description={t("portal.account.detailsHint")}
       title={t("portal.account.details")}
     >

@@ -757,6 +757,48 @@ export const factsMissing = (
     .filter((name) => counted.has(name) && !values[name]?.bn.trim());
 };
 
+/** One part of a notice as a page reads it: its heading, and what it says line by line. */
+export interface ReadPart {
+  heading: string;
+  lines: string[];
+}
+
+/**
+ * A notice's wording read as a page rather than printed: its title, its opening and each part, in Bangla, with the
+ * facts filled in — a clauses part line by line, a facts part as each label and what it says. Nothing of parties,
+ * stamps or signatures: a page is read, not signed.
+ */
+export const readingOf = (
+  content: TemplateContent,
+  values: FieldValues
+): { title: string; preamble: string; parts: ReadPart[] } => ({
+  title: fillIn(content.title.bn, values, "bn"),
+  preamble: fillIn(content.preamble.bn, values, "bn"),
+  parts: content.sections.flatMap((section): ReadPart[] => {
+    if (section.kind === "clauses") {
+      return [
+        {
+          heading: fillIn(section.heading.bn, values, "bn"),
+          lines: section.clauses.map((clause) =>
+            fillIn(clause.bn, values, "bn")
+          ),
+        },
+      ];
+    }
+    if (section.kind === "facts") {
+      return [
+        {
+          heading: fillIn(section.heading.bn, values, "bn"),
+          lines: section.rows.map(
+            (one) => `${one.label.bn}: ${fillIn(one.value, values, "bn")}`
+          ),
+        },
+      ];
+    }
+    return [];
+  }),
+});
+
 /** Every field shown by its own name in square brackets: a Version previewed before any paper is filled from it. */
 export const namedFields = (kind: TemplateKind): FieldValues =>
   Object.fromEntries(

@@ -1,6 +1,9 @@
+import type { FieldValues } from "@OpenFarm/domain";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
+import type { Context } from "./context";
+import { paperValues } from "./paper-values";
 
 /** Who keeps the farm's records for it: the server's host, the nightly backup's keeper, and the backup's country. */
 export interface DataKeepers {
@@ -43,3 +46,14 @@ export const readKeepers = async (
   });
   return row ?? NO_KEEPERS;
 };
+
+/**
+ * What the farm itself says on any paper: its name, address, phone and registration, who signs for it, and who keeps
+ * its records — read fresh, as the privacy notice and a preview of any paper both need them.
+ */
+export const farmsOwnValues = async (
+  db: Pick<Tx, "query">,
+  farm: NonNullable<Context["farm"]>,
+  ownerName: string
+): Promise<FieldValues> =>
+  paperValues({ farm, ownerName, keepers: await readKeepers(db, farm.id) });

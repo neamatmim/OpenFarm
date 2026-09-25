@@ -7,6 +7,7 @@ import {
   theirOpenVentures,
   theirOwnRequests,
   theirPaper,
+  theNoticeToRead,
   theirPortfolio,
   theirRecord,
   theirSignIns,
@@ -16,6 +17,7 @@ import {
   endSignIn,
   investorOf,
   markSeen,
+  portalClosed,
   signInHasRunItsDay,
   takeUpInvitation,
 } from "../portal-store";
@@ -79,6 +81,18 @@ export const portalRouter = {
       })
     )
     .handler(({ context, input }) => takeUpInvitation(context, input)),
+
+  /**
+   * «আপনার তথ্য», the privacy notice, for anybody reading the portal, signed in or not: what the farm keeps about an
+   * Investor and how to ask about it (`theNoticeToRead`). Closed with the portal.
+   */
+  yourData: publicProcedure.handler(({ context }) => {
+    const theFarm = context.farm;
+    if (!theFarm?.investorPortal) {
+      throw portalClosed();
+    }
+    return theNoticeToRead(context.db, theFarm);
+  }),
 
   /** Who is signed in, which farm's portal it is, and their own record, masked (`theirRecord`). */
   me: investorProcedure.handler(({ context }) => theirRecord(context)),
