@@ -7,6 +7,7 @@ import type {
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
+import type { DataKeepers } from "./data-keepers";
 import { theFarmsShare } from "./investor-store";
 
 /** A figure in each language's own numerals. */
@@ -29,6 +30,8 @@ const same = (text: string | null | undefined): Said | undefined =>
 export interface PaperFacts {
   farm: FarmIdentity;
   ownerName: string;
+  /** Who runs the server and keeps the backup, where the privacy notice names them. */
+  keepers?: DataKeepers;
   him?: PaperInvestor;
   ventureName?: string;
   units?: number;
@@ -55,7 +58,11 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
     farmName: same(facts.farm.name),
     farmAddress: same(facts.farm.address),
     farmRegistration: same(facts.farm.registrationNumber),
+    farmPhone: same(facts.farm.phone),
     ownerName: same(facts.ownerName),
+    dataHost: same(facts.keepers?.dataHost),
+    backupStore: same(facts.keepers?.backupStore),
+    backupCountry: same(facts.keepers?.backupCountry),
     investorName: same(facts.him?.name),
     investorAddress: same(facts.him?.address),
     investorPhone: same(facts.him?.phone),

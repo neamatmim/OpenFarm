@@ -1,9 +1,10 @@
 import type {
   PaperDocument,
   TemplateContent,
+  TemplateField,
   TemplateKind,
 } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { TEMPLATE_FIELDS, farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -26,11 +27,13 @@ import { toast } from "sonner";
 import {
   EmptyState,
   Loaded,
+  Notice,
   Page,
   PageHeader,
   StatusBadge,
 } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
+import { DataKeepers } from "@/components/templates/data-keepers";
 import { TemplateEditor } from "@/components/templates/template-editor";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
@@ -55,6 +58,8 @@ const REFUSALS: Record<string, MessageKey> = {
 const WAITING_ON_THE_LAWYER: ReadonlySet<TemplateKind> = new Set([
   "master_agreement",
   "venture_schedule",
+  "portal_consent",
+  "privacy_notice",
 ]);
 
 /** A farm day as the reader writes a date. */
@@ -291,13 +296,13 @@ const ReviewDialog = ({
 };
 
 /**
- * The wording of the papers an Investor signs: the Investment Agreement, the Master Agreement and its Venture
- * Schedule, and the Amendment. Each starts as OpenFarm's standard wording; the Owner reads it, changes it one
+ * The wording of the papers an Investor signs or is handed: the Investment Agreement, the Master Agreement and its
+ * Venture Schedule, the Amendment, the Portal Consent and the privacy notice. Each starts as OpenFarm's standard wording; the Owner reads it, changes it one
  * Version at a time, and writes down the lawyer's approval of a Version on it. What a man signed stays in the wording
  * he signed.
  */
 const TemplatesPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused(REFUSALS);
   const templates = useQuery(orpc.templates.list.queryOptions());
   const [editing, setEditing] = useState<{
@@ -307,6 +312,8 @@ const TemplatesPage = () => {
   const [shown, setShown] = useState<{
     paper: PaperDocument;
     wording: WordingSaid | null;
+    /** The farm's own facts the paper asks for that nobody has written down yet. */
+    missing: readonly TemplateField[];
   } | null>(null);
   const [reviewing, setReviewing] = useState<{
     versionId: string;
@@ -332,11 +339,27 @@ const TemplatesPage = () => {
   ) =>
     previewing.mutate(
       { kind, content },
-      { onSuccess: ({ document }) => setShown({ paper: document, wording }) }
+      {
+        onSuccess: ({ document, missing }) =>
+          setShown({ paper: document, wording, missing }),
+      }
     );
+  // The farm's own facts the paper asks for that nobody has written down: said before it is handed to anybody.
+  const factsLeftToWrite = (shown?.missing.length ?? 0) > 0;
+  const missingFacts = (shown?.missing ?? [])
+    .map((field) => TEMPLATE_FIELDS[field][language])
+    .join(", ");
   const paperDialog = (
     <PaperDialog
       description={t("templates.previewHint")}
+      notice={
+        factsLeftToWrite ? (
+          <Notice
+            title={t("templates.missing", { facts: missingFacts })}
+            tone="warning"
+          />
+        ) : null
+      }
       onClose={() => setShown(null)}
       paper={shown?.paper ?? null}
       title={t("templates.preview")}
@@ -376,6 +399,7 @@ const TemplatesPage = () => {
         query={templates}
         skeleton={<Skeleton className="h-64 rounded-xl" />}
       >
+        <DataKeepers />
         {templates.data?.length === 0 ? (
           <EmptyState icon={ScrollText} title={t("templates.none")} />
         ) : (

@@ -59,12 +59,15 @@ export const PaperDialog = ({
   wording,
   title,
   description,
+  notice,
   onClose,
 }: {
   paper: PaperDocument | null;
   wording: WordingSaid | null;
   title: ReactNode;
   description?: ReactNode;
+  /** Something the reader must know before handing the paper over, above it and never printed. */
+  notice?: ReactNode;
   onClose: () => void;
 }) => {
   const { t } = useLanguage();
@@ -87,6 +90,7 @@ export const PaperDialog = ({
             <DialogDescription>{description}</DialogDescription>
           ) : null}
         </DialogHeader>
+        {notice ? <div className="no-print">{notice}</div> : null}
         {wording ? <WordingLine wording={wording} /> : null}
         {paper ? <PaperDocumentView document={paper} /> : null}
         <div className="no-print flex justify-end">

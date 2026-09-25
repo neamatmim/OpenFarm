@@ -76,7 +76,8 @@ const Blank = ({ said }: { said: Said }) => (
   <div className="flex flex-col gap-1">
     <div className="border-foreground/70 h-7 border-b" />
     <span className="text-muted-foreground text-xs">
-      {said.bn} / {said.en}
+      {said.bn}
+      {said.en ? ` / ${said.en}` : ""}
     </span>
   </div>
 );
@@ -157,6 +158,7 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
                     {signer.role.en ? ` / ${signer.role.en}` : ""}
                   </p>
                 </div>
+                {section.dateBlank ? <Blank said={section.dateBlank} /> : null}
               </div>
             ))}
           </div>
@@ -165,7 +167,8 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
               {section.witnesses.map((witness) => (
                 <div className="flex flex-col gap-2" key={witness.en}>
                   <p className="text-xs font-semibold">
-                    {witness.bn} / {witness.en}
+                    {witness.bn}
+                    {witness.en ? ` / ${witness.en}` : ""}
                   </p>
                   {section.witnessBlanks.map((blank) => (
                     <Blank key={blank.en} said={blank} />

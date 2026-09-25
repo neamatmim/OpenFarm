@@ -505,13 +505,17 @@ export type {
   TemplateSectionKind,
 } from "./paper-template";
 export {
+  FARM_FIELDS,
   FIELDS_OF,
   MOST_WITNESSES,
   TEMPLATE_FIELDS,
   TEMPLATE_KINDS,
+  factsMissing,
   fieldsIn,
+  isTemplateField,
   namedFields,
   paperFrom,
+  partsAllowed,
   templateProblems,
   termsOf,
 } from "./paper-template";

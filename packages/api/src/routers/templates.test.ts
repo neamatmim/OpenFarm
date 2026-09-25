@@ -1,5 +1,8 @@
 import { eq } from "@OpenFarm/db/operators";
-import { paperTemplate } from "@OpenFarm/db/schema/paper-template";
+import {
+  TEMPLATE_KINDS as COLUMN_KINDS,
+  paperTemplate,
+} from "@OpenFarm/db/schema/paper-template";
 import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent } from "@OpenFarm/domain";
 import { STANDARD_TEMPLATES, TEMPLATE_KINDS } from "@OpenFarm/domain";
@@ -303,5 +306,83 @@ describe("the Amendment", () => {
       current.versionId,
       current.versionId,
     ]);
+  });
+});
+
+describe("the kinds of paper", () => {
+  it("are the same list in the database as in the domain", () => {
+    expect([...TEMPLATE_KINDS]).toEqual([...COLUMN_KINDS]);
+  });
+});
+
+describe("the facts the privacy notice names", () => {
+  it("are the Owner's alone to set, and each change is in the trail", async () => {
+    const { client: owner } = await as("owner");
+    const { client: manager } = await as("manager");
+    const keepers = {
+      dataHost: `হোস্ট ${suffix}`,
+      backupStore: `ব্যাকআপ ${suffix}`,
+      backupCountry: "জার্মানি",
+    };
+
+    await expect(manager.farm.setDataKeepers(keepers)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await owner.farm.setDataKeepers(keepers);
+
+    expect(await owner.farm.dataKeepers()).toEqual(keepers);
+    // Found by what it says, not by being the latest: the farm's other changes share this test's instant.
+    const trail = await owner.audit.list({ entity: "farm", limit: 20 });
+    expect(trail).toContainEqual(
+      expect.objectContaining({
+        action: "update",
+        after: expect.objectContaining({ dataHost: keepers.dataHost }),
+      })
+    );
+  });
+
+  it("are named as missing when a notice is previewed before they are set, and not once they are", async () => {
+    const { client: owner } = await as("owner");
+    const notice = STANDARD_TEMPLATES.privacy_notice;
+    await owner.farm.setDataKeepers({
+      dataHost: null,
+      backupStore: null,
+      backupCountry: null,
+    });
+
+    const before = await owner.templates.preview({
+      kind: "privacy_notice",
+      content: notice,
+    });
+    expect(before.missing).toEqual([
+      "dataHost",
+      "backupStore",
+      "backupCountry",
+    ]);
+
+    await owner.farm.setDataKeepers({
+      dataHost: `হোস্ট ${suffix}`,
+      backupStore: `ব্যাকআপ ${suffix}`,
+      backupCountry: "জার্মানি",
+    });
+    const after = await owner.templates.preview({
+      kind: "privacy_notice",
+      content: notice,
+    });
+    expect(after.missing).toEqual([]);
+    expect(JSON.stringify(after.document)).toContain(`হোস্ট ${suffix}`);
+    // A notice closes on no promise about money: it is not a paper about money.
+    expect(after.document.closing).toEqual([]);
+  });
+
+  it("never counts the Investor's own facts as missing on a consent previewed for nobody in particular", async () => {
+    const { client: owner } = await as("owner");
+
+    const { missing } = await owner.templates.preview({
+      kind: "portal_consent",
+      content: STANDARD_TEMPLATES.portal_consent,
+    });
+
+    expect(missing).toEqual([]);
   });
 });

@@ -3299,6 +3299,22 @@ export const bn: Record<MessageKey, string> = {
   "templates.kind.master_agreement": "মূল চুক্তি",
   "templates.kind.venture_schedule": "ভেঞ্চারের তফসিল",
   "templates.kind.agreement_amendment": "সংশোধনী",
+  "templates.kind.portal_consent": "পোর্টাল সম্মতিপত্র",
+  "templates.kind.privacy_notice": "গোপনীয়তা নোটিশ «আপনার তথ্য»",
+  "templates.kindHint.portal_consent":
+    "পোর্টালের কোড দেওয়ার আগে মালিকের সামনে কাগজে সই হয়: অনলাইনে বিনিয়োগকারীকে তাঁর হিসাব দেখানো, দেশের বাইরে রাখা, আর এর জন্য এনআইডি, ব্যাংক ও নমিনির তথ্য রাখা।",
+  "templates.kindHint.privacy_notice":
+    "খামার বিনিয়োগকারীর সম্পর্কে কী রাখে, কেন, কোথায়, কতদিন, আর কীভাবে চাইবেন। চুক্তির সময় হাতে দেওয়া হয়, স্বাগতপত্রের পেছনে থাকে, আর পোর্টালের একটি পাতা।",
+  "templates.keepers.title": "খামারের তথ্য কে রাখে",
+  "templates.keepers.hint":
+    "গোপনীয়তা নোটিশে এদের নাম থাকে। ঠিক হলে লিখে রাখুন; ততদিন নোটিশ বলবে কী বাকি।",
+  "templates.keepers.dataHost": "সার্ভার চালায় যে প্রতিষ্ঠান",
+  "templates.keepers.backupStore": "প্রতি রাতের ব্যাকআপ রাখে যে প্রতিষ্ঠান",
+  "templates.keepers.backupCountry": "ব্যাকআপ যে দেশে রাখা হয়",
+  "templates.keepers.save": "রাখুন",
+  "templates.keepers.saved": "রাখা হয়েছে",
+  "templates.missing":
+    "এই কাগজে এখনো বাকি: {facts}। কাউকে দেওয়ার আগে এগুলো লিখে রাখুন।",
   "templates.kindHint.investment_agreement":
     "প্রতিটি ভেঞ্চারে প্রত্যেক বিনিয়োগকারীর জন্য একটি স্ট্যাম্প করা চুক্তি। বিনিয়োগকারী সই করার সময় ভেঞ্চার থেকে ছাপা হয়।",
   "templates.kindHint.master_agreement":
@@ -3392,5 +3408,6 @@ export const bn: Record<MessageKey, string> = {
   "templates.problem.noClauses": "{where}-এ কোনো শর্ত নেই।",
   "templates.problem.partTwice": "{where}: কাগজে {part} আগেই আছে।",
   "templates.problem.partMissing": "কাগজে {part} লাগবে।",
+  "templates.problem.partNotHere": "{where}: এই ধরনের কাগজে {part} থাকে না।",
   "templates.problem.witnesses": "{where}: সাক্ষী শূন্য থেকে চারজন।",
 };

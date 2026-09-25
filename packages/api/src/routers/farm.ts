@@ -14,11 +14,18 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
+import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
-import { forbidden, requirePersonalSession, requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  forbidden,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
 import { startWithStandard } from "../standard-store";
@@ -414,6 +421,39 @@ export const farmRouter = {
               })
             )
             .where(eq(farm.id, farmId))
+      );
+      return { id: farmId };
+    }),
+
+  /**
+   * Who runs the server the farm's records are on, and who keeps the nightly encrypted copy and in which country: the
+   * facts the privacy notice tells an Investor. The Owner's alone.
+   */
+  dataKeepers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .handler(({ context }) => readKeepers(context.db, context.farm.id)),
+
+  /**
+   * The Owner writes down who keeps the farm's records, once they are chosen. Audited with what it said before: these
+   * are the words on the notice Investors were handed.
+   */
+  setDataKeepers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(dataKeepersInput)
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: farmId,
+          action: "update",
+          // As the trail writes any record down: a plain copy of the three.
+          before: async (tx) => ({ ...(await readKeepers(tx, farmId)) }),
+          after: async (tx) => ({ ...(await readKeepers(tx, farmId)) }),
+        },
+        (tx) => tx.update(farm).set(input).where(eq(farm.id, farmId))
       );
       return { id: farmId };
     }),

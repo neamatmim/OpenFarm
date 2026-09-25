@@ -7,6 +7,7 @@ import {
   FIELDS_OF,
   STANDARD_TEMPLATES,
   TEMPLATE_FIELDS,
+  partsAllowed,
   templateProblems,
 } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
@@ -44,6 +45,7 @@ const PROBLEM_WORDS: Record<TemplateProblem["code"], MessageKey> = {
   no_clauses: "templates.problem.noClauses",
   part_twice: "templates.problem.partTwice",
   part_missing: "templates.problem.partMissing",
+  part_not_here: "templates.problem.partNotHere",
   witnesses: "templates.problem.witnesses",
 };
 
@@ -131,10 +133,17 @@ const ProblemsNotice = ({ problems }: { problems: TemplateProblem[] }) => {
   );
 };
 
-/** Adds a part of the chosen kind at the end of the paper. */
-const AddPart = ({ onAdd }: { onAdd: (kind: TemplateSectionKind) => void }) => {
+/** Adds a part of the chosen kind at the end of the paper: only the parts this kind of paper may have. */
+const AddPart = ({
+  paper,
+  onAdd,
+}: {
+  paper: TemplateKind;
+  onAdd: (kind: TemplateSectionKind) => void;
+}) => {
   const { t } = useLanguage();
   const [kind, setKind] = useState<TemplateSectionKind>("clauses");
+  const offered = partsAllowed(paper, PART_KINDS);
   return (
     <div className="flex flex-wrap items-end gap-2">
       <FormField id="template-add-part" label={t("templates.addPart")}>
@@ -145,7 +154,7 @@ const AddPart = ({ onAdd }: { onAdd: (kind: TemplateSectionKind) => void }) => {
           }
           value={kind}
         >
-          {PART_KINDS.map((one) => (
+          {offered.map((one) => (
             <option key={one} value={one}>
               {t(`templates.part.${one}`)}
             </option>
@@ -276,6 +285,7 @@ export const TemplateEditor = ({
 
         <AddPart
           onAdd={(part) => setSections([...draft.sections, newSection(part)])}
+          paper={kind}
         />
 
         <ProblemsNotice problems={problems} />
