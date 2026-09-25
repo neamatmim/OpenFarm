@@ -658,6 +658,13 @@ export const bn: Record<MessageKey, string> = {
   "ventures.printDraftHint":
     "এই শর্তগুলো থেকে সাজানো হবে — স্ট্যাম্প কাগজে ছাপার জন্য, অথবা ই-চালানের সাথে দেওয়ার জন্য।",
   "ventures.agreementTitle": "সই করার চুক্তিপত্র",
+  "ventures.noticeBeside": "সঙ্গে দেওয়ার «আপনার তথ্য»",
+  "ventures.noticeTitle": "চুক্তির সঙ্গে দেওয়ার «আপনার তথ্য»",
+  "ventures.noticeBesideHint":
+    "প্রত্যেক বিনিয়োগকারীকে চুক্তির সঙ্গে দিন, পোর্টালে থাকুন বা না থাকুন: চুক্তির «তথ্য» অংশ এই কাগজের কথা বলে।",
+  "ventures.backToAgreement": "চুক্তিপত্রে ফিরুন",
+  "ventures.noticeUnwritten":
+    "«আপনার তথ্য»-এ খামারের কিছু তথ্য এখনো লেখা হয়নি। «চুক্তির নমুনা» পাতায় «খামারের তথ্য কে রাখে» লিখে আবার চেষ্টা করুন।",
   "ventures.printAmendment": "সই করার সংশোধনী ছাপুন",
   "ventures.printAmendmentHint":
     "এই ভেঞ্চারের সব বিনিয়োগকারীর নামসহ একটি কাগজ, খামারের এখনকার ভাষায়। ছাপুন, সবাইকে দিয়ে সই করান, তারপর নিচে ছবি তুলুন।",
@@ -3455,6 +3462,9 @@ export const bn: Record<MessageKey, string> = {
   "templates.note": "নোট",
   "templates.noteHint": "এই সংস্করণ কেন, আপনার নিজের কথায়। এর সঙ্গে রাখা থাকবে।",
   "templates.clauseNumber": "শর্ত {number}",
+  "templates.nomineeLines": "নমিনির নিচের লাইন",
+  "templates.nomineeLinesHint":
+    "প্রত্যেক বিনিয়োগকারীর নিচে, খামারের লেখা নমিনির ঠিক পরে ছাপা হয়। যে লাইন সবার বেলায় খাটে না, সেটিও প্রতিবার ছাপা হয়, আর না খাটলে হাতে কেটে দেওয়া হয়।",
   "templates.addClause": "শর্ত যোগ করুন",
   "templates.stampHint": "স্ট্যাম্পের ঘরগুলো খামারের নিজের, প্রতিটি কাগজে একই।",
   "templates.witnesses": "সাক্ষী",

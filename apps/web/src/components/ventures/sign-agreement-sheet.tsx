@@ -5,7 +5,7 @@ import { formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -52,6 +52,17 @@ const STAMP_LABELS = {
   StampKind,
   Record<"value" | "on" | "serial", MessageKey>
 >;
+
+/** A paper laid out to print, and the wording it was laid out in. */
+interface LaidOut {
+  paper: PaperDocument;
+  wording: WordingSaid;
+}
+
+/** Why the farm would not lay out the notice, in the Owner's words. */
+const NOTICE_REFUSALS = {
+  notice_unwritten: "ventures.noticeUnwritten",
+} as const;
 
 /** Long enough to read a code out to somebody and have them write it down. */
 const CODE_SHOWN_FOR_MS = 20_000;
@@ -199,7 +210,8 @@ const AnswersRequest = ({
 /**
  * The agreement to sign, laid out from the terms on the sheet in the farm's current wording, and printed onto stamp
  * paper or to go with an e-challan. Until a lawyer has approved that wording the dialog says so, above the page and
- * never on it.
+ * never on it. Beside it the dialog offers «আপনার তথ্য», the notice the Agreement's data section points to, to print
+ * and hand over with it — in the same dialog, since a page is printed by finding the one paper on the screen.
  */
 const PrintToSign = ({
   drafting,
@@ -216,15 +228,21 @@ const PrintToSign = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused();
-  const [shown, setShown] = useState<{
-    paper: PaperDocument;
-    wording: WordingSaid;
-  } | null>(null);
+  const refusedNotice = useRefused(NOTICE_REFUSALS);
+  const [shown, setShown] = useState<LaidOut | null>(null);
+  const [notice, setNotice] = useState<LaidOut | null>(null);
   const laying = useMutation(
     orpc.investorStatements.agreementToSign.mutationOptions({
       onSuccess: (done) =>
         setShown({ paper: done.document, wording: done.wording }),
       onError: refused,
+    })
+  );
+  const layingNotice = useMutation(
+    orpc.investorStatements.noticeToHand.mutationOptions({
+      onSuccess: (done) =>
+        setNotice({ paper: done.document, wording: done.wording }),
+      onError: refusedNotice,
     })
   );
   const mayDraft =
@@ -250,10 +268,43 @@ const PrintToSign = ({
         {t("ventures.printDraftHint")}
       </p>
       <PaperDialog
-        onClose={() => setShown(null)}
-        paper={shown?.paper ?? null}
-        title={t("ventures.agreementTitle")}
-        wording={shown?.wording ?? null}
+        action={
+          notice ? (
+            <Button
+              onClick={() => setNotice(null)}
+              type="button"
+              variant="outline"
+            >
+              <ArrowLeft aria-hidden data-icon="inline-start" />
+              {t("ventures.backToAgreement")}
+            </Button>
+          ) : (
+            <Button
+              disabled={layingNotice.isPending}
+              onClick={() =>
+                layingNotice.mutate({
+                  ventureId: drafting.ventureId,
+                  investorId: drafting.investorId,
+                })
+              }
+              type="button"
+              variant="outline"
+            >
+              <FileText aria-hidden data-icon="inline-start" />
+              {t("ventures.noticeBeside")}
+            </Button>
+          )
+        }
+        description={notice ? t("ventures.noticeBesideHint") : undefined}
+        onClose={() => {
+          setShown(null);
+          setNotice(null);
+        }}
+        paper={notice?.paper ?? shown?.paper ?? null}
+        title={
+          notice ? t("ventures.noticeTitle") : t("ventures.agreementTitle")
+        }
+        wording={notice?.wording ?? shown?.wording ?? null}
       />
     </div>
   );

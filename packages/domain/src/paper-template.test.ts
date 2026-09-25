@@ -10,7 +10,10 @@ import {
   templateProblems,
   termsOf,
 } from "./paper-template";
-import { STANDARD_TEMPLATES } from "./standard-templates";
+import {
+  FIRST_PRINTED_AGREEMENT,
+  STANDARD_TEMPLATES,
+} from "./standard-templates";
 
 const PARTIES: PaperParties = {
   farm: {
@@ -56,9 +59,12 @@ describe("the standard wording", () => {
 
 describe("what stops a Version being published", () => {
   it("is a field the paper does not have, Bangla left empty, or a part missing or twice", () => {
-    const [parties, facts, clauses, stamp, signatures] = agreement.sections;
-    if (!(parties && facts && clauses && stamp && signatures)) {
-      throw new Error("the standard agreement has five parts");
+    const [parties] = agreement.sections;
+    const stamp = agreement.sections.find(
+      (section) => section.kind === "stamp"
+    );
+    if (!(parties && stamp)) {
+      throw new Error("the standard agreement has its parties and a stamp");
     }
     const broken: TemplateContent = {
       ...agreement,
@@ -182,10 +188,140 @@ describe("the terms a letter repeats", () => {
       farmPercent: { bn: "৪৫", en: "45" },
     });
 
-    expect(terms).toHaveLength(7);
+    expect(terms).toHaveLength(13);
     expect(terms[1]).toBe(
       "২. মুনাফা ভাগ হবে বিনিয়োগকারী ৫৫% এবং খামার ৪৫%, মূলধন সম্পূর্ণ ফেরতের পর।"
     );
+  });
+
+  it("repeat the data section, and never the lines under the nominee, which are about who signs", () => {
+    const terms = termsOf(agreement, {}).join("\n");
+
+    expect(terms).toContain("১২. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে");
+    expect(terms).not.toContain("নমিনি জানেন");
+    expect(terms).not.toContain("আঠারো");
+  });
+});
+
+describe("the Investment Agreement's data section and nominee lines", () => {
+  /** The laid-out paper's parts, for an Investor with a nominee or without one. */
+  const laidOutFor = (nominee: PaperParties["investors"][0]["nominee"]) =>
+    paperFrom(agreement, {
+      kind: "investment_agreement",
+      parties: {
+        ...PARTIES,
+        investors: [{ ...PARTIES.investors[0], nominee }],
+      },
+      values: {},
+      producedBy: "করিম",
+      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+    }).sections;
+
+  it("comes after the terms and before the stamp, headed তথ্য / Data, in the draft's six clauses", () => {
+    const kinds = agreement.sections.map((section) =>
+      section.kind === "clauses" ? section.heading.en : section.kind
+    );
+    const data = agreement.sections.find(
+      (section) => section.kind === "clauses" && section.heading.bn === "তথ্য"
+    );
+    if (data?.kind !== "clauses") {
+      throw new Error("expected the data section");
+    }
+
+    expect(kinds).toEqual([
+      "parties",
+      "facts",
+      "Terms",
+      "Data",
+      "stamp",
+      "signatures",
+    ]);
+    expect(data.heading).toEqual({ bn: "তথ্য", en: "Data" });
+    expect(data.clauses).toHaveLength(6);
+    expect(data.clauses[1]?.en).toBe(
+      "This data is kept on a server in Singapore run for the Farm, and an encrypted copy is kept elsewhere each night."
+    );
+    expect(data.clauses[5]?.bn).toContain("আলাদা সম্মতিপত্রে সই করলে");
+  });
+
+  it("prints the two nominee lines under the Investor, not the Farm, whether or not the farm has a nominee for him", () => {
+    for (const nominee of [
+      null,
+      { name: "সালমা", phone: "01911000000", relation: "মেয়ে" },
+    ]) {
+      const parties = laidOutFor(nominee).find(
+        (section) => section.kind === "parties"
+      );
+      if (parties?.kind !== "parties") {
+        throw new Error("expected the parties");
+      }
+      const [farm, him] = parties.parties;
+
+      expect(farm?.lines).toEqual([]);
+      expect(him?.lines).toHaveLength(2);
+      expect(him?.lines[0]?.en).toContain("their nominee knows");
+      // The under-eighteen line every time, to be struck through by hand where it does not apply.
+      expect(him?.lines[1]?.bn).toContain("নমিনির বয়স আঠারো বছরের কম");
+      expect(him?.lines[1]?.en).toContain("Signature: ____________");
+    }
+  });
+
+  it("checks the nominee lines as it checks a clause", () => {
+    const [parties, ...rest] = agreement.sections;
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties first");
+    }
+    const broken: TemplateContent = {
+      ...agreement,
+      sections: [
+        {
+          ...parties,
+          nomineeLines: [
+            { bn: "", en: "Nominee" },
+            { bn: "{nomineeAge}", en: "" },
+          ],
+        },
+        ...rest,
+      ],
+    };
+
+    expect(templateProblems("investment_agreement", broken)).toEqual([
+      { code: "text_missing", at: 1 },
+      { code: "unknown_field", at: 1, about: "nomineeAge" },
+    ]);
+  });
+
+  it("lays out a parties part worded before it had nominee lines with none", () => {
+    const [parties, ...rest] = STANDARD_TEMPLATES.master_agreement.sections;
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties first");
+    }
+    const { nomineeLines: _none, ...before } = parties;
+    const paper = paperFrom(
+      { ...STANDARD_TEMPLATES.master_agreement, sections: [before, ...rest] },
+      {
+        kind: "master_agreement",
+        parties: PARTIES,
+        values: {},
+        producedBy: "",
+        producedAt: "",
+      }
+    );
+    const laid = paper.sections.find((section) => section.kind === "parties");
+
+    expect(
+      laid?.kind === "parties" && laid.parties.map((one) => one.lines)
+    ).toEqual([[], []]);
+  });
+
+  it("leaves the Agreement the farm printed before its wording could be edited as it was", () => {
+    expect(
+      FIRST_PRINTED_AGREEMENT.sections.map((section) => section.kind)
+    ).toEqual(["parties", "facts", "clauses", "stamp", "signatures"]);
+    expect(JSON.stringify(FIRST_PRINTED_AGREEMENT)).not.toContain("নমিনি জানেন");
+    expect(
+      templateProblems("investment_agreement", FIRST_PRINTED_AGREEMENT)
+    ).toEqual([]);
   });
 });
 

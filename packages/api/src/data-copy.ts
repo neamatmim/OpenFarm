@@ -94,6 +94,7 @@ const PAPER_NAMES = {
   agreement_draft: { bn: "চুক্তির খসড়া", en: "Agreement to sign" },
   amendment_draft: { bn: "সংশোধনী", en: "Amendment" },
   portal_consent: both("portal.consent.sheetTitle"),
+  privacy_notice: { bn: "আপনার তথ্য", en: "Your data" },
   welcome_letter: { bn: "স্বাগত চিঠি", en: "Welcome Letter" },
   code_slip: { bn: "কোডের স্লিপ", en: "Code Slip" },
   data_copy: TITLE,

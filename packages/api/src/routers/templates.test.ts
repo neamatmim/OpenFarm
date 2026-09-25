@@ -5,7 +5,11 @@ import {
 } from "@OpenFarm/db/schema/paper-template";
 import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent } from "@OpenFarm/domain";
-import { STANDARD_TEMPLATES, TEMPLATE_KINDS } from "@OpenFarm/domain";
+import {
+  FIRST_PRINTED_AGREEMENT,
+  STANDARD_TEMPLATES,
+  TEMPLATE_KINDS,
+} from "@OpenFarm/domain";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -100,11 +104,11 @@ const wordingOf = async (kind: (typeof TEMPLATE_KINDS)[number]) => {
   return found;
 };
 
-/** The standard Investment Agreement with one clause said differently. */
+/** The standard Investment Agreement with the second of its terms said differently. */
 const withSecondClause = (bn: string): TemplateContent => ({
   ...STANDARD_TEMPLATES.investment_agreement,
   sections: STANDARD_TEMPLATES.investment_agreement.sections.map((section) =>
-    section.kind === "clauses"
+    section.kind === "clauses" && section.heading.en === "Terms"
       ? {
           ...section,
           clauses: section.clauses.map((clause, index) =>
@@ -136,7 +140,7 @@ describe("the farm's wording", () => {
     });
   });
 
-  it("records an Agreement signed before the farm had wording against the standard wording, which is what it said", async () => {
+  it("records an Agreement signed before the farm had wording against the words it was printed in, and prints the standard from then", async () => {
     const agreementId = await signAndPay(investorIds[0] ?? "", `S1-${suffix}`);
     // As an Agreement signed before its wording could be edited stands: no Version, and the farm given none.
     await scratchDb()
@@ -152,8 +156,15 @@ describe("the farm's wording", () => {
       where: { id: agreementId },
       columns: { templateVersionId: true },
     });
+    const [standard, firstPrinted] = given.versions;
 
-    expect(pinned?.templateVersionId).toBe(given.current.versionId);
+    expect(given.versions.map((one) => one.number)).toEqual([2, 1]);
+    expect(pinned?.templateVersionId).toBe(firstPrinted?.versionId);
+    expect(firstPrinted?.content).toEqual(FIRST_PRINTED_AGREEMENT);
+    expect(given.current.versionId).toBe(standard?.versionId);
+    expect(given.current.content).toEqual(
+      STANDARD_TEMPLATES.investment_agreement
+    );
   });
 });
 
@@ -165,6 +176,7 @@ describe("changing the wording", () => {
       throw new Error("expected the Agreement signed above");
     }
     const NEW_CLAUSE = `মুনাফা ভাগ: বিনিয়োগকারী {investorsPercent}% (${suffix})`;
+    const before = await wordingOf("investment_agreement");
 
     const published = await owner.templates.publish({
       kind: "investment_agreement",
@@ -183,14 +195,34 @@ describe("changing the wording", () => {
       agreementId: signedBefore.id,
     });
 
-    expect(published.number).toBe(2);
-    expect(wording.number).toBe(2);
+    expect(published.number).toBe(before.current.number + 1);
+    expect(wording.number).toBe(published.number);
     expect(JSON.stringify(document)).toContain(
       `মুনাফা ভাগ: বিনিয়োগকারী ৬০% (${suffix})`
     );
     // His letter repeats what he signed, not what the farm prints now.
     expect(text).toContain("মুনাফা ভাগ হবে বিনিয়োগকারী ৬০% এবং খামার ৪০%");
     expect(text).not.toContain(`(${suffix})`);
+  });
+
+  it("keeps the lines under the nominee as they were written", async () => {
+    const { client: owner } = await as("owner");
+    const [parties, ...rest] = STANDARD_TEMPLATES.investment_agreement.sections;
+    if (parties?.kind !== "parties") {
+      throw new Error("expected the parties first");
+    }
+    const lines = [{ bn: `নমিনি ${suffix}`, en: `Nominee ${suffix}` }];
+
+    await owner.templates.publish({
+      kind: "investment_agreement",
+      content: {
+        ...STANDARD_TEMPLATES.investment_agreement,
+        sections: [{ ...parties, nomineeLines: lines }, ...rest],
+      },
+    });
+    const { current } = await wordingOf("investment_agreement");
+
+    expect(current.content.sections[0]).toMatchObject({ nomineeLines: lines });
   });
 
   it("is refused while the wording asks for a fact the paper does not have, and says where", async () => {

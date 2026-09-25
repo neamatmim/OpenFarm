@@ -1,8 +1,9 @@
-import { paperFrom } from "@OpenFarm/domain";
+import { FIELDS_OF, factsMissing, paperFrom } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
+import { farmsOwnValues } from "../data-keepers";
 import { assertRegistered, exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -117,6 +118,85 @@ export const investorStatementsRouter = {
             units: input.units,
             investorsPercent: input.investorsPercent,
             wording: wording.number,
+          }),
+        },
+        () => Promise.resolve()
+      );
+      return { document, wording: wordingSaid(wording) };
+    }),
+
+  /**
+   * «আপনার তথ্য», the privacy notice, laid out to hand an Investor with the Agreement he is signing — every Investor,
+   * invited to the portal or not, since the Agreement's data section points him to it. The Version in force with the
+   * farm's own facts in it, in Bangla; refused while any of them is unwritten, as the Welcome Letter's back is. An
+   * Export filed against him, naming the Venture he was signing for and the Version handed over.
+   */
+  noticeToHand: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string(), investorId: z.string() }))
+    .handler(async ({ context, input }) => {
+      assertRegistered(context.farm, "the privacy notice");
+      const [run, him] = await Promise.all([
+        context.db.query.venture.findFirst({
+          where: { id: input.ventureId, farmId: context.farm.id },
+          columns: { id: true },
+        }),
+        context.db.query.investor.findFirst({
+          where: { id: input.investorId, farmId: context.farm.id },
+        }),
+      ]);
+      if (!(run && him)) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "No such Venture or Investor",
+        });
+      }
+      await giveStandardTemplates(context);
+      const wording = await currentWording(
+        context.db,
+        context.farm.id,
+        "privacy_notice"
+      );
+      const values = await farmsOwnValues(
+        context.db,
+        context.farm,
+        context.actor.name
+      );
+      if (
+        factsMissing(wording.content, values, FIELDS_OF.privacy_notice).length >
+        0
+      ) {
+        throw new ORPCError("BAD_REQUEST", {
+          message:
+            "The privacy notice still names a fact the farm has not written down",
+          data: { refusal: "notice_unwritten" },
+        });
+      }
+      const now = context.clock.now();
+      const document = paperFrom(wording.content, {
+        kind: "privacy_notice",
+        parties: {
+          farm: context.farm,
+          ownerName: context.actor.name,
+          investors: [paperInvestor(him)],
+        },
+        values,
+        producedBy: context.actor.name,
+        producedAt: producedAt(
+          now,
+          await languageOf(context.db, context.actor.id)
+        ),
+        version: wording.number,
+      });
+      await audited(context).write(
+        {
+          entity: "investor",
+          entityId: him.id,
+          action: "export",
+          after: exportedPaper(context.farm, "privacy_notice", {
+            investorId: him.id,
+            ventureId: run.id,
+            version: wording.number,
           }),
         },
         () => Promise.resolve()

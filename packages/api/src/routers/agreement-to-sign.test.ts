@@ -1,5 +1,5 @@
 import type { PaperDocument, PaperSection } from "@OpenFarm/domain";
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -117,6 +117,84 @@ describe("the Investment Agreement, laid out to be signed", () => {
 
     await expect(
       manager.investorStatements.agreementToSign(terms())
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("says in its data section and under the Investor what the farm keeps of him", async () => {
+    const { client: owner } = await as("owner");
+
+    const { document } =
+      await owner.investorStatements.agreementToSign(terms());
+
+    const data = document.sections.find(
+      (section) => section.heading.en === "Data"
+    );
+    expect(data?.kind === "clauses" && data.clauses).toHaveLength(6);
+    const [, him] = partOf(document, "parties").parties;
+    expect(him?.lines.map((line) => line.en)).toEqual([
+      expect.stringContaining("their nominee knows"),
+      expect.stringContaining("The nominee is under eighteen"),
+    ]);
+  });
+});
+
+/** Who keeps the farm's records, as «আপনার তথ্য» names them. */
+const KEEPERS = {
+  dataHost: `হেটজনার ${suffix}`,
+  backupStore: "ব্যাকব্লেজ",
+  backupCountry: "নেদারল্যান্ডস",
+};
+
+describe("«আপনার তথ্য», handed over with the Agreement", () => {
+  it("is not printed while it names a fact the farm has not written down", async () => {
+    const { client: owner } = await as("owner");
+
+    await expect(
+      owner.investorStatements.noticeToHand({ ventureId, investorId })
+    ).rejects.toMatchObject({ data: { refusal: "notice_unwritten" } });
+  });
+
+  it("is the notice in force, in Bangla, with who keeps the farm's records named", async () => {
+    const { client: owner } = await as("owner");
+    await owner.farm.setDataKeepers(KEEPERS);
+
+    const { document, wording } = await owner.investorStatements.noticeToHand({
+      ventureId,
+      investorId,
+    });
+
+    expect(document.title).toEqual({
+      bn: "আপনার তথ্য খামার কীভাবে রাখে",
+      en: "How the farm keeps your data",
+    });
+    expect(JSON.stringify(document)).toContain(KEEPERS.dataHost);
+    expect(document.preamble.en).toBe("");
+    expect(wording.number).toBe(1);
+  });
+
+  it("is an Export on the Investor it was handed to, naming the Venture he was signing for", async () => {
+    const { client: owner } = await as("owner");
+
+    await owner.investorStatements.noticeToHand({ ventureId, investorId });
+
+    const trail = await owner.audit.list({ entity: "investor", limit: 50 });
+    const handed = trail.find(
+      (one) =>
+        one.entityId === investorId &&
+        one.action === "export" &&
+        (one.after as { paper?: string } | null)?.paper === "privacy_notice"
+    );
+    expect(handed).toMatchObject({
+      actorId: thePerson("owner").id,
+      after: expect.objectContaining({ ventureId, version: 1 }),
+    });
+  });
+
+  it("is the Owner's alone to print", async () => {
+    const { client: manager } = await as("manager");
+
+    await expect(
+      manager.investorStatements.noticeToHand({ ventureId, investorId })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

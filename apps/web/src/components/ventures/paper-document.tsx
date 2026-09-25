@@ -110,6 +110,15 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
                 <Inline said={party.role} />
               </p>
               <Rows rows={party.rows} />
+              {party.lines.length > 0 ? (
+                <div className="mt-3 flex flex-col gap-2 border-t pt-3 text-xs">
+                  {party.lines.map((line) => (
+                    <p key={line.bn}>
+                      <Passage said={line} />
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

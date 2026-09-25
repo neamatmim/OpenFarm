@@ -14,8 +14,11 @@ import type {
 export type Keyed<T> = T & { key: string };
 
 export type DraftSection =
+  | Keyed<Extract<TemplateSection, { kind: "stamp" | "signatures" }>>
   | Keyed<
-      Extract<TemplateSection, { kind: "parties" | "stamp" | "signatures" }>
+      Omit<Extract<TemplateSection, { kind: "parties" }>, "nomineeLines"> & {
+        nomineeLines: Keyed<Said>[];
+      }
     >
   | Keyed<
       Omit<Extract<TemplateSection, { kind: "facts" }>, "rows"> & {
@@ -48,6 +51,12 @@ const keyed = <T extends object>(value: T): Keyed<T> => ({
 
 const draftSection = (section: TemplateSection): DraftSection => {
   switch (section.kind) {
+    case "parties": {
+      return keyed({
+        ...section,
+        nomineeLines: (section.nomineeLines ?? []).map(keyed),
+      });
+    }
     case "facts": {
       return keyed({ ...section, rows: section.rows.map(keyed) });
     }
@@ -72,6 +81,13 @@ const unkeyed = <T extends object>({ key: _key, ...rest }: Keyed<T>): T =>
 
 const plainSection = (section: DraftSection): TemplateSection => {
   switch (section.kind) {
+    case "parties": {
+      // A parties part with no lines under the nominee is published as one worded before there were any.
+      const { key: _key, nomineeLines, ...rest } = section;
+      return nomineeLines.length > 0
+        ? { ...rest, nomineeLines: nomineeLines.map(unkeyed) }
+        : rest;
+    }
     case "facts": {
       const { key: _key, rows, ...rest } = section;
       return { ...rest, rows: rows.map(unkeyed) };
@@ -99,7 +115,13 @@ const EMPTY: Said = { bn: "", en: "" };
 export const newSection = (kind: TemplateSectionKind): DraftSection => {
   switch (kind) {
     case "parties": {
-      return keyed({ kind, heading: EMPTY, first: EMPTY, second: EMPTY });
+      return keyed({
+        kind,
+        heading: EMPTY,
+        first: EMPTY,
+        second: EMPTY,
+        nomineeLines: [],
+      });
     }
     case "facts": {
       return keyed({ kind, heading: EMPTY, rows: [], note: null });

@@ -522,7 +522,10 @@ export {
   templateProblems,
   termsOf,
 } from "./paper-template";
-export { STANDARD_TEMPLATES } from "./standard-templates";
+export {
+  FIRST_PRINTED_AGREEMENT,
+  STANDARD_TEMPLATES,
+} from "./standard-templates";
 export {
   INVESTOR_LOGIN_DOMAIN,
   PORTAL_SIGN_IN_HOURS,

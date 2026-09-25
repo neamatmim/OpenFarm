@@ -220,9 +220,19 @@ export interface FactLine {
   value: string;
 }
 
-/** A part of the paper, in the order it is printed. The Owner words each; the farm fills in what is its own. */
+/**
+ * A part of the paper, in the order it is printed. The Owner words each; the farm fills in what is its own. The
+ * parties part may carry lines printed under each Investor, beside the nominee the farm writes of him — what he
+ * confirms of his nominee; a Version worded before there were any has none.
+ */
 export type TemplateSection =
-  | { kind: "parties"; heading: Said; first: Said; second: Said }
+  | {
+      kind: "parties";
+      heading: Said;
+      first: Said;
+      second: Said;
+      nomineeLines?: Said[];
+    }
   | { kind: "facts"; heading: Said; rows: FactLine[]; note: Said | null }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
   | { kind: "stamp"; heading: Said }
@@ -268,7 +278,12 @@ export interface TemplateProblem {
 const wordingOf = (section: TemplateSection): Said[] => {
   switch (section.kind) {
     case "parties": {
-      return [section.heading, section.first, section.second];
+      return [
+        section.heading,
+        section.first,
+        section.second,
+        ...(section.nomineeLines ?? []),
+      ];
     }
     case "facts": {
       return [
@@ -419,7 +434,9 @@ export type PaperSection =
   | {
       kind: "parties";
       heading: Said;
-      parties: { role: Said; rows: DocumentRow[] }[];
+      /** Each party: its role, what the farm writes of it, and the lines printed under it — an Investor's nominee
+       *  lines, none under the Farm. */
+      parties: { role: Said; rows: DocumentRow[]; lines: Said[] }[];
     }
   | { kind: "facts"; heading: Said; rows: DocumentRow[]; note: Said | null }
   | { kind: "clauses"; heading: Said; clauses: Said[] }
@@ -557,6 +574,7 @@ const inBanglaOnly = (section: PaperSection): PaperSection => {
             ...one,
             label: banglaOnly(one.label),
           })),
+          lines: party.lines.map(banglaOnly),
         })),
       };
     }
@@ -611,14 +629,22 @@ const laidOut = (
   switch (section.kind) {
     case "parties": {
       const second = filled(section.second, values);
+      const lines = (section.nomineeLines ?? []).map((line) =>
+        filled(line, values)
+      );
       return {
         kind: "parties",
         heading: filled(section.heading, values),
         parties: [
-          { role: filled(section.first, values), rows: farmRows(parties) },
+          {
+            role: filled(section.first, values),
+            rows: farmRows(parties),
+            lines: [],
+          },
           ...parties.investors.map((him) => ({
             role: second,
             rows: investorRows(him),
+            lines,
           })),
         ],
       };
