@@ -1,4 +1,4 @@
-import { farmDayOf } from "@OpenFarm/domain";
+import { isPastDecideBy } from "@OpenFarm/domain";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
@@ -103,7 +103,7 @@ export const InThePortal = ({ venture }: { venture: Venture }) => {
   // An answer this phone kept from before the portal existed has neither: read as not shown, with no words.
   const shown = venture.shownInPortal ?? false;
   const words = venture.portalWords ?? null;
-  const pastDecideBy = farmDayOf(new Date()) > venture.decideBy;
+  const pastDecideBy = isPastDecideBy(venture.decideBy, new Date());
   return (
     <Section title={t("ventures.portal.title")}>
       <div className="flex flex-col gap-3 text-sm">

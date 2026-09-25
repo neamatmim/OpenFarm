@@ -1,6 +1,6 @@
 import { eq } from "@OpenFarm/db/operators";
 import { venture } from "@OpenFarm/db/schema/venture";
-import { farmDayOf } from "@OpenFarm/domain";
+import { isPastDecideBy } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -16,10 +16,6 @@ import { readVenture } from "./venture-store";
 type ActorContext = Parameters<typeof actOnVenture>[0] & {
   clock: { now: () => Date };
 };
-
-/** A Venture past its decide-by day has had its Floor question answered: nothing asked now could change it. */
-export const pastDecideBy = (decideBy: string, now: Date) =>
-  farmDayOf(now) > decideBy;
 
 /** The Owner's few words on a shown Venture: what it is for, never what it will make. */
 export const portalWords = z.string().max(500).default("");
@@ -44,7 +40,7 @@ export const showInPortal = (
       after: (tx) => readVenture(tx, context.farm.id, id),
     },
     apply: async (tx, standing) => {
-      if (pastDecideBy(standing.decideBy, context.clock.now())) {
+      if (isPastDecideBy(standing.decideBy, context.clock.now())) {
         throw new ORPCError("BAD_REQUEST", {
           message: "Its decide-by day has passed",
           data: { refusal: "venture_past_decide_by" },
@@ -129,7 +125,7 @@ const offeredAs = (row: VentureRow, investorsPercent: number, now: Date) => ({
    *  before joining. Each Agreement freezes its own. */
   investorsPercent,
   words: row.portalWords,
-  takingRequests: !pastDecideBy(row.decideBy, now),
+  takingRequests: !isPastDecideBy(row.decideBy, now),
 });
 
 /**

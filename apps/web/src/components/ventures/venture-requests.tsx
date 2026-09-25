@@ -1,16 +1,23 @@
 import type { RequestToJoinState } from "@OpenFarm/domain";
+import { isPastDecideBy } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
+import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Inbox } from "lucide-react";
-import { useEffect } from "react";
+import { Handshake, Inbox, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { SaidDate } from "@/components/list-cells";
 import type { Tone } from "@/components/page";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import type { Answering } from "@/components/ventures/answer-request-sheets";
+import {
+  ComeAndSignSheet,
+  NotThisTimeSheet,
+} from "@/components/ventures/answer-request-sheets";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import type { Venture } from "@/lib/ventures";
@@ -64,13 +71,34 @@ const Total = ({
   </div>
 );
 
-/** One Request: who asked, for what, with their note and where it stands, and beneath it everything they did to it. */
-const RequestRow = ({ one }: { one: OneRequest }) => {
+/** What the Owner can do about a Request still waiting, and why a yes cannot be given when it cannot. */
+interface Answerable {
+  /** Why "come and sign" is dim, or null when it may be given. */
+  whyNoYes: string | null;
+  handleYes: () => void;
+  handleNo: () => void;
+}
+
+/**
+ * One Request: who asked, for what, with their note and where it stands, the Owner's answer or the two answers she can
+ * give, and beneath it everything they did to it.
+ */
+const RequestRow = ({
+  one,
+  answerable,
+}: {
+  one: OneRequest;
+  /** Only for a Request still waiting, on a Venture still gathering capital. */
+  answerable: Answerable | null;
+}) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
   const nameOf = useInvestorNames();
   // Only worth a list once they did more than ask: one line that repeats the row says nothing.
   const didMore = one.history.length > 1;
+  // An answer this phone kept from before the Owner could answer has none.
+  const promised = one.answeredUnits ?? null;
+  const line = one.answerLine ?? null;
   return (
     <li className="flex flex-col gap-2 py-3">
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -95,6 +123,46 @@ const RequestRow = ({ one }: { one: OneRequest }) => {
               </span>
               {one.note}
             </span>
+          ) : null}
+          {/* Said on a yes withdrawn since, too: what was promised is part of the story. */}
+          {promised === null ? null : (
+            <span className="text-sm font-medium">
+              {t("ventures.requests.answer.saidYes", {
+                units: formatNumber(promised, language),
+              })}
+            </span>
+          )}
+          {one.state === "not_this_time" && line ? (
+            <span className="border-l-2 pl-2 text-sm break-words">{line}</span>
+          ) : null}
+          {answerable ? (
+            <div className="mt-1 flex flex-col gap-1">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={answerable.whyNoYes !== null}
+                  onClick={answerable.handleYes}
+                  size="sm"
+                  type="button"
+                >
+                  <Handshake aria-hidden data-icon="inline-start" />
+                  {t("ventures.requests.comeAndSign")}
+                </Button>
+                <Button
+                  onClick={answerable.handleNo}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <X aria-hidden data-icon="inline-start" />
+                  {t("ventures.requests.notThisTime")}
+                </Button>
+              </div>
+              {answerable.whyNoYes ? (
+                <span className="text-muted-foreground text-xs">
+                  {answerable.whyNoYes}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col gap-1 sm:items-end">
@@ -132,9 +200,10 @@ const RequestRow = ({ one }: { one: OneRequest }) => {
 };
 
 /**
- * What invited Investors have asked for through the portal on this Venture, with what each did to their Request, and
- * beside them the Units signed and the Units asked for and waiting against the target and the Floor — so the Owner
- * can tell whether the Requests would reach the Floor while the signatures do not yet. Nothing here binds anybody.
+ * What invited Investors have asked for through the portal on this Venture, with what each did to their Request and
+ * the Owner's answer to each; and beside them the Units signed, promised and asked for and waiting, against the target
+ * and the Floor — so the Owner can tell whether the Requests would reach the Floor while the signatures do not yet.
+ * Nothing here binds anybody.
  */
 export const VentureRequests = ({ venture }: { venture: Venture }) => {
   const { t, language } = useLanguage();
@@ -143,6 +212,10 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
     orpc.ventures.requests.queryOptions({ input: { ventureId: venture.id } })
   );
   const hash = useLocation({ select: (location) => location.hash });
+  const nameOf = useInvestorNames();
+  const [answering, setAnswering] = useState<
+    (Answering & { kind: "yes" | "no" }) | null
+  >(null);
   const loaded = !read.isPending;
   // The Owner's Notice of a Request leads here by the address. The router looks for the section as the page opens,
   // before the Requests have come and the section is drawn, so it is brought into view once they have.
@@ -163,6 +236,34 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
     return null;
   }
   const totals = read.data?.totals;
+  // An answer this phone kept from before the Owner could answer has neither.
+  const promisable = totals?.promisableUnits ?? 0;
+  const pastDecideBy = isPastDecideBy(venture.decideBy, new Date());
+  const whyNoYes = (): string | null => {
+    if (!(venture.shownInPortal ?? false)) {
+      return t("refusal.ventureNotShown");
+    }
+    if (pastDecideBy) {
+      return t("ventures.requests.answer.pastDecideBy");
+    }
+    return promisable === 0 ? t("ventures.requests.answer.nothingLeft") : null;
+  };
+  const answerableFor = (one: OneRequest): Answerable | null => {
+    if (!(venture.state === "open" && one.state === "waiting")) {
+      return null;
+    }
+    const about = {
+      requestId: one.id,
+      name: nameOf(one.investorId),
+      units: one.units,
+      ifYes: one.ifYes ?? null,
+    };
+    return {
+      whyNoYes: whyNoYes(),
+      handleYes: () => setAnswering({ ...about, kind: "yes" }),
+      handleNo: () => setAnswering({ ...about, kind: "no" }),
+    };
+  };
   const unitsAndTaka = (units: number, bdt: number) =>
     t("ventures.requests.unitsAndTaka", {
       units: formatNumber(units, language),
@@ -176,9 +277,12 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
     >
       <div className="flex flex-col gap-4">
         {totals ? (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <Total label={t("ventures.requests.signed")}>
               {unitsAndTaka(totals.signedUnits, totals.signedBdt)}
+            </Total>
+            <Total label={t("ventures.requests.promised")}>
+              {unitsAndTaka(totals.promisedUnits ?? 0, totals.promisedBdt ?? 0)}
             </Total>
             <Total label={t("ventures.requests.waiting")}>
               {unitsAndTaka(totals.waitingUnits, totals.waitingBdt)}
@@ -196,11 +300,28 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
         ) : (
           <ul className="divide-border -my-3 flex flex-col divide-y">
             {requests.map((one) => (
-              <RequestRow key={one.id} one={one} />
+              <RequestRow
+                answerable={answerableFor(one)}
+                key={one.id}
+                one={one}
+              />
             ))}
           </ul>
         )}
       </div>
+      {answering?.kind === "yes" ? (
+        <ComeAndSignSheet
+          answering={answering}
+          onOpenChange={(open) => setAnswering(open ? answering : null)}
+          promisable={promisable}
+        />
+      ) : null}
+      {answering?.kind === "no" ? (
+        <NotThisTimeSheet
+          answering={answering}
+          onOpenChange={(open) => setAnswering(open ? answering : null)}
+        />
+      ) : null}
     </Section>
   );
 };

@@ -157,6 +157,13 @@ export const bn: Record<MessageKey, string> = {
   "portal.request.refused.noSuch": "এমন কোনো অনুরোধ নেই",
   "portal.request.refused.askedTwice":
     "আপনি একসঙ্গে দুবার চেয়েছেন। আবার দেখুন: আপনার অনুরোধ একবারই রাখা হয়েছে।",
+  "portal.request.willSign": "খামার আপনার সঙ্গে {units}টি ইউনিটে চুক্তি করবে।",
+  "portal.request.callToSign":
+    "সামনাসামনি চুক্তি সই করার ব্যবস্থা করতে {farm}-কে {phone} নম্বরে ফোন করুন।",
+  "portal.request.callTheFarm":
+    "সামনাসামনি চুক্তি সই করার ব্যবস্থা করতে খামার আপনাকে ফোন করবে।",
+  "portal.request.stillWithdraw": "শেষ পর্যন্ত না পারলে এখনো অনুরোধ তুলে নিতে পারেন।",
+  "portal.request.notThisTime": "খামারের উত্তর: এবার নয়।",
 
   "portal.account.new": "নতুন পাসওয়ার্ড",
   "portal.money.hint":
@@ -894,6 +901,26 @@ export const bn: Record<MessageKey, string> = {
   "ventures.requests.state.withdrawn": "তুলে নেওয়া হয়েছে",
   "ventures.requests.state.signed": "সই হয়েছে",
   "ventures.requests.state.closed": "বন্ধ",
+  "ventures.requests.promised": "প্রতিশ্রুত, এখনো সই হয়নি",
+  "ventures.requests.comeAndSign": "এসে সই করুন",
+  "ventures.requests.notThisTime": "এবার নয়",
+  "ventures.requests.answer.units": "খামার কয়টি ইউনিটে সই করবে",
+  "ventures.requests.answer.askedFor": "তিনি {units}টি ইউনিট চেয়েছেন।",
+  "ventures.requests.answer.canPromise":
+    "আপনি আর {units}টি ইউনিটে হ্যাঁ বলতে পারেন।",
+  "ventures.requests.answer.countAfter":
+    "তাঁকে সই করালে বিনিয়োগকারী হবেন {count} জন, খামারে থাকতে পারেন {cap} জন।",
+  "ventures.requests.answer.atTheCap":
+    "তাঁকে সই করালে বিনিয়োগকারী হবেন {count} জন, অথচ খামারে একসঙ্গে থাকতে পারেন {cap} জন। এখনো হ্যাঁ বলা যায়, কিন্তু সীমার বেশি হলে সই করা যাবে না।",
+  "ventures.requests.answer.line": "বিনিয়োগকারীকে কিছু বলার থাকলে",
+  "ventures.requests.answer.lineHint":
+    "তিনি পোর্টালে নিজের পাতায় এটি পড়বেন। তাঁকে কিছু পাঠানো হয় না।",
+  "ventures.requests.answer.done": "উত্তর দেওয়া হয়েছে",
+  "ventures.requests.answer.pastDecideBy":
+    "সিদ্ধান্তের দিন পেরিয়ে গেছে: নতুন করে হ্যাঁ বলা যায় না",
+  "ventures.requests.answer.nothingLeft":
+    "প্রতিশ্রুতি দেওয়ার মতো আর কোনো ইউনিট নেই",
+  "ventures.requests.answer.saidYes": "এসে সই করুন: {units}টি ইউনিট",
   "ventures.page.cattleLeft": "গরু কেনার টাকা বাকি",
   "ventures.page.runningLeft": "খাওয়ানোর টাকা বাকি",
   "ventures.page.cattleBudget": "গরু কেনার বাজেট",
@@ -1931,6 +1958,10 @@ export const bn: Record<MessageKey, string> = {
   "refusal.ventureWrongState": "ভেঞ্চার এখন যে অবস্থায় আছে, তাতে এটা করা যায় না",
   "refusal.venturePastDecideBy": "এর সিদ্ধান্তের দিন পেরিয়ে গেছে",
   "refusal.ventureNotShown": "এটি পোর্টালে দেখানো হচ্ছে না",
+  "refusal.unitsBeyondAsked": "তিনি যত ইউনিট চেয়েছেন তার চেয়ে বেশি",
+  "refusal.unitsBeyondPromisable": "প্রতিশ্রুতি দেওয়ার মতো এত ইউনিট বাকি নেই",
+  "refusal.requestAlreadyAnswered": "এই অনুরোধের উত্তর আগেই দেওয়া হয়েছে",
+  "refusal.requestNotLive": "এই অনুরোধ আর অপেক্ষায় নেই",
   "refusal.ventureUnderFloor": "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম টাকা উঠেছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":

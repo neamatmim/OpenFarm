@@ -102,6 +102,8 @@ describe("an Investor asking to join", () => {
         state: "waiting",
         madeAt: new Date(JANUARY),
         changedAt: new Date(JANUARY),
+        answeredUnits: null,
+        answerLine: null,
       },
     ]);
   });
@@ -332,6 +334,9 @@ describe("the Owner reading a Venture's Requests", () => {
     expect(totals).toEqual({
       signedUnits: 5,
       signedBdt: 250_000,
+      promisedUnits: 0,
+      promisedBdt: 0,
+      promisableUnits: 15,
       waitingUnits: 7,
       waitingBdt: 350_000,
     });
