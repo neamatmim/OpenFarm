@@ -700,6 +700,13 @@ export const en = {
   "ventures.printDraftHint":
     "Laid out from these terms, to print onto stamp paper or to go with the e-challan.",
   "ventures.agreementTitle": "The agreement to sign",
+  "ventures.noticeBeside": "«আপনার তথ্য» to hand with it",
+  "ventures.noticeTitle": "«আপনার তথ্য», handed over with the agreement",
+  "ventures.noticeBesideHint":
+    "Hand it to every Investor with their Agreement, in the portal or not: the Agreement's data section points to this paper.",
+  "ventures.backToAgreement": "Back to the agreement",
+  "ventures.noticeUnwritten":
+    '«আপনার তথ্য» still needs facts the farm has not written down. Write them under "Who keeps the farm\'s records" on the Agreement templates page and try again.',
   "ventures.printAmendment": "Print the Amendment to sign",
   "ventures.printAmendmentHint":
     "One paper naming every Investor on this Venture, in the farm's current wording. Print it, have everybody sign, then photograph it below.",
@@ -3696,6 +3703,9 @@ export const en = {
   "templates.note": "Note",
   "templates.noteHint": "Why this version, in your own words. Kept with it.",
   "templates.clauseNumber": "Clause {number}",
+  "templates.nomineeLines": "Lines under the nominee",
+  "templates.nomineeLinesHint":
+    "Printed under each Investor, right after the nominee the farm writes down. A line that does not fit everybody is printed every time, and struck through by hand where it does not apply.",
   "templates.addClause": "Add a clause",
   "templates.stampHint":
     "The stamp box's blanks are the farm's own and are the same on every paper.",

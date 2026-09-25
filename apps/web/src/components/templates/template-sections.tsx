@@ -64,7 +64,75 @@ const ListControls = ({
   );
 };
 
-/** The two parties' names on the paper; who they are is written from what the farm holds. */
+/** Passages the Owner orders, each in Bangla with the English beside it: a part's clauses, or the lines under the
+ *  nominee. */
+const SaidList = ({
+  items,
+  onChange,
+  nameOf,
+  addLabel,
+}: {
+  items: Keyed<Said>[];
+  onChange: (items: Keyed<Said>[]) => void;
+  /** What the passage at a place is called, from its number as the reader writes it. */
+  nameOf: (number: string) => string;
+  addLabel: string;
+}) => {
+  const { language } = useLanguage();
+  return (
+    <>
+      <ol className="flex flex-col gap-3">
+        {items.map((item, index) => {
+          const name = nameOf(formatDigits(index + 1, language));
+          return (
+            <li
+              className="flex items-start gap-2 rounded-md border p-3"
+              key={item.key}
+            >
+              <div className="min-w-0 flex-1">
+                <SaidField
+                  id={item.key}
+                  label={name}
+                  onChange={(said) =>
+                    onChange(
+                      items.map((current, at) =>
+                        at === index ? { ...item, ...said } : current
+                      )
+                    )
+                  }
+                  passage
+                  value={item}
+                />
+              </div>
+              <ListControls
+                first={index === 0}
+                label={name}
+                last={index === items.length - 1}
+                onMove={(by) => onChange(moved(items, index, by))}
+                onRemove={() => onChange(items.filter((_, at) => at !== index))}
+              />
+            </li>
+          );
+        })}
+      </ol>
+      <Button
+        className="self-start"
+        onClick={() => onChange([...items, newClause()])}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <Plus aria-hidden data-icon="inline-start" />
+        {addLabel}
+      </Button>
+    </>
+  );
+};
+
+/**
+ * The two parties' names on the paper — who they are is written from what the farm holds — and the lines printed
+ * under each Investor beside the nominee.
+ */
 const PartiesBody = ({
   section,
   onChange,
@@ -90,6 +158,20 @@ const PartiesBody = ({
       <p className="text-muted-foreground text-xs">
         {t("templates.partiesHint")}
       </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="text-sm font-medium">{t("templates.nomineeLines")}</h3>
+          <p className="text-muted-foreground text-xs">
+            {t("templates.nomineeLinesHint")}
+          </p>
+        </div>
+        <SaidList
+          addLabel={t("templates.addLine")}
+          items={section.nomineeLines}
+          nameOf={(number) => t("templates.lineNumber", { number })}
+          onChange={(nomineeLines) => onChange({ ...section, nomineeLines })}
+        />
+      </div>
     </>
   );
 };
@@ -217,67 +299,14 @@ const ClausesBody = ({
   section: Extract<DraftSection, { kind: "clauses" }>;
   onChange: (section: DraftSection) => void;
 }) => {
-  const { t, language } = useLanguage();
-  const clauseAt = (index: number, clause: Keyed<Said>) =>
-    onChange({
-      ...section,
-      clauses: section.clauses.map((current, at) =>
-        at === index ? clause : current
-      ),
-    });
+  const { t } = useLanguage();
   return (
-    <>
-      <ol className="flex flex-col gap-3">
-        {section.clauses.map((clause, index) => {
-          const number = formatDigits(index + 1, language);
-          return (
-            <li
-              className="flex items-start gap-2 rounded-md border p-3"
-              key={clause.key}
-            >
-              <div className="min-w-0 flex-1">
-                <SaidField
-                  id={clause.key}
-                  label={t("templates.clauseNumber", { number })}
-                  onChange={(said) => clauseAt(index, { ...clause, ...said })}
-                  passage
-                  value={clause}
-                />
-              </div>
-              <ListControls
-                first={index === 0}
-                label={t("templates.clauseNumber", { number })}
-                last={index === section.clauses.length - 1}
-                onMove={(by) =>
-                  onChange({
-                    ...section,
-                    clauses: moved(section.clauses, index, by),
-                  })
-                }
-                onRemove={() =>
-                  onChange({
-                    ...section,
-                    clauses: section.clauses.filter((_, at) => at !== index),
-                  })
-                }
-              />
-            </li>
-          );
-        })}
-      </ol>
-      <Button
-        className="self-start"
-        onClick={() =>
-          onChange({ ...section, clauses: [...section.clauses, newClause()] })
-        }
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        <Plus aria-hidden data-icon="inline-start" />
-        {t("templates.addClause")}
-      </Button>
-    </>
+    <SaidList
+      addLabel={t("templates.addClause")}
+      items={section.clauses}
+      nameOf={(number) => t("templates.clauseNumber", { number })}
+      onChange={(clauses) => onChange({ ...section, clauses })}
+    />
   );
 };
 

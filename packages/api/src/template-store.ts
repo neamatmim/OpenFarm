@@ -6,7 +6,11 @@ import {
 } from "@OpenFarm/db/schema/paper-template";
 import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent, TemplateKind } from "@OpenFarm/domain";
-import { STANDARD_TEMPLATES, TEMPLATE_KINDS } from "@OpenFarm/domain";
+import {
+  FIRST_PRINTED_AGREEMENT,
+  STANDARD_TEMPLATES,
+  TEMPLATE_KINDS,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
@@ -50,12 +54,36 @@ const kindsNotHad = async (
   return TEMPLATE_KINDS.filter((kind) => !have.has(kind));
 };
 
+/** Whether the farm has Agreements signed before its wording could be edited: recorded against no Version. */
+const hasAgreementsInNoVersion = async (tx: Tx, farmId: string) =>
+  Boolean(
+    await tx.query.investmentAgreement.findFirst({
+      where: { farmId, templateVersionId: { isNull: true } },
+      columns: { id: true },
+    })
+  );
+
 /**
- * Gives the farm the standard wording for each kind of paper it has none for, as Version 1, published by nobody.
+ * The Versions a kind of paper is given, oldest first: the standard wording — and, for the Investment Agreement on a
+ * farm with Agreements signed before its wording could be edited, the words those were printed in before it.
+ */
+const wordingsToGive = async (
+  tx: Tx,
+  farmId: string,
+  kind: TemplateKind
+): Promise<TemplateContent[]> =>
+  kind === "investment_agreement" &&
+  (await hasAgreementsInNoVersion(tx, farmId))
+    ? [FIRST_PRINTED_AGREEMENT, STANDARD_TEMPLATES[kind]]
+    : [STANDARD_TEMPLATES[kind]];
+
+/**
+ * Gives the farm the standard wording for each kind of paper it has none for, published by nobody, the standard in
+ * force.
  *
- * The Investment Agreement's standard wording is what the farm printed before its wording could be edited, so every
- * Agreement signed then is recorded against it here — the one moment the farm can say which words those papers were.
- * The kinds actually given: two requests at once give each kind once.
+ * Every Agreement signed before the wording could be edited is recorded here against the words the farm printed
+ * then — Version 1, the standard following it as Version 2 — the one moment the farm can say which words those papers
+ * were. The kinds actually given: two requests at once give each kind once.
  */
 const addStandardTemplates = async (
   tx: Tx,
@@ -66,7 +94,7 @@ const addStandardTemplates = async (
   const given: TemplateKind[] = [];
   for (const kind of kinds) {
     const templateId = uuidv7(now);
-    // Sequential: each kind's Template, then its first Version, then the Template pointed at it.
+    // Sequential: each kind's Template, then its Versions in order, then the Template pointed at the last.
     // oxlint-disable-next-line no-await-in-loop
     const [made] = await tx
       .insert(paperTemplate)
@@ -76,26 +104,28 @@ const addStandardTemplates = async (
     if (!made) {
       continue;
     }
-    const versionId = uuidv7(now);
     // oxlint-disable-next-line no-await-in-loop
-    await tx.insert(paperTemplateVersion).values({
-      id: versionId,
+    const wordings = await wordingsToGive(tx, farmId, kind);
+    const versions = wordings.map((content, index) => ({
+      id: uuidv7(now),
       farmId,
       templateId,
-      number: 1,
-      content: STANDARD_TEMPLATES[kind],
+      number: index + 1,
+      content,
       publishedAt: now,
-    });
+    }));
+    // oxlint-disable-next-line no-await-in-loop
+    await tx.insert(paperTemplateVersion).values(versions);
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(paperTemplate)
-      .set({ currentVersionId: versionId })
+      .set({ currentVersionId: versions.at(-1)?.id })
       .where(eq(paperTemplate.id, templateId));
     if (kind === "investment_agreement") {
       // oxlint-disable-next-line no-await-in-loop
       await tx
         .update(investmentAgreement)
-        .set({ templateVersionId: versionId })
+        .set({ templateVersionId: versions[0]?.id })
         .where(
           and(
             eq(investmentAgreement.farmId, farmId),
