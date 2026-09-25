@@ -294,6 +294,9 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
+      uqr:
+        specifier: ^0.1.3
+        version: 0.1.3
       zod:
         specifier: 'catalog:'
         version: 4.6.1
@@ -5964,6 +5967,9 @@ packages:
   unstorage@2.0.0-alpha.10:
     resolution: {integrity: sha512-6h1veZp8gnp4dGllf0tDijoXxDYymJu251IpKKkrSVH+QHL6tXFbwG85KM+CBHSgpkkgtPuIiZ9oLCLP5+1Evw==}
 
+  uqr@0.1.3:
+    resolution: {integrity: sha512-0rjE8iEJe4YmT9TOhwsZtqCMRLc5DXZUI2UEYUUg63ikBkqqE5EYWaI0etFe/5KUcmcYwLih2RND1kq+hrUJXA==}
+
   update-browserslist-db@1.3.2:
     resolution: {integrity: sha512-UQ+MSxlhRm1bzjhU+DcuXfjFO1FzNtqhK5+9Yvlp90ItDLk5vT932A0rFu619nf7RVS+Y/VeaUW1jaRDqZ8VJw==}
     hasBin: true
@@ -10987,6 +10993,8 @@ snapshots:
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.0)'
 
   unstorage@2.0.0-alpha.10: {}
+
+  uqr@0.1.3: {}
 
   update-browserslist-db@1.3.2(browserslist@4.28.9):
     dependencies:

@@ -31,6 +31,7 @@ import { closeRequests, theirRequests } from "../requests-to-join";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirAgreements } from "../their-agreements";
 import { lockTheFarm } from "../venture-store";
+import { HANDED_OVER, handOver } from "../welcome-letter";
 
 const personInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -439,6 +440,16 @@ export const investorsRouter = {
     .use(requirePersonalSession())
     .input(z.object({ id: z.string().min(1) }))
     .handler(({ context, input }) => inviteToPortal(context, input.id)),
+
+  /**
+   * Lays out the Welcome Letter or the Code Slip for the code on the Owner's screen, and records it as an Export: all
+   * of it but the code, which never leaves their screen. The Owner's alone.
+   */
+  handOver: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string().min(1), paper: z.enum(HANDED_OVER) }))
+    .handler(({ context, input }) => handOver(context, input.id, input.paper)),
 
   /** Takes an Investor's portal access away: their account is disabled and signed out everywhere. */
   takePortalAway: protectedProcedure

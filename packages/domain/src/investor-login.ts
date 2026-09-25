@@ -8,6 +8,10 @@
  */
 export const INVESTOR_LOGIN_DOMAIN = "investor.openfarm.invalid";
 
+/** How many hours one sign-in to the portal lasts, whatever it does meanwhile: a working day. An Investor's figures are
+ *  money, and a phone left signed in for a week is somebody else reading them. The farm's own people keep a week. */
+export const PORTAL_SIGN_IN_HOURS = 12;
+
 /** A Bangladeshi mobile number: 01, then nine digits. */
 const MOBILE = /^01\d{9}$/u;
 

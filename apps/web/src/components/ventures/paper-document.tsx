@@ -183,6 +183,20 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
   }
 };
 
+/** The **Farm Identity** across the head of a paper: the farm's name, and its address, phone and registration beneath. */
+export const Letterhead = ({
+  letterhead,
+}: {
+  letterhead: PaperDocument["letterhead"];
+}) => (
+  <header className="border-foreground flex flex-col items-center gap-1 border-b-2 pb-4 text-center">
+    <p className="text-lg font-semibold tracking-tight">{letterhead.name}</p>
+    <p className="text-muted-foreground text-xs">
+      {letterhead.details.join(" · ")}
+    </p>
+  </header>
+);
+
 /**
  * A paper an Investor signs, set as a document: the farm's letterhead, the title, the opening, each part numbered in
  * the order the wording puts them, and the closing lines. Everything it says comes from the farm's wording and its
@@ -197,14 +211,7 @@ export const PaperDocumentView = ({
     className="bg-card text-card-foreground mx-auto flex w-full max-w-[210mm] flex-col gap-6 rounded-lg border p-6 md:p-10"
     id={PAPER_DOCUMENT_ID}
   >
-    <header className="border-foreground flex flex-col items-center gap-1 border-b-2 pb-4 text-center">
-      <p className="text-lg font-semibold tracking-tight">
-        {document.letterhead.name}
-      </p>
-      <p className="text-muted-foreground text-xs">
-        {document.letterhead.details.join(" · ")}
-      </p>
-    </header>
+    <Letterhead letterhead={document.letterhead} />
 
     <div className="flex flex-col items-center gap-1 text-center">
       <h2 className="text-2xl font-semibold tracking-tight">

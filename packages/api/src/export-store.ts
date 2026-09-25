@@ -52,6 +52,8 @@ export type ExportedPaper =
   | "amendment_draft"
   | "template_preview"
   | "portal_consent"
+  | "welcome_letter"
+  | "code_slip"
   | "dls_letter"
   | "joining_letter"
   | "progress_statement"

@@ -665,6 +665,23 @@ const laidOut = (
 };
 
 /**
+ * The **Farm Identity** at the head of every paper the farm hands an Investor: its name, and beneath it the address,
+ * the phone and the DLS registration it has written down.
+ */
+export const letterheadOf = (
+  farm: FarmIdentity
+): PaperDocument["letterhead"] => ({
+  name: farm.name,
+  details: [
+    farm.address?.trim() ?? null,
+    farm.phone?.trim() ? `মোবাইল / Phone: ${farm.phone}` : null,
+    farm.registrationNumber?.trim()
+      ? `ডিএলএস নিবন্ধন / DLS registration: ${farm.registrationNumber}`
+      : null,
+  ].filter((line): line is string => Boolean(line)),
+});
+
+/**
  * One paper, laid out to print from a Version's wording and the farm's facts: every field filled in its own language,
  * the parties written from what the farm holds, and — on a paper about an Investor's money — the lines that promise no
  * return at the foot. A paper handed to an Investor in Bangla prints its title's English and no other. `version` is
@@ -700,16 +717,7 @@ export const paperFrom = (
       ? ""
       : ` · সংস্করণ ${inBangla(version)} / Version ${version}`;
   return {
-    letterhead: {
-      name: farm.name,
-      details: [
-        farm.address?.trim() ?? null,
-        farm.phone?.trim() ? `মোবাইল / Phone: ${farm.phone}` : null,
-        farm.registrationNumber?.trim()
-          ? `ডিএলএস নিবন্ধন / DLS registration: ${farm.registrationNumber}`
-          : null,
-      ].filter((line): line is string => Boolean(line)),
-    },
+    letterhead: letterheadOf(farm),
     title: filled(content.title, values),
     preamble: rules.englishPrinted ? preamble : banglaOnly(preamble),
     sections: rules.englishPrinted ? sections : sections.map(inBanglaOnly),

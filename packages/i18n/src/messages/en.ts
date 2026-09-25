@@ -366,6 +366,16 @@ export const en = {
     "Shown once. Hand it to them in person; they set their own password with it and their phone number.",
   "portal.codeWhere": "Where they take it up",
   "portal.codeUntil": "Good until",
+  "portal.printLetter": "Print the welcome letter",
+  "portal.printLetterHint":
+    "The first invitation's letter: the code on its tear-off slip, «আপনার তথ্য» on the page behind. Once this closes it cannot be printed again.",
+  "portal.printSlip": "Print the slip only",
+  "portal.printSlipHint":
+    "They have the letter already, so only the new code's slip. Once this closes it cannot be printed again.",
+  "portal.refused.noticeUnwritten":
+    "«আপনার তথ্য» on the letter's back still needs facts the farm has not written down. Write them under \"Who keeps the farm's records\" on the Agreement templates page and print again — the code is still here.",
+  "portal.refused.noCodeToHandOver":
+    "They have no open code. Give them a new one, and print it while it is on the screen.",
   "portal.takeAway": "Take access away",
   "portal.takeAwayTitle": "Take {name}'s portal access away?",
   "portal.takeAwayWhy":

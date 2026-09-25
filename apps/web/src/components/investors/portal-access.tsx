@@ -12,8 +12,16 @@ import {
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { DoorClosed, DoorOpen, Eye, KeyRound, UserX } from "lucide-react";
+import {
+  DoorClosed,
+  DoorOpen,
+  Eye,
+  KeyRound,
+  Printer,
+  UserX,
+} from "lucide-react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 
 import type { Tone } from "@/components/page";
@@ -21,10 +29,21 @@ import { Section, StatusBadge } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
+import { portalAddress } from "@/lib/portal-address";
+import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
 import type { Investor } from "./investor-types";
+import type { GivenCode, HandedOverPaper } from "./welcome-letter";
+import {
+  CodeSlip,
+  HANDED_OVER_ID,
+  LETTER_PAGE,
+  SLIP_PAGE,
+  WelcomeLetter,
+  inFours,
+} from "./welcome-letter";
 
 /** Why the farm would not invite somebody to the portal, in the Owner's words. */
 const REFUSALS = {
@@ -33,6 +52,8 @@ const REFUSALS = {
   investor_retired: "portal.refused.retired",
   no_consent: "portal.refused.noConsent",
   consent_in_force: "portal.refused.consentInForce",
+  notice_unwritten: "portal.refused.noticeUnwritten",
+  no_code_to_hand_over: "portal.refused.noCodeToHandOver",
 } as const;
 
 /** Where an Investor stands with the portal, as a word with its colour, in the order the list sorts them. */
@@ -187,23 +208,49 @@ export const PortalSwitch = ({ open }: { open: boolean }) => {
   );
 };
 
-/** The code, shown once, to hand over in person with the address it is taken up at. */
+/** What the code dialog holds: the code, until when it can be taken up, and whether it is their first invitation. */
+type Given = GivenCode & { first: boolean };
+
+/**
+ * The code, shown once, to hand over in person with the address it is taken up at — and the paper it goes out with,
+ * printed while it is on the screen: the Welcome Letter with a first invitation, the Code Slip alone with every code
+ * after. Neither can be printed once this closes, since the farm keeps only the code's hash.
+ */
 const CodeDialog = ({
+  investorId,
   given,
   onClose,
 }: {
-  given: { code: string; expiresAt: Date } | null;
+  investorId: string;
+  given: Given | null;
   onClose: () => void;
 }) => {
   const { t, language } = useLanguage();
-  const where =
-    typeof window === "undefined"
-      ? "/portal/join"
-      : `${window.location.origin}/portal/join`;
+  const refused = useRefused(REFUSALS);
+  // The paper laid out round the code, set off the screen to print alone.
+  const [laidOut, setLaidOut] = useState<HandedOverPaper | null>(null);
+  const handing = useMutation(
+    orpc.investors.handOver.mutationOptions({
+      onError: refused,
+      onSuccess: (laid, asked) => {
+        // Set on the page first, then printed from there.
+        flushSync(() => setLaidOut(laid));
+        const shown = document.querySelector<HTMLElement>(`#${HANDED_OVER_ID}`);
+        if (shown) {
+          void printAlone(
+            shown,
+            asked.paper === "welcome_letter" ? LETTER_PAGE : SLIP_PAGE
+          );
+        }
+      },
+    })
+  );
+  const paper = given?.first ? "welcome_letter" : "code_slip";
   return (
     <Dialog
       onOpenChange={(open) => {
         if (!open) {
+          setLaidOut(null);
           onClose();
         }
       }}
@@ -215,12 +262,12 @@ const CodeDialog = ({
           <DialogDescription>{t("portal.codeHint")}</DialogDescription>
         </DialogHeader>
         <p className="bg-muted rounded-lg py-4 text-center font-mono text-3xl font-semibold tracking-[0.3em]">
-          {given?.code}
+          {given ? inFours(given.code) : null}
         </p>
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">{t("portal.codeWhere")}</dt>
-            <dd className="font-mono break-all">{where}</dd>
+            <dd className="font-mono break-all">{portalAddress("/join")}</dd>
           </div>
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">{t("portal.codeUntil")}</dt>
@@ -231,6 +278,34 @@ const CodeDialog = ({
             </dd>
           </div>
         </dl>
+        <div className="flex flex-col gap-2">
+          <Button
+            disabled={handing.isPending}
+            onClick={() => handing.mutate({ id: investorId, paper })}
+            type="button"
+          >
+            {handing.isPending ? (
+              <Spinner />
+            ) : (
+              <Printer aria-hidden data-icon="inline-start" />
+            )}
+            {t(given?.first ? "portal.printLetter" : "portal.printSlip")}
+          </Button>
+          <p className="text-muted-foreground text-xs">
+            {t(
+              given?.first ? "portal.printLetterHint" : "portal.printSlipHint"
+            )}
+          </p>
+        </div>
+        {given && laidOut ? (
+          <div className="hidden">
+            {paper === "welcome_letter" ? (
+              <WelcomeLetter given={given} paper={laidOut} />
+            ) : (
+              <CodeSlip given={given} paper={laidOut} />
+            )}
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
@@ -249,9 +324,7 @@ export const PortalAccess = ({
 }) => {
   const { t } = useLanguage();
   const refused = useRefused(REFUSALS);
-  const [given, setGiven] = useState<{ code: string; expiresAt: Date } | null>(
-    null
-  );
+  const [given, setGiven] = useState<Given | null>(null);
   const [asking, setAsking] = useState(false);
   // The consent sheet on screen to print, before any code: nothing while the Investor has signed one already.
   const [sheet, setSheet] = useState<PaperDocument | null>(null);
@@ -363,7 +436,11 @@ export const PortalAccess = ({
         title={t("portal.consent.sheetTitle")}
         wording={null}
       />
-      <CodeDialog given={given} onClose={() => setGiven(null)} />
+      <CodeDialog
+        given={given}
+        investorId={investor.id}
+        onClose={() => setGiven(null)}
+      />
       <ConfirmDialog
         confirmLabel={t("portal.takeAway")}
         description={t("portal.takeAwayWhy")}
