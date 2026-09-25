@@ -60,6 +60,7 @@ export const PaperDialog = ({
   title,
   description,
   notice,
+  action,
   onClose,
 }: {
   paper: PaperDocument | null;
@@ -68,6 +69,8 @@ export const PaperDialog = ({
   description?: ReactNode;
   /** Something the reader must know before handing the paper over, above it and never printed. */
   notice?: ReactNode;
+  /** What the reader does once the paper is printed, beside Print: never printed itself. */
+  action?: ReactNode;
   onClose: () => void;
 }) => {
   const { t } = useLanguage();
@@ -93,7 +96,7 @@ export const PaperDialog = ({
         {notice ? <div className="no-print">{notice}</div> : null}
         {wording ? <WordingLine wording={wording} /> : null}
         {paper ? <PaperDocumentView document={paper} /> : null}
-        <div className="no-print flex justify-end">
+        <div className="no-print flex flex-wrap justify-end gap-2">
           <Button
             onClick={() => {
               const shown = document.querySelector<HTMLElement>(
@@ -108,6 +111,7 @@ export const PaperDialog = ({
             <Printer aria-hidden data-icon="inline-start" />
             {t("common.print")}
           </Button>
+          {action}
         </div>
       </DialogContent>
     </Dialog>

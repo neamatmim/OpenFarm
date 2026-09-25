@@ -60,6 +60,28 @@ export const signedInAs = async (
   return createRouterClient(appRouter, { context });
 };
 
+/** The word a refusal gives, or nothing. */
+const wordOf = (error: unknown): string | null => {
+  const data = (error as { data?: { refusal?: unknown } } | null)?.data;
+  return typeof data?.refusal === "string" ? data.refusal : null;
+};
+
+/**
+ * An Owner's invitation as the farm gives one: the Portal Consent signed in front of them first — unless one is in
+ * force already, as for a second code — and then the code.
+ */
+export const invitedWithConsent = async (owner: Client, id: string) => {
+  try {
+    await owner.investors.recordConsent({ id });
+  } catch (error) {
+    // Signed already, as for a second code: the consent in force stands.
+    if (wordOf(error) !== "consent_in_force") {
+      throw error;
+    }
+  }
+  return owner.investors.inviteToPortal({ id });
+};
+
 /**
  * An Investor the Owner wrote down and invited, who took the invitation up with their phone: their id, the account
  * they sign in as, and the API as they reach it at the moment given.
@@ -79,7 +101,7 @@ export const anInvitedInvestor = async (
     nid: "1234567890",
     bankAccount: `01234${phone.slice(-5)}`,
   });
-  const { code } = await owner.investors.inviteToPortal({ id: them.id });
+  const { code } = await invitedWithConsent(owner, them.id);
   const { client: nobody } = await createTestClient(appRouter, {
     as: null,
     clock: new FakeClock(at),

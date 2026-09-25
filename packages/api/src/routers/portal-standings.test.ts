@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { invitedWithConsent } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // Where each Investor stands with the portal, as the Owner's list says it (ADR 0007): a code nobody took up before
@@ -106,7 +107,7 @@ beforeAll(async () => {
 describe("a code nobody takes up", () => {
   it("is invited until its week is out, and then says it ran out", async () => {
     const owner = await ownerAt();
-    const { expiresAt } = await owner.investors.inviteToPortal({ id: slow });
+    const { expiresAt } = await invitedWithConsent(owner, slow);
 
     expect(await said(slow, later(3))).toEqual({
       portal: "invited",
@@ -124,7 +125,7 @@ describe("a code nobody takes up", () => {
 describe("somebody in the portal", () => {
   it("is seen when they read it, to the hour, and stays in when handed a new code", async () => {
     const owner = await ownerAt();
-    const { code } = await owner.investors.inviteToPortal({ id: prompt });
+    const { code } = await invitedWithConsent(owner, prompt);
     const { client: nobody } = await createTestClient(appRouter, {
       as: null,
       clock: clockAt(JANUARY),
@@ -154,9 +155,7 @@ describe("somebody in the portal", () => {
 
     // A forgotten password: a new code, and their old password still lets them in meanwhile.
     const againLater = await ownerAt(later(2));
-    const { expiresAt } = await againLater.investors.inviteToPortal({
-      id: prompt,
-    });
+    const { expiresAt } = await invitedWithConsent(againLater, prompt);
     expect(await said(prompt, later(2))).toEqual({
       portal: "in",
       portalCodeUntil: expiresAt,

@@ -642,6 +642,8 @@ const anInvestorAsks = async (
   if (!them) {
     throw new Error(`${who.name} was never written down`);
   }
+  // The Portal Consent first, as the farm gives every invitation: signed in front of the Owner, then the code.
+  await f.as.owner.investors.recordConsent({ id: them.id });
   const { code } = await f.as.owner.investors.inviteToPortal({ id: them.id });
   const nobody = await nobodyClientOf(f.db, f.clock);
   const { loginEmail } = await nobody.portal.join({

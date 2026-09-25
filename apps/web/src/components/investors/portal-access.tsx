@@ -1,5 +1,6 @@
+import type { PaperDocument } from "@OpenFarm/domain";
 import { mobileNumberOf } from "@OpenFarm/domain";
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import {
   Dialog,
@@ -8,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
+import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { DoorClosed, DoorOpen, Eye, KeyRound, UserX } from "lucide-react";
@@ -17,6 +19,7 @@ import { toast } from "sonner";
 import type { Tone } from "@/components/page";
 import { Section, StatusBadge } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
+import { PaperDialog } from "@/components/ventures/paper-dialog";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -28,6 +31,8 @@ const REFUSALS = {
   phone_not_mobile: "portal.refused.phoneNotMobile",
   phone_has_portal: "portal.refused.phoneHasPortal",
   investor_retired: "portal.refused.retired",
+  no_consent: "portal.refused.noConsent",
+  consent_in_force: "portal.refused.consentInForce",
 } as const;
 
 /** Where an Investor stands with the portal, as a word with its colour, in the order the list sorts them. */
@@ -68,7 +73,16 @@ export const PortalStandingLine = ({ investor }: { investor: Investor }) => {
   // Cached before these were answered, they are missing rather than null.
   const codeUntil = investor.portalCodeUntil ?? null;
   const lastSeenAt = investor.portalLastSeenAt ?? null;
+  const consent = investor.portalConsent ?? null;
   const said: string[] = [];
+  if (consent) {
+    said.push(
+      t("portal.consent.signed", {
+        when: formatDate(new Date(`${consent.signedOn}T00:00:00Z`), language),
+        version: formatDigits(consent.version, language),
+      })
+    );
+  }
   if (standing === "in") {
     said.push(
       lastSeenAt
@@ -239,12 +253,35 @@ export const PortalAccess = ({
     null
   );
   const [asking, setAsking] = useState(false);
+  // The consent sheet on screen to print, before any code: nothing while the Investor has signed one already.
+  const [sheet, setSheet] = useState<PaperDocument | null>(null);
   const inviting = useMutation(
     orpc.investors.inviteToPortal.mutationOptions({
       onError: refused,
       onSuccess: setGiven,
     })
   );
+  const printing = useMutation(
+    orpc.investors.consentSheet.mutationOptions({
+      onError: refused,
+      onSuccess: ({ document }) => setSheet(document),
+    })
+  );
+  const consenting = useMutation(
+    orpc.investors.recordConsent.mutationOptions({
+      onError: refused,
+      onSuccess: () => {
+        setSheet(null);
+        inviting.mutate({ id: investor.id });
+      },
+    })
+  );
+  // No code before consent: somebody who has not signed one is handed the sheet first.
+  const hasConsent = (investor.portalConsent ?? null) !== null;
+  const invite = () =>
+    hasConsent
+      ? inviting.mutate({ id: investor.id })
+      : printing.mutate({ id: investor.id });
   const takingAway = useMutation(
     orpc.investors.takePortalAway.mutationOptions({
       onError: refused,
@@ -270,8 +307,8 @@ export const PortalAccess = ({
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
-          disabled={whyNot !== null || inviting.isPending}
-          onClick={() => inviting.mutate({ id: investor.id })}
+          disabled={whyNot !== null || inviting.isPending || printing.isPending}
+          onClick={invite}
           size="sm"
           type="button"
           variant="outline"
@@ -308,6 +345,24 @@ export const PortalAccess = ({
       {whyNot ? (
         <p className="text-muted-foreground text-sm">{t(whyNot)}</p>
       ) : null}
+      <PaperDialog
+        action={
+          <Button
+            disabled={consenting.isPending}
+            onClick={() => consenting.mutate({ id: investor.id })}
+            type="button"
+            variant="outline"
+          >
+            {consenting.isPending ? <Spinner /> : null}
+            {t("portal.consent.signedToday")}
+          </Button>
+        }
+        description={t("portal.consent.sheetHint")}
+        onClose={() => setSheet(null)}
+        paper={sheet}
+        title={t("portal.consent.sheetTitle")}
+        wording={null}
+      />
       <CodeDialog given={given} onClose={() => setGiven(null)} />
       <ConfirmDialog
         confirmLabel={t("portal.takeAway")}

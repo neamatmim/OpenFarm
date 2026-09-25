@@ -17,6 +17,11 @@ import {
   theSamePerson,
 } from "../investor-store";
 import {
+  consentSheet,
+  consentsInForce,
+  recordConsent,
+} from "../portal-consent";
+import {
   inviteToPortal,
   portalActivity,
   portalStandings,
@@ -125,7 +130,7 @@ export const investorsRouter = {
         where: { farmId: context.farm.id },
         orderBy: { name: "asc", id: "asc" },
       });
-      const [counted, signed, ventures, portal] = await Promise.all([
+      const [counted, signed, ventures, portal, consents] = await Promise.all([
         countedInvestors(context.db, context.farm.id),
         context.db.query.investmentAgreement.findMany({
           where: { farmId: context.farm.id },
@@ -137,6 +142,7 @@ export const investorsRouter = {
           columns: { id: true, name: true, state: true },
         }),
         portalStandings(context.db, context.farm.id, context.clock.now()),
+        consentsInForce(context.db, context.farm.id),
       ]);
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.
@@ -197,6 +203,8 @@ export const investorsRouter = {
           portalCodeUntil: portal.get(one.id)?.codeUntil ?? null,
           /** When they were last in the portal, to the hour; null for somebody never seen there. */
           portalLastSeenAt: portal.get(one.id)?.lastSeenAt ?? null,
+          /** Their Portal Consent in force — the day signed and the Version — or null before they sign one. */
+          portalConsent: consents.get(one.id) ?? null,
         })),
       };
     }),
@@ -401,8 +409,30 @@ export const investorsRouter = {
     }),
 
   /**
+   * The Portal Consent sheet for one Investor, to print and have them sign in front of the Owner before any code: the
+   * wording in force with their name in it, its Version in the foot. The Owner's alone.
+   */
+  consentSheet: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => ({
+      document: await consentSheet(context, input.id),
+    })),
+
+  /**
+   * Records that the Investor signed the Portal Consent today, in front of the Owner, on the wording in force — the
+   * step before any code. The Owner's alone.
+   */
+  recordConsent: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(({ context, input }) => recordConsent(context, input.id)),
+
+  /**
    * Invites one Investor to the portal, or gives them a new code: shown once, to hand over in person, good for a week.
-   * They take it up with their phone and a password of their own.
+   * They take it up with their phone and a password of their own — once they have signed the Portal Consent.
    */
   inviteToPortal: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
