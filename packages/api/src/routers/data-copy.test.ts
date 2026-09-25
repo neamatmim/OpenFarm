@@ -1,6 +1,7 @@
 import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { TRAILED } from "../data-copy";
 import { createTestClient } from "../test/client";
 import { invitingInvestors } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -28,6 +29,8 @@ const KEEPERS = {
   backupCountry: "জার্মানি",
 };
 const NID = `19853012${suffix}`;
+/** A moment as the database keeps it, `2061-01-01T04:00:00.000Z`: never on a Bangla paper. */
+const ISO_MOMENT = /\d{4}-\d{2}-\d{2}T\d{2}/u;
 const BANK = `সোনালী ব্যাংক, সাভার শাখা, হিসাব ০১২৩${suffix}`;
 
 /**
@@ -123,7 +126,7 @@ describe("«খামারে আপনার তথ্য»", () => {
     const owner = await as("owner");
     const { id, ventureName } = history;
 
-    const { document } = await owner.investors.copyOfTheirData({ id });
+    const { document } = await owner.investors.dataCopy({ id });
 
     const { notice } = await owner.portalPreview.yourData();
     const headings = document.sections.map((one) => one.heading.bn);
@@ -150,22 +153,29 @@ describe("«খামারে আপনার তথ্য»", () => {
     // Their Request, and each change they made to it.
     const requests = part("ভেঞ্চারে যোগ দেওয়ার অনুরোধ");
     expect(requests).toContain("তিনটি");
-    expect(requests).toContain("বদলানো হয়েছে");
+    expect(requests).toContain("বদলে ৩টি ইউনিট করেছেন");
     // Their portal access, and the consent they signed.
     const portal = part("পোর্টাল");
     expect(portal).toContain("প্রথম সাইন ইন");
     expect(portal).toContain("বহাল");
     // The change to their record, what it was and what it became.
-    const changes = part("আপনার রেকর্ডে প্রতিটি বদল");
+    const changes = part("আপনার সম্পর্কে প্রতিটি বদল");
     expect(changes).toContain(`আশুলিয়া ${suffix}`);
     expect(changes).toContain(`রাশেদের ছেলে ${suffix}`);
+    // Their portal access and consent changed too, on the trail beside their record.
+    expect(changes).toContain("পোর্টাল প্রবেশাধিকার");
+    expect(changes).toContain("পোর্টাল সম্মতি");
+    // Nothing on the trail printed as the database keeps it: every moment worded in Bangla.
+    expect(changes).not.toMatch(ISO_MOMENT);
+    // The Agreement's photo kept, said so.
+    expect(part("আপনার চুক্তি")).toContain("ছবি");
   });
 
   it("is an Export on the Investor, by the Owner", async () => {
     const owner = await as("owner");
     const { id } = history;
 
-    await owner.investors.copyOfTheirData({ id });
+    await owner.investors.dataCopy({ id });
 
     const trail = await owner.audit.list({ entity: "investor", limit: 50 });
     const made = trail.find(
@@ -180,6 +190,50 @@ describe("«খামারে আপনার তথ্য»", () => {
     });
   });
 
+  it("reads every field the trail keeps of their record", async () => {
+    const owner = await as("owner");
+    const trail = await owner.audit.list({ entity: "investor", limit: 50 });
+    const made = trail.find(
+      (one) => one.entityId === history.id && one.action === "create"
+    );
+
+    expect(Object.keys(made?.after ?? {}).toSorted()).toEqual(
+      [...TRAILED.investor.fields].toSorted()
+    );
+  });
+
+  it("words a retirement's moment in Bangla", async () => {
+    const owner = await as("owner");
+    const them = await owner.investors.record({
+      name: `অবসর ${suffix}`,
+      phone: `0195${suffix}2`,
+    });
+    await owner.investors.retire({ id: them.id });
+
+    const { document } = await owner.investors.dataCopy({ id: them.id });
+
+    const changes = JSON.stringify(
+      document.sections.find(
+        (one) => one.heading.bn === "আপনার সম্পর্কে প্রতিটি বদল"
+      )
+    );
+    expect(changes).toContain("বাদ দেওয়ার দিন");
+    expect(changes).not.toMatch(ISO_MOMENT);
+  });
+
+  it("is not made while the notice on its first page has a fact unwritten", async () => {
+    const owner = await as("owner");
+    await owner.farm.setDataKeepers({ ...KEEPERS, backupCountry: null });
+
+    try {
+      await expect(
+        owner.investors.dataCopy({ id: history.id })
+      ).rejects.toMatchObject({ data: { refusal: "notice_unwritten" } });
+    } finally {
+      await owner.farm.setDataKeepers(KEEPERS);
+    }
+  });
+
   it("is the Owner's alone", async () => {
     const owner = await as("owner");
     const manager = await as("manager");
@@ -189,14 +243,12 @@ describe("«খামারে আপনার তথ্য»", () => {
     });
 
     await expect(
-      manager.investors.copyOfTheirData({ id: them.id })
+      manager.investors.dataCopy({ id: them.id })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("is never offered in the portal or its Preview", () => {
-    expect(Object.keys(appRouter.portal)).not.toContain("copyOfTheirData");
-    expect(Object.keys(appRouter.portalPreview)).not.toContain(
-      "copyOfTheirData"
-    );
+    expect(Object.keys(appRouter.portal)).not.toContain("dataCopy");
+    expect(Object.keys(appRouter.portalPreview)).not.toContain("dataCopy");
   });
 });

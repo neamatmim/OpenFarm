@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { copyOfTheirData } from "../data-copy";
+import { dataCopyOf } from "../data-copy";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
@@ -439,16 +439,16 @@ export const investorsRouter = {
     }),
 
   /**
-   * «খামারে আপনার তথ্য»: the copy of everything the farm holds on one Investor, unmasked, the privacy notice's points
-   * first, to answer their written request for one (`copyOfTheirData`). An Export; the Owner's alone, and never offered
-   * in the portal.
+   * The Data Copy, «খামারে আপনার তথ্য»: everything the farm holds on one Investor, unmasked, the privacy notice's
+   * points first, to answer their written request for a copy (`dataCopyOf`). An Export; the Owner's alone, and never
+   * offered in the portal.
    */
-  copyOfTheirData: protectedProcedure
+  dataCopy: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
     .input(z.object({ id: z.string() }))
     .handler(async ({ context, input }) => ({
-      document: await copyOfTheirData(context, input.id),
+      document: await dataCopyOf(context, input.id),
     })),
 
   /**

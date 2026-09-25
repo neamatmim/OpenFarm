@@ -4,6 +4,7 @@ import {
   investorLoginOf,
   isInvestorLogin,
   mobileNumberOf,
+  phoneOfInvestorLogin,
 } from "./investor-login";
 
 describe("an Investor's phone as they type it", () => {
@@ -37,5 +38,12 @@ describe("the address a portal account signs in as", () => {
   it("is told apart from anybody's who works on the farm", () => {
     expect(isInvestorLogin("01711000000@INVESTOR.openfarm.invalid")).toBe(true);
     expect(isInvestorLogin("owner@openfarm.test")).toBe(false);
+  });
+
+  it("gives back the phone it was made from, and nothing for anybody else's", () => {
+    expect(
+      phoneOfInvestorLogin(investorLoginOf("+880 1711-000000") ?? "")
+    ).toBe("01711000000");
+    expect(phoneOfInvestorLogin("owner@openfarm.test")).toBeNull();
   });
 });

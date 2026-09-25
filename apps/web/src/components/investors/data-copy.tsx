@@ -12,13 +12,13 @@ import { orpc } from "@/utils/orpc";
 
 /** Why the farm would not make the copy, in the Owner's words. */
 const REFUSALS = {
-  notice_unwritten: "portal.refused.noticeUnwritten",
+  notice_unwritten: "investors.dataCopyNoticeUnwritten",
 } as const;
 
 /**
- * «খামারে আপনার তথ্য»: the copy of everything the farm holds on one Investor, made from their page to answer a written
- * request for one, and printed to hand over. Made as it is asked for — an Export each time — and never kept on the
- * device: it is the one place their record leaves the server unmasked.
+ * The Data Copy, «খামারে আপনার তথ্য»: everything the farm holds on one Investor, made from their page to answer a
+ * written request for a copy, and printed to hand over. Made as it is asked for — an Export each time — and never kept
+ * on the device: it is the one place their record leaves the server unmasked.
  */
 export const DataCopyAct = ({
   investorId,
@@ -31,7 +31,7 @@ export const DataCopyAct = ({
   const refused = useRefused(REFUSALS);
   const [copy, setCopy] = useState<PaperDocument | null>(null);
   const making = useMutation(
-    orpc.investors.copyOfTheirData.mutationOptions({
+    orpc.investors.dataCopy.mutationOptions({
       onError: refused,
       onSuccess: ({ document }) => setCopy(document),
     })

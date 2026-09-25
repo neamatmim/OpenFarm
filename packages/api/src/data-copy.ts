@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "@OpenFarm/db/operators";
+import { and, desc, eq, inArray, or, sql } from "@OpenFarm/db/operators";
 import { auditEvent } from "@OpenFarm/db/schema/audit";
 import { user } from "@OpenFarm/db/schema/auth";
 import { paperTemplateVersion } from "@OpenFarm/db/schema/paper-template";
@@ -9,13 +9,18 @@ import type {
   PaperSection,
   Said,
 } from "@OpenFarm/domain";
-import { farmDayOf, letterheadOf } from "@OpenFarm/domain";
+import {
+  farmDayOf,
+  letterheadOf,
+  phoneOfInvestorLogin,
+} from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatNumber, translate } from "@OpenFarm/i18n";
 import { ORPCError } from "@orpc/server";
 
 import type { Tx } from "./audit";
 import { audited } from "./audit";
+import type { ExportedPaper } from "./export-store";
 import { assertRegistered, exportedPaper } from "./export-store";
 import { signedInOn } from "./membership";
 import { producedAt } from "./paper-values";
@@ -25,13 +30,14 @@ import { theNoticeToRead } from "./portal-reads";
 import { theirRequests, whatTheyDidToTheirRequests } from "./requests-to-join";
 import { theirAgreements } from "./their-agreements";
 
-// «খামারে আপনার তথ্য»: the copy of everything the farm holds on one Investor, which answers their written request for
-// one (Personal Data Protection Act 2026 s.11) in minutes. The privacy notice's points come first, then the record as
-// the farm keeps it — unmasked, since it is theirs — their Agreements and the money they moved, the papers made for
-// them, their Requests to Join, their portal access, consent and sign-ins, and every change to their record. Made by
-// the Owner from the Investor's page and handed over on paper; never offered in the portal.
+// The Data Copy, «খামারে আপনার তথ্য» (the glossary's entry): everything the farm holds on one Investor, which answers
+// their written request for a copy (Personal Data Protection Act 2026 s.11) in minutes. The privacy notice's points
+// come first, then the record as the farm keeps it — unmasked, since it is theirs — their Agreements and the money
+// they moved, the papers made for them, their Requests to Join, their portal access, consents and sign-ins, and every
+// change to their record, their access and their consent. Made by the Owner from the Investor's page and handed over
+// on paper; never offered in the portal. Everything is listed the latest first, as their money is.
 
-/** The words for an Investor's copy of their data, as its title and in the trail. */
+/** The paper's title. */
 const TITLE: Said = {
   bn: "খামারে আপনার তথ্য",
   en: "What the farm holds about you",
@@ -49,18 +55,21 @@ const taka = (bdt: number) => `৳${formatNumber(bdt, "bn")}`;
 /** A figure, in Bangla numerals. */
 const inBangla = (value: number) => formatNumber(value, "bn");
 
+/** A message in Bangla. */
+const bn = (key: MessageKey, params?: Record<string, string | number>) =>
+  translate("bn", key, params);
+
 /** A message in both languages, for a label. */
 const both = (key: MessageKey): Said => ({
   bn: translate("bn", key),
   en: translate("en", key),
 });
 
-/** One line of the paper, or nothing where the farm holds nothing for it. */
-const row = (
-  bn: string,
-  en: string,
+/** The lines of the paper saying one fact: one line, or none where the farm holds nothing for it. */
+const linesFor = (
+  label: Said,
   value: string | null | undefined
-): DocumentRow[] => (value?.trim() ? [{ label: { bn, en }, value }] : []);
+): DocumentRow[] => (value?.trim() ? [{ label, value }] : []);
 
 /** What a part of the paper says where the farm holds nothing for it. */
 const NONE: Said = { bn: "কিছু নেই", en: "None" };
@@ -73,18 +82,26 @@ const facts = (heading: Said, rows: DocumentRow[]): PaperSection => ({
   note: rows.length === 0 ? NONE : null,
 });
 
+/** Several things said on one line: those the farm has, one after another. */
+const joined = (...values: (string | null | undefined)[]) =>
+  values.filter((one) => one?.trim()).join(" · ");
+
 /** The papers the farm makes for an Investor, by the name the trail records them under. */
-const PAPER_NAMES: Record<string, Said> = {
+const PAPER_NAMES = {
   joining_letter: both("portal.paper.joining"),
   progress_statement: both("portal.paper.progress"),
   settlement_statement: both("portal.paper.settlement"),
   agreement_draft: { bn: "চুক্তির খসড়া", en: "Agreement to sign" },
   amendment_draft: { bn: "সংশোধনী", en: "Amendment" },
-  portal_consent: { bn: "পোর্টাল সম্মতিপত্র", en: "Portal Consent" },
+  portal_consent: both("portal.consent.sheetTitle"),
   welcome_letter: { bn: "স্বাগত চিঠি", en: "Welcome Letter" },
   code_slip: { bn: "কোডের স্লিপ", en: "Code Slip" },
   data_copy: TITLE,
-};
+} as const satisfies Partial<Record<ExportedPaper, Said>>;
+
+/** Whether a paper is one the farm makes for an Investor, and so has a name on this one. */
+const isTheirPaper = (paper: unknown): paper is keyof typeof PAPER_NAMES =>
+  typeof paper === "string" && paper in PAPER_NAMES;
 
 /** How each movement of their money is named. */
 const MOVEMENT_NAMES = {
@@ -93,65 +110,111 @@ const MOVEMENT_NAMES = {
   payout: both("investors.page.move.payout"),
 } as const;
 
-/** What each change to their record did. */
-const ACTIONS: Record<string, string> = {
-  create: "লেখা হয়েছে",
-  update: "বদলানো হয়েছে",
-  correct: "সংশোধন করা হয়েছে",
-  retire: "বাদ দেওয়া হয়েছে",
-  restore: "ফিরিয়ে আনা হয়েছে",
-};
-
-/** What they did to a Request, as the paper says it. */
-const REQUEST_CHANGES = {
-  made: "করা হয়েছে",
-  changed: "বদলানো হয়েছে",
-  withdrawn: "তুলে নেওয়া হয়েছে",
-} as const;
-
-/** Why their access was taken away, as the paper says it. */
+/** Why their access was taken away, said to them — the Owner's screen says it of them, in the third person. */
 const TAKEN_AWAY_WHY: Record<string, string> = {
   withdrew_consent: "আপনি সম্মতি তুলে নিয়েছেন",
   lost_phone: "ফোন হারানো",
   owner: "খামারের সিদ্ধান্ত",
 };
 
-/** Each field of their record, as the paper names it. */
-const FIELDS: Record<string, string> = {
-  name: "নাম",
-  phone: "ফোন",
-  address: "ঠিকানা",
-  nid: "এনআইডি",
-  bankAccount: "ব্যাংক হিসাব",
-  nominee: "নমিনির নাম",
-  nomineePhone: "নমিনির ফোন",
-  nomineeRelation: "নমিনির সম্পর্ক",
-  retiredAt: "বাদ দেওয়া হয়েছে",
-};
+/**
+ * Each part of the trail about them — what it is, and the fields of its snapshot a change can touch, as the stores
+ * snapshot them (`readInvestor`, `readAccess`, and the consent's own). A field of the investor's the paper leaves out
+ * is caught by the test that reads a change of every one.
+ */
+export const TRAILED = {
+  investor: {
+    what: "আপনার রেকর্ড",
+    fields: [
+      "name",
+      "phone",
+      "address",
+      "nid",
+      "bankAccount",
+      "nominee",
+      "nomineePhone",
+      "nomineeRelation",
+      "retiredAt",
+    ],
+  },
+  investor_access: {
+    what: "পোর্টাল প্রবেশাধিকার",
+    fields: [
+      "invitedAt",
+      "acceptedAt",
+      "codeExpiresAt",
+      "revokedAt",
+      "revokedWhy",
+    ],
+  },
+  portal_consent: {
+    what: "পোর্টাল সম্মতি",
+    fields: ["signedOn", "version", "withdrawnOn", "withdrawnHow"],
+  },
+} as const;
 
-/** A snapshot's field as the paper writes it. */
-const fieldWords = (value: unknown) => {
+type Trailed = keyof typeof TRAILED;
+type TrailedField = (typeof TRAILED)[Trailed]["fields"][number];
+
+/** Whether an entity on the trail is one the paper reads. */
+const isTrailed = (entity: string): entity is Trailed => entity in TRAILED;
+
+/** A snapshot the trail kept, read as the fields it holds. */
+const fieldsOf = (snapshot: unknown): Record<string, unknown> =>
+  typeof snapshot === "object" && snapshot !== null
+    ? Object.fromEntries(Object.entries(snapshot))
+    : {};
+
+/** One field's value in a snapshot, as the Bangla paper writes it: a moment or a day in Bangla, a reason in words. */
+const valueWords = (field: TrailedField, value: unknown): string => {
   if (value === null || value === undefined || value === "") {
     return "—";
   }
-  return typeof value === "string" ? value : JSON.stringify(value);
+  if (typeof value === "number") {
+    return inBangla(value);
+  }
+  const text = String(value);
+  if (field === "signedOn" || field === "withdrawnOn") {
+    return onDay(text);
+  }
+  if (field.endsWith("At")) {
+    return when(new Date(text));
+  }
+  if (field === "revokedWhy") {
+    return TAKEN_AWAY_WHY[text] ?? text;
+  }
+  if (field === "withdrawnHow" && (text === "letter" || text === "message")) {
+    return bn(`portal.howLine.${text}`);
+  }
+  return text;
 };
 
-/** What one change did to their record: each field it touched, what it was and what it became. */
-const whatChanged = (before: unknown, after: unknown) => {
-  const was = (before ?? {}) as Record<string, unknown>;
-  const now = (after ?? {}) as Record<string, unknown>;
-  return Object.keys(FIELDS)
-    .filter((field) => fieldWords(was[field]) !== fieldWords(now[field]))
+/** What one change did: each field it touched, what it was and what it became. */
+const whatChanged = (entity: Trailed, before: unknown, after: unknown) => {
+  const was = fieldsOf(before);
+  const now = fieldsOf(after);
+  const fields: readonly TrailedField[] = TRAILED[entity].fields;
+  return fields
+    .filter(
+      (field) => valueWords(field, was[field]) !== valueWords(field, now[field])
+    )
     .map(
       (field) =>
-        `${FIELDS[field]}: ${fieldWords(was[field])} → ${fieldWords(now[field])}`
+        `${bn(`auditField.${field}`)}: ${valueWords(field, was[field])} → ${valueWords(field, now[field])}`
     )
     .join("; ");
 };
 
-/** Every paper the farm made for them, whoever made it and whatever it is filed against, the latest first. */
-const papersMadeFor = (db: Pick<Tx, "select">, farmId: string, id: string) =>
+/**
+ * Every paper the farm made for them, whoever made it and whatever it is filed against — and every amendment of a
+ * Venture they signed into, which prints each Investor in it — the latest first.
+ */
+const papersMadeFor = (
+  db: Pick<Tx, "select">,
+  farmId: string,
+  id: string,
+  ventureIds: string[]
+) =>
   db
     .select({
       at: auditEvent.receivedAt,
@@ -164,20 +227,27 @@ const papersMadeFor = (db: Pick<Tx, "select">, farmId: string, id: string) =>
       and(
         eq(auditEvent.farmId, farmId),
         eq(auditEvent.action, "export"),
-        sql`${auditEvent.after}->>'investorId' = ${id}`
+        or(
+          sql`${auditEvent.after}->>'investorId' = ${id}`,
+          ventureIds.length > 0
+            ? and(
+                eq(auditEvent.entity, "venture"),
+                inArray(auditEvent.entityId, ventureIds),
+                sql`${auditEvent.after}->>'paper' = 'amendment_draft'`
+              )
+            : undefined
+        )
       )
     )
     .orderBy(desc(auditEvent.receivedAt), desc(auditEvent.id));
 
-/** Every change to their record itself, the latest first: who made it, and what it did. */
-const changesToTheirRecord = (
-  db: Pick<Tx, "select">,
-  farmId: string,
-  id: string
-) =>
+/** Every change to their record, their portal access and their consent, the latest first: who made it, and what it
+ *  did. */
+const changesAboutThem = (db: Pick<Tx, "select">, farmId: string, id: string) =>
   db
     .select({
       at: auditEvent.receivedAt,
+      entity: auditEvent.entity,
       action: auditEvent.action,
       before: auditEvent.before,
       after: auditEvent.after,
@@ -188,7 +258,7 @@ const changesToTheirRecord = (
     .where(
       and(
         eq(auditEvent.farmId, farmId),
-        eq(auditEvent.entity, "investor"),
+        inArray(auditEvent.entity, Object.keys(TRAILED)),
         eq(auditEvent.entityId, id),
         sql`${auditEvent.action} <> 'export'`
       )
@@ -214,13 +284,31 @@ const theirConsents = (db: Pick<Tx, "select">, farmId: string, id: string) =>
     )
     .orderBy(desc(portalConsent.signedOn), desc(portalConsent.id));
 
+/** A Settlement on one Agreement, in a line: what it owed them, and whether it was paid and acknowledged. */
+const settlementWords = (
+  settlement: NonNullable<
+    Awaited<
+      ReturnType<typeof theirAgreements>
+    >["agreements"][number]["settlement"]
+  >
+) =>
+  joined(
+    `হিসাব নিকাশে পাওনা ${taka(settlement.payoutBdt)} (মূলধন ${taka(settlement.capitalBdt)}, মুনাফায় অংশ ${taka(settlement.shareBdt)})`,
+    settlement.paidOn
+      ? `পরিশোধ ${onDay(settlement.paidOn)}`
+      : "এখনো পরিশোধ হয়নি",
+    settlement.acknowledgedAt
+      ? `আপনি বুঝে পেয়েছেন ${when(settlement.acknowledgedAt)}`
+      : null
+  );
+
 /**
- * The copy of everything the farm holds on one Investor, laid out to print and hand over: the notice's points first,
- * then their record unmasked, their Agreements, the money they moved, the papers made for them, their Requests to
- * Join and each change they made, their portal access, consents and sign-ins, and every change to their record. An
- * Export on the Investor. Refused while the notice has a fact unwritten: its points are the paper's first page.
+ * The Data Copy of one Investor, laid out to print and hand over: the notice's points first, then their record
+ * unmasked, their Agreements with any Settlement, the money they moved, the papers made for them, their Requests to
+ * Join and each change they made, their portal access, consents and sign-ins, and every change to their record, access
+ * and consent. An Export on the Investor. Refused while the notice has a fact unwritten: its points are the first page.
  */
-export const copyOfTheirData = async (
+export const dataCopyOf = async (
   context: Owned,
   investorId: string
 ): Promise<PaperDocument> => {
@@ -240,10 +328,13 @@ export const copyOfTheirData = async (
       "notice_unwritten"
     );
   }
-  const [money, papers, requests, requestChanges, access, consents, changes] =
+  const money = await theirAgreements(db, farm.id, investorId, farmDayOf(now));
+  const ventureIds = [
+    ...new Set(money.agreements.map((one) => one.venture.id)),
+  ];
+  const [papers, requests, requestChanges, access, consents, changes] =
     await Promise.all([
-      theirAgreements(db, farm.id, investorId, farmDayOf(now)),
-      papersMadeFor(db, farm.id, investorId),
+      papersMadeFor(db, farm.id, investorId, ventureIds),
       theirRequests(db, farm.id, investorId),
       whatTheyDidToTheirRequests(db, farm.id, investorId),
       db.query.investorAccess.findFirst({
@@ -259,7 +350,7 @@ export const copyOfTheirData = async (
         },
       }),
       theirConsents(db, farm.id, investorId),
-      changesToTheirRecord(db, farm.id, investorId),
+      changesAboutThem(db, farm.id, investorId),
     ]);
   const places = access?.userId ? await signedInOn(db, access.userId, now) : [];
   const ventureOf = new Map(
@@ -274,18 +365,23 @@ export const copyOfTheirData = async (
       clauses: part.lines.map((line) => ({ bn: line, en: "" })),
     })),
     facts({ bn: "আপনার রেকর্ড", en: "Your record" }, [
-      ...row("নাম", "Name", them.name),
-      ...row("ফোন", "Phone", them.phone),
-      ...row("ঠিকানা", "Address", them.address),
-      ...row("এনআইডি", "NID", them.nid),
-      ...row("ব্যাংক হিসাব", "Bank account", them.bankAccount),
-      ...row("নমিনি", "Nominee", them.nomineeName),
-      ...row("নমিনির সম্পর্ক", "Nominee's relation", them.nomineeRelation),
-      ...row("নমিনির ফোন", "Nominee's phone", them.nomineePhone),
-      ...row("লেখা হয়েছে", "Recorded", when(them.createdAt)),
-      ...row(
-        "বাদ দেওয়া হয়েছে",
-        "Retired",
+      ...linesFor({ bn: "নাম", en: "Name" }, them.name),
+      ...linesFor({ bn: "ফোন", en: "Phone" }, them.phone),
+      ...linesFor({ bn: "ঠিকানা", en: "Address" }, them.address),
+      ...linesFor({ bn: "এনআইডি নম্বর", en: "NID" }, them.nid),
+      ...linesFor({ bn: "ব্যাংক হিসাব", en: "Bank account" }, them.bankAccount),
+      ...linesFor({ bn: "নমিনি", en: "Nominee" }, them.nomineeName),
+      ...linesFor(
+        { bn: "নমিনির সম্পর্ক", en: "Nominee's relation" },
+        them.nomineeRelation
+      ),
+      ...linesFor(
+        { bn: "নমিনির ফোন", en: "Nominee's phone" },
+        them.nomineePhone
+      ),
+      ...linesFor({ bn: "লেখা হয়েছে", en: "Recorded" }, when(them.createdAt)),
+      ...linesFor(
+        { bn: "বাদ দেওয়ার দিন", en: "Retired" },
         them.retiredAt ? when(them.retiredAt) : null
       ),
     ]),
@@ -293,119 +389,132 @@ export const copyOfTheirData = async (
       { bn: "আপনার চুক্তি", en: "Your Agreements" },
       money.agreements.map((one) => ({
         label: { bn: one.venture.name, en: "" },
-        value: [
+        value: joined(
           `${inBangla(one.units)} ইউনিট, ${taka(one.promisedBdt)}`,
           `আপনার অংশ ${inBangla(one.investorsPercent)}%`,
           `সময় ${onDay(one.targetWindow.start)} – ${onDay(one.targetWindow.end)}`,
+          one.amendedOn ? `সংশোধিত ${onDay(one.amendedOn)}` : null,
           `সই ${when(one.signedAt)}`,
           `স্ট্যাম্প ${one.stamp.serial} (${taka(one.stamp.valueBdt)}, ${onDay(one.stamp.on)})`,
           `সালিস ${one.arbitrator}`,
+          one.hasPaper ? "সই করা চুক্তির ছবি খামারে রাখা আছে" : null,
           `খামারে মূলধন ${taka(one.capitalHeldBdt)}`,
-        ].join(" · "),
+          one.settlement ? settlementWords(one.settlement) : null
+        ),
       }))
     ),
     facts(
       { bn: "আপনার টাকার লেনদেন", en: "Your money moved" },
       money.movements.map((one) => ({
         label: { bn: onDay(one.movedOn), en: "" },
-        value: [
+        value: joined(
           MOVEMENT_NAMES[one.kind].bn,
           taka(one.amountBdt),
-          ventureOf.get(one.agreementId) ?? "",
-          one.reference ?? "",
-        ]
-          .filter(Boolean)
-          .join(" · "),
+          ventureOf.get(one.agreementId),
+          one.reference
+        ),
       }))
     ),
     facts(
       { bn: "আপনার জন্য তৈরি কাগজ", en: "Papers made for you" },
       papers.map((one) => {
-        const paper = String(
-          (one.after as { paper?: unknown } | null)?.paper ?? ""
-        );
+        const { paper } = fieldsOf(one.after);
         return {
           label: { bn: when(one.at), en: "" },
-          value: [PAPER_NAMES[paper]?.bn ?? paper, one.by ?? ""]
-            .filter(Boolean)
-            .join(" · "),
+          value: joined(
+            isTheirPaper(paper) ? PAPER_NAMES[paper].bn : String(paper ?? ""),
+            one.by
+          ),
         };
       })
     ),
     facts({ bn: "ভেঞ্চারে যোগ দেওয়ার অনুরোধ", en: "Your Requests to Join" }, [
       ...requests.map((one) => ({
         label: { bn: one.ventureName, en: "" },
-        value: [
+        value: joined(
           `${inBangla(one.units)} ইউনিট`,
-          translate("bn", `ventures.requests.state.${one.state}`),
-          one.note ? `“${one.note}”` : "",
-          one.answerLine ?? "",
-        ]
-          .filter(Boolean)
-          .join(" · "),
+          bn(`ventures.requests.state.${one.state}`),
+          one.note ? `“${one.note}”` : null,
+          one.answerLine
+        ),
       })),
       ...requestChanges.map((one) => ({
         label: { bn: when(one.at), en: "" },
-        value: `${one.ventureName} · ${REQUEST_CHANGES[one.kind]} · ${inBangla(one.units)} ইউনিট`,
+        value: joined(
+          one.ventureName,
+          bn(`ventures.requests.kind.${one.kind}`, {
+            units: inBangla(one.units),
+          })
+        ),
       })),
     ]),
     facts({ bn: "পোর্টাল", en: "The portal" }, [
-      ...row(
-        "সাইন ইনের ফোন",
-        "Signs in with",
-        access ? access.loginEmail.split("@")[0] : null
+      ...linesFor(
+        { bn: "সাইন ইনের ফোন", en: "Signs in with" },
+        access ? phoneOfInvestorLogin(access.loginEmail) : null
       ),
-      ...row("আমন্ত্রণ", "Invited", access ? when(access.invitedAt) : null),
-      ...row(
-        "প্রথম সাইন ইন",
-        "First signed in",
+      ...linesFor(
+        { bn: "আমন্ত্রণ", en: "Invited" },
+        access ? when(access.invitedAt) : null
+      ),
+      ...linesFor(
+        { bn: "প্রথম সাইন ইন", en: "First signed in" },
         access?.acceptedAt ? when(access.acceptedAt) : null
       ),
-      ...row(
-        "শেষ এসেছেন",
-        "Last in",
+      ...linesFor(
+        { bn: "শেষ এসেছেন", en: "Last in" },
         access?.lastSeenAt ? when(access.lastSeenAt) : null
       ),
-      ...row(
-        "প্রবেশাধিকার তুলে নেওয়া",
-        "Access taken away",
+      ...linesFor(
+        { bn: "প্রবেশাধিকার তুলে নেওয়া", en: "Access taken away" },
         access?.revokedAt
-          ? [when(access.revokedAt), TAKEN_AWAY_WHY[access.revokedWhy ?? ""]]
-              .filter(Boolean)
-              .join(" · ")
+          ? joined(
+              when(access.revokedAt),
+              access.revokedWhy ? TAKEN_AWAY_WHY[access.revokedWhy] : null
+            )
           : null
       ),
       ...(consents.length === 0
-        ? row("সম্মতি", "Consent", "কোনো সম্মতি রেকর্ড নেই")
+        ? linesFor({ bn: "সম্মতি", en: "Consent" }, "কোনো সম্মতি রেকর্ড নেই")
         : consents.map((one) => ({
             label: { bn: "সম্মতি", en: "Consent" },
-            value: [
-              `সই ${onDay(farmDayOf(one.signedOn))}`,
-              `ভাষার সংস্করণ ${inBangla(one.version)}`,
+            value: joined(
+              bn("portal.consent.signed", {
+                when: onDay(farmDayOf(one.signedOn)),
+                version: inBangla(one.version),
+              }),
               one.withdrawnOn
-                ? `তুলে নেওয়া ${onDay(farmDayOf(one.withdrawnOn))}`
-                : "বহাল",
-            ].join(" · "),
+                ? joined(
+                    `তুলে নেওয়া ${onDay(farmDayOf(one.withdrawnOn))}`,
+                    one.withdrawnHow
+                      ? bn(`portal.howLine.${one.withdrawnHow}`)
+                      : null
+                  )
+                : "বহাল"
+            ),
           }))),
       ...places.map((one) => ({
         label: { bn: "এখন সাইন ইন", en: "Signed in now" },
-        value: [`${when(one.since)} থেকে`, one.browser ?? "", one.from ?? ""]
-          .filter(Boolean)
-          .join(" · "),
+        value: joined(`${when(one.since)} থেকে`, one.browser, one.from),
       })),
     ]),
     facts(
-      { bn: "আপনার রেকর্ডে প্রতিটি বদল", en: "Every change to your record" },
-      changes.map((one) => ({
-        label: { bn: when(one.at), en: "" },
-        value: [
-          ACTIONS[one.action] ?? one.action,
-          one.by ?? "",
-          whatChanged(one.before, one.after),
-        ]
-          .filter(Boolean)
-          .join(" · "),
-      }))
+      { bn: "আপনার সম্পর্কে প্রতিটি বদল", en: "Every change about you" },
+      changes.flatMap((one) =>
+        isTrailed(one.entity)
+          ? [
+              {
+                label: { bn: when(one.at), en: "" },
+                value: joined(
+                  TRAILED[one.entity].what,
+                  bn(`audit.action.${one.action}`),
+                  one.by,
+                  whatChanged(one.entity, one.before, one.after)
+                ),
+              },
+            ]
+          : []
+      )
     ),
   ];
 
