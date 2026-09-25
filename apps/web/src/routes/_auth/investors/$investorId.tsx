@@ -27,6 +27,7 @@ import {
   InvestorProfile,
   phoneLink,
 } from "@/components/investors/investor-profile";
+import { InvestorRequests } from "@/components/investors/investor-requests";
 import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import {
@@ -169,12 +170,16 @@ const TheInvestor = ({
             label: t("investors.page.tab.agreements"),
             icon: Handshake,
             content: (
-              <Loaded
-                query={theirs}
-                skeleton={<Skeleton className="h-40 rounded-xl" />}
-              >
-                <InvestorAgreements agreements={signed} investor={investor} />
-              </Loaded>
+              <div className="flex flex-col gap-4">
+                <Loaded
+                  query={theirs}
+                  skeleton={<Skeleton className="h-40 rounded-xl" />}
+                >
+                  <InvestorAgreements agreements={signed} investor={investor} />
+                </Loaded>
+                {/* Read on its own: somebody may have asked on Ventures they have not signed for. */}
+                <InvestorRequests investorId={investor.id} />
+              </div>
             ),
           },
           {

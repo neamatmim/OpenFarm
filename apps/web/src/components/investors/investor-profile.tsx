@@ -1,4 +1,4 @@
-import { formatDate } from "@OpenFarm/i18n";
+import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { cn } from "@OpenFarm/ui/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import type { Investor } from "@/components/investors/investor-types";
 import { PortalAccess, standingOf } from "@/components/investors/portal-access";
 import { Section } from "@/components/page";
 import { ConfirmDialog } from "@/components/page-kit";
+import { KIND_WORDS } from "@/components/ventures/request-parts";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
@@ -211,12 +212,57 @@ const PAPER_READ = {
   settlement_statement: "portal.paper.settlement",
 } as const;
 
-/** How many of the papers they read are listed before the rest are left to the trail. */
+/** How many of the papers they read, and of what they did to their Requests, are listed before the rest are left to
+ *  the trail. */
 const READ_SHOWN = 5;
+
+/** What an Investor has done in the portal, as the Owner reads it. */
+type PortalDone = Awaited<
+  ReturnType<typeof orpc.investors.portalActivity.call>
+>;
+
+/**
+ * What they did to their Requests to Join in the portal, the latest first, beside the papers they read: each made,
+ * changed or withdrawn, with the Units it said, on which Venture, and when. Nothing for somebody who never asked.
+ */
+const TheirRequestChanges = ({
+  changes,
+  when,
+}: {
+  changes: NonNullable<PortalDone>["requestChanges"];
+  when: (at: Date | null) => string | null;
+}) => {
+  const { t, language } = useLanguage();
+  if (changes.length === 0) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-muted-foreground text-xs">
+        {t("portal.activity.requested")}
+      </span>
+      <ul className="flex flex-col divide-y rounded-lg border text-sm">
+        {changes.slice(0, READ_SHOWN).map((one) => (
+          <li className="flex flex-col gap-0.5 px-3 py-2" key={one.id}>
+            <span className="font-medium">
+              {`${t(KIND_WORDS[one.kind], {
+                units: formatNumber(one.units, language),
+              })} · ${one.ventureName}`}
+            </span>
+            <span className="text-muted-foreground text-xs">
+              {when(one.at)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 /**
  * What an Investor has done in the portal, for the Owner: when they came in, when they were last in, how many places
- * they are signed in, and the latest papers they read — each already an Export under their name in the trail.
+ * they are signed in, the latest papers they read — each already an Export under their name in the trail — and what
+ * they did to their Requests to Join.
  * Nothing for somebody who never took an invitation up.
  */
 const PortalActivity = ({ investor }: { investor: Investor }) => {
@@ -279,6 +325,7 @@ const PortalActivity = ({ investor }: { investor: Investor }) => {
           </ul>
         )}
       </div>
+      <TheirRequestChanges changes={done.requestChanges ?? []} when={when} />
     </div>
   );
 };

@@ -22,7 +22,7 @@ import {
   portalStandings,
   takePortalAway,
 } from "../portal-store";
-import { closeRequests } from "../requests-to-join";
+import { closeRequests, theirRequests } from "../requests-to-join";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirAgreements } from "../their-agreements";
 import { lockTheFarm } from "../venture-store";
@@ -228,7 +228,8 @@ export const investorsRouter = {
 
   /**
    * What an Investor has done in the portal: when they came in, when they were last in, where they are signed in
-   * now, and the papers they read. Null for somebody who never took an invitation up. The Owner's alone.
+   * now, the papers they read and what they did to their Requests. Null for somebody who never took an invitation up.
+   * The Owner's alone.
    */
   portalActivity: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
@@ -236,6 +237,18 @@ export const investorsRouter = {
     .input(z.object({ id: z.string() }))
     .handler(({ context, input }) =>
       portalActivity(context.db, context.farm.id, input.id, context.clock.now())
+    ),
+
+  /**
+   * One Investor's Requests to Join across every Venture, the newest first, each with where it stands, the Owner's
+   * answer and why it closed if it did: their whole conversation with the farm in one place. The Owner's alone.
+   */
+  requests: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(({ context, input }) =>
+      theirRequests(context.db, context.farm.id, input.id)
     ),
 
   /**

@@ -85,6 +85,7 @@ export const en = {
     "{count, plural, one {On # device} other {On # devices}}",
   "portal.activity.read": "Papers they read, the latest first",
   "portal.activity.readNothing": "No paper read yet",
+  "portal.activity.requested": "Their requests to join",
   "portal.askTheFarm": "Questions? Call {farm} on {phone}.",
   "portal.endedTitle": "Please sign in again",
   "portal.endedHint":
@@ -1214,6 +1215,8 @@ export const en = {
   "investors.page.tab.overview": "Overview",
   "investors.page.tab.agreements": "Agreements",
   "investors.page.tab.money": "Money",
+  "investors.requests.hint":
+    "Every Venture they asked to join through the portal, the newest first, and where each stands.",
   "investors.page.heldNow": "Capital held now",
   "investors.page.onPapers":
     "{count, plural, one {On # Agreement} other {On # Agreements}}",

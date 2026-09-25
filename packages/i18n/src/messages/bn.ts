@@ -84,6 +84,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.activity.places": "{count}টি ডিভাইসে",
   "portal.activity.read": "যে কাগজ পড়েছেন, সর্বশেষটি আগে",
   "portal.activity.readNothing": "এখনো কোনো কাগজ পড়েননি",
+  "portal.activity.requested": "যোগ দেওয়ার অনুরোধ",
   "portal.askTheFarm": "প্রশ্ন আছে? {farm}-কে ফোন করুন {phone} নম্বরে।",
   "portal.endedTitle": "আবার সাইন ইন করুন",
   "portal.endedHint":
@@ -1111,6 +1112,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.tab.overview": "সারসংক্ষেপ",
   "investors.page.tab.agreements": "চুক্তি",
   "investors.page.tab.money": "টাকা",
+  "investors.requests.hint":
+    "পোর্টাল থেকে যত ভেঞ্চারে যোগ দিতে চেয়েছেন, নতুনটি আগে, আর প্রতিটি এখন কোথায়।",
   "investors.page.heldNow": "এখন খামারের কাছে মূলধন",
   "investors.page.onPapers": "{count}টি চুক্তিতে",
   "investors.page.inRunning": "চলমান ভেঞ্চারগুলোতে",
