@@ -112,6 +112,13 @@ const EXAMPLE: NoticeFacts = {
     lotNumber: "DEMO-LOT-1",
     expiresOn: "2038-02-28",
   },
+  join_requested: {
+    requestId: "request-1",
+    ventureId: "venture-1",
+    venture: "কোরবানি ২০৩৮",
+    investor: "আবুল হাশেম মিয়া",
+    units: 4,
+  },
 };
 
 const LANGUAGES: readonly Language[] = ["bn", "en"];
@@ -153,6 +160,17 @@ describe("what a Notice's words are filled with", () => {
     );
     expect(translate("en", "alerts.sopPublished", params("en"))).toBe(
       "Feeding — new version 2"
+    );
+  });
+
+  it("names who asks to join which Venture, with the Units in the reader's own numerals", () => {
+    const params = (language: Language) =>
+      noticeFilling("join_requested", EXAMPLE.join_requested, language);
+    expect(translate("bn", "alerts.joinRequested", params("bn"))).toBe(
+      "আবুল হাশেম মিয়া ৪টি ইউনিট নিয়ে কোরবানি ২০৩৮-এ যোগ দিতে চান"
+    );
+    expect(translate("en", "alerts.joinRequested", params("en"))).toBe(
+      "Request to join কোরবানি ২০৩৮ from আবুল হাশেম মিয়া: 4 Units"
     );
   });
 

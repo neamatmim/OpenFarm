@@ -103,7 +103,8 @@ const LEADS_CLASS =
 /**
  * Where a notice leads: to what it is about, so the notice is a way there rather than a sentence to go and act on
  * somewhere else — the work that is late or was sent back, the animal it names, the Venture whose Investors are
- * owed a paper. A notice about none of these has nowhere to go, and "got it" is its only answer.
+ * owed a paper, the Requests to Join waiting for an answer. A notice about none of these has nowhere to go, and "got
+ * it" is its only answer.
  */
 const WhereItLeads = ({
   notice,
@@ -121,6 +122,20 @@ const WhereItLeads = ({
         to="/ventures/$ventureId"
       >
         {t("alerts.makeThePaper")}
+      </Link>
+    );
+  }
+  if (notice.kind === "join_requested") {
+    const ventureId = ventureOf(notice.params);
+    return ventureId === null ? null : (
+      <Link
+        className={LEADS_CLASS}
+        hash="requests"
+        params={{ ventureId }}
+        search={{ tab: "investors" }}
+        to="/ventures/$ventureId"
+      >
+        {t("alerts.readTheRequests")}
       </Link>
     );
   }

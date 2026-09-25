@@ -2614,6 +2614,11 @@ export const en = {
   "drugs.doseWord": "doses",
   "alerts.investorStatementDue":
     "{venture}: {investors, plural, one {# Investor is} other {# Investors are}} due their progress statement ({occasion})",
+  "alerts.joinRequested":
+    "Request to join {venture} from {investor}: {units, plural, one {# Unit} other {# Units}}",
+  "digest.joinRequested":
+    "{count, plural, one {# request to join a Venture} other {# requests to join a Venture}} waiting for your answer",
+  "alerts.readTheRequests": "Read the requests",
   /** The one notice that leads somewhere: the screen where the paper it is about is made. */
   "alerts.makeThePaper": "Make the papers",
   "alerts.openTheWork": "Open the work",

@@ -3,8 +3,9 @@ import { formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Inbox } from "lucide-react";
+import { useEffect } from "react";
 
 import { useInvestorNames } from "@/components/investors/investor-names";
 import { SaidDate } from "@/components/list-cells";
@@ -45,6 +46,9 @@ const KIND_WORDS = {
   changed: "ventures.requests.kind.changed",
   withdrawn: "ventures.requests.kind.withdrawn",
 } as const satisfies Record<OneRequest["history"][number]["kind"], MessageKey>;
+
+/** Where on the page the Requests are, as an address names them: the Owner's Notice of a Request leads here. */
+const REQUESTS = "requests";
 
 /** One figure beside the target and the Floor. */
 const Total = ({
@@ -138,6 +142,17 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
   const read = useQuery(
     orpc.ventures.requests.queryOptions({ input: { ventureId: venture.id } })
   );
+  const hash = useLocation({ select: (location) => location.hash });
+  const loaded = !read.isPending;
+  // The Owner's Notice of a Request leads here by the address. The router looks for the section as the page opens,
+  // before the Requests have come and the section is drawn, so it is brought into view once they have.
+  useEffect(() => {
+    if (loaded && hash === REQUESTS) {
+      document
+        .querySelector(`#${REQUESTS}`)
+        ?.scrollIntoView({ block: "start" });
+    }
+  }, [loaded, hash]);
   if (read.isPending) {
     return <Skeleton className="h-32 rounded-xl" />;
   }
@@ -156,6 +171,7 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
   return (
     <Section
       description={t("ventures.requests.hint")}
+      id={REQUESTS}
       title={t("ventures.requests.title")}
     >
       <div className="flex flex-col gap-4">

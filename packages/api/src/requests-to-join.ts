@@ -13,6 +13,10 @@ import { z } from "zod";
 
 import type { Tx } from "./audit";
 import { unitsTaken } from "./investor-store";
+import {
+  settleTheRequestNotice,
+  tellTheOwnerOfARequest,
+} from "./join-request-notice";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
 import { pastDecideBy } from "./venture-showing";
@@ -65,9 +69,9 @@ const readRequest = async (tx: Tx, farmId: string, id: string) =>
 /**
  * Whether this Investor may ask to join this Venture now, behind the lock: it is shown and not past its decide-by
  * day, they are not retired, and they are not signed on it already. The portal being open and their access standing
- * is the door's to say, before any of this is reached.
+ * is the door's to say, before any of this is reached. Answers with their name, for the Owner's Notice.
  */
-const mayAsk = async (
+const whoMayAsk = async (
   tx: Tx,
   farmId: string,
   investorId: string,
@@ -88,7 +92,7 @@ const mayAsk = async (
   }
   const them = await tx.query.investor.findFirst({
     where: { id: investorId, farmId },
-    columns: { retiredAt: true },
+    columns: { name: true, retiredAt: true },
   });
   if (!them || them.retiredAt) {
     throw new ORPCError("BAD_REQUEST", {
@@ -106,6 +110,7 @@ const mayAsk = async (
       data: { refusal: "already_signed_on_venture" },
     });
   }
+  return them.name;
 };
 
 /**
@@ -142,7 +147,7 @@ export const askToJoin = async (
       after: (tx) => readRequest(tx, farmId, id),
     },
     apply: async (tx, standing) => {
-      await mayAsk(tx, farmId, investorId, standing, now);
+      const investor = await whoMayAsk(tx, farmId, investorId, standing, now);
       if (input.units > standing.units) {
         throw new ORPCError("BAD_REQUEST", {
           // Not how many it has: an Investor is never told the Venture's Units.
@@ -189,6 +194,19 @@ export const askToJoin = async (
         madeBy: context.actor.id,
         createdAt: now,
       });
+      await tellTheOwnerOfARequest(
+        tx,
+        farmId,
+        {
+          requestId: id,
+          ventureId: standing.id,
+          venture: standing.name,
+          investor,
+          units: input.units,
+        },
+        live?.units ?? null,
+        now
+      );
     },
   });
   return { id };
@@ -251,6 +269,12 @@ export const withdrawRequest = async (
         madeBy: context.actor.id,
         createdAt: now,
       });
+      await settleTheRequestNotice(
+        tx,
+        farmId,
+        { ventureId: standing.ventureId, requestId },
+        now
+      );
     },
   });
 };

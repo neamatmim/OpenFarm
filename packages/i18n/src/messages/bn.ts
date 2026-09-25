@@ -2440,6 +2440,10 @@ export const bn: Record<MessageKey, string> = {
   "drugs.doseWord": "ডোজ",
   "alerts.investorStatementDue":
     "{venture}: {investors} জন বিনিয়োগকারীর অগ্রগতিপত্র পাওনা ({occasion})",
+  "alerts.joinRequested":
+    "{investor} {units}টি ইউনিট নিয়ে {venture}-এ যোগ দিতে চান",
+  "digest.joinRequested": "{count}টি যোগ দেওয়ার অনুরোধ আপনার উত্তরের অপেক্ষায়",
+  "alerts.readTheRequests": "অনুরোধগুলো দেখুন",
   "alerts.makeThePaper": "কাগজ তৈরি করুন",
   "alerts.openTheWork": "কাজটি খুলুন",
   "alerts.openTheCard": "এর কার্ড খুলুন",

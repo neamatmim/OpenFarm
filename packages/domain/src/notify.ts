@@ -80,6 +80,9 @@ export const DELIVERY = {
   // A dose already given from a box past its day is about an animal, and the Vet hears of it at once — but it has
   // happened, and waking anybody would not un-give it.
   expired_dose_given: { when: "immediate" },
+  // Somebody asking to join is work waiting for the Owner, like money waiting for approval: the evening's reading. A
+  // request made at eleven at night wakes nobody.
+  join_requested: { when: "digest" },
 } as const satisfies Record<AlertKind, Delivery>;
 
 /**
@@ -188,6 +191,10 @@ export const SAYS: { [Kind in AlertKind]: Saying<Kind> } = {
       body: "push.expiredDoseBody",
     },
     digest: "digest.expiredDoseGiven",
+  },
+  join_requested: {
+    app: "alerts.joinRequested",
+    digest: "digest.joinRequested",
   },
 };
 

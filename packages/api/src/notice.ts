@@ -120,6 +120,9 @@ export const NOTICES: Record<AlertKind, NoticeKind> = {
     audience: [theManagers, { roles: ["vet"] }],
     entity: "treatment",
   },
+  // Who has asked to put money in is the Owner's business alone, as every Investor is: the Manager reads no Request
+  // (ADR 0008). Work waiting for her, not a Needs Review, which is the system unable to settle something.
+  join_requested: { audience: [theOwner], entity: "request_to_join" },
 };
 
 /** A Notice as it was raised, for whoever carries it out of the transaction to a pocket. */
