@@ -16,6 +16,8 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
+import { DataCopyAct } from "./data-copy";
+
 /** How long "copied" stays on the button before it offers to copy again. */
 const COPIED_FOR_MS = 2000;
 
@@ -109,14 +111,24 @@ const BankAccount = ({ account }: { account: string }) => {
   );
 };
 
-/** The one act at the head of somebody's page: putting their record right. */
-export const InvestorActs = ({ onEdit }: { onEdit: () => void }) => {
+/** The acts at the head of somebody's page: the copy of everything the farm holds on them, and putting their record
+ *  right. */
+export const InvestorActs = ({
+  investor,
+  onEdit,
+}: {
+  investor: Pick<Investor, "id" | "name">;
+  onEdit: () => void;
+}) => {
   const { t } = useLanguage();
   return (
-    <Button onClick={onEdit} type="button">
-      <Pencil aria-hidden data-icon="inline-start" />
-      {t("investors.edit")}
-    </Button>
+    <div className="flex flex-wrap gap-2">
+      <DataCopyAct investorId={investor.id} name={investor.name} />
+      <Button onClick={onEdit} type="button">
+        <Pencil aria-hidden data-icon="inline-start" />
+        {t("investors.edit")}
+      </Button>
+    </div>
   );
 };
 

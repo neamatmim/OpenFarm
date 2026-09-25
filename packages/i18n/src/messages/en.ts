@@ -1239,6 +1239,12 @@ export const en = {
   "investors.copyAccount": "Copy",
   "investors.copied": "Copied",
   "investors.edit": "Edit",
+  "investors.dataCopy": "Their data held by the farm",
+  "investors.dataCopyTitle": "What the farm holds about {name}",
+  "investors.dataCopyHint":
+    "Everything the farm holds about them, nothing masked, with the points of «আপনার তথ্য» first. When they ask in writing for a copy, print this and hand it to them; it is due within 30 days.",
+  "investors.dataCopyNoticeUnwritten":
+    "The points of «আপনার তথ্য» are this paper's first page, and they still need facts the farm has not written down. Write them under \"Who keeps the farm's records\" on the Agreement templates page and make it again.",
   "investors.editTitle": "Put {name}'s record right",
   "investors.editHint":
     "Change what has changed; the audit trail keeps what it said before",
@@ -1528,6 +1534,14 @@ export const en = {
   "auditField.nominee": "Nominee",
   "auditField.nomineePhone": "Nominee's phone",
   "auditField.nomineeRelation": "Nominee's relation",
+  "auditField.invitedAt": "Invited",
+  "auditField.acceptedAt": "First signed in",
+  "auditField.revokedAt": "Access taken away",
+  "auditField.revokedWhy": "Why it was taken away",
+  "auditField.codeExpiresAt": "Code good until",
+  "auditField.signedOn": "Day signed",
+  "auditField.withdrawnOn": "Day withdrawn",
+  "auditField.withdrawnHow": "How it was withdrawn",
   "auditField.visitedOn": "Visited on",
   "auditField.pinSet": "PIN set",
   "auditField.from": "From",

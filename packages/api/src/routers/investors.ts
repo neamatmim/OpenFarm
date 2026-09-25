@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { dataCopyOf } from "../data-copy";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
@@ -436,6 +437,19 @@ export const investorsRouter = {
       );
       return { open: input.open };
     }),
+
+  /**
+   * The Data Copy, «খামারে আপনার তথ্য»: everything the farm holds on one Investor, unmasked, the privacy notice's
+   * points first, to answer their written request for a copy (`dataCopyOf`). An Export; the Owner's alone, and never
+   * offered in the portal.
+   */
+  dataCopy: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ id: z.string() }))
+    .handler(async ({ context, input }) => ({
+      document: await dataCopyOf(context, input.id),
+    })),
 
   /**
    * The Portal Consent sheet for one Investor, to print and have them sign in front of the Owner before any code: the

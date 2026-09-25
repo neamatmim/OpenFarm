@@ -33,6 +33,13 @@ export const investorLoginOf = (phone: string): string | null => {
   return number ? `${number}@${INVESTOR_LOGIN_DOMAIN}` : null;
 };
 
+/** The phone an Investor's portal account signs in with, read back from its address: the other half of
+ *  `investorLoginOf`, kept beside it. Null for an address that is not an Investor's. */
+export const phoneOfInvestorLogin = (email: string): string | null =>
+  email.toLowerCase().endsWith(`@${INVESTOR_LOGIN_DOMAIN}`)
+    ? email.slice(0, email.indexOf("@"))
+    : null;
+
 /** Whether an address is an Investor's portal account rather than somebody's who works on the farm. */
 export const isInvestorLogin = (email: string): boolean =>
   email.toLowerCase().endsWith(`@${INVESTOR_LOGIN_DOMAIN}`);

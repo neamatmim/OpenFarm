@@ -529,6 +529,7 @@ export {
   investorLoginOf,
   isInvestorLogin,
   mobileNumberOf,
+  phoneOfInvestorLogin,
 } from "./investor-login";
 export { maskedDigits } from "./masked-digits";
 export { payInCode, payInCodeIn } from "./pay-in-code";

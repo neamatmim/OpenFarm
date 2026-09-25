@@ -124,7 +124,9 @@ const TheInvestor = ({
         {t("investors.page.back")}
       </Link>
       <PageHeader
-        actions={<InvestorActs onEdit={() => setEditing(true)} />}
+        actions={
+          <InvestorActs investor={investor} onEdit={() => setEditing(true)} />
+        }
         description={investor.address ?? undefined}
         meta={
           <>

@@ -885,15 +885,15 @@ export const theirRequests = async (
 /**
  * What one Investor did to their Requests in the portal — each made, changed and withdrawn, with the Units it then said,
  * when, and on which Venture — the latest first and the later id first where the moment is the same. For the Owner's
- * page of them, beside the papers they read, at most as many as are asked for. Only the Investor changes a Request, so
- * every change to theirs is their own act; an answer or a close is the Owner's or the farm's, and says itself in where
- * the Request stands.
+ * page of them, beside the papers they read, at most as many as are asked for (all of them, asked for none). Only
+ * the Investor changes a Request, so every change to theirs is their own act; an answer or a close is the Owner's or
+ * the farm's, and says itself in where the Request stands.
  */
 export const whatTheyDidToTheirRequests = async (
   db: Pick<Tx, "query">,
   farmId: string,
   investorId: string,
-  most: number
+  most?: number
 ) => {
   const theirs = await db.query.requestToJoin.findMany({
     where: { farmId, investorId },
