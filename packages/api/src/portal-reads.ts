@@ -1,6 +1,13 @@
-import { farmDayOf, maskedDigits } from "@OpenFarm/domain";
+import {
+  FARM_FIELDS,
+  factsMissing,
+  farmDayOf,
+  maskedDigits,
+  paperFrom,
+} from "@OpenFarm/domain";
 
 import type { Context } from "./context";
+import { readKeepers } from "./data-keepers";
 import { howToPay } from "./how-to-pay";
 import type { PaperMaking } from "./investor-papers";
 import {
@@ -15,8 +22,10 @@ import {
 } from "./investor-statement-store";
 import { shareOfUnits } from "./investor-statement-words";
 import { signedInOn } from "./membership";
+import { paperValues } from "./paper-values";
 import { ownerNameOf, requireTheirs } from "./portal-store";
 import { theirRequests } from "./requests-to-join";
+import { wordingInForce } from "./template-store";
 import { theirAgreements } from "./their-agreements";
 import { theirProgress } from "./venture-herd-store";
 import { openVenturesFor } from "./venture-showing";
@@ -204,4 +213,63 @@ export const theirPaper = async (
   }
   const { text } = await settlementStatementFor(making, agreementId);
   return { text, photos: [] };
+};
+
+/** One part of «আপনার তথ্য» as a page reads it: its heading and what it says, in Bangla. */
+export interface NoticePart {
+  heading: string;
+  lines: string[];
+}
+
+/**
+ * «আপনার তথ্য», the privacy notice, as a page of the portal reads it: the Version in force, laid out as the paper is and
+ * with the farm's own facts in it, in Bangla. Nothing while one of those facts is still unwritten: a notice with a
+ * blank in it tells an Investor nothing, and the farm writes it down before anybody reads it here.
+ */
+export const theNoticeToRead = async (
+  db: Context["db"],
+  farm: NonNullable<Context["farm"]>
+): Promise<{
+  notice: { title: string; preamble: string; parts: NoticePart[] } | null;
+  version: number;
+  /** Whom to ask, while the notice is not ready and after. */
+  farm: { name: string; phone: string | null };
+}> => {
+  const whomToAsk = { name: farm.name, phone: farm.phone };
+  const wording = await wordingInForce(db, farm.id, "privacy_notice");
+  const ownerName = await ownerNameOf(db, farm.id);
+  const values = paperValues({
+    farm,
+    ownerName,
+    keepers: await readKeepers(db, farm.id),
+  });
+  if (factsMissing(wording.content, values, FARM_FIELDS).length > 0) {
+    return { notice: null, version: wording.number, farm: whomToAsk };
+  }
+  const paper = paperFrom(wording.content, {
+    kind: "privacy_notice",
+    parties: { farm, ownerName, investors: [] },
+    values,
+    producedBy: ownerName,
+    producedAt: "",
+    version: wording.number,
+  });
+  return {
+    notice: {
+      title: paper.title.bn,
+      preamble: paper.preamble.bn,
+      parts: paper.sections.flatMap((section) =>
+        section.kind === "clauses"
+          ? [
+              {
+                heading: section.heading.bn,
+                lines: section.clauses.map((clause) => clause.bn),
+              },
+            ]
+          : []
+      ),
+    },
+    version: wording.number,
+    farm: whomToAsk,
+  };
 };

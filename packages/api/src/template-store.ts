@@ -142,6 +142,24 @@ export const currentWording = async (
   return asWording(template.currentVersion);
 };
 
+/**
+ * The wording a kind of paper is in now, and its Version's number — the standard wording, as Version 1, for a farm not
+ * yet given any. Read without giving: what somebody outside the farm reads never writes the farm's records.
+ */
+export const wordingInForce = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  kind: TemplateKind
+): Promise<{ content: TemplateContent; number: number }> => {
+  const template = await db.query.paperTemplate.findFirst({
+    where: { farmId, kind },
+    with: { currentVersion: true },
+  });
+  return template?.currentVersion
+    ? asWording(template.currentVersion)
+    : { content: STANDARD_TEMPLATES[kind], number: 1 };
+};
+
 /** One Version by its id, on this farm. */
 export const wordingById = async (
   db: Pick<Tx, "query">,

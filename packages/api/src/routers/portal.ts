@@ -7,6 +7,7 @@ import {
   theirOpenVentures,
   theirOwnRequests,
   theirPaper,
+  theNoticeToRead,
   theirPortfolio,
   theirRecord,
   theirSignIns,
@@ -79,6 +80,21 @@ export const portalRouter = {
       })
     )
     .handler(({ context, input }) => takeUpInvitation(context, input)),
+
+  /**
+   * «আপনার তথ্য», the privacy notice, for anybody reading the portal, signed in or not: what the farm keeps about an
+   * Investor and how to ask about it (`theNoticeToRead`). Closed with the portal.
+   */
+  yourData: publicProcedure.handler(({ context }) => {
+    const theFarm = context.farm;
+    if (!theFarm?.investorPortal) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "The investor portal is not open",
+        data: { refusal: "portal_closed" },
+      });
+    }
+    return theNoticeToRead(context.db, theFarm);
+  }),
 
   /** Who is signed in, which farm's portal it is, and their own record, masked (`theirRecord`). */
   me: investorProcedure.handler(({ context }) => theirRecord(context)),

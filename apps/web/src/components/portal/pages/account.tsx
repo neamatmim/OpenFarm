@@ -7,7 +7,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { IdCard, LogOut, Monitor, ShieldCheck, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -71,9 +71,19 @@ const Held = ({ label, children }: { label: string; children: ReactNode }) => {
  */
 const TheirDetails = ({ me }: { me: Me }) => {
   const { t } = useLanguage();
+  const { yourData } = usePortalPlaces();
   const { record } = me;
   return (
     <Section
+      action={
+        <Link
+          className="text-primary text-sm underline underline-offset-4"
+          params={yourData.link.params}
+          to={yourData.link.to}
+        >
+          {t("portal.yourData.link")}
+        </Link>
+      }
       description={t("portal.account.detailsHint")}
       title={t("portal.account.details")}
     >

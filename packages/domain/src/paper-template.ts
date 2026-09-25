@@ -406,12 +406,12 @@ export interface PaperInvestor {
 
 /**
  * What the farm knows of the parties: the Owner signing for the Farm, and the Investor — or, on an Amendment, every
- * Investor on the Venture, since it is one paper they all sign.
+ * Investor on the Venture, since it is one paper they all sign; or nobody, on the notice any Investor reads.
  */
 export interface PaperParties {
   farm: FarmIdentity;
   ownerName: string;
-  investors: readonly [PaperInvestor, ...PaperInvestor[]];
+  investors: readonly PaperInvestor[];
 }
 
 /** A part of the paper as printed: the Owner's wording with the farm's facts in it. */

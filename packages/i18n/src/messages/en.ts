@@ -283,6 +283,12 @@ export const en = {
   "portal.preview.seeAsTheyDo": "See as they do",
   "portal.preview.seeAsTheyDoHint":
     "Read their portal as they would today, before you invite them. They won't know.",
+  "portal.yourData.link": "How the farm keeps your data",
+  "portal.yourData.back": "Back to the portal",
+  "portal.yourData.notReady": "The farm is still writing this down",
+  "portal.yourData.notReadyHint":
+    "Ask {farm} what it keeps about you and why: {phone}.",
+  "portal.yourData.closed": "The portal is closed",
   "portal.back": "Your portfolio",
   "portal.ventureHint":
     "How the Venture stands today. Days are counted and weights are read; nothing here is a forecast.",

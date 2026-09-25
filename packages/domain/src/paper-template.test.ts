@@ -144,6 +144,9 @@ describe("a paper filled from a Version", () => {
 describe("an Amendment", () => {
   it("is one paper every Investor on the Venture signs", () => {
     const [first] = PARTIES.investors;
+    if (!first) {
+      throw new Error("expected the Investor");
+    }
     const everybody: PaperParties = {
       ...PARTIES,
       investors: [first, { ...first, name: "সালমা", nid: null }],

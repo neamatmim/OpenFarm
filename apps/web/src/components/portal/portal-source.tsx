@@ -161,6 +161,7 @@ export const usePortalPlaces = () => {
     papers: place("papers"),
     account: place("account"),
     openVentures: place("open"),
+    yourData: place("your-data"),
     venture: (agreementId: string) =>
       place("ventures/$agreementId", { agreementId }),
     openVenture: (ventureId: string) => place("open/$ventureId", { ventureId }),
