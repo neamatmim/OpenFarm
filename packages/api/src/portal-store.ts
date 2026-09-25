@@ -27,6 +27,15 @@ import { whatTheyDidToTheirRequests } from "./requests-to-join";
 /** How long an invitation's code stands before the Owner has to give a new one. */
 const A_WEEK = 7 * 24 * 60 * 60 * 1000;
 
+const SPACES = /\s/gu;
+
+/**
+ * The hash an invitation's code is kept by, from however it was typed: the Code Slip prints it in two groups of four,
+ * to be read out over the phone, and typed as printed the gap is no part of it; nor is a lower-case letter.
+ */
+const theCodeTyped = (typed: string): Promise<string> =>
+  hashToken(typed.replaceAll(SPACES, "").toUpperCase());
+
 /**
  * Where an Investor stands with the portal, as the Owner's list shows it. Somebody who has taken a code up is in
  * until their access is taken away — a new code for a forgotten password does not shut them out, their old password
@@ -288,11 +297,13 @@ export const takeUpInvitation = async (
     }
     return notAnInvitation();
   };
+  // Worked out once: the invitation is found by it and used up by it, and the two must never disagree.
+  const codeHash = await theCodeTyped(input.code);
   const access = await context.db.query.investorAccess.findFirst({
     where: {
       farmId: theFarm.id,
       loginEmail,
-      codeHash: await hashToken(input.code.trim().toUpperCase()),
+      codeHash,
     },
     columns: {
       id: true,
@@ -346,10 +357,7 @@ export const takeUpInvitation = async (
         .where(
           and(
             eq(investorAccess.id, access.id),
-            eq(
-              investorAccess.codeHash,
-              await hashToken(input.code.trim().toUpperCase())
-            )
+            eq(investorAccess.codeHash, codeHash)
           )
         )
         .returning({ id: investorAccess.id });
