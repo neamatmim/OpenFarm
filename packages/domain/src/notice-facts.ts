@@ -80,6 +80,15 @@ export interface NoticeFacts {
     lotNumber: string | null;
     expiresOn: string;
   };
+  /** An invited Investor asking to join a Venture through the portal: who, which Venture, and how many Units as the
+   *  Request now stands. Kept up to date as the Request changes, so it says what is waiting for an answer. */
+  join_requested: {
+    requestId: string;
+    ventureId: string;
+    venture: string;
+    investor: string;
+    units: number;
+  };
 }
 
 /** What a notice about a Lot carries. */

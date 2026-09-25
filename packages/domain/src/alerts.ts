@@ -24,6 +24,7 @@ export const ALERT_KINDS = [
   "lot_expired",
   "medicine_low_stock",
   "expired_dose_given",
+  "join_requested",
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 

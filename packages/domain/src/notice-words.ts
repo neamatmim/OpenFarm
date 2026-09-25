@@ -133,6 +133,12 @@ const FILLINGS: { [Kind in AlertKind]: Filling<Kind> } = {
     lot: facts.lotNumber ?? "—",
     date: saidDate(facts.expiresOn, language),
   }),
+  // A number, so the words say it in the reader's own numerals.
+  join_requested: (facts) => ({
+    investor: facts.investor,
+    venture: facts.venture,
+    units: Number(facts.units),
+  }),
 };
 
 const isKind = (kind: string): kind is AlertKind =>

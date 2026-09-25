@@ -1,10 +1,11 @@
-import { session as sessionTable } from "@OpenFarm/db/schema/auth";
-import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
-import { createRouterClient } from "@orpc/server";
+import { FakeClock } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import {
+  anInvitedInvestor,
+  signedInAs as investorSignedIn,
+} from "../test/portal-client";
 import { appRouter } from "./index";
 
 // A Request to Join (ADR 0008): an invited Investor saying they want whole Units of a Venture the Owner has shown,
@@ -14,7 +15,6 @@ import { appRouter } from "./index";
 const suffix = `${Date.now()}`.slice(-7);
 const JANUARY = "2052-01-01T04:00:00.000Z";
 const AFTER_DECIDE_BY = "2052-01-21T04:00:00.000Z";
-const PASSWORD = "gorur-khamar-2026";
 
 const asOwner = async (at = JANUARY) => {
   const { client } = await createTestClient(appRouter, {
@@ -24,85 +24,18 @@ const asOwner = async (at = JANUARY) => {
   return client;
 };
 
-type Client = Awaited<ReturnType<typeof asOwner>>;
-
-/** A client signed in as the account an invitation opened, on the day given. */
-const signedInAs = async (
-  loginEmail: string,
-  at = JANUARY
-): Promise<Client> => {
-  const db = scratchDb();
-  const person = await db.query.user.findFirst({
-    where: { email: loginEmail },
-  });
-  if (!person) {
-    throw new Error("expected the Investor's account");
-  }
-  const clock = new FakeClock(at);
-  const start = clock.now();
-  const id = `requests-session-${person.id}-${at}`;
-  await db
-    .insert(sessionTable)
-    .values({
-      id,
-      token: `requests-token-${person.id}-${at}`,
-      userId: person.id,
-      expiresAt: new Date(start.getTime() + 24 * 60 * 60 * 1000),
-      createdAt: start,
-      updatedAt: start,
-    })
-    .onConflictDoNothing();
-  const session = await db.query.session.findFirst({ where: { id } });
-  if (!session) {
-    throw new Error("expected the session");
-  }
-  const context = await buildContext({
-    session: { user: person, session },
-    device: null,
-    deviceStatus: "none",
-    callerAddress: null,
-    clock,
-    db,
-    farmId: theFarm().id,
-  });
-  return createRouterClient(appRouter, { context });
-};
+/** The API as an Investor reaches it, signed in on the day given. */
+const signedInAs = (loginEmail: string, at = JANUARY) =>
+  investorSignedIn(loginEmail, at);
 
 let phones = 0;
 
 /** An Investor written down by the Owner, invited, and signed in to the portal. */
-const invited = async (name: string) => {
+const invited = (name: string) => {
   phones += 1;
   // A Bangladeshi mobile number, eleven digits, different for each Investor and each run.
   const phone = `017${String(phones).padStart(2, "0")}${suffix.slice(-6)}`;
-  const owner = await asOwner();
-  const them = await owner.investors.record({
-    name: `${name} ${suffix}`,
-    phone,
-    address: "সাভার",
-    nid: "1234567890",
-    bankAccount: `01234${phone.slice(-5)}`,
-  });
-  const { code } = await owner.investors.inviteToPortal({ id: them.id });
-  const { client: nobody } = await createTestClient(appRouter, {
-    as: null,
-    clock: new FakeClock(JANUARY),
-  });
-  const { loginEmail } = await nobody.portal.join({
-    phone,
-    code,
-    password: PASSWORD,
-  });
-  const account = await scratchDb().query.user.findFirst({
-    where: { email: loginEmail },
-    columns: { id: true },
-  });
-  return {
-    id: them.id,
-    userId: account?.id ?? "",
-    loginEmail,
-    client: await signedInAs(loginEmail),
-  };
+  return anInvitedInvestor({ name: `${name} ${suffix}`, phone }, JANUARY);
 };
 
 const TERMS = {

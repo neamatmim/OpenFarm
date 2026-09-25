@@ -156,6 +156,8 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
   return (
     <Section
       description={t("ventures.requests.hint")}
+      // Where the Owner's Notice of a Request leads.
+      id="requests"
       title={t("ventures.requests.title")}
     >
       <div className="flex flex-col gap-4">
