@@ -1,5 +1,7 @@
 import { auth } from "@OpenFarm/auth";
 import type { Database } from "@OpenFarm/db";
+import { uuidv7 } from "@OpenFarm/db/ids";
+import { session as sessionTable } from "@OpenFarm/db/schema/auth";
 import type { RouterClient } from "@orpc/server";
 import { createRouterClient } from "@orpc/server";
 
@@ -99,3 +101,50 @@ export const clientOf = async (
   createRouterClient(appRouter, {
     context: await buildContext({ session: account.session, clock, db }),
   });
+
+/** The API as somebody signed in to nothing reaches it: the portal's join page, before anybody has an account. */
+export const nobodyClientOf = async (
+  db: Database,
+  clock: Clock
+): Promise<ApiClient> =>
+  createRouterClient(appRouter, {
+    context: await buildContext({ session: null, clock, db }),
+  });
+
+/**
+ * The API as an Investor reaches it from the portal, signed in on the farm's clock — so a sign-in that lasts a working
+ * day is a day of the farm's, not of whoever runs the seed.
+ */
+export const portalClientOf = async (
+  db: Database,
+  loginEmail: string,
+  clock: Clock
+): Promise<ApiClient> => {
+  const person = await db.query.user.findFirst({
+    where: { email: loginEmail },
+  });
+  if (!person) {
+    throw new Error(`No account for ${loginEmail}`);
+  }
+  const start = clock.now();
+  const id = uuidv7(start);
+  await db.insert(sessionTable).values({
+    id,
+    token: `seed-${id}`,
+    userId: person.id,
+    expiresAt: new Date(start.getTime() + DAY),
+    createdAt: start,
+    updatedAt: start,
+  });
+  const session = await db.query.session.findFirst({ where: { id } });
+  if (!session) {
+    throw new Error(`No session for ${loginEmail}`);
+  }
+  return createRouterClient(appRouter, {
+    context: await buildContext({
+      session: { user: person, session } as unknown as Session,
+      clock,
+      db,
+    }),
+  });
+};

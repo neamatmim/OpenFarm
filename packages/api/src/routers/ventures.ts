@@ -74,6 +74,7 @@ import {
   readSettlement,
   settlementOf,
 } from "../settlement-store";
+import { requestsOf } from "../requests-to-join";
 import { currentWording, giveStandardTemplates } from "../template-store";
 import { actOnVenture } from "../venture-act";
 import {
@@ -720,6 +721,18 @@ export const venturesRouter = {
       await takeOutOfPortal(context, input.id);
       return { id: input.id };
     }),
+
+  /**
+   * A Venture's Requests to Join, each with its history beneath it, and beside them the Units signed and the Units
+   * asked for and waiting — the Owner's to read, and nobody else's.
+   */
+  requests: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ ventureId: z.string() }))
+    .handler(({ context, input }) =>
+      requestsOf(context.db, context.farm.id, input.ventureId)
+    ),
 
   /**
    * The Owner says the money is in and the buying may start. Refused while what the Venture holds is under

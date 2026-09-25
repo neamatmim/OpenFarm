@@ -22,6 +22,7 @@ const OWNERS_TRAIL = [
   "venture_movement",
   "venture_settlement",
   "venture_bank_check",
+  "request_to_join",
 ] as const;
 
 /** The audit log. Owner and Manager see everyone's actions, less the Owner's own records for the Manager; every

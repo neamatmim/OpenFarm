@@ -100,7 +100,8 @@ export const en = {
   "portal.open.title": "Ventures raising capital",
   "portal.open.hint":
     "Ventures the farm is still raising capital for. Joining is only by signing a stamped Agreement with the farm, in person.",
-  "portal.open.none": "The farm is not raising capital for any Venture just now",
+  "portal.open.none":
+    "The farm is not raising capital for any Venture just now",
   "portal.open.closed": "No longer taking requests",
   "portal.open.unit": "One Unit",
   "portal.open.target": "Raising",
@@ -119,6 +120,52 @@ export const en = {
     "Joining is only by signing a stamped Agreement with the farm, in person. Nothing is paid or signed here.",
   "portal.open.back": "All Ventures raising capital",
   "portal.open.notFound": "This Venture is not being offered",
+  "portal.request.title": "Ask to join",
+  "portal.request.units": "How many Units",
+  "portal.request.comesTo":
+    "{units, plural, one {# Unit} other {# Units}} come to {taka}",
+  "portal.request.note": "A note for the farm, if you like",
+  "portal.request.notePlaceholder": "Such as: I can pay after Eid",
+  "portal.request.bindsNobody":
+    "Asking binds neither you nor the farm. It holds no Units for you and moves no money. Joining is only by signing a stamped Agreement with the farm, in person.",
+  "portal.request.untilAnswered":
+    "You can change or withdraw it until the farm answers.",
+  "portal.request.send": "Send my request",
+  "portal.request.change": "Change my request",
+  "portal.request.withdraw": "Withdraw my request",
+  "portal.request.sent": "Your request is sent",
+  "portal.request.changed": "Your request is changed",
+  "portal.request.withdrawn": "Your request is withdrawn",
+  "portal.request.yours":
+    "You asked for {units, plural, one {# Unit} other {# Units}} ({taka}) on {day}.",
+  "portal.requests.title": "Your requests to join",
+  "portal.requests.hint":
+    "What you have asked the farm for, and where each stands. A request binds nobody.",
+  "portal.requests.line":
+    "{units, plural, one {# Unit} other {# Units}} · {taka}",
+  "portal.requests.state.waiting": "Waiting for the farm",
+  "portal.requests.state.come_and_sign": "The farm will sign with you",
+  "portal.requests.state.not_this_time": "Not this time",
+  "portal.requests.state.withdrawn": "Withdrawn",
+  "portal.requests.state.signed": "Signed",
+  "portal.requests.state.closed": "Closed",
+  "portal.request.refused.notShown":
+    "The farm is no longer showing this Venture",
+  "portal.request.refused.pastDecideBy":
+    "Its decide-by day has passed, so it takes no more requests",
+  "portal.request.refused.wrongState":
+    "This Venture is no longer raising capital",
+  "portal.request.refused.retired":
+    "The farm cannot take a request from you just now. Please call the farm.",
+  "portal.request.refused.alreadySigned":
+    "You have signed for this Venture already",
+  "portal.request.refused.beyondVenture":
+    "This Venture does not have that many Units",
+  "portal.request.refused.answered":
+    "The farm has answered this request already",
+  "portal.request.refused.notLive":
+    "This request is no longer waiting on anybody",
+  "portal.request.refused.noSuch": "There is no such request",
 
   "portal.account.new": "New password",
   "portal.money.hint":
@@ -904,6 +951,30 @@ export const en = {
   "ventures.portal.nowShown": "Shown in the portal",
   "ventures.portal.wordsSaved": "Words saved",
   "ventures.portal.takenOut": "Taken out of the portal",
+  "ventures.requests.title": "Requests to join",
+  "ventures.requests.hint":
+    "Asked through the Investor portal. A request binds nobody and holds no Units: only a signed Agreement does.",
+  "ventures.requests.none": "Nobody has asked to join through the portal",
+  "ventures.requests.signed": "Signed",
+  "ventures.requests.waiting": "Asked for and waiting",
+  "ventures.requests.target": "Raising",
+  "ventures.requests.floor": "Floor",
+  "ventures.requests.unitsAndTaka":
+    "{units, plural, one {# Unit} other {# Units}} · {taka}",
+  "ventures.requests.col.when": "Asked",
+  "ventures.requests.col.note": "Note",
+  "ventures.requests.history": "What they did",
+  "ventures.requests.kind.made":
+    "Asked for {units, plural, one {# Unit} other {# Units}}",
+  "ventures.requests.kind.changed":
+    "Changed to {units, plural, one {# Unit} other {# Units}}",
+  "ventures.requests.kind.withdrawn": "Withdrew",
+  "ventures.requests.state.waiting": "Waiting for your answer",
+  "ventures.requests.state.come_and_sign": "Come and sign",
+  "ventures.requests.state.not_this_time": "Not this time",
+  "ventures.requests.state.withdrawn": "Withdrawn",
+  "ventures.requests.state.signed": "Signed",
+  "ventures.requests.state.closed": "Closed",
   "ventures.page.cattleLeft": "Left to buy cattle with",
   "ventures.page.runningLeft": "Left to keep them with",
   "ventures.page.cattleBudget": "Cattle budget",

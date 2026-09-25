@@ -4,7 +4,13 @@ import { farmDayOf } from "@OpenFarm/domain";
 import { balanceAtMonthEnd } from "../venture-store";
 import type { Bull, Herd } from "./herd";
 import type { Happening } from "./history";
-import { addDays, onFarm } from "./runtime";
+import {
+  SEED_PASSWORD,
+  addDays,
+  nobodyClientOf,
+  onFarm,
+  portalClientOf,
+} from "./runtime";
 import { CATTLE_BUYERS, breedIdNamed, daysBetween } from "./shared";
 import type { Farm } from "./standing";
 
@@ -655,6 +661,7 @@ export const runTheVentures = (
 
   // The next run, opened a few days ago and still gathering capital, shown to the farm's invited Investors with a
   // line of the Owner's (ADR 0008) — so the portal's page of Ventures raising capital has one to show.
+  let nextId = "";
   on(
     addDays(today, -3),
     "10:00",
@@ -673,6 +680,41 @@ export const runTheVentures = (
       await f.as.owner.ventures.showInPortal({
         id: next.id,
         words: "২০২৭ সালের ঈদুল আযহার জন্য দেশি ষাঁড়, সাভারের শেডে।",
+      });
+      nextId = next.id;
+    }
+  );
+
+  // One of the farm's Investors, let into the portal the evening before, asks to join it — so the Venture-to-join page,
+  // their own list and the Owner's Requests have one waiting. They sign in with their phone and the seed's password.
+  on(
+    addDays(today, -1),
+    "20:30",
+    "an Investor asks to join the next Venture",
+    async (f) => {
+      const [asker] = INVESTORS;
+      const them = await f.db.query.investor.findFirst({
+        where: { farmId: f.farmId, name: asker.name, phone: asker.phone },
+        columns: { id: true },
+      });
+      if (!them) {
+        throw new Error(`${asker.name} was never written down`);
+      }
+      await f.as.owner.investors.setPortalOpen({ open: true });
+      const { code } = await f.as.owner.investors.inviteToPortal({
+        id: them.id,
+      });
+      const nobody = await nobodyClientOf(f.db, f.clock);
+      const { loginEmail } = await nobody.portal.join({
+        phone: asker.phone,
+        code,
+        password: SEED_PASSWORD,
+      });
+      const investor = await portalClientOf(f.db, loginEmail, f.clock);
+      await investor.portal.requestToJoin({
+        ventureId: nextId,
+        units: 4,
+        note: "ঈদের পরে বাকি টাকা দিতে পারব।",
       });
     }
   );
