@@ -1,6 +1,8 @@
 # Bring the portal as built to the lawyer
 
-Status: open
+Status: claimed
+
+Assignee: Neamat Khan Mim
 
 Type: task
 
@@ -58,3 +60,20 @@ Recorded as [ADR 0008](../../../docs/adr/0008-invited-investors-see-ventures-rai
 - [ ] **The bank details** show only on the Investor's own signed Agreement, never beside an open Venture. They come with the amount still owed, a Pay-in Code, the decide-by day, and "the farm will never ask you to pay anywhere else". Is that the line the lawyer meant?
 
 **This ticket stays open until the written opinion is in hand**, and is then resolved with where that opinion is kept. The data-protection questions carried over from ticket 01 were not reported as answered, and still need answers. Until the written opinion arrives, the portal stays switched off for real Investors.
+
+## The agent's part: done 2026-09-25
+
+The pack is [`assets/07-lawyer-pack.md`](../assets/07-lawyer-pack.md). It lists what to bring, how to show the portal while the Preview is unbuilt (a test Investor on the seed database), and the full checklist for the written opinion. It holds:
+- [a one-page summary of the portal](../assets/07-portal-one-page-summary.md), for printing
+- [the privacy notice](../assets/06-your-data-notice-draft.md), from ticket 06
+- [the Portal Consent sheet](../assets/07-portal-consent-sheet-draft.md), from ticket 08
+- [the Investment Agreement's data clause and nominee lines](../assets/07-agreement-data-clause-draft.md), from ticket 08
+- the research's seven questions (section 14), with three more:
+  - a nominee under 18 (s.9)
+  - Investors signed before the clause (s.40)
+  - what the host contracts must say (s.8)
+
+Ticket 11's checklist points here for the data questions.
+
+**What is left is the Owner's:** the meeting, and the written opinion. The ticket stays open, assigned to the Owner, until the opinion is in hand.
+

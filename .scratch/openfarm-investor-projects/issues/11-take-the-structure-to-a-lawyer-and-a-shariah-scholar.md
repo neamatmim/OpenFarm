@@ -35,6 +35,8 @@ The investor portal (ADR 0007), asked by the Owner on 2026-09-25. The detail is 
 - [x] May it show the Venture Account's bank details and the reference for capital already signed for on a stamped Agreement? **Yes.** Verbal, 2026-09-25.
 - [ ] Would taking payment inside the portal need Bangladesh Bank approval under the PSS Act 2024 s.15(2)? Can it fit bank channels only and "no capital without a stamped Agreement"? **Not approved.** It stays out of the portal.
 
+- [ ] **The portal's data questions** (Personal Data Protection Act 2026): the ground for the portal and the records, Singapore hosting, twelve years, a nominee under 18, and whether the notice, consent sheet and Agreement data clause suffice. They are listed in full, with the drafts, in [the lawyer's pack for the Investor Portal](../../openfarm-investor-portal/assets/07-lawyer-pack.md).
+
 The portal as built, invitation-only, was said to be acceptable too. That answers the checklist's "Would a future investor login?" for the portal, verbally. See [ADR 0008](../../../docs/adr/0008-invited-investors-see-ventures-raising-capital-and-how-to-pay.md).
 
 Checklist for the Shariah scholar:
