@@ -1,10 +1,17 @@
-import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure } from "../index";
-import { signedInOn } from "../membership";
-import { theirPaper, theirRecord, theirVentureToday } from "../portal-reads";
+import {
+  PORTAL_PAPER_KINDS,
+  theirOpenVentures,
+  theirOwnRequests,
+  theirPaper,
+  theirPortfolio,
+  theirRecord,
+  theirSignIns,
+  theirVentureToday,
+} from "../portal-reads";
 import {
   endSignIn,
   investorOf,
@@ -15,12 +22,9 @@ import {
 import {
   askToJoin,
   requestNote,
-  theirRequests,
   unitsAsked,
   withdrawRequest,
 } from "../requests-to-join";
-import { theirAgreements } from "../their-agreements";
-import { openVenturesFor } from "../venture-showing";
 
 /** Anybody who is not an Investor the farm has let in, however they came. */
 const refuse = () =>
@@ -76,39 +80,17 @@ export const portalRouter = {
     )
     .handler(({ context, input }) => takeUpInvitation(context, input)),
 
-  /**
-   * Who is signed in to the portal, which farm's and how to reach it, and their own record as the farm holds it — the
-   * NID and the bank account with all but their last digits hidden, enough to know them by on a screen somebody may
-   * be looking over. They are put right by the Owner, not here.
-   */
+  /** Who is signed in, which farm's portal it is, and their own record, masked (`theirRecord`). */
   me: investorProcedure.handler(({ context }) => theirRecord(context)),
 
-  /**
-   * Their whole part in the farm's Ventures: each Agreement with the capital held on it and what a Settlement paid,
-   * and every taka of theirs that moved — capital in, capital back, payouts — the latest first. Read from their side
-   * and narrowed to them before anything is assembled, as the Owner's page of them is.
-   */
+  /** Their Agreements and every taka of theirs that moved (`theirPortfolio`). */
   portfolio: investorProcedure.handler(({ context }) =>
-    theirAgreements(
-      context.db,
-      context.farm.id,
-      context.investor.id,
-      farmDayOf(context.clock.now())
-    )
+    theirPortfolio(context)
   ),
 
-  /**
-   * The Ventures still gathering capital that the Owner has shown in the portal (ADR 0008): their terms, the split
-   * the farm signs on today, and the Owner's few words — never how many Units are left, who else has asked or anything
-   * off an Agreement. None for a retired Investor, and none they are already signed for.
-   */
+  /** The Ventures raising capital the Owner is showing them (`theirOpenVentures`, ADR 0008). */
   openVentures: investorProcedure.handler(({ context }) =>
-    openVenturesFor(
-      context.db,
-      context.farm,
-      context.investor.id,
-      context.clock.now()
-    )
+    theirOpenVentures(context)
   ),
 
   /**
@@ -131,43 +113,30 @@ export const portalRouter = {
       return { id: input.requestId };
     }),
 
-  /** Their own Requests to Join, the latest first, and where each stands. Never anybody else's. */
+  /** Their own Requests to Join and where each stands (`theirOwnRequests`). */
   myRequests: investorProcedure.handler(({ context }) =>
-    theirRequests(context.db, context.farm.id, context.investor.id)
+    theirOwnRequests(context)
   ),
 
   /** Where they are signed in to the portal now, the one they are reading on marked, so they can sign the rest
    *  out. */
-  signedInOn: investorProcedure.handler(async ({ context }) => {
-    const here = context.session?.session.id ?? null;
-    const places = await signedInOn(
-      context.db,
-      context.actor.id,
-      context.clock.now()
-    );
-    return places.map((one) => ({ ...one, here: one.id === here }));
-  }),
+  signedInOn: investorProcedure.handler(({ context }) =>
+    theirSignIns(context, context.session?.session.id ?? null)
+  ),
 
-  /**
-   * One of their Ventures as it stands today, for the portal to draw rather than print: their part of it, how the
-   * animals are doing, where the Venture's money has gone and what is left of its budgets. The same figures the
-   * progress statement says, and no projection — days are counted, weights are read, nothing is forecast.
-   */
+  /** One of their own Ventures as it stands today (`theirVentureToday`); refused for one not theirs. */
   venture: investorProcedure
     .input(z.object({ agreementId: z.string() }))
     .handler(({ context, input }) =>
       theirVentureToday(context, input.agreementId)
     ),
 
-  /**
-   * One of their own papers, as the Owner would print it: the joining letter, the progress statement, or — once the
-   * Settlement is approved — the settlement statement. Each is an Export in the trail, attributed to the Investor.
-   */
+  /** One of their own papers (`theirPaper`), an Export in the trail attributed to the Investor. */
   paper: investorProcedure
     .input(
       z.object({
         agreementId: z.string(),
-        kind: z.enum(["joining", "progress", "settlement"]),
+        kind: z.enum(PORTAL_PAPER_KINDS),
       })
     )
     .handler(({ context, input }) =>

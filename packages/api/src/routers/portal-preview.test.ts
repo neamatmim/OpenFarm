@@ -1,10 +1,8 @@
-import { session as sessionTable } from "@OpenFarm/db/schema/auth";
-import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
-import { createRouterClient } from "@orpc/server";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { buildContext } from "../context";
 import { createTestClient } from "../test/client";
+import { anInvitedInvestor } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // The Portal Preview: the Owner reading one Investor's portal as they would read it today, from the Owner's own
@@ -12,10 +10,11 @@ import { appRouter } from "./index";
 
 const suffix = `${Date.now()}`.slice(-7);
 const JANUARY = "2052-01-01T04:00:00.000Z";
+/** Later the same day: past the hour a real "last in" is kept to, so a Preview that marked them seen would show. */
+const LATER = "2052-01-01T07:00:00.000Z";
 let rahimId = "";
 let salmaId = "";
 const clock = () => new FakeClock(JANUARY);
-const PASSWORD = "gorur-khamar-2026";
 
 const asOwner = async () => {
   const { client } = await createTestClient(appRouter, {
@@ -25,65 +24,21 @@ const asOwner = async () => {
   return client;
 };
 
-type Client = Awaited<ReturnType<typeof asOwner>>;
-
-/** A client signed in as the account an invitation opened. */
-const signedInAs = async (loginEmail: string): Promise<Client> => {
-  const db = scratchDb();
-  const person = await db.query.user.findFirst({
-    where: { email: loginEmail },
-  });
-  if (!person) {
-    throw new Error("expected the Investor's account");
-  }
-  const at = clock().now();
-  await db
-    .insert(sessionTable)
-    .values({
-      id: `preview-session-${person.id}`,
-      token: `preview-token-${person.id}`,
-      userId: person.id,
-      expiresAt: new Date(at.getTime() + 24 * 60 * 60 * 1000),
-      createdAt: at,
-      updatedAt: at,
-    })
-    .onConflictDoNothing();
-  const session = await db.query.session.findFirst({
-    where: { id: `preview-session-${person.id}` },
-  });
-  if (!session) {
-    throw new Error("expected the session");
-  }
-  const context = await buildContext({
-    session: { user: person, session },
-    device: null,
-    deviceStatus: "none",
-    callerAddress: null,
-    clock: clock(),
-    db,
-    farmId: theFarm().id,
-  });
-  return createRouterClient(appRouter, { context });
-};
-
 let ventureId = "";
 const agreementOf: Record<string, string> = {};
-let rahim: Client;
-let rahimsUser = "";
+let rahim: Awaited<ReturnType<typeof anInvitedInvestor>>["client"];
 
-/** One Investor, signed for the Venture on stamp paper and paid in by bank. */
-const signAndPay = async (name: string, phone: string, units: number) => {
+/** Signed for the Venture on stamp paper and paid in by bank. */
+const signAndPay = async (
+  name: string,
+  investorId: string,
+  phone: string,
+  units: number
+) => {
   const owner = await asOwner();
-  const him = await owner.investors.record({
-    name: `${name} ${suffix}`,
-    phone,
-    address: "সাভার",
-    nid: "1234567890",
-    bankAccount: `01234${phone.slice(-5)}`,
-  });
   const signed = await owner.ventures.sign({
     ventureId,
-    investorId: him.id,
+    investorId,
     units,
     investorsPercent: 60,
     arbitrator: `সালিস ${suffix}`,
@@ -105,7 +60,6 @@ const signAndPay = async (name: string, phone: string, units: number) => {
     reference: `TRF-${phone}`,
   });
   agreementOf[name] = signed.id;
-  return him.id;
 };
 
 beforeAll(async () => {
@@ -129,24 +83,24 @@ beforeAll(async () => {
     cattleBudgetBdt: 800_000,
   });
   ventureId = venture.id;
-  rahimId = await signAndPay("রহিম", `0172${suffix}`, 3);
-  salmaId = await signAndPay("সালমা", `0173${suffix}`, 5);
   await owner.investors.setPortalOpen({ open: true });
-  const { code } = await owner.investors.inviteToPortal({ id: rahimId });
-  const { client: nobody } = await createTestClient(appRouter, {
-    as: null,
-    clock: clock(),
+  // রহিম took his invitation up and reads his own portal; সালমা was never invited.
+  const him = await anInvitedInvestor(
+    { name: `রহিম ${suffix}`, phone: `0172${suffix}` },
+    JANUARY
+  );
+  rahimId = him.id;
+  rahim = him.client;
+  await signAndPay("রহিম", rahimId, `0172${suffix}`, 3);
+  const her = await owner.investors.record({
+    name: `সালমা ${suffix}`,
+    phone: `0173${suffix}`,
+    address: "সাভার",
+    nid: "1234567890",
+    bankAccount: `01234${suffix.slice(-5)}`,
   });
-  const { loginEmail } = await nobody.portal.join({
-    phone: `0172${suffix}`,
-    code,
-    password: PASSWORD,
-  });
-  rahim = await signedInAs(loginEmail);
-  const account = await scratchDb().query.user.findFirst({
-    where: { email: loginEmail },
-  });
-  rahimsUser = account?.id ?? "";
+  salmaId = her.id;
+  await signAndPay("সালমা", salmaId, `0173${suffix}`, 5);
 });
 
 /** Where they are signed in, with which one is "here" left out: the Owner is on none of them. */
@@ -200,6 +154,47 @@ describe("the Portal Preview", () => {
     }
   });
 
+  it("reads anybody on file, whatever their standing: invited, code ran out, taken away, retired", async () => {
+    const owner = await asOwner();
+    const recorded = async (name: string, phone: string) => {
+      const them = await owner.investors.record({
+        name: `${name} ${suffix}`,
+        phone,
+        address: "সাভার",
+        nid: "1234567890",
+        bankAccount: `05678${phone.slice(-5)}`,
+      });
+      return them.id;
+    };
+    const invited = await recorded("করিম", `0174${suffix}`);
+    await owner.investors.inviteToPortal({ id: invited });
+    const ranOut = await recorded("জামাল", `0175${suffix}`);
+    await owner.investors.inviteToPortal({ id: ranOut });
+    const takenAway = await anInvitedInvestor(
+      { name: `কামাল ${suffix}`, phone: `0176${suffix}` },
+      JANUARY
+    );
+    await owner.investors.takePortalAway({ id: takenAway.id });
+    const retired = await recorded("হাসান", `0177${suffix}`);
+    await owner.investors.retire({ id: retired });
+    // A week and more on, the second code has run out.
+    const { client: later } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock("2052-01-10T04:00:00.000Z"),
+    });
+
+    for (const investorId of [invited, ranOut, takenAway.id, retired]) {
+      // oxlint-disable-next-line no-await-in-loop
+      await expect(
+        later.portalPreview.me({ investorId })
+      ).resolves.toMatchObject({ investorId });
+    }
+    // A retired Investor is offered nothing, as their own portal would offer them nothing.
+    expect(
+      await later.portalPreview.openVentures({ investorId: retired })
+    ).toEqual([]);
+  });
+
   it("never shows one Investor's Venture through another's preview", async () => {
     const owner = await asOwner();
 
@@ -226,11 +221,17 @@ describe("the Portal Preview", () => {
   });
 
   it("leaves nothing on the Investor's side, and a paper made there is the Owner's own Export", async () => {
-    const owner = await asOwner();
     const agreementId = agreementOf["রহিম"] ?? "";
+    // রহিম read his own portal at JANUARY; the Owner reads it hours later.
+    await rahim.portal.me();
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock: new FakeClock(LATER),
+    });
     const before = await owner.investors.portalActivity({ id: rahimId });
 
     await owner.portalPreview.me({ investorId: rahimId });
+    await owner.portalPreview.portfolio({ investorId: rahimId });
     await owner.portalPreview.venture({ investorId: rahimId, agreementId });
     const paper = await owner.portalPreview.paper({
       investorId: rahimId,
@@ -254,6 +255,6 @@ describe("the Portal Preview", () => {
         inPreviewOf: rahimId,
       }),
     });
-    expect(made?.actorId).not.toBe(rahimsUser);
+    expect(made?.actorId).toBe(thePerson("owner").id);
   });
 });

@@ -15,6 +15,7 @@ import { Handshake, ScrollText } from "lucide-react";
 
 import { Nothing, SaidDate } from "@/components/list-cells";
 import { EmptyState, Section, StatusBadge } from "@/components/page";
+import { usePortalPlaces } from "@/components/portal/portal-source";
 import {
   useInvestorPapers,
   ProducedPaper,
@@ -285,17 +286,16 @@ const VentureLink = ({
   agreementId: string;
   inThePortal: boolean;
 }) => {
+  // In the portal the Venture is the reader's own page of it, wherever that portal is drawn — an Investor's own, or
+  // the Owner's Preview of it.
+  const inPortal = usePortalPlaces().venture(agreementId).link;
   if (!venture) {
     return <Nothing />;
   }
   const className =
     "underline-offset-4 hover:underline focus-visible:underline";
   return inThePortal ? (
-    <Link
-      className={className}
-      params={{ agreementId }}
-      to="/portal/ventures/$agreementId"
-    >
+    <Link className={className} params={inPortal.params} to={inPortal.to}>
       {venture.name}
     </Link>
   ) : (

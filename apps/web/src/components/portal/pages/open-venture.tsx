@@ -105,8 +105,8 @@ export const OpenVenturePage = ({ ventureId }: { ventureId: string }) => {
     <Page>
       <Link
         className="text-muted-foreground hover:text-foreground -mb-2 flex w-fit items-center gap-1 text-sm"
-        params={places.open.params}
-        to={places.open.to}
+        params={places.openVentures.link.params}
+        to={places.openVentures.link.to}
       >
         <ArrowLeft aria-hidden className="size-4" />
         {t("portal.open.back")}

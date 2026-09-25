@@ -40,7 +40,7 @@ const VentureCard = ({
 }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const { to, params } = usePortalPlaces().venture(one.id);
+  const { to, params } = usePortalPlaces().venture(one.id).link;
   return (
     <li>
       <Link

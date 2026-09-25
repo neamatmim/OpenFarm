@@ -38,7 +38,7 @@ export const Fact = ({
 export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const { to, params } = usePortalPlaces().openVenture(one.id);
+  const { to, params } = usePortalPlaces().openVenture(one.id).link;
   return (
     <li>
       <Link
@@ -89,7 +89,7 @@ export const OpenVentureCards = ({
 export const OpenVenturesOnHome = () => {
   const { t } = useLanguage();
   const offered = useTheirOpenVentures();
-  const { open } = usePortalPlaces();
+  const { openVentures } = usePortalPlaces();
   const ventures = offered.data ?? [];
   if (ventures.length === 0) {
     return null;
@@ -99,8 +99,8 @@ export const OpenVenturesOnHome = () => {
       action={
         <Link
           className="text-primary text-sm underline"
-          params={open.params}
-          to={open.to}
+          params={openVentures.link.params}
+          to={openVentures.link.to}
         >
           {t("portal.open.back")}
         </Link>

@@ -267,7 +267,7 @@ const RequestForm = ({
             </Button>
           ) : null}
         </div>
-        {acting.can ? null : <WhyNot why={acting.why} />}
+        <WhyNot acting={acting} />
       </form>
     </Section>
   );
@@ -331,7 +331,7 @@ const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
         <Undo2 aria-hidden data-icon="inline-start" />
         {t("portal.request.withdraw")}
       </Button>
-      {acting.can ? null : <WhyNot why={acting.why} />}
+      <WhyNot acting={acting} />
     </div>
   );
 };
@@ -352,7 +352,7 @@ const RequestVentureName = ({
 }) => {
   const places = usePortalPlaces();
   if (one.agreementId) {
-    const { to, params } = places.venture(one.agreementId);
+    const { to, params } = places.venture(one.agreementId).link;
     return (
       <Link className={LINKED_NAME} params={params} to={to}>
         {one.ventureName}
@@ -360,7 +360,7 @@ const RequestVentureName = ({
     );
   }
   if (stillOffered) {
-    const { to, params } = places.openVenture(one.ventureId);
+    const { to, params } = places.openVenture(one.ventureId).link;
     return (
       <Link className={LINKED_NAME} params={params} to={to}>
         {one.ventureName}

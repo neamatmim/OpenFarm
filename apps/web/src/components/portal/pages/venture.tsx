@@ -355,8 +355,8 @@ const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
     <>
       <Link
         className="text-muted-foreground hover:text-foreground -mb-2 inline-flex items-center gap-1 self-start text-sm"
-        params={places.home.params}
-        to={places.home.to}
+        params={places.home.link.params}
+        to={places.home.link.to}
       >
         <ArrowLeft aria-hidden className="size-4" />
         {t("portal.back")}
@@ -379,7 +379,7 @@ const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
       <PageTabs
         onChange={(value) =>
           navigate({
-            ...places.venture(today.agreementId),
+            ...places.venture(today.agreementId).link,
             replace: true,
             search: value === "animals" ? {} : { tab: value },
           })

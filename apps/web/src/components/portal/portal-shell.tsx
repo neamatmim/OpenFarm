@@ -175,7 +175,7 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               <PortalNavLink
-                here={here(places.home.path)}
+                here={here(home)}
                 icon={LayoutDashboard}
                 label={t("portal.nav.portfolio")}
                 onGo={close}
@@ -236,7 +236,8 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
   );
 };
 
-/** Who is signed in to the portal — an Investor, by name and phone — their account, and the way out. */
+/** Whose portal this is — an Investor, by name and phone — their account, and the way out: signing out in their own
+ *  portal, back to their page in the Owner's Preview. */
 const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
   const t = useT();
   const navigate = useNavigate();
@@ -335,24 +336,27 @@ export const PortalShell = ({
     <SidebarProvider>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
       <SidebarInset className="min-w-0">
-        {band}
-        <header
-          className="bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-5"
-          data-app-chrome
-        >
-          <SidebarTrigger aria-label={t("nav.menu")} className="-ml-1 size-9" />
-          <div className="flex-1" />
-          <div className="flex shrink-0 items-center gap-1">
-            <LanguageToggle />
-            <ThemeMenu />
-            {me.data ? (
-              <PortalUserMenu
-                name={me.data.name}
-                phone={me.data.record.phone}
-              />
-            ) : null}
-          </div>
-        </header>
+        {/* The band and the bar are pinned together, so the Preview's band never covers the reader's settings. */}
+        <div className="sticky top-0 z-30" data-app-chrome>
+          {band}
+          <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-5">
+            <SidebarTrigger
+              aria-label={t("nav.menu")}
+              className="-ml-1 size-9"
+            />
+            <div className="flex-1" />
+            <div className="flex shrink-0 items-center gap-1">
+              <LanguageToggle />
+              <ThemeMenu />
+              {me.data ? (
+                <PortalUserMenu
+                  name={me.data.name}
+                  phone={me.data.record.phone}
+                />
+              ) : null}
+            </div>
+          </header>
+        </div>
         <main
           className="flex-1 pb-24 outline-none md:pb-4"
           id="main"

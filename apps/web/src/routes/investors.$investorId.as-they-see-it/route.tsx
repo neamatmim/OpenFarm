@@ -1,5 +1,11 @@
+import { Button } from "@OpenFarm/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+} from "@tanstack/react-router";
 import { Users } from "lucide-react";
 
 import { EmptyState, Page } from "@/components/page";
@@ -23,15 +29,29 @@ const REFUSALS = {
  */
 const PreviewLayout = () => {
   const { investorId } = Route.useParams();
-  const them = useQuery(
-    orpc.portalPreview.me.queryOptions({ input: { investorId } })
-  );
+  const them = useQuery({
+    ...orpc.portalPreview.me.queryOptions({ input: { investorId } }),
+    // Nobody by that address is an answer, not a failure: asked again, it would say the same.
+    retry: (count, error) => wordOf(error) !== "no_such_investor" && count < 1,
+  });
   const t = useT();
   const name = them.data?.name ?? "";
+  if (them.isPending) {
+    // The band names whose portal this is: nothing is drawn until it can.
+    return null;
+  }
   if (them.isError && wordOf(them.error) === "no_such_investor") {
     return (
       <Page>
-        <EmptyState icon={Users} title={t(REFUSALS.no_such_investor)} />
+        <EmptyState
+          action={
+            <Button render={<Link to="/investors" />} variant="outline">
+              {t("investors.page.back")}
+            </Button>
+          }
+          icon={Users}
+          title={t(REFUSALS.no_such_investor)}
+        />
       </Page>
     );
   }

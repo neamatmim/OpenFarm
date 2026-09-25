@@ -14,12 +14,16 @@ import {
   theirSpend,
 } from "./investor-statement-store";
 import { shareOfUnits } from "./investor-statement-words";
+import { signedInOn } from "./membership";
 import { ownerNameOf, requireTheirs } from "./portal-store";
+import { theirRequests } from "./requests-to-join";
+import { theirAgreements } from "./their-agreements";
 import { theirProgress } from "./venture-herd-store";
+import { openVenturesFor } from "./venture-showing";
 
 // What one Investor reads in the portal, page by page. Asked for by the Investor from their own sign-in, or by the
-// Owner's Portal Preview for them: the answer is the same either way, so there is one of each, and neither marks
-// anything read.
+// Owner's Portal Preview for them: the answer is the same either way, so each page is read here once, and nothing here
+// marks anything read — that is the Investor's own door's business.
 
 /** Whose portal is being read, on which farm, and when. */
 export interface PortalReader {
@@ -58,6 +62,49 @@ export const theirRecord = async ({ db, farm, investor }: PortalReader) => {
         : null,
     },
   };
+};
+
+/**
+ * Their whole part in the farm's Ventures: each Agreement with the capital held on it and what a Settlement paid, and
+ * every taka of theirs that moved — capital in, capital back, payouts — the latest first. Read from their side and
+ * narrowed to them before anything is assembled, as the Owner's page of them is.
+ */
+export const theirPortfolio = ({ db, clock, farm, investor }: PortalReader) =>
+  theirAgreements(db, farm.id, investor.id, farmDayOf(clock.now()));
+
+/**
+ * The Ventures still gathering capital that the Owner has shown in the portal (ADR 0008): their terms, the split the
+ * farm signs on today, and the Owner's few words — never how many Units are left, who else has asked or anything off
+ * an Agreement. None for a retired Investor, and none they are already signed for.
+ */
+export const theirOpenVentures = ({
+  db,
+  clock,
+  farm,
+  investor,
+}: PortalReader) => openVenturesFor(db, farm, investor.id, clock.now());
+
+/** Their own Requests to Join, the latest first, and where each stands. Never anybody else's. */
+export const theirOwnRequests = ({ db, farm, investor }: PortalReader) =>
+  theirRequests(db, farm.id, investor.id);
+
+/**
+ * Where their portal account is signed in now, the one being read on marked — none of them when it is the Owner
+ * reading. Nothing for somebody who never took an invitation up.
+ */
+export const theirSignIns = async (
+  { db, clock, farm, investor }: PortalReader,
+  readingOn: string | null
+) => {
+  const access = await db.query.investorAccess.findFirst({
+    where: { farmId: farm.id, investorId: investor.id },
+    columns: { userId: true },
+  });
+  if (!access?.userId) {
+    return [];
+  }
+  const places = await signedInOn(db, access.userId, clock.now());
+  return places.map((one) => ({ ...one, here: one.id === readingOn }));
 };
 
 /**
@@ -124,7 +171,12 @@ export const theirVentureToday = async (
 };
 
 /** The three papers the portal shows an Investor. */
-export type PortalPaperKind = "joining" | "progress" | "settlement";
+export const PORTAL_PAPER_KINDS = [
+  "joining",
+  "progress",
+  "settlement",
+] as const;
+export type PortalPaperKind = (typeof PORTAL_PAPER_KINDS)[number];
 
 /**
  * One of their own papers, as the Owner would print it: the joining letter, the progress statement, or — once the

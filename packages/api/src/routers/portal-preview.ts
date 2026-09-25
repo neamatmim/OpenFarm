@@ -1,16 +1,20 @@
-import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Context } from "../context";
 import { protectedProcedure } from "../index";
-import { signedInOn } from "../membership";
 import type { PortalReader } from "../portal-reads";
-import { theirPaper, theirRecord, theirVentureToday } from "../portal-reads";
-import { theirRequests } from "../requests-to-join";
+import {
+  PORTAL_PAPER_KINDS,
+  theirOpenVentures,
+  theirOwnRequests,
+  theirPaper,
+  theirPortfolio,
+  theirRecord,
+  theirSignIns,
+  theirVentureToday,
+} from "../portal-reads";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
-import { theirAgreements } from "../their-agreements";
-import { openVenturesFor } from "../venture-showing";
 
 // The Portal Preview: the Owner reading one Investor's portal as they would read it today, from the Owner's own
 // sign-in. The Owner's check before inviting anybody, and what the lawyer is shown — so it answers for anybody on
@@ -59,52 +63,32 @@ export const portalPreviewRouter = {
     ),
 
   /** Their Agreements and money, as their portfolio shows them. */
-  portfolio: ownersPreview.input(whose).handler(async ({ context, input }) => {
-    const reader = await readerFor(context, input.investorId);
-    return theirAgreements(
-      reader.db,
-      reader.farm.id,
-      reader.investor.id,
-      farmDayOf(reader.clock.now())
-    );
-  }),
+  portfolio: ownersPreview
+    .input(whose)
+    .handler(async ({ context, input }) =>
+      theirPortfolio(await readerFor(context, input.investorId))
+    ),
 
   /** The Ventures raising capital their portal would offer them today: none if they are retired. */
   openVentures: ownersPreview
     .input(whose)
-    .handler(async ({ context, input }) => {
-      const reader = await readerFor(context, input.investorId);
-      return openVenturesFor(
-        reader.db,
-        reader.farm,
-        reader.investor.id,
-        reader.clock.now()
-      );
-    }),
+    .handler(async ({ context, input }) =>
+      theirOpenVentures(await readerFor(context, input.investorId))
+    ),
 
   /** Their Requests to Join as they read them. The Owner answers them from the Owner's own side, not here. */
-  myRequests: ownersPreview.input(whose).handler(async ({ context, input }) => {
-    const reader = await readerFor(context, input.investorId);
-    return theirRequests(reader.db, reader.farm.id, reader.investor.id);
-  }),
+  myRequests: ownersPreview
+    .input(whose)
+    .handler(async ({ context, input }) =>
+      theirOwnRequests(await readerFor(context, input.investorId))
+    ),
 
   /** Where they are signed in to the portal now; none of them is where the Owner is reading. */
-  signedInOn: ownersPreview.input(whose).handler(async ({ context, input }) => {
-    const reader = await readerFor(context, input.investorId);
-    const access = await reader.db.query.investorAccess.findFirst({
-      where: { farmId: reader.farm.id, investorId: reader.investor.id },
-      columns: { userId: true },
-    });
-    if (!access?.userId) {
-      return [];
-    }
-    const places = await signedInOn(
-      reader.db,
-      access.userId,
-      reader.clock.now()
-    );
-    return places.map((one) => ({ ...one, here: false }));
-  }),
+  signedInOn: ownersPreview
+    .input(whose)
+    .handler(async ({ context, input }) =>
+      theirSignIns(await readerFor(context, input.investorId), null)
+    ),
 
   /** One of their Ventures as their portal draws it today. Refused for an Agreement that is not theirs. */
   venture: ownersPreview
@@ -124,18 +108,13 @@ export const portalPreviewRouter = {
     .input(
       whose.extend({
         agreementId: z.string(),
-        kind: z.enum(["joining", "progress", "settlement"]),
+        kind: z.enum(PORTAL_PAPER_KINDS),
       })
     )
     .handler(async ({ context, input }) => {
       const reader = await readerFor(context, input.investorId);
       return theirPaper(
-        {
-          ...context,
-          farm: reader.farm,
-          actor: context.actor,
-          inPreviewOf: reader.investor.id,
-        },
+        { ...context, farm: reader.farm, inPreviewOf: reader.investor.id },
         reader.investor.id,
         input.agreementId,
         input.kind

@@ -19,7 +19,7 @@ export const PreviewBand = ({
   return (
     <aside
       aria-label={t("portal.preview.seeAsTheyDo")}
-      className="bg-primary text-primary-foreground sticky top-0 z-40 flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 text-sm md:px-5"
+      className="bg-primary text-primary-foreground flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 text-sm md:px-5"
       data-app-chrome
     >
       <Eye aria-hidden className="size-4 shrink-0" />

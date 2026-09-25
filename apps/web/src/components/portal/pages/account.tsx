@@ -228,15 +228,16 @@ const NewPassword = () => {
             {t("portal.account.change")}
           </Button>
         </fieldset>
-        {acting.can ? null : <WhyNot why={acting.why} />}
+        <WhyNot acting={acting} />
       </form>
     </Section>
   );
 };
 
 /**
- * Where they are signed in to the portal now — this phone marked — and one act: signing every other place out, for a
- * phone lost or a computer somebody else sits at. A sign-in lasts a working day, and the page says so.
+ * Where they are signed in to the portal now — the phone they are reading on marked, none of them in the Preview — and
+ * one act: signing every other place out, for a phone lost or a computer somebody else sits at. A sign-in lasts a
+ * working day, and the page says so.
  */
 const SignedIn = () => {
   const { t, language } = useLanguage();
@@ -278,7 +279,7 @@ const SignedIn = () => {
       description={t("portal.account.signedInHint")}
       title={t("portal.account.signedIn")}
     >
-      {acting.can || others === 0 ? null : <WhyNot why={acting.why} />}
+      {others === 0 ? null : <WhyNot acting={acting} />}
       <Loaded
         query={places}
         skeleton={<Skeleton className="h-16 rounded-lg" />}
@@ -339,7 +340,7 @@ export const PortalAccount = ({ tab = "details" }: { tab?: Tab }) => {
             label={t("portal.account.title")}
             onChange={(value) =>
               navigate({
-                ...places.account,
+                ...places.account.link,
                 replace: true,
                 search: value === "details" ? {} : { tab: value },
               })
