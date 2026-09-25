@@ -7,12 +7,16 @@ import {
   requestToJoin,
   requestToJoinChange,
 } from "@OpenFarm/db/schema/venture";
-import { REQUEST_NOTE_MOST, isLiveRequest } from "@OpenFarm/domain";
+import {
+  ANSWER_LINE_MOST,
+  REQUEST_NOTE_MOST,
+  isLiveRequest,
+} from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
-import { unitsTaken } from "./investor-store";
+import { countedInvestors, unitsTaken } from "./investor-store";
 import {
   settleTheRequestNotice,
   tellTheOwnerOfARequest,
@@ -63,6 +67,9 @@ const readRequest = async (tx: Tx, farmId: string, id: string) =>
       units: true,
       note: true,
       state: true,
+      answeredUnits: true,
+      answerLine: true,
+      answeredAt: true,
     },
   })) ?? null;
 
@@ -148,6 +155,22 @@ export const askToJoin = async (
     },
     apply: async (tx, standing) => {
       const investor = await whoMayAsk(tx, farmId, investorId, standing, now);
+      // After "not this time" the answer stands: otherwise a no is one tap from being undone.
+      const toldNo = await tx.query.requestToJoin.findFirst({
+        where: {
+          farmId,
+          ventureId: standing.id,
+          investorId,
+          state: "not_this_time",
+        },
+        columns: { id: true },
+      });
+      if (toldNo) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "The farm has answered: not this time",
+          data: { refusal: "request_already_answered" },
+        });
+      }
       if (input.units > standing.units) {
         throw new ORPCError("BAD_REQUEST", {
           // Not how many it has: an Investor is never told the Venture's Units.
@@ -334,7 +357,202 @@ const readAs = (
   state: one.state,
   madeAt: one.createdAt,
   changedAt: history.at(-1)?.at ?? one.createdAt,
+  /** The Units the farm will sign, after "come and sign". */
+  answeredUnits: one.answeredUnits,
+  /** The Owner's line, after "not this time". */
+  answerLine: one.answerLine,
 });
+
+/** The Units a Venture's yeses have promised and nobody has signed for yet. */
+const unitsPromised = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  ventureId: string
+): Promise<number> => {
+  const yeses = await db.query.requestToJoin.findMany({
+    where: { farmId, ventureId, state: "come_and_sign" },
+    columns: { answeredUnits: true },
+  });
+  return yeses.reduce((sum, one) => sum + (one.answeredUnits ?? 0), 0);
+};
+
+/** What saying yes to somebody would make the farm's Investor count, against the Cap. */
+export interface IfYes {
+  countAfter: number;
+  cap: number;
+  atOrBeyondCap: boolean;
+}
+
+/** Who stands today, and who has been told to come and sign without standing yet: what a yes is counted against. */
+interface Standing {
+  counted: Awaited<ReturnType<typeof countedInvestors>>;
+  newYeses: Set<string>;
+}
+
+const standingForYeses = async (
+  db: Pick<Tx, "query">,
+  farmId: string
+): Promise<Standing> => {
+  const counted = await countedInvestors(db, farmId);
+  const yeses = await db.query.requestToJoin.findMany({
+    where: { farmId, state: "come_and_sign" },
+    columns: { investorId: true },
+  });
+  const newYeses = new Set(
+    yeses
+      .map((one) => one.investorId)
+      .filter((investorId) => !counted.unitsOf.has(investorId))
+  );
+  return { counted, newYeses };
+};
+
+/**
+ * The count a yes to this Investor would lead to: the people standing today, them if they are new, and the others told
+ * to come and sign who are new too — because each of them, signed, is one more. Nothing for somebody already standing,
+ * whom signing adds nobody for. A warning, never a refusal: signing refuses at the Cap, as it always has, and a count
+ * that changes by the week should not refuse somebody the farm may sign later.
+ */
+const ifYesFor = (
+  { counted, newYeses }: Standing,
+  investorId: string,
+  cap: number
+): IfYes | null => {
+  if (counted.unitsOf.has(investorId)) {
+    return null;
+  }
+  const others = [...newYeses].filter((one) => one !== investorId).length;
+  const countAfter = counted.standing + 1 + others;
+  return { countAfter, cap, atOrBeyondCap: countAfter >= cap };
+};
+
+/** The Owner's answer to a Request: come and sign for so many Units, or not this time with a line. */
+export const theAnswer = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("come_and_sign"),
+    units: z.number().int().min(1),
+  }),
+  z.object({
+    kind: z.literal("not_this_time"),
+    line: z.string().trim().max(ANSWER_LINE_MOST).default(""),
+  }),
+]);
+
+type Answering = Asking & { farm: { id: string; investorCap: number } };
+
+/**
+ * The Owner answers a Request that is waiting. "Come and sign" promises the Units asked or fewer, and never more than
+ * the Venture has left once its signed Agreements and its other yeses are counted — read and written behind the lock,
+ * so two yeses racing for the last Units cannot both be given. It is refused past the decide-by day, whose Floor
+ * question is already answered; "not this time" never is, so nobody is left without an answer. Either takes the
+ * Owner's Notice of the Request down. A yes to somebody new answers with what signing them would make the count.
+ */
+export const answerRequest = async (
+  context: Answering,
+  requestId: string,
+  answer: z.infer<typeof theAnswer>
+): Promise<{ id: string; ifYes: IfYes | null }> => {
+  const farmId = context.farm.id;
+  const now = context.clock.now();
+  const theRequest = await context.db.query.requestToJoin.findFirst({
+    where: { id: requestId, farmId },
+    columns: { ventureId: true },
+  });
+  if (!theRequest) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such request",
+      data: { refusal: "no_such_request" },
+    });
+  }
+  let ifYes: IfYes | null = null;
+  await actOnVenture(context, {
+    ventureId: theRequest.ventureId,
+    from: ["open"],
+    wrongState:
+      "Only a Venture still gathering capital has its Requests answered",
+    trail: {
+      entity: "request_to_join",
+      entityId: requestId,
+      action: "update",
+      before: (tx) => readRequest(tx, farmId, requestId),
+      after: (tx) => readRequest(tx, farmId, requestId),
+    },
+    apply: async (tx, standing) => {
+      const request = await tx.query.requestToJoin.findFirst({
+        where: { id: requestId, farmId },
+      });
+      if (request?.state !== "waiting") {
+        const answered =
+          request?.state === "come_and_sign" ||
+          request?.state === "not_this_time" ||
+          request?.state === "signed";
+        throw answered
+          ? new ORPCError("BAD_REQUEST", {
+              message: "This Request has been answered already",
+              data: { refusal: "request_already_answered" },
+            })
+          : new ORPCError("BAD_REQUEST", {
+              message: "This Request is not waiting on anybody any more",
+              data: { refusal: "request_not_live" },
+            });
+      }
+      if (answer.kind === "not_this_time") {
+        await tx
+          .update(requestToJoin)
+          .set({
+            state: "not_this_time",
+            answerLine: answer.line === "" ? null : answer.line,
+            answeredBy: context.actor.id,
+            answeredAt: now,
+          })
+          .where(eq(requestToJoin.id, requestId));
+      } else {
+        if (pastDecideBy(standing.decideBy, now)) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: "Its decide-by day has passed; no new yes is given",
+            data: { refusal: "venture_past_decide_by" },
+          });
+        }
+        if (answer.units > request.units) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `They asked for ${request.units} Units`,
+            data: { refusal: "units_beyond_asked" },
+          });
+        }
+        const promisable =
+          standing.units -
+          (await unitsTaken(tx, farmId, standing.id)) -
+          (await unitsPromised(tx, farmId, standing.id));
+        if (answer.units > promisable) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: `Only ${Math.max(promisable, 0)} Units can still be promised`,
+            data: { refusal: "units_beyond_promisable" },
+          });
+        }
+        ifYes = ifYesFor(
+          await standingForYeses(tx, farmId),
+          request.investorId,
+          context.farm.investorCap
+        );
+        await tx
+          .update(requestToJoin)
+          .set({
+            state: "come_and_sign",
+            answeredUnits: answer.units,
+            answeredBy: context.actor.id,
+            answeredAt: now,
+          })
+          .where(eq(requestToJoin.id, requestId));
+      }
+      await settleTheRequestNotice(
+        tx,
+        farmId,
+        { ventureId: standing.id, requestId },
+        now
+      );
+    },
+  });
+  return { id: requestId, ifYes };
+};
 
 /**
  * A Venture's Requests as the Owner reads them: each with the Investor, Units, taka, note, when it was made and last
@@ -343,12 +561,13 @@ const readAs = (
  */
 export const requestsOf = async (
   db: Pick<Tx, "query">,
-  farmId: string,
+  farm: { id: string; investorCap: number },
   ventureId: string
 ) => {
+  const farmId = farm.id;
   const run = await db.query.venture.findFirst({
     where: { id: ventureId, farmId },
-    columns: { unitPriceBdt: true },
+    columns: { unitPriceBdt: true, units: true },
   });
   if (!run) {
     throw new ORPCError("NOT_FOUND", { message: "No such Venture" });
@@ -366,18 +585,31 @@ export const requestsOf = async (
   const waitingUnits = rows
     .filter((one) => one.state === "waiting")
     .reduce((sum, one) => sum + one.units, 0);
+  const promisedUnits = await unitsPromised(db, farmId, ventureId);
+  const standing = await standingForYeses(db, farmId);
   return {
     requests: rows.map((one) => {
       const history = changes.get(one.id) ?? [];
       return {
         ...readAs(one, run.unitPriceBdt, history),
         investorId: one.investorId,
+        answeredAt: one.answeredAt,
+        /** For one still waiting, what saying yes would make the Investor count. */
+        ifYes:
+          one.state === "waiting"
+            ? ifYesFor(standing, one.investorId, farm.investorCap)
+            : null,
         history,
       };
     }),
     totals: {
       signedUnits,
       signedBdt: signedUnits * run.unitPriceBdt,
+      /** Promised by a yes and not yet signed. */
+      promisedUnits,
+      promisedBdt: promisedUnits * run.unitPriceBdt,
+      /** What the Owner can still say yes to: the Units less those signed and those promised. */
+      promisableUnits: Math.max(run.units - signedUnits - promisedUnits, 0),
       waitingUnits,
       waitingBdt: waitingUnits * run.unitPriceBdt,
     },

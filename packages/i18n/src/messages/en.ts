@@ -168,6 +168,15 @@ export const en = {
   "portal.request.refused.noSuch": "There is no such request",
   "portal.request.refused.askedTwice":
     "You asked twice at once. Look again: your request is kept only once.",
+  "portal.request.willSign":
+    "The farm will sign {units, plural, one {# Unit} other {# Units}} with you.",
+  "portal.request.callToSign":
+    "Call {farm} on {phone} to arrange signing the Agreement in person.",
+  "portal.request.callTheFarm":
+    "The farm will call you to arrange signing the Agreement in person.",
+  "portal.request.stillWithdraw":
+    "If you cannot after all, you can still withdraw.",
+  "portal.request.notThisTime": "The farm's answer: not this time.",
 
   "portal.account.new": "New password",
   "portal.money.hint":
@@ -977,6 +986,27 @@ export const en = {
   "ventures.requests.state.withdrawn": "Withdrawn",
   "ventures.requests.state.signed": "Signed",
   "ventures.requests.state.closed": "Closed",
+  "ventures.requests.promised": "Promised, not yet signed",
+  "ventures.requests.comeAndSign": "Come and sign",
+  "ventures.requests.notThisTime": "Not this time",
+  "ventures.requests.answer.units": "Units the farm will sign",
+  "ventures.requests.answer.askedFor":
+    "They asked for {units, plural, one {# Unit} other {# Units}}.",
+  "ventures.requests.answer.canPromise":
+    "You can still say yes to {units, plural, one {# Unit} other {# Units}}.",
+  "ventures.requests.answer.countAfter":
+    "Signing them would make the Investor count {count}, of the {cap} the farm may have.",
+  "ventures.requests.answer.atTheCap":
+    "Signing them would make the Investor count {count}, and the farm may have {cap} at a time. You can still say yes, but signing is refused beyond the Cap.",
+  "ventures.requests.answer.line": "A line to the Investor, if you like",
+  "ventures.requests.answer.lineHint":
+    "They read it on their page in the portal. Nothing is sent to them.",
+  "ventures.requests.answer.done": "Answered",
+  "ventures.requests.answer.pastDecideBy":
+    "Its decide-by day has passed: no new yes can be given",
+  "ventures.requests.answer.nothingLeft": "No Units are left to promise",
+  "ventures.requests.answer.saidYes":
+    "Come and sign: {units, plural, one {# Unit} other {# Units}}",
   "ventures.page.cattleLeft": "Left to buy cattle with",
   "ventures.page.runningLeft": "Left to keep them with",
   "ventures.page.cattleBudget": "Cattle budget",
@@ -2060,6 +2090,10 @@ export const en = {
     "The Venture is not where it would have to be for that",
   "refusal.venturePastDecideBy": "Its decide-by day has passed",
   "refusal.ventureNotShown": "It is not shown in the portal",
+  "refusal.unitsBeyondAsked": "More Units than they asked for",
+  "refusal.unitsBeyondPromisable": "More Units than are left to promise",
+  "refusal.requestAlreadyAnswered": "This request has been answered already",
+  "refusal.requestNotLive": "This request is no longer waiting",
   "refusal.ventureUnderFloor":
     "The Venture holds less than the Floor it was opened on",
   "refusal.ventureFloorOverTarget":

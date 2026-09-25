@@ -30,3 +30,6 @@ export const isLiveRequest = (state: RequestToJoinState): boolean =>
 
 /** The longest note an Investor may send with a Request: a line for the Owner, such as when they can pay. */
 export const REQUEST_NOTE_MOST = 300;
+
+/** The longest line the Owner may send with "not this time". */
+export const ANSWER_LINE_MOST = 300;

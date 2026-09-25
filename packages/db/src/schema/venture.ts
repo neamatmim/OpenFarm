@@ -258,6 +258,13 @@ export const requestToJoin = pgTable(
     /** The account that asked: the Investor's own, opened from their invitation. */
     madeBy: text("made_by").references(() => user.id),
     createdAt: timestamp("created_at").notNull(),
+    /** The Owner's answer. For "come and sign", the Units the farm will sign: those asked, or fewer. Held by no
+     *  Agreement until one is signed, but no other yes may promise them. */
+    answeredUnits: integer("answered_units"),
+    /** For "not this time", the Owner's line to the Investor, if she wrote one. */
+    answerLine: text("answer_line"),
+    answeredBy: text("answered_by").references(() => user.id),
+    answeredAt: timestamp("answered_at"),
   },
   (table) => [
     index("request_to_join_venture_idx").on(table.farmId, table.ventureId),

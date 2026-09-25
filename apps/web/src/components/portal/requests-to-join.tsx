@@ -70,6 +70,48 @@ export const RequestStanding = ({ state }: { state: RequestToJoinState }) => {
 };
 
 /**
+ * The farm's answer to one of their Requests, as they read it: after a yes, the Units the farm will sign and whom to
+ * call to arrange it, and that they may still withdraw; after a no, that it is not this time, and the Owner's line if
+ * she wrote one. Nothing for a Request nobody has answered.
+ */
+const TheAnswer = ({ one }: { one: TheirRequest }) => {
+  const { t, language } = useLanguage();
+  const me = useQuery(orpc.portal.me.queryOptions());
+  // An answer this phone kept from before the farm could answer has neither.
+  const promised = one.answeredUnits ?? null;
+  const line = one.answerLine ?? null;
+  if (one.state === "come_and_sign" && promised !== null) {
+    const farm = me.data?.farm;
+    return (
+      <div className="flex flex-col gap-1 text-sm">
+        <p className="font-medium">
+          {t("portal.request.willSign", {
+            units: formatNumber(promised, language),
+          })}
+        </p>
+        <p>
+          {farm?.phone
+            ? t("portal.request.callToSign", {
+                farm: farm.name,
+                phone: farm.phone,
+              })
+            : t("portal.request.callTheFarm")}
+        </p>
+      </div>
+    );
+  }
+  if (one.state === "not_this_time") {
+    return (
+      <div className="flex flex-col gap-1 text-sm">
+        <p className="font-medium">{t("portal.request.notThisTime")}</p>
+        {line ? <p className="border-l-2 pl-3 break-words">{line}</p> : null}
+      </div>
+    );
+  }
+  return null;
+};
+
+/**
  * Asking to join, or changing what was asked: whole Units, the taka they come to, a note, and — before anything is
  * sent — that it binds nobody. A Request still waiting can be withdrawn from here too.
  */
@@ -129,6 +171,12 @@ const RequestForm = ({
                 day: formatDate(new Date(live.changedAt), language, "date"),
               })}
             </p>
+            <TheAnswer one={live} />
+            {waiting ? null : (
+              <p className="text-muted-foreground text-xs">
+                {t("portal.request.stillWithdraw")}
+              </p>
+            )}
           </div>
         ) : null}
         {live && !waiting ? null : (
@@ -200,15 +248,26 @@ const RequestForm = ({
  * live. Drawn afresh for each Request, so what the form starts from is the Request as the farm holds it.
  */
 export const AskToJoin = ({ one }: { one: OpenVenture }) => {
+  const { t } = useLanguage();
   const mine = useQuery(orpc.portal.myRequests.queryOptions());
   if (mine.isPending) {
     return null;
   }
   // An answer this phone kept from before Requests existed has none: read as nothing asked yet.
-  const live =
-    (mine.data ?? []).find(
-      (each) => each.ventureId === one.id && isLiveRequest(each.state)
-    ) ?? null;
+  const onThis = (mine.data ?? []).filter((each) => each.ventureId === one.id);
+  const live = onThis.find((each) => isLiveRequest(each.state)) ?? null;
+  // After "not this time" the answer stands, and there is nothing more to ask here.
+  const toldNo = onThis.find((each) => each.state === "not_this_time");
+  if (toldNo && !live) {
+    return (
+      <Section title={t("portal.request.title")}>
+        <div className="flex flex-col gap-2">
+          <RequestStanding state={toldNo.state} />
+          <TheAnswer one={toldNo} />
+        </div>
+      </Section>
+    );
+  }
   if (!(live || one.takingRequests)) {
     return null;
   }
@@ -265,6 +324,7 @@ export const TheirRequestsOnHome = () => {
                   {one.note}
                 </span>
               ) : null}
+              <TheAnswer one={one} />
             </div>
             <div className="flex shrink-0 flex-col gap-1 sm:items-end">
               <RequestStanding state={one.state} />

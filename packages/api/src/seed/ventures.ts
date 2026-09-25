@@ -625,6 +625,35 @@ export const openTheVentures = async (
 };
 
 /**
+ * One of the farm's Investors let into the portal, taking the invitation up with the seed's password, and asking to
+ * join a Venture the farm is showing. Answers with the Request's id.
+ */
+const anInvestorAsks = async (
+  f: Farm,
+  who: (typeof INVESTORS)[number],
+  ventureId: string,
+  asked: { units: number; note: string }
+): Promise<string> => {
+  const them = await f.db.query.investor.findFirst({
+    where: { farmId: f.farmId, name: who.name, phone: who.phone },
+    columns: { id: true },
+  });
+  if (!them) {
+    throw new Error(`${who.name} was never written down`);
+  }
+  const { code } = await f.as.owner.investors.inviteToPortal({ id: them.id });
+  const nobody = await nobodyClientOf(f.db, f.clock);
+  const { loginEmail } = await nobody.portal.join({
+    phone: who.phone,
+    code,
+    password: SEED_PASSWORD,
+  });
+  const investor = await portalClientOf(f.db, loginEmail, f.clock);
+  const { id } = await investor.portal.requestToJoin({ ventureId, ...asked });
+  return id;
+};
+
+/**
  * What happens to the two Ventures as the ninety days go by: quarantine ends, the month's paperwork is
  * kept, one Venture's animals go to the haat and its books are closed, and the Owner puts her own money
  * into the other when its Running Budget gets thin.
@@ -685,36 +714,28 @@ export const runTheVentures = (
     }
   );
 
-  // One of the farm's Investors, let into the portal the evening before, asks to join it — so the Venture-to-join page,
-  // their own list and the Owner's Requests have one waiting. They sign in with their phone and the seed's password.
+  // Two of the farm's Investors, let into the portal the evening before, ask to join it — so the Venture-to-join page,
+  // their own lists and the Owner's Requests have one waiting and one answered. They sign in with their phone and the
+  // seed's password.
   on(
     addDays(today, -1),
     "20:30",
-    "an Investor asks to join the next Venture",
+    "Investors ask to join the next Venture",
     async (f) => {
-      const [asker] = INVESTORS;
-      const them = await f.db.query.investor.findFirst({
-        where: { farmId: f.farmId, name: asker.name, phone: asker.phone },
-        columns: { id: true },
-      });
-      if (!them) {
-        throw new Error(`${asker.name} was never written down`);
-      }
       await f.as.owner.investors.setPortalOpen({ open: true });
-      const { code } = await f.as.owner.investors.inviteToPortal({
-        id: them.id,
-      });
-      const nobody = await nobodyClientOf(f.db, f.clock);
-      const { loginEmail } = await nobody.portal.join({
-        phone: asker.phone,
-        code,
-        password: SEED_PASSWORD,
-      });
-      const investor = await portalClientOf(f.db, loginEmail, f.clock);
-      await investor.portal.requestToJoin({
-        ventureId: nextId,
+      const [waiting, answered] = INVESTORS;
+      await anInvestorAsks(f, waiting, nextId, {
         units: 4,
         note: "ঈদের পরে বাকি টাকা দিতে পারব।",
+      });
+      const promised = await anInvestorAsks(f, answered, nextId, {
+        units: 6,
+        note: "",
+      });
+      // The Owner says come and sign, for five of the six: the rest are for somebody she has already promised.
+      await f.as.owner.ventures.answerRequest({
+        requestId: promised,
+        answer: { kind: "come_and_sign", units: 5 },
       });
     }
   );

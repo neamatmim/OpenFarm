@@ -53,7 +53,7 @@ import {
 import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
-import { requestsOf } from "../requests-to-join";
+import { answerRequest, requestsOf, theAnswer } from "../requests-to-join";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -731,7 +731,20 @@ export const venturesRouter = {
     .use(requirePersonalSession())
     .input(z.object({ ventureId: z.string() }))
     .handler(({ context, input }) =>
-      requestsOf(context.db, context.farm.id, input.ventureId)
+      requestsOf(context.db, context.farm, input.ventureId)
+    ),
+
+  /**
+   * The Owner answers a Request to Join: come and sign for the Units asked or fewer — never more than the Venture has
+   * left to promise — or not this time, with a line to the Investor if she likes. A yes to somebody new answers with
+   * what signing them would make the Investor count: a warning, never a refusal.
+   */
+  answerRequest: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(z.object({ requestId: z.string(), answer: theAnswer }))
+    .handler(({ context, input }) =>
+      answerRequest(context, input.requestId, input.answer)
     ),
 
   /**
