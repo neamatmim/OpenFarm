@@ -58,6 +58,8 @@ const REFUSALS: Record<string, MessageKey> = {
 const WAITING_ON_THE_LAWYER: ReadonlySet<TemplateKind> = new Set([
   "master_agreement",
   "venture_schedule",
+  "portal_consent",
+  "privacy_notice",
 ]);
 
 /** A farm day as the reader writes a date. */
@@ -294,8 +296,8 @@ const ReviewDialog = ({
 };
 
 /**
- * The wording of the papers an Investor signs: the Investment Agreement, the Master Agreement and its Venture
- * Schedule, and the Amendment. Each starts as OpenFarm's standard wording; the Owner reads it, changes it one
+ * The wording of the papers an Investor signs or is handed: the Investment Agreement, the Master Agreement and its
+ * Venture Schedule, the Amendment, the Portal Consent and the privacy notice. Each starts as OpenFarm's standard wording; the Owner reads it, changes it one
  * Version at a time, and writes down the lawyer's approval of a Version on it. What a man signed stays in the wording
  * he signed.
  */
@@ -339,20 +341,21 @@ const TemplatesPage = () => {
       { kind, content },
       {
         onSuccess: ({ document, missing }) =>
-          setShown({ paper: document, wording, missing: missing ?? [] }),
+          setShown({ paper: document, wording, missing }),
       }
     );
+  // The farm's own facts the paper asks for that nobody has written down: said before it is handed to anybody.
+  const factsLeftToWrite = (shown?.missing.length ?? 0) > 0;
+  const missingFacts = (shown?.missing ?? [])
+    .map((field) => TEMPLATE_FIELDS[field][language])
+    .join(", ");
   const paperDialog = (
     <PaperDialog
       description={t("templates.previewHint")}
       notice={
-        shown && shown.missing.length > 0 ? (
+        factsLeftToWrite ? (
           <Notice
-            title={t("templates.missing", {
-              facts: shown.missing
-                .map((field) => TEMPLATE_FIELDS[field][language])
-                .join(", "),
-            })}
+            title={t("templates.missing", { facts: missingFacts })}
             tone="warning"
           />
         ) : null

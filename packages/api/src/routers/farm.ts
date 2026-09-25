@@ -14,7 +14,7 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
-import { readKeepers } from "../data-keepers";
+import { dataKeepersInput, readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";
@@ -174,14 +174,6 @@ const readIdentity = async (tx: Tx, farmId: string) => {
   });
   return row ?? null;
 };
-
-/** A name the Owner writes, or nothing: blank is nothing, so the notice says it is missing. */
-const keeperName = z
-  .string()
-  .trim()
-  .max(120)
-  .nullable()
-  .transform((name) => name || null);
 
 /** "HH:MM" on the farm's own clock, which is what every time of day here is. */
 const TIME_OF_DAY = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
@@ -440,14 +432,7 @@ export const farmRouter = {
   dataKeepers: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .handler(async ({ context }) => {
-      const keepers = await readKeepers(context.db, context.farm.id);
-      return {
-        dataHost: keepers?.dataHost ?? null,
-        backupStore: keepers?.backupStore ?? null,
-        backupCountry: keepers?.backupCountry ?? null,
-      };
-    }),
+    .handler(({ context }) => readKeepers(context.db, context.farm.id)),
 
   /**
    * The Owner writes down who keeps the farm's records, once they are chosen. Audited with what it said before: these
@@ -456,13 +441,7 @@ export const farmRouter = {
   setDataKeepers: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(
-      z.object({
-        dataHost: keeperName,
-        backupStore: keeperName,
-        backupCountry: keeperName,
-      })
-    )
+    .input(dataKeepersInput)
     .handler(async ({ context, input }) => {
       const farmId = context.farm.id;
       await audited(context).write(
@@ -470,18 +449,11 @@ export const farmRouter = {
           entity: "farm",
           entityId: farmId,
           action: "update",
-          before: (tx) => readKeepers(tx, farmId),
-          after: (tx) => readKeepers(tx, farmId),
+          // As the trail writes any record down: a plain copy of the three.
+          before: async (tx) => ({ ...(await readKeepers(tx, farmId)) }),
+          after: async (tx) => ({ ...(await readKeepers(tx, farmId)) }),
         },
-        (tx) =>
-          tx
-            .update(farm)
-            .set({
-              dataHost: input.dataHost,
-              backupStore: input.backupStore,
-              backupCountry: input.backupCountry,
-            })
-            .where(eq(farm.id, farmId))
+        (tx) => tx.update(farm).set(input).where(eq(farm.id, farmId))
       );
       return { id: farmId };
     }),

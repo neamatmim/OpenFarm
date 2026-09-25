@@ -140,7 +140,7 @@ export const templatesRouter = {
       const farmValues = paperValues({
         farm: context.farm,
         ownerName: context.actor.name,
-        keepers: (await readKeepers(context.db, context.farm.id)) ?? undefined,
+        keepers: await readKeepers(context.db, context.farm.id),
       });
       const document = paperFrom(input.content, {
         kind: input.kind,
@@ -174,10 +174,7 @@ export const templatesRouter = {
       );
       // What the farm has not written down that this wording asks for — the Investor's own facts are filled for each
       // Investor, so only the farm's count.
-      const farmsOwn = new Set(FARM_FIELDS);
-      const missing = factsMissing(input.content, farmValues).filter((field) =>
-        farmsOwn.has(field)
-      );
+      const missing = factsMissing(input.content, farmValues, FARM_FIELDS);
       return { document, missing };
     }),
 

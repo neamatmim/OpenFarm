@@ -512,8 +512,10 @@ export {
   TEMPLATE_KINDS,
   factsMissing,
   fieldsIn,
+  isTemplateField,
   namedFields,
   paperFrom,
+  partsAllowed,
   templateProblems,
   termsOf,
 } from "./paper-template";

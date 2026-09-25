@@ -7,6 +7,7 @@ import type {
 import type { Language } from "@OpenFarm/i18n";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
+import type { DataKeepers } from "./data-keepers";
 import { theFarmsShare } from "./investor-store";
 
 /** A figure in each language's own numerals. */
@@ -24,13 +25,6 @@ const day = (farmDay: string): Said => {
 /** Words that read the same in both languages: a name, an address, a reason in the Owner's own words. */
 const same = (text: string | null | undefined): Said | undefined =>
   text?.trim() ? { bn: text, en: text } : undefined;
-
-/** Who keeps the farm's records for it: the server's host, the backup's keeper, and the backup's country. */
-export interface DataKeepers {
-  dataHost: string | null;
-  backupStore: string | null;
-  backupCountry: string | null;
-}
 
 /** What a paper may say, before it is filled in: each fact the farm has for it, as the domain holds it. */
 export interface PaperFacts {

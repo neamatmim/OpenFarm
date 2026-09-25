@@ -236,11 +236,72 @@ describe("the Portal Consent and the privacy notice", () => {
   });
 
   it("closes only a paper about an Investor's money on the lines that promise no return", () => {
+    const anAgreement = paperFrom(agreement, {
+      kind: "investment_agreement",
+      parties: PARTIES,
+      values: {},
+      producedBy: "করিম",
+      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+    });
+
+    expect(anAgreement.closing.length).toBeGreaterThan(0);
     expect(madeAs("privacy_notice").closing).toEqual([]);
     expect(madeAs("portal_consent").closing).toEqual([]);
   });
 
-  it("has a consent signed by the Investor and countersigned by the Owner, by those names", () => {
+  it("is handed over in Bangla: the English is printed on the title alone", () => {
+    const paper = madeAs("privacy_notice");
+    const englishPrinted = paper.sections.flatMap((section) =>
+      section.kind === "clauses"
+        ? [section.heading.en, ...section.clauses.map((one) => one.en)]
+        : []
+    );
+
+    expect(paper.title.en).toBe("How the farm keeps your data");
+    expect(paper.preamble.en).toBe("");
+    expect(englishPrinted.every((line) => line === "")).toBe(true);
+  });
+
+  it("says in its foot which Version of the wording it was printed from", () => {
+    const paper = paperFrom(consent, {
+      kind: "portal_consent",
+      parties: PARTIES,
+      values: {},
+      producedBy: "করিম",
+      producedAt: "২৬ সেপ্টেম্বর ২০২৬",
+      version: 2,
+    });
+
+    expect(paper.produced).toBe(
+      "২৬ সেপ্টেম্বর ২০২৬ · করিম · সংস্করণ ২ / Version 2"
+    );
+  });
+
+  it("refuses a stamp on a consent or a notice, and parties or signatures on a notice", () => {
+    const withStamp: TemplateContent = {
+      ...consent,
+      sections: [
+        ...consent.sections,
+        { kind: "stamp", heading: { bn: "স্ট্যাম্প", en: "" } },
+      ],
+    };
+
+    expect(templateProblems("portal_consent", withStamp)).toContainEqual({
+      code: "part_not_here",
+      at: withStamp.sections.length,
+      about: "stamp",
+    });
+    expect(
+      templateProblems("privacy_notice", {
+        ...notice,
+        sections: [...notice.sections, ...consent.sections],
+      })
+    ).toContainEqual(
+      expect.objectContaining({ code: "part_not_here", about: "signatures" })
+    );
+  });
+
+  it("has a consent signed and dated by the Investor first, and countersigned by the Owner", () => {
     const signatures = madeAs("portal_consent").sections.find(
       (section) => section.kind === "signatures"
     );
@@ -249,28 +310,25 @@ describe("the Portal Consent and the privacy notice", () => {
     }
 
     expect(signatures.signers).toEqual([
-      {
-        role: {
-          bn: "মালিক (সামনে সই হয়েছে)",
-          en: "Owner (signed in my presence)",
-        },
-        name: "করিম",
-      },
-      { role: { bn: "বিনিয়োগকারী", en: "Investor" }, name: "রহিম" },
+      { role: { bn: "বিনিয়োগকারী", en: "" }, name: "রহিম" },
+      { role: { bn: "মালিক (সামনে সই হয়েছে)", en: "" }, name: "করিম" },
     ]);
+    expect(signatures.dateBlank).toEqual({ bn: "তারিখ", en: "" });
     expect(signatures.witnesses).toEqual([]);
   });
 
-  it("names each fact the wording asks for that the farm has not filled, once", () => {
+  it("names each fact the wording asks for that nobody has filled, once, among the facts asked about", () => {
     const missing = factsMissing(notice, {
       farmName: { bn: "সবুজ খামার", en: "Sobuj Farm" },
       dataHost: { bn: "হোস্ট", en: "Host" },
     });
+    const theInvestors = factsMissing(consent, {}, ["investorName"]);
 
     expect(missing).toContain("backupStore");
     expect(missing).toContain("backupCountry");
     expect(missing).not.toContain("farmName");
     expect(missing).not.toContain("dataHost");
     expect(new Set(missing).size).toBe(missing.length);
+    expect(theInvestors).toEqual(["investorName"]);
   });
 });

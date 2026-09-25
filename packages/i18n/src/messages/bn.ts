@@ -3408,5 +3408,6 @@ export const bn: Record<MessageKey, string> = {
   "templates.problem.noClauses": "{where}-এ কোনো শর্ত নেই।",
   "templates.problem.partTwice": "{where}: কাগজে {part} আগেই আছে।",
   "templates.problem.partMissing": "কাগজে {part} লাগবে।",
+  "templates.problem.partNotHere": "{where}: এই ধরনের কাগজে {part} থাকে না।",
   "templates.problem.witnesses": "{where}: সাক্ষী শূন্য থেকে চারজন।",
 };

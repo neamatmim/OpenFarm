@@ -22,7 +22,7 @@ export const TEMPLATE_KINDS = [
 ] as const;
 
 /**
- * The farm's wording for one kind of paper an Investor signs. One per kind: the farm starts from OpenFarm's standard
+ * The farm's wording for one kind of paper an Investor signs or is handed. One per kind: the farm starts from OpenFarm's standard
  * wording and the Owner changes it by publishing the next Version, never by rewriting one.
  */
 export const paperTemplate = pgTable(

@@ -17,7 +17,7 @@ type Keepers = Awaited<ReturnType<typeof client.farm.dataKeepers>>;
 /** The three names as the form holds them: what the farm has written down, or nothing yet. */
 const KeepersForm = ({ kept }: { kept: Keepers }) => {
   const { t } = useLanguage();
-  const refused = useRefused({});
+  const refused = useRefused();
   const [dataHost, setDataHost] = useState(kept.dataHost ?? "");
   const [backupStore, setBackupStore] = useState(kept.backupStore ?? "");
   const [backupCountry, setBackupCountry] = useState(kept.backupCountry ?? "");
@@ -64,7 +64,7 @@ const KeepersForm = ({ kept }: { kept: Keepers }) => {
         />
       </FormField>
       <Button
-        className="self-start md:col-span-3"
+        className="w-fit md:col-span-3"
         disabled={saving.isPending}
         type="submit"
       >

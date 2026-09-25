@@ -1,5 +1,8 @@
 import { eq } from "@OpenFarm/db/operators";
-import { paperTemplate } from "@OpenFarm/db/schema/paper-template";
+import {
+  TEMPLATE_KINDS as COLUMN_KINDS,
+  paperTemplate,
+} from "@OpenFarm/db/schema/paper-template";
 import { investmentAgreement } from "@OpenFarm/db/schema/venture";
 import type { TemplateContent } from "@OpenFarm/domain";
 import { STANDARD_TEMPLATES, TEMPLATE_KINDS } from "@OpenFarm/domain";
@@ -306,6 +309,12 @@ describe("the Amendment", () => {
   });
 });
 
+describe("the kinds of paper", () => {
+  it("are the same list in the database as in the domain", () => {
+    expect([...TEMPLATE_KINDS]).toEqual([...COLUMN_KINDS]);
+  });
+});
+
 describe("the facts the privacy notice names", () => {
   it("are the Owner's alone to set, and each change is in the trail", async () => {
     const { client: owner } = await as("owner");
@@ -322,11 +331,14 @@ describe("the facts the privacy notice names", () => {
     await owner.farm.setDataKeepers(keepers);
 
     expect(await owner.farm.dataKeepers()).toEqual(keepers);
-    const [changed] = await owner.audit.list({ entity: "farm", limit: 1 });
-    expect(changed).toMatchObject({
-      action: "update",
-      after: expect.objectContaining({ dataHost: keepers.dataHost }),
-    });
+    // Found by what it says, not by being the latest: the farm's other changes share this test's instant.
+    const trail = await owner.audit.list({ entity: "farm", limit: 20 });
+    expect(trail).toContainEqual(
+      expect.objectContaining({
+        action: "update",
+        after: expect.objectContaining({ dataHost: keepers.dataHost }),
+      })
+    );
   });
 
   it("are named as missing when a notice is previewed before they are set, and not once they are", async () => {

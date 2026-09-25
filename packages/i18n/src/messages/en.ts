@@ -3654,6 +3654,7 @@ export const en = {
   "templates.problem.noClauses": "{where} has no clauses.",
   "templates.problem.partTwice": "{where}: the paper already has {part}.",
   "templates.problem.partMissing": "The paper needs {part}.",
+  "templates.problem.partNotHere": "{where}: this kind of paper has no {part}.",
   "templates.problem.witnesses": "{where}: witnesses are from none to four.",
 } as const;
 
