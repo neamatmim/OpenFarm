@@ -125,7 +125,8 @@ const RequestForm = ({
               {t("portal.request.yours", {
                 units: formatNumber(live.units, language),
                 taka: taka(live.bdt),
-                day: formatDate(new Date(live.madeAt), language, "date"),
+                // When it last said this, which is when it was made until they change it.
+                day: formatDate(new Date(live.changedAt), language, "date"),
               })}
             </p>
           </div>
