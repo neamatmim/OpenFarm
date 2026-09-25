@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq, inArray } from "@OpenFarm/db/operators";
 import type { REQUEST_CHANGE_KINDS } from "@OpenFarm/db/schema/venture";
 import {
   LIVE_REQUEST_STATES,
@@ -7,6 +7,7 @@ import {
   requestToJoin,
   requestToJoinChange,
 } from "@OpenFarm/db/schema/venture";
+import type { RequestCloseReason } from "@OpenFarm/domain";
 import {
   ANSWER_LINE_MOST,
   REQUEST_NOTE_MOST,
@@ -17,7 +18,7 @@ import {
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import type { Tx } from "./audit";
+import type { Trail, Tx } from "./audit";
 import { countedInvestors, unitsTaken } from "./investor-store";
 import {
   settleTheRequestNotice,
@@ -71,6 +72,8 @@ const readRequest = async (tx: Tx, farmId: string, id: string) =>
       answeredUnits: true,
       answerLine: true,
       answeredAt: true,
+      closedBecause: true,
+      closedAt: true,
     },
   })) ?? null;
 
@@ -303,6 +306,73 @@ export const withdrawRequest = async (
   });
 };
 
+/**
+ * Closes the live Requests the act causing it has made pointless, in that act's own transaction: each marked closed
+ * with why, its Notice taken off the Owner's list, and an Audit Event beside it under whoever did the act. Kept, never
+ * deleted: who asked for what outlives the Venture. Only those still live — a Request withdrawn, answered no or signed
+ * already says what happened to it.
+ */
+export const closeRequests = async (
+  tx: Tx,
+  trail: Trail,
+  farmId: string,
+  /**
+   * Whose: one Venture's — every live one, or for a Venture taken out of the portal only those nobody answered, since
+   * that keeps the yeses the Owner gave — or one retired Investor's on every Venture. Never the whole farm's.
+   */
+  which: { ventureId: string; waitingOnly?: boolean } | { investorId: string },
+  because: RequestCloseReason,
+  now: Date
+): Promise<number> => {
+  const states =
+    "waitingOnly" in which && which.waitingOnly
+      ? (["waiting"] as const)
+      : LIVE_REQUEST_STATES;
+  const live = await tx.query.requestToJoin.findMany({
+    where: {
+      farmId,
+      ...("ventureId" in which
+        ? { ventureId: which.ventureId }
+        : { investorId: which.investorId }),
+      state: { in: [...states] },
+    },
+    columns: { id: true, ventureId: true },
+  });
+  for (const one of live) {
+    // One at a time: each is a statement and an Audit Event on the transaction the act holds.
+    // oxlint-disable-next-line no-await-in-loop
+    const before = await readRequest(tx, farmId, one.id);
+    // oxlint-disable-next-line no-await-in-loop
+    await tx
+      .update(requestToJoin)
+      .set({ state: "closed", closedBecause: because, closedAt: now })
+      // Only while still live: the act holds the Farm lock, so nothing should have moved it, but a close must never
+      // write over a withdrawal or an answer.
+      .where(
+        and(
+          eq(requestToJoin.id, one.id),
+          inArray(requestToJoin.state, [...states])
+        )
+      );
+    // oxlint-disable-next-line no-await-in-loop
+    await settleTheRequestNotice(
+      tx,
+      farmId,
+      { ventureId: one.ventureId, requestId: one.id },
+      now
+    );
+    // oxlint-disable-next-line no-await-in-loop
+    const after = await readRequest(tx, farmId, one.id);
+    // oxlint-disable-next-line no-await-in-loop
+    await trail(
+      tx,
+      { entity: "request_to_join", entityId: one.id, action: "update" },
+      { before, after }
+    );
+  }
+  return live.length;
+};
+
 /** Each Request's changes, oldest first, by the Request. */
 const changesOf = async (
   db: Pick<Tx, "query">,
@@ -362,6 +432,8 @@ const readAs = (
   answeredUnits: one.answeredUnits,
   /** The Owner's line, after "not this time". */
   answerLine: one.answerLine,
+  /** Why the farm closed it, for one closed by what happened to the Venture or the Investor. */
+  closedBecause: one.closedBecause,
 });
 
 /**
@@ -453,9 +525,9 @@ const ifYesFor = (
 };
 
 /**
- * Whether a yes may be given now: the Venture is shown and short of its decide-by day, and the Investor is neither
- * retired nor signed on it already — the same the Investor was held to when asking, because a yes is a promise to
- * sign, and nobody is promised a signing the farm could not give them.
+ * Whether a yes may be given now: the Venture is short of its decide-by day, and the Investor is not signed on it
+ * already — somebody signed by phone while their Request waited. A Venture taken out of the portal, or an Investor
+ * retired, has already closed the Request in the same act, so it is not waiting to be told anything.
  */
 const mayBeToldYes = async (
   tx: Tx,
@@ -464,27 +536,10 @@ const mayBeToldYes = async (
   investorId: string,
   now: Date
 ) => {
-  if (!venture.shownInPortalAt) {
-    throw new ORPCError("BAD_REQUEST", {
-      message: "It is not shown in the portal",
-      data: { refusal: "venture_not_shown" },
-    });
-  }
   if (isPastDecideBy(venture.decideBy, now)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Its decide-by day has passed; no new yes is given",
       data: { refusal: "venture_past_decide_by" },
-    });
-  }
-  const them = await tx.query.investor.findFirst({
-    where: { id: investorId, farmId },
-    columns: { retiredAt: true },
-  });
-  if (!them || them.retiredAt) {
-    throw new ORPCError("BAD_REQUEST", {
-      message:
-        "This Investor is retired; bring them back before promising them a signing",
-      data: { refusal: "investor_retired" },
     });
   }
   const signed = await tx.query.investmentAgreement.findFirst({

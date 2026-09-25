@@ -104,6 +104,7 @@ describe("an Investor asking to join", () => {
         changedAt: new Date(JANUARY),
         answeredUnits: null,
         answerLine: null,
+        closedBecause: null,
       },
     ]);
   });

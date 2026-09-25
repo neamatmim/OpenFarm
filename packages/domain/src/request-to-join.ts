@@ -53,3 +53,13 @@ export const isAnsweredRequest = (state: RequestToJoinState): boolean =>
  */
 export const isPastDecideBy = (decideBy: string, now: Date): boolean =>
   farmDayOf(now) > decideBy;
+
+/** Why the farm closed a Request: the Venture started buying or was called off, the Owner took it out of the portal,
+ *  or the Investor was retired. The schema says it too, for the column; a test holds the two together. */
+export const REQUEST_CLOSE_REASONS = [
+  "venture_buying",
+  "venture_cancelled",
+  "taken_out_of_portal",
+  "investor_retired",
+] as const;
+export type RequestCloseReason = (typeof REQUEST_CLOSE_REASONS)[number];

@@ -1,4 +1,4 @@
-import type { RequestToJoinState } from "@OpenFarm/domain";
+import type { RequestCloseReason, RequestToJoinState } from "@OpenFarm/domain";
 import { isPastDecideBy } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
@@ -46,6 +46,14 @@ const STATE_WORDS = {
   signed: "ventures.requests.state.signed",
   closed: "ventures.requests.state.closed",
 } as const satisfies Record<RequestToJoinState, MessageKey>;
+
+/** Why the farm closed a Request, in the Owner's words. */
+const CLOSED_WORDS = {
+  venture_buying: "ventures.requests.closed.venture_buying",
+  venture_cancelled: "ventures.requests.closed.venture_cancelled",
+  taken_out_of_portal: "ventures.requests.closed.taken_out_of_portal",
+  investor_retired: "ventures.requests.closed.investor_retired",
+} as const satisfies Record<RequestCloseReason, MessageKey>;
 
 /** What the Investor did, beneath their Request. */
 const KIND_WORDS = {
@@ -99,6 +107,7 @@ const RequestRow = ({
   // An answer this phone kept from before the Owner could answer has none.
   const promised = one.answeredUnits ?? null;
   const line = one.answerLine ?? null;
+  const closedBecause = one.closedBecause ?? null;
   return (
     <li className="flex flex-col gap-2 py-3">
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -130,6 +139,11 @@ const RequestRow = ({
               {t("ventures.requests.answer.saidYes", {
                 units: formatNumber(promised, language),
               })}
+            </span>
+          )}
+          {closedBecause === null ? null : (
+            <span className="text-muted-foreground text-sm">
+              {t(CLOSED_WORDS[closedBecause])}
             </span>
           )}
           {one.state === "not_this_time" && line ? (

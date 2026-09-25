@@ -22,6 +22,7 @@ import {
   portalStandings,
   takePortalAway,
 } from "../portal-store";
+import { closeRequests } from "../requests-to-join";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirAgreements } from "../their-agreements";
 import { lockTheFarm } from "../venture-store";
@@ -333,6 +334,17 @@ export const investorsRouter = {
               data: { refusal: "investor_still_in" },
             });
           }
+        },
+        // A retired Investor is not signed for another Venture, so nothing they asked for is waiting any more.
+        alsoWrite: async (tx) => {
+          await closeRequests(
+            tx,
+            audited(context).recordEvent,
+            context.farm.id,
+            { investorId: input.id },
+            "investor_retired",
+            context.clock.now()
+          );
         },
       });
       return { id: input.id };

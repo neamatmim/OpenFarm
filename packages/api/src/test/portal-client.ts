@@ -106,7 +106,13 @@ export const anInvitedInvestor = async (
  * prefix, a count, and the run's six digits, so no two files and no two runs share a number.
  */
 export const invitingInvestors = (
-  { prefix, run }: { prefix: "017" | "018" | "019"; run: string },
+  {
+    prefix,
+    run,
+  }: {
+    prefix: "016" | "017" | "018" | "019";
+    run: string;
+  },
   at: string
 ) => {
   let invitedSoFar = 0;

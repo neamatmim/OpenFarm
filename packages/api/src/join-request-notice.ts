@@ -50,8 +50,8 @@ export const tellTheOwnerOfARequest = async (
     );
 };
 
-/** Takes the Notice about a Request off the Owner's list once there is nothing left to answer: withdrawn before an
- *  answer, or — from ticket 04 — answered. */
+/** Takes the Notice about a Request off the Owner's list once there is nothing left to answer: withdrawn, answered,
+ *  or closed by what happened to the Venture or the Investor. */
 export const settleTheRequestNotice = async (
   tx: Tx,
   farmId: string,

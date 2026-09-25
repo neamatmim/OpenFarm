@@ -225,6 +225,15 @@ export const REQUEST_TO_JOIN_STATES = [
   "closed",
 ] as const;
 
+/** Why the farm closed a Request nobody closed by hand: the Venture started buying or was called off, the Owner took
+ *  it out of the portal, or the Investor was retired. Mirrored in the domain, for the screens. */
+export const REQUEST_CLOSE_REASONS = [
+  "venture_buying",
+  "venture_cancelled",
+  "taken_out_of_portal",
+  "investor_retired",
+] as const;
+
 /** A Request somebody is still waiting on: at most one of these per Investor per Venture. The domain says both lists
  *  too, for the screens; a test holds them together. */
 export const LIVE_REQUEST_STATES = ["waiting", "come_and_sign"] as const;
@@ -266,6 +275,9 @@ export const requestToJoin = pgTable(
     /** Who answered, and when: the Owner, whose promise it is. */
     answeredBy: text("answered_by").references(() => user.id),
     answeredAt: timestamp("answered_at"),
+    /** Why and when the farm closed it, for one closed by what happened to the Venture or the Investor. */
+    closedBecause: text("closed_because", { enum: REQUEST_CLOSE_REASONS }),
+    closedAt: timestamp("closed_at"),
   },
   (table) => [
     index("request_to_join_venture_idx").on(table.farmId, table.ventureId),

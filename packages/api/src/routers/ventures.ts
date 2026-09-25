@@ -53,7 +53,12 @@ import {
 import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
-import { answerRequest, requestsOf, theAnswer } from "../requests-to-join";
+import {
+  answerRequest,
+  closeRequests,
+  requestsOf,
+  theAnswer,
+} from "../requests-to-join";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -413,7 +418,8 @@ const moveTo = async (
       });
     }
   }
-  await audited(context).write(
+  const auditing = audited(context);
+  await auditing.write(
     {
       entity: "venture",
       entityId: row.id,
@@ -422,7 +428,32 @@ const moveTo = async (
       after: (tx) => readVenture(tx, context.farm.id, row.id),
     },
     async (tx) => {
+      // Behind the lock every act on a Venture takes, and asked again behind it: an Investor asking to join at the
+      // same moment must either be refused or have their Request closed here, never left waiting on a Venture that
+      // has stopped gathering capital.
+      await lockTheFarm(tx, context.farm.id);
+      const standing = await tx.query.venture.findFirst({
+        where: { id: row.id, farmId: context.farm.id },
+        columns: { state: true },
+      });
+      if (!(standing && mayMoveTo(standing.state, to))) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `A Venture that is ${standing?.state ?? row.state} does not go to ${to}`,
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
       await tx.update(venture).set({ state: to }).where(eq(venture.id, row.id));
+      // No longer gathering capital: nothing asked for it, or promised on it, is waiting any more.
+      if (to === "buying") {
+        await closeRequests(
+          tx,
+          auditing.recordEvent,
+          context.farm.id,
+          { ventureId: row.id },
+          "venture_buying",
+          context.clock.now()
+        );
+      }
       // Buying closing is one of the four moments an Investor hears at: his money has become animals,
       // and what the Cattle Budget did not spend has rolled into what keeps them.
       if (to === "fattening") {
@@ -3077,6 +3108,18 @@ export const venturesRouter = {
           after: (tx) => readVenture(tx, context.farm.id, row.id),
         },
         async (tx) => {
+          // Behind the lock every act on a Venture takes, and asked again behind it, as starting to buy is.
+          await lockTheFarm(tx, context.farm.id);
+          const standing = await tx.query.venture.findFirst({
+            where: { id: row.id, farmId: context.farm.id },
+            columns: { state: true },
+          });
+          if (standing?.state !== "open") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Only a Venture still open may be called off",
+              data: { refusal: "venture_wrong_state" },
+            });
+          }
           // Read inside the transaction: capital committing while the Owner filled the refunds in would
           // otherwise be left behind in a Venture that is already called off.
           const taken = await tx.query.ventureMovement.findMany({
@@ -3138,6 +3181,15 @@ export const venturesRouter = {
             .update(venture)
             .set({ state: "cancelled", cancelledReason: input.reason })
             .where(eq(venture.id, row.id));
+          // Called off: every Request on it, answered or not, closes with it.
+          await closeRequests(
+            tx,
+            auditing.recordEvent,
+            context.farm.id,
+            { ventureId: row.id },
+            "venture_cancelled",
+            now
+          );
         }
       );
       return { state: "cancelled" as const, refunded: sentBack };

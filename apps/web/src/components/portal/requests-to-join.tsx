@@ -1,4 +1,4 @@
-import type { RequestToJoinState } from "@OpenFarm/domain";
+import type { RequestCloseReason, RequestToJoinState } from "@OpenFarm/domain";
 import { REQUEST_NOTE_MOST, isLiveRequest } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
@@ -51,6 +51,14 @@ const STATE_TONE: Record<RequestToJoinState, Tone> = {
   closed: "neutral",
 };
 
+/** Why the farm closed a Request, said to the Investor. */
+const CLOSED_WORDS = {
+  venture_buying: "portal.requests.closed.venture_buying",
+  venture_cancelled: "portal.requests.closed.venture_cancelled",
+  taken_out_of_portal: "portal.requests.closed.taken_out_of_portal",
+  investor_retired: "portal.requests.closed.investor_retired",
+} as const satisfies Record<RequestCloseReason, MessageKey>;
+
 /** Where a Request stands, in the Investor's words. */
 const STATE_WORDS = {
   waiting: "portal.requests.state.waiting",
@@ -71,8 +79,8 @@ export const RequestStanding = ({ state }: { state: RequestToJoinState }) => {
 
 /**
  * The farm's answer to one of their Requests, as they read it: after a yes, the Units the farm will sign and whom to
- * call to arrange it, and that they may still withdraw; after a no, that it is not this time, and the Owner's line if
- * she wrote one. Nothing for a Request nobody has answered.
+ * call to arrange it; after a no, that it is not this time, and the Owner's line if she wrote one; and for one the farm
+ * closed, why. Nothing for a Request nobody has answered.
  */
 const TheAnswer = ({ one }: { one: TheirRequest }) => {
   const { t, language } = useLanguage();
@@ -98,6 +106,15 @@ const TheAnswer = ({ one }: { one: TheirRequest }) => {
             : t("portal.request.callTheFarm")}
         </p>
       </div>
+    );
+  }
+  // An answer this phone kept from before the farm closed Requests has no reason.
+  const closedBecause = one.closedBecause ?? null;
+  if (one.state === "closed" && closedBecause !== null) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        {t(CLOSED_WORDS[closedBecause])}
+      </p>
     );
   }
   if (one.state === "not_this_time") {
@@ -275,8 +292,36 @@ export const AskToJoin = ({ one }: { one: OpenVenture }) => {
 };
 
 /**
+ * Withdrawing a Request from the list of them, for one still live: it binds nobody, and a yes on a Venture taken out
+ * of the portal has no page of its own left to withdraw it from.
+ */
+const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
+  const { t } = useLanguage();
+  const refused = useRefused(REQUEST_REFUSALS);
+  const withdraw = useMutation(
+    orpc.portal.withdrawRequest.mutationOptions({
+      onError: refused,
+      onSuccess: () => toast.success(t("portal.request.withdrawn")),
+    })
+  );
+  return (
+    <Button
+      className="w-fit"
+      disabled={withdraw.isPending}
+      onClick={() => withdraw.mutate({ requestId })}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      <Undo2 aria-hidden data-icon="inline-start" />
+      {t("portal.request.withdraw")}
+    </Button>
+  );
+};
+
+/**
  * Their Requests to Join on their home page, the latest first, and where each stands — only when there are any. One on
- * a Venture still offered leads to it, where it can be changed or withdrawn.
+ * a Venture still offered leads to it, where it can be changed; any still live can be withdrawn from here.
  */
 export const TheirRequestsOnHome = () => {
   const { t, language } = useLanguage();
@@ -325,6 +370,9 @@ export const TheirRequestsOnHome = () => {
                 </span>
               ) : null}
               <TheAnswer one={one} />
+              {isLiveRequest(one.state) ? (
+                <WithdrawFromTheList requestId={one.id} />
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-col gap-1 sm:items-end">
               <RequestStanding state={one.state} />
