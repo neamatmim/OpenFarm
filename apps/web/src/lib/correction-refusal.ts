@@ -111,6 +111,8 @@ const WORDED_REFUSALS = {
   units_beyond_promisable: "refusal.unitsBeyondPromisable",
   request_already_answered: "refusal.requestAlreadyAnswered",
   request_not_live: "refusal.requestNotLive",
+  request_not_theirs: "refusal.requestNotTheirs",
+  no_such_request: "refusal.noSuchRequest",
   already_signed_on_venture: "refusal.investorAlreadySigned",
   venture_under_floor: "refusal.ventureUnderFloor",
   venture_floor_over_target: "refusal.ventureFloorOverTarget",

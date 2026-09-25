@@ -55,6 +55,7 @@ import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
 import {
+  answerBySigning,
   answerRequest,
   closeRequests,
   requestsOf,
@@ -181,6 +182,9 @@ const signInput = z.object({
   /** Stamp paper, or an e-challan paid into the treasury; the serial is the paper's or the challan's number. */
   stampKind: z.enum(STAMP_KINDS).default("paper"),
   stampSerial: z.string().trim().min(1).max(60),
+  /** The Request to Join this paper answers: that Investor's live Request on this Venture. None for somebody who
+   *  joined by phone. */
+  requestId: z.string().optional(),
 });
 
 const capitalInput = z.object({
@@ -854,6 +858,8 @@ export const venturesRouter = {
         /** What the Investor writes on the transfer: the capital form picks this paper when the bank's reference
          *  carries it. */
         payInCode: one.payInCode,
+        /** The Request to Join it answers, if the Investor asked through the portal. */
+        requestId: one.requestId,
         /** Capital this paper may still take: its Units' worth, less what it has taken. */
         capitalLeftBdt: Math.max(
           0,
@@ -905,7 +911,8 @@ export const venturesRouter = {
         "investment_agreement"
       );
       const id = uuidv7(now);
-      const code = await audited(context).write(
+      const auditing = audited(context);
+      const code = await auditing.write(
         {
           entity: "investment_agreement",
           entityId: id,
@@ -945,6 +952,20 @@ export const venturesRouter = {
               data: { refusal: "investor_already_signed" },
             });
           }
+          // The Request it answers reads signed in this same transaction, or the signing is refused with it.
+          if (input.requestId !== undefined) {
+            await answerBySigning(
+              tx,
+              auditing.recordEvent,
+              context.farm.id,
+              {
+                requestId: input.requestId,
+                ventureId: input.ventureId,
+                investorId: input.investorId,
+              },
+              now
+            );
+          }
           const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
           if (taken + input.units > row.units) {
             throw new ORPCError("BAD_REQUEST", {
@@ -978,6 +999,7 @@ export const venturesRouter = {
             stampSerial: input.stampSerial,
             templateVersionId: wording.versionId,
             payInCode: given,
+            requestId: input.requestId ?? null,
             signedBy: context.actor.id,
             createdAt: now,
           });

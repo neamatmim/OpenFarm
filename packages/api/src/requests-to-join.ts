@@ -373,6 +373,62 @@ export const closeRequests = async (
   return live.length;
 };
 
+/**
+ * The Request a signing names, answered by it: checked to be that Investor's live Request on that Venture, then marked
+ * signed with its Notice taken off the Owner's list and an Audit Event beside it — all in the signing's own transaction,
+ * behind the Farm lock it holds. The paper's Units are the Agreement's whatever the Request or its yes said, so nothing
+ * here reads them.
+ */
+export const answerBySigning = async (
+  tx: Tx,
+  trail: Trail,
+  farmId: string,
+  signing: { requestId: string; ventureId: string; investorId: string },
+  now: Date
+): Promise<void> => {
+  const before = await readRequest(tx, farmId, signing.requestId);
+  if (!before) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such request",
+      data: { refusal: "no_such_request" },
+    });
+  }
+  if (
+    before.investorId !== signing.investorId ||
+    before.ventureId !== signing.ventureId
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Request is another Investor's, or on another Venture",
+      data: { refusal: "request_not_theirs" },
+    });
+  }
+  if (!isLiveRequest(before.state)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Request is not waiting on anybody any more",
+      data: { refusal: "request_not_live" },
+    });
+  }
+  await tx
+    .update(requestToJoin)
+    .set({ state: "signed" })
+    .where(eq(requestToJoin.id, signing.requestId));
+  await settleTheRequestNotice(
+    tx,
+    farmId,
+    { ventureId: signing.ventureId, requestId: signing.requestId },
+    now
+  );
+  await trail(
+    tx,
+    {
+      entity: "request_to_join",
+      entityId: signing.requestId,
+      action: "update",
+    },
+    { before, after: await readRequest(tx, farmId, signing.requestId) }
+  );
+};
+
 /** Each Request's changes, oldest first, by the Request. */
 const changesOf = async (
   db: Pick<Tx, "query">,
@@ -766,12 +822,26 @@ export const theirRequests = async (
     farmId,
     rows.map((one) => one.id)
   );
+  // Their own Agreements that answered one of these, read through the same narrowing: nobody else's paper is in hand.
+  const answered = await db.query.investmentAgreement.findMany({
+    where: {
+      farmId,
+      investorId,
+      requestId: { in: rows.map((one) => one.id) },
+    },
+    columns: { id: true, requestId: true },
+  });
+  const agreementOf = new Map(
+    answered.map((one) => [one.requestId, one.id] as const)
+  );
   return rows.map((one) => {
     const run = ventureOf.get(one.ventureId);
     return {
       ...readAs(one, run?.unitPriceBdt ?? 0, changes.get(one.id) ?? []),
       ventureId: one.ventureId,
       ventureName: run?.name ?? "",
+      /** The Agreement that answered it, for one signed: where their page leads. */
+      agreementId: agreementOf.get(one.id) ?? null,
     };
   });
 };

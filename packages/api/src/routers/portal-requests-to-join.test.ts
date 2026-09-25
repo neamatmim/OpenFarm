@@ -105,6 +105,7 @@ describe("an Investor asking to join", () => {
         answeredUnits: null,
         answerLine: null,
         closedBecause: null,
+        agreementId: null,
       },
     ]);
   });

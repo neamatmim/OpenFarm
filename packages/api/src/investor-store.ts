@@ -117,6 +117,7 @@ export const readAgreement = async (tx: Tx, farmId: string, id: string) => {
     investorId: row.investorId,
     units: row.units,
     payInCode: row.payInCode,
+    requestId: row.requestId,
     investorsPercent: row.investorsPercent,
     farmPercent: theFarmsShare(row.investorsPercent),
     targetWindow: { start: row.targetWindowStart, end: row.targetWindowEnd },

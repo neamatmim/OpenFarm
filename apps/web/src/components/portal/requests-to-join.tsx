@@ -319,9 +319,49 @@ const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
   );
 };
 
+const LINKED_NAME = "font-medium break-words hover:underline";
+
+/**
+ * The Venture's name on one of their Requests, leading where there is something to read or do: signed, to the
+ * Agreement that answered it; still offered, to where it can be changed. An answer this phone kept from before signing
+ * named the Request has no Agreement to lead to.
+ */
+const RequestVentureName = ({
+  one,
+  stillOffered,
+}: {
+  one: TheirRequest;
+  stillOffered: boolean;
+}) => {
+  if (one.agreementId) {
+    return (
+      <Link
+        className={LINKED_NAME}
+        params={{ agreementId: one.agreementId }}
+        to="/portal/ventures/$agreementId"
+      >
+        {one.ventureName}
+      </Link>
+    );
+  }
+  if (stillOffered) {
+    return (
+      <Link
+        className={LINKED_NAME}
+        params={{ ventureId: one.ventureId }}
+        to="/portal/open/$ventureId"
+      >
+        {one.ventureName}
+      </Link>
+    );
+  }
+  return <span className="font-medium break-words">{one.ventureName}</span>;
+};
+
 /**
  * Their Requests to Join on their home page, the latest first, and where each stands — only when there are any. One on
- * a Venture still offered leads to it, where it can be changed; any still live can be withdrawn from here.
+ * a Venture still offered leads to it, where it can be changed, and one signed leads to the Agreement that answered it;
+ * any still live can be withdrawn from here.
  */
 export const TheirRequestsOnHome = () => {
   const { t, language } = useLanguage();
@@ -345,19 +385,10 @@ export const TheirRequestsOnHome = () => {
             key={one.id}
           >
             <div className="flex min-w-0 flex-col gap-1">
-              {stillOffered.has(one.ventureId) ? (
-                <Link
-                  className="font-medium break-words hover:underline"
-                  params={{ ventureId: one.ventureId }}
-                  to="/portal/open/$ventureId"
-                >
-                  {one.ventureName}
-                </Link>
-              ) : (
-                <span className="font-medium break-words">
-                  {one.ventureName}
-                </span>
-              )}
+              <RequestVentureName
+                one={one}
+                stillOffered={stillOffered.has(one.ventureId)}
+              />
               <span className="text-sm tabular-nums">
                 {t("portal.requests.line", {
                   units: formatNumber(one.units, language),
@@ -370,6 +401,15 @@ export const TheirRequestsOnHome = () => {
                 </span>
               ) : null}
               <TheAnswer one={one} />
+              {one.agreementId ? (
+                <Link
+                  className="text-primary w-fit text-sm font-medium hover:underline"
+                  params={{ agreementId: one.agreementId }}
+                  to="/portal/ventures/$agreementId"
+                >
+                  {t("portal.request.seeAgreement")}
+                </Link>
+              ) : null}
               {isLiveRequest(one.state) ? (
                 <WithdrawFromTheList requestId={one.id} />
               ) : null}

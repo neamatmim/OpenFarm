@@ -159,71 +159,6 @@ export const investorAccess = pgTable(
   ]
 );
 
-/** How the Agreement's stamp duty was paid: on stamp paper, or by e-challan into the treasury with no paper to
- *  stamp. Its own copy, as the schema's other enums are. */
-export const STAMP_KINDS = ["paper", "e_challan"] as const;
-
-/**
- * What one Investor signed for one Venture: the Units they took, the percentages the profit is split by,
- * and the Arbitrator both sides named before there was anything to argue about.
- *
- * The stamped paper itself is a photo kept beside it. No capital may be taken against an Agreement that
- * has none.
- */
-export const investmentAgreement = pgTable(
-  "investment_agreement",
-  {
-    id: text("id").primaryKey(),
-    farmId: text("farm_id")
-      .notNull()
-      .references(() => farm.id, { onDelete: "cascade" }),
-    ventureId: text("venture_id")
-      .notNull()
-      .references(() => venture.id, { onDelete: "cascade" }),
-    investorId: text("investor_id")
-      .notNull()
-      .references(() => investor.id),
-    /** Whole Units. Everything an Investor is owed divides by these. */
-    units: integer("units").notNull(),
-    /** The split, frozen at signing: what the Investors take of the profit, and what the Farm takes. */
-    investorsPercent: integer("investors_percent").notNull(),
-    /** The Target Window as this paper says it: copied from the Venture at signing and never moved
-     *  afterwards, because what an Investor agreed to is what their own paper reads. */
-    targetWindowStart: text("target_window_start").notNull(),
-    targetWindowEnd: text("target_window_end").notNull(),
-    /** The person both sides named to decide whether the Farm was negligent. */
-    arbitrator: text("arbitrator").notNull(),
-    /** The stamped instrument: how its duty was paid, what it came to, the day, and the stamp paper's serial —
-     *  or, paid by e-challan, the challan's number. */
-    stampKind: text("stamp_kind", { enum: STAMP_KINDS })
-      .notNull()
-      .default("paper"),
-    stampValueBdt: taka("stamp_value_bdt").notNull(),
-    stampedOn: text("stamped_on").notNull(),
-    stampSerial: text("stamp_serial").notNull(),
-    /** The wording it was printed and signed in. Every Agreement signed before the wording could be edited is
-     *  recorded against the standard wording the farm was given, which is what those papers said. */
-    templateVersionId: text("template_version_id").references(
-      () => paperTemplateVersion.id
-    ),
-    /** What the Investor writes on the transfer that sends its capital, so the money says whose it is: given when it
-     *  is recorded and never changed. Not the reference a Venture Movement carries, which is the bank's. */
-    payInCode: text("pay_in_code").notNull(),
-    signedBy: text("signed_by").references(() => user.id),
-    createdAt: timestamp("created_at").notNull(),
-  },
-  (table) => [
-    uniqueIndex("investment_agreement_uidx").on(
-      table.ventureId,
-      table.investorId
-    ),
-    uniqueIndex("investment_agreement_pay_in_code_uidx").on(
-      table.farmId,
-      table.payInCode
-    ),
-  ]
-);
-
 /**
  * Where a Request to Join stands. Waiting for the Owner; told to come and sign; told not this time; withdrawn by the
  * Investor; answered by a signed Agreement; or closed by the farm when the Venture moved on or the Investor was
@@ -300,6 +235,76 @@ export const requestToJoin = pgTable(
       .where(
         sql`${table.state} in (${sql.raw(LIVE_REQUEST_STATES.map((state) => `'${state}'`).join(", "))})`
       ),
+  ]
+);
+
+/** How the Agreement's stamp duty was paid: on stamp paper, or by e-challan into the treasury with no paper to
+ *  stamp. Its own copy, as the schema's other enums are. */
+export const STAMP_KINDS = ["paper", "e_challan"] as const;
+
+/**
+ * What one Investor signed for one Venture: the Units they took, the percentages the profit is split by,
+ * and the Arbitrator both sides named before there was anything to argue about.
+ *
+ * The stamped paper itself is a photo kept beside it. No capital may be taken against an Agreement that
+ * has none.
+ */
+export const investmentAgreement = pgTable(
+  "investment_agreement",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** Whole Units. Everything an Investor is owed divides by these. */
+    units: integer("units").notNull(),
+    /** The split, frozen at signing: what the Investors take of the profit, and what the Farm takes. */
+    investorsPercent: integer("investors_percent").notNull(),
+    /** The Target Window as this paper says it: copied from the Venture at signing and never moved
+     *  afterwards, because what an Investor agreed to is what their own paper reads. */
+    targetWindowStart: text("target_window_start").notNull(),
+    targetWindowEnd: text("target_window_end").notNull(),
+    /** The person both sides named to decide whether the Farm was negligent. */
+    arbitrator: text("arbitrator").notNull(),
+    /** The stamped instrument: how its duty was paid, what it came to, the day, and the stamp paper's serial —
+     *  or, paid by e-challan, the challan's number. */
+    stampKind: text("stamp_kind", { enum: STAMP_KINDS })
+      .notNull()
+      .default("paper"),
+    stampValueBdt: taka("stamp_value_bdt").notNull(),
+    stampedOn: text("stamped_on").notNull(),
+    stampSerial: text("stamp_serial").notNull(),
+    /** The wording it was printed and signed in. Every Agreement signed before the wording could be edited is
+     *  recorded against the standard wording the farm was given, which is what those papers said. */
+    templateVersionId: text("template_version_id").references(
+      () => paperTemplateVersion.id
+    ),
+    /** What the Investor writes on the transfer that sends its capital, so the money says whose it is: given when it
+     *  is recorded and never changed. Not the reference a Venture Movement carries, which is the bank's. */
+    payInCode: text("pay_in_code").notNull(),
+    /** The Request to Join this paper answers, when the Investor asked through the portal; none for somebody who
+     *  joined by phone. Where the two disagree on Units, the paper is right. */
+    requestId: text("request_id").references(() => requestToJoin.id),
+    signedBy: text("signed_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("investment_agreement_uidx").on(
+      table.ventureId,
+      table.investorId
+    ),
+    uniqueIndex("investment_agreement_pay_in_code_uidx").on(
+      table.farmId,
+      table.payInCode
+    ),
+    // One paper answers a Request at most once.
+    uniqueIndex("investment_agreement_request_uidx").on(table.requestId),
   ]
 );
 

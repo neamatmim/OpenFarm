@@ -196,6 +196,7 @@ describe("the Owner saying come and sign", () => {
         answeredUnits: 4,
         answerLine: null,
         closedBecause: null,
+        agreementId: null,
         madeAt: new Date(JANUARY),
         changedAt: new Date(JANUARY),
       },
