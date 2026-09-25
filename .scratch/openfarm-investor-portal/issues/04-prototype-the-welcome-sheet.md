@@ -58,6 +58,6 @@ Prototyped and then grilled with the Owner, 2026-09-25.
 **Work handed off with the build:** the join must strip spaces inside the code. Checked 2026-09-25: `takeUpInvitation` trims and upper-cases, so lower case already works. `K7QM 4PXA` typed as printed is refused as `wrong_code` and counts toward the lock-out.
 
 **Still to come in:**
-- the real address, from [Does the portal get its own address?](./05-does-the-portal-get-its-own-address.md); the prototype's `farm.example.bd/portal` is a placeholder
+- the real address, from [Does the portal get its own address?](./05-does-the-portal-get-its-own-address.md); the prototype's `farm.example.bd/portal` is a placeholder. Settled since: `investors.<farm-domain>`, the bare address (ticket 05, ADR 0009)
 - any line pointing to a privacy statement, from [What the portal tells an Investor about itself and about their data](./06-what-the-portal-tells-an-investor-about-itself-and-their-data.md)
 - any consent line or form, from [How an Investor's consent is taken and proven](./08-how-an-investors-consent-is-taken-and-proven.md)
