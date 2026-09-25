@@ -3,6 +3,7 @@ import { formatDate, formatNumber } from "@OpenFarm/i18n";
 
 import { Section } from "@/components/page";
 import { InThePortal } from "@/components/ventures/in-the-portal";
+import { VentureAccountPanel } from "@/components/ventures/venture-account";
 import { Line, moneyOf } from "@/components/ventures/venture-card";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -173,8 +174,8 @@ const TheTerms = ({ venture }: { venture: Venture }) => {
   );
 };
 
-/** A Venture read whole: how near it is to starting and whether Investors are shown it, while it is Open; where its
- *  money is; and its terms. */
+/** A Venture read whole: how near it is to starting and whether Investors are shown it, while it is Open; its Venture
+ *  Account; where its money is; and its terms. */
 export const VentureOverview = ({ venture }: { venture: Venture }) => (
   <div className="flex flex-col gap-4">
     {venture.state === "open" ? (
@@ -183,6 +184,8 @@ export const VentureOverview = ({ venture }: { venture: Venture }) => (
         <InThePortal venture={venture} />
       </>
     ) : null}
+    {/* Whatever it is doing: the same account carries its buying, its refunds and its payouts. */}
+    <VentureAccountPanel venture={venture} />
     <div className="grid gap-4 lg:grid-cols-2">
       <TheMoney venture={venture} />
       <TheTerms venture={venture} />

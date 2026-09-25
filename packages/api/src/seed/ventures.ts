@@ -711,6 +711,15 @@ export const runTheVentures = (
         id: next.id,
         words: "২০২৭ সালের ঈদুল আযহার জন্য দেশি ষাঁড়, সাভারের শেডে।",
       });
+      // Where somebody signed for it is told to pay: shown on their own Agreement in the portal, never here.
+      await f.as.owner.ventures.setBankAccount({
+        id: next.id,
+        bank: "ডাচ-বাংলা ব্যাংক লিমিটেড",
+        branch: "সাভার শাখা",
+        accountName: "মোঃ আব্দুল করিম — কোরবানি ২০২৭ ভেঞ্চার",
+        accountNumber: "110.151.0042871",
+        routingNumber: "090264718",
+      });
       nextId = next.id;
     }
   );

@@ -2,6 +2,7 @@ import { farmDayOf, maskedDigits } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
+import { howToPay } from "../how-to-pay";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
   joiningLetterFor,
@@ -32,8 +33,8 @@ import {
   withdrawRequest,
 } from "../requests-to-join";
 import { theirAgreements } from "../their-agreements";
-import { openVenturesFor } from "../venture-showing";
 import { theirProgress } from "../venture-herd-store";
+import { openVenturesFor } from "../venture-showing";
 
 /** Anybody who is not an Investor the farm has let in, however they came. */
 const refuse = () =>
@@ -212,9 +213,10 @@ export const portalRouter = {
         farmDayOf(now)
       );
       const run = await theVentureOf(context.db, farmId, standing.venture.id);
-      const [theirs, spend] = await Promise.all([
+      const [theirs, spend, paying] = await Promise.all([
         theirProgress(context.db, farmId, run, now),
         theirSpend(context.db, farmId, run),
+        howToPay(context.db, farmId, input.agreementId, run),
       ]);
       return {
         agreementId: input.agreementId,
@@ -262,6 +264,8 @@ export const portalRouter = {
           runningBudgetBdt: spend.runningBudgetBdt,
           runningSpentBdt: spend.runningSpentBdt,
         },
+        /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
+        howToPay: paying,
       };
     }),
 

@@ -172,6 +172,21 @@ export const bn: Record<MessageKey, string> = {
   "portal.requests.closed.investor_retired":
     "খামার এই অনুরোধ বন্ধ করেছে। জানতে চাইলে খামারে ফোন করুন।",
 
+  "portal.pay.title": "কীভাবে টাকা দেবেন",
+  "portal.pay.hint":
+    "নিজের ব্যাংক থেকে ট্রান্সফার, চেক বা জমার স্লিপে — কখনো নগদ নয়, আর এই পোর্টালের মাধ্যমে কখনো নয়।",
+  "portal.pay.owed": "আরও দিতে হবে",
+  "portal.pay.code": "আপনার জমার কোড",
+  "portal.pay.codeHint": "ট্রান্সফারে লিখুন, যাতে খামার বোঝে টাকাটা আপনার",
+  "portal.pay.decideBy": "খামারের সিদ্ধান্তের দিন",
+  "portal.pay.noAccount": "কোথায় টাকা দেবেন, খামার আপনাকে জানাবে।",
+  "portal.pay.onlyThisAccount":
+    "খামার আপনাকে শুধু ওপরে দেখানো ভেঞ্চারের ব্যাংক হিসাবেই টাকা দিতে বলবে। অন্য কেউ অন্য কোনো হিসাব দিলে টাকা দেবেন না।",
+  "portal.pay.onlyThisPage":
+    "কোথায় টাকা দেবেন, খামার এই পাতাতেই জানাবে, আর শুধু সেই হিসাবেই টাকা দিতে বলবে। অন্য কোনোভাবে কেউ হিসাব দিলে টাকা দেবেন না।",
+  "portal.pay.callTheFarm": "খামারকে {phone} নম্বরে ফোন করুন।",
+  "portal.pay.callTheFarmNoPhone": "খামারকে ফোন করুন।",
+
   "portal.account.new": "নতুন পাসওয়ার্ড",
   "portal.money.hint":
     "আপনার যত টাকা নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
@@ -888,6 +903,21 @@ export const bn: Record<MessageKey, string> = {
   "ventures.page.floorAndTarget": "সর্বনিম্ন সীমা {floor} · লক্ষ্য {target}",
   "ventures.page.money": "টাকার হিসাব",
   "ventures.page.terms": "শর্তাবলি",
+  "ventures.account.title": "ভেঞ্চারের ব্যাংক হিসাব",
+  "ventures.account.hint":
+    "সই করা বিনিয়োগকারীকে পোর্টালে তাঁর নিজের চুক্তিতে এখানেই টাকা দিতে বলা হয় — ভেঞ্চারের পাশে কখনো নয়।",
+  "ventures.account.none":
+    "এখনো লেখা হয়নি। সই করা বিনিয়োগকারীকে বলা হয়, কোথায় টাকা দেবেন তা খামার জানাবে।",
+  "ventures.account.write": "ব্যাংক হিসাব লিখুন",
+  "ventures.account.change": "ব্যাংক হিসাব বদলান",
+  "ventures.account.saved": "ভেঞ্চারের ব্যাংক হিসাব লেখা হয়েছে",
+  "ventures.account.sheetHint":
+    "প্রতিটি বদল আগের লেখাসহ খাতায় থাকে। প্রতিটি অঙ্ক মিলিয়ে নিন: বিনিয়োগকারীদের টাকা এখানেই যায়।",
+  "ventures.account.bank": "ব্যাংক",
+  "ventures.account.branch": "শাখা",
+  "ventures.account.name": "হিসাবের নাম",
+  "ventures.account.number": "হিসাব নম্বর",
+  "ventures.account.routing": "রাউটিং নম্বর",
   "ventures.portal.title": "বিনিয়োগকারী পোর্টালে",
   "ventures.portal.shown":
     "অবসরে না-যাওয়া প্রত্যেক আমন্ত্রিত বিনিয়োগকারী এই ভেঞ্চার, এর শর্তাবলি আর আপনার কথা দেখছেন।",
