@@ -881,3 +881,58 @@ export const theirRequests = async (
     };
   });
 };
+
+/**
+ * What one Investor did to their Requests in the portal — each made, changed and withdrawn, with the Units it then said,
+ * when, and on which Venture — the latest first and the later id first where the moment is the same. For the Owner's
+ * page of them, beside the papers they read: only what their own account did, and at most as many as are asked for.
+ */
+export const whatTheyDidToTheirRequests = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  investorId: string,
+  account: string,
+  most: number
+) => {
+  const theirs = await db.query.requestToJoin.findMany({
+    where: { farmId, investorId },
+    columns: { id: true, ventureId: true },
+  });
+  if (theirs.length === 0) {
+    return [];
+  }
+  const [done, ventures] = await Promise.all([
+    db.query.requestToJoinChange.findMany({
+      where: {
+        farmId,
+        madeBy: account,
+        requestId: { in: theirs.map((one) => one.id) },
+      },
+      orderBy: { createdAt: "desc", id: "desc" },
+      limit: most,
+    }),
+    db.query.venture.findMany({
+      where: {
+        farmId,
+        id: { in: [...new Set(theirs.map((one) => one.ventureId))] },
+      },
+      columns: { id: true, name: true },
+    }),
+  ]);
+  const ventureOfRequest = new Map(
+    theirs.map((one) => [one.id, one.ventureId] as const)
+  );
+  const nameOf = new Map(ventures.map((one) => [one.id, one.name] as const));
+  return done.map((one) => {
+    const ventureId = ventureOfRequest.get(one.requestId) ?? "";
+    return {
+      id: one.id,
+      requestId: one.requestId,
+      kind: one.kind,
+      units: one.units,
+      at: one.createdAt,
+      ventureId,
+      ventureName: nameOf.get(ventureId) ?? "",
+    };
+  });
+};

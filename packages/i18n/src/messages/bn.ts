@@ -84,6 +84,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.activity.places": "{count}টি ডিভাইসে",
   "portal.activity.read": "যে কাগজ পড়েছেন, সর্বশেষটি আগে",
   "portal.activity.readNothing": "এখনো কোনো কাগজ পড়েননি",
+  "portal.activity.requested": "যোগ দেওয়ার অনুরোধ",
   "portal.askTheFarm": "প্রশ্ন আছে? {farm}-কে ফোন করুন {phone} নম্বরে।",
   "portal.endedTitle": "আবার সাইন ইন করুন",
   "portal.endedHint":
@@ -1081,6 +1082,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.updated": "পরিবর্তন সংরক্ষণ হয়েছে",
   "investors.retire": "বাদ দিন",
   "investors.retireTitle": "{name}-কে বাদ দেবেন?",
+  "investors.requests.hint":
+    "পোর্টাল থেকে যত ভেঞ্চারে যোগ দিতে চেয়েছেন, নতুনটি আগে, আর প্রতিটি এখন কোথায়।",
   "investors.retireWhy":
     "খামার তাঁকে আর কোনো ভেঞ্চারে সই করাতে পারবে না। তাঁর কিছুই মুছে যাবে না — চুক্তি, পরিশোধ আর বিবরণী সব থেকে যাবে — আর তাঁকে ফিরিয়ে আনা যাবে।",
   "investors.retiredToast": "বাদ দেওয়া হয়েছে",

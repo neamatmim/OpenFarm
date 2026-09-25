@@ -27,6 +27,7 @@ import {
   InvestorProfile,
   phoneLink,
 } from "@/components/investors/investor-profile";
+import { InvestorRequests } from "@/components/investors/investor-requests";
 import { InvestorSheet } from "@/components/investors/investor-sheet";
 import type { Investor } from "@/components/investors/investor-types";
 import {
@@ -173,7 +174,10 @@ const TheInvestor = ({
                 query={theirs}
                 skeleton={<Skeleton className="h-40 rounded-xl" />}
               >
-                <InvestorAgreements agreements={signed} investor={investor} />
+                <div className="flex flex-col gap-4">
+                  <InvestorAgreements agreements={signed} investor={investor} />
+                  <InvestorRequests investorId={investor.id} />
+                </div>
               </Loaded>
             ),
           },

@@ -19,6 +19,7 @@ import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { hashToken } from "./device";
 import { newInviteCode, signedInOn } from "./membership";
+import { whatTheyDidToTheirRequests } from "./requests-to-join";
 
 // An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
 // and a password of their own, and the Owner taking it away. The account it opens holds no Role on the farm.
@@ -490,8 +491,9 @@ const PAPERS_SHOWN = 20;
 
 /**
  * What an Investor has done in the portal, for the Owner's page of them: when they took the invitation up, when they
- * were last in, where they are signed in now, and the papers they read, the latest first — each already an Export in
- * the trail under their name. Nothing for somebody who never took an invitation up.
+ * were last in, where they are signed in now, the papers they read — each already an Export in the trail under their
+ * name — and what they did to their Requests to Join, each the latest first. Nothing for somebody who never took an
+ * invitation up.
  */
 export const portalActivity = async (
   db: Pick<Tx, "query">,
@@ -506,7 +508,7 @@ export const portalActivity = async (
   if (!access?.userId) {
     return null;
   }
-  const [places, exported] = await Promise.all([
+  const [places, exported, requested] = await Promise.all([
     signedInOn(db, access.userId, now),
     db.query.auditEvent.findMany({
       where: {
@@ -519,6 +521,13 @@ export const portalActivity = async (
       orderBy: { receivedAt: "desc", id: "desc" },
       limit: PAPERS_SHOWN,
     }),
+    whatTheyDidToTheirRequests(
+      db,
+      farmId,
+      investorId,
+      access.userId,
+      PAPERS_SHOWN
+    ),
   ]);
   const read: { at: Date; agreementId: string; paper: PortalPaper }[] = [];
   for (const one of exported) {
@@ -532,5 +541,7 @@ export const portalActivity = async (
     lastSeenAt: access.lastSeenAt,
     signedInOn: places,
     read,
+    /** What they did to their Requests to Join, the latest first. */
+    requested,
   };
 };

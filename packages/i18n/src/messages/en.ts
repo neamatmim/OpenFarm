@@ -85,6 +85,7 @@ export const en = {
     "{count, plural, one {On # device} other {On # devices}}",
   "portal.activity.read": "Papers they read, the latest first",
   "portal.activity.readNothing": "No paper read yet",
+  "portal.activity.requested": "Their requests to join",
   "portal.askTheFarm": "Questions? Call {farm} on {phone}.",
   "portal.endedTitle": "Please sign in again",
   "portal.endedHint":
@@ -1184,6 +1185,8 @@ export const en = {
   "investors.updated": "The changes are saved",
   "investors.retire": "Retire",
   "investors.retireTitle": "Retire {name}?",
+  "investors.requests.hint":
+    "Every Venture they asked to join through the portal, the newest first, and where each stands.",
   "investors.retireWhy":
     "They come off the people the farm may sign for a Venture. Nothing about them is deleted — their Agreements, payouts and statements are kept — and they can be brought back.",
   "investors.retiredToast": "Retired",

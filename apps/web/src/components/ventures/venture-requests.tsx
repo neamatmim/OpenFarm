@@ -28,7 +28,7 @@ type OneRequest = RequestsRead["requests"][number];
 
 /** How each place a Request can stand in reads at a glance, from the Owner's side: one waiting is work for her, where
  *  to the Investor it is only news to wait for. */
-const STATE_TONE: Record<RequestToJoinState, Tone> = {
+export const STATE_TONE: Record<RequestToJoinState, Tone> = {
   waiting: "warning",
   come_and_sign: "info",
   not_this_time: "neutral",
@@ -38,7 +38,7 @@ const STATE_TONE: Record<RequestToJoinState, Tone> = {
 };
 
 /** Where a Request stands, in the Owner's words. */
-const STATE_WORDS = {
+export const STATE_WORDS = {
   waiting: "ventures.requests.state.waiting",
   come_and_sign: "ventures.requests.state.come_and_sign",
   not_this_time: "ventures.requests.state.not_this_time",
@@ -48,15 +48,15 @@ const STATE_WORDS = {
 } as const satisfies Record<RequestToJoinState, MessageKey>;
 
 /** Why the farm closed a Request, in the Owner's words. */
-const CLOSED_WORDS = {
+export const CLOSED_WORDS = {
   venture_buying: "ventures.requests.closed.venture_buying",
   venture_cancelled: "ventures.requests.closed.venture_cancelled",
   taken_out_of_portal: "ventures.requests.closed.taken_out_of_portal",
   investor_retired: "ventures.requests.closed.investor_retired",
 } as const satisfies Record<RequestCloseReason, MessageKey>;
 
-/** What the Investor did, beneath their Request. */
-const KIND_WORDS = {
+/** What the Investor did, beneath their Request, and in the Owner's list of what they did in the portal. */
+export const KIND_WORDS = {
   made: "ventures.requests.kind.made",
   changed: "ventures.requests.kind.changed",
   withdrawn: "ventures.requests.kind.withdrawn",
