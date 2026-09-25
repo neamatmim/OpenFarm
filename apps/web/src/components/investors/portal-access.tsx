@@ -38,6 +38,7 @@ import { useLanguage } from "@/i18n/language-provider";
 import { portalAddress } from "@/lib/portal-address";
 import { printAlone } from "@/lib/print-alone";
 import { useRefused } from "@/lib/refused";
+import type { client } from "@/utils/orpc";
 import { orpc } from "@/utils/orpc";
 
 import type { Investor } from "./investor-types";
@@ -87,6 +88,24 @@ export const PortalStandingBadge = ({ investor }: { investor: Investor }) => {
   return <StatusBadge tone={standing.tone}>{t(standing.word)}</StatusBadge>;
 };
 
+/** Why their access was taken away, in a line: for a withdrawn consent, the day they asked and how. */
+const takenAwayLine = (
+  takenAway: NonNullable<Investor["portalTakenAway"]>,
+  { t, language }: Pick<ReturnType<typeof useLanguage>, "t" | "language">
+) => {
+  if (takenAway.why !== "withdrew_consent") {
+    return t(`portal.takenAwayLine.${takenAway.why}`);
+  }
+  const { withdrawnOn, withdrawnHow } = takenAway;
+  if (!(withdrawnOn && withdrawnHow)) {
+    return t("portal.takenAwayLine.withdrewUndated");
+  }
+  return t("portal.takenAwayLine.withdrew_consent", {
+    day: formatDate(new Date(`${withdrawnOn}T00:00:00Z`), language),
+    how: t(`portal.howLine.${withdrawnHow}`),
+  });
+};
+
 /**
  * What goes with where they stand: until when their code can be taken up, that it ran out and wants another, or when
  * they were last in. Nothing for somebody never invited or whose access was taken away.
@@ -101,19 +120,7 @@ export const PortalStandingLine = ({ investor }: { investor: Investor }) => {
   const takenAway = investor.portalTakenAway ?? null;
   const said: string[] = [];
   if (takenAway && standing === "taken_away") {
-    said.push(
-      takenAway.why === "withdrew_consent" &&
-        takenAway.withdrawnOn &&
-        takenAway.withdrawnHow
-        ? t("portal.takenAwayLine.withdrew_consent", {
-            day: formatDate(
-              new Date(`${takenAway.withdrawnOn}T00:00:00Z`),
-              language
-            ),
-            how: t(`portal.howLine.${takenAway.withdrawnHow}`),
-          })
-        : t(`portal.takenAwayLine.${takenAway.why}`)
-    );
+    said.push(takenAwayLine(takenAway, { t, language }));
   }
   if (consent) {
     said.push(
@@ -318,12 +325,32 @@ const CodeDialog = ({
   );
 };
 
+/** Why the Owner takes somebody's access away, as the farm is asked it. */
+type TakenAwayWhy = Parameters<
+  typeof client.investors.takePortalAway
+>[0]["why"];
+
+/** Whether they have access standing to take away: in, invited, or holding a code that ran out. */
+const hasAccessToTake = (standing: PortalStanding) =>
+  standing === "in" || standing === "invited" || standing === "code_ran_out";
+
+/** Whether a withdrawal can be recorded for them: a consent in force, whatever their access. */
+const canWithdraw = (investor: Investor) =>
+  (investor.portalConsent ?? null) !== null;
+
 /** Why the Owner takes somebody's access away, in the order the dialog offers them. */
-const WHY = ["withdrew_consent", "lost_phone", "owner"] as const;
+const WHY = [
+  "withdrew_consent",
+  "lost_phone",
+  "owner",
+] as const satisfies readonly TakenAwayWhy["reason"][];
 type Why = (typeof WHY)[number];
 
 /** How somebody asked to withdraw their consent. */
-const HOW = ["letter", "message"] as const;
+const HOW = ["letter", "message"] as const satisfies readonly Extract<
+  TakenAwayWhy,
+  { reason: "withdrew_consent" }
+>["how"][];
 type How = (typeof HOW)[number];
 
 /**
@@ -343,34 +370,38 @@ const TakeAwayDialog = ({
   const { t } = useLanguage();
   const refused = useRefused(REFUSALS);
   const [why, setWhy] = useState<Why | "">("");
-  const [on, setOn] = useState(() => farmDayOf(new Date()));
+  const [askedOn, setAskedOn] = useState(() => farmDayOf(new Date()));
   const [how, setHow] = useState<How | "">("");
-  const close = (keep: boolean) => {
-    if (!keep) {
+  // Closed, it forgets what was chosen: the next time it asks afresh.
+  const setOpen = (stays: boolean) => {
+    if (!stays) {
       setWhy("");
       setHow("");
-      setOn(farmDayOf(new Date()));
+      setAskedOn(farmDayOf(new Date()));
     }
-    onOpenChange(keep);
+    onOpenChange(stays);
   };
   const takingAway = useMutation(
     orpc.investors.takePortalAway.mutationOptions({
       onError: refused,
       onSuccess: () => {
-        close(false);
+        setOpen(false);
         toast.success(t("portal.takenAway"));
       },
     })
   );
-  const hasConsent = (investor.portalConsent ?? null) !== null;
-  const offered = WHY.filter((one) => one !== "withdrew_consent" || hasConsent);
-  const withdrawing = why === "withdrew_consent";
-  const ready = withdrawing ? on !== "" && how !== "" : why !== "";
+  const offered = WHY.filter((one) =>
+    one === "withdrew_consent"
+      ? canWithdraw(investor)
+      : hasAccessToTake(standingOf(investor))
+  );
+  const withdrew = why === "withdrew_consent";
+  const ready = withdrew ? askedOn !== "" && how !== "" : why !== "";
   const submit = () => {
     if (why === "withdrew_consent" && how !== "") {
       takingAway.mutate({
         id: investor.id,
-        why: { reason: why, on, how },
+        why: { reason: why, on: askedOn, how },
       });
     } else if (why === "lost_phone" || why === "owner") {
       takingAway.mutate({ id: investor.id, why: { reason: why } });
@@ -379,7 +410,7 @@ const TakeAwayDialog = ({
   return (
     <FormDialog
       description={t("portal.takeAwayWhy")}
-      onOpenChange={close}
+      onOpenChange={setOpen}
       onSubmit={submit}
       open={open}
       pending={takingAway.isPending}
@@ -392,9 +423,7 @@ const TakeAwayDialog = ({
           why === ""
             ? undefined
             : t(
-                withdrawing
-                  ? "portal.why.withdrawHint"
-                  : "portal.why.keepsConsent"
+                withdrew ? "portal.why.withdrawHint" : "portal.why.keepsConsent"
               )
         }
         id="take-away-why"
@@ -417,17 +446,17 @@ const TakeAwayDialog = ({
           ))}
         </NativeSelect>
       </FormField>
-      {withdrawing ? (
+      {withdrew ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField id="take-away-on" label={t("portal.withdrawnOn")}>
             <Input
               id="take-away-on"
               max={farmDayOf(new Date())}
               min={investor.portalConsent?.signedOn}
-              onChange={(event) => setOn(event.target.value)}
+              onChange={(event) => setAskedOn(event.target.value)}
               required
               type="date"
-              value={on}
+              value={askedOn}
             />
           </FormField>
           <FormField id="take-away-how" label={t("portal.withdrawnHow")}>
@@ -537,7 +566,7 @@ export const PortalAccess = ({
           <Eye aria-hidden data-icon="inline-start" />
           {t("portal.preview.seeAsTheyDo")}
         </Button>
-        {standing === "in" || standing === "invited" ? (
+        {hasAccessToTake(standing) || canWithdraw(investor) ? (
           <Button
             onClick={() => setAsking(true)}
             size="sm"

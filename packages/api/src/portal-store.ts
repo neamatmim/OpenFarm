@@ -3,10 +3,14 @@ import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
 import { session, user } from "@OpenFarm/db/schema/auth";
-import type { PORTAL_TAKEN_AWAY_WHY } from "@OpenFarm/db/schema/venture";
-import { investorAccess } from "@OpenFarm/db/schema/venture";
+import {
+  CONSENT_WITHDRAWN_HOW,
+  PORTAL_TAKEN_AWAY_WHY,
+  investorAccess,
+} from "@OpenFarm/db/schema/venture";
 import { PORTAL_SIGN_IN_HOURS, investorLoginOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
+import { z } from "zod";
 
 import {
   CODE_ATTEMPTS,
@@ -18,8 +22,8 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
+import { farmDay } from "./farm-clock";
 import { hashOfCodeAsTyped, newInviteCode, signedInOn } from "./membership";
-import type { Withdrawal } from "./portal-consent";
 import {
   consentInForce,
   consentToWithdraw,
@@ -195,15 +199,18 @@ export const inviteToPortal = async (
   return { code, expiresAt };
 };
 
-/** Why the Owner took somebody's access away, with the day and how they asked where they withdrew their consent. */
-export type TakenAwayWhy =
-  | ({ reason: "withdrew_consent" } & Withdrawal)
-  | {
-      reason: Exclude<
-        (typeof PORTAL_TAKEN_AWAY_WHY)[number],
-        "withdrew_consent"
-      >;
-    };
+/** Why the Owner takes somebody's access away: for a withdrawn consent, with the day they asked and how. */
+export const takenAwayWhy = z.discriminatedUnion("reason", [
+  z.object({
+    reason: z.literal("withdrew_consent"),
+    on: farmDay,
+    how: z.enum(CONSENT_WITHDRAWN_HOW),
+  }),
+  z.object({
+    reason: z.enum(PORTAL_TAKEN_AWAY_WHY).exclude(["withdrew_consent"]),
+  }),
+]);
+export type TakenAwayWhy = z.infer<typeof takenAwayWhy>;
 
 /**
  * Takes an Investor's access away, saying why: the account is disabled, every session it has ends, and an open code
@@ -211,8 +218,8 @@ export type TakenAwayWhy =
  *
  * Where they withdrew their Portal Consent, the consent is marked withdrawn in the same transaction, with the day they
  * asked and how — checked first, so a refused withdrawal takes nothing away — and coming back means signing afresh.
- * Any other reason leaves the consent in force. Taking access away closes no Request to Join: the Owner may still sign
- * them by phone.
+ * Access taken away already, for another reason, then says the withdrawal is why. Any other reason leaves the consent
+ * in force. Taking access away closes no Request to Join: the Owner may still sign them by phone.
  */
 export const takePortalAway = async (
   context: Owned,
@@ -221,51 +228,63 @@ export const takePortalAway = async (
 ): Promise<void> => {
   const farmId = context.farm.id;
   const now = context.clock.now();
-  const withdrawing =
+  const withdrawal =
     why.reason === "withdrew_consent"
-      ? await consentToWithdraw(context, investorId, why)
+      ? {
+          consentId: await consentToWithdraw(context, investorId, why),
+          on: why.on,
+          how: why.how,
+        }
       : null;
   const access = await context.db.query.investorAccess.findFirst({
     where: { farmId, investorId },
     columns: { id: true, userId: true, revokedAt: true },
   });
   const live = access && !access.revokedAt ? access : null;
-  if (!(live || withdrawing)) {
+  if (!(live || withdrawal)) {
     return;
   }
   await context.db.transaction(async (tx) => {
-    if (live) {
+    // One change to their access, on the trail with what it was either side.
+    const changeAccess = async (change: () => Promise<unknown>) => {
       const before = await readAccess(tx, farmId, investorId);
-      await tx
-        .update(investorAccess)
-        .set({
-          revokedAt: now,
-          revokedWhy: why.reason,
-          codeHash: null,
-          codeExpiresAt: null,
-        })
-        .where(eq(investorAccess.id, live.id));
-      if (live.userId) {
-        await tx
-          .update(user)
-          .set({ disabledAt: now })
-          .where(eq(user.id, live.userId));
-        await tx.delete(session).where(eq(session.userId, live.userId));
-      }
+      await change();
       const after = await readAccess(tx, farmId, investorId);
       await audited(context).recordEvent(
         tx,
         { entity: "investor_access", entityId: investorId, action: "update" },
         { before, after }
       );
-    }
-    if (withdrawing && why.reason === "withdrew_consent") {
-      await withdrawConsent(
-        tx,
-        context,
-        { consentId: withdrawing, investorId },
-        why
+    };
+    if (live) {
+      await changeAccess(async () => {
+        await tx
+          .update(investorAccess)
+          .set({
+            revokedAt: now,
+            revokedWhy: why.reason,
+            codeHash: null,
+            codeExpiresAt: null,
+          })
+          .where(eq(investorAccess.id, live.id));
+        if (live.userId) {
+          await tx
+            .update(user)
+            .set({ disabledAt: now })
+            .where(eq(user.id, live.userId));
+          await tx.delete(session).where(eq(session.userId, live.userId));
+        }
+      });
+    } else if (access && withdrawal) {
+      await changeAccess(() =>
+        tx
+          .update(investorAccess)
+          .set({ revokedWhy: "withdrew_consent" })
+          .where(eq(investorAccess.id, access.id))
       );
+    }
+    if (withdrawal) {
+      await withdrawConsent(tx, context, investorId, withdrawal);
     }
   });
 };

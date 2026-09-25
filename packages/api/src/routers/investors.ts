@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
-import { CONSENT_WITHDRAWN_HOW, investor } from "@OpenFarm/db/schema/venture";
+import { investor } from "@OpenFarm/db/schema/venture";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
@@ -8,7 +8,6 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
@@ -17,11 +16,11 @@ import {
   readInvestor,
   theSamePerson,
 } from "../investor-store";
-import type { WithdrawalSaid } from "../portal-consent";
+import type { ConsentWithdrawnSaid } from "../portal-consent";
 import {
   consentSheet,
   consentsInForce,
-  lastWithdrawals,
+  lastConsentsWithdrawn,
   recordConsent,
 } from "../portal-consent";
 import type { TakenAwayWhy } from "../portal-store";
@@ -30,6 +29,7 @@ import {
   portalActivity,
   portalStandings,
   takePortalAway,
+  takenAwayWhy,
 } from "../portal-store";
 import { closeRequests, theirRequests } from "../requests-to-join";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
@@ -37,33 +37,21 @@ import { theirAgreements } from "../their-agreements";
 import { lockTheFarm } from "../venture-store";
 import { CODE_PAPERS, codePaperFor, handOver } from "../welcome-letter";
 
-/** Why the Owner takes somebody's access away: for a withdrawn consent, with the day they asked and how. */
-const takenAwayWhy = z.discriminatedUnion("reason", [
-  z.object({
-    reason: z.literal("withdrew_consent"),
-    on: farmDay,
-    how: z.enum(CONSENT_WITHDRAWN_HOW),
-  }),
-  z.object({ reason: z.enum(["lost_phone", "owner"]) }),
-]);
-
 /** Why an Investor's access was taken away, as their record says it: the reason, and for a withdrawn consent the day
  *  they asked and how. */
 const takenAwaySaid = (
   why: TakenAwayWhy["reason"] | null,
-  withdrawal: WithdrawalSaid | null
-) =>
-  why
-    ? {
-        why,
-        withdrawnOn:
-          why === "withdrew_consent" ? (withdrawal?.withdrawnOn ?? null) : null,
-        withdrawnHow:
-          why === "withdrew_consent"
-            ? (withdrawal?.withdrawnHow ?? null)
-            : null,
-      }
-    : null;
+  withdrawn: ConsentWithdrawnSaid | null
+) => {
+  if (!why) {
+    return null;
+  }
+  const said =
+    why === "withdrew_consent" && withdrawn
+      ? withdrawn
+      : { withdrawnOn: null, withdrawnHow: null };
+  return { why, ...said };
+};
 
 const personInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -177,7 +165,7 @@ export const investorsRouter = {
           }),
           portalStandings(context.db, context.farm.id, context.clock.now()),
           consentsInForce(context.db, context.farm.id),
-          lastWithdrawals(context.db, context.farm.id),
+          lastConsentsWithdrawn(context.db, context.farm.id),
         ]);
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.

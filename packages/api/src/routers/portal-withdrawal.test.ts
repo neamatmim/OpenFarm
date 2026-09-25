@@ -122,6 +122,43 @@ describe("taking portal access away because they withdrew their consent", () => 
     });
   });
 
+  it("is recorded for somebody whose access was taken away already, and becomes why", async () => {
+    const owner = await as("owner");
+    const id = await invited("মোমেনা", `0177${suffix}9`);
+    await owner.investors.takePortalAway({ id, why: { reason: "lost_phone" } });
+
+    await owner.investors.takePortalAway({
+      id,
+      why: { reason: "withdrew_consent", on: TODAY, how: "message" },
+    });
+
+    const them = await listed(id);
+    expect(them?.portalConsent).toBeNull();
+    expect(them?.portalTakenAway).toEqual({
+      why: "withdrew_consent",
+      withdrawnOn: TODAY,
+      withdrawnHow: "message",
+    });
+  });
+
+  it("is recorded once: a second press finds nothing in force, and the first day stands", async () => {
+    const owner = await as("owner");
+    const id = await invited("বাদল", `0176${suffix}0`);
+    await owner.investors.takePortalAway({
+      id,
+      why: { reason: "withdrew_consent", on: TODAY, how: "letter" },
+    });
+
+    await expect(
+      owner.investors.takePortalAway({
+        id,
+        why: { reason: "withdrew_consent", on: "2060-03-10", how: "message" },
+      })
+    ).rejects.toMatchObject({ data: { refusal: "no_consent_to_withdraw" } });
+    const them = await listed(id);
+    expect(them?.portalTakenAway?.withdrawnHow).toBe("letter");
+  });
+
   it("is refused for a day still to come, or one before they signed", async () => {
     const owner = await as("owner");
     const id = await invited("জামাল", `0177${suffix}4`);

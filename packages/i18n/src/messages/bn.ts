@@ -377,6 +377,7 @@ export const bn: Record<MessageKey, string> = {
   "portal.howLine.letter": "সই করা চিঠিতে",
   "portal.howLine.message": "নিজের নম্বর থেকে মেসেজে",
   "portal.takenAwayLine.withdrew_consent": "সম্মতি তুলে নিয়েছেন {day}, {how}",
+  "portal.takenAwayLine.withdrewUndated": "সম্মতি তুলে নিয়েছেন",
   "portal.takenAwayLine.lost_phone": "ফোন হারানোয় তুলে নেওয়া",
   "portal.takenAwayLine.owner": "আপনার সিদ্ধান্তে তুলে নেওয়া",
   "portal.refused.noConsentToWithdraw":

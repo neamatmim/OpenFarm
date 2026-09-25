@@ -399,6 +399,7 @@ export const en = {
   "portal.howLine.letter": "by a signed letter",
   "portal.howLine.message": "by a message from their own number",
   "portal.takenAwayLine.withdrew_consent": "Withdrew consent {day}, {how}",
+  "portal.takenAwayLine.withdrewUndated": "Withdrew consent",
   "portal.takenAwayLine.lost_phone": "Taken away: a lost phone",
   "portal.takenAwayLine.owner": "Taken away by your decision",
   "portal.refused.noConsentToWithdraw":
