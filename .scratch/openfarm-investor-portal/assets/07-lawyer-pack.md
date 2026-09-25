@@ -4,6 +4,8 @@ Prepared 2026-09-25 for [Bring the portal as built to the lawyer](../issues/07-b
 
 ## What to bring
 
+**To print everything at once**, open [`07-lawyer-pack.html`](./07-lawyer-pack.html) in Chrome and print with ⌘P: A4, margins "None". It prints seven A4 pages: the summary, the checklist, the notice in Bangla and English, the consent sheet, the Agreement clause, and a page to record the answer.
+
 1. **[The one-page summary](./07-portal-one-page-summary.md).** Print it. It is what the portal is, does and never does.
 2. **[The privacy notice, "আপনার তথ্য"](./06-your-data-notice-draft.md).** Print the Bangla. Its blanks are the host, the backup company and the complaint wording.
 3. **[The Portal Consent sheet](./07-portal-consent-sheet-draft.md).**

@@ -1,0 +1,1233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Investor Portal Legal Pack</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Tiro+Bangla&family=Noto+Sans+Bengali:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap"
+    />
+    <style>
+      /* One paper look on purpose: this is a document to print. */
+      :root {
+        color-scheme: light;
+        --paper: #ffffff;
+        --ground: #e7e9e4;
+        --ink: #1c1f1a;
+        --ink-soft: #4b5147;
+        --rule: #c9cdc4;
+        --accent: #2f5d3a;
+        --blank: #fbf3d6;
+        --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+        --bangla: "Tiro Bangla", "Noto Sans Bengali", "Kohinoor Bangla", serif;
+        --bangla-sans: "Noto Sans Bengali", "Kohinoor Bangla", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--ground);
+      }
+      body {
+        margin: 0;
+        padding-block: 24px;
+        padding-inline: 16px;
+        background: var(--ground);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: 10.5pt;
+        line-height: 1.5;
+      }
+      .sheet {
+        background: var(--paper);
+        max-width: 210mm;
+        margin: 0 auto 24px;
+        padding: 18mm 18mm 16mm;
+        box-shadow: 0 1px 3px rgba(28, 31, 26, 0.18);
+      }
+      [lang="bn"] {
+        font-family: var(--bangla);
+        font-size: 11pt;
+        line-height: 1.75;
+      }
+      .run {
+        font-size: 8pt;
+        color: var(--ink-soft);
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 6px;
+        margin-bottom: 14px;
+        letter-spacing: 0.02em;
+      }
+      h1,
+      h2,
+      h3 {
+        text-wrap: balance;
+        margin: 0;
+      }
+      h1 {
+        font-size: 20pt;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+      h2 {
+        font-size: 14pt;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      h3 {
+        font-size: 10.5pt;
+        font-weight: 700;
+        margin-top: 12px;
+      }
+      .over {
+        font-size: 7.5pt;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .lede {
+        color: var(--ink-soft);
+        font-style: italic;
+        margin: 4px 0 12px;
+      }
+      p {
+        margin: 6px 0;
+      }
+      ul,
+      ol {
+        margin: 6px 0;
+        padding-left: 20px;
+      }
+      li {
+        margin: 3px 0;
+      }
+      .blank {
+        background: var(--blank);
+        padding: 0 3px;
+        border-radius: 2px;
+      }
+      .notice-line {
+        border-left: 3px solid var(--accent);
+        padding: 4px 0 4px 10px;
+        margin: 10px 0;
+        font-style: italic;
+      }
+      .never {
+        columns: 2;
+        column-gap: 24px;
+      }
+      .never li {
+        break-inside: avoid;
+      }
+
+      /* Checklist */
+      .group {
+        margin-top: 12px;
+      }
+      .group h3 {
+        margin: 0 0 4px;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 2px;
+      }
+      .q {
+        display: grid;
+        grid-template-columns: 14px 1fr;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px dotted var(--rule);
+        break-inside: avoid;
+      }
+      .box {
+        width: 11px;
+        height: 11px;
+        border: 1.2px solid var(--ink);
+        margin-top: 3px;
+      }
+      .q small {
+        display: block;
+        color: var(--ink-soft);
+        font-style: italic;
+      }
+      .answer {
+        height: 16px;
+        border-bottom: 1px solid var(--rule);
+        margin-top: 4px;
+      }
+      .q .ref {
+        font-family: var(--mono);
+        font-size: 7.5pt;
+        color: var(--accent);
+      }
+
+      /* Two-language clauses */
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 6px 0;
+        border-bottom: 1px dotted var(--rule);
+        break-inside: avoid;
+      }
+      .pair .n {
+        font-family: var(--mono);
+        font-size: 8pt;
+        color: var(--accent);
+      }
+      .pair [lang="en"] {
+        color: var(--ink-soft);
+        font-size: 9.5pt;
+      }
+      .lawyer {
+        margin-top: 14px;
+        padding: 8px 10px;
+        border: 1px solid var(--rule);
+        background: #f6f7f4;
+        font-size: 9.5pt;
+      }
+      .lawyer h3 {
+        margin: 0 0 4px;
+        font-size: 9.5pt;
+      }
+
+      /* Consent sheet */
+      .consent {
+        border: 1px solid var(--ink);
+        padding: 10mm 10mm 8mm;
+      }
+      .sign {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        margin-top: 18px;
+      }
+      .sign span {
+        border-top: 1px solid var(--ink);
+        padding-top: 3px;
+        font-size: 9pt;
+      }
+      .foot {
+        font-size: 7.5pt;
+        color: var(--ink-soft);
+        margin-top: 10px;
+      }
+      .draft {
+        font-family: var(--mono);
+        font-size: 7.5pt;
+        color: #8a5a00;
+        letter-spacing: 0.08em;
+      }
+
+
+      /* Density: each section fits one A4 page. */
+      body { font-size: 9.5pt; line-height: 1.42; }
+      .sheet { padding: 13mm 15mm 12mm; }
+      [lang="bn"] { font-size: 10pt; line-height: 1.55; }
+      h3 { font-size: 10pt; margin-top: 8px; }
+      .lede { margin: 3px 0 8px; }
+      p { margin: 4px 0; }
+      ul, ol { margin: 3px 0; padding-left: 18px; }
+      li { margin: 1px 0; }
+      .group { margin-top: 8px; }
+      .q { padding: 3px 0; }
+      .answer { height: 13px; }
+      .pair { padding: 4px 0; }
+      .pair [lang="en"] { font-size: 8.5pt; }
+      .lawyer { margin-top: 10px; font-size: 8.5pt; }
+      .consent { padding: 7mm 8mm 6mm; }
+      .sign { margin-top: 14px; }
+      .sheet { padding-top: 11mm; padding-bottom: 9mm; }
+      h1 { font-size: 18pt; }
+      .run { margin-bottom: 10px; }
+      .answer { height: 11px; margin-top: 2px; }
+      .sheet:first-of-type { padding-top: 8mm; }
+      .sheet:first-of-type .lede { margin-bottom: 5px; }
+
+      @media (max-width: 640px) {
+        .sheet {
+          padding: 20px 16px;
+        }
+        .pair {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+        .never {
+          columns: 1;
+        }
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      @media print {
+        html,
+        body {
+          background: #fff;
+          padding: 0;
+        }
+        .sheet {
+          box-shadow: none;
+          margin: 0;
+          max-width: none;
+          page-break-after: always;
+          break-after: page;
+        }
+        .sheet:last-child {
+          page-break-after: auto;
+          break-after: auto;
+        }
+        .blank {
+          background: none;
+          border-bottom: 1px dashed var(--ink-soft);
+        }
+        .screen-only {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p
+      class="screen-only"
+      style="
+        max-width: 210mm;
+        margin: 0 auto 16px;
+        font-size: 9pt;
+        color: var(--ink-soft);
+      "
+    >
+      Print with ⌘P → A4, margins “None”, background graphics off.
+      Highlighted blanks are filled before the meeting or left for the lawyer.
+    </p>
+
+    <!-- 1. Summary -->
+    <section class="sheet">
+      <div class="run">
+        <span
+          ><span class="blank">{Farm name}</span> · reg.
+          <span class="blank">{registration}</span></span
+        ><span>Investor Portal · for counsel · 25 September 2026</span>
+      </div>
+      <div class="over">1 · What the portal is</div>
+      <h1>The OpenFarm Investor Portal</h1>
+      <p class="lede">
+        As built and decided on 25 September 2026. Switched off, and open to no
+        real Investor, until your written opinion is in hand.
+      </p>
+
+      <p>
+        <strong>What it is.</strong> A read-only website. An Investor who has
+        signed a stamped mudarabah Investment Agreement with the farm uses it to
+        read their own record:
+      </p>
+      <ul>
+        <li>the Ventures they are in</li>
+        <li>
+          how the animals are doing today: head count, weights, and spending
+          against budget
+        </li>
+        <li>their capital and payouts</li>
+        <li>
+          their three papers: the joining letter, the progress statement and the
+          settlement statement
+        </li>
+      </ul>
+
+      <h3>Who gets in: by invitation only, one person at a time</h3>
+      <ul>
+        <li>The Owner invites an existing Investor.</li>
+        <li>
+          The Investor signs a consent sheet in front of the Owner and receives
+          a printed Welcome Letter, with a one-time code on a tear-off slip.
+        </li>
+        <li>
+          They choose their own password using their phone number and the code.
+        </li>
+        <li>
+          No account exists for anyone the Owner has not invited, and there is
+          no public sign-up.
+        </li>
+        <li>
+          The Owner can take anyone's access away, and switches the whole portal
+          off with one farm setting. It is off today.
+        </li>
+      </ul>
+
+      <h3>What an invited Investor may do: read, and two things more</h3>
+      <ol>
+        <li>
+          <strong>See a Venture still gathering capital</strong>, if the Owner
+          has chosen to show it.
+          <ul>
+            <li>
+              They see its terms: the Unit price, target, floor, dates, budgets
+              and split.
+            </li>
+            <li>
+              They see its rules: every taka back if the floor is missed, a loss
+              comes off capital, nothing is guaranteed, and joining is only by
+              signing in person.
+            </li>
+            <li>
+              They never see a projection, a past result, how many Units are
+              left, or anybody else's business.
+            </li>
+          </ul>
+        </li>
+        <li>
+          <strong>Make a Request to Join</strong> it: whole Units and a note.
+          <ul>
+            <li>
+              It binds nobody. Only the Owner is told, and answers “come and
+              sign” or “not this time”.
+            </li>
+            <li>
+              Joining is still only by signing a stamped Agreement in person.
+            </li>
+          </ul>
+        </li>
+      </ol>
+      <p>
+        Once an Investor has signed, the portal shows them the Venture Account's
+        bank details, the amount still owed and a reference code for their
+        transfer. It adds the warning that the farm never asks anyone to pay
+        anywhere else.
+      </p>
+
+      <h3>What it never does</h3>
+      <ul class="never">
+        <li>It takes no money: no card, mobile wallet or gateway.</li>
+        <li>Capital arrives by bank into the Venture Account.</li>
+        <li>Nothing is signed in it.</li>
+        <li>Nothing is advertised or referred, and no return is promised.</li>
+        <li>It never shows one Investor another's business.</li>
+      </ul>
+      <p class="notice-line">
+        Every page says: “This portal is not a public offer. Joining a Venture
+        is only by an Agreement signed in person with the farm, and no money
+        moves through this portal.”
+      </p>
+
+      <h3>Their data</h3>
+      <ul>
+        <li>
+          <strong>What they see.</strong> The NID and bank account show only
+          their last four digits. Corrections are made by the Owner, never in
+          the portal.
+        </li>
+        <li>
+          <strong>The notice.</strong> A privacy notice, “আপনার তথ্য” (page 3),
+          is handed over at signing and on the Welcome Letter, and is also a
+          page in the portal.
+        </li>
+        <li>
+          <strong>Requests.</strong> Investors make them to the Owner in
+          writing, and get an answer within 30 days.
+        </li>
+        <li>
+          <strong>Consent.</strong> Consent to the portal is signed on paper and
+          filed (page 5). Withdrawing it ends access at once.
+        </li>
+        <li>
+          <strong>Signing in.</strong> A sign-in lasts 12 hours, and signing out
+          leaves nothing on the phone.
+        </li>
+        <li>
+          <strong>The address.</strong> The portal has its own address,
+          <span class="blank">investors.{farm-domain}</span>, apart from the
+          farm's own app.
+        </li>
+        <li>
+          <strong>The record.</strong> Every paper an Investor opens is
+          recorded.
+        </li>
+      </ul>
+      <p>
+        You answered verbally on 25 September 2026. The farm now asks for your
+        written opinion on the questions on page 2.
+      </p>
+    </section>
+
+    <!-- 2. Checklist -->
+    <section class="sheet">
+      <div class="run">
+        <span>Investor Portal · for counsel</span
+        ><span>Questions for the written opinion</span>
+      </div>
+      <div class="over">2 · The questions</div>
+      <h2>What the farm asks you to answer in writing</h2>
+
+      <div class="group">
+        <h3>Answered verbally on 25 September 2026, now wanted in writing</h3>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            The portal as built, by invitation only, is not a platform needing
+            Bangladesh Bank approval.
+            <span class="ref">PSS Act 2024 s.15(2)</span>
+            <div class="answer"></div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            Showing a Venture still gathering capital to invited Investors, and
+            letting them ask to join, is acceptable.
+            <div class="answer"></div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            Showing the Venture Account's bank details and a reference, for
+            capital already signed for, is acceptable.
+            <div class="answer"></div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            Taking payment inside the portal is not approved.
+            <small>For the record only. The farm is not asking again.</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>The joining screens</h3>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            The Owner may add a few words of their own to a Venture shown in the
+            portal. Is that a risk, even with a warning where they are written?
+            <div class="answer"></div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            What are the exact words you want for the notice on every page?
+            <div class="answer"></div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            Could a recorded “come and sign” read as an acceptance, forming a
+            contract before the stamped paper?
+            <div class="answer"></div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            Bank details show only on the Investor's own signed Agreement, with
+            a “never pay anywhere else” warning. Is that the line you meant?
+            <div class="answer"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>
+          Data protection
+          <small style="font-weight: 400; color: var(--ink-soft)"
+            >(Personal Data Protection Act 2026 unless stated)</small
+          >
+        </h3>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>Ground.</strong> Is consent the right ground for the portal
+            and the contract for the records? Or can the contract carry both?
+            <span class="ref">s.5(1), s.5(3)(ক)</span
+            ><small
+              >The drafts assume the first: the Agreement clause (page 6) for
+              the records, the consent sheet (page 5) for the portal.</small
+            >
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>Singapore.</strong> Is a hosted server there a “transfer
+            abroad”? If so, is consent under (ক) needed, or does (খ) cover an
+            investment agreement? <span class="ref">s.29(3)</span
+            ><small>The consent sheet asks for consent either way.</small>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>Volume.</strong> Are twenty Investors' NID numbers a “large
+            volume” needing notice to the Authority?
+            <span class="ref">s.29(6)</span>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>Twelve years.</strong> Does the duty to keep books justify
+            keeping the NID number and bank account that long, or only the money
+            records?
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>Timing.</strong> When do ss.31–35 start? Can the Authority
+            fine now under the National Data Management Act s.42? Has the
+            Authority been constituted?<small
+              >The answer decides the notice's line on complaints.</small
+            >
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>NID.</strong> Is the NID Act 2023 repealed? Is keeping a
+            photocopy of an Investor's NID card for the Agreement a “reasonable
+            cause”? <span class="ref">NID Act 2010 s.19 / 2023 s.24</span>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>The wording.</strong> Are the notice (page 3) and consent
+            sheet (page 5) enough until regulations set a form?
+            <span class="ref">s.5(2), s.15(2)</span>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>A nominee under 18.</strong> Does a parent's or guardian's
+            signature on the Agreement meet the Act while no regulations exist?
+            <span class="ref">s.9</span><small>See clause 8 on page 6.</small>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>Investors signed before the clause.</strong> Some Investors
+            may have signed before the data clause existed. Is handing them the
+            notice with their next statement enough, or must they sign
+            something? <span class="ref">s.40</span>
+          </div>
+        </div>
+        <div class="q">
+          <div class="box"></div>
+          <div>
+            <strong>The host.</strong> What must the farm's contracts with the
+            Singapore host and the backup store say to make them processors
+            bound by the Act? <span class="ref">s.8</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Notice, Bangla -->
+    <section class="sheet">
+      <div class="run">
+        <span><span class="blank">{খামারের নাম}</span></span
+        ><span class="draft">DRAFT · 25.09.2026</span>
+      </div>
+      <div class="over">3 · Privacy notice, as handed to the Investor</div>
+      <div lang="bn">
+        <h2>আপনার তথ্য খামার কীভাবে রাখে</h2>
+        <p>
+          <strong>কে রাখে।</strong> <span class="blank">{খামারের নাম}</span>,
+          <span class="blank">{ঠিকানা}</span>। দায়িত্বে খামারের মালিক, ফোন
+          <span class="blank">{মালিকের ফোন}</span>।
+        </p>
+
+        <p><strong>কী রাখা হয়, কোথা থেকে।</strong></p>
+        <ul>
+          <li>
+            আপনার নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব, আর আপনার নমিনির
+            নাম, ফোন ও সম্পর্ক। এগুলো আপনি নিজে দিয়েছেন।
+          </li>
+          <li>
+            আপনার চুক্তি, আপনার পুঁজি, আপনাকে দেওয়া টাকা, আপনার কাগজ
+            (যোগদানপত্র, অগ্রগতি, হিসাব নিকাশ), আর পোর্টালে আপনি কবে এসেছেন ও
+            কোন কাগজ খুলেছেন। এগুলো খামার নিজে লিখে রাখে।
+          </li>
+        </ul>
+
+        <p><strong>কেন।</strong></p>
+        <ul>
+          <li>
+            আপনার চুক্তি মেনে চলতে এবং আপনার টাকা আপনার ব্যাংক হিসাবে পাঠাতে।
+          </li>
+          <li>আইন যে হিসাবের খাতা রাখতে বলে, তা রাখতে।</li>
+          <li>
+            আর শুধু আপনার সম্মতি থাকলে, এই পোর্টালে আপনাকে আপনার নিজের হিসাব
+            দেখাতে।
+          </li>
+        </ul>
+
+        <p><strong>কোথায় রাখা হয়, কে দেখে।</strong></p>
+        <ul>
+          <li>
+            সব তথ্য একটি সার্ভারে থাকে সিঙ্গাপুরে, যা খামারের পক্ষে চালায়
+            <span class="blank">⟦হোস্টিং কোম্পানির নাম⟧</span>।
+          </li>
+          <li>
+            প্রতি রাতে এর একটি তালাবদ্ধ (এনক্রিপ্ট করা) কপি রাখা হয়
+            <span class="blank">⟦ব্যাকআপ কোম্পানির নাম⟧</span>-এর কাছে,
+            <span class="blank">⟦দেশ⟧</span>-এ। সেই কোম্পানি কপিটি পড়তে পারে
+            না।
+          </li>
+          <li>
+            আপনার ব্যক্তিগত তথ্য খামারে শুধু মালিক দেখেন। খামারের কর্মীরা পশুর
+            কাজ দেখেন, আপনার তথ্য নয়।
+          </li>
+          <li>
+            আপনার টাকা পাঠাতে ব্যাংক আপনার হিসাব নম্বর পায়। আইন চাইলে কর
+            কর্তৃপক্ষকে দেখাতে হতে পারে।
+          </li>
+          <li>আর কাউকে দেওয়া হয় না, বিক্রি করা হয় না।</li>
+        </ul>
+
+        <p><strong>কতদিন।</strong></p>
+        <ul>
+          <li>
+            আপনার শেষ ভেঞ্চারের হিসাব মেটার পর বারো বছর, কারণ আইন খামারকে এতদিন
+            হিসাবের খাতা রাখতে বলে।
+          </li>
+          <li>
+            পোর্টালে আপনার প্রবেশ এর আগেই বন্ধ হতে পারে: আপনি চাইলে, অথবা খামার
+            পোর্টাল বন্ধ করলে।
+          </li>
+        </ul>
+
+        <p><strong>কীভাবে সুরক্ষিত।</strong></p>
+        <ul>
+          <li>
+            পোর্টালে আপনি ঢোকেন শুধু মালিকের আমন্ত্রণে, নিজের ফোন নম্বর আর নিজের
+            পাসওয়ার্ড দিয়ে।
+          </li>
+          <li>
+            পোর্টালে আপনার এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা
+            যায়।
+          </li>
+          <li>পোর্টাল দিয়ে কিছু বদলানো যায় না।</li>
+          <li>সাইন আউট করলে আপনার ফোনে পোর্টালের কিছুই থাকে না।</li>
+          <li>খামার কখনো আপনার পাসওয়ার্ড চাইবে না।</li>
+        </ul>
+
+        <p><strong>আপনার অধিকার।</strong></p>
+        <ul>
+          <li>
+            <strong>দেখা:</strong> খামার আপনার সম্পর্কে যা রাখে, তার পুরো কপি
+            চাইতে পারেন।
+          </li>
+          <li>
+            <strong>ঠিক করা:</strong> কিছু ভুল থাকলে ঠিক করাতে পারেন। ত্রিশ
+            দিনের মধ্যে আপনাকে জানানো হবে, আর খামার রাজি না হলে কেন, তা লিখে
+            জানাবে।
+          </li>
+          <li>
+            <strong>সম্মতি তুলে নেওয়া:</strong> যেকোনো সময় পোর্টালের সম্মতি
+            তুলে নিতে পারেন। তখনই আপনার প্রবেশ বন্ধ হবে, আর কাগজগুলো আগের মতো
+            ছাপা কাগজে পাবেন।
+          </li>
+          <li>
+            <strong>মুছে ফেলা:</strong> তথ্য মুছে ফেলতে বলতে পারেন। তবে আপনার
+            চুক্তি আর টাকার হিসাব আইনের কারণে বারো বছর রাখতে হয়। সেগুলো ছাড়া
+            বাকিটা মুছে ফেলা হবে।
+          </li>
+        </ul>
+
+        <p><strong>কীভাবে চাইবেন।</strong></p>
+        <ul>
+          <li>
+            মালিককে লিখে জানান: সই করা চিঠি, হাতে দিয়ে বা খামারের ঠিকানায়
+            পাঠিয়ে; অথবা খামারে আপনার যে মোবাইল নম্বর আছে, সেখান থেকে এসএমএস বা
+            হোয়াটসঅ্যাপে।
+          </li>
+          <li>অন্য নম্বর থেকে এলে খামার আপনার নম্বরে ফোন করে নিশ্চিত হবে।</li>
+          <li>ত্রিশ দিনের মধ্যে উত্তর পাবেন।</li>
+        </ul>
+
+        <p>
+          <strong>অভিযোগ।</strong> খামারের উত্তরে সন্তুষ্ট না হলে
+          <span class="blank"
+            >⟦জাতীয় উপাত্ত ব্যবস্থাপনা কর্তৃপক্ষ — আইনজীবীর ভাষায়⟧</span
+          >-এর কাছে অভিযোগ করতে পারেন।
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. Notice, English -->
+    <section class="sheet">
+      <div class="run">
+        <span>Investor Portal · for counsel</span
+        ><span class="draft">WORKING COPY · NOT HANDED OUT</span>
+      </div>
+      <div class="over">4 · Privacy notice, English working copy</div>
+      <h2>How the farm keeps your data</h2>
+      <p>
+        <strong>Who keeps it.</strong> <span class="blank">{Farm name}</span>,
+        <span class="blank">{address}</span>. The Owner is responsible, phone
+        <span class="blank">{Owner's phone}</span>.
+      </p>
+
+      <p><strong>What is kept, and where it comes from.</strong></p>
+      <ul>
+        <li>
+          Your name, phone, address, NID number and bank account, and your
+          nominee's name, phone and relationship. You gave these yourself.
+        </li>
+        <li>
+          Your Agreements, your capital, the money paid to you, your papers
+          (joining letter, progress statement, settlement), and when you came to
+          the portal and which papers you opened. The farm records these itself.
+        </li>
+      </ul>
+
+      <p><strong>Why.</strong></p>
+      <ul>
+        <li>
+          To keep your Agreement and pay your money into your bank account.
+        </li>
+        <li>To keep the books the law requires.</li>
+        <li>
+          Only with your consent, to show you your own record in this portal.
+        </li>
+      </ul>
+
+      <p><strong>Where it is kept, and who sees it.</strong></p>
+      <ul>
+        <li>
+          Everything is on a server in Singapore, run for the farm by
+          <span class="blank">⟦hosting company⟧</span>.
+        </li>
+        <li>
+          Each night an encrypted copy is kept by
+          <span class="blank">⟦backup company⟧</span> in
+          <span class="blank">⟦country⟧</span>. That company cannot read it.
+        </li>
+        <li>
+          At the farm, only the Owner sees your personal record. Farm staff see
+          the animals, not you.
+        </li>
+        <li>
+          The bank gets your account number to pay you. The tax authority may be
+          shown your record if the law requires it.
+        </li>
+        <li>Nobody else is given it, and it is never sold.</li>
+      </ul>
+
+      <p><strong>For how long.</strong></p>
+      <ul>
+        <li>
+          Twelve years after your last Venture settles, because the law asks the
+          farm to keep its books that long.
+        </li>
+        <li>
+          Your portal access can end sooner: if you ask, or if the farm closes
+          the portal.
+        </li>
+      </ul>
+
+      <p><strong>How it is protected.</strong></p>
+      <ul>
+        <li>
+          You come into the portal only by the Owner's invitation, with your own
+          phone number and password.
+        </li>
+        <li>
+          The portal shows only the last four digits of your NID and bank
+          account.
+        </li>
+        <li>Nothing can be changed through the portal.</li>
+        <li>Signing out leaves nothing of the portal on your phone.</li>
+        <li>The farm will never ask for your password.</li>
+      </ul>
+
+      <p><strong>Your rights.</strong></p>
+      <ul>
+        <li>
+          <strong>To see:</strong> ask for a full copy of everything the farm
+          keeps about you.
+        </li>
+        <li>
+          <strong>To correct:</strong> have anything wrong put right. You will
+          be told within thirty days, and if the farm declines, why, in writing.
+        </li>
+        <li>
+          <strong>To withdraw:</strong> withdraw your consent to the portal at
+          any time. Your access ends at once, and you receive your papers on
+          paper as before.
+        </li>
+        <li>
+          <strong>To erase:</strong> ask for your data to be erased. Your
+          Agreements and money records must be kept for twelve years by law; the
+          rest is erased.
+        </li>
+      </ul>
+
+      <p><strong>How to ask.</strong></p>
+      <ul>
+        <li>
+          Write to the Owner: a signed letter, handed over or posted to the
+          farm's address; or an SMS or WhatsApp message from the mobile number
+          the farm has for you.
+        </li>
+        <li>
+          A message from any other number is confirmed by a call back to yours.
+        </li>
+        <li>You will have an answer within thirty days.</li>
+      </ul>
+
+      <p>
+        <strong>Complaints.</strong> If you are not satisfied with the farm's
+        answer, you may complain to
+        <span class="blank"
+          >⟦the National Data Management Authority, in counsel's wording⟧</span
+        >.
+      </p>
+    </section>
+
+    <!-- 5. Consent sheet -->
+    <section class="sheet">
+      <div class="run">
+        <span>Investor Portal · for counsel</span
+        ><span class="draft">DRAFT · 25.09.2026</span>
+      </div>
+      <div class="over">
+        5 · Portal consent sheet, signed in front of the Owner and kept by the
+        farm
+      </div>
+      <div class="consent" lang="bn">
+        <p style="margin: 0; font-weight: 600">
+          <span class="blank">{খামারের নাম}</span>
+        </p>
+        <h2>বিনিয়োগকারী পোর্টাল — সম্মতিপত্র</h2>
+        <p>
+          আমি, <span class="blank">{বিনিয়োগকারীর নাম}</span> (মোবাইল
+          <span class="blank">{ফোন}</span>), খামারের দেওয়া “আপনার তথ্য” কাগজটি
+          পেয়েছি ও পড়েছি, এবং নিচের তিনটিতে সম্মতি দিচ্ছি:
+        </p>
+        <ol>
+          <li>
+            খামারের অনলাইন বিনিয়োগকারী পোর্টালে আমাকে আমার নিজের চুক্তি,
+            ভেঞ্চার, টাকার হিসাব ও কাগজ দেখানো হবে। শুধু আমি, আমার নিজের ফোন
+            নম্বর ও পাসওয়ার্ড দিয়ে, তা দেখব।
+          </li>
+          <li>
+            এর জন্য আমার তথ্য সিঙ্গাপুরে খামারের পক্ষে চালানো একটি সার্ভারে রাখা
+            হবে, আর প্রতি রাতে তার একটি তালাবদ্ধ কপি অন্য জায়গায় রাখা হবে।
+          </li>
+          <li>
+            এর জন্য খামার আমার এনআইডি নম্বর, ব্যাংক হিসাব ও নমিনির তথ্য রাখবে।
+            পোর্টালে এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা যাবে।
+          </li>
+        </ol>
+        <p><strong>আমি জানি:</strong></p>
+        <ul>
+          <li>
+            এই সম্মতি আমি যেকোনো সময় তুলে নিতে পারি: মালিককে সই করা চিঠি দিয়ে,
+            অথবা খামারে থাকা আমার মোবাইল নম্বর থেকে মেসেজ দিয়ে।
+          </li>
+          <li>
+            তুলে নিলে সঙ্গে সঙ্গে পোর্টালে আমার প্রবেশ বন্ধ হবে, আর আমার কাগজ
+            আগের মতো ছাপা কাগজে পাব।
+          </li>
+          <li>
+            তুলে নিলেও আমার চুক্তি আর টাকার হিসাব আইনের কারণে বারো বছর রাখা হবে।
+          </li>
+          <li>
+            পোর্টালে সই হয় না, টাকা দেওয়া-নেওয়া হয় না। পোর্টাল কোনো প্রকাশ্য
+            প্রস্তাব নয়।
+          </li>
+        </ul>
+        <div class="sign">
+          <span>বিনিয়োগকারীর সই</span
+          ><span style="min-width: 40mm">তারিখ</span>
+        </div>
+        <div class="sign">
+          <span>মালিকের সই (আমার সামনে সই হয়েছে)</span
+          ><span style="min-width: 40mm"></span>
+        </div>
+        <p class="foot">
+          সম্মতিপত্র, সংস্করণ <span class="blank">{version}</span> ·
+          <span class="blank">{খামারের নাম}</span>, নিবন্ধন নং
+          <span class="blank">{registration}</span>
+        </p>
+      </div>
+
+      <h3>English working copy</h3>
+      <p style="font-size: 9.5pt; color: var(--ink-soft)">
+        I, {Investor's name} (mobile {phone}), have received and read the farm's
+        “আপনার তথ্য” (Your data), and consent to three things:
+      </p>
+      <ol style="font-size: 9.5pt; color: var(--ink-soft)">
+        <li>
+          The farm's online Investor Portal will show me my own Agreements,
+          Ventures, money and papers. Only I will see them, with my own phone
+          number and password.
+        </li>
+        <li>
+          For this, my data will be kept on a server in Singapore run for the
+          farm, with an encrypted copy kept elsewhere each night.
+        </li>
+        <li>
+          For this, the farm will hold my NID number, bank account and nominee's
+          details. The portal shows only the last four digits of the NID and
+          bank account.
+        </li>
+      </ol>
+      <p style="font-size: 9.5pt; color: var(--ink-soft)">I know that:</p>
+      <ul style="font-size: 9.5pt; color: var(--ink-soft)">
+        <li>
+          I can withdraw this consent at any time, by a signed letter to the
+          Owner or a message from my mobile number on file.
+        </li>
+        <li>
+          If I withdraw it, my access ends at once, and I receive my papers on
+          paper.
+        </li>
+        <li>
+          My Agreements and money records are kept for twelve years regardless.
+        </li>
+        <li>
+          Nothing is signed or paid through the portal, and it is not a public
+          offer.
+        </li>
+      </ul>
+      <p style="font-size: 9.5pt; color: var(--ink-soft)">
+        Signed by the Investor and countersigned by the Owner, in each other's
+        presence.
+      </p>
+      <div class="lawyer">
+        <h3>For counsel</h3>
+        <ul style="margin: 0">
+          <li>
+            Does this meet s.5(1)–(2): consent that is voluntary, specific,
+            clear and withdrawable, given after being told the purpose, the
+            retention, the transfer and how to withdraw?
+          </li>
+          <li>
+            Point 2 asks for consent to Singapore whether or not it is a
+            transfer abroad under s.29. Is that right, or more than the law
+            asks?
+          </li>
+          <li>
+            Is the Owner's countersignature useful as proof under s.5(4), or
+            unnecessary?
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6. Agreement clause -->
+    <section class="sheet">
+      <div class="run">
+        <span>Investor Portal · for counsel</span
+        ><span class="draft">DRAFT · 25.09.2026</span>
+      </div>
+      <div class="over">
+        6 · Investment Agreement: a new section and the nominee lines
+      </div>
+      <h2>তথ্য / Data</h2>
+      <p class="lede">
+        To follow “General terms” in the Investment Agreement, as a new Version
+        of its template, with the approving counsel's name and date recorded on
+        it. The Master Agreement takes the same section when it is built.
+      </p>
+
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">1</span> এই চুক্তি পালন করতে, বিনিয়োগকারীকে টাকা দিতে
+          এবং আইন যে হিসাব রাখতে বলে তা রাখতে খামার বিনিয়োগকারীর নাম, ফোন,
+          ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব ও নমিনির তথ্য, আর এই চুক্তির সব
+          টাকার হিসাব রাখবে।
+        </div>
+        <div lang="en">
+          To keep this Agreement, pay the Investor and keep the books the law
+          requires, the Farm holds the Investor's name, phone, address, NID
+          number, bank account and nominee's details, and every money record
+          under this Agreement.
+        </div>
+      </div>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">2</span> এই তথ্য সিঙ্গাপুরে খামারের পক্ষে চালানো একটি
+          সার্ভারে রাখা হয়, আর প্রতি রাতে এর একটি তালাবদ্ধ (এনক্রিপ্ট করা) কপি
+          অন্য জায়গায় রাখা হয়।
+        </div>
+        <div lang="en">
+          This data is kept on a server in Singapore run for the Farm, and an
+          encrypted copy is kept elsewhere each night.
+        </div>
+      </div>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">3</span> খামারে বিনিয়োগকারীর ব্যক্তিগত তথ্য শুধু
+          মালিক দেখেন। টাকা পাঠাতে ব্যাংক এবং আইন চাইলে কর কর্তৃপক্ষ ছাড়া আর
+          কাউকে তা দেওয়া হয় না।
+        </div>
+        <div lang="en">
+          At the Farm, only the Owner sees the Investor's personal data. It is
+          given to nobody but the bank, to make payments, and the tax authority
+          where the law requires.
+        </div>
+      </div>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">4</span> শেষ ভেঞ্চারের হিসাব মেটার পর বারো বছর এই তথ্য
+          রাখা হবে, কারণ আইন খামারকে এতদিন হিসাবের খাতা রাখতে বলে।
+        </div>
+        <div lang="en">
+          It is kept for twelve years after the last Venture settles, because
+          the law asks the Farm to keep its books that long.
+        </div>
+      </div>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">5</span> বিনিয়োগকারী যেকোনো সময় মালিককে লিখে তাঁর
+          তথ্যের কপি চাইতে, ভুল ঠিক করাতে বা মুছে ফেলতে বলতে পারেন; আইন যা রাখতে
+          বলে তা ছাড়া। বিস্তারিত “আপনার তথ্য” কাগজে আছে, যা এই চুক্তির সঙ্গে
+          দেওয়া হলো।
+        </div>
+        <div lang="en">
+          The Investor may at any time write to the Owner to have a copy of
+          their data, have it corrected, or have it erased, except what the law
+          requires be kept. The details are in “আপনার তথ্য”, handed over with
+          this Agreement.
+        </div>
+      </div>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">6</span> খামারের অনলাইন পোর্টালে নিজের হিসাব দেখানো এই
+          চুক্তির অংশ নয়; তা হবে শুধু বিনিয়োগকারী আলাদা সম্মতিপত্রে সই করলে।
+        </div>
+        <div lang="en">
+          Showing the Investor their own record in the Farm's online portal is
+          not part of this Agreement; it happens only if the Investor signs a
+          separate consent.
+        </div>
+      </div>
+
+      <h3>Beside the nominee row</h3>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">7</span> বিনিয়োগকারী নিশ্চিত করছেন যে তাঁর নমিনি
+          জানেন, খামার তাঁর নাম, ফোন ও সম্পর্ক রাখছে, শুধু এই চুক্তির অধীনে
+          বিনিয়োগকারীর উত্তরাধিকারীদের টাকা দেওয়ার জন্য।
+        </div>
+        <div lang="en">
+          The Investor confirms that their nominee knows the Farm holds the
+          nominee's name, phone and relationship, only to pay the Investor's
+          heirs under this Agreement.
+        </div>
+      </div>
+      <div class="pair">
+        <div lang="bn">
+          <span class="n">8</span> নমিনির বয়স আঠারো বছরের কম। তাঁর বাবা / মা /
+          আইনগত অভিভাবক হিসেবে আমি এই তথ্য রাখায় সম্মতি দিচ্ছি। নাম:
+          ____________ সই: ____________
+        </div>
+        <div lang="en">
+          The nominee is under eighteen. As their father / mother / legal
+          guardian I consent to this data being kept. Name: ____________
+          Signature: ____________<br /><em
+            >Printed every time; struck through when it does not apply.</em
+          >
+        </div>
+      </div>
+
+      <div class="lawyer">
+        <h3>For counsel</h3>
+        <ul style="margin: 0">
+          <li>
+            Clauses 1–5 rest the record on the contract (s.5(3)(ক)) and
+            Singapore on s.29(3). Is the contract enough, or must the Agreement
+            ask for consent too?
+          </li>
+          <li>
+            Clause 4 keeps the NID number and bank account as long as the money
+            records. Is that justified?
+          </li>
+          <li>
+            Clause 8 is meant to meet s.9 for a nominee under 18. Is a signature
+            on the Agreement enough while no regulations set the manner?
+          </li>
+          <li>
+            Clause 6 keeps the portal apart from the Agreement, so that an
+            Investor who never wants the portal loses nothing.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 7. Record of the opinion -->
+    <section class="sheet">
+      <div class="run">
+        <span>Investor Portal · for the farm's file</span
+        ><span>After the meeting</span>
+      </div>
+      <div class="over">7 · Record of counsel's answer</div>
+      <h2>What was decided</h2>
+      <p class="lede">
+        The Owner fills this in when the written opinion arrives, and files it
+        with the opinion.
+      </p>
+      <div class="q">
+        <div class="box"></div>
+        <div>
+          Counsel's name, and the date of the written opinion
+          <div class="answer"></div>
+        </div>
+      </div>
+      <div class="q">
+        <div class="box"></div>
+        <div>
+          Where the written opinion is kept
+          <div class="answer"></div>
+        </div>
+      </div>
+      <div class="q">
+        <div class="box"></div>
+        <div>
+          The portal stays shut / opens as built / opens with these changes:
+          <div class="answer"></div>
+          <div class="answer"></div>
+          <div class="answer"></div>
+        </div>
+      </div>
+      <div class="q">
+        <div class="box"></div>
+        <div>
+          Whether joining or paying may ever go through the portal, and on what
+          terms
+          <div class="answer"></div>
+          <div class="answer"></div>
+        </div>
+      </div>
+      <div class="q">
+        <div class="box"></div>
+        <div>
+          Wording approved, to be published as a new template version with
+          counsel's name and date:
+          <ul style="margin: 4px 0 0">
+            <li>the notice on every page</li>
+            <li>“আপনার তথ্য”, the privacy notice</li>
+            <li>the Portal Consent sheet</li>
+            <li>the Investment Agreement's data section and nominee lines</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
