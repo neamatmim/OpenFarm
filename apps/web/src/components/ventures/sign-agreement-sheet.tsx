@@ -50,6 +50,9 @@ const STAMP_LABELS = {
   Record<"value" | "on" | "serial", MessageKey>
 >;
 
+/** Long enough to read a code out to somebody and have them write it down. */
+const CODE_SHOWN_FOR_MS = 20_000;
+
 /** A split is a whole percentage of the profit: all of it at the most, none of it at the least. */
 const aSplit = (percent: number) =>
   Number.isInteger(percent) && percent <= 100 && percent >= 0;
@@ -230,7 +233,14 @@ export const SignAgreementSheet = ({
         setTerms(NOTHING_SIGNED);
         setPaper(null);
         onOpenChange(false);
-        toast.success(t("ventures.signed"));
+        // The Pay-in Code is said here, where the Investor is still sitting across the table, and kept on their row.
+        toast.success(
+          t("ventures.signedWithCode", { code: signed.payInCode }),
+          {
+            description: t("ventures.payInCodeHint"),
+            duration: CODE_SHOWN_FOR_MS,
+          }
+        );
       },
     })
   );

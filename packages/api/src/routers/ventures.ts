@@ -46,6 +46,7 @@ import { recordInternalSale } from "../internal-sale-store";
 import { tellTheOwnerAPaperIsDue } from "../investor-statement-notice";
 import {
   countedInvestors,
+  nextPayInCode,
   readAgreement,
   theFarmsShare,
   unitsTaken,
@@ -109,6 +110,7 @@ import {
   signedForEach,
   ventureView,
   lockTheFarm,
+  nextVentureOrdinal,
   stillHersByEach,
   priceAtWeight,
   stillHersOf,
@@ -699,10 +701,13 @@ export const venturesRouter = {
           action: "create",
           after: (tx) => readVenture(tx, context.farm.id, id),
         },
-        (tx) =>
-          tx.insert(venture).values({
+        async (tx) => {
+          // Its place is one past the farm's highest so far, so it is read behind the Farm lock signing takes too.
+          await lockTheFarm(tx, context.farm.id);
+          await tx.insert(venture).values({
             id,
             farmId: context.farm.id,
+            ordinal: await nextVentureOrdinal(tx, context.farm.id),
             name: input.name,
             targetCapitalBdt: input.targetCapitalBdt,
             floorBdt: plan.floorBdt,
@@ -715,7 +720,8 @@ export const venturesRouter = {
             openedBy: context.actor.id,
             openedByRole: context.roleUsed,
             createdAt: now,
-          })
+          });
+        }
       );
       return { id };
     }),
@@ -845,6 +851,9 @@ export const venturesRouter = {
         id: one.id,
         investorId: one.investorId,
         units: one.units,
+        /** What the Investor writes on the transfer: the capital form picks this paper when the bank's reference
+         *  carries it. */
+        payInCode: one.payInCode,
         /** Capital this paper may still take: its Units' worth, less what it has taken. */
         capitalLeftBdt: Math.max(
           0,
@@ -896,7 +905,7 @@ export const venturesRouter = {
         "investment_agreement"
       );
       const id = uuidv7(now);
-      await audited(context).write(
+      const code = await audited(context).write(
         {
           entity: "investment_agreement",
           entityId: id,
@@ -904,9 +913,10 @@ export const venturesRouter = {
           after: (tx) => readAgreement(tx, context.farm.id, id),
         },
         async (tx) => {
-          // Both counts are made inside the write's own transaction, behind a lock on the Farm row:
-          // the Units left and the Investors standing are only true until the next signature commits,
-          // and a rule that may not be overridden may not be lost to two phones at once either.
+          // Every count is made inside the write's own transaction, behind a lock on the Farm row: the
+          // Units left, the Investors standing and the Agreements that set the next Pay-in Code are only
+          // true until the next signature commits, and a rule that may not be overridden may not be lost
+          // to two phones at once either.
           await lockTheFarm(tx, context.farm.id);
           const signing = await tx.query.investor.findFirst({
             where: { id: input.investorId, farmId: context.farm.id },
@@ -950,6 +960,7 @@ export const venturesRouter = {
               data: { refusal: "investor_cap_reached" },
             });
           }
+          const given = await nextPayInCode(tx, context.farm.id, row);
           await tx.insert(investmentAgreement).values({
             id,
             farmId: context.farm.id,
@@ -966,12 +977,15 @@ export const venturesRouter = {
             stampedOn: input.stampedOn,
             stampSerial: input.stampSerial,
             templateVersionId: wording.versionId,
+            payInCode: given,
             signedBy: context.actor.id,
             createdAt: now,
           });
+          return given;
         }
       );
-      return { id };
+      // Said back to the Owner where they have just signed, for the Investor to write on the transfer.
+      return { id, payInCode: code };
     }),
 
   /**

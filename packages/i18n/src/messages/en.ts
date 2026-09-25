@@ -596,7 +596,6 @@ export const en = {
   "ventures.sign": "Sign an Agreement",
   "ventures.signHint":
     "The Units this person takes of {venture}, the split they earn, and the stamped paper it is written on",
-  "ventures.signed": "The Agreement is recorded",
   "ventures.signedFor": "Signed for",
   "ventures.unitsOfUnits":
     "{taken} of {units, plural, one {# Unit} other {# Units}} · {people} in",
@@ -689,6 +688,22 @@ export const en = {
   "ventures.reference": "Bank reference",
   "ventures.referenceHint":
     "The transfer, cheque or deposit slip, and what it is numbered",
+  /** The code one Agreement is given for its Investor to write on the transfer. Never the bank's reference. */
+  "ventures.payInCodeIs": "Pay-in Code {code}",
+  "ventures.signedWithCode":
+    "The Agreement is recorded. Its Pay-in Code is {code}",
+  "ventures.payInCodeHint":
+    "Give it to the Investor to write on the transfer, so the money says whose it is",
+  "ventures.whosePaper": "Whose money",
+  "ventures.whosePaperHint":
+    "Chosen for you when the reference carries a Pay-in Code",
+  "ventures.pickedByCode": "{code} in the reference is {name}'s",
+  "ventures.codeButNotThisPaper":
+    "{code} in the reference is {name}'s, which takes no capital now: {why}",
+  "ventures.codeNotChosen":
+    "{code} in the reference is {name}'s, not the paper chosen here",
+  "ventures.noPaperYet": "no photo yet",
+  "ventures.paidInFull": "paid in full",
   "ventures.approve": "Approve the settlement",
   "ventures.approved": "Approved — the figures are fixed now",
   "ventures.approvedOn": "Approved {day}",

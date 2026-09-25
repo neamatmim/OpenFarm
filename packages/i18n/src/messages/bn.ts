@@ -557,7 +557,6 @@ export const bn: Record<MessageKey, string> = {
   "ventures.sign": "চুক্তি সই",
   "ventures.signHint":
     "{venture}-এ এই বিনিয়োগকারী কত ইউনিট নিচ্ছেন, কত ভাগ পাবেন, আর কোন স্ট্যাম্পে লেখা হলো",
-  "ventures.signed": "চুক্তি লেখা হয়েছে",
   "ventures.signedFor": "সই হয়েছে",
   "ventures.unitsOfUnits": "{units}-এর মধ্যে {taken} ইউনিট · {people} জন",
   "ventures.investor": "বিনিয়োগকারী",
@@ -637,6 +636,19 @@ export const bn: Record<MessageKey, string> = {
   "ventures.movedOn": "ব্যাংক যেদিন পাঠিয়েছে",
   "ventures.reference": "ব্যাংক রেফারেন্স",
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
+  "ventures.payInCodeIs": "জমার কোড {code}",
+  "ventures.signedWithCode": "চুক্তি লেখা হয়েছে। জমার কোড {code}",
+  "ventures.payInCodeHint":
+    "বিনিয়োগকারীকে দিন, ট্রান্সফারে লিখবেন — তাতে বোঝা যাবে টাকাটা কার",
+  "ventures.whosePaper": "কার টাকা",
+  "ventures.whosePaperHint": "রেফারেন্সে জমার কোড থাকলে নিজেই বেছে নেয়",
+  "ventures.pickedByCode": "রেফারেন্সের {code} {name}-এর",
+  "ventures.codeButNotThisPaper":
+    "রেফারেন্সের {code} {name}-এর, কিন্তু এখন টাকা নেওয়া যায় না: {why}",
+  "ventures.codeNotChosen":
+    "রেফারেন্সের {code} {name}-এর, এখানে বেছে নেওয়া কাগজের নয়",
+  "ventures.noPaperYet": "ছবি জমা হয়নি",
+  "ventures.paidInFull": "পুরো টাকা জমা",
   "ventures.approve": "হিসাব অনুমোদন করুন",
   "ventures.approved": "অনুমোদিত — হিসাব আর বদলাবে না",
   "ventures.approvedOn": "{day} অনুমোদিত",

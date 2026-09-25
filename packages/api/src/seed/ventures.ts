@@ -162,7 +162,8 @@ const signOn = async (
     amountBdt: units * unitPriceBdt,
     movedOn: on,
     paymentMethod: "bank",
-    reference: `TRF-${farm.random.int(100_000, 999_999)}`,
+    // What the bank printed, with the Pay-in Code the Investor wrote on the transfer inside it.
+    reference: `BEFTN ${agreement.payInCode} TRF-${farm.random.int(100_000, 999_999)}`,
   });
   return { id: agreement.id, units, investor: who.name };
 };
@@ -528,7 +529,7 @@ const settleUp = async (
       amountBdt: share.payoutBdt,
       movedOn: day,
       paymentMethod: "bank",
-      reference: `PAY-${farm.random.int(100_000, 999_999)}`,
+      reference: `OUT-${farm.random.int(100_000, 999_999)}`,
     });
   }
   // Two of the three say they had it; the third has not been reached yet.

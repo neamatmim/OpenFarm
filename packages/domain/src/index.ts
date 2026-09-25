@@ -523,3 +523,4 @@ export {
   mobileNumberOf,
 } from "./investor-login";
 export { maskedDigits } from "./masked-digits";
+export { payInCode, payInCodeIn } from "./pay-in-code";
