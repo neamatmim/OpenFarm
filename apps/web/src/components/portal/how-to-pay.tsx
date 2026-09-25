@@ -1,14 +1,14 @@
 import type { Language } from "@OpenFarm/i18n";
 import { translate } from "@OpenFarm/i18n";
-import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
 import { Section } from "@/components/page";
+import { useTheirRecord } from "@/components/portal/portal-source";
 import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
-import { orpc } from "@/utils/orpc";
+import type { orpc } from "@/utils/orpc";
 
 /** "How to pay" on one of their Agreements, as the portal reads it. */
 type Paying = NonNullable<
@@ -66,7 +66,7 @@ const TheWarning = ({
 export const HowToPay = ({ paying }: { paying: Paying | null }) => {
   const { t } = useLanguage();
   const taka = useTaka();
-  const me = useQuery(orpc.portal.me.queryOptions());
+  const me = useTheirRecord();
   if (!paying) {
     return null;
   }

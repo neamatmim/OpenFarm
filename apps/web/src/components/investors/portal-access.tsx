@@ -9,7 +9,8 @@ import {
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
 import { useMutation } from "@tanstack/react-query";
-import { DoorClosed, DoorOpen, KeyRound, UserX } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { DoorClosed, DoorOpen, Eye, KeyRound, UserX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -277,6 +278,20 @@ export const PortalAccess = ({
         >
           <KeyRound aria-hidden data-icon="inline-start" />
           {t(inviteWord)}
+        </Button>
+        <Button
+          render={
+            <Link
+              params={{ investorId: investor.id }}
+              to="/investors/$investorId/as-they-see-it"
+            />
+          }
+          size="sm"
+          title={t("portal.preview.seeAsTheyDoHint")}
+          variant="outline"
+        >
+          <Eye aria-hidden data-icon="inline-start" />
+          {t("portal.preview.seeAsTheyDo")}
         </Button>
         {standing === "in" || standing === "invited" ? (
           <Button

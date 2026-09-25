@@ -1,0 +1,144 @@
+import { farmDayOf } from "@OpenFarm/domain";
+import { ORPCError } from "@orpc/server";
+import { z } from "zod";
+
+import type { Context } from "../context";
+import { protectedProcedure } from "../index";
+import { signedInOn } from "../membership";
+import type { PortalReader } from "../portal-reads";
+import { theirPaper, theirRecord, theirVentureToday } from "../portal-reads";
+import { theirRequests } from "../requests-to-join";
+import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
+import { theirAgreements } from "../their-agreements";
+import { openVenturesFor } from "../venture-showing";
+
+// The Portal Preview: the Owner reading one Investor's portal as they would read it today, from the Owner's own
+// sign-in. The Owner's check before inviting anybody, and what the lawyer is shown — so it answers for anybody on
+// file, invited or not, retired or not, with the portal open or shut. It never goes through the Investor's own door
+// (`investorProcedure`): it signs nobody in as them, marks nothing seen, and leaves nothing on their side.
+
+/** The Owner alone, on their own phone. An Investor's account holds no Role and never gets here, for any id. */
+const ownersPreview = protectedProcedure
+  .use(requireOnly("owner", OWNER_ONLY))
+  .use(requirePersonalSession());
+
+const whose = z.object({ investorId: z.string() });
+
+/** The Investor on this farm whose portal is read, whatever their standing; nobody is refused for not being in. */
+const readerFor = async (
+  context: Context,
+  investorId: string
+): Promise<PortalReader> => {
+  const theFarm = context.farm;
+  const them = theFarm
+    ? await context.db.query.investor.findFirst({
+        where: { id: investorId, farmId: theFarm.id },
+        columns: { id: true, name: true, phone: true },
+      })
+    : null;
+  if (!theFarm || !them) {
+    throw new ORPCError("NOT_FOUND", {
+      message: "No such Investor",
+      data: { refusal: "no_such_investor" },
+    });
+  }
+  return {
+    db: context.db,
+    clock: context.clock,
+    farm: theFarm,
+    investor: them,
+  };
+};
+
+export const portalPreviewRouter = {
+  /** Their record as their portal shows it: masked as they see it. */
+  me: ownersPreview
+    .input(whose)
+    .handler(async ({ context, input }) =>
+      theirRecord(await readerFor(context, input.investorId))
+    ),
+
+  /** Their Agreements and money, as their portfolio shows them. */
+  portfolio: ownersPreview.input(whose).handler(async ({ context, input }) => {
+    const reader = await readerFor(context, input.investorId);
+    return theirAgreements(
+      reader.db,
+      reader.farm.id,
+      reader.investor.id,
+      farmDayOf(reader.clock.now())
+    );
+  }),
+
+  /** The Ventures raising capital their portal would offer them today: none if they are retired. */
+  openVentures: ownersPreview
+    .input(whose)
+    .handler(async ({ context, input }) => {
+      const reader = await readerFor(context, input.investorId);
+      return openVenturesFor(
+        reader.db,
+        reader.farm,
+        reader.investor.id,
+        reader.clock.now()
+      );
+    }),
+
+  /** Their Requests to Join as they read them. The Owner answers them from the Owner's own side, not here. */
+  myRequests: ownersPreview.input(whose).handler(async ({ context, input }) => {
+    const reader = await readerFor(context, input.investorId);
+    return theirRequests(reader.db, reader.farm.id, reader.investor.id);
+  }),
+
+  /** Where they are signed in to the portal now; none of them is where the Owner is reading. */
+  signedInOn: ownersPreview.input(whose).handler(async ({ context, input }) => {
+    const reader = await readerFor(context, input.investorId);
+    const access = await reader.db.query.investorAccess.findFirst({
+      where: { farmId: reader.farm.id, investorId: reader.investor.id },
+      columns: { userId: true },
+    });
+    if (!access?.userId) {
+      return [];
+    }
+    const places = await signedInOn(
+      reader.db,
+      access.userId,
+      reader.clock.now()
+    );
+    return places.map((one) => ({ ...one, here: false }));
+  }),
+
+  /** One of their Ventures as their portal draws it today. Refused for an Agreement that is not theirs. */
+  venture: ownersPreview
+    .input(whose.extend({ agreementId: z.string() }))
+    .handler(async ({ context, input }) =>
+      theirVentureToday(
+        await readerFor(context, input.investorId),
+        input.agreementId
+      )
+    ),
+
+  /**
+   * One of their papers, made as the Owner's own Export — the paper the Owner may print from the Agreement anyway —
+   * noted in the trail as made in this Investor's preview, so it never reads as a paper they opened.
+   */
+  paper: ownersPreview
+    .input(
+      whose.extend({
+        agreementId: z.string(),
+        kind: z.enum(["joining", "progress", "settlement"]),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const reader = await readerFor(context, input.investorId);
+      return theirPaper(
+        {
+          ...context,
+          farm: reader.farm,
+          actor: context.actor,
+          inPreviewOf: reader.investor.id,
+        },
+        reader.investor.id,
+        input.agreementId,
+        input.kind
+      );
+    }),
+};

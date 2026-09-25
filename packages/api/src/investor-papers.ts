@@ -34,11 +34,17 @@ import { theirProgress } from "./venture-herd-store";
 
 /** What making one of an Investor's papers needs: the farm it comes from, whoever is asking for it — the Owner
  *  printing it, or the Investor reading it in the portal (ADR 0007) — and the clock. Every paper made is an Export
- *  in the trail, attributed to whoever asked. */
+ *  in the trail, attributed to whoever asked. `inPreviewOf` names the Investor whose portal the Owner was reading
+ *  when they made it, so the trail says why the Owner made it there. */
 export type PaperMaking = Parameters<typeof audited>[0] & {
   farm: NonNullable<Context["farm"]>;
   actor: { id: string; name: string };
+  inPreviewOf?: string;
 };
+
+/** Where a paper was made, as its Export records it: in an Investor's Portal Preview, or nothing to say. */
+const madeIn = (context: PaperMaking) =>
+  context.inPreviewOf ? { inPreviewOf: context.inPreviewOf } : {};
 
 /**
  * যোগদানপত্র for one Agreement: that the Farm has his money, how much, on what day and by which bank reference, and
@@ -119,6 +125,7 @@ export const joiningLetterFor = async (
       entityId: standing.agreement.id,
       action: "export",
       after: exportedPaper(context.farm, "joining_letter", {
+        ...madeIn(context),
         ventureId: standing.venture.id,
         investorId: standing.him.id,
         movements: standing.capital.length,
@@ -209,6 +216,7 @@ export const progressStatementFor = async (
       entityId: standing.agreement.id,
       action: "export",
       after: exportedPaper(context.farm, "progress_statement", {
+        ...madeIn(context),
         ventureId: standing.venture.id,
         investorId: standing.him.id,
         standing: theirs.standingCount,
@@ -304,6 +312,7 @@ export const settlementStatementFor = async (
       entityId: standing.agreement.id,
       action: "export",
       after: exportedPaper(context.farm, "settlement_statement", {
+        ...madeIn(context),
         ventureId: standing.venture.id,
         investorId: standing.him.id,
         payoutBdt: settled.his.payoutBdt,

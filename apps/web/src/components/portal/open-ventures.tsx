@@ -1,14 +1,17 @@
 import { Badge } from "@OpenFarm/ui/components/badge";
 import { cn } from "@OpenFarm/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
 import { Section } from "@/components/page";
+import {
+  usePortalPlaces,
+  useTheirOpenVentures,
+} from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
-import { orpc } from "@/utils/orpc";
+import type { orpc } from "@/utils/orpc";
 
 /** A Venture still raising capital, as an invited Investor is offered it: its terms and the farm's words, and
  *  nothing anybody signed. */
@@ -35,12 +38,13 @@ export const Fact = ({
 export const OpenVentureCard = ({ one }: { one: OpenVenture }) => {
   const { t } = useLanguage();
   const taka = useTaka();
+  const { to, params } = usePortalPlaces().openVenture(one.id);
   return (
     <li>
       <Link
         className="surface hover:border-primary/40 focus-visible:ring-ring flex h-full flex-col gap-4 p-4 outline-none focus-visible:ring-2 md:p-5"
-        params={{ ventureId: one.id }}
-        to="/portal/open/$ventureId"
+        params={params}
+        to={to}
       >
         <div className="flex items-start justify-between gap-3">
           <span className="text-base font-semibold">{one.name}</span>
@@ -84,7 +88,8 @@ export const OpenVentureCards = ({
  */
 export const OpenVenturesOnHome = () => {
   const { t } = useLanguage();
-  const offered = useQuery(orpc.portal.openVentures.queryOptions());
+  const offered = useTheirOpenVentures();
+  const { open } = usePortalPlaces();
   const ventures = offered.data ?? [];
   if (ventures.length === 0) {
     return null;
@@ -92,7 +97,11 @@ export const OpenVenturesOnHome = () => {
   return (
     <Section
       action={
-        <Link className="text-primary text-sm underline" to="/portal/open">
+        <Link
+          className="text-primary text-sm underline"
+          params={open.params}
+          to={open.to}
+        >
           {t("portal.open.back")}
         </Link>
       }

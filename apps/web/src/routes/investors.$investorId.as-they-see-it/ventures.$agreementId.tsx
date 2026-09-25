@@ -5,14 +5,13 @@ import {
   ventureSearch,
 } from "@/components/portal/pages/venture";
 
-/** One Venture an Investor is in, in their own portal. */
-const TheirVenture = () => {
+/** One of the Investor's Ventures as they would read it. */
+const TheirVentureSeen = () => {
   const { agreementId } = Route.useParams();
   const { tab } = Route.useSearch();
   return <PortalVenture agreementId={agreementId} tab={tab} />;
 };
 
-export const Route = createFileRoute("/portal/_in/ventures/$agreementId")({
-  component: TheirVenture,
-  validateSearch: ventureSearch,
-});
+export const Route = createFileRoute(
+  "/investors/$investorId/as-they-see-it/ventures/$agreementId"
+)({ component: TheirVentureSeen, validateSearch: ventureSearch });
