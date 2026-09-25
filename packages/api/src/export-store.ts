@@ -54,6 +54,7 @@ export type ExportedPaper =
   | "portal_consent"
   | "welcome_letter"
   | "code_slip"
+  | "data_copy"
   | "dls_letter"
   | "joining_letter"
   | "progress_statement"

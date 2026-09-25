@@ -61,7 +61,10 @@ const Passage = ({ said }: { said: Said }) => (
 const Rows = ({ rows }: { rows: DocumentRow[] }) => (
   <dl className="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-2 text-sm">
     {rows.map((row) => (
-      <div className="contents" key={row.label.en || row.label.bn}>
+      <div
+        className="contents"
+        key={`${row.label.en || row.label.bn}|${row.value}`}
+      >
         <dt className="text-muted-foreground">
           <Label said={row.label} />
         </dt>

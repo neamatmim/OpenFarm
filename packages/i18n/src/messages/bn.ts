@@ -1138,6 +1138,10 @@ export const bn: Record<MessageKey, string> = {
   "investors.copyAccount": "কপি করুন",
   "investors.copied": "কপি হয়েছে",
   "investors.edit": "সম্পাদনা করুন",
+  "investors.dataCopy": "খামারে তাঁর তথ্য",
+  "investors.dataCopyTitle": "খামারে {name}-এর তথ্য",
+  "investors.dataCopyHint":
+    "খামার তাঁর সম্পর্কে যা রাখে তার সবকিছু, কিছু না লুকিয়ে, প্রথমে «আপনার তথ্য»-এর কথাগুলো। তিনি লিখে একটি কপি চাইলে এটি ছাপিয়ে তাঁকে দিন; ৩০ দিনের মধ্যে দিতে হয়।",
   "investors.editTitle": "{name}-এর তথ্য ঠিক করুন",
   "investors.editHint": "যা বদলেছে তা বদলান; আগে কী লেখা ছিল, তা খাতায় থেকে যায়",
   "investors.save": "পরিবর্তন সংরক্ষণ করুন",

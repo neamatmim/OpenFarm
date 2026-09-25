@@ -1239,6 +1239,10 @@ export const en = {
   "investors.copyAccount": "Copy",
   "investors.copied": "Copied",
   "investors.edit": "Edit",
+  "investors.dataCopy": "Their data held by the farm",
+  "investors.dataCopyTitle": "What the farm holds about {name}",
+  "investors.dataCopyHint":
+    "Everything the farm holds about them, nothing masked, with the points of «আপনার তথ্য» first. When they ask in writing for a copy, print this and hand it to them; it is due within 30 days.",
   "investors.editTitle": "Put {name}'s record right",
   "investors.editHint":
     "Change what has changed; the audit trail keeps what it said before",
