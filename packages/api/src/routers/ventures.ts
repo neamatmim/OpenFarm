@@ -53,6 +53,7 @@ import {
 import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
+import { requestsOf } from "../requests-to-join";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -74,16 +75,15 @@ import {
   readSettlement,
   settlementOf,
 } from "../settlement-store";
-import { requestsOf } from "../requests-to-join";
 import { currentWording, giveStandardTemplates } from "../template-store";
 import { actOnVenture } from "../venture-act";
+import { theirProgress } from "../venture-herd-store";
 import {
   changePortalWords,
   portalWords,
   showInPortal,
   takeOutOfPortal,
 } from "../venture-showing";
-import { theirProgress } from "../venture-herd-store";
 import {
   balanceAtMonthEnd,
   balanceOf,

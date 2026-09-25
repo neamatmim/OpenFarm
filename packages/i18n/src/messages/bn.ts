@@ -155,6 +155,8 @@ export const bn: Record<MessageKey, string> = {
   "portal.request.refused.answered": "খামার এই অনুরোধের উত্তর আগেই দিয়েছে",
   "portal.request.refused.notLive": "এই অনুরোধ আর কারও অপেক্ষায় নেই",
   "portal.request.refused.noSuch": "এমন কোনো অনুরোধ নেই",
+  "portal.request.refused.askedTwice":
+    "আপনি একসঙ্গে দুবার চেয়েছেন। আবার দেখুন: আপনার অনুরোধ একবারই রাখা হয়েছে।",
 
   "portal.account.new": "নতুন পাসওয়ার্ড",
   "portal.money.hint":

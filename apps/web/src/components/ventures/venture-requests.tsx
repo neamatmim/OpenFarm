@@ -1,3 +1,4 @@
+import type { RequestToJoinState } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
@@ -17,8 +18,9 @@ import { orpc } from "@/utils/orpc";
 type RequestsRead = Awaited<ReturnType<typeof orpc.ventures.requests.call>>;
 type OneRequest = RequestsRead["requests"][number];
 
-/** How each place a Request can stand in reads at a glance, from the Owner's side. */
-const STATE_TONE: Record<OneRequest["state"], Tone> = {
+/** How each place a Request can stand in reads at a glance, from the Owner's side: one waiting is work for her, where
+ *  to the Investor it is only news to wait for. */
+const STATE_TONE: Record<RequestToJoinState, Tone> = {
   waiting: "warning",
   come_and_sign: "info",
   not_this_time: "neutral",
@@ -26,6 +28,23 @@ const STATE_TONE: Record<OneRequest["state"], Tone> = {
   signed: "success",
   closed: "neutral",
 };
+
+/** Where a Request stands, in the Owner's words. */
+const STATE_WORDS = {
+  waiting: "ventures.requests.state.waiting",
+  come_and_sign: "ventures.requests.state.come_and_sign",
+  not_this_time: "ventures.requests.state.not_this_time",
+  withdrawn: "ventures.requests.state.withdrawn",
+  signed: "ventures.requests.state.signed",
+  closed: "ventures.requests.state.closed",
+} as const satisfies Record<RequestToJoinState, MessageKey>;
+
+/** What the Investor did, beneath their Request. */
+const KIND_WORDS = {
+  made: "ventures.requests.kind.made",
+  changed: "ventures.requests.kind.changed",
+  withdrawn: "ventures.requests.kind.withdrawn",
+} as const satisfies Record<OneRequest["history"][number]["kind"], MessageKey>;
 
 /** One figure beside the target and the Floor. */
 const Total = ({
@@ -76,7 +95,7 @@ const RequestRow = ({ one }: { one: OneRequest }) => {
         </div>
         <div className="flex shrink-0 flex-col gap-1 sm:items-end">
           <StatusBadge tone={STATE_TONE[one.state]}>
-            {t(`ventures.requests.state.${one.state}` as MessageKey)}
+            {t(STATE_WORDS[one.state])}
           </StatusBadge>
           <span className="text-muted-foreground text-xs">
             {`${t("ventures.requests.col.when")}: `}
@@ -93,7 +112,7 @@ const RequestRow = ({ one }: { one: OneRequest }) => {
             <li className="flex flex-wrap gap-x-2" key={step.id}>
               <SaidDate at={step.at} withTime />
               <span>
-                {t(`ventures.requests.kind.${step.kind}` as MessageKey, {
+                {t(KIND_WORDS[step.kind], {
                   units: formatNumber(step.units, language),
                 })}
               </span>

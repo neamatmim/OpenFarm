@@ -166,6 +166,8 @@ export const en = {
   "portal.request.refused.notLive":
     "This request is no longer waiting on anybody",
   "portal.request.refused.noSuch": "There is no such request",
+  "portal.request.refused.askedTwice":
+    "You asked twice at once. Look again: your request is kept only once.",
 
   "portal.account.new": "New password",
   "portal.money.hint":

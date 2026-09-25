@@ -1,3 +1,5 @@
+import type { RequestToJoinState } from "@OpenFarm/domain";
+import { REQUEST_NOTE_MOST, isLiveRequest } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -24,9 +26,6 @@ export type TheirRequest = Awaited<
   ReturnType<typeof orpc.portal.myRequests.call>
 >[number];
 
-/** The longest note the farm keeps with a Request. */
-const MOST_NOTE = 300;
-
 /** Why the farm would not take a Request, said to the Investor rather than in the Owner's words. */
 const REQUEST_REFUSALS = {
   venture_not_shown: "portal.request.refused.notShown",
@@ -38,10 +37,12 @@ const REQUEST_REFUSALS = {
   request_already_answered: "portal.request.refused.answered",
   request_not_live: "portal.request.refused.notLive",
   no_such_request: "portal.request.refused.noSuch",
+  asked_twice_at_once: "portal.request.refused.askedTwice",
 } as const satisfies Record<string, MessageKey>;
 
-/** How each place a Request can stand in reads at a glance. */
-const STATE_TONE: Record<TheirRequest["state"], Tone> = {
+/** How each place a Request can stand in reads at a glance, to the Investor: a yes is good news here, where on the
+ *  Owner's list it is work still to do. */
+const STATE_TONE: Record<RequestToJoinState, Tone> = {
   waiting: "info",
   come_and_sign: "success",
   not_this_time: "neutral",
@@ -50,23 +51,23 @@ const STATE_TONE: Record<TheirRequest["state"], Tone> = {
   closed: "neutral",
 };
 
+/** Where a Request stands, in the Investor's words. */
+const STATE_WORDS = {
+  waiting: "portal.requests.state.waiting",
+  come_and_sign: "portal.requests.state.come_and_sign",
+  not_this_time: "portal.requests.state.not_this_time",
+  withdrawn: "portal.requests.state.withdrawn",
+  signed: "portal.requests.state.signed",
+  closed: "portal.requests.state.closed",
+} as const satisfies Record<RequestToJoinState, MessageKey>;
+
 /** Where one of their Requests stands, in their words. */
-export const RequestStanding = ({
-  state,
-}: {
-  state: TheirRequest["state"];
-}) => {
+export const RequestStanding = ({ state }: { state: RequestToJoinState }) => {
   const { t } = useLanguage();
   return (
-    <StatusBadge tone={STATE_TONE[state]}>
-      {t(`portal.requests.state.${state}` as MessageKey)}
-    </StatusBadge>
+    <StatusBadge tone={STATE_TONE[state]}>{t(STATE_WORDS[state])}</StatusBadge>
   );
 };
-
-/** Whether a Request is still waiting on somebody: the one an Investor may have on a Venture at a time. */
-const isLive = (one: TheirRequest) =>
-  one.state === "waiting" || one.state === "come_and_sign";
 
 /**
  * Asking to join, or changing what was asked: whole Units, the taka they come to, a note, and — before anything is
@@ -157,7 +158,7 @@ const RequestForm = ({
             <FormField id="request-note" label={t("portal.request.note")}>
               <Textarea
                 id="request-note"
-                maxLength={MOST_NOTE}
+                maxLength={REQUEST_NOTE_MOST}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder={t("portal.request.notePlaceholder")}
                 rows={2}
@@ -205,7 +206,7 @@ export const AskToJoin = ({ one }: { one: OpenVenture }) => {
   // An answer this phone kept from before Requests existed has none: read as nothing asked yet.
   const live =
     (mine.data ?? []).find(
-      (each) => each.ventureId === one.id && isLive(each)
+      (each) => each.ventureId === one.id && isLiveRequest(each.state)
     ) ?? null;
   if (!(live || one.takingRequests)) {
     return null;

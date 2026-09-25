@@ -228,6 +228,25 @@ describe("an Investor asking to join", () => {
     );
   });
 
+  it("keeps one Request when two first taps race: the other changes it or is told it was asked twice", async () => {
+    const ventureId = await aVenture("দুই চাপের ভেঞ্চার");
+    const dipu = await invited("দীপু");
+
+    const both = await Promise.allSettled([
+      dipu.client.portal.requestToJoin({ ventureId, units: 2, note: "" }),
+      dipu.client.portal.requestToJoin({ ventureId, units: 3, note: "" }),
+    ]);
+
+    const failed = both.flatMap((one) =>
+      one.status === "rejected"
+        ? [(one.reason as { data?: { refusal?: string } }).data?.refusal]
+        : []
+    );
+    expect(failed.every((word) => word === "asked_twice_at_once")).toBe(true);
+    const his = await dipu.client.portal.myRequests();
+    expect(his.map((one) => one.state)).toEqual(["waiting"]);
+  });
+
   it("cannot withdraw what is already withdrawn", async () => {
     const ventureId = await aVenture("দুবার ফেরার ভেঞ্চার");
     const rina = await invited("রিনা");
@@ -416,6 +435,17 @@ describe("the Owner reading a Venture's Requests", () => {
 });
 
 describe("another Investor's Request", () => {
+  it("is not read through the Owner's list either: an Investor asking for a Venture's Requests is refused", async () => {
+    const ventureId = await aVenture("মালিকের তালিকার ভেঞ্চার");
+    const asker = await invited("জিজ্ঞাসু");
+    await asker.client.portal.requestToJoin({ ventureId, units: 1, note: "" });
+    const nosy = await invited("কৌতূহলী");
+
+    expect(await refused(nosy.client.ventures.requests({ ventureId }))).toBe(
+      true
+    );
+  });
+
   it("is no such thing to anybody else: they cannot withdraw it, and it is not on their page", async () => {
     const ventureId = await aVenture("অন্যের ভেঞ্চার");
     const hers = await invited("হাসিনা");
@@ -444,7 +474,8 @@ describe("a Request the farm refuses", () => {
 
     expect(await refused(ask(0))).toBe(true);
     expect(await refused(ask(1.5))).toBe(true);
-    expect(await refused(ask(3, "অ".repeat(501)))).toBe(true);
+    expect(await refused(ask(3, "অ".repeat(301)))).toBe(true);
+    expect(await refusalOf(ask(3, "অ".repeat(300)))).toBe("not refused");
     expect(await refusalOf(ask(TERMS.units + 1))).toBe("units_beyond_venture");
     expect(await refusalOf(ask(TERMS.units))).toBe("not refused");
   });

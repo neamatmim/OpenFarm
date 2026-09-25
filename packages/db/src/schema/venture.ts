@@ -225,7 +225,8 @@ export const REQUEST_TO_JOIN_STATES = [
   "closed",
 ] as const;
 
-/** A Request somebody is still waiting on: at most one of these per Investor per Venture. */
+/** A Request somebody is still waiting on: at most one of these per Investor per Venture. The domain says both lists
+ *  too, for the screens; a test holds them together. */
 export const LIVE_REQUEST_STATES = ["waiting", "come_and_sign"] as const;
 
 /**
@@ -263,7 +264,9 @@ export const requestToJoin = pgTable(
     // One live Request per Investor per Venture: asking again changes it, never piles up a second.
     uniqueIndex("request_to_join_live_uidx")
       .on(table.ventureId, table.investorId)
-      .where(sql`${table.state} in ('waiting', 'come_and_sign')`),
+      .where(
+        sql`${table.state} in (${sql.raw(LIVE_REQUEST_STATES.map((state) => `'${state}'`).join(", "))})`
+      ),
   ]
 );
 

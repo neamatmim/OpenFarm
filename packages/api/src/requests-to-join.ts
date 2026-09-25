@@ -1,11 +1,13 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { eq } from "@OpenFarm/db/operators";
+import type { REQUEST_CHANGE_KINDS } from "@OpenFarm/db/schema/venture";
 import {
   LIVE_REQUEST_STATES,
   VENTURE_STATES,
   requestToJoin,
   requestToJoinChange,
 } from "@OpenFarm/db/schema/venture";
+import { REQUEST_NOTE_MOST, isLiveRequest } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -29,9 +31,7 @@ type Asking = Parameters<typeof actOnVenture>[0] & {
 export const unitsAsked = z.number().int().min(1);
 
 /** The Investor's few words for the Owner, such as when they can pay. */
-export const requestNote = z.string().trim().max(300).default("");
-
-const LIVE: readonly string[] = LIVE_REQUEST_STATES;
+export const requestNote = z.string().trim().max(REQUEST_NOTE_MOST).default("");
 
 /** The one live Request an Investor has on a Venture, if any. */
 const liveRequestOf = (
@@ -145,7 +145,8 @@ export const askToJoin = async (
       await mayAsk(tx, farmId, investorId, standing, now);
       if (input.units > standing.units) {
         throw new ORPCError("BAD_REQUEST", {
-          message: `This Venture has ${standing.units} Units`,
+          // Not how many it has: an Investor is never told the Venture's Units.
+          message: "More Units than this Venture has",
           data: { refusal: "units_beyond_venture" },
         });
       }
@@ -153,6 +154,7 @@ export const askToJoin = async (
       if ((live?.id ?? null) !== (said?.id ?? null)) {
         throw new ORPCError("CONFLICT", {
           message: "Asked twice at once — look again",
+          data: { refusal: "asked_twice_at_once" },
         });
       }
       if (live && live.state !== "waiting") {
@@ -217,7 +219,7 @@ export const withdrawRequest = async (
     ventureId: theirs.ventureId,
     // Withdrawing is never refused for where the Venture stands: nobody should be held to a Request.
     from: VENTURE_STATES,
-    wrongState: "",
+    wrongState: "This Venture is gone",
     trail: {
       entity: "request_to_join",
       entityId: requestId,
@@ -229,7 +231,7 @@ export const withdrawRequest = async (
       const standing = await tx.query.requestToJoin.findFirst({
         where: { id: requestId, farmId },
       });
-      if (!(standing && LIVE.includes(standing.state))) {
+      if (!(standing && isLiveRequest(standing.state))) {
         throw new ORPCError("BAD_REQUEST", {
           message: "This Request is not waiting on anybody any more",
           data: { refusal: "request_not_live" },
@@ -261,7 +263,13 @@ const changesOf = async (
 ) => {
   const byRequest = new Map<
     string,
-    { id: string; kind: string; units: number; note: string | null; at: Date }[]
+    {
+      id: string;
+      kind: (typeof REQUEST_CHANGE_KINDS)[number];
+      units: number;
+      note: string | null;
+      at: Date;
+    }[]
   >();
   if (requestIds.length === 0) {
     return byRequest;
@@ -283,6 +291,26 @@ const changesOf = async (
   }
   return byRequest;
 };
+
+type RequestRow = Awaited<
+  ReturnType<Tx["query"]["requestToJoin"]["findMany"]>
+>[number];
+
+/** One Request as either side reads it: its Units, the taka they come to, its note, where it stands, and when it was
+ *  made and last changed. */
+const readAs = (
+  one: RequestRow,
+  unitPriceBdt: number,
+  history: readonly { at: Date }[]
+) => ({
+  id: one.id,
+  units: one.units,
+  bdt: one.units * unitPriceBdt,
+  note: one.note,
+  state: one.state,
+  madeAt: one.createdAt,
+  changedAt: history.at(-1)?.at ?? one.createdAt,
+});
 
 /**
  * A Venture's Requests as the Owner reads them: each with the Investor, Units, taka, note, when it was made and last
@@ -318,14 +346,8 @@ export const requestsOf = async (
     requests: rows.map((one) => {
       const history = changes.get(one.id) ?? [];
       return {
-        id: one.id,
+        ...readAs(one, run.unitPriceBdt, history),
         investorId: one.investorId,
-        units: one.units,
-        bdt: one.units * run.unitPriceBdt,
-        note: one.note,
-        state: one.state,
-        madeAt: one.createdAt,
-        changedAt: history.at(-1)?.at ?? one.createdAt,
         history,
       };
     }),
@@ -370,15 +392,9 @@ export const theirRequests = async (
   return rows.map((one) => {
     const run = ventureOf.get(one.ventureId);
     return {
-      id: one.id,
+      ...readAs(one, run?.unitPriceBdt ?? 0, changes.get(one.id) ?? []),
       ventureId: one.ventureId,
       ventureName: run?.name ?? "",
-      units: one.units,
-      bdt: one.units * (run?.unitPriceBdt ?? 0),
-      note: one.note,
-      state: one.state,
-      madeAt: one.createdAt,
-      changedAt: changes.get(one.id)?.at(-1)?.at ?? one.createdAt,
     };
   });
 };
