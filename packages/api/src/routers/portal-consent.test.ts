@@ -75,6 +75,8 @@ describe("a Portal Consent", () => {
     expect(made).toMatchObject({
       action: "create",
       actorId: thePerson("owner").id,
+      // Nothing was in force before it.
+      before: null,
       after: expect.objectContaining({
         version: 1,
         versionId: consent.versionId,

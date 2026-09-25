@@ -135,7 +135,13 @@ export const audited = (
       const before = await readSnapshot(tx, event.before);
       const result = await apply(tx, eventId);
       const after = await readSnapshot(tx, event.after);
-      await recordEvent(tx, event, { before, after, eventId, receivedAt });
+      // Both read already, either side of `apply`: handed over without their readers, since a before that read
+      // nothing is null, and `recordEvent` would read a null again — after the change, as what came before it.
+      await recordEvent(
+        tx,
+        { ...event, before: undefined, after: undefined },
+        { before, after, eventId, receivedAt }
+      );
       return result;
     });
   };
