@@ -95,7 +95,30 @@ export const bn: Record<MessageKey, string> = {
   "portal.profit": "মুনাফায় আপনার অংশ",
   "portal.yourVentures": "আপনার ভেঞ্চার",
   "portal.notice":
-    "এই পোর্টালে শুধু খামারের সঙ্গে আপনার নিজের চুক্তিগুলো দেখা যায়, আর কিছু নয়। এটি বিনিয়োগের কোনো প্রস্তাব নয়, আর এর মাধ্যমে কোনো টাকা লেনদেন হয় না।",
+    "এই পোর্টাল কোনো প্রকাশ্য প্রস্তাব নয়। ভেঞ্চারে যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি সই করা চুক্তিতে, আর এই পোর্টালের মাধ্যমে কোনো টাকা লেনদেন হয় না।",
+  "portal.open.title": "যে ভেঞ্চারে পুঁজি তোলা হচ্ছে",
+  "portal.open.hint":
+    "যেসব ভেঞ্চারের জন্য খামার এখনো পুঁজি তুলছে। যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি স্ট্যাম্পে চুক্তি সই করে।",
+  "portal.open.none": "খামার এখন কোনো ভেঞ্চারের জন্য পুঁজি তুলছে না",
+  "portal.open.closed": "আর অনুরোধ নেওয়া হচ্ছে না",
+  "portal.open.unit": "এক ইউনিট",
+  "portal.open.target": "তোলা হচ্ছে",
+  "portal.open.floor": "সর্বনিম্ন সীমা",
+  "portal.open.decideBy": "সিদ্ধান্তের দিন",
+  "portal.open.cattleBudget": "গরু কেনার জন্য",
+  "portal.open.runningBudget": "খাওয়ানোর জন্য",
+  "portal.open.fromTheFarm": "খামারের কথা",
+  "portal.open.rules": "জিজ্ঞেস করার আগে",
+  "portal.open.ruleFloor":
+    "{day}-এর মধ্যে {floor} না উঠলে প্রতিটি টাকা আপনাকে ফেরত দেওয়া হয়, কিছু কেনা হয় না।",
+  "portal.open.ruleLoss":
+    "লোকসান হলে তা একই হারে ভাগ হয়: আপনার অংশ আপনার মূলধন থেকে যায়।",
+  "portal.open.ruleNoReturn": "কোনো মুনাফা নিশ্চিত নয়।",
+  "portal.open.ruleSigning":
+    "যোগ দেওয়া যায় শুধু খামারের সঙ্গে সামনাসামনি স্ট্যাম্পে চুক্তি সই করে। এখানে কোনো টাকা দেওয়া বা সই করা হয় না।",
+  "portal.open.back": "পুঁজি তোলার সব ভেঞ্চার",
+  "portal.open.notFound": "এই ভেঞ্চার এখন দেখানো হচ্ছে না",
+
   "portal.account.new": "নতুন পাসওয়ার্ড",
   "portal.money.hint":
     "আপনার যত টাকা নড়েছে: মূলধন এসেছে, মূলধন ফেরত গেছে, আর পরিশোধ।",
@@ -793,6 +816,24 @@ export const bn: Record<MessageKey, string> = {
   "ventures.page.floorAndTarget": "সর্বনিম্ন সীমা {floor} · লক্ষ্য {target}",
   "ventures.page.money": "টাকার হিসাব",
   "ventures.page.terms": "শর্তাবলি",
+  "ventures.portal.title": "বিনিয়োগকারী পোর্টালে",
+  "ventures.portal.shown":
+    "অবসরে না-যাওয়া প্রত্যেক আমন্ত্রিত বিনিয়োগকারী এই ভেঞ্চার, এর শর্তাবলি আর আপনার কথা দেখছেন।",
+  "ventures.portal.notShown": "আমন্ত্রিত বিনিয়োগকারীরা এই ভেঞ্চার দেখছেন না।",
+  "ventures.portal.noWords": "এতে আপনার কোনো কথা লেখা নেই।",
+  "ventures.portal.show": "পোর্টালে দেখান",
+  "ventures.portal.changeWords": "কথা বদলান",
+  "ventures.portal.takeOut": "পোর্টাল থেকে সরান",
+  "ventures.portal.words": "এ নিয়ে আপনার কথা",
+  "ventures.portal.wordsHint":
+    "এটা কীসের জন্য, তা লিখুন — যেমন “ঈদের কোরবানির ষাঁড়”। মুনাফা, সামনের দাম বা অন্য ভেঞ্চারের সঙ্গে তুলনা কখনো নয়: বিনিয়োগকারী যে পর্দায় পড়েন, সেখানে তা প্রতিশ্রুতি হয়ে যায়।",
+  "ventures.portal.showHint":
+    "অবসরে না-যাওয়া প্রত্যেক আমন্ত্রিত বিনিয়োগকারী এর শর্তাবলি, খামার যে ভাগে সই করে তা আর এই কথা দেখবেন। কে সই করেছেন বা কত ইউনিট বাকি, তা কখনো নয়।",
+  "ventures.portal.pastDecideBy":
+    "সিদ্ধান্তের দিন পেরিয়ে গেছে, তাই আর দেখানো যাবে না।",
+  "ventures.portal.nowShown": "পোর্টালে দেখানো হচ্ছে",
+  "ventures.portal.wordsSaved": "কথা রাখা হলো",
+  "ventures.portal.takenOut": "পোর্টাল থেকে সরানো হলো",
   "ventures.page.cattleLeft": "গরু কেনার টাকা বাকি",
   "ventures.page.runningLeft": "খাওয়ানোর টাকা বাকি",
   "ventures.page.cattleBudget": "গরু কেনার বাজেট",
@@ -1828,6 +1869,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.harvestHasNoPrice": "নিজের জমির ফসলের কোনো দাম নেই",
   "refusal.receivedInTheFuture": "যে দিন আসেনি সেদিন খাদ্য আসতে পারে না",
   "refusal.ventureWrongState": "ভেঞ্চার এখন যে অবস্থায় আছে, তাতে এটা করা যায় না",
+  "refusal.venturePastDecideBy": "এর সিদ্ধান্তের দিন পেরিয়ে গেছে",
+  "refusal.ventureNotShown": "এটি পোর্টালে দেখানো হচ্ছে না",
   "refusal.ventureUnderFloor": "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম টাকা উঠেছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":

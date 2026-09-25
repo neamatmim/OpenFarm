@@ -17,6 +17,7 @@ import {
   Allocation,
   CapitalAccount,
 } from "@/components/portal/capital-account";
+import { OpenVenturesOnHome } from "@/components/portal/open-ventures";
 import { StageMeter } from "@/components/portal/stage-meter";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -147,6 +148,7 @@ const PortalHome = () => {
       >
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
+      <OpenVenturesOnHome />
     </Page>
   );
 };

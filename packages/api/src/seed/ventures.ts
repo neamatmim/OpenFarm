@@ -653,6 +653,30 @@ export const runTheVentures = (
     });
   }
 
+  // The next run, opened a few days ago and still gathering capital, shown to the farm's invited Investors with a
+  // line of the Owner's (ADR 0008) — so the portal's page of Ventures raising capital has one to show.
+  on(
+    addDays(today, -3),
+    "10:00",
+    "the next Venture is opened and shown",
+    async (f) => {
+      const next = await f.as.owner.ventures.open({
+        name: "কোরবানি ২০২৭ ভেঞ্চার",
+        targetCapitalBdt: 1_500_000,
+        unitPriceBdt: 50_000,
+        units: 30,
+        cattleBudgetBdt: 1_100_000,
+        decideBy: addDays(today, 25),
+        targetWindowStart: addDays(today, 200),
+        targetWindowEnd: addDays(today, 210),
+      });
+      await f.as.owner.ventures.showInPortal({
+        id: next.id,
+        words: "২০২৭ সালের ঈদুল আযহার জন্য দেশি ষাঁড়, সাভারের শেডে।",
+      });
+    }
+  );
+
   // The Owner's own money, interest-free, when what was set aside to keep them runs thin. Repaid at
   // cost before anybody's capital comes back — which the Settlement does.
   on(

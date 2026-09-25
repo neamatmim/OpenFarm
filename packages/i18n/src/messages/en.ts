@@ -96,7 +96,30 @@ export const en = {
   "portal.profit": "Your share of the profit",
   "portal.yourVentures": "Your Ventures",
   "portal.notice":
-    "This portal shows your own Agreements with the farm and nothing else. It is not an offer to invest, and no money moves through it.",
+    "This portal is not a public offer. Joining a Venture is only by an Agreement signed in person with the farm, and no money moves through this portal.",
+  "portal.open.title": "Ventures raising capital",
+  "portal.open.hint":
+    "Ventures the farm is still raising capital for. Joining is only by signing a stamped Agreement with the farm, in person.",
+  "portal.open.none": "The farm is not raising capital for any Venture just now",
+  "portal.open.closed": "No longer taking requests",
+  "portal.open.unit": "One Unit",
+  "portal.open.target": "Raising",
+  "portal.open.floor": "Floor",
+  "portal.open.decideBy": "Decided by",
+  "portal.open.cattleBudget": "For buying cattle",
+  "portal.open.runningBudget": "For keeping them",
+  "portal.open.fromTheFarm": "From the farm",
+  "portal.open.rules": "Before you ask",
+  "portal.open.ruleFloor":
+    "If {floor} has not been raised by {day}, every taka comes back to you and nothing is bought.",
+  "portal.open.ruleLoss":
+    "A loss is shared by the same split: your part of it comes off your capital.",
+  "portal.open.ruleNoReturn": "No return is guaranteed.",
+  "portal.open.ruleSigning":
+    "Joining is only by signing a stamped Agreement with the farm, in person. Nothing is paid or signed here.",
+  "portal.open.back": "All Ventures raising capital",
+  "portal.open.notFound": "This Venture is not being offered",
+
   "portal.account.new": "New password",
   "portal.money.hint":
     "Every taka of yours that moved: capital in, capital sent back, and payouts.",
@@ -863,6 +886,24 @@ export const en = {
   "ventures.page.floorAndTarget": "Floor {floor} · Target {target}",
   "ventures.page.money": "The money",
   "ventures.page.terms": "The terms",
+  "ventures.portal.title": "In the Investor portal",
+  "ventures.portal.shown":
+    "Every invited Investor who is not retired sees this Venture, its terms and your words.",
+  "ventures.portal.notShown": "Invited Investors do not see this Venture.",
+  "ventures.portal.noWords": "No words of yours on it.",
+  "ventures.portal.show": "Show in the portal",
+  "ventures.portal.changeWords": "Change the words",
+  "ventures.portal.takeOut": "Take out of the portal",
+  "ventures.portal.words": "Your words on it",
+  "ventures.portal.wordsHint":
+    "Say what it is for, such as “Qurbani bulls for Eid”. Never a return, a price to come or a comparison with another Venture: on a screen an Investor reads, that is a promise.",
+  "ventures.portal.showHint":
+    "Every invited Investor who is not retired will see its terms, the split the farm signs on and these words. Never who has signed or how many Units are left.",
+  "ventures.portal.pastDecideBy":
+    "Its decide-by day has passed, so it can no longer be shown.",
+  "ventures.portal.nowShown": "Shown in the portal",
+  "ventures.portal.wordsSaved": "Words saved",
+  "ventures.portal.takenOut": "Taken out of the portal",
   "ventures.page.cattleLeft": "Left to buy cattle with",
   "ventures.page.runningLeft": "Left to keep them with",
   "ventures.page.cattleBudget": "Cattle budget",
@@ -1944,6 +1985,8 @@ export const en = {
     "Feed cannot come in on a day that has not come yet",
   "refusal.ventureWrongState":
     "The Venture is not where it would have to be for that",
+  "refusal.venturePastDecideBy": "Its decide-by day has passed",
+  "refusal.ventureNotShown": "It is not shown in the portal",
   "refusal.ventureUnderFloor":
     "The Venture holds less than the Floor it was opened on",
   "refusal.ventureFloorOverTarget":
