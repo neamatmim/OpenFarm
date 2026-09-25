@@ -514,6 +514,7 @@ export {
   factsMissing,
   fieldsIn,
   isTemplateField,
+  letterheadOf,
   namedFields,
   paperFrom,
   partsAllowed,
@@ -524,6 +525,7 @@ export {
 export { STANDARD_TEMPLATES } from "./standard-templates";
 export {
   INVESTOR_LOGIN_DOMAIN,
+  PORTAL_SIGN_IN_HOURS,
   investorLoginOf,
   isInvestorLogin,
   mobileNumberOf,

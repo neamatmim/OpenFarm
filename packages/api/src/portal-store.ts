@@ -4,7 +4,7 @@ import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
 import { session, user } from "@OpenFarm/db/schema/auth";
 import { investorAccess } from "@OpenFarm/db/schema/venture";
-import { investorLoginOf } from "@OpenFarm/domain";
+import { PORTAL_SIGN_IN_HOURS, investorLoginOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 
 import {
@@ -51,7 +51,11 @@ export interface PortalSaid {
 }
 
 /** What the trail keeps of somebody's access, either side of a change: never the code. */
-export const readAccess = async (tx: Tx, farmId: string, investorId: string) =>
+export const readAccess = async (
+  tx: Pick<Tx, "query">,
+  farmId: string,
+  investorId: string
+) =>
   (await tx.query.investorAccess.findFirst({
     where: { farmId, investorId },
     columns: {
@@ -63,6 +67,16 @@ export const readAccess = async (tx: Tx, farmId: string, investorId: string) =>
       revokedAt: true,
     },
   })) ?? null;
+
+/** Whether an access holds a code that can still be taken up: one given, and not past its week. A code given to
+ *  somebody whose access was taken away is open all the same — taking it up is what gives the access back. */
+export const codeIsOpen = (
+  access: { codeHash: string | null; codeExpiresAt: Date | null },
+  now: Date
+): boolean =>
+  access.codeHash !== null &&
+  access.codeExpiresAt !== null &&
+  access.codeExpiresAt > now;
 
 /** Where each Investor stands with the portal, by their id. */
 export const portalStandings = async (
@@ -83,10 +97,7 @@ export const portalStandings = async (
   });
   return new Map(
     rows.map((row) => {
-      const codeOpen =
-        row.codeHash !== null &&
-        row.codeExpiresAt !== null &&
-        row.codeExpiresAt > now;
+      const codeOpen = codeIsOpen(row, now);
       const standingOf = (): PortalStanding => {
         if (row.revokedAt) {
           return "taken_away";
@@ -375,9 +386,8 @@ export const markSeen = async (
     );
 };
 
-/** How long one sign-in to the portal lasts, whatever it does meanwhile: a working day. An Investor's figures are
- *  money, and a phone left signed in for a week is somebody else reading them. The farm's own people keep a week. */
-const PORTAL_SIGN_IN_MS = 12 * 60 * 60 * 1000;
+/** How long one sign-in to the portal lasts (`PORTAL_SIGN_IN_HOURS`). */
+const PORTAL_SIGN_IN_MS = PORTAL_SIGN_IN_HOURS * 60 * 60 * 1000;
 
 /** Whether a portal sign-in has lasted its day. */
 export const signInHasRunItsDay = (startedAt: Date, now: Date): boolean =>

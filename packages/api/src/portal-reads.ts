@@ -41,6 +41,14 @@ export interface PortalReader {
   investor: { id: string; name: string; phone: string };
 }
 
+/** Whom an Investor calls about any of it: the farm, by name, phone and address. What the portal's account page shows
+ *  and the Welcome Letter prints, from here alone, so the two cannot give different numbers. */
+export const farmToCall = (farm: PortalReader["farm"]) => ({
+  name: farm.name,
+  phone: farm.phone,
+  address: farm.address,
+});
+
 /**
  * Who the portal is for, which farm's and how to reach it, and their own record as the farm holds it — the NID and
  * the bank account with all but their last digits hidden, enough to know them by on a screen somebody may be looking
@@ -53,7 +61,7 @@ export const theirRecord = async ({ db, farm, investor }: PortalReader) => {
   return {
     investorId: investor.id,
     name: investor.name,
-    farm: { name: farm.name, phone: farm.phone, address: farm.address },
+    farm: farmToCall(farm),
     record: {
       phone: theirs?.phone ?? investor.phone,
       address: theirs?.address ?? null,
