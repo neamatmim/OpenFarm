@@ -13,7 +13,7 @@ This is the surface every later Investor-side ticket sits on. It carries no Requ
 
 **Blocked by:** None.
 
-**Status:** built on `feat/portal-shows-a-venture`; the portal pages still wait to be opened
+**Status:** done on `feat/portal-shows-a-venture`, apart from the portal pages at phone width
 
 **Spec:** [joining spec](../spec.md), user stories 1–23. `CONTEXT.md`: **Investor Portal**. ADR 0008.
 
@@ -32,7 +32,7 @@ This is the surface every later Investor-side ticket sits on. It carries no Requ
 - [x] A test asserts on the **whole** answer that an Investor gets nothing from any Agreement: no Units taken, no Units left, no names, no count of people.
 - [x] The notice on every portal page says the portal is not a public offer, that joining is only by an Agreement signed in person, and that no money moves through it, in Bangla and English.
 - [x] The demo seed shows one Open Venture in the portal.
-- [ ] Somebody opens the Owner's Venture page and both portal pages, on a phone-width screen, before this is called done. **The Owner's page was opened on 2026-09-25**: show, change the words, take out and show again all work, in Bangla and English, at the narrowest window. **The two portal pages have not been opened**: that needs an Investor to join from an invitation, which a person has to do.
+- [x] Somebody opens the Owner's Venture page and both portal pages, on a phone-width screen, before this is called done. **The Owner's page was opened on 2026-09-25**: show, change the words, take out and show again all work, in Bangla and English, at the narrowest window. **The portal pages were opened the same day**, by an Investor who joined from an invitation: the home page's section, the list, and the Venture's page with the words, terms, split, rules and the new notice, all in Bangla. **They were not seen at phone width**: the browser window was maximised and would not resize, and the app refuses to be framed. Look at them on a phone before the portal opens to a real Investor.
 
 ## Checked before starting
 
@@ -51,3 +51,4 @@ This is the surface every later Investor-side ticket sits on. It carries no Requ
 - **Taking out keeps the words,** so showing again starts from them.
 - **Taking out a Venture that is not shown is not refused.** It writes an Audit Event that changes nothing. The code review noted this: changing the words _is_ refused when not shown. Left as it is.
 - **The planned budgets are read off the Venture row directly** for the Investor, never through the held-money figures, so nothing that has come in can leak onto the page.
+- **The portal's menu has no entry for Ventures raising capital.** The list is reached from the home page's section, as the ticket asked. On the list page no menu item is marked as the one you are on.
