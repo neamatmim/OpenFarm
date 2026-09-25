@@ -1,5 +1,5 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
-import { eq } from "@OpenFarm/db/operators";
+import { and, eq, inArray } from "@OpenFarm/db/operators";
 import type { REQUEST_CHANGE_KINDS } from "@OpenFarm/db/schema/venture";
 import {
   LIVE_REQUEST_STATES,
@@ -73,6 +73,7 @@ const readRequest = async (tx: Tx, farmId: string, id: string) =>
       answerLine: true,
       answeredAt: true,
       closedBecause: true,
+      closedAt: true,
     },
   })) ?? null;
 
@@ -314,28 +315,26 @@ export const withdrawRequest = async (
 export const closeRequests = async (
   tx: Tx,
   trail: Trail,
-  {
-    farmId,
-    ventureId,
-    investorId,
-    waitingOnly = false,
-  }: {
-    farmId: string;
-    /** On one Venture, or — for an Investor retired — on every Venture. */
-    ventureId?: string;
-    investorId?: string;
-    /** Only those nobody answered: taking a Venture out of the portal keeps the yeses the Owner gave. */
-    waitingOnly?: boolean;
-  },
+  farmId: string,
+  /**
+   * Whose: one Venture's — every live one, or for a Venture taken out of the portal only those nobody answered, since
+   * that keeps the yeses the Owner gave — or one retired Investor's on every Venture. Never the whole farm's.
+   */
+  which: { ventureId: string; waitingOnly?: boolean } | { investorId: string },
   because: RequestCloseReason,
   now: Date
 ): Promise<number> => {
+  const states =
+    "waitingOnly" in which && which.waitingOnly
+      ? (["waiting"] as const)
+      : LIVE_REQUEST_STATES;
   const live = await tx.query.requestToJoin.findMany({
     where: {
       farmId,
-      ...(ventureId ? { ventureId } : {}),
-      ...(investorId ? { investorId } : {}),
-      state: { in: waitingOnly ? ["waiting"] : [...LIVE_REQUEST_STATES] },
+      ...("ventureId" in which
+        ? { ventureId: which.ventureId }
+        : { investorId: which.investorId }),
+      state: { in: [...states] },
     },
     columns: { id: true, ventureId: true },
   });
@@ -347,7 +346,14 @@ export const closeRequests = async (
     await tx
       .update(requestToJoin)
       .set({ state: "closed", closedBecause: because, closedAt: now })
-      .where(eq(requestToJoin.id, one.id));
+      // Only while still live: the act holds the Farm lock, so nothing should have moved it, but a close must never
+      // write over a withdrawal or an answer.
+      .where(
+        and(
+          eq(requestToJoin.id, one.id),
+          inArray(requestToJoin.state, [...states])
+        )
+      );
     // oxlint-disable-next-line no-await-in-loop
     await settleTheRequestNotice(
       tx,

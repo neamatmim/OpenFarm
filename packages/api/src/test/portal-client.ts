@@ -110,7 +110,7 @@ export const invitingInvestors = (
     prefix,
     run,
   }: {
-    prefix: "013" | "014" | "015" | "016" | "017" | "018" | "019";
+    prefix: "016" | "017" | "018" | "019";
     run: string;
   },
   at: string

@@ -428,13 +428,28 @@ const moveTo = async (
       after: (tx) => readVenture(tx, context.farm.id, row.id),
     },
     async (tx) => {
+      // Behind the lock every act on a Venture takes, and asked again behind it: an Investor asking to join at the
+      // same moment must either be refused or have their Request closed here, never left waiting on a Venture that
+      // has stopped gathering capital.
+      await lockTheFarm(tx, context.farm.id);
+      const standing = await tx.query.venture.findFirst({
+        where: { id: row.id, farmId: context.farm.id },
+        columns: { state: true },
+      });
+      if (!(standing && mayMoveTo(standing.state, to))) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: `A Venture that is ${standing?.state ?? row.state} does not go to ${to}`,
+          data: { refusal: "venture_wrong_state" },
+        });
+      }
       await tx.update(venture).set({ state: to }).where(eq(venture.id, row.id));
       // No longer gathering capital: nothing asked for it, or promised on it, is waiting any more.
       if (to === "buying") {
         await closeRequests(
           tx,
           auditing.recordEvent,
-          { farmId: context.farm.id, ventureId: row.id },
+          context.farm.id,
+          { ventureId: row.id },
           "venture_buying",
           context.clock.now()
         );
@@ -3093,6 +3108,18 @@ export const venturesRouter = {
           after: (tx) => readVenture(tx, context.farm.id, row.id),
         },
         async (tx) => {
+          // Behind the lock every act on a Venture takes, and asked again behind it, as starting to buy is.
+          await lockTheFarm(tx, context.farm.id);
+          const standing = await tx.query.venture.findFirst({
+            where: { id: row.id, farmId: context.farm.id },
+            columns: { state: true },
+          });
+          if (standing?.state !== "open") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: "Only a Venture still open may be called off",
+              data: { refusal: "venture_wrong_state" },
+            });
+          }
           // Read inside the transaction: capital committing while the Owner filled the refunds in would
           // otherwise be left behind in a Venture that is already called off.
           const taken = await tx.query.ventureMovement.findMany({
@@ -3158,7 +3185,8 @@ export const venturesRouter = {
           await closeRequests(
             tx,
             auditing.recordEvent,
-            { farmId: context.farm.id, ventureId: row.id },
+            context.farm.id,
+            { ventureId: row.id },
             "venture_cancelled",
             now
           );

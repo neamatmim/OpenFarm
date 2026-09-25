@@ -79,13 +79,13 @@ const move = async (
   {
     reason,
     refuseWhile,
-    andThen,
+    alsoWrite,
   }: {
     reason?: string;
     /** The list's own rule: throws the refusal while the entry is still in use. */
     refuseWhile?: (tx: Tx) => Promise<void>;
     /** What else changes with it, on the same transaction: whatever waits on an entry that is no longer on the list. */
-    andThen?: (tx: Tx) => Promise<void>;
+    alsoWrite?: (tx: Tx) => Promise<void>;
   }
 ): Promise<{ changed: boolean }> => {
   const farmId = context.farm.id;
@@ -119,7 +119,7 @@ const move = async (
                 : not(isNull(list.table.retiredAt))
             )
           );
-        await andThen?.(tx);
+        await alsoWrite?.(tx);
         changed = true;
       }
     )
@@ -135,7 +135,7 @@ export const retireFromList = (
   options: {
     reason?: string;
     refuseWhile?: (tx: Tx) => Promise<void>;
-    andThen?: (tx: Tx) => Promise<void>;
+    alsoWrite?: (tx: Tx) => Promise<void>;
   } = {}
 ) => move(context, list, id, "retired", options);
 

@@ -1,4 +1,4 @@
-import { FakeClock } from "@OpenFarm/test-harness";
+import { FakeClock, thePerson } from "@OpenFarm/test-harness";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -103,6 +103,29 @@ const standings = async (ventureId: string) => {
   );
 };
 
+/**
+ * What the farm did about one closed Request: the reason its last Audit Event recorded, and whose act that was; and
+ * whether the Owner still has a Notice of it.
+ */
+const closedTrace = async (ventureId: string, requestId: string) => {
+  const owner = await asOwner();
+  const [latest] = await owner.audit.list({
+    entity: "request_to_join",
+    entityId: requestId,
+  });
+  const told = await owner.alerts.mine({ about: ventureId });
+  return {
+    because: (latest?.after as { closedBecause?: string } | null)
+      ?.closedBecause,
+    by: latest?.actorId,
+    stillTold: told.some(
+      (one) =>
+        one.kind === "join_requested" &&
+        (one.params as { requestId?: string }).requestId === requestId
+    ),
+  };
+};
+
 beforeAll(async () => {
   const owner = await asOwner();
   await owner.investors.setPortalOpen({ open: true });
@@ -160,6 +183,33 @@ describe("a Venture that starts buying", () => {
   });
 });
 
+describe("a Request made while the Venture starts buying", () => {
+  it("is refused or closed, never left waiting on a Venture no longer gathering capital", async () => {
+    // Several rounds, each on a Venture of its own: one throw of a race proves nothing.
+    const ROUNDS = 4;
+    const leftWaiting: string[][] = [];
+    /* oxlint-disable no-await-in-loop -- each round is its own race, run one after another */
+    for (let round = 0; round < ROUNDS; round += 1) {
+      const ventureId = await aShownVenture(`দৌড়ের কেনা ${round}`);
+      await meetTheFloor(ventureId);
+      const late = await invited(`দেরিতে ${round}`);
+      const owner = await asOwner();
+      await Promise.allSettled([
+        late.client.portal.requestToJoin({ ventureId, units: 1, note: "" }),
+        owner.ventures.startBuying({ id: ventureId }),
+      ]);
+      const now = await standings(ventureId);
+      leftWaiting.push(
+        [...now.values()]
+          .map(([state]) => state)
+          .filter((state) => state === "waiting" || state === "come_and_sign")
+      );
+    }
+    /* oxlint-enable no-await-in-loop */
+    expect(leftWaiting).toEqual([[], [], [], []]);
+  });
+});
+
 describe("a Venture called off", () => {
   it("closes every live Request on it, answered or not", async () => {
     const ventureId = await aShownVenture("বাতিলের ভেঞ্চার");
@@ -175,6 +225,11 @@ describe("a Venture called off", () => {
       "closed",
       "venture_cancelled",
     ]);
+    expect(await closedTrace(ventureId, waiting.requestId)).toEqual({
+      because: "venture_cancelled",
+      by: thePerson("owner").id,
+      stillTold: false,
+    });
   });
 });
 
@@ -200,6 +255,11 @@ describe("a Venture taken out of the portal", () => {
     ]);
     const offered = await promised.client.portal.openVentures();
     expect(offered.map((one) => one.id)).not.toContain(ventureId);
+    expect(await closedTrace(ventureId, waiting.requestId)).toEqual({
+      because: "taken_out_of_portal",
+      by: thePerson("owner").id,
+      stillTold: false,
+    });
   });
 });
 
@@ -229,6 +289,11 @@ describe("an Investor", () => {
     const onFirst = await standings(first);
     const onSecond = await standings(second);
     expect(onFirst.get(one.id)).toEqual(["closed", "investor_retired"]);
+    expect(await closedTrace(first, one.id)).toEqual({
+      because: "investor_retired",
+      by: thePerson("owner").id,
+      stillTold: false,
+    });
     expect(onSecond.get(two.id)).toEqual(["closed", "investor_retired"]);
   });
 

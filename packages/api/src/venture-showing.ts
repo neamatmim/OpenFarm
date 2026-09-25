@@ -113,7 +113,8 @@ export const takeOutOfPortal = (context: ActorContext, id: string) =>
       await closeRequests(
         tx,
         audited(context).recordEvent,
-        { farmId: context.farm.id, ventureId: standing.id, waitingOnly: true },
+        context.farm.id,
+        { ventureId: standing.id, waitingOnly: true },
         "taken_out_of_portal",
         context.clock.now()
       );

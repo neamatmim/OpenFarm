@@ -336,11 +336,12 @@ export const investorsRouter = {
           }
         },
         // A retired Investor is not signed for another Venture, so nothing they asked for is waiting any more.
-        andThen: async (tx) => {
+        alsoWrite: async (tx) => {
           await closeRequests(
             tx,
             audited(context).recordEvent,
-            { farmId: context.farm.id, investorId: input.id },
+            context.farm.id,
+            { investorId: input.id },
             "investor_retired",
             context.clock.now()
           );
