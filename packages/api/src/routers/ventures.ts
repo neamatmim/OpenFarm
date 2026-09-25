@@ -702,7 +702,7 @@ export const venturesRouter = {
           after: (tx) => readVenture(tx, context.farm.id, id),
         },
         async (tx) => {
-          // Its place is the farm's count so far, so it is counted behind the Farm lock that signing takes too.
+          // Its place is one past the farm's highest so far, so it is read behind the Farm lock signing takes too.
           await lockTheFarm(tx, context.farm.id);
           await tx.insert(venture).values({
             id,
@@ -913,9 +913,10 @@ export const venturesRouter = {
           after: (tx) => readAgreement(tx, context.farm.id, id),
         },
         async (tx) => {
-          // Both counts are made inside the write's own transaction, behind a lock on the Farm row:
-          // the Units left and the Investors standing are only true until the next signature commits,
-          // and a rule that may not be overridden may not be lost to two phones at once either.
+          // Every count is made inside the write's own transaction, behind a lock on the Farm row: the
+          // Units left, the Investors standing and the Agreements that set the next Pay-in Code are only
+          // true until the next signature commits, and a rule that may not be overridden may not be lost
+          // to two phones at once either.
           await lockTheFarm(tx, context.farm.id);
           const signing = await tx.query.investor.findFirst({
             where: { id: input.investorId, farmId: context.farm.id },

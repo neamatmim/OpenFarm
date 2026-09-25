@@ -32,3 +32,12 @@
 ## Opened, 2026-09-25
 
 On the seed server, as the Owner: a Venture opened for the check (`জমার কোড যাচাই ভেঞ্চার`, the farm's fourth). The Owner signed আবুল হাশেম মিয়া in the Sign sheet, and the toast said `চুক্তি লেখা হয়েছে। জমার কোড PAY-4-01`, with its line underneath. The row shows `জমার কোড PAY-4-01`. A second Agreement (PAY-4-02) and both papers' photos were added through the RPC console. **Capital in** from over the table: typing `BEFTN pay 4 2 TRF-8812` chose মোঃ শাহজাহান সরকার · PAY-4-02, with the hint `রেফারেন্সের PAY-4-02 মোঃ শাহজাহান সরকার-এর`. ৳১,০০,০০০ was recorded against it with the reference exactly as typed, leaving ৳৫০,০০০. The migration backfilled `OpenFarm` (2 Agreements) and `openfarm_seed` (5) with PAY-1-01… and PAY-2-01…. The screens were drawn after clearing the persisted cache each time. An answer cached before the codes is guarded in the code (no code line, papers listed without codes), but that was **not** seen on a screen.
+
+## Review, 2026-09-25
+
+- The Agreement's trail record now carries its Pay-in Code, so the create event says what code was given.
+- The backfill test now also runs the migration's `SET NOT NULL` and unique-index statements after the backfill. That proves the backfilled codes satisfy the index.
+- Picking by code on a sheet opened from one row: the hint now says when the reference's code belongs to another paper than the one chosen. That covers the Owner choosing by hand after the code picked, or a code naming a paper that takes nothing. The hint is `ventures.codeNotChosen`. It has been typechecked but **not seen on a screen**: the check tab was signed out by the 3001 dev server's cookie, since cookies on localhost are shared across ports.
+- The Investors tab asks one predicate, for its header and its rows, whether a paper may take capital. The header used to ignore what had been paid when drawn from an old cached answer.
+- The regexes are built from the one `PREFIX`.
+- Left as they were: the Venture-level **Capital in** button (story 80 needs somewhere to type a reference before knowing whose it is); the forgiving matcher (banks do strip dashes and noughts); and `nextPayInCode` reading ids rather than a count (at most twenty rows).

@@ -4,14 +4,16 @@ const PREFIX = "PAY";
 /** The Agreement's place is written with at least two digits, so a code's digits run together still split one way. */
 const AGREEMENT_DIGITS = 2;
 
-const CODE = /^PAY-(?<venture>\d+)-(?<agreement>\d+)$/u;
+const CODE = new RegExp(`^${PREFIX}-(?<venture>\\d+)-(?<agreement>\\d+)$`, "u");
 
 /**
- * PAY, then the numbers as a bank may have printed them: apart, with whatever it put between them, or run
- * together into one. Letters straight after PAY are a word, not a code.
+ * The prefix, then the numbers as a bank may have printed them: apart, with whatever it put between them, or run
+ * together into one. Letters straight after the prefix are a word, not a code.
  */
-const CARRIED =
-  /PAY[^A-Z0-9]*(?<first>\d+)(?:[^A-Z0-9]+(?<second>\d+))?(?!\d)/gu;
+const CARRIED = new RegExp(
+  `${PREFIX}[^A-Z0-9]*(?<first>\\d+)(?:[^A-Z0-9]+(?<second>\\d+))?(?!\\d)`,
+  "gu"
+);
 
 const BANGLA_DIGIT = /[০-৯]/gu;
 const BANGLA_ZERO = 0x09_e6;

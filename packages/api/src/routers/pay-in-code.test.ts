@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { sql } from "@OpenFarm/db/operators";
 import { FakeClock, scratchDb, theFarm } from "@OpenFarm/test-harness";
-import { sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
@@ -120,6 +120,19 @@ describe("a Pay-in Code given at signing", () => {
     expect(await codesOn(third)).toEqual(["PAY-3-01"]);
   });
 
+  it("is in the trail's record of the signing", async () => {
+    const [id, code] = [...given][0] ?? [];
+    const events = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "investment_agreement", entityId: id },
+    });
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "create",
+        after: expect.objectContaining({ payInCode: code }),
+      }),
+    ]);
+  });
+
   it("is not moved by a Venture written with an earlier day", async () => {
     // The third Venture carries the earliest day of the three, and still took the third place: counting places by
     // the day would have renumbered the first two under Agreements already holding their codes.
@@ -146,17 +159,21 @@ const migration = async () => {
 };
 
 /** Thrown to undo the backfill's rehearsal once it has been read. */
-class RehearsedError extends Error {
-  override name = "RehearsedError";
+class RolledBackError extends Error {
+  override name = "RolledBackError";
 }
 
 describe("the migration's backfill", () => {
   it("gives every Agreement recorded before the codes its Venture's place by opening, and its own by signing", async () => {
     const statements = await migration();
-    const backfill = statements.filter((one) => one.includes("UPDATE"));
-    expect(backfill).toHaveLength(2);
+    // Everything after the two new columns: both backfills, then the NOT NULLs and unique indexes that must hold of
+    // what they wrote.
+    const backfill = statements.filter((one) => !one.includes("ADD COLUMN"));
+    expect(backfill).toHaveLength(6);
     let read: { venture: number; code: string; investorId: string }[] = [];
-    // Rehearsed on this run's rows with the columns emptied as the migration finds them, and undone afterwards.
+    // Rehearsed with both columns emptied and their rules taken off, as the migration finds them, and undone afterwards.
+    // That empties every farm's rows in this run's database, not only this file's: safe because the files run one at
+    // a time (`fileParallelism: false`) and the transaction is rolled back.
     await expect(
       scratchDb().transaction(async (tx) => {
         await tx.execute(sql`
@@ -189,9 +206,9 @@ describe("the migration's backfill", () => {
           code: one.pay_in_code,
           investorId: one.investor_id,
         }));
-        throw new RehearsedError("undone");
+        throw new RolledBackError("undone");
       })
-    ).rejects.toBeInstanceOf(RehearsedError);
+    ).rejects.toBeInstanceOf(RolledBackError);
     // By the day each was opened the third comes first; on the first, the Agreements in the order they were signed.
     expect(read).toEqual([
       { venture: 1, code: "PAY-1-01", investorId: people[0] },

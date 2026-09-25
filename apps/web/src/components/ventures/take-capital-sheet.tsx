@@ -40,6 +40,37 @@ const whyNotThisPaper = (
 };
 
 /**
+ * What the choice of paper says under it. Whose Pay-in Code the reference carries, and — when that is not the paper
+ * chosen, because it may take nothing or the Owner chose another by hand — that the two disagree; with no code in the
+ * reference, what the chosen paper may still take.
+ */
+const whatTheChoiceSays = ({
+  carried,
+  chosenId,
+  whyNotCarried,
+  chosen,
+  t,
+}: {
+  carried: { code: string; name: string; id: string } | undefined;
+  chosenId: string;
+  whyNotCarried: string | undefined;
+  /** The chosen paper's Units and what it may still take, said already. */
+  chosen: string | undefined;
+  t: ReturnType<typeof useLanguage>["t"];
+}): string => {
+  if (carried === undefined) {
+    return chosen ?? t("ventures.whosePaperHint");
+  }
+  const named = { code: carried.code, name: carried.name };
+  if (whyNotCarried !== undefined) {
+    return t("ventures.codeButNotThisPaper", { ...named, why: whyNotCarried });
+  }
+  return carried.id === chosenId
+    ? t("ventures.pickedByCode", named)
+    : t("ventures.codeNotChosen", named);
+};
+
+/**
  * Capital as it lands: which paper it came against, how much, the day the bank moved it, and the
  * reference on the transfer, cheque or deposit slip.
  *
@@ -102,23 +133,21 @@ export const TakeCapitalSheet = ({
   const paper = papers.find((one) => one.id === arrival.agreementId);
   const whyNotCarried = carried ? whyNotThisPaper(carried, t) : undefined;
   /** What the choice says under it: whose code the reference carries, or what the chosen paper may still take. */
-  const said = () => {
-    if (carried) {
-      const named = {
-        code: carried.payInCode,
-        name: nameOf(carried.investorId),
-      };
-      return whyNotCarried === undefined
-        ? t("ventures.pickedByCode", named)
-        : t("ventures.codeButNotThisPaper", { ...named, why: whyNotCarried });
-    }
-    if (paper) {
-      return `${t("ventures.holdsUnits", {
+  const said = whatTheChoiceSays({
+    carried: carried && {
+      code: carried.payInCode,
+      name: nameOf(carried.investorId),
+      id: carried.id,
+    },
+    chosenId: arrival.agreementId,
+    whyNotCarried,
+    chosen:
+      paper &&
+      `${t("ventures.holdsUnits", {
         units: formatNumber(paper.units, language),
-      })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftBdt) })}`;
-    }
-    return t("ventures.whosePaperHint");
-  };
+      })} · ${t("ventures.capitalLeft", { taka: taka(paper.capitalLeftBdt) })}`,
+    t,
+  });
   const amount = Number(arrival.amountBdt);
   const ready =
     arrival.agreementId !== "" &&
@@ -167,7 +196,7 @@ export const TakeCapitalSheet = ({
         />
       </FormField>
       <FormField
-        hint={said()}
+        hint={said}
         id="capital-agreement"
         label={t("ventures.whosePaper")}
       >

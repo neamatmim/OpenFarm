@@ -645,6 +645,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.pickedByCode": "রেফারেন্সের {code} {name}-এর",
   "ventures.codeButNotThisPaper":
     "রেফারেন্সের {code} {name}-এর, কিন্তু এখন টাকা নেওয়া যায় না: {why}",
+  "ventures.codeNotChosen":
+    "রেফারেন্সের {code} {name}-এর, এখানে বেছে নেওয়া কাগজের নয়",
   "ventures.noPaperYet": "ছবি জমা হয়নি",
   "ventures.paidInFull": "পুরো টাকা জমা",
   "ventures.approve": "হিসাব অনুমোদন করুন",

@@ -154,13 +154,15 @@ export const VentureInvestors = ({
     return <Skeleton className="h-40 rounded-xl" />;
   }
   const rows = agreements.data ?? [];
+  /** Whether a paper may take capital now: its stamped photo is on file and its Units are not all paid for. An answer
+   *  cached before `capitalLeftBdt` was sent works it out from what has come in against it. */
+  const mayPayIn = (one: (typeof rows)[number]) =>
+    one.hasPaper &&
+    (one.capitalLeftBdt ??
+      one.units * venture.unitPriceBdt - (paid.get(one.id) ?? 0)) > 0;
   // Money that lands with only the bank's reference to go on is taken from over the table, where the reference's
   // Pay-in Code chooses whose it is; money already known to be one man's is taken from his row.
-  const someoneMayPayIn = rows.some(
-    (one) =>
-      one.hasPaper &&
-      (one.capitalLeftBdt ?? one.units * venture.unitPriceBdt) !== 0
-  );
+  const someoneMayPayIn = rows.some(mayPayIn);
   const actions = open ? (
     <>
       {someoneMayPayIn ? (
@@ -302,9 +304,7 @@ export const VentureInvestors = ({
                           />
                         ) : null}
                         {/* Capital is taken against the stamped paper, while the run is still gathering it. */}
-                        {open &&
-                        one.hasPaper &&
-                        (one.capitalLeftBdt ?? owed - hasPaid) > 0 ? (
+                        {open && mayPayIn(one) ? (
                           <Button
                             onClick={() => acts.takeCapital(venture, one.id)}
                             size="sm"

@@ -700,6 +700,8 @@ export const en = {
   "ventures.pickedByCode": "{code} in the reference is {name}'s",
   "ventures.codeButNotThisPaper":
     "{code} in the reference is {name}'s, which takes no capital now: {why}",
+  "ventures.codeNotChosen":
+    "{code} in the reference is {name}'s, not the paper chosen here",
   "ventures.noPaperYet": "no photo yet",
   "ventures.paidInFull": "paid in full",
   "ventures.approve": "Approve the settlement",
