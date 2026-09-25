@@ -258,6 +258,22 @@ describe("review findings", () => {
     expect(after.awaitingSignup.some((i) => i.email === email)).toBe(false);
   });
 
+  it("an invite's code is taken up as it is read out, in two groups of four", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner" });
+    const email = `read-out-${Date.now()}@test.openfarm`;
+    const { code } = await owner.client.people.invite({
+      email,
+      name: "পড়ে শোনানো",
+      roles: ["staff"],
+    });
+    const person = await signedUp(email);
+
+    const taken = await person.client.people.acceptInvite({
+      code: `${code.slice(0, 4)} ${code.slice(4)}`,
+    });
+    expect(taken.roles).toEqual(["staff"]);
+  });
+
   it("a Manager's invite cannot be taken up until the Owner approves it, and a new code replaces the old", async () => {
     const manager = await createTestClient(appRouter, { as: "manager" });
     const owner = await createTestClient(appRouter, { as: "owner" });

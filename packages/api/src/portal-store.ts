@@ -17,8 +17,7 @@ import type { Tx } from "./audit";
 import { audited } from "./audit";
 import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
-import { hashToken } from "./device";
-import { newInviteCode, signedInOn } from "./membership";
+import { hashOfCodeAsTyped, newInviteCode, signedInOn } from "./membership";
 import { whatTheyDidToTheirRequests } from "./requests-to-join";
 
 // An Investor's way into the portal (ADR 0007): the Owner's invitation, the Investor taking it up with their phone
@@ -26,15 +25,6 @@ import { whatTheyDidToTheirRequests } from "./requests-to-join";
 
 /** How long an invitation's code stands before the Owner has to give a new one. */
 const A_WEEK = 7 * 24 * 60 * 60 * 1000;
-
-const SPACES = /\s/gu;
-
-/**
- * The hash an invitation's code is kept by, from however it was typed: the Code Slip prints it in two groups of four,
- * to be read out over the phone, and typed as printed the gap is no part of it; nor is a lower-case letter.
- */
-const theCodeTyped = (typed: string): Promise<string> =>
-  hashToken(typed.replaceAll(SPACES, "").toUpperCase());
 
 /**
  * Where an Investor stands with the portal, as the Owner's list shows it. Somebody who has taken a code up is in
@@ -298,7 +288,7 @@ export const takeUpInvitation = async (
     return notAnInvitation();
   };
   // Worked out once: the invitation is found by it and used up by it, and the two must never disagree.
-  const codeHash = await theCodeTyped(input.code);
+  const codeHash = await hashOfCodeAsTyped(input.code);
   const access = await context.db.query.investorAccess.findFirst({
     where: {
       farmId: theFarm.id,

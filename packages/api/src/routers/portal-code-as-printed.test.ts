@@ -44,9 +44,25 @@ const invited = async (phone: string) => {
   return code;
 };
 
+/** How many letters the Code Slip prints before its gap. */
+const GROUP = 4;
+
 /** The code as the slip prints it: two groups of four with a gap between. */
 const asPrinted = (code: string, gap = " ") =>
-  `${code.slice(0, 4)}${gap}${code.slice(4)}`;
+  `${code.slice(0, GROUP)}${gap}${code.slice(GROUP)}`;
+
+type Caller = Awaited<ReturnType<typeof from>>;
+
+/** Wrong codes, typed with a gap as the slip prints one, each refused as a wrong code. */
+const guessWrong = async (guesser: Caller, phone: string, times: number) => {
+  for (let at = 0; at < times; at += 1) {
+    // Sequential: each wrong guess is counted before the next.
+    // oxlint-disable-next-line no-await-in-loop
+    await expect(
+      guesser.portal.join({ phone, code: "WRNG CODE", password: PASSWORD })
+    ).rejects.toMatchObject({ data: { refusal: "wrong_code" } });
+  }
+};
 
 beforeAll(async () => {
   const owner = await asOwner();
@@ -81,15 +97,8 @@ describe("a code typed as the slip prints it", () => {
     const phone = `0172${suffix}3`;
     const code = await invited(phone);
     const guesser = await from("192.0.2.12");
-    const wrong = { phone, code: "WRNG CODE", password: PASSWORD };
 
-    for (let at = 0; at < CODE_ATTEMPTS.limit - 1; at += 1) {
-      // Sequential: each wrong guess is counted before the next.
-      // oxlint-disable-next-line no-await-in-loop
-      await expect(guesser.portal.join(wrong)).rejects.toMatchObject({
-        data: { refusal: "wrong_code" },
-      });
-    }
+    await guessWrong(guesser, phone, CODE_ATTEMPTS.limit - 1);
     // One short of the limit, the right code as printed still goes in: each spaced guess counted once, not twice.
     await expect(
       guesser.portal.join({ phone, code: asPrinted(code), password: PASSWORD })
@@ -100,17 +109,11 @@ describe("a code typed as the slip prints it", () => {
     const phone = `0172${suffix}4`;
     await invited(phone);
     const guesser = await from("192.0.2.13");
-    const wrong = { phone, code: "WRNG CODE", password: PASSWORD };
 
-    for (let at = 0; at < CODE_ATTEMPTS.limit; at += 1) {
-      // oxlint-disable-next-line no-await-in-loop
-      await expect(guesser.portal.join(wrong)).rejects.toMatchObject({
-        data: { refusal: "wrong_code" },
-      });
-    }
+    await guessWrong(guesser, phone, CODE_ATTEMPTS.limit);
 
-    await expect(guesser.portal.join(wrong)).rejects.toMatchObject({
-      code: "TOO_MANY_REQUESTS",
-    });
+    await expect(
+      guesser.portal.join({ phone, code: "WRNG CODE", password: PASSWORD })
+    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
 });
