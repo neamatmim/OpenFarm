@@ -188,16 +188,23 @@ describe("the terms a letter repeats", () => {
       farmPercent: { bn: "৪৫", en: "45" },
     });
 
-    expect(terms).toHaveLength(13);
+    expect(terms).toHaveLength(14);
     expect(terms[1]).toBe(
       "২. মুনাফা ভাগ হবে বিনিয়োগকারী ৫৫% এবং খামার ৪৫%, মূলধন সম্পূর্ণ ফেরতের পর।"
     );
   });
 
-  it("repeat the data section, and never the lines under the nominee, which are about who signs", () => {
+  it("repeat each later part under its own heading, numbered as the Agreement numbers it", () => {
+    const terms = termsOf(agreement, {});
+
+    expect(terms[7]).toBe("তথ্য");
+    expect(terms[8]).toMatch(/^১\. এই চুক্তি পালন করতে/u);
+    expect(terms[12]).toMatch(/^৫\. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে/u);
+  });
+
+  it("never repeat the lines under the nominee, which are about who signs", () => {
     const terms = termsOf(agreement, {}).join("\n");
 
-    expect(terms).toContain("১২. বিনিয়োগকারী যেকোনো সময় মালিককে লিখে");
     expect(terms).not.toContain("নমিনি জানেন");
     expect(terms).not.toContain("আঠারো");
   });

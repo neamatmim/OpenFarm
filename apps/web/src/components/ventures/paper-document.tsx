@@ -95,6 +95,24 @@ const Inline = ({ said }: { said: Said }) => (
   </>
 );
 
+/** The lines printed under a party, below what the farm writes of it — an Investor's nominee lines; nothing where
+ *  there are none. */
+const PartyLines = ({ lines }: { lines: Said[] }) => {
+  const noLines = lines.length === 0;
+  if (noLines) {
+    return null;
+  }
+  return (
+    <div className="mt-3 flex flex-col gap-2 border-t pt-3 text-xs">
+      {lines.map((line) => (
+        <p key={line.bn}>
+          <Passage said={line} />
+        </p>
+      ))}
+    </div>
+  );
+};
+
 /** What goes under one section's heading, by the kind of section it is. */
 const SectionBody = ({ section }: { section: PaperSection }) => {
   switch (section.kind) {
@@ -110,15 +128,7 @@ const SectionBody = ({ section }: { section: PaperSection }) => {
                 <Inline said={party.role} />
               </p>
               <Rows rows={party.rows} />
-              {party.lines.length > 0 ? (
-                <div className="mt-3 flex flex-col gap-2 border-t pt-3 text-xs">
-                  {party.lines.map((line) => (
-                    <p key={line.bn}>
-                      <Passage said={line} />
-                    </p>
-                  ))}
-                </div>
-              ) : null}
+              <PartyLines lines={party.lines} />
             </div>
           ))}
         </div>

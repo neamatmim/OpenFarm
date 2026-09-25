@@ -55,7 +55,7 @@ const kindsNotHad = async (
 };
 
 /** Whether the farm has Agreements signed before its wording could be edited: recorded against no Version. */
-const hasUnpinnedAgreements = async (tx: Tx, farmId: string) =>
+const hasAgreementsInNoVersion = async (tx: Tx, farmId: string) =>
   Boolean(
     await tx.query.investmentAgreement.findFirst({
       where: { farmId, templateVersionId: { isNull: true } },
@@ -72,7 +72,8 @@ const wordingsToGive = async (
   farmId: string,
   kind: TemplateKind
 ): Promise<TemplateContent[]> =>
-  kind === "investment_agreement" && (await hasUnpinnedAgreements(tx, farmId))
+  kind === "investment_agreement" &&
+  (await hasAgreementsInNoVersion(tx, farmId))
     ? [FIRST_PRINTED_AGREEMENT, STANDARD_TEMPLATES[kind]]
     : [STANDARD_TEMPLATES[kind]];
 
@@ -105,28 +106,26 @@ const addStandardTemplates = async (
     }
     // oxlint-disable-next-line no-await-in-loop
     const wordings = await wordingsToGive(tx, farmId, kind);
-    const versionIds = wordings.map(() => uuidv7(now));
+    const versions = wordings.map((content, index) => ({
+      id: uuidv7(now),
+      farmId,
+      templateId,
+      number: index + 1,
+      content,
+      publishedAt: now,
+    }));
     // oxlint-disable-next-line no-await-in-loop
-    await tx.insert(paperTemplateVersion).values(
-      wordings.map((content, index) => ({
-        id: versionIds[index] ?? "",
-        farmId,
-        templateId,
-        number: index + 1,
-        content,
-        publishedAt: now,
-      }))
-    );
+    await tx.insert(paperTemplateVersion).values(versions);
     // oxlint-disable-next-line no-await-in-loop
     await tx
       .update(paperTemplate)
-      .set({ currentVersionId: versionIds.at(-1) })
+      .set({ currentVersionId: versions.at(-1)?.id })
       .where(eq(paperTemplate.id, templateId));
     if (kind === "investment_agreement") {
       // oxlint-disable-next-line no-await-in-loop
       await tx
         .update(investmentAgreement)
-        .set({ templateVersionId: versionIds[0] })
+        .set({ templateVersionId: versions[0]?.id })
         .where(
           and(
             eq(investmentAgreement.farmId, farmId),

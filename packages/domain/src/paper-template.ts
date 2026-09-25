@@ -754,19 +754,23 @@ export const paperFrom = (
 
 /**
  * The terms of a paper in Bangla, numbered, as a letter repeats them: every clause of every clauses part, filled from
- * the facts in force. The joining letter reads its terms from the Version its Agreement was signed under, so the
- * letter and the deed cannot say different things.
+ * the facts in force — the first part's straight after one another, and each later part under its own heading,
+ * numbered afresh as the paper numbers it. The joining letter reads its terms from the Version its Agreement was
+ * signed under, so the letter and the deed cannot say different things.
  */
 export const termsOf = (
   content: TemplateContent,
   values: FieldValues
 ): string[] =>
   content.sections
-    .flatMap((section) => (section.kind === "clauses" ? section.clauses : []))
-    .map(
-      (clause, index) =>
-        `${inBangla(index + 1)}. ${fillIn(clause.bn, values, "bn")}`
-    );
+    .filter((section) => section.kind === "clauses")
+    .flatMap((section, place) => [
+      ...(place === 0 ? [] : [fillIn(section.heading.bn, values, "bn")]),
+      ...section.clauses.map(
+        (clause, index) =>
+          `${inBangla(index + 1)}. ${fillIn(clause.bn, values, "bn")}`
+      ),
+    ]);
 
 /**
  * The facts a Version's wording asks for that nobody has filled, each once, in the order they first appear — among

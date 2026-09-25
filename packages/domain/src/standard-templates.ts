@@ -12,9 +12,9 @@ import type {
  *
  * The Investment Agreement is what the farm printed before its wording could be edited — kept whole, so the Agreements
  * signed then are recorded against the words they were — with the data section and the nominee lines added to it for
- * the Personal Data Protection Act 2026. The Master Agreement and its Venture
- * Schedule are the shape the Owner asked the lawyer about — one stamped agreement per Investor, and a short schedule
- * for each Venture he joins — and wait on that answer before anybody signs one.
+ * the Personal Data Protection Act 2026. The Master Agreement and its Venture Schedule are the shape the Owner asked
+ * the lawyer about — one stamped agreement per Investor, and a short schedule for each Venture he joins — and wait on
+ * that answer before anybody signs one.
  */
 
 const PARTIES: TemplateSection = {
@@ -162,7 +162,7 @@ const DATA: TemplateSection = {
     },
     {
       bn: "বিনিয়োগকারী যেকোনো সময় মালিককে লিখে তাঁর তথ্যের কপি চাইতে, ভুল ঠিক করাতে বা মুছে ফেলতে বলতে পারেন; আইন যা রাখতে বলে তা ছাড়া। বিস্তারিত “আপনার তথ্য” কাগজে আছে, যা এই চুক্তির সঙ্গে দেওয়া হলো।",
-      en: "The Investor may at any time write to the Owner to have a copy of their data, have it corrected, or have it erased, except what the law requires be kept. The details are in “আপনার তথ্য”, handed over with this Agreement.",
+      en: 'The Investor may at any time write to the Owner to have a copy of their data, have it corrected, or have it erased, except what the law requires be kept. The details are in "আপনার তথ্য", handed over with this Agreement.',
     },
     {
       bn: "খামারের অনলাইন পোর্টালে নিজের হিসাব দেখানো এই চুক্তির অংশ নয়; তা হবে শুধু বিনিয়োগকারী আলাদা সম্মতিপত্রে সই করলে।",
@@ -171,8 +171,8 @@ const DATA: TemplateSection = {
   ],
 };
 
-/** The Investment Agreement as the farm prints it first: the first printing, its nominee lines, and its data section
- *  after the terms. */
+/** The standard Investment Agreement: the words the farm first printed, with the nominee lines under the Investor
+ *  and the data section after the terms. */
 const investmentAgreement: TemplateContent = {
   ...FIRST_PRINTED_AGREEMENT,
   sections: FIRST_PRINTED_AGREEMENT.sections.flatMap(

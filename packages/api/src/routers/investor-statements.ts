@@ -1,9 +1,8 @@
-import { FIELDS_OF, factsMissing, paperFrom } from "@OpenFarm/domain";
+import { paperFrom } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import { audited } from "../audit";
-import { farmsOwnValues } from "../data-keepers";
 import { assertRegistered, exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -13,6 +12,7 @@ import {
   settlementStatementFor,
 } from "../investor-papers";
 import { paperInvestor, paperValues, producedAt } from "../paper-values";
+import { noticeFilling } from "../portal-reads";
 import { languageOf } from "../reader-language";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import type { Wording } from "../template-store";
@@ -157,15 +157,12 @@ export const investorStatementsRouter = {
         context.farm.id,
         "privacy_notice"
       );
-      const values = await farmsOwnValues(
+      const { values, whole } = await noticeFilling(
         context.db,
         context.farm,
-        context.actor.name
+        wording.content
       );
-      if (
-        factsMissing(wording.content, values, FIELDS_OF.privacy_notice).length >
-        0
-      ) {
+      if (!whole) {
         throw new ORPCError("BAD_REQUEST", {
           message:
             "The privacy notice still names a fact the farm has not written down",
@@ -196,7 +193,7 @@ export const investorStatementsRouter = {
           after: exportedPaper(context.farm, "privacy_notice", {
             investorId: him.id,
             ventureId: run.id,
-            version: wording.number,
+            wording: wording.number,
           }),
         },
         () => Promise.resolve()

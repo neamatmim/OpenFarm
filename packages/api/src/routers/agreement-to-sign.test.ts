@@ -186,7 +186,7 @@ describe("«আপনার তথ্য», handed over with the Agreement", () 
     );
     expect(handed).toMatchObject({
       actorId: thePerson("owner").id,
-      after: expect.objectContaining({ ventureId, version: 1 }),
+      after: expect.objectContaining({ ventureId, wording: 1 }),
     });
   });
 
