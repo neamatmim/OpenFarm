@@ -15,6 +15,9 @@ type Client = RouterClient<typeof appRouter>;
 /** The password every Investor these tests invite chooses: not a common one, which joining would refuse. */
 const PASSWORD = "gorur-khamar-2026";
 
+/** How long a test's sign-in lasts: a day, longer than any test runs. */
+const A_DAY_MS = 24 * 60 * 60 * 1000;
+
 /** The API as the account an invitation opened reaches it, signed in at the moment given. */
 export const signedInAs = async (
   loginEmail: string,
@@ -36,7 +39,7 @@ export const signedInAs = async (
       id,
       token: `portal-token-${person.id}-${at}`,
       userId: person.id,
-      expiresAt: new Date(start.getTime() + 24 * 60 * 60 * 1000),
+      expiresAt: new Date(start.getTime() + A_DAY_MS),
       createdAt: start,
       updatedAt: start,
     })
@@ -95,5 +98,21 @@ export const anInvitedInvestor = async (
     userId: account?.id ?? "",
     loginEmail,
     client: await signedInAs(loginEmail, at),
+  };
+};
+
+/**
+ * Invites Investors one after another for a test file, each on a phone of their own: eleven digits, the file's own
+ * prefix, a count, and the run's six digits, so no two files and no two runs share a number.
+ */
+export const invitingInvestors = (
+  { prefix, run }: { prefix: "017" | "018" | "019"; run: string },
+  at: string
+) => {
+  let invitedSoFar = 0;
+  return (name: string) => {
+    invitedSoFar += 1;
+    const phone = `${prefix}${String(invitedSoFar).padStart(2, "0")}${run.slice(-6)}`;
+    return anInvitedInvestor({ name: `${name} ${run}`, phone }, at);
   };
 };

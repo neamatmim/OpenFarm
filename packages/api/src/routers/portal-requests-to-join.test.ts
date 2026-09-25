@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createTestClient } from "../test/client";
 import {
-  anInvitedInvestor,
+  invitingInvestors,
   signedInAs as investorSignedIn,
 } from "../test/portal-client";
 import { appRouter } from "./index";
@@ -28,15 +28,8 @@ const asOwner = async (at = JANUARY) => {
 const signedInAs = (loginEmail: string, at = JANUARY) =>
   investorSignedIn(loginEmail, at);
 
-let phones = 0;
-
 /** An Investor written down by the Owner, invited, and signed in to the portal. */
-const invited = (name: string) => {
-  phones += 1;
-  // A Bangladeshi mobile number, eleven digits, different for each Investor and each run.
-  const phone = `017${String(phones).padStart(2, "0")}${suffix.slice(-6)}`;
-  return anInvitedInvestor({ name: `${name} ${suffix}`, phone }, JANUARY);
-};
+const invited = invitingInvestors({ prefix: "017", run: suffix }, JANUARY);
 
 const TERMS = {
   targetCapitalBdt: 1_000_000,

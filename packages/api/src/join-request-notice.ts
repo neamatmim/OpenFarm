@@ -19,21 +19,23 @@ const noticeIdOf = (facts: Pick<JoinFacts, "ventureId" | "requestId">) =>
   `${facts.ventureId}:${facts.requestId}`;
 
 /**
- * Tells the Owner of a Request, or — for one already told of and since changed — makes the Notice say what it says
- * now. A changed Request comes back to the Owner's list if she had put it away, and travels in the next Digest again:
- * "four" she dismissed is not "ten" she has read.
+ * Tells the Owner of a Request, or — for one already told of whose Units have since changed — makes the Notice say the
+ * Units it asks for now. It comes back to the Owner's list if she had put it away, and travels in the next Digest
+ * again: "four" she dismissed is not "ten" she has read. A new note alone changes nothing the Notice says, and brings
+ * nothing back.
  */
 export const tellTheOwnerOfARequest = async (
   tx: Tx,
   farmId: string,
   facts: JoinFacts,
-  changed: boolean,
+  /** The Units it asked for before this change; null for a Request just made. */
+  unitsBefore: number | null,
   now: Date
 ): Promise<void> => {
   const id = noticeIdOf(facts);
   // Nothing to carry out of here: a Request waits for the evening's post, which reads the Notice itself.
   await tell(tx, farmId, { kind: "join_requested", about: { id }, facts }, now);
-  if (!changed) {
+  if (unitsBefore === null || unitsBefore === facts.units) {
     return;
   }
   await tx
@@ -48,7 +50,8 @@ export const tellTheOwnerOfARequest = async (
     );
 };
 
-/** Takes the Notice about a Request off the Owner's list: withdrawn before an answer, there is nothing to answer. */
+/** Takes the Notice about a Request off the Owner's list once there is nothing left to answer: withdrawn before an
+ *  answer, or — from ticket 04 — answered. */
 export const settleTheRequestNotice = async (
   tx: Tx,
   farmId: string,

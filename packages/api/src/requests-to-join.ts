@@ -71,7 +71,7 @@ const readRequest = async (tx: Tx, farmId: string, id: string) =>
  * day, they are not retired, and they are not signed on it already. The portal being open and their access standing
  * is the door's to say, before any of this is reached. Answers with their name, for the Owner's Notice.
  */
-const mayAsk = async (
+const whoMayAsk = async (
   tx: Tx,
   farmId: string,
   investorId: string,
@@ -147,7 +147,7 @@ export const askToJoin = async (
       after: (tx) => readRequest(tx, farmId, id),
     },
     apply: async (tx, standing) => {
-      const investor = await mayAsk(tx, farmId, investorId, standing, now);
+      const investor = await whoMayAsk(tx, farmId, investorId, standing, now);
       if (input.units > standing.units) {
         throw new ORPCError("BAD_REQUEST", {
           // Not how many it has: an Investor is never told the Venture's Units.
@@ -204,7 +204,7 @@ export const askToJoin = async (
           investor,
           units: input.units,
         },
-        live !== undefined,
+        live?.units ?? null,
         now
       );
     },

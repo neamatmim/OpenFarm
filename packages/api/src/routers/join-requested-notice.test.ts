@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import type { PushMessage, PushTarget, PushTransport } from "../push";
 import { createTestClient } from "../test/client";
-import { anInvitedInvestor, signedInAs } from "../test/portal-client";
+import { invitingInvestors, signedInAs } from "../test/portal-client";
 import { appRouter } from "./index";
 
 // The Owner told of a Request to Join: one Notice per Request, carried by the evening's Digest, heard by the Owner
@@ -14,7 +14,7 @@ const suffix = `${Date.now()}`.slice(-6);
 const MORNING = "2053-01-01T04:00:00.000Z";
 const LATER = "2053-01-02T04:00:00.000Z";
 
-const as = async (role: "owner" | "manager", at = MORNING) => {
+const clientAs = async (role: "owner" | "manager", at = MORNING) => {
   const { client } = await createTestClient(appRouter, {
     as: role,
     clock: new FakeClock(at),
@@ -22,17 +22,11 @@ const as = async (role: "owner" | "manager", at = MORNING) => {
   return client;
 };
 
-let phones = 0;
-
-const invited = (name: string) => {
-  phones += 1;
-  const phone = `018${String(phones).padStart(2, "0")}${suffix}`;
-  return anInvitedInvestor({ name: `${name} ${suffix}`, phone }, MORNING);
-};
+const invited = invitingInvestors({ prefix: "018", run: suffix }, MORNING);
 
 /** A Venture shown in the portal, taking requests. */
 const aShownVenture = async (name: string) => {
-  const owner = await as("owner");
+  const owner = await clientAs("owner");
   const venture = await owner.ventures.open({
     name: `${name} ${suffix}`,
     targetCapitalBdt: 1_000_000,
@@ -50,16 +44,16 @@ const aShownVenture = async (name: string) => {
 
 /** What somebody's own list says about Requests on one Venture. */
 const toldAbout = async (role: "owner" | "manager", ventureId: string) => {
-  const client = await as(role);
+  const client = await clientAs(role);
   const alerts = await client.alerts.mine({ about: ventureId });
   return alerts.filter((one) => one.kind === "join_requested");
 };
 
 beforeAll(async () => {
-  const owner = await as("owner");
+  const owner = await clientAs("owner");
   await owner.investors.setPortalOpen({ open: true });
   // The Manager is on the farm before anybody asks, or "the Manager was not told" would only mean there was none.
-  await as("manager");
+  await clientAs("manager");
 });
 
 describe("a Request to Join, told to the Owner", () => {
@@ -109,7 +103,7 @@ describe("a Request to Join, told to the Owner", () => {
     const ventureId = await aShownVenture("ফেরার ভেঞ্চার");
     const jamal = await invited("জামাল");
     await jamal.client.portal.requestToJoin({ ventureId, units: 2, note: "" });
-    const owner = await as("owner");
+    const owner = await clientAs("owner");
     const [first] = await toldAbout("owner", ventureId);
     await owner.alerts.dismiss({ id: first?.id ?? "" });
     expect(await toldAbout("owner", ventureId)).toEqual([]);
@@ -121,6 +115,23 @@ describe("a Request to Join, told to the Owner", () => {
     expect(
       owners.map((one) => [one.id, (one.params as { units: number }).units])
     ).toEqual([[first?.id, 8]]);
+  });
+
+  it("stays put away when the Investor changes only the note: nothing the Notice says has changed", async () => {
+    const ventureId = await aShownVenture("কথা বদলের ভেঞ্চার");
+    const mitu = await invited("মিতু");
+    await mitu.client.portal.requestToJoin({ ventureId, units: 2, note: "" });
+    const owner = await clientAs("owner");
+    const [first] = await toldAbout("owner", ventureId);
+    await owner.alerts.dismiss({ id: first?.id ?? "" });
+
+    await mitu.client.portal.requestToJoin({
+      ventureId,
+      units: 2,
+      note: "ঈদের পরে দেব",
+    });
+
+    expect(await toldAbout("owner", ventureId)).toEqual([]);
   });
 
   it("goes from the Owner's list when the Investor withdraws before an answer", async () => {
@@ -203,5 +214,36 @@ describe("when the Owner hears of it", () => {
     const theirs = post.sent.filter((one) => one.target.endpoint === endpoint);
     expect(theirs).toHaveLength(1);
     expect(theirs[0]?.message.body).toContain("যোগ দেওয়ার অনুরোধ");
+  });
+
+  it("travels in the next evening's post again once the Units change, having gone in the last", async () => {
+    const ventureId = await aShownVenture("দুই সন্ধ্যার ভেঞ্চার");
+    const tuhin = await invited("তুহিন");
+    const post = listeningPost();
+    const clock = new FakeClock(MORNING);
+    const { client: owner } = await createTestClient(appRouter, {
+      as: "owner",
+      clock,
+      push: post.transport,
+    });
+    const endpoint = `https://push.example.com/join-again-${suffix}`;
+    await owner.push.listen({
+      endpoint,
+      p256dh: "test-p256dh-key",
+      auth: "test-auth-key",
+    });
+    await tuhin.client.portal.requestToJoin({ ventureId, units: 2, note: "" });
+    clock.set("2053-01-01T12:00:00.000Z");
+    await owner.alerts.digest();
+
+    const nextDay = await signedInAs(tuhin.loginEmail, LATER);
+    await nextDay.portal.requestToJoin({ ventureId, units: 7, note: "" });
+    // Six in the evening, the next day.
+    clock.set("2053-01-02T12:00:00.000Z");
+    await owner.alerts.digest();
+
+    const theirs = post.sent.filter((one) => one.target.endpoint === endpoint);
+    expect(theirs).toHaveLength(2);
+    expect(theirs[1]?.message.body).toContain("যোগ দেওয়ার অনুরোধ");
   });
 });
