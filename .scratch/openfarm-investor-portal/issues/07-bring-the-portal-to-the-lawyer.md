@@ -4,7 +4,7 @@ Status: open
 
 Type: task
 
-Blocked by: 03, 06, 08
+Blocked by: 06, 08 (03 done)
 
 Map: [OpenFarm investor portal: the first real Investor in](../map.md)
 
