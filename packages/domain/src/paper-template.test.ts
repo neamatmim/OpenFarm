@@ -4,6 +4,7 @@ import type { PaperParties, TemplateContent } from "./paper-template";
 import {
   TEMPLATE_KINDS,
   factsMissing,
+  readingOf,
   namedFields,
   paperFrom,
   templateProblems,
@@ -144,9 +145,6 @@ describe("a paper filled from a Version", () => {
 describe("an Amendment", () => {
   it("is one paper every Investor on the Venture signs", () => {
     const [first] = PARTIES.investors;
-    if (!first) {
-      throw new Error("expected the Investor");
-    }
     const everybody: PaperParties = {
       ...PARTIES,
       investors: [first, { ...first, name: "সালমা", nid: null }],
@@ -333,5 +331,43 @@ describe("the Portal Consent and the privacy notice", () => {
     expect(missing).not.toContain("dataHost");
     expect(new Set(missing).size).toBe(missing.length);
     expect(theInvestors).toEqual(["investorName"]);
+  });
+});
+
+describe("a notice read as a page", () => {
+  const notice = STANDARD_TEMPLATES.privacy_notice;
+
+  it("is its wording in Bangla, filled: a title, an opening, and each part with its lines", () => {
+    const read = readingOf(notice, {
+      farmName: { bn: "সবুজ খামার", en: "Sobuj Farm" },
+    });
+
+    expect(read.title).toBe("আপনার তথ্য খামার কীভাবে রাখে");
+    expect(read.preamble).toContain("সবুজ খামার");
+    expect(read.parts[0]?.heading).toBe("কে রাখে");
+    expect(read.parts.length).toBe(
+      notice.sections.filter((section) => section.kind === "clauses").length
+    );
+  });
+
+  it("reads a facts part too, each line as its label and what it says", () => {
+    const read = readingOf(
+      {
+        ...notice,
+        sections: [
+          {
+            kind: "facts",
+            heading: { bn: "সংক্ষেপে", en: "" },
+            rows: [{ label: { bn: "খামার", en: "" }, value: "{farmName}" }],
+            note: null,
+          },
+        ],
+      },
+      { farmName: { bn: "সবুজ খামার", en: "Sobuj Farm" } }
+    );
+
+    expect(read.parts).toEqual([
+      { heading: "সংক্ষেপে", lines: ["খামার: সবুজ খামার"] },
+    ]);
   });
 });

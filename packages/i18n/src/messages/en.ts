@@ -288,6 +288,8 @@ export const en = {
   "portal.yourData.notReady": "The farm is still writing this down",
   "portal.yourData.notReadyHint":
     "Ask {farm} what it keeps about you and why: {phone}.",
+  "portal.yourData.notReadyAsk": "Ask {farm} what it keeps about you and why.",
+  "portal.yourData.failed": "This could not be read just now",
   "portal.yourData.closed": "The portal is closed",
   "portal.back": "Your portfolio",
   "portal.ventureHint":

@@ -50,6 +50,20 @@ beforeAll(async () => {
 });
 
 describe("«আপনার তথ্য» in the portal", () => {
+  // First in the file: the farm has been given no wording yet, and a stranger's read must not give it any.
+  it("is read in the standard wording by a farm not given its own, and writes nothing", async () => {
+    const owner = await asOwner();
+    await owner.farm.setDataKeepers(KEEPERS);
+    const nobody = await asNobody();
+
+    const { notice } = await nobody.portal.yourData();
+
+    expect(notice?.title).toBe("আপনার তথ্য খামার কীভাবে রাখে");
+    expect(
+      await owner.audit.list({ entity: "paper_template", limit: 5 })
+    ).toEqual([]);
+  });
+
   it("is read by anybody, signed in or not, with the farm's own facts in it and no blank", async () => {
     const owner = await asOwner();
     await owner.farm.setDataKeepers(KEEPERS);
@@ -71,10 +85,15 @@ describe("«আপনার তথ্য» in the portal", () => {
     await owner.farm.setDataKeepers({ ...KEEPERS, backupCountry: null });
     const nobody = await asNobody();
 
-    const answer = await nobody.portal.yourData();
+    try {
+      const answer = await nobody.portal.yourData();
 
-    expect(answer.notice).toBeNull();
-    await owner.farm.setDataKeepers(KEEPERS);
+      expect(answer.notice).toBeNull();
+      // Whom to ask instead, by name, whatever is missing.
+      expect(answer.farm.name.length).toBeGreaterThan(0);
+    } finally {
+      await owner.farm.setDataKeepers(KEEPERS);
+    }
   });
 
   it("says what the Version in force says: a new one published is the one read", async () => {
@@ -100,7 +119,7 @@ describe("«আপনার তথ্য» in the portal", () => {
     expect(read?.preamble).toBe(`নতুন কথা ${suffix}`);
   });
 
-  it("is closed with the portal", async () => {
+  it("is closed with the portal, and read by the Owner in the Preview all the same", async () => {
     const owner = await asOwner();
     await owner.investors.setPortalOpen({ open: false });
     const nobody = await asNobody();
@@ -109,6 +128,8 @@ describe("«আপনার তথ্য» in the portal", () => {
       await expect(nobody.portal.yourData()).rejects.toMatchObject({
         data: { refusal: "portal_closed" },
       });
+      const { notice } = await owner.portalPreview.yourData();
+      expect(notice?.title).toBe("আপনার তথ্য খামার কীভাবে রাখে");
     } finally {
       await owner.investors.setPortalOpen({ open: true });
     }

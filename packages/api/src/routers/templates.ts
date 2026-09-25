@@ -18,11 +18,11 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
-import { readKeepers } from "../data-keepers";
+import { farmsOwnValues } from "../data-keepers";
 import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
-import { paperValues, producedAt } from "../paper-values";
+import { producedAt } from "../paper-values";
 import { languageOf } from "../reader-language";
 import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { templateContentSchema, templateKindSchema } from "../template-content";
@@ -137,11 +137,11 @@ export const templatesRouter = {
     )
     .handler(async ({ context, input }) => {
       const language = await languageOf(context.db, context.actor.id);
-      const farmValues = paperValues({
-        farm: context.farm,
-        ownerName: context.actor.name,
-        keepers: await readKeepers(context.db, context.farm.id),
-      });
+      const farmValues = await farmsOwnValues(
+        context.db,
+        context.farm,
+        context.actor.name
+      );
       const document = paperFrom(input.content, {
         kind: input.kind,
         parties: {

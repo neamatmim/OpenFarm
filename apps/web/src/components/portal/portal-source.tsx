@@ -101,6 +101,15 @@ export const useTheirVenture = (agreementId: string) => {
   );
 };
 
+/** «আপনার তথ্য»: the notice as the portal shows it — to anybody in the Investor's own portal, and to the Owner in the
+ *  Preview whether the portal is open or shut. */
+export const useTheNotice = () =>
+  useQuery(
+    usePreviewing()
+      ? orpc.portalPreview.yourData.queryOptions()
+      : orpc.portal.yourData.queryOptions()
+  );
+
 type PaperAsked = Parameters<typeof client.portal.paper>[0];
 
 /** Making one of their papers: theirs in their own portal, the Owner's own Export in the Preview. */

@@ -269,6 +269,9 @@ export const bn: Record<MessageKey, string> = {
   "portal.yourData.notReady": "খামার এখনো এটি লিখছে",
   "portal.yourData.notReadyHint":
     "খামার আপনার সম্পর্কে কী রাখে আর কেন, তা {farm}-কে জিজ্ঞেস করুন: {phone}।",
+  "portal.yourData.notReadyAsk":
+    "খামার আপনার সম্পর্কে কী রাখে আর কেন, তা {farm}-কে জিজ্ঞেস করুন।",
+  "portal.yourData.failed": "এই মুহূর্তে এটি পড়া গেল না",
   "portal.yourData.closed": "পোর্টাল এখন বন্ধ",
   "portal.back": "আপনার পোর্টফোলিও",
   "portal.ventureHint":

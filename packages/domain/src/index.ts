@@ -496,6 +496,7 @@ export type {
   PaperDocument,
   PaperInvestor,
   PaperParties,
+  ReadPart,
   PaperSection,
   TemplateContent,
   TemplateField,
@@ -516,6 +517,7 @@ export {
   namedFields,
   paperFrom,
   partsAllowed,
+  readingOf,
   templateProblems,
   termsOf,
 } from "./paper-template";

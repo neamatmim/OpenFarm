@@ -7,7 +7,7 @@ import { Button } from "@OpenFarm/ui/components/button";
 import { Skeleton } from "@OpenFarm/ui/components/skeleton";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { IdCard, LogOut, Monitor, ShieldCheck, Smartphone } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -25,6 +25,7 @@ import {
 } from "@/components/page";
 import { FormField, SideTabs } from "@/components/page-kit";
 import { deviceOf } from "@/components/people/person-sign-ins";
+import { YourDataLink } from "@/components/portal/portal-door";
 import {
   WhyNot,
   useCanAct,
@@ -71,18 +72,13 @@ const Held = ({ label, children }: { label: string; children: ReactNode }) => {
  */
 const TheirDetails = ({ me }: { me: Me }) => {
   const { t } = useLanguage();
-  const { yourData } = usePortalPlaces();
   const { record } = me;
   return (
     <Section
       action={
-        <Link
-          className="text-primary text-sm underline underline-offset-4"
-          params={yourData.link.params}
-          to={yourData.link.to}
-        >
-          {t("portal.yourData.link")}
-        </Link>
+        <span className="text-sm">
+          <YourDataLink />
+        </span>
       }
       description={t("portal.account.detailsHint")}
       title={t("portal.account.details")}

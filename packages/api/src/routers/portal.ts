@@ -17,6 +17,7 @@ import {
   endSignIn,
   investorOf,
   markSeen,
+  portalClosed,
   signInHasRunItsDay,
   takeUpInvitation,
 } from "../portal-store";
@@ -88,10 +89,7 @@ export const portalRouter = {
   yourData: publicProcedure.handler(({ context }) => {
     const theFarm = context.farm;
     if (!theFarm?.investorPortal) {
-      throw new ORPCError("FORBIDDEN", {
-        message: "The investor portal is not open",
-        data: { refusal: "portal_closed" },
-      });
+      throw portalClosed();
     }
     return theNoticeToRead(context.db, theFarm);
   }),
