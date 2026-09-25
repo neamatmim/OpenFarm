@@ -952,20 +952,19 @@ export const venturesRouter = {
               data: { refusal: "investor_already_signed" },
             });
           }
-          // The Request it answers reads signed in this same transaction, or the signing is refused with it.
-          if (input.requestId !== undefined) {
-            await answerBySigning(
-              tx,
-              auditing.recordEvent,
-              context.farm.id,
-              {
-                requestId: input.requestId,
-                ventureId: input.ventureId,
-                investorId: input.investorId,
-              },
-              now
-            );
-          }
+          // The Request it answers reads signed in this same transaction, or the signing is refused with it; with none
+          // named, a Request they had live reads signed all the same.
+          await answerBySigning(
+            tx,
+            auditing.recordEvent,
+            context.farm.id,
+            {
+              requestId: input.requestId,
+              ventureId: input.ventureId,
+              investorId: input.investorId,
+            },
+            now
+          );
           const taken = await unitsTaken(tx, context.farm.id, input.ventureId);
           if (taken + input.units > row.units) {
             throw new ORPCError("BAD_REQUEST", {

@@ -308,10 +308,11 @@ describe("the Owner saying come and sign", () => {
       "request_not_live"
     );
 
+    // Signed by phone while their Request waited: the signing answered it, so there is no yes left to give.
     const byPhone = await asking("ফোনে সই", ventureId, 2);
     await signFor(ventureId, byPhone.id, 2);
     expect(await refusalOf(comeAndSign(byPhone.requestId, 2))).toBe(
-      "already_signed_on_venture"
+      "request_already_answered"
     );
   });
 

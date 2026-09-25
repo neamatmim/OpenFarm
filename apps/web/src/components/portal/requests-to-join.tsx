@@ -323,8 +323,8 @@ const LINKED_NAME = "font-medium break-words hover:underline";
 
 /**
  * The Venture's name on one of their Requests, leading where there is something to read or do: signed, to the
- * Agreement that answered it; still offered, to where it can be changed. An answer this phone kept from before signing
- * named the Request has no Agreement to lead to.
+ * Agreement that answered it; still offered, to where it can be changed. A list this phone kept from before the farm
+ * sent `agreementId` has none, and leads where it did before.
  */
 const RequestVentureName = ({
   one,
@@ -401,15 +401,6 @@ export const TheirRequestsOnHome = () => {
                 </span>
               ) : null}
               <TheAnswer one={one} />
-              {one.agreementId ? (
-                <Link
-                  className="text-primary w-fit text-sm font-medium hover:underline"
-                  params={{ agreementId: one.agreementId }}
-                  to="/portal/ventures/$agreementId"
-                >
-                  {t("portal.request.seeAgreement")}
-                </Link>
-              ) : null}
               {isLiveRequest(one.state) ? (
                 <WithdrawFromTheList requestId={one.id} />
               ) : null}

@@ -177,6 +177,33 @@ describe("signing from a yes", () => {
   });
 });
 
+describe("a signing refused after its Request was checked", () => {
+  it("leaves the Request as it was: the whole signing is undone, the Request's part with it", async () => {
+    const ventureId = await aShownVenture("ফেরত যাওয়া ভেঞ্চার");
+    const karim = await asking("করিম ফেরত যাওয়া", ventureId, 4);
+    await comeAndSign(karim.requestId, 4);
+    // Somebody who joined by phone takes eight of the ten Units first.
+    const salma = await invited("সালমা ফোন");
+    await sign(ventureId, salma.id, 8);
+
+    expect(await refusalOf(sign(ventureId, karim.id, 4, karim.requestId))).toBe(
+      "venture_units_gone"
+    );
+
+    expect(await theRequest(ventureId, karim.requestId)).toMatchObject({
+      state: "come_and_sign",
+    });
+    const events = await scratchDb().query.auditEvent.findMany({
+      where: { entity: "request_to_join", entityId: karim.requestId },
+    });
+    expect(
+      events.some(
+        (one) => (one.after as { state?: string } | null)?.state === "signed"
+      )
+    ).toBe(false);
+  });
+});
+
 describe("signing from a Request nobody answered", () => {
   it("reads signed, and the Owner's Notice of it goes from her list", async () => {
     const ventureId = await aShownVenture("উত্তর ছাড়া ভেঞ্চার");
@@ -253,19 +280,64 @@ describe("a Request that is not this signing's to answer", () => {
 });
 
 describe("signing with no Request", () => {
-  it("records the Agreement as it always has, and leaves a yes standing untouched", async () => {
+  it("records the Agreement naming none, as it always has", async () => {
     const ventureId = await aShownVenture("ফোনের ভেঞ্চার");
-    const karim = await asking("করিম ফোন", ventureId, 4);
-    await comeAndSign(karim.requestId, 4);
+    const karim = await invited("করিম শুধু ফোন");
 
     await sign(ventureId, karim.id, 4);
 
     const owner = await asOwner();
     const [agreement] = await owner.ventures.agreements({ ventureId });
     expect(agreement).toMatchObject({ units: 4, requestId: null });
+  });
+
+  // The Owner's decision of 2026-09-25: a yes left live after somebody was signed by phone would go on telling them the
+  // farm will sign with them, and a waiting one would keep its Notice on her list, for a Request nothing can answer now.
+  it("still answers a yes they had live, and their page leads to the Agreement — which names no Request", async () => {
+    const ventureId = await aShownVenture("ফোনে হ্যাঁ ভেঞ্চার");
+    const karim = await asking("করিম ফোন হ্যাঁ", ventureId, 4);
+    await comeAndSign(karim.requestId, 4);
+
+    const { id } = await sign(ventureId, karim.id, 3);
+
     expect(await theRequest(ventureId, karim.requestId)).toMatchObject({
-      state: "come_and_sign",
+      state: "signed",
     });
+    const owner = await asOwner();
+    const [agreement] = await owner.ventures.agreements({ ventureId });
+    expect(agreement).toMatchObject({ id, units: 3, requestId: null });
+    expect(await karim.client.portal.myRequests()).toEqual([
+      expect.objectContaining({ state: "signed", agreementId: id }),
+    ]);
+  });
+
+  it("still answers one nobody had answered, and its Notice goes from the Owner's list", async () => {
+    const ventureId = await aShownVenture("ফোনে অপেক্ষা ভেঞ্চার");
+    const karim = await asking("করিম ফোন অপেক্ষা", ventureId, 2);
+
+    await sign(ventureId, karim.id, 2);
+
+    expect(await theRequest(ventureId, karim.requestId)).toMatchObject({
+      state: "signed",
+    });
+    const owner = await asOwner();
+    const alerts = await owner.alerts.mine({ about: ventureId });
+    expect(alerts.filter((one) => one.kind === "join_requested")).toEqual([]);
+  });
+
+  it("leaves a Request that was not live as it was", async () => {
+    const ventureId = await aShownVenture("ফোনে ফেরত ভেঞ্চার");
+    const karim = await asking("করিম ফোন ফেরত", ventureId, 2);
+    await karim.client.portal.withdrawRequest({ requestId: karim.requestId });
+
+    await sign(ventureId, karim.id, 2);
+
+    expect(await theRequest(ventureId, karim.requestId)).toMatchObject({
+      state: "withdrawn",
+    });
+    expect(await karim.client.portal.myRequests()).toEqual([
+      expect.objectContaining({ state: "withdrawn", agreementId: null }),
+    ]);
   });
 });
 

@@ -22,8 +22,8 @@ import { orpc } from "@/utils/orpc";
 
 interface Terms {
   investorId: string;
-  /** The Request to Join the paper answers, or "" for none: somebody who joined by phone. */
-  requestId: string;
+  /** The Owner said the paper answers no Request, though the Investor has one live: they joined another way. */
+  answersNone: boolean;
   units: string;
   investorsPercent: string;
   arbitrator: string;
@@ -62,7 +62,7 @@ const aSplit = (percent: number) =>
 
 const NOTHING_SIGNED: Terms = {
   investorId: "",
-  requestId: "",
+  answersNone: false,
   units: "",
   investorsPercent: "",
   arbitrator: "",
@@ -122,27 +122,52 @@ const useWhoMaySign = (venture: { id: string; units: number } | null) => {
 };
 
 /** One Investor's live Request on the Venture being signed, as the Owner's list reads it. */
-interface LiveRequest {
-  id: string;
-  investorId: string;
-  state: string;
-  units: number;
-  answeredUnits: number | null;
-}
+type LiveRequest = Awaited<
+  ReturnType<typeof orpc.ventures.requests.call>
+>["requests"][number];
+
+/**
+ * The chosen Investor's live Request on this Venture — one at the most — and whether the paper answers it. Their live
+ * Request is the one the paper most likely answers, so it does unless the Owner says none; worked out on every draw
+ * rather than when the Investor was chosen, so a list that answers late, or a Request withdrawn meanwhile, is what is
+ * sent. With the Units of the yes it answers, for a Units box nobody has typed in.
+ */
+const useTheRequestItAnswers = (
+  venture: { id: string } | null,
+  investorId: string,
+  answersNone: boolean
+) => {
+  const requests = useQuery({
+    ...orpc.ventures.requests.queryOptions({
+      input: { ventureId: venture?.id ?? "" },
+    }),
+    enabled: venture !== null,
+  });
+  const live = (requests.data?.requests ?? []).find(
+    (one) => one.investorId === investorId && isLiveRequest(one.state)
+  );
+  const answering = live && !answersNone ? live : undefined;
+  return {
+    live,
+    answering,
+    yes: answering?.state === "come_and_sign" ? answering.answeredUnits : null,
+  };
+};
 
 /**
  * The Request the paper answers, offered once the Investor chosen has a live one on this Venture: at most one, since an
  * Investor holds one live Request per Venture. With the yes's Units beside it — or, nobody having answered, the Units
- * asked — and "none" for somebody who joined another way. The paper's Units stand whatever it says.
+ * asked — and "none" for somebody who joined another way, whose paper then names no Request though theirs still reads
+ * signed. The paper's Units stand whatever it says.
  */
 const AnswersRequest = ({
   live,
-  requestId,
+  answering,
   onChange,
 }: {
   live: LiveRequest;
-  requestId: string;
-  onChange: (requestId: string) => void;
+  answering: boolean;
+  onChange: (answering: boolean) => void;
 }) => {
   const { t, language } = useLanguage();
   return (
@@ -153,8 +178,8 @@ const AnswersRequest = ({
     >
       <NativeSelect
         id="agreement-request"
-        onChange={(event) => onChange(event.target.value)}
-        value={requestId}
+        onChange={(event) => onChange(event.target.value !== "")}
+        value={answering ? live.id : ""}
       >
         <option value="">{t("ventures.signNoRequest")}</option>
         <option value={live.id}>
@@ -266,18 +291,11 @@ export const SignAgreementSheet = ({
     setPaper(null);
   });
   const { signable, left, nobodyLeft } = useWhoMaySign(venture);
-  const requests = useQuery({
-    ...orpc.ventures.requests.queryOptions({
-      input: { ventureId: venture?.id ?? "" },
-    }),
-    enabled: venture !== null,
-  });
-  /** The live Request an Investor has on this Venture, if any. */
-  const liveOf = (investorId: string): LiveRequest | undefined =>
-    (requests.data?.requests ?? []).find(
-      (one) => one.investorId === investorId && isLiveRequest(one.state)
-    );
-  const live = liveOf(terms.investorId);
+  const { live, answering, yes } = useTheRequestItAnswers(
+    venture,
+    terms.investorId,
+    terms.answersNone
+  );
   const keeping = useMutation(
     orpc.ventures.keepAgreementPaper.mutationOptions()
   );
@@ -310,7 +328,11 @@ export const SignAgreementSheet = ({
       },
     })
   );
-  const units = Number(terms.units);
+  // Units nobody has typed read as the yes being answered, as an empty split reads as the farm's own: the box shows
+  // what would be signed, and clearing it goes back to the yes.
+  const unitsSaid =
+    terms.units === "" && yes !== null ? String(yes) : terms.units;
+  const units = Number(unitsSaid);
   // Nothing typed yet reads as the farm's own starting point, so the field always shows the figure that
   // would actually be signed. Clearing it goes back to that rather than to a blank the Owner might miss.
   const split =
@@ -344,7 +366,7 @@ export const SignAgreementSheet = ({
           stampValueBdt: Number(terms.stampValueBdt),
           stampedOn: terms.stampedOn,
           stampSerial: terms.stampSerial,
-          ...(terms.requestId === "" ? {} : { requestId: terms.requestId }),
+          ...(answering ? { requestId: answering.id } : {}),
         })
       }
       open={open}
@@ -364,20 +386,13 @@ export const SignAgreementSheet = ({
       >
         <NativeSelect
           id="agreement-investor"
-          onChange={(event) => {
-            // Their live Request is the one the paper most likely answers, so it is chosen for the Owner to undo; and
-            // Units nobody has typed yet start from the yes.
-            const chosen = liveOf(event.target.value);
-            const yes =
-              chosen?.state === "come_and_sign" ? chosen.answeredUnits : null;
+          onChange={(event) =>
             setTerms({
               ...terms,
               investorId: event.target.value,
-              requestId: chosen?.id ?? "",
-              units:
-                terms.units === "" && yes !== null ? String(yes) : terms.units,
-            });
-          }}
+              answersNone: false,
+            })
+          }
           value={terms.investorId}
         >
           <option value="">—</option>
@@ -392,9 +407,9 @@ export const SignAgreementSheet = ({
       </FormField>
       {live ? (
         <AnswersRequest
+          answering={answering !== undefined}
           live={live}
-          onChange={(requestId) => setTerms({ ...terms, requestId })}
-          requestId={terms.requestId}
+          onChange={(answers) => setTerms({ ...terms, answersNone: !answers })}
         />
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -414,7 +429,7 @@ export const SignAgreementSheet = ({
               setTerms({ ...terms, units: event.target.value })
             }
             type="number"
-            value={terms.units}
+            value={unitsSaid}
           />
         </FormField>
         <FormField

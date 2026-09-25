@@ -147,7 +147,6 @@ export const en = {
   "portal.requests.state.come_and_sign": "The farm will sign with you",
   "portal.requests.state.not_this_time": "Not this time",
   "portal.requests.state.withdrawn": "Withdrawn",
-  "portal.request.seeAgreement": "Open your Agreement",
   "portal.requests.state.signed": "Signed",
   "portal.requests.state.closed": "Closed",
   "portal.request.refused.notShown":
@@ -693,7 +692,8 @@ export const en = {
   "ventures.payInCodeIs": "Pay-in Code {code}",
   /** The Request to Join a paper answers, chosen on the sign form. */
   "ventures.signAnswers": "Answers their request",
-  "ventures.signNoRequest": "None — they joined another way",
+  "ventures.signNoRequest":
+    "None — they joined another way (the request still reads signed)",
   "ventures.signAnswersYes":
     "Your yes: come and sign for {units, plural, one {# Unit} other {# Units}}",
   "ventures.signAnswersWaiting":

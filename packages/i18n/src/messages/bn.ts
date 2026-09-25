@@ -142,7 +142,6 @@ export const bn: Record<MessageKey, string> = {
   "portal.requests.state.come_and_sign": "খামার আপনার সঙ্গে চুক্তি করবে",
   "portal.requests.state.not_this_time": "এবার নয়",
   "portal.requests.state.withdrawn": "তুলে নেওয়া হয়েছে",
-  "portal.request.seeAgreement": "আপনার চুক্তি খুলুন",
   "portal.requests.state.signed": "চুক্তি সই হয়েছে",
   "portal.requests.state.closed": "বন্ধ",
   "portal.request.refused.notShown": "খামার এই ভেঞ্চার আর দেখাচ্ছে না",
@@ -639,7 +638,8 @@ export const bn: Record<MessageKey, string> = {
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.payInCodeIs": "জমার কোড {code}",
   "ventures.signAnswers": "কোন অনুরোধের উত্তর",
-  "ventures.signNoRequest": "কোনোটি নয় — অন্যভাবে যোগ দিয়েছেন",
+  "ventures.signNoRequest":
+    "কোনোটি নয় — অন্যভাবে যোগ দিয়েছেন (তবু অনুরোধটি সই হয়েছে দেখাবে)",
   "ventures.signAnswersYes": "আপনার হ্যাঁ: {units} ইউনিটে সই করতে আসুন",
   "ventures.signAnswersWaiting":
     "তাঁর {units} ইউনিটের অনুরোধ, এখনো উত্তর দেওয়া হয়নি",
