@@ -195,6 +195,7 @@ describe("the Owner saying come and sign", () => {
         state: "come_and_sign",
         answeredUnits: 4,
         answerLine: null,
+        closedBecause: null,
         madeAt: new Date(JANUARY),
         changedAt: new Date(JANUARY),
       },
@@ -288,20 +289,22 @@ describe("the Owner saying come and sign", () => {
     ).toBe("not refused");
   });
 
-  it("is refused on a Venture taken out of the portal, to somebody retired, and to somebody already signed on it", async () => {
+  it("has nothing to answer on a Venture taken out of the portal or from somebody retired, and is refused to somebody already signed on it", async () => {
     const hidden = await aShownVenture("সরানো হ্যাঁ ভেঞ্চার");
     const unseen = await asking("অদেখা", hidden, 1);
     const owner = await asOwner();
     await owner.ventures.takeOutOfPortal({ id: hidden });
+    // Taking it out closed the Request: there is nothing waiting to be told yes.
     expect(await refusalOf(comeAndSign(unseen.requestId, 1))).toBe(
-      "venture_not_shown"
+      "request_not_live"
     );
 
     const ventureId = await aShownVenture("অবসর ও স্বাক্ষর ভেঞ্চার");
     const retired = await asking("অবসরপ্রাপ্ত", ventureId, 1);
     await owner.investors.retire({ id: retired.id });
+    // Retiring them closed it, as taking the Venture out did.
     expect(await refusalOf(comeAndSign(retired.requestId, 1))).toBe(
-      "investor_retired"
+      "request_not_live"
     );
 
     const byPhone = await asking("ফোনে সই", ventureId, 2);

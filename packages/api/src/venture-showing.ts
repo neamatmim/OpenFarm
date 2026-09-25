@@ -5,6 +5,8 @@ import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
 import type { Tx } from "./audit";
+import { audited } from "./audit";
+import { closeRequests } from "./requests-to-join";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
 import { readVenture } from "./venture-store";
@@ -87,8 +89,8 @@ export const changePortalWords = (
     },
   });
 
-/** Takes a Venture out of the portal: invited Investors stop being offered it. Its words are kept for showing it
- *  again. */
+/** Takes a Venture out of the portal: invited Investors stop being offered it, and the Requests nobody answered
+ *  close. Its words are kept for showing it again. */
 export const takeOutOfPortal = (context: ActorContext, id: string) =>
   actOnVenture(context, {
     ventureId: id,
@@ -106,6 +108,15 @@ export const takeOutOfPortal = (context: ActorContext, id: string) =>
         .update(venture)
         .set({ shownInPortalAt: null })
         .where(eq(venture.id, standing.id));
+      // Those nobody answered close: nothing more will be asked here. A yes stands, because the Owner promised a
+      // signing, and hiding the Venture from new askers does not take that back.
+      await closeRequests(
+        tx,
+        audited(context).recordEvent,
+        { farmId: context.farm.id, ventureId: standing.id, waitingOnly: true },
+        "taken_out_of_portal",
+        context.clock.now()
+      );
     },
   });
 

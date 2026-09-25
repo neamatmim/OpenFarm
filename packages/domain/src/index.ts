@@ -419,11 +419,12 @@ export {
   splitOfProfit,
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
-export type { RequestToJoinState } from "./request-to-join";
+export type { RequestCloseReason, RequestToJoinState } from "./request-to-join";
 export {
   ANSWERED_REQUEST_STATES,
   ANSWER_LINE_MOST,
   LIVE_REQUEST_STATES,
+  REQUEST_CLOSE_REASONS,
   REQUEST_NOTE_MOST,
   REQUEST_TO_JOIN_STATES,
   isAnsweredRequest,

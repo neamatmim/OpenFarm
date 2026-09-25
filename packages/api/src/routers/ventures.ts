@@ -53,7 +53,12 @@ import {
 import { monthInput } from "../money-inputs";
 import { bookMoney, bookingOf } from "../money-store";
 import { photoInput } from "../photo-input";
-import { answerRequest, requestsOf, theAnswer } from "../requests-to-join";
+import {
+  answerRequest,
+  closeRequests,
+  requestsOf,
+  theAnswer,
+} from "../requests-to-join";
 import {
   OWNER_ONLY,
   requireOnly,
@@ -413,7 +418,8 @@ const moveTo = async (
       });
     }
   }
-  await audited(context).write(
+  const auditing = audited(context);
+  await auditing.write(
     {
       entity: "venture",
       entityId: row.id,
@@ -423,6 +429,16 @@ const moveTo = async (
     },
     async (tx) => {
       await tx.update(venture).set({ state: to }).where(eq(venture.id, row.id));
+      // No longer gathering capital: nothing asked for it, or promised on it, is waiting any more.
+      if (to === "buying") {
+        await closeRequests(
+          tx,
+          auditing.recordEvent,
+          { farmId: context.farm.id, ventureId: row.id },
+          "venture_buying",
+          context.clock.now()
+        );
+      }
       // Buying closing is one of the four moments an Investor hears at: his money has become animals,
       // and what the Cattle Budget did not spend has rolled into what keeps them.
       if (to === "fattening") {
@@ -3138,6 +3154,14 @@ export const venturesRouter = {
             .update(venture)
             .set({ state: "cancelled", cancelledReason: input.reason })
             .where(eq(venture.id, row.id));
+          // Called off: every Request on it, answered or not, closes with it.
+          await closeRequests(
+            tx,
+            auditing.recordEvent,
+            { farmId: context.farm.id, ventureId: row.id },
+            "venture_cancelled",
+            now
+          );
         }
       );
       return { state: "cancelled" as const, refunded: sentBack };

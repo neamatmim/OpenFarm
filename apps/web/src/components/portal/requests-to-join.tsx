@@ -1,4 +1,4 @@
-import type { RequestToJoinState } from "@OpenFarm/domain";
+import type { RequestCloseReason, RequestToJoinState } from "@OpenFarm/domain";
 import { REQUEST_NOTE_MOST, isLiveRequest } from "@OpenFarm/domain";
 import { formatDate, formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
@@ -51,6 +51,14 @@ const STATE_TONE: Record<RequestToJoinState, Tone> = {
   closed: "neutral",
 };
 
+/** Why the farm closed a Request, said to the Investor. */
+const CLOSED_WORDS = {
+  venture_buying: "portal.requests.closed.venture_buying",
+  venture_cancelled: "portal.requests.closed.venture_cancelled",
+  taken_out_of_portal: "portal.requests.closed.taken_out_of_portal",
+  investor_retired: "portal.requests.closed.investor_retired",
+} as const satisfies Record<RequestCloseReason, MessageKey>;
+
 /** Where a Request stands, in the Investor's words. */
 const STATE_WORDS = {
   waiting: "portal.requests.state.waiting",
@@ -71,8 +79,8 @@ export const RequestStanding = ({ state }: { state: RequestToJoinState }) => {
 
 /**
  * The farm's answer to one of their Requests, as they read it: after a yes, the Units the farm will sign and whom to
- * call to arrange it, and that they may still withdraw; after a no, that it is not this time, and the Owner's line if
- * she wrote one. Nothing for a Request nobody has answered.
+ * call to arrange it; after a no, that it is not this time, and the Owner's line if she wrote one; and for one the farm
+ * closed, why. Nothing for a Request nobody has answered.
  */
 const TheAnswer = ({ one }: { one: TheirRequest }) => {
   const { t, language } = useLanguage();
@@ -98,6 +106,15 @@ const TheAnswer = ({ one }: { one: TheirRequest }) => {
             : t("portal.request.callTheFarm")}
         </p>
       </div>
+    );
+  }
+  // An answer this phone kept from before the farm closed Requests has no reason.
+  const closedBecause = one.closedBecause ?? null;
+  if (one.state === "closed" && closedBecause !== null) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        {t(CLOSED_WORDS[closedBecause])}
+      </p>
     );
   }
   if (one.state === "not_this_time") {

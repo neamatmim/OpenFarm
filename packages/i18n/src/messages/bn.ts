@@ -164,6 +164,13 @@ export const bn: Record<MessageKey, string> = {
     "সামনাসামনি চুক্তি সই করার ব্যবস্থা করতে খামার আপনাকে ফোন করবে।",
   "portal.request.stillWithdraw": "শেষ পর্যন্ত না পারলে এখনো অনুরোধ তুলে নিতে পারেন।",
   "portal.request.notThisTime": "খামারের উত্তর: এবার নয়।",
+  "portal.requests.closed.venture_buying":
+    "বন্ধ: এই ভেঞ্চারের জন্য পুঁজি তোলা শেষ, গরু কেনা শুরু হয়েছে।",
+  "portal.requests.closed.venture_cancelled": "বন্ধ: এই ভেঞ্চার বাতিল হয়েছে।",
+  "portal.requests.closed.taken_out_of_portal":
+    "বন্ধ: খামার এই ভেঞ্চারের জন্য আর অনুরোধ নিচ্ছে না।",
+  "portal.requests.closed.investor_retired":
+    "খামার এই অনুরোধ বন্ধ করেছে। জানতে চাইলে খামারে ফোন করুন।",
 
   "portal.account.new": "নতুন পাসওয়ার্ড",
   "portal.money.hint":
@@ -921,6 +928,11 @@ export const bn: Record<MessageKey, string> = {
   "ventures.requests.answer.nothingLeft":
     "প্রতিশ্রুতি দেওয়ার মতো আর কোনো ইউনিট নেই",
   "ventures.requests.answer.saidYes": "এসে সই করুন: {units}টি ইউনিট",
+  "ventures.requests.closed.venture_buying": "গরু কেনা শুরু হওয়ায় বন্ধ হয়েছে",
+  "ventures.requests.closed.venture_cancelled": "ভেঞ্চার বাতিল হওয়ায় বন্ধ হয়েছে",
+  "ventures.requests.closed.taken_out_of_portal": "পোর্টাল থেকে সরানোয় বন্ধ হয়েছে",
+  "ventures.requests.closed.investor_retired":
+    "বিনিয়োগকারী অবসরে যাওয়ায় বন্ধ হয়েছে",
   "ventures.page.cattleLeft": "গরু কেনার টাকা বাকি",
   "ventures.page.runningLeft": "খাওয়ানোর টাকা বাকি",
   "ventures.page.cattleBudget": "গরু কেনার বাজেট",

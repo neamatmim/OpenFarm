@@ -177,6 +177,14 @@ export const en = {
   "portal.request.stillWithdraw":
     "If you cannot after all, you can still withdraw.",
   "portal.request.notThisTime": "The farm's answer: not this time.",
+  "portal.requests.closed.venture_buying":
+    "Closed: the farm has stopped gathering capital for this Venture and started buying.",
+  "portal.requests.closed.venture_cancelled":
+    "Closed: this Venture was called off.",
+  "portal.requests.closed.taken_out_of_portal":
+    "Closed: the farm is no longer taking requests for this Venture.",
+  "portal.requests.closed.investor_retired":
+    "Closed by the farm. Please call the farm if you want to know more.",
 
   "portal.account.new": "New password",
   "portal.money.hint":
@@ -1007,6 +1015,13 @@ export const en = {
   "ventures.requests.answer.nothingLeft": "No Units are left to promise",
   "ventures.requests.answer.saidYes":
     "Come and sign: {units, plural, one {# Unit} other {# Units}}",
+  "ventures.requests.closed.venture_buying": "Closed when buying started",
+  "ventures.requests.closed.venture_cancelled":
+    "Closed when the Venture was called off",
+  "ventures.requests.closed.taken_out_of_portal":
+    "Closed when it was taken out of the portal",
+  "ventures.requests.closed.investor_retired":
+    "Closed when the Investor was retired",
   "ventures.page.cattleLeft": "Left to buy cattle with",
   "ventures.page.runningLeft": "Left to keep them with",
   "ventures.page.cattleBudget": "Cattle budget",

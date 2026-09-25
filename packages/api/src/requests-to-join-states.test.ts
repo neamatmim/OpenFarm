@@ -1,9 +1,11 @@
 import {
   LIVE_REQUEST_STATES as COLUMN_LIVE,
+  REQUEST_CLOSE_REASONS as COLUMN_REASONS,
   REQUEST_TO_JOIN_STATES as COLUMN_STATES,
 } from "@OpenFarm/db/schema/venture";
 import {
   LIVE_REQUEST_STATES,
+  REQUEST_CLOSE_REASONS,
   REQUEST_TO_JOIN_STATES,
   isLiveRequest,
 } from "@OpenFarm/domain";
@@ -22,5 +24,9 @@ describe("where a Request to Join stands", () => {
     expect(REQUEST_TO_JOIN_STATES.filter(isLiveRequest)).toEqual([
       ...COLUMN_LIVE,
     ]);
+  });
+
+  it("is closed for the same reasons the column keeps", () => {
+    expect([...REQUEST_CLOSE_REASONS]).toEqual([...COLUMN_REASONS]);
   });
 });
