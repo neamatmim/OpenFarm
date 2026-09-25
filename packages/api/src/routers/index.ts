@@ -30,6 +30,7 @@ import { observationsRouter } from "./observations";
 import { papersRouter } from "./papers";
 import { peopleRouter } from "./people";
 import { portalRouter } from "./portal";
+import { portalPreviewRouter } from "./portal-preview";
 import { prescriptionsRouter } from "./prescriptions";
 import { pushRouter } from "./push";
 import { readyRouter } from "./ready";
@@ -89,6 +90,7 @@ export const appRouter = {
   investorStatements: investorStatementsRouter,
   investors: investorsRouter,
   portal: portalRouter,
+  portalPreview: portalPreviewRouter,
   sops: sopsRouter,
   templates: templatesRouter,
   sync: syncRouter,

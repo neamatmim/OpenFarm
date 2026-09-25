@@ -6,10 +6,10 @@ import {
   DialogTitle,
 } from "@OpenFarm/ui/components/dialog";
 import { Spinner } from "@OpenFarm/ui/components/spinner";
-import { useMutation } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 
+import { useTheirPaper } from "@/components/portal/portal-source";
 import type {
   Produced,
   StatementKind,
@@ -17,7 +17,6 @@ import type {
 import { ProducedPaper } from "@/components/ventures/investor-papers";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
-import { orpc } from "@/utils/orpc";
 
 /** What each paper is called, on its button and over it. */
 const PAPER_WORD = {
@@ -55,9 +54,7 @@ export const PortalPapers = ({
   const { t } = useLanguage();
   const refused = useRefused(REFUSALS);
   const [shown, setShown] = useState<Produced | null>(null);
-  const making = useMutation(
-    orpc.portal.paper.mutationOptions({ onError: refused })
-  );
+  const making = useTheirPaper(refused);
   const kinds: StatementKind[] = settled
     ? ["joining", "progress", "settlement"]
     : ["joining", "progress"];

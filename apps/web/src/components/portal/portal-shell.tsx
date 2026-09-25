@@ -23,10 +23,11 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@OpenFarm/ui/components/sidebar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowLeft,
   ChevronDown,
   FileText,
   Handshake,
@@ -39,6 +40,12 @@ import {
 import type { ReactNode } from "react";
 
 import LanguageToggle from "@/components/language-toggle";
+import {
+  usePortalPlaces,
+  usePreviewing,
+  useTheirPortfolio,
+  useTheirRecord,
+} from "@/components/portal/portal-source";
 import { BottomBar } from "@/components/shell/bottom-bar";
 import type { NavItem } from "@/components/shell/navigation";
 import { ThemeMenu } from "@/components/theme-menu";
@@ -47,42 +54,43 @@ import { Wordmark } from "@/components/wordmark";
 import { useT } from "@/i18n/language-provider";
 import { authClient } from "@/lib/auth-client";
 import { forgetWhatThisPhoneRead } from "@/lib/query-cache";
-import { orpc } from "@/utils/orpc";
 
 import { PortalNotice } from "./portal-door";
 
 /** The portal's destinations on a phone, beside More for the Ventures: their portfolio, their money, their papers and
- *  their account. */
-const PORTAL_BOTTOM_BAR: readonly NavItem[] = [
+ *  their account — wherever the portal is drawn. */
+const bottomBarOf = (
+  places: ReturnType<typeof usePortalPlaces>
+): readonly NavItem[] => [
   {
-    to: "/portal",
+    to: places.home.path,
     label: "portal.nav.portfolio",
     icon: LayoutDashboard,
     audience: "anyone",
   },
   {
-    to: "/portal/money",
+    to: places.money.path,
     label: "portal.nav.money",
     icon: ScrollText,
     audience: "anyone",
   },
   {
-    to: "/portal/papers",
+    to: places.papers.path,
     label: "portal.nav.papers",
     icon: FileText,
     audience: "anyone",
   },
   {
-    to: "/portal/account",
+    to: places.account.path,
     label: "portal.nav.account",
     icon: UserRound,
     audience: "anyone",
   },
 ];
 /** Whether a destination is the page being shown. The portfolio is only itself: every portal page is inside it. */
-const isHere = (to: string, pathname: string) =>
-  to === "/portal"
-    ? pathname === "/portal" || pathname === "/portal/"
+const isHere = (to: string, home: string, pathname: string) =>
+  to === home
+    ? pathname === home || pathname === `${home}/`
     : pathname === to || pathname.startsWith(`${to}/`);
 
 /** One line of the sidebar, drawn as the farm's own sidebar draws its lines. */
@@ -129,7 +137,10 @@ const PortalNavLink = ({
 const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
   const t = useT();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const theirs = useQuery(orpc.portal.portfolio.queryOptions());
+  const theirs = useTheirPortfolio();
+  const places = usePortalPlaces();
+  const home = places.home.path;
+  const here = (to: string) => isHere(to, home, pathname);
   const { isMobile, setOpenMobile } = useSidebar();
   const close = () => {
     if (isMobile) {
@@ -143,7 +154,7 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
         <Link
           className="focus-visible:ring-sidebar-ring flex h-12 items-center gap-3 rounded-lg px-1 outline-none group-data-[collapsible=icon]:px-0 focus-visible:ring-2"
           onClick={close}
-          to="/portal"
+          to={home}
         >
           <span className="bg-sidebar-primary text-sidebar-primary-foreground grid size-9 shrink-0 place-items-center rounded-lg">
             <Sprout aria-hidden className="size-5" />
@@ -164,25 +175,25 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               <PortalNavLink
-                here={isHere("/portal", pathname)}
+                here={here(home)}
                 icon={LayoutDashboard}
                 label={t("portal.nav.portfolio")}
                 onGo={close}
-                to="/portal"
+                to={places.home.path}
               />
               <PortalNavLink
-                here={isHere("/portal/money", pathname)}
+                here={here(places.money.path)}
                 icon={ScrollText}
                 label={t("portal.nav.money")}
                 onGo={close}
-                to="/portal/money"
+                to={places.money.path}
               />
               <PortalNavLink
-                here={isHere("/portal/papers", pathname)}
+                here={here(places.papers.path)}
                 icon={FileText}
                 label={t("portal.nav.papers")}
                 onGo={close}
-                to="/portal/papers"
+                to={places.papers.path}
               />
             </SidebarMenu>
           </SidebarGroupContent>
@@ -196,13 +207,12 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
               <SidebarMenu className="gap-0.5">
                 {ventures.map((one) => (
                   <PortalNavLink
-                    here={isHere(`/portal/ventures/${one.id}`, pathname)}
+                    here={here(places.venture(one.id).path)}
                     icon={Handshake}
                     key={one.id}
                     label={one.venture.name}
                     onGo={close}
-                    params={{ agreementId: one.id }}
-                    to="/portal/ventures/$agreementId"
+                    to={places.venture(one.id).path}
                   />
                 ))}
               </SidebarMenu>
@@ -213,11 +223,11 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
       <SidebarFooter className="border-sidebar-border border-t p-2 group-data-[collapsible=icon]:px-2.5">
         <SidebarMenu>
           <PortalNavLink
-            here={isHere("/portal/account", pathname)}
+            here={here(places.account.path)}
             icon={UserRound}
             label={t("portal.nav.account")}
             onGo={close}
-            to="/portal/account"
+            to={places.account.path}
           />
         </SidebarMenu>
       </SidebarFooter>
@@ -226,11 +236,14 @@ const PortalSidebar = ({ farmName }: { farmName: string | null }) => {
   );
 };
 
-/** Who is signed in to the portal — an Investor, by name and phone — their account, and the way out. */
+/** Whose portal this is — an Investor, by name and phone — their account, and the way out: signing out in their own
+ *  portal, back to their page in the Owner's Preview. */
 const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
   const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const places = usePortalPlaces();
+  const previewing = usePreviewing();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -260,29 +273,44 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link to="/portal/account" />}>
+        <DropdownMenuItem render={<Link to={places.account.path} />}>
           <UserRound aria-hidden />
           {t("portal.nav.account")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={async () => {
-            // Forgotten first, so nothing they read stays behind them — in the tab or on the phone — even if signing
-            // out itself does not go through (ASVS 14.3.1).
-            await forgetWhatThisPhoneRead(queryClient);
-            await authClient.signOut({
-              fetchOptions: {
-                onSuccess: () => {
-                  void navigate({ to: "/portal/login" });
+        {previewing ? (
+          // The Owner reading somebody's portal signs nobody out: the way out is back to that Investor's page.
+          <DropdownMenuItem
+            render={
+              <Link
+                params={{ investorId: previewing.investorId }}
+                to="/investors/$investorId"
+              />
+            }
+          >
+            <ArrowLeft aria-hidden />
+            {t("portal.preview.back", { name: previewing.name })}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={async () => {
+              // Forgotten first, so nothing they read stays behind them — in the tab or on the phone — even if signing
+              // out itself does not go through (ASVS 14.3.1).
+              await forgetWhatThisPhoneRead(queryClient);
+              await authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    void navigate({ to: "/portal/login" });
+                  },
                 },
-              },
-            });
-          }}
-          variant="destructive"
-        >
-          <LogOut aria-hidden />
-          {t("auth.signOut")}
-        </DropdownMenuItem>
+              });
+            }}
+            variant="destructive"
+          >
+            <LogOut aria-hidden />
+            {t("auth.signOut")}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -293,30 +321,42 @@ const PortalUserMenu = ({ name, phone }: { name: string; phone: string }) => {
  * over the page with the reader's settings and their menu, the page, the phone's bottom bar — and under every page,
  * what the portal is and whom to ask.
  */
-export const PortalShell = ({ children }: { children: ReactNode }) => {
+export const PortalShell = ({
+  band,
+  children,
+}: {
+  /** Drawn over every page, above the bar: the Preview's word on whose portal this is. */
+  band?: ReactNode;
+  children: ReactNode;
+}) => {
   const t = useT();
-  const me = useQuery(orpc.portal.me.queryOptions());
+  const me = useTheirRecord();
+  const places = usePortalPlaces();
   return (
     <SidebarProvider>
       <PortalSidebar farmName={me.data?.farm.name ?? null} />
       <SidebarInset className="min-w-0">
-        <header
-          className="bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-5"
-          data-app-chrome
-        >
-          <SidebarTrigger aria-label={t("nav.menu")} className="-ml-1 size-9" />
-          <div className="flex-1" />
-          <div className="flex shrink-0 items-center gap-1">
-            <LanguageToggle />
-            <ThemeMenu />
-            {me.data ? (
-              <PortalUserMenu
-                name={me.data.name}
-                phone={me.data.record.phone}
-              />
-            ) : null}
-          </div>
-        </header>
+        {/* The band and the bar are pinned together, so the Preview's band never covers the reader's settings. */}
+        <div className="sticky top-0 z-30" data-app-chrome>
+          {band}
+          <header className="bg-background/85 supports-[backdrop-filter]:bg-background/70 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur md:px-5">
+            <SidebarTrigger
+              aria-label={t("nav.menu")}
+              className="-ml-1 size-9"
+            />
+            <div className="flex-1" />
+            <div className="flex shrink-0 items-center gap-1">
+              <LanguageToggle />
+              <ThemeMenu />
+              {me.data ? (
+                <PortalUserMenu
+                  name={me.data.name}
+                  phone={me.data.record.phone}
+                />
+              ) : null}
+            </div>
+          </header>
+        </div>
         <main
           className="flex-1 pb-24 outline-none md:pb-4"
           id="main"
@@ -335,7 +375,7 @@ export const PortalShell = ({ children }: { children: ReactNode }) => {
           </PortalNotice>
         </main>
       </SidebarInset>
-      <BottomBar items={PORTAL_BOTTOM_BAR} />
+      <BottomBar items={bottomBarOf(places)} />
     </SidebarProvider>
   );
 };

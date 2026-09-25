@@ -275,6 +275,14 @@ export const en = {
   "portal.split": "Profit split",
   "portal.splitLine": "You {investors}% · Farm {farm}%",
   "portal.window": "Sale window",
+  "portal.preview.band": "This is {name}'s portal as they would see it today.",
+  "portal.preview.bandHint":
+    "They cannot see you here, and nothing you do here reaches them.",
+  "portal.preview.back": "Back to {name}",
+  "portal.preview.onlyThey": "Only {name} can do this, from their own sign-in.",
+  "portal.preview.seeAsTheyDo": "See as they do",
+  "portal.preview.seeAsTheyDoHint":
+    "Read their portal as they would today, before you invite them. They won't know.",
   "portal.back": "Your portfolio",
   "portal.ventureHint":
     "How the Venture stands today. Days are counted and weights are read; nothing here is a forecast.",

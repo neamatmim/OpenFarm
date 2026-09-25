@@ -256,6 +256,14 @@ export const bn: Record<MessageKey, string> = {
   "portal.split": "মুনাফার ভাগ",
   "portal.splitLine": "আপনি {investors}% · খামার {farm}%",
   "portal.window": "বিক্রয়ের সময়",
+  "portal.preview.band": "এটি {name}-এর পোর্টাল, আজ তিনি যেমন দেখবেন।",
+  "portal.preview.bandHint":
+    "তিনি আপনাকে এখানে দেখতে পান না, আর এখানে আপনি যা করেন তা তাঁর কাছে পৌঁছায় না।",
+  "portal.preview.back": "{name}-এর পাতায় ফিরুন",
+  "portal.preview.onlyThey": "এটি শুধু {name} নিজের সাইন ইন থেকে করতে পারেন।",
+  "portal.preview.seeAsTheyDo": "তিনি যেমন দেখেন",
+  "portal.preview.seeAsTheyDoHint":
+    "আমন্ত্রণ জানানোর আগে তাঁর পোর্টাল আজ তিনি যেমন দেখবেন তেমন পড়ুন। তিনি জানবেন না।",
   "portal.back": "আপনার পোর্টফোলিও",
   "portal.ventureHint":
     "আজ ভেঞ্চারটি যেমন আছে। দিন গোনা আর ওজন মাপা; এখানে কিছুই পূর্বাভাস নয়।",

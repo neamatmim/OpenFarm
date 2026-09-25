@@ -1,40 +1,30 @@
-import { farmDayOf, maskedDigits } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
-import { howToPay } from "../how-to-pay";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
-  joiningLetterFor,
-  progressStatementFor,
-  settlementStatementFor,
-} from "../investor-papers";
-import {
-  hisStanding,
-  theVentureOf,
-  theirSpend,
-} from "../investor-statement-store";
-import { shareOfUnits } from "../investor-statement-words";
-import { signedInOn } from "../membership";
+  PORTAL_PAPER_KINDS,
+  theirOpenVentures,
+  theirOwnRequests,
+  theirPaper,
+  theirPortfolio,
+  theirRecord,
+  theirSignIns,
+  theirVentureToday,
+} from "../portal-reads";
 import {
   endSignIn,
   investorOf,
   markSeen,
-  ownerNameOf,
-  requireTheirs,
   signInHasRunItsDay,
   takeUpInvitation,
 } from "../portal-store";
 import {
   askToJoin,
   requestNote,
-  theirRequests,
   unitsAsked,
   withdrawRequest,
 } from "../requests-to-join";
-import { theirAgreements } from "../their-agreements";
-import { theirProgress } from "../venture-herd-store";
-import { openVenturesFor } from "../venture-showing";
 
 /** Anybody who is not an Investor the farm has let in, however they came. */
 const refuse = () =>
@@ -90,67 +80,17 @@ export const portalRouter = {
     )
     .handler(({ context, input }) => takeUpInvitation(context, input)),
 
-  /**
-   * Who is signed in to the portal, which farm's and how to reach it, and their own record as the farm holds it — the
-   * NID and the bank account with all but their last digits hidden, enough to know them by on a screen somebody may
-   * be looking over. They are put right by the Owner, not here.
-   */
-  me: investorProcedure.handler(async ({ context }) => {
-    const theirs = await context.db.query.investor.findFirst({
-      where: { id: context.investor.id, farmId: context.farm.id },
-    });
-    return {
-      investorId: context.investor.id,
-      name: context.investor.name,
-      farm: {
-        name: context.farm.name,
-        phone: context.farm.phone,
-        address: context.farm.address,
-      },
-      record: {
-        phone: theirs?.phone ?? context.investor.phone,
-        address: theirs?.address ?? null,
-        nid: theirs?.nid ? maskedDigits(theirs.nid) : null,
-        bankAccount: theirs?.bankAccount
-          ? maskedDigits(theirs.bankAccount)
-          : null,
-        nominee: theirs?.nomineeName
-          ? {
-              name: theirs.nomineeName,
-              relation: theirs.nomineeRelation,
-              phone: theirs.nomineePhone,
-            }
-          : null,
-      },
-    };
-  }),
+  /** Who is signed in, which farm's portal it is, and their own record, masked (`theirRecord`). */
+  me: investorProcedure.handler(({ context }) => theirRecord(context)),
 
-  /**
-   * Their whole part in the farm's Ventures: each Agreement with the capital held on it and what a Settlement paid,
-   * and every taka of theirs that moved — capital in, capital back, payouts — the latest first. Read from their side
-   * and narrowed to them before anything is assembled, as the Owner's page of them is.
-   */
+  /** Their Agreements and every taka of theirs that moved (`theirPortfolio`). */
   portfolio: investorProcedure.handler(({ context }) =>
-    theirAgreements(
-      context.db,
-      context.farm.id,
-      context.investor.id,
-      farmDayOf(context.clock.now())
-    )
+    theirPortfolio(context)
   ),
 
-  /**
-   * The Ventures still gathering capital that the Owner has shown in the portal (ADR 0008): their terms, the split
-   * the farm signs on today, and the Owner's few words — never how many Units are left, who else has asked or anything
-   * off an Agreement. None for a retired Investor, and none they are already signed for.
-   */
+  /** The Ventures raising capital the Owner is showing them (`theirOpenVentures`, ADR 0008). */
   openVentures: investorProcedure.handler(({ context }) =>
-    openVenturesFor(
-      context.db,
-      context.farm,
-      context.investor.id,
-      context.clock.now()
-    )
+    theirOpenVentures(context)
   ),
 
   /**
@@ -173,137 +113,33 @@ export const portalRouter = {
       return { id: input.requestId };
     }),
 
-  /** Their own Requests to Join, the latest first, and where each stands. Never anybody else's. */
+  /** Their own Requests to Join and where each stands (`theirOwnRequests`). */
   myRequests: investorProcedure.handler(({ context }) =>
-    theirRequests(context.db, context.farm.id, context.investor.id)
+    theirOwnRequests(context)
   ),
 
   /** Where they are signed in to the portal now, the one they are reading on marked, so they can sign the rest
    *  out. */
-  signedInOn: investorProcedure.handler(async ({ context }) => {
-    const here = context.session?.session.id ?? null;
-    const places = await signedInOn(
-      context.db,
-      context.actor.id,
-      context.clock.now()
-    );
-    return places.map((one) => ({ ...one, here: one.id === here }));
-  }),
+  signedInOn: investorProcedure.handler(({ context }) =>
+    theirSignIns(context, context.session?.session.id ?? null)
+  ),
 
-  /**
-   * One of their Ventures as it stands today, for the portal to draw rather than print: their part of it, how the
-   * animals are doing, where the Venture's money has gone and what is left of its budgets. The same figures the
-   * progress statement says, and no projection — days are counted, weights are read, nothing is forecast.
-   */
+  /** One of their own Ventures as it stands today (`theirVentureToday`); refused for one not theirs. */
   venture: investorProcedure
     .input(z.object({ agreementId: z.string() }))
-    .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
-      await requireTheirs(
-        context.db,
-        farmId,
-        context.investor.id,
-        input.agreementId
-      );
-      const now = context.clock.now();
-      const standing = await hisStanding(
-        context.db,
-        farmId,
-        input.agreementId,
-        farmDayOf(now)
-      );
-      const run = await theVentureOf(context.db, farmId, standing.venture.id);
-      const [theirs, spend, paying] = await Promise.all([
-        theirProgress(context.db, farmId, run, now),
-        theirSpend(context.db, farmId, run),
-        howToPay(context.db, farmId, input.agreementId, run),
-      ]);
-      return {
-        agreementId: input.agreementId,
-        venture: { name: standing.venture.name, state: run.state },
-        his: {
-          units: standing.agreement.units,
-          sharePercent: shareOfUnits(
-            standing.agreement.units,
-            spend.signedUnits
-          ),
-          capitalBdt: standing.capitalBdt,
-          investorsPercent: standing.agreement.investorsPercent,
-          amendedOn: standing.agreement.amendedOn,
-        },
-        window: {
-          start: standing.agreement.targetWindowStart,
-          end: standing.agreement.targetWindowEnd,
-          daysTo: theirs.daysToWindow,
-        },
-        herd: {
-          standing: theirs.standingCount,
-          sold: theirs.soldCount,
-          died: theirs.diedCount,
-          weighed: theirs.weighedCount,
-          averageIntakeKg: theirs.averageIntakeKg,
-          averageLatestKg: theirs.averageLatestKg,
-          gainKgPerDay: theirs.gainKgPerDay,
-          animals: theirs.animals
-            .filter((one) => one.standing)
-            .map((one) => ({
-              tagNumber: one.tagNumber,
-              intakeKg: one.intakeKg,
-              latestKg: one.latestKg,
-              dailyGainKg: one.dailyGainKg,
-            })),
-        },
-        spend: {
-          charges: spend.charges.map((one) => ({
-            word: one.word,
-            bdt: one.bdt,
-          })),
-          chargedBdt: spend.chargedBdt,
-          cattleBudgetBdt: spend.cattleBudgetBdt,
-          cattleBudgetLeftBdt: spend.cattleBudgetLeftBdt,
-          runningBudgetBdt: spend.runningBudgetBdt,
-          runningSpentBdt: spend.runningSpentBdt,
-        },
-        /** Where to pay and how much is left, while their capital is still owed; nothing once it is all in. */
-        howToPay: paying,
-      };
-    }),
+    .handler(({ context, input }) =>
+      theirVentureToday(context, input.agreementId)
+    ),
 
-  /**
-   * One of their own papers, as the Owner would print it: the joining letter, the progress statement, or — once the
-   * Settlement is approved — the settlement statement. Each is an Export in the trail, attributed to the Investor.
-   */
+  /** One of their own papers (`theirPaper`), an Export in the trail attributed to the Investor. */
   paper: investorProcedure
     .input(
       z.object({
         agreementId: z.string(),
-        kind: z.enum(["joining", "progress", "settlement"]),
+        kind: z.enum(PORTAL_PAPER_KINDS),
       })
     )
-    .handler(async ({ context, input }) => {
-      const farmId = context.farm.id;
-      await requireTheirs(
-        context.db,
-        farmId,
-        context.investor.id,
-        input.agreementId
-      );
-      if (input.kind === "joining") {
-        const { text } = await joiningLetterFor(
-          context,
-          input.agreementId,
-          await ownerNameOf(context.db, farmId)
-        );
-        return { text, photos: [] };
-      }
-      if (input.kind === "progress") {
-        const { text, photos } = await progressStatementFor(
-          context,
-          input.agreementId
-        );
-        return { text, photos };
-      }
-      const { text } = await settlementStatementFor(context, input.agreementId);
-      return { text, photos: [] };
-    }),
+    .handler(({ context, input }) =>
+      theirPaper(context, context.investor.id, input.agreementId, input.kind)
+    ),
 };

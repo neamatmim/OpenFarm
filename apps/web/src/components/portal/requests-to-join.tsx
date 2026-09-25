@@ -5,7 +5,7 @@ import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
 import { Input } from "@OpenFarm/ui/components/input";
 import { Textarea } from "@OpenFarm/ui/components/textarea";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Send, Undo2 } from "lucide-react";
 import { useState } from "react";
@@ -16,6 +16,14 @@ import type { Tone } from "@/components/page";
 import { Section, StatusBadge } from "@/components/page";
 import { FormField } from "@/components/page-kit";
 import type { OpenVenture } from "@/components/portal/open-ventures";
+import {
+  WhyNot,
+  useCanAct,
+  usePortalPlaces,
+  useTheirOpenVentures,
+  useTheirRecord,
+  useTheirRequests,
+} from "@/components/portal/portal-source";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { useTaka } from "@/lib/taka";
@@ -84,7 +92,7 @@ export const RequestStanding = ({ state }: { state: RequestToJoinState }) => {
  */
 const TheAnswer = ({ one }: { one: TheirRequest }) => {
   const { t, language } = useLanguage();
-  const me = useQuery(orpc.portal.me.queryOptions());
+  const me = useTheirRecord();
   // An answer this phone kept from before the farm could answer has neither.
   const promised = one.answeredUnits ?? null;
   const line = one.answerLine ?? null;
@@ -141,6 +149,7 @@ const RequestForm = ({
 }) => {
   const { t, language } = useLanguage();
   const taka = useTaka();
+  const acting = useCanAct();
   const refused = useRefused(REQUEST_REFUSALS);
   const [units, setUnits] = useState(live ? String(live.units) : "");
   const [note, setNote] = useState(live?.note ?? "");
@@ -172,7 +181,7 @@ const RequestForm = ({
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          if (whole) {
+          if (whole && acting.can) {
             ask.mutate({ ventureId: one.id, units: asked, note });
           }
         }}
@@ -197,7 +206,7 @@ const RequestForm = ({
           </div>
         ) : null}
         {live && !waiting ? null : (
-          <>
+          <fieldset className="contents" disabled={!acting.can}>
             <FormField
               hint={
                 whole
@@ -234,18 +243,21 @@ const RequestForm = ({
             <p className="text-muted-foreground text-xs">
               {t("portal.request.untilAnswered")}
             </p>
-          </>
+          </fieldset>
         )}
         <div className="flex flex-wrap gap-2">
           {live && !waiting ? null : (
-            <Button disabled={!whole || ask.isPending} type="submit">
+            <Button
+              disabled={!whole || ask.isPending || !acting.can}
+              type="submit"
+            >
               <Send aria-hidden data-icon="inline-start" />
               {live ? t("portal.request.change") : t("portal.request.send")}
             </Button>
           )}
           {live ? (
             <Button
-              disabled={withdraw.isPending}
+              disabled={withdraw.isPending || !acting.can}
               onClick={() => withdraw.mutate({ requestId: live.id })}
               type="button"
               variant="outline"
@@ -255,6 +267,7 @@ const RequestForm = ({
             </Button>
           ) : null}
         </div>
+        <WhyNot acting={acting} />
       </form>
     </Section>
   );
@@ -266,7 +279,7 @@ const RequestForm = ({
  */
 export const AskToJoin = ({ one }: { one: OpenVenture }) => {
   const { t } = useLanguage();
-  const mine = useQuery(orpc.portal.myRequests.queryOptions());
+  const mine = useTheirRequests();
   if (mine.isPending) {
     return null;
   }
@@ -297,6 +310,7 @@ export const AskToJoin = ({ one }: { one: OpenVenture }) => {
  */
 const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
   const { t } = useLanguage();
+  const acting = useCanAct();
   const refused = useRefused(REQUEST_REFUSALS);
   const withdraw = useMutation(
     orpc.portal.withdrawRequest.mutationOptions({
@@ -305,17 +319,20 @@ const WithdrawFromTheList = ({ requestId }: { requestId: string }) => {
     })
   );
   return (
-    <Button
-      className="w-fit"
-      disabled={withdraw.isPending}
-      onClick={() => withdraw.mutate({ requestId })}
-      size="sm"
-      type="button"
-      variant="outline"
-    >
-      <Undo2 aria-hidden data-icon="inline-start" />
-      {t("portal.request.withdraw")}
-    </Button>
+    <div className="flex flex-col gap-1">
+      <Button
+        className="w-fit"
+        disabled={withdraw.isPending || !acting.can}
+        onClick={() => withdraw.mutate({ requestId })}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <Undo2 aria-hidden data-icon="inline-start" />
+        {t("portal.request.withdraw")}
+      </Button>
+      <WhyNot acting={acting} />
+    </div>
   );
 };
 
@@ -333,24 +350,19 @@ const RequestVentureName = ({
   one: TheirRequest;
   stillOffered: boolean;
 }) => {
+  const places = usePortalPlaces();
   if (one.agreementId) {
+    const { to, params } = places.venture(one.agreementId).link;
     return (
-      <Link
-        className={LINKED_NAME}
-        params={{ agreementId: one.agreementId }}
-        to="/portal/ventures/$agreementId"
-      >
+      <Link className={LINKED_NAME} params={params} to={to}>
         {one.ventureName}
       </Link>
     );
   }
   if (stillOffered) {
+    const { to, params } = places.openVenture(one.ventureId).link;
     return (
-      <Link
-        className={LINKED_NAME}
-        params={{ ventureId: one.ventureId }}
-        to="/portal/open/$ventureId"
-      >
+      <Link className={LINKED_NAME} params={params} to={to}>
         {one.ventureName}
       </Link>
     );
@@ -366,8 +378,8 @@ const RequestVentureName = ({
 export const TheirRequestsOnHome = () => {
   const { t, language } = useLanguage();
   const taka = useTaka();
-  const mine = useQuery(orpc.portal.myRequests.queryOptions());
-  const offered = useQuery(orpc.portal.openVentures.queryOptions());
+  const mine = useTheirRequests();
+  const offered = useTheirOpenVentures();
   const requests = mine.data ?? [];
   if (requests.length === 0) {
     return null;
