@@ -7,28 +7,23 @@ import { toast } from "sonner";
 
 import { Section } from "@/components/page";
 import { FormField, FormSheet } from "@/components/page-kit";
+import type { VentureAccount } from "@/components/ventures/venture-account-details";
+import {
+  ACCOUNT_DETAILS,
+  ACCOUNT_DETAIL_KEYS,
+  VentureAccountDetails,
+} from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import type { Venture } from "@/lib/ventures";
 import { orpc } from "@/utils/orpc";
 
 /** The Venture Account's details as the sheet holds them while they are typed. */
-interface Written {
-  bank: string;
-  branch: string;
-  accountName: string;
-  accountNumber: string;
-  routingNumber: string;
-}
+type Written = Record<keyof VentureAccount, string>;
 
-/** Each detail, its box's name and its box's id, in the order a bank's own paper puts them. */
-const FIELDS = [
-  { key: "bank", label: "ventures.account.bank" },
-  { key: "branch", label: "ventures.account.branch" },
-  { key: "accountName", label: "ventures.account.name" },
-  { key: "accountNumber", label: "ventures.account.number" },
-  { key: "routingNumber", label: "ventures.account.routing" },
-] as const;
+/** What the act is called: writing the account for the first time, or changing what is written. */
+const writeOrChange = (account: VentureAccount | null) =>
+  account ? "ventures.account.change" : "ventures.account.write";
 
 /**
  * Writing or changing the Venture Account: the bank, the account's name and its number, and the branch and routing
@@ -48,13 +43,12 @@ const AccountSheet = ({
   const refused = useRefused();
   // An answer this phone kept from before the account could be written has none.
   const now = venture.account ?? null;
-  const [written, setWritten] = useState<Written>({
-    bank: now?.bank ?? "",
-    branch: now?.branch ?? "",
-    accountName: now?.accountName ?? "",
-    accountNumber: now?.accountNumber ?? "",
-    routingNumber: now?.routingNumber ?? "",
-  });
+  const [written, setWritten] = useState<Written>(
+    () =>
+      Object.fromEntries(
+        ACCOUNT_DETAIL_KEYS.map((key) => [key, now?.[key] ?? ""])
+      ) as Written
+  );
   const saving = useMutation(
     orpc.ventures.setBankAccount.mutationOptions({
       onError: refused,
@@ -68,9 +62,7 @@ const AccountSheet = ({
     written.bank.trim() !== "" &&
     written.accountName.trim() !== "" &&
     written.accountNumber.trim() !== "";
-  const label = now
-    ? t("ventures.account.change")
-    : t("ventures.account.write");
+  const label = t(writeOrChange(now));
   return (
     <FormSheet
       description={t("ventures.account.sheetHint")}
@@ -82,19 +74,19 @@ const AccountSheet = ({
       submitLabel={label}
       title={label}
     >
-      {FIELDS.map((field) => (
+      {ACCOUNT_DETAIL_KEYS.map((key) => (
         <FormField
-          id={`venture-account-${field.key}`}
-          key={field.key}
-          label={t(field.label)}
+          id={`venture-account-${key}`}
+          key={key}
+          label={t(ACCOUNT_DETAILS[key])}
         >
           <Input
             autoComplete="off"
-            id={`venture-account-${field.key}`}
+            id={`venture-account-${key}`}
             onChange={(event) =>
-              setWritten({ ...written, [field.key]: event.target.value })
+              setWritten({ ...written, [key]: event.target.value })
             }
-            value={written[field.key]}
+            value={written[key]}
           />
         </FormField>
       ))}
@@ -115,25 +107,14 @@ export const VentureAccountPanel = ({ venture }: { venture: Venture }) => {
       action={
         <Button onClick={() => setWriting(true)} size="sm" variant="outline">
           <Landmark aria-hidden data-icon="inline-start" />
-          {account ? t("ventures.account.change") : t("ventures.account.write")}
+          {t(writeOrChange(account))}
         </Button>
       }
       description={t("ventures.account.hint")}
       title={t("ventures.account.title")}
     >
       {account ? (
-        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-          {FIELDS.map((field) =>
-            account[field.key] ? (
-              <div className="flex flex-col" key={field.key}>
-                <dt className="text-muted-foreground">{t(field.label)}</dt>
-                <dd className="font-medium break-words">
-                  {account[field.key]}
-                </dd>
-              </div>
-            ) : null
-          )}
-        </dl>
+        <VentureAccountDetails account={account} />
       ) : (
         <p className="text-muted-foreground text-sm">
           {t("ventures.account.none")}

@@ -1,9 +1,11 @@
-import type { MessageKey } from "@OpenFarm/i18n";
+import type { Language } from "@OpenFarm/i18n";
+import { translate } from "@OpenFarm/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert } from "lucide-react";
 
 import { SaidDate } from "@/components/list-cells";
 import { Section } from "@/components/page";
+import { VentureAccountDetails } from "@/components/ventures/venture-account-details";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -13,24 +15,53 @@ type Paying = NonNullable<
   Awaited<ReturnType<typeof orpc.portal.venture.call>>["howToPay"]
 >;
 
-/** The Venture Account's details, each under its own name, in the order a bank's own paper puts them. */
-const ACCOUNT_LINES = [
-  { key: "bank", label: "ventures.account.bank" },
-  { key: "branch", label: "ventures.account.branch" },
-  { key: "accountName", label: "ventures.account.name" },
-  { key: "accountNumber", label: "ventures.account.number" },
-  { key: "routingNumber", label: "ventures.account.routing" },
-] as const satisfies readonly {
-  key: keyof NonNullable<Paying["account"]>;
-  label: MessageKey;
-}[];
+/** The language the warning is said in a second time. */
+const OTHER_LANGUAGE = { bn: "en", en: "bn" } as const satisfies Record<
+  Language,
+  Language
+>;
+
+/**
+ * That the farm only ever asks them to pay into the Venture Account on this page, and to call the farm if anybody
+ * gives them another — or, with none written yet, that the farm will say where, here. Said in their language and again
+ * in the other, because a message saying "our account has changed" is how an Investor's money is taken, and it may
+ * come in either.
+ */
+const TheWarning = ({
+  hasAccount,
+  phone,
+}: {
+  hasAccount: boolean;
+  phone: string | null;
+}) => {
+  const { language } = useLanguage();
+  const said = (lang: Language) => {
+    const only = translate(
+      lang,
+      hasAccount ? "portal.pay.onlyThisAccount" : "portal.pay.onlyThisPage"
+    );
+    const call = phone
+      ? translate(lang, "portal.pay.callTheFarm", { phone })
+      : translate(lang, "portal.pay.callTheFarmNoPhone");
+    return `${only} ${call}`;
+  };
+  const other = OTHER_LANGUAGE[language];
+  return (
+    <div className="border-warning/35 bg-warning-surface/40 flex items-start gap-2 rounded-md border p-3 text-sm">
+      <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+      <div className="flex flex-col gap-1">
+        <p className="font-medium">{said(language)}</p>
+        <p lang={other}>{said(other)}</p>
+      </div>
+    </div>
+  );
+};
 
 /**
  * How to pay, on an Investor's own signed Agreement while its capital is owed (ADR 0008): the Venture Account, what
  * is still owed, their Pay-in Code to write on the transfer, and the day the farm decides by — or, with no account
- * written yet, that the farm will say where. Always with the warning that the farm only ever asks them to pay into
- * the account on this page, because a message saying "our account has changed" is how an Investor's money is taken.
- * Nothing is paid here: the portal only says where.
+ * written yet, that the farm will say where. Always with the warning, in both languages. Nothing is paid here: the
+ * portal only says where.
  */
 export const HowToPay = ({ paying }: { paying: Paying | null }) => {
   const { t } = useLanguage();
@@ -74,31 +105,16 @@ export const HowToPay = ({ paying }: { paying: Paying | null }) => {
           </div>
         </dl>
         {account ? (
-          <dl className="bg-muted/50 grid gap-x-6 gap-y-2 rounded-lg p-3 text-sm sm:grid-cols-2">
-            {ACCOUNT_LINES.map((line) =>
-              account[line.key] ? (
-                <div className="flex flex-col" key={line.key}>
-                  <dt className="text-muted-foreground">{t(line.label)}</dt>
-                  <dd className="font-medium break-words">
-                    {account[line.key]}
-                  </dd>
-                </div>
-              ) : null
-            )}
-          </dl>
+          <VentureAccountDetails
+            account={account}
+            className="bg-muted/50 rounded-lg p-3"
+          />
         ) : (
           <p className="bg-muted/50 rounded-lg p-3 text-sm font-medium">
             {t("portal.pay.noAccount")}
           </p>
         )}
-        <p className="border-warning/35 bg-warning-surface/40 flex items-start gap-2 rounded-md border p-3 text-sm">
-          <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-          <span>
-            {phone
-              ? t("portal.pay.warning", { phone })
-              : t("portal.pay.warningNoPhone")}
-          </span>
-        </p>
+        <TheWarning hasAccount={account !== null} phone={phone} />
       </div>
     </Section>
   );

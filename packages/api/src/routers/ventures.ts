@@ -767,7 +767,8 @@ export const venturesRouter = {
    * The Venture Account's bank details, written on the Venture: where a signed Investor is told to pay (ADR 0008).
    * The Owner's alone, because whoever writes these decides where the Investors' money goes, and every change is an
    * Audit Event keeping what they said before — nobody quietly redirects an Investor's money. The bank, the account's
-   * name and its number are asked for; the branch and routing number may be written later.
+   * name and its number are asked for; the branch and routing number may be written later. Not only while it is Open:
+   * the same account carries its buying, its refunds and its payouts, and is put right whenever the bank changes it.
    */
   setBankAccount: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))

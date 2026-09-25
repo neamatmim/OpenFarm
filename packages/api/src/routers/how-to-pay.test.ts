@@ -254,6 +254,22 @@ describe("how to pay, on the Investor's own Agreement", () => {
     expect(theirs.howToPay).toBeNull();
   });
 
+  it("is gone once the Venture has started buying, though something is still owed: it takes no more capital", async () => {
+    const ventureId = await aShownVenture("কেনা শুরুর ভেঞ্চার");
+    const owner = await as("owner");
+    await owner.ventures.setBankAccount({ id: ventureId, ...ACCOUNT });
+    const most = await signedUp("বেশির ভাগ", ventureId, 6);
+    await paidIn(most.agreementId, 300_000);
+    const late = await signedUp("দেরিতে", ventureId, 2);
+
+    await owner.ventures.startBuying({ id: ventureId });
+
+    const theirs = await late.client.portal.venture({
+      agreementId: late.agreementId,
+    });
+    expect(theirs.howToPay).toBeNull();
+  });
+
   it("is never another Investor's to read: their Agreement is no such agreement", async () => {
     const ventureId = await aShownVenture("অন্যের দেওয়ার ভেঞ্চার");
     const owner = await as("owner");

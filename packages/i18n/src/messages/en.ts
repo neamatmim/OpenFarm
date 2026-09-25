@@ -143,20 +143,6 @@ export const en = {
     "What you have asked the farm for, and where each stands. A request binds nobody.",
   "portal.requests.line":
     "{units, plural, one {# Unit} other {# Units}} · {taka}",
-  /** How to pay, on an Investor's own signed Agreement while its capital is owed. */
-  "portal.pay.title": "How to pay",
-  "portal.pay.hint":
-    "By bank transfer, cheque or deposit slip from your own bank — never cash, and never through this portal.",
-  "portal.pay.owed": "Still to pay",
-  "portal.pay.code": "Your Pay-in Code",
-  "portal.pay.codeHint":
-    "Write it on the transfer, so the farm knows the money is yours",
-  "portal.pay.decideBy": "The farm decides by",
-  "portal.pay.noAccount": "The farm will tell you where to pay.",
-  "portal.pay.warning":
-    "The farm will only ever ask you to pay into the Venture Account shown on this page. If anyone gives you another account, do not pay — call the farm on {phone}.",
-  "portal.pay.warningNoPhone":
-    "The farm will only ever ask you to pay into the Venture Account shown on this page. If anyone gives you another account, do not pay — call the farm.",
   "portal.requests.state.waiting": "Waiting for the farm",
   "portal.requests.state.come_and_sign": "The farm will sign with you",
   "portal.requests.state.not_this_time": "Not this time",
@@ -199,6 +185,23 @@ export const en = {
     "Closed: the farm is no longer taking requests for this Venture.",
   "portal.requests.closed.investor_retired":
     "Closed by the farm. Please call the farm if you want to know more.",
+
+  /** How to pay, on an Investor's own signed Agreement while its capital is owed. */
+  "portal.pay.title": "How to pay",
+  "portal.pay.hint":
+    "By bank transfer, cheque or deposit slip from your own bank — never cash, and never through this portal.",
+  "portal.pay.owed": "Still to pay",
+  "portal.pay.code": "Your Pay-in Code",
+  "portal.pay.codeHint":
+    "Write it on the transfer, so the farm knows the money is yours",
+  "portal.pay.decideBy": "The farm decides by",
+  "portal.pay.noAccount": "The farm will tell you where to pay.",
+  "portal.pay.onlyThisAccount":
+    "The farm will only ever ask you to pay into the Venture's bank account shown above. If anyone gives you another account, do not pay.",
+  "portal.pay.onlyThisPage":
+    "The farm will tell you on this page where to pay, and will only ever ask you to pay into the account it shows here. If anyone gives you an account another way, do not pay.",
+  "portal.pay.callTheFarm": "Call the farm on {phone}.",
+  "portal.pay.callTheFarmNoPhone": "Call the farm.",
 
   "portal.account.new": "New password",
   "portal.money.hint":
