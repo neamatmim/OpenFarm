@@ -1,5 +1,5 @@
 import type { RequestToJoinState } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { isPastDecideBy } from "@OpenFarm/domain";
 import { formatNumber } from "@OpenFarm/i18n";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -237,8 +237,11 @@ export const VentureRequests = ({ venture }: { venture: Venture }) => {
   const totals = read.data?.totals;
   // An answer this phone kept from before the Owner could answer has neither.
   const promisable = totals?.promisableUnits ?? 0;
-  const pastDecideBy = farmDayOf(new Date()) > venture.decideBy;
+  const pastDecideBy = isPastDecideBy(venture.decideBy, new Date());
   const whyNoYes = (): string | null => {
+    if (!(venture.shownInPortal ?? false)) {
+      return t("refusal.ventureNotShown");
+    }
     if (pastDecideBy) {
       return t("ventures.requests.answer.pastDecideBy");
     }

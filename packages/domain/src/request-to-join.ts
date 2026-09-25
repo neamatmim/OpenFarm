@@ -1,3 +1,5 @@
+import { farmDayOf } from "./farm-clock";
+
 /**
  * Where a Request to Join stands, and which of those places are still waiting on somebody.
  *
@@ -33,3 +35,21 @@ export const REQUEST_NOTE_MOST = 300;
 
 /** The longest line the Owner may send with "not this time". */
 export const ANSWER_LINE_MOST = 300;
+
+/** A Request that has been answered: told to come and sign, told not this time, or answered by a signed Agreement. */
+export const ANSWERED_REQUEST_STATES = [
+  "come_and_sign",
+  "not_this_time",
+  "signed",
+] as const satisfies readonly RequestToJoinState[];
+
+/** Whether a Request in this state has had its answer. */
+export const isAnsweredRequest = (state: RequestToJoinState): boolean =>
+  ANSWERED_REQUEST_STATES.some((answered) => answered === state);
+
+/**
+ * Whether a Venture is past its decide-by day, on the farm's own calendar. Its Floor question is then answered, so
+ * nothing asked or promised now could change it: no Request is made, no yes is given, and it is not shown again.
+ */
+export const isPastDecideBy = (decideBy: string, now: Date): boolean =>
+  farmDayOf(now) > decideBy;

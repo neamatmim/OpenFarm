@@ -10,7 +10,9 @@ import {
 import {
   ANSWER_LINE_MOST,
   REQUEST_NOTE_MOST,
+  isAnsweredRequest,
   isLiveRequest,
+  isPastDecideBy,
 } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
@@ -23,7 +25,6 @@ import {
 } from "./join-request-notice";
 import type { VentureRow } from "./venture-act";
 import { actOnVenture } from "./venture-act";
-import { pastDecideBy } from "./venture-showing";
 
 // A Request to Join (ADR 0008): an invited Investor saying, through the portal, that they want whole Units of a
 // Venture the Owner has shown. It binds nobody, holds no Units and moves no money — only a signed Agreement does. The
@@ -91,7 +92,7 @@ const whoMayAsk = async (
       data: { refusal: "venture_not_shown" },
     });
   }
-  if (pastDecideBy(standing.decideBy, now)) {
+  if (isPastDecideBy(standing.decideBy, now)) {
     throw new ORPCError("BAD_REQUEST", {
       message: "Its decide-by day has passed; it takes no more requests",
       data: { refusal: "venture_past_decide_by" },
@@ -363,7 +364,11 @@ const readAs = (
   answerLine: one.answerLine,
 });
 
-/** The Units a Venture's yeses have promised and nobody has signed for yet. */
+/**
+ * The Units a Venture's yeses have promised to people not yet signed on it. Once somebody told to come and sign has
+ * signed — with the Request picked or without it — their Units are the Agreement's, and counting the yes as well would
+ * tell the Owner there are fewer left than there are.
+ */
 const unitsPromised = async (
   db: Pick<Tx, "query">,
   farmId: string,
@@ -371,9 +376,31 @@ const unitsPromised = async (
 ): Promise<number> => {
   const yeses = await db.query.requestToJoin.findMany({
     where: { farmId, ventureId, state: "come_and_sign" },
-    columns: { answeredUnits: true },
+    columns: { investorId: true, answeredUnits: true },
   });
-  return yeses.reduce((sum, one) => sum + (one.answeredUnits ?? 0), 0);
+  const signed = await db.query.investmentAgreement.findMany({
+    where: { farmId, ventureId },
+    columns: { investorId: true },
+  });
+  const hasSigned = new Set(signed.map((one) => one.investorId));
+  return yeses
+    .filter((one) => !hasSigned.has(one.investorId))
+    .reduce((sum, one) => sum + (one.answeredUnits ?? 0), 0);
+};
+
+/** What is signed and promised on a Venture, and so what the Owner can still say yes to: the Units less both. */
+const unitsSpokenFor = async (
+  db: Pick<Tx, "query">,
+  farmId: string,
+  venture: { id: string; units: number }
+) => {
+  const signed = await unitsTaken(db, farmId, venture.id);
+  const promised = await unitsPromised(db, farmId, venture.id);
+  return {
+    signed,
+    promised,
+    promisable: Math.max(venture.units - signed - promised, 0),
+  };
 };
 
 /** What saying yes to somebody would make the farm's Investor count, against the Cap. */
@@ -384,15 +411,15 @@ export interface IfYes {
 }
 
 /** Who stands today, and who has been told to come and sign without standing yet: what a yes is counted against. */
-interface Standing {
+interface YesCount {
   counted: Awaited<ReturnType<typeof countedInvestors>>;
   newYeses: Set<string>;
 }
 
-const standingForYeses = async (
+const countForYeses = async (
   db: Pick<Tx, "query">,
   farmId: string
-): Promise<Standing> => {
+): Promise<YesCount> => {
   const counted = await countedInvestors(db, farmId);
   const yeses = await db.query.requestToJoin.findMany({
     where: { farmId, state: "come_and_sign" },
@@ -413,7 +440,7 @@ const standingForYeses = async (
  * that changes by the week should not refuse somebody the farm may sign later.
  */
 const ifYesFor = (
-  { counted, newYeses }: Standing,
+  { counted, newYeses }: YesCount,
   investorId: string,
   cap: number
 ): IfYes | null => {
@@ -423,6 +450,53 @@ const ifYesFor = (
   const others = [...newYeses].filter((one) => one !== investorId).length;
   const countAfter = counted.standing + 1 + others;
   return { countAfter, cap, atOrBeyondCap: countAfter >= cap };
+};
+
+/**
+ * Whether a yes may be given now: the Venture is shown and short of its decide-by day, and the Investor is neither
+ * retired nor signed on it already — the same the Investor was held to when asking, because a yes is a promise to
+ * sign, and nobody is promised a signing the farm could not give them.
+ */
+const mayBeToldYes = async (
+  tx: Tx,
+  farmId: string,
+  venture: VentureRow,
+  investorId: string,
+  now: Date
+) => {
+  if (!venture.shownInPortalAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "It is not shown in the portal",
+      data: { refusal: "venture_not_shown" },
+    });
+  }
+  if (isPastDecideBy(venture.decideBy, now)) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Its decide-by day has passed; no new yes is given",
+      data: { refusal: "venture_past_decide_by" },
+    });
+  }
+  const them = await tx.query.investor.findFirst({
+    where: { id: investorId, farmId },
+    columns: { retiredAt: true },
+  });
+  if (!them || them.retiredAt) {
+    throw new ORPCError("BAD_REQUEST", {
+      message:
+        "This Investor is retired; bring them back before promising them a signing",
+      data: { refusal: "investor_retired" },
+    });
+  }
+  const signed = await tx.query.investmentAgreement.findFirst({
+    where: { farmId, ventureId: venture.id, investorId },
+    columns: { id: true },
+  });
+  if (signed) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Investor has signed for this Venture already",
+      data: { refusal: "already_signed_on_venture" },
+    });
+  }
 };
 
 /** The Owner's answer to a Request: come and sign for so many Units, or not this time with a line. */
@@ -437,7 +511,9 @@ export const theAnswer = z.discriminatedUnion("kind", [
   }),
 ]);
 
-type Answering = Asking & { farm: { id: string; investorCap: number } };
+type AnsweringContext = Asking & {
+  farm: { id: string; investorCap: number };
+};
 
 /**
  * The Owner answers a Request that is waiting. "Come and sign" promises the Units asked or fewer, and never more than
@@ -447,7 +523,7 @@ type Answering = Asking & { farm: { id: string; investorCap: number } };
  * Owner's Notice of the Request down. A yes to somebody new answers with what signing them would make the count.
  */
 export const answerRequest = async (
-  context: Answering,
+  context: AnsweringContext,
   requestId: string,
   answer: z.infer<typeof theAnswer>
 ): Promise<{ id: string; ifYes: IfYes | null }> => {
@@ -481,11 +557,7 @@ export const answerRequest = async (
         where: { id: requestId, farmId },
       });
       if (request?.state !== "waiting") {
-        const answered =
-          request?.state === "come_and_sign" ||
-          request?.state === "not_this_time" ||
-          request?.state === "signed";
-        throw answered
+        throw request && isAnsweredRequest(request.state)
           ? new ORPCError("BAD_REQUEST", {
               message: "This Request has been answered already",
               data: { refusal: "request_already_answered" },
@@ -506,30 +578,22 @@ export const answerRequest = async (
           })
           .where(eq(requestToJoin.id, requestId));
       } else {
-        if (pastDecideBy(standing.decideBy, now)) {
-          throw new ORPCError("BAD_REQUEST", {
-            message: "Its decide-by day has passed; no new yes is given",
-            data: { refusal: "venture_past_decide_by" },
-          });
-        }
+        await mayBeToldYes(tx, farmId, standing, request.investorId, now);
         if (answer.units > request.units) {
           throw new ORPCError("BAD_REQUEST", {
             message: `They asked for ${request.units} Units`,
             data: { refusal: "units_beyond_asked" },
           });
         }
-        const promisable =
-          standing.units -
-          (await unitsTaken(tx, farmId, standing.id)) -
-          (await unitsPromised(tx, farmId, standing.id));
+        const { promisable } = await unitsSpokenFor(tx, farmId, standing);
         if (answer.units > promisable) {
           throw new ORPCError("BAD_REQUEST", {
-            message: `Only ${Math.max(promisable, 0)} Units can still be promised`,
+            message: `Only ${promisable} Units can still be promised`,
             data: { refusal: "units_beyond_promisable" },
           });
         }
         ifYes = ifYesFor(
-          await standingForYeses(tx, farmId),
+          await countForYeses(tx, farmId),
           request.investorId,
           context.farm.investorCap
         );
@@ -556,8 +620,9 @@ export const answerRequest = async (
 
 /**
  * A Venture's Requests as the Owner reads them: each with the Investor, Units, taka, note, when it was made and last
- * changed, where it stands and its history beneath; and beside them, the Units signed and the Units asked for and
- * still waiting, so she can tell whether the Requests would reach the Floor when the signatures do not yet.
+ * changed, where it stands, her answer, and its history beneath — and, for one still waiting, what a yes would make the
+ * Investor count. Beside them, the Units signed, promised, still promisable and asked for and waiting, so she can tell
+ * whether the Requests would reach the Floor when the signatures do not yet.
  */
 export const requestsOf = async (
   db: Pick<Tx, "query">,
@@ -581,35 +646,36 @@ export const requestsOf = async (
     farmId,
     rows.map((one) => one.id)
   );
-  const signedUnits = await unitsTaken(db, farmId, ventureId);
+  const spokenFor = await unitsSpokenFor(db, farmId, {
+    id: ventureId,
+    units: run.units,
+  });
   const waitingUnits = rows
     .filter((one) => one.state === "waiting")
     .reduce((sum, one) => sum + one.units, 0);
-  const promisedUnits = await unitsPromised(db, farmId, ventureId);
-  const standing = await standingForYeses(db, farmId);
+  const yesCount = await countForYeses(db, farmId);
   return {
     requests: rows.map((one) => {
       const history = changes.get(one.id) ?? [];
       return {
         ...readAs(one, run.unitPriceBdt, history),
         investorId: one.investorId,
-        answeredAt: one.answeredAt,
         /** For one still waiting, what saying yes would make the Investor count. */
         ifYes:
           one.state === "waiting"
-            ? ifYesFor(standing, one.investorId, farm.investorCap)
+            ? ifYesFor(yesCount, one.investorId, farm.investorCap)
             : null,
         history,
       };
     }),
     totals: {
-      signedUnits,
-      signedBdt: signedUnits * run.unitPriceBdt,
-      /** Promised by a yes and not yet signed. */
-      promisedUnits,
-      promisedBdt: promisedUnits * run.unitPriceBdt,
+      signedUnits: spokenFor.signed,
+      signedBdt: spokenFor.signed * run.unitPriceBdt,
+      /** Promised by a yes to somebody not yet signed. */
+      promisedUnits: spokenFor.promised,
+      promisedBdt: spokenFor.promised * run.unitPriceBdt,
       /** What the Owner can still say yes to: the Units less those signed and those promised. */
-      promisableUnits: Math.max(run.units - signedUnits - promisedUnits, 0),
+      promisableUnits: spokenFor.promisable,
       waitingUnits,
       waitingBdt: waitingUnits * run.unitPriceBdt,
     },

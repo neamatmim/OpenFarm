@@ -115,6 +115,67 @@ beforeAll(async () => {
   await createTestClient(appRouter, { as: "manager" });
 });
 
+// First in the file, before any yes: the count a yes leads to takes in every other yes to somebody new on the farm, and
+// this is where the count is said exactly.
+describe("the Investor Cap at a yes", () => {
+  it("shows what signing somebody new would make the count, the other yeses to new people counted in, and warns at the Cap without refusing — while signing still refuses", async () => {
+    const ventureId = await aShownVenture("সীমানার ভেঞ্চার");
+    const first = await asking("নতুন এক", ventureId, 1);
+    const second = await asking("নতুন দুই", ventureId, 1);
+    const owner = await asOwner();
+    // Counted as the Investors page counts them, not as the preview does.
+    const { standing } = await owner.investors.list();
+
+    try {
+      // The farm may have one more than stand today.
+      await owner.farm.setParameters({
+        investorCap: standing + 1,
+        investorWarnAt: 1,
+      });
+      const reading = await asOwner();
+      const before = await reading.ventures.requests({ ventureId });
+      expect(ifYesOf(before.requests, first.requestId)).toEqual({
+        countAfter: standing + 1,
+        cap: standing + 1,
+        atOrBeyondCap: true,
+      });
+
+      // A warning, never a refusal.
+      const firstYes = await comeAndSign(first.requestId, 1);
+      expect(firstYes.ifYes?.atOrBeyondCap).toBe(true);
+      const rereading = await asOwner();
+      const after = await rereading.ventures.requests({ ventureId });
+      expect(ifYesOf(after.requests, second.requestId)).toEqual({
+        countAfter: standing + 2,
+        cap: standing + 1,
+        atOrBeyondCap: true,
+      });
+      const secondYes = await comeAndSign(second.requestId, 1);
+      expect(secondYes.ifYes?.countAfter).toBe(standing + 2);
+
+      // Signing is what refuses, as it always has: the first fits under the Cap, the second does not.
+      await signFor(ventureId, first.id, 1);
+      expect(await refusalOf(signFor(ventureId, second.id, 1))).toBe(
+        "investor_cap_reached"
+      );
+    } finally {
+      // Back to as many as the farm may ever have, so the signings in the tests after this one are not refused.
+      await owner.farm.setParameters({ investorCap: 50 });
+    }
+  });
+
+  it("says nothing of the count for somebody already in a running Venture", async () => {
+    const ventureId = await aShownVenture("পুরোনো মানুষের ভেঞ্চার");
+    const other = await aShownVenture("আগের ভেঞ্চার");
+    const rahim = await asking("রহিম", ventureId, 1);
+    await signFor(other, rahim.id, 1);
+
+    const answered = await comeAndSign(rahim.requestId, 1);
+
+    expect(answered.ifYes).toBeNull();
+  });
+});
+
 describe("the Owner saying come and sign", () => {
   it("promises the Units asked, and the Investor reads it on their page — and nothing about anybody else", async () => {
     const ventureId = await aShownVenture("হ্যাঁ ভেঞ্চার");
@@ -227,6 +288,45 @@ describe("the Owner saying come and sign", () => {
     ).toBe("not refused");
   });
 
+  it("is refused on a Venture taken out of the portal, to somebody retired, and to somebody already signed on it", async () => {
+    const hidden = await aShownVenture("সরানো হ্যাঁ ভেঞ্চার");
+    const unseen = await asking("অদেখা", hidden, 1);
+    const owner = await asOwner();
+    await owner.ventures.takeOutOfPortal({ id: hidden });
+    expect(await refusalOf(comeAndSign(unseen.requestId, 1))).toBe(
+      "venture_not_shown"
+    );
+
+    const ventureId = await aShownVenture("অবসর ও স্বাক্ষর ভেঞ্চার");
+    const retired = await asking("অবসরপ্রাপ্ত", ventureId, 1);
+    await owner.investors.retire({ id: retired.id });
+    expect(await refusalOf(comeAndSign(retired.requestId, 1))).toBe(
+      "investor_retired"
+    );
+
+    const byPhone = await asking("ফোনে সই", ventureId, 2);
+    await signFor(ventureId, byPhone.id, 2);
+    expect(await refusalOf(comeAndSign(byPhone.requestId, 2))).toBe(
+      "already_signed_on_venture"
+    );
+  });
+
+  it("stops counting a promise once its Investor has signed, so the Units are not counted twice", async () => {
+    const ventureId = await aShownVenture("একবার গোনার ভেঞ্চার");
+    const promised = await asking("প্রতিশ্রুত", ventureId, 4);
+    await comeAndSign(promised.requestId, 4);
+
+    await signFor(ventureId, promised.id, 4);
+
+    const owner = await asOwner();
+    const { totals } = await owner.ventures.requests({ ventureId });
+    expect(totals).toMatchObject({
+      signedUnits: 4,
+      promisedUnits: 0,
+      promisableUnits: 6,
+    });
+  });
+
   it("leaves the Investor able to withdraw, but not to change the Units promised", async () => {
     const ventureId = await aShownVenture("স্থির হ্যাঁ ভেঞ্চার");
     const nasir = await asking("নাসির", ventureId, 3);
@@ -240,53 +340,6 @@ describe("the Owner saying come and sign", () => {
     await nasir.client.portal.withdrawRequest({ requestId: nasir.requestId });
     const [his] = await nasir.client.portal.myRequests();
     expect(his?.state).toBe("withdrawn");
-  });
-});
-
-describe("the Investor Cap at a yes", () => {
-  it("shows what signing somebody new would make the count, the other yeses to new people counted in, and warns at the Cap without refusing", async () => {
-    const ventureId = await aShownVenture("সীমানার ভেঞ্চার");
-    const first = await asking("নতুন এক", ventureId, 1);
-    const second = await asking("নতুন দুই", ventureId, 1);
-    const owner = await asOwner();
-    const { requests } = await owner.ventures.requests({ ventureId });
-    const standingNow =
-      (ifYesOf(requests, first.requestId)?.countAfter ?? 0) - 1;
-
-    const firstYes = await comeAndSign(first.requestId, 1);
-    expect(firstYes.ifYes).toMatchObject({ countAfter: standingNow + 1 });
-
-    try {
-      // The farm may have exactly as many as saying yes to the second would make.
-      await owner.farm.setParameters({
-        investorCap: standingNow + 2,
-        investorWarnAt: 1,
-      });
-      const later = await asOwner();
-      const after = await later.ventures.requests({ ventureId });
-      expect(ifYesOf(after.requests, second.requestId)).toEqual({
-        countAfter: standingNow + 2,
-        cap: standingNow + 2,
-        atOrBeyondCap: true,
-      });
-      // A warning, never a refusal.
-      const secondYes = await comeAndSign(second.requestId, 1);
-      expect(secondYes.ifYes?.atOrBeyondCap).toBe(true);
-    } finally {
-      // Back to as many as the farm may ever have, so the signings in the tests after this one are not refused.
-      await owner.farm.setParameters({ investorCap: 50 });
-    }
-  });
-
-  it("says nothing of the count for somebody already in a running Venture", async () => {
-    const ventureId = await aShownVenture("পুরোনো মানুষের ভেঞ্চার");
-    const other = await aShownVenture("আগের ভেঞ্চার");
-    const rahim = await asking("রহিম", ventureId, 1);
-    await signFor(other, rahim.id, 1);
-
-    const answered = await comeAndSign(rahim.requestId, 1);
-
-    expect(answered.ifYes).toBeNull();
   });
 });
 
@@ -308,6 +361,17 @@ describe("the Owner saying not this time", () => {
         jamal.client.portal.requestToJoin({ ventureId, units: 1, note: "" })
       )
     ).toBe("request_already_answered");
+  });
+
+  it("takes the Owner's Notice of the Request down, as a yes does", async () => {
+    const ventureId = await aShownVenture("না নোটিশ ভেঞ্চার");
+    const mitu = await asking("মিতু", ventureId, 1);
+
+    await notThisTime(mitu.requestId);
+
+    const owner = await asOwner();
+    const told = await owner.alerts.mine({ about: ventureId });
+    expect(told.filter((one) => one.kind === "join_requested")).toEqual([]);
   });
 });
 

@@ -263,6 +263,7 @@ export const requestToJoin = pgTable(
     answeredUnits: integer("answered_units"),
     /** For "not this time", the Owner's line to the Investor, if she wrote one. */
     answerLine: text("answer_line"),
+    /** Who answered, and when: the Owner, whose promise it is. */
     answeredBy: text("answered_by").references(() => user.id),
     answeredAt: timestamp("answered_at"),
   },

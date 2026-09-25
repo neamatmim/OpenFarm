@@ -12,13 +12,18 @@ import { useLanguage } from "@/i18n/language-provider";
 import { useRefused } from "@/lib/refused";
 import { orpc } from "@/utils/orpc";
 
+/** What saying yes to one Request would make the Investor count, as the Owner's list of Requests says it. */
+type IfYes = Awaited<
+  ReturnType<typeof orpc.ventures.requests.call>
+>["requests"][number]["ifYes"];
+
 /** What the Owner is answering: whose Request, for how many Units, and what a yes would make the Investor count. */
 export interface Answering {
   requestId: string;
   name: string;
   units: number;
   /** Null for somebody already in a running Venture, whom signing adds nobody for. */
-  ifYes: { countAfter: number; cap: number; atOrBeyondCap: boolean } | null;
+  ifYes: IfYes;
 }
 
 /**
@@ -50,10 +55,11 @@ export const ComeAndSignSheet = ({
       },
     })
   );
-  const asked = Number(units);
+  const promising = Number(units);
   // The most a yes can be: what they asked for, or what is left to promise, whichever is less.
   const most = Math.min(answering.units, promisable);
-  const fits = Number.isInteger(asked) && asked >= 1 && most - asked >= 0;
+  const fits =
+    Number.isInteger(promising) && promising >= 1 && most - promising >= 0;
   const { ifYes } = answering;
   return (
     <FormSheet
@@ -62,7 +68,7 @@ export const ComeAndSignSheet = ({
       onSubmit={() =>
         answer.mutate({
           requestId: answering.requestId,
-          answer: { kind: "come_and_sign", units: asked },
+          answer: { kind: "come_and_sign", units: promising },
         })
       }
       open

@@ -421,11 +421,14 @@ export {
 export type { Split, ToSplit } from "./venture";
 export type { RequestToJoinState } from "./request-to-join";
 export {
+  ANSWERED_REQUEST_STATES,
   ANSWER_LINE_MOST,
   LIVE_REQUEST_STATES,
   REQUEST_NOTE_MOST,
   REQUEST_TO_JOIN_STATES,
+  isAnsweredRequest,
   isLiveRequest,
+  isPastDecideBy,
 } from "./request-to-join";
 export type {
   EndedState,
