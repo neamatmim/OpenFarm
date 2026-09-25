@@ -24,5 +24,7 @@ Each close says why, and nothing is deleted.
 
 ## Checked before starting
 
+- **Closing a waiting Request settles its Notice too.** Call `settleTheRequestNotice` (`packages/api/src/join-request-notice.ts`, from ticket 03) in the same transaction, or the Owner's Notice outlives the Request.
+
 - **Start Buying** is `startBuying`, and **cancel** is `cancel`, in `packages/api/src/routers/ventures.ts`. Cancel already refunds inside its own transaction. The closing goes in there too, not after it.
 - **Retiring** is in the investor router, and is refused while the Investor's money is in a running Venture. A live Request is not money, so it does not block retiring. It is closed by it.
