@@ -505,7 +505,10 @@ describe("a Request the farm refuses", () => {
     const ventureId = await aVenture("বন্ধ দরজার ভেঞ্চার");
     const shanto = await invited("শান্ত");
     const owner = await asOwner();
-    await owner.investors.takePortalAway({ id: shanto.id });
+    await owner.investors.takePortalAway({
+      id: shanto.id,
+      why: { reason: "owner" },
+    });
 
     expect(
       await refusalOf(

@@ -111,7 +111,10 @@ describe("a wrong password", () => {
 
   it("is only wrong, for an Investor whose access was taken away", async () => {
     const owner = await asOwner();
-    await owner.investors.takePortalAway({ id: investorId });
+    await owner.investors.takePortalAway({
+      id: investorId,
+      why: { reason: "owner" },
+    });
 
     expect(await answered(INVESTOR, WRONG)).toBe(401);
     expect(await rightPassword(INVESTOR)).toEqual({

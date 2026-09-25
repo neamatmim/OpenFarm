@@ -361,6 +361,30 @@ export const bn: Record<MessageKey, string> = {
   "portal.takeAwayWhy":
     "সব জায়গা থেকে তিনি সাইন আউট হবেন এবং আর সাইন ইন করতে পারবেন না। তাঁর রেকর্ড যেমন আছে থাকবে, আর আবার আমন্ত্রণ জানাতে পারবেন।",
   "portal.takenAway": "প্রবেশাধিকার তুলে নেওয়া হয়েছে",
+  "portal.why.label": "কেন তুলে নিচ্ছেন",
+  "portal.why.choose": "একটি বেছে নিন",
+  "portal.why.withdrew_consent": "তিনি সম্মতি তুলে নিয়েছেন",
+  "portal.why.lost_phone": "ফোন হারিয়ে গেছে",
+  "portal.why.owner": "আমার নিজের সিদ্ধান্ত",
+  "portal.why.withdrawHint":
+    "তুলে নেওয়া সম্মতি আর কখনো গণ্য হবে না: ফিরে আসতে হলে তাঁকে নতুন সম্মতিপত্রে সই করতে হবে। তাঁর চুক্তি আর টাকার হিসাব যেমন আছে থাকবে।",
+  "portal.why.keepsConsent":
+    "তাঁর সম্মতি বহাল থাকবে: পরে নতুন কোড দিলেই হবে, নতুন সই লাগবে না।",
+  "portal.withdrawnOn": "যেদিন তিনি জানিয়েছেন",
+  "portal.withdrawnHow": "কীভাবে জানিয়েছেন",
+  "portal.how.letter": "সই করা চিঠিতে",
+  "portal.how.message": "তাঁর নিজের নম্বর থেকে মেসেজে",
+  "portal.howLine.letter": "সই করা চিঠিতে",
+  "portal.howLine.message": "নিজের নম্বর থেকে মেসেজে",
+  "portal.takenAwayLine.withdrew_consent": "সম্মতি তুলে নিয়েছেন {day}, {how}",
+  "portal.takenAwayLine.lost_phone": "ফোন হারানোয় তুলে নেওয়া",
+  "portal.takenAwayLine.owner": "আপনার সিদ্ধান্তে তুলে নেওয়া",
+  "portal.refused.noConsentToWithdraw":
+    "তাঁর কোনো বহাল সম্মতি নেই যা তুলে নেওয়া যায়। অন্য কোনো কারণে প্রবেশাধিকার তুলে নিন।",
+  "portal.refused.withdrawnInTheFuture":
+    "সামনের কোনো দিনে তিনি সম্মতি তুলে নিতে পারেন না।",
+  "portal.refused.withdrawnBeforeSigned":
+    "সই করার আগের দিনে তিনি সম্মতি তুলে নিতে পারেন না।",
   "auth.signUpSuccess": "অ্যাকাউন্ট খোলা হয়েছে",
   "auth.invalidEmail": "সঠিক ইমেইল ঠিকানা দিন",
   "auth.showPassword": "পাসওয়ার্ড দেখুন",

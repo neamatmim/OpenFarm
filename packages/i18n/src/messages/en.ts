@@ -383,6 +383,30 @@ export const en = {
   "portal.takeAwayWhy":
     "They are signed out everywhere and cannot sign in again. Their record is untouched, and you can invite them again.",
   "portal.takenAway": "Access taken away",
+  "portal.why.label": "Why you are taking it away",
+  "portal.why.choose": "Choose one",
+  "portal.why.withdrew_consent": "They withdrew their consent",
+  "portal.why.lost_phone": "A lost phone",
+  "portal.why.owner": "My own decision",
+  "portal.why.withdrawHint":
+    "A withdrawn consent never counts again: to come back they sign a new consent. Their Agreements and money records stay as they are.",
+  "portal.why.keepsConsent":
+    "Their consent stays in force: a new code later is enough, with no new signature.",
+  "portal.withdrawnOn": "The day they asked",
+  "portal.withdrawnHow": "How they asked",
+  "portal.how.letter": "By a signed letter",
+  "portal.how.message": "By a message from their own number",
+  "portal.howLine.letter": "by a signed letter",
+  "portal.howLine.message": "by a message from their own number",
+  "portal.takenAwayLine.withdrew_consent": "Withdrew consent {day}, {how}",
+  "portal.takenAwayLine.lost_phone": "Taken away: a lost phone",
+  "portal.takenAwayLine.owner": "Taken away by your decision",
+  "portal.refused.noConsentToWithdraw":
+    "They have no consent in force to withdraw. Take their access away for another reason.",
+  "portal.refused.withdrawnInTheFuture":
+    "They cannot have withdrawn it on a day still to come.",
+  "portal.refused.withdrawnBeforeSigned":
+    "They cannot have withdrawn it before the day they signed it.",
   "auth.signUpSuccess": "Account created",
   "auth.invalidEmail": "Enter a valid email address",
   "auth.showPassword": "Show password",

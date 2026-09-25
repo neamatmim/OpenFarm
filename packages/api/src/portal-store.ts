@@ -3,6 +3,7 @@ import { PASSWORD_MIN_LENGTH } from "@OpenFarm/auth/password";
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { and, eq, isNull, lt, or } from "@OpenFarm/db/operators";
 import { session, user } from "@OpenFarm/db/schema/auth";
+import type { PORTAL_TAKEN_AWAY_WHY } from "@OpenFarm/db/schema/venture";
 import { investorAccess } from "@OpenFarm/db/schema/venture";
 import { PORTAL_SIGN_IN_HOURS, investorLoginOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
@@ -18,7 +19,12 @@ import { audited } from "./audit";
 import { refuseCommonPassword } from "./chosen-password";
 import type { Context } from "./context";
 import { hashOfCodeAsTyped, newInviteCode, signedInOn } from "./membership";
-import { consentInForce } from "./portal-consent";
+import type { Withdrawal } from "./portal-consent";
+import {
+  consentInForce,
+  consentToWithdraw,
+  withdrawConsent,
+} from "./portal-consent";
 import type { Owned } from "./portal-invitable";
 import { invitable, refused } from "./portal-invitable";
 import { whatTheyDidToTheirRequests } from "./requests-to-join";
@@ -48,6 +54,8 @@ export interface PortalSaid {
   codeUntil: Date | null;
   /** When they were last in the portal, to the hour; null for somebody never seen there. */
   lastSeenAt: Date | null;
+  /** Why their access was taken away; null while it stands, or where it was taken away before the farm asked why. */
+  takenAwayWhy: (typeof PORTAL_TAKEN_AWAY_WHY)[number] | null;
 }
 
 /** What the trail keeps of somebody's access, either side of a change: never the code. */
@@ -65,6 +73,7 @@ export const readAccess = async (
       invitedAt: true,
       acceptedAt: true,
       revokedAt: true,
+      revokedWhy: true,
     },
   })) ?? null;
 
@@ -92,6 +101,7 @@ export const portalStandings = async (
       codeExpiresAt: true,
       acceptedAt: true,
       revokedAt: true,
+      revokedWhy: true,
       lastSeenAt: true,
     },
   });
@@ -113,6 +123,7 @@ export const portalStandings = async (
           standing: standingOf(),
           codeUntil: codeOpen ? row.codeExpiresAt : null,
           lastSeenAt: row.lastSeenAt,
+          takenAwayWhy: row.revokedAt ? row.revokedWhy : null,
         },
       ];
     })
@@ -184,45 +195,79 @@ export const inviteToPortal = async (
   return { code, expiresAt };
 };
 
+/** Why the Owner took somebody's access away, with the day and how they asked where they withdrew their consent. */
+export type TakenAwayWhy =
+  | ({ reason: "withdrew_consent" } & Withdrawal)
+  | {
+      reason: Exclude<
+        (typeof PORTAL_TAKEN_AWAY_WHY)[number],
+        "withdrew_consent"
+      >;
+    };
+
 /**
- * Takes an Investor's access away: the account is disabled, every session it has ends, and an open code dies. What
- * they read stays in the trail. Invited again, it comes back.
+ * Takes an Investor's access away, saying why: the account is disabled, every session it has ends, and an open code
+ * dies. What they read stays in the trail. Invited again, it comes back.
+ *
+ * Where they withdrew their Portal Consent, the consent is marked withdrawn in the same transaction, with the day they
+ * asked and how — checked first, so a refused withdrawal takes nothing away — and coming back means signing afresh.
+ * Any other reason leaves the consent in force. Taking access away closes no Request to Join: the Owner may still sign
+ * them by phone.
  */
 export const takePortalAway = async (
   context: Owned,
-  investorId: string
+  investorId: string,
+  why: TakenAwayWhy
 ): Promise<void> => {
   const farmId = context.farm.id;
   const now = context.clock.now();
+  const withdrawing =
+    why.reason === "withdrew_consent"
+      ? await consentToWithdraw(context, investorId, why)
+      : null;
   const access = await context.db.query.investorAccess.findFirst({
     where: { farmId, investorId },
     columns: { id: true, userId: true, revokedAt: true },
   });
-  if (!access || access.revokedAt) {
+  const live = access && !access.revokedAt ? access : null;
+  if (!(live || withdrawing)) {
     return;
   }
-  await audited(context).write(
-    {
-      entity: "investor_access",
-      entityId: investorId,
-      action: "update",
-      before: (tx) => readAccess(tx, farmId, investorId),
-      after: (tx) => readAccess(tx, farmId, investorId),
-    },
-    async (tx) => {
+  await context.db.transaction(async (tx) => {
+    if (live) {
+      const before = await readAccess(tx, farmId, investorId);
       await tx
         .update(investorAccess)
-        .set({ revokedAt: now, codeHash: null, codeExpiresAt: null })
-        .where(eq(investorAccess.id, access.id));
-      if (access.userId) {
+        .set({
+          revokedAt: now,
+          revokedWhy: why.reason,
+          codeHash: null,
+          codeExpiresAt: null,
+        })
+        .where(eq(investorAccess.id, live.id));
+      if (live.userId) {
         await tx
           .update(user)
           .set({ disabledAt: now })
-          .where(eq(user.id, access.userId));
-        await tx.delete(session).where(eq(session.userId, access.userId));
+          .where(eq(user.id, live.userId));
+        await tx.delete(session).where(eq(session.userId, live.userId));
       }
+      const after = await readAccess(tx, farmId, investorId);
+      await audited(context).recordEvent(
+        tx,
+        { entity: "investor_access", entityId: investorId, action: "update" },
+        { before, after }
+      );
     }
-  );
+    if (withdrawing && why.reason === "withdrew_consent") {
+      await withdrawConsent(
+        tx,
+        context,
+        { consentId: withdrawing, investorId },
+        why
+      );
+    }
+  });
 };
 
 /** A phone and code that open no invitation: said the same whichever of the two is wrong. */
@@ -331,6 +376,7 @@ export const takeUpInvitation = async (
           userId,
           acceptedAt: now,
           revokedAt: null,
+          revokedWhy: null,
           codeHash: null,
           codeExpiresAt: null,
         })

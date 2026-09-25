@@ -1,6 +1,6 @@
 import { uuidv7 } from "@OpenFarm/db/ids";
 import { farm } from "@OpenFarm/db/schema/farm";
-import { investor } from "@OpenFarm/db/schema/venture";
+import { CONSENT_WITHDRAWN_HOW, investor } from "@OpenFarm/db/schema/venture";
 import { farmDayOf } from "@OpenFarm/domain";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { farmDay } from "../farm-clock";
 import type { FarmList } from "../farm-list";
 import { bringBackToList, retireFromList } from "../farm-list";
 import { protectedProcedure } from "../index";
@@ -16,11 +17,14 @@ import {
   readInvestor,
   theSamePerson,
 } from "../investor-store";
+import type { WithdrawalSaid } from "../portal-consent";
 import {
   consentSheet,
   consentsInForce,
+  lastWithdrawals,
   recordConsent,
 } from "../portal-consent";
+import type { TakenAwayWhy } from "../portal-store";
 import {
   inviteToPortal,
   portalActivity,
@@ -32,6 +36,34 @@ import { OWNER_ONLY, requireOnly, requirePersonalSession } from "../roles";
 import { theirAgreements } from "../their-agreements";
 import { lockTheFarm } from "../venture-store";
 import { CODE_PAPERS, codePaperFor, handOver } from "../welcome-letter";
+
+/** Why the Owner takes somebody's access away: for a withdrawn consent, with the day they asked and how. */
+const takenAwayWhy = z.discriminatedUnion("reason", [
+  z.object({
+    reason: z.literal("withdrew_consent"),
+    on: farmDay,
+    how: z.enum(CONSENT_WITHDRAWN_HOW),
+  }),
+  z.object({ reason: z.enum(["lost_phone", "owner"]) }),
+]);
+
+/** Why an Investor's access was taken away, as their record says it: the reason, and for a withdrawn consent the day
+ *  they asked and how. */
+const takenAwaySaid = (
+  why: TakenAwayWhy["reason"] | null,
+  withdrawal: WithdrawalSaid | null
+) =>
+  why
+    ? {
+        why,
+        withdrawnOn:
+          why === "withdrew_consent" ? (withdrawal?.withdrawnOn ?? null) : null,
+        withdrawnHow:
+          why === "withdrew_consent"
+            ? (withdrawal?.withdrawnHow ?? null)
+            : null,
+      }
+    : null;
 
 const personInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -131,20 +163,22 @@ export const investorsRouter = {
         where: { farmId: context.farm.id },
         orderBy: { name: "asc", id: "asc" },
       });
-      const [counted, signed, ventures, portal, consents] = await Promise.all([
-        countedInvestors(context.db, context.farm.id),
-        context.db.query.investmentAgreement.findMany({
-          where: { farmId: context.farm.id },
-          columns: { investorId: true, ventureId: true, units: true },
-          orderBy: { createdAt: "desc", id: "desc" },
-        }),
-        context.db.query.venture.findMany({
-          where: { farmId: context.farm.id },
-          columns: { id: true, name: true, state: true },
-        }),
-        portalStandings(context.db, context.farm.id, context.clock.now()),
-        consentsInForce(context.db, context.farm.id),
-      ]);
+      const [counted, signed, ventures, portal, consents, withdrawals] =
+        await Promise.all([
+          countedInvestors(context.db, context.farm.id),
+          context.db.query.investmentAgreement.findMany({
+            where: { farmId: context.farm.id },
+            columns: { investorId: true, ventureId: true, units: true },
+            orderBy: { createdAt: "desc", id: "desc" },
+          }),
+          context.db.query.venture.findMany({
+            where: { farmId: context.farm.id },
+            columns: { id: true, name: true, state: true },
+          }),
+          portalStandings(context.db, context.farm.id, context.clock.now()),
+          consentsInForce(context.db, context.farm.id),
+          lastWithdrawals(context.db, context.farm.id),
+        ]);
       // Every Venture each person signed into, the latest first, running or long settled — so their
       // record leads to each run their money went to.
       const ventureOf = new Map(ventures.map((one) => [one.id, one]));
@@ -206,6 +240,12 @@ export const investorsRouter = {
           portalLastSeenAt: portal.get(one.id)?.lastSeenAt ?? null,
           /** Their Portal Consent in force — the day signed and the Version — or null before they sign one. */
           portalConsent: consents.get(one.id) ?? null,
+          /** Why their access was taken away, and for a withdrawn consent the day they asked and how; null while it
+           *  stands, or where it was taken away before the farm asked why. */
+          portalTakenAway: takenAwaySaid(
+            portal.get(one.id)?.takenAwayWhy ?? null,
+            withdrawals.get(one.id) ?? null
+          ),
         })),
       };
     }),
@@ -458,13 +498,16 @@ export const investorsRouter = {
     .input(z.object({ id: z.string().min(1), paper: z.enum(CODE_PAPERS) }))
     .handler(({ context, input }) => handOver(context, input.id, input.paper)),
 
-  /** Takes an Investor's portal access away: their account is disabled and signed out everywhere. */
+  /**
+   * Takes an Investor's portal access away, saying why: their account is disabled and signed out everywhere. A withdrawn
+   * consent is marked withdrawn with the day they asked and how (`takePortalAway`).
+   */
   takePortalAway: protectedProcedure
     .use(requireOnly("owner", OWNER_ONLY))
     .use(requirePersonalSession())
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.string().min(1), why: takenAwayWhy }))
     .handler(async ({ context, input }) => {
-      await takePortalAway(context, input.id);
+      await takePortalAway(context, input.id, input.why);
       return { id: input.id };
     }),
 };

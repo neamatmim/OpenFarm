@@ -188,7 +188,10 @@ describe("the portal", () => {
     const owner = await asOwner();
     const loginEmail = `${PHONE}@investor.openfarm.invalid`;
 
-    await owner.investors.takePortalAway({ id: investorId });
+    await owner.investors.takePortalAway({
+      id: investorId,
+      why: { reason: "owner" },
+    });
     await expect(
       auth.api.signInEmail({ body: { email: loginEmail, password: PASSWORD } })
     ).rejects.toMatchObject({ statusCode: 403 });
