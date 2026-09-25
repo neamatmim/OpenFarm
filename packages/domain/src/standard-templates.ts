@@ -279,10 +279,242 @@ const agreementAmendment: TemplateContent = {
   ],
 };
 
+/**
+ * The Portal Consent: signed on paper in front of the Owner before any code is given, and kept by the farm. What the
+ * portal adds, and only that — holding the record to keep an Agreement rests on the Agreement itself. From the
+ * investor-portal map's draft, for the lawyer.
+ */
+const portalConsent: TemplateContent = {
+  title: {
+    bn: "বিনিয়োগকারী পোর্টাল — সম্মতিপত্র",
+    en: "Investor Portal — Consent",
+  },
+  preamble: {
+    bn: "আমি, {investorName} (মোবাইল {investorPhone}), খামারের দেওয়া “আপনার তথ্য” কাগজটি পেয়েছি ও পড়েছি, এবং নিচের তিনটিতে সম্মতি দিচ্ছি।",
+    en: "I, {investorName} (mobile {investorPhone}), have received and read the farm's “আপনার তথ্য” (Your data), and I consent to these three things.",
+  },
+  sections: [
+    {
+      kind: "clauses",
+      heading: { bn: "আমি সম্মতি দিচ্ছি", en: "I consent" },
+      clauses: [
+        {
+          bn: "খামারের অনলাইন বিনিয়োগকারী পোর্টালে আমাকে আমার নিজের চুক্তি, ভেঞ্চার, টাকার হিসাব ও কাগজ দেখানো হবে। শুধু আমি, আমার নিজের ফোন নম্বর ও পাসওয়ার্ড দিয়ে, তা দেখব।",
+          en: "The farm's online Investor Portal will show me my own Agreements, Ventures, money and papers. Only I will see them, with my own phone number and password.",
+        },
+        {
+          bn: "এর জন্য আমার তথ্য সিঙ্গাপুরে খামারের পক্ষে চালানো একটি সার্ভারে রাখা হবে, আর প্রতি রাতে তার একটি তালাবদ্ধ কপি অন্য জায়গায় রাখা হবে।",
+          en: "For this, my data will be kept on a server in Singapore run for the farm, and an encrypted copy will be kept elsewhere each night.",
+        },
+        {
+          bn: "এর জন্য খামার আমার এনআইডি নম্বর, ব্যাংক হিসাব ও নমিনির তথ্য রাখবে। পোর্টালে এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা যাবে।",
+          en: "For this, the farm will hold my NID number, bank account and nominee's details. The portal shows only the last four digits of my NID and bank account.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "আমি জানি", en: "I know that" },
+      clauses: [
+        {
+          bn: "এই সম্মতি আমি যেকোনো সময় তুলে নিতে পারি: মালিককে সই করা চিঠি দিয়ে, অথবা খামারে থাকা আমার মোবাইল নম্বর থেকে মেসেজ দিয়ে।",
+          en: "I can withdraw this consent at any time, by a signed letter to the Owner or by a message from the mobile number the farm has for me.",
+        },
+        {
+          bn: "তুলে নিলে সঙ্গে সঙ্গে পোর্টালে আমার প্রবেশ বন্ধ হবে, আর আমার কাগজ আগের মতো ছাপা কাগজে পাব।",
+          en: "If I withdraw it, my portal access ends at once, and I receive my papers on paper as before.",
+        },
+        {
+          bn: "তুলে নিলেও আমার চুক্তি আর টাকার হিসাব আইনের কারণে বারো বছর রাখা হবে।",
+          en: "Even if I withdraw it, my Agreements and money records are kept for twelve years, as the law requires.",
+        },
+        {
+          bn: "পোর্টালে সই হয় না, টাকা দেওয়া-নেওয়া হয় না। পোর্টাল কোনো প্রকাশ্য প্রস্তাব নয়।",
+          en: "Nothing is signed or paid through the portal. The portal is not a public offer.",
+        },
+      ],
+    },
+    {
+      kind: "signatures",
+      heading: { bn: "স্বাক্ষর", en: "Signatures" },
+      witnesses: 0,
+    },
+  ],
+};
+
+/**
+ * «আপনার তথ্য», the privacy notice: handed to every Investor at signing, printed on the back of the Welcome Letter,
+ * and a page of the portal — one text in all three places. It says what the Personal Data Protection Act 2026 asks a
+ * farm to say (s.5(2), s.15(2)); who runs the server and keeps the backup are the farm's facts, filled in once they are
+ * chosen. The complaint line is worded for the lawyer to confirm, the Authority not yet having been found to exist.
+ */
+const privacyNotice: TemplateContent = {
+  title: {
+    bn: "আপনার তথ্য খামার কীভাবে রাখে",
+    en: "How the farm keeps your data",
+  },
+  preamble: {
+    bn: "{farmName} আপনার সম্পর্কে যা রাখে, কেন রাখে, কোথায় রাখে, আর আপনি কী চাইতে পারেন।",
+    en: "What {farmName} keeps about you, why, where, and what you can ask for.",
+  },
+  sections: [
+    {
+      kind: "clauses",
+      heading: { bn: "কে রাখে", en: "Who keeps it" },
+      clauses: [
+        {
+          bn: "{farmName}, {farmAddress}। দায়িত্বে খামারের মালিক {ownerName}, ফোন {farmPhone}।",
+          en: "{farmName}, {farmAddress}. The Owner, {ownerName}, is responsible, phone {farmPhone}.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: {
+        bn: "কী রাখা হয়, কোথা থেকে",
+        en: "What is kept, and where it comes from",
+      },
+      clauses: [
+        {
+          bn: "আপনার নাম, ফোন, ঠিকানা, এনআইডি নম্বর, ব্যাংক হিসাব, আর আপনার নমিনির নাম, ফোন ও সম্পর্ক। এগুলো আপনি নিজে দিয়েছেন।",
+          en: "Your name, phone, address, NID number and bank account, and your nominee's name, phone and relationship. You gave these yourself.",
+        },
+        {
+          bn: "আপনার চুক্তি, আপনার পুঁজি, আপনাকে দেওয়া টাকা, আপনার কাগজ (যোগদানপত্র, অগ্রগতি, হিসাব নিকাশ), আর পোর্টালে আপনি কবে এসেছেন ও কোন কাগজ খুলেছেন। এগুলো খামার নিজে লিখে রাখে।",
+          en: "Your Agreements, your capital, the money paid to you, your papers (joining letter, progress statement, settlement), and when you came to the portal and which papers you opened. The farm records these itself.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "কেন", en: "Why" },
+      clauses: [
+        {
+          bn: "আপনার চুক্তি মেনে চলতে এবং আপনার টাকা আপনার ব্যাংক হিসাবে পাঠাতে।",
+          en: "To keep your Agreement and pay your money into your bank account.",
+        },
+        {
+          bn: "আইন যে হিসাবের খাতা রাখতে বলে, তা রাখতে।",
+          en: "To keep the books the law requires.",
+        },
+        {
+          bn: "আর শুধু আপনার সম্মতি থাকলে, অনলাইন পোর্টালে আপনাকে আপনার নিজের হিসাব দেখাতে।",
+          en: "Only with your consent, to show you your own record in the online portal.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: {
+        bn: "কোথায় রাখা হয়, কে দেখে",
+        en: "Where it is kept, and who sees it",
+      },
+      clauses: [
+        {
+          bn: "সব তথ্য একটি সার্ভারে থাকে সিঙ্গাপুরে, যা খামারের পক্ষে চালায় {dataHost}।",
+          en: "Everything is on a server in Singapore, run for the farm by {dataHost}.",
+        },
+        {
+          bn: "প্রতি রাতে এর একটি তালাবদ্ধ (এনক্রিপ্ট করা) কপি রাখা হয় {backupStore}-এর কাছে, {backupCountry}-এ। সেই প্রতিষ্ঠান কপিটি পড়তে পারে না।",
+          en: "Each night an encrypted copy is kept by {backupStore} in {backupCountry}. They cannot read it.",
+        },
+        {
+          bn: "আপনার ব্যক্তিগত তথ্য খামারে শুধু মালিক দেখেন। খামারের কর্মীরা পশুর কাজ দেখেন, আপনার তথ্য নয়।",
+          en: "At the farm, only the Owner sees your personal record. Farm staff see the animals, not you.",
+        },
+        {
+          bn: "আপনার টাকা পাঠাতে ব্যাংক আপনার হিসাব নম্বর পায়। আইন চাইলে কর কর্তৃপক্ষকে দেখাতে হতে পারে। আর কাউকে দেওয়া হয় না, বিক্রি করা হয় না।",
+          en: "The bank gets your account number to pay you. The tax authority may be shown your record if the law requires it. Nobody else is given it, and it is never sold.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "কতদিন", en: "For how long" },
+      clauses: [
+        {
+          bn: "আপনার শেষ ভেঞ্চারের হিসাব মেটার পর বারো বছর, কারণ আইন খামারকে এতদিন হিসাবের খাতা রাখতে বলে।",
+          en: "Twelve years after your last Venture settles, because the law asks the farm to keep its books that long.",
+        },
+        {
+          bn: "পোর্টালে আপনার প্রবেশ এর আগেই বন্ধ হতে পারে: আপনি চাইলে, অথবা খামার পোর্টাল বন্ধ করলে।",
+          en: "Your portal access can end sooner: if you ask, or if the farm closes the portal.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "কীভাবে সুরক্ষিত", en: "How it is protected" },
+      clauses: [
+        {
+          bn: "পোর্টালে আপনি ঢোকেন শুধু মালিকের আমন্ত্রণে, নিজের ফোন নম্বর আর নিজের পাসওয়ার্ড দিয়ে।",
+          en: "You come into the portal only by the Owner's invitation, with your own phone number and password.",
+        },
+        {
+          bn: "পোর্টালে আপনার এনআইডি আর ব্যাংক হিসাবের শুধু শেষ চারটি অঙ্ক দেখা যায়, আর পোর্টাল দিয়ে কিছু বদলানো যায় না।",
+          en: "The portal shows only the last four digits of your NID and bank account, and nothing can be changed through it.",
+        },
+        {
+          bn: "সাইন আউট করলে আপনার ফোনে পোর্টালের কিছুই থাকে না। খামার কখনো আপনার পাসওয়ার্ড চাইবে না।",
+          en: "Signing out leaves nothing of the portal on your phone. The farm will never ask for your password.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "আপনার অধিকার", en: "Your rights" },
+      clauses: [
+        {
+          bn: "খামার আপনার সম্পর্কে যা রাখে, তার পুরো কপি চাইতে পারেন।",
+          en: "You may ask for a full copy of everything the farm keeps about you.",
+        },
+        {
+          bn: "কিছু ভুল থাকলে ঠিক করাতে পারেন। ত্রিশ দিনের মধ্যে আপনাকে জানানো হবে, আর খামার রাজি না হলে কেন, তা লিখে জানাবে।",
+          en: "You may have anything wrong put right. You will be told within thirty days, and if the farm declines, why, in writing.",
+        },
+        {
+          bn: "যেকোনো সময় পোর্টালের সম্মতি তুলে নিতে পারেন। তখনই আপনার প্রবেশ বন্ধ হবে, আর কাগজগুলো আগের মতো ছাপা কাগজে পাবেন।",
+          en: "You may withdraw your consent to the portal at any time. Your access ends at once, and you receive your papers on paper as before.",
+        },
+        {
+          bn: "তথ্য মুছে ফেলতে বলতে পারেন। তবে আপনার চুক্তি আর টাকার হিসাব আইনের কারণে বারো বছর রাখতে হয়; সেগুলো ছাড়া বাকিটা মুছে ফেলা হবে।",
+          en: "You may ask for your data to be erased. Your Agreements and money records must be kept for twelve years by law; the rest is erased.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "কীভাবে চাইবেন", en: "How to ask" },
+      clauses: [
+        {
+          bn: "মালিককে লিখে জানান: সই করা চিঠি, হাতে দিয়ে বা খামারের ঠিকানায় পাঠিয়ে; অথবা খামারে আপনার যে মোবাইল নম্বর আছে, সেখান থেকে এসএমএস বা হোয়াটসঅ্যাপে।",
+          en: "Write to the Owner: a signed letter, handed over or posted to the farm's address; or an SMS or WhatsApp message from the mobile number the farm has for you.",
+        },
+        {
+          bn: "অন্য নম্বর থেকে এলে খামার আপনার নম্বরে ফোন করে নিশ্চিত হবে। ত্রিশ দিনের মধ্যে উত্তর পাবেন।",
+          en: "A message from any other number is confirmed by a call back to yours. You will have an answer within thirty days.",
+        },
+      ],
+    },
+    {
+      kind: "clauses",
+      heading: { bn: "অভিযোগ", en: "Complaints" },
+      clauses: [
+        {
+          bn: "খামারের উত্তরে সন্তুষ্ট না হলে জাতীয় উপাত্ত ব্যবস্থাপনা কর্তৃপক্ষের কাছে অভিযোগ করতে পারেন।",
+          en: "If you are not satisfied with the farm's answer, you may complain to the National Data Management Authority.",
+        },
+      ],
+    },
+  ],
+};
+
 /** The wording each kind of paper starts from. */
 export const STANDARD_TEMPLATES: Record<TemplateKind, TemplateContent> = {
   investment_agreement: investmentAgreement,
   master_agreement: masterAgreement,
   venture_schedule: ventureSchedule,
   agreement_amendment: agreementAmendment,
+  portal_consent: portalConsent,
+  privacy_notice: privacyNotice,
 };

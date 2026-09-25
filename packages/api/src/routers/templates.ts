@@ -5,7 +5,9 @@ import {
   paperTemplateVersion,
 } from "@OpenFarm/db/schema/paper-template";
 import {
+  FARM_FIELDS,
   TEMPLATE_FIELDS,
+  factsMissing,
   farmDayOf,
   namedFields,
   paperFrom,
@@ -16,6 +18,7 @@ import { z } from "zod";
 
 import type { Tx } from "../audit";
 import { audited } from "../audit";
+import { readKeepers } from "../data-keepers";
 import { exportedPaper } from "../export-store";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
@@ -134,7 +137,13 @@ export const templatesRouter = {
     )
     .handler(async ({ context, input }) => {
       const language = await languageOf(context.db, context.actor.id);
+      const farmValues = paperValues({
+        farm: context.farm,
+        ownerName: context.actor.name,
+        keepers: (await readKeepers(context.db, context.farm.id)) ?? undefined,
+      });
       const document = paperFrom(input.content, {
+        kind: input.kind,
         parties: {
           farm: context.farm,
           ownerName: context.actor.name,
@@ -148,10 +157,7 @@ export const templatesRouter = {
             },
           ],
         },
-        values: {
-          ...namedFields(input.kind),
-          ...paperValues({ farm: context.farm, ownerName: context.actor.name }),
-        },
+        values: { ...namedFields(input.kind), ...farmValues },
         producedBy: context.actor.name,
         producedAt: producedAt(context.clock.now(), language),
       });
@@ -166,7 +172,13 @@ export const templatesRouter = {
         },
         () => Promise.resolve()
       );
-      return { document };
+      // What the farm has not written down that this wording asks for — the Investor's own facts are filled for each
+      // Investor, so only the farm's count.
+      const farmsOwn = new Set(FARM_FIELDS);
+      const missing = factsMissing(input.content, farmValues).filter((field) =>
+        farmsOwn.has(field)
+      );
+      return { document, missing };
     }),
 
   /**

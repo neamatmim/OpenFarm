@@ -3,10 +3,11 @@ import type { DocumentRow, Said } from "./papers";
 import { NO_GUARANTEE_LINES } from "./papers";
 
 /**
- * The farm's wording for the papers an Investor signs, as data the Owner edits rather than words in the code.
+ * The farm's wording for the papers an Investor signs or is handed, as data the Owner edits rather than words in the
+ * code.
  *
  * A Template is one kind of paper — the Investment Agreement, the Master Agreement and its Venture Schedule, the
- * Amendment — and changing its wording publishes its next Version, never rewriting one: an Agreement records the
+ * Amendment, the Portal Consent and the privacy notice «আপনার তথ্য» — and changing its wording publishes its next Version, never rewriting one: an Agreement records the
  * Version it was signed under, so the farm can print years later exactly what a man put his name to. A Version is
  * laid out in parts, each in Bangla with the English beside it where the Owner writes one, and says the facts of the
  * paper through fields in braces — `{investorName}`, `{capital}` — that are filled when it is printed. Which fields a
@@ -14,7 +15,7 @@ import { NO_GUARANTEE_LINES } from "./papers";
  *
  * What is not the Owner's to word: the letterhead, who the two parties are and what is written of each, the stamp's
  * blanks, and the closing lines that promise no return. Those are the farm's facts and its rule, the same on every
- * paper.
+ * paper about an Investor's money.
  */
 
 /** The kinds of paper a Template words. */
@@ -23,8 +24,18 @@ export const TEMPLATE_KINDS = [
   "master_agreement",
   "venture_schedule",
   "agreement_amendment",
+  "portal_consent",
+  "privacy_notice",
 ] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
+
+/** The papers about an Investor's money: the ones that close on the lines promising no return. */
+const MONEY_PAPERS: ReadonlySet<TemplateKind> = new Set([
+  "investment_agreement",
+  "master_agreement",
+  "venture_schedule",
+  "agreement_amendment",
+]);
 
 /** Every fact a paper can say, and what the Owner is shown it is called. */
 export const TEMPLATE_FIELDS = {
@@ -48,6 +59,10 @@ export const TEMPLATE_FIELDS = {
   arbitrator: { bn: "সালিস", en: "Arbitrator" },
   amendedOn: { bn: "সংশোধনীর তারিখ", en: "Date of the Amendment" },
   reason: { bn: "সংশোধনের কারণ", en: "Reason for the Amendment" },
+  farmPhone: { bn: "খামারের ফোন", en: "Farm phone" },
+  dataHost: { bn: "সার্ভার চালায় যে প্রতিষ্ঠান", en: "Who runs the server" },
+  backupStore: { bn: "ব্যাকআপ রাখে যে প্রতিষ্ঠান", en: "Who keeps the backup" },
+  backupCountry: { bn: "ব্যাকআপ যে দেশে", en: "Where the backup is kept" },
 } as const satisfies Record<string, Said>;
 export type TemplateField = keyof typeof TEMPLATE_FIELDS;
 
@@ -73,6 +88,18 @@ const HIS_PART: readonly TemplateField[] = [
   "windUpDays",
 ];
 
+/** The facts the farm fills in itself, whoever the paper is for; the rest are the Investor's or the Venture's own. */
+export const FARM_FIELDS: readonly TemplateField[] = [
+  "farmName",
+  "farmAddress",
+  "farmRegistration",
+  "farmPhone",
+  "ownerName",
+  "dataHost",
+  "backupStore",
+  "backupCountry",
+];
+
 /** The facts each kind of paper has to say: a Master Agreement belongs to no one Venture, so it names none. */
 export const FIELDS_OF: Record<TemplateKind, readonly TemplateField[]> = {
   investment_agreement: [...WHO, ...HIS_PART, "arbitrator"],
@@ -87,6 +114,16 @@ export const FIELDS_OF: Record<TemplateKind, readonly TemplateField[]> = {
     "windowEnd",
     "amendedOn",
     "reason",
+  ],
+  portal_consent: WHO,
+  privacy_notice: [
+    "farmName",
+    "farmAddress",
+    "farmPhone",
+    "ownerName",
+    "dataHost",
+    "backupStore",
+    "backupCountry",
   ],
 };
 
@@ -165,8 +202,18 @@ const wordingOf = (section: TemplateSection): Said[] => {
   }
 };
 
-/** The parts every paper has: who signs, and where they sign. */
-const REQUIRED: readonly TemplateSectionKind[] = ["parties", "signatures"];
+/**
+ * The parts each paper must have: an Agreement, who signs and where they sign; a Portal Consent, where it is signed —
+ * it names the Investor in its own words; the notice, nothing — it is read, not signed.
+ */
+const REQUIRED_OF: Record<TemplateKind, readonly TemplateSectionKind[]> = {
+  investment_agreement: ["parties", "signatures"],
+  master_agreement: ["parties", "signatures"],
+  venture_schedule: ["parties", "signatures"],
+  agreement_amendment: ["parties", "signatures"],
+  portal_consent: ["signatures"],
+  privacy_notice: [],
+};
 /** The parts a paper has at most one of. */
 const ONCE: readonly TemplateSectionKind[] = ["parties", "stamp", "signatures"];
 
@@ -233,7 +280,7 @@ export const templateProblems = (
       problems.push({ code: "part_twice", at: places[1] ?? 1, about: part });
     }
   }
-  for (const part of REQUIRED) {
+  for (const part of REQUIRED_OF[kind]) {
     if (!content.sections.some((section) => section.kind === part)) {
       problems.push({ code: "part_missing", at: "title", about: part });
     }
@@ -308,7 +355,7 @@ export interface PaperDocument {
   title: Said;
   preamble: Said;
   sections: PaperSection[];
-  /** What every paper to an Investor ends on: no return is promised. */
+  /** What a paper about an Investor's money ends on: no return is promised. Nothing on the others. */
   closing: readonly string[];
   produced: string;
 }
@@ -440,13 +487,25 @@ const before = (said: Said): Said => ({
   en: said.en.split(" — ")[0] ?? said.en,
 });
 
-/** Who signs, by the words the paper gives the two parties — the whole role, or its first part before a dash. */
-const signingRoles = (content: TemplateContent) => {
+/** How a Portal Consent's two signatures are named: the Owner witnesses it, the Investor gives it. */
+const CONSENT_SIGNERS = {
+  first: { bn: "মালিক (সামনে সই হয়েছে)", en: "Owner (signed in my presence)" },
+  second: { bn: "বিনিয়োগকারী", en: "Investor" },
+};
+
+/**
+ * Who signs, by the words the paper gives the two parties — the whole role, or its first part before a dash. A paper
+ * with no parties part of its own signs by its kind's words: a Portal Consent, the Owner and the Investor.
+ */
+const signingRoles = (kind: TemplateKind, content: TemplateContent) => {
   const parties = content.sections.find(
     (section) => section.kind === "parties"
   );
-  return parties?.kind === "parties"
-    ? { first: before(parties.first), second: before(parties.second) }
+  if (parties?.kind === "parties") {
+    return { first: before(parties.first), second: before(parties.second) };
+  }
+  return kind === "portal_consent"
+    ? CONSENT_SIGNERS
     : {
         first: { bn: "প্রথম পক্ষ", en: "First party" },
         second: { bn: "দ্বিতীয় পক্ষ", en: "Second party" },
@@ -455,23 +514,26 @@ const signingRoles = (content: TemplateContent) => {
 
 /**
  * One paper, laid out to print from a Version's wording and the farm's facts: every field filled in its own language,
- * the parties written from what the farm holds, and the lines that promise no return at the foot.
+ * the parties written from what the farm holds, and — on a paper about an Investor's money — the lines that promise no
+ * return at the foot.
  */
 export const paperFrom = (
   content: TemplateContent,
   {
+    kind,
     parties,
     values,
     producedBy,
     producedAt,
   }: {
+    kind: TemplateKind;
     parties: PaperParties;
     values: FieldValues;
     producedBy: string;
     producedAt: string;
   }
 ): PaperDocument => {
-  const roles = signingRoles(content);
+  const roles = signingRoles(kind, content);
   const { farm } = parties;
   return {
     letterhead: {
@@ -489,7 +551,7 @@ export const paperFrom = (
     sections: content.sections.map((section) =>
       laidOut(section, values, parties, roles)
     ),
-    closing: NO_GUARANTEE_LINES,
+    closing: MONEY_PAPERS.has(kind) ? NO_GUARANTEE_LINES : [],
     produced: `${producedAt} · ${producedBy}`,
   };
 };
@@ -509,6 +571,25 @@ export const termsOf = (
       (clause, index) =>
         `${inBangla(index + 1)}. ${fillIn(clause.bn, values, "bn")}`
     );
+
+/**
+ * The facts a Version's wording asks for that the farm has not filled, each once, in the order they first appear: what
+ * the Owner is told is missing before the paper is printed or shown, rather than handing somebody a blank.
+ */
+export const factsMissing = (
+  content: TemplateContent,
+  values: FieldValues
+): TemplateField[] => {
+  const asked = [
+    content.title,
+    content.preamble,
+    ...content.sections.flatMap(wordingOf),
+  ].flatMap((said) => [...fieldsIn(said.bn), ...fieldsIn(said.en)]);
+  return [...new Set(asked)].filter(
+    (name): name is TemplateField =>
+      name in TEMPLATE_FIELDS && !values[name as TemplateField]?.bn.trim()
+  );
+};
 
 /** Every field shown by its own name in square brackets: a Version previewed before any paper is filled from it. */
 export const namedFields = (kind: TemplateKind): FieldValues =>

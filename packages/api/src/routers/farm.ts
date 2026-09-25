@@ -14,11 +14,18 @@ import type { Tx } from "../audit";
 import { audited } from "../audit";
 import { pregnancyTimesOf, retimeEveryCalving } from "../breeding-store";
 import type { CalvingWorkFollowed } from "../calving-work";
+import { readKeepers } from "../data-keepers";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure } from "../index";
 import { photoInput } from "../photo-input";
 import { certificatesOf, keepCertificate } from "../registration-store";
-import { forbidden, requirePersonalSession, requireRole } from "../roles";
+import {
+  OWNER_ONLY,
+  forbidden,
+  requireOnly,
+  requirePersonalSession,
+  requireRole,
+} from "../roles";
 import { scheduleStatus } from "../scheduler";
 import { onlyOnAVisit } from "../scope";
 import { startWithStandard } from "../standard-store";
@@ -167,6 +174,14 @@ const readIdentity = async (tx: Tx, farmId: string) => {
   });
   return row ?? null;
 };
+
+/** A name the Owner writes, or nothing: blank is nothing, so the notice says it is missing. */
+const keeperName = z
+  .string()
+  .trim()
+  .max(120)
+  .nullable()
+  .transform((name) => name || null);
 
 /** "HH:MM" on the farm's own clock, which is what every time of day here is. */
 const TIME_OF_DAY = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
@@ -413,6 +428,59 @@ export const farmRouter = {
                 registrationExpiresOn: onFarmDay(input.registrationExpiresOn),
               })
             )
+            .where(eq(farm.id, farmId))
+      );
+      return { id: farmId };
+    }),
+
+  /**
+   * Who runs the server the farm's records are on, and who keeps the nightly encrypted copy and in which country: the
+   * facts the privacy notice tells an Investor. The Owner's alone.
+   */
+  dataKeepers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .handler(async ({ context }) => {
+      const keepers = await readKeepers(context.db, context.farm.id);
+      return {
+        dataHost: keepers?.dataHost ?? null,
+        backupStore: keepers?.backupStore ?? null,
+        backupCountry: keepers?.backupCountry ?? null,
+      };
+    }),
+
+  /**
+   * The Owner writes down who keeps the farm's records, once they are chosen. Audited with what it said before: these
+   * are the words on the notice Investors were handed.
+   */
+  setDataKeepers: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        dataHost: keeperName,
+        backupStore: keeperName,
+        backupCountry: keeperName,
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const farmId = context.farm.id;
+      await audited(context).write(
+        {
+          entity: "farm",
+          entityId: farmId,
+          action: "update",
+          before: (tx) => readKeepers(tx, farmId),
+          after: (tx) => readKeepers(tx, farmId),
+        },
+        (tx) =>
+          tx
+            .update(farm)
+            .set({
+              dataHost: input.dataHost,
+              backupStore: input.backupStore,
+              backupCountry: input.backupCountry,
+            })
             .where(eq(farm.id, farmId))
       );
       return { id: farmId };

@@ -305,3 +305,72 @@ describe("the Amendment", () => {
     ]);
   });
 });
+
+describe("the facts the privacy notice names", () => {
+  it("are the Owner's alone to set, and each change is in the trail", async () => {
+    const { client: owner } = await as("owner");
+    const { client: manager } = await as("manager");
+    const keepers = {
+      dataHost: `হোস্ট ${suffix}`,
+      backupStore: `ব্যাকআপ ${suffix}`,
+      backupCountry: "জার্মানি",
+    };
+
+    await expect(manager.farm.setDataKeepers(keepers)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await owner.farm.setDataKeepers(keepers);
+
+    expect(await owner.farm.dataKeepers()).toEqual(keepers);
+    const [changed] = await owner.audit.list({ entity: "farm", limit: 1 });
+    expect(changed).toMatchObject({
+      action: "update",
+      after: expect.objectContaining({ dataHost: keepers.dataHost }),
+    });
+  });
+
+  it("are named as missing when a notice is previewed before they are set, and not once they are", async () => {
+    const { client: owner } = await as("owner");
+    const notice = STANDARD_TEMPLATES.privacy_notice;
+    await owner.farm.setDataKeepers({
+      dataHost: null,
+      backupStore: null,
+      backupCountry: null,
+    });
+
+    const before = await owner.templates.preview({
+      kind: "privacy_notice",
+      content: notice,
+    });
+    expect(before.missing).toEqual([
+      "dataHost",
+      "backupStore",
+      "backupCountry",
+    ]);
+
+    await owner.farm.setDataKeepers({
+      dataHost: `হোস্ট ${suffix}`,
+      backupStore: `ব্যাকআপ ${suffix}`,
+      backupCountry: "জার্মানি",
+    });
+    const after = await owner.templates.preview({
+      kind: "privacy_notice",
+      content: notice,
+    });
+    expect(after.missing).toEqual([]);
+    expect(JSON.stringify(after.document)).toContain(`হোস্ট ${suffix}`);
+    // A notice closes on no promise about money: it is not a paper about money.
+    expect(after.document.closing).toEqual([]);
+  });
+
+  it("never counts the Investor's own facts as missing on a consent previewed for nobody in particular", async () => {
+    const { client: owner } = await as("owner");
+
+    const { missing } = await owner.templates.preview({
+      kind: "portal_consent",
+      content: STANDARD_TEMPLATES.portal_consent,
+    });
+
+    expect(missing).toEqual([]);
+  });
+});

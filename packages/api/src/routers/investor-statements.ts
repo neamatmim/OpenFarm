@@ -83,6 +83,7 @@ export const investorStatementsRouter = {
       const language = await languageOf(context.db, context.actor.id);
       const investor = paperInvestor(him);
       const document = paperFrom(wording.content, {
+        kind: "investment_agreement",
         parties: {
           farm: context.farm,
           ownerName: context.actor.name,
@@ -180,6 +181,7 @@ export const investorStatementsRouter = {
       const now = context.clock.now();
       const language = await languageOf(context.db, context.actor.id);
       const document = paperFrom(wording.content, {
+        kind: "agreement_amendment",
         parties: {
           farm: context.farm,
           ownerName: context.actor.name,

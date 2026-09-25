@@ -25,10 +25,19 @@ const day = (farmDay: string): Said => {
 const same = (text: string | null | undefined): Said | undefined =>
   text?.trim() ? { bn: text, en: text } : undefined;
 
+/** Who keeps the farm's records for it: the server's host, the backup's keeper, and the backup's country. */
+export interface DataKeepers {
+  dataHost: string | null;
+  backupStore: string | null;
+  backupCountry: string | null;
+}
+
 /** What a paper may say, before it is filled in: each fact the farm has for it, as the domain holds it. */
 export interface PaperFacts {
   farm: FarmIdentity;
   ownerName: string;
+  /** Who runs the server and keeps the backup, where the privacy notice names them. */
+  keepers?: DataKeepers;
   him?: PaperInvestor;
   ventureName?: string;
   units?: number;
@@ -55,7 +64,11 @@ export const paperValues = (facts: PaperFacts): FieldValues => {
     farmName: same(facts.farm.name),
     farmAddress: same(facts.farm.address),
     farmRegistration: same(facts.farm.registrationNumber),
+    farmPhone: same(facts.farm.phone),
     ownerName: same(facts.ownerName),
+    dataHost: same(facts.keepers?.dataHost),
+    backupStore: same(facts.keepers?.backupStore),
+    backupCountry: same(facts.keepers?.backupCountry),
     investorName: same(facts.him?.name),
     investorAddress: same(facts.him?.address),
     investorPhone: same(facts.him?.phone),

@@ -135,6 +135,12 @@ export const farm = pgTable("farm", {
   /** Whether Investors the Owner has invited may sign in to read their Ventures and papers (ADR 0007). Off until
    *  the Owner turns it on, and off again is how the farm answers a lawyer who says the portal is a platform. */
   investorPortal: boolean("investor_portal").notNull().default(false),
+  /** Who runs the server the farm's records are kept on, and who keeps the nightly encrypted copy and in which
+   *  country: what the privacy notice tells an Investor. The Owner's to fill in once they are chosen; until then the
+   *  notice says what is missing rather than printing a blank. */
+  dataHost: text("data_host"),
+  backupStore: text("backup_store"),
+  backupCountry: text("backup_country"),
   /** How far the Alert sweep has told people about. Everything that went late at or after
    *  this instant has been said; older work lives on the Overdue list, not in anyone's
    *  notifications. Null until the first sweep. */

@@ -3537,6 +3537,22 @@ export const en = {
   "templates.kind.master_agreement": "Master Agreement",
   "templates.kind.venture_schedule": "Venture Schedule",
   "templates.kind.agreement_amendment": "Amendment",
+  "templates.kind.portal_consent": "Portal Consent",
+  "templates.kind.privacy_notice": "Privacy notice «আপনার তথ্য»",
+  "templates.kindHint.portal_consent":
+    "Signed on paper in front of the Owner before any portal code is given: showing an Investor their record online, keeping it abroad, and holding their NID, bank and nominee details for it.",
+  "templates.kindHint.privacy_notice":
+    "What the farm keeps about an Investor, why, where, for how long, and how to ask. Handed over at signing, on the back of the Welcome Letter, and a page of the portal.",
+  "templates.keepers.title": "Who keeps the farm's records",
+  "templates.keepers.hint":
+    "The privacy notice names them. Write them in once they are chosen; until then the notice says what is missing.",
+  "templates.keepers.dataHost": "Who runs the server",
+  "templates.keepers.backupStore": "Who keeps the nightly backup",
+  "templates.keepers.backupCountry": "The country the backup is kept in",
+  "templates.keepers.save": "Save",
+  "templates.keepers.saved": "Saved",
+  "templates.missing":
+    "This paper still needs: {facts}. Write them down before it is handed to anybody.",
   "templates.kindHint.investment_agreement":
     "One stamped agreement for each Investor in each Venture. Printed from the Venture when an Investor signs.",
   "templates.kindHint.master_agreement":

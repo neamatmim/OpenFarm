@@ -1,9 +1,10 @@
 import type {
   PaperDocument,
   TemplateContent,
+  TemplateField,
   TemplateKind,
 } from "@OpenFarm/domain";
-import { farmDayOf } from "@OpenFarm/domain";
+import { TEMPLATE_FIELDS, farmDayOf } from "@OpenFarm/domain";
 import type { MessageKey } from "@OpenFarm/i18n";
 import { formatDate, formatDigits } from "@OpenFarm/i18n";
 import { Button } from "@OpenFarm/ui/components/button";
@@ -26,11 +27,13 @@ import { toast } from "sonner";
 import {
   EmptyState,
   Loaded,
+  Notice,
   Page,
   PageHeader,
   StatusBadge,
 } from "@/components/page";
 import { FormDialog, FormField } from "@/components/page-kit";
+import { DataKeepers } from "@/components/templates/data-keepers";
 import { TemplateEditor } from "@/components/templates/template-editor";
 import type { WordingSaid } from "@/components/ventures/paper-dialog";
 import { PaperDialog } from "@/components/ventures/paper-dialog";
@@ -297,7 +300,7 @@ const ReviewDialog = ({
  * he signed.
  */
 const TemplatesPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const refused = useRefused(REFUSALS);
   const templates = useQuery(orpc.templates.list.queryOptions());
   const [editing, setEditing] = useState<{
@@ -307,6 +310,8 @@ const TemplatesPage = () => {
   const [shown, setShown] = useState<{
     paper: PaperDocument;
     wording: WordingSaid | null;
+    /** The farm's own facts the paper asks for that nobody has written down yet. */
+    missing: readonly TemplateField[];
   } | null>(null);
   const [reviewing, setReviewing] = useState<{
     versionId: string;
@@ -332,11 +337,26 @@ const TemplatesPage = () => {
   ) =>
     previewing.mutate(
       { kind, content },
-      { onSuccess: ({ document }) => setShown({ paper: document, wording }) }
+      {
+        onSuccess: ({ document, missing }) =>
+          setShown({ paper: document, wording, missing: missing ?? [] }),
+      }
     );
   const paperDialog = (
     <PaperDialog
       description={t("templates.previewHint")}
+      notice={
+        shown && shown.missing.length > 0 ? (
+          <Notice
+            title={t("templates.missing", {
+              facts: shown.missing
+                .map((field) => TEMPLATE_FIELDS[field][language])
+                .join(", "),
+            })}
+            tone="warning"
+          />
+        ) : null
+      }
       onClose={() => setShown(null)}
       paper={shown?.paper ?? null}
       title={t("templates.preview")}
@@ -376,6 +396,7 @@ const TemplatesPage = () => {
         query={templates}
         skeleton={<Skeleton className="h-64 rounded-xl" />}
       >
+        <DataKeepers />
         {templates.data?.length === 0 ? (
           <EmptyState icon={ScrollText} title={t("templates.none")} />
         ) : (
