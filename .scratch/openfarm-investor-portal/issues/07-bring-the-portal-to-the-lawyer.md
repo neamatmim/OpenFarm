@@ -4,7 +4,7 @@ Status: open
 
 Type: task
 
-Blocked by: 06, 08 (03 done)
+Blocked by: 08 (03, 06 done)
 
 Map: [OpenFarm investor portal: the first real Investor in](../map.md)
 
@@ -14,7 +14,7 @@ Map: [OpenFarm investor portal: the first real Investor in](../map.md)
 
 - the preview (ticket 03), or a test Investor, walked through with the lawyer
 - ADR 0007's list of what it does and never does
-- the notice and privacy wording (ticket 06)
+- the notice and privacy wording (ticket 06): [the draft](../assets/06-your-data-notice-draft.md), whose lawyer's questions are the 12 years, the complaint wording and the Singapore host
 - the data-protection findings, [ticket 01](./01-what-bangladesh-data-protection-law-asks-of-the-portal.md), and how consent is taken (ticket 08).
 
 The agent's part, done AFK before the meeting:
