@@ -24,7 +24,7 @@ const TheNotice = ({ notice }: { notice: Notice }) => (
     {notice.parts.map((part) => (
       <section className="flex flex-col gap-2" key={part.heading}>
         <h2 className="text-base font-semibold">{part.heading}</h2>
-        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed">
+        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
           {part.lines.map((line) => (
             <li key={line}>{line}</li>
           ))}
