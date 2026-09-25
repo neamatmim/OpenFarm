@@ -508,7 +508,7 @@ export const portalActivity = async (
   if (!access?.userId) {
     return null;
   }
-  const [places, exported, requested] = await Promise.all([
+  const [places, exported, requestChanges] = await Promise.all([
     signedInOn(db, access.userId, now),
     db.query.auditEvent.findMany({
       where: {
@@ -521,13 +521,7 @@ export const portalActivity = async (
       orderBy: { receivedAt: "desc", id: "desc" },
       limit: PAPERS_SHOWN,
     }),
-    whatTheyDidToTheirRequests(
-      db,
-      farmId,
-      investorId,
-      access.userId,
-      PAPERS_SHOWN
-    ),
+    whatTheyDidToTheirRequests(db, farmId, investorId, PAPERS_SHOWN),
   ]);
   const read: { at: Date; agreementId: string; paper: PortalPaper }[] = [];
   for (const one of exported) {
@@ -542,6 +536,6 @@ export const portalActivity = async (
     signedInOn: places,
     read,
     /** What they did to their Requests to Join, the latest first. */
-    requested,
+    requestChanges,
   };
 };

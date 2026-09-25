@@ -885,13 +885,14 @@ export const theirRequests = async (
 /**
  * What one Investor did to their Requests in the portal — each made, changed and withdrawn, with the Units it then said,
  * when, and on which Venture — the latest first and the later id first where the moment is the same. For the Owner's
- * page of them, beside the papers they read: only what their own account did, and at most as many as are asked for.
+ * page of them, beside the papers they read, at most as many as are asked for. Only the Investor changes a Request, so
+ * every change to theirs is their own act; an answer or a close is the Owner's or the farm's, and says itself in where
+ * the Request stands.
  */
 export const whatTheyDidToTheirRequests = async (
   db: Pick<Tx, "query">,
   farmId: string,
   investorId: string,
-  account: string,
   most: number
 ) => {
   const theirs = await db.query.requestToJoin.findMany({
@@ -905,7 +906,6 @@ export const whatTheyDidToTheirRequests = async (
     db.query.requestToJoinChange.findMany({
       where: {
         farmId,
-        madeBy: account,
         requestId: { in: theirs.map((one) => one.id) },
       },
       orderBy: { createdAt: "desc", id: "desc" },
@@ -927,11 +927,9 @@ export const whatTheyDidToTheirRequests = async (
     const ventureId = ventureOfRequest.get(one.requestId) ?? "";
     return {
       id: one.id,
-      requestId: one.requestId,
       kind: one.kind,
       units: one.units,
       at: one.createdAt,
-      ventureId,
       ventureName: nameOf.get(ventureId) ?? "",
     };
   });

@@ -34,3 +34,18 @@
 As the Owner, আবুল হাশেম মিয়া's page on the seed server:
 - **Agreements tab:** Requests on two Ventures, newest first. সই-উত্তর যাচাই ভেঞ্চার (signed, "এসে সই করুন: ৩টি ইউনিট"), then কোরবানি ২০২৭ ভেঞ্চার twice: not this time, with the Owner's line, and an earlier one withdrawn.
 - **Overview:** the portal panel lists "২টি ইউনিট চেয়েছেন", "তুলে নিয়েছেন" and "৪টি ইউনিট চেয়েছেন" on কোরবানি ২০২৭ ভেঞ্চার, with when, under the papers read. The সই-উত্তর Request is not there, rightly: it was inserted into the seed database for the ticket 07 check, not made in the portal.
+
+## Review, 2026-09-25
+
+Fixed after the two reviews:
+- **One Request row, said once.** `request-parts.tsx` holds:
+  - the words and tones for states, close reasons and what they did;
+  - the `#requests` anchor, now used by the Notice's link as well;
+  - `WhatTheyAsked` and `WhereItStands`.
+
+  The Venture's list and the Investor's page both draw a Request from these, so the 45 lines copied from `RequestRow` are gone.
+- **The activity field is `requestChanges`,** since it holds changes, not Requests. The redundant `madeBy` filter is gone: only the Investor ever writes a change, and narrowing to their own Requests is what keeps anybody else's out, as the test shows. The fields the page never read are gone too.
+- **Tests:** a signed-in Investor calling `investors.requests` is refused, as the Manager is. The list's `id` tie-break was proven by flipping it: the same-moment test goes red.
+- **The page:** the Requests section no longer waits on the Agreements query. Its hint key sits with the Investor page's words, not inside the retire group.
+
+These fixes have been typechecked, linted and tested, but not looked at again on screen: the check tab was signed out by the shared localhost cookie.

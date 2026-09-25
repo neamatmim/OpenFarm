@@ -1185,8 +1185,6 @@ export const en = {
   "investors.updated": "The changes are saved",
   "investors.retire": "Retire",
   "investors.retireTitle": "Retire {name}?",
-  "investors.requests.hint":
-    "Every Venture they asked to join through the portal, the newest first, and where each stands.",
   "investors.retireWhy":
     "They come off the people the farm may sign for a Venture. Nothing about them is deleted — their Agreements, payouts and statements are kept — and they can be brought back.",
   "investors.retiredToast": "Retired",
@@ -1217,6 +1215,8 @@ export const en = {
   "investors.page.tab.overview": "Overview",
   "investors.page.tab.agreements": "Agreements",
   "investors.page.tab.money": "Money",
+  "investors.requests.hint":
+    "Every Venture they asked to join through the portal, the newest first, and where each stands.",
   "investors.page.heldNow": "Capital held now",
   "investors.page.onPapers":
     "{count, plural, one {On # Agreement} other {On # Agreements}}",

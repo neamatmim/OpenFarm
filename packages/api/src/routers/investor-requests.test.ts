@@ -147,12 +147,16 @@ describe("an Investor's Requests, on the Owner's page of them", () => {
     );
   });
 
-  it("are the Owner's alone", async () => {
+  it("are the Owner's alone: not the Manager's, and not the Investor's own through this door", async () => {
     const manager = await as("manager");
+    const himself = await signedInAs(karim.loginEmail, at(8));
 
     expect(await refusalOf(manager.investors.requests({ id: karim.id }))).toBe(
       "owner_only"
     );
+    expect(
+      await refusalOf(himself.investors.requests({ id: karim.id }))
+    ).not.toBe("not refused");
   });
 });
 
@@ -163,7 +167,7 @@ describe("what an Investor did to their Requests, in their portal activity", () 
     const activity = await owner.investors.portalActivity({ id: karim.id });
 
     expect(
-      activity?.requested.map((one) => ({
+      activity?.requestChanges.map((one) => ({
         kind: one.kind,
         units: one.units,
         ventureName: one.ventureName,

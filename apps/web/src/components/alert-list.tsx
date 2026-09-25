@@ -16,6 +16,7 @@ import {
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/page";
+import { REQUESTS_ANCHOR } from "@/components/ventures/request-parts";
 import { useLanguage } from "@/i18n/language-provider";
 import { STANDING_ASIDE_WORDS } from "@/lib/correction-refusal";
 import { orpc } from "@/utils/orpc";
@@ -130,7 +131,7 @@ const WhereItLeads = ({
     return ventureId === null ? null : (
       <Link
         className={LEADS_CLASS}
-        hash="requests"
+        hash={REQUESTS_ANCHOR}
         params={{ ventureId }}
         search={{ tab: "investors" }}
         to="/ventures/$ventureId"

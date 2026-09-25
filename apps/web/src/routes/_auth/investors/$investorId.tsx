@@ -170,15 +170,16 @@ const TheInvestor = ({
             label: t("investors.page.tab.agreements"),
             icon: Handshake,
             content: (
-              <Loaded
-                query={theirs}
-                skeleton={<Skeleton className="h-40 rounded-xl" />}
-              >
-                <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4">
+                <Loaded
+                  query={theirs}
+                  skeleton={<Skeleton className="h-40 rounded-xl" />}
+                >
                   <InvestorAgreements agreements={signed} investor={investor} />
-                  <InvestorRequests investorId={investor.id} />
-                </div>
-              </Loaded>
+                </Loaded>
+                {/* Read on its own: somebody may have asked on Ventures they have not signed for. */}
+                <InvestorRequests investorId={investor.id} />
+              </div>
             ),
           },
           {

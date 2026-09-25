@@ -1082,8 +1082,6 @@ export const bn: Record<MessageKey, string> = {
   "investors.updated": "পরিবর্তন সংরক্ষণ হয়েছে",
   "investors.retire": "বাদ দিন",
   "investors.retireTitle": "{name}-কে বাদ দেবেন?",
-  "investors.requests.hint":
-    "পোর্টাল থেকে যত ভেঞ্চারে যোগ দিতে চেয়েছেন, নতুনটি আগে, আর প্রতিটি এখন কোথায়।",
   "investors.retireWhy":
     "খামার তাঁকে আর কোনো ভেঞ্চারে সই করাতে পারবে না। তাঁর কিছুই মুছে যাবে না — চুক্তি, পরিশোধ আর বিবরণী সব থেকে যাবে — আর তাঁকে ফিরিয়ে আনা যাবে।",
   "investors.retiredToast": "বাদ দেওয়া হয়েছে",
@@ -1114,6 +1112,8 @@ export const bn: Record<MessageKey, string> = {
   "investors.page.tab.overview": "সারসংক্ষেপ",
   "investors.page.tab.agreements": "চুক্তি",
   "investors.page.tab.money": "টাকা",
+  "investors.requests.hint":
+    "পোর্টাল থেকে যত ভেঞ্চারে যোগ দিতে চেয়েছেন, নতুনটি আগে, আর প্রতিটি এখন কোথায়।",
   "investors.page.heldNow": "এখন খামারের কাছে মূলধন",
   "investors.page.onPapers": "{count}টি চুক্তিতে",
   "investors.page.inRunning": "চলমান ভেঞ্চারগুলোতে",
