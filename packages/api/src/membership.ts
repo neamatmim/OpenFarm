@@ -473,6 +473,15 @@ const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 8;
 const A_DAY = 24 * 60 * 60 * 1000;
 
+const WHITESPACE = /\s/gu;
+
+/**
+ * What the farm keeps of a code, from however somebody typed it. A code is read out, and the Investor's Code Slip
+ * prints it in two groups of four, so a gap is no part of it; nor is a lower-case letter.
+ */
+export const hashOfCodeAsTyped = (typed: string): Promise<string> =>
+  hashToken(typed.replaceAll(WHITESPACE, "").toUpperCase());
+
 /** A fresh invitation code, and what the farm keeps of it. The code is shown once, to whoever invited them,
  *  to hand over in person; the farm keeps only the hash, so a code is never read back out of it. */
 export const newInviteCode = async (): Promise<{
@@ -484,7 +493,7 @@ export const newInviteCode = async (): Promise<{
     bytes,
     (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]
   ).join("");
-  return { code, codeHash: await hashToken(code) };
+  return { code, codeHash: await hashOfCodeAsTyped(code) };
 };
 
 /** The instant a visit's access ends: the close of its last farm day. A visit ending before today is no visit. */

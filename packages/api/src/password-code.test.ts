@@ -82,6 +82,22 @@ describe("a forgotten password", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
+  it("is taken as it is read out: in two groups of four, and in lower case", async () => {
+    const owner = await createTestClient(appRouter, { as: "owner", clock });
+    const { code } = await owner.client.people.newPasswordCode({ userId });
+
+    await owner.client.people.setPasswordWithCode({
+      email: EMAIL,
+      code: `${code.slice(0, 4)} ${code.slice(4)}`.toLowerCase(),
+      newPassword: "gorur-khamar-2026",
+    });
+
+    const signedIn = await auth.api.signInEmail({
+      body: { email: EMAIL, password: "gorur-khamar-2026" },
+    });
+    expect(signedIn.user.id).toBe(userId);
+  });
+
   it("is only ever issued for somebody who works on this farm", async () => {
     // Somebody with an account and no Role on this farm. Seeded rather than signed up, because the door
     // no longer opens an account for anybody the farm has not asked for.

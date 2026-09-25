@@ -15,7 +15,6 @@ import { audited } from "../audit";
 import { refuseCommonPassword } from "../chosen-password";
 import { correct } from "../corrections/correction";
 import { nameCorrection, nameCorrectionInput } from "../corrections/name";
-import { hashToken } from "../device";
 import { farmDay } from "../farm-clock";
 import { protectedProcedure, publicProcedure } from "../index";
 import {
@@ -32,6 +31,7 @@ import {
   rolesOf,
   setPens,
   setPin,
+  hashOfCodeAsTyped,
   newPasswordCode,
   personByEmail,
   setRoles,
@@ -377,7 +377,7 @@ export const peopleRouter = {
           message: "Too many wrong codes — wait fifteen minutes",
         });
       }
-      const codeHash = await hashToken(input.code.toUpperCase());
+      const codeHash = await hashOfCodeAsTyped(input.code);
       let roles: RoleName[] = [];
       await audited(context).write(
         {
@@ -627,7 +627,7 @@ export const peopleRouter = {
       }
       // Refused before the code is looked at, so a code is never spent on a password that will not be kept.
       refuseCommonPassword(input.newPassword);
-      const codeHash = await hashToken(input.code.toUpperCase());
+      const codeHash = await hashOfCodeAsTyped(input.code);
       const them = await personByEmail(context.db, input.email);
       if (!them) {
         countFailure(guesses, now, CODE_ATTEMPTS);
