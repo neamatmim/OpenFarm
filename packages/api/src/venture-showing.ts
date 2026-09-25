@@ -18,7 +18,8 @@ type ActorContext = Parameters<typeof actOnVenture>[0] & {
 };
 
 /** A Venture past its decide-by day has had its Floor question answered: nothing asked now could change it. */
-const pastDecideBy = (decideBy: string, now: Date) => farmDayOf(now) > decideBy;
+export const pastDecideBy = (decideBy: string, now: Date) =>
+  farmDayOf(now) > decideBy;
 
 /** The Owner's few words on a shown Venture: what it is for, never what it will make. */
 export const portalWords = z.string().max(500).default("");

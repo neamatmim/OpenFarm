@@ -37,6 +37,7 @@ import {
 import { VentureInvestors } from "@/components/ventures/venture-investors";
 import { VentureMoney } from "@/components/ventures/venture-money";
 import { VentureOverview } from "@/components/ventures/venture-overview";
+import { VentureRequests } from "@/components/ventures/venture-requests";
 import { useLanguage } from "@/i18n/language-provider";
 import { onlyFor } from "@/lib/guard";
 import { lastMonth } from "@/lib/months";
@@ -210,7 +211,12 @@ const TheVenture = ({ venture, tab }: { venture: Venture; tab: Tab }) => {
             value: "investors",
             label: t("ventures.page.tab.investors"),
             icon: Users,
-            content: <VentureInvestors acts={acts} venture={venture} />,
+            content: (
+              <div className="flex flex-col gap-4">
+                <VentureInvestors acts={acts} venture={venture} />
+                <VentureRequests venture={venture} />
+              </div>
+            ),
           },
           {
             value: "animals",

@@ -212,6 +212,93 @@ export const investmentAgreement = pgTable(
 );
 
 /**
+ * Where a Request to Join stands. Waiting for the Owner; told to come and sign; told not this time; withdrawn by the
+ * Investor; answered by a signed Agreement; or closed by the farm when the Venture moved on or the Investor was
+ * retired. Never deleted: who asked for what outlives the Venture.
+ */
+export const REQUEST_TO_JOIN_STATES = [
+  "waiting",
+  "come_and_sign",
+  "not_this_time",
+  "withdrawn",
+  "signed",
+  "closed",
+] as const;
+
+/** A Request somebody is still waiting on: at most one of these per Investor per Venture. The domain says both lists
+ *  too, for the screens; a test holds them together. */
+export const LIVE_REQUEST_STATES = ["waiting", "come_and_sign"] as const;
+
+/**
+ * An invited Investor saying, through the portal, that they want to join a Venture the Owner has shown: whole Units
+ * and a note. It binds nobody, holds no Units and moves no money — only a signed Agreement does (ADR 0008).
+ *
+ * Asking again while one is live changes it rather than adding a second; what it said before is in its changes.
+ */
+export const requestToJoin = pgTable(
+  "request_to_join",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    ventureId: text("venture_id")
+      .notNull()
+      .references(() => venture.id, { onDelete: "cascade" }),
+    investorId: text("investor_id")
+      .notNull()
+      .references(() => investor.id),
+    /** Whole Units, as it stands now. */
+    units: integer("units").notNull(),
+    /** The Investor's own words for the Owner, such as when they can pay. */
+    note: text("note"),
+    state: text("state", { enum: REQUEST_TO_JOIN_STATES })
+      .notNull()
+      .default("waiting"),
+    /** The account that asked: the Investor's own, opened from their invitation. */
+    madeBy: text("made_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    index("request_to_join_venture_idx").on(table.farmId, table.ventureId),
+    // One live Request per Investor per Venture: asking again changes it, never piles up a second.
+    uniqueIndex("request_to_join_live_uidx")
+      .on(table.ventureId, table.investorId)
+      .where(
+        sql`${table.state} in (${sql.raw(LIVE_REQUEST_STATES.map((state) => `'${state}'`).join(", "))})`
+      ),
+  ]
+);
+
+/** What an Investor did to their own Request. */
+export const REQUEST_CHANGE_KINDS = ["made", "changed", "withdrawn"] as const;
+
+/**
+ * One thing an Investor did to their Request, with the Units and note as they then were: the history the Owner
+ * reads beneath it, so "I only asked for four" has an answer. Written in the same transaction as its Audit Event.
+ */
+export const requestToJoinChange = pgTable(
+  "request_to_join_change",
+  {
+    id: text("id").primaryKey(),
+    farmId: text("farm_id")
+      .notNull()
+      .references(() => farm.id, { onDelete: "cascade" }),
+    requestId: text("request_id")
+      .notNull()
+      .references(() => requestToJoin.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: REQUEST_CHANGE_KINDS }).notNull(),
+    units: integer("units").notNull(),
+    note: text("note"),
+    madeBy: text("made_by").references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    index("request_to_join_change_idx").on(table.farmId, table.requestId),
+  ]
+);
+
+/**
  * One paper amending a Venture's Agreements: the terms it changed, the day everybody signed it, and the
  * photograph of it.
  *

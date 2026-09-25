@@ -24,6 +24,13 @@ import {
   signInHasRunItsDay,
   takeUpInvitation,
 } from "../portal-store";
+import {
+  askToJoin,
+  requestNote,
+  theirRequests,
+  unitsAsked,
+  withdrawRequest,
+} from "../requests-to-join";
 import { theirAgreements } from "../their-agreements";
 import { openVenturesFor } from "../venture-showing";
 import { theirProgress } from "../venture-herd-store";
@@ -143,6 +150,31 @@ export const portalRouter = {
       context.investor.id,
       context.clock.now()
     )
+  ),
+
+  /**
+   * Asking to join a Venture the farm is showing, for whole Units and a note if they like — or, with a Request still
+   * waiting, changing it. It binds nobody, holds no Units and moves no money: joining is only by signing in person.
+   */
+  requestToJoin: investorProcedure
+    .input(
+      z.object({ ventureId: z.string(), units: unitsAsked, note: requestNote })
+    )
+    .handler(({ context, input }) =>
+      askToJoin(context, context.investor.id, input)
+    ),
+
+  /** Withdrawing their own Request, which nobody is held to. */
+  withdrawRequest: investorProcedure
+    .input(z.object({ requestId: z.string() }))
+    .handler(async ({ context, input }) => {
+      await withdrawRequest(context, context.investor.id, input.requestId);
+      return { id: input.requestId };
+    }),
+
+  /** Their own Requests to Join, the latest first, and where each stands. Never anybody else's. */
+  myRequests: investorProcedure.handler(({ context }) =>
+    theirRequests(context.db, context.farm.id, context.investor.id)
   ),
 
   /** Where they are signed in to the portal now, the one they are reading on marked, so they can sign the rest

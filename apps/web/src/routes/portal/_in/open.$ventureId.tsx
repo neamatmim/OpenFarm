@@ -16,6 +16,7 @@ import {
 } from "@/components/page";
 import type { OpenVenture } from "@/components/portal/open-ventures";
 import { Fact } from "@/components/portal/open-ventures";
+import { AskToJoin } from "@/components/portal/requests-to-join";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
 import { orpc } from "@/utils/orpc";
@@ -91,8 +92,8 @@ const TheOffer = ({ one }: { one: OpenVenture }) => {
   );
 };
 
-/** One Venture the farm is raising capital for, by its address; one no longer offered opens nothing but a way
- *  back. */
+/** One Venture the farm is raising capital for, by its address, with the Investor's own Request to Join beneath it;
+ *  one no longer offered opens nothing but a way back. */
 const OpenVenturePage = () => {
   const { t } = useLanguage();
   const { ventureId } = Route.useParams();
@@ -112,7 +113,10 @@ const OpenVenturePage = () => {
         skeleton={<Skeleton className="h-64 rounded-xl" />}
       >
         {one ? (
-          <TheOffer one={one} />
+          <>
+            <TheOffer one={one} />
+            <AskToJoin one={one} />
+          </>
         ) : (
           <EmptyState icon={Sprout} title={t("portal.open.notFound")} />
         )}

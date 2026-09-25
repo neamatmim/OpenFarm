@@ -419,6 +419,13 @@ export {
   splitOfProfit,
 } from "./venture";
 export type { Split, ToSplit } from "./venture";
+export type { RequestToJoinState } from "./request-to-join";
+export {
+  LIVE_REQUEST_STATES,
+  REQUEST_NOTE_MOST,
+  REQUEST_TO_JOIN_STATES,
+  isLiveRequest,
+} from "./request-to-join";
 export type {
   EndedState,
   RunningState,

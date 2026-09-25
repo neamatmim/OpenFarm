@@ -18,6 +18,7 @@ import {
   CapitalAccount,
 } from "@/components/portal/capital-account";
 import { OpenVenturesOnHome } from "@/components/portal/open-ventures";
+import { TheirRequestsOnHome } from "@/components/portal/requests-to-join";
 import { StageMeter } from "@/components/portal/stage-meter";
 import { useLanguage } from "@/i18n/language-provider";
 import { useTaka } from "@/lib/taka";
@@ -132,7 +133,8 @@ const Portfolio = ({ theirs }: { theirs: TheirAgreements }) => {
   );
 };
 
-/** An Investor's home in the portal: what their money comes to, where it is, and each Venture it is in. */
+/** An Investor's home in the portal: what their money comes to, where it is, each Venture it is in, and what they
+ *  have asked to join. */
 const PortalHome = () => {
   const { t } = useLanguage();
   const theirs = useQuery(orpc.portal.portfolio.queryOptions());
@@ -148,6 +150,7 @@ const PortalHome = () => {
       >
         {theirs.data ? <Portfolio theirs={theirs.data} /> : null}
       </Loaded>
+      <TheirRequestsOnHome />
       <OpenVenturesOnHome />
     </Page>
   );
