@@ -20,4 +20,4 @@ The Personal Data Protection Act 2026 asks for consent the farm can **prove** (s
 - **The nominee:** whether the Investor answers for them, and what happens when the nominee is under 18 (s.9).
 - **Withdrawal:** what it does in OpenFarm, which is taking their access away, and what it cannot do.
 
-The answer shapes the welcome sheet (ticket 04), the notice (ticket 06) and the lawyer's questions (ticket 07).
+The answer may add a consent line or form to the Welcome Letter (ticket 04, done), the notice (ticket 06) and the lawyer's questions (ticket 07).
