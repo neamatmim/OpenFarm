@@ -4,7 +4,7 @@ Status: open
 
 Type: task
 
-Blocked by: 08 (03, 06 done)
+Blocked by: — (03, 06, 08 done)
 
 Map: [OpenFarm investor portal: the first real Investor in](../map.md)
 
@@ -22,7 +22,9 @@ The agent's part, done AFK before the meeting:
 - extend ticket 11's lawyer checklist with the portal's specific questions
 - print a one-page summary of the portal for the lawyer, into `assets/`.
 - carry over the data-protection research's seven questions (section 14), including the two it flagged: whether the National Data Management Act's s.42 fine applies now, and whether a Singapore server is a transfer abroad under s.29
-- add the consent sheet, if ticket 08 settles on paper.
+- add the consent sheet. Ticket 08 settled on paper: draft the Portal Consent sheet (সম্মতিপত্র) naming the three things, how to withdraw and what withdrawing does
+- draft the Investment Agreement's data clause and its nominee lines (under 18: signed as parent or guardian) as a new Template Version, for the lawyer to approve
+- add to the checklist: whether the contract (s.5(3)(ক), s.29(3)) is enough ground for the records while consent covers the portal, and s.40 for any Investor signed before the clause.
 
 **Joining and paying through the portal** (asked by the Owner, 2026-09-25, and held back until these are answered). The same questions go on ticket 11's checklist:
 

@@ -131,5 +131,5 @@
 
 ## Not in this text, on purpose
 
-- **Consent itself:** how it is taken and proven is decided on [How an Investor's consent is taken and proven](../issues/08-how-an-investors-consent-is-taken-and-proven.md). That ticket may add a line here about the nominee (s.9) and about what withdrawing means.
+- **Consent itself:** decided on [How an Investor's consent is taken and proven](../issues/08-how-an-investors-consent-is-taken-and-proven.md). It is a signed Portal Consent sheet for the portal, and a data clause with the nominee lines in the Investment Agreement. This notice is handed to every Investor at signing, not only to those invited, so its "why" already covers both.
 - **A breach plan:** still in the map's Not yet specified. Once it exists, a line may say how the Investor is told of a breach.
