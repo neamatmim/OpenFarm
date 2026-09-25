@@ -71,7 +71,45 @@ export interface VentureRow {
   cancelledReason: string | null;
   shownInPortalAt: Date | null;
   portalWords: string | null;
+  accountBank: string | null;
+  accountBranch: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+  accountRoutingNumber: string | null;
 }
+
+/** The Venture Account as the Owner wrote it: where a signed Investor pays. */
+export interface VentureAccount {
+  bank: string;
+  branch: string | null;
+  accountName: string;
+  accountNumber: string;
+  routingNumber: string | null;
+}
+
+/**
+ * The Venture Account written on a Venture, or nothing until it is one somebody could pay into — the bank, the
+ * account's name and its number. Read the same way for the Owner's page and for a signed Investor's "how to pay".
+ */
+export const accountOf = (
+  row: Pick<
+    VentureRow,
+    | "accountBank"
+    | "accountBranch"
+    | "accountName"
+    | "accountNumber"
+    | "accountRoutingNumber"
+  >
+): VentureAccount | null =>
+  row.accountBank && row.accountName && row.accountNumber
+    ? {
+        bank: row.accountBank,
+        branch: row.accountBranch,
+        accountName: row.accountName,
+        accountNumber: row.accountNumber,
+        routingNumber: row.accountRoutingNumber,
+      }
+    : null;
 
 /** What has been signed for a Venture: the Units spoken for, and how many people hold them. */
 export interface SignedFor {
@@ -254,6 +292,9 @@ export const ventureView = (
     /** Whether invited Investors are offered it in the portal, and the Owner's words on it there (ADR 0008). */
     shownInPortal: row.shownInPortalAt !== null,
     portalWords: row.portalWords,
+    /** The Venture Account's bank details, once the Owner has written them. The Owner's to read; an Investor is shown
+     *  them only on an Agreement they signed. */
+    account: accountOf(row),
   };
 };
 

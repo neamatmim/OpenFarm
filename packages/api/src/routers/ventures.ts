@@ -764,6 +764,53 @@ export const venturesRouter = {
     }),
 
   /**
+   * The Venture Account's bank details, written on the Venture: where a signed Investor is told to pay (ADR 0008).
+   * The Owner's alone, because whoever writes these decides where the Investors' money goes, and every change is an
+   * Audit Event keeping what they said before — nobody quietly redirects an Investor's money. The bank, the account's
+   * name and its number are asked for; the branch and routing number may be written later.
+   */
+  setBankAccount: protectedProcedure
+    .use(requireOnly("owner", OWNER_ONLY))
+    .use(requirePersonalSession())
+    .input(
+      z.object({
+        id: z.string(),
+        bank: z.string().trim().min(1).max(120),
+        branch: z.string().trim().max(120).default(""),
+        accountName: z.string().trim().min(1).max(120),
+        accountNumber: z.string().trim().min(1).max(40),
+        routingNumber: z.string().trim().max(20).default(""),
+      })
+    )
+    .handler(async ({ context, input }) => {
+      const row = await ours(context, input.id);
+      await audited(context).write(
+        {
+          entity: "venture",
+          entityId: row.id,
+          action: "update",
+          before: (tx) => readVenture(tx, context.farm.id, row.id),
+          after: (tx) => readVenture(tx, context.farm.id, row.id),
+        },
+        (tx) =>
+          tx
+            .update(venture)
+            .set({
+              accountBank: input.bank,
+              accountBranch: input.branch === "" ? null : input.branch,
+              accountName: input.accountName,
+              accountNumber: input.accountNumber,
+              accountRoutingNumber:
+                input.routingNumber === "" ? null : input.routingNumber,
+            })
+            .where(
+              and(eq(venture.id, row.id), eq(venture.farmId, context.farm.id))
+            )
+      );
+      return { id: row.id };
+    }),
+
+  /**
    * A Venture's Requests to Join, each with its history beneath it, and beside them the Units signed and the Units
    * asked for and waiting — the Owner's to read, and nobody else's.
    */

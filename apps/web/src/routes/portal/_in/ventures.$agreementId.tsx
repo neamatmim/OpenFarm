@@ -18,6 +18,7 @@ import { Nothing, SaidDate } from "@/components/list-cells";
 import { Loaded, Page, PageHeader, Section } from "@/components/page";
 import type { Figure } from "@/components/page-kit";
 import { PageTabs, SummaryFigures } from "@/components/page-kit";
+import { HowToPay } from "@/components/portal/how-to-pay";
 import { PortalPapers } from "@/components/portal/portal-papers";
 import { StageTrack } from "@/components/ventures/stage-track";
 import { useLanguage } from "@/i18n/language-provider";
@@ -367,6 +368,8 @@ const VentureToday = ({ today, tab }: { today: Today; tab: Tab }) => {
       />
       <StageTrack state={today.venture.state} />
       <SummaryFigures figures={figures} />
+      {/* While their capital is owed. An answer this phone kept from before the farm said where to pay has none. */}
+      <HowToPay paying={today.howToPay ?? null} />
       <PageTabs
         onChange={(value) =>
           navigate({

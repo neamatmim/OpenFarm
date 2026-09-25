@@ -67,6 +67,14 @@ export const venture = pgTable(
     shownInPortalAt: timestamp("shown_in_portal_at"),
     /** The Owner's few words on it for the portal, beside its terms. */
     portalWords: text("portal_words"),
+    /** The Venture Account, as the Owner writes it: where a signed Investor is told to pay. The bank, the account's
+     *  name and its number make it an account one can pay into; the branch and routing number may come later. Written
+     *  by the Owner alone, each change in the trail, and shown to an Investor only for capital they have signed for. */
+    accountBank: text("account_bank"),
+    accountBranch: text("account_branch"),
+    accountName: text("account_name"),
+    accountNumber: text("account_number"),
+    accountRoutingNumber: text("account_routing_number"),
     openedBy: text("opened_by").references(() => user.id),
     openedByRole: text("opened_by_role", { enum: ROLES }).notNull(),
     createdAt: timestamp("created_at").notNull(),
