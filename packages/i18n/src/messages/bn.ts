@@ -637,6 +637,13 @@ export const bn: Record<MessageKey, string> = {
   "ventures.reference": "ব্যাংক রেফারেন্স",
   "ventures.referenceHint": "ট্রান্সফার, চেক বা জমার স্লিপ আর তার নম্বর",
   "ventures.payInCodeIs": "জমার কোড {code}",
+  "ventures.signAnswers": "কোন অনুরোধের উত্তর",
+  "ventures.signNoRequest":
+    "কোনোটি নয় — অন্যভাবে যোগ দিয়েছেন (তবু অনুরোধটি সই হয়েছে দেখাবে)",
+  "ventures.signAnswersYes": "আপনার হ্যাঁ: {units} ইউনিটে সই করতে আসুন",
+  "ventures.signAnswersWaiting":
+    "তাঁর {units} ইউনিটের অনুরোধ, এখনো উত্তর দেওয়া হয়নি",
+  "ventures.signRequestHint": "অনুরোধের সাথে না মিললেও কাগজের ইউনিটই থাকবে",
   "ventures.signedWithCode": "চুক্তি লেখা হয়েছে। জমার কোড {code}",
   "ventures.payInCodeHint":
     "বিনিয়োগকারীকে দিন, ট্রান্সফারে লিখবেন — তাতে বোঝা যাবে টাকাটা কার",
@@ -1986,6 +1993,8 @@ export const bn: Record<MessageKey, string> = {
   "refusal.unitsBeyondPromisable": "প্রতিশ্রুতি দেওয়ার মতো এত ইউনিট বাকি নেই",
   "refusal.requestAlreadyAnswered": "এই অনুরোধের উত্তর আগেই দেওয়া হয়েছে",
   "refusal.requestNotLive": "এই অনুরোধ আর অপেক্ষায় নেই",
+  "refusal.requestNotTheirs": "এই অনুরোধ অন্য বিনিয়োগকারীর, বা অন্য ভেঞ্চারের",
+  "refusal.noSuchRequest": "এমন কোনো অনুরোধ নেই",
   "refusal.ventureUnderFloor": "ভেঞ্চারে এখনো সর্বনিম্ন সীমার কম টাকা উঠেছে",
   "refusal.ventureFloorOverTarget": "সর্বনিম্ন সীমা লক্ষ্যের চেয়ে বেশি হতে পারে না",
   "refusal.ventureFloorOverUnits":

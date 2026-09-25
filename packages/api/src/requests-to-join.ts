@@ -43,6 +43,20 @@ export const unitsAsked = z.number().int().min(1);
 /** The Investor's few words for the Owner, such as when they can pay. */
 export const requestNote = z.string().trim().max(REQUEST_NOTE_MOST).default("");
 
+/** A Request that is not this farm's, or not there at all: somebody else's is no such Request to anybody who asks. */
+const noSuchRequest = () =>
+  new ORPCError("NOT_FOUND", {
+    message: "No such request",
+    data: { refusal: "no_such_request" },
+  });
+
+/** A Request withdrawn, answered no, signed or closed: there is nothing left to do to it. */
+const requestNotLive = () =>
+  new ORPCError("BAD_REQUEST", {
+    message: "This Request is not waiting on anybody any more",
+    data: { refusal: "request_not_live" },
+  });
+
 /** The one live Request an Investor has on a Venture, if any. */
 const liveRequestOf = (
   db: Pick<Tx, "query">,
@@ -255,10 +269,7 @@ export const withdrawRequest = async (
     columns: { ventureId: true },
   });
   if (!theirs) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "No such request",
-      data: { refusal: "no_such_request" },
-    });
+    throw noSuchRequest();
   }
   await actOnVenture(context, {
     ventureId: theirs.ventureId,
@@ -277,10 +288,7 @@ export const withdrawRequest = async (
         where: { id: requestId, farmId },
       });
       if (!(standing && isLiveRequest(standing.state))) {
-        throw new ORPCError("BAD_REQUEST", {
-          message: "This Request is not waiting on anybody any more",
-          data: { refusal: "request_not_live" },
-        });
+        throw requestNotLive();
       }
       await tx
         .update(requestToJoin)
@@ -371,6 +379,92 @@ export const closeRequests = async (
     );
   }
   return live.length;
+};
+
+/** A live Request marked signed, its Notice taken off the Owner's list and an Audit Event beside it, on the signing's
+ *  own transaction. */
+const markSigned = async (
+  tx: Tx,
+  trail: Trail,
+  farmId: string,
+  request: { id: string; ventureId: string },
+  now: Date
+): Promise<void> => {
+  const before = await readRequest(tx, farmId, request.id);
+  await tx
+    .update(requestToJoin)
+    .set({ state: "signed" })
+    // Only while still live, as a close is: the Farm lock means nothing should have moved it since it was read, but a
+    // signing must never write over a withdrawal or an answer.
+    .where(
+      and(
+        eq(requestToJoin.id, request.id),
+        inArray(requestToJoin.state, [...LIVE_REQUEST_STATES])
+      )
+    );
+  await settleTheRequestNotice(
+    tx,
+    farmId,
+    { ventureId: request.ventureId, requestId: request.id },
+    now
+  );
+  await trail(
+    tx,
+    { entity: "request_to_join", entityId: request.id, action: "update" },
+    { before, after: await readRequest(tx, farmId, request.id) }
+  );
+};
+
+/**
+ * What a signing does to the Investor's Request on the Venture, in the signing's own transaction and behind the Farm
+ * lock it holds. The Request it names is checked to be that Investor's live Request on that Venture, then reads
+ * signed. Naming none — somebody signed by phone — still answers a Request they had live, because a yes left live would
+ * go on telling them the farm will sign with them, and a waiting one would keep its Notice on the Owner's list, for a
+ * Request nothing can answer now (the Owner's decision of 2026-09-25). The paper's Units are the Agreement's whatever
+ * the Request or its yes said, so nothing here reads them.
+ */
+export const answerBySigning = async (
+  tx: Tx,
+  trail: Trail,
+  farmId: string,
+  signing: { requestId?: string; ventureId: string; investorId: string },
+  now: Date
+): Promise<void> => {
+  if (signing.requestId === undefined) {
+    const live = await liveRequestOf(
+      tx,
+      farmId,
+      signing.ventureId,
+      signing.investorId
+    );
+    if (live) {
+      await markSigned(tx, trail, farmId, live, now);
+    }
+    return;
+  }
+  const named = await readRequest(tx, farmId, signing.requestId);
+  if (!named) {
+    throw noSuchRequest();
+  }
+  if (
+    named.investorId !== signing.investorId ||
+    named.ventureId !== signing.ventureId
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "This Request is another Investor's, or on another Venture",
+      data: { refusal: "request_not_theirs" },
+    });
+  }
+  if (!isLiveRequest(named.state)) {
+    throw requestNotLive();
+  }
+  await markSigned(
+    tx,
+    trail,
+    farmId,
+    { id: signing.requestId, ventureId: signing.ventureId },
+    now
+  );
 };
 
 /** Each Request's changes, oldest first, by the Request. */
@@ -589,10 +683,7 @@ export const answerRequest = async (
     columns: { ventureId: true },
   });
   if (!theRequest) {
-    throw new ORPCError("NOT_FOUND", {
-      message: "No such request",
-      data: { refusal: "no_such_request" },
-    });
+    throw noSuchRequest();
   }
   let ifYes: IfYes | null = null;
   await actOnVenture(context, {
@@ -617,10 +708,7 @@ export const answerRequest = async (
               message: "This Request has been answered already",
               data: { refusal: "request_already_answered" },
             })
-          : new ORPCError("BAD_REQUEST", {
-              message: "This Request is not waiting on anybody any more",
-              data: { refusal: "request_not_live" },
-            });
+          : requestNotLive();
       }
       if (answer.kind === "not_this_time") {
         await tx
@@ -766,12 +854,30 @@ export const theirRequests = async (
     farmId,
     rows.map((one) => one.id)
   );
+  // Their own Agreements on these Ventures, read through the same narrowing: nobody else's paper is in hand. One per
+  // Venture, so a signed Request leads to it whether the paper named the Request or it was signed by phone.
+  const signedOn = await db.query.investmentAgreement.findMany({
+    where: {
+      farmId,
+      investorId,
+      ventureId: { in: [...new Set(rows.map((one) => one.ventureId))] },
+    },
+    columns: { id: true, ventureId: true },
+  });
+  const agreementOn = new Map(
+    signedOn.map((one) => [one.ventureId, one.id] as const)
+  );
   return rows.map((one) => {
     const run = ventureOf.get(one.ventureId);
     return {
       ...readAs(one, run?.unitPriceBdt ?? 0, changes.get(one.id) ?? []),
       ventureId: one.ventureId,
       ventureName: run?.name ?? "",
+      /** The Agreement that answered it, for one signed: where their page leads. */
+      agreementId:
+        one.state === "signed"
+          ? (agreementOn.get(one.ventureId) ?? null)
+          : null,
     };
   });
 };

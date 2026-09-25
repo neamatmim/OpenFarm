@@ -690,6 +690,16 @@ export const en = {
     "The transfer, cheque or deposit slip, and what it is numbered",
   /** The code one Agreement is given for its Investor to write on the transfer. Never the bank's reference. */
   "ventures.payInCodeIs": "Pay-in Code {code}",
+  /** The Request to Join a paper answers, chosen on the sign form. */
+  "ventures.signAnswers": "Answers their request",
+  "ventures.signNoRequest":
+    "None — they joined another way (the request still reads signed)",
+  "ventures.signAnswersYes":
+    "Your yes: come and sign for {units, plural, one {# Unit} other {# Units}}",
+  "ventures.signAnswersWaiting":
+    "Their request for {units, plural, one {# Unit} other {# Units}}, not answered yet",
+  "ventures.signRequestHint":
+    "The Units on the paper stand, even where they differ from the request",
   "ventures.signedWithCode":
     "The Agreement is recorded. Its Pay-in Code is {code}",
   "ventures.payInCodeHint":
@@ -2124,6 +2134,9 @@ export const en = {
   "refusal.unitsBeyondPromisable": "More Units than are left to promise",
   "refusal.requestAlreadyAnswered": "This request has been answered already",
   "refusal.requestNotLive": "This request is no longer waiting",
+  "refusal.requestNotTheirs":
+    "This request is another Investor's, or on another Venture",
+  "refusal.noSuchRequest": "There is no such request",
   "refusal.ventureUnderFloor":
     "The Venture holds less than the Floor it was opened on",
   "refusal.ventureFloorOverTarget":
